@@ -1,6 +1,6 @@
 working on it...
 
-`poe` (use like openai pypi package) - gpt-4
+### `poe` (use like openai pypi package) - gpt-4
 
 Import poe:
 
@@ -35,10 +35,15 @@ response = poe.Completion.create(model  = 'gpt-4',
     prompt = 'hello world',
     token  = token)
 
-print(response.completion.choices[0].text)
-```
+print(response.completion.choices[0].text)    
+```     
 
-`t3nsor` (use like openai pypi package)
+
+
+
+
+
+### `t3nsor` (use like openai pypi package)   
 
 Import t3nsor:
 
