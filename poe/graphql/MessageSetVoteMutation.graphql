@@ -1,0 +1,7 @@
+mutation MessageSetVoteMutation($messageId: BigInt!, $voteType: VoteType!, $reason: String) {
+	messageSetVote(messageId: $messageId, voteType: $voteType, reason: $reason) {
+		message {
+			...MessageFragment
+		}
+	}
+}

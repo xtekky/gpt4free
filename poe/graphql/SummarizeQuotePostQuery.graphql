@@ -1,0 +1,3 @@
+query SummarizeQuotePostQuery($comment: String, $quotedPostId: BigInt!) {
+    summarizeQuotePost(comment: $comment, quotedPostId: $quotedPostId)
+}

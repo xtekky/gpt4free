@@ -1,0 +1,8 @@
+fragment BioFragment on Viewer {
+    id
+    poeUser {
+        id
+        uid
+        bio
+    }
+}

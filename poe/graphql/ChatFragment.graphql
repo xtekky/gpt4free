@@ -1,0 +1,6 @@
+fragment ChatFragment on Chat {
+    id
+    chatId
+    defaultBotNickname
+    shouldShowDisclaimer
+}

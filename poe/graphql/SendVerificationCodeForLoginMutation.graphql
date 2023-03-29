@@ -1,0 +1,12 @@
+mutation SendVerificationCodeForLoginMutation(
+    $emailAddress: String
+    $phoneNumber: String
+) {
+    sendVerificationCode(
+        verificationReason: login
+        emailAddress: $emailAddress
+        phoneNumber: $phoneNumber
+    ) {
+        status
+    }
+}

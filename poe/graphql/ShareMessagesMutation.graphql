@@ -1,0 +1,9 @@
+mutation ShareMessagesMutation(
+    $chatId: BigInt!
+    $messageIds: [BigInt!]!
+    $comment: String
+) {
+    messagesShare(chatId: $chatId, messageIds: $messageIds, comment: $comment) {
+        shareCode
+    }
+}

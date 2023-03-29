@@ -1,0 +1,13 @@
+fragment MessageFragment on Message {
+    id
+    __typename
+    messageId
+    text
+    linkifiedText
+    authorNickname
+    state
+    vote
+    voteReason
+    creationTime
+    suggestedReplies
+}

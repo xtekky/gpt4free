@@ -1,0 +1,7 @@
+mutation DeleteHumanMessagesMutation($messageIds: [BigInt!]!) {
+    messagesDelete(messageIds: $messageIds) {
+        viewer {
+            id
+        }
+    }
+}

@@ -1,0 +1,7 @@
+mutation MessageRemoveVoteMutation($messageId: BigInt!) {
+	messageRemoveVote(messageId: $messageId) {
+		message {
+			...MessageFragment
+		}
+	}
+}

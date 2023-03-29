@@ -1,0 +1,17 @@
+mutation AddMessageBreakMutation($chatId: BigInt!) {
+    messageBreakCreate(chatId: $chatId) {
+        message {
+            id
+            __typename
+            messageId
+            text
+            linkifiedText
+            authorNickname
+            state
+            vote
+            voteReason
+            creationTime
+            suggestedReplies
+        }
+    }
+}

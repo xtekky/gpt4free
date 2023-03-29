@@ -1,0 +1,30 @@
+fragment ViewerStateFragment on Viewer {
+    id
+    __typename
+    iosMinSupportedVersion: integerGate(gateName: "poe_ios_min_supported_version")
+    iosMinEncouragedVersion: integerGate(
+        gateName: "poe_ios_min_encouraged_version"
+    )
+    macosMinSupportedVersion: integerGate(
+        gateName: "poe_macos_min_supported_version"
+    )
+    macosMinEncouragedVersion: integerGate(
+        gateName: "poe_macos_min_encouraged_version"
+    )
+    showPoeDebugPanel: booleanGate(gateName: "poe_show_debug_panel")
+    enableCommunityFeed: booleanGate(gateName: "enable_poe_shares_feed")
+    linkifyText: booleanGate(gateName: "poe_linkify_response")
+    enableSuggestedReplies: booleanGate(gateName: "poe_suggested_replies")
+    removeInviteLimit: booleanGate(gateName: "poe_remove_invite_limit")
+    enableInAppPurchases: booleanGate(gateName: "poe_enable_in_app_purchases")
+    availableBots {
+        nickname
+        displayName
+        profilePicture
+        isDown
+        disclaimer
+        subtitle
+        poweredBy
+    }
+}
+

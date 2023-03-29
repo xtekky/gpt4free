@@ -1,0 +1,21 @@
+query ViewerInfoQuery {
+    viewer {
+        id
+        uid
+        ...ViewerStateFragment
+        ...BioFragment
+        ...HandleFragment
+        hasCompletedMultiplayerNux
+        poeUser {
+            id
+            ...UserSnippetFragment
+        }
+        messageLimit{
+            canSend
+            numMessagesRemaining
+            resetTime
+            shouldShowReminder
+        }
+    }
+}
+
