@@ -1,4 +1,21 @@
-working on it...
+working on it
+### !! important !!
+if you find any site that proposes free language models, make a suggestion and I will reverse engineer it and add it to this repo
+
+current sites (some already on this repo, some I am working on):
+
+- ora.sh (gpt 3.5)
+- nat.dev (paid now, looking for bypass) (gpt 4/3.5)
+- poe.com (gpt 4/3.5)
+- writesonic.com (gpt 3.5 / internet)
+- t3nsor.com (gpt 3.5)
+
+these sites are all accesible without auth
+sites with auth (will reverse but need account):
+
+- chat.openai.com/chat
+- bard.google.com
+- bing.com/chat
 
 ### `poe` (use like openai pypi package) - gpt-4
 
