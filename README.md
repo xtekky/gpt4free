@@ -1,21 +1,22 @@
-working on it   
+# Free LLM Api's
 
+**Important:** If you come across any website offering free language models, please create an issue or submit a pull request with the details. We will reverse engineer it and add it to this repository.
 
-#### !! important - if you find any site that proposes free language models, make a suggestion and I will reverse engineer it and add it to this repo
+This repository contains reverse engineered language models from various sources. Some of these models are already available in the repo, while others are currently being worked on.
 
-**current sites (no auth/easy acc creation) (some already on this repo, some I am working on):**
+### Current Sites (No Authentication / Easy Account Creation)
 
-- ora.sh (gpt 3.5)
-- nat.dev (paid now, looking for bypass) (gpt 4/3.5)
-- poe.com (gpt 4/3.5)
-- writesonic.com (gpt 3.5 / internet)
-- t3nsor.com (gpt 3.5)
+- [ora.sh](https://ora.sh) (GPT-3.5)
+- [nat.dev](https://nat.dev) (Paid now, looking for bypass) (GPT-4/3.5)
+- [poe.com](https://poe.com) (GPT-4/3.5)
+- [writesonic.com](https://writesonic.com) (GPT-3.5 / Internet)
+- [t3nsor.com](https://t3nsor.com) (GPT-3.5)
 
-**sites with auth (will reverse but need account):**
+### Sites with Authentication (Will Reverse Engineer but Need Account Access)
 
-- chat.openai.com/chat
-- bard.google.com
-- bing.com/chat
+- [chat.openai.com/chat](https://chat.openai.com/chat)
+- [bard.google.com](https://bard.google.com)
+- [bing.com/chat](https://bing.com/chat)
 
 ### `poe` (use like openai pypi package) - gpt-4
 
