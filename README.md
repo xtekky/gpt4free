@@ -1,42 +1,59 @@
-# Free LLM Api's
+# Free LLM APIs
 
-**Important:** If you come across any website offering free language models, please create an issue or submit a pull request with the details. We will reverse engineer it and add it to this repository.
+This repository provides reverse-engineered language models from various sources. Some of these models are already available in the repo, while others are currently being worked on.
 
-This repository contains reverse engineered language models from various sources. Some of these models are already available in the repo, while others are currently being worked on.
+> **Important:** If you come across any website offering free language models, please create an issue or submit a pull request with the details. We will reverse engineer it and add it to this repository.
 
-### Current Sites (No Authentication / Easy Account Creation)
+## Table of Contents
 
-- [ora.sh](https://ora.sh) (GPT-3.5)
-- [nat.dev](https://nat.dev) (Paid now, looking for bypass) (GPT-4/3.5)
-- [poe.com](https://poe.com) (GPT-4/3.5)
-- [writesonic.com](https://writesonic.com) (GPT-3.5 / Internet)
-- [t3nsor.com](https://t3nsor.com) (GPT-3.5)
+- [Current Sites (No Authentication / Easy Account Creation)](#current-sites)
+- [Sites with Authentication (Will Reverse Engineer but Need Account Access)](#sites-with-authentication)
+- [Usage Examples](#usage-examples)
+  - [`poe`](#example-poe)
+  - [`t3nsor`](#example-t3nsor)
+  - [`ora`](#example-ora)
 
-### Sites with Authentication (Will Reverse Engineer but Need Account Access)
+## Current Sites <a name="current-sites"></a>
 
-- [chat.openai.com/chat](https://chat.openai.com/chat)
-- [bard.google.com](https://bard.google.com)
-- [bing.com/chat](https://bing.com/chat)
+| Website                    | Model(s)             |
+| -------------------------- | -------------------- |
+| [ora.sh](https://ora.sh)   | GPT-3.5              |
+| [nat.dev](https://nat.dev) | GPT-4/3.5 (paid now, looking for bypass)|
+| [poe.com](https://poe.com) | GPT-4/3.5            |
+| [writesonic.com](https://writesonic.com)|GPT-3.5 / Internet|
+|[t3nsor.com](https://t3nsor.com)|GPT-3.5|
 
-### `poe` (use like openai pypi package) - gpt-4
+## Sites with Authentication <a name="sites-with-authentication"></a>
 
-Import poe:
+These sites will be reverse engineered but need account access:
+
+* [chat.openai.com/chat](https://chat.openai.com/chat)
+* [bard.google.com](https://bard.google.com)
+* [bing.com/chat](https://bing.com/chat)
+
+## Usage Examples <a name="usage-examples"></a>
+
+### Example: `poe` (use like openai pypi package) - GPT-4 <a name="example-poe"></a>
 
 ```python
+# Import poe
 import poe
 
 # poe.Account.create
 # poe.Completion.create
 # poe.StreamCompletion.create
+
+[...]
+
 ```
 
-Create Token (3-6s)
+#### Create Token (3-6s)
 ```python
 token = poe.Account.create(logging = True)
 print('token', token)
 ```
 
-Streaming Response
+#### Streaming Response
 ```python
 
 for response in poe.StreamingCompletion.create(model  = 'gpt-4',
@@ -46,7 +63,7 @@ for response in poe.StreamingCompletion.create(model  = 'gpt-4',
     print(response.completion.choices[0].text, end="", flush=True)
 ```
 
-Normal Response:
+#### Normal Response:
 ```python
 
 response = poe.Completion.create(model  = 'gpt-4',
@@ -58,21 +75,20 @@ print(response.completion.choices[0].text)
 
 
 
-
-
-
-### `t3nsor` (use like openai pypi package)   
-
-Import t3nsor:
+### Example: `t3nsor` (use like openai pypi package) <a name="example-t3nsor"></a>
 
 ```python
+# Import t3nsor
 import t3nsor
 
 # t3nsor.Completion.create
 # t3nsor.StreamCompletion.create
+
+[...]
+
 ```
 
-Example Chatbot
+#### Example Chatbot
 ```python
 messages = []
 
@@ -92,7 +108,7 @@ while True:
     ])
 ```
 
-Streaming Response:
+#### Streaming Response:
 
 ```python
 for response in t3nsor.StreamCompletion.create(
@@ -102,9 +118,17 @@ for response in t3nsor.StreamCompletion.create(
     print(response.completion.choices[0].text)
 ```
 
-### `ora` (use like openai pypi package)   
+### Example: `ora` (use like openai pypi package) <a name="example-ora"></a>
 
-example: 
+```python
+# import ora
+import ora
+
+[...]
+
+```
+
+#### create model / chatbot: 
 ```python
 # inport ora
 import ora
@@ -134,9 +158,21 @@ while True:
     print(response.completion.choices[0].text)
 ```
 
+## Dependencies
 
+The repository is written in Python and requires the following packages:
 
+* websocket-client
+* requests
+* tls-client
 
+You can install these packages using the provided `requirements.txt` file.
 
+## Repository structure:
 
-
+    .
+    ├── ora/
+    ├── poe/
+    ├── t3nsor/
+    ├── README.md  <-- this file.
+    └── requirements.txt
