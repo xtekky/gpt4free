@@ -104,7 +104,7 @@ for response in t3nsor.StreamCompletion.create(
 ### `ora` (use like openai pypi package)   
 
 example: 
-```
+```python
 # inport ora
 import ora
 
