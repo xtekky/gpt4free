@@ -1,0 +1,40 @@
+mutation chatHelpers_sendMessageMutation_Mutation(
+  $chatId: BigInt!
+  $bot: String!
+  $query: String!
+  $source: MessageSource
+  $withChatBreak: Boolean!
+) {
+  messageEdgeCreate(chatId: $chatId, bot: $bot, query: $query, source: $source, withChatBreak: $withChatBreak) {
+    chatBreak {
+      cursor
+      node {
+        id
+        messageId
+        text
+        author
+        suggestedReplies
+        creationTime
+        state
+      }
+      id
+    }
+    message {
+      cursor
+      node {
+        id
+        messageId
+        text
+        author
+        suggestedReplies
+        creationTime
+        state
+        chat {
+          shouldShowDisclaimer
+          id
+        }
+      }
+      id
+    }
+  }
+}

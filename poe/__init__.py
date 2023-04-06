@@ -1,6 +1,6 @@
 from poe.api    import Client as PoeClient
 from poe.mail   import Mail
-from tls_client import Session
+from requests   import Session
 from re         import search, findall
 from json       import loads
 from time       import sleep, time
@@ -48,11 +48,10 @@ class PoeResponse:
     def json(self) -> dict:
         return self.response_dict
 
-
 class Account:
     def create(proxy: None or str = None, logging: bool = False):
         
-        client       = Session(client_identifier = "chrome110")
+        client       = Session()
         client.proxies = {
             'http': f'http://{proxy}',
             'https': f'http://{proxy}'} if proxy else None

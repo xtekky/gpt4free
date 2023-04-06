@@ -11,6 +11,12 @@ query ChatListPaginationQuery(
 }
 
 fragment BotImage_bot on Bot {
+  displayName
+  ...botHelpers_useDeletion_bot
+  ...BotImage_useProfileImage_bot
+}
+
+fragment BotImage_useProfileImage_bot on Bot {
   image {
     __typename
     ... on LocalBotImage {
@@ -20,7 +26,7 @@ fragment BotImage_bot on Bot {
       url
     }
   }
-  displayName
+  ...botHelpers_useDeletion_bot
 }
 
 fragment ChatMessageDownvotedButton_message on Message {
@@ -33,7 +39,7 @@ fragment ChatMessageDropdownMenu_message on Message {
   messageId
   vote
   text
-  linkifiedText
+  author
   ...chatHelpers_isBotMessage
 }
 
@@ -54,6 +60,9 @@ fragment ChatMessageInputView_chat on Chat {
       dailyBalance
       shouldShowRemainingMessageCount
     }
+    hasClearContext
+    isDown
+    ...botHelpers_useDeletion_bot
     id
   }
   shouldShowDisclaimer
@@ -88,6 +97,10 @@ fragment ChatMessageSuggestedReplies_SuggestedReplyButton_message on Message {
 fragment ChatMessageSuggestedReplies_chat on Chat {
   ...ChatWelcomeView_chat
   ...ChatMessageSuggestedReplies_SuggestedReplyButton_chat
+  defaultBotObject {
+    hasWelcomeTopics
+    id
+  }
 }
 
 fragment ChatMessageSuggestedReplies_message on Message {
@@ -97,10 +110,13 @@ fragment ChatMessageSuggestedReplies_message on Message {
 
 fragment ChatMessage_chat on Chat {
   defaultBotObject {
-    ...ChatPageDisclaimer_bot
+    hasWelcomeTopics
+    hasSuggestedReplies
+    disclaimerText
     messageLimit {
       ...ChatPageRateLimitedBanner_messageLimit
     }
+    ...ChatPageDisclaimer_bot
     id
   }
   ...ChatMessageSuggestedReplies_chat
@@ -114,6 +130,7 @@ fragment ChatMessage_message on Message {
   author
   linkifiedText
   state
+  contentType
   ...ChatMessageSuggestedReplies_message
   ...ChatMessageFeedbackButtons_message
   ...ChatMessageOverflowButton_message
@@ -122,12 +139,15 @@ fragment ChatMessage_message on Message {
   ...chatHelpers_isChatBreak
   ...chatHelpers_useTimeoutLevel
   ...MarkdownLinkInner_message
+  ...IdAnnotation_node
 }
 
 fragment ChatMessagesView_chat on Chat {
   ...ChatMessage_chat
   ...ChatWelcomeView_chat
+  ...IdAnnotation_node
   defaultBotObject {
+    hasWelcomeTopics
     messageLimit {
       ...ChatPageRateLimitedBanner_messageLimit
     }
@@ -152,23 +172,42 @@ fragment ChatPageDeleteFooter_chat on Chat {
 }
 
 fragment ChatPageDisclaimer_bot on Bot {
-  disclaimer
+  disclaimerText
+}
+
+fragment ChatPageMainFooter_chat on Chat {
+  defaultBotObject {
+    ...ChatPageMainFooter_useAccessMessage_bot
+    id
+  }
+  ...ChatMessageInputView_chat
+  ...ChatPageShareFooter_chat
+  ...ChatPageDeleteFooter_chat
+}
+
+fragment ChatPageMainFooter_edges on MessageEdge {
+  ...ChatMessageInputView_edges
+}
+
+fragment ChatPageMainFooter_useAccessMessage_bot on Bot {
+  ...botHelpers_useDeletion_bot
+  ...botHelpers_useViewerCanAccessPrivateBot
 }
 
 fragment ChatPageMain_chat_1G22uz on Chat {
   id
   chatId
-  ...ChatMessageInputView_chat
   ...ChatPageShareFooter_chat
   ...ChatPageDeleteFooter_chat
   ...ChatMessagesView_chat
   ...MarkdownLinkInner_chat
   ...chatHelpers_useUpdateStaleChat_chat
   ...ChatSubscriptionPaywallContextWrapper_chat
+  ...ChatPageMainFooter_chat
   messagesConnection(last: $count, before: $cursor) {
     edges {
       ...ChatMessagesView_edges
-      ...ChatMessageInputView_edges
+      ...ChatPageMainFooter_edges
       ...MarkdownLinkInner_edges
       node {
         ...chatHelpers_useUpdateStaleChat_message
@@ -217,6 +256,11 @@ fragment ChatWelcomeView_chat on Chat {
   }
 }
 
+fragment IdAnnotation_node on Node {
+  __isNode: __typename
+  id
+}
+
 fragment MarkdownLinkInner_chat on Chat {
   id
   chatId
@@ -263,6 +307,15 @@ fragment SubscriptionPaywallModal_bot on Bot {
   ...BotImage_bot
 }
 
+fragment botHelpers_useDeletion_bot on Bot {
+  deletionState
+}
+
+fragment botHelpers_useViewerCanAccessPrivateBot on Bot {
+  isPrivateBot
+  viewerIsCreator
+}
+
 fragment chatHelpers_isBotMessage on Message {
   ...chatHelpers_isHumanMessage
   ...chatHelpers_isChatBreak
@@ -292,8 +345,8 @@ fragment chatHelpers_useSendMessage_chat on Chat {
   id
   chatId
   defaultBotObject {
-    nickname
     id
+    nickname
   }
   shouldShowDisclaimer
 }
@@ -303,10 +356,19 @@ fragment chatHelpers_useTimeoutLevel on Message {
   state
   text
   messageId
+  chat {
+    chatId
+    defaultBotNickname
+    id
+  }
 }
 
 fragment chatHelpers_useUpdateStaleChat_chat on Chat {
   chatId
+  defaultBotObject {
+    contextClearWindowSecs
+    id
+  }
   ...chatHelpers_useSendChatBreak_chat
 }
 
