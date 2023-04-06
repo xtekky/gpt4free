@@ -21,9 +21,9 @@ class T3nsorResponse:
 
     class Usage:
         def __init__(self, usage_dict: dict) -> None:
-            self.prompt_tokens      = usage_dict['prompt_tokens']
-            self.completion_tokens  = usage_dict['completion_tokens']
-            self.total_tokens       = usage_dict['total_tokens']
+            self.prompt_tokens      = usage_dict['prompt_chars']
+            self.completion_tokens  = usage_dict['completion_chars']
+            self.total_tokens       = usage_dict['total_chars']
 
         def __repr__(self):
             return f'''<__main__.APIResponse.Usage(\n    prompt_tokens      = {self.prompt_tokens},\n    completion_tokens  = {self.completion_tokens},\n    total_tokens       = {self.total_tokens})object at 0x1337>'''
@@ -95,24 +95,23 @@ class StreamCompletion:
             'prompt'    : prompt
         })
         
-        for resp in response.iter_lines():
-            if resp:
-                yield T3nsorResponse({
-                    'id'     : f'cmpl-1337-{int(time())}', 
-                    'object' : 'text_completion', 
-                    'created': int(time()), 
-                    'model'  : Completion.model, 
-                    
-                    'choices': [{
-                            'text'          : resp.decode(), 
-                            'index'         : 0, 
-                            'logprobs'      : None, 
-                            'finish_reason' : 'stop'
-                    }],
-                    
-                    'usage': {
-                        'prompt_chars'     : len(prompt), 
-                        'completion_chars' : len(resp.decode()), 
-                        'total_chars'      : len(prompt) + len(resp.decode())
-                    }
-                })
+        for chunk in response.iter_content(chunk_size = 2046):
+            yield T3nsorResponse({
+                'id'     : f'cmpl-1337-{int(time())}', 
+                'object' : 'text_completion', 
+                'created': int(time()), 
+                'model'  : Completion.model, 
+                
+                'choices': [{
+                        'text'          : chunk.decode(), 
+                        'index'         : 0, 
+                        'logprobs'      : None, 
+                        'finish_reason' : 'stop'
+                }],
+                
+                'usage': {
+                    'prompt_chars'     : len(prompt), 
+                    'completion_chars' : len(chunk.decode()), 
+                    'total_chars'      : len(prompt) + len(chunk.decode())
+                }
+            })
