@@ -4,6 +4,14 @@ This repository provides reverse-engineered language models from various sources
 
 > **Important:** If you come across any website offering free language models, please create an issue or submit a pull request with the details. We will reverse engineer it and add it to this repository.
 
+## To-Do List
+
+- [ ] implement poe.com create bot feature
+- [ ] poe.com chat history management
+- [ ] renaming the 'poe' module to 'quora'
+- [ ] add you.com api
+
+
 ## Table of Contents
 
 - [Current Sites (No Authentication / Easy Account Creation)](#current-sites)
