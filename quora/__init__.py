@@ -1,13 +1,13 @@
-from poe.api    import Client as PoeClient
-from poe.mail   import Mail
-from requests   import Session
-from re         import search, findall
-from json       import loads
-from time       import sleep, time
-from pathlib    import Path
-from random     import choice
-from urllib     import parse
-
+from quora.api    import Client as PoeClient
+from quora.mail   import Mail
+from requests     import Session
+from re           import search, findall
+from json         import loads
+from time         import sleep, time
+from pathlib      import Path
+from random       import choice
+from urllib       import parse
+ 
 class PoeResponse:
     
     class Completion:

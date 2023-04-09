@@ -8,7 +8,7 @@ This repository provides reverse-engineered language models from various sources
 
 - [ ] implement poe.com create bot feature (4)
 - [ ] poe.com chat history management (3)
-- [ ] renaming the 'poe' module to 'quora' (2)
+- [x] renaming the 'poe' module to 'quora' (2)
 - [x] add you.com api (1)
 
 
@@ -17,7 +17,7 @@ This repository provides reverse-engineered language models from various sources
 - [Current Sites (No Authentication / Easy Account Creation)](#current-sites)
 - [Sites with Authentication (Will Reverse Engineer but Need Account Access)](#sites-with-authentication)
 - [Usage Examples](#usage-examples)
-  - [`poe`](#example-poe)
+  - [`quora (poe)`](#example-poe)
   - [`t3nsor`](#example-t3nsor)
   - [`ora`](#example-ora)
   - [`writesonic`](#example-writesonic)
@@ -44,15 +44,15 @@ These sites will be reverse engineered but need account access:
 
 ## Usage Examples <a name="usage-examples"></a>
 
-### Example: `poe` (use like openai pypi package) - GPT-4 <a name="example-poe"></a>
+### Example: `quora (poe)` (use like openai pypi package) - GPT-4 <a name="example-poe"></a>
 
 ```python
-# Import poe
-import poe
+# Import quora (poe)
+import quora
 
-# poe.Account.create
-# poe.Completion.create
-# poe.StreamCompletion.create
+# quora.Account.create
+# quora.Completion.create
+# quora.StreamCompletion.create
 
 [...]
 
@@ -60,14 +60,14 @@ import poe
 
 #### Create Token (3-6s)
 ```python
-token = poe.Account.create(logging = True)
+token = quora.Account.create(logging = True)
 print('token', token)
 ```
 
 #### Streaming Response
 ```python
 
-for response in poe.StreamingCompletion.create(model  = 'gpt-4',
+for response in quora.StreamingCompletion.create(model  = 'gpt-4',
     prompt = 'hello world',
     token  = token):
     
@@ -77,7 +77,7 @@ for response in poe.StreamingCompletion.create(model  = 'gpt-4',
 #### Normal Response:
 ```python
 
-response = poe.Completion.create(model  = 'gpt-4',
+response = quora.Completion.create(model  = 'gpt-4',
     prompt = 'hello world',
     token  = token)
 
@@ -273,7 +273,7 @@ You can install these packages using the provided `requirements.txt` file.
 ## Repository structure:
     .
     ├── ora/
-    ├── poe/
+    ├── quora/ (/poe)
     ├── t3nsor/
     ├── testing/
     ├── writesonic/
