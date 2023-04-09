@@ -9,7 +9,7 @@ This repository provides reverse-engineered language models from various sources
 - [ ] implement poe.com create bot feature (4)
 - [ ] poe.com chat history management (3)
 - [ ] renaming the 'poe' module to 'quora' (2)
-- [ ] add you.com api (1)
+- [x] add you.com api (1)
 
 
 ## Table of Contents
@@ -21,6 +21,7 @@ This repository provides reverse-engineered language models from various sources
   - [`t3nsor`](#example-t3nsor)
   - [`ora`](#example-ora)
   - [`writesonic`](#example-writesonic)
+  - [`you`](#example-you)
 
 ## Current Sites <a name="current-sites"></a>
 
@@ -30,7 +31,8 @@ This repository provides reverse-engineered language models from various sources
 | [nat.dev](https://nat.dev) | GPT-4/3.5 (paid now, looking for bypass)|
 | [poe.com](https://poe.com) | GPT-4/3.5            |
 | [writesonic.com](https://writesonic.com)|GPT-3.5 / Internet|
-|[t3nsor.com](https://t3nsor.com)|GPT-3.5|
+| [t3nsor.com](https://t3nsor.com)|GPT-3.5|
+| [you.com](https://you.com)|GPT-3.5 / Internet / good search|
 
 ## Sites with Authentication <a name="sites-with-authentication"></a>
 
@@ -221,6 +223,43 @@ response = writesonic.Completion.create(
 print(response.completion.choices[0].text) # Argentina won the 2022 FIFA World Cup tournament held in Qatar ...
 ```
 
+### Example: `you` (use like openai pypi package) <a name="example-you"></a>
+
+```python
+import you
+
+# simple request with links and details
+response = you.Completion.create(
+    prompt       = "hello world",
+    detailed     = True,
+    includelinks = True,)
+
+print(response)
+
+# {
+#     "response": "...",
+#     "links": [...],
+#     "extra": {...},
+#         "slots": {...}
+#     }
+# }
+
+#chatbot
+
+chat = []
+
+while True:
+    prompt = input("You: ")
+    
+    response = you.Completion.create(
+        prompt  = prompt,
+        chat    = chat)
+    
+    print("Bot:", response["response"])
+    
+    chat.append({"question": prompt, "answer": response["response"]})
+```
+
 ## Dependencies
 
 The repository is written in Python and requires the following packages:
@@ -232,11 +271,12 @@ The repository is written in Python and requires the following packages:
 You can install these packages using the provided `requirements.txt` file.
 
 ## Repository structure:
-
     .
     ├── ora/
     ├── poe/
     ├── t3nsor/
+    ├── testing/
     ├── writesonic/
+    ├── you/
     ├── README.md  <-- this file.
     └── requirements.txt
