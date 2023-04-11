@@ -52,6 +52,8 @@ class Completion:
     def create(
         prompt: str    = 'hello world',
         messages: list = []) -> T3nsorResponse:
+        
+        raise Exception('The t3nsor.tech API is currently down.')
 
         response = post('https://www.t3nsor.tech/api/chat', json = Completion.model | {
             'messages'  : messages,
