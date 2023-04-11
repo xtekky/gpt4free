@@ -1,7 +1,7 @@
 import quora
 from time import sleep
 
-token = quora.Account.create(proxy = 'xtekky:ogingoi2n3g@geo.iproyal.com:12321',logging = True)
+token = quora.Account.create(proxy = None,logging = True)
 print('token', token)
 
 sleep(2)
