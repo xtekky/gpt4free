@@ -6,10 +6,9 @@ This repository provides reverse-engineered language models from various sources
 
 ## To-Do List
 
-- [x] implement poe.com create bot feature (4) AVAILABLE NOW
-- [ ] poe.com chat history management (3)
-- [x] renaming the 'poe' module to 'quora' (2)
-- [x] add you.com api (1)
+- [x] implement poe.com create bot feature | AVAILABLE NOW
+- [x] renaming the 'poe' module to 'quora'
+- [x] add you.com api
 
 
 ## Table of Contents
