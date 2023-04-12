@@ -325,6 +325,9 @@ class Client:
                 else:
                     continue
 
+            if len(last_text) >= len(message["text"]):
+                continue
+
             # update info about response
             message["text_new"] = message["text"][len(last_text):]
             last_text = message["text"]
