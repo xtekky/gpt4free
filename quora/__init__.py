@@ -67,7 +67,8 @@ class Model:
         
         models = {
             'gpt-3.5-turbo' : 'chinchilla',
-            'claude-instant-v1.0': 'a2'
+            'claude-instant-v1.0': 'a2',
+            'gpt-4': 'beaver'
         }
         
         if not handle:
@@ -230,7 +231,7 @@ class Account:
 class StreamingCompletion:
     def create(
         model : str = 'gpt-4',
-        custom_model : str = None,
+        custom_model : bool = None,
         prompt: str = 'hello world',
         token : str = ''):
 
@@ -246,7 +247,7 @@ class StreamingCompletion:
         
         client = PoeClient(token)
         
-        for chunk in client.send_message(models[model], prompt):
+        for chunk in client.send_message(_model, prompt):
             
             yield PoeResponse({
                 'id'     : chunk["messageId"], 
@@ -285,7 +286,7 @@ class Completion:
         
         client = PoeClient(token)
         
-        for chunk in client.send_message(models[model], prompt):
+        for chunk in client.send_message(_model, prompt):
             pass
         
         return PoeResponse({
