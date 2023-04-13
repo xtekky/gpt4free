@@ -4,9 +4,9 @@ This repository provides reverse-engineered language models from various sources
 
 > **Important:** If you come across any website offering free language models, please create an issue or submit a pull request with the details. We will reverse engineer it and add it to this repository.
 
-<!-- ## Best Chatgpt site
+## Best Chatgpt site
 > https://chat.xtekky.com/chat   
-> This site was developed by me and includes **gpt-4**, **internet access** and **gpt-jailbreak's** like DAN -->
+> This site was developed by me and includes **gpt-4**, **internet access** and **gpt-jailbreak's** like DAN
 
 ## To-Do List
 
