@@ -8,6 +8,9 @@ from pathlib      import Path
 from random       import choice, choices, randint
 from string       import ascii_letters, digits
 from urllib       import parse
+from os import urandom
+from hashlib import md5
+from json import dumps
 
 class PoeResponse:
     
@@ -91,6 +94,7 @@ class Model:
             "sec-ch-ua"         : "\"Chromium\";v=\"112\", \"Google Chrome\";v=\"112\", \"Not:A-Brand\";v=\"99\"",
             "sec-ch-ua-mobile"  : "?0",
             "sec-ch-ua-platform": "\"macOS\"",
+            "content-type"      : "application/json",
             "sec-fetch-site"    : "same-origin",
             "sec-fetch-mode"    : "cors",
             "sec-fetch-dest"    : "empty",
@@ -155,6 +159,7 @@ class Account:
             "accept"            : "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
             "sec-fetch-site"    : "same-origin",
             "sec-fetch-mode"    : "navigate",
+            "content-type"      : "application/json",
             "sec-fetch-user"    : "?1",
             "sec-fetch-dest"    : "document",
             "accept-encoding"   : "gzip, deflate, br",
@@ -167,17 +172,21 @@ class Account:
 
         client.headers["poe-formkey"]  =  next_data['props']['formkey']
         client.headers["poe-tchannel"] =  client.get('https://poe.com/api/settings').json()['tchannelData']['channel']
-
-        payload = {
-            "queryName": "MainSignupLoginSection_sendVerificationCodeMutation_Mutation",
-            "variables": {
-                "emailAddress": mail_address,
-                "phoneNumber" : None
+        
+        payload = dumps(separators = (',', ':'), obj = {
+            'queryName': 'MainSignupLoginSection_sendVerificationCodeMutation_Mutation',
+            'variables': {
+                'emailAddress': mail_address,
+                'phoneNumber': None,
+                'recaptchaToken': None,
             },
-            "query": "mutation MainSignupLoginSection_sendVerificationCodeMutation_Mutation(\n  $emailAddress: String\n  $phoneNumber: String\n) {\n  sendVerificationCode(verificationReason: login, emailAddress: $emailAddress, phoneNumber: $phoneNumber) {\n    status\n    errorMessage\n  }\n}\n"
-        }
+            'query': 'mutation MainSignupLoginSection_sendVerificationCodeMutation_Mutation(\n  $emailAddress: String\n  $phoneNumber: String\n  $recaptchaToken: String\n) {\n  sendVerificationCode(verificationReason: login, emailAddress: $emailAddress, phoneNumber: $phoneNumber, recaptchaToken: $recaptchaToken) {\n    status\n    errorMessage\n  }\n}\n',
+        })
 
-        response = client.post('https://poe.com/api/gql_POST', json=payload)
+        base_string = payload + client.headers["poe-formkey"] + 'WpuLMiXEKKE98j56k'
+        client.headers["poe-tag-id"] =  md5(base_string.encode()).hexdigest()
+
+        response = client.post('https://poe.com/api/gql_POST', data=payload)
         if 'Bad Request' in response.text:
             if logging: print('bad request, retrying...' , response.json())
             Account.create(proxy = proxy, logging = logging)
@@ -197,7 +206,7 @@ class Account:
 
         if logging: print('code', mail_token)
 
-        payload = {
+        payload = dumps(separators = (',', ':'), obj={
             "queryName": "SignupOrLoginWithCodeSection_signupWithVerificationCodeMutation_Mutation",
             "variables": {
                 "verificationCode"  : mail_token,
@@ -205,9 +214,12 @@ class Account:
                 "phoneNumber"       : None
             },
             "query": "mutation SignupOrLoginWithCodeSection_signupWithVerificationCodeMutation_Mutation(\n  $verificationCode: String!\n  $emailAddress: String\n  $phoneNumber: String\n) {\n  signupWithVerificationCode(verificationCode: $verificationCode, emailAddress: $emailAddress, phoneNumber: $phoneNumber) {\n    status\n    errorMessage\n  }\n}\n"
-        }
+        })
+        
+        base_string = payload + client.headers["poe-formkey"] + 'WpuLMiXEKKE98j56k'
+        client.headers["poe-tag-id"] =  md5(base_string.encode()).hexdigest()
 
-        response = client.post('https://poe.com/api/gql_POST', json = payload)
+        response = client.post('https://poe.com/api/gql_POST', data = payload)
         if logging: print('verify_code', response.json())
 
         token = parse.unquote(client.cookies.get_dict()['p-b'])
@@ -216,11 +228,17 @@ class Account:
             f.write(f'{token}\n')
             
         if enable_bot_creation:
-            client.post("https://poe.com/api/gql_POST", json = {
+            
+            payload = {
                 "queryName": "UserProfileConfigurePreviewModal_markMultiplayerNuxCompleted_Mutation",
                 "variables": {},
                 "query": "mutation UserProfileConfigurePreviewModal_markMultiplayerNuxCompleted_Mutation {\n  markMultiplayerNuxCompleted {\n    viewer {\n      hasCompletedMultiplayerNux\n      id\n    }\n  }\n}\n"
-            })
+            }
+            
+            base_string = dumps(payload, separators = (',', ':')) + client.headers["poe-formkey"] + 'WpuLMiXEKKE98j56k'
+            client.headers["poe-tag-id"] =  md5(base_string.encode()).hexdigest()
+        
+            client.post("https://poe.com/api/gql_POST", json = payload)
         
         return token
     

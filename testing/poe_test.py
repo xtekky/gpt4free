@@ -6,7 +6,7 @@ print('token', token)
 
 sleep(2)
 
-for response in quora.StreamingCompletion.create(model  = 'gpt-4',
+for response in quora.StreamingCompletion.create(model  = 'gpt-3.5-turbo',
     prompt = 'hello world',
     token  = token):
     
