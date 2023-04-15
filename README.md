@@ -21,6 +21,7 @@ This repository provides reverse-engineered language models from various sources
 - [Sites with Authentication (Will Reverse Engineer but Need Account Access)](#sites-with-authentication)
 - [Usage Examples](#usage-examples)
   - [`quora (poe)`](#example-poe)
+  - [`phind`](#example-phind)
   - [`t3nsor`](#example-t3nsor)
   - [`ora`](#example-ora)
   - [`writesonic`](#example-writesonic)
@@ -36,6 +37,7 @@ This repository provides reverse-engineered language models from various sources
 | [writesonic.com](https://writesonic.com)|GPT-3.5 / Internet|
 | [t3nsor.com](https://t3nsor.com)|GPT-3.5|
 | [you.com](https://you.com)|GPT-3.5 / Internet / good search|
+| [phind.com](https://phind.com)|GPT-4 / Internet / good search|
 
 ## Sites with Authentication <a name="sites-with-authentication"></a>
 
@@ -96,6 +98,26 @@ response = quora.Completion.create(model  = 'gpt-4',
 
 print(response.completion.choices[0].text)    
 ```     
+
+### Example: `phind` (use like openai pypi package) <a name="example-phind"></a>
+
+```python
+# HELP WANTED: tls_client does not accept stream and timeout gets hit with long responses
+
+import phind
+
+prompt = 'hello world'
+
+result = phind.Completion.create(
+    model  = 'gpt-4',
+    prompt = prompt,
+    results     = phind.Search.create(prompt, actualSearch = False), # create search (set actualSearch to False to disable internet)
+    creative    = False,
+    detailed    = False,
+    codeContext = '') # up to 3000 chars of code
+
+print(result.completion.choices[0].text)
+```
 
 ### Example: `t3nsor` (use like openai pypi package) <a name="example-t3nsor"></a>
 
