@@ -31,8 +31,7 @@ This repository provides reverse-engineered language models from various sources
 
 | Website                    | Model(s)             |
 | -------------------------- | -------------------- |
-| [ora.sh](https://ora.sh)   | GPT-3.5              |
-| [nat.dev](https://nat.dev) | GPT-4/3.5 (paid now, looking for bypass)|
+| [ora.sh](https://ora.sh)   | GPT-3.5 / 4              |
 | [poe.com](https://poe.com) | GPT-4/3.5            |
 | [writesonic.com](https://writesonic.com)|GPT-3.5 / Internet|
 | [t3nsor.com](https://t3nsor.com)|GPT-3.5|
