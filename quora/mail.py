@@ -1,62 +1,39 @@
-from requests import Session
-from string import ascii_letters
-from random import choices
+import html
+import json
+from   tls_client import Session
 
 class Mail:
-    def __init__(self, proxies: dict = None) -> None:
-        self.client = Session()
-        self.client.proxies = None #proxies
-        self.client.headers = {
-            "host": "api.mail.tm",
-            "connection": "keep-alive",
-            "sec-ch-ua": "\"Google Chrome\";v=\"111\", \"Not(A:Brand\";v=\"8\", \"Chromium\";v=\"111\"",
-            "accept": "application/json, text/plain, */*",
-            "content-type": "application/json",
-            "sec-ch-ua-mobile": "?0",
-            "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36",
-            "sec-ch-ua-platform": "\"macOS\"",
-            "origin": "https://mail.tm",
-            "sec-fetch-site": "same-site",
-            "sec-fetch-mode": "cors",
-            "sec-fetch-dest": "empty",
-            "referer": "https://mail.tm/",
-            "accept-encoding": "gzip, deflate, br",
-            "accept-language": "en-GB,en-US;q=0.9,en;q=0.8"
-        }
+    def __init__(self, proxies: str = None, timeout: int = 15, bearer_token: str or None = None) -> None:
+        self.session  = Session(client_identifier='chrome110')
+        self.base_url = 'https://web2.temp-mail.org'
+        self.proxies  = proxies
+        self.timeout  = timeout
         
+        self.session.headers['authorization'] = f'Bearer {bearer_token}' if bearer_token else None
+
     def get_mail(self) -> str:
-        token = ''.join(choices(ascii_letters, k=10)).lower()
+        status: html = self.session.get(self.base_url).status_code
         
-        init = self.client.post("https://api.mail.tm/accounts", json={
-            "address" : f"{token}@bugfoo.com",
-            "password": token
-        })
-        
-        if init.status_code == 201:
-            resp = self.client.post("https://api.mail.tm/token", json = {
-                **init.json(),
-                "password": token
-            })
-            
-            self.client.headers['authorization'] = 'Bearer ' + resp.json()['token']
-            
-            return f"{token}@bugfoo.com"
-        
-        else:
-            raise Exception("Failed to create email")
-        
-    def fetch_inbox(self):
-        return self.client.get(f"https://api.mail.tm/messages").json()["hydra:member"]
+        try:
+            if status == 200:
+                data = self.session.post(f'{self.base_url}/mailbox').json()
 
-    def get_message(self, message_id: str):
-        return self.client.get(f"https://api.mail.tm/messages/{message_id}").json()
-
+                self.session.headers['authorization'] = f'Bearer {data["token"]}'
+                return data["token"], data["mailbox"]
+        
+        except Exception as e:
+            print(e)
+            return f'Email creation error. {e} | use proxies', False
+    
+    def fetch_inbox(self) -> json:
+        return self.session.get(f'{self.base_url}/messages').json()
+    
     def get_message_content(self, message_id: str):
-        return self.get_message(message_id)["text"]
+        return self.session.get(f'{self.base_url}/messages/{message_id}').json()["bodyHtml"]
 
+# if __name__ == '__main__':
 
-# if __name__ == "__main__":
-#     client = Mail()
-#     client.get_mail()
-    
-    
+#     email_client = TempMail()
+#     token, email = email_client.get_mail()
+#     print(email)
+#     print(token)

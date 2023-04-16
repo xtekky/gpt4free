@@ -7,9 +7,11 @@ import time
 import queue
 import threading
 import traceback
+import hashlib
 import websocket
 from pathlib import Path
 from urllib.parse import urlparse
+
 
 parent_path = Path(__file__).resolve().parent
 queries_path = parent_path / "graphql"
@@ -75,12 +77,15 @@ class Client:
             "Referrer": "https://poe.com/",
             "Origin": "https://poe.com",
         }
-        self.ws_domain = f"tch{random.randint(1, 1e6)}"
-
         self.session.headers.update(self.headers)
+
+        self.setup_connection()
+        self.connect_ws()
+
+    def setup_connection(self):
+        self.ws_domain = f"tch{random.randint(1, 1e6)}"
         self.next_data = self.get_next_data(overwrite_vars=True)
         self.channel = self.get_channel_data()
-        self.connect_ws()
         self.bots = self.get_bots(download_next_data=False)
         self.bot_names = self.get_bot_names()
 
@@ -91,6 +96,22 @@ class Client:
         self.gql_headers = {**self.gql_headers, **self.headers}
         self.subscribe()
 
+    def extract_formkey(self, html):
+        script_regex = r'<script>if\(.+\)throw new Error;(.+)</script>'
+        script_text = re.search(script_regex, html).group(1)
+        key_regex = r'var .="([0-9a-f]+)",'
+        key_text = re.search(key_regex, script_text).group(1)
+        cipher_regex = r'.\[(\d+)\]=.\[(\d+)\]'
+        cipher_pairs = re.findall(cipher_regex, script_text)
+
+        formkey_list = [""] * len(cipher_pairs)
+        for pair in cipher_pairs:
+            formkey_index, key_index = map(int, pair)
+            formkey_list[formkey_index] = key_text[key_index]
+        formkey = "".join(formkey_list)
+
+        return formkey
+
     def get_next_data(self, overwrite_vars=False):
         logger.info("Downloading next_data...")
 
@@ -100,7 +121,7 @@ class Client:
         next_data = json.loads(json_text)
 
         if overwrite_vars:
-            self.formkey = next_data["props"]["formkey"]
+            self.formkey = self.extract_formkey(r.text)
             self.viewer = next_data["props"]["pageProps"]["payload"]["viewer"]
 
         return next_data
@@ -145,7 +166,6 @@ class Client:
         r = request_with_retries(self.session.get, self.settings_url)
         data = r.json()
 
-        self.formkey = data["formkey"]
         return data["tchannelData"]
 
     def get_websocket_url(self, channel=None):
@@ -157,19 +177,20 @@ class Client:
     def send_query(self, query_name, variables):
         for i in range(20):
             json_data = generate_payload(query_name, variables)
-            payload = json.dumps(json_data, separators=(',', ':'))
-            
-            base_string = payload + self.gql_headers['poe-formkey'] + 'WpuLMiXEKKE98j56k'
-            
-            from hashlib import md5
-            headers = self.gql_headers |{
+            payload = json.dumps(json_data, separators=(",", ":"))
+
+            base_string = payload + \
+                self.gql_headers["poe-formkey"] + "WpuLMiXEKKE98j56k"
+
+            headers = {
                 "content-type": "application/json",
-                "poe-tag-id": md5(base_string.encode()).hexdigest()
+                "poe-tag-id": hashlib.md5(base_string.encode()).hexdigest()
             }
-            
+            headers = {**self.gql_headers, **headers}
+
             r = request_with_retries(
                 self.session.post, self.gql_url, data=payload, headers=headers)
-            
+
             data = r.json()
             if data["data"] == None:
                 logger.warn(
@@ -280,10 +301,13 @@ class Client:
         self.active_messages["pending"] = None
 
         logger.info(f"Sending message to {chatbot}: {message}")
+
         # reconnect websocket
         if not self.ws_connected:
             self.disconnect_ws()
+            self.setup_connection()
             self.connect_ws()
+
         message_data = self.send_query("SendMessageMutation", {
             "bot": chatbot,
             "query": message,
