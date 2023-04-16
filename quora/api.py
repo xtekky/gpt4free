@@ -1,3 +1,23 @@
+# This file was taken from the repository poe-api https://github.com/ading2210/poe-api and is unmodified
+# This file is licensed under the GNU GPL v3 and written by @ading2210
+
+# license: 
+# ading2210/poe-api: a reverse engineered Python API wrapepr for Quora's Poe
+# Copyright (C) 2023 ading2210
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version. 
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
 import requests
 import re
 import json
