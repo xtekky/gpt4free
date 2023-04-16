@@ -166,6 +166,8 @@ class Account:
         mail         = Mail(client.proxies)
         mail_token   = None
         _, mail_address = mail.get_mail()
+        if mail_address is None:
+            raise Exception('Error creating mail, please use proxies')
 
         if logging: print('email', mail_address)
 
