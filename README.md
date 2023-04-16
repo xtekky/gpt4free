@@ -314,7 +314,13 @@ You can install these packages using the provided `requirements.txt` file.
     ├── you/
     ├── README.md  <-- this file.
     └── requirements.txt
-    
+
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=xtekky/openai-gpt4&type=Timeline)](https://star-history.com/#xtekky/openai-gpt4&Timeline)
+
+
 ## Copyright: 
 This program is licensed under the [GNU GPL v3](https://www.gnu.org/licenses/gpl-3.0.txt)     
 
