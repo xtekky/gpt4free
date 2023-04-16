@@ -164,12 +164,13 @@ for response in t3nsor.StreamCompletion.create(
 
 ### Example: `ora` (use like openai pypi package) <a name="example-ora"></a>
 
+### load model (new)
+
+more gpt4 models in `/testing/ora_gpt4.py`
+
 ```python
-# import ora
-import ora
-
-[...]
-
+# normal gpt-4: b8b12eaa-5d47-44d3-92a6-4d706f2bcacf
+model = ora.CompletionModel.load(chatbot_id, 'gpt-4') # or gpt-3.5
 ```
 
 #### create model / chatbot: 
