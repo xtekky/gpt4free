@@ -26,10 +26,10 @@ class Completion:
                 'chatbotId': model.id,
                 'input'    : prompt,
                 'userId'   : model.createdBy,
-                'model'    : 'gpt-3.5-turbo',
+                'model'    : model.modelName,
                 'provider' : 'OPEN_AI',
                 'includeHistory': includeHistory}).json()
-        
+
         return OraResponse({
             'id'     : response['conversationId'], 
             'object' : 'text_completion', 
