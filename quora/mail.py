@@ -33,6 +33,6 @@ class Mail:
     def get_message_content(self, message_id: str):
         return self.get_message(message_id)["mail_body"]
 
-if __name__ == "__main__":
-    client = Mail()
-    client.get_mail()
+# if __name__ == "__main__":
+#     client = Mail()
+#    client.get_mail()
