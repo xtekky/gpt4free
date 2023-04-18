@@ -1,14 +1,14 @@
 # This file was taken from the repository poe-api https://github.com/ading2210/poe-api and is unmodified
 # This file is licensed under the GNU GPL v3 and written by @ading2210
 
-# license: 
+# license:
 # ading2210/poe-api: a reverse engineered Python API wrapepr for Quora's Poe
 # Copyright (C) 2023 ading2210
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version. 
+# (at your option) any later version.
 
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -28,13 +28,16 @@ import queue
 import threading
 import traceback
 import hashlib
+import string
+import random
+import requests.adapters
 import websocket
 from pathlib import Path
 from urllib.parse import urlparse
 
 
 parent_path = Path(__file__).resolve().parent
-queries_path = parent_path / "graphql"
+queries_path = parent_path / "poe_graphql"
 queries = {}
 
 logging.basicConfig()
@@ -80,6 +83,10 @@ class Client:
     def __init__(self, token, proxy=None):
         self.proxy = proxy
         self.session = requests.Session()
+        self.adapter = requests.adapters.HTTPAdapter(
+            pool_connections=100, pool_maxsize=100)
+        self.session.mount("http://", self.adapter)
+        self.session.mount("https://", self.adapter)
 
         if proxy:
             self.session.proxies = {
@@ -143,12 +150,12 @@ class Client:
         if overwrite_vars:
             self.formkey = self.extract_formkey(r.text)
             self.viewer = next_data["props"]["pageProps"]["payload"]["viewer"]
+            self.next_data = next_data
 
         return next_data
 
     def get_bot(self, display_name):
         url = f'https://poe.com/_next/data/{self.next_data["buildId"]}/{display_name}.json'
-        logger.info("Downloading "+url)
 
         r = request_with_retries(self.session.get, url)
 
@@ -156,8 +163,9 @@ class Client:
         return chat_data
 
     def get_bots(self, download_next_data=True):
+        logger.info("Downloading all bots...")
         if download_next_data:
-            next_data = self.get_next_data()
+            next_data = self.get_next_data(overwrite_vars=True)
         else:
             next_data = self.next_data
 
@@ -165,10 +173,22 @@ class Client:
             raise RuntimeError("Invalid token or no bots are available.")
         bot_list = self.viewer["availableBots"]
 
+        threads = []
         bots = {}
-        for bot in bot_list:
+
+        def get_bot_thread(bot):
             chat_data = self.get_bot(bot["displayName"])
             bots[chat_data["defaultBotObject"]["nickname"]] = chat_data
+
+        for bot in bot_list:
+            thread = threading.Thread(
+                target=get_bot_thread, args=(bot,), daemon=True)
+            threads.append(thread)
+
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
 
         self.bots = bots
         self.bot_names = self.get_bot_names()
@@ -180,6 +200,10 @@ class Client:
             bot_obj = self.bots[bot_nickname]["defaultBotObject"]
             bot_names[bot_nickname] = bot_obj["displayName"]
         return bot_names
+
+    def get_remaining_messages(self, chatbot):
+        chat_data = self.get_bot(self.bot_names[chatbot])
+        return chat_data["defaultBotObject"]["messageLimit"]["numMessagesRemaining"]
 
     def get_channel_data(self, channel=None):
         logger.info("Downloading channel data...")
@@ -446,6 +470,63 @@ class Client:
                 return
             last_messages = self.get_message_history(chatbot, count=50)[::-1]
         logger.info(f"No more messages left to delete.")
+
+    def create_bot(self, handle, prompt="", base_model="chinchilla", description="",
+                   intro_message="", api_key=None, api_bot=False, api_url=None,
+                   prompt_public=True, pfp_url=None, linkification=False,
+                   markdown_rendering=True, suggested_replies=False, private=False):
+        result = self.send_query("PoeBotCreateMutation", {
+            "model": base_model,
+            "handle": handle,
+            "prompt": prompt,
+            "isPromptPublic": prompt_public,
+            "introduction": intro_message,
+            "description": description,
+            "profilePictureUrl": pfp_url,
+            "apiUrl": api_url,
+            "apiKey": api_key,
+            "isApiBot": api_bot,
+            "hasLinkification": linkification,
+            "hasMarkdownRendering": markdown_rendering,
+            "hasSuggestedReplies": suggested_replies,
+            "isPrivateBot": private
+        })
+
+        data = result["data"]["poeBotCreate"]
+        if data["status"] != "success":
+            raise RuntimeError(
+                f"Poe returned an error while trying to create a bot: {data['status']}")
+        self.get_bots()
+        return data
+
+    def edit_bot(self, bot_id, handle, prompt="", base_model="chinchilla", description="",
+                 intro_message="", api_key=None, api_url=None, private=False,
+                 prompt_public=True, pfp_url=None, linkification=False,
+                 markdown_rendering=True, suggested_replies=False):
+        
+        result = self.send_query("PoeBotEditMutation", {
+            "baseBot": base_model,
+            "botId": bot_id,
+            "handle": handle,
+            "prompt": prompt,
+            "isPromptPublic": prompt_public,
+            "introduction": intro_message,
+            "description": description,
+            "profilePictureUrl": pfp_url,
+            "apiUrl": api_url,
+            "apiKey": api_key,
+            "hasLinkification": linkification,
+            "hasMarkdownRendering": markdown_rendering,
+            "hasSuggestedReplies": suggested_replies,
+            "isPrivateBot": private
+        })
+
+        data = result["data"]["poeBotEdit"]
+        if data["status"] != "success":
+            raise RuntimeError(
+                f"Poe returned an error while trying to edit a bot: {data['status']}")
+        self.get_bots()
+        return data
 
 
 load_queries()
