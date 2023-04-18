@@ -82,7 +82,7 @@ class Search:
             }
         
         return client.post('https://www.phind.com/api/bing/search', json = { 
-            'q': prompt,
+            'q' : prompt,
             'userRankList': {},
             'browserLanguage': language}).json()['rawBingResults']
 
