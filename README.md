@@ -7,6 +7,7 @@ This repository provides reverse-engineered language models from various sources
 ## Best Chatgpt site
 > https://chat.chatbot.sex/chat
 > This site was developed by me and includes **gpt-4**, **internet access** and **gpt-jailbreak's** like DAN
+> You can find an opensource version of it to run locally here: https://github.com/xtekky/chatgpt-clone
 
 ## To-Do List
 
