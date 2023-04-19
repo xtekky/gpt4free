@@ -106,6 +106,8 @@ class StreamCompletion:
     def create(
         prompt: str    = 'hello world',
         messages: list = [])  -> T3nsorResponse:
+        
+        print('t3nsor api is down, this may not work, refer to another module')
 
         response = post('https://www.t3nsor.tech/api/chat', headers = headers, stream = True, json = Completion.model | {
             'messages'  : messages,
