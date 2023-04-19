@@ -37,7 +37,7 @@ from urllib.parse import urlparse
 
 
 parent_path = Path(__file__).resolve().parent
-queries_path = parent_path / "poe_graphql"
+queries_path = parent_path / "graphql"
 queries = {}
 
 logging.basicConfig()
