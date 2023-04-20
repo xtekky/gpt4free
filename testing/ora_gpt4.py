@@ -24,4 +24,4 @@ chatbot_id       = gpt4_chatbot_ids[0]
 model = ora.CompletionModel.load(chatbot_id, 'gpt-4')
 response = ora.Completion.create(model, 'hello')
 
-print(response)
+print(response.completion.choices[0].text)
