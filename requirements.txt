@@ -1,3 +1,6 @@
 websocket-client
 requests
 tls-client
+pypasser
+names
+colorama
