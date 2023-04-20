@@ -11,6 +11,7 @@ from urllib       import parse
 from os           import urandom
 from hashlib      import md5
 from json         import dumps
+from pypasser     import reCaptchaV3
 
 def extract_formkey(html):
     script_regex = r'<script>if\(.+\)throw new Error;(.+)</script>'
@@ -193,12 +194,14 @@ class Account:
         client.headers["poe-formkey"]  = extract_formkey(client.get('https://poe.com/login').text)
         client.headers["poe-tchannel"] = client.get('https://poe.com/api/settings').json()['tchannelData']['channel']
 
+        token = reCaptchaV3('https://www.recaptcha.net/recaptcha/enterprise/anchor?ar=1&k=6LflhEElAAAAAI_ewVwRWI9hsyV4mbZnYAslSvlG&co=aHR0cHM6Ly9wb2UuY29tOjQ0Mw..&hl=en&v=vkGiR-M4noX1963Xi_DB0JeI&size=invisible&cb=hhps5wd06eue')
+
         payload = dumps(separators = (',', ':'), obj = {
             'queryName': 'MainSignupLoginSection_sendVerificationCodeMutation_Mutation',
             'variables': {
                 'emailAddress': mail_address,
                 'phoneNumber': None,
-                'recaptchaToken': None,
+                'recaptchaToken': token
             },
             'query': 'mutation MainSignupLoginSection_sendVerificationCodeMutation_Mutation(\n  $emailAddress: String\n  $phoneNumber: String\n  $recaptchaToken: String\n) {\n  sendVerificationCode(verificationReason: login, emailAddress: $emailAddress, phoneNumber: $phoneNumber, recaptchaToken: $recaptchaToken) {\n    status\n    errorMessage\n  }\n}\n',
         })
