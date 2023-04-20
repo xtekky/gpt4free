@@ -204,25 +204,34 @@ class StreamingCompletion:
         
         while StreamingCompletion.stream_completed != True or not StreamingCompletion.message_queue.empty():
             try:
-                message = StreamingCompletion.message_queue.get(timeout=0)
-                for token in findall(r'(?<=data: )(.+?)(?=\r\n\r\n)', message.decode()):
-                    yield PhindResponse({
-                        'id'     : f'cmpl-1337-{int(time())}', 
-                        'object' : 'text_completion', 
-                        'created': int(time()), 
-                        'model'  : model, 
-                        'choices': [{
-                                'text'          : token, 
-                                'index'         : 0, 
-                                'logprobs'      : None, 
-                                'finish_reason' : 'stop'
-                        }], 
-                        'usage': {
-                            'prompt_tokens'     : len(prompt), 
-                            'completion_tokens' : len(token), 
-                            'total_tokens'      : len(prompt) + len(token)
-                        }
-                    })
+                chunk = StreamingCompletion.message_queue.get(timeout=0)
+
+                if chunk == b'data:  \r\ndata: \r\ndata: \r\n\r\n':
+                    chunk = b'data:  \n\n\r\n\r\n'
+                
+                chunk = chunk.decode()
+                
+                chunk = chunk.replace('data: \r\n\r\ndata: ', 'data: \n')
+                chunk = chunk.replace('\r\ndata: \r\ndata: \r\n\r\n', '\n\n\r\n\r\n')
+                chunk = chunk.replace('data: ', '').replace('\r\n\r\n', '')
+                
+                yield PhindResponse({
+                    'id'     : f'cmpl-1337-{int(time())}', 
+                    'object' : 'text_completion', 
+                    'created': int(time()), 
+                    'model'  : model, 
+                    'choices': [{
+                            'text'          : chunk, 
+                            'index'         : 0, 
+                            'logprobs'      : None, 
+                            'finish_reason' : 'stop'
+                    }], 
+                    'usage': {
+                        'prompt_tokens'     : len(prompt), 
+                        'completion_tokens' : len(chunk), 
+                        'total_tokens'      : len(prompt) + len(chunk)
+                    }
+                })
 
             except Empty:
                 pass
