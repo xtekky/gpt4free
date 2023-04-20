@@ -47,7 +47,7 @@ def phindconv():
     m = json_data.get('conversationId')
     t = json_data.get('parentMessageId')
     def event_stream(m,q,t):
-        for response in phind.Completion.create(
+        for response in phind.StreamingCompletion.create(
             model  = 'gpt-4',
             prompt = q,
             results     = phind.Search.create(q, actualSearch = False), # create search (set actualSearch to False to disable internet)
