@@ -1,24 +1,11 @@
 from urllib.parse import quote
-from tls_client   import Session
 from time         import time
 from datetime     import datetime
+from queue        import Queue, Empty
+from threading    import Thread
+from re           import findall
 
-client         = Session(client_identifier='chrome110')
-client.headers = {
-    'authority': 'www.phind.com',
-    'accept': '*/*',
-    'accept-language': 'en,fr-FR;q=0.9,fr;q=0.8,es-ES;q=0.7,es;q=0.6,en-US;q=0.5,am;q=0.4,de;q=0.3',
-    'content-type': 'application/json',
-    'origin': 'https://www.phind.com',
-    'referer': 'https://www.phind.com/search',
-    'sec-ch-ua': '"Chromium";v="110", "Google Chrome";v="110", "Not:A-Brand";v="99"',
-    'sec-ch-ua-mobile': '?0',
-    'sec-ch-ua-platform': '"macOS"',
-    'sec-fetch-dest': 'empty',
-    'sec-fetch-mode': 'cors',
-    'sec-fetch-site': 'same-origin',
-    'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36',
-}
+from curl_cffi.requests import post
 
 class PhindResponse:
     
@@ -81,10 +68,18 @@ class Search:
                 }
             }
         
-        return client.post('https://www.phind.com/api/bing/search', json = { 
-            'q' : prompt,
+        headers = {
+            'authority'    : 'www.phind.com',
+            'origin'       : 'https://www.phind.com',
+            'referer'      : 'https://www.phind.com/search',
+            'user-agent'   : 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36',
+        }
+        
+        return post('https://www.phind.com/api/bing/search', headers = headers, json = { 
+            'q': prompt,
             'userRankList': {},
             'browserLanguage': language}).json()['rawBingResults']
+
 
 class Completion:
     def create(
@@ -121,12 +116,19 @@ class Completion:
             }
         }
         
+        headers = {
+            'authority'    : 'www.phind.com',
+            'origin'       : 'https://www.phind.com',
+            'referer'      : f'https://www.phind.com/search?q={quote(prompt)}&c=&source=searchbox&init=true',
+            'user-agent'   : 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36',
+        }
+        
         completion = ''
-        response   = client.post('https://www.phind.com/api/infer/answer', json=json_data, timeout_seconds=200)
+        response   = post('https://www.phind.com/api/infer/answer', headers = headers, json = json_data, timeout=99999)
         for line in response.text.split('\r\n\r\n'):
             completion += (line.replace('data: ', ''))
-            
-        return  PhindResponse({
+        
+        return PhindResponse({
             'id'     : f'cmpl-1337-{int(time())}', 
             'object' : 'text_completion', 
             'created': int(time()), 
@@ -143,3 +145,88 @@ class Completion:
                 'total_tokens'      : len(prompt) + len(completion)
             }
         })
+        
+
+class StreamingCompletion:
+    message_queue    = Queue()
+    stream_completed = False
+    
+    def request(model, prompt, results, creative, detailed, codeContext, language) -> None:
+        
+        models = {
+            'gpt-4' : 'expert',
+            'gpt-3.5-turbo' : 'intermediate',
+            'gpt-3.5': 'intermediate',
+        }
+
+        json_data = {
+            'question'    : prompt,
+            'bingResults' : results,
+            'codeContext' : codeContext,
+            'options': {
+                'skill'   : models[model],
+                'date'    : datetime.now().strftime("%d/%m/%Y"),
+                'language': language,
+                'detailed': detailed,
+                'creative': creative
+            }
+        }
+        
+        stream_req = post('https://www.phind.com/api/infer/answer', json=json_data, timeout=99999,
+            content_callback = StreamingCompletion.handle_stream_response,
+            headers = {
+                'authority'    : 'www.phind.com',
+                'origin'       : 'https://www.phind.com',
+                'referer'      : f'https://www.phind.com/search?q={quote(prompt)}&c=&source=searchbox&init=true',
+                'user-agent'   : 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36',
+        })
+
+        StreamingCompletion.stream_completed = True
+
+    @staticmethod
+    def create(
+        model       : str = 'gpt-4', 
+        prompt      : str = '', 
+        results     : dict = None, 
+        creative    : bool = False, 
+        detailed    : bool = False, 
+        codeContext : str = '',
+        language    : str = 'en'):
+        
+        if results is None:
+            results = Search.create(prompt, actualSearch = True)
+        
+        if len(codeContext) > 2999:
+            raise ValueError('codeContext must be less than 3000 characters')
+        
+        Thread(target = StreamingCompletion.request, args = [
+            model, prompt, results, creative, detailed, codeContext, language]).start()
+        
+        while StreamingCompletion.stream_completed != True or not StreamingCompletion.message_queue.empty():
+            try:
+                message = StreamingCompletion.message_queue.get(timeout=0)
+                for token in findall(r'(?<=data: )(.+?)(?=\r\n\r\n)', message.decode()):
+                    yield PhindResponse({
+                        'id'     : f'cmpl-1337-{int(time())}', 
+                        'object' : 'text_completion', 
+                        'created': int(time()), 
+                        'model'  : model, 
+                        'choices': [{
+                                'text'          : token, 
+                                'index'         : 0, 
+                                'logprobs'      : None, 
+                                'finish_reason' : 'stop'
+                        }], 
+                        'usage': {
+                            'prompt_tokens'     : len(prompt), 
+                            'completion_tokens' : len(token), 
+                            'total_tokens'      : len(prompt) + len(token)
+                        }
+                    })
+
+            except Empty:
+                pass
+
+    @staticmethod
+    def handle_stream_response(response):
+        StreamingCompletion.message_queue.put(response)
