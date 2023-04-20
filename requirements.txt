@@ -5,3 +5,4 @@ pypasser
 names
 colorama
 curl_cffi
+flask
