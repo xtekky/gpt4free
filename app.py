@@ -47,16 +47,17 @@ def phindconv():
     m = json_data.get('conversationId')
     t = json_data.get('parentMessageId')
     def event_stream(m,q,t):
-        response = phind.Completion.create(
+        for response in phind.Completion.create(
             model  = 'gpt-4',
             prompt = q,
             results     = phind.Search.create(q, actualSearch = False), # create search (set actualSearch to False to disable internet)
             creative    = False,
             detailed    = False,
-            codeContext = '以中文回答') # up to 3000 chars of code
-        result=response.completion.choices[0].text.split("\r\n")
-        for r in result:
-            yield f'data: "{r}"\n\n'
+            codeContext = '以中文回答'): # up to 3000 chars of code
+            yield f'data: "{response.completion.choices[0].text}"\n\n'
+        #result=response.completion.choices[0].text.split("\r\n")
+        #for r in result:
+            #yield f'data: "{r}"\n\n'
         yield "data: [DONE]\n\n"
 
     return Response(event_stream(m,q,t), content_type='text/event-stream')
