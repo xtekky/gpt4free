@@ -71,7 +71,7 @@ def conversation():
     m = json_data.get('conversationId')
     t = json_data.get('parentMessageId')
     if t==None:
-        t=json.parse(requests.get("https://poe.cfcors.workers.dev/getOne"))["_id"]
+        t=json.loads(requests.get("https://poe.cfcors.workers.dev/getOne"))["_id"]
         #t = quora.Account.get()
         #sleep(2)
  
