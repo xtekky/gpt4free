@@ -109,7 +109,7 @@ def poeconv():
 def ask(model,prompt,token):
     for response in quora.StreamingCompletion.create(model=model, prompt=prompt, token=token):
         r=json.dumps(response.completion.choices[0].text)#.replace("\n","\r")
-        yield f'"{r}"'
+        yield r#f'"{r}"'
 
 @app.route('/')
 def index():
