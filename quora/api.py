@@ -368,7 +368,7 @@ class Client:
             human_message_id = human_message["node"]["messageId"]
         except TypeError:
             raise RuntimeError(
-                f"An unknown error occured. Raw response data: {message_data}")
+                f"An unknown error occurred. Raw response data: {message_data}")
 
         # indicate that the current message is waiting for a response
         self.active_messages[human_message_id] = None
