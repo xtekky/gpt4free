@@ -71,10 +71,9 @@ def conversation():
     m = json_data.get('conversationId')
     t = json_data.get('parentMessageId')
     if t==None:
-        t=json.loads(requests.get("https://poe.cfcors.workers.dev/getOne").text)["_id"]
+        t=json.loads(requests.get("https://poe.cfcors.workers.dev/getGPT3").text)["_id"]
         #t = quora.Account.get()
-        #sleep(2)
- 
+        #sleep(2) 
     if m==None:
         m = 'gpt-3.5-turbo'
     event=json.dumps({"conversationId":m,"parentMessageId":t})
@@ -93,7 +92,7 @@ def poeconv():
     m = json_data.get('conversationId')
     t = json_data.get('parentMessageId')
     if t==None:
-        t = quora.Account.get()
+        t=json.loads(requests.get("https://poe.cfcors.workers.dev/getGPT4").text)["_id"]
         #sleep(2)
  
     if m==None:
