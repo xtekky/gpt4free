@@ -74,7 +74,28 @@ def conversation():
         #sleep(2)
  
     if m==None:
-        m = 'gpt-4'
+        m = 'gpt-3.5-turbo'
+    event=json.dumps({"conversationId":m,"parentMessageId":t})
+    def event_stream(m,q,t):
+        for text in ask(m,q,t):  
+            yield f"data: {text}\n\n"
+        yield f"data: {event}\n\n"   
+        yield "data: [DONE]\n\n"
+
+    return Response(event_stream(m,q,t), content_type='text/event-stream')
+
+@app.route('/poeconv', methods=['POST'])
+def poeconv():
+    json_data = request.get_json()
+    q = json_data.get('message', '你好')
+    m = json_data.get('conversationId')
+    t = json_data.get('parentMessageId')
+    if t==None:
+        t = quora.Account.get()
+        #sleep(2)
+ 
+    if m==None:
+        m = 'gpt-4'#'gpt-3.5-turbo'
     #event=json.dumps({"conversationId":m,"parentMessageId":t})
     def event_stream(m,q,t):
         for text in ask(m,q,t):  
