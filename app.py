@@ -5,6 +5,7 @@ from time import sleep
 from flask import Flask, request, Response, render_template
 import threading
 import json
+import requests
 
 app = Flask(__name__)
 
@@ -70,7 +71,8 @@ def conversation():
     m = json_data.get('conversationId')
     t = json_data.get('parentMessageId')
     if t==None:
-        t = quora.Account.get()
+        t=json.parse(requests.get("https://poe.cfcors.workers.dev/getOne"))["_id"]
+        #t = quora.Account.get()
         #sleep(2)
  
     if m==None:
