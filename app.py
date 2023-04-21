@@ -108,7 +108,7 @@ def poeconv():
 
 def ask(model,prompt,token):
     for response in quora.StreamingCompletion.create(model=model, prompt=prompt, token=token):
-        yield f'"{response.completion.choices[0].text}"'
+        yield f'"{response.completion.choices[0].text.replace("\r\n","\n")}"'
 
 @app.route('/')
 def index():
