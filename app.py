@@ -35,7 +35,7 @@ def oraconv():
                 conversationId = m)
         result=response.completion.choices[0].text.split("\r\n")
         for r in result:
-            yield f'data: "{r}"\n\n'
+            yield f'data: {json.dumps(r)}\n\n'
         event=json.dumps({"conversationId":m,"parentMessageId":t})
         yield f"data: {event}\n\ndata: [DONE]\n\n"
 
@@ -55,7 +55,7 @@ def phindconv():
             creative    = False,
             detailed    = False,
             codeContext = '以中文回答'): # up to 3000 chars of code
-            yield f'data: "{response.completion.choices[0].text}"\n\n'
+            yield f'data: {json.dumps(response.completion.choices[0].text)}\n\n'
         #result=response.completion.choices[0].text.split("\r\n")
         #for r in result:
             #yield f'data: "{r}"\n\n'
@@ -108,8 +108,7 @@ def poeconv():
 
 def ask(model,prompt,token):
     for response in quora.StreamingCompletion.create(model=model, prompt=prompt, token=token):
-        r=json.dumps(response.completion.choices[0].text)#.replace("\n","\r")
-        yield r#f'"{r}"'
+        yield json.dumps(response.completion.choices[0].text)
 
 @app.route('/')
 def index():
