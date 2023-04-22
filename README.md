@@ -1,15 +1,17 @@
-# Free GPT APIs
+# Gpt4free - use chatgpt, for free !!
 
 <img width="1383" alt="image" src="https://user-images.githubusercontent.com/98614666/233799515-1a7cb6a3-b17f-42c4-956d-8d2a0664466f.png">
 
-This repository provides reverse-engineered language models from various sources. Some of these models are already available in the repo, while others are currently being worked on.
+Have you ever come across some amazing projects that you couldnt use just because **you didn't have an OpenAI API key ?** 
 
-> **Important:** If you come across any website offering free language models, please create an issue or submit a pull request with the details. We will reverse engineer it and add it to this repository.
+**We've got u covered !!** This repository offers **reverse-engineered** third-party APIs for `GPT-4/3.5`, sourced from various websites. You can simply **download** this repository and use the available modules, which are designed to be used **just like OpenAI's official package**. **Unleash ChatGpt's potential for your projects, now !** You are welcome ; ).
+
+By the way, thank you so much for `1.3k` stars and all the support !!
 
 ## Chatgpt clone
 > https://chat.chatbot.sex/chat
-> This site was developed by me and includes **gpt-4/3.5**, **internet access** and **gpt-jailbreak's** like DAN
-> You can find an opensource version of it to run locally here: https://github.com/xtekky/chatgpt-clone
+> This site was developed by me and includes **gpt-4/3.5**, **internet access** and **gpt-jailbreak's** like DAN   
+> run locally here: https://github.com/xtekky/chatgpt-clone
 
 
 ## Table of Contents
