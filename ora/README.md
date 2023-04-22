@@ -11,7 +11,7 @@ model = ora.CompletionModel.load(chatbot_id, 'gpt-4') # or gpt-3.5
 
 #### create model / chatbot: 
 ```python
-# inport ora
+# import ora
 import ora
 
 # create model

@@ -57,7 +57,7 @@ These sites will be reverse engineered but need account access:
 
 #### search
 - [`/phind`](./phind/README.md)
-- why ? its not sure if they use gpt, but rather claude but they have an amazing search and good reasonning model
+- why ? its not sure if they use gpt, but rather claude but they have an amazing search and good reasoning model
 
 
 ## Dependencies

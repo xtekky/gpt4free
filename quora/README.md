@@ -18,7 +18,7 @@ models = {
 import quora
 
 # create account
-# make shure to set enable_bot_creation to True
+# make sure to set enable_bot_creation to True
 token = quora.Account.create(logging = True, enable_bot_creation=True)
 
 model = quora.Model.create(
