@@ -59,7 +59,7 @@ class Completion:
 
         youChatSerpResults      = findall(r'youChatSerpResults\ndata: (.*)\n\nevent', response.text)[0]
         thirdPartySearchResults = findall(r"thirdPartySearchResults\ndata: (.*)\n\nevent", response.text)[0]
-        slots                   = findall(r"slots\ndata: (.*)\n\nevent", response.text)[0]
+        #slots                   = findall(r"slots\ndata: (.*)\n\nevent", response.text)[0]
         
         text = response.text.split('}]}\n\nevent: youChatToken\ndata: {"youChatToken": "')[-1]
         text = text.replace('"}\n\nevent: youChatToken\ndata: {"youChatToken": "', '')
@@ -67,7 +67,7 @@ class Completion:
         
         extra = {
             'youChatSerpResults'      : loads(youChatSerpResults),
-            'slots'                   : loads(slots)
+            #'slots'                   : loads(slots)
         }
 
         return {
