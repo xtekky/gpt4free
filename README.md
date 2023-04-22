@@ -14,13 +14,13 @@ This repository provides reverse-engineered language models from various sources
 
 - [Current Sites (No Authentication / Easy Account Creation)](#current-sites)
 - [Sites with Authentication (Will Reverse Engineer but Need Account Access)](#sites-with-authentication)
-- [Usage Examples](#usage-examples)
-  - [`quora (poe)`](#example-poe)
-  - [`phind`](#example-phind)
-  - [`t3nsor`](#example-t3nsor)
-  - [`ora`](#example-ora)
-  - [`writesonic`](#example-writesonic)
-  - [`you`](#example-you)
+- [Usage Examples]
+  - [`quora (poe)`](./quora/README.md)
+  - [`phind`](./phind/README.md)
+  - [`t3nsor`](./t3nsor/README.md)
+  - [`ora`](./ora/README.md)
+  - [`writesonic`](./writesonic/README.md)
+  - [`you`](./you/README.md)
 
 ## Current Sites <a name="current-sites"></a>
 
