@@ -21,6 +21,7 @@ This repository provides reverse-engineered language models from various sources
   - [`ora`](./ora/README.md)
   - [`writesonic`](./writesonic/README.md)
   - [`you`](./you/README.md)
+  - [`sqlchat`](./sqlchat/README.md)
 
 ## Current Sites <a name="current-sites"></a>
 
@@ -32,6 +33,7 @@ This repository provides reverse-engineered language models from various sources
 | [t3nsor.com](https://t3nsor.com)|GPT-3.5|
 | [you.com](https://you.com)|GPT-3.5 / Internet / good search|
 | [phind.com](https://phind.com)|GPT-4 / Internet / good search|
+| [sqlchat.ai](https://sqlchat.ai)|GPT-3.5|
 
 ## Sites with Authentication <a name="sites-with-authentication"></a>
 
