@@ -27,6 +27,7 @@ This repository provides reverse-engineered language models from various sources
   - [`ora`](#example-ora)
   - [`writesonic`](#example-writesonic)
   - [`you`](#example-you)
+  - [`cocalc`](#example-cocalc)
 
 ## Current Sites <a name="current-sites"></a>
 
@@ -38,6 +39,7 @@ This repository provides reverse-engineered language models from various sources
 | [t3nsor.com](https://t3nsor.com)|GPT-3.5|
 | [you.com](https://you.com)|GPT-3.5 / Internet / good search|
 | [phind.com](https://phind.com)|GPT-4 / Internet / good search|
+| [cocalc.com](https://cocalc.com)|GPT-3.5 / Unknown Internet|
 
 ## Sites with Authentication <a name="sites-with-authentication"></a>
 
@@ -304,6 +306,19 @@ while True:
     print("Bot:", response["response"])
     
     chat.append({"question": prompt, "answer": response["response"]})
+```
+
+### Example: `cocalc` (use like openai pypi package) <a name="example-cocalc"></a>
+
+```python
+import cocalc
+
+response = you.Completion.create(
+    prompt        = "Hello World", # Required
+    system_prompt = "You are ChatGPT" # Optional
+)
+
+print(response) # Just text response 
 ```
 
 ## Dependencies
