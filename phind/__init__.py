@@ -7,6 +7,8 @@ from re           import findall
 
 from curl_cffi.requests import post
 
+cf_clearance = ''
+
 class PhindResponse:
     
     class Completion:
@@ -69,10 +71,19 @@ class Search:
             }
         
         headers = {
-            'authority'    : 'www.phind.com',
-            'origin'       : 'https://www.phind.com',
-            'referer'      : 'https://www.phind.com/search',
-            'user-agent'   : 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36',
+            'authority': 'www.phind.com',
+            'accept': '*/*',
+            'accept-language': 'en,fr-FR;q=0.9,fr;q=0.8,es-ES;q=0.7,es;q=0.6,en-US;q=0.5,am;q=0.4,de;q=0.3',
+            'cookie': f'cf_clearance={cf_clearance}',
+            'origin': 'https://www.phind.com',
+            'referer': 'https://www.phind.com/search?q=hi&c=&source=searchbox&init=true',
+            'sec-ch-ua': '"Chromium";v="112", "Google Chrome";v="112", "Not:A-Brand";v="99"',
+            'sec-ch-ua-mobile': '?0',
+            'sec-ch-ua-platform': '"macOS"',
+            'sec-fetch-dest': 'empty',
+            'sec-fetch-mode': 'cors',
+            'sec-fetch-site': 'same-origin',
+            'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36',
         }
         
         return post('https://www.phind.com/api/bing/search', headers = headers, json = { 
@@ -117,14 +128,24 @@ class Completion:
         }
         
         headers = {
-            'authority'    : 'www.phind.com',
-            'origin'       : 'https://www.phind.com',
-            'referer'      : f'https://www.phind.com/search?q={quote(prompt)}&c=&source=searchbox&init=true',
-            'user-agent'   : 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36',
+            'authority': 'www.phind.com',
+            'accept': '*/*',
+            'accept-language': 'en,fr-FR;q=0.9,fr;q=0.8,es-ES;q=0.7,es;q=0.6,en-US;q=0.5,am;q=0.4,de;q=0.3',
+            'content-type': 'application/json',
+            'cookie': f'cf_clearance={cf_clearance}',
+            'origin': 'https://www.phind.com',
+            'referer': 'https://www.phind.com/search?q=hi&c=&source=searchbox&init=true',
+            'sec-ch-ua': '"Chromium";v="112", "Google Chrome";v="112", "Not:A-Brand";v="99"',
+            'sec-ch-ua-mobile': '?0',
+            'sec-ch-ua-platform': '"macOS"',
+            'sec-fetch-dest': 'empty',
+            'sec-fetch-mode': 'cors',
+            'sec-fetch-site': 'same-origin',
+            'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36',
         }
         
         completion = ''
-        response   = post('https://www.phind.com/api/infer/answer', headers = headers, json = json_data, timeout=99999)
+        response   = post('https://www.phind.com/api/infer/answer', headers = headers, json = json_data, timeout=99999, impersonate='chrome110')
         for line in response.text.split('\r\n\r\n'):
             completion += (line.replace('data: ', ''))
         
@@ -172,14 +193,28 @@ class StreamingCompletion:
             }
         }
         
-        stream_req = post('https://www.phind.com/api/infer/answer', json=json_data, timeout=99999,
-            content_callback = StreamingCompletion.handle_stream_response,
-            headers = {
-                'authority'    : 'www.phind.com',
-                'origin'       : 'https://www.phind.com',
-                'referer'      : f'https://www.phind.com/search?q={quote(prompt)}&c=&source=searchbox&init=true',
-                'user-agent'   : 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36',
-        })
+        print(cf_clearance)
+        
+        headers = {
+            'authority': 'www.phind.com',
+            'accept': '*/*',
+            'accept-language': 'en,fr-FR;q=0.9,fr;q=0.8,es-ES;q=0.7,es;q=0.6,en-US;q=0.5,am;q=0.4,de;q=0.3',
+            'content-type': 'application/json',
+            'cookie': f'cf_clearance={cf_clearance}',
+            'origin': 'https://www.phind.com',
+            'referer': 'https://www.phind.com/search?q=hi&c=&source=searchbox&init=true',
+            'sec-ch-ua': '"Chromium";v="112", "Google Chrome";v="112", "Not:A-Brand";v="99"',
+            'sec-ch-ua-mobile': '?0',
+            'sec-ch-ua-platform': '"macOS"',
+            'sec-fetch-dest': 'empty',
+            'sec-fetch-mode': 'cors',
+            'sec-fetch-site': 'same-origin',
+            'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36',
+        }
+        
+        response   = post('https://www.phind.com/api/infer/answer', 
+            headers = headers, json = json_data, timeout=99999, impersonate='chrome110', content_callback=StreamingCompletion.handle_stream_response)
+
 
         StreamingCompletion.stream_completed = True
 

@@ -106,6 +106,9 @@ print(response.completion.choices[0].text)
 ```python
 import phind
 
+# set cf_clearance cookie
+phind.cf_clearance = 'xx.xx-1682166681-0-160'
+
 prompt = 'who won the quatar world cup'
 
 # help needed: not getting newlines from the stream, please submit a PR if you know how to fix this

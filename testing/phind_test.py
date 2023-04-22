@@ -1,5 +1,8 @@
 import phind
 
+# set cf_clearance cookie
+phind.cf_clearance = 'hWfIdYKgcnxnU5ayolWe9t7eEmAbULywS.qfHkm1T_A-1682166681-0-160'
+
 prompt = 'hello world'
 
 # normal completion
