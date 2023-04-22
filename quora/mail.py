@@ -1,39 +1,66 @@
-import html
-import json
-from   tls_client import Session
+from requests import Session
+from time     import sleep
+from re       import search, findall
+from json     import loads
 
-class Mail:
-    def __init__(self, proxies: str = None, timeout: int = 15, bearer_token: str or None = None) -> None:
-        self.session  = Session(client_identifier='chrome110')
-        self.base_url = 'https://web2.temp-mail.org'
-        self.proxies  = proxies
-        self.timeout  = timeout
-        
-        self.session.headers['authorization'] = f'Bearer {bearer_token}' if bearer_token else None
+class Emailnator:
+    def __init__(self) -> None:
+        self.client = Session()
+        self.client.get('https://www.emailnator.com/', timeout=6)
+        self.cookies = self.client.cookies.get_dict()
 
-    def get_mail(self) -> str:
-        status: html = self.session.get(self.base_url).status_code
+        self.client.headers = {
+            'authority'      : 'www.emailnator.com',
+            'origin'         : 'https://www.emailnator.com',
+            'referer'        : 'https://www.emailnator.com/',
+            'user-agent'     : 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/101.0.0.0 Safari/537.36 Edg/101.0.1722.39',
+            'x-xsrf-token'   : self.client.cookies.get("XSRF-TOKEN")[:-3]+"=",
+        }
         
-        try:
-            if status == 200:
-                data = self.session.post(f'{self.base_url}/mailbox').json()
-
-                self.session.headers['authorization'] = f'Bearer {data["token"]}'
-                return data["token"], data["mailbox"]
+        self.email = None
         
-        except Exception as e:
-            print(e)
-            return f'Email creation error. {e} | use proxies', False
+    def get_mail(self):
+        response = self.client.post('https://www.emailnator.com/generate-email',json = {
+            'email': [
+                'domain',
+                'plusGmail',
+                'dotGmail',
+            ]
+        })
+        
+        self.email = loads(response.text)["email"][0]
+        return self.email
     
-    def fetch_inbox(self) -> json:
-        return self.session.get(f'{self.base_url}/messages').json()
-    
-    def get_message_content(self, message_id: str):
-        return self.session.get(f'{self.base_url}/messages/{message_id}').json()["bodyHtml"]
+    def get_message(self):
+        print("waiting for code...")
+        
+        while True:
+            sleep(2)
+            mail_token = self.client.post('https://www.emailnator.com/message-list', 
+                json   = {'email': self.email})
+            
+            mail_token = loads(mail_token.text)["messageData"]
+            
+            if len(mail_token) == 2:
+                print(mail_token[1]["messageID"])
+                break
+        
+        mail_context =  self.client.post('https://www.emailnator.com/message-list', json = {
+            'email'    : self.email,
+            'messageID': mail_token[1]["messageID"],
+        })
+        
+        return mail_context.text
 
-# if __name__ == '__main__':
+# mail_client  = Emailnator()
+# mail_adress  = mail_client.get_mail()
 
-#     email_client = TempMail()
-#     token, email = email_client.get_mail()
-#     print(email)
-#     print(token)
+# print(mail_adress)
+
+# mail_content = mail_client.get_message()
+
+# print(mail_content)
+
+# code = findall(r';">(\d{6,7})</div>', mail_content)[0]
+# print(code)
+

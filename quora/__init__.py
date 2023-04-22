@@ -1,6 +1,7 @@
 from quora.api    import Client as PoeClient
-from quora.mail   import Mail
+from quora.mail   import Emailnator
 from requests     import Session
+from tls_client   import Session as TLS
 from re           import search, findall
 from json         import loads
 from time         import sleep
@@ -12,6 +13,9 @@ from os           import urandom
 from hashlib      import md5
 from json         import dumps
 from pypasser     import reCaptchaV3
+
+# from twocaptcha import TwoCaptcha
+# solver = TwoCaptcha('72747bf24a9d89b4dcc1b24875efd358')
 
 def extract_formkey(html):
     script_regex = r'<script>if\(.+\)throw new Error;(.+)</script>'
@@ -157,50 +161,54 @@ class Model:
         
         return ModelResponse(response.json())
 
+
 class Account:
     def create(proxy: None or str = None, logging: bool = False, enable_bot_creation: bool = False):
-        client       = Session()
+        client       =  TLS(client_identifier='chrome110')
         client.proxies = {
             'http': f'http://{proxy}',
             'https': f'http://{proxy}'} if proxy else None
 
-        mail         = Mail(client.proxies)
-        mail_token   = None
-        _, mail_address = mail.get_mail()
-        if mail_address is None:
-            raise Exception('Error creating mail, please use proxies')
+        mail_client  = Emailnator()
+        mail_address  = mail_client.get_mail()
 
         if logging: print('email', mail_address)
 
         client.headers = {
-            "host"              : "poe.com",
-            "connection"        : "keep-alive",
-            "cache-control"     : "max-age=0",
-            "sec-ch-ua"         : "\"Microsoft Edge\";v=\"111\", \"Not(A:Brand\";v=\"8\", \"Chromium\";v=\"111\"",
-            "sec-ch-ua-mobile"  : "?0",
-            "sec-ch-ua-platform": "\"macOS\"",
-            "user-agent"        : "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36 Edg/111.0.1661.54",
-            "accept"            : "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
-            "sec-fetch-site"    : "same-origin",
-            "sec-fetch-mode"    : "navigate",
-            "content-type"      : "application/json",
-            "sec-fetch-user"    : "?1",
-            "sec-fetch-dest"    : "document",
-            "accept-encoding"   : "gzip, deflate, br",
-            "accept-language"   : "en-GB,en;q=0.9,en-US;q=0.8",
-            "upgrade-insecure-requests": "1",
+            'authority'      : 'poe.com',
+            'accept'         : '*/*',
+            'accept-language': 'en,fr-FR;q=0.9,fr;q=0.8,es-ES;q=0.7,es;q=0.6,en-US;q=0.5,am;q=0.4,de;q=0.3',
+            'content-type'  : 'application/json',
+            'origin'        : 'https://poe.com',
+            'poe-formkey'   : 'null',
+            'poe-tag-id'    : 'null',
+            'poe-tchannel'  : 'null',
+            'referer'       : 'https://poe.com/login',
+            'sec-ch-ua'     : '"Chromium";v="112", "Google Chrome";v="112", "Not:A-Brand";v="99"',
+            'sec-ch-ua-mobile'  : '?0',
+            'sec-ch-ua-platform': '"macOS"',
+            'sec-fetch-dest': 'empty',
+            'sec-fetch-mode': 'cors',
+            'sec-fetch-site': 'same-origin',
+            'user-agent'    : 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36'
         }
 
         client.headers["poe-formkey"]  = extract_formkey(client.get('https://poe.com/login').text)
         client.headers["poe-tchannel"] = client.get('https://poe.com/api/settings').json()['tchannelData']['channel']
 
-        token = reCaptchaV3('https://www.recaptcha.net/recaptcha/enterprise/anchor?ar=1&k=6LflhEElAAAAAI_ewVwRWI9hsyV4mbZnYAslSvlG&co=aHR0cHM6Ly9wb2UuY29tOjQ0Mw..&hl=en&v=vkGiR-M4noX1963Xi_DB0JeI&size=invisible&cb=hhps5wd06eue')
+        token = reCaptchaV3('https://www.recaptcha.net/recaptcha/enterprise/anchor?ar=1&k=6LflhEElAAAAAI_ewVwRWI9hsyV4mbZnYAslSvlG&co=aHR0cHM6Ly9wb2UuY29tOjQ0Mw..&hl=en&v=4PnKmGB9wRHh1i04o7YUICeI&size=invisible&cb=bi6ivxoskyal')
+        # token = solver.recaptcha(sitekey='6LflhEElAAAAAI_ewVwRWI9hsyV4mbZnYAslSvlG',
+        #     url        = 'https://poe.com/login?redirect_url=%2F',
+        #     version    = 'v3',
+        #     enterprise = 1,
+        #     invisible  = 1,
+        #     action     = 'login',)['code']
 
         payload = dumps(separators = (',', ':'), obj = {
             'queryName': 'MainSignupLoginSection_sendVerificationCodeMutation_Mutation',
             'variables': {
-                'emailAddress': mail_address,
-                'phoneNumber': None,
+                'emailAddress'  : mail_address,
+                'phoneNumber'   : None,
                 'recaptchaToken': token
             },
             'query': 'mutation MainSignupLoginSection_sendVerificationCodeMutation_Mutation(\n  $emailAddress: String\n  $phoneNumber: String\n  $recaptchaToken: String\n) {\n  sendVerificationCode(verificationReason: login, emailAddress: $emailAddress, phoneNumber: $phoneNumber, recaptchaToken: $recaptchaToken) {\n    status\n    errorMessage\n  }\n}\n',
@@ -208,33 +216,31 @@ class Account:
 
         base_string = payload + client.headers["poe-formkey"] + 'WpuLMiXEKKE98j56k'
         client.headers["poe-tag-id"] =  md5(base_string.encode()).hexdigest()
-
+        
+        print(dumps(client.headers, indent=4))
+        
         response = client.post('https://poe.com/api/gql_POST', data=payload)
+        
+        if 'automated_request_detected' in response.text:
+            print('please try using a proxy / wait for fix')
+        
         if 'Bad Request' in response.text:
             if logging: print('bad request, retrying...' , response.json())
             quit()
 
         if logging: print('send_code' ,response.json())
-
-        while True:
-            sleep(1)
-            messages = mail.fetch_inbox()
-            
-            if len(messages["messages"]) > 0:
-                email_content = mail.get_message_content(messages["messages"][0]["_id"])
-                mail_token = findall(r';">(\d{6,7})</div>', email_content)[0]
-            
-            if mail_token:
-                break
+        
+        mail_content = mail_client.get_message()
+        mail_token   = findall(r';">(\d{6,7})</div>', mail_content)[0]
 
         if logging: print('code', mail_token)
 
         payload = dumps(separators = (',', ':'), obj={
             "queryName": "SignupOrLoginWithCodeSection_signupWithVerificationCodeMutation_Mutation",
             "variables": {
-                "verificationCode"  : mail_token,
-                "emailAddress"      : mail_address,
-                "phoneNumber"       : None
+                "verificationCode": str(mail_token),
+                "emailAddress": mail_address,
+                "phoneNumber": None
             },
             "query": "mutation SignupOrLoginWithCodeSection_signupWithVerificationCodeMutation_Mutation(\n  $verificationCode: String!\n  $emailAddress: String\n  $phoneNumber: String\n) {\n  signupWithVerificationCode(verificationCode: $verificationCode, emailAddress: $emailAddress, phoneNumber: $phoneNumber) {\n    status\n    errorMessage\n  }\n}\n"
         })
@@ -244,27 +250,6 @@ class Account:
 
         response = client.post('https://poe.com/api/gql_POST', data = payload)
         if logging: print('verify_code', response.json())
-
-        token = parse.unquote(client.cookies.get_dict()['p-b'])
-
-        with open(Path(__file__).resolve().parent / 'cookies.txt', 'a') as f:
-            f.write(f'{token}\n')
-            
-        if enable_bot_creation:
-
-            payload = dumps(separators = (',', ':'), obj={
-                "queryName": "UserProfileConfigurePreviewModal_markMultiplayerNuxCompleted_Mutation",
-                "variables": {},
-                "query": "mutation UserProfileConfigurePreviewModal_markMultiplayerNuxCompleted_Mutation {\n  markMultiplayerNuxCompleted {\n    viewer {\n      hasCompletedMultiplayerNux\n      id\n    }\n  }\n}\n"
-            })
-            
-            base_string = payload + client.headers["poe-formkey"] + 'WpuLMiXEKKE98j56k'
-            client.headers["poe-tag-id"] =  md5(base_string.encode()).hexdigest()
-
-            resp = client.post("https://poe.com/api/gql_POST", data = payload)
-            if logging: print(resp.json())
-
-        return token
     
     def get():
         cookies = open(Path(__file__).resolve().parent / 'cookies.txt', 'r').read().splitlines()
