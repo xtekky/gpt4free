@@ -37,9 +37,11 @@ This repository provides reverse-engineered language models from various sources
 
 These sites will be reverse engineered but need account access:
 
-* [chat.openai.com/chat](https://chat.openai.com/chat)
-* [bard.google.com](https://bard.google.com)
-* [bing.com/chat](https://bing.com/chat)
+| Website                                             | Model(s)       |
+| --------------------------------------------------- | -------------- |
+| [chat.openai.com/chat](https://chat.openai.com/chat)| GPT-3.5        |
+| [bard.google.com](https://bard.google.com)          | custom / search|
+| [bing.com/chat](https://bing.com/chat)              | gpt-4/3.5      |
 
 ## Usage Examples <a name="usage-examples"></a>
 
