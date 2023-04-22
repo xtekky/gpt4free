@@ -64,7 +64,7 @@ These sites will be reverse engineered but need account access:
 ## Install  
 - download or clone this github repo
 
-install requiremnts with:
+install requirements with:
 ```sh
 pip3 install -r requirements.txt
 ```
