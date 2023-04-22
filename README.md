@@ -47,16 +47,16 @@ These sites will be reverse engineered but need account access:
 
 ## Best sites
 #### gpt-4
-- [`ora`](./ora/README.md) 
-- here is proof / test: [`ora`](./testing/ora_gpt4_proof.py)
+- [`/ora`](./ora/README.md) 
+- here is proof / test: [`ora_gpt4_proof.py`](./testing/ora_gpt4_proof.py)
 - why ?, no streaming compared to poe.com but u can send more than 1 message
 
 #### gpt-3.5
-- [`sqlchat`](./sqlchat/README.md)
+- [`/sqlchat`](./sqlchat/README.md)
 - why ? (streaming + you can give conversation history)
 
 #### search
-- [`phind`](./phind/README.md)
+- [`/phind`](./phind/README.md)
 - why ? its not sure if they use gpt, but rather claude but they have an amazing search and good reasonning model
 
 
