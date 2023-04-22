@@ -45,10 +45,20 @@ These sites will be reverse engineered but need account access:
 | [bard.google.com](https://bard.google.com)          | custom / search|
 | [bing.com/chat](https://bing.com/chat)              | gpt-4/3.5      |
 
-## Usage Examples <a name="usage-examples"></a>
+## Best sites
+#### gpt-4
+- [`ora`](./ora/README.md) 
+- here is proof / test: [`ora`](./testing/ora_gpt4_proof.py)
+- why ?, no streaming compared to poe.com but u can send more than 1 message
 
-| NOTE: the instructions of each module has been moved in the folder of the module itsself|
-| --- |
+#### gpt-3.5
+- [`sqlchat`](./sqlchat/README.md)
+- why ? (streaming + you can give conversation history)
+
+#### search
+- [`phind`](./phind/README.md)
+- why ? its not sure if they use gpt, but rather claude but they have an amazing search and good reasonning model
+
 
 ## Dependencies
 
