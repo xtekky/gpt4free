@@ -2,7 +2,7 @@
 
 <img width="1383" alt="image" src="https://user-images.githubusercontent.com/98614666/233799515-1a7cb6a3-b17f-42c4-956d-8d2a0664466f.png">
 
-Have you ever come across some amazing projects that you couldnt use just because **you didn't have an OpenAI API key ?** 
+Have you ever come across some amazing projects that you couldnt use **just because you didn't have an OpenAI API key ?** 
 
 **We've got u covered !!** This repository offers **reverse-engineered** third-party APIs for `GPT-4/3.5`, sourced from various websites. You can simply **download** this repository and use the available modules, which are designed to be used **just like OpenAI's official package**. **Unleash ChatGpt's potential for your projects, now !** You are welcome ; ).
 
