@@ -61,18 +61,10 @@ These sites will be reverse engineered but need account access:
 - [`/phind`](./phind/README.md)
 - why ? its not sure if they use gpt, but rather claude but they have an amazing search and good reasoning model
 
+## Install  
+- download or clone this github repo
 
-## Dependencies
-
-* websocket-client
-* requests
-* tls-client
-* pypasser
-* names
-* colorama
-* curl_cffi
-
-install with:
+install requiremnts with:
 ```sh
 pip3 install -r requirements.txt
 ```
