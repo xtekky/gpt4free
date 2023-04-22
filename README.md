@@ -16,8 +16,8 @@ By the way, thank you so much for `1.3k` stars and all the support !!
 
 ## Table of Contents
 
-- [Current Sites (No Authentication / Easy Account Creation)](#current-sites)
-- [Sites with Authentication (Will Reverse Engineer but Need Account Access)](#sites-with-authentication)
+- [Current Sites](#current-sites)
+- [Best Sites for gpt4](#best-sites)
 - [Usage Examples]
   - [`quora (poe)`](./quora/README.md)
   - [`phind`](./phind/README.md)
@@ -29,27 +29,21 @@ By the way, thank you so much for `1.3k` stars and all the support !!
 
 ## Current Sites <a name="current-sites"></a>
 
-| Website                    | Model(s)             |
-| -------------------------- | -------------------- |
-| [ora.sh](https://ora.sh)   | GPT-3.5 / 4              |
-| [poe.com](https://poe.com) | GPT-4/3.5            |
-| [writesonic.com](https://writesonic.com)|GPT-3.5 / Internet|
-| [t3nsor.com](https://t3nsor.com)|GPT-3.5|
-| [you.com](https://you.com)|GPT-3.5 / Internet / good search|
-| [phind.com](https://phind.com)|GPT-4 / Internet / good search|
-| [sqlchat.ai](https://sqlchat.ai)|GPT-3.5|
+| Website                                              | Model(s)                        |
+| ---------------------------------------------------- | ------------------------------- |
+| [ora.sh](https://ora.sh)                             | GPT-3.5 / 4                     |
+| [poe.com](https://poe.com)                           | GPT-4/3.5                       |
+| [writesonic.com](https://writesonic.com)             | GPT-3.5 / Internet              |
+| [t3nsor.com](https://t3nsor.com)                     | GPT-3.5                         |
+| [you.com](https://you.com)                           | GPT-3.5 / Internet / good search|
+| [phind.com](https://phind.com)                       | GPT-4 / Internet / good search  |
+| [sqlchat.ai](https://sqlchat.ai)                     | GPT-3.5                         |
+| [chat.openai.com/chat](https://chat.openai.com/chat) | GPT-3.5                         |
+| [bard.google.com](https://bard.google.com)           | custom / search                 |
+| [bing.com/chat](https://bing.com/chat)               | GPT-4/3.5                       |
 
-## Sites with Authentication <a name="sites-with-authentication"></a>
+## Best sites  <a name="best-sites"></a>
 
-These sites will be reverse engineered but need account access:
-
-| Website                                             | Model(s)       |
-| --------------------------------------------------- | -------------- |
-| [chat.openai.com/chat](https://chat.openai.com/chat)| GPT-3.5        |
-| [bard.google.com](https://bard.google.com)          | custom / search|
-| [bing.com/chat](https://bing.com/chat)              | gpt-4/3.5      |
-
-## Best sites
 #### gpt-4
 - [`/ora`](./ora/README.md) 
 - here is proof / test: [`ora_gpt4_proof.py`](./testing/ora_gpt4_proof.py)
