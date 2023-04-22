@@ -4,16 +4,10 @@ This repository provides reverse-engineered language models from various sources
 
 > **Important:** If you come across any website offering free language models, please create an issue or submit a pull request with the details. We will reverse engineer it and add it to this repository.
 
-## Best Chatgpt site
+## Chatgpt clone
 > https://chat.chatbot.sex/chat
-> This site was developed by me and includes **gpt-4**, **internet access** and **gpt-jailbreak's** like DAN
+> This site was developed by me and includes **gpt-4/3.5**, **internet access** and **gpt-jailbreak's** like DAN
 > You can find an opensource version of it to run locally here: https://github.com/xtekky/chatgpt-clone
-
-## To-Do List
-
-- [x] implement poe.com create bot feature | AVAILABLE NOW
-- [x] renaming the 'poe' module to 'quora'
-- [x] add you.com api
 
 
 ## Table of Contents
