@@ -63,7 +63,7 @@ By the way, thank you so much for `2k` stars and all the support !!
 - why ? its not sure if they use gpt, but rather claude but they have an amazing search and good reasoning model
 
 ## Install  <a name="install"></a>
-- download or clone this github repo
+- download or clone this GitHub repo
 
 install requirements with:
 ```sh
