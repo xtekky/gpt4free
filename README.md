@@ -8,14 +8,10 @@ Have you ever come across some amazing projects that you couldnt use **just beca
 
 By the way, thank you so much for `2k` stars and all the support !!
 
-## Chatgpt clone
-> https://chat.chatbot.sex/chat
-> This site was developed by me and includes **gpt-4/3.5**, **internet access** and **gpt-jailbreak's** like DAN   
-> run locally here: https://github.com/xtekky/chatgpt-clone
-
 
 ## Table of Contents
 
+- [To do list](#todo)
 - [Current Sites](#current-sites)
 - [Best Sites for gpt4](#best-sites)
 - [How to intall](#install)
@@ -31,6 +27,15 @@ By the way, thank you so much for `2k` stars and all the support !!
   - [`writesonic`](./writesonic/README.md)
   - [`you`](./you/README.md)
   - [`sqlchat`](./sqlchat/README.md)
+  
+## Todo <a name="todo"></a>
+
+- [ ] add a GUI for the repo 
+- [ ] make a general package like `openai_rev`, instead of different folders
+- [ ] live api status to know which are down and which can be used
+- [ ] integrate more api's in `./unfinished` aswell as other ones in the lists
+- [ ] make an api to use as proxy for other projects
+- [ ] make a pypi package
 
 ## Current Sites <a name="current-sites"></a>
 
@@ -69,6 +74,12 @@ install requirements with:
 ```sh
 pip3 install -r requirements.txt
 ```
+
+## Chatgpt clone
+> currently implementing new features and trying to scale it, please be patient it may be unstable     
+> https://chat.chatbot.sex/chat
+> This site was developed by me and includes **gpt-4/3.5**, **internet access** and **gpt-jailbreak's** like DAN   
+> run locally here: https://github.com/xtekky/chatgpt-clone
 
 ## Legal Notice <a name="legal-notice"></a>
 
