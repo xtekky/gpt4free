@@ -47,3 +47,12 @@ response = quora.Completion.create(model  = 'gpt-4',
 
 print(response.completion.choices[0].text)    
 ```     
+
+#### Update Use This For Poe
+```python
+from quora import Poe
+
+poe = Poe(model='sage')
+poe.chat('who won the football world cup most?')
+
+```
