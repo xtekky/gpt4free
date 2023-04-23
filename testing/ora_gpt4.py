@@ -25,3 +25,16 @@ model = ora.CompletionModel.load(chatbot_id, 'gpt-4')
 response = ora.Completion.create(model, 'hello')
 
 print(response.completion.choices[0].text)
+conversation_id = response.id
+
+while True:
+    # pass in conversationId to continue conversation
+    
+    prompt = input('>>> ')
+    response = ora.Completion.create(
+        model  = model,
+        prompt = prompt,
+        includeHistory = True, # remember history
+        conversationId = conversation_id)
+    
+    print(response.completion.choices[0].text)
