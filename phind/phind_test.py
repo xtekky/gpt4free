@@ -1,7 +1,8 @@
 import phind
 
 # set cf_clearance cookie
-phind.cf_clearance = 'hWfIdYKgcnxnU5ayolWe9t7eEmAbULywS.qfHkm1T_A-1682166681-0-160'
+phind.cf_clearance = 'heguhSRBB9d0sjLvGbQECS8b80m2BQ31xEmk9ChshKI-1682268995-0-160'
+phind.user_agent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36'
 
 prompt = 'hello world'
 

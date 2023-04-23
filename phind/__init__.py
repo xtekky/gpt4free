@@ -8,6 +8,7 @@ from re           import findall
 from curl_cffi.requests import post
 
 cf_clearance = ''
+user_agent   = ''
 
 class PhindResponse:
     
@@ -52,6 +53,9 @@ class PhindResponse:
 
 class Search:
     def create(prompt: str, actualSearch: bool = True, language: str = 'en') -> dict: # None = no search
+        if user_agent == '':
+            raise ValueError('user_agent must be set, refer to documentation')
+        
         if not actualSearch:
             return {
                 '_type': 'SearchResponse',
@@ -83,7 +87,7 @@ class Search:
             'sec-fetch-dest': 'empty',
             'sec-fetch-mode': 'cors',
             'sec-fetch-site': 'same-origin',
-            'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36',
+            'user-agent': user_agent
         }
         
         return post('https://www.phind.com/api/bing/search', headers = headers, json = { 
@@ -101,6 +105,9 @@ class Completion:
         detailed: bool = False, 
         codeContext: str = '',
         language: str = 'en') -> PhindResponse:
+        
+        if user_agent == '':
+            raise ValueError('user_agent must be set, refer to documentation')
         
         if results is None:
             results = Search.create(prompt, actualSearch = True)
@@ -141,7 +148,7 @@ class Completion:
             'sec-fetch-dest': 'empty',
             'sec-fetch-mode': 'cors',
             'sec-fetch-site': 'same-origin',
-            'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36',
+            'user-agent': user_agent
         }
         
         completion = ''
@@ -192,9 +199,7 @@ class StreamingCompletion:
                 'creative': creative
             }
         }
-        
-        print(cf_clearance)
-        
+
         headers = {
             'authority': 'www.phind.com',
             'accept': '*/*',
@@ -209,7 +214,7 @@ class StreamingCompletion:
             'sec-fetch-dest': 'empty',
             'sec-fetch-mode': 'cors',
             'sec-fetch-site': 'same-origin',
-            'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36',
+            'user-agent': user_agent
         }
         
         response   = post('https://www.phind.com/api/infer/answer', 
@@ -227,6 +232,9 @@ class StreamingCompletion:
         detailed    : bool = False, 
         codeContext : str = '',
         language    : str = 'en'):
+        
+        if user_agent == '':
+            raise ValueError('user_agent must be set, refer to documentation')
         
         if results is None:
             results = Search.create(prompt, actualSearch = True)
