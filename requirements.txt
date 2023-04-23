@@ -5,3 +5,5 @@ pypasser
 names
 colorama
 curl_cffi
+selenium
+fake-useragent
