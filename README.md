@@ -6,7 +6,7 @@ Have you ever come across some amazing projects that you couldnt use **just beca
 
 **We've got u covered !!** This repository offers **reverse-engineered** third-party APIs for `GPT-4/3.5`, sourced from various websites. You can simply **download** this repository and use the available modules, which are designed to be used **just like OpenAI's official package**. **Unleash ChatGpt's potential for your projects, now !** You are welcome ; ).
 
-By the way, thank you so much for `1.3k` stars and all the support !!
+By the way, thank you so much for `2k` stars and all the support !!
 
 ## Chatgpt clone
 > https://chat.chatbot.sex/chat
@@ -18,7 +18,12 @@ By the way, thank you so much for `1.3k` stars and all the support !!
 
 - [Current Sites](#current-sites)
 - [Best Sites for gpt4](#best-sites)
-- [Usage Examples](#)
+- [How to intall](#install)
+- [Legal Notice](#legal-notice)
+- [Copyright](#copyright)
+
+
+- [Usage Examples](./README.md)
   - [`quora (poe)`](./quora/README.md)
   - [`phind`](./phind/README.md)
   - [`t3nsor`](./t3nsor/README.md)
@@ -57,7 +62,7 @@ By the way, thank you so much for `1.3k` stars and all the support !!
 - [`/phind`](./phind/README.md)
 - why ? its not sure if they use gpt, but rather claude but they have an amazing search and good reasoning model
 
-## Install  
+## Install  <a name="install"></a>
 - download or clone this github repo
 
 install requirements with:
@@ -65,12 +70,24 @@ install requirements with:
 pip3 install -r requirements.txt
 ```
 
+## Legal Notice <a name="legal-notice"></a>
+
+This repository uses third-party APIs and AI models and is *not* associated with or endorsed by the API providers or the original developers of the models. This project is intended **for educational purposes only**.
+
+Please note the following:
+
+1. **Disclaimer**: The APIs, services, and trademarks mentioned in this repository belong to their respective owners. This project is *not* claiming any right over them.
+
+2. **Responsibility**: The author of this repository is *not* responsible for any consequences arising from the use or misuse of this repository or the content provided by the third-party APIs and any damage or losses caused by users' actions.
+
+3. **Educational Purposes Only**: This repository and its content are provided strictly for educational purposes. By using the information and code provided, users acknowledge that they are using the APIs and models at their own risk and agree to comply with any applicable laws and regulations.
+
 ## Copyright: 
 This program is licensed under the [GNU GPL v3](https://www.gnu.org/licenses/gpl-3.0.txt)     
 
 Most code, with the exception of `quora/api.py` (by [ading2210](https://github.com/ading2210)), has been written by me, [xtekky](https://github.com/xtekky).
 
-### Copyright Notice:
+### Copyright Notice: <a name="copyright"></a>
 ```
 xtekky/openai-gpt4: multiple reverse engineered language-model api's to decentralise the ai industry.  
 Copyright (C) 2023 xtekky
