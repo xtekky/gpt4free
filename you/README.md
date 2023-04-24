@@ -1,36 +1,23 @@
 ### Example: `you` (use like openai pypi package) <a name="example-you"></a>
 
 ```python
-import you
+from you import Completion
 
-# simple request with links and details
-response = you.Completion.create(
-    prompt       = "hello world",
-    detailed     = True,
-    includelinks = True,)
 
+completion = Completion()
+response = completion.create(
+    prompt='Hello, world!',
+)
 print(response)
 
-# {
-#     "response": "...",
-#     "links": [...],
-#     "extra": {...},
-#         "slots": {...}
-#     }
-# }
-
-#chatbot
-
-chat = []
-
+chat_history = []
 while True:
-    prompt = input("You: ")
-    
-    response = you.Completion.create(
-        prompt  = prompt,
-        chat    = chat)
-    
-    print("Bot:", response["response"])
-    
-    chat.append({"question": prompt, "answer": response["response"]})
+    prompt = input('You: ')
+
+    completion.chat = chat_history
+    response = completion.create(
+        prompt=prompt,
+    )
+    print(response['response'])
+    chat_history.append({"question": prompt, "answer": response["response"]})
 ```
