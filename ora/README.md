@@ -5,6 +5,10 @@
 more gpt4 models in `/testing/ora_gpt4.py`
 
 ```python
+# if using CompletionModel.load set these
+ora.user_id = '...'
+ora.session_token = '...'
+
 # normal gpt-4: b8b12eaa-5d47-44d3-92a6-4d706f2bcacf
 model = ora.CompletionModel.load(chatbot_id, 'gpt-4') # or gpt-3.5
 ```
@@ -13,6 +17,7 @@ model = ora.CompletionModel.load(chatbot_id, 'gpt-4') # or gpt-3.5
 ```python
 # import ora
 import ora
+
 
 # create model
 model = ora.CompletionModel.create(

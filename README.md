@@ -58,6 +58,7 @@ By the way, thank you so much for `2k` stars and all the support!!
 - [`/ora`](./ora/README.md) 
 - here is proof / test: [`ora_gpt4_proof.py`](./testing/ora_gpt4_proof.py)
 - why ?, no streaming compared to poe.com but u can send more than 1 message
+- update: you need to use session token now and there is a limit, accounts are only google so no creator for now
 
 #### gpt-3.5
 - [`/sqlchat`](./sqlchat/README.md)
