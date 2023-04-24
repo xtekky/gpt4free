@@ -1,24 +1,20 @@
-# Gpt4free - use chatgpt, for free !!
+# GPT4free - use ChatGPT, for free!!
 
 <img width="1383" alt="image" src="https://user-images.githubusercontent.com/98614666/233799515-1a7cb6a3-b17f-42c4-956d-8d2a0664466f.png">
 
-Have you ever come across some amazing projects that you couldnt use **just because you didn't have an OpenAI API key ?** 
+Have you ever come across some amazing projects that you couldnt use **just because you didn't have an OpenAI API key?** 
 
-**We've got u covered !!** This repository offers **reverse-engineered** third-party APIs for `GPT-4/3.5`, sourced from various websites. You can simply **download** this repository and use the available modules, which are designed to be used **just like OpenAI's official package**. **Unleash ChatGpt's potential for your projects, now !** You are welcome ; ).
+**We've got you covered!** This repository offers **reverse-engineered** third-party APIs for `GPT-4/3.5`, sourced from various websites. You can simply **download** this repository and use the available modules, which are designed to be used **just like OpenAI's official package**. **Unleash ChatGPT's potential for your projects, now!** You are welcome ; ).
 
-By the way, thank you so much for `2k` stars and all the support !!
-
-## Chatgpt clone
-> https://chat.chatbot.sex/chat
-> This site was developed by me and includes **gpt-4/3.5**, **internet access** and **gpt-jailbreak's** like DAN   
-> run locally here: https://github.com/xtekky/chatgpt-clone
+By the way, thank you so much for `2k` stars and all the support!!
 
 
 ## Table of Contents
 
+- [To do list](#todo)
 - [Current Sites](#current-sites)
 - [Best Sites for gpt4](#best-sites)
-- [How to intall](#install)
+- [How to install](#install)
 - [Legal Notice](#legal-notice)
 - [Copyright](#copyright)
 
@@ -31,6 +27,15 @@ By the way, thank you so much for `2k` stars and all the support !!
   - [`writesonic`](./writesonic/README.md)
   - [`you`](./you/README.md)
   - [`sqlchat`](./sqlchat/README.md)
+  
+## Todo <a name="todo"></a>
+
+- [ ] add a GUI for the repo 
+- [ ] make a general package like `openai_rev`, instead of different folders
+- [ ] live api status to know which are down and which can be used
+- [ ] integrate more api's in `./unfinished` aswell as other ones in the lists
+- [ ] make an api to use as proxy for other projects
+- [ ] make a pypi package
 
 ## Current Sites <a name="current-sites"></a>
 
@@ -53,6 +58,7 @@ By the way, thank you so much for `2k` stars and all the support !!
 - [`/ora`](./ora/README.md) 
 - here is proof / test: [`ora_gpt4_proof.py`](./testing/ora_gpt4_proof.py)
 - why ?, no streaming compared to poe.com but u can send more than 1 message
+- update: you need to use session token now and there is a limit, accounts are only google so no creator for now
 
 #### gpt-3.5
 - [`/sqlchat`](./sqlchat/README.md)
@@ -63,12 +69,21 @@ By the way, thank you so much for `2k` stars and all the support !!
 - why ? its not sure if they use gpt, but rather claude but they have an amazing search and good reasoning model
 
 ## Install  <a name="install"></a>
-- download or clone this github repo
+- download or clone this GitHub repo
 
 install requirements with:
 ```sh
 pip3 install -r requirements.txt
 ```
+## To start gpt4free GUI
+To start gpt4free GUI run the following command :
+`streamlit run streamlit_app.py`
+
+## ChatGPT clone
+> currently implementing new features and trying to scale it, please be patient it may be unstable     
+> https://chat.chatbot.sex/chat
+> This site was developed by me and includes **gpt-4/3.5**, **internet access** and **gpt-jailbreak's** like DAN   
+> run locally here: https://github.com/xtekky/chatgpt-clone
 
 ## Legal Notice <a name="legal-notice"></a>
 
