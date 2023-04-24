@@ -377,7 +377,7 @@ class Completion:
 
 
 class Poe:
-    def __init__(self, model: str = "sage"):
+    def __init__(self, model: str = "gpt-3.5-turbo"):
         self.cookie = self.__load_cookie()
         self.model = MODELS[model]
         self.client = PoeClient(self.cookie)
@@ -402,7 +402,7 @@ class Poe:
 
         print(mail_address)
         options = webdriver.FirefoxOptions()
-        options.add_argument("-headless")
+        # options.add_argument("-headless")
         driver = webdriver.Firefox(options=options)
 
         driver.get("https://www.poe.com")
@@ -440,9 +440,28 @@ class Poe:
         driver.close()
         return cookie
 
-    def chat(self, message: str):
+    def chat(self, message: str, model: Optional[str] = None) -> str:
+        model = model or self.model
         response = None
-        for chunk in self.client.send_message(self.model, message):
+        for chunk in self.client.send_message(model, message):
             response = chunk["text"]
-
         return response
+
+    def create_bot(
+        self,
+        name: str,
+        /,
+        prompt: str = "",
+        base_model: str = "gpt-3.5-turbo",
+        description: str = "",
+    ) -> None:
+        if base_model not in MODELS:
+            raise RuntimeError('Sorry, the base_model you provided does not exist. Please check and try again.')
+
+        response = self.client.create_bot(
+            handle=name,
+            prompt=prompt,
+            base_model=MODELS[base_model],
+            description=description,
+        )
+        print(f'Successfully created bot with name: {response["bot"]["displayName"]}')
