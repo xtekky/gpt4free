@@ -55,18 +55,14 @@ By the way, thank you so much for `2k` stars and all the support!!
 ## Best sites  <a name="best-sites"></a>
 
 #### gpt-4
-- [`/ora`](./ora/README.md) 
-- here is proof / test: [`ora_gpt4_proof.py`](./testing/ora_gpt4_proof.py)
-- why ?, no streaming compared to poe.com but u can send more than 1 message
-- update: you need to use session token now and there is a limit, accounts are only google so no creator for now
+- [`/phind`](./ora/README.md) 
+- pro: only stable gpt-4 with streaming ( no limit )
+- contra: weird backend prompting 
+- why not `ora` anymore ? gpt-4 requires login + limited
 
 #### gpt-3.5
-- [`/sqlchat`](./sqlchat/README.md)
-- why ? (streaming + you can give conversation history)
-
-#### search
-- [`/phind`](./phind/README.md)
-- why ? its not sure if they use gpt, but rather claude but they have an amazing search and good reasoning model
+- [`/ora`](./ora/README.md) 
+- only stable api at the moment ( for gpt-3.5, gpt-4 is dead)
 
 ## Install  <a name="install"></a>
 - download or clone this GitHub repo
