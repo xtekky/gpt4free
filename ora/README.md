@@ -4,6 +4,9 @@
 
 more gpt4 models in `/testing/ora_gpt4.py`
 
+find the userid by visiting https://ora.sh/api/auth/session ( must be logged in on the site )   
+and session_token in the cookies, it should be: __Secure-next-auth.session-token
+
 ```python
 # if using CompletionModel.load set these
 ora.user_id = '...'
