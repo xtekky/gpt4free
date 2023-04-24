@@ -54,7 +54,7 @@ from quora import Poe
 
 # available models:  ['Sage', 'GPT-4', 'Claude+', 'Claude-instant', 'ChatGPT', 'Dragonfly', 'NeevaAI']
 
-poe = Poe(model='gpt-3.5-turbo')
+poe = Poe(model='ChatGPT')
 poe.chat('who won the football world cup most?')
 
 # new bot creation
