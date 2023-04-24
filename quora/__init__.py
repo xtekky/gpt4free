@@ -18,6 +18,7 @@ from tls_client import Session as TLS
 
 from quora.api import Client as PoeClient
 from quora.mail import Emailnator
+from typing import Optional
 
 # from twocaptcha import TwoCaptcha
 # solver = TwoCaptcha('72747bf24a9d89b4dcc1b24875efd358')
@@ -183,7 +184,7 @@ class Model:
 
 class Account:
     def create(
-        proxy: str | None = None,
+        proxy: Optional[str] = None,
         logging: bool = False,
         enable_bot_creation: bool = False,
     ):
