@@ -95,9 +95,6 @@ Please note the following:
 
 3. **Educational Purposes Only**: This repository and its content are provided strictly for educational purposes. By using the information and code provided, users acknowledge that they are using the APIs and models at their own risk and agree to comply with any applicable laws and regulations.
 
-## replit
-You can fork this repl to host your own ChatGPT-clone WebUI. (https://replit.com/@gpt4free/gpt4free-webui)
-
 ## Copyright: 
 This program is licensed under the [GNU GPL v3](https://www.gnu.org/licenses/gpl-3.0.txt)     
 
@@ -122,3 +119,5 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ```
 
+## replit
+You can fork this repl to host your own ChatGPT-clone WebUI. https://replit.com/@gpt4free/gpt4free-webui
