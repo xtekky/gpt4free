@@ -28,6 +28,8 @@ By the way, thank you so much for `2k` stars and all the support!!
   - [`you`](./you/README.md)
   - [`sqlchat`](./sqlchat/README.md)
   
+- [replit Example (feel free to fork this repl)](#replit)
+  
 ## Todo <a name="todo"></a>
 
 - [ ] add a GUI for the repo 
@@ -117,3 +119,5 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ```
 
+## replit
+You can fork this repl to host your own ChatGPT-clone WebUI. https://replit.com/@gpt4free/gpt4free-webui
