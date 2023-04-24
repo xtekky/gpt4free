@@ -380,8 +380,13 @@ class Completion:
 
 class Poe:
     def __init__(self, model: str = "ChatGPT"):
-        self.cookie = self.__load_cookie()
+        # validating the model
+        if model and model not in MODELS:
+            raise RuntimeError(
+                "Sorry, the model you provided does not exist. Please check and try again."
+            )
         self.model = MODELS[model]
+        self.cookie = self.__load_cookie()
         self.client = PoeClient(self.cookie)
 
     def __load_cookie(self) -> str:
@@ -443,7 +448,11 @@ class Poe:
         return cookie
 
     def chat(self, message: str, model: Optional[str] = None) -> str:
-        model = MODELS[model] or self.model
+        if model and model not in MODELS:
+            raise RuntimeError(
+                "Sorry, the model you provided does not exist. Please check and try again."
+            )
+        model = MODELS[model] if model else self.model
         response = None
         for chunk in self.client.send_message(model, message):
             response = chunk["text"]
