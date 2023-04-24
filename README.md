@@ -74,6 +74,9 @@ install requirements with:
 ```sh
 pip3 install -r requirements.txt
 ```
+## To start gpt4free GUI
+To start gpt4free GUI run the following command :
+`streamlit run streamlit_app.py`
 
 ## ChatGPT clone
 > currently implementing new features and trying to scale it, please be patient it may be unstable     

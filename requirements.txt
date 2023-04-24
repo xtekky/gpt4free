@@ -5,3 +5,4 @@ pypasser
 names
 colorama
 curl_cffi
+streamlit==1.21.0
