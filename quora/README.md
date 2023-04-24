@@ -52,7 +52,12 @@ print(response.completion.choices[0].text)
 ```python
 from quora import Poe
 
-poe = Poe(model='sage')
+# available models:  ['Sage', 'GPT-4', 'Claude+', 'Claude-instant', 'ChatGPT', 'Dragonfly', 'NeevaAI']
+
+poe = Poe(model='gpt-3.5-turbo')
 poe.chat('who won the football world cup most?')
+
+# new bot creation
+poe.create_bot('new_bot_name', prompt='You are new test bot', base_model='gpt-3.5-turbo')
 
 ```

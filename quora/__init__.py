@@ -6,6 +6,7 @@ from pathlib import Path
 from random import choice, choices, randint
 from re import search, findall
 from string import ascii_letters, digits
+from typing import Optional
 from urllib.parse import unquote
 
 import selenium.webdriver.support.expected_conditions as EC
@@ -18,17 +19,18 @@ from tls_client import Session as TLS
 
 from quora.api import Client as PoeClient
 from quora.mail import Emailnator
-from typing import Optional
 
 # from twocaptcha import TwoCaptcha
 # solver = TwoCaptcha('72747bf24a9d89b4dcc1b24875efd358')
 
 MODELS = {
-    "sage": "capybara",
-    "gpt-4": "beaver",
-    "claude-v1.2": "a2_2",
-    "claude-instant-v1.0": "a2",
-    "gpt-3.5-turbo": "chinchilla",
+    "Sage": "capybara",
+    "GPT-4": "beaver",
+    "Claude+": "a2_2",
+    "Claude-instant": "a2",
+    "ChatGPT": "chinchilla",
+    "Dragonfly": "nutria",
+    "NeevaAI": "hutia",
 }
 
 
@@ -377,7 +379,7 @@ class Completion:
 
 
 class Poe:
-    def __init__(self, model: str = "gpt-3.5-turbo"):
+    def __init__(self, model: str = "ChatGPT"):
         self.cookie = self.__load_cookie()
         self.model = MODELS[model]
         self.client = PoeClient(self.cookie)
@@ -441,7 +443,7 @@ class Poe:
         return cookie
 
     def chat(self, message: str, model: Optional[str] = None) -> str:
-        model = model or self.model
+        model = MODELS[model] or self.model
         response = None
         for chunk in self.client.send_message(model, message):
             response = chunk["text"]
@@ -452,11 +454,13 @@ class Poe:
         name: str,
         /,
         prompt: str = "",
-        base_model: str = "gpt-3.5-turbo",
+        base_model: str = "ChatGPT",
         description: str = "",
     ) -> None:
         if base_model not in MODELS:
-            raise RuntimeError('Sorry, the base_model you provided does not exist. Please check and try again.')
+            raise RuntimeError(
+                "Sorry, the base_model you provided does not exist. Please check and try again."
+            )
 
         response = self.client.create_bot(
             handle=name,
@@ -465,3 +469,6 @@ class Poe:
             description=description,
         )
         print(f'Successfully created bot with name: {response["bot"]["displayName"]}')
+
+    def list_bots(self) -> list:
+        return list(self.client.bot_names.values())
