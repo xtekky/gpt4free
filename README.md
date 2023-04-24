@@ -14,7 +14,7 @@ By the way, thank you so much for `2k` stars and all the support!!
 - [To do list](#todo)
 - [Current Sites](#current-sites)
 - [Best Sites for gpt4](#best-sites)
-- [How to intall](#install)
+- [How to install](#install)
 - [Legal Notice](#legal-notice)
 - [Copyright](#copyright)
 
