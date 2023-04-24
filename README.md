@@ -28,6 +28,8 @@ By the way, thank you so much for `2k` stars and all the support!!
   - [`you`](./you/README.md)
   - [`sqlchat`](./sqlchat/README.md)
   
+- [replit Example (feel free to fork this repl)](#replit)
+  
 ## Todo <a name="todo"></a>
 
 - [ ] add a GUI for the repo 
@@ -92,6 +94,9 @@ Please note the following:
 2. **Responsibility**: The author of this repository is *not* responsible for any consequences arising from the use or misuse of this repository or the content provided by the third-party APIs and any damage or losses caused by users' actions.
 
 3. **Educational Purposes Only**: This repository and its content are provided strictly for educational purposes. By using the information and code provided, users acknowledge that they are using the APIs and models at their own risk and agree to comply with any applicable laws and regulations.
+
+## replit
+You can fork this repl to host your own ChatGPT-clone WebUI. (https://replit.com/@gpt4free/gpt4free-webui)
 
 ## Copyright: 
 This program is licensed under the [GNU GPL v3](https://www.gnu.org/licenses/gpl-3.0.txt)     
