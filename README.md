@@ -23,9 +23,8 @@ By the way, thank you so much for `5k` stars and all the support!!
 | **Copyright** | Copyright information | [![Link to Section](https://img.shields.io/badge/Link-Go%20to%20Section-blue)](#copyright) | - |
 | **Usage Examples** | | | |
 | `quora (poe)` | Example usage for quora | [![Link to File](https://img.shields.io/badge/Link-Go%20to%20File-blue)](./quora/README.md) | ![Active](https://img.shields.io/badge/Active-brightgreen) |
-| `phind` | Example usage for phind | [![Link to File](https://img.shields.io/badge/Link-Go%20to%20File-blue)](./phind/README.md) | ![Inactive](https://img.shields.io/badge/Inactive-lightgrey) |
+| `phind` | Example usage for phind | [![Link to File](https://img.shields.io/badge/Link-Go%20to%20File-blue)](./phind/README.md) | ![Inactive](https://img.shields.io/badge/Active-brightgreen) |
 | `t3nsor` | Example usage for t3nsor | [![Link to File](https://img.shields.io/badge/Link-Go%20to%20File-blue)](./t3nsor/README.md) | ![Inactive](https://img.shields.io/badge/Inactive-lightgrey) |
-| `ora` | Example usage for ora | [![Link to File](https://img.shields.io/badge/Link-Go%20to%20File-blue)](./ora/README.md) | ![Inactive](https://img.shields.io/badge/Inactive-lightgrey) |
 | `writesonic` | Example usage for writesonic | [![Link to File](https://img.shields.io/badge/Link-Go%20to%20File-blue)](./writesonic/README.md) | ![Inactive](https://img.shields.io/badge/Inactive-lightgrey) |
 | `you` | Example usage for you | [![Link to File](https://img.shields.io/badge/Link-Go%20to%20File-blue)](./you/README.md) | ![Active](https://img.shields.io/badge/Active-brightgreen)
 | `sqlchat` | Example usage for sqlchat | [![Link to File](https://img.shields.io/badge/Link-Go%20to%20File-blue)](./sqlchat/README.md) | ![Inactive](https://img.shields.io/badge/Inactive-lightgrey) |
@@ -47,7 +46,6 @@ By the way, thank you so much for `5k` stars and all the support!!
 
 | Website                                              | Model(s)                        |
 | ---------------------------------------------------- | ------------------------------- |
-| [ora.sh](https://ora.sh)                             | GPT-3.5 / 4                     |
 | [poe.com](https://poe.com)                           | GPT-4/3.5                       |
 | [writesonic.com](https://writesonic.com)             | GPT-3.5 / Internet              |
 | [t3nsor.com](https://t3nsor.com)                     | GPT-3.5                         |
