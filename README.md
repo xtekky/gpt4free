@@ -29,7 +29,17 @@ By the way, thank you so much for `2k` stars and all the support!!
   - [`sqlchat`](./sqlchat/README.md)
   
 - [replit Example (feel free to fork this repl)](#replit)
-  
+
+- [Docker](./README.md)
+Build
+```
+docker build -t gpt4free:latest .
+```
+Run
+```
+docker run -p 8501:8501 gpt4free:latest
+```
+
 ## Todo <a name="todo"></a>
 
 - [ ] add a GUI for the repo 
