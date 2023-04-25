@@ -1,6 +1,4 @@
-import asyncio
 import websockets
-
 from json import dumps, loads
 
 async def test():
@@ -20,6 +18,8 @@ async def test():
             try:
                 response      = await wss.recv()
                 json_response = loads(response)
+                print(json_response)
+                
                 ended         = json_response.get('eof')
                 
                 if not ended:
@@ -28,4 +28,3 @@ async def test():
             except websockets.ConnectionClosed:
                 break
 
-asyncio.run(test())

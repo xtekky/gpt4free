@@ -1,3 +1,5 @@
+### note: currently patched
+
 ### Example: `t3nsor` (use like openai pypi package) <a name="example-t3nsor"></a>
 
 ```python
