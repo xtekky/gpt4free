@@ -8,6 +8,23 @@ Have you ever come across some amazing projects that you couldn't use **just bec
 
 By the way, thank you so much for `5k` stars and all the support!!
 
+## Announcement
+Dear  Gpt4free Community,
+
+I want to thank you for your interest in and support of this project, which I only intended to be for entertainment and educational purposes; I had no idea it would end up being so popular.
+
+I'm aware of the concerns about the project's legality and its impact on smaller sites hosting APIs. I take these concerns seriously and plan to address them.
+
+Here's what I'm doing to fix these issues:
+
+1. Removing APIs from smaller sites: To reduce the impact on smaller sites, I have removed their APIs from the repository. Please shoot me a dm if you are an owner of a site and want it removed.
+
+2. Commitment to ethical use: I want to emphasize my commitment to promoting ethical use of language models. I don't support any illegal or unethical behavior, and I expect users to follow the same principles.
+
+Thank you for your support and understanding. I appreciate your continued interest in gpt4free and am committed to addressing your concerns.
+
+Sincerely,
+xtekky
 
 ## Table of Contents
 | Section | Description | Link | Status |
