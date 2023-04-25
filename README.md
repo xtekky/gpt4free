@@ -2,9 +2,9 @@
 
 <img width="1383" alt="image" src="https://user-images.githubusercontent.com/98614666/233799515-1a7cb6a3-b17f-42c4-956d-8d2a0664466f.png">
 
-Have you ever come across some amazing projects that you couldnt use **just because you didn't have an OpenAI API key?** 
+Have you ever come across some amazing projects that you couldn't use **just because you didn't have an OpenAI API key?** 
 
-**We've got you covered!** This repository offers **reverse-engineered** third-party APIs for `GPT-4/3.5`, sourced from various websites. You can simply **download** this repository and use the available modules, which are designed to be used **just like OpenAI's official package**. **Unleash ChatGPT's potential for your projects, now!** You are welcome ; ).
+**We've got you covered!** This repository offers **reverse-engineered** third-party APIs for `GPT-4/3.5`, sourced from various websites. You can simply **download** this repository, and use the available modules, which are designed to be used **just like OpenAI's official package**. **Unleash ChatGPT's potential for your projects, now!** You are welcome ; ).
 
 By the way, thank you so much for `2k` stars and all the support!!
 
@@ -32,12 +32,12 @@ By the way, thank you so much for `2k` stars and all the support!!
   
 ## Todo <a name="todo"></a>
 
-- [ ] add a GUI for the repo 
-- [ ] make a general package like `openai_rev`, instead of different folders
-- [ ] live api status to know which are down and which can be used
-- [ ] integrate more api's in `./unfinished` aswell as other ones in the lists
-- [ ] make an api to use as proxy for other projects
-- [ ] make a pypi package
+- [ ] Add a GUI for the repo 
+- [ ] Make a general package named `openai_rev`, instead of different folders
+- [ ] Live api status to know which are down and which can be used
+- [ ] Integrate more API's in `./unfinished` as well as other ones in the lists
+- [ ] Make an API to use as proxy for other projects
+- [ ] Make a pypi package
 
 ## Current Sites <a name="current-sites"></a>
 
