@@ -3,9 +3,9 @@
 ```python
 import phind
 
-# set cf_clearance cookie (not needed anymore)
-# phind.cf_clearance = 'xx.xx-1682166681-0-160'
-# phind.user_agent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36' # same as the one from browser you got cf_clearance from
+# set cf_clearance cookie (needed again)
+phind.cf_clearance = 'xx.xx-1682166681-0-160'
+phind.user_agent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36' # same as the one from browser you got cf_clearance from
 
 prompt = 'who won the quatar world cup'
 
