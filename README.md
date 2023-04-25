@@ -10,24 +10,28 @@ By the way, thank you so much for `5k` stars and all the support!!
 
 
 ## Table of Contents
-
-- [To do list](#todo)
-- [Current Sites](#current-sites)
-- [Best Sites for gpt4](#best-sites)
-- [How to install](#install)
-- [Legal Notice](#legal-notice)
-- [Copyright](#copyright)
-
-
-- [Usage Examples](./README.md)
-  - [`quora (poe)`](./quora/README.md)
-  - [`phind`](./phind/README.md)
-  - [`t3nsor`](./t3nsor/README.md)
-  - [`writesonic`](./writesonic/README.md)
-  - [`you`](./you/README.md)
-  - [`sqlchat`](./sqlchat/README.md)
-  
-- [replit Example (feel free to fork this repl)](#replit)
+| Section | Description | Link | Status |
+| ------- | ----------- | ---- | ------ |
+| **To do list** | List of tasks to be done | [![Link to Section](https://img.shields.io/badge/Link-Go%20to%20Section-blue)](#todo) | - |
+| **Current Sites** | Current websites or platforms related to gpt4free | [![Link to Section](https://img.shields.io/badge/Link-Go%20to%20Section-blue)](#current-sites) | - |
+| **Best Sites for gpt4** | Recommended websites or platforms for gpt4 | [![Link to Section](https://img.shields.io/badge/Link-Go%20to%20Section-blue)](#best-sites) | - |
+| **Streamlit GPT4Free GUI** | Web-based graphical user interface for interacting with gpt4free | [![Link to Section](https://img.shields.io/badge/Link-Go%20to%20Section-blue)](#streamlit-gpt4free-gui) | - |
+| **Docker** | Instructions on how to run gpt4free in a Docker container | [![Link to Section](https://img.shields.io/badge/Link-Go%20to%20Section-blue)](#docker-instructions) | - |
+| **ChatGPT clone** | A ChatGPT clone with new features and scalability | [![Link to Website](https://img.shields.io/badge/Link-Visit%20Site-blue)](https://chat.chatbot.sex/chat) | - |
+| **How to install** | Instructions on how to install gpt4free | [![Link to Section](https://img.shields.io/badge/Link-Go%20to%20Section-blue)](#install) | - |
+| **Legal Notice** | Legal notice or disclaimer | [![Link to Section](https://img.shields.io/badge/Link-Go%20to%20Section-blue)](#legal-notice) | - |
+| **Copyright** | Copyright information | [![Link to Section](https://img.shields.io/badge/Link-Go%20to%20Section-blue)](#copyright) | - |
+| **Usage Examples** | | | |
+| `quora (poe)` | Example usage for quora | [![Link to File](https://img.shields.io/badge/Link-Go%20to%20File-blue)](./quora/README.md) | ![Active](https://img.shields.io/badge/Active-brightgreen) |
+| `phind` | Example usage for phind | [![Link to File](https://img.shields.io/badge/Link-Go%20to%20File-blue)](./phind/README.md) | ![Inactive](https://img.shields.io/badge/Inactive-lightgrey) |
+| `t3nsor` | Example usage for t3nsor | [![Link to File](https://img.shields.io/badge/Link-Go%20to%20File-blue)](./t3nsor/README.md) | ![Inactive](https://img.shields.io/badge/Inactive-lightgrey) |
+| `ora` | Example usage for ora | [![Link to File](https://img.shields.io/badge/Link-Go%20to%20File-blue)](./ora/README.md) | ![Inactive](https://img.shields.io/badge/Inactive-lightgrey) |
+| `writesonic` | Example usage for writesonic | [![Link to File](https://img.shields.io/badge/Link-Go%20to%20File-blue)](./writesonic/README.md) | ![Inactive](https://img.shields.io/badge/Inactive-lightgrey) |
+| `you` | Example usage for you | [![Link to File](https://img.shields.io/badge/Link-Go%20to%20File-blue)](./you/README.md) | ![Active](https://img.shields.io/badge/Active-brightgreen)
+| `sqlchat` | Example usage for sqlchat | [![Link to File](https://img.shields.io/badge/Link-Go%20to%20File-blue)](./sqlchat/README.md) | ![Inactive](https://img.shields.io/badge/Inactive-lightgrey) |
+| **Try it Out** | | | |
+| Google Colab Jupyter Notebook | Example usage for gpt4free | [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/DanielShemesh/gpt4free-colab/blob/main/gpt4free.ipynb) | - |
+| replit Example (feel free to fork this repl) | Example usage for gpt4free | [![](https://img.shields.io/badge/Open%20in-Replit-1A1E27?logo=replit)](https://replit.com/@gpt4free/gpt4free-webui) | - |
 
 
 ## Todo <a name="todo"></a>
@@ -43,6 +47,7 @@ By the way, thank you so much for `5k` stars and all the support!!
 
 | Website                                              | Model(s)                        |
 | ---------------------------------------------------- | ------------------------------- |
+| [ora.sh](https://ora.sh)                             | GPT-3.5 / 4                     |
 | [poe.com](https://poe.com)                           | GPT-4/3.5                       |
 | [writesonic.com](https://writesonic.com)             | GPT-3.5 / Internet              |
 | [t3nsor.com](https://t3nsor.com)                     | GPT-3.5                         |
@@ -71,12 +76,12 @@ install requirements with:
 pip3 install -r requirements.txt
 ```
 
-## To start gpt4free GUI
+## To start gpt4free GUI <a name="streamlit-gpt4free-gui"></a>
 move `streamlit_app.py` from `./gui` to the base folder   
 then run:   
 `streamlit run streamlit_app.py` or `python3 -m streamlit run streamlit_app.py`
 
-## Docker
+## Docker <a name="docker-instructions"></a>
 Build
 ```
 docker build -t gpt4free:latest -f Docker/Dockerfile .
@@ -127,6 +132,3 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ```
-
-## replit
-You can fork this repl to host your own ChatGPT-clone WebUI. https://replit.com/@gpt4free/gpt4free-webui
