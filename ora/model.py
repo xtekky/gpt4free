@@ -20,6 +20,12 @@ class CompletionModel:
         CompletionModel.description   = description
         CompletionModel.slug          = name
         
+        json_data = {
+            'prompt'     : system_prompt,
+            'userId'     : f'auto:{uuid4()}',
+            'name'       : name,
+            'description': description}
+        
         headers = {
             'Origin'    : 'https://ora.sh',
             'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.4 Safari/605.1.15',
@@ -27,11 +33,7 @@ class CompletionModel:
             'Host'      : 'ora.sh',
         }
         
-        response = post('https://ora.sh/api/assistant', headers = headers, json = {
-            'prompt'     : system_prompt,
-            'userId'     : f'auto:{uuid4()}',
-            'name'       : name,
-            'description': description})
+        response = post('https://ora.sh/api/assistant', headers = headers, json = json_data)
         
         print(response.json())
         
