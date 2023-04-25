@@ -62,14 +62,14 @@ spd4eADxTm2m0GR7bhVEIbYfc0aAzIoWDpVs4V3vmx+bdRbppFxV1aS/r0g=
     header = {
         'alg': 'RS256',
         'typ': 'JWT',
-        'kid': '0d1bb0d7-45e4-445c-889e-57419470a570'
+        'kid': '1c8a5da7-527e-4bee-aa8d-aabda16c59ce'
     }
 
     payload = {
         **json_data,
         'iat': int(datetime.now().timestamp()),
         'exp': int((datetime.now() + timedelta(minutes=10)).timestamp()),
-        'iss': 'https://ora.sh'
+        'iss': 'https://rick.roll'
     }
 
     return jwt.encode(payload, private_key, algorithm='RS256', headers=header)
