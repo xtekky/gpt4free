@@ -4,7 +4,7 @@ import you
 response = you.Completion.create(
     prompt       = "hello world",
     detailed     = True,
-    includelinks = True,)
+    includelinks = True)
 
 print(response)
 

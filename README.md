@@ -23,7 +23,6 @@ By the way, thank you so much for `2k` stars and all the support!!
   - [`quora (poe)`](./quora/README.md)
   - [`phind`](./phind/README.md)
   - [`t3nsor`](./t3nsor/README.md)
-  - [`ora`](./ora/README.md)
   - [`writesonic`](./writesonic/README.md)
   - [`you`](./you/README.md)
   - [`sqlchat`](./sqlchat/README.md)
@@ -44,7 +43,6 @@ By the way, thank you so much for `2k` stars and all the support!!
 
 | Website                                              | Model(s)                        |
 | ---------------------------------------------------- | ------------------------------- |
-| [ora.sh](https://ora.sh)                             | GPT-3.5 / 4                     |
 | [poe.com](https://poe.com)                           | GPT-4/3.5                       |
 | [writesonic.com](https://writesonic.com)             | GPT-3.5 / Internet              |
 | [t3nsor.com](https://t3nsor.com)                     | GPT-3.5                         |
@@ -64,8 +62,7 @@ By the way, thank you so much for `2k` stars and all the support!!
 - why not `ora` anymore ? gpt-4 requires login + limited
 
 #### gpt-3.5
-- [`/ora`](./ora/README.md) 
-- only stable api at the moment ( for gpt-3.5, gpt-4 is dead)
+- looking for a stable api at the moment
 
 ## Install  <a name="install"></a>
 download or clone this GitHub repo  
