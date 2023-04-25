@@ -68,15 +68,16 @@ By the way, thank you so much for `2k` stars and all the support!!
 - only stable api at the moment ( for gpt-3.5, gpt-4 is dead)
 
 ## Install  <a name="install"></a>
-- download or clone this GitHub repo
-
+download or clone this GitHub repo  
 install requirements with:
 ```sh
 pip3 install -r requirements.txt
 ```
+
 ## To start gpt4free GUI
-To start gpt4free GUI run the following command :
-`streamlit run streamlit_app.py`
+move `streamlit_app.py` from `./gui` to the base folder   
+then run:   
+`streamlit run streamlit_app.py` or `python3 -m streamlit run streamlit_app.py`
 
 ## Docker
 Build
