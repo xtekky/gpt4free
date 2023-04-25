@@ -30,15 +30,6 @@ By the way, thank you so much for `2k` stars and all the support!!
   
 - [replit Example (feel free to fork this repl)](#replit)
 
-- [Docker](./README.md)
-Build
-```
-docker build -t gpt4free:latest .
-```
-Run
-```
-docker run -p 8501:8501 gpt4free:latest
-```
 
 ## Todo <a name="todo"></a>
 
@@ -86,6 +77,16 @@ pip3 install -r requirements.txt
 ## To start gpt4free GUI
 To start gpt4free GUI run the following command :
 `streamlit run streamlit_app.py`
+
+## Docker
+Build
+```
+docker build -t gpt4free:latest -f Docker/Dockerfile .
+```
+Run
+```
+docker run -p 8501:8501 gpt4free:latest
+```
 
 ## ChatGPT clone
 > currently implementing new features and trying to scale it, please be patient it may be unstable     
