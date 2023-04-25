@@ -6,7 +6,37 @@ Have you ever come across some amazing projects that you couldn't use **just bec
 
 **We've got you covered!** This repository offers **reverse-engineered** third-party APIs for `GPT-4/3.5`, sourced from various websites. You can simply **download** this repository, and use the available modules, which are designed to be used **just like OpenAI's official package**. **Unleash ChatGPT's potential for your projects, now!** You are welcome ; ).
 
-By the way, thank you so much for `5k` stars and all the support!!
+By the way, thank you so much for `5.3k` stars and all the support!!
+
+## Announcement
+Dear  Gpt4free Community,
+
+I want to thank you for your interest in and support of this project, which I only intended to be for entertainment and educational purposes; I had no idea it would end up being so well-liked so popular.
+
+I'm aware of the concerns about the project's legality and its impact on smaller sites hosting APIs. I take these concerns seriously and plan to address them.
+
+Here's what I'm doing to fix these issues:
+
+1. Removing APIs from smaller sites: To reduce the impact on smaller sites, I have removed their APIs from the repository. Please shoot me a dm if you are an owner of a site and want it removed.
+
+2. Commitment to ethical use: I want to emphasize my commitment to promoting ethical use of language models. I don't support any illegal or unethical behavior, and I expect users to follow the same principles.
+
+Thank you for your support and understanding. I appreciate your continued interest in gpt4free and am committed to addressing your concerns.
+
+Sincerely,
+xtekky
+
+## Legal Notice <a name="legal-notice"></a>
+
+This repository uses third-party APIs and AI models and is *not* associated with or endorsed by the API providers or the original developers of the models. This project is intended **for educational purposes only**.
+
+Please note the following:
+
+1. **Disclaimer**: The APIs, services, and trademarks mentioned in this repository belong to their respective owners. This project is *not* claiming any right over them.
+
+2. **Responsibility**: The author of this repository is *not* responsible for any consequences arising from the use or misuse of this repository or the content provided by the third-party APIs and any damage or losses caused by users' actions.
+
+3. **Educational Purposes Only**: This repository and its content are provided strictly for educational purposes. By using the information and code provided, users acknowledge that they are using the APIs and models at their own risk and agree to comply with any applicable laws and regulations.
 
 
 ## Table of Contents
@@ -91,18 +121,6 @@ docker run -p 8501:8501 gpt4free:latest
 > https://chat.chatbot.sex/chat
 > This site was developed by me and includes **gpt-4/3.5**, **internet access** and **gpt-jailbreak's** like DAN   
 > run locally here: https://github.com/xtekky/chatgpt-clone
-
-## Legal Notice <a name="legal-notice"></a>
-
-This repository uses third-party APIs and AI models and is *not* associated with or endorsed by the API providers or the original developers of the models. This project is intended **for educational purposes only**.
-
-Please note the following:
-
-1. **Disclaimer**: The APIs, services, and trademarks mentioned in this repository belong to their respective owners. This project is *not* claiming any right over them.
-
-2. **Responsibility**: The author of this repository is *not* responsible for any consequences arising from the use or misuse of this repository or the content provided by the third-party APIs and any damage or losses caused by users' actions.
-
-3. **Educational Purposes Only**: This repository and its content are provided strictly for educational purposes. By using the information and code provided, users acknowledge that they are using the APIs and models at their own risk and agree to comply with any applicable laws and regulations.
 
 ## Copyright: 
 This program is licensed under the [GNU GPL v3](https://www.gnu.org/licenses/gpl-3.0.txt)     
