@@ -47,3 +47,17 @@ response = quora.Completion.create(model  = 'gpt-4',
 
 print(response.completion.choices[0].text)    
 ```     
+
+#### Update Use This For Poe
+```python
+from quora import Poe
+
+# available models:  ['Sage', 'GPT-4', 'Claude+', 'Claude-instant', 'ChatGPT', 'Dragonfly', 'NeevaAI']
+
+poe = Poe(model='ChatGPT')
+poe.chat('who won the football world cup most?')
+
+# new bot creation
+poe.create_bot('new_bot_name', prompt='You are new test bot', base_model='gpt-3.5-turbo')
+
+```
