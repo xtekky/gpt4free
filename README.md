@@ -43,7 +43,7 @@ Please note the following:
 | Section | Description | Link | Status |
 | ------- | ----------- | ---- | ------ |
 | **To do list** | List of tasks to be done | [![Link to Section](https://img.shields.io/badge/Link-Go%20to%20Section-blue)](#todo) | - |
-| **Current Sites** | Current websites or platforms related to gpt4free | [![Link to Section](https://img.shields.io/badge/Link-Go%20to%20Section-blue)](#current-sites) | - |
+| **Current Sites** | Current websites or platforms that can be used as APIs | [![Link to Section](https://img.shields.io/badge/Link-Go%20to%20Section-blue)](#current-sites) | - |
 | **Best Sites for gpt4** | Recommended websites or platforms for gpt4 | [![Link to Section](https://img.shields.io/badge/Link-Go%20to%20Section-blue)](#best-sites) | - |
 | **Streamlit GPT4Free GUI** | Web-based graphical user interface for interacting with gpt4free | [![Link to Section](https://img.shields.io/badge/Link-Go%20to%20Section-blue)](#streamlit-gpt4free-gui) | - |
 | **Docker** | Instructions on how to run gpt4free in a Docker container | [![Link to Section](https://img.shields.io/badge/Link-Go%20to%20Section-blue)](#docker-instructions) | - |
