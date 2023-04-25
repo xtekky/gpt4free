@@ -24,10 +24,7 @@ By the way, thank you so much for `5k` stars and all the support!!
 | **Usage Examples** | | | |
 | `quora (poe)` | Example usage for quora | [![Link to File](https://img.shields.io/badge/Link-Go%20to%20File-blue)](./quora/README.md) | ![Active](https://img.shields.io/badge/Active-brightgreen) |
 | `phind` | Example usage for phind | [![Link to File](https://img.shields.io/badge/Link-Go%20to%20File-blue)](./phind/README.md) | ![Inactive](https://img.shields.io/badge/Active-brightgreen) |
-| `t3nsor` | Example usage for t3nsor | [![Link to File](https://img.shields.io/badge/Link-Go%20to%20File-blue)](./t3nsor/README.md) | ![Inactive](https://img.shields.io/badge/Inactive-lightgrey) |
-| `writesonic` | Example usage for writesonic | [![Link to File](https://img.shields.io/badge/Link-Go%20to%20File-blue)](./writesonic/README.md) | ![Inactive](https://img.shields.io/badge/Inactive-lightgrey) |
 | `you` | Example usage for you | [![Link to File](https://img.shields.io/badge/Link-Go%20to%20File-blue)](./you/README.md) | ![Active](https://img.shields.io/badge/Active-brightgreen)
-| `sqlchat` | Example usage for sqlchat | [![Link to File](https://img.shields.io/badge/Link-Go%20to%20File-blue)](./sqlchat/README.md) | ![Inactive](https://img.shields.io/badge/Inactive-lightgrey) |
 | **Try it Out** | | | |
 | Google Colab Jupyter Notebook | Example usage for gpt4free | [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/DanielShemesh/gpt4free-colab/blob/main/gpt4free.ipynb) | - |
 | replit Example (feel free to fork this repl) | Example usage for gpt4free | [![](https://img.shields.io/badge/Open%20in-Replit-1A1E27?logo=replit)](https://replit.com/@gpt4free/gpt4free-webui) | - |
