@@ -1,3 +1,8 @@
+#### warning !!!    
+poe.com added security and can detect if you are making automated requests. You may get your account banned if you are using this api.  
+The normal non-driver api is also currently not very stable     
+
+
 ### Example: `quora (poe)` (use like openai pypi package) - GPT-4 <a name="example-poe"></a>
 
 ```python
