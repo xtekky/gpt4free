@@ -390,7 +390,7 @@ class Poe:
         self.client = PoeClient(self.cookie)
 
     def __load_cookie(self) -> str:
-        if (cookie_file := Path("cookie.json")).exists():
+        if (cookie_file := Path("./quora/cookie.json")).exists():
             with cookie_file.open() as fp:
                 cookie = json.load(fp)
                 if datetime.fromtimestamp(cookie["expiry"]) < datetime.now():
@@ -410,8 +410,12 @@ class Poe:
         print(mail_address)
         options = webdriver.FirefoxOptions()
         # options.add_argument("-headless")
-        driver = webdriver.Firefox(options=options)
-
+        try:
+            driver = webdriver.Firefox(options=options)
+        
+        except Exception:
+            raise Exception(b'The error message you are receiving is due to the `geckodriver` executable not being found in your system\'s PATH. To resolve this issue, you need to download the geckodriver and add its location to your system\'s PATH.\n\nHere are the steps to resolve the issue:\n\n1. Download the geckodriver for your platform (Windows, macOS, or Linux) from the following link: https://github.com/mozilla/geckodriver/releases\n\n2. Extract the downloaded archive and locate the geckodriver executable.\n\n3. Add the geckodriver executable to your system\'s PATH.\n\nFor macOS and Linux:\n\n- Open a terminal window.\n- Move the geckodriver executable to a directory that is already in your PATH, or create a new directory and add it to your PATH:\n\n```bash\n# Example: Move geckodriver to /usr/local/bin\nmv /path/to/your/geckodriver /usr/local/bin\n```\n\n- If you created a new directory, add it to your PATH:\n\n```bash\n# Example: Add a new directory to PATH\nexport PATH=$PATH:/path/to/your/directory\n```\n\nFor Windows:\n\n- Right-click on "My Computer" or "This PC" and select "Properties".\n- Click on "Advanced system settings".\n- Click on the "Environment Variables" button.\n- In the "System variables" section, find the "Path" variable, select it, and click "Edit".\n- Click "New" and add the path to the directory containing the geckodriver executable.\n\nAfter adding the geckodriver to your PATH, restart your terminal or command prompt and try running your script again. The error should be resolved.')
+        
         driver.get("https://www.poe.com")
 
         # clicking use email button
@@ -441,7 +445,7 @@ class Poe:
 
         cookie = driver.get_cookie("p-b")
 
-        with open("cookie.json", "w") as fw:
+        with open("./quora/cookie.json", "w") as fw:
             json.dump(cookie, fw)
 
         driver.close()
