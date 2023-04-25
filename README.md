@@ -6,7 +6,7 @@ Have you ever come across some amazing projects that you couldn't use **just bec
 
 **We've got you covered!** This repository offers **reverse-engineered** third-party APIs for `GPT-4/3.5`, sourced from various websites. You can simply **download** this repository, and use the available modules, which are designed to be used **just like OpenAI's official package**. **Unleash ChatGPT's potential for your projects, now!** You are welcome ; ).
 
-By the way, thank you so much for `2k` stars and all the support!!
+By the way, thank you so much for `5k` stars and all the support!!
 
 
 ## Table of Contents
@@ -56,7 +56,7 @@ By the way, thank you so much for `2k` stars and all the support!!
 ## Best sites  <a name="best-sites"></a>
 
 #### gpt-4
-- [`/phind`](./ora/README.md) 
+- [`/phind`](./phind/README.md) 
 - pro: only stable gpt-4 with streaming ( no limit )
 - contra: weird backend prompting 
 - why not `ora` anymore ? gpt-4 requires login + limited
