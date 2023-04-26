@@ -55,6 +55,8 @@ class Search:
     def create(prompt: str, actualSearch: bool = True, language: str = 'en') -> dict: # None = no search
         if user_agent == '':
             raise ValueError('user_agent must be set, refer to documentation')
+        if cf_clearance == '' :
+            raise ValueError('cf_clearance must be set, refer to documentation')
         
         if not actualSearch:
             return {
@@ -106,8 +108,11 @@ class Completion:
         codeContext: str = '',
         language: str = 'en') -> PhindResponse:
         
-        if user_agent == '':
+        if user_agent == '' :
             raise ValueError('user_agent must be set, refer to documentation')
+
+        if cf_clearance == '' :
+            raise ValueError('cf_clearance must be set, refer to documentation')
         
         if results is None:
             results = Search.create(prompt, actualSearch = True)
@@ -235,6 +240,8 @@ class StreamingCompletion:
         
         if user_agent == '':
             raise ValueError('user_agent must be set, refer to documentation')
+        if cf_clearance == '' :
+            raise ValueError('cf_clearance must be set, refer to documentation')
         
         if results is None:
             results = Search.create(prompt, actualSearch = True)
