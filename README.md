@@ -82,6 +82,7 @@ Please note the following:
 | [chat.openai.com/chat](https://chat.openai.com/chat) | GPT-3.5                         |
 | [bard.google.com](https://bard.google.com)           | custom / search                 |
 | [bing.com/chat](https://bing.com/chat)               | GPT-4/3.5                       |
+| [chat.forefront.ai/](chat.forefront.ai/)             | GPT-4/3.5                       |
 
 ## Best sites  <a name="best-sites"></a>
 
