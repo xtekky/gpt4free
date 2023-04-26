@@ -1,4 +1,8 @@
-import requests
+from requests import get
+from os       import urandom
+from json     import loads
+
+sessionId = urandom(10).hex()
 
 headers = {
     'Accept': 'text/event-stream',
@@ -12,15 +16,17 @@ headers = {
 }
 
 while True:
+    prompt = input('you: ')
+    
     params = {
-        'message': 'what is my name',
-        'sessionId': '2eacb8ad826056587598',
+        'message': prompt,
+        'sessionId': sessionId
     }
 
-    for chunk in  requests.get('http://easy-ai.ink/easyapi/v1/chat/completions', params=params,
-        headers=headers,  verify=False, stream=True).iter_lines():
+    for chunk in  get('http://easy-ai.ink/easyapi/v1/chat/completions', params = params,
+        headers = headers, verify = False, stream = True).iter_lines():
         
-        if b'data:' in chunk:
-            print(chunk)
-        
-        print(chunk)
+        if b'content' in chunk:
+            data = loads(chunk.decode('utf-8').split('data:')[1])
+            print(data['content'], end='')
+            
