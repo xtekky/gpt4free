@@ -21,9 +21,6 @@ from tls_client import Session as TLS
 from quora.api import Client as PoeClient
 from quora.mail import Emailnator
 
-CHROME_DRIVER_URL = 'https://chromedriver.storage.googleapis.com'
-FIREFOX_DRIVER_URL = 'https://api.github.com/repos/mozilla/geckodriver/releases'
-
 SELENIUM_WEB_DRIVER_ERROR_MSG = b'''The error message you are receiving is due to the `geckodriver` executable not 
 being found in your system\'s PATH. To resolve this issue, you need to download the geckodriver and add its location 
 to your system\'s PATH.\n\nHere are the steps to resolve the issue:\n\n1. Download the geckodriver for your platform 
