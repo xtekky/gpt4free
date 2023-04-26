@@ -64,7 +64,8 @@ class Completion:
         text = response.text.split('}]}\n\nevent: youChatToken\ndata: {"youChatToken": "')[-1]
         text = text.replace('"}\n\nevent: youChatToken\ndata: {"youChatToken": "', '')
         text = text.replace('event: done\ndata: I\'m Mr. Meeseeks. Look at me.\n\n', '')
-        
+        text = text[:-4] # trims '"}', along with the last two remaining newlines
+
         extra = {
             'youChatSerpResults'      : loads(youChatSerpResults),
             #'slots'                   : loads(slots)
