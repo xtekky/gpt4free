@@ -6,7 +6,7 @@ Have you ever come across some amazing projects that you couldn't use **just bec
 
 **We've got you covered!** This repository offers **reverse-engineered** third-party APIs for `GPT-4/3.5`, sourced from various websites. You can simply **download** this repository, and use the available modules, which are designed to be used **just like OpenAI's official package**. **Unleash ChatGPT's potential for your projects, now!** You are welcome ; ).
 
-By the way, thank you so much for `6k` stars and all the support!!
+By the way, thank you so much for `7k` stars and all the support!!
 
 ## Announcement
 Dear  Gpt4free Community,
