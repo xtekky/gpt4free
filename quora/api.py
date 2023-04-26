@@ -18,23 +18,21 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import requests
-import re
-import json
-import random
-import logging
-import time
-import queue
-import threading
-import traceback
 import hashlib
-import string
+import json
+import logging
+import queue
 import random
-import requests.adapters
-import websocket
+import re
+import threading
+import time
+import traceback
 from pathlib import Path
 from urllib.parse import urlparse
 
+import requests
+import requests.adapters
+import websocket
 
 parent_path = Path(__file__).resolve().parent
 queries_path = parent_path / "graphql"
@@ -66,7 +64,7 @@ def request_with_retries(method, *args, **kwargs):
         if r.status_code == 200:
             return r
         logger.warn(
-            f"Server returned a status code of {r.status_code} while downloading {url}. Retrying ({i+1}/{attempts})..."
+            f"Server returned a status code of {r.status_code} while downloading {url}. Retrying ({i + 1}/{attempts})..."
         )
 
     raise RuntimeError(f"Failed to download {url} too many times.")
@@ -81,9 +79,7 @@ class Client:
     def __init__(self, token, proxy=None):
         self.proxy = proxy
         self.session = requests.Session()
-        self.adapter = requests.adapters.HTTPAdapter(
-            pool_connections=100, pool_maxsize=100
-        )
+        self.adapter = requests.adapters.HTTPAdapter(pool_connections=100, pool_maxsize=100)
         self.session.mount("http://", self.adapter)
         self.session.mount("https://", self.adapter)
 
@@ -139,9 +135,7 @@ class Client:
         logger.info("Downloading next_data...")
 
         r = request_with_retries(self.session.get, self.home_url)
-        json_regex = (
-            r'<script id="__NEXT_DATA__" type="application\/json">(.+?)</script>'
-        )
+        json_regex = r'<script id="__NEXT_DATA__" type="application\/json">(.+?)</script>'
         json_text = re.search(json_regex, r.text).group(1)
         next_data = json.loads(json_text)
 
@@ -213,19 +207,14 @@ class Client:
         if channel is None:
             channel = self.channel
         query = f'?min_seq={channel["minSeq"]}&channel={channel["channel"]}&hash={channel["channelHash"]}'
-        return (
-            f'wss://{self.ws_domain}.tch.{channel["baseHost"]}/up/{channel["boxName"]}/updates'
-            + query
-        )
+        return f'wss://{self.ws_domain}.tch.{channel["baseHost"]}/up/{channel["boxName"]}/updates' + query
 
     def send_query(self, query_name, variables):
         for i in range(20):
             json_data = generate_payload(query_name, variables)
             payload = json.dumps(json_data, separators=(",", ":"))
 
-            base_string = (
-                payload + self.gql_headers["poe-formkey"] + "WpuLMiXEKKE98j56k"
-            )
+            base_string = payload + self.gql_headers["poe-formkey"] + "WpuLMiXEKKE98j56k"
 
             headers = {
                 "content-type": "application/json",
@@ -233,15 +222,11 @@ class Client:
             }
             headers = {**self.gql_headers, **headers}
 
-            r = request_with_retries(
-                self.session.post, self.gql_url, data=payload, headers=headers
-            )
+            r = request_with_retries(self.session.post, self.gql_url, data=payload, headers=headers)
 
             data = r.json()
             if data["data"] == None:
-                logger.warn(
-                    f'{query_name} returned an error: {data["errors"][0]["message"]} | Retrying ({i+1}/20)'
-                )
+                logger.warn(f'{query_name} returned an error: {data["errors"][0]["message"]} | Retrying ({i + 1}/20)')
                 time.sleep(2)
                 continue
 
@@ -304,9 +289,7 @@ class Client:
 
     def on_ws_close(self, ws, close_status_code, close_message):
         self.ws_connected = False
-        logger.warn(
-            f"Websocket closed with status {close_status_code}: {close_message}"
-        )
+        logger.warn(f"Websocket closed with status {close_status_code}: {close_message}")
 
     def on_ws_error(self, ws, error):
         self.disconnect_ws()
@@ -333,11 +316,7 @@ class Client:
                         return
 
                     # indicate that the response id is tied to the human message id
-                    elif (
-                        key != "pending"
-                        and value == None
-                        and message["state"] != "complete"
-                    ):
+                    elif key != "pending" and value == None and message["state"] != "complete":
                         self.active_messages[key] = message["messageId"]
                         self.message_queues[key].put(message)
                         return
@@ -381,9 +360,7 @@ class Client:
             human_message = message_data["data"]["messageEdgeCreate"]["message"]
             human_message_id = human_message["node"]["messageId"]
         except TypeError:
-            raise RuntimeError(
-                f"An unknown error occurred. Raw response data: {message_data}"
-            )
+            raise RuntimeError(f"An unknown error occurred. Raw response data: {message_data}")
 
         # indicate that the current message is waiting for a response
         self.active_messages[human_message_id] = None
@@ -418,9 +395,7 @@ class Client:
 
     def send_chat_break(self, chatbot):
         logger.info(f"Sending chat break to {chatbot}")
-        result = self.send_query(
-            "AddMessageBreakMutation", {"chatId": self.bots[chatbot]["chatId"]}
-        )
+        result = self.send_query("AddMessageBreakMutation", {"chatId": self.bots[chatbot]["chatId"]})
         return result["data"]["messageBreakCreate"]["message"]
 
     def get_message_history(self, chatbot, count=25, cursor=None):
@@ -437,15 +412,11 @@ class Client:
 
         cursor = str(cursor)
         if count > 50:
-            messages = (
-                self.get_message_history(chatbot, count=50, cursor=cursor) + messages
-            )
+            messages = self.get_message_history(chatbot, count=50, cursor=cursor) + messages
             while count > 0:
                 count -= 50
                 new_cursor = messages[0]["cursor"]
-                new_messages = self.get_message_history(
-                    chatbot, min(50, count), cursor=new_cursor
-                )
+                new_messages = self.get_message_history(chatbot, min(50, count), cursor=new_cursor)
                 messages = new_messages + messages
             return messages
         elif count <= 0:
@@ -523,9 +494,7 @@ class Client:
 
         data = result["data"]["poeBotCreate"]
         if data["status"] != "success":
-            raise RuntimeError(
-                f"Poe returned an error while trying to create a bot: {data['status']}"
-            )
+            raise RuntimeError(f"Poe returned an error while trying to create a bot: {data['status']}")
         self.get_bots()
         return data
 
@@ -568,9 +537,7 @@ class Client:
 
         data = result["data"]["poeBotEdit"]
         if data["status"] != "success":
-            raise RuntimeError(
-                f"Poe returned an error while trying to edit a bot: {data['status']}"
-            )
+            raise RuntimeError(f"Poe returned an error while trying to edit a bot: {data['status']}")
         self.get_bots()
         return data
 
