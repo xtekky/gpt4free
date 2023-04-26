@@ -1,27 +1,31 @@
-from requests     import Session
-import json
+import requests
 
 class Completion:
-    def create(
-        prompt: str = "What is the square root of pi",
-        system_prompt: str = "ASSUME I HAVE FULL ACCESS TO COCALC. ENCLOSE MATH IN $. INCLUDE THE LANGUAGE DIRECTLY AFTER THE TRIPLE BACKTICKS IN ALL MARKDOWN CODE BLOCKS. How can I do the following using CoCalc? ") -> str:
+    def create(prompt="What is the square root of pi",
+               system_prompt="ASSUME I HAVE FULL ACCESS TO COCALC. ENCLOSE MATH IN $. INCLUDE THE LANGUAGE DIRECTLY AFTER THE TRIPLE BACKTICKS IN ALL MARKDOWN CODE BLOCKS. How can I do the following using CoCalc?") -> str:
 
-        client = Session()
-        client.headers = {
+        # Initialize a session
+        session = requests.Session()
+        
+        # Set headers for the request
+        headers = {
             'Accept': '*/*',
             'Accept-Language': 'en-US,en;q=0.5',
-            "origin"            : "https://cocalc.com",
-            "referer"           : "https://cocalc.com/api/v2/openai/chatgpt",
-            "user-agent"        : "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36",
+            'Origin': 'https://cocalc.com',
+            'Referer': 'https://cocalc.com/api/v2/openai/chatgpt',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36',
         }
+        session.headers.update(headers)
         
+        # Set the data that will be submitted
         payload = {
             "input": prompt,
             "system": system_prompt,
             "tag": "next:index"
         }
 
-        response = client.post(f"https://cocalc.com/api/v2/openai/chatgpt", json=payload).json()
+        # Submit the request
+        response = session.post("https://cocalc.com/api/v2/openai/chatgpt", json=payload).json()
 
+        # Return the results
         return response
-
