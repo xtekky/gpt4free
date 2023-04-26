@@ -11,7 +11,7 @@ By the way, thank you so much for `5.4k` stars and all the support!!
 ## Announcement
 Dear  Gpt4free Community,
 
-I want to thank you for your interest in and support of this project, which I only intended to be for entertainment and educational purposes; I had no idea it would end up being so well-liked so popular.
+I want to thank you for your interest in and support of this project, which I only intended to be for entertainment and educational purposes; I had no idea it would end up being so popular.
 
 I'm aware of the concerns about the project's legality and its impact on smaller sites hosting APIs. I take these concerns seriously and plan to address them.
 
