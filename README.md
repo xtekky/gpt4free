@@ -1,12 +1,15 @@
 # GPT4free - use ChatGPT, for free!!
 
+##### You may join our discord server for updates and support ; ) 
+- https://discord.gg/gpt4free 
+
 <img width="1383" alt="image" src="https://user-images.githubusercontent.com/98614666/233799515-1a7cb6a3-b17f-42c4-956d-8d2a0664466f.png">
 
 Have you ever come across some amazing projects that you couldn't use **just because you didn't have an OpenAI API key?** 
 
 **We've got you covered!** This repository offers **reverse-engineered** third-party APIs for `GPT-4/3.5`, sourced from various websites. You can simply **download** this repository, and use the available modules, which are designed to be used **just like OpenAI's official package**. **Unleash ChatGPT's potential for your projects, now!** You are welcome ; ).
 
-By the way, thank you so much for `7k` stars and all the support!!
+By the way, thank you so much for [![Stars](https://img.shields.io/github/stars/xtekky/gpt4free?style=social)](https://github.com/xtekky/gpt4free/stargazers) and all the support!!
 
 ## Announcement
 Dear  Gpt4free Community,
