@@ -26,7 +26,7 @@ class PhindResponse:
                 return f'''<__main__.APIResponse.Completion.Choices(\n    text           = {self.text.encode()},\n    index          = {self.index},\n    logprobs       = {self.logprobs},\n    finish_reason  = {self.finish_reason})object at 0x1337>'''
 
         def __init__(self, choices: dict) -> None:
-            self.choices = [self.Choices(choice) for choice in choices]
+            self.choices = list(map(self.Choices, choices))
 
     class Usage:
         def __init__(self, usage_dict: dict) -> None:
