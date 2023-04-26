@@ -53,7 +53,7 @@ class PhindResponse:
 
 class Search:
     def create(prompt: str, actualSearch: bool = True, language: str = 'en') -> dict: # None = no search
-        if user_agent == '':
+        if user_agent == '' or cf_clearance == '':
             raise ValueError('user_agent must be set, refer to documentation')
         
         if not actualSearch:
