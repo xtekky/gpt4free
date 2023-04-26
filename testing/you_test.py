@@ -1,32 +1,25 @@
 import you
 
+gpt = you.Completion()
+
 # simple request with links and details
-response = you.Completion.create(
+response = gpt.create(
     prompt       = "hello world",
     detailed     = True,
-    includelinks = True)
+    includelinks = True
+)
 
 print(response)
 
 # {
 #     "response": "...",
 #     "links": [...],
-#     "extra": {...},
-#         "slots": {...}
+#     "extra": {
+#         "youChatSerpResults": [...]
 #     }
 # }
 
-#chatbot
-
-chat = []
-
 while True:
     prompt = input("You: ")
-    
-    response = you.Completion.create(
-        prompt  = prompt,
-        chat    = chat)
-    
+    response = gpt.create(prompt)
     print("Bot:", response["response"])
-    
-    chat.append({"question": prompt, "answer": response["response"]})
