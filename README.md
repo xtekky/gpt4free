@@ -1,7 +1,7 @@
 # GPT4free - use ChatGPT, for free!!
 
 ##### You may join our discord server for updates and support ; ) 
-- https://discord.gg/gpt4free 
+- [Discord Link](https://discord.gg/gpt4free)
 
 <img width="1383" alt="image" src="https://user-images.githubusercontent.com/98614666/233799515-1a7cb6a3-b17f-42c4-956d-8d2a0664466f.png">
 
@@ -14,7 +14,7 @@ By the way, thank you so much for [![Stars](https://img.shields.io/github/stars/
 ## Announcement
 Dear  Gpt4free Community,
 
-I want to thank you for your interest in and support of this project, which I only intended to be for entertainment and educational purposes; I had no idea it would end up being so popular.
+I would like to thank you for your interest in and support of this project, which I only intended to be for entertainment and educational purposes; I had no idea it would end up being so popular.
 
 I'm aware of the concerns about the project's legality and its impact on smaller sites hosting APIs. I take these concerns seriously and plan to address them.
 
@@ -27,7 +27,7 @@ Here's what I'm doing to fix these issues:
 Thank you for your support and understanding. I appreciate your continued interest in gpt4free and am committed to addressing your concerns.
 
 Sincerely,
-xtekky
+**xtekky**
 
 ## Legal Notice <a name="legal-notice"></a>
 
