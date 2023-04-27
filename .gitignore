@@ -7,6 +7,15 @@
 /dataSources/
 /dataSources.local.xml
 
+# Ignore local python virtual environment
+venv/
+
+# Ignore streamlit_chat_app.py conversations pickle
+conversations.pkl
+
+# Ignore accounts created by api's
+accounts.txt
+
 .idea/
 
 */__pycache__/
