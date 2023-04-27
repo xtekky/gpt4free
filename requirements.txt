@@ -1,5 +1,5 @@
 websocket-client
-requests==2.29.0
+requests
 tls-client
 pypasser
 names
