@@ -38,7 +38,7 @@ class Emailnator:
         return self.email
 
     def get_message(self):
-        print("waiting for code...")
+        print("Waiting for message...")
 
         while True:
             sleep(2)
@@ -49,6 +49,7 @@ class Emailnator:
             mail_token = loads(mail_token.text)["messageData"]
 
             if len(mail_token) == 2:
+                print("Message received!")
                 print(mail_token[1]["messageID"])
                 break
 
@@ -63,4 +64,19 @@ class Emailnator:
         return mail_context.text
 
     def get_verification_code(self):
-        return findall(r';">(\d{6,7})</div>', self.get_message())[0]
+        message = self.get_message()
+        code = findall(r';">(\d{6,7})</div>', message)[0]
+        print(f"Verification code: {code}")
+        return code
+
+    def clear_inbox(self):
+        print("Clearing inbox...")
+        self.client.post(
+            "https://www.emailnator.com/delete-all",
+            json={"email": self.email},
+        )
+        print("Inbox cleared!")
+
+    def __del__(self):
+        if self.email:
+            self.clear_inbox()
