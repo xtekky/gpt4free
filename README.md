@@ -9,7 +9,7 @@ Have you ever come across some amazing projects that you couldn't use **just bec
 
 **We've got you covered!** This repository offers **reverse-engineered** third-party APIs for `GPT-4/3.5`, sourced from various websites. You can simply **download** this repository, and use the available modules, which are designed to be used **just like OpenAI's official package**. **Unleash ChatGPT's potential for your projects, now!** You are welcome ; ).
 
-By the way, thank you so much for `11k` stars and all the support!!
+By the way, thank you so much for [![Stars](https://img.shields.io/github/stars/xtekky/gpt4free?style=social)](https://github.com/xtekky/gpt4free/stargazers) and all the support!!
 
 ## Legal Notice <a name="legal-notice"></a>
 
@@ -36,6 +36,7 @@ Please note the following:
 | **How to install** | Instructions on how to install gpt4free | [![Link to Section](https://img.shields.io/badge/Link-Go%20to%20Section-blue)](#install) | - |
 | **Legal Notice** | Legal notice or disclaimer | [![Link to Section](https://img.shields.io/badge/Link-Go%20to%20Section-blue)](#legal-notice) | - |
 | **Copyright** | Copyright information | [![Link to Section](https://img.shields.io/badge/Link-Go%20to%20Section-blue)](#copyright) | - |
+| **Star History** | Star History | [![Link to Section](https://img.shields.io/badge/Link-Go%20to%20Section-blue)](#star-history) | - |
 | **Usage Examples** | | | |
 | `forefront` | Example usage for forefront (gpt-4) | [![Link to File](https://img.shields.io/badge/Link-Go%20to%20File-blue)](./forefront/README.md) | ![Active](https://img.shields.io/badge/Active-brightgreen) | | |
 | `quora (poe)` | Example usage for quora | [![Link to File](https://img.shields.io/badge/Link-Go%20to%20File-blue)](./quora/README.md) | ![Active](https://img.shields.io/badge/Active-brightgreen) | |
@@ -133,3 +134,6 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ```
+
+## Star History <a name="star-history"></a>
+[![Star History Chart](https://api.star-history.com/svg?repos=xtekky/gpt4free&type=Date)](https://star-history.com/#xtekky/gpt4free)
