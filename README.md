@@ -55,8 +55,12 @@ Please note the following:
 | **Legal Notice** | Legal notice or disclaimer | [![Link to Section](https://img.shields.io/badge/Link-Go%20to%20Section-blue)](#legal-notice) | - |
 | **Copyright** | Copyright information | [![Link to Section](https://img.shields.io/badge/Link-Go%20to%20Section-blue)](#copyright) | - |
 | **Usage Examples** | | | |
+| `forefront` | Example usage for quora | [![Link to File](https://img.shields.io/badge/Link-Go%20to%20File-blue)](./forefront/README.md) | ![Active](https://img.shields.io/badge/Active-brightgreen) |
+
 | `quora (poe)` | Example usage for quora | [![Link to File](https://img.shields.io/badge/Link-Go%20to%20File-blue)](./quora/README.md) | ![Active](https://img.shields.io/badge/Active-brightgreen) |
+
 | `phind` | Example usage for phind | [![Link to File](https://img.shields.io/badge/Link-Go%20to%20File-blue)](./phind/README.md) | ![Inactive](https://img.shields.io/badge/Active-brightgreen) |
+
 | `you` | Example usage for you | [![Link to File](https://img.shields.io/badge/Link-Go%20to%20File-blue)](./you/README.md) | ![Active](https://img.shields.io/badge/Active-brightgreen)
 | **Try it Out** | | | |
 | Google Colab Jupyter Notebook | Example usage for gpt4free | [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/DanielShemesh/gpt4free-colab/blob/main/gpt4free.ipynb) | - |
@@ -74,8 +78,9 @@ Please note the following:
 
 ## Current Sites <a name="current-sites"></a>
 
-| Website                                              | Model(s)                        |
+| Website                                    s          | Model(s)                        |
 | ---------------------------------------------------- | ------------------------------- |
+| [forefront.ai](https://chat.forefront.ai)            | GPT-4/3.5                       |
 | [poe.com](https://poe.com)                           | GPT-4/3.5                       |
 | [writesonic.com](https://writesonic.com)             | GPT-3.5 / Internet              |
 | [t3nsor.com](https://t3nsor.com)                     | GPT-3.5                         |
