@@ -169,7 +169,6 @@ class Completion:
     ) -> ForeFrontResponse:
         text = ''
         final_response = None
-        res = list(StreamingCompletion.create(token=token, prompt=prompt))
         for response in StreamingCompletion.create(
             token=token,
             chat_id=chat_id,

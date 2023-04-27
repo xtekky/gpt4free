@@ -2,6 +2,7 @@ from enum import Enum
 
 from openai_rev import forefront
 from openai_rev import quora
+from openai_rev import theb
 from openai_rev import you
 
 
@@ -9,6 +10,7 @@ class Provider(Enum):
     You = 'you'
     Poe = 'poe'
     ForeFront = 'fore_front'
+    Theb = 'theb'
 
 
 class Completion:
@@ -20,6 +22,8 @@ class Completion:
             return Completion.__you_service(prompt, **kwargs)
         elif provider == Provider.ForeFront:
             return Completion.__fore_front_service(prompt, **kwargs)
+        elif provider == Provider.Theb:
+            return Completion.__theb_service(prompt, **kwargs)
 
     @classmethod
     def __you_service(cls, prompt: str, **kwargs) -> str:
@@ -32,3 +36,7 @@ class Completion:
     @classmethod
     def __fore_front_service(cls, prompt: str, **kwargs) -> str:
         return forefront.Completion.create(prompt=prompt, **kwargs).text
+
+    @classmethod
+    def __theb_service(cls, prompt: str, **kwargs):
+        return ''.join(theb.Completion.create(prompt=prompt))
