@@ -9,4 +9,4 @@ RUN cp gui/streamlit_app.py .
 
 EXPOSE 8501
 
-CMD ["streamlit", "run", "streamlit_app.py"]
+CMD ["streamlit", "run", "./gui/streamlit_app.py"]
