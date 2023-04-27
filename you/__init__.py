@@ -9,19 +9,19 @@ from tls_client import Session
 class Completion:
     @staticmethod
     def create(
-        prompt: str,
-        page: int = 1,
-        count: int = 10,
-        safe_search: str = 'Moderate',
-        on_shopping_page: bool = False,
-        mkt: str = '',
-        response_filter: str = 'WebPages,Translations,TimeZone,Computation,RelatedSearches',
-        domain: str = 'youchat',
-        query_trace_id: str = None,
-        chat: list = None,
-        include_links: bool = False,
-        detailed: bool = False,
-        debug: bool = False,
+            prompt: str,
+            page: int = 1,
+            count: int = 10,
+            safe_search: str = 'Moderate',
+            on_shopping_page: bool = False,
+            mkt: str = '',
+            response_filter: str = 'WebPages,Translations,TimeZone,Computation,RelatedSearches',
+            domain: str = 'youchat',
+            query_trace_id: str = None,
+            chat: list = None,
+            include_links: bool = False,
+            detailed: bool = False,
+            debug: bool = False,
     ) -> dict:
         if chat is None:
             chat = []

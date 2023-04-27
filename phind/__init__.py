@@ -1,27 +1,25 @@
+from datetime import datetime
+from queue import Queue, Empty
+from threading import Thread
+from time import time
 from urllib.parse import quote
-from time         import time
-from datetime     import datetime
-from queue        import Queue, Empty
-from threading    import Thread
-from re           import findall
 
 from curl_cffi.requests import post
 
 cf_clearance = ''
-user_agent   = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36'
+user_agent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36'
+
 
 class PhindResponse:
-    
     class Completion:
-        
         class Choices:
             def __init__(self, choice: dict) -> None:
-                self.text           = choice['text']
-                self.content        = self.text.encode()
-                self.index          = choice['index']
-                self.logprobs       = choice['logprobs']
-                self.finish_reason  = choice['finish_reason']
-                
+                self.text = choice['text']
+                self.content = self.text.encode()
+                self.index = choice['index']
+                self.logprobs = choice['logprobs']
+                self.finish_reason = choice['finish_reason']
+
             def __repr__(self) -> str:
                 return f'''<__main__.APIResponse.Completion.Choices(\n    text           = {self.text.encode()},\n    index          = {self.index},\n    logprobs       = {self.logprobs},\n    finish_reason  = {self.finish_reason})object at 0x1337>'''
 
@@ -30,34 +28,33 @@ class PhindResponse:
 
     class Usage:
         def __init__(self, usage_dict: dict) -> None:
-            self.prompt_tokens      = usage_dict['prompt_tokens']
-            self.completion_tokens  = usage_dict['completion_tokens']
-            self.total_tokens       = usage_dict['total_tokens']
+            self.prompt_tokens = usage_dict['prompt_tokens']
+            self.completion_tokens = usage_dict['completion_tokens']
+            self.total_tokens = usage_dict['total_tokens']
 
         def __repr__(self):
             return f'''<__main__.APIResponse.Usage(\n    prompt_tokens      = {self.prompt_tokens},\n    completion_tokens  = {self.completion_tokens},\n    total_tokens       = {self.total_tokens})object at 0x1337>'''
-    
+
     def __init__(self, response_dict: dict) -> None:
-        
-        self.response_dict  = response_dict
-        self.id             = response_dict['id']
-        self.object         = response_dict['object']
-        self.created        = response_dict['created']
-        self.model          = response_dict['model']
-        self.completion     = self.Completion(response_dict['choices'])
-        self.usage          = self.Usage(response_dict['usage'])
+        self.response_dict = response_dict
+        self.id = response_dict['id']
+        self.object = response_dict['object']
+        self.created = response_dict['created']
+        self.model = response_dict['model']
+        self.completion = self.Completion(response_dict['choices'])
+        self.usage = self.Usage(response_dict['usage'])
 
     def json(self) -> dict:
         return self.response_dict
 
 
 class Search:
-    def create(prompt: str, actualSearch: bool = True, language: str = 'en') -> dict: # None = no search
+    def create(prompt: str, actualSearch: bool = True, language: str = 'en') -> dict:  # None = no search
         if user_agent == '':
             raise ValueError('user_agent must be set, refer to documentation')
-        if cf_clearance == '' :
+        if cf_clearance == '':
             raise ValueError('cf_clearance must be set, refer to documentation')
-        
+
         if not actualSearch:
             return {
                 '_type': 'SearchResponse',
@@ -75,7 +72,7 @@ class Search:
                     }
                 }
             }
-        
+
         headers = {
             'authority': 'www.phind.com',
             'accept': '*/*',
@@ -91,8 +88,8 @@ class Search:
             'sec-fetch-site': 'same-origin',
             'user-agent': user_agent
         }
-        
-        return post('https://www.phind.com/api/bing/search', headers = headers, json = { 
+
+        return post('https://www.phind.com/api/bing/search', headers=headers, json={
             'q': prompt,
             'userRankList': {},
             'browserLanguage': language}).json()['rawBingResults']
@@ -100,45 +97,45 @@ class Search:
 
 class Completion:
     def create(
-        model = 'gpt-4', 
-        prompt: str = '', 
-        results: dict = None, 
-        creative: bool = False, 
-        detailed: bool = False, 
-        codeContext: str = '',
-        language: str = 'en') -> PhindResponse:
-        
-        if user_agent == '' :
+            model='gpt-4',
+            prompt: str = '',
+            results: dict = None,
+            creative: bool = False,
+            detailed: bool = False,
+            codeContext: str = '',
+            language: str = 'en') -> PhindResponse:
+
+        if user_agent == '':
             raise ValueError('user_agent must be set, refer to documentation')
 
-        if cf_clearance == '' :
+        if cf_clearance == '':
             raise ValueError('cf_clearance must be set, refer to documentation')
-        
+
         if results is None:
-            results = Search.create(prompt, actualSearch = True)
-        
+            results = Search.create(prompt, actualSearch=True)
+
         if len(codeContext) > 2999:
             raise ValueError('codeContext must be less than 3000 characters')
-        
+
         models = {
-            'gpt-4' : 'expert',
-            'gpt-3.5-turbo' : 'intermediate',
+            'gpt-4': 'expert',
+            'gpt-3.5-turbo': 'intermediate',
             'gpt-3.5': 'intermediate',
         }
-        
+
         json_data = {
-            'question'    : prompt,
-            'bingResults' : results, #response.json()['rawBingResults'],
-            'codeContext' : codeContext,
+            'question': prompt,
+            'bingResults': results,  # response.json()['rawBingResults'],
+            'codeContext': codeContext,
             'options': {
-                'skill'   : models[model],
-                'date'    : datetime.now().strftime("%d/%m/%Y"),
+                'skill': models[model],
+                'date': datetime.now().strftime("%d/%m/%Y"),
                 'language': language,
                 'detailed': detailed,
                 'creative': creative
             }
         }
-        
+
         headers = {
             'authority': 'www.phind.com',
             'accept': '*/*',
@@ -155,50 +152,51 @@ class Completion:
             'sec-fetch-site': 'same-origin',
             'user-agent': user_agent
         }
-        
+
         completion = ''
-        response   = post('https://www.phind.com/api/infer/answer', headers = headers, json = json_data, timeout=99999, impersonate='chrome110')
+        response = post('https://www.phind.com/api/infer/answer', headers=headers, json=json_data, timeout=99999,
+                        impersonate='chrome110')
         for line in response.text.split('\r\n\r\n'):
             completion += (line.replace('data: ', ''))
-        
+
         return PhindResponse({
-            'id'     : f'cmpl-1337-{int(time())}', 
-            'object' : 'text_completion', 
-            'created': int(time()), 
-            'model'  : models[model], 
+            'id': f'cmpl-1337-{int(time())}',
+            'object': 'text_completion',
+            'created': int(time()),
+            'model': models[model],
             'choices': [{
-                    'text'          : completion, 
-                    'index'         : 0, 
-                    'logprobs'      : None, 
-                    'finish_reason' : 'stop'
-            }], 
+                'text': completion,
+                'index': 0,
+                'logprobs': None,
+                'finish_reason': 'stop'
+            }],
             'usage': {
-                'prompt_tokens'     : len(prompt), 
-                'completion_tokens' : len(completion), 
-                'total_tokens'      : len(prompt) + len(completion)
+                'prompt_tokens': len(prompt),
+                'completion_tokens': len(completion),
+                'total_tokens': len(prompt) + len(completion)
             }
         })
-        
+
 
 class StreamingCompletion:
-    message_queue    = Queue()
+    message_queue = Queue()
     stream_completed = False
-    
+
     def request(model, prompt, results, creative, detailed, codeContext, language) -> None:
-        
+
         models = {
-            'gpt-4' : 'expert',
-            'gpt-3.5-turbo' : 'intermediate',
+            'gpt-4': 'expert',
+            'gpt-3.5-turbo': 'intermediate',
             'gpt-3.5': 'intermediate',
         }
 
         json_data = {
-            'question'    : prompt,
-            'bingResults' : results,
-            'codeContext' : codeContext,
+            'question': prompt,
+            'bingResults': results,
+            'codeContext': codeContext,
             'options': {
-                'skill'   : models[model],
-                'date'    : datetime.now().strftime("%d/%m/%Y"),
+                'skill': models[model],
+                'date': datetime.now().strftime("%d/%m/%Y"),
                 'language': language,
                 'detailed': detailed,
                 'creative': creative
@@ -221,65 +219,65 @@ class StreamingCompletion:
             'sec-fetch-site': 'same-origin',
             'user-agent': user_agent
         }
-        
-        response   = post('https://www.phind.com/api/infer/answer', 
-            headers = headers, json = json_data, timeout=99999, impersonate='chrome110', content_callback=StreamingCompletion.handle_stream_response)
 
+        response = post('https://www.phind.com/api/infer/answer',
+                        headers=headers, json=json_data, timeout=99999, impersonate='chrome110',
+                        content_callback=StreamingCompletion.handle_stream_response)
 
         StreamingCompletion.stream_completed = True
 
     @staticmethod
     def create(
-        model       : str = 'gpt-4', 
-        prompt      : str = '', 
-        results     : dict = None, 
-        creative    : bool = False, 
-        detailed    : bool = False, 
-        codeContext : str = '',
-        language    : str = 'en'):
-        
+            model: str = 'gpt-4',
+            prompt: str = '',
+            results: dict = None,
+            creative: bool = False,
+            detailed: bool = False,
+            codeContext: str = '',
+            language: str = 'en'):
+
         if user_agent == '':
             raise ValueError('user_agent must be set, refer to documentation')
-        if cf_clearance == '' :
+        if cf_clearance == '':
             raise ValueError('cf_clearance must be set, refer to documentation')
-        
+
         if results is None:
-            results = Search.create(prompt, actualSearch = True)
-        
+            results = Search.create(prompt, actualSearch=True)
+
         if len(codeContext) > 2999:
             raise ValueError('codeContext must be less than 3000 characters')
-        
-        Thread(target = StreamingCompletion.request, args = [
+
+        Thread(target=StreamingCompletion.request, args=[
             model, prompt, results, creative, detailed, codeContext, language]).start()
-        
+
         while StreamingCompletion.stream_completed != True or not StreamingCompletion.message_queue.empty():
             try:
                 chunk = StreamingCompletion.message_queue.get(timeout=0)
 
                 if chunk == b'data:  \r\ndata: \r\ndata: \r\n\r\n':
                     chunk = b'data:  \n\n\r\n\r\n'
-                
+
                 chunk = chunk.decode()
-                
+
                 chunk = chunk.replace('data: \r\n\r\ndata: ', 'data: \n')
                 chunk = chunk.replace('\r\ndata: \r\ndata: \r\n\r\n', '\n\n\r\n\r\n')
                 chunk = chunk.replace('data: ', '').replace('\r\n\r\n', '')
-                
+
                 yield PhindResponse({
-                    'id'     : f'cmpl-1337-{int(time())}', 
-                    'object' : 'text_completion', 
-                    'created': int(time()), 
-                    'model'  : model, 
+                    'id': f'cmpl-1337-{int(time())}',
+                    'object': 'text_completion',
+                    'created': int(time()),
+                    'model': model,
                     'choices': [{
-                            'text'          : chunk, 
-                            'index'         : 0, 
-                            'logprobs'      : None, 
-                            'finish_reason' : 'stop'
-                    }], 
+                        'text': chunk,
+                        'index': 0,
+                        'logprobs': None,
+                        'finish_reason': 'stop'
+                    }],
                     'usage': {
-                        'prompt_tokens'     : len(prompt), 
-                        'completion_tokens' : len(chunk), 
-                        'total_tokens'      : len(prompt) + len(chunk)
+                        'prompt_tokens': len(prompt),
+                        'completion_tokens': len(chunk),
+                        'total_tokens': len(prompt) + len(chunk)
                     }
                 })
 

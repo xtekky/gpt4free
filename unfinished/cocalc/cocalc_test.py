@@ -1,8 +1,7 @@
 import cocalc
 
-
 response = cocalc.Completion.create(
-    prompt = 'hello world'
+    prompt='hello world'
 )
 
 print(response)
