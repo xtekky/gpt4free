@@ -384,7 +384,7 @@ class Client:
                     continue
 
             # update info about response
-            message["text_new"] = message["text"][len(last_text) :]
+            message["text_new"] = message["text"][len(last_text):]
             last_text = message["text"]
             message_id = message["messageId"]
 
@@ -456,21 +456,21 @@ class Client:
         logger.info(f"No more messages left to delete.")
 
     def create_bot(
-        self,
-        handle,
-        prompt="",
-        base_model="chinchilla",
-        description="",
-        intro_message="",
-        api_key=None,
-        api_bot=False,
-        api_url=None,
-        prompt_public=True,
-        pfp_url=None,
-        linkification=False,
-        markdown_rendering=True,
-        suggested_replies=False,
-        private=False,
+            self,
+            handle,
+            prompt="",
+            base_model="chinchilla",
+            description="",
+            intro_message="",
+            api_key=None,
+            api_bot=False,
+            api_url=None,
+            prompt_public=True,
+            pfp_url=None,
+            linkification=False,
+            markdown_rendering=True,
+            suggested_replies=False,
+            private=False,
     ):
         result = self.send_query(
             "PoeBotCreateMutation",
@@ -499,21 +499,21 @@ class Client:
         return data
 
     def edit_bot(
-        self,
-        bot_id,
-        handle,
-        prompt="",
-        base_model="chinchilla",
-        description="",
-        intro_message="",
-        api_key=None,
-        api_url=None,
-        private=False,
-        prompt_public=True,
-        pfp_url=None,
-        linkification=False,
-        markdown_rendering=True,
-        suggested_replies=False,
+            self,
+            bot_id,
+            handle,
+            prompt="",
+            base_model="chinchilla",
+            description="",
+            intro_message="",
+            api_key=None,
+            api_url=None,
+            private=False,
+            prompt_public=True,
+            pfp_url=None,
+            linkification=False,
+            markdown_rendering=True,
+            suggested_replies=False,
     ):
         result = self.send_query(
             "PoeBotEditMutation",

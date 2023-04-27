@@ -1,14 +1,12 @@
 # Import necessary libraries
-from requests import get
-from browser_cookie3 import edge, chrome
-from ssl import create_default_context
-from certifi import where
-from uuid import uuid4
-from random import randint
-from json import dumps, loads
-
 import asyncio
+from json import dumps, loads
+from ssl import create_default_context
+
 import websockets
+from browser_cookie3 import edge
+from certifi import where
+from requests import get
 
 # Set up SSL context
 ssl_context = create_default_context()
@@ -28,14 +26,14 @@ def get_token():
 
 class AsyncCompletion:
     async def create(
-        prompt: str = 'hello world',
-        optionSets: list = [
-            'deepleo',
-            'enable_debug_commands',
-            'disable_emoji_spoken_text',
-            'enablemm',
-            'h3relaxedimg'
-        ],
+            prompt: str = 'hello world',
+            optionSets: list = [
+                'deepleo',
+                'enable_debug_commands',
+                'disable_emoji_spoken_text',
+                'enablemm',
+                'h3relaxedimg'
+            ],
             token: str = get_token()):
         """Create a connection to Bing AI and send the prompt."""
 
@@ -83,7 +81,7 @@ class AsyncCompletion:
                     continue
 
                 response = loads(obj)
-                if response.get('type') == 1 and response['arguments'][0].get('messages',):
+                if response.get('type') == 1 and response['arguments'][0].get('messages', ):
                     response_text = response['arguments'][0]['messages'][0]['adaptiveCards'][0]['body'][0].get(
                         'text')
 
@@ -99,11 +97,12 @@ class AsyncCompletion:
 async def run():
     """Run the async completion and print the result."""
     async for value in AsyncCompletion.create(
-        prompt='summarize cinderella with each word beginning with a consecutive letter of the alphabet, a-z',
-        optionSets=[
-            "galileo",
-        ]
+            prompt='summarize cinderella with each word beginning with a consecutive letter of the alphabet, a-z',
+            optionSets=[
+                "galileo",
+            ]
     ):
         print(value, end='', flush=True)
+
 
 asyncio.run(run())

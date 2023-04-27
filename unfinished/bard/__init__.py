@@ -1,12 +1,12 @@
-from requests import Session
-from re import search
-from random import randint
 from json import dumps, loads
-from urllib.parse import urlencode
-from dotenv import load_dotenv
 from os import getenv
+from random import randint
+from re import search
+from urllib.parse import urlencode
 
 from bard.typings import BardResponse
+from dotenv import load_dotenv
+from requests import Session
 
 load_dotenv()
 token = getenv('1psid')
@@ -62,16 +62,17 @@ class Completion:
             'rt': 'c',
         })
 
-        response = client.post(f'https://bard.google.com/_/BardChatUi/data/assistant.lamda.BardFrontendService/StreamGenerate?{params}',
-                               data={
-                                   'at': snlm0e,
-                                   'f.req': dumps([None, dumps([
-                                       [prompt],
-                                       None,
-                                       [conversation_id, response_id, choice_id],
-                                   ])])
-                               }
-                               )
+        response = client.post(
+            f'https://bard.google.com/_/BardChatUi/data/assistant.lamda.BardFrontendService/StreamGenerate?{params}',
+            data={
+                'at': snlm0e,
+                'f.req': dumps([None, dumps([
+                    [prompt],
+                    None,
+                    [conversation_id, response_id, choice_id],
+                ])])
+            }
+            )
 
         chat_data = loads(response.content.splitlines()[3])[0][2]
         if not chat_data:

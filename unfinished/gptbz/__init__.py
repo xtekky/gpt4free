@@ -1,5 +1,7 @@
-import websockets
 from json import dumps, loads
+
+import websockets
+
 
 # Define the asynchronous function to test the WebSocket connection
 

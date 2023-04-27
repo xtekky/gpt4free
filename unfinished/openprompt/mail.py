@@ -1,5 +1,7 @@
-import requests
 import email
+
+import requests
+
 
 class MailClient:
 
