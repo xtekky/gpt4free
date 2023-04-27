@@ -6,7 +6,6 @@ class Completion:
                system_prompt=("ASSUME I HAVE FULL ACCESS TO COCALC. ENCLOSE MATH IN $. "
                               "INCLUDE THE LANGUAGE DIRECTLY AFTER THE TRIPLE BACKTICKS "
                               "IN ALL MARKDOWN CODE BLOCKS. How can I do the following using CoCalc?")) -> str:
-
         # Initialize a session with custom headers
         session = self._initialize_session()
 

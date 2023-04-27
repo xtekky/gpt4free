@@ -1,6 +1,7 @@
-import requests
 import json
 import re
+
+import requests
 
 headers = {
     'authority': 'openai.a2hosted.com',
@@ -13,9 +14,11 @@ headers = {
     'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36 Edg/113.0.0.0',
 }
 
+
 def create_query_param(conversation):
     encoded_conversation = json.dumps(conversation)
     return encoded_conversation.replace(" ", "%20").replace('"', '%22').replace("'", "%27")
+
 
 user_input = input("Enter your message: ")
 

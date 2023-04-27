@@ -1,7 +1,8 @@
 # Import required libraries
-from tls_client import Session
 from uuid import uuid4
+
 from browser_cookie3 import chrome
+from tls_client import Session
 
 
 class OpenAIChat:

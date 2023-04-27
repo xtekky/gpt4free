@@ -1,6 +1,8 @@
-from requests import Session
-from string import ascii_letters
 from random import choices
+from string import ascii_letters
+
+from requests import Session
+
 
 class Mail:
     def __init__(self, proxies: dict = None) -> None:
@@ -23,27 +25,27 @@ class Mail:
             "accept-encoding": "gzip, deflate, br",
             "accept-language": "en-GB,en-US;q=0.9,en;q=0.8"
         }
-        
+
     def get_mail(self) -> str:
         token = ''.join(choices(ascii_letters, k=14)).lower()
-        init  = self.client.post("https://api.mail.tm/accounts", json={
-            "address" : f"{token}@bugfoo.com",
+        init = self.client.post("https://api.mail.tm/accounts", json={
+            "address": f"{token}@bugfoo.com",
             "password": token
         })
-        
+
         if init.status_code == 201:
-            resp = self.client.post("https://api.mail.tm/token", json = {
+            resp = self.client.post("https://api.mail.tm/token", json={
                 **init.json(),
                 "password": token
             })
-            
+
             self.client.headers['authorization'] = 'Bearer ' + resp.json()['token']
-            
+
             return f"{token}@bugfoo.com"
-        
+
         else:
             raise Exception("Failed to create email")
-    
+
     def fetch_inbox(self):
         return self.client.get(f"https://api.mail.tm/messages").json()["hydra:member"]
 
@@ -52,4 +54,3 @@ class Mail:
 
     def get_message_content(self, message_id: str):
         return self.get_message(message_id)["text"]
-
