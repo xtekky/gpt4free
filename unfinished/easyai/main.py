@@ -1,7 +1,8 @@
 # Import necessary libraries
-from requests import get
-from os import urandom
 from json import loads
+from os import urandom
+
+from requests import get
 
 # Generate a random session ID
 sessionId = urandom(10).hex()

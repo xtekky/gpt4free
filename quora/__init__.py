@@ -116,11 +116,11 @@ class ModelResponse:
 class Model:
     @staticmethod
     def create(
-        token: str,
-        model: str = 'gpt-3.5-turbo',  # claude-instant
-        system_prompt: str = 'You are ChatGPT a large language model developed by Openai. Answer as consisely as possible',
-        description: str = 'gpt-3.5 language model from openai, skidded by poe.com',
-        handle: str = None,
+            token: str,
+            model: str = 'gpt-3.5-turbo',  # claude-instant
+            system_prompt: str = 'You are ChatGPT a large language model developed by Openai. Answer as consisely as possible',
+            description: str = 'gpt-3.5 language model from openai, skidded by poe.com',
+            handle: str = None,
     ) -> ModelResponse:
         models = {
             'gpt-3.5-turbo': 'chinchilla',
@@ -202,9 +202,9 @@ class Model:
 class Account:
     @staticmethod
     def create(
-        proxy: Optional[str] = None,
-        logging: bool = False,
-        enable_bot_creation: bool = False,
+            proxy: Optional[str] = None,
+            logging: bool = False,
+            enable_bot_creation: bool = False,
     ):
         client = TLS(client_identifier='chrome110')
         client.proxies = {'http': f'http://{proxy}', 'https': f'http://{proxy}'} if proxy else None
@@ -309,10 +309,10 @@ class Account:
 class StreamingCompletion:
     @staticmethod
     def create(
-        model: str = 'gpt-4',
-        custom_model: bool = None,
-        prompt: str = 'hello world',
-        token: str = '',
+            model: str = 'gpt-4',
+            custom_model: bool = None,
+            prompt: str = 'hello world',
+            token: str = '',
     ):
         _model = MODELS[model] if not custom_model else custom_model
 
@@ -344,10 +344,10 @@ class StreamingCompletion:
 
 class Completion:
     def create(
-        model: str = 'gpt-4',
-        custom_model: str = None,
-        prompt: str = 'hello world',
-        token: str = '',
+            model: str = 'gpt-4',
+            custom_model: str = None,
+            prompt: str = 'hello world',
+            token: str = '',
     ):
         models = {
             'sage': 'capybara',
@@ -389,12 +389,12 @@ class Completion:
 
 class Poe:
     def __init__(
-        self,
-        model: str = 'ChatGPT',
-        driver: str = 'firefox',
-        download_driver: bool = False,
-        driver_path: Optional[str] = None,
-        cookie_path: str = './quora/cookie.json',
+            self,
+            model: str = 'ChatGPT',
+            driver: str = 'firefox',
+            download_driver: bool = False,
+            driver_path: Optional[str] = None,
+            cookie_path: str = './quora/cookie.json',
     ):
         # validating the model
         if model and model not in MODELS:
@@ -473,12 +473,12 @@ class Poe:
         return response
 
     def create_bot(
-        self,
-        name: str,
-        /,
-        prompt: str = '',
-        base_model: str = 'ChatGPT',
-        description: str = '',
+            self,
+            name: str,
+            /,
+            prompt: str = '',
+            base_model: str = 'ChatGPT',
+            description: str = '',
     ) -> None:
         if base_model not in MODELS:
             raise RuntimeError('Sorry, the base_model you provided does not exist. Please check and try again.')
