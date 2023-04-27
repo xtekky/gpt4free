@@ -9,6 +9,7 @@ from json import loads
 
 
 class Account:
+    @staticmethod
     def create(proxy = None, logging = False):
         
         proxies = {
@@ -79,6 +80,7 @@ class Account:
 
 
 class StreamingCompletion:
+    @staticmethod
     def create(
         token  = None,
         chatId = None,
