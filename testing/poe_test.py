@@ -1,6 +1,6 @@
 from time import sleep
 
-import quora
+from  openai_rev import quora
 
 token = quora.Account.create(proxy=None, logging=True)
 print('token', token)

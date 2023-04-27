@@ -1,12 +1,14 @@
 from enum import Enum
 
-import quora
-import you
+from openai_rev import forefront
+from openai_rev import quora
+from openai_rev import you
 
 
 class Provider(Enum):
     You = 'you'
     Poe = 'poe'
+    ForeFront = 'fore_front'
 
 
 class Completion:
@@ -16,20 +18,17 @@ class Completion:
             return Completion.__poe_service(prompt, **kwargs)
         elif provider == Provider.You:
             return Completion.__you_service(prompt, **kwargs)
+        elif provider == Provider.ForeFront:
+            return Completion.__fore_front_service(prompt, **kwargs)
 
     @classmethod
     def __you_service(cls, prompt: str, **kwargs) -> str:
-        return you.Completion.create(prompt).text
+        return you.Completion.create(prompt, **kwargs).text
 
     @classmethod
     def __poe_service(cls, prompt: str, **kwargs) -> str:
-        return quora.Completion.create(prompt=prompt).text
+        return quora.Completion.create(prompt=prompt, **kwargs).text
 
-
-# usage You
-response = Completion.create(Provider.You, prompt='Write a poem on Lionel Messi')
-print(response)
-
-# usage Poe
-response = Completion.create(Provider.Poe, prompt='Write a poem on Lionel Messi', token='GKzCahZYGKhp76LfE197xw==')
-print(response)
+    @classmethod
+    def __fore_front_service(cls, prompt: str, **kwargs) -> str:
+        return forefront.Completion.create(prompt=prompt, **kwargs).text

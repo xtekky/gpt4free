@@ -1,17 +1,20 @@
 from hashlib import md5
 from json import dumps
 from re import findall
+from typing import Optional
 
-from quora import extract_formkey
-from quora.mail import Emailnator
 from tls_client import Session as TLS
 from twocaptcha import TwoCaptcha
+
+from openai_rev.quora import extract_formkey
+from openai_rev.quora.mail import Emailnator
 
 solver = TwoCaptcha('72747bf24a9d89b4dcc1b24875efd358')
 
 
 class Account:
-    def create(proxy: None or str = None, logging: bool = False, enable_bot_creation: bool = False):
+    @staticmethod
+    def create(proxy: Optional[str] = None, logging: bool = False, enable_bot_creation: bool = False):
         client = TLS(client_identifier='chrome110')
         client.proxies = {'http': f'http://{proxy}', 'https': f'http://{proxy}'} if proxy else None
 

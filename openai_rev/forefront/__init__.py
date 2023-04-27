@@ -1,9 +1,9 @@
 from json import loads
 from re import match
 from time import time, sleep
+from typing import Generator, Optional
 from uuid import uuid4
 
-from altair.vegalite.v3 import Generator
 from fake_useragent import UserAgent
 from requests import post
 from tls_client import Session
@@ -14,7 +14,7 @@ from .models import ForeFrontResponse
 
 class Account:
     @staticmethod
-    def create(proxy=None, logging=False):
+    def create(proxy: Optional[str] = None, logging: bool = False):
         proxies = {'http': 'http://' + proxy, 'https': 'http://' + proxy} if proxy else False
 
         start = time()
@@ -57,7 +57,8 @@ class Account:
         while True:
             sleep(1)
             for _ in mail_client.fetch_inbox():
-                print(mail_client.get_message_content(_['id']))
+                if logging:
+                    print(mail_client.get_message_content(_['id']))
                 mail_token = match(r'(\d){5,6}', mail_client.get_message_content(_['id'])).group(0)
 
             if mail_token:
@@ -166,7 +167,9 @@ class Completion:
         default_persona='607e41fe-95be-497e-8e97-010a59b2e2c0',  # default
         model='gpt-4',
     ) -> ForeFrontResponse:
+        text = ''
         final_response = None
+        res = list(StreamingCompletion.create(token=token, prompt=prompt))
         for response in StreamingCompletion.create(
             token=token,
             chat_id=chat_id,
@@ -175,6 +178,13 @@ class Completion:
             default_persona=default_persona,
             model=model,
         ):
-            final_response = response
+            if response:
+                final_response = response
+                text += response.text
+
+        if final_response:
+            final_response.text = text
+        else:
+            raise Exception('Unable to get the response, Please try again')
 
         return final_response

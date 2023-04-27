@@ -108,11 +108,6 @@ class Model:
         description: str = 'gpt-3.5 language model from openai, skidded by poe.com',
         handle: str = None,
     ) -> ModelResponse:
-        models = {
-            'gpt-3.5-turbo': 'chinchilla',
-            'claude-instant-v1.0': 'a2',
-            'gpt-4': 'beaver',
-        }
 
         if not handle:
             handle = f'gptx{randint(1111111, 9999999)}'
@@ -148,7 +143,7 @@ class Model:
             obj={
                 'queryName': 'CreateBotMain_poeBotCreate_Mutation',
                 'variables': {
-                    'model': models[model],
+                    'model': MODELS[model],
                     'handle': handle,
                     'prompt': system_prompt,
                     'isPromptPublic': True,
@@ -337,15 +332,7 @@ class Completion:
         prompt: str = 'hello world',
         token: str = '',
     ) -> PoeResponse:
-        models = {
-            'sage': 'capybara',
-            'gpt-4': 'beaver',
-            'claude-v1.2': 'a2_2',
-            'claude-instant-v1.0': 'a2',
-            'gpt-3.5-turbo': 'chinchilla',
-        }
-
-        _model = models[model] if not custom_model else custom_model
+        _model = MODELS[model] if not custom_model else custom_model
 
         client = PoeClient(token)
 
@@ -359,7 +346,7 @@ class Completion:
                 'object': 'text_completion',
                 'created': chunk['creationTime'],
                 'model': _model,
-                'text': chunk['text_new'],
+                'text': chunk['text'],
                 'choices': [
                     {
                         'text': chunk['text'],
