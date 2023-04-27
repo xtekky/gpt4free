@@ -4,25 +4,16 @@ import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), os.path.pardir))
 
 import streamlit as st
-import phind
-
-# Set cloudflare clearance and user agent
-phind.cloudflare_clearance = ''
-phind.phind_api = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36'
-
+import you
 
 def get_answer(question: str) -> str:
     # Set cloudflare clearance cookie and get answer from GPT-4 model
     try:
-        result = phind.Completion.create(
-            model='gpt-4',
-            prompt=question,
-            results=phind.Search.create(question, actualSearch=True),
-            creative=False,
-            detailed=False,
-            codeContext=''
-        )
-        return result.completion.choices[0].text
+        result = you.Completion.create(
+            prompt = question)
+        
+        return result['response']
+    
     except Exception as e:
         # Return error message if an exception occurs
         return f'An error occurred: {e}. Please make sure you are using a valid cloudflare clearance token and user agent.'

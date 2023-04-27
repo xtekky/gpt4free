@@ -57,8 +57,7 @@ class Completion:
             r'(?<=event: youChatSerpResults\ndata:)(.*\n)*?(?=event: )', response.text
         ).group()
         third_party_search_results = re.search(
-            r'(?<=event: thirdPartySearchResults\ndata:)(.*\n)*?(?=event: )', response.text
-        ).group()
+            r'(?<=event: thirdPartySearchResults\ndata:)(.*\n)*?(?=event: )', response.text).group()
         # slots                   = findall(r"slots\ndata: (.*)\n\nevent", response.text)[0]
 
         text = ''.join(re.findall(r'{\"youChatToken\": \"(.*?)\"}', response.text))
@@ -69,7 +68,7 @@ class Completion:
         }
 
         return {
-            'response': text.replace('\\n', '\n').replace('\\\\', '\\'),
+            'response': text.replace('\\n', '\n').replace('\\\\', '\\').replace('\\"', '"'),
             'links': loads(third_party_search_results)['search']['third_party_search_results']
             if include_links
             else None,

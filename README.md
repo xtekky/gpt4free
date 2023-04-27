@@ -40,7 +40,6 @@ Please note the following:
 | **Usage Examples** | | | |
 | `forefront` | Example usage for forefront (gpt-4) | [![Link to File](https://img.shields.io/badge/Link-Go%20to%20File-blue)](./forefront/README.md) | ![Active](https://img.shields.io/badge/Active-brightgreen) | | |
 | `quora (poe)` | Example usage for quora | [![Link to File](https://img.shields.io/badge/Link-Go%20to%20File-blue)](./quora/README.md) | ![Active](https://img.shields.io/badge/Active-brightgreen) | |
-| `phind` | Example usage for phind | [![Link to File](https://img.shields.io/badge/Link-Go%20to%20File-blue)](./phind/README.md) | ![Inactive](https://img.shields.io/badge/Active-brightgreen) |
 | `you` | Example usage for you | [![Link to File](https://img.shields.io/badge/Link-Go%20to%20File-blue)](./you/README.md) | ![Active](https://img.shields.io/badge/Active-brightgreen) |
 | **Try it Out** | | | |
 | Google Colab Jupyter Notebook | Example usage for gpt4free | [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/DanielShemesh/gpt4free-colab/blob/main/gpt4free.ipynb) | - |
@@ -65,7 +64,6 @@ Please note the following:
 | [writesonic.com](https://writesonic.com)             | GPT-3.5 / Internet              |
 | [t3nsor.com](https://t3nsor.com)                     | GPT-3.5                         |
 | [you.com](https://you.com)                           | GPT-3.5 / Internet / good search|
-| [phind.com](https://phind.com)                       | GPT-4 / Internet / good search  |
 | [sqlchat.ai](https://sqlchat.ai)                     | GPT-3.5                         |
 | [chat.openai.com/chat](https://chat.openai.com/chat) | GPT-3.5                         |
 | [bard.google.com](https://bard.google.com)           | custom / search                 |
@@ -75,13 +73,10 @@ Please note the following:
 ## Best sites  <a name="best-sites"></a>
 
 #### gpt-4
-- [`/phind`](./phind/README.md) 
-- pro: only stable gpt-4 with streaming ( no limit )
-- contra: weird backend prompting 
-- why not `ora` anymore ? gpt-4 requires login + limited
+- [`/forefront`](./forefront/README.md)
 
 #### gpt-3.5
-- looking for a stable api at the moment
+- [`/you`](./you/README.md)
 
 ## Install  <a name="install"></a>
 download or clone this GitHub repo  
