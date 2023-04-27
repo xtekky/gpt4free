@@ -1,28 +1,36 @@
+import json
 import re
-from json import loads
+from typing import Optional, List, Dict, Any
 from uuid import uuid4
 
 from fake_useragent import UserAgent
+from pydantic import BaseModel
 from tls_client import Session
+
+
+class PoeResponse(BaseModel):
+    text: Optional[str] = None
+    links: List[str] = []
+    extra: Dict[str, Any] = {}
 
 
 class Completion:
     @staticmethod
     def create(
-            prompt: str,
-            page: int = 1,
-            count: int = 10,
-            safe_search: str = 'Moderate',
-            on_shopping_page: bool = False,
-            mkt: str = '',
-            response_filter: str = 'WebPages,Translations,TimeZone,Computation,RelatedSearches',
-            domain: str = 'youchat',
-            query_trace_id: str = None,
-            chat: list = None,
-            include_links: bool = False,
-            detailed: bool = False,
-            debug: bool = False,
-    ) -> dict:
+        prompt: str,
+        page: int = 1,
+        count: int = 10,
+        safe_search: str = 'Moderate',
+        on_shopping_page: bool = False,
+        mkt: str = '',
+        response_filter: str = 'WebPages,Translations,TimeZone,Computation,RelatedSearches',
+        domain: str = 'youchat',
+        query_trace_id: str = None,
+        chat: list = None,
+        include_links: bool = False,
+        detailed: bool = False,
+        debug: bool = False,
+    ) -> PoeResponse:
         if chat is None:
             chat = []
 
@@ -57,23 +65,25 @@ class Completion:
             r'(?<=event: youChatSerpResults\ndata:)(.*\n)*?(?=event: )', response.text
         ).group()
         third_party_search_results = re.search(
-            r'(?<=event: thirdPartySearchResults\ndata:)(.*\n)*?(?=event: )', response.text).group()
+            r'(?<=event: thirdPartySearchResults\ndata:)(.*\n)*?(?=event: )', response.text
+        ).group()
         # slots                   = findall(r"slots\ndata: (.*)\n\nevent", response.text)[0]
 
         text = ''.join(re.findall(r'{\"youChatToken\": \"(.*?)\"}', response.text))
 
         extra = {
-            'youChatSerpResults': loads(you_chat_serp_results),
+            'youChatSerpResults': json.loads(you_chat_serp_results),
             # 'slots'                   : loads(slots)
         }
 
-        return {
-            'response': text.replace('\\n', '\n').replace('\\\\', '\\').replace('\\"', '"'),
-            'links': loads(third_party_search_results)['search']['third_party_search_results']
-            if include_links
-            else None,
-            'extra': extra if detailed else None,
-        }
+        response = PoeResponse(text=text.replace('\\n', '\n').replace('\\\\', '\\').replace('\\"', '"'))
+        if include_links:
+            response.links = json.loads(third_party_search_results)['search']['third_party_search_results']
+
+        if detailed:
+            response.extra = extra
+
+        return response
 
     @classmethod
     def __get_headers(cls) -> dict:
@@ -94,5 +104,5 @@ class Completion:
         }
 
     @classmethod
-    def __get_failure_response(cls) -> dict:
-        return dict(response='Unable to fetch the response, Please try again.', links=[], extra={})
+    def __get_failure_response(cls) -> PoeResponse:
+        return PoeResponse(text='Unable to fetch the response, Please try again.')

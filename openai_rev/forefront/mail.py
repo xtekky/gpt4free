@@ -23,21 +23,17 @@ class Mail:
             "sec-fetch-dest": "empty",
             "referer": "https://mail.tm/",
             "accept-encoding": "gzip, deflate, br",
-            "accept-language": "en-GB,en-US;q=0.9,en;q=0.8"
+            "accept-language": "en-GB,en-US;q=0.9,en;q=0.8",
         }
 
     def get_mail(self) -> str:
         token = ''.join(choices(ascii_letters, k=14)).lower()
-        init = self.client.post("https://api.mail.tm/accounts", json={
-            "address": f"{token}@bugfoo.com",
-            "password": token
-        })
+        init = self.client.post(
+            "https://api.mail.tm/accounts", json={"address": f"{token}@bugfoo.com", "password": token}
+        )
 
         if init.status_code == 201:
-            resp = self.client.post("https://api.mail.tm/token", json={
-                **init.json(),
-                "password": token
-            })
+            resp = self.client.post("https://api.mail.tm/token", json={**init.json(), "password": token})
 
             self.client.headers['authorization'] = 'Bearer ' + resp.json()['token']
 

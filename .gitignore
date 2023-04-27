@@ -14,3 +14,5 @@
 *.log
 
 cookie.json
+
+*.pyc

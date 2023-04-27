@@ -4,19 +4,21 @@ import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), os.path.pardir))
 
 import streamlit as st
-import you
+from openai_rev import you
+
 
 def get_answer(question: str) -> str:
     # Set cloudflare clearance cookie and get answer from GPT-4 model
     try:
-        result = you.Completion.create(
-            prompt = question)
-        
-        return result['response']
-    
+        result = you.Completion.create(prompt=question)
+
+        return result.text
+
     except Exception as e:
         # Return error message if an exception occurs
-        return f'An error occurred: {e}. Please make sure you are using a valid cloudflare clearance token and user agent.'
+        return (
+            f'An error occurred: {e}. Please make sure you are using a valid cloudflare clearance token and user agent.'
+        )
 
 
 # Set page configuration and add header
@@ -27,14 +29,13 @@ st.set_page_config(
     menu_items={
         'Get Help': 'https://github.com/xtekky/gpt4free/blob/main/README.md',
         'Report a bug': "https://github.com/xtekky/gpt4free/issues",
-        'About': "### gptfree GUI"
-    }
+        'About': "### gptfree GUI",
+    },
 )
 st.header('GPT4free GUI')
 
 # Add text area for user input and button to get answer
-question_text_area = st.text_area(
-    '🤖 Ask Any Question :', placeholder='Explain quantum computing in 50 words')
+question_text_area = st.text_area('🤖 Ask Any Question :', placeholder='Explain quantum computing in 50 words')
 if st.button('🧠 Think'):
     answer = get_answer(question_text_area)
     # Display answer

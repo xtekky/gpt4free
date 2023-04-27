@@ -1,5 +1,5 @@
 websocket-client
-requests
+requests==2.29.0
 tls-client
 pypasser
 names
@@ -9,3 +9,4 @@ streamlit==1.21.0
 selenium
 fake-useragent
 twocaptcha
+pydantic

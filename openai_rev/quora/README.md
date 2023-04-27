@@ -20,37 +20,37 @@ models = {
 
 ```python
 # import quora (poe) package
-import quora
+from openai_rev import quora
 
 # create account
 # make sure to set enable_bot_creation to True
-token = quora.Account.create(logging = True, enable_bot_creation=True)
+token = quora.Account.create(logging=True, enable_bot_creation=True)
 
 model = quora.Model.create(
-    token = token,
-    model = 'gpt-3.5-turbo', # or claude-instant-v1.0
-    system_prompt = 'you are ChatGPT a large language model ...' 
+    token=token,
+    model='gpt-3.5-turbo',  # or claude-instant-v1.0
+    system_prompt='you are ChatGPT a large language model ...'
 )
 
-print(model.name) # gptx....
+print(model.name)  # gptx....
 
 # streaming response
 for response in quora.StreamingCompletion.create(
-    custom_model = model.name,
-    prompt       ='hello world',
-    token        = token):
-    
-    print(response.completion.choices[0].text)
+        custom_model=model.name,
+        prompt='hello world',
+        token=token):
+    print(response.text)
 ```
 
 #### Normal Response:
 ```python
+import quora
 
 response = quora.Completion.create(model  = 'gpt-4',
     prompt = 'hello world',
-    token  = token)
+    token  = 'token')
 
-print(response.completion.choices[0].text)    
+print(response.text)    
 ```     
 
 #### Update Use This For Poe
