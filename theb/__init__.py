@@ -1,10 +1,8 @@
+from re import findall
 from json import loads
 from queue import Queue, Empty
-from re import findall
 from threading import Thread
-
 from curl_cffi import requests
-
 
 class Completion:
     # experimental
@@ -16,7 +14,7 @@ class Completion:
     message_queue = Queue()
     stream_completed = False
 
-    def request():
+    def request(prompt: str):
         headers = {
             'authority': 'chatbot.theb.ai',
             'content-type': 'application/json',
@@ -25,24 +23,24 @@ class Completion:
         }
 
         requests.post('https://chatbot.theb.ai/api/chat-process', headers=headers,
-                      content_callback=Completion.handle_stream_response,
-                      json={
-                          'prompt': 'hello world',
-                          'options': {}
-                      }
-                      )
+            content_callback = Completion.handle_stream_response,
+            json = {
+                'prompt': prompt,
+                'options': {}
+            }
+        )
 
         Completion.stream_completed = True
 
     @staticmethod
-    def create():
-        Thread(target=Completion.request).start()
+    def create(prompt: str):
+        Thread(target=Completion.request, args=[prompt]).start()
 
         while Completion.stream_completed != True or not Completion.message_queue.empty():
             try:
                 message = Completion.message_queue.get(timeout=0.01)
                 for message in findall(Completion.regex, message):
-                    yield loads(Completion.part1 + message + Completion.part2)
+                    yield loads(Completion.part1 + message + Completion.part2)['delta']
 
             except Empty:
                 pass
@@ -50,13 +48,3 @@ class Completion:
     @staticmethod
     def handle_stream_response(response):
         Completion.message_queue.put(response.decode())
-
-
-def start():
-    for message in Completion.create():
-        yield message['delta']
-
-
-if __name__ == '__main__':
-    for message in start():
-        print(message)
