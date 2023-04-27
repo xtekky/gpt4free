@@ -9,25 +9,7 @@ Have you ever come across some amazing projects that you couldn't use **just bec
 
 **We've got you covered!** This repository offers **reverse-engineered** third-party APIs for `GPT-4/3.5`, sourced from various websites. You can simply **download** this repository, and use the available modules, which are designed to be used **just like OpenAI's official package**. **Unleash ChatGPT's potential for your projects, now!** You are welcome ; ).
 
-By the way, thank you so much for [![Stars](https://img.shields.io/github/stars/xtekky/gpt4free?style=social)](https://github.com/xtekky/gpt4free/stargazers) and all the support!!
-
-## Announcement
-Dear  Gpt4free Community,
-
-I would like to thank you for your interest in and support of this project, which I only intended to be for entertainment and educational purposes; I had no idea it would end up being so popular.
-
-I'm aware of the concerns about the project's legality and its impact on smaller sites hosting APIs. I take these concerns seriously and plan to address them.
-
-Here's what I'm doing to fix these issues:
-
-1. Removing APIs from smaller sites: To reduce the impact on smaller sites, I have removed their APIs from the repository. Please shoot me a dm if you are an owner of a site and want it removed.
-
-2. Commitment to ethical use: I want to emphasize my commitment to promoting ethical use of language models. I don't support any illegal or unethical behavior, and I expect users to follow the same principles.
-
-Thank you for your support and understanding. I appreciate your continued interest in gpt4free and am committed to addressing your concerns.
-
-Sincerely,
-**xtekky**
+By the way, thank you so much for `11k` stars and all the support!!
 
 ## Legal Notice <a name="legal-notice"></a>
 
