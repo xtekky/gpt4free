@@ -49,4 +49,6 @@ class Completion:
 
     @staticmethod
     def __openai_hosted(prompt: str, **kwargs):
-        return openaihosted.Completion.create(systemprompt='', text=prompt, assistantprompt='').text
+        return openaihosted.Completion.create(
+            systemprompt=kwargs.get('systemprompt', ''), text=prompt, assistantprompt=kwargs.get('assistantprompt', '')
+        ).text
