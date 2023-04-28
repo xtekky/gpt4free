@@ -1,17 +1,24 @@
-import openai_rev
-from openai_rev import forefront, quora, theb, you
+import os
+import sys
+
+sys.path.append(os.path.join(os.path.dirname(__file__), os.path.pardir))
+
+import forefront, quora, theb, you
 import random
+
 
 
 def query_forefront(question: str) -> str:
     # create an account
-    token = forefront.Account.create(logging=True)
-    
+    token = forefront.Account.create(logging=False)
+
+    response = ""
     # get a response
     try:
-        result = forefront.StreamingCompletion.create(token = token, prompt = 'hello world', model='gpt-4')
+        for i in forefront.StreamingCompletion.create(token = token, prompt = 'hello world', model='gpt-4'):
+            response += i.completion.choices[0].text
         
-        return result['response']
+        return response
     
     except Exception as e:
         # Return error message if an exception occurs
@@ -31,11 +38,11 @@ def query_quora(question: str) -> str:
 
 def query_theb(question: str) -> str:
     # Set cloudflare clearance cookie and get answer from GPT-4 model
+    response = ""
     try:
         result = theb.Completion.create(
             prompt = question)
-        
-        return result['response']
+        return result
     
     except Exception as e:
         # Return error message if an exception occurs
@@ -47,16 +54,14 @@ def query_you(question: str) -> str:
     try:
         result = you.Completion.create(
             prompt = question)
-        return result.text
+        return result["response"]
     
     except Exception as e:
         # Return error message if an exception occurs
         return f'An error occurred: {e}. Please make sure you are using a valid cloudflare clearance token and user agent.'
 
-
-def query(user_input: str, selected_method: str = "Random") -> str:
-    # Define a dictionary containing all query methods
-    avail_query_methods = {
+# Define a dictionary containing all query methods
+avail_query_methods = {
         "Forefront": query_forefront,
         "Poe": query_quora,
         "Theb": query_theb,
@@ -66,6 +71,8 @@ def query(user_input: str, selected_method: str = "Random") -> str:
         # "Phind": query_phind,
         # "Ora": query_ora,
     }
+
+def query(user_input: str, selected_method: str = "Random") -> str:
 
     # If a specific query method is selected (not "Random") and the method is in the dictionary, try to call it
     if selected_method != "Random" and selected_method in avail_query_methods:

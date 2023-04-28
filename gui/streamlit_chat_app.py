@@ -1,13 +1,13 @@
 import os
 import sys
+import atexit
 
 sys.path.append(os.path.join(os.path.dirname(__file__), os.path.pardir))
 
 import streamlit as st
 from streamlit_chat import message
-from query_methods import query
+from query_methods import query, avail_query_methods
 import pickle
-import openai_rev
 
 
 conversations_file = "conversations.pkl"
@@ -18,6 +18,9 @@ def load_conversations():
             return pickle.load(f)
     except FileNotFoundError:
         return []
+    except EOFError:
+        return []
+
 
 def save_conversations(conversations, current_conversation):
     updated = False
@@ -28,8 +31,22 @@ def save_conversations(conversations, current_conversation):
             break
     if not updated:
         conversations.append(current_conversation)
-    with open(conversations_file, "wb") as f:
+    
+    temp_conversations_file = "temp_" + conversations_file
+    with open(temp_conversations_file, "wb") as f:
         pickle.dump(conversations, f)
+    
+    os.replace(temp_conversations_file, conversations_file)
+
+
+def exit_handler():
+    print("Exiting, saving data...")
+    # Perform cleanup operations here, like saving data or closing open files.
+    save_conversations(st.session_state.conversations, st.session_state.current_conversation)
+
+# Register the exit_handler function to be called when the program is closing.
+atexit.register(exit_handler)
+
 
 st.header("Chat Placeholder")
 
@@ -74,7 +91,7 @@ if st.sidebar.button("New Conversation"):
 
 st.session_state['query_method'] = st.sidebar.selectbox(
     "Select API:",
-    options=openai_rev.Provider.__members__.keys(),
+    options=avail_query_methods,
     index=0
 )
 

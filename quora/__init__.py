@@ -6,12 +6,11 @@ from pathlib import Path
 from random import choice, choices, randint
 from re import search, findall
 from string import ascii_letters, digits
-from typing import Optional, Union, List, Any, Generator
+from typing import Optional, Union
 from urllib.parse import unquote
 
 import selenium.webdriver.support.expected_conditions as EC
 from fake_useragent import UserAgent
-from pydantic import BaseModel
 from pypasser import reCaptchaV3
 from requests import Session
 from selenium.webdriver import Firefox, Chrome, FirefoxOptions, ChromeOptions
@@ -19,8 +18,8 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
 from tls_client import Session as TLS
 
-from .api import Client as PoeClient
-from .mail import Emailnator
+from quora.api import Client as PoeClient
+from quora.mail import Emailnator
 
 SELENIUM_WEB_DRIVER_ERROR_MSG = b'''The error message you are receiving is due to the `geckodriver` executable not 
 being found in your system\'s PATH. To resolve this issue, you need to download the geckodriver and add its location 
@@ -68,27 +67,42 @@ def extract_formkey(html):
     return formkey
 
 
-class Choice(BaseModel):
-    text: str
-    index: int
-    logprobs: Any
-    finish_reason: str
+class PoeResponse:
+    class Completion:
+        class Choices:
+            def __init__(self, choice: dict) -> None:
+                self.text = choice['text']
+                self.content = self.text.encode()
+                self.index = choice['index']
+                self.logprobs = choice['logprobs']
+                self.finish_reason = choice['finish_reason']
 
+            def __repr__(self) -> str:
+                return f'''<__main__.APIResponse.Completion.Choices(\n    text           = {self.text.encode()},\n    index          = {self.index},\n    logprobs       = {self.logprobs},\n    finish_reason  = {self.finish_reason})object at 0x1337>'''
 
-class Usage(BaseModel):
-    prompt_tokens: int
-    completion_tokens: int
-    total_tokens: int
+        def __init__(self, choices: dict) -> None:
+            self.choices = [self.Choices(choice) for choice in choices]
 
+    class Usage:
+        def __init__(self, usage_dict: dict) -> None:
+            self.prompt_tokens = usage_dict['prompt_tokens']
+            self.completion_tokens = usage_dict['completion_tokens']
+            self.total_tokens = usage_dict['total_tokens']
 
-class PoeResponse(BaseModel):
-    id: int
-    object: str
-    created: int
-    model: str
-    choices: List[Choice]
-    usage: Usage
-    text: str
+        def __repr__(self):
+            return f'''<__main__.APIResponse.Usage(\n    prompt_tokens      = {self.prompt_tokens},\n    completion_tokens  = {self.completion_tokens},\n    total_tokens       = {self.total_tokens})object at 0x1337>'''
+
+    def __init__(self, response_dict: dict) -> None:
+        self.response_dict = response_dict
+        self.id = response_dict['id']
+        self.object = response_dict['object']
+        self.created = response_dict['created']
+        self.model = response_dict['model']
+        self.completion = self.Completion(response_dict['choices'])
+        self.usage = self.Usage(response_dict['usage'])
+
+    def json(self) -> dict:
+        return self.response_dict
 
 
 class ModelResponse:
@@ -102,12 +116,17 @@ class ModelResponse:
 class Model:
     @staticmethod
     def create(
-        token: str,
-        model: str = 'gpt-3.5-turbo',  # claude-instant
-        system_prompt: str = 'You are ChatGPT a large language model developed by Openai. Answer as consisely as possible',
-        description: str = 'gpt-3.5 language model from openai, skidded by poe.com',
-        handle: str = None,
+            token: str,
+            model: str = 'gpt-3.5-turbo',  # claude-instant
+            system_prompt: str = 'You are ChatGPT a large language model developed by Openai. Answer as consisely as possible',
+            description: str = 'gpt-3.5 language model from openai, skidded by poe.com',
+            handle: str = None,
     ) -> ModelResponse:
+        models = {
+            'gpt-3.5-turbo': 'chinchilla',
+            'claude-instant-v1.0': 'a2',
+            'gpt-4': 'beaver',
+        }
 
         if not handle:
             handle = f'gptx{randint(1111111, 9999999)}'
@@ -143,7 +162,7 @@ class Model:
             obj={
                 'queryName': 'CreateBotMain_poeBotCreate_Mutation',
                 'variables': {
-                    'model': MODELS[model],
+                    'model': models[model],
                     'handle': handle,
                     'prompt': system_prompt,
                     'isPromptPublic': True,
@@ -183,9 +202,9 @@ class Model:
 class Account:
     @staticmethod
     def create(
-        proxy: Optional[str] = None,
-        logging: bool = False,
-        enable_bot_creation: bool = False,
+            proxy: Optional[str] = None,
+            logging: bool = False,
+            enable_bot_creation: bool = False,
     ):
         client = TLS(client_identifier='chrome110')
         client.proxies = {'http': f'http://{proxy}', 'https': f'http://{proxy}'} if proxy else None
@@ -290,23 +309,22 @@ class Account:
 class StreamingCompletion:
     @staticmethod
     def create(
-        model: str = 'gpt-4',
-        custom_model: bool = None,
-        prompt: str = 'hello world',
-        token: str = '',
-    ) -> Generator[PoeResponse, None, None]:
+            model: str = 'gpt-4',
+            custom_model: bool = None,
+            prompt: str = 'hello world',
+            token: str = '',
+    ):
         _model = MODELS[model] if not custom_model else custom_model
 
         client = PoeClient(token)
 
         for chunk in client.send_message(_model, prompt):
             yield PoeResponse(
-                **{
+                {
                     'id': chunk['messageId'],
                     'object': 'text_completion',
                     'created': chunk['creationTime'],
                     'model': _model,
-                    'text': chunk['text_new'],
                     'choices': [
                         {
                             'text': chunk['text_new'],
@@ -325,28 +343,33 @@ class StreamingCompletion:
 
 
 class Completion:
-    @staticmethod
     def create(
-        model: str = 'gpt-4',
-        custom_model: str = None,
-        prompt: str = 'hello world',
-        token: str = '',
-    ) -> PoeResponse:
-        _model = MODELS[model] if not custom_model else custom_model
+            model: str = 'gpt-4',
+            custom_model: str = None,
+            prompt: str = 'hello world',
+            token: str = '',
+    ):
+        models = {
+            'sage': 'capybara',
+            'gpt-4': 'beaver',
+            'claude-v1.2': 'a2_2',
+            'claude-instant-v1.0': 'a2',
+            'gpt-3.5-turbo': 'chinchilla',
+        }
+
+        _model = models[model] if not custom_model else custom_model
 
         client = PoeClient(token)
 
-        chunk = None
-        for response in client.send_message(_model, prompt):
-            chunk = response
+        for chunk in client.send_message(_model, prompt):
+            pass
 
         return PoeResponse(
-            **{
+            {
                 'id': chunk['messageId'],
                 'object': 'text_completion',
                 'created': chunk['creationTime'],
                 'model': _model,
-                'text': chunk['text'],
                 'choices': [
                     {
                         'text': chunk['text'],
@@ -366,12 +389,12 @@ class Completion:
 
 class Poe:
     def __init__(
-        self,
-        model: str = 'ChatGPT',
-        driver: str = 'firefox',
-        download_driver: bool = False,
-        driver_path: Optional[str] = None,
-        cookie_path: str = './quora/cookie.json',
+            self,
+            model: str = 'ChatGPT',
+            driver: str = 'firefox',
+            download_driver: bool = False,
+            driver_path: Optional[str] = None,
+            cookie_path: str = './quora/cookie.json',
     ):
         # validating the model
         if model and model not in MODELS:
@@ -450,12 +473,12 @@ class Poe:
         return response
 
     def create_bot(
-        self,
-        name: str,
-        /,
-        prompt: str = '',
-        base_model: str = 'ChatGPT',
-        description: str = '',
+            self,
+            name: str,
+            /,
+            prompt: str = '',
+            base_model: str = 'ChatGPT',
+            description: str = '',
     ) -> None:
         if base_model not in MODELS:
             raise RuntimeError('Sorry, the base_model you provided does not exist. Please check and try again.')

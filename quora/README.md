@@ -1,4 +1,5 @@
-#### warning !!!    
+
+> ⚠  Warning !!!    
 poe.com added security and can detect if you are making automated requests. You may get your account banned if you are using this api.  
 The normal non-driver api is also currently not very stable     
 
@@ -16,44 +17,44 @@ models = {
 }
 ```
 
-#### !! new: bot creation
+### New: bot creation
 
 ```python
 # import quora (poe) package
-from openai_rev import quora
+import quora
 
 # create account
 # make sure to set enable_bot_creation to True
-token = quora.Account.create(logging=True, enable_bot_creation=True)
+token = quora.Account.create(logging = True, enable_bot_creation=True)
 
 model = quora.Model.create(
-    token=token,
-    model='gpt-3.5-turbo',  # or claude-instant-v1.0
-    system_prompt='you are ChatGPT a large language model ...'
+    token = token,
+    model = 'gpt-3.5-turbo', # or claude-instant-v1.0
+    system_prompt = 'you are ChatGPT a large language model ...' 
 )
 
-print(model.name)  # gptx....
+print(model.name) # gptx....
 
 # streaming response
 for response in quora.StreamingCompletion.create(
-        custom_model=model.name,
-        prompt='hello world',
-        token=token):
-    print(response.text)
+    custom_model = model.name,
+    prompt       ='hello world',
+    token        = token):
+    
+    print(response.completion.choices[0].text)
 ```
 
-#### Normal Response:
+### Normal Response:
 ```python
-import quora
 
 response = quora.Completion.create(model  = 'gpt-4',
     prompt = 'hello world',
-    token  = 'token')
+    token  = token)
 
-print(response.text)    
+print(response.completion.choices[0].text)    
 ```     
 
-#### Update Use This For Poe
+### Update Use This For Poe
 ```python
 from quora import Poe
 

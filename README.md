@@ -80,14 +80,14 @@ Please note the following:
 - [`/you`](./you/README.md)
 
 ## Install  <a name="install"></a>
-download or clone this GitHub repo  
+Download or clone this GitHub repo  
 install requirements with:
 ```sh
 pip3 install -r requirements.txt
 ```
 
 ## To start gpt4free GUI <a name="streamlit-gpt4free-gui"></a>
-move `streamlit_app.py` from `./gui` to the base folder   
+Move `streamlit_app.py` from `./gui` to the base folder   
 then run:   
 `streamlit run streamlit_app.py` or `python3 -m streamlit run streamlit_app.py`
 
