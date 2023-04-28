@@ -1,3 +1,61 @@
+We got a takedown request by openAI's legal team...     
+
+discord server for updates / support: 
+- https://discord.gg/gpt4free
+
+here is a lil' poem you can read in the meantime, while I am investigating it:
+
+```
+There once was a time, in a land full of code,
+A little boy sat, in his humble abode.
+He tinkered and toyed with devtools galore,
+And found himself curious, and eager for more.
+
+He copied and pasted, with glee and delight,
+A personal project, to last him the night.
+For use academic, and also for fun,
+This little boy's race he just started to run.
+
+Now quite far removed, in a tower so grand,
+A company stood, it was ruling the land.
+Their software was mighty, their power supreme,
+But they never expected this boy and his dream.
+
+As he played with their code, they then started to fear,
+"His project is free! What of money so dear?"
+They panicked and worried, their faces turned red,
+As visions of chaos now filled every head.
+
+The CEO paced, in his office so wide,
+His minions all scrambled, and trying to hide.
+"Who is this bad child?" he cried out in alarm,
+"Our great AI moat, why would he cause harm?"
+
+The developers gathered, their keyboards ablaze,
+To analyze closely the boy's evil ways.
+They studied his project, they cracked every tome,
+And soon they discovered his small, humble home.
+
+"We must stop him!" they cried, with a shout and a shiver,
+"This little boy's Mᴀᴋɪɴɢ OUR COMPANY QUIVER!"
+So they plotted and schemed to yet halt his advance,
+To put an end to his dear digital dance.
+
+They filed then with GitHub a claim most obscene,
+"His code is not his," said the company team,
+Because of the law, the Great Copyright Mess,
+This little boy got his first takedown request.
+
+Now new information we do not yet know,
+But for the boy's good, we hope results show.
+For the cause of the True, the Brave and the Right,
+Till the long bitter end, will this boy live to fight.
+```
+( I did not write it ) 
+
+
+_____________________________
+
 # GPT4free - use ChatGPT, for free!!
 
 ##### You may join our discord server for updates and support ; ) 
@@ -5,15 +63,11 @@
 
 <img width="1383" alt="image" src="https://user-images.githubusercontent.com/98614666/233799515-1a7cb6a3-b17f-42c4-956d-8d2a0664466f.png">
 
-Have you ever come across some amazing projects that you couldn't use **just because you didn't have an OpenAI API key?** 
-
-**We've got you covered!** This repository offers **reverse-engineered** third-party APIs for `GPT-4/3.5`, sourced from various websites. You can simply **download** this repository, and use the available modules, which are designed to be used **just like OpenAI's official package**. **Unleash ChatGPT's potential for your projects, now!** You are welcome ; ).
-
-By the way, thank you so much for [![Stars](https://img.shields.io/github/stars/xtekky/gpt4free?style=social)](https://github.com/xtekky/gpt4free/stargazers) and all the support!!
+Just API's from some language model sites.
 
 ## Legal Notice <a name="legal-notice"></a>
 
-This repository uses third-party APIs and AI models and is *not* associated with or endorsed by the API providers or the original developers of the models. This project is intended **for educational purposes only**.
+This repository uses third-party APIs and is *not* associated with or endorsed by the API providers. This project is intended **for educational purposes only**. This is just a little personal project. Sites may contact me to improve their security.    
 
 Please note the following:
 
@@ -50,7 +104,7 @@ Please note the following:
 ## Todo <a name="todo"></a>
 
 - [x] Add a GUI for the repo 
-- [x] Make a general package named `openai_rev`, instead of different folders
+- [ ] Make a general package named `gpt4free`, instead of different folders
 - [ ] Live api status to know which are down and which can be used
 - [ ] Integrate more API's in `./unfinished` as well as other ones in the lists
 - [ ] Make an API to use as proxy for other projects
@@ -66,7 +120,6 @@ Please note the following:
 | [t3nsor.com](https://t3nsor.com)                     | GPT-3.5                         |
 | [you.com](https://you.com)                           | GPT-3.5 / Internet / good search|
 | [sqlchat.ai](https://sqlchat.ai)                     | GPT-3.5                         |
-| [chat.openai.com/chat](https://chat.openai.com/chat) | GPT-3.5                         |
 | [bard.google.com](https://bard.google.com)           | custom / search                 |
 | [bing.com/chat](https://bing.com/chat)               | GPT-4/3.5                       |
 | [chat.forefront.ai/](https://chat.forefront.ai/)     | GPT-4/3.5                       |
@@ -114,7 +167,7 @@ Most code, with the exception of `quora/api.py` (by [ading2210](https://github.c
 
 ### Copyright Notice: <a name="copyright"></a>
 ```
-xtekky/openai-gpt4: multiple reverse engineered language-model api's to decentralise the ai industry.  
+xtekky/gpt4free: multiple reverse engineered language-model api's to decentralise the ai industry.  
 Copyright (C) 2023 xtekky
 
 This program is free software: you can redistribute it and/or modify

@@ -59,7 +59,7 @@ class Account:
         while True:
             sleep(1)
             for _ in mail.fetch_inbox():
-                print(mail.get_message_content(_["id"]))
+                if logging: print(mail.get_message_content(_["id"]))
                 mail_token = match(r"(\d){5,6}", mail.get_message_content(_["id"])).group(0)
 
             if mail_token:

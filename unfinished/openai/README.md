@@ -1,2 +1,2 @@
 to do:
-- code refractoring
+- code refactoring
