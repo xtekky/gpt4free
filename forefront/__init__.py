@@ -15,16 +15,16 @@ class Account:
     def create(proxy=None, logging=False):
 
         proxies = {
-            'http': 'http://' + proxy,
-            'https': 'http://' + proxy} if proxy else False
+            'http': 'https://' + proxy,
+            'https': 'https://' + proxy} if proxy else False
 
         start = time()
 
-        mail = Mail(proxies)
+        forefront_mail = Mail(proxies)
         mail_token = None
-        mail_adress = mail.get_mail()
+        mail_address = forefront_mail.get_mail()
 
-        # print(mail_adress)
+        # print(mail_address)
 
         client = Session(client_identifier='chrome110')
         client.proxies = proxies
@@ -35,7 +35,7 @@ class Account:
 
         response = client.post('https://clerk.forefront.ai/v1/client/sign_ups?_clerk_js_version=4.32.6',
                                data={
-                                   "email_address": mail_adress
+                                   "email_address": mail_address
                                }
                                )
 
@@ -56,9 +56,9 @@ class Account:
 
         while True:
             sleep(1)
-            for _ in mail.fetch_inbox():
-                print(mail.get_message_content(_["id"]))
-                mail_token = match(r"(\d){5,6}", mail.get_message_content(_["id"])).group(0)
+            for _ in forefront_mail.fetch_inbox():
+                print(forefront_mail.get_message_content(_["id"]))
+                mail_token = match(r"(\d){5,6}", forefront_mail.get_message_content(_["id"])).group(0)
 
             if mail_token:
                 break
@@ -77,7 +77,7 @@ class Account:
         token = response.json()['client']['sessions'][0]['last_active_token']['jwt']
 
         with open('accounts.txt', 'a') as f:
-            f.write(f'{mail_adress}:{token}\n')
+            f.write(f'{mail_address}:{token}\n')
 
         if logging: print(time() - start)
 
