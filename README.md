@@ -1,5 +1,8 @@
 We got a takedown request by openai's legal team...
 
+discord sever for updates / support: 
+- https://discord.gg/gpt4free
+
 here is a lil poem you can read in the meantime, while I am investigating it:
 
 ```
@@ -51,4 +54,4 @@ Till the long bitter end, will this boy live to fight.
 ( I did not write it ) 
 
 
-discord: https://discord.gg/gpt4free
+
