@@ -1,7 +1,6 @@
-we got a takedown...
+We got a takedown request by openai's legal team...
 
-
-here is a lil poem to in the meantime:
+here is a lil poem in the meantime:
 
 ```Once upon a time, in a land of code,
 A little boy sat, in his humble abode.
