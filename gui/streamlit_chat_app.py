@@ -5,9 +5,10 @@ sys.path.append(os.path.join(os.path.dirname(__file__), os.path.pardir))
 
 import streamlit as st
 from streamlit_chat import message
-from query_methods import query, avail_query_methods
+from query_methods import query
 import pickle
 import openai_rev
+
 
 conversations_file = "conversations.pkl"
 
@@ -71,7 +72,6 @@ if st.sidebar.button("New Conversation"):
     st.session_state['current_conversation'] = {'user_inputs': [], 'generated_responses': []}
     st.session_state['input_field_key'] += 1
 
-print(openai_rev.Provider.__methods__.keys())
 st.session_state['query_method'] = st.sidebar.selectbox(
     "Select API:",
     options=openai_rev.Provider.__members__.keys(),

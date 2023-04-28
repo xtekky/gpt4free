@@ -53,19 +53,19 @@ def query_you(question: str) -> str:
         # Return error message if an exception occurs
         return f'An error occurred: {e}. Please make sure you are using a valid cloudflare clearance token and user agent.'
 
-# Define a dictionary containing all query methods
-avail_query_methods = {
-    "Forefront": query_forefront,
-    "Poe": query_quora,
-    "Theb": query_theb,
-    "You": query_you,
-    # "Writesonic": query_writesonic,
-    # "T3nsor": query_t3nsor,
-    # "Phind": query_phind,
-    # "Ora": query_ora,
-}
 
 def query(user_input: str, selected_method: str = "Random") -> str:
+    # Define a dictionary containing all query methods
+    avail_query_methods = {
+        "Forefront": query_forefront,
+        "Poe": query_quora,
+        "Theb": query_theb,
+        "You": query_you,
+        # "Writesonic": query_writesonic,
+        # "T3nsor": query_t3nsor,
+        # "Phind": query_phind,
+        # "Ora": query_ora,
+    }
 
     # If a specific query method is selected (not "Random") and the method is in the dictionary, try to call it
     if selected_method != "Random" and selected_method in avail_query_methods:
@@ -98,5 +98,3 @@ def query(user_input: str, selected_method: str = "Random") -> str:
 
     return result
 
-
-__all__ = ['query', 'avail_query_methods']

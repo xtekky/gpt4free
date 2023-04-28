@@ -20,6 +20,8 @@ accounts.txt
 
 **/__pycache__/
 
+__pycache__/
+
 *.log
 
 cookie.json
