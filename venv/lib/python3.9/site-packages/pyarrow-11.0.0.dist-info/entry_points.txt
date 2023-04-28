@@ -1,0 +1,2 @@
+[console_scripts]
+plasma_store = pyarrow:_plasma_store_entry_point

@@ -1,0 +1,544 @@
+Metadata-Version: 2.1
+Name: tzlocal
+Version: 4.3
+Summary: tzinfo object for the local timezone
+Home-page: UNKNOWN
+Author: Lennart Regebro
+Author-email: regebro@gmail.com
+License: MIT
+Project-URL: Source code, https://github.com/regebro/tzlocal
+Project-URL: Issue tracker, https://github.com/regebro/tzlocal/issues
+Keywords: timezone
+Platform: UNKNOWN
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: Microsoft :: Windows
+Classifier: Operating System :: Unix
+Classifier: Operating System :: MacOS :: MacOS X
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3 :: Only
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Requires-Python: >=3.7
+License-File: LICENSE.txt
+Requires-Dist: pytz-deprecation-shim
+Requires-Dist: tzdata ; platform_system == "Windows"
+Requires-Dist: backports.zoneinfo ; python_version < "3.9"
+Provides-Extra: devenv
+Requires-Dist: black ; extra == 'devenv'
+Requires-Dist: check-manifest ; extra == 'devenv'
+Requires-Dist: flake8 ; extra == 'devenv'
+Requires-Dist: pyroma ; extra == 'devenv'
+Requires-Dist: pytest-cov ; extra == 'devenv'
+Requires-Dist: pytest-mock (>=3.3) ; extra == 'devenv'
+Requires-Dist: pytest (>=4.3) ; extra == 'devenv'
+Requires-Dist: zest.releaser ; extra == 'devenv'
+
+tzlocal
+=======
+
+API CHANGE!
+-----------
+
+With version 3.0 of tzlocal, tzlocal no longer returned `pytz` objects, but
+`zoneinfo` objects, which has a different API. Since 4.0, it now restored
+partial compatibility for `pytz` users through Paul Ganssle's
+`pytz_deprecation_shim`.
+
+tzlocal 4.0 also adds an official function `get_localzone_name()` to get only
+the timezone name, instead of a timezone object. On unix, it can raise an
+error if you don't have a timezone name configured, where `get_localzone()`
+will succeed, so only use that if you need the timezone name.
+
+4.0 also adds way more information on what is going wrong in your
+configuration when the configuration files are unclear or contradictory.
+
+
+Info
+----
+
+This Python module returns a ``tzinfo`` object (with a pytz_deprecation_shim,
+for pytz compatibility) with the local timezone information, under Unix and
+Windows.
+
+It requires Python 3.7 or later, and will use the ``backports.tzinfo``
+package, for Python 3.7 and 3.8.
+
+This module attempts to fix a glaring hole in the ``pytz`` and ``zoneinfo``
+modules, that there is no way to get the local timezone information, unless
+you know the zoneinfo name, and under several Linux distros that's hard or
+impossible to figure out.
+
+With ``tzlocal`` you only need to call ``get_localzone()`` and you will get a
+``tzinfo`` object with the local time zone info. On some Unices you will
+still not get to know what the timezone name is, but you don't need that when
+you have the tzinfo file. However, if the timezone name is readily available
+it will be used.
+
+
+Supported systems
+-----------------
+
+These are the systems that are in theory supported:
+
+ * Windows 2000 and later
+
+ * Any unix-like system with a ``/etc/localtime`` or ``/usr/local/etc/localtime``
+
+If you have one of the above systems and it does not work, it's a bug.
+Please report it.
+
+Please note that if you are getting a time zone called ``local``, this is not
+a bug, it's actually the main feature of ``tzlocal``, that even if your
+system does NOT have a configuration file with the zoneinfo name of your time
+zone, it will still work.
+
+You can also use ``tzlocal`` to get the name of your local timezone, but only
+if your system is configured to make that possible. ``tzlocal`` looks for the
+timezone name in ``/etc/timezone``, ``/var/db/zoneinfo``,
+``/etc/sysconfig/clock`` and ``/etc/conf.d/clock``. If your
+``/etc/localtime`` is a symlink it can also extract the name from that
+symlink.
+
+If you need the name of your local time zone, then please make sure your
+system is properly configured to allow that.
+
+If your unix system doesn't have a timezone configured, tzlocal will default
+to UTC.
+
+Notes on Docker
+---------------
+
+It turns out that Docker images frequently have broken timezone setups.
+This usually resuts in a warning that the configuration is wrong, or that
+the timezone offset doesn't match the found timezone.
+
+The easiest way to fix that is to set a TZ variable in your docker setup
+to whatever timezone you want, which is usually the timezone your host
+computer has.
+
+Usage
+-----
+
+Load the local timezone:
+
+    >>> from tzlocal import get_localzone
+    >>> tz = get_localzone()
+    >>> tz
+    <DstTzInfo 'Europe/Warsaw' WMT+1:24:00 STD>
+
+Create a local datetime:
+
+    >>> from datetime import datetime
+    >>> dt = datetime(2015, 4, 10, 7, 22, tzinfo=tz)
+    >>> dt
+    datetime.datetime(2015, 4, 10, 7, 22, tzinfo=<DstTzInfo 'Europe/Warsaw' CEST+2:00:00 DST>)
+
+Lookup another timezone with ``zoneinfo`` (``backports.zoneinfo`` on Python 3.8 or earlier):
+
+    >>> from zoneinfo import ZoneInfo
+    >>> eastern = ZoneInfo('US/Eastern')
+
+Convert the datetime:
+
+    >>> dt.astimezone(eastern)
+    datetime.datetime(2015, 4, 10, 1, 22, tzinfo=<DstTzInfo 'US/Eastern' EDT-1 day, 20:00:00 DST>)
+
+If you just want the name of the local timezone, use `get_localzone_name()`:
+
+    >>> from tzlocal import get_localzone_name
+    >>> get_localzone_name()
+    "Europe/Warsaw"
+
+Please note that under Unix, `get_localzone_name()` may fail if there is no zone
+configured, where `get_localzone()` would generally succeed.
+
+
+Development
+-----------
+
+To create a development environment, create a virtualenv and make a development installation::
+
+    $ virtualenv ve
+    $ source ve/bin/activation (Win32: .\ve\Scripts\activate)
+    (ve) $ pip install -e .[test,devenv]
+
+To run tests, just use pytest, coverage is nice as well::
+
+    (ve) $ pytest --cov=tzlocal
+
+
+
+Maintainer
+----------
+
+* Lennart Regebro, regebro@gmail.com
+
+Contributors
+------------
+
+* Marc Van Olmen
+* Benjamen Meyer
+* Manuel Ebert
+* Xiaokun Zhu
+* Cameris
+* Edward Betts
+* McK KIM
+* Cris Ewing
+* Ayala Shachar
+* Lev Maximov
+* Jakub Wilk
+* John Quarles
+* Preston Landers
+* Victor Torres
+* Jean Jordaan
+* Zackary Welch
+* Mickaël Schoentgen
+* Gabriel Corona
+* Alex Grönholm
+* Julin S
+* Miroslav Šedivý
+* revansSZ
+* Sam Treweek
+* Peter Di Pasquale
+* Rongrong
+
+(Sorry if I forgot someone)
+
+License
+-------
+
+* MIT https://opensource.org/licenses/MIT
+
+Changes
+=======
+
+4.3 (2023-03-18)
+----------------
+
+- Improved the error message when the ZoneInfo cannot be found
+
+- Don't error out because we find multiple possible timezones for 
+  a symlink. 
+  
+- More stable on Android/Termux with proot
+
+
+4.2 (2022-04-02)
+----------------
+
+- If TZ environment variable is set to /etc/localhost, and that's a link to
+  a zoneinfo file, then tzlocal will now find the timezone name, and not
+  just return a localtime TZ object.
+
+
+4.1 (2021-10-29)
+----------------
+
+- No changes from 4.1b1.
+
+
+4.1b1 (2021-10-28)
+------------------
+
+- It turns out a lot of Linux distributions make the links between zoneinfo
+  aliases backwards, so instead of linking GB to Europe/London it actually
+  links the other way. When /etc/localtime then links to Europe/London, and you
+  also have a config file saying Europe/London, the code that checks if
+  /etc/localtime is a symlink ends up at GB instead of Europe/London and
+  we get an error, as it thinks GB and Europe/London are different zones.
+
+  So now we check the symlink of all timezones in the uniqueness test. We still
+  return the name in the config file, though, so you would only get GB or Zulu
+  returned as the time zone instead of Europe/London or UTC if your only
+  configuration is the /etc/localtime symlink, as that's checked last, and
+  tzlocal will return the first configuration found.
+
+- The above change also means that GMT and UTC are no longer seen as synonyms,
+  as zoneinfo does not see them as synonyms. This might be controversial,
+  but you just have to live with it. Pick one and stay with it. ;-)
+
+
+4.0.2 (2021-10-26)
+------------------
+
+- Improved the error message when you had a conflict including a
+  /etc/localtime symlink.
+
+
+4.0.1 (2021-10-19)
+------------------
+
+- A long time bug in Ubuntu docker images seem to not get fixed,
+  so I added a workaround.
+
+
+4.0.1b1 (2021-10-18)
+--------------------
+
+- Handle UCT and Zulu as synonyms for UTC, while treating GMT and
+  UTC as different.
+
+
+4.0 (2021-10-18)
+----------------
+
+- No changes.
+
+
+4.0b5 (2021-10-18)
+------------------
+
+- Fixed a bug in the Windows DST support.
+
+
+4.0b4 (2021-10-18)
+------------------
+
+- Added support for turning off DST in Windows. That only works in
+  whole hour timezones, and honestly, if you need to turn off DST,
+  you should just use UTC as a timezone.
+
+
+4.0b3 (2021-10-08)
+------------------
+
+- Returning pytz_deprecation_shim zones to lower the surprise for pytz users.
+
+- The Windows OS environment variable 'TZ' will allow an override for
+  setting the timezone. The override timezone will be asserted for
+  timezone validity bit not compared against the systems timezone offset.
+  This allows for overriding the timezone when running tests.
+
+- Dropped support for Windows 2000, XP and Vista, supports Windows 7, 8 and 10.
+
+
+4.0b2 (2021-09-26)
+------------------
+
+- Big refactor; Implemented get_localzone_name() functions.
+
+- Adding a Windows OS environment variable 'TZ' will allow an override for
+  setting the timezone (also see 4.0b3).
+
+
+4.0b1 (2021-08-21)
+------------------
+
+- Now finds and compares all the configs (under Unix-like systems) and
+  tells you what files it found and how they conflict. This should make
+  it a lot easier to figure out what goes wrong.
+
+
+3.0 (2021-08-13)
+----------------
+
+- Modernized the packaging, moving to setup.cfg etc.
+
+- Handles if the text config files incorrectly is a TZ file. (revanSZ)
+
+
+3.0b1 (2020-09-21)
+------------------
+
+- Dropped Python 2 support
+- Switched timezone provider from pytz to zoneinfo (PEP 615)
+
+
+2.1 (2020-05-08)
+----------------
+
+- No changes.
+
+
+2.1b1 (2020-02-08)
+------------------
+
+- The is_dst flag is wrong for Europe/Dublin on some Unix releases.
+  I changed to another way of determining if DST is in effect or not.
+
+- Added support for Python 3.7 and 3.8. Dropped 3.5 although it still works.
+
+
+2.0.0 (2019-07-23)
+------------------
+
+- No differences since 2.0.0b3
+
+Major differences since 1.5.1
+.............................
+
+- When no time zone configuration can be find, tzlocal now return UTC.
+  This is a major difference from 1.x, where an exception would be raised.
+  This change is because Docker images often have no configuration at all,
+  and the unix utilities will then default to UTC, so we follow that.
+
+- If tzlocal on Unix finds a timezone name in a /etc config file, then
+  tzlocal now verifies that the timezone it fouds has the same offset as
+  the local computer is configured with. If it doesn't, something is
+  configured incorrectly. (Victor Torres, regebro)
+
+- Get timezone via Termux `getprop` wrapper on Android. It's not officially
+  supported because we can't test it, but at least we make an effort.
+  (Jean Jordaan)
+
+Minor differences and bug fixes
+...............................
+
+- Skip comment lines when parsing /etc/timezone. (Edward Betts)
+
+- Don't load timezone from current directory. (Gabriel Corona)
+
+- Now verifies that the config files actually contain something before
+  reading them. (Zackary Welch, regebro)
+
+- Got rid of a BytesWarning (Mickaël Schoentgen)
+
+- Now handles if config file paths exists, but are directories.
+
+- Moved tests out from distributions
+
+- Support wheels
+
+
+1.5.1 (2017-12-01)
+------------------
+
+- 1.5 had a bug that slipped through testing, fixed that,
+  increased test coverage.
+
+
+1.5 (2017-11-30)
+----------------
+
+- No longer treats macOS as special, but as a unix.
+
+- get_windows_info.py is renamed to update_windows_mappings.py
+
+- Windows mappings now also contain mappings from deprecated zoneinfo names.
+  (Preston-Landers, regebro)
+
+
+1.4 (2017-04-18)
+----------------
+
+- I use MIT on my other projects, so relicensing.
+
+
+1.4b1 (2017-04-14)
+------------------
+
+- Dropping support for Python versions nobody uses (2.5, 3.1, 3.2), adding 3.6
+  Python 3.1 and 3.2 still works, 2.5 has been broken for some time.
+
+- Ayalash's OS X fix didn't work on Python 2.7, fixed that.
+
+
+1.3.2 (2017-04-12)
+------------------
+
+- Ensure closing of subprocess on OS X (ayalash)
+
+- Removed unused imports (jwilk)
+
+- Closes stdout and stderr to get rid of ResourceWarnings (johnwquarles)
+
+- Updated Windows timezones (axil)
+
+
+1.3 (2016-10-15)
+----------------
+
+- #34: Added support for /var/db/zoneinfo
+
+
+1.2.2 (2016-03-02)
+------------------
+
+- #30: Fixed a bug on OS X.
+
+
+1.2.1 (2016-02-28)
+------------------
+
+- Tests failed if TZ was set in the environment. (EdwardBetts)
+
+- Replaces os.popen() with subprocess.Popen() for OS X to
+  handle when systemsetup doesn't exist. (mckabi, cewing)
+
+
+1.2 (2015-06-14)
+----------------
+
+- Systemd stores no time zone name, forcing us to look at the name of the file
+  that localtime symlinks to. (cameris)
+
+
+1.1.2 (2014-10-18)
+------------------
+
+- Timezones that has 3 items did not work on Mac OS X.
+  (Marc Van Olmen)
+
+- Now doesn't fail if the TZ environment variable isn't an Olsen time zone.
+
+- Some timezones on Windows can apparently be empty (perhaps the are deleted).
+  Now these are ignored.
+  (Xiaokun Zhu)
+
+
+1.1.1 (2014-01-29)
+------------------
+
+- I forgot to add Etc/UTC as an alias for Etc/GMT.
+
+
+1.1 (2014-01-28)
+----------------
+
+- Adding better support for OS X.
+
+- Added support to map from tzdata/Olsen names to Windows names.
+  (Thanks to Benjamen Meyer).
+
+
+1.0 (2013-05-29)
+----------------
+
+- Fixed some more cases where spaces needs replacing with underscores.
+
+- Better handling of misconfigured /etc/timezone.
+
+- Better error message on Windows if we can't find a timezone at all.
+
+
+0.3 (2012-09-13)
+----------------
+
+- Windows 7 support.
+
+- Python 2.5 supported; because it only needed a __future__ import.
+
+- Python 3.3 tested, it worked.
+
+- Got rid of relative imports, because I don't actually like them,
+  so I don't know why I used them in the first place.
+
+- For each Windows zone, use the default zoneinfo zone, not the last one.
+
+
+0.2 (2012-09-12)
+----------------
+
+- Python 3 support.
+
+
+0.1 (2012-09-11)
+----------------
+
+- Initial release.
+
+

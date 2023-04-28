@@ -1,0 +1,1 @@
+DECKGL_SEMVER = "~8.9.*"

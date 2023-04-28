@@ -1,0 +1,34 @@
+Metadata-Version: 2.1
+Name: GitPython
+Version: 3.1.31
+Summary: GitPython is a Python library used to interact with Git repositories
+Home-page: https://github.com/gitpython-developers/GitPython
+Author: Sebastian Thiel, Michael Trier
+Author-email: byronimo@gmail.com, mtrier@gmail.com
+License: BSD
+Platform: UNKNOWN
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Environment :: Console
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: BSD License
+Classifier: Operating System :: OS Independent
+Classifier: Operating System :: POSIX
+Classifier: Operating System :: Microsoft :: Windows
+Classifier: Operating System :: MacOS :: MacOS X
+Classifier: Typing :: Typed
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Requires-Python: >=3.7
+Description-Content-Type: text/markdown
+License-File: LICENSE
+License-File: AUTHORS
+Requires-Dist: gitdb (<5,>=4.0.1)
+Requires-Dist: typing-extensions (>=3.7.4.3) ; python_version < "3.8"
+
+GitPython is a Python library used to interact with Git repositories
+
