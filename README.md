@@ -1,15 +1,5 @@
-# GPT4free - use ChatGPT, for free!!
-
 ##### You may join our discord server for updates and support ; ) 
 - [Discord Link](https://discord.gg/gpt4free)
-
-<img width="1383" alt="image" src="https://user-images.githubusercontent.com/98614666/233799515-1a7cb6a3-b17f-42c4-956d-8d2a0664466f.png">
-
-Have you ever come across some amazing projects that you couldn't use **just because you didn't have an OpenAI API key?** 
-
-**We've got you covered!** This repository offers **reverse-engineered** third-party APIs for `GPT-4/3.5`, sourced from various websites. You can simply **download** this repository, and use the available modules, which are designed to be used **just like OpenAI's official package**. **Unleash ChatGPT's potential for your projects, now!** You are welcome ; ).
-
-By the way, thank you so much for [![Stars](https://img.shields.io/github/stars/xtekky/gpt4free?style=social)](https://github.com/xtekky/gpt4free/stargazers) and all the support!!
 
 ## Legal Notice <a name="legal-notice"></a>
 
@@ -22,7 +12,6 @@ Please note the following:
 2. **Responsibility**: The author of this repository is *not* responsible for any consequences arising from the use or misuse of this repository or the content provided by the third-party APIs and any damage or losses caused by users' actions.
 
 3. **Educational Purposes Only**: This repository and its content are provided strictly for educational purposes. By using the information and code provided, users acknowledge that they are using the APIs and models at their own risk and agree to comply with any applicable laws and regulations.
-
 
 ## Table of Contents
 | Section | Description | Link | Status |
@@ -50,7 +39,7 @@ Please note the following:
 ## Todo <a name="todo"></a>
 
 - [ ] Add a GUI for the repo 
-- [ ] Make a general package named `openai_rev`, instead of different folders
+- [ ] Make a general package named `gpt4free`, instead of different folders
 - [ ] Live api status to know which are down and which can be used
 - [ ] Integrate more API's in `./unfinished` as well as other ones in the lists
 - [ ] Make an API to use as proxy for other projects
@@ -66,7 +55,6 @@ Please note the following:
 | [t3nsor.com](https://t3nsor.com)                     | GPT-3.5                         |
 | [you.com](https://you.com)                           | GPT-3.5 / Internet / good search|
 | [sqlchat.ai](https://sqlchat.ai)                     | GPT-3.5                         |
-| [chat.openai.com/chat](https://chat.openai.com/chat) | GPT-3.5                         |
 | [bard.google.com](https://bard.google.com)           | custom / search                 |
 | [bing.com/chat](https://bing.com/chat)               | GPT-4/3.5                       |
 | [chat.forefront.ai/](https://chat.forefront.ai/)     | GPT-4/3.5                       |
@@ -114,7 +102,7 @@ Most code, with the exception of `quora/api.py` (by [ading2210](https://github.c
 
 ### Copyright Notice: <a name="copyright"></a>
 ```
-xtekky/openai-gpt4: multiple reverse engineered language-model api's to decentralise the ai industry.  
+xtekky/gpt4free: multiple reverse engineered language-model api's to decentralise the ai industry.  
 Copyright (C) 2023 xtekky
 
 This program is free software: you can redistribute it and/or modify
