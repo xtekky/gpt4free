@@ -51,4 +51,4 @@ Till the long bitter end, will this boy live to fight.
 ( I did not write it ) 
 
 
-discord: https://discord.com/gpt4free
+discord: https://discord.gg/gpt4free
