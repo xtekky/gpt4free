@@ -1,4 +1,5 @@
-from openai_rev import openai_rev, Provider, quora, forefront
+import openai_rev
+from openai_rev import Provider, quora, forefront
 
 # usage You
 response = openai_rev.Completion.create(Provider.You, prompt='Write a poem on Lionel Messi')
