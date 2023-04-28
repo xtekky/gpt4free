@@ -25,7 +25,8 @@ chat = []
 
 while True:
     prompt = input("You: ")
-
+    if prompt == 'q':
+        break
     response = you.Completion.create(
         prompt=prompt,
         chat=chat)
