@@ -76,9 +76,10 @@ submit_button = st.button("Submit")
 
 if user_input or submit_button:
     output = query(user_input, st.session_state['query_method'])
+    escaped_output = output.encode('utf-8').decode('unicode-escape')
     
     st.session_state.current_conversation['user_inputs'].append(user_input)
-    st.session_state.current_conversation['generated_responses'].append(output)
+    st.session_state.current_conversation['generated_responses'].append(escaped_output)
     save_conversations(st.session_state.conversations, st.session_state.current_conversation)
     user_input = input_placeholder.text_input('You:', value='', key=f'input_text_{len(st.session_state["current_conversation"]["user_inputs"])}')  # Clear the input field
 
