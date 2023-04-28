@@ -74,8 +74,7 @@ if st.sidebar.button("New Conversation"):
 print(openai_rev.Provider.__methods__.keys())
 st.session_state['query_method'] = st.sidebar.selectbox(
     "Select API:",
-    
-    options=avail_query_methods.keys(),
+    options=openai_rev.Provider.__members__.keys(),
     index=0
 )
 

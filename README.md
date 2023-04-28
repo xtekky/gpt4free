@@ -38,7 +38,7 @@ Please note the following:
 | **Copyright** | Copyright information | [![Link to Section](https://img.shields.io/badge/Link-Go%20to%20Section-blue)](#copyright) | - |
 | **Star History** | Star History | [![Link to Section](https://img.shields.io/badge/Link-Go%20to%20Section-blue)](#star-history) | - |
 | **Usage Examples** | | | |
-| `theb` | Example usage for theb (gpt-3.5) | [![Link to File](https://img.shields.io/badge/Link-Go%20to%20File-blue)](./theb/README.md) | ![Active](https://img.shields.io/badge/Active-brightgreen) |
+| `theb` | Example usage for theb (gpt-3.5) | [![Link to File](https://img.shields.io/badge/Link-Go%20to%20File-blue)](openai_rev/theb/README.md) | ![Active](https://img.shields.io/badge/Active-brightgreen) |
 | `forefront` | Example usage for forefront (gpt-4) | [![Link to File](https://img.shields.io/badge/Link-Go%20to%20File-blue)](./forefront/README.md) | ![Active](https://img.shields.io/badge/Active-brightgreen) | ||
 | `quora (poe)` | Example usage for quora | [![Link to File](https://img.shields.io/badge/Link-Go%20to%20File-blue)](./quora/README.md) | ![Active](https://img.shields.io/badge/Active-brightgreen) |
 | `you` | Example usage for you | [![Link to File](https://img.shields.io/badge/Link-Go%20to%20File-blue)](./you/README.md) | ![Active](https://img.shields.io/badge/Active-brightgreen) |

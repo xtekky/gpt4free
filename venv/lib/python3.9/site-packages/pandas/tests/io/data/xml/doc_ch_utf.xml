@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE fragmentdoc [
+  <!ELEMENT qafragment (qa+)>
+  <!ELEMENT qa ( q, a )>
+  <!ELEMENT q ( #PCDATA | title | name)*>
+  <!ATTLIST q speaker CDATA #REQUIRED>
+  <!ELEMENT a ( #PCDATA | title | name)*>
+  <!ATTLIST a speaker CDATA #REQUIRED>
+  <!ELEMENT name (#PCDATA)>
+  <!ELEMENT title (#PCDATA)>
+  <!ENTITY C4-4F71 "Sorry, this is Big5 only">
+]>
+
+<qafragment>
+	<qa>
+		<問 speaker="Opponent">問  若箇是邪而言破邪 何者是正而道(Sorry, this is Big5 only)申正</問>
+		<答 speaker="吉藏">答  邪既無量 正亦多途  大略為言不出二種 謂有得與無得 有得是邪須破 無得是正須申
+		故<title>大品經</title> <name>善吉</name> 致問 何等是菩薩道 何等非菩薩道
+		<name>佛</name>答云  有所得非菩薩道 無所得是菩薩道</答>
+	</qa>
+	<qa>
+		<問 speaker="Opponent">問 既破有得申無得 亦應但破性執申假名以不</問>
+		<a speaker="吉藏">答 性執是有得 假名是無得  今破有得申無得 即是破性執申假名也</a>
+	</qa>
+	<qa>
+		<問 speaker="Opponent">問 既破性申假 亦應但破有申無 若有無兩洗 亦應性假雙破耶</問>
+		<答 speaker="吉藏">答  不例  有無皆是性 所以須雙破 既分性假異 故有破不破</答>
+	</qa>
+</qafragment>

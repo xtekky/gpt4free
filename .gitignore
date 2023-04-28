@@ -18,8 +18,12 @@ accounts.txt
 
 .idea/
 
-*/__pycache__/
+**/__pycache__/
 
 *.log
 
 cookie.json
+
+*.pyc
+
+dist/

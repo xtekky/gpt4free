@@ -1,0 +1,58 @@
+{% load i18n %}{% load static %}
+<script type="text/javascript" src="{% static 'jquery.sparkline.min.js' %}"></script>
+<table>
+  <colgroup>
+    <col style="width:20%"/>
+    <col/>
+  </colgroup>
+  <thead>
+    <tr>
+      <th>{% trans "Resource" %}</th>
+      <th>{% trans "Value" %}</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for key, value in rows %}
+      <tr class="{% cycle 'djDebugOdd' 'djDebugEven' %}">
+        <td>{{ key|escape }}</td>
+        <td>{{ value|escape }}</td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<table>
+  <colgroup>
+    <col style="width:20%"/>
+    <col/>
+    <col/>
+  </colgroup>
+  <thead>
+    <tr>
+      <th>{% trans "Class" %}</th>
+      <th>{% trans "Number of instances" %} <a class="show_sparkline" href="#">Show sparklines</a></th>
+      <th>{% trans "Total size" %}</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for cls, history, size in classes %}
+      <tr class="{% cycle 'djDebugOdd' 'djDebugEven' %}">
+        <td>{{ cls|escape }}</td>
+        <td id="{{ cls|escape|cut:'.' }}_history" values="{{ history|join:',' }}">
+          {{ history|safeseq|join:', ' }}
+        </td>
+        <td>{{ size|escape }}</td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+<script type="text/javascript">
+  (function ($) {
+    window.jQuery = $; // for jquery.sparkline
+    $("#MemoryPanel .show_sparkline").on('click', function() {
+      {% for cls, _, _ in classes %}
+        $("#{{ cls|escape|cut:'.' }}_history").sparkline('html', {width: '200px'});
+      {% endfor %}
+    });
+  })(jQuery || djdt.jQuery);
+</script>

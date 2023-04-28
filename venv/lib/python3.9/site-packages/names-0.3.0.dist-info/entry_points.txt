@@ -1,0 +1,2 @@
+[console_scripts]
+names = names.main:main

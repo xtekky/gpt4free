@@ -1,0 +1,21 @@
+=========================================================================
+==  NOTICE file corresponding to section 4(d) of the Apache License,   ==
+==                  Version 2.0, in this case for the                  ==
+==                        Pympler distribution.                        ==
+=========================================================================
+
+Copyright 2008 Jean Brouwers
+Copyright 2008 Ludwig Hähne
+Copyright 2008 Robert Schuppenies
+
+
+The asizeof module is based on code Copyright (c) 2002-2008 -- ProphICy
+Semiconductor, Inc. (BSD). The copyright notice is attached to the end of the
+asizeof module.
+
+Pympler includes Bottle, Flot and flot.tooltip which are covered by the MIT
+license:
+
+http://bottlepy.org/docs/dev/index.html#license
+https://github.com/flot/flot/blob/master/LICENSE.txt
+https://github.com/krzysu/flot.tooltip

@@ -1,6 +1,6 @@
-import forefront, quora, theb, you
+import openai_rev
+from openai_rev import forefront, quora, theb, you
 import random
-
 
 
 def query_forefront(question: str) -> str:
@@ -47,8 +47,7 @@ def query_you(question: str) -> str:
     try:
         result = you.Completion.create(
             prompt = question)
-        
-        return result['response']
+        return result.text
     
     except Exception as e:
         # Return error message if an exception occurs
@@ -57,7 +56,7 @@ def query_you(question: str) -> str:
 # Define a dictionary containing all query methods
 avail_query_methods = {
     "Forefront": query_forefront,
-    "Quora": query_quora,
+    "Poe": query_quora,
     "Theb": query_theb,
     "You": query_you,
     # "Writesonic": query_writesonic,
