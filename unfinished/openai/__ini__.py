@@ -62,7 +62,7 @@ def send_message(self, message):
         'action': 'next',
         'messages': [
             {
-                'id': str(uuid4()),
+                'id': str(uuid.uuid4()),
                 'author': {
                     'role': 'user',
                 },
