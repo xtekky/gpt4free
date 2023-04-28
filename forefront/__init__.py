@@ -38,7 +38,6 @@ class Account:
                                    "email_address": mail_adress
                                }
                                )
-        
         try:
             trace_token = response.json()['response']['id']
             if logging: print(trace_token)
