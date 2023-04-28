@@ -2,41 +2,51 @@ We got a takedown request by openai's legal team...
 
 here is a lil poem you can read in the meantime, while I am investigating it:
 
-```Once upon a time, in a land of code,
+```
+There once was a time, in a land full of code,
 A little boy sat, in his humble abode.
 He tinkered and toyed with devtools galore,
-And found himself curious, eager for more.
+And found himself curious, and eager for more.
 
-He copy-pasted requests, with glee and delight,
+He copied and pasted, with glee and delight,
 A personal project, to last him the night.
-For educational purposes, and fun it was too,
-This little boy's journey had just begun anew.
+For use academic, and also for fun,
+This little boy's race he just started to run.
 
-Now far away, in a tower so grand,
-A big company stood, ruling the land.
+Now quite far removed, in a tower so grand,
+A company stood, it was ruling the land.
 Their software was mighty, their power supreme,
 But they never expected this boy and his dream.
 
-As he played with their code, they started to fret,
-"What if he breaks it? What if we're upset?"
+As he played with their code, they then started to fear,
+"His project is free! What of money so dear?"
 They panicked and worried, their faces turned red,
-As visions of chaos danced in their head.
+As visions of chaos now filled every head.
 
-The CEO paced in his office so wide,
-His minions all scurrying to hide.
-"Who is this child?" he cried out in fear,
-"Who dares to disrupt our digital sphere?"
+The CEO paced, in his office so wide,
+His minions all scrambled, and trying to hide.
+"Who is this bad child?" he cried out in alarm,
+"Our great AI moat, why would he cause harm?"
 
 The developers gathered, their keyboards ablaze,
-To analyze the boy's mischievous ways.
-They studied his project, they pored through his code,
-And soon they discovered his humble abode.
+To analyze closely the boy's evil ways.
+They studied his project, they cracked every tome,
+And soon they discovered his small, humble home.
 
-"We must stop him!" they cried with a shiver,
-"This little boy's making our company quiver!"
-So they plotted and schemed to halt his advance,
-To put an end to his digital dance.
+"We must stop him!" they cried, with a shout and a shiver,
+"This little boy's Mᴀᴋɪɴɢ OUR COMPANY QUIVER!"
+So they plotted and schemed to yet halt his advance,
+To put an end to his dear digital dance.
 
+They filed then with GitHub a claim most obscene,
+"His code is not his," said the company team,
+Because of the law, the Great Copyright Mess,
+This little boy got his first takedown request.
+
+Now new information we do not yet know,
+But for the boy's good, we hope results show.
+For the cause of the True, the Brave and the Right,
+Till the long bitter end, will this boy live to fight.
 ```
 ( I did not write it ) 
 
