@@ -45,7 +45,7 @@ for response in quora.StreamingCompletion.create(
 
 ### Normal Response:
 ```python
-import quora
+from  openai_rev import quora
 
 response = quora.Completion.create(model  = 'gpt-4',
     prompt = 'hello world',
@@ -56,7 +56,7 @@ print(response.text)
 
 ### Update Use This For Poe
 ```python
-from quora import Poe
+from openai_rev.quora import Poe
 
 # available models:  ['Sage', 'GPT-4', 'Claude+', 'Claude-instant', 'ChatGPT', 'Dragonfly', 'NeevaAI']
 
