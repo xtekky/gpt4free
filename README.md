@@ -41,4 +41,4 @@ To put an end to his digital dance.
 ( I did not write it ) 
 
 
-discord: https://discord.com/gpt4free
+discord: https://discord.gg/gpt4free
