@@ -1,3 +1,0 @@
-_pyrsistent_version
-pvectorc
-pyrsistent
