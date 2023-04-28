@@ -22,3 +22,7 @@ print(f'END')
 # usage theb
 response = openai_rev.Completion.create(Provider.Theb, prompt='Write a poem on Lionel Messi')
 print(response)
+
+# usage openaihosted
+response = openai_rev.Completion.create(Provider.OpenAiHosted, prompt='Write a poem on Lionel Messi')
+print(response)

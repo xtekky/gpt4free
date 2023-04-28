@@ -1,6 +1,7 @@
 from enum import Enum
 
 from openai_rev import forefront
+from openai_rev import openaihosted
 from openai_rev import quora
 from openai_rev import theb
 from openai_rev import you
@@ -11,6 +12,7 @@ class Provider(Enum):
     Poe = 'poe'
     ForeFront = 'fore_front'
     Theb = 'theb'
+    OpenAiHosted = 'openai_hosted'
 
 
 class Completion:
@@ -24,6 +26,10 @@ class Completion:
             return Completion.__fore_front_service(prompt, **kwargs)
         elif provider == Provider.Theb:
             return Completion.__theb_service(prompt, **kwargs)
+        elif provider == Provider.OpenAiHosted:
+            return Completion.__openai_hosted(prompt, **kwargs)
+        else:
+            raise Exception('Provider not exist, Please try again')
 
     @staticmethod
     def __you_service(prompt: str, **kwargs) -> str:
@@ -40,3 +46,7 @@ class Completion:
     @staticmethod
     def __theb_service(prompt: str, **kwargs):
         return ''.join(theb.Completion.create(prompt=prompt))
+
+    @staticmethod
+    def __openai_hosted(prompt: str, **kwargs):
+        return openaihosted.Completion.create(systemprompt='', text=prompt, assistantprompt='').text

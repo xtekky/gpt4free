@@ -1,22 +1,23 @@
 import json
 import re
-from fake_useragent import UserAgent
 
 import requests
+from fake_useragent import UserAgent
+from pydantic import BaseModel
+
+
+class OpenAiHostedResponse(BaseModel):
+    text: str
+
 
 class Completion:
     @staticmethod
-    def create(
-        systemprompt:str,
-        text:str,
-        assistantprompt:str
-    ):
-
+    def create(systemprompt: str, text: str, assistantprompt: str):
         data = [
-            {"role": "system", "content": systemprompt},
-            {"role": "user", "content": "hi"},
-            {"role": "assistant", "content": assistantprompt},
-            {"role": "user", "content": text},
+            {'role': 'system', 'content': systemprompt},
+            {'role': 'user', 'content': 'hi'},
+            {'role': 'assistant', 'content': assistantprompt},
+            {'role': 'user', 'content': text},
         ]
         url = f'https://openai.a2hosted.com/chat?q={Completion.__get_query_param(data)}'
 
@@ -25,18 +26,16 @@ class Completion:
         except:
             return Completion.__get_failure_response()
 
-        sentence = ""
+        sentence = ''
 
         for message in response.iter_content(chunk_size=1024):
             message = message.decode('utf-8')
-            msg_match, num_match = re.search(r'"msg":"([^"]+)"', message), re.search(r'\[DONE\] (\d+)', message)
+            msg_match, num_match = re.search(r'"msg":"([^"]+)"', message), re.search(r'\[DONE] (\d+)', message)
             if msg_match:
                 # Put the captured group into a sentence
                 sentence += msg_match.group(1)
-        return {
-            'response': sentence
-        }
-    
+        return OpenAiHostedResponse(text=sentence.replace('\\n', '\n').replace('\\\\', '\\'))
+
     @classmethod
     def __get_headers(cls) -> dict:
         return {
@@ -47,14 +46,14 @@ class Completion:
             'sec-fetch-dest': 'empty',
             'sec-fetch-mode': 'cors',
             'sec-fetch-site': 'cross-site',
-            'user-agent': UserAgent().random
+            'user-agent': UserAgent().random,
         }
-    
+
     @classmethod
     def __get_failure_response(cls) -> dict:
         return dict(response='Unable to fetch the response, Please try again.', links=[], extra={})
-    
+
     @classmethod
     def __get_query_param(cls, conversation) -> str:
         encoded_conversation = json.dumps(conversation)
-        return encoded_conversation.replace(" ", "%20").replace('"', '%22').replace("'", "%27")
+        return encoded_conversation.replace(' ', '%20').replace(''', '%22').replace(''', '%27')
