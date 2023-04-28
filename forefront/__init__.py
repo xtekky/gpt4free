@@ -39,11 +39,11 @@ class Account:
                                }
                                )
         
-         try:
-             trace_token = response.json()['response']['id']
-             if logging: print(trace_token)
-         except KeyError:
-             return 'Failed to create account!'
+        try:
+            trace_token = response.json()['response']['id']
+            if logging: print(trace_token)
+        except KeyError:
+            return 'Failed to create account!'
 
         response = client.post(
             f"https://clerk.forefront.ai/v1/client/sign_ups/{trace_token}/prepare_verification?_clerk_js_version=4.32.6",
@@ -60,7 +60,7 @@ class Account:
         while True:
             sleep(1)
             for _ in mail.fetch_inbox():
-                print(mail.get_message_content(_["id"]))
+                if logging: print(mail.get_message_content(_["id"]))
                 mail_token = match(r"(\d){5,6}", mail.get_message_content(_["id"])).group(0)
 
             if mail_token:
