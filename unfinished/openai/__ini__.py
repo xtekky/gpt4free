@@ -57,7 +57,6 @@ class OpenAIChat:
         return response.json()
 
 def send_message(self, message):
-    # Define the request payload
     payload = {
         'action': 'next',
         'messages': [
@@ -79,7 +78,6 @@ def send_message(self, message):
         'timezone_offset_min': -120,
     }
     
-    # Send the request
     response = self.client.post('https://chat.openai.com/backend-api/conversation', json=payload)
     
     return response.text
