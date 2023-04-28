@@ -1,9 +1,9 @@
-We got a takedown request by openai's legal team...
+We got a takedown request by openAI's legal team...
 
-discord sever for updates / support: 
+discord server for updates / support: 
 - https://discord.gg/gpt4free
 
-here is a lil poem you can read in the meantime, while I am investigating it:
+here is a lil' poem you can read in the meantime, while I am investigating it:
 
 ```
 There once was a time, in a land full of code,
