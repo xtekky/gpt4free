@@ -38,9 +38,12 @@ class Account:
                                    "email_address": mail_adress
                                }
                                )
-
-        trace_token = response.json()['response']['id']
-        if logging: print(trace_token)
+        
+         try:
+             trace_token = response.json()['response']['id']
+             if logging: print(trace_token)
+         except KeyError:
+             return 'Failed to create account!'
 
         response = client.post(
             f"https://clerk.forefront.ai/v1/client/sign_ups/{trace_token}/prepare_verification?_clerk_js_version=4.32.6",
