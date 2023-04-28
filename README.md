@@ -1,4 +1,6 @@
 We got a takedown request by openAI's legal team...
+you may refer to the old readme: [OLDREADME.md](./OLDREADME.md)
+
 
 discord server for updates / support: 
 - https://discord.gg/gpt4free
