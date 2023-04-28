@@ -49,8 +49,8 @@ Please note the following:
 
 ## Todo <a name="todo"></a>
 
-- [ ] Add a GUI for the repo 
-- [ ] Make a general package named `openai_rev`, instead of different folders
+- [x] Add a GUI for the repo 
+- [x] Make a general package named `openai_rev`, instead of different folders
 - [ ] Live api status to know which are down and which can be used
 - [ ] Integrate more API's in `./unfinished` as well as other ones in the lists
 - [ ] Make an API to use as proxy for other projects
