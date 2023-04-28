@@ -25,18 +25,18 @@ class Completion:
         elif provider == Provider.Theb:
             return Completion.__theb_service(prompt, **kwargs)
 
-    @classmethod
-    def __you_service(cls, prompt: str, **kwargs) -> str:
+    @staticmethod
+    def __you_service(prompt: str, **kwargs) -> str:
         return you.Completion.create(prompt, **kwargs).text
 
-    @classmethod
-    def __poe_service(cls, prompt: str, **kwargs) -> str:
+    @staticmethod
+    def __poe_service(prompt: str, **kwargs) -> str:
         return quora.Completion.create(prompt=prompt, **kwargs).text
 
-    @classmethod
-    def __fore_front_service(cls, prompt: str, **kwargs) -> str:
+    @staticmethod
+    def __fore_front_service(prompt: str, **kwargs) -> str:
         return forefront.Completion.create(prompt=prompt, **kwargs).text
 
-    @classmethod
-    def __theb_service(cls, prompt: str, **kwargs):
+    @staticmethod
+    def __theb_service(prompt: str, **kwargs):
         return ''.join(theb.Completion.create(prompt=prompt))

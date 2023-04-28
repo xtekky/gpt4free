@@ -16,8 +16,8 @@ class Completion:
     message_queue = Queue()
     stream_completed = False
 
-    @classmethod
-    def request(cls, prompt: str):
+    @staticmethod
+    def request(prompt: str):
         headers = {
             'authority': 'chatbot.theb.ai',
             'content-type': 'application/json',

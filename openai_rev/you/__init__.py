@@ -85,8 +85,8 @@ class Completion:
 
         return response
 
-    @classmethod
-    def __get_headers(cls) -> dict:
+    @staticmethod
+    def __get_headers() -> dict:
         return {
             'authority': 'you.com',
             'accept': 'text/event-stream',
@@ -103,6 +103,6 @@ class Completion:
             'user-agent': UserAgent().random,
         }
 
-    @classmethod
-    def __get_failure_response(cls) -> PoeResponse:
+    @staticmethod
+    def __get_failure_response() -> PoeResponse:
         return PoeResponse(text='Unable to fetch the response, Please try again.')

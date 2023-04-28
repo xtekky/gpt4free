@@ -108,7 +108,6 @@ class Model:
         description: str = 'gpt-3.5 language model from openai, skidded by poe.com',
         handle: str = None,
     ) -> ModelResponse:
-
         if not handle:
             handle = f'gptx{randint(1111111, 9999999)}'
 
@@ -428,8 +427,8 @@ class Poe:
         driver.close()
         return cookie
 
-    @classmethod
-    def __resolve_driver(cls, driver: str, driver_path: Optional[str] = None) -> Union[Firefox, Chrome]:
+    @staticmethod
+    def __resolve_driver(driver: str, driver_path: Optional[str] = None) -> Union[Firefox, Chrome]:
         options = FirefoxOptions() if driver == 'firefox' else ChromeOptions()
         options.add_argument('-headless')
 
