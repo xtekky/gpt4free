@@ -12,6 +12,7 @@ venv/
 
 # Ignore streamlit_chat_app.py conversations pickle
 conversations.pkl
+*.pkl
 
 # Ignore accounts created by api's
 accounts.txt
