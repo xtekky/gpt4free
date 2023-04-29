@@ -1,4 +1,4 @@
-from openai_rev import forefront
+from gpt4free import forefront
 
 # create an account
 token = forefront.Account.create(logging=True)
