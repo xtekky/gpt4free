@@ -1,0 +1,9 @@
+version: "3.9"
+
+services:
+  gpt4free:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8501:8501"
