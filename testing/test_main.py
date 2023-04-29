@@ -6,8 +6,7 @@ response = gpt4free.Completion.create(Provider.You, prompt='Write a poem on Lion
 print(response)
 
 # usage Poe
-# token = quora.Account.create(logging=False)
-token = 'GKzCahZYGKhp76LfE197xw=='
+token = quora.Account.create(logging=False)
 response = gpt4free.Completion.create(Provider.Poe, prompt='Write a poem on Lionel Messi', token=token, model='ChatGPT')
 print(response)
 
