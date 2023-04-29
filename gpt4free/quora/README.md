@@ -55,7 +55,7 @@ print(response.completion.choices[0].text)
 
 ### Update Use This For Poe
 ```python
-from quora import Poe
+from gpt4free.quora import Poe
 
 # available models:  ['Sage', 'GPT-4', 'Claude+', 'Claude-instant', 'ChatGPT', 'Dragonfly', 'NeevaAI']
 
