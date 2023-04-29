@@ -2,7 +2,7 @@
 
 ```python
 # import library
-from openai_rev import theb
+from gpt4free import theb
 
 # simple streaming completion
 for token in theb.Completion.create('hello world'):

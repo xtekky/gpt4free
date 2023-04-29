@@ -21,7 +21,7 @@ models = {
 
 ```python
 # import quora (poe) package
-from openai_rev import quora
+from gpt4free import quora
 
 # create account
 # make sure to set enable_bot_creation to True
@@ -44,19 +44,21 @@ for response in quora.StreamingCompletion.create(
 ```
 
 ### Normal Response:
-```python
-from  openai_rev import quora
 
-response = quora.Completion.create(model  = 'gpt-4',
-    prompt = 'hello world',
-    token  = 'token')
+```python
+from gpt4free import quora
+
+response = quora.Completion.create(model='gpt-4',
+                                   prompt='hello world',
+                                   token='token')
 
 print(response.text)    
 ```     
 
 ### Update Use This For Poe
+
 ```python
-from openai_rev.quora import Poe
+from gpt4free.quora import Poe
 
 # available models:  ['Sage', 'GPT-4', 'Claude+', 'Claude-instant', 'ChatGPT', 'Dragonfly', 'NeevaAI']
 

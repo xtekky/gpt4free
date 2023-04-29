@@ -1,10 +1,10 @@
 from enum import Enum
 
-from openai_rev import forefront
-from openai_rev import openaihosted
-from openai_rev import quora
-from openai_rev import theb
-from openai_rev import you
+from gpt4free import forefront
+from gpt4free import openaihosted
+from gpt4free import quora
+from gpt4free import theb
+from gpt4free import you
 
 
 class Provider(Enum):

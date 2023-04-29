@@ -5,7 +5,7 @@ description = ""
 authors = ["Raju Komati <komatiraju032@gmail.com>"]
 license = "GPL-3.0"
 readme = "README.md"
-packages = [{ include = "openai_rev" }]
+packages = [{ include = "gpt4free" }]
 exclude = ["**/*.txt"]
 
 [tool.poetry.dependencies]

@@ -6,8 +6,8 @@ from typing import Optional
 from tls_client import Session as TLS
 from twocaptcha import TwoCaptcha
 
-from openai_rev.quora import extract_formkey
-from openai_rev.quora.mail import Emailnator
+from gpt4free.quora import extract_formkey
+from gpt4free.quora.mail import Emailnator
 
 solver = TwoCaptcha('72747bf24a9d89b4dcc1b24875efd358')
 

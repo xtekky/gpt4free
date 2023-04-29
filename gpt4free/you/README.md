@@ -2,7 +2,7 @@
 
 ```python
 
-from openai_rev import you
+from gpt4free import you
 
 # simple request with links and details
 response = you.Completion.create(
