@@ -2,7 +2,7 @@
 name = "openai-rev"
 version = "0.1.0"
 description = ""
-authors = ["Raju Komati <komatiraju032@gmail.com>"]
+authors = []
 license = "GPL-3.0"
 readme = "README.md"
 packages = [{ include = "gpt4free" }]

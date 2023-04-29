@@ -42,9 +42,7 @@ class Emailnator:
 
         while True:
             sleep(2)
-            mail_token = self.client.post(
-                "https://www.emailnator.com/message-list", json={"email": self.email}
-            )
+            mail_token = self.client.post("https://www.emailnator.com/message-list", json={"email": self.email})
 
             mail_token = loads(mail_token.text)["messageData"]
 
