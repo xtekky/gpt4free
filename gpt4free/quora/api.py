@@ -225,7 +225,7 @@ class Client:
             r = request_with_retries(self.session.post, self.gql_url, data=payload, headers=headers)
 
             data = r.json()
-            if data["data"] == None:
+            if data["data"] is None:
                 logger.warn(f'{query_name} returned an error: {data["errors"][0]["message"]} | Retrying ({i + 1}/20)')
                 time.sleep(2)
                 continue
@@ -316,7 +316,7 @@ class Client:
                         return
 
                     # indicate that the response id is tied to the human message id
-                    elif key != "pending" and value == None and message["state"] != "complete":
+                    elif key != "pending" and value is None and message["state"] != "complete":
                         self.active_messages[key] = message["messageId"]
                         self.message_queues[key].put(message)
                         return
@@ -384,7 +384,7 @@ class Client:
                     continue
 
             # update info about response
-            message["text_new"] = message["text"][len(last_text):]
+            message["text_new"] = message["text"][len(last_text) :]
             last_text = message["text"]
             message_id = message["messageId"]
 
@@ -402,7 +402,7 @@ class Client:
         logger.info(f"Downloading {count} messages from {chatbot}")
 
         messages = []
-        if cursor == None:
+        if cursor is None:
             chat_data = self.get_bot(self.bot_names[chatbot])
             if not chat_data["messagesConnection"]["edges"]:
                 return []
@@ -456,21 +456,21 @@ class Client:
         logger.info(f"No more messages left to delete.")
 
     def create_bot(
-            self,
-            handle,
-            prompt="",
-            base_model="chinchilla",
-            description="",
-            intro_message="",
-            api_key=None,
-            api_bot=False,
-            api_url=None,
-            prompt_public=True,
-            pfp_url=None,
-            linkification=False,
-            markdown_rendering=True,
-            suggested_replies=False,
-            private=False,
+        self,
+        handle,
+        prompt="",
+        base_model="chinchilla",
+        description="",
+        intro_message="",
+        api_key=None,
+        api_bot=False,
+        api_url=None,
+        prompt_public=True,
+        pfp_url=None,
+        linkification=False,
+        markdown_rendering=True,
+        suggested_replies=False,
+        private=False,
     ):
         result = self.send_query(
             "PoeBotCreateMutation",
@@ -499,21 +499,21 @@ class Client:
         return data
 
     def edit_bot(
-            self,
-            bot_id,
-            handle,
-            prompt="",
-            base_model="chinchilla",
-            description="",
-            intro_message="",
-            api_key=None,
-            api_url=None,
-            private=False,
-            prompt_public=True,
-            pfp_url=None,
-            linkification=False,
-            markdown_rendering=True,
-            suggested_replies=False,
+        self,
+        bot_id,
+        handle,
+        prompt="",
+        base_model="chinchilla",
+        description="",
+        intro_message="",
+        api_key=None,
+        api_url=None,
+        private=False,
+        prompt_public=True,
+        pfp_url=None,
+        linkification=False,
+        markdown_rendering=True,
+        suggested_replies=False,
     ):
         result = self.send_query(
             "PoeBotEditMutation",
