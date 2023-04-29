@@ -4,7 +4,7 @@ import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), os.path.pardir))
 
 import streamlit as st
-from openai_rev import you
+import you
 
 
 def get_answer(question: str) -> str:
