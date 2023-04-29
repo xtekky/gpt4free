@@ -1,4 +1,4 @@
-from openai_rev import you
+from gpt4free import you
 
 # simple request with links and details
 response = you.Completion.create(prompt="hello world", detailed=True, include_links=True)
@@ -22,6 +22,6 @@ while True:
 
     response = you.Completion.create(prompt=prompt, chat=chat)
 
-    print("Bot:", response["response"])
+    print("Bot:", response.text)
 
-    chat.append({"question": prompt, "answer": response["response"]})
+    chat.append({"question": prompt, "answer": response.text})

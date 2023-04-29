@@ -1,9 +1,8 @@
 ### Example: `theb` (use like openai pypi package) <a name="example-theb"></a>
 
-
 ```python
 # import library
-import theb
+from gpt4free import theb
 
 # simple streaming completion
 for token in theb.Completion.create('hello world'):

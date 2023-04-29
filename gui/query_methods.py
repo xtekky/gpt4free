@@ -3,7 +3,7 @@ import sys
 
 sys.path.append(os.path.join(os.path.dirname(__file__), os.path.pardir))
 
-import forefront, quora, theb, you
+from gpt4free import quora, forefront, theb, you
 import random
 
 
@@ -15,7 +15,7 @@ def query_forefront(question: str) -> str:
     response = ""
     # get a response
     try:
-        for i in forefront.StreamingCompletion.create(token = token, prompt = 'hello world', model='gpt-4'):
+        for i in forefront.StreamingCompletion.create(token = token, prompt ='hello world', model='gpt-4'):
             response += i.completion.choices[0].text
         
         return response

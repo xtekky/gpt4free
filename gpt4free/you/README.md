@@ -1,7 +1,8 @@
 ### Example: `you` (use like openai pypi package) <a name="example-you"></a>
 
 ```python
-import you
+
+from gpt4free import you
 
 # simple request with links and details
 response = you.Completion.create(

@@ -1,4 +1,4 @@
-from openai_rev import quora
+from gpt4free import quora
 
 token = quora.Account.create(logging=True, enable_bot_creation=True)
 
