@@ -18,3 +18,12 @@ def auth():
     name, authentication_status, username = authenticator.login('Login', 'main')
 
     return name, authentication_status, username, authenticator
+
+def gen_pwd_hash(pwd):
+    hashed_passwords = stauth.Hasher([pwd]).generate()
+
+    print(hashed_passwords[0])
+
+
+if __name__ == "__main__":
+    gen_pwd_hash("gpt4free")
