@@ -152,6 +152,10 @@ Run
 ```
 docker run -p 8501:8501 gpt4free:latest
 ```
+Another way - docker-compose (no docker build/run needed)
+```
+docker-compose up
+```
 
 ## ChatGPT clone
 > currently implementing new features and trying to scale it, please be patient it may be unstable     
