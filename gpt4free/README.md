@@ -2,7 +2,7 @@
 
 ### What is it?
 
-gpt4free is a python package that provides the access to gpt models like ChatGPT and gpt-4 models.
+gpt4free is a python package that provides some language model api's
 
 ### Main Features
 
