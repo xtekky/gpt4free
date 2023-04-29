@@ -1,0 +1,9 @@
+version: '3'
+services:
+  gpt4free:
+    build: ./
+    environment:
+      - GPT4FREE_AUTH=true
+    restart: always
+    ports:
+      - 8501:8501

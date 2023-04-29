@@ -1,0 +1,13 @@
+credentials:
+  usernames:
+    gpt4free:
+      email: gpt4free@gmail.com
+      name: admin
+      password: $2b$12$.AA4mlCd52auvoFpWLBii.xZpq2VrYgWFEOakZY6g2pagX/UTuoZy # gpt4free
+cookie:
+  expiry_days: 30
+  key: gpt4free_key
+  name: gpt4free
+preauthorized:
+  emails:
+  - gpt4free@gmail.com

@@ -144,6 +144,18 @@ Move `streamlit_app.py` from `./gui` to the base folder
 then run:   
 `streamlit run streamlit_app.py` or `python3 -m streamlit run streamlit_app.py`
 
+If you want to open the authentication, please set the "GPT4FREE_AUTH" env to "true"
+
+```
+export GPT4FREE_AUTH=true && streamlit run streamlit_app.py
+```
+
+P.S. Default auth in gui/config.yaml is gpt4free/gpt4free, if you want to change the password, you can use this to generate the pwd hash.
+
+```
+hashed_passwords = stauth.Hasher(['yourpassword']).generate()
+```
+
 ## Docker <a name="docker-instructions"></a>
 Build
 ```
@@ -153,6 +165,14 @@ Run
 ```
 docker run -p 8501:8501 gpt4free:latest
 ```
+
+Also you can run with docker-compose
+
+```
+docker-compose up -d
+```
+
+* P.S. You can change the GPT4FREE_AUTH to open/close the authentication.
 
 ## ChatGPT clone
 > currently implementing new features and trying to scale it, please be patient it may be unstable     
