@@ -7,7 +7,6 @@ from gpt4free import quora, forefront, theb, you
 import random
 
 
-
 def query_forefront(question: str) -> str:
     # create an account
     token = forefront.Account.create(logging=False)
@@ -15,65 +14,59 @@ def query_forefront(question: str) -> str:
     response = ""
     # get a response
     try:
-        for i in forefront.StreamingCompletion.create(token = token, prompt ='hello world', model='gpt-4'):
-            response += i.completion.choices[0].text
-        
-        return response
-    
+        return forefront.Completion.create(token=token, prompt='hello world', model='gpt-4').text
     except Exception as e:
         # Return error message if an exception occurs
-        return f'An error occurred: {e}. Please make sure you are using a valid cloudflare clearance token and user agent.'
+        return (
+            f'An error occurred: {e}. Please make sure you are using a valid cloudflare clearance token and user agent.'
+        )
 
 
 def query_quora(question: str) -> str:
     token = quora.Account.create(logging=False, enable_bot_creation=True)
-    response = quora.Completion.create(
-        model='gpt-4',
-        prompt=question,
-        token=token
-    )
-
-    return response.completion.choices[0].tex
+    return quora.Completion.create(model='gpt-4', prompt=question, token=token).text
 
 
 def query_theb(question: str) -> str:
     # Set cloudflare clearance cookie and get answer from GPT-4 model
     response = ""
     try:
-        result = theb.Completion.create(
-            prompt = question)
-        return result
-    
+        return ''.join(theb.Completion.create(prompt=question))
+
     except Exception as e:
         # Return error message if an exception occurs
-        return f'An error occurred: {e}. Please make sure you are using a valid cloudflare clearance token and user agent.'
+        return (
+            f'An error occurred: {e}. Please make sure you are using a valid cloudflare clearance token and user agent.'
+        )
 
 
 def query_you(question: str) -> str:
     # Set cloudflare clearance cookie and get answer from GPT-4 model
     try:
-        result = you.Completion.create(
-            prompt = question)
+        result = you.Completion.create(prompt=question)
         return result["response"]
-    
+
     except Exception as e:
         # Return error message if an exception occurs
-        return f'An error occurred: {e}. Please make sure you are using a valid cloudflare clearance token and user agent.'
+        return (
+            f'An error occurred: {e}. Please make sure you are using a valid cloudflare clearance token and user agent.'
+        )
+
 
 # Define a dictionary containing all query methods
 avail_query_methods = {
-        "Forefront": query_forefront,
-        "Poe": query_quora,
-        "Theb": query_theb,
-        "You": query_you,
-        # "Writesonic": query_writesonic,
-        # "T3nsor": query_t3nsor,
-        # "Phind": query_phind,
-        # "Ora": query_ora,
-    }
+    "Forefront": query_forefront,
+    "Poe": query_quora,
+    "Theb": query_theb,
+    "You": query_you,
+    # "Writesonic": query_writesonic,
+    # "T3nsor": query_t3nsor,
+    # "Phind": query_phind,
+    # "Ora": query_ora,
+}
+
 
 def query(user_input: str, selected_method: str = "Random") -> str:
-
     # If a specific query method is selected (not "Random") and the method is in the dictionary, try to call it
     if selected_method != "Random" and selected_method in avail_query_methods:
         try:
@@ -104,4 +97,3 @@ def query(user_input: str, selected_method: str = "Random") -> str:
             query_methods_list.remove(chosen_query)
 
     return result
-

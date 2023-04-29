@@ -1,6 +1,6 @@
+import atexit
 import os
 import sys
-import atexit
 
 sys.path.append(os.path.join(os.path.dirname(__file__), os.path.pardir))
 
@@ -9,8 +9,8 @@ from streamlit_chat import message
 from query_methods import query, avail_query_methods
 import pickle
 
-
 conversations_file = "conversations.pkl"
+
 
 def load_conversations():
     try:
@@ -31,11 +31,11 @@ def save_conversations(conversations, current_conversation):
             break
     if not updated:
         conversations.append(current_conversation)
-    
+
     temp_conversations_file = "temp_" + conversations_file
     with open(temp_conversations_file, "wb") as f:
         pickle.dump(conversations, f)
-    
+
     os.replace(temp_conversations_file, conversations_file)
 
 
@@ -44,9 +44,9 @@ def exit_handler():
     # Perform cleanup operations here, like saving data or closing open files.
     save_conversations(st.session_state.conversations, st.session_state.current_conversation)
 
+
 # Register the exit_handler function to be called when the program is closing.
 atexit.register(exit_handler)
-
 
 st.header("Chat Placeholder")
 
@@ -61,7 +61,7 @@ if 'selected_conversation' not in st.session_state:
 
 if 'input_field_key' not in st.session_state:
     st.session_state['input_field_key'] = 0
-    
+
 if 'query_method' not in st.session_state:
     st.session_state['query_method'] = query
 
@@ -69,20 +69,22 @@ if 'query_method' not in st.session_state:
 if 'current_conversation' not in st.session_state or st.session_state['current_conversation'] is None:
     st.session_state['current_conversation'] = {'user_inputs': [], 'generated_responses': []}
 
-
 input_placeholder = st.empty()
-user_input = input_placeholder.text_input('You:', key=f'input_text_{len(st.session_state["current_conversation"]["user_inputs"])}')
+user_input = input_placeholder.text_input(
+    'You:', key=f'input_text_{len(st.session_state["current_conversation"]["user_inputs"])}'
+)
 submit_button = st.button("Submit")
 
 if user_input or submit_button:
     output = query(user_input, st.session_state['query_method'])
     escaped_output = output.encode('utf-8').decode('unicode-escape')
-    
+
     st.session_state.current_conversation['user_inputs'].append(user_input)
     st.session_state.current_conversation['generated_responses'].append(escaped_output)
     save_conversations(st.session_state.conversations, st.session_state.current_conversation)
-    user_input = input_placeholder.text_input('You:', value='', key=f'input_text_{len(st.session_state["current_conversation"]["user_inputs"])}')  # Clear the input field
-
+    user_input = input_placeholder.text_input(
+        'You:', value='', key=f'input_text_{len(st.session_state["current_conversation"]["user_inputs"])}'
+    )  # Clear the input field
 
 # Add a button to create a new conversation
 if st.sidebar.button("New Conversation"):
@@ -90,11 +92,7 @@ if st.sidebar.button("New Conversation"):
     st.session_state['current_conversation'] = {'user_inputs': [], 'generated_responses': []}
     st.session_state['input_field_key'] += 1
 
-st.session_state['query_method'] = st.sidebar.selectbox(
-    "Select API:",
-    options=avail_query_methods,
-    index=0
-)
+st.session_state['query_method'] = st.sidebar.selectbox("Select API:", options=avail_query_methods, index=0)
 
 # Sidebar
 st.sidebar.header("Conversation History")
