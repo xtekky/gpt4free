@@ -377,10 +377,10 @@ class Poe:
             raise RuntimeError('Sorry, the model you provided does not exist. Please check and try again.')
         self.model = MODELS[model]
         self.cookie_path = cookie_path
-        self.cookie = self.__load_cookie(driver, download_driver, driver_path=driver_path)
+        self.cookie = self.__load_cookie(driver, driver_path=driver_path)
         self.client = PoeClient(self.cookie)
 
-    def __load_cookie(self, driver: str, download_driver: bool, driver_path: Optional[str] = None) -> str:
+    def __load_cookie(self, driver: str, driver_path: Optional[str] = None) -> str:
         if (cookie_file := Path(self.cookie_path)).exists():
             with cookie_file.open() as fp:
                 cookie = json.load(fp)
