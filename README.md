@@ -19,27 +19,26 @@ Please note the following:
 3. **Educational Purposes Only**: This repository and its content are provided strictly for educational purposes. By using the information and code provided, users acknowledge that they are using the APIs and models at their own risk and agree to comply with any applicable laws and regulations.
 
 ## Table of Contents
-
-| Section                                      | Description                                                      | Link                                                                                                                                                                         | Status                                                     |
-| -------------------------------------------- | ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- | --- | --- |
-| **To do list**                               | List of tasks to be done                                         | [![Link to Section](https://img.shields.io/badge/Link-Go%20to%20Section-blue)](#todo)                                                                                        | -                                                          |
-| **Current Sites**                            | Current websites or platforms that can be used as APIs           | [![Link to Section](https://img.shields.io/badge/Link-Go%20to%20Section-blue)](#current-sites)                                                                               | -                                                          |
-| **Best Sites for gpt4**                      | Recommended websites or platforms for gpt4                       | [![Link to Section](https://img.shields.io/badge/Link-Go%20to%20Section-blue)](#best-sites)                                                                                  | -                                                          |
-| **Streamlit GPT4Free GUI**                   | Web-based graphical user interface for interacting with gpt4free | [![Link to Section](https://img.shields.io/badge/Link-Go%20to%20Section-blue)](#streamlit-gpt4free-gui)                                                                      | -                                                          |
-| **Docker**                                   | Instructions on how to run gpt4free in a Docker container        | [![Link to Section](https://img.shields.io/badge/Link-Go%20to%20Section-blue)](#docker-instructions)                                                                         | -                                                          |
-| **ChatGPT clone**                            | A ChatGPT clone with new features and scalability                | [![Link to Website](https://img.shields.io/badge/Link-Visit%20Site-blue)](https://chat.chatbot.sex/chat)                                                                     | -                                                          |
-| **How to install**                           | Instructions on how to install gpt4free                          | [![Link to Section](https://img.shields.io/badge/Link-Go%20to%20Section-blue)](#install)                                                                                     | -                                                          |
-| **Legal Notice**                             | Legal notice or disclaimer                                       | [![Link to Section](https://img.shields.io/badge/Link-Go%20to%20Section-blue)](#legal-notice)                                                                                | -                                                          |
-| **Copyright**                                | Copyright information                                            | [![Link to Section](https://img.shields.io/badge/Link-Go%20to%20Section-blue)](#copyright)                                                                                   | -                                                          |
-| **Star History**                             | Star History                                                     | [![Link to Section](https://img.shields.io/badge/Link-Go%20to%20Section-blue)](#star-history)                                                                                | -                                                          |
-| **Usage Examples**                           |                                                                  |                                                                                                                                                                              |                                                            |
-| `theb`                                       | Example usage for theb (gpt-3.5)                                 | [![Link to File](https://img.shields.io/badge/Link-Go%20to%20File-blue)](openai_rev/theb/README.md)                                                                          | ![Active](https://img.shields.io/badge/Active-brightgreen) |
-| `forefront`                                  | Example usage for forefront (gpt-4)                              | [![Link to File](https://img.shields.io/badge/Link-Go%20to%20File-blue)](gpt4free/forefront/README.md)                                                                       | ![Active](https://img.shields.io/badge/Active-brightgreen) |     |     |
-| `quora (poe)`                                | Example usage for quora                                          | [![Link to File](https://img.shields.io/badge/Link-Go%20to%20File-blue)](gpt4free/quora/README.md)                                                                           | ![Active](https://img.shields.io/badge/Active-brightgreen) |
-| `you`                                        | Example usage for you                                            | [![Link to File](https://img.shields.io/badge/Link-Go%20to%20File-blue)](gpt4free/you/README.md)                                                                             | ![Active](https://img.shields.io/badge/Active-brightgreen) |
-| **Try it Out**                               |                                                                  |                                                                                                                                                                              |                                                            |
-| Google Colab Jupyter Notebook                | Example usage for gpt4free                                       | [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/DanielShemesh/gpt4free-colab/blob/main/gpt4free.ipynb) | -                                                          |
-| replit Example (feel free to fork this repl) | Example usage for gpt4free                                       | [![](https://img.shields.io/badge/Open%20in-Replit-1A1E27?logo=replit)](https://replit.com/@gpt4free/gpt4free-webui)                                                         | -                                                          |
+| Section | Description | Link | Status |
+| ------- | ----------- | ---- | ------ |
+| **To do list** | List of tasks to be done | [![Link to Section](https://img.shields.io/badge/Link-Go%20to%20Section-blue)](#todo) | - |
+| **Current Sites** | Current websites or platforms that can be used as APIs | [![Link to Section](https://img.shields.io/badge/Link-Go%20to%20Section-blue)](#current-sites) | - |
+| **Best Sites for gpt4** | Recommended websites or platforms for gpt4 | [![Link to Section](https://img.shields.io/badge/Link-Go%20to%20Section-blue)](#best-sites) | - |
+| **Streamlit GPT4Free GUI** | Web-based graphical user interface for interacting with gpt4free | [![Link to Section](https://img.shields.io/badge/Link-Go%20to%20Section-blue)](#streamlit-gpt4free-gui) | - |
+| **Docker** | Instructions on how to run gpt4free in a Docker container | [![Link to Section](https://img.shields.io/badge/Link-Go%20to%20Section-blue)](#docker-instructions) | - |
+| **ChatGPT clone** | A ChatGPT clone with new features and scalability | [![Link to Website](https://img.shields.io/badge/Link-Visit%20Site-blue)](https://chat.chatbot.sex/chat) | - |
+| **How to install** | Instructions on how to install gpt4free | [![Link to Section](https://img.shields.io/badge/Link-Go%20to%20Section-blue)](#install) | - |
+| **Legal Notice** | Legal notice or disclaimer | [![Link to Section](https://img.shields.io/badge/Link-Go%20to%20Section-blue)](#legal-notice) | - |
+| **Copyright** | Copyright information | [![Link to Section](https://img.shields.io/badge/Link-Go%20to%20Section-blue)](#copyright) | - |
+| **Star History** | Star History | [![Link to Section](https://img.shields.io/badge/Link-Go%20to%20Section-blue)](#star-history) | - |
+| **Usage Examples** | | | |
+| `theb` | Example usage for theb (gpt-3.5) | [![Link to File](https://img.shields.io/badge/Link-Go%20to%20File-blue)](gpt4free/theb/README.md) | ![Active](https://img.shields.io/badge/Active-brightgreen) |
+| `forefront` | Example usage for forefront (gpt-4) | [![Link to File](https://img.shields.io/badge/Link-Go%20to%20File-blue)](gpt4free/forefront/README.md) | ![Active](https://img.shields.io/badge/Active-brightgreen) | ||
+| `quora (poe)` | Example usage for quora | [![Link to File](https://img.shields.io/badge/Link-Go%20to%20File-blue)](gpt4free/quora/README.md) | ![Active](https://img.shields.io/badge/Active-brightgreen) |
+| `you` | Example usage for you | [![Link to File](https://img.shields.io/badge/Link-Go%20to%20File-blue)](gpt4free/you/README.md) | ![Active](https://img.shields.io/badge/Active-brightgreen) |
+| **Try it Out** | | | |
+| Google Colab Jupyter Notebook | Example usage for gpt4free | [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/DanielShemesh/gpt4free-colab/blob/main/gpt4free.ipynb) | - |
+| replit Example (feel free to fork this repl) | Example usage for gpt4free | [![](https://img.shields.io/badge/Open%20in-Replit-1A1E27?logo=replit)](https://replit.com/@gpt4free/gpt4free-webui) | - |
 
 ## Todo <a name="todo"></a>
 
@@ -101,6 +100,10 @@ Run
 
 ```
 docker run -p 8501:8501 gpt4free:latest
+```
+Another way - docker-compose (no docker build/run needed)
+```
+docker-compose up -d
 ```
 
 ## Deploy using docker-compose
