@@ -101,6 +101,10 @@ Run
 ```
 docker run -p 8501:8501 gpt4free:latest
 ```
+Another way - docker-compose (no docker build/run needed)
+```
+docker-compose up -d
+```
 
 ## Deploy using docker-compose
 
