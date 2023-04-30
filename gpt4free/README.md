@@ -19,7 +19,6 @@ pip install gpt4free
 
 ```python
 import gpt4free
-import gpt4free
 from gpt4free import Provider, quora, forefront
 
 # usage You
