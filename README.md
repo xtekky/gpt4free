@@ -1,6 +1,6 @@
 ##### You may join our discord server for updates and support ; )
 
-- [Discord Link](https://discord.gg/gpt4free)
+- [discord.gg/gpt4free](https://discord.gg/gpt4free)
 
 <img width="1383" alt="image" src="https://user-images.githubusercontent.com/98614666/233799515-1a7cb6a3-b17f-42c4-956d-8d2a0664466f.png">
 
