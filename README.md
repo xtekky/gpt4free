@@ -1,25 +1,39 @@
+<img alt="gpt4free logo" src="https://user-images.githubusercontent.com/98614666/233799515-1a7cb6a3-b17f-42c4-956d-8d2a0664466f.png">
 <img src="https://media.giphy.com/media/LnQjpWaON8nhr21vNW/giphy.gif" width="100" align="left">
- 
-<table style="border: none;">
-  <tr>
-    <td style="width: 50%;">
-      <h1>gpt4free</h1>
-      <p>Join our gpt4free Discord community! <a href="https://discord.gg/gpt4free"><img align="center" alt="gpt4free Discord" width="22px" src="https://raw.githubusercontent.com/peterthehan/peterthehan/master/assets/discord.svg" /></a></p>
-      <img width="500" alt="image" src="https://user-images.githubusercontent.com/98614666/233799515-1a7cb6a3-b17f-42c4-956d-8d2a0664466f.png">
-      <p>Just API's from some language model sites.</p>
-    </td>
-    <td style="width: 50%;">
-      <a href="https://star-history.com/#xtekky/gpt4free">
-        <img width="500" alt="Star History Chart" src="https://api.star-history.com/svg?repos=xtekky/gpt4free&type=Date">
-      </a>
-    </td>
-  </tr>
-</table>
+Just API's from some language model sites.
+<p>Join our gpt4free Discord community! <a href="https://discord.gg/gpt4free"><img align="center" alt="gpt4free Discord" width="22px" src="https://raw.githubusercontent.com/peterthehan/peterthehan/master/assets/discord.svg" /></a></p>
 
 
 # Open-Source Projects by xtekky
 
-<table> <thead align="center"> <tr border: none;> <td><b>🎁 Projects</b></td> <td><b>⭐ Stars</b></td> <td><b>📚 Forks</b></td> <td><b>🛎 Issues</b></td> <td><b>📬 Pull requests</b></td> </tr> </thead> <tbody> <tr> <td><a href="https://github.com/xtekky/gpt4free"><b>gpt4free</b></a></td> <td><img alt="Stars" src="https://img.shields.io/github/stars/xtekky/gpt4free?style=flat-square&labelColor=343b41"/></td> <td><img alt="Forks" src="https://img.shields.io/github/forks/xtekky/gpt4free?style=flat-square&labelColor=343b41"/></td> <td><img alt="Issues" src="https://img.shields.io/github/issues/xtekky/gpt4free?style=flat-square&labelColor=343b41"/></td> <td><img alt="Pull Requests" src="https://img.shields.io/github/issues-pr/xtekky/gpt4free?style=flat-square&labelColor=343b41"/></td> </tr> <tr> <td><a href="https://github.com/xtekky/chatgpt-clone"><b>ChatGPT-Clone</b></a></td> <td><img alt="Stars" src="https://img.shields.io/github/stars/xtekky/chatgpt-clone?style=flat-square&labelColor=343b41"/></td> <td><img alt="Forks" src="https://img.shields.io/github/forks/xtekky/chatgpt-clone?style=flat-square&labelColor=343b41"/></td> <td><img alt="Issues" src="https://img.shields.io/github/issues/xtekky/chatgpt-clone?style=flat-square&labelColor=343b41"/></td> <td><img alt="Pull Requests" src="https://img.shields.io/github/issues-pr/xtekky/chatgpt-clone?style=flat-square&labelColor=343b41"/></td> </tr> </tbody> </table>
+<table>
+  <thead align="center">
+    <tr border: none;>
+      <td><b>🎁 Projects</b></td>
+      <td><b>⭐ Stars</b></td>
+      <td><b>📚 Forks</b></td>
+      <td><b>🛎 Issues</b></td>
+      <td><b>📬 Pull requests</b></td>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><a href="https://github.com/xtekky/gpt4free"><b>gpt4free</b></a></td>
+      <td><a href="https://github.com/xtekky/gpt4free/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/xtekky/gpt4free?style=flat-square&labelColor=343b41"/></a></td>
+      <td><a href="https://github.com/xtekky/gpt4free/network/members"><img alt="Forks" src="https://img.shields.io/github/forks/xtekky/gpt4free?style=flat-square&labelColor=343b41"/></a></td>
+      <td><a href="https://github.com/xtekky/gpt4free/issues"><img alt="Issues" src="https://img.shields.io/github/issues/xtekky/gpt4free?style=flat-square&labelColor=343b41"/></a></td>
+      <td><a href="https://github.com/xtekky/gpt4free/pulls"><img alt="Pull Requests" src="https://img.shields.io/github/issues-pr/xtekky/gpt4free?style=flat-square&labelColor=343b41"/></a></td>
+    </tr>
+    <tr>
+      <td><a href="https://github.com/xtekky/chatgpt-clone"><b>ChatGPT-Clone</b></a></td>
+      <td><a href="https://github.com/xtekky/chatgpt-clone/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/xtekky/chatgpt-clone?style=flat-square&labelColor=343b41"/></a></td>
+      <td><a href="https://github.com/xtekky/chatgpt-clone/network/members"><img alt="Forks" src="https://img.shields.io/github/forks/xtekky/chatgpt-clone?style=flat-square&labelColor=343b41"/></a></td>
+      <td><a href="https://github.com/xtekky/chatgpt-clone/issues"><img alt="Issues" src="https://img.shields.io/github/issues/xtekky/chatgpt-clone?style=flat-square&labelColor=343b41"/></a></td>
+      <td><a href="https://github.com/xtekky/chatgpt-clone/pulls"><img alt="Pull Requests" src="https://img.shields.io/github/issues-pr/xtekky/chatgpt-clone?style=flat-square&labelColor=343b41"/></a></td>
+    </tr>
+  </tbody>
+</table>
+
 
 ## Table of Contents
 | Section | Description | Link | Status |
@@ -41,7 +55,7 @@
 | replit Example (feel free to fork this repl) | Example usage for gpt4free | [![](https://img.shields.io/badge/Open%20in-Replit-1A1E27?logo=replit)](https://replit.com/@gpt4free/gpt4free-webui) | - |
 | **Legal Notice** | Legal notice or disclaimer | [![Link to Section](https://img.shields.io/badge/Link-Go%20to%20Section-blue)](#legal-notice) | - |
 | **Copyright** | Copyright information | [![Link to Section](https://img.shields.io/badge/Link-Go%20to%20Section-blue)](#copyright) | - |
-
+| **Star History** | Star History | [![Link to Section](https://img.shields.io/badge/Link-Go%20to%20Section-blue)](#star-history) | - |
 
 
 ## To do list <a name="todo"></a>
@@ -163,3 +177,10 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ```
+
+
+## Star History <a name="star-history"></a>
+
+<a href="https://github.com/xtekky/gpt4free/stargazers">
+        <img width="500" alt="Star History Chart" src="https://api.star-history.com/svg?repos=xtekky/gpt4free&type=Date">
+      </a> 
