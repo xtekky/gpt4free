@@ -13,3 +13,8 @@ From: python:3.10-slim
 
 %startscript
     exec streamlit run streamlit_app.py
+
+%labels
+    Author Andrew Tsegaye
+    Version 1.0
+    Description GPT4Free Singularity Container
