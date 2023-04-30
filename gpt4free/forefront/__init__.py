@@ -98,11 +98,14 @@ class StreamingCompletion:
         action_type='new',
         default_persona='607e41fe-95be-497e-8e97-010a59b2e2c0',  # default
         model='gpt-4',
+        proxy=None
     ) -> Generator[ForeFrontResponse, None, None]:
         if not token:
             raise Exception('Token is required!')
         if not chat_id:
             chat_id = str(uuid4())
+
+        proxies = { 'http': 'http://' + proxy, 'https': 'http://' + proxy } if proxy else None
 
         headers = {
             'authority': 'chat-server.tenant-forefront-default.knative.chi.coreweave.com',
@@ -135,6 +138,7 @@ class StreamingCompletion:
         for chunk in post(
             'https://chat-server.tenant-forefront-default.knative.chi.coreweave.com/chat',
             headers=headers,
+            proxies=proxies,
             json=json_data,
             stream=True,
         ).iter_lines():
@@ -169,6 +173,7 @@ class Completion:
         action_type='new',
         default_persona='607e41fe-95be-497e-8e97-010a59b2e2c0',  # default
         model='gpt-4',
+        proxy=None
     ) -> ForeFrontResponse:
         text = ''
         final_response = None
@@ -179,6 +184,7 @@ class Completion:
             action_type=action_type,
             default_persona=default_persona,
             model=model,
+            proxy=proxy
         ):
             if response:
                 final_response = response
