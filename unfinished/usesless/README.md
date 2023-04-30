@@ -10,15 +10,14 @@ to do:
 ```python
 import usesless
 
-question1 = "Who won the world series in 2020?"
-req = usesless.Completion.create(prompt=question1)
-answer = req["text"]
-message_id = req["parentMessageId"]
+message_id = ""
+while True:
+    prompt = input("Question: ")
+    if prompt == "!stop":
+        break
 
-question2 = "Where was it played?"
-req2 = usesless.Completion.create(prompt=question2, parentMessageId=message_id)
-answer2 = req2["text"]
+    req = usesless.Completion.create(prompt=prompt, parentMessageId=message_id)
 
-print(answer)
-print(answer2)
+    print(f"Answer: {req['text']}")
+    message_id = req["id"]
 ```
