@@ -1,4 +1,3 @@
-from curl_cffi.requests import headers
 import requests
 import json
 
