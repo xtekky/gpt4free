@@ -1,22 +1,25 @@
-##### You may join our discord server for updates and support ; )
+<img src="https://media.giphy.com/media/LnQjpWaON8nhr21vNW/giphy.gif" width="100" align="left">
+ 
+<table style="border: none;">
+  <tr>
+    <td style="width: 50%;">
+      <h1>gpt4free</h1>
+      <p>Join our gpt4free Discord community! <a href="https://discord.gg/gpt4free"><img align="center" alt="gpt4free Discord" width="22px" src="https://raw.githubusercontent.com/peterthehan/peterthehan/master/assets/discord.svg" /></a></p>
+      <img width="500" alt="image" src="https://user-images.githubusercontent.com/98614666/233799515-1a7cb6a3-b17f-42c4-956d-8d2a0664466f.png">
+      <p>Just API's from some language model sites.</p>
+    </td>
+    <td style="width: 50%;">
+      <a href="https://star-history.com/#xtekky/gpt4free">
+        <img width="500" alt="Star History Chart" src="https://api.star-history.com/svg?repos=xtekky/gpt4free&type=Date">
+      </a>
+    </td>
+  </tr>
+</table>
 
-- [discord.gg/gpt4free](https://discord.gg/gpt4free)
 
-<img width="1383" alt="image" src="https://user-images.githubusercontent.com/98614666/233799515-1a7cb6a3-b17f-42c4-956d-8d2a0664466f.png">
+# Open-Source Projects by xtekky
 
-Just API's from some language model sites.
-
-## Legal Notice <a name="legal-notice"></a>
-
-This repository uses third-party APIs and is _not_ associated with or endorsed by the API providers. This project is intended **for educational purposes only**. This is just a little personal project. Sites may contact me to improve their security.
-
-Please note the following:
-
-1. **Disclaimer**: The APIs, services, and trademarks mentioned in this repository belong to their respective owners. This project is _not_ claiming any right over them.
-
-2. **Responsibility**: The author of this repository is _not_ responsible for any consequences arising from the use or misuse of this repository or the content provided by the third-party APIs and any damage or losses caused by users' actions.
-
-3. **Educational Purposes Only**: This repository and its content are provided strictly for educational purposes. By using the information and code provided, users acknowledge that they are using the APIs and models at their own risk and agree to comply with any applicable laws and regulations.
+<table> <thead align="center"> <tr border: none;> <td><b>🎁 Projects</b></td> <td><b>⭐ Stars</b></td> <td><b>📚 Forks</b></td> <td><b>🛎 Issues</b></td> <td><b>📬 Pull requests</b></td> </tr> </thead> <tbody> <tr> <td><a href="https://github.com/xtekky/gpt4free"><b>gpt4free</b></a></td> <td><img alt="Stars" src="https://img.shields.io/github/stars/xtekky/gpt4free?style=flat-square&labelColor=343b41"/></td> <td><img alt="Forks" src="https://img.shields.io/github/forks/xtekky/gpt4free?style=flat-square&labelColor=343b41"/></td> <td><img alt="Issues" src="https://img.shields.io/github/issues/xtekky/gpt4free?style=flat-square&labelColor=343b41"/></td> <td><img alt="Pull Requests" src="https://img.shields.io/github/issues-pr/xtekky/gpt4free?style=flat-square&labelColor=343b41"/></td> </tr> <tr> <td><a href="https://github.com/xtekky/chatgpt-clone"><b>ChatGPT-Clone</b></a></td> <td><img alt="Stars" src="https://img.shields.io/github/stars/xtekky/chatgpt-clone?style=flat-square&labelColor=343b41"/></td> <td><img alt="Forks" src="https://img.shields.io/github/forks/xtekky/chatgpt-clone?style=flat-square&labelColor=343b41"/></td> <td><img alt="Issues" src="https://img.shields.io/github/issues/xtekky/chatgpt-clone?style=flat-square&labelColor=343b41"/></td> <td><img alt="Pull Requests" src="https://img.shields.io/github/issues-pr/xtekky/chatgpt-clone?style=flat-square&labelColor=343b41"/></td> </tr> </tbody> </table>
 
 ## Table of Contents
 | Section | Description | Link | Status |
@@ -28,9 +31,6 @@ Please note the following:
 | **Docker** | Instructions on how to run gpt4free in a Docker container | [![Link to Section](https://img.shields.io/badge/Link-Go%20to%20Section-blue)](#docker-instructions) | - |
 | **ChatGPT clone** | A ChatGPT clone with new features and scalability | [![Link to Website](https://img.shields.io/badge/Link-Visit%20Site-blue)](https://chat.chatbot.sex/chat) | - |
 | **How to install** | Instructions on how to install gpt4free | [![Link to Section](https://img.shields.io/badge/Link-Go%20to%20Section-blue)](#install) | - |
-| **Legal Notice** | Legal notice or disclaimer | [![Link to Section](https://img.shields.io/badge/Link-Go%20to%20Section-blue)](#legal-notice) | - |
-| **Copyright** | Copyright information | [![Link to Section](https://img.shields.io/badge/Link-Go%20to%20Section-blue)](#copyright) | - |
-| **Star History** | Star History | [![Link to Section](https://img.shields.io/badge/Link-Go%20to%20Section-blue)](#star-history) | - |
 | **Usage Examples** | | | |
 | `theb` | Example usage for theb (gpt-3.5) | [![Link to File](https://img.shields.io/badge/Link-Go%20to%20File-blue)](gpt4free/theb/README.md) | ![Active](https://img.shields.io/badge/Active-brightgreen) |
 | `forefront` | Example usage for forefront (gpt-4) | [![Link to File](https://img.shields.io/badge/Link-Go%20to%20File-blue)](gpt4free/forefront/README.md) | ![Active](https://img.shields.io/badge/Active-brightgreen) | ||
@@ -39,8 +39,12 @@ Please note the following:
 | **Try it Out** | | | |
 | Google Colab Jupyter Notebook | Example usage for gpt4free | [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/DanielShemesh/gpt4free-colab/blob/main/gpt4free.ipynb) | - |
 | replit Example (feel free to fork this repl) | Example usage for gpt4free | [![](https://img.shields.io/badge/Open%20in-Replit-1A1E27?logo=replit)](https://replit.com/@gpt4free/gpt4free-webui) | - |
+| **Legal Notice** | Legal notice or disclaimer | [![Link to Section](https://img.shields.io/badge/Link-Go%20to%20Section-blue)](#legal-notice) | - |
+| **Copyright** | Copyright information | [![Link to Section](https://img.shields.io/badge/Link-Go%20to%20Section-blue)](#copyright) | - |
 
-## Todo <a name="todo"></a>
+
+
+## To do list <a name="todo"></a>
 
 - [x] Add a GUI for the repo
 - [ ] Make a general package named `gpt4free`, instead of different folders
@@ -82,6 +86,7 @@ install requirements with:
 pip3 install -r requirements.txt
 ```
 
+
 ## To start gpt4free GUI <a name="streamlit-gpt4free-gui"></a>
 
 Move `streamlit_app.py` from `./gui` to the base folder  
@@ -121,6 +126,18 @@ docker-compose up -d
 > This site was developed by me and includes **gpt-4/3.5**, **internet access** and **gpt-jailbreak's** like DAN  
 > run locally here: https://github.com/xtekky/chatgpt-clone
 
+## Legal Notice <a name="legal-notice"></a>
+
+This repository uses third-party APIs and is _not_ associated with or endorsed by the API providers. This project is intended **for educational purposes only**. This is just a little personal project. Sites may contact me to improve their security.
+
+Please note the following:
+
+1. **Disclaimer**: The APIs, services, and trademarks mentioned in this repository belong to their respective owners. This project is _not_ claiming any right over them.
+
+2. **Responsibility**: The author of this repository is _not_ responsible for any consequences arising from the use or misuse of this repository or the content provided by the third-party APIs and any damage or losses caused by users' actions.
+
+3. **Educational Purposes Only**: This repository and its content are provided strictly for educational purposes. By using the information and code provided, users acknowledge that they are using the APIs and models at their own risk and agree to comply with any applicable laws and regulations.
+
 ## Copyright:
 
 This program is licensed under the [GNU GPL v3](https://www.gnu.org/licenses/gpl-3.0.txt)
@@ -146,7 +163,3 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ```
-
-## Star History <a name="star-history"></a>
-
-[![Star History Chart](https://api.star-history.com/svg?repos=xtekky/gpt4free&type=Date)](https://star-history.com/#xtekky/gpt4free)
