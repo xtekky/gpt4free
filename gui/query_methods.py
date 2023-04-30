@@ -1,5 +1,6 @@
 import os
 import sys
+from typing import Optional
 
 sys.path.append(os.path.join(os.path.dirname(__file__), os.path.pardir))
 
@@ -7,14 +8,14 @@ from gpt4free import quora, forefront, theb, you
 import random
 
 
-def query_forefront(question: str) -> str:
+def query_forefront(question: str, proxy: Optional[str] = None) -> str:
     # create an account
-    token = forefront.Account.create(logging=False)
+    token = forefront.Account.create(logging=False, proxy=proxy)
 
     response = ""
     # get a response
     try:
-        return forefront.Completion.create(token=token, prompt='hello world', model='gpt-4').text
+        return forefront.Completion.create(token=token, prompt='hello world', model='gpt-4', proxy=proxy).text
     except Exception as e:
         # Return error message if an exception occurs
         return (
@@ -22,16 +23,16 @@ def query_forefront(question: str) -> str:
         )
 
 
-def query_quora(question: str) -> str:
-    token = quora.Account.create(logging=False, enable_bot_creation=True)
-    return quora.Completion.create(model='gpt-4', prompt=question, token=token).text
+def query_quora(question: str, proxy: Optional[str] = None) -> str:
+    token = quora.Account.create(logging=False, enable_bot_creation=True, proxy=proxy)
+    return quora.Completion.create(model='gpt-4', prompt=question, token=token, proxy=proxy).text
 
 
-def query_theb(question: str) -> str:
+def query_theb(question: str, proxy: Optional[str] = None) -> str:
     # Set cloudflare clearance cookie and get answer from GPT-4 model
     response = ""
     try:
-        return ''.join(theb.Completion.create(prompt=question))
+        return ''.join(theb.Completion.create(prompt=question, proxy=proxy))
 
     except Exception as e:
         # Return error message if an exception occurs
@@ -40,11 +41,11 @@ def query_theb(question: str) -> str:
         )
 
 
-def query_you(question: str) -> str:
+def query_you(question: str, proxy: Optional[str] = None) -> str:
     # Set cloudflare clearance cookie and get answer from GPT-4 model
     try:
-        result = you.Completion.create(prompt=question)
-        return result["response"]
+        result = you.Completion.create(prompt=question, proxy=proxy)
+        return result.text
 
     except Exception as e:
         # Return error message if an exception occurs
@@ -66,11 +67,11 @@ avail_query_methods = {
 }
 
 
-def query(user_input: str, selected_method: str = "Random") -> str:
+def query(user_input: str, selected_method: str = "Random", proxy: Optional[str] = None) -> str:
     # If a specific query method is selected (not "Random") and the method is in the dictionary, try to call it
     if selected_method != "Random" and selected_method in avail_query_methods:
         try:
-            return avail_query_methods[selected_method](user_input)
+            return avail_query_methods[selected_method](user_input, proxy=proxy)
         except Exception as e:
             print(f"Error with {selected_method}: {e}")
             return "😵 Sorry, some error occurred please try again."
@@ -89,7 +90,7 @@ def query(user_input: str, selected_method: str = "Random") -> str:
         chosen_query_name = [k for k, v in avail_query_methods.items() if v == chosen_query][0]
         try:
             # Try to call the chosen method with the user input
-            result = chosen_query(user_input)
+            result = chosen_query(user_input, proxy=proxy)
             success = True
         except Exception as e:
             print(f"Error with {chosen_query_name}: {e}")

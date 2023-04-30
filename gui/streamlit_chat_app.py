@@ -76,7 +76,7 @@ user_input = input_placeholder.text_input(
 submit_button = st.button("Submit")
 
 if user_input or submit_button:
-    output = query(user_input, st.session_state['query_method'])
+    output = query(user_input, st.session_state['query_method'], st.session_state['proxy'])
     escaped_output = output.encode('utf-8').decode('unicode-escape')
 
     st.session_state.current_conversation['user_inputs'].append(user_input)
@@ -93,6 +93,9 @@ if st.sidebar.button("New Conversation"):
     st.session_state['input_field_key'] += 1
 
 st.session_state['query_method'] = st.sidebar.selectbox("Select API:", options=avail_query_methods, index=0)
+
+# Proxy
+st.session_state['proxy'] = st.sidebar.text_input("Proxy: ")
 
 # Sidebar
 st.sidebar.header("Conversation History")

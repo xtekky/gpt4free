@@ -30,12 +30,16 @@ class Completion:
         include_links: bool = False,
         detailed: bool = False,
         debug: bool = False,
+        proxy: Optional[str] = None
     ) -> PoeResponse:
         if chat is None:
             chat = []
 
+        proxies = { 'http': 'http://' + proxy, 'https': 'http://' + proxy } if proxy else {}
+
         client = Session(client_identifier='chrome_108')
         client.headers = Completion.__get_headers()
+        client.proxies = proxies
 
         response = client.get(
             f'https://you.com/api/streamingSearch',
