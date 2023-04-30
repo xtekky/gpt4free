@@ -1,14 +1,14 @@
 from json import loads
-from re import match
+from re import findall
 from time import time, sleep
 from typing import Generator, Optional
 from uuid import uuid4
 
 from fake_useragent import UserAgent
 from requests import post
+from pymailtm import MailTm, Message
 from tls_client import Session
 
-from .mail import Mail
 from .typing import ForeFrontResponse
 
 
@@ -19,11 +19,8 @@ class Account:
 
         start = time()
 
-        mail_client = Mail(proxies)
-        mail_token = None
-        mail_address = mail_client.get_mail()
-
-        # print(mail_address)
+        mail_client = MailTm().get_account()
+        mail_address = mail_client.address
 
         client = Session(client_identifier='chrome110')
         client.proxies = proxies
@@ -33,7 +30,7 @@ class Account:
         }
 
         response = client.post(
-            'https://clerk.forefront.ai/v1/client/sign_ups?_clerk_js_version=4.32.6',
+            'https://clerk.forefront.ai/v1/client/sign_ups?_clerk_js_version=4.38.4',
             data={'email_address': mail_address},
         )
 
@@ -45,9 +42,10 @@ class Account:
             return 'Failed to create account!'
 
         response = client.post(
-            f'https://clerk.forefront.ai/v1/client/sign_ups/{trace_token}/prepare_verification?_clerk_js_version=4.32.6',
+            f'https://clerk.forefront.ai/v1/client/sign_ups/{trace_token}/prepare_verification?_clerk_js_version=4.38.4',
             data={
-                'strategy': 'email_code',
+                'strategy': 'email_link',
+                'redirect_url': 'https://accounts.forefront.ai/sign-up/verify'
             },
         )
 
@@ -59,26 +57,23 @@ class Account:
 
         while True:
             sleep(1)
-            for _ in mail_client.fetch_inbox():
-                if logging:
-                    print(mail_client.get_message_content(_['id']))
-                mail_token = match(r'(\d){5,6}', mail_client.get_message_content(_['id'])).group(0)
+            new_message: Message = mail_client.wait_for_message()
+            if logging:
+                print(new_message.data['id'])
 
-            if mail_token:
+            verification_url = findall(r'https:\/\/clerk\.forefront\.ai\/v1\/verify\?token=\w.+', new_message.text)[0]
+
+            if verification_url:
                 break
 
         if logging:
-            print(mail_token)
+            print(verification_url)
 
-        response = client.post(
-            f'https://clerk.forefront.ai/v1/client/sign_ups/{trace_token}/attempt_verification?_clerk_js_version=4.38.4',
-            data={'code': mail_token, 'strategy': 'email_code'},
-        )
+        response = client.get(verification_url)
 
-        if logging:
-            print(response.json())
+        response = client.get('https://clerk.forefront.ai/v1/client?_clerk_js_version=4.38.4')
 
-        token = response.json()['client']['sessions'][0]['last_active_token']['jwt']
+        token = response.json()['response']['sessions'][0]['last_active_token']['jwt']
 
         with open('accounts.txt', 'a') as f:
             f.write(f'{mail_address}:{token}\n')
