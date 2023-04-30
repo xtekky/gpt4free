@@ -37,4 +37,5 @@ while True:
         if b'content' in chunk:
             # Parse the JSON data and print the content
             data = loads(chunk.decode('utf-8').split('data:')[1])
+
             print(data['content'], end='')

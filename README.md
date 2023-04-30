@@ -1,7 +1,7 @@
 # GPT4free - use ChatGPT, for free!!
 
 ##### You may join our discord server for updates and support ; ) 
-- https://discord.gg/gpt4free 
+- [Discord Link](https://discord.gg/gpt4free)
 
 <img width="1383" alt="image" src="https://user-images.githubusercontent.com/98614666/233799515-1a7cb6a3-b17f-42c4-956d-8d2a0664466f.png">
 
@@ -9,25 +9,7 @@ Have you ever come across some amazing projects that you couldn't use **just bec
 
 **We've got you covered!** This repository offers **reverse-engineered** third-party APIs for `GPT-4/3.5`, sourced from various websites. You can simply **download** this repository, and use the available modules, which are designed to be used **just like OpenAI's official package**. **Unleash ChatGPT's potential for your projects, now!** You are welcome ; ).
 
-By the way, thank you so much for [![Stars](https://img.shields.io/github/stars/xtekky/gpt4free?style=social)](https://github.com/xtekky/gpt4free/stargazers) and all the support!!
-
-## Announcement
-Dear  Gpt4free Community,
-
-I want to thank you for your interest in and support of this project, which I only intended to be for entertainment and educational purposes; I had no idea it would end up being so popular.
-
-I'm aware of the concerns about the project's legality and its impact on smaller sites hosting APIs. I take these concerns seriously and plan to address them.
-
-Here's what I'm doing to fix these issues:
-
-1. Removing APIs from smaller sites: To reduce the impact on smaller sites, I have removed their APIs from the repository. Please shoot me a dm if you are an owner of a site and want it removed.
-
-2. Commitment to ethical use: I want to emphasize my commitment to promoting ethical use of language models. I don't support any illegal or unethical behavior, and I expect users to follow the same principles.
-
-Thank you for your support and understanding. I appreciate your continued interest in gpt4free and am committed to addressing your concerns.
-
-Sincerely,
-xtekky
+By the way, thank you so much for `11k` stars and all the support!!
 
 ## Legal Notice <a name="legal-notice"></a>
 
@@ -55,9 +37,10 @@ Please note the following:
 | **Legal Notice** | Legal notice or disclaimer | [![Link to Section](https://img.shields.io/badge/Link-Go%20to%20Section-blue)](#legal-notice) | - |
 | **Copyright** | Copyright information | [![Link to Section](https://img.shields.io/badge/Link-Go%20to%20Section-blue)](#copyright) | - |
 | **Usage Examples** | | | |
-| `quora (poe)` | Example usage for quora | [![Link to File](https://img.shields.io/badge/Link-Go%20to%20File-blue)](./quora/README.md) | ![Active](https://img.shields.io/badge/Active-brightgreen) |
+| `forefront` | Example usage for forefront (gpt-4) | [![Link to File](https://img.shields.io/badge/Link-Go%20to%20File-blue)](./forefront/README.md) | ![Active](https://img.shields.io/badge/Active-brightgreen) | | |
+| `quora (poe)` | Example usage for quora | [![Link to File](https://img.shields.io/badge/Link-Go%20to%20File-blue)](./quora/README.md) | ![Active](https://img.shields.io/badge/Active-brightgreen) | |
 | `phind` | Example usage for phind | [![Link to File](https://img.shields.io/badge/Link-Go%20to%20File-blue)](./phind/README.md) | ![Inactive](https://img.shields.io/badge/Active-brightgreen) |
-| `you` | Example usage for you | [![Link to File](https://img.shields.io/badge/Link-Go%20to%20File-blue)](./you/README.md) | ![Active](https://img.shields.io/badge/Active-brightgreen)
+| `you` | Example usage for you | [![Link to File](https://img.shields.io/badge/Link-Go%20to%20File-blue)](./you/README.md) | ![Active](https://img.shields.io/badge/Active-brightgreen) |
 | **Try it Out** | | | |
 | Google Colab Jupyter Notebook | Example usage for gpt4free | [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/DanielShemesh/gpt4free-colab/blob/main/gpt4free.ipynb) | - |
 | replit Example (feel free to fork this repl) | Example usage for gpt4free | [![](https://img.shields.io/badge/Open%20in-Replit-1A1E27?logo=replit)](https://replit.com/@gpt4free/gpt4free-webui) | - |
@@ -74,8 +57,9 @@ Please note the following:
 
 ## Current Sites <a name="current-sites"></a>
 
-| Website                                              | Model(s)                        |
+| Website                                    s          | Model(s)                        |
 | ---------------------------------------------------- | ------------------------------- |
+| [forefront.ai](https://chat.forefront.ai)            | GPT-4/3.5                       |
 | [poe.com](https://poe.com)                           | GPT-4/3.5                       |
 | [writesonic.com](https://writesonic.com)             | GPT-3.5 / Internet              |
 | [t3nsor.com](https://t3nsor.com)                     | GPT-3.5                         |
