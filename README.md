@@ -33,7 +33,6 @@ Please note the following:
 | **Star History** | Star History | [![Link to Section](https://img.shields.io/badge/Link-Go%20to%20Section-blue)](#star-history) | - |
 | **Usage Examples** | | | |
 | `theb` | Example usage for theb (gpt-3.5) | [![Link to File](https://img.shields.io/badge/Link-Go%20to%20File-blue)](gpt4free/theb/README.md) | ![Active](https://img.shields.io/badge/Active-brightgreen) |
-| `forefront` | Example usage for forefront (gpt-4) | [![Link to File](https://img.shields.io/badge/Link-Go%20to%20File-blue)](gpt4free/forefront/README.md) | ![Active](https://img.shields.io/badge/Active-brightgreen) | ||
 | `quora (poe)` | Example usage for quora | [![Link to File](https://img.shields.io/badge/Link-Go%20to%20File-blue)](gpt4free/quora/README.md) | ![Active](https://img.shields.io/badge/Active-brightgreen) |
 | `you` | Example usage for you | [![Link to File](https://img.shields.io/badge/Link-Go%20to%20File-blue)](gpt4free/you/README.md) | ![Active](https://img.shields.io/badge/Active-brightgreen) |
 | **Try it Out** | | | |
@@ -43,7 +42,7 @@ Please note the following:
 ## Todo <a name="todo"></a>
 
 - [x] Add a GUI for the repo
-- [ ] Make a general package named `gpt4free`, instead of different folders
+- [x] Make a general package named `gpt4free`, instead of different folders
 - [ ] Live api status to know which are down and which can be used
 - [ ] Integrate more API's in `./unfinished` as well as other ones in the lists
 - [ ] Make an API to use as proxy for other projects
@@ -53,7 +52,6 @@ Please note the following:
 
 | Website s                                        | Model(s)                         |
 | ------------------------------------------------ | -------------------------------- |
-| [forefront.ai](https://chat.forefront.ai)        | GPT-4/3.5                        |
 | [poe.com](https://poe.com)                       | GPT-4/3.5                        |
 | [writesonic.com](https://writesonic.com)         | GPT-3.5 / Internet               |
 | [t3nsor.com](https://t3nsor.com)                 | GPT-3.5                          |
@@ -61,13 +59,12 @@ Please note the following:
 | [sqlchat.ai](https://sqlchat.ai)                 | GPT-3.5                          |
 | [bard.google.com](https://bard.google.com)       | custom / search                  |
 | [bing.com/chat](https://bing.com/chat)           | GPT-4/3.5                        |
-| [chat.forefront.ai/](https://chat.forefront.ai/) | GPT-4/3.5                        |
 
 ## Best sites <a name="best-sites"></a>
 
 #### gpt-4
 
-- [`/forefront`](gpt4free/forefront/README.md)
+- `currently searching for new alternative`
 
 #### gpt-3.5
 
