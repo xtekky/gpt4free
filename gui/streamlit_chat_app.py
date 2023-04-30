@@ -24,9 +24,9 @@ def load_conversations():
 
 def save_conversations(conversations, current_conversation):
     updated = False
-    for i, conversation in enumerate(conversations):
+    for idx, conversation in enumerate(conversations):
         if conversation == current_conversation:
-            conversations[i] = current_conversation
+            conversations[idx] = current_conversation
             updated = True
             break
     if not updated:
@@ -71,19 +71,22 @@ if 'current_conversation' not in st.session_state or st.session_state['current_c
 
 input_placeholder = st.empty()
 user_input = input_placeholder.text_input(
-    'You:', key=f'input_text_{len(st.session_state["current_conversation"]["user_inputs"])}'
+    'You:', value=st.session_state['input_text'], key=f'input_text_{st.session_state["input_field_key"]}'
 )
 submit_button = st.button("Submit")
 
-if user_input or submit_button:
+
+if (user_input and user_input != st.session_state['input_text']) or submit_button:
     output = query(user_input, st.session_state['query_method'])
+
     escaped_output = output.encode('utf-8').decode('unicode-escape')
 
     st.session_state.current_conversation['user_inputs'].append(user_input)
     st.session_state.current_conversation['generated_responses'].append(escaped_output)
     save_conversations(st.session_state.conversations, st.session_state.current_conversation)
+    st.session_state['input_text'] = ''
     user_input = input_placeholder.text_input(
-        'You:', value='', key=f'input_text_{len(st.session_state["current_conversation"]["user_inputs"])}'
+        'You:', value=st.session_state['input_text'], key=f'input_text_{st.session_state["input_field_key"]}'
     )  # Clear the input field
 
 # Add a button to create a new conversation
@@ -94,13 +97,16 @@ if st.sidebar.button("New Conversation"):
 
 st.session_state['query_method'] = st.sidebar.selectbox("Select API:", options=avail_query_methods, index=0)
 
+# Proxy
+st.session_state['proxy'] = st.sidebar.text_input("Proxy: ")
+
 # Sidebar
 st.sidebar.header("Conversation History")
 
-for i, conversation in enumerate(st.session_state.conversations):
-    if st.sidebar.button(f"Conversation {i + 1}: {conversation['user_inputs'][0]}", key=f"sidebar_btn_{i}"):
-        st.session_state['selected_conversation'] = i
-        st.session_state['current_conversation'] = st.session_state.conversations[i]
+for idx, conversation in enumerate(st.session_state.conversations):
+    if st.sidebar.button(f"Conversation {idx + 1}: {conversation['user_inputs'][0]}", key=f"sidebar_btn_{idx}"):
+        st.session_state['selected_conversation'] = idx
+        st.session_state['current_conversation'] = st.session_state.conversations[idx]
 
 if st.session_state['selected_conversation'] is not None:
     conversation_to_display = st.session_state.conversations[st.session_state['selected_conversation']]

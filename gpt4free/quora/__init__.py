@@ -187,7 +187,7 @@ class Account:
         enable_bot_creation: bool = False,
     ):
         client = TLS(client_identifier='chrome110')
-        client.proxies = {'http': f'http://{proxy}', 'https': f'http://{proxy}'} if proxy else None
+        client.proxies = {'http': f'http://{proxy}', 'https': f'http://{proxy}'} if proxy else {}
 
         mail_client = Emailnator()
         mail_address = mail_client.get_mail()
@@ -293,10 +293,13 @@ class StreamingCompletion:
         custom_model: bool = None,
         prompt: str = 'hello world',
         token: str = '',
+        proxy: Optional[str] = None
     ) -> Generator[PoeResponse, None, None]:
         _model = MODELS[model] if not custom_model else custom_model
 
+        proxies = { 'http': 'http://' + proxy, 'https': 'http://' + proxy } if proxy else False
         client = PoeClient(token)
+        client.proxy = proxies
 
         for chunk in client.send_message(_model, prompt):
             yield PoeResponse(
@@ -330,10 +333,13 @@ class Completion:
         custom_model: str = None,
         prompt: str = 'hello world',
         token: str = '',
+        proxy: Optional[str] = None
     ) -> PoeResponse:
         _model = MODELS[model] if not custom_model else custom_model
 
+        proxies = {'http': 'http://' + proxy, 'https': 'http://' + proxy} if proxy else False
         client = PoeClient(token)
+        client.proxy = proxies
 
         chunk = None
         for response in client.send_message(_model, prompt):
