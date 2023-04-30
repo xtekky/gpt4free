@@ -5,6 +5,7 @@ from gpt4free import forefront
 from gpt4free import quora
 from gpt4free import theb
 from gpt4free import you
+from gpt4free import usesless
 
 
 class Provider(Enum):
@@ -15,6 +16,7 @@ class Provider(Enum):
     ForeFront = 'fore_front'
     Theb = 'theb'
     CoCalc = 'cocalc'
+    UseLess = 'useless'
 
 
 class Completion:
@@ -22,6 +24,7 @@ class Completion:
 
     @staticmethod
     def create(provider: Provider, prompt: str, **kwargs) -> str:
+        
         """
         Invokes the given provider with given prompt and addition arguments and returns the string response
 
@@ -40,8 +43,14 @@ class Completion:
             return Completion.__theb_service(prompt, **kwargs)
         elif provider == Provider.CoCalc:
             return Completion.__cocalc_service(prompt, **kwargs)
+        elif provider == Provider.UseLess:
+            return Completion.__useless_service(prompt, **kwargs)
         else:
             raise Exception('Provider not exist, Please try again')
+        
+    @staticmethod
+    def __useless_service(prompt: str, **kwargs) -> str:
+        return usesless.Completion.create(prompt = prompt, **kwargs)
 
     @staticmethod
     def __you_service(prompt: str, **kwargs) -> str:
