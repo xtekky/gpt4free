@@ -87,6 +87,7 @@ Just API's from some language model sites.
 | [bard.google.com](https://bard.google.com)       | custom / search                  |
 | [bing.com/chat](https://bing.com/chat)           | GPT-4/3.5                        |
 | [chat.forefront.ai/](https://chat.forefront.ai/) | GPT-4/3.5                        |
+| [italygpt.it](https://italygpt.it)               | GPT-3.5                          |
 
 ## Best sites <a name="best-sites"></a>
 
