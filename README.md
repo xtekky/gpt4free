@@ -32,11 +32,11 @@ Just API's from some language model sites.
       <td><a href="https://github.com/xtekky/chatgpt-clone/pulls"><img alt="Pull Requests" src="https://img.shields.io/github/issues-pr/xtekky/chatgpt-clone?style=flat-square&labelColor=343b41"/></a></td>
     </tr>
     <tr>
-      <td><a href="https://github.com/mishalhossin/Coding-Chatbot-Gpt4Free"><b>ChatGpt Discord Bot</b></a></td>
-      <td><a href="https://github.com/mishalhossin/Coding-Chatbot-Gpt4Free/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/mishalhossin/Coding-Chatbot-Gpt4Free?style=flat-square&labelColor=343b41"/></a></td>
-      <td><a href="https://github.com/mishalhossin/Coding-Chatbot-Gpt4Free/network/members"><img alt="Forks" src="https://img.shields.io/github/forks/mishalhossin/Coding-Chatbot-Gpt4Free?style=flat-square&labelColor=343b41"/></a></td>
-      <td><a href="https://github.com/mishalhossin/Coding-Chatbot-Gpt4Free/issues"><img alt="Issues" src="https://img.shields.io/github/issues/mishalhossin/Coding-Chatbot-Gpt4Free?style=flat-square&labelColor=343b41"/></a></td>
-      <td><a href="https://github.com/mishalhossin/Coding-Chatbot-Gpt4Free/pulls"><img alt="Pull Requests" src="https://img.shields.io/github/issues-pr/mishalhossin/Coding-Chatbot-Gpt4Free?style=flat-square&labelColor=343b41"/></a></td>
+      <td><a href="https://github.com/mishalhossin/Discord-Chatbot-Gpt4Free"><b>ChatGpt Discord Bot</b></a></td>
+      <td><a href="https://github.com/mishalhossin/Discord-Chatbot-Gpt4Free/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/mishalhossin/Discord-Chatbot-Gpt4Free?style=flat-square&labelColor=343b41"/></a></td>
+      <td><a href="https://github.com/mishalhossin/Discord-Chatbot-Gpt4Free/network/members"><img alt="Forks" src="https://img.shields.io/github/forks/mishalhossin/Discord-Chatbot-Gpt4Free?style=flat-square&labelColor=343b41"/></a></td>
+      <td><a href="https://github.com/mishalhossin/Discord-Chatbot-Gpt4Free/issues"><img alt="Issues" src="https://img.shields.io/github/issues/mishalhossin/Discord-Chatbot-Gpt4Free?style=flat-square&labelColor=343b41"/></a></td>
+      <td><a href="https://github.com/mishalhossin/Coding-Chatbot-Gpt4Free/pulls"><img alt="Pull Requests" src="https://img.shields.io/github/issues-pr/mishalhossin/Discord-Chatbot-Gpt4Free?style=flat-square&labelColor=343b41"/></a></td>
     </tr>
   </tbody>
 </table>
@@ -86,7 +86,6 @@ Just API's from some language model sites.
 | [sqlchat.ai](https://sqlchat.ai)                 | GPT-3.5                          |
 | [bard.google.com](https://bard.google.com)       | custom / search                  |
 | [bing.com/chat](https://bing.com/chat)           | GPT-4/3.5                        |
-| [chat.forefront.ai/](https://chat.forefront.ai/) | GPT-4/3.5                        |
 
 ## Best sites <a name="best-sites"></a>
 
@@ -119,7 +118,7 @@ then run:
 Build
 
 ```
-docker build -t gpt4free:latest -f Docker/Dockerfile .
+docker build -t gpt4free:latest .
 ```
 
 Run
@@ -127,17 +126,13 @@ Run
 ```
 docker run -p 8501:8501 gpt4free:latest
 ```
-Another way - docker-compose (no docker build/run needed)
-```
-docker-compose up -d
-```
 
 ## Deploy using docker-compose
 
 Run the following:
 
 ```
-docker-compose up -d
+docker-compose up --build -d
 ```
 
 ## ChatGPT clone
