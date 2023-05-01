@@ -19,7 +19,7 @@ class Completion:
     stream_completed = False
 
     @staticmethod
-    def request(prompt: str, proxy: Optional[str]=None):
+    def request(prompt: str, proxy: Optional[str] = None):
         headers = {
             'authority': 'chatbot.theb.ai',
             'content-type': 'application/json',
@@ -40,7 +40,7 @@ class Completion:
         Completion.stream_completed = True
 
     @staticmethod
-    def create(prompt: str, proxy: Optional[str]=None) -> Generator[str, None, None]:
+    def create(prompt: str, proxy: Optional[str] = None) -> Generator[str, None, None]:
         Thread(target=Completion.request, args=[prompt, proxy]).start()
 
         while not Completion.stream_completed or not Completion.message_queue.empty():
