@@ -286,7 +286,7 @@ class Account:
         return choice(cookies)
 
     @staticmethod
-    def delete_account(token: str, proxy: Optional[str] = None):
+    def delete(token: str, proxy: Optional[str] = None):
         client = PoeClient(token, proxy=proxy)
         client.delete_account()
 
