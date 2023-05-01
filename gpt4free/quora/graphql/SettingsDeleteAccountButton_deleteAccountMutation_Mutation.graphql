@@ -1,0 +1,1 @@
+mutation SettingsDeleteAccountButton_deleteAccountMutation_Mutation{  deleteAccount {    viewer {      uid      id    }  }}
