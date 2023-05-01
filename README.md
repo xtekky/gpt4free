@@ -106,6 +106,14 @@ install requirements with:
 pip3 install -r requirements.txt
 ```
 
+OR 
+  
+```python
+pip install gpt4free
+```
+APIs that support this package : you, theb, forefront, usesless
+
+If there was a problem you can report to this [repository](https://github.com/rzashakeri/gpt4free-python-package)
 
 ## To start gpt4free GUI <a name="streamlit-gpt4free-gui"></a>
 
