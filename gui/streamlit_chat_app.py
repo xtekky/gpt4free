@@ -38,6 +38,17 @@ def save_conversations(conversations, current_conversation):
 
     os.replace(temp_conversations_file, conversations_file)
 
+def delete_conversation(conversations, current_conversation):
+    for idx, conversation in enumerate(conversations):
+        conversations[idx] = current_conversation
+        break
+    conversations.remove(current_conversation)
+
+    temp_conversations_file = "temp_" + conversations_file
+    with open(temp_conversations_file, "wb") as f:
+        pickle.dump(conversations, f)
+
+    os.replace(temp_conversations_file, conversations_file)
 
 def exit_handler():
     print("Exiting, saving data...")
@@ -118,17 +129,22 @@ if search_query:
 
     sidebar_header = f"Search Results ({len(conversations)})"
 else:
-    conversations = enumerate(st.session_state.conversations)
+    conversations = st.session_state.conversations
     sidebar_header = "Conversation History"
 
 # Sidebar
 st.sidebar.header(sidebar_header)
-
-for idx, conversation in conversations:
-    if st.sidebar.button(f"Conversation {idx + 1}: {conversation['user_inputs'][0]}", key=f"sidebar_btn_{idx}"):
+sidebar_col1, sidebar_col2 = st.sidebar.columns([5,1])
+for idx, conversation in enumerate(conversations):
+    if sidebar_col1.button(f"Conversation {idx + 1}: {conversation['user_inputs'][0]}", key=f"sidebar_btn_{idx}"):
         st.session_state['selected_conversation'] = idx
         st.session_state['current_conversation'] = conversation
-
+    if sidebar_col2.button('🗑️', key=f"sidebar_btn_delete_{idx}"):
+        if st.session_state['selected_conversation'] == idx:
+            st.session_state['selected_conversation'] = None
+            st.session_state['current_conversation'] = {'user_inputs': [], 'generated_responses': []}
+        delete_conversation(conversations, conversation)
+        st.experimental_rerun()
 if st.session_state['selected_conversation'] is not None:
     conversation_to_display = conversations[st.session_state['selected_conversation']]
 else:
