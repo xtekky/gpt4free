@@ -1,10 +1,10 @@
 <img alt="gpt4free logo" src="https://user-images.githubusercontent.com/98614666/233799515-1a7cb6a3-b17f-42c4-956d-8d2a0664466f.png">
 <img src="https://media.giphy.com/media/LnQjpWaON8nhr21vNW/giphy.gif" width="100" align="left">
 Just API's from some language model sites.
-<p>Join our gpt4free Discord community! <a href="https://discord.gg/gpt4free"><img align="center" alt="gpt4free Discord" width="22px" src="https://raw.githubusercontent.com/peterthehan/peterthehan/master/assets/discord.svg" /></a></p>
+<p>Join our [discord.gg/gpt4free](https://discord.com/invite/gpt4free) Discord community! <a href="https://discord.gg/gpt4free"><img align="center" alt="gpt4free Discord" width="22px" src="https://raw.githubusercontent.com/peterthehan/peterthehan/master/assets/discord.svg" /></a></p>
 
 
-# Open-Source Projects by xtekky
+# Related gpt4free projects
 
 <table>
   <thead align="center">
