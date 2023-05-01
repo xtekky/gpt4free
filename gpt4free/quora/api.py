@@ -541,5 +541,11 @@ class Client:
         self.get_bots()
         return data
 
+    def delete_account(self) -> None:
+        response = self.send_query('SettingsDeleteAccountButton_deleteAccountMutation_Mutation', {})
+        data = response['data']['deleteAccount']
+        if 'viewer' not in data:
+            raise RuntimeError(f'Error occurred while deleting the account, Please try again!')
+
 
 load_queries()
