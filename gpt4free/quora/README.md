@@ -65,4 +65,13 @@ poe.chat('who won the football world cup most?')
 # new bot creation
 poe.create_bot('new_bot_name', prompt='You are new test bot', base_model='gpt-3.5-turbo')
 
+# delete account
+poe.delete_account()
+```
+
+### Deleting the Poe Account
+```python
+from gpt4free import quora
+
+quora.Account.delete(token='')
 ```
