@@ -105,7 +105,7 @@ st.sidebar.header("Conversation History")
 for idx, conversation in enumerate(st.session_state.conversations):
     if st.sidebar.button(f"Conversation {idx + 1}: {conversation['user_inputs'][0]}", key=f"sidebar_btn_{idx}"):
         st.session_state['selected_conversation'] = idx
-        st.session_state['current_conversation'] = st.session_state.conversations[idx]
+        st.session_state['current_conversation'] = conversation
 
 if st.session_state['selected_conversation'] is not None:
     conversation_to_display = st.session_state.conversations[st.session_state['selected_conversation']]
