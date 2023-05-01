@@ -78,7 +78,6 @@ user_input = input_placeholder.text_input(
 )
 submit_button = st.button("Submit")
 
-
 if (user_input and user_input != st.session_state['input_text']) or submit_button:
     output = query(user_input, st.session_state['query_method'])
 
@@ -88,6 +87,7 @@ if (user_input and user_input != st.session_state['input_text']) or submit_butto
     st.session_state.current_conversation['generated_responses'].append(escaped_output)
     save_conversations(st.session_state.conversations, st.session_state.current_conversation)
     st.session_state['input_text'] = ''
+    st.session_state['input_field_key'] += 1  # Increment key value for new widget
     user_input = input_placeholder.text_input(
         'You:', value=st.session_state['input_text'], key=f'input_text_{st.session_state["input_field_key"]}'
     )  # Clear the input field
@@ -96,9 +96,8 @@ if (user_input and user_input != st.session_state['input_text']) or submit_butto
 if st.sidebar.button("New Conversation"):
     st.session_state['selected_conversation'] = None
     st.session_state['current_conversation'] = {'user_inputs': [], 'generated_responses': []}
-    st.session_state['input_field_key'] += 1
-
-st.session_state['query_method'] = st.sidebar.selectbox("Select API:", options=avail_query_methods, index=0)
+    st.session_state['input_field_key'] += 1  # Increment key value for new widget
+    st.session_state['query_method'] = st.sidebar.selectbox("Select API:", options=avail_query_methods, index=0)
 
 # Proxy
 st.session_state['proxy'] = st.sidebar.text_input("Proxy: ")
