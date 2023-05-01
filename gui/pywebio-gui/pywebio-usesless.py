@@ -1,4 +1,5 @@
-import usesless,time
+from gpt4free import usesless
+import time
 from pywebio import start_server,config
 from pywebio.input import *
 from pywebio.output import *
