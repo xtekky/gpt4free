@@ -107,20 +107,24 @@ search_query = st.sidebar.text_input("Search Conversations:", value=st.session_s
 
 if search_query:
     filtered_conversations = []
-    for conversation in st.session_state.conversations:
+    indices = []
+    for idx, conversation in enumerate(st.session_state.conversations):
         if search_query in conversation['user_inputs'][0]:
             filtered_conversations.append(conversation)
+            indices.append(idx)
 
-    conversations = sorted(filtered_conversations, key=lambda c: Levenshtein.distance(search_query, c['user_inputs'][0]))
+    filtered_conversations = list(zip(indices, filtered_conversations))
+    conversations = sorted(filtered_conversations, key=lambda x: Levenshtein.distance(search_query, x[1]['user_inputs'][0]))
+
     sidebar_header = f"Search Results ({len(conversations)})"
 else:
-    conversations = st.session_state.conversations
+    conversations = enumerate(st.session_state.conversations)
     sidebar_header = "Conversation History"
 
 # Sidebar
 st.sidebar.header(sidebar_header)
 
-for idx, conversation in enumerate(conversations):
+for idx, conversation in conversations:
     if st.sidebar.button(f"Conversation {idx + 1}: {conversation['user_inputs'][0]}", key=f"sidebar_btn_{idx}"):
         st.session_state['selected_conversation'] = idx
         st.session_state['current_conversation'] = conversation
