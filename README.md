@@ -119,7 +119,7 @@ then run:
 Build
 
 ```
-docker build -t gpt4free:latest -f Docker/Dockerfile .
+docker build -t gpt4free:latest .
 ```
 
 Run
