@@ -38,6 +38,13 @@ Just API's from some language model sites.
       <td><a href="https://github.com/mishalhossin/Coding-Chatbot-Gpt4Free/issues"><img alt="Issues" src="https://img.shields.io/github/issues/mishalhossin/Coding-Chatbot-Gpt4Free?style=flat-square&labelColor=343b41"/></a></td>
       <td><a href="https://github.com/mishalhossin/Coding-Chatbot-Gpt4Free/pulls"><img alt="Pull Requests" src="https://img.shields.io/github/issues-pr/mishalhossin/Coding-Chatbot-Gpt4Free?style=flat-square&labelColor=343b41"/></a></td>
     </tr>
+    <tr>
+      <td><a href="https://github.com/DanielShemesh/gpt4free-colab"><b>gpt4free Colab</b></a></td>
+      <td><a href="https://github.com/DanielShemesh/gpt4free-colab/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/DanielShemesh/gpt4free-colab?style=flat-square&labelColor=343b41"/></a></td>
+      <td><a href="https://github.com/DanielShemesh/gpt4free-colab/network/members"><img alt="Forks" src="https://img.shields.io/github/forks/DanielShemesh/gpt4free-colab?style=flat-square&labelColor=343b41"/></a></td>
+      <td><a href="https://github.com/DanielShemesh/gpt4free-colab/issues"><img alt="Issues" src="https://img.shields.io/github/issues/DanielShemesh/gpt4free-colab?style=flat-square&labelColor=343b41"/></a></td>
+      <td><a href="https://github.com/DanielShemesh/gpt4free-colab/pulls"><img alt="Pull Requests" src="https://img.shields.io/github/issues-pr/DanielShemesh/gpt4free-colab?style=flat-square&labelColor=343b41"/></a></td>
+    </tr>
   </tbody>
 </table>
 
