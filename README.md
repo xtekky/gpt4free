@@ -1,4 +1,19 @@
 <img alt="gpt4free logo" src="https://user-images.githubusercontent.com/98614666/233799515-1a7cb6a3-b17f-42c4-956d-8d2a0664466f.png">
+
+## Legal Notice <a name="legal-notice"></a>
+
+This repository uses third-party APIs and is _not_ associated with or endorsed by the API providers. This project is intended **for educational purposes only**. This is just a little personal project. Sites may contact me to improve their security.
+
+Please note the following:
+
+1. **Disclaimer**: The APIs, services, and trademarks mentioned in this repository belong to their respective owners. This project is _not_ claiming any right over them.
+
+2. **Responsibility**: The author of this repository is _not_ responsible for any consequences arising from the use or misuse of this repository or the content provided by the third-party APIs and any damage or losses caused by users' actions.
+
+3. **Educational Purposes Only**: This repository and its content are provided strictly for educational purposes. By using the information and code provided, users acknowledge that they are using the APIs and models at their own risk and agree to comply with any applicable laws and regulations.
+
+
+
 <img src="https://media.giphy.com/media/LnQjpWaON8nhr21vNW/giphy.gif" width="100" align="left">
 Just API's from some language model sites.
 <p>Join our <a href="https://discord.com/invite/gpt4free">discord.gg/gpt4free<a> Discord community! <a href="https://discord.gg/gpt4free"><img align="center" alt="gpt4free Discord" width="22px" src="https://raw.githubusercontent.com/peterthehan/peterthehan/master/assets/discord.svg" /></a></p>
@@ -141,18 +156,6 @@ docker-compose up --build -d
 > https://chat.g4f.ai/chat
 > This site was developed by me and includes **gpt-4/3.5**, **internet access** and **gpt-jailbreak's** like DAN  
 > run locally here: https://github.com/xtekky/chatgpt-clone
-
-## Legal Notice <a name="legal-notice"></a>
-
-This repository uses third-party APIs and is _not_ associated with or endorsed by the API providers. This project is intended **for educational purposes only**. This is just a little personal project. Sites may contact me to improve their security.
-
-Please note the following:
-
-1. **Disclaimer**: The APIs, services, and trademarks mentioned in this repository belong to their respective owners. This project is _not_ claiming any right over them.
-
-2. **Responsibility**: The author of this repository is _not_ responsible for any consequences arising from the use or misuse of this repository or the content provided by the third-party APIs and any damage or losses caused by users' actions.
-
-3. **Educational Purposes Only**: This repository and its content are provided strictly for educational purposes. By using the information and code provided, users acknowledge that they are using the APIs and models at their own risk and agree to comply with any applicable laws and regulations.
 
 ## Copyright:
 
