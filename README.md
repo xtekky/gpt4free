@@ -133,8 +133,7 @@ pip3 install -r requirements.txt
 
 ## To start gpt4free GUI <a name="streamlit-gpt4free-gui"></a>
 
-Move `streamlit_app.py` from `./gui` to the base folder  
-then run:  
+Move `streamlit_app.py` from `./gui` to the base folder then run:  
 `streamlit run streamlit_app.py` or `python3 -m streamlit run streamlit_app.py`
 
 ## Docker <a name="docker-instructions"></a>
