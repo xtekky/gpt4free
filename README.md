@@ -2,7 +2,7 @@
 
 ## Legal Notice <a name="legal-notice"></a>
 
-This repository uses third-party APIs and is _not_ associated with or endorsed by the API providers. This project is intended **for educational purposes only**. This is just a little personal project. Sites may contact me to improve their security.
+This repository is _not_ associated with or endorsed by providers of the API's contained in this github repository. This project is intended **for educational purposes only**. This is just a little personal project. Sites may contact me to improve their security, or have their site taken down.
 
 Please note the following:
 
@@ -11,7 +11,6 @@ Please note the following:
 2. **Responsibility**: The author of this repository is _not_ responsible for any consequences arising from the use or misuse of this repository or the content provided by the third-party APIs and any damage or losses caused by users' actions.
 
 3. **Educational Purposes Only**: This repository and its content are provided strictly for educational purposes. By using the information and code provided, users acknowledge that they are using the APIs and models at their own risk and agree to comply with any applicable laws and regulations.
-
 
 
 <img src="https://media.giphy.com/media/LnQjpWaON8nhr21vNW/giphy.gif" width="100" align="left">
