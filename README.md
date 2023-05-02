@@ -12,6 +12,8 @@ Please note the following:
 
 3. **Educational Purposes Only**: This repository and its content are provided strictly for educational purposes. By using the information and code provided, users acknowledge that they are using the APIs and models at their own risk and agree to comply with any applicable laws and regulations.
 
+You agree to these terms by using this repository or any code related to it. I am not reponsible for any copies, forks or reuploads, this is my only account and repo.
+
 
 <img src="https://media.giphy.com/media/LnQjpWaON8nhr21vNW/giphy.gif" width="100" align="left">
 Just API's from some language model sites.
