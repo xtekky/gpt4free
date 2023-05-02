@@ -1,4 +1,4 @@
-Due to legal and personal problems, this Repository may have a slower developpement speed in the next 1/2 weeks, I apologise for the inconvenience. I have been dedicating a lot of effort and my little personal/educational project is at the verge of being taken down.
+Due to legal and personal issues, the development speed of this Repository may slow down over the next one to two weeks. I apologize for any inconvenience this may cause. I have been putting a lot of effort into this small personal/educational project, and it is now on the verge of being taken down.
 
 <p>You may join our discord: <a href="https://discord.com/invite/gpt4free">discord.gg/gpt4free<a> for further updates. <a href="https://discord.gg/gpt4free"><img align="center" alt="gpt4free Discord" width="22px" src="https://raw.githubusercontent.com/peterthehan/peterthehan/master/assets/discord.svg" /></a></p>
 
