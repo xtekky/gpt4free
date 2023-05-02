@@ -28,7 +28,7 @@ class Completion:
             'user-agent': UserAgent().random,
         }
 
-        proxies = {'http': 'http://' + proxy, 'https': 'http://' + proxy} if proxy else None
+        proxies = {'http': proxy, 'https': proxy} if proxy else None
         
         options = {}
         if Completion.last_msg_id:

@@ -16,7 +16,8 @@ class Account:
     @staticmethod
     def create(proxy: Optional[str] = None, logging: bool = False, enable_bot_creation: bool = False):
         client = TLS(client_identifier='chrome110')
-        client.proxies = {'http': f'http://{proxy}', 'https': f'http://{proxy}'} if proxy else None
+        proxies = {'http': proxy, 'https': proxy} if proxy else {}
+        client.proxies = proxies
 
         mail_client = Emailnator()
         mail_address = mail_client.get_mail()

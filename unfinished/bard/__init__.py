@@ -39,9 +39,8 @@ class Completion:
             prompt = f'''settings: follow these settings for your response: [temperature: {temperature} - {temperatures[temperature]}] | prompt  : {prompt}'''
 
         client = Session()
-        client.proxies = {
-            'http': f'http://{proxy}',
-            'https': f'http://{proxy}'} if proxy else None
+        proxies = {'http': proxy, 'https': proxy} if proxy else {}
+        client.proxies = proxies
 
         client.headers = {
             'authority': 'bard.google.com',

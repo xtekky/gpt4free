@@ -15,7 +15,7 @@ from .typing import ForeFrontResponse
 class Account:
     @staticmethod
     def create(proxy: Optional[str] = None, logging: bool = False):
-        proxies = {'http': 'http://' + proxy, 'https': 'http://' + proxy} if proxy else False
+        proxies = {'http': proxy, 'https': proxy} if proxy else False
 
         start = time()
 
@@ -97,7 +97,7 @@ class StreamingCompletion:
         if not chat_id:
             chat_id = str(uuid4())
 
-        proxies = {'http': 'http://' + proxy, 'https': 'http://' + proxy} if proxy else None
+        proxies = {'http': proxy, 'https': proxy} if proxy else None
 
         headers = {
             'authority': 'chat-server.tenant-forefront-default.knative.chi.coreweave.com',

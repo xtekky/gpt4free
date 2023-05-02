@@ -90,7 +90,7 @@ user_input = input_placeholder.text_input(
 submit_button = st.button("Submit")
 
 if (user_input and user_input != st.session_state['input_text']) or submit_button:
-    output = query(user_input, st.session_state['query_method'])
+    output = query(user_input, st.session_state['query_method'], st.session_state['proxy'])
 
     escaped_output = output.encode('utf-8').decode('unicode-escape')
 
@@ -108,10 +108,12 @@ if st.sidebar.button("New Conversation"):
     st.session_state['selected_conversation'] = None
     st.session_state['current_conversation'] = {'user_inputs': [], 'generated_responses': []}
     st.session_state['input_field_key'] += 1  # Increment key value for new widget
-    st.session_state['query_method'] = st.sidebar.selectbox("Select API:", options=avail_query_methods, index=0)
 
-# Proxy
-st.session_state['proxy'] = st.sidebar.text_input("Proxy: ")
+# Model
+st.session_state['query_method'] = st.sidebar.selectbox("Select API:", options=avail_query_methods, index=0)
+
+# Proxy, example: http://127.0.0.1:1234 or socks5h://proxyhost:1234
+st.session_state['proxy'] = st.sidebar.text_input("Proxy: (eg: `http://127.0.0.1:1234` or `socks5h://proxyhost:1234`)")
 
 # Searchbar
 search_query = st.sidebar.text_input("Search Conversations:", value=st.session_state.get('search_query', ''), key='search')

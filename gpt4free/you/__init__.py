@@ -35,7 +35,7 @@ class Completion:
         if chat is None:
             chat = []
 
-        proxies = {'http': 'http://' + proxy, 'https': 'http://' + proxy} if proxy else {}
+        proxies = {'http': proxy, 'https': proxy} if proxy else {}
 
         client = Session(client_identifier='chrome_108')
         client.headers = Completion.__get_headers()

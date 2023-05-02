@@ -7,10 +7,10 @@ import streamlit as st
 from gpt4free import you
 
 
-def get_answer(question: str) -> str:
+def get_answer(question: str, proxy: str) -> str:
     # Set cloudflare clearance cookie and get answer from GPT-4 model
     try:
-        result = you.Completion.create(prompt=question)
+        result = you.Completion.create(prompt=question, proxy=proxy)
 
         return result.text
 
@@ -34,10 +34,13 @@ st.set_page_config(
 )
 st.header('GPT4free GUI')
 
+# Proxy, example: http://127.0.0.1:1234 or socks5h://proxyhost:1234
+st.session_state['proxy'] = st.sidebar.text_input("Proxy: (eg: `http://127.0.0.1:1234` or `socks5h://proxyhost:1234`)")
+
 # Add text area for user input and button to get answer
 question_text_area = st.text_area('🤖 Ask Any Question :', placeholder='Explain quantum computing in 50 words')
 if st.button('🧠 Think'):
-    answer = get_answer(question_text_area)
+    answer = get_answer(question_text_area, st.session_state['proxy'])
     escaped = answer.encode('utf-8').decode('unicode-escape')
     # Display answer
     st.caption("Answer :")
