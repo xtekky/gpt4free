@@ -5,8 +5,8 @@ from typing import Generator, Optional
 from uuid import uuid4
 
 from fake_useragent import UserAgent
-from requests import post
 from pymailtm import MailTm, Message
+from requests import post
 from tls_client import Session
 
 from .typing import ForeFrontResponse
@@ -43,10 +43,7 @@ class Account:
 
         response = client.post(
             f'https://clerk.forefront.ai/v1/client/sign_ups/{trace_token}/prepare_verification?_clerk_js_version=4.38.4',
-            data={
-                'strategy': 'email_link',
-                'redirect_url': 'https://accounts.forefront.ai/sign-up/verify'
-            },
+            data={'strategy': 'email_link', 'redirect_url': 'https://accounts.forefront.ai/sign-up/verify'},
         )
 
         if logging:
@@ -93,14 +90,14 @@ class StreamingCompletion:
         action_type='new',
         default_persona='607e41fe-95be-497e-8e97-010a59b2e2c0',  # default
         model='gpt-4',
-        proxy=None
+        proxy=None,
     ) -> Generator[ForeFrontResponse, None, None]:
         if not token:
             raise Exception('Token is required!')
         if not chat_id:
             chat_id = str(uuid4())
 
-        proxies = { 'http': 'http://' + proxy, 'https': 'http://' + proxy } if proxy else None
+        proxies = {'http': 'http://' + proxy, 'https': 'http://' + proxy} if proxy else None
 
         headers = {
             'authority': 'chat-server.tenant-forefront-default.knative.chi.coreweave.com',
@@ -168,7 +165,7 @@ class Completion:
         action_type='new',
         default_persona='607e41fe-95be-497e-8e97-010a59b2e2c0',  # default
         model='gpt-4',
-        proxy=None
+        proxy=None,
     ) -> ForeFrontResponse:
         text = ''
         final_response = None
@@ -179,7 +176,7 @@ class Completion:
             action_type=action_type,
             default_persona=default_persona,
             model=model,
-            proxy=proxy
+            proxy=proxy,
         ):
             if response:
                 final_response = response
@@ -191,4 +188,3 @@ class Completion:
             raise Exception('Unable to get the response, Please try again')
 
         return final_response
-	

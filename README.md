@@ -1,4 +1,27 @@
 <img alt="gpt4free logo" src="https://user-images.githubusercontent.com/98614666/233799515-1a7cb6a3-b17f-42c4-956d-8d2a0664466f.png">
+
+## Legal Notice <a name="legal-notice"></a>
+
+This repository is _not_ associated with or endorsed by providers of the APIs contained in this GitHub repository. This project is intended **for educational purposes only**. This is just a little personal project. Sites may contact me to improve their security or request the removal of their site from this repository.
+
+Please note the following:
+
+1. **Disclaimer**: The APIs, services, and trademarks mentioned in this repository belong to their respective owners. This project is _not_ claiming any right over them nor is it affiliated with or endorsed by any of the providers mentioned.
+
+2. **Responsibility**: The author of this repository is _not_ responsible for any consequences, damages, or losses arising from the use or misuse of this repository or the content provided by the third-party APIs. Users are solely responsible for their actions and any repercussions that may follow.
+
+3. **Educational Purposes Only**: This repository and its content are provided strictly for educational purposes. By using the information and code provided, users acknowledge that they are using the APIs and models at their own risk and agree to comply with any applicable laws and regulations.
+
+4. **Copyright**: All content in this repository, including but not limited to code, images, and documentation, is the intellectual property of the repository author, unless otherwise stated. Unauthorized copying, distribution, or use of any content in this repository is strictly prohibited without the express written consent of the repository author.
+
+5. **Indemnification**: Users agree to indemnify, defend, and hold harmless the author of this repository from and against any and all claims, liabilities, damages, losses, or expenses, including legal fees and costs, arising out of or in any way connected with their use or misuse of this repository, its content, or related third-party APIs.
+
+6. **Updates and Changes**: The author reserves the right to modify, update, or remove any content, information, or features in this repository at any time without prior notice. Users are responsible for regularly reviewing the content and any changes made to this repository.
+
+By using this repository or any code related to it, you agree to these terms. The author is not responsible for any copies, forks, or reuploads made by other users. This is the author's only account and repository. To prevent impersonation or irresponsible actions, you may comply with the GNU GPL license this Repository uses.
+
+<br>
+
 <img src="https://media.giphy.com/media/LnQjpWaON8nhr21vNW/giphy.gif" width="100" align="left">
 Just API's from some language model sites.
 <p>Join our <a href="https://discord.com/invite/gpt4free">discord.gg/gpt4free<a> Discord community! <a href="https://discord.gg/gpt4free"><img align="center" alt="gpt4free Discord" width="22px" src="https://raw.githubusercontent.com/peterthehan/peterthehan/master/assets/discord.svg" /></a></p>
@@ -32,11 +55,11 @@ Just API's from some language model sites.
       <td><a href="https://github.com/xtekky/chatgpt-clone/pulls"><img alt="Pull Requests" src="https://img.shields.io/github/issues-pr/xtekky/chatgpt-clone?style=flat-square&labelColor=343b41"/></a></td>
     </tr>
     <tr>
-      <td><a href="https://github.com/mishalhossin/Coding-Chatbot-Gpt4Free"><b>ChatGpt Discord Bot</b></a></td>
-      <td><a href="https://github.com/mishalhossin/Coding-Chatbot-Gpt4Free/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/mishalhossin/Coding-Chatbot-Gpt4Free?style=flat-square&labelColor=343b41"/></a></td>
-      <td><a href="https://github.com/mishalhossin/Coding-Chatbot-Gpt4Free/network/members"><img alt="Forks" src="https://img.shields.io/github/forks/mishalhossin/Coding-Chatbot-Gpt4Free?style=flat-square&labelColor=343b41"/></a></td>
-      <td><a href="https://github.com/mishalhossin/Coding-Chatbot-Gpt4Free/issues"><img alt="Issues" src="https://img.shields.io/github/issues/mishalhossin/Coding-Chatbot-Gpt4Free?style=flat-square&labelColor=343b41"/></a></td>
-      <td><a href="https://github.com/mishalhossin/Coding-Chatbot-Gpt4Free/pulls"><img alt="Pull Requests" src="https://img.shields.io/github/issues-pr/mishalhossin/Coding-Chatbot-Gpt4Free?style=flat-square&labelColor=343b41"/></a></td>
+      <td><a href="https://github.com/mishalhossin/Discord-Chatbot-Gpt4Free"><b>ChatGpt Discord Bot</b></a></td>
+      <td><a href="https://github.com/mishalhossin/Discord-Chatbot-Gpt4Free/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/mishalhossin/Discord-Chatbot-Gpt4Free?style=flat-square&labelColor=343b41"/></a></td>
+      <td><a href="https://github.com/mishalhossin/Discord-Chatbot-Gpt4Free/network/members"><img alt="Forks" src="https://img.shields.io/github/forks/mishalhossin/Discord-Chatbot-Gpt4Free?style=flat-square&labelColor=343b41"/></a></td>
+      <td><a href="https://github.com/mishalhossin/Discord-Chatbot-Gpt4Free/issues"><img alt="Issues" src="https://img.shields.io/github/issues/mishalhossin/Discord-Chatbot-Gpt4Free?style=flat-square&labelColor=343b41"/></a></td>
+      <td><a href="https://github.com/mishalhossin/Coding-Chatbot-Gpt4Free/pulls"><img alt="Pull Requests" src="https://img.shields.io/github/issues-pr/mishalhossin/Discord-Chatbot-Gpt4Free?style=flat-square&labelColor=343b41"/></a></td>
     </tr>
   </tbody>
 </table>
@@ -86,7 +109,6 @@ Just API's from some language model sites.
 | [sqlchat.ai](https://sqlchat.ai)                 | GPT-3.5                          |
 | [bard.google.com](https://bard.google.com)       | custom / search                  |
 | [bing.com/chat](https://bing.com/chat)           | GPT-4/3.5                        |
-| [chat.forefront.ai/](https://chat.forefront.ai/) | GPT-4/3.5                        |
 | [italygpt.it](https://italygpt.it)               | GPT-3.5                          |
 
 ## Best sites <a name="best-sites"></a>
@@ -120,7 +142,7 @@ then run:
 Build
 
 ```
-docker build -t gpt4free:latest -f Docker/Dockerfile .
+docker build -t gpt4free:latest .
 ```
 
 Run
@@ -128,37 +150,21 @@ Run
 ```
 docker run -p 8501:8501 gpt4free:latest
 ```
-Another way - docker-compose (no docker build/run needed)
-```
-docker-compose up -d
-```
 
 ## Deploy using docker-compose
 
 Run the following:
 
 ```
-docker-compose up -d
+docker-compose up --build -d
 ```
 
 ## ChatGPT clone
 
-> currently implementing new features and trying to scale it, please be patient it may be unstable  
-> https://chat.chatbot.sex/chat
+> Currently implementing new features and trying to scale it, please be patient it may be unstable  
+> https://chat.g4f.ai/chat
 > This site was developed by me and includes **gpt-4/3.5**, **internet access** and **gpt-jailbreak's** like DAN  
-> run locally here: https://github.com/xtekky/chatgpt-clone
-
-## Legal Notice <a name="legal-notice"></a>
-
-This repository uses third-party APIs and is _not_ associated with or endorsed by the API providers. This project is intended **for educational purposes only**. This is just a little personal project. Sites may contact me to improve their security.
-
-Please note the following:
-
-1. **Disclaimer**: The APIs, services, and trademarks mentioned in this repository belong to their respective owners. This project is _not_ claiming any right over them.
-
-2. **Responsibility**: The author of this repository is _not_ responsible for any consequences arising from the use or misuse of this repository or the content provided by the third-party APIs and any damage or losses caused by users' actions.
-
-3. **Educational Purposes Only**: This repository and its content are provided strictly for educational purposes. By using the information and code provided, users acknowledge that they are using the APIs and models at their own risk and agree to comply with any applicable laws and regulations.
+> Run locally here: https://github.com/xtekky/chatgpt-clone
 
 ## Copyright:
 

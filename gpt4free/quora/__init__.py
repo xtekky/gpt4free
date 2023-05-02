@@ -285,6 +285,11 @@ class Account:
         cookies = open(Path(__file__).resolve().parent / 'cookies.txt', 'r').read().splitlines()
         return choice(cookies)
 
+    @staticmethod
+    def delete(token: str, proxy: Optional[str] = None):
+        client = PoeClient(token, proxy=proxy)
+        client.delete_account()
+
 
 class StreamingCompletion:
     @staticmethod
@@ -293,11 +298,11 @@ class StreamingCompletion:
         custom_model: bool = None,
         prompt: str = 'hello world',
         token: str = '',
-        proxy: Optional[str] = None
+        proxy: Optional[str] = None,
     ) -> Generator[PoeResponse, None, None]:
         _model = MODELS[model] if not custom_model else custom_model
 
-        proxies = { 'http': 'http://' + proxy, 'https': 'http://' + proxy } if proxy else False
+        proxies = {'http': 'http://' + proxy, 'https': 'http://' + proxy} if proxy else False
         client = PoeClient(token)
         client.proxy = proxies
 
@@ -333,7 +338,7 @@ class Completion:
         custom_model: str = None,
         prompt: str = 'hello world',
         token: str = '',
-        proxy: Optional[str] = None
+        proxy: Optional[str] = None,
     ) -> PoeResponse:
         _model = MODELS[model] if not custom_model else custom_model
 
@@ -454,14 +459,7 @@ class Poe:
             response = chunk['text']
         return response
 
-    def create_bot(
-        self,
-        name: str,
-        /,
-        prompt: str = '',
-        base_model: str = 'ChatGPT',
-        description: str = '',
-    ) -> None:
+    def create_bot(self, name: str, /, prompt: str = '', base_model: str = 'ChatGPT', description: str = '') -> None:
         if base_model not in MODELS:
             raise RuntimeError('Sorry, the base_model you provided does not exist. Please check and try again.')
 
@@ -475,3 +473,6 @@ class Poe:
 
     def list_bots(self) -> list:
         return list(self.client.bot_names.values())
+
+    def delete_account(self) -> None:
+        self.client.delete_account()
