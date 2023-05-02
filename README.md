@@ -152,10 +152,10 @@ docker-compose up --build -d
 
 ## ChatGPT clone
 
-> currently implementing new features and trying to scale it, please be patient it may be unstable  
+> Currently implementing new features and trying to scale it, please be patient it may be unstable  
 > https://chat.g4f.ai/chat
 > This site was developed by me and includes **gpt-4/3.5**, **internet access** and **gpt-jailbreak's** like DAN  
-> run locally here: https://github.com/xtekky/chatgpt-clone
+> Run locally here: https://github.com/xtekky/chatgpt-clone
 
 ## Copyright:
 
