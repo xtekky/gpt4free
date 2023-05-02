@@ -109,6 +109,7 @@ Just API's from some language model sites.
 | [sqlchat.ai](https://sqlchat.ai)                 | GPT-3.5                          |
 | [bard.google.com](https://bard.google.com)       | custom / search                  |
 | [bing.com/chat](https://bing.com/chat)           | GPT-4/3.5                        |
+| [italygpt.it](https://italygpt.it)               | GPT-3.5                          |
 
 ## Best sites <a name="best-sites"></a>
 
