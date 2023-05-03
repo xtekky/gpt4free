@@ -40,6 +40,7 @@ class Completion:
             proxies=proxies,
             content_callback=Completion.handle_stream_response,
             json={'prompt': prompt, 'options': options},
+            timeout=100000
         )
 
         Completion.stream_completed = True
