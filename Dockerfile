@@ -3,7 +3,7 @@ FROM python:3.11 as builder
 WORKDIR /usr/app
 ENV PATH="/usr/app/venv/bin:$PATH"
 
-RUN apt-get update && apt-get install -y git
+#RUN apt-get update && apt-get install -y git
 RUN mkdir -p /usr/app
 RUN python -m venv ./venv
 
@@ -14,7 +14,7 @@ RUN pip install -r requirements.txt
 # RUN pip config set global.index-url https://mirrors.aliyun.com/pypi/simple/
 # RUN pip config set global.trusted-host mirrors.aliyun.com
 
-FROM python:3.11-alpine
+FROM python:3.11
 
 WORKDIR /usr/app
 ENV PATH="/usr/app/venv/bin:$PATH"
