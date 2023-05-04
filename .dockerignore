@@ -1,0 +1,9 @@
+# Development
+.dockerignore
+.git
+.gitignore
+.github
+.idea
+
+# Application
+venv/
