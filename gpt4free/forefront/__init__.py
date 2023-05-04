@@ -1,6 +1,7 @@
 from json import loads
 from xtempmail import Email
 from re import findall
+from typing import Optional, Generator
 from faker import Faker
 from time import time, sleep
 from uuid import uuid4
