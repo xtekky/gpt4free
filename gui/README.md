@@ -2,6 +2,8 @@
 
 This code provides a Graphical User Interface (GUI) for gpt4free. Users can ask questions and get answers from GPT-4 API's, utilizing multiple API implementations. The project contains two different Streamlit applications: `streamlit_app.py` and `streamlit_chat_app.py`.
 
+In addition, a new GUI script specifically implemented using PyWebIO has been added and can be found in the pywebio-gui folder. If there are errors with the Streamlit version, you can try using the PyWebIO version instead
+
 Installation
 ------------
 

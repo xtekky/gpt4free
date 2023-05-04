@@ -4,8 +4,8 @@ from gpt4free import cocalc
 from gpt4free import forefront
 from gpt4free import quora
 from gpt4free import theb
-from gpt4free import you
 from gpt4free import usesless
+from gpt4free import you
 
 
 class Provider(Enum):
@@ -24,7 +24,6 @@ class Completion:
 
     @staticmethod
     def create(provider: Provider, prompt: str, **kwargs) -> str:
-        
         """
         Invokes the given provider with given prompt and addition arguments and returns the string response
 
@@ -47,10 +46,10 @@ class Completion:
             return Completion.__useless_service(prompt, **kwargs)
         else:
             raise Exception('Provider not exist, Please try again')
-        
+
     @staticmethod
     def __useless_service(prompt: str, **kwargs) -> str:
-        return usesless.Completion.create(prompt = prompt, **kwargs)
+        return usesless.Completion.create(prompt=prompt, **kwargs)
 
     @staticmethod
     def __you_service(prompt: str, **kwargs) -> str:

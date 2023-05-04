@@ -1,5 +1,6 @@
-import requests
 import json
+
+import requests
 
 
 class Completion:
@@ -24,7 +25,7 @@ class Completion:
         model: str = "gpt-3.5-turbo",
     ):
         print(parentMessageId, prompt)
-        
+
         json_data = {
             "openaiKey": "",
             "prompt": prompt,
@@ -42,14 +43,14 @@ class Completion:
         url = "https://ai.usesless.com/api/chat-process"
         request = requests.post(url, headers=Completion.headers, json=json_data)
         content = request.content
-        
+
         response = Completion.__response_to_json(content)
         return response
 
     @classmethod
     def __response_to_json(cls, text) -> dict:
         text = str(text.decode("utf-8"))
-        
+
         split_text = text.rsplit("\n", 1)[1]
         to_json = json.loads(split_text)
         return to_json

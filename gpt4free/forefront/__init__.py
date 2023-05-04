@@ -1,14 +1,13 @@
 from json import loads
+from xtempmail import Email
 from re import findall
+from typing import Optional, Generator
+from faker import Faker
 from time import time, sleep
-from typing import Generator, Optional
 from uuid import uuid4
-
 from fake_useragent import UserAgent
 from requests import post
-from pymailtm import MailTm, Message
 from tls_client import Session
-
 from .typing import ForeFrontResponse
 
 
@@ -16,11 +15,13 @@ class Account:
     @staticmethod
     def create(proxy: Optional[str] = None, logging: bool = False):
         proxies = {'http': 'http://' + proxy, 'https': 'http://' + proxy} if proxy else False
+        faker = Faker()
+        name = (faker.name().replace(' ', '_')).lower()
 
         start = time()
 
-        mail_client = MailTm().get_account()
-        mail_address = mail_client.address
+        mail_client = Email(name=name)
+        mail_address = mail_client.email
 
         client = Session(client_identifier='chrome110')
         client.proxies = proxies
@@ -54,21 +55,17 @@ class Account:
 
         if 'sign_up_attempt' not in response.text:
             return 'Failed to create account!'
-
-        while True:
-            sleep(1)
-            new_message: Message = mail_client.wait_for_message()
-            if logging:
-                print(new_message.data['id'])
-
-            verification_url = findall(r'https:\/\/clerk\.forefront\.ai\/v1\/verify\?token=\w.+', new_message.text)[0]
-
+        verification_url = None
+        new_message = mail_client.get_new_message(5)
+        for msg in new_message:
+            verification_url = findall(r'https:\/\/clerk\.forefront\.ai\/v1\/verify\?token=\w.+', msg.text)[0]
             if verification_url:
                 break
-
+        
+        if verification_url is None or not verification_url:
+            raise RuntimeError('Error while obtaining verfication URL!')
         if logging:
             print(verification_url)
-
         response = client.get(verification_url)
 
         response = client.get('https://clerk.forefront.ai/v1/client?_clerk_js_version=4.38.4')
