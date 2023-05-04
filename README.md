@@ -138,6 +138,8 @@ Download or clone this GitHub repo
 install requirements with:
 
 ```sh
+python3 -m venv venv
+. venv/bin/activate
 pip3 install -r requirements.txt
 ```
 
@@ -146,6 +148,12 @@ pip3 install -r requirements.txt
 
 Move `streamlit_app.py` from `./gui` to the base folder then run:  
 `streamlit run streamlit_app.py` or `python3 -m streamlit run streamlit_app.py`
+
+```sh
+cp gui/streamlit_app.py .
+streamlit run streamlit_app.py
+```
+
 
 ## Docker <a name="docker-instructions"></a>
 
