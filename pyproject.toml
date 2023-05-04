@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "openai-rev"
+name = "gpt4free"
 version = "0.1.0"
 description = ""
 authors = []
