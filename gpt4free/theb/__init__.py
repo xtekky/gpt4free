@@ -65,4 +65,4 @@ class Completion:
 
     @staticmethod
     def handle_stream_response(response):
-        Completion.message_queue.put(response.decode())
+        Completion.message_queue.put(response.decode(errors='replace'))
