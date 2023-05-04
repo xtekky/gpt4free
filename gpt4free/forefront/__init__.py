@@ -1,59 +1,47 @@
-import re
-import time
+from json import loads
+from re import findall
+from time import time, sleep
 from typing import Generator, Optional
 from uuid import uuid4
 
-import fake_useragent
-import pymailtm
-import requests
+from fake_useragent import UserAgent
+from requests import post
+from pymailtm import MailTm, Message
+from tls_client import Session
 
 from .typing import ForeFrontResponse
 
 
-def speed_logging(func):
-    def wrapper(*args, **kwargs):
-        start = time.time()
-        res = func(*args, **kwargs)
-        print(time() - start)
-        return res
-    return wrapper
-
-
 class Account:
-    @speed_logging
     @staticmethod
-    def create_forefront_account(proxy: Optional[str] = None) -> Optional[str]:
-        """Create a ForeFront account.
+    def create(proxy: Optional[str] = None, logging: bool = False):
+        proxies = {'http': 'http://' + proxy, 'https': 'http://' + proxy} if proxy else False
 
-        Args:
-            proxy: The proxy to use for the request.
+        start = time()
 
-        Returns:
-            The ForeFront token if successful, else None.
-        """
-        proxies = {'http': f'http://{proxy}', 'https': f'http://{proxy}'} if proxy else None
-
-        mail_client = pymailtm.MailTm().get_account()
+        mail_client = MailTm().get_account()
         mail_address = mail_client.address
 
-        session = requests.Session()
-        session.proxies = proxies
-        session.headers = {
+        client = Session(client_identifier='chrome110')
+        client.proxies = proxies
+        client.headers = {
             'origin': 'https://accounts.forefront.ai',
-            'user-agent': fake_useragent.UserAgent().random,
+            'user-agent': UserAgent().random,
         }
 
-        response = session.post(
+        response = client.post(
             'https://clerk.forefront.ai/v1/client/sign_ups?_clerk_js_version=4.38.4',
             data={'email_address': mail_address},
         )
 
         try:
             trace_token = response.json()['response']['id']
+            if logging:
+                print(trace_token)
         except KeyError:
-            return None
+            return 'Failed to create account!'
 
-        response = session.post(
+        response = client.post(
             f'https://clerk.forefront.ai/v1/client/sign_ups/{trace_token}/prepare_verification?_clerk_js_version=4.38.4',
             data={
                 'strategy': 'email_link',
@@ -61,25 +49,37 @@ class Account:
             },
         )
 
+        if logging:
+            print(response.text)
+
         if 'sign_up_attempt' not in response.text:
-            return None
+            return 'Failed to create account!'
 
         while True:
-            time.sleep(1)
-            new_message = mail_client.wait_for_message()
+            sleep(1)
+            new_message: Message = mail_client.wait_for_message()
+            if logging:
+                print(new_message.data['id'])
 
-            verification_url = re.findall(r'https:\/\/clerk\.forefront\.ai\/v1\/verify\?token=\w.+', new_message.text)
+            verification_url = findall(r'https:\/\/clerk\.forefront\.ai\/v1\/verify\?token=\w.+', new_message.text)[0]
+
             if verification_url:
                 break
 
-        response = session.get(verification_url[0])
+        if logging:
+            print(verification_url)
 
-        response = session.get('https://clerk.forefront.ai/v1/client?_clerk_js_version=4.38.4')
+        response = client.get(verification_url)
+
+        response = client.get('https://clerk.forefront.ai/v1/client?_clerk_js_version=4.38.4')
 
         token = response.json()['response']['sessions'][0]['last_active_token']['jwt']
 
         with open('accounts.txt', 'a') as f:
             f.write(f'{mail_address}:{token}\n')
+
+        if logging:
+            print(time() - start)
 
         return token
 
@@ -100,7 +100,7 @@ class StreamingCompletion:
         if not chat_id:
             chat_id = str(uuid4())
 
-        proxies = { 'http': f'http://{proxy}', 'https': f'http://{proxy}' } if proxy else None
+        proxies = { 'http': 'http://' + proxy, 'https': 'http://' + proxy } if proxy else None
 
         headers = {
             'authority': 'chat-server.tenant-forefront-default.knative.chi.coreweave.com',
@@ -191,6 +191,4 @@ class Completion:
             raise Exception('Unable to get the response, Please try again')
 
         return final_response
-
-
-
+	

@@ -11,7 +11,6 @@ import pickle
 
 conversations_file = "conversations.pkl"
 
-
 def load_conversations():
     try:
         with open(conversations_file, "rb") as f:
