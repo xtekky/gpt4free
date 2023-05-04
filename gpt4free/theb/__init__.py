@@ -72,3 +72,5 @@ class Completion:
         for message in Completion.create(prompt, proxy):
             response_list.append(message)
         return ''.join(response_list)
+        
+        Completion.message_queue.put(response.decode(errors='replace'))

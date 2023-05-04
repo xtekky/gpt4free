@@ -104,8 +104,8 @@ class Model:
     def create(
         token: str,
         model: str = 'gpt-3.5-turbo',  # claude-instant
-        system_prompt: str = 'You are ChatGPT a large language model developed by Openai. Answer as consisely as possible',
-        description: str = 'gpt-3.5 language model from openai, skidded by poe.com',
+        system_prompt: str = 'You are ChatGPT a large language model. Answer as consisely as possible',
+        description: str = 'gpt-3.5 language model',
         handle: str = None,
     ) -> ModelResponse:
         if not handle:
