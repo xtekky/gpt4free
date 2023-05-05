@@ -56,18 +56,25 @@ def generate_payload(query_name, variables):
     return {"query": queries[query_name], "variables": variables}
 
 
-def request_with_retries(method, *args, **kwargs):
-    attempts = kwargs.get("attempts") or 10
+def retry_request(method, *args, **kwargs):
+    """Retry a request with 10 attempts by default, delay increases exponentially"""
+    max_attempts: int = kwargs.pop("max_attempts", 10)
+    delay = kwargs.pop("delay", 1)
     url = args[0]
-    for i in range(attempts):
-        r = method(*args, **kwargs)
-        if r.status_code == 200:
-            return r
-        logger.warn(
-            f"Server returned a status code of {r.status_code} while downloading {url}. Retrying ({i + 1}/{attempts})..."
-        )
 
-    raise RuntimeError(f"Failed to download {url} too many times.")
+    for attempt in range(1, max_attempts + 1):
+        try:
+            response = method(*args, **kwargs)
+            response.raise_for_status()
+            return response
+        except Exception as error:
+            logger.warning(
+                f"Attempt {attempt}/{max_attempts} failed with error: {error}. "
+                f"Retrying in {delay} seconds..."
+            )
+            time.sleep(delay)
+            delay *= 2
+    raise RuntimeError(f"Failed to download {url} after {max_attempts} attempts.")
 
 
 class Client:
@@ -134,7 +141,7 @@ class Client:
     def get_next_data(self, overwrite_vars=False):
         logger.info("Downloading next_data...")
 
-        r = request_with_retries(self.session.get, self.home_url)
+        r = retry_request(self.session.get, self.home_url)
         json_regex = r'<script id="__NEXT_DATA__" type="application\/json">(.+?)</script>'
         json_text = re.search(json_regex, r.text).group(1)
         next_data = json.loads(json_text)
@@ -149,7 +156,7 @@ class Client:
     def get_bot(self, display_name):
         url = f'https://poe.com/_next/data/{self.next_data["buildId"]}/{display_name}.json'
 
-        r = request_with_retries(self.session.get, url)
+        r = retry_request(self.session.get, url)
 
         chat_data = r.json()["pageProps"]["payload"]["chatOfBotDisplayName"]
         return chat_data
@@ -198,7 +205,7 @@ class Client:
 
     def get_channel_data(self, channel=None):
         logger.info("Downloading channel data...")
-        r = request_with_retries(self.session.get, self.settings_url)
+        r = retry_request(self.session.get, self.settings_url)
         data = r.json()
 
         return data["tchannelData"]
@@ -222,7 +229,7 @@ class Client:
             }
             headers = {**self.gql_headers, **headers}
 
-            r = request_with_retries(self.session.post, self.gql_url, data=payload, headers=headers)
+            r = retry_request(self.session.post, self.gql_url, data=payload, headers=headers)
 
             data = r.json()
             if data["data"] is None:
