@@ -42,9 +42,6 @@ print(f'END')
 response = gpt4free.Completion.create(Provider.Theb, prompt='Write a poem on Lionel Messi')
 print(response)
 
-# usage cocalc
-response = gpt4free.Completion.create(Provider.CoCalc, prompt='Write a poem on Lionel Messi', cookie_input='')
-print(response)
 
 ```
 
@@ -73,8 +70,6 @@ Some of the keyword arguments are optional, while others are required.
 
 - Theb:
   (no keyword arguments required)
-- CoCalc:
-  - `cookie_input`: str - this needs to be provided by user
 
 #### Token generation of quora
 ```python
