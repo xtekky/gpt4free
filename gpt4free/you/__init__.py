@@ -5,10 +5,13 @@ from uuid import uuid4
 
 from fake_useragent import UserAgent
 from pydantic import BaseModel
+from requests import RequestException
+from retrying import retry
 from tls_client import Session
+from tls_client.response import Response
 
 
-class PoeResponse(BaseModel):
+class YouResponse(BaseModel):
     text: Optional[str] = None
     links: List[str] = []
     extra: Dict[str, Any] = {}
@@ -31,7 +34,7 @@ class Completion:
         detailed: bool = False,
         debug: bool = False,
         proxy: Optional[str] = None,
-    ) -> PoeResponse:
+    ) -> YouResponse:
         if chat is None:
             chat = []
 
@@ -41,29 +44,28 @@ class Completion:
         client.headers = Completion.__get_headers()
         client.proxies = proxies
 
-        response = client.get(
-            f'https://you.com/api/streamingSearch',
-            params={
-                'q': prompt,
-                'page': page,
-                'count': count,
-                'safeSearch': safe_search,
-                'onShoppingPage': on_shopping_page,
-                'mkt': mkt,
-                'responseFilter': response_filter,
-                'domain': domain,
-                'queryTraceId': str(uuid4()) if query_trace_id is None else query_trace_id,
-                'chat': str(chat),  # {'question':'','answer':' ''}
-            },
-        )
+        params = {
+            'q': prompt,
+            'page': page,
+            'count': count,
+            'safeSearch': safe_search,
+            'onShoppingPage': on_shopping_page,
+            'mkt': mkt,
+            'responseFilter': response_filter,
+            'domain': domain,
+            'queryTraceId': str(uuid4()) if query_trace_id is None else query_trace_id,
+            'chat': str(chat),  # {'question':'','answer':' ''}
+        }
+
+        try:
+            response = Completion.__make_request(client, params)
+        except Exception:
+            return Completion.__get_failure_response()
 
         if debug:
             print('\n\n------------------\n\n')
             print(response.text)
             print('\n\n------------------\n\n')
-
-        if 'youChatToken' not in response.text:
-            return Completion.__get_failure_response()
 
         you_chat_serp_results = re.search(
             r'(?<=event: youChatSerpResults\ndata:)(.*\n)*?(?=event: )', response.text
@@ -80,7 +82,7 @@ class Completion:
             # 'slots'                   : loads(slots)
         }
 
-        response = PoeResponse(text=text.replace('\\n', '\n').replace('\\\\', '\\').replace('\\"', '"'))
+        response = YouResponse(text=text.replace('\\n', '\n').replace('\\\\', '\\').replace('\\"', '"'))
         if include_links:
             response.links = json.loads(third_party_search_results)['search']['third_party_search_results']
 
@@ -108,5 +110,18 @@ class Completion:
         }
 
     @staticmethod
-    def __get_failure_response() -> PoeResponse:
-        return PoeResponse(text='Unable to fetch the response, Please try again.')
+    def __get_failure_response() -> YouResponse:
+        return YouResponse(text='Unable to fetch the response, Please try again.')
+
+    @staticmethod
+    @retry(
+        wait_fixed=5000,
+        stop_max_attempt_number=5,
+        retry_on_exception=lambda e: isinstance(e, RequestException),
+    )
+    def __make_request(client: Session, params: dict) -> Response:
+        response = client.get(f'https://you.com/api/streamingSearch', params=params)
+        if 'youChatToken' not in response.text:
+            print('retry')
+            raise RequestException('Unable to get the response from server')
+        return response
