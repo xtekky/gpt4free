@@ -1,13 +1,14 @@
 from json import loads
-from xtempmail import Email
 from re import findall
-from typing import Optional, Generator
-from faker import Faker
 from time import time, sleep
+from typing import Generator, Optional
 from uuid import uuid4
+
+from mailgw_temporary_email import Email
 from fake_useragent import UserAgent
 from requests import post
 from tls_client import Session
+
 from .typing import ForeFrontResponse
 
 
@@ -15,13 +16,12 @@ class Account:
     @staticmethod
     def create(proxy: Optional[str] = None, logging: bool = False):
         proxies = {'http': 'http://' + proxy, 'https': 'http://' + proxy} if proxy else False
-        faker = Faker()
-        name = (faker.name().replace(' ', '_')).lower()
 
         start = time()
 
-        mail_client = Email(name=name)
-        mail_address = mail_client.email
+        mail_client = Email()
+        mail_client.register()
+        mail_address = mail_client.address
 
         client = Session(client_identifier='chrome110')
         client.proxies = proxies
@@ -34,6 +34,7 @@ class Account:
             'https://clerk.forefront.ai/v1/client/sign_ups?_clerk_js_version=4.38.4',
             data={'email_address': mail_address},
         )
+        print(response.json()['response']['id'])
 
         try:
             trace_token = response.json()['response']['id']
@@ -55,17 +56,21 @@ class Account:
 
         if 'sign_up_attempt' not in response.text:
             return 'Failed to create account!'
-        verification_url = None
-        new_message = mail_client.get_new_message(5)
-        for msg in new_message:
-            verification_url = findall(r'https:\/\/clerk\.forefront\.ai\/v1\/verify\?token=\w.+', msg.text)[0]
+
+        while True:
+            sleep(5)
+            message_id = mail_client.message_list()[0]['id']
+            message = mail_client.message(message_id)
+            
+            new_message: Message = message
+            verification_url = findall(r'https:\/\/clerk\.forefront\.ai\/v1\/verify\?token=\w.+', new_message["text"])[0]
+
             if verification_url:
                 break
-        
-        if verification_url is None or not verification_url:
-            raise RuntimeError('Error while obtaining verfication URL!')
+
         if logging:
             print(verification_url)
+
         response = client.get(verification_url)
 
         response = client.get('https://clerk.forefront.ai/v1/client?_clerk_js_version=4.38.4')
@@ -188,4 +193,3 @@ class Completion:
             raise Exception('Unable to get the response, Please try again')
 
         return final_response
-	
