@@ -48,7 +48,27 @@ st.set_page_config(
 
 
 st.header('GPT4')
+cs = """
+<style>
+[class^="css-10trblm e16nr0p30"] {
+  font-weight: 800;
+  outline: none;
+  text-transform: uppercase;
+  background: linear-gradient(135deg, #5335cf 0%, #de005e 25%, #f66e48 50%, #de005e 75%, #5335cf 100%);
+  background-size: 400%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent; 
+  animation: animate 10s linear infinite;
+}
+@keyframes animate {
+  to{
+    background-position: 400%;
+  }
+}
+</style>
+"""
 
+st.markdown(cs, unsafe_allow_html=True)
 
 # page_bg_img = """
 # <style>
@@ -91,6 +111,9 @@ if st.button('🧠 Think'):
     #         st.write(f'An error occurred while trying to copy: {e}. Please try again.')
     
     
+
+#contact page?
+
 
 
 # Hide Streamlit footer
