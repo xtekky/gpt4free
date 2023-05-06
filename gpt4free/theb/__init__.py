@@ -49,9 +49,10 @@ class Completion:
     def create(prompt: str, proxy: Optional[str] = None) -> Generator[str, None, None]:
         Completion.stream_completed = False
         
-        Thread(target=Completion.request, args=[prompt, proxy]).start()
+        request_thread = Thread(target=Completion.request, args=[prompt, proxy])
+        request_thread.start()
 
-        while not Completion.stream_completed or not Completion.message_queue.empty():
+        while not Completion.stream_completed or not Completion.message_queue.empty() or request_thread.is_alive()::
             try:
                 message = Completion.message_queue.get(timeout=0.01)
                 for message in findall(Completion.regex, message):
