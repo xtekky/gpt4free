@@ -60,6 +60,8 @@ class Completion:
                     yield message_json['delta']
 
             except Empty:
+                if Completion.last_msg_id is not None:
+                stream_completed = True
                 pass
 
     @staticmethod
