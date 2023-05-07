@@ -3,9 +3,7 @@ FROM python:3.11 as builder
 WORKDIR /usr/app
 ENV PATH="/usr/app/venv/bin:$PATH"
 
-#RUN apt-get update && apt-get install -y git
-RUN apt-get update
-RUN apt-get install ffmpeg -y #issue 445
+RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p /usr/app
 RUN python -m venv ./venv
