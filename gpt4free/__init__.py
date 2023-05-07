@@ -1,6 +1,5 @@
 from enum import Enum
 
-from gpt4free import cocalc
 from gpt4free import forefront
 from gpt4free import quora
 from gpt4free import theb
@@ -15,7 +14,6 @@ class Provider(Enum):
     Poe = 'poe'
     ForeFront = 'fore_front'
     Theb = 'theb'
-    CoCalc = 'cocalc'
     UseLess = 'useless'
 
 
@@ -40,8 +38,6 @@ class Completion:
             return Completion.__fore_front_service(prompt, **kwargs)
         elif provider == Provider.Theb:
             return Completion.__theb_service(prompt, **kwargs)
-        elif provider == Provider.CoCalc:
-            return Completion.__cocalc_service(prompt, **kwargs)
         elif provider == Provider.UseLess:
             return Completion.__useless_service(prompt, **kwargs)
         else:
@@ -67,6 +63,3 @@ class Completion:
     def __theb_service(prompt: str, **kwargs):
         return ''.join(theb.Completion.create(prompt=prompt))
 
-    @staticmethod
-    def __cocalc_service(prompt: str, **kwargs):
-        return cocalc.Completion.create(prompt, cookie_input=kwargs.get('cookie_input', '')).text
