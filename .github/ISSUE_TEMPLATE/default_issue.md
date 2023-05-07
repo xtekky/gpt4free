@@ -16,7 +16,7 @@ assignees: xtekky
 What did you do, what happened, which file did you try to run, in which directory
 Describe what you did after downloading repo, such as moving to this repo, running this file.
 
-- ex.
+ex.
 1. Go to '...'
 2. Click on '....'
 3. Scroll down to '....'
