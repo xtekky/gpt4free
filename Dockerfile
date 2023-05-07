@@ -27,7 +27,7 @@ COPY . .
 
 RUN cp ./gui/streamlit_app.py .
 
-CMD ["streamlit", "run", "streamlit_app.py", "--server.address", "0.0.0.0"]
+CMD ["streamlit", "run", "--server.address", "0.0.0.0", "streamlit_app.py"]
 
 EXPOSE 8501
 
