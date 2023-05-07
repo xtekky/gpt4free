@@ -13,6 +13,6 @@ https://github.com/AI-Yash/st-chat/archive/refs/pull/24/head.zip
 pydantic
 pymailtm
 Levenshtein
-xtempmail
-faker
 retrying
+mailgw_temporary_email
+pycryptodome

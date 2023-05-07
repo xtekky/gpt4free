@@ -24,3 +24,9 @@ class ForeFrontResponse(BaseModel):
     choices: List[Choice]
     usage: Usage
     text: str
+
+
+class AccountData(BaseModel):
+    token: str
+    user_id: str
+    session_id: str

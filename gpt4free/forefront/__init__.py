@@ -1,20 +1,24 @@
+import hashlib
+from base64 import b64encode
 from json import loads
 from re import findall
 from time import time, sleep
 from typing import Generator, Optional
 from uuid import uuid4
 
-from mailgw_temporary_email import Email
+from Crypto.Cipher import AES
+from Crypto.Random import get_random_bytes
 from fake_useragent import UserAgent
+from mailgw_temporary_email import Email
 from requests import post
 from tls_client import Session
 
-from .typing import ForeFrontResponse
+from .typing import ForeFrontResponse, AccountData
 
 
 class Account:
     @staticmethod
-    def create(proxy: Optional[str] = None, logging: bool = False):
+    def create(proxy: Optional[str] = None, logging: bool = False) -> AccountData:
         proxies = {'http': 'http://' + proxy, 'https': 'http://' + proxy} if proxy else False
 
         start = time()
@@ -34,14 +38,13 @@ class Account:
             'https://clerk.forefront.ai/v1/client/sign_ups?_clerk_js_version=4.38.4',
             data={'email_address': mail_address},
         )
-        print(response.json()['response']['id'])
 
         try:
             trace_token = response.json()['response']['id']
             if logging:
                 print(trace_token)
         except KeyError:
-            return 'Failed to create account!'
+            raise RuntimeError('Failed to create account!')
 
         response = client.post(
             f'https://clerk.forefront.ai/v1/client/sign_ups/{trace_token}/prepare_verification?_clerk_js_version=4.38.4',
@@ -55,27 +58,26 @@ class Account:
             print(response.text)
 
         if 'sign_up_attempt' not in response.text:
-            return 'Failed to create account!'
+            raise RuntimeError('Failed to create account!')
 
         while True:
             sleep(5)
             message_id = mail_client.message_list()[0]['id']
             message = mail_client.message(message_id)
-            
-            new_message: Message = message
-            verification_url = findall(r'https:\/\/clerk\.forefront\.ai\/v1\/verify\?token=\w.+', new_message["text"])[0]
-
+            verification_url = findall(r'https:\/\/clerk\.forefront\.ai\/v1\/verify\?token=\w.+', message["text"])[0]
             if verification_url:
                 break
 
         if logging:
             print(verification_url)
+        client.get(verification_url)
 
-        response = client.get(verification_url)
+        response = client.get('https://clerk.forefront.ai/v1/client?_clerk_js_version=4.38.4').json()
+        session_data = response['response']['sessions'][0]
 
-        response = client.get('https://clerk.forefront.ai/v1/client?_clerk_js_version=4.38.4')
-
-        token = response.json()['response']['sessions'][0]['last_active_token']['jwt']
+        user_id = session_data['user']['id']
+        session_id = session_data['id']
+        token = session_data['last_active_token']['jwt']
 
         with open('accounts.txt', 'a') as f:
             f.write(f'{mail_address}:{token}\n')
@@ -83,32 +85,32 @@ class Account:
         if logging:
             print(time() - start)
 
-        return token
+        return AccountData(token=token, user_id=user_id, session_id=session_id)
 
 
 class StreamingCompletion:
     @staticmethod
     def create(
-        token=None,
+        prompt: str,
+        account_data: AccountData,
         chat_id=None,
-        prompt='',
         action_type='new',
         default_persona='607e41fe-95be-497e-8e97-010a59b2e2c0',  # default
         model='gpt-4',
         proxy=None
     ) -> Generator[ForeFrontResponse, None, None]:
-        if not token:
-            raise Exception('Token is required!')
+        token = account_data.token
         if not chat_id:
             chat_id = str(uuid4())
 
-        proxies = { 'http': 'http://' + proxy, 'https': 'http://' + proxy } if proxy else None
+        proxies = {'http': 'http://' + proxy, 'https': 'http://' + proxy} if proxy else None
+        base64_data = b64encode((account_data.user_id + default_persona + chat_id).encode()).decode()
+        encrypted_signature = StreamingCompletion.__encrypt(base64_data, account_data.session_id)
 
         headers = {
             'authority': 'chat-server.tenant-forefront-default.knative.chi.coreweave.com',
             'accept': '*/*',
             'accept-language': 'en,fr-FR;q=0.9,fr;q=0.8,es-ES;q=0.7,es;q=0.6,en-US;q=0.5,am;q=0.4,de;q=0.3',
-            'authorization': 'Bearer ' + token,
             'cache-control': 'no-cache',
             'content-type': 'application/json',
             'origin': 'https://chat.forefront.ai',
@@ -120,6 +122,8 @@ class StreamingCompletion:
             'sec-fetch-dest': 'empty',
             'sec-fetch-mode': 'cors',
             'sec-fetch-site': 'cross-site',
+            'authorization': f"Bearer {token}",
+            'X-Signature': encrypted_signature,
             'user-agent': UserAgent().random,
         }
 
@@ -133,7 +137,7 @@ class StreamingCompletion:
         }
 
         for chunk in post(
-            'https://chat-server.tenant-forefront-default.knative.chi.coreweave.com/chat',
+            'https://streaming.tenant-forefront-default.knative.chi.coreweave.com/chat',
             headers=headers,
             proxies=proxies,
             json=json_data,
@@ -160,13 +164,28 @@ class StreamingCompletion:
                         }
                     )
 
+    @staticmethod
+    def __encrypt(data: str, key: str) -> str:
+        hash_key = hashlib.sha256(key.encode()).digest()
+        iv = get_random_bytes(16)
+        cipher = AES.new(hash_key, AES.MODE_CBC, iv)
+        encrypted_data = cipher.encrypt(StreamingCompletion.__pad_data(data.encode()))
+        return iv.hex() + encrypted_data.hex()
+
+    @staticmethod
+    def __pad_data(data: bytes) -> bytes:
+        block_size = AES.block_size
+        padding_size = block_size - len(data) % block_size
+        padding = bytes([padding_size] * padding_size)
+        return data + padding
+
 
 class Completion:
     @staticmethod
     def create(
-        token=None,
+        prompt: str,
+        account_data: AccountData,
         chat_id=None,
-        prompt='',
         action_type='new',
         default_persona='607e41fe-95be-497e-8e97-010a59b2e2c0',  # default
         model='gpt-4',
@@ -175,7 +194,7 @@ class Completion:
         text = ''
         final_response = None
         for response in StreamingCompletion.create(
-            token=token,
+            account_data=account_data,
             chat_id=chat_id,
             prompt=prompt,
             action_type=action_type,
@@ -190,6 +209,6 @@ class Completion:
         if final_response:
             final_response.text = text
         else:
-            raise Exception('Unable to get the response, Please try again')
+            raise RuntimeError('Unable to get the response, Please try again')
 
         return final_response
