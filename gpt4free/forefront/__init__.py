@@ -1,4 +1,5 @@
 import hashlib
+import os
 from base64 import b64encode
 from json import loads
 from re import findall
@@ -17,43 +18,77 @@ from .typing import ForeFrontResponse, AccountData
 
 
 class Account:
-    @staticmethod
-    def create(proxy: Optional[str] = None, logging: bool = False) -> AccountData:
-        proxies = {'http': 'http://' + proxy, 'https': 'http://' + proxy} if proxy else False
+    COOKIES_FILE_NAME = 'cookie.txt'
 
+    @staticmethod
+    def create(proxy: Optional[str] = None, logging: bool = False, use_cookie: bool = False) -> AccountData:
         start = time()
 
-        mail_client = Email()
-        mail_client.register()
-        mail_address = mail_client.address
+        http_client = Account.__create_http_client(proxy=proxy)
 
-        client = Session(client_identifier='chrome110')
-        client.proxies = proxies
-        client.headers = {
+        if use_cookie:
+            is_cookie_loaded = Account.__load_cookie(http_client)
+            if not is_cookie_loaded:
+                Account.__create_forefront_account(http_client, logging)
+            Account.__save_cookie(http_client)
+        else:
+            Account.__create_forefront_account(http_client, logging)
+
+        account_data = Account.__get_account_data(http_client)
+
+        if logging:
+            print(time() - start)
+
+        return account_data
+
+    @staticmethod
+    def __is_cookie_enabled(http_client: Session) -> bool:
+        response = http_client.get('https://clerk.forefront.ai/v1/client?_clerk_js_version=4.38.4')
+        response = response.json()
+        return response['response'] is not None
+
+    @staticmethod
+    def __create_http_client(proxy: Optional[str] = None) -> Session:
+        proxies = {'http': 'http://' + proxy, 'https': 'http://' + proxy} if proxy else False
+
+        http_client = Session(client_identifier='chrome110')
+        http_client.proxies = proxies
+        http_client.headers = {
             'origin': 'https://accounts.forefront.ai',
             'user-agent': UserAgent().random,
         }
 
-        response = client.post(
+        return http_client
+
+    @staticmethod
+    def __create_forefront_account(http_client: Session, logging: bool):
+        email = Email()
+        email.register()
+        mail_address = email.address
+
+        trace_token = Account.__signup_forefront_account(http_client, mail_address)
+        if logging:
+            print(trace_token)
+
+        Account.__verify_forefront_account(http_client, email, trace_token, logging)
+
+    @staticmethod
+    def __signup_forefront_account(http_client: Session, mail_address: str) -> str:
+        response = http_client.post(
             'https://clerk.forefront.ai/v1/client/sign_ups?_clerk_js_version=4.38.4',
             data={'email_address': mail_address},
         )
-
         try:
-            trace_token = response.json()['response']['id']
-            if logging:
-                print(trace_token)
+            return response.json()['response']['id']
         except KeyError:
             raise RuntimeError('Failed to create account!')
 
-        response = client.post(
+    @staticmethod
+    def __verify_forefront_account(http_client: Session, email: Email, trace_token: str, logging: bool):
+        response = http_client.post(
             f'https://clerk.forefront.ai/v1/client/sign_ups/{trace_token}/prepare_verification?_clerk_js_version=4.38.4',
-            data={
-                'strategy': 'email_link',
-                'redirect_url': 'https://accounts.forefront.ai/sign-up/verify'
-            },
+            data={'strategy': 'email_link', 'redirect_url': 'https://accounts.forefront.ai/sign-up/verify'},
         )
-
         if logging:
             print(response.text)
 
@@ -62,30 +97,45 @@ class Account:
 
         while True:
             sleep(5)
-            message_id = mail_client.message_list()[0]['id']
-            message = mail_client.message(message_id)
+            message_id = email.message_list()[0]['id']
+            message = email.message(message_id)
             verification_url = findall(r'https:\/\/clerk\.forefront\.ai\/v1\/verify\?token=\w.+', message["text"])[0]
             if verification_url:
                 break
 
+        if verification_url is None or not verification_url:
+            raise RuntimeError('Error while obtaining verification URL!')
+
         if logging:
             print(verification_url)
-        client.get(verification_url)
 
-        response = client.get('https://clerk.forefront.ai/v1/client?_clerk_js_version=4.38.4').json()
+        http_client.get(verification_url)
+
+    @staticmethod
+    def __get_account_data(http_client: Session) -> AccountData:
+        response = http_client.get('https://clerk.forefront.ai/v1/client?_clerk_js_version=4.38.4').json()
         session_data = response['response']['sessions'][0]
 
-        user_id = session_data['user']['id']
-        session_id = session_data['id']
-        token = session_data['last_active_token']['jwt']
+        return AccountData(
+            user_id=session_data['user']['id'],
+            session_id=session_data['id'],
+            token=session_data['last_active_token']['jwt'],
+        )
 
-        with open('accounts.txt', 'a') as f:
-            f.write(f'{mail_address}:{token}\n')
+    @staticmethod
+    def __save_cookie(http_client: Session):
+        with open(Account.COOKIES_FILE_NAME, 'w') as f:
+            f.write(http_client.cookies.get('__client'))
 
-        if logging:
-            print(time() - start)
+    @staticmethod
+    def __load_cookie(http_client: Session) -> bool:
+        if not os.path.isfile(Account.COOKIES_FILE_NAME):
+            return False
 
-        return AccountData(token=token, user_id=user_id, session_id=session_id)
+        with open(Account.COOKIES_FILE_NAME, 'r') as f:
+            http_client.cookies.set('__client', f.read())
+
+        return Account.__is_cookie_enabled(http_client)
 
 
 class StreamingCompletion:
