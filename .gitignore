@@ -14,9 +14,6 @@ venv/
 conversations.pkl
 *.pkl
 
-# Ignore accounts created by api's
-accounts.txt
-
 .idea/
 
 **/__pycache__/
@@ -30,3 +27,5 @@ cookie.json
 *.pyc
 
 dist/
+
+gpt4free/forefront/cookie.txt
