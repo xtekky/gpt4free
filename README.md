@@ -172,6 +172,9 @@ Run
 
 ```
 docker run -p 8501:8501 gpt4free:latest
+
+# Or, run the chat app
+docker run -p 8501:8501 -e STREAMLIT_BROWSER_GATHER_USAGE_STATS=false gpt4free:latest streamlit run './gui/streamlit_chat_app.py'
 ```
 
 ## Deploy using docker-compose
