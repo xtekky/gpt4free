@@ -159,6 +159,22 @@ cp gui/streamlit_app.py .
 streamlit run streamlit_app.py
 ```
 
+## To start gpt4free API <a name="Flask api"></a>
+
+```sh
+python3 app.py
+```
+## Test api Example<a name="test-api"></a>
+
+```sh
+curl -X POST http://localhost:5000/api/chatgpt -d '{"question": "what is chatgpt?"}'
+```
+### Response
+```json
+{
+    "answer": "chatgpt ......"
+}
+```
 
 ## Docker <a name="docker-instructions"></a>
 
