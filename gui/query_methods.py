@@ -15,7 +15,7 @@ def query_forefront(question: str, proxy: Optional[str] = None) -> str:
     response = ""
     # get a response
     try:
-        return forefront.Completion.create(token=token, prompt='hello world', model='gpt-4', proxy=proxy).text
+        return forefront.Completion.create(account_data=token, prompt='hello world', model='gpt-4', proxy=proxy).text
     except Exception as e:
         # Return error message if an exception occurs
         return (
