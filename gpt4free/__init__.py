@@ -15,6 +15,7 @@ class Provider(Enum):
     ForeFront = 'fore_front'
     Theb = 'theb'
     UseLess = 'useless'
+    DeepAI = 'deepai'
 
 
 class Completion:
@@ -40,6 +41,8 @@ class Completion:
             return Completion.__theb_service(prompt, **kwargs)
         elif provider == Provider.UseLess:
             return Completion.__useless_service(prompt, **kwargs)
+        elif provider == Provider.DeepAI:
+            return Completion.__deepai_service(prompt, **kwargs)
         else:
             raise Exception('Provider not exist, Please try again')
 
@@ -62,4 +65,7 @@ class Completion:
     @staticmethod
     def __theb_service(prompt: str, **kwargs):
         return ''.join(theb.Completion.create(prompt=prompt))
-
+    
+    @staticmethod
+    def __deepai_service(prompt: str, **kwargs):
+        return ''.join(deepai.Completion.create(prompt=prompt))
