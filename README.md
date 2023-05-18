@@ -5,6 +5,12 @@ you reverse a site from this list: [sites-to-reverse](https://github.com/xtekky/
 
 ___
 
+countdown until major update    
+
+<img src="https://i.countdownmail.com/2kdr2o.gif" border="0" alt="countdownmail.com"/>
+
+___
+
 <p>You may join our discord: <a href="https://discord.com/invite/gpt4free">discord.gg/gpt4free<a> for further updates. <a href="https://discord.gg/gpt4free"><img align="center" alt="gpt4free Discord" width="22px" src="https://raw.githubusercontent.com/peterthehan/peterthehan/master/assets/discord.svg" /></a></p>
 
 
