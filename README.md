@@ -195,7 +195,7 @@ docker-compose up --build -d
 
 This program is licensed under the [GNU GPL v3](https://www.gnu.org/licenses/gpl-3.0.txt)
 
-Most code, with the exception of `quora/api.py` (by [ading2210](https://github.com/ading2210)), has been written by me, [xtekky](https://github.com/xtekky).
+Most code, with the exception of `quora/api.py` and `deepai/__init__.py` (by [ading2210](https://github.com/ading2210)), has been written by me, [xtekky](https://github.com/xtekky).
 
 ### Copyright Notice: <a name="copyright"></a>
 
