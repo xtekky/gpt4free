@@ -96,6 +96,7 @@ Just API's from some language model sites.
 | `forefront` | Example usage for forefront (gpt-4) | [![Link to File](https://img.shields.io/badge/Link-Go%20to%20File-blue)](gpt4free/forefront/README.md) | ![Active](https://img.shields.io/badge/Active-brightgreen) | ||
 | `quora (poe)` | Example usage for quora | [![Link to File](https://img.shields.io/badge/Link-Go%20to%20File-blue)](gpt4free/quora/README.md) | ![Active](https://img.shields.io/badge/Active-brightgreen) |
 | `you` | Example usage for you | [![Link to File](https://img.shields.io/badge/Link-Go%20to%20File-blue)](gpt4free/you/README.md) | ![Active](https://img.shields.io/badge/Active-brightgreen) |
+| `deepai` | Example usage for DeepAI (gpt-3.5, with chat) | [![Link to File](https://img.shields.io/badge/Link-Go%20to%20File-blue)](gpt4free/deepai/README.md) | ![Active](https://img.shields.io/badge/Active-brightgreen) |
 | **Try it Out** | | | |
 | Google Colab Jupyter Notebook | Example usage for gpt4free | [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/DanielShemesh/gpt4free-colab/blob/main/gpt4free.ipynb) | - |
 | replit Example (feel free to fork this repl) | Example usage for gpt4free | [![](https://img.shields.io/badge/Open%20in-Replit-1A1E27?logo=replit)](https://replit.com/@gpt4free/gpt4free-webui) | - |
@@ -126,6 +127,8 @@ Just API's from some language model sites.
 | [bard.google.com](https://bard.google.com)       | custom / search                  |
 | [bing.com/chat](https://bing.com/chat)           | GPT-4/3.5                        |
 | [italygpt.it](https://italygpt.it)               | GPT-3.5                          |
+| [deepai.org](https://deepai.org/chat)            | GPT-3.5 / chat support           |
+
 
 ## Best sites <a name="best-sites"></a>
 
