@@ -157,6 +157,32 @@ python3 -m venv venv
 pip3 install -r requirements.txt
 ```
 
+## Install ffmpeg
+```sh
+sudo apt-get install ffmpeg
+```
+  
+## Connect VPN if needed and get proxy (Optional)
+```sh
+echo "$http_proxy" # http://127.0.0.1:8889/
+```
+  
+## Set proxy in gpt4free/you/__init__.py (Optional)
+```
+diff --git a/gpt4free/you/__init__.py b/gpt4free/you/__init__.py
+index 11847fb..59d1162 100644
+--- a/gpt4free/you/__init__.py
++++ b/gpt4free/you/__init__.py
+@@ -38,6 +38,7 @@ class Completion:
+         if chat is None:
+             chat = []
+ 
++        proxy = '127.0.0.1:8889'
+         proxies = {'http': 'http://' + proxy, 'https': 'http://' + proxy} if proxy else {}
+ 
+         client = Session(client_identifier='chrome_108')
+```
+
 
 ## To start gpt4free GUI <a name="streamlit-gpt4free-gui"></a>
 
