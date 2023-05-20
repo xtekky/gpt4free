@@ -14,6 +14,18 @@ for chunk in italygpt2.Completion.create(account_data=account_data,prompt="Who a
 print()
 ```
 
+#### NetWork Error:
+If your initialization request has been unsuccessful, you can try setting the firstid in advance.
+
+open [italygpt](https://italygpt.it/) then get the value at `#next_id`
+```python
+account_data=italygpt2.Account.create('x29mx00w0z682c07s74e80crz')#your id
+print(account_data._tid)
+for chunk in italygpt2.Completion.create(account_data=account_data,prompt="Who are you?"):
+    print(chunk, end="", flush=True)
+print()
+```
+
 ### Chat
 Like most chatgpt projects, format is supported.
 Use the same format for the messages as you would for the [official OpenAI API](https://platform.openai.com/docs/guides/chat/introduction).
