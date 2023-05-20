@@ -42,6 +42,7 @@ class Completion:
 
         url = "https://ai.usesless.com/api/chat-process"
         request = requests.post(url, headers=Completion.headers, json=json_data)
+        request.encoding = request.apparent_encoding # <--- Fix is here
         content = request.content
 
         response = Completion.__response_to_json(content)
