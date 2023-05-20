@@ -1,6 +1,6 @@
 aiassist.site
 
-### Example: `aiassist` <a name="example-assist></a>
+### Example: `aiassist` <a name="example-assist"></a>
 
 ```python
 import aiassist
