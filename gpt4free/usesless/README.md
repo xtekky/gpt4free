@@ -2,15 +2,14 @@ ai.usesless.com
 
 ### Example: `usesless` <a name="example-usesless"></a>
 
-### create account
+### token generation
+<p>this will create account.txt that contains mail and token</p>
 
-<p>create account first, this will create account.txt that contains mail and token</p>
 ```python
 import usesless
 
 usesless.Account.create(logging=True)
-
-````
+```
 
 ### completion
 <p>insert token from account.txt</p>
@@ -29,4 +28,4 @@ while True:
 
     print(f"Answer: {req['text']}")
     message_id = req["id"]
-````
+```
