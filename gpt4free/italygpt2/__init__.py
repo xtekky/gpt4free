@@ -4,16 +4,21 @@ import hashlib
 from fake_useragent import UserAgent
 class Account:
     @staticmethod
-    def create():
-        r=requests.get("https://italygpt.it/",headers=Account._header)
-        f=r.text
-        tid=re.search('<input type=\"hidden\" name=\"next_id\" id=\"next_id\" value=\"(\w+)\">',f).group(1)
-        if len(tid)==0:
-            raise RuntimeError("NetWorkError:failed to get id.")
+    def create(first_id=""):
+        if(len(first_id)==25):
+            Account._tid=first_id
+            Account._raw="[]"
+            return Account
         else:
-            Account._tid=tid
-        Account._raw="[]"
-        return Account
+            r=requests.get("https://italygpt.it/",headers=Account._header)
+            f=r.text
+            tid=re.search('<input type=\"hidden\" name=\"next_id\" id=\"next_id\" value=\"(\w+)\">',f)
+            if tid:
+                Account._tid=tid.group(1)
+            else:
+                raise RuntimeError("NetWorkError:failed to get id.")
+            Account._raw="[]"
+            return Account
     def next(next_id:str)->str:
         Account._tid=next_id
         return Account._tid
