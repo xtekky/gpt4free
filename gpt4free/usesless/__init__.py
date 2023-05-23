@@ -52,14 +52,10 @@ class Account:
             quit()
 
         while True:
+            time.sleep(5)
             messages = mail_client.message_list()
-            
-            # Check if method `message_list()` didn't return None or empty list.
             if not messages or len(messages) == 0:
-                # If it returned None or empty list sleep for 5 seconds to wait for new message. 
-                time.sleep(5)
                 continue
-            
             message_id = mail_client.message_list()[0]["id"]
             message = mail_client.message(message_id)
             verification_url = re.findall(
