@@ -15,12 +15,13 @@ class ChatCompletion:
     def create(
             messages: list,
             context: str="Converse as if you were an AI assistant. Be friendly, creative.",
+            restNonce:str="9d6d743bd3",
             proxy:str=None
     ):
         url = "https://chatgptlogin.ac/wp-json/ai-chatbot/v1/chat"
         headers = {
             "Content-Type": "application/json",
-            "X-Wp-Nonce": "02244d73c2"
+            "X-Wp-Nonce": restNonce
         }
         proxies = {'http': 'http://' + proxy, 'https': 'http://' + proxy} if proxy else None
         data = {
