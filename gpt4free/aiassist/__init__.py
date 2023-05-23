@@ -21,6 +21,7 @@ class Completion:
 
         url = "http://43.153.7.56:8080/api/chat-process"
         request = requests.post(url, json=json_data)
+        request.encoding = request.apparent_encoding
         content = request.content
 
         response = Completion.__load_json(content)
