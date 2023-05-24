@@ -16,3 +16,4 @@ Levenshtein
 retrying
 mailgw_temporary_email
 pycryptodome
+random-password-generator
