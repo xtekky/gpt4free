@@ -56,7 +56,7 @@ class Account:
             messages = mail_client.message_list()
             if not messages or len(messages) == 0:
                 continue
-            message_id = mail_client.message_list()[0]["id"]
+            message_id = messages[0]["id"]
             message = mail_client.message(message_id)
             verification_url = re.findall(
                 r"http:\/\/ai\.usesless\.com\/api\/cms\/auth\/email-confirmation\?confirmation=\w.+\w\w",
