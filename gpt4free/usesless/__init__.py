@@ -1,20 +1,32 @@
+import string
 import time
 import re
 import json
 import requests
 import fake_useragent
-import names
-
-from mailgw_temporary_email import Email
+import random
 from password_generator import PasswordGenerator
+
+from utils import create_email, check_email
 
 
 class Account:
     @staticmethod
     def create(logging: bool = False):
-        mail_client = Email()
-        mail_client.register()
-        mail_address = mail_client.address
+        is_custom_domain = input(
+            "Do you want to use your custom domain name for temporary email? [Y/n]: "
+        ).upper()
+
+        if is_custom_domain == "Y":
+            mail_address = create_email(custom_domain=True, logging=logging)
+        elif is_custom_domain == "N":
+            mail_address = create_email(custom_domain=False, logging=logging)
+        else:
+            print("Please, enter either Y or N")
+            return
+
+        name = string.ascii_lowercase + string.digits
+        username = "".join(random.choice(name) for i in range(20))
 
         pwo = PasswordGenerator()
         pwo.minlen = 8
@@ -22,12 +34,9 @@ class Account:
 
         session = requests.Session()
 
-        if logging:
-            print(f"email: {mail_address}")
-
         register_url = "https://ai.usesless.com/api/cms/auth/local/register"
         register_json = {
-            "username": names.get_first_name(),
+            "username": username,
             "password": password,
             "email": mail_address,
         }
@@ -44,23 +53,28 @@ class Account:
         register = session.post(register_url, json=register_json, headers=headers)
         if logging:
             if register.status_code == 200:
-                print("register success")
+                print("Registered successfully")
             else:
-                print("there's a problem with account creation, try again")
+                print(register.status_code)
+                print(register.json())
+                print("There was a problem with account registration, try again")
 
         if register.status_code != 200:
             quit()
 
         while True:
             time.sleep(5)
-            messages = mail_client.message_list()
+            messages = check_email(mail=mail_address, logging=logging)
+
+            # Check if method `message_list()` didn't return None or empty list.
             if not messages or len(messages) == 0:
+                # If it returned None or empty list sleep for 5 seconds to wait for new message.
                 continue
-            message_id = messages[0]["id"]
-            message = mail_client.message(message_id)
+
+            message_text = messages[0]["content"]
             verification_url = re.findall(
                 r"http:\/\/ai\.usesless\.com\/api\/cms\/auth\/email-confirmation\?confirmation=\w.+\w\w",
-                message["text"],
+                message_text,
             )[0]
             if verification_url:
                 break
@@ -70,13 +84,17 @@ class Account:
         login_request = session.post(
             url="https://ai.usesless.com/api/cms/auth/local", json=login_json
         )
-        token = login_request.json()["jwt"]
-        if logging:
-            print(f"token: {token}")
 
-        with open("accounts.txt", "w") as f:
-            f.write(f"{mail_address}\n")
-            f.write(f"{token}")
+        token = login_request.json()["jwt"]
+        if logging and token:
+            print(f"Token: {token}")
+
+        with open("account.json", "w") as file:
+            json.dump({"email": mail_address, "token": token}, file)
+            if logging:
+                print(
+                    "\nNew account credentials has been successfully saved in 'account.json' file"
+                )
 
         return token
 
