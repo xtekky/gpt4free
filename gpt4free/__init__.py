@@ -5,18 +5,20 @@ from gpt4free import quora
 from gpt4free import theb
 from gpt4free import usesless
 from gpt4free import you
+from gpt4free import aicolors
 from gpt4free import deepai
 
 
 class Provider(Enum):
     """An enum representing  different providers."""
 
-    You = 'you'
-    Poe = 'poe'
-    ForeFront = 'fore_front'
-    Theb = 'theb'
-    UseLess = 'useless'
-    DeepAI = 'deepai'
+    You = "you"
+    Poe = "poe"
+    ForeFront = "fore_front"
+    Theb = "theb"
+    UseLess = "useless"
+    AiColors = "ai_colors"
+    DeepAI = "deepai"
 
 
 class Completion:
@@ -42,10 +44,16 @@ class Completion:
             return Completion.__theb_service(prompt, **kwargs)
         elif provider == Provider.UseLess:
             return Completion.__useless_service(prompt, **kwargs)
+        elif provider == Provider.AiColors:
+            return Completion.__ai_colors_service(prompt, **kwargs)
         elif provider == Provider.DeepAI:
             return Completion.__deepai_service(prompt, **kwargs)
         else:
-            raise Exception('Provider not exist, Please try again')
+            raise Exception("Provider not exist, Please try again")
+
+    @staticmethod
+    def __ai_colors_service(prompt: str):
+        return aicolors.Completion.create(prompt=prompt)
 
     @staticmethod
     def __useless_service(prompt: str, **kwargs) -> str:
@@ -65,11 +73,12 @@ class Completion:
 
     @staticmethod
     def __theb_service(prompt: str, **kwargs):
-        return ''.join(theb.Completion.create(prompt=prompt))
-    
+        return "".join(theb.Completion.create(prompt=prompt))
+
     @staticmethod
     def __deepai_service(prompt: str, **kwargs):
-        return ''.join(deepai.Completion.create(prompt=prompt))
+        return "".join(deepai.Completion.create(prompt=prompt))
+
 
 class ChatCompletion:
     """This class is used to execute a chat completion for a specified provider"""
@@ -87,8 +96,8 @@ class ChatCompletion:
         if provider == Provider.DeepAI:
             return ChatCompletion.__deepai_service(messages, **kwargs)
         else:
-            raise Exception('Provider not exist, Please try again')
-    
+            raise Exception("Provider not exist, Please try again")
+
     @staticmethod
     def __deepai_service(messages: list, **kwargs):
-        return ''.join(deepai.ChatCompletion.create(messages=messages))
+        return "".join(deepai.ChatCompletion.create(messages=messages))
