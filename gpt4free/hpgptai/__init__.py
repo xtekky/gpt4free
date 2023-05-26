@@ -5,20 +5,26 @@
 @File ：__init__.py.py
 @IDE ：PyCharm
 """
+import re
 import json
-import requests
+import base64
 import random
 import string
+import requests
+from fake_useragent import UserAgent
+
 
 class ChatCompletion:
     @staticmethod
     def create(
             messages: list,
-            context: str="Converse as if you were an AI assistant. Be friendly, creative.",
-            restNonce:str="9d6d743bd3",
-            proxy:str=None
+            context: str = "Converse as if you were an AI assistant. Be friendly, creative.",
+            restNonce: str = None,
+            proxy: str = None
     ):
         url = "https://chatgptlogin.ac/wp-json/ai-chatbot/v1/chat"
+        if not restNonce:
+            restNonce = ChatCompletion.get_restNonce(proxy)
         headers = {
             "Content-Type": "application/json",
             "X-Wp-Nonce": restNonce
@@ -27,7 +33,7 @@ class ChatCompletion:
         data = {
             "env": "chatbot",
             "session": "N/A",
-            "prompt": ChatCompletion.__build_prompt(context,messages),
+            "prompt": ChatCompletion.__build_prompt(context, messages),
             "context": context,
             "messages": messages,
             "newMessage": messages[-1]["content"],
@@ -48,7 +54,6 @@ class ChatCompletion:
             return res.json()
         return res.text
 
-
     @staticmethod
     def randomStr():
         return ''.join(random.choices(string.ascii_lowercase + string.digits, k=34))[:11]
@@ -66,12 +71,26 @@ class ChatCompletion:
         prompt += '\n' + "AI: "
         return prompt
 
-
+    @classmethod
+    def get_restNonce(cls, proxy: str = None):
+        url = "https://chatgptlogin.ac/"
+        headers = {
+            "Referer": "https://chatgptlogin.ac/",
+            "User-Agent": UserAgent().random
+        }
+        proxies = {'http': 'http://' + proxy, 'https': 'http://' + proxy} if proxy else None
+        res = requests.get(url, headers=headers, proxies=proxies)
+        src = re.search(
+            'class="mwai-chat mwai-chatgpt">.*<span>Send</span></button></div></div></div> <script defer src="(.*?)">',
+            res.text).group(1)
+        decoded_string = base64.b64decode(src.split(",")[-1]).decode('utf-8')
+        restNonce = re.search(r"let restNonce = '(.*?)';", decoded_string).group(1)
+        return restNonce
 
 
 class Completion:
     @staticmethod
-    def create(prompt: str,proxy:str):
+    def create(prompt: str, proxy: str):
         messages = [
             {
                 "content": prompt,
@@ -81,4 +100,4 @@ class Completion:
                 "who": "User: ",
             },
         ]
-        return ChatCompletion.create(messages=messages,proxy=proxy)
+        return ChatCompletion.create(messages=messages, proxy=proxy)
