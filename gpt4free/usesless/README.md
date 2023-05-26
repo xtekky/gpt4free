@@ -2,8 +2,8 @@ ai.usesless.com
 
 ### Example: `usesless` <a name="example-usesless"></a>
 
-### token generation
-<p>this will create account.txt that contains mail and token</p>
+### Token generation
+<p>This will create account.json that contains email and token in json</p>
 
 ```python
 from gpt4free import usesless
@@ -13,8 +13,8 @@ token = usesless.Account.create(logging=True)
 print(token)
 ```
 
-### completion
-<p>insert token from account.txt</p>
+### Completion
+<p>Insert token from account.json</p>
 
 ```python
 import usesless
