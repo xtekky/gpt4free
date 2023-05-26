@@ -6,9 +6,11 @@ ai.usesless.com
 <p>this will create account.txt that contains mail and token</p>
 
 ```python
-import usesless
+from gpt4free import usesless
 
-usesless.Account.create(logging=True)
+
+token = usesless.Account.create(logging=True)
+print(token)
 ```
 
 ### completion
