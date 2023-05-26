@@ -1,4 +1,3 @@
-import pyperclip
 import requests
 import random
 import string
