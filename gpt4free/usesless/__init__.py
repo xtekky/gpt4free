@@ -7,7 +7,7 @@ import fake_useragent
 import random
 from password_generator import PasswordGenerator
 
-from utils import create_email, check_email
+from .utils import create_email, check_email
 
 
 class Account:
