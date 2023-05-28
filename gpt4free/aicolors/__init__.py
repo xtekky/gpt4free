@@ -1,7 +1,7 @@
 import fake_useragent
 import requests
 import json
-from typings import AiColorsResponse
+from .typings import AiColorsResponse
 
 
 class Completion:
