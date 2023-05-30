@@ -17,3 +17,4 @@ retrying
 mailgw_temporary_email
 pycryptodome
 random-password-generator
+typings
