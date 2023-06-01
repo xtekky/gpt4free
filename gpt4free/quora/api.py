@@ -168,9 +168,9 @@ class Client:
         else:
             next_data = self.next_data
 
-        if not "availableBots" in self.viewer:
+        if not "viewerBotList" in self.viewer:
             raise RuntimeError("Invalid token or no bots are available.")
-        bot_list = self.viewer["availableBots"]
+        bot_list = self.viewer["viewerBotList"]
 
         threads = []
         bots = {}
