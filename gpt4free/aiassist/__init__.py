@@ -1,5 +1,5 @@
+import urllib.request
 import json
-import requests
 
 
 class Completion:
@@ -20,16 +20,17 @@ class Completion:
         }
 
         url = "http://43.153.7.56:8080/api/chat-process"
-        request = requests.post(url, json=json_data)
-        request.encoding = request.apparent_encoding
-        content = request.content
+        headers = {"Content-type": "application/json"}
 
-        response = Completion.__load_json(content)
-        return response
+        data = json.dumps(json_data).encode("utf-8")
+        req = urllib.request.Request(url, data=data, headers=headers)
+        response = urllib.request.urlopen(req)
+        content = response.read().decode()
+
+        return Completion.__load_json(content)
 
     @classmethod
     def __load_json(cls, content) -> dict:
-        decode_content = str(content.decode("utf-8"))
-        split = decode_content.rsplit("\n", 1)[1]
+        split = content.rsplit("\n", 1)[1]
         to_json = json.loads(split)
         return to_json
