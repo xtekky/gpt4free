@@ -1,15 +1,7 @@
-**I am busy for the next weeks for various reasons, so the code may get deprecated, but starting back full speed soon with plenty new features**
+**A major update is to come in the next days (statement written 4 Jun)**
 
 What can I do to contribute ?     
 you reverse a site from this list: [sites-to-reverse](https://github.com/xtekky/gpt4free/issues/40), and add it to [`./testing`](https://github.com/xtekky/gpt4free/tree/main/testing) or refractor it and add it to [`./gpt4free`](https://github.com/xtekky/gpt4free/tree/main/gpt4free)
-
-___
-
-countdown until major update    
-
-<img src="https://i.countdownmail.com/2kdr2o.gif" border="0" alt="countdownmail.com"/>
-
-___
 
 <p>You may join our discord: <a href="https://discord.com/invite/gpt4free">discord.gg/gpt4free<a> for further updates. <a href="https://discord.gg/gpt4free"><img align="center" alt="gpt4free Discord" width="22px" src="https://raw.githubusercontent.com/peterthehan/peterthehan/master/assets/discord.svg" /></a></p>
 
