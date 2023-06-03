@@ -11,6 +11,10 @@ Installation
 2.  Install the required dependencies with: `pip install -r requirements.txt`.
 3.  To use `streamlit_chat_app.py`, note that it depends on a pull request (PR #24) from the https://github.com/AI-Yash/st-chat/ repository, which may change in the future. The current dependency library can be found at https://github.com/AI-Yash/st-chat/archive/refs/pull/24/head.zip.
 
+Analytics Disclaimer
+-----
+The streamlit browser app collects heavy analytics even when running locally. This includes events for every page load, form submission including metadata on queries (like length), browser and client information including host ips. These are all transmitted to a 3rd party analytics group, Segment.com.
+
 Usage
 -----
 

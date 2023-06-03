@@ -1,30 +1,19 @@
-FROM python:3.11 as builder
-
-WORKDIR /usr/app
-ENV PATH="/usr/app/venv/bin:$PATH"
-
-RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg && rm -rf /var/lib/apt/lists/*
-
-RUN mkdir -p /usr/app
-RUN python -m venv ./venv
-
-COPY requirements.txt .
-
-RUN pip install -r requirements.txt
-
-# RUN pip config set global.index-url https://mirrors.aliyun.com/pypi/simple/
-# RUN pip config set global.trusted-host mirrors.aliyun.com
-
 FROM python:3.11
 
-WORKDIR /usr/app
-ENV PATH="/usr/app/venv/bin:$PATH"
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends ffmpeg \
+ && apt-get -y clean \
+ && rm -rf /var/lib/apt/lists/*
 
-COPY --from=builder /usr/app/venv ./venv
-COPY . .
+COPY requirements.txt /tmp
+RUN pip install --upgrade pip \
+ && pip install -r /tmp/requirements.txt \
+ && rm /tmp/requirements.txt
 
-RUN cp ./gui/streamlit_app.py .
+COPY . /root/gpt4free
 
-CMD ["streamlit", "run", "streamlit_app.py"]
+WORKDIR /root/gpt4free
+
+CMD ["streamlit", "run", "./gui/streamlit_app.py"]
 
 EXPOSE 8501
