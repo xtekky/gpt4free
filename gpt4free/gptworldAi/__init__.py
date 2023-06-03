@@ -6,6 +6,7 @@
 @IDE ：PyCharm
 """
 import json
+import uuid
 import random
 import binascii
 import requests
@@ -30,7 +31,8 @@ class ChatCompletion:
             "presence_penalty": 0,
             "temperature": 1,
             "top_p": 1,
-            "stream": True
+            "stream": True,
+            "uuid": str(uuid.uuid4())
         })
         signature = ChatCompletion.encrypt(data)
         res = requests.post(url, headers=headers, data=json.dumps({"signature": signature}), proxies=proxies,stream=True)
