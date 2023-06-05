@@ -38,7 +38,7 @@ st.header('GPT4free GUI')
 question_text_area = st.text_area('🤖 Ask Any Question :', placeholder='Explain quantum computing in 50 words')
 if st.button('🧠 Think'):
     answer = get_answer(question_text_area)
-    escaped = answer.encode('utf-8').decode('utf-8')
+    escaped = answer.encode('utf-8').decode('unicode-escape')
     # Display answer
     st.caption("Answer :")
     st.markdown(escaped)
