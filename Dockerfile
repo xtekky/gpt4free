@@ -1,4 +1,4 @@
-FROM python:3.12.0b1-slim
+FROM python:3.11.3-slim
 
 RUN apt-get update \
  && apt-get install -y --no-install-recommends ffmpeg \
