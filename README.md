@@ -1,5 +1,7 @@
 **A major update is to come in the next week (statement written 4 Jun)**    
+**While waiting, you can check out a v2 prototype of gpt4free someone made:** https://gitler.moe/g4f/gpt4free     
 **Discord bot with gpt-4 using poe.com:** https://github.com/xtekky/gpt4free-discord
+
 
 What can I do to contribute ?     
 you reverse a site from this list: [sites-to-reverse](https://github.com/xtekky/gpt4free/issues/40), and add it to [`./testing`](https://github.com/xtekky/gpt4free/tree/main/testing) or refractor it and add it to [`./gpt4free`](https://github.com/xtekky/gpt4free/tree/main/gpt4free)
