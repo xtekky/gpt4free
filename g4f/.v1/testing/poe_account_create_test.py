@@ -9,7 +9,7 @@ from twocaptcha import TwoCaptcha
 from gpt4free.quora import extract_formkey
 from gpt4free.quora.mail import Emailnator
 
-solver = TwoCaptcha('72747bf24a9d89b4dcc1b24875efd358')
+solver = TwoCaptcha('')
 
 
 class Account:
@@ -106,4 +106,4 @@ class Account:
             print('verify_code', response.json())
 
 
-Account.create(proxy='xtekky:wegwgwegwed_streaming-1@geo.iproyal.com:12321', logging=True)
+Account.create(proxy='', logging=True)

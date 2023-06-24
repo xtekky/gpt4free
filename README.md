@@ -1,43 +1,202 @@
-**A major update is to come this week (statement written 14 Jun)**   
-**You may check these out in the meanwhile**:
+![image](https://github.com/onlpx/gpt4free-v2/assets/98614666/7886223b-c1d1-4260-82aa-da5741f303bb)
 
-- v2 prototype of gpt4free someone made: https://gitler.moe/g4f/gpt4free       
-- Discord bot with gpt-4 using poe.com: https://github.com/xtekky/gpt4free-discord   
+By using this repository or any code related to it, you agree to the [legal notice](./LEGAL_NOTICE.md). The author is not responsible for any copies, forks, or reuploads made by other users. This is the author's only account and repository. To prevent impersonation or irresponsible actions, you may comply with the GNU GPL license this Repository uses.
 
-______
-What can I do to contribute ?     
-you reverse a site from this list: [sites-to-reverse](https://github.com/xtekky/gpt4free/issues/40), and add it to [`./testing`](https://github.com/xtekky/gpt4free/tree/main/testing) or refractor it and add it to [`./gpt4free`](https://github.com/xtekky/gpt4free/tree/main/gpt4free)
+This (quite censored) New Version of gpt4free, was just released, it may contain bugs, open an issue or contribute a PR when encountering one, some features were disabled.
+Docker is for now not available but I would be happy if someone contributes a PR. The g4f GUI will be uploaded soon enough.
 
-<p>You may join our discord: <a href="https://discord.com/invite/gpt4free">discord.gg/gpt4free<a> for further updates. <a href="https://discord.gg/gpt4free"><img align="center" alt="gpt4free Discord" width="22px" src="https://raw.githubusercontent.com/peterthehan/peterthehan/master/assets/discord.svg" /></a></p>
+## Table of Contents:
+
+- [Getting Started](#getting-started)
+    + [Prerequisites](#prerequisites-)
+    + [Setting up the project](#setting-up-the-project-)
+- [Usage](#usage)
+  * [The `g4f` Package](#the--g4f--package)
+  * [interference openai-proxy api](#interference-openai-proxy-api--use-with-openai-python-package-)
+- [Models](#models)
+  * [gpt-3.5 / gpt-4](#gpt-35---gpt-4)
+  * [Other Models](#other-models)
+- [Related gpt4free projects](#related-gpt4free-projects)
+- [Contribute](#contribute)
+- [ChatGPT clone](#chatgpt-clone)
+- [Copyright](#copyright-)
+- [Copyright Notice](#copyright-notice-)
+- [Star History](#star-history)
+
+## Getting Started
+
+#### Prerequisites:
+1. [Download and install Python](https://www.python.org/downloads/) (Version 3.x is recommended).
+
+#### Setting up the project:
+1. Clone the GitHub repository: 
+```
+git clone https://github.com/yourusername/your-repo.git
+```
+2. Navigate to the project directory:
+```
+cd your-repo
+```
+3. (Recommended) Create a virtual environment to manage Python packages for your project:
+```
+python3 -m venv venv
+```
+4. Activate the virtual environment:
+   - On Windows:
+   ```
+   .\venv\Scripts\activate
+   ```
+   - On macOS and Linux:
+   ```
+   source venv/bin/activate
+   ```
+5. Install the required Python packages from `requirements.txt`:
+```
+pip install -r requirements.txt
+```
+
+6. Create a `test.py` file in the root folder and start using the repo, further Instructions are below
+```py
+import g4f
+
+...
+```
+
+## Usage
+
+### The `g4f` Package
+```py
+import g4f
 
 
-<img alt="gpt4free logo" src="https://user-images.githubusercontent.com/98614666/233799515-1a7cb6a3-b17f-42c4-956d-8d2a0664466f.png">
+print(g4f.Provider.Ails.params) # supported args
 
-## Legal Notice <a name="legal-notice"></a>
+# Automatic selection of provider
 
-This repository is _not_ associated with or endorsed by providers of the APIs contained in this GitHub repository. This project is intended **for educational purposes only**. This is just a little personal project. Sites may contact me to improve their security or request the removal of their site from this repository.
+# streamed completion
+response = g4f.ChatCompletion.create(model='gpt-3.5-turbo', messages=[
+                                     {"role": "user", "content": "Hello world"}], stream=True)
 
-Please note the following:
+for message in response:
+    print(message)
 
-1. **Disclaimer**: The APIs, services, and trademarks mentioned in this repository belong to their respective owners. This project is _not_ claiming any right over them nor is it affiliated with or endorsed by any of the providers mentioned.
+# normal response
+response = g4f.ChatCompletion.create(model=g4f.Model.gpt_4, messages=[
+                                     {"role": "user", "content": "hi"}]) # alterative model setting
 
-2. **Responsibility**: The author of this repository is _not_ responsible for any consequences, damages, or losses arising from the use or misuse of this repository or the content provided by the third-party APIs. Users are solely responsible for their actions and any repercussions that may follow. We strongly recommend the users to follow the TOS of the each Website.
-
-3. **Educational Purposes Only**: This repository and its content are provided strictly for educational purposes. By using the information and code provided, users acknowledge that they are using the APIs and models at their own risk and agree to comply with any applicable laws and regulations.
-
-4. **Indemnification**: Users agree to indemnify, defend, and hold harmless the author of this repository from and against any and all claims, liabilities, damages, losses, or expenses, including legal fees and costs, arising out of or in any way connected with their use or misuse of this repository, its content, or related third-party APIs.
-
-5. **Updates and Changes**: The author reserves the right to modify, update, or remove any content, information, or features in this repository at any time without prior notice. Users are responsible for regularly reviewing the content and any changes made to this repository.
-
-By using this repository or any code related to it, you agree to these terms. The author is not responsible for any copies, forks, or reuploads made by other users. This is the author's only account and repository. To prevent impersonation or irresponsible actions, you may comply with the GNU GPL license this Repository uses.
-
-<br>
-
-<img src="https://media.giphy.com/media/LnQjpWaON8nhr21vNW/giphy.gif" width="100" align="left">
-Just API's from some language model sites.
+print(response)
 
 
-# Related gpt4free projects
+# Set with provider
+response = g4f.ChatCompletion.create(model='gpt-3.5-turbo', provider=g4f.Provider.Forefront, messages=[
+                                     {"role": "user", "content": "Hello world"}], stream=True)
+
+for message in response:
+    print(message)
+```
+
+providers:
+```py
+from g4f.Provider import (
+    Ails,
+    You,
+    Bing,
+    Yqcloud,
+    Theb,
+    Aichat,
+    Bard,
+    Vercel,
+    Forefront,
+    Lockchat,
+    Liaobots,
+    H2o,
+    ChatgptLogin,
+    DeepAi,
+    GetGpt
+)
+
+# usage:
+response = g4f.ChatCompletion.create(..., provider=ProviderName)
+```
+
+### interference openai-proxy api (use with openai python package)    
+
+run server:
+```sh
+python3 -m interference.app
+```
+
+```py
+import openai
+
+openai.api_key = ''
+openai.api_base = 'http://127.0.0.1:1337'
+
+chat_completion = openai.ChatCompletion.create(stream=True,
+    model='gpt-3.5-turbo', messages=[{'role': 'user', 'content': 'write a poem about a tree'}])
+
+#print(chat_completion.choices[0].message.content)
+
+for token in chat_completion:
+    
+    content = token['choices'][0]['delta'].get('content')
+    if content != None:
+        print(content)
+```
+
+## Models
+
+### gpt-3.5 / gpt-4
+
+| Website| Provider| gpt-3.5 | gpt-4 | Streaming | Status | Auth |
+| --- | --- | --- | --- | --- | --- | --- |
+| [bing.com](https://bing.com/chat) | `g4f.Provider.Bing` | ✔️ | ✔️ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
+| [super.lockchat.app](http://super.lockchat.app) | `g4f.Provider.Lockchat` | ✔️ | ✔️ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
+| [liaobots.com](https://liaobots.com) | `g4f.Provider.Liaobots` | ✔️ | ✔️ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ✔️ |
+| [ai.ls](https://ai.ls) | `g4f.Provider.Ails` | ✔️ | ❌ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
+| [you.com](https://you.com) | `g4f.Provider.You` | ✔️ | ❌ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
+| [chat9.yqcloud.top](https://chat9.yqcloud.top/) | `g4f.Provider.Yqcloud` | ✔️ | ❌ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
+| [theb.ai](https://theb.ai) | `g4f.Provider.Theb` | ✔️ | ❌ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
+| [play.vercel.ai](https://play.vercel.ai) | `g4f.Provider.Vercel` | ✔️ | ❌ | ✔️ | ![Inactive](https://img.shields.io/badge/Inactive-red) | ❌ |
+| [forefront.com](https://forefront.com) | `g4f.Provider.Forefront` | ✔️ | ❌ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
+| [deepai.org](https://deepai.org) | `g4f.Provider.DeepAi` | ✔️ | ❌ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
+| [chat.getgpt.world](https://chat.getgpt.world/) | `g4f.Provider.GetGpt` | ✔️ | ❌ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |   
+| [chatgptlogin.ac](https://chatgptlogin.ac) | `g4f.Provider.ChatgptLogin` | ✔️ | ❌ | ❌ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
+| [chat-gpt.org](https://chat-gpt.org/chat) | `g4f.Provider.Aichat` | ✔️ | ❌ | ❌ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
+
+
+### Other Models
+
+| Model| Base Provider | Provider | Website |
+| ------- | ----------- | ---- |---- |
+| palm2 | Google | `g4f.Provider.Bard` | [bard.google.com](https://bard.google.com/) |
+| falcon-40b | Huggingface | `g4f.Provider.H2o` | [H2o](https://www.h2o.ai/) |
+| falcon-7b | Huggingface |`g4f.Provider.H2o` | [H2o](https://www.h2o.ai/) |
+| llama-13b | Huggingface | `g4f.Provider.H2o`| [H2o](https://www.h2o.ai/) |
+| claude-instant-v1-100k | Anthropic | `g4f.Provider.Vercel` | [sdk.vercel.ai](https://sdk.vercel.ai/) |
+| claude-instant-v1 | Anthropic | `g4f.Provider.Vercel` | [sdk.vercel.ai](https://sdk.vercel.ai/) |
+| claude-v1-100k | Anthropic | `g4f.Provider.Vercel` | [sdk.vercel.ai](https://sdk.vercel.ai/) |
+| claude-v1 | Anthropic | `g4f.Provider.Vercel` | [sdk.vercel.ai](https://sdk.vercel.ai/) |
+| alpaca-7b | Replicate | `g4f.Provider.Vercel` | [sdk.vercel.ai](https://sdk.vercel.ai/) |
+| stablelm-tuned-alpha-7b | Replicate | `g4f.Provider.Vercel` | [sdk.vercel.ai](https://sdk.vercel.ai/) |
+| bloom | Huggingface | `g4f.Provider.Vercel` | [sdk.vercel.ai](https://sdk.vercel.ai/) |
+| bloomz | Huggingface | `g4f.Provider.Vercel` | [sdk.vercel.ai](https://sdk.vercel.ai/) |
+| flan-t5-xxl | Huggingface | `g4f.Provider.Vercel` | [sdk.vercel.ai](https://sdk.vercel.ai/) |
+| flan-ul2 | Huggingface | `g4f.Provider.Vercel` | [sdk.vercel.ai](https://sdk.vercel.ai/) |
+| gpt-neox-20b | Huggingface | `g4f.Provider.Vercel` | [sdk.vercel.ai](https://sdk.vercel.ai/) |
+| oasst-sft-4-pythia-12b-epoch-3.5 |Huggingface | `g4f.Provider.Vercel` | [sdk.vercel.ai](https://sdk.vercel.ai/) |
+| santacoder | Huggingface | `g4f.Provider.Vercel` | [sdk.vercel.ai](https://sdk.vercel.ai/) |
+| command-medium-nightly | Cohere | `g4f.Provider.Vercel` | [sdk.vercel.ai](https://sdk.vercel.ai/) |
+| command-xlarge-nightly | Cohere | `g4f.Provider.Vercel` | [sdk.vercel.ai](https://sdk.vercel.ai/) |
+| code-cushman-001 | OpenAI | `g4f.Provider.Vercel` | [sdk.vercel.ai](https://sdk.vercel.ai/) |
+| code-davinci-002 | OpenAI | `g4f.Provider.Vercel` | [sdk.vercel.ai](https://sdk.vercel.ai/) |
+| text-ada-001 | OpenAI | `g4f.Provider.Vercel` | [sdk.vercel.ai](https://sdk.vercel.ai/) |
+| text-babbage-001 | OpenAI | `g4f.Provider.Vercel` | [sdk.vercel.ai](https://sdk.vercel.ai/) |
+| text-curie-001 | OpenAI | `g4f.Provider.Vercel` | [sdk.vercel.ai](https://sdk.vercel.ai/) |
+| text-davinci-002 | OpenAI | `g4f.Provider.Vercel` | [sdk.vercel.ai](https://sdk.vercel.ai/) |
+| text-davinci-003 | OpenAI | `g4f.Provider.Vercel` | [sdk.vercel.ai](https://sdk.vercel.ai/) |
+
+## Related gpt4free projects
 
 <table>
   <thead align="center">
@@ -81,137 +240,52 @@ Just API's from some language model sites.
   </tbody>
 </table>
 
+## Contribute
 
-## Table of Contents
-| Section | Description | Link | Status |
-| ------- | ----------- | ---- | ------ |
-| **To do list** | List of tasks to be done | [![Link to Section](https://img.shields.io/badge/Link-Go%20to%20Section-blue)](#todo) | - |
-| **Current Sites** | Current websites or platforms that can be used as APIs | [![Link to Section](https://img.shields.io/badge/Link-Go%20to%20Section-blue)](#current-sites) | - |
-| **Best Sites for gpt4** | Recommended websites or platforms for gpt4 | [![Link to Section](https://img.shields.io/badge/Link-Go%20to%20Section-blue)](#best-sites) | - |
-| **Streamlit GPT4Free GUI** | Web-based graphical user interface for interacting with gpt4free | [![Link to Section](https://img.shields.io/badge/Link-Go%20to%20Section-blue)](#streamlit-gpt4free-gui) | - |
-| **Docker** | Instructions on how to run gpt4free in a Docker container | [![Link to Section](https://img.shields.io/badge/Link-Go%20to%20Section-blue)](#docker-instructions) | - |
-| **ChatGPT clone** | A ChatGPT clone with new features and scalability | [![Link to Website](https://img.shields.io/badge/Link-Visit%20Site-blue)](https://chat.chatbot.sex/chat) | - |
-| **How to install** | Instructions on how to install gpt4free | [![Link to Section](https://img.shields.io/badge/Link-Go%20to%20Section-blue)](#install) | - |
-| **Usage Examples** | | | |
-| `theb` | Example usage for theb (gpt-3.5) | [![Link to File](https://img.shields.io/badge/Link-Go%20to%20File-blue)](gpt4free/theb/README.md) | ![Active](https://img.shields.io/badge/Active-brightgreen) |
-| `forefront` | Example usage for forefront (gpt-4) | [![Link to File](https://img.shields.io/badge/Link-Go%20to%20File-blue)](gpt4free/forefront/README.md) | ![Active](https://img.shields.io/badge/Active-brightgreen) | ||
-| `quora (poe)` | Example usage for quora | [![Link to File](https://img.shields.io/badge/Link-Go%20to%20File-blue)](gpt4free/quora/README.md) | ![Active](https://img.shields.io/badge/Active-brightgreen) |
-| `you` | Example usage for you | [![Link to File](https://img.shields.io/badge/Link-Go%20to%20File-blue)](gpt4free/you/README.md) | ![Active](https://img.shields.io/badge/Active-brightgreen) |
-| `deepai` | Example usage for DeepAI (gpt-3.5, with chat) | [![Link to File](https://img.shields.io/badge/Link-Go%20to%20File-blue)](gpt4free/deepai/README.md) | ![Active](https://img.shields.io/badge/Active-brightgreen) |
-| **Try it Out** | | | |
-| Google Colab Jupyter Notebook | Example usage for gpt4free | [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/DanielShemesh/gpt4free-colab/blob/main/gpt4free.ipynb) | - |
-| replit Example (feel free to fork this repl) | Example usage for gpt4free | [![](https://img.shields.io/badge/Open%20in-Replit-1A1E27?logo=replit)](https://replit.com/@gpt4free/gpt4free-webui) | - |
-| **Legal Notice** | Legal notice or disclaimer | [![Link to Section](https://img.shields.io/badge/Link-Go%20to%20Section-blue)](#legal-notice) | - |
-| **Copyright** | Copyright information | [![Link to Section](https://img.shields.io/badge/Link-Go%20to%20Section-blue)](#copyright) | - |
-| **Star History** | Star History | [![Link to Section](https://img.shields.io/badge/Link-Go%20to%20Section-blue)](#star-history) | - |
+to add another provider, its very simple:
+1. create a new file in [g4f/Provider/Providers](./g4f/Provider/Providers) with the name of the Provider
+2. in the file, paste the *Boilerplate* you can find in [g4f/Provider/Provider.py](./g4f/Provider/Provider.py): 
+
+```py
+import os
+from ..typing import sha256, Dict, get_type_hints
+
+url = None
+model = None
+supports_stream = False
+needs_auth = False
+
+def _create_completion(model: str, messages: list, stream: bool, **kwargs):
+    return
 
 
-## To do list <a name="todo"></a>
-
-- [x] Add a GUI for the repo
-- [ ] Make a general package named `gpt4free`, instead of different folders
-- [ ] Live api status to know which are down and which can be used
-- [ ] Integrate more API's in `./unfinished` as well as other ones in the lists
-- [ ] Make an API to use as proxy for other projects
-- [ ] Make a pypi package
-
-## Current Sites <a name="current-sites"></a>
-
-| Website s                                        | Model(s)                         |
-| ------------------------------------------------ | -------------------------------- |
-| [forefront.ai](https://chat.forefront.ai)        | GPT-4/3.5                        |
-| [poe.com](https://poe.com)                       | GPT-4/3.5                        |
-| [writesonic.com](https://writesonic.com)         | GPT-3.5 / Internet               |
-| [t3nsor.com](https://t3nsor.com)                 | GPT-3.5                          |
-| [you.com](https://you.com)                       | GPT-3.5 / Internet / good search |
-| [sqlchat.ai](https://sqlchat.ai)                 | GPT-3.5                          |
-| [bard.google.com](https://bard.google.com)       | custom / search                  |
-| [bing.com/chat](https://bing.com/chat)           | GPT-4/3.5                        |
-| [italygpt.it](https://italygpt.it)               | GPT-3.5                          |
-| [deepai.org](https://deepai.org/chat)            | GPT-3.5 / chat support           |
-
-
-## Best sites <a name="best-sites"></a>
-
-#### gpt-4
-
-- [`/forefront`](gpt4free/forefront/README.md)
-
-#### gpt-3.5
-
-- [`/you`](gpt4free/you/README.md)
-
-## Install <a name="install"></a>
-
-Download or clone this GitHub repo  
-install requirements with:
-
-```sh
-python3 -m venv venv
-. venv/bin/activate
-pip3 install -r requirements.txt
-```
-
-## Install ffmpeg
-```sh
-sudo apt-get install ffmpeg
-```
-  
-## Connect VPN if needed and get proxy (Optional)
-```sh
-echo "$http_proxy" # http://127.0.0.1:8889/
-```
-  
-## Set proxy in gpt4free/you/__init__.py (Optional)
-```
-diff --git a/gpt4free/you/__init__.py b/gpt4free/you/__init__.py
-index 11847fb..59d1162 100644
---- a/gpt4free/you/__init__.py
-+++ b/gpt4free/you/__init__.py
-@@ -38,6 +38,7 @@ class Completion:
-         if chat is None:
-             chat = []
- 
-+        proxy = '127.0.0.1:8889'
-         proxies = {'http': 'http://' + proxy, 'https': 'http://' + proxy} if proxy else {}
- 
-         client = Session(client_identifier='chrome_108')
-```
-
-
-## To start gpt4free GUI <a name="streamlit-gpt4free-gui"></a>
-
-##### Note: streamlit app collects heavy analytics even when running locally. This includes events for every page load, form submission including metadata on queries (like length), browser and client information including host ips. These are all transmitted to a 3rd party analytics group, Segment.com.
-
-Move `streamlit_app.py` from `./gui` to the base folder then run:  
-`streamlit run streamlit_app.py` or `python3 -m streamlit run streamlit_app.py`
-
-```sh
-cp gui/streamlit_app.py .
-streamlit run streamlit_app.py
-```
-
-
-## Docker <a name="docker-instructions"></a>
-
-Build
+params = f'g4f.Providers.{os.path.basename(__file__)[:-3]} supports: ' + \
+    '(%s)' % ', '.join(
+        [f"{name}: {get_type_hints(_create_completion)[name].__name__}" for name in _create_completion.__code__.co_varnames[:_create_completion.__code__.co_argcount]])
 
 ```
-docker build -t gpt4free:latest .
+
+3. Here, you can adjust the settings, for example if the website does support streaming, set `supports_stream` to `True`...
+4. Write code to request the provider in `_create_completion` and `yield` the response, *even if* its a one-time response, do not hesitate to look at other providers for inspiration
+5. Add the Provider Name in [g4f/Provider/__init__.py](./g4f/Provider/__init__.py)
+
+```py
+from . import Provider
+from .Providers import (
+    ...,
+    ProviderNameHere
+)
 ```
 
-Run
+6. You are done !, test the provider by calling it:
+```py
+import g4f
 
-```
-docker run -p 8501:8501 gpt4free:latest
-```
+response = g4f.ChatCompletion.create(model='gpt-3.5-turbo', provider=g4f.Provider.PROVIDERNAME,
+                                    messages=[{"role": "user", "content": "test"}], stream=g4f.Provider.PROVIDERNAME.supports_stream)
 
-## Deploy using docker-compose
-
-Run the following:
-
-```
-docker-compose up --build -d
+for message in response:
+    print(message, flush=True, end='')
 ```
 
 ## ChatGPT clone
@@ -225,13 +299,10 @@ docker-compose up --build -d
 
 This program is licensed under the [GNU GPL v3](https://www.gnu.org/licenses/gpl-3.0.txt)
 
-Most code, with the exception of `quora/api.py` and `deepai/__init__.py` (by [ading2210](https://github.com/ading2210)), has been written by me, [xtekky](https://github.com/xtekky).
-
-### Copyright Notice: <a name="copyright"></a>
+## Copyright Notice:
 
 ```
-xtekky/gpt4free: multiple reverse engineered language-model api's to decentralise the ai industry.
-Copyright (C) 2023 xtekky
+xtekky/gpt4free: Copyright (C) 2023 xtekky
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -248,7 +319,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ```
 
 
-## Star History <a name="star-history"></a>
+## Star History
 
 <a href="https://github.com/xtekky/gpt4free/stargazers">
         <img width="500" alt="Star History Chart" src="https://api.star-history.com/svg?repos=xtekky/gpt4free&type=Date">
