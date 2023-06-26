@@ -9,7 +9,7 @@ streamlit
 selenium
 fake-useragent
 twocaptcha
-https://github.com/AI-Yash/st-chat/archive/refs/pull/24/head.zip
+streamlit-chat@https://github.com/AI-Yash/st-chat/archive/refs/pull/24/head.zip
 pydantic
 pymailtm
 Levenshtein

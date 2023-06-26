@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gpt4free"
+version = "0.2.0"
+description = ""
+authors = []
+license = { text = "GPL-3.0" }
+readme = "README.md"
+requires-python = ">=3.10"
+dynamic = ["dependencies"]
+
+[tool.setuptools.packages.find]
+exclude = ["**/*.txt", "/.v1/*"]
+include = ["g4f"]
+
+
+[tool.setuptools.dynamic]
+dependencies = {file = ["requirements.txt"]}
