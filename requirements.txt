@@ -5,6 +5,9 @@ pypasser
 names
 colorama
 curl_cffi
+aiohttp
+flask
+flask_cors
 streamlit
 selenium
 fake-useragent
