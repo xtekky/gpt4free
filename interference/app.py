@@ -1,27 +1,30 @@
-import os
 import time
 import json
 import random
+import time
 
-from g4f import Model, ChatCompletion, Provider
-from flask import Flask, request, Response
+from flask import Flask, request
 from flask_cors import CORS
+
+from g4f import ChatCompletion, Provider
 
 app = Flask(__name__)
 CORS(app)
 
+
 @app.route("/chat/completions", methods=['POST'])
+@app.route("/v1/chat/completions", methods=['POST'])
 def chat_completions():
     streaming = request.json.get('stream', False)
     model = request.json.get('model', 'gpt-3.5-turbo')
     messages = request.json.get('messages')
-    
-    response = ChatCompletion.create(model=model, stream=streaming,
+
+    response = ChatCompletion.create(provider=Provider.You, model=model, stream=streaming,
                                      messages=messages)
-    
+
     if not streaming:
         while 'curl_cffi.requests.errors.RequestsError' in response:
-            response = ChatCompletion.create(model=model, stream=streaming,
+            response = ChatCompletion.create(provider=Provider.You, model=model, stream=streaming,
                                              messages=messages)
 
         completion_timestamp = int(time.time())
@@ -34,9 +37,9 @@ def chat_completions():
             'created': completion_timestamp,
             'model': model,
             'usage': {
-                'prompt_tokens': None,
-                'completion_tokens': None,
-                'total_tokens': None
+                'prompt_tokens': 0,
+                'completion_tokens': 0,
+                'total_tokens': 0
             },
             'choices': [{
                 'message': {
@@ -49,29 +52,41 @@ def chat_completions():
         }
 
     def stream():
+        completion_data = {
+            'id': '',
+            'object': 'chat.completion.chunk',
+            'created': 0,
+            'model': 'gpt-3.5-turbo-0301',
+            'choices': [
+                {
+                    'delta': {
+                        'content': ""
+                    },
+                    'index': 0,
+                    'finish_reason': None
+                }
+            ]
+        }
+
         for token in response:
+            completion_id = ''.join(
+                random.choices('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789', k=28))
             completion_timestamp = int(time.time())
-            completion_id = ''.join(random.choices(
-                'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789', k=28))
-
-            completion_data = {
-                'id': f'chatcmpl-{completion_id}',
-                'object': 'chat.completion.chunk',
-                'created': completion_timestamp,
-                'model': 'gpt-3.5-turbo-0301',
-                'choices': [
-                    {
-                        'delta': {
-                            'content': token
-                        },
-                        'index': 0,
-                        'finish_reason': None
-                    }
-                ]
-            }
-
+            completion_data['id'] = f'chatcmpl-{completion_id}'
+            completion_data['created'] = completion_timestamp
+            completion_data['choices'][0]['delta']['content'] = token
+            if token.startswith("an error occured"):
+                completion_data['choices'][0]['delta']['content'] = "Server Response Error, please try again.\n"
+                completion_data['choices'][0]['delta']['stop'] = "error"
+                yield 'data: %s\n\ndata: [DONE]\n\n' % json.dumps(completion_data, separators=(',' ':'))
+                return
             yield 'data: %s\n\n' % json.dumps(completion_data, separators=(',' ':'))
             time.sleep(0.1)
+
+        completion_data['choices'][0]['finish_reason'] = "stop"
+        completion_data['choices'][0]['delta']['content'] = ""
+        yield 'data: %s\n\n' % json.dumps(completion_data, separators=(',' ':'))
+        yield 'data: [DONE]\n\n'
 
     return app.response_class(stream(), mimetype='text/event-stream')
 
