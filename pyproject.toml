@@ -13,8 +13,7 @@ requires-python = ">=3.10"
 dynamic = ["dependencies"]
 
 [tool.setuptools.packages.find]
-exclude = ["**/*.txt", "/.v1/*"]
-include = ["g4f"]
+include = ["g4f*"]
 
 
 [tool.setuptools.dynamic]
