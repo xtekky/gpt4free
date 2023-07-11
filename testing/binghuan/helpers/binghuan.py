@@ -1,3 +1,5 @@
+# Original Code From : https://gitler.moe/g4f/gpt4free
+# https://gitler.moe/g4f/gpt4free/src/branch/main/g4f/Provider/Providers/helpers/bing.py
 import sys
 import ssl
 import uuid 
