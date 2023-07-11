@@ -210,10 +210,12 @@ async def run(optionSets, messages):
     prompt = messages[-1]['content']
     if(len(messages) > 1):
         prompt = convert(messages)
-    async for value in AsyncCompletion.create(prompt=prompt, 
-                                              optionSets=optionSets):
-        
-        print(value, flush=True, end = '')
+    async for value in AsyncCompletion.create(prompt=prompt, optionSets=optionSets):     
+        try:
+            print(value, flush=True, end='')
+        except UnicodeEncodeError as e:
+            # emoji encoding problem
+            print(value.encode('utf-8'), flush=True, end='')
 
 optionSet = conversationstyles[config['model']]
 asyncio.run(run(optionSet, config['messages']))

@@ -13,13 +13,13 @@ def _create_completion(model: str, messages: list, stream: bool, **kwargs):
     config = json.dumps({
         'messages': messages,
         'model': model}, separators=(',', ':'))
-    
     cmd = ['python', f'{path}/helpers/binghuan.py', config]
 
     p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-
+    
     for line in iter(p.stdout.readline, b''):
-        yield line.decode('cp1252') #[:-1]
+        yield line.decode('utf-8')
+    
 
 
 # params = f'g4f.Providers.{os.path.basename(__file__)[:-3]} supports: ' + \
