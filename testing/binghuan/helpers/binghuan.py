@@ -207,7 +207,9 @@ def convert(messages):
     return context
 
 async def run(optionSets, messages):
-    prompt = convert(messages)
+    prompt = messages[-1]['content']
+    if(len(messages) > 1):
+        prompt = convert(messages)
     async for value in AsyncCompletion.create(prompt=prompt, 
                                               optionSets=optionSets):
         
