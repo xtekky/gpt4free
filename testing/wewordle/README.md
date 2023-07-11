@@ -1,1 +1,0 @@
-original from website https://chat-gpt.com/chat  https://github.com/xtekky/gpt4free/issues/40#issuecomment-1629152431, i got api https://wewordle.org/gptapi/v1/web/turbo but it got limit so i try to try reverse they android app and i got api https://wewordle.org/gptapi/v1/android/turbo and just randomize user id to bypass limit

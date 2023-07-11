@@ -19,6 +19,9 @@ from .Providers import (
     EasyChat,
     Acytoo,
     DFEHub,
+    AiService,
+    BingHuan,
+    Wewordle
 )
 
 Palm = Bard
