@@ -9,6 +9,7 @@ response = ChatCompletion.create(model="gpt-3.5-turbo",
 print(response)
 
 # Test 2
+# this prompt will return emoji in end of response
 response = ChatCompletion.create(model="gpt-3.5-turbo",
                                  provider="BingHuan",
                                  stream=False,
@@ -17,7 +18,7 @@ response = ChatCompletion.create(model="gpt-3.5-turbo",
 print(response)
 
 
-Test 3
+# Test 3
 response = ChatCompletion.create(model="gpt-4",
                                  provider="BingHuan",
                                  stream=False,
