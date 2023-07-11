@@ -1,28 +1,42 @@
-import os
 import time
 import json
 import random
-
-from g4f import Model, ChatCompletion, Provider
-from flask import Flask, request, Response
+import time
+from flask import Flask, request
 from flask_cors import CORS
+from g4f import ChatCompletion, Provider
 
 app = Flask(__name__)
 CORS(app)
 
+
+@app.route("/v1/models", methods=['GET'])
+def models():
+    data = [
+        {
+            "id": "gpt-3.5-turbo",
+            "object": "model",
+            "owned_by": "organization-owner",
+            "permission": []
+        }
+    ]
+    return {'data': data, 'object': 'list'}
+
+
+@app.route("/v1/chat/completions", methods=['POST'])
 @app.route("/chat/completions", methods=['POST'])
 def chat_completions():
     streaming = request.json.get('stream', False)
     model = request.json.get('model', 'gpt-3.5-turbo')
     messages = request.json.get('messages')
-    
-    response = ChatCompletion.create(model=model, stream=streaming,
+    provider = Provider.Lockchat
+    response = ChatCompletion.create(model=model, stream=streaming, provider=provider,
                                      messages=messages)
-    
+
     if not streaming:
         while 'curl_cffi.requests.errors.RequestsError' in response:
             response = ChatCompletion.create(model=model, stream=streaming,
-                                             messages=messages)
+                                             provider=provider, messages=messages)
 
         completion_timestamp = int(time.time())
         completion_id = ''.join(random.choices(
@@ -78,7 +92,7 @@ def chat_completions():
 
 if __name__ == '__main__':
     config = {
-        'host': '0.0.0.0',
+        'host': '127.0.0.1',
         'port': 1337,
         'debug': True
     }
