@@ -18,7 +18,7 @@ def _create_completion(model: str, messages: list, stream: bool, **kwargs):
     p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     
     for line in iter(p.stdout.readline, b''):
-        yield line.decode('utf-8')
+        yield line.decode('cp1252')
     
 
 
