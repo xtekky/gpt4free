@@ -196,8 +196,17 @@ class AsyncCompletion:
         
         await wss.close()
 
+# i thing bing realy donset understand multi message (based on prompt template)
+def convert(messages):
+    context = ""
+    for message in messages:
+        context += "[%s](#message)\n%s\n\n" % (message['role'],
+                                               message['content'])
+    return context
+
 async def run(optionSets, messages):
-    async for value in AsyncCompletion.create(prompt=messages[-1]['content'], 
+    prompt = convert(messages)
+    async for value in AsyncCompletion.create(prompt=prompt, 
                                               optionSets=optionSets):
         
         print(value, flush=True, end = '')

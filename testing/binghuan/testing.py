@@ -2,7 +2,7 @@ from BingHuan import ChatCompletion
 
 # Test 1
 response = ChatCompletion.create(model="gpt-3.5-turbo",
-                                 provider="Wewordle",
+                                 provider="BingHuan",
                                  stream=False,
                                  messages=[{'role': 'user', 'content': 'who are you?'}])
 
@@ -10,7 +10,7 @@ print(response)
 
 # Test 2
 response = ChatCompletion.create(model="gpt-3.5-turbo",
-                                 provider="Wewordle",
+                                 provider="BingHuan",
                                  stream=False,
                                  messages=[{'role': 'user', 'content': 'what you can do?'}])
 
@@ -18,8 +18,8 @@ print(response)
 
 
 # Test 3
-response = ChatCompletion.create(model="gpt-3.5-turbo",
-                                 provider="Wewordle",
+response = ChatCompletion.create(model="gpt-4",
+                                 provider="BingHuan",
                                  stream=False,
                                  messages=[
                                      {'role': 'user', 'content': 'now your name is Bob'},
