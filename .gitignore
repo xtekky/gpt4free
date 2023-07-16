@@ -30,3 +30,5 @@ cookie.json
 *.pyc
 
 dist/
+
+setup.py
