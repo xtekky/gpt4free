@@ -21,7 +21,8 @@ from .Providers import (
     DFEHub,
     AiService,
     BingHuan,
-    Wewordle
+    Wewordle,
+    ChatgptAi,
 )
 
 Palm = Bard
