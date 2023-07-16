@@ -10,6 +10,7 @@ url = 'https://gpt-gm.h2o.ai'
 model = ['falcon-40b', 'falcon-7b', 'llama-13b']
 supports_stream = True
 needs_auth = False
+working = True
 
 models = {
     'falcon-7b': 'h2oai/h2ogpt-gm-oasst1-en-2048-falcon-7b-v3',
@@ -18,6 +19,7 @@ models = {
 }
 
 def _create_completion(model: str, messages: list, stream: bool, **kwargs):
+    
     conversation = ''
     for message in messages:
         conversation += '%s: %s\n' % (message['role'], message['content'])
@@ -46,8 +48,6 @@ def _create_completion(model: str, messages: list, stream: bool, **kwargs):
         "searchEnabled": "true"
     }
     response = session.post("https://gpt-gm.h2o.ai/settings", headers=headers, data=data)
-
-
 
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/115.0",

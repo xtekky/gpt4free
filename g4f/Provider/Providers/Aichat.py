@@ -5,6 +5,7 @@ url = 'https://chat-gpt.org/chat'
 model = ['gpt-3.5-turbo']
 supports_stream = False
 needs_auth = False
+working =  True
 
 def _create_completion(model: str, messages: list, stream: bool, **kwargs):
     base = ''

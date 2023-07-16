@@ -7,6 +7,8 @@ url = 'https://forefront.com'
 model = ['gpt-3.5-turbo']
 supports_stream = True
 needs_auth = False
+working = False
+
 
 def _create_completion(model: str, messages: list, stream: bool, **kwargs):
     json_data = {

@@ -9,6 +9,7 @@ model = [
 ]
 supports_stream = True
 needs_auth = False
+working = False
 
 def _create_completion(model: str, messages: list, stream: bool, **kwargs):
 

@@ -6,6 +6,8 @@ url = 'https://chatgpt.ai/gpt-4/'
 model = ['gpt-4']
 supports_stream = False
 needs_auth = False
+working = True
+
 
 def _create_completion(model: str, messages: list, stream: bool, **kwargs):
     chat = ''

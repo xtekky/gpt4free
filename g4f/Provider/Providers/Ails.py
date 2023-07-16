@@ -13,6 +13,8 @@ url: str = 'https://ai.ls'
 model: str = 'gpt-3.5-turbo'
 supports_stream = True
 needs_auth = False
+working =  True
+
 
 class Utils:
     def hash(json_data: Dict[str, str]) -> sha256:

@@ -152,11 +152,42 @@ class Model:
         name: str = 'llama-13b'
         base_provider: str = 'huggingface'
         best_provider: Provider.Provider = Provider.H2o
+        
+    class gpt_35_turbo_16k:
+        name: str = 'gpt-3.5-turbo-16k'
+        base_provider: str = 'openai'
+        best_provider: Provider.Provider = Provider.EasyChat
+        
+    class gpt_35_turbo_0613:
+        name: str = 'gpt-3.5-turbo-0613'
+        base_provider: str = 'openai'
+        best_provider: Provider.Provider = Provider.EasyChat
+        
+    class gpt_35_turbo_16k_0613:
+        name: str = 'gpt-3.5-turbo-16k-0613'
+        base_provider: str = 'openai'
+        best_provider: Provider.Provider = Provider.EasyChat
+        
+    class gpt_4_32k:
+        name: str = 'gpt-4-32k'
+        base_provider: str = 'openai'
+        best_provider =  None
+        
+    class gpt_4_0613:
+        name: str = 'gpt-4-0613'
+        base_provider: str = 'openai'
+        best_provider = None
     
 class ModelUtils:
     convert: dict = {
         'gpt-3.5-turbo': Model.gpt_35_turbo,
+        'gpt-3.6-turbo-16k': Model.gpt_35_turbo_16k,
+        'gpt-3.5-turbo-0613': Model.gpt_35_turbo_0613,
+        'gpt-3.5-turbo-16k-0613': Model.gpt_35_turbo_16k_0613,
+        
         'gpt-4': Model.gpt_4,
+        'gpt-4-32k': Model.gpt_4_32k,
+        'gpt-4-0613': Model.gpt_4_0613,
         
         'claude-instant-v1-100k': Model.claude_instant_v1_100k,
         'claude-v1-100k': Model.claude_v1_100k,

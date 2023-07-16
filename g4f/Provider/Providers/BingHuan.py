@@ -7,6 +7,8 @@ url = 'https://b.ai-huan.xyz'
 model = ['gpt-3.5-turbo', 'gpt-4']
 supports_stream = True
 needs_auth = False
+working = False
+
 
 def _create_completion(model: str, messages: list, stream: bool, **kwargs):
     path = os.path.dirname(os.path.realpath(__file__))

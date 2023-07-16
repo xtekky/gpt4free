@@ -16,6 +16,7 @@ url = 'https://bing.com/chat'
 model = ['gpt-4']
 supports_stream = True
 needs_auth = False
+working = True
 
 ssl_context = ssl.create_default_context()
 ssl_context.load_verify_locations(certifi.where())
