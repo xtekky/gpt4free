@@ -18,7 +18,7 @@ from .Providers import (
     AItianhu,
     EasyChat,
     Acytoo,
-    DfeHub,
+    DFEHub,
     AiService,
     BingHuan,
     Wewordle,
