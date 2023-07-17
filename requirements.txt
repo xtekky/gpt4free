@@ -6,4 +6,4 @@ certifi
 Providers
 browser_cookie3
 websockets
-execjs
+pyexecjs
