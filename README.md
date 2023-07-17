@@ -35,6 +35,13 @@ pip install g4f
 1. [Download and install Python](https://www.python.org/downloads/) (Version 3.x is recommended).
 
 #### Setting up the project:
+##### Install using pypi
+```
+pip install g4f
+```
+
+##### or
+
 1. Clone the GitHub repository: 
 ```
 git clone https://github.com/xtekky/gpt4free.git
