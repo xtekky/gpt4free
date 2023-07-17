@@ -161,7 +161,7 @@ for token in chat_completion:
 
 ### gpt-3.5 / gpt-4
 
-| Website| Provider| gpt-3.5 | gpt-4 | Streaming | Status | Auth |
+| Website| Provider| gpt-3.5 | gpt-4 | Stream | Status | Auth |
 | --- | --- | --- | --- | --- | --- | --- |
 | [ai.ls](https://ai.ls) | `g4f.Provider.Ails` | ✔️ | ❌ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
 | [you.com](https://you.com) | `g4f.Provider.You` | ✔️ | ❌ | ✔️ | ![Inactive](https://img.shields.io/badge/Inactive-red) | ❌ |
