@@ -59,7 +59,7 @@ print('| --- | --- | --- | --- | --- | --- | --- |')
 for provider in providers:
     
     parsed_url = urlparse(provider.url)
-    name = f"`g4f.Provider{provider.__name__.split('.')[-1]}`"
+    name = f"`g4f.Provider.{provider.__name__.split('.')[-1]}`"
     url = f'[{parsed_url.netloc}]({provider.url})'
     has_gpt4 = '✔️' if 'gpt-4' in provider.model else '❌'
     has_gpt3_5 = '✔️' if 'gpt-3.5-turbo' in provider.model else '❌'
