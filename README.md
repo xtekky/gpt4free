@@ -8,7 +8,7 @@ Docker is for now not available but I would be happy if someone contributes a PR
 ### New
 - pypi package:
 ```
-pip install g4f
+pip install -U g4f
 ```
 
 ## Table of Contents:
@@ -37,7 +37,7 @@ pip install g4f
 #### Setting up the project:
 ##### Install using pypi
 ```
-pip install g4f
+pip install -U g4f
 ```
 
 ##### or
