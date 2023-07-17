@@ -5,11 +5,13 @@ pypasser
 names
 colorama
 curl_cffi
+aiohttp
+flask
+flask_cors
 streamlit
 selenium
 fake-useragent
 twocaptcha
-https://github.com/AI-Yash/st-chat/archive/refs/pull/24/head.zip
 pydantic
 pymailtm
 Levenshtein
@@ -19,3 +21,5 @@ pycryptodome
 random-password-generator
 numpy>=1.22.2 # not directly required, pinned by Snyk to avoid a vulnerability
 tornado>=6.3.2 # not directly required, pinned by Snyk to avoid a vulnerability
+PyExecJS
+browser_cookie3

@@ -5,6 +5,12 @@ By using this repository or any code related to it, you agree to the [legal noti
 This (quite censored) New Version of gpt4free, was just released, it may contain bugs, open an issue or contribute a PR when encountering one, some features were disabled.
 Docker is for now not available but I would be happy if someone contributes a PR. The g4f GUI will be uploaded soon enough.
 
+### New
+- pypi package:
+```
+pip install g4f
+```
+
 ## Table of Contents:
 
 - [Getting Started](#getting-started)

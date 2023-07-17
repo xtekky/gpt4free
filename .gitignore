@@ -30,5 +30,8 @@ cookie.json
 *.pyc
 
 dist/
-
-setup.py
+*.egg-info/
+*.egg
+*.egg-info
+build
+test.py
