@@ -10,4 +10,3 @@ if stream:
         print(message)
 else:
     print(response)
-
