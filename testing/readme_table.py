@@ -13,7 +13,15 @@ from g4f.Provider import (
     H2o,
     ChatgptLogin,
     DeepAi,
-    GetGpt
+    GetGpt,
+    AItianhu,
+    EasyChat,
+    Acytoo,
+    DfeHub,
+    AiService,
+    BingHuan,
+    Wewordle,
+    ChatgptAi,
 )
 
 from urllib.parse import urlparse
@@ -33,7 +41,15 @@ providers = [
     H2o,
     ChatgptLogin,
     DeepAi,
-    GetGpt
+    GetGpt,
+    AItianhu,
+    EasyChat,
+    Acytoo,
+    DfeHub,
+    AiService,
+    BingHuan,
+    Wewordle,
+    ChatgptAi,
 ]
 
 # | Website| Provider| gpt-3.5-turbo | gpt-4 | Supports Stream | Status | Needs Auth |
@@ -41,6 +57,7 @@ print('| Website| Provider| gpt-3.5 | gpt-4 | Streaming | Status | Auth |')
 print('| --- | --- | --- | --- | --- | --- | --- |')
 
 for provider in providers:
+    
     parsed_url = urlparse(provider.url)
     name = f"`g4f.Provider{provider.__name__.split('.')[-1]}`"
     url = f'[{parsed_url.netloc}]({provider.url})'
@@ -49,4 +66,6 @@ for provider in providers:
     streaming = '✔️' if provider.supports_stream else '❌'
     needs_auth = '✔️' if provider.needs_auth else '❌'
     
-    print(f'| {url} | {name} | {has_gpt3_5} | {has_gpt4} | {streaming} | ![Active](https://img.shields.io/badge/Active-brightgreen) | {needs_auth} |')
+    working = '![Active](https://img.shields.io/badge/Active-brightgreen)' if provider.working else '![Inactive](https://img.shields.io/badge/Inactive-red)'
+    
+    print(f'| {url} | {name} | {has_gpt3_5} | {has_gpt4} | {streaming} | {working} | {needs_auth} |')
