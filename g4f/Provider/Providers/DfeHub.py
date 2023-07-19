@@ -1,6 +1,8 @@
 import os, requests
 from ...typing import sha256, Dict, get_type_hints
 import json
+import re
+import time
 
 url = "https://chat.dfehub.com/api/chat"
 model = ['gpt-3.5-turbo']
@@ -34,12 +36,18 @@ def _create_completion(model: str, messages: list, stream: bool, **kwargs):
         'presence_penalty': 0,
         'frequency_penalty': 0,
         'top_p': 1,
+        "stream": True,
     }
-
     response = requests.post('https://chat.dfehub.com/api/openai/v1/chat/completions',
         headers=headers, json=json_data)
     
     for chunk in response.iter_lines():
+        if b'detail' in chunk:
+            delay = re.findall(r"\d+\.\d+", chunk.decode())
+            delay = float(delay[-1])
+            print(f"Provider.DfeHub::Rate Limit Reached::Waiting {delay} seconds")
+            time.sleep(delay)
+            yield from _create_completion(model, messages, stream, **kwargs)
         if b'content' in chunk:
             data = json.loads(chunk.decode().split('data: ')[1])
             yield (data['choices'][0]['delta']['content'])
