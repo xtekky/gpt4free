@@ -2,7 +2,6 @@ requests
 pycryptodome
 curl_cffi
 aiohttp
-asyncio
 certifi
 browser_cookie3
 websockets
