@@ -1,4 +1,4 @@
-from g4f import Provider
+from . import Provider
 
 
 class Model:

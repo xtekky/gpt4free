@@ -1,6 +1,6 @@
 import sys
 from . import Provider
-from g4f.models import Model, ModelUtils
+from .models import Model, ModelUtils
 
 logging = False
 
