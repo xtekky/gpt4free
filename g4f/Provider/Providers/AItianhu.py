@@ -22,8 +22,8 @@ def _create_completion(model: str, messages: list, stream: bool, **kwargs):
         "prompt": base,
         "options": {},
         "systemMessage": "You are ChatGPT, a large language model trained by OpenAI. Follow the user's instructions carefully. Respond using markdown.",
-        "temperature": 0.8,
-        "top_p": 1
+        "temperature": kwargs.get("temperature", 0.8),
+        "top_p": kwargs.get("top_p", 1)
     }
     response = requests.post(url, headers=headers, json=data)
     if response.status_code == 200:

@@ -75,7 +75,7 @@ def _create_completion(model: str, messages: list, temperature: float = 0.6, str
 
     json_data = json.dumps(separators=(',', ':'), obj={
         'model': 'gpt-3.5-turbo',
-        'temperature': 0.6,
+        'temperature': temperature,
         'stream': True,
          'messages': messages} | sig)
 
