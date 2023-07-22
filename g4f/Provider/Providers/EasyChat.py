@@ -34,10 +34,10 @@ def _create_completion(model: str, messages: list, stream: bool, **kwargs):
         'messages': messages,
         'stream': True,
         'model': model,
-        'temperature': 0.5,
-        'presence_penalty': 0,
-        'frequency_penalty': 0,
-        'top_p': 1,
+        'temperature': kwargs.get('temperature', 0.5),
+        'presence_penalty': kwargs.get('presence_penalty', 0),
+        'frequency_penalty': kwargs.get('frequency_penalty', 0),
+        'top_p': kwargs.get('top_p', 1),
     }
 
     response = requests.post('https://free.easychat.work/api/openai/v1/chat/completions',

@@ -32,10 +32,10 @@ def _create_completion(model: str, messages: list, stream: bool, **kwargs):
     json_data = {
         'messages': messages,
         'model': 'gpt-3.5-turbo',
-        'temperature': 0.5,
-        'presence_penalty': 0,
-        'frequency_penalty': 0,
-        'top_p': 1,
+        'temperature': kwargs.get('temperature', 0.5),
+        'presence_penalty': kwargs.get('presence_penalty', 0),
+        'frequency_penalty': kwargs.get('frequency_penalty', 0),
+        'top_p': kwargs.get('top_p', 1),
         "stream": True,
     }
     response = requests.post('https://chat.dfehub.com/api/openai/v1/chat/completions',

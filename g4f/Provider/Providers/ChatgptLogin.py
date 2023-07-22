@@ -75,7 +75,7 @@ def _create_completion(model: str, messages: list, stream: bool, **kwargs):
         'userName': '<div class="mwai-name-text">User:</div>',
         'aiName': '<div class="mwai-name-text">AI:</div>',
         'model': 'gpt-3.5-turbo',
-        'temperature': 0.8,
+        'temperature': kwargs.get('temperature', 0.8),
         'maxTokens': 1024,
         'maxResults': 1,
         'apiKey': '',
