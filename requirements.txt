@@ -5,5 +5,5 @@ aiohttp
 certifi
 browser_cookie3
 websockets
-pyexecjs
 js2py
+quickjs

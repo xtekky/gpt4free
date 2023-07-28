@@ -1,2 +1,0 @@
-to do:
-- code refractoring

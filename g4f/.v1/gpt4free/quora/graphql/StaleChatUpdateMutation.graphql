@@ -1,7 +1,0 @@
-mutation StaleChatUpdateMutation($chatId: BigInt!) {
-    staleChatUpdate(chatId: $chatId) {
-        message {
-            ...MessageFragment
-        }
-    }
-}
