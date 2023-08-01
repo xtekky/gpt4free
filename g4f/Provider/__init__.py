@@ -23,7 +23,7 @@ from .Providers import (
     BingHuan,
     Wewordle,
     ChatgptAi,
-    opchatgpts
+    opchatgpts,
 )
 
 Palm = Bard
