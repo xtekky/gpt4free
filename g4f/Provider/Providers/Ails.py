@@ -37,7 +37,9 @@ class Utils:
         n = e % 10
         r = n + 1 if n % 2 == 0 else n
         return str(e - n + r)
-
+    def getV():
+        crossref = requests.get("https://ai.ls"+ requests.get("https://ai.ls/?chat=1").text.split('crossorigin href="')[1].split('"')[0]).text.split('G4="')[1].split('"')[0]
+        return crossref
 
 def _create_completion(model: str, messages: list, temperature: float = 0.6, stream: bool = False, **kwargs):
 
@@ -47,7 +49,7 @@ def _create_completion(model: str, messages: list, temperature: float = 0.6, str
         'accept-language': 'en,fr-FR;q=0.9,fr;q=0.8,es-ES;q=0.7,es;q=0.6,en-US;q=0.5,am;q=0.4,de;q=0.3',
         'authorization': 'Bearer free',
         'client-id': str(uuid.uuid4()),
-        'client-v': '0.1.249',
+        'client-v': Utils.getV(),
         'content-type': 'application/json',
         'origin': 'https://ai.ls',
         'referer': 'https://ai.ls/',
