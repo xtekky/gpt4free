@@ -1,12 +1,12 @@
 import sys
 from . import Provider
-from g4f.models import Model, ModelUtils
+from g4f import models
 
 logging = False
 
 class ChatCompletion:
     @staticmethod
-    def create(model: Model.model or str, messages: list, provider: Provider.Provider = None, stream: bool = False, auth: str = False, **kwargs):
+    def create(model: models.Model | str, messages: list, provider: Provider.Provider = None, stream: bool = False, auth: str = False, **kwargs):
         kwargs['auth'] = auth
         if provider and provider.working == False:
             return f'{provider.__name__} is not working'
@@ -19,7 +19,7 @@ class ChatCompletion:
         try:
             if isinstance(model, str):
                 try:
-                    model = ModelUtils.convert[model]
+                    model = models.ModelUtils.convert[model]
                 except KeyError:
                     raise Exception(f'The model: {model} does not exist')
 

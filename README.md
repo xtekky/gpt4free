@@ -95,7 +95,7 @@ for message in response:
     print(message)
 
 # normal response
-response = g4f.ChatCompletion.create(model=g4f.Model.gpt_4, messages=[
+response = g4f.ChatCompletion.create(model=g4f.models.gpt_4, messages=[
                                      {"role": "user", "content": "hi"}]) # alterative model setting
 
 print(response)
