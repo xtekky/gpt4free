@@ -305,19 +305,20 @@ async def stream_generate(prompt: str, mode: optionsSets.optionSet = optionsSets
                     await session.close()
 
 
-def run(generator):
-    loop = asyncio.get_event_loop()
-    gen = generator.__aiter__()
+def run(generator):  
+    loop = asyncio.new_event_loop()  
+    asyncio.set_event_loop(loop)  
+    gen = generator.__aiter__()  
+  
+    while True:  
+        try:  
+            next_val = loop.run_until_complete(gen.__anext__())  
+            yield next_val  
+  
+        except StopAsyncIteration:  
+            break  
+    #print('Done')  
 
-    while True:
-        try:
-            next_val = loop.run_until_complete(gen.__anext__())
-            yield next_val
-
-        except StopAsyncIteration:
-            break
-
-    #print('Done')
 
 
 def convert(messages):
