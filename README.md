@@ -126,7 +126,16 @@ from g4f.Provider import (
     H2o,
     ChatgptLogin,
     DeepAi,
-    GetGpt
+    GetGpt,
+    AItianhu,
+    EasyChat,
+    Acytoo,
+    DfeHub,
+    AiService,
+    BingHuan,
+    Wewordle,
+    ChatgptAi,
+    opchatgpts,
 )
 
 # usage:
