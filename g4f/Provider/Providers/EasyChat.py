@@ -7,7 +7,14 @@ model = ['gpt-3.5-turbo']
 supports_stream = True
 needs_auth = False
 working = True
-
+active_servers = [
+    "https://chat10.fastgpt.me",
+    "https://chat9.fastgpt.me",
+    "https://chat1.fastgpt.me",
+    "https://chat2.fastgpt.me",
+    "https://chat3.fastgpt.me",
+    "https://chat4.fastgpt.me"
+]
 
 def _create_completion(model: str, messages: list, stream: bool, **kwargs):
     req = requests.Session()
