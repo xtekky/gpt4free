@@ -16,20 +16,19 @@ active_servers = [
     "https://chat4.fastgpt.me"
 ]
 
+# Change server if not work current server
+server = active_servers[0]
+
 def _create_completion(model: str, messages: list, stream: bool, **kwargs):
     req = requests.Session()
     
-    proxy = {
-        "http": "http://159.89.138.130:80"
-    }
-    
     headers = {
-        'authority': 'beta.easychat.work',
+        'authority': f'{server}'.replace("https://",""),
         'accept': 'text/event-stream',
         'accept-language': 'en,fr-FR;q=0.9,fr;q=0.8,es-ES;q=0.7,es;q=0.6,en-US;q=0.5,am;q=0.4,de;q=0.3,fa=0.2',
         'content-type': 'application/json',
-        'origin': 'https://beta.easychat.work',
-        'referer': 'https://beta.easychat.work/',
+        'origin': f'{server}',
+        'referer': f'{server}/',
         'sec-ch-ua': '"Not.A/Brand";v="8", "Chromium";v="114", "Google Chrome";v="114"',
         'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36',
         'x-requested-with': 'XMLHttpRequest',
@@ -46,10 +45,10 @@ def _create_completion(model: str, messages: list, stream: bool, **kwargs):
     }
 
     # init cookies from server
-    req.get("https://site.easygpt.work/", proxies=proxy)
+    req.get(f'{server}/')
 
-    response = req.post('https://beta.easychat.work/api/openai/v1/chat/completions',
-        headers=headers, json=json_data, proxies=proxy)
+    response = req.post(f'{server}/api/openai/v1/chat/completions',
+        headers=headers, json=json_data)
     
     for chunk in response.iter_lines():
         if b'content' in chunk:
