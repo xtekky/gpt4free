@@ -7,13 +7,12 @@ from dataclasses import dataclass
 class Model:
     name: str
     base_provider: str
-    best_provider: ModuleType | None
-
+    best_provider: ModuleType or None
 
 gpt_35_turbo = Model(
     name="gpt-3.5-turbo",
     base_provider="openai",
-    best_provider=Provider.Forefront,
+    best_provider=Provider.GetGpt,
 )
 
 gpt_4 = Model(

@@ -35,6 +35,7 @@ dist/
 *.egg-info
 build
 test.py
+update.py
 
 # Emacs crap
 *~

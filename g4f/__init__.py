@@ -6,7 +6,7 @@ logging = False
 
 class ChatCompletion:
     @staticmethod
-    def create(model: models.Model | str, messages: list, provider: Provider.Provider = None, stream: bool = False, auth: str = False, **kwargs):
+    def create(model: models.Model or str, messages: list, provider: Provider.Provider = None, stream: bool = False, auth: str = False, **kwargs):
         kwargs['auth'] = auth
         if provider and provider.working == False:
             return f'{provider.__name__} is not working'
