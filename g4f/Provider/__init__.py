@@ -24,6 +24,7 @@ from .Providers import (
     Wewordle,
     ChatgptAi,
     opchatgpts,
+    Raycast,
 )
 
 Palm = Bard
