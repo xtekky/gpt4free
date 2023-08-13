@@ -167,8 +167,7 @@ for token in chat_completion:
         print(content)
 ```
 
-## Models
-
+## Models    
 ### gpt-3.5 / gpt-4
 
 | Website| Provider| gpt-3.5 | gpt-4 | Stream | Status | Auth |
