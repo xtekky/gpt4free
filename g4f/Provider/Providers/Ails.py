@@ -41,7 +41,7 @@ class Utils:
         crossref = requests.get("https://ai.ls"+ requests.get("https://ai.ls/?chat=1").text.split('crossorigin href="')[1].split('"')[0]).text.split('G4="')[1].split('"')[0]
         return crossref
 
-def _create_completion(model: str, messages: list, temperature: float = 0.6, stream: bool = False, **kwargs):
+def _create_completion(model: str, messages: list, stream: bool = False, temperature: float = 0.6, **kwargs):
 
     headers = {
         'authority': 'api.caipacity.com',
