@@ -13,3 +13,4 @@ for token in chat_completion:
     content = token['choices'][0]['delta'].get('content')
     if content != None:
         print(content)
+        
