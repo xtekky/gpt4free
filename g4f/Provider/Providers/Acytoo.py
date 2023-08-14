@@ -2,7 +2,7 @@ import os, requests
 from ...typing import sha256, Dict, get_type_hints
 import json
 
-url = "https://chat.acytoo.com/api/completions"
+url = "https://chat.acytoo.com"
 model = ['gpt-3.5-turbo']
 supports_stream = False
 needs_auth = False
@@ -31,7 +31,7 @@ def _create_completion(model: str, messages: list, stream: bool, **kwargs):
         "password": ""
     }
 
-    response = requests.post(url, headers=headers, data=json.dumps(data))
+    response = requests.post(f"{url}/api/completions", headers=headers, data=json.dumps(data))
     if response.status_code == 200:
         yield response.text
     else:
