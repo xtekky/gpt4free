@@ -25,6 +25,7 @@ from .Providers import (
     ChatgptAi,
     opchatgpts,
     Raycast,
+    V50,
 )
 
 Palm = Bard
