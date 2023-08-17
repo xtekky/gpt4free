@@ -2,7 +2,7 @@ import json
 
 import requests
 
-from ..provider.base_provider import BaseProvider
+from ..Provider.base_provider import BaseProvider
 from ..typing import Any, CreateResult
 
 

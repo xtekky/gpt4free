@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from .provider import Bard, BaseProvider, GetGpt, H2o, Liaobots, Vercel
+from .Provider import Bard, BaseProvider, GetGpt, H2o, Liaobots, Vercel
 
 
 @dataclass

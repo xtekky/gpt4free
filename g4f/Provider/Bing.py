@@ -9,7 +9,7 @@ import aiohttp
 import certifi
 import requests
 
-from ..typing import Any, AsyncGenerator, CreateResult, Tuple
+from ..typing import Any, AsyncGenerator, CreateResult, Tuple, Union
 from .base_provider import BaseProvider
 
 
@@ -79,7 +79,7 @@ def _format(msg: dict[str, Any]) -> str:
 async def stream_generate(
     prompt: str,
     mode: dict[str, list[str]] = jailbreak,
-    context: bool | str = False,
+    context: Union[bool, str] = False,
 ):
     timeout = aiohttp.ClientTimeout(total=900)
     session = aiohttp.ClientSession(timeout=timeout)
@@ -350,7 +350,7 @@ class Defaults:
     }
 
 
-def run(generator: AsyncGenerator[Any | str, Any]):
+def run(generator: AsyncGenerator[Union[Any, str], Any]):
     loop = asyncio.get_event_loop()
     gen = generator.__aiter__()
 

@@ -1,6 +1,6 @@
 from . import models
-from .provider import BaseProvider
-from .typing import Any, CreateResult
+from .Provider import BaseProvider
+from .typing import Any, CreateResult, Union
 
 logging = False
 
@@ -8,13 +8,13 @@ logging = False
 class ChatCompletion:
     @staticmethod
     def create(
-        model: models.Model | str,
+        model: Union[models.Model, str],
         messages: list[dict[str, str]],
-        provider: type[BaseProvider] | None = None,
+        provider: Union[type[BaseProvider], None] = None,
         stream: bool = False,
-        auth: str | None = None,
+        auth: Union[str, None] = None,
         **kwargs: Any,
-    ) -> CreateResult | str:
+    ) -> Union[CreateResult, str]:
         if isinstance(model, str):
             try:
                 model = models.ModelUtils.convert[model]
