@@ -1,3 +1,0 @@
-query SummarizePlainPostQuery($comment: String!) {
-    summarizePlainPost(comment: $comment)
-}
