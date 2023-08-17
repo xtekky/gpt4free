@@ -22,6 +22,7 @@ class Yqcloud(BaseProvider):
         url = "https://api.aichatos.cloud/api/generateStream"
         response = requests.post(url=url, headers=headers, json=payload)
         response.raise_for_status()
+        response.encoding = 'utf-8'
         yield response.text
 
 
