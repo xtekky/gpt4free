@@ -12,7 +12,6 @@ from g4f import ChatCompletion
 app = Flask(__name__)
 CORS(app)
 
-
 @app.route("/chat/completions", methods=["POST"])
 def chat_completions():
     model = request.get_json().get("model", "gpt-3.5-turbo")
