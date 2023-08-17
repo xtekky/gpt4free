@@ -36,7 +36,7 @@ def _create_completion(model: str, messages: list, stream: bool, temperature: fl
         'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36'
     }
     response = requests.post("https://p5.v50.ltd/api/chat-process", 
-                            json=payload, headers=headers, stream=True)
+                            json=payload, headers=headers, proxies=kwargs['proxy'] if 'proxy' in kwargs else {})
     yield response.text
             
 params = f'g4f.Providers.{os.path.basename(__file__)[:-3]} supports: ' + \
