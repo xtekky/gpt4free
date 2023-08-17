@@ -1,3 +1,0 @@
-query SummarizeSharePostQuery($comment: String!, $chatId: BigInt!, $messageIds: [BigInt!]!) {
-    summarizeSharePost(comment: $comment, chatId: $chatId, messageIds: $messageIds)
-}

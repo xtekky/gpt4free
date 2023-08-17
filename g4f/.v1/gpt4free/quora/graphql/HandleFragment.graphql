@@ -1,8 +1,0 @@
-fragment HandleFragment on Viewer {
-    id
-    poeUser {
-        id
-        uid
-        handle
-    }
-}

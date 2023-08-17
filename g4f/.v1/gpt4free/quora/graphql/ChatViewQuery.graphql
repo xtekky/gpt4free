@@ -1,8 +1,0 @@
-query ChatViewQuery($bot: String!) {
-    chatOfBot(bot: $bot) {
-        id
-        chatId
-        defaultBotNickname
-        shouldShowDisclaimer
-    }
-}

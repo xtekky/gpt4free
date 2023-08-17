@@ -83,27 +83,36 @@ import g4f
 import g4f
 
 
-print(g4f.Provider.Ails.params) # supported args
+print(g4f.provider.Ails.params)  # supported args
 
 # Automatic selection of provider
 
 # streamed completion
-response = g4f.ChatCompletion.create(model='gpt-3.5-turbo', messages=[
-                                     {"role": "user", "content": "Hello world"}], stream=True)
+response = g4f.ChatCompletion.create(
+    model="gpt-3.5-turbo",
+    messages=[{"role": "user", "content": "Hello world"}],
+    stream=True,
+)
 
 for message in response:
-    print(message)
+    print(message, flush=True, end='')
 
 # normal response
-response = g4f.ChatCompletion.create(model=g4f.models.gpt_4, messages=[
-                                     {"role": "user", "content": "hi"}]) # alterative model setting
+response = g4f.ChatCompletion.create(
+    model=g4f.models.gpt_4,
+    messages=[{"role": "user", "content": "hi"}],
+)  # alterative model setting
 
 print(response)
 
 
 # Set with provider
-response = g4f.ChatCompletion.create(model='gpt-3.5-turbo', provider=g4f.Provider.Forefront, messages=[
-                                     {"role": "user", "content": "Hello world"}], stream=True)
+response = g4f.ChatCompletion.create(
+    model="gpt-3.5-turbo",
+    provider=g4f.provider.DeepAi,
+    messages=[{"role": "user", "content": "Hello world"}],
+    stream=True,
+)
 
 for message in response:
     print(message)
@@ -111,32 +120,20 @@ for message in response:
 
 providers:
 ```py
-from g4f.Provider import (
-    Ails,
-    You,
-    Bing,
-    Yqcloud,
-    Theb,
+from g4f.provider import (
+    Acytoo,
     Aichat,
+    Ails,
+    AiService,
+    AItianhu,
     Bard,
-    Vercel,
-    Forefront,
-    Lockchat,
-    Liaobots,
-    H2o,
+    Bing,
+    ChatgptAi,
     ChatgptLogin,
     DeepAi,
-    GetGpt,
-    AItianhu,
-    EasyChat,
-    Acytoo,
-    DfeHub,
-    AiService,
-    BingHuan,
-    Wewordle,
-    ChatgptAi,
-    opchatgpts,
+    GetGpt
 )
+
 
 # usage:
 response = g4f.ChatCompletion.create(..., provider=ProviderName)
@@ -152,82 +149,92 @@ python3 -m interference.app
 ```py
 import openai
 
-openai.api_key = ''
-openai.api_base = 'http://127.0.0.1:1337'
+openai.api_key = ""
+openai.api_base = "http://localhost:1337"
 
-chat_completion = openai.ChatCompletion.create(stream=True,
-    model='gpt-3.5-turbo', messages=[{'role': 'user', 'content': 'write a poem about a tree'}])
 
-#print(chat_completion.choices[0].message.content)
+def main():
+    chat_completion = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=[{"role": "user", "content": "write a poem about a tree"}],
+        stream=True,
+    )
 
-for token in chat_completion:
-    
-    content = token['choices'][0]['delta'].get('content')
-    if content != None:
-        print(content)
+    if isinstance(chat_completion, dict):
+        # not stream
+        print(chat_completion.choices[0].message.content)
+    else:
+        # stream
+        for token in chat_completion:
+            content = token["choices"][0]["delta"].get("content")
+            if content != None:
+                print(content, end="", flush=True)
+
+
+if __name__ == "__main__":
+    main()
 ```
 
 ## Models    
 ### gpt-3.5 / gpt-4
 
-| Website| Provider| gpt-3.5 | gpt-4 | Stream | Status | Auth |
-| --- | --- | --- | --- | --- | --- | --- |
-| [ai.ls](https://ai.ls) | `g4f.Provider.Ails` | ✔️ | ❌ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
-| [you.com](https://you.com) | `g4f.Provider.You` | ✔️ | ❌ | ✔️ | ![Inactive](https://img.shields.io/badge/Inactive-red) | ❌ |
-| [bing.com](https://bing.com/chat) | `g4f.Provider.Bing` | ❌ | ✔️ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
-| [chat9.yqcloud.top](https://chat9.yqcloud.top/) | `g4f.Provider.Yqcloud` | ✔️ | ❌ | ✔️ | ![Inactive](https://img.shields.io/badge/Inactive-red) | ❌ |
-| [theb.ai](https://theb.ai) | `g4f.Provider.Theb` | ✔️ | ❌ | ✔️ | ![Inactive](https://img.shields.io/badge/Inactive-red) | ❌ |
-| [chat-gpt.org](https://chat-gpt.org/chat) | `g4f.Provider.Aichat` | ✔️ | ❌ | ❌ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
-| [bard.google.com](https://bard.google.com) | `g4f.Provider.Bard` | ❌ | ❌ | ❌ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ✔️ |
-| [play.vercel.ai](https://play.vercel.ai) | `g4f.Provider.Vercel` | ✔️ | ❌ | ✔️ | ![Inactive](https://img.shields.io/badge/Inactive-red) | ❌ |
-| [forefront.com](https://forefront.com) | `g4f.Provider.Forefront` | ✔️ | ❌ | ✔️ | ![Inactive](https://img.shields.io/badge/Inactive-red) | ❌ |
-| [supertest.lockchat.app](http://supertest.lockchat.app) | `g4f.Provider.Lockchat` | ✔️ | ✔️ | ✔️ | ![Inactive](https://img.shields.io/badge/Inactive-red) | ❌ |
-| [liaobots.com](https://liaobots.com) | `g4f.Provider.Liaobots` | ✔️ | ✔️ | ✔️ | ![Inactive](https://img.shields.io/badge/Inactive-red) | ✔️ |
-| [gpt-gm.h2o.ai](https://gpt-gm.h2o.ai) | `g4f.Provider.H2o` | ❌ | ❌ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
-| [chatgptlogin.ac](https://chatgptlogin.ac) | `g4f.Provider.ChatgptLogin` | ✔️ | ❌ | ❌ | ![Inactive](https://img.shields.io/badge/Inactive-red) | ❌ |
-| [deepai.org](https://deepai.org) | `g4f.Provider.DeepAi` | ✔️ | ❌ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
-| [chat.getgpt.world](https://chat.getgpt.world/) | `g4f.Provider.GetGpt` | ✔️ | ❌ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
-| [www.aitianhu.com](https://www.aitianhu.com/api/chat-process) | `g4f.Provider.AItianhu` | ✔️ | ❌ | ❌ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
-| [free.easychat.work](https://free.easychat.work) | `g4f.Provider.EasyChat` | ✔️ | ❌ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
-| [chat.acytoo.com](https://chat.acytoo.com/api/completions) | `g4f.Provider.Acytoo` | ✔️ | ❌ | ❌ | ![Inactive](https://img.shields.io/badge/Inactive-red) | ❌ |
-| [chat.dfehub.com](https://chat.dfehub.com/api/chat) | `g4f.Provider.DfeHub` | ✔️ | ❌ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
-| [aiservice.vercel.app](https://aiservice.vercel.app/api/chat/answer) | `g4f.Provider.AiService` | ✔️ | ❌ | ❌ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
-| [b.ai-huan.xyz](https://b.ai-huan.xyz) | `g4f.Provider.BingHuan` | ✔️ | ✔️ | ✔️ | ![Inactive](https://img.shields.io/badge/Inactive-red) | ❌ |
-| [wewordle.org](https://wewordle.org/gptapi/v1/android/turbo) | `g4f.Provider.Wewordle` | ✔️ | ❌ | ❌ | ![Inactive](https://img.shields.io/badge/Inactive-red) | ❌ |
-| [chatgpt.ai](https://chatgpt.ai/gpt-4/) | `g4f.Provider.ChatgptAi` | ❌ | ✔️ | ❌ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
-| [opchatgpts.net](https://opchatgpts.net) | `g4f.Provider.opchatgpts` | ✔️ | ❌ | ❌ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
-
+| Website| Provider| gpt-3.5 | gpt-4 | Streaming | Status | Auth |
+| ------ | ------- | ------- | ----- | --------- | ------ | ---- |
+| [www.aitianhu.com](https://www.aitianhu.com/api/chat-process) | g4f.provider.AItianhu | ✔️ | ❌ | ❌ | ![Inactive](https://img.shields.io/badge/Inactive-red) | ❌ |
+| [chat.acytoo.com](https://chat.acytoo.com/api/completions) | g4f.provider.Acytoo | ✔️ | ❌ | ❌ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
+| [aiservice.vercel.app](https://aiservice.vercel.app/api/chat/answer) | g4f.provider.AiService | ✔️ | ❌ | ❌ | ![Inactive](https://img.shields.io/badge/Inactive-red) | ❌ |
+| [chat-gpt.org](https://chat-gpt.org/chat) | g4f.provider.Aichat | ✔️ | ❌ | ❌ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
+| [ai.ls](https://ai.ls) | g4f.provider.Ails | ✔️ | ❌ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
+| [bard.google.com](https://bard.google.com) | g4f.provider.Bard | ❌ | ❌ | ❌ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ✔️ |
+| [bing.com](https://bing.com/chat) | g4f.provider.Bing | ❌ | ✔️ | ❌ | ![Inactive](https://img.shields.io/badge/Inactive-red) | ❌ |
+| [chatgpt.ai](https://chatgpt.ai/gpt-4/) | g4f.provider.ChatgptAi | ❌ | ✔️ | ❌ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
+| [chatgptlogin.ac](https://chatgptlogin.ac) | g4f.provider.ChatgptLogin | ✔️ | ❌ | ❌ | ![Inactive](https://img.shields.io/badge/Inactive-red) | ❌ |
+| [deepai.org](https://deepai.org) | g4f.provider.DeepAi | ✔️ | ❌ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
+| [chat.dfehub.com](https://chat.dfehub.com/api/chat) | g4f.provider.DfeHub | ✔️ | ❌ | ✔️ | ![Inactive](https://img.shields.io/badge/Inactive-red) | ❌ |
+| [free.easychat.work](https://free.easychat.work) | g4f.provider.EasyChat | ✔️ | ❌ | ✔️ | ![Inactive](https://img.shields.io/badge/Inactive-red) | ❌ |
+| [forefront.com](https://forefront.com) | g4f.provider.Forefront | ✔️ | ❌ | ✔️ | ![Inactive](https://img.shields.io/badge/Inactive-red) | ❌ |
+| [chat.getgpt.world](https://chat.getgpt.world/) | g4f.provider.GetGpt | ✔️ | ❌ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
+| [gpt-gm.h2o.ai](https://gpt-gm.h2o.ai) | g4f.provider.H2o | ❌ | ❌ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
+| [liaobots.com](https://liaobots.com) | g4f.provider.Liaobots | ✔️ | ✔️ | ✔️ | ![Inactive](https://img.shields.io/badge/Inactive-red) | ✔️ |
+| [supertest.lockchat.app](http://supertest.lockchat.app) | g4f.provider.Lockchat | ✔️ | ✔️ | ✔️ | ![Inactive](https://img.shields.io/badge/Inactive-red) | ❌ |
+| [opchatgpts.net](https://opchatgpts.net) | g4f.provider.Opchatgpts | ✔️ | ❌ | ❌ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
+| [backend.raycast.com](https://backend.raycast.com/api/v1/ai/chat_completions) | g4f.provider.Raycast | ✔️ | ✔️ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ✔️ |
+| [theb.ai](https://theb.ai) | g4f.provider.Theb | ✔️ | ❌ | ✔️ | ![Inactive](https://img.shields.io/badge/Inactive-red) | ❌ |
+| [play.vercel.ai](https://play.vercel.ai) | g4f.provider.Vercel | ✔️ | ❌ | ❌ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
+| [wewordle.org](https://wewordle.org/gptapi/v1/android/turbo) | g4f.provider.Wewordle | ✔️ | ❌ | ❌ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
+| [you.com](https://you.com) | g4f.provider.You | ✔️ | ❌ | ❌ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
+| [chat9.yqcloud.top](https://chat9.yqcloud.top/) | g4f.provider.Yqcloud | ✔️ | ❌ | ❌ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
 
 ### Other Models
 
-| Model| Base Provider | Provider | Website |
-| ------- | ----------- | ---- |---- |
-| palm2 | Google | `g4f.Provider.Bard` | [bard.google.com](https://bard.google.com/) |
-| falcon-40b | Huggingface | `g4f.Provider.H2o` | [H2o](https://www.h2o.ai/) |
-| falcon-7b | Huggingface |`g4f.Provider.H2o` | [H2o](https://www.h2o.ai/) |
-| llama-13b | Huggingface | `g4f.Provider.H2o`| [H2o](https://www.h2o.ai/) |
-| claude-instant-v1-100k | Anthropic | `g4f.Provider.Vercel` | [sdk.vercel.ai](https://sdk.vercel.ai/) |
-| claude-instant-v1 | Anthropic | `g4f.Provider.Vercel` | [sdk.vercel.ai](https://sdk.vercel.ai/) |
-| claude-v1-100k | Anthropic | `g4f.Provider.Vercel` | [sdk.vercel.ai](https://sdk.vercel.ai/) |
-| claude-v1 | Anthropic | `g4f.Provider.Vercel` | [sdk.vercel.ai](https://sdk.vercel.ai/) |
-| alpaca-7b | Replicate | `g4f.Provider.Vercel` | [sdk.vercel.ai](https://sdk.vercel.ai/) |
-| stablelm-tuned-alpha-7b | Replicate | `g4f.Provider.Vercel` | [sdk.vercel.ai](https://sdk.vercel.ai/) |
-| bloom | Huggingface | `g4f.Provider.Vercel` | [sdk.vercel.ai](https://sdk.vercel.ai/) |
-| bloomz | Huggingface | `g4f.Provider.Vercel` | [sdk.vercel.ai](https://sdk.vercel.ai/) |
-| flan-t5-xxl | Huggingface | `g4f.Provider.Vercel` | [sdk.vercel.ai](https://sdk.vercel.ai/) |
-| flan-ul2 | Huggingface | `g4f.Provider.Vercel` | [sdk.vercel.ai](https://sdk.vercel.ai/) |
-| gpt-neox-20b | Huggingface | `g4f.Provider.Vercel` | [sdk.vercel.ai](https://sdk.vercel.ai/) |
-| oasst-sft-4-pythia-12b-epoch-3.5 |Huggingface | `g4f.Provider.Vercel` | [sdk.vercel.ai](https://sdk.vercel.ai/) |
-| santacoder | Huggingface | `g4f.Provider.Vercel` | [sdk.vercel.ai](https://sdk.vercel.ai/) |
-| command-medium-nightly | Cohere | `g4f.Provider.Vercel` | [sdk.vercel.ai](https://sdk.vercel.ai/) |
-| command-xlarge-nightly | Cohere | `g4f.Provider.Vercel` | [sdk.vercel.ai](https://sdk.vercel.ai/) |
-| code-cushman-001 | OpenAI | `g4f.Provider.Vercel` | [sdk.vercel.ai](https://sdk.vercel.ai/) |
-| code-davinci-002 | OpenAI | `g4f.Provider.Vercel` | [sdk.vercel.ai](https://sdk.vercel.ai/) |
-| text-ada-001 | OpenAI | `g4f.Provider.Vercel` | [sdk.vercel.ai](https://sdk.vercel.ai/) |
-| text-babbage-001 | OpenAI | `g4f.Provider.Vercel` | [sdk.vercel.ai](https://sdk.vercel.ai/) |
-| text-curie-001 | OpenAI | `g4f.Provider.Vercel` | [sdk.vercel.ai](https://sdk.vercel.ai/) |
-| text-davinci-002 | OpenAI | `g4f.Provider.Vercel` | [sdk.vercel.ai](https://sdk.vercel.ai/) |
-| text-davinci-003 | OpenAI | `g4f.Provider.Vercel` | [sdk.vercel.ai](https://sdk.vercel.ai/) |
+| Model                                   | Base Provider | Provider            | Website                                     |
+| --------------------------------------- | ------------- | ------------------- | ------------------------------------------- |
+| palm                                    | Google        | g4f.provider.Bard   | [bard.google.com](https://bard.google.com/) |
+| h2ogpt-gm-oasst1-en-2048-falcon-7b-v3   | Huggingface   | g4f.provider.H2o    | [www.h2o.ai](https://www.h2o.ai/)           |
+| h2ogpt-gm-oasst1-en-2048-falcon-40b-v1  | Huggingface   | g4f.provider.H2o    | [www.h2o.ai](https://www.h2o.ai/)           |
+| h2ogpt-gm-oasst1-en-2048-open-llama-13b | Huggingface   | g4f.provider.H2o    | [www.h2o.ai](https://www.h2o.ai/)           |
+| claude-instant-v1                       | Anthropic     | g4f.provider.Vercel | [sdk.vercel.ai](https://sdk.vercel.ai/)     |
+| claude-v1                               | Anthropic     | g4f.provider.Vercel | [sdk.vercel.ai](https://sdk.vercel.ai/)     |
+| claude-v2                               | Anthropic     | g4f.provider.Vercel | [sdk.vercel.ai](https://sdk.vercel.ai/)     |
+| command-light-nightly                   | Cohere        | g4f.provider.Vercel | [sdk.vercel.ai](https://sdk.vercel.ai/)     |
+| command-nightly                         | Cohere        | g4f.provider.Vercel | [sdk.vercel.ai](https://sdk.vercel.ai/)     |
+| gpt-neox-20b                            | Huggingface   | g4f.provider.Vercel | [sdk.vercel.ai](https://sdk.vercel.ai/)     |
+| oasst-sft-1-pythia-12b                  | Huggingface   | g4f.provider.Vercel | [sdk.vercel.ai](https://sdk.vercel.ai/)     |
+| oasst-sft-4-pythia-12b-epoch-3.5        | Huggingface   | g4f.provider.Vercel | [sdk.vercel.ai](https://sdk.vercel.ai/)     |
+| santacoder                              | Huggingface   | g4f.provider.Vercel | [sdk.vercel.ai](https://sdk.vercel.ai/)     |
+| bloom                                   | Huggingface   | g4f.provider.Vercel | [sdk.vercel.ai](https://sdk.vercel.ai/)     |
+| flan-t5-xxl                             | Huggingface   | g4f.provider.Vercel | [sdk.vercel.ai](https://sdk.vercel.ai/)     |
+| code-davinci-002                        | OpenAI        | g4f.provider.Vercel | [sdk.vercel.ai](https://sdk.vercel.ai/)     |
+| gpt-3.5-turbo-16k                       | OpenAI        | g4f.provider.Vercel | [sdk.vercel.ai](https://sdk.vercel.ai/)     |
+| gpt-3.5-turbo-16k-0613                  | OpenAI        | g4f.provider.Vercel | [sdk.vercel.ai](https://sdk.vercel.ai/)     |
+| gpt-4-0613                              | OpenAI        | g4f.provider.Vercel | [sdk.vercel.ai](https://sdk.vercel.ai/)     |
+| text-ada-001                            | OpenAI        | g4f.provider.Vercel | [sdk.vercel.ai](https://sdk.vercel.ai/)     |
+| text-babbage-001                        | OpenAI        | g4f.provider.Vercel | [sdk.vercel.ai](https://sdk.vercel.ai/)     |
+| text-curie-001                          | OpenAI        | g4f.provider.Vercel | [sdk.vercel.ai](https://sdk.vercel.ai/)     |
+| text-davinci-002                        | OpenAI        | g4f.provider.Vercel | [sdk.vercel.ai](https://sdk.vercel.ai/)     |
+| text-davinci-003                        | OpenAI        | g4f.provider.Vercel | [sdk.vercel.ai](https://sdk.vercel.ai/)     |
+| llama13b-v2-chat                        | Replicate     | g4f.provider.Vercel | [sdk.vercel.ai](https://sdk.vercel.ai/)     |
+| llama7b-v2-chat                         | Replicate     | g4f.provider.Vercel | [sdk.vercel.ai](https://sdk.vercel.ai/)     |
 
 ## Related gpt4free projects
 
@@ -283,46 +290,48 @@ for token in chat_completion:
 ## Contribute
 
 to add another provider, its very simple:
-1. create a new file in [g4f/Provider/Providers](./g4f/Provider/Providers) with the name of the Provider
-2. in the file, paste the *Boilerplate* you can find in [g4f/Provider/Provider.py](./g4f/Provider/Provider.py): 
+1. create a new file in [g4f/provider](./g4f/provider) with the name of the Provider
+2. Implement a class that extends [BaseProvider](./g4f/provider/base_provider.py).
 
 ```py
-import os
-from ..typing import sha256, Dict, get_type_hints
-
-url = None
-model = None
-supports_stream = False
-needs_auth = False
-
-def _create_completion(model: str, messages: list, stream: bool, **kwargs):
-    return
+from .base_provider import BaseProvider
+from ..typing import CreateResult, Any
 
 
-params = f'g4f.Providers.{os.path.basename(__file__)[:-3]} supports: ' + \
-    '(%s)' % ', '.join(
-        [f"{name}: {get_type_hints(_create_completion)[name].__name__}" for name in _create_completion.__code__.co_varnames[:_create_completion.__code__.co_argcount]])
+class HogeService(BaseProvider):
+    url = "http://hoge.com"
+    working = True
+    supports_gpt_35_turbo = True
 
+    @staticmethod
+    def create_completion(
+        model: str,
+        messages: list[dict[str, str]],
+        stream: bool,
+        **kwargs: Any,
+    ) -> CreateResult:
+        pass
 ```
 
-3. Here, you can adjust the settings, for example if the website does support streaming, set `supports_stream` to `True`...
-4. Write code to request the provider in `_create_completion` and `yield` the response, *even if* its a one-time response, do not hesitate to look at other providers for inspiration
-5. Add the Provider Name in [g4f/Provider/__init__.py](./g4f/Provider/__init__.py)
+3. Here, you can adjust the settings, for example if the website does support streaming, set `working` to `True`...
+4. Write code to request the provider in `create_completion` and `yield` the response, *even if* its a one-time response, do not hesitate to look at other providers for inspiration
+5. Add the Provider Name in [g4f/provider/__init__.py](./g4f/provider/__init__.py)
 
 ```py
-from . import Provider
-from .Providers import (
-    ...,
-    ProviderNameHere
-)
+from .base_provider import BaseProvider
+from .HogeService import HogeService
+
+__all__ = [
+  HogeService,
+]
 ```
 
 6. You are done !, test the provider by calling it:
 ```py
 import g4f
 
-response = g4f.ChatCompletion.create(model='gpt-3.5-turbo', provider=g4f.Provider.PROVIDERNAME,
-                                    messages=[{"role": "user", "content": "test"}], stream=g4f.Provider.PROVIDERNAME.supports_stream)
+response = g4f.ChatCompletion.create(model='gpt-3.5-turbo', provider=g4f.provider.PROVIDERNAME,
+                                    messages=[{"role": "user", "content": "test"}], stream=g4f.provider.PROVIDERNAME.supports_stream)
 
 for message in response:
     print(message, flush=True, end='')
