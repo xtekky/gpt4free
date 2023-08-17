@@ -1,0 +1,2 @@
+flask_cors
+watchdog~=3.0.0
