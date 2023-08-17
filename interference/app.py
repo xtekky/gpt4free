@@ -3,8 +3,8 @@ import time
 import json
 import random
 
-from g4f import Model, ChatCompletion, Provider
-from flask import Flask, request, Response
+from g4f import ChatCompletion
+from flask import Flask, request
 from flask_cors import CORS
 
 app = Flask(__name__)
