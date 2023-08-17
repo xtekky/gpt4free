@@ -141,6 +141,11 @@ response = g4f.ChatCompletion.create(..., provider=ProviderName)
 
 ### interference openai-proxy api (use with openai python package)    
 
+get requirements:
+```sh
+pip install -r interference/requirements.txt
+```
+
 run server:
 ```sh
 python3 -m interference.app
