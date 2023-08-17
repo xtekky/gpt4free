@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from .Provider import Bard, BaseProvider, GetGpt, H2o, Liaobots, Vercel
+from .Provider import Bard, BaseProvider, GetGpt, H2o, Liaobots, Vercel, Equing
 
 
 @dataclass
@@ -131,7 +131,7 @@ gpt_35_turbo_16k = Model(
 gpt_35_turbo_16k_0613 = Model(
     name="openai:gpt-3.5-turbo-16k-0613",
     base_provider="openai",
-    best_provider=Vercel,
+    best_provider=Equing,
 )
 
 gpt_4_0613 = Model(

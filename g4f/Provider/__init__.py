@@ -23,6 +23,8 @@ from .Vercel import Vercel
 from .Wewordle import Wewordle
 from .You import You
 from .Yqcloud import Yqcloud
+from .Equing import Equing
+from .FastGpt import FastGpt
 
 __all__ = [
     "BaseProvider",
@@ -50,4 +52,6 @@ __all__ = [
     "Wewordle",
     "You",
     "Yqcloud",
+    "Equing",
+    "FastGpt"
 ]
