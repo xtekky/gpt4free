@@ -5,8 +5,8 @@ from urllib.parse import urlparse
 
 sys.path.append(str(Path(__file__).parent.parent))
 
-from g4f import models, provider
-from g4f.provider.base_provider import BaseProvider
+from g4f import models, Provider
+from g4f.Provider.base_provider import BaseProvider
 
 
 def main():
@@ -44,7 +44,7 @@ def print_providers():
 
 
 def get_providers() -> list[type[BaseProvider]]:
-    provider_names = dir(provider)
+    provider_names = dir(Provider)
     ignore_names = [
         "base_provider",
         "BaseProvider",
@@ -54,7 +54,7 @@ def get_providers() -> list[type[BaseProvider]]:
         for provider_name in provider_names
         if not provider_name.startswith("__") and provider_name not in ignore_names
     ]
-    return [getattr(provider, provider_name) for provider_name in provider_names]
+    return [getattr(Provider, provider_name) for provider_name in provider_names]
 
 
 def print_models():
