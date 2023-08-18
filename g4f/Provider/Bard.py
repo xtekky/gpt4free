@@ -3,99 +3,97 @@ import random
 import re
 
 import browser_cookie3
-import requests
+from aiohttp import ClientSession
+import asyncio
 
 from ..typing import Any, CreateResult
 from .base_provider import BaseProvider
-
 
 class Bard(BaseProvider):
     url = "https://bard.google.com"
     needs_auth = True
     working = True
 
-    @staticmethod
+    @classmethod
     def create_completion(
+        cls,
         model: str,
         messages: list[dict[str, str]],
         stream: bool,
+        proxy: str = None,
+        cookies: dict = {},
         **kwargs: Any,
     ) -> CreateResult:
-        psid = {
-            cookie.name: cookie.value
-            for cookie in browser_cookie3.chrome(domain_name=".google.com")
-        }["__Secure-1PSID"]
+        yield asyncio.run(cls.create_async(str, messages, proxy, cookies))
+
+    @classmethod
+    async def create_async(
+        cls,
+        model: str,
+        messages: list[dict[str, str]],
+        proxy: str = None,
+        cookies: dict = {},
+        **kwargs: Any,
+    ) -> str:
+        if not cookies:
+            for cookie in browser_cookie3.load(domain_name='.google.com'):
+                cookies[cookie.name] = cookie.value
 
         formatted = "\n".join(
             ["%s: %s" % (message["role"], message["content"]) for message in messages]
         )
         prompt = f"{formatted}\nAssistant:"
 
-        proxy = kwargs.get("proxy", False)
-        if proxy == False:
-            print(
-                "warning!, you did not give a proxy, a lot of countries are banned from Google Bard, so it may not work"
-            )
+        if proxy and "://" not in proxy:
+            proxy = f"http://{proxy}"
 
-        snlm0e = None
-        conversation_id = None
-        response_id = None
-        choice_id = None
-
-        client = requests.Session()
-        client.proxies = (
-            {"http": f"http://{proxy}", "https": f"http://{proxy}"} if proxy else {}
-        )
-
-        client.headers = {
-            "authority": "bard.google.com",
-            "content-type": "application/x-www-form-urlencoded;charset=UTF-8",
-            "origin": "https://bard.google.com",
-            "referer": "https://bard.google.com/",
-            "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36",
-            "x-same-domain": "1",
-            "cookie": f"__Secure-1PSID={psid}",
+        headers = {
+            'authority': 'bard.google.com',
+            'content-type': 'application/x-www-form-urlencoded;charset=UTF-8',
+            'origin': 'https://bard.google.com',
+            'referer': 'https://bard.google.com/',
+            'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36',
+            'x-same-domain': '1',
         }
 
-        if snlm0e is not None:
-            result = re.search(
-                r"SNlM0e\":\"(.*?)\"", client.get("https://bard.google.com/").text
-            )
-            if result is not None:
-                snlm0e = result.group(1)
+        async with ClientSession(
+            cookies=cookies,
+            headers=headers
+        ) as session:
+            async with session.get(cls.url, proxy=proxy) as response:
+                text = await response.text()
+            
+            match = re.search(r'SNlM0e\":\"(.*?)\"', text)
+            if match:
+                snlm0e = match.group(1)
+            
+            params = {
+                'bl': 'boq_assistant-bard-web-server_20230326.21_p0',
+                '_reqid': random.randint(1111, 9999),
+                'rt': 'c'
+            }
 
-        params = {
-            "bl": "boq_assistant-bard-web-server_20230326.21_p0",
-            "_reqid": random.randint(1111, 9999),
-            "rt": "c",
-        }
+            data = {
+                'at': snlm0e,
+                'f.req': json.dumps([None, json.dumps([[prompt]])])
+            }
 
-        data = {
-            "at": snlm0e,
-            "f.req": json.dumps(
-                [
-                    None,
-                    json.dumps(
-                        [[prompt], None, [conversation_id, response_id, choice_id]]
-                    ),
-                ]
-            ),
-        }
+            intents = '.'.join([
+                'assistant',
+                'lamda',
+                'BardFrontendService'
+            ])
 
-        intents = ".".join(["assistant", "lamda", "BardFrontendService"])
-
-        response = client.post(
-            f"https://bard.google.com/_/BardChatUi/data/{intents}/StreamGenerate",
-            data=data,
-            params=params,
-        )
-        response.raise_for_status()
-
-        chat_data = json.loads(response.content.splitlines()[3])[0][2]
-        if chat_data:
-            json_chat_data = json.loads(chat_data)
-
-            yield json_chat_data[0][0]
+            async with session.post(
+                f'{cls.url}/_/BardChatUi/data/{intents}/StreamGenerate',
+                data=data,
+                params=params,
+                proxy=proxy
+            ) as response:
+                response = await response.text()
+                response = json.loads(response.splitlines()[3])[0][2]
+                response = json.loads(response)[4][0][1][0]
+                return response
 
     @classmethod
     @property
