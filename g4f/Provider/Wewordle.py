@@ -21,11 +21,6 @@ class Wewordle(BaseProvider):
         stream: bool,
         **kwargs: Any,
     ) -> CreateResult:
-        base = ""
-
-        for message in messages:
-            base += "%s: %s\n" % (message["role"], message["content"])
-        base += "assistant:"
         # randomize user id and app id
         _user_id = "".join(
             random.choices(f"{string.ascii_lowercase}{string.digits}", k=16)
@@ -45,7 +40,7 @@ class Wewordle(BaseProvider):
         }
         data: dict[str, Any] = {
             "user": _user_id,
-            "messages": [{"role": "user", "content": base}],
+            "messages": messages,
             "subscriber": {
                 "originalPurchaseDate": None,
                 "originalApplicationVersion": None,

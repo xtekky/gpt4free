@@ -50,6 +50,7 @@ class DfeHub(BaseProvider):
             "https://chat.dfehub.com/api/openai/v1/chat/completions",
             headers=headers,
             json=json_data,
+            timeout=3
         )
 
         for chunk in response.iter_lines():

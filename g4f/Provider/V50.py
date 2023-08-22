@@ -8,7 +8,7 @@ class V50(BaseProvider):
     supports_gpt_35_turbo = True
     supports_stream = False
     needs_auth = False
-    working = True
+    working = False
 
     @staticmethod
     def create_completion(
@@ -46,7 +46,8 @@ class V50(BaseProvider):
         }
         response = requests.post("https://p5.v50.ltd/api/chat-process", 
                                 json=payload, headers=headers, proxies=kwargs['proxy'] if 'proxy' in kwargs else {})
-        yield response.text
+        if "https://fk1.v50.ltd" not in response.text:
+            yield response.text
 
     @classmethod
     @property

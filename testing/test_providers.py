@@ -3,50 +3,51 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).parent.parent))
 
-from g4f import BaseProvider, models, provider
+from g4f import BaseProvider, models, Provider
 
+logging = False
 
 def main():
     providers = get_providers()
-    results: list[list[str | bool]] = []
+    failed_providers = []
 
     for _provider in providers:
-        print("start", _provider.__name__)
-        actual_working = judge(_provider)
-        expected_working = _provider.working
-        match = actual_working == expected_working
+        if _provider.needs_auth:
+            continue
+        print("Provider:", _provider.__name__)
+        result = judge(_provider)
+        print("Result:", result)
+        if _provider.working and not result:
+            failed_providers.append([_provider, result])
 
-        results.append([_provider.__name__, expected_working, actual_working, match])
-
-    print("failed provider list")
-    for result in results:
-        if not result[3]:
-            print(result)
+    print("Failed providers:")
+    for _provider, result in failed_providers:
+       print(f"{_provider.__name__}: {result}")
 
 
 def get_providers() -> list[type[BaseProvider]]:
-    provider_names = dir(provider)
+    provider_names = dir(Provider)
     ignore_names = [
         "base_provider",
-        "BaseProvider",
+        "BaseProvider"
     ]
     provider_names = [
         provider_name
         for provider_name in provider_names
         if not provider_name.startswith("__") and provider_name not in ignore_names
     ]
-    return [getattr(provider, provider_name) for provider_name in provider_names]
+    return [getattr(Provider, provider_name) for provider_name in provider_names]
 
 
 def create_response(_provider: type[BaseProvider]) -> str:
     model = (
         models.gpt_35_turbo.name
-        if _provider is not provider.H2o
-        else models.falcon_7b.name
+        if _provider.supports_gpt_35_turbo
+        else _provider.model
     )
     response = _provider.create_completion(
         model=model,
-        messages=[{"role": "user", "content": "Hello world!, plz yourself"}],
+        messages=[{"role": "user", "content": "Hello world!"}],
         stream=False,
     )
     return "".join(response)
@@ -59,9 +60,10 @@ def judge(_provider: type[BaseProvider]) -> bool:
     try:
         response = create_response(_provider)
         assert type(response) is str
-        return len(response) > 1
+        return response
     except Exception as e:
-        print(e)
+        if logging:
+            print(e)
         return False
 
 
