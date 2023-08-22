@@ -53,6 +53,9 @@ class Equing(ABC):
 
         response = requests.post('https://next.eqing.tech/api/openai/v1/chat/completions',
             headers=headers, json=json_data, stream=stream)
+        if not stream:
+            yield response.json()["choices"][0]["message"]["content"]
+            return
         
         for line in response.iter_content(chunk_size=1024):
             if line:
