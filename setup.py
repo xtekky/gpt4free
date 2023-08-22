@@ -11,7 +11,7 @@ with codecs.open(os.path.join(here, "README.md"), encoding="utf-8") as fh:
 with open("requirements.txt") as f:
     required = f.read().splitlines()
 
-VERSION = '0.0.2.2'
+VERSION = '0.0.2.3'
 DESCRIPTION = (
     "The official gpt4free repository | various collection of powerful language models"
 )
@@ -27,6 +27,11 @@ setup(
     long_description=long_description,
     packages=find_packages(),
     install_requires=required,
+    url='https://github.com/xtekky/gpt4free',  # Link to your GitHub repository
+    project_urls={
+        'Source Code': 'https://github.com/xtekky/gpt4free',  # GitHub link
+        'Bug Tracker': 'https://github.com/xtekky/gpt4free/issues',  # Link to issue tracker
+    },
     keywords=[
         "python",
         "chatbot",
