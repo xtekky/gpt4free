@@ -1,10 +1,10 @@
 
 ![248433934-7886223b-c1d1-4260-82aa-da5741f303bb](https://github.com/xtekky/gpt4free/assets/98614666/ea012c87-76e0-496a-8ac4-e2de090cc6c9)
 
-By using this repository or any code related to it, you agree to the [legal notice](./LEGAL_NOTICE.md). The author is not responsible for any copies, forks, or reuploads made by other users. This is the author's only account and repository. To prevent impersonation or irresponsible actions, you may comply with the GNU GPL license this Repository uses.
+By using this repository or any code related to it, you agree to the [legal notice](./LEGAL_NOTICE.md). The author is not responsible for any copies, forks, reuploads made by other users, or anything else related to gpt4free. This is the author's only account and repository. To prevent impersonation or irresponsible actions, please comply with the GNU GPL license this Repository uses.
 
-This (quite censored) New Version of gpt4free, was just released, it may contain bugs, open an issue or contribute a PR when encountering one, some features were disabled.
-Docker is for now not available but I would be happy if someone contributes a PR. The g4f GUI will be uploaded soon enough.
+This (quite censored) New Version of gpt4free, was just released so it may contain bugs. Please open an issue or contribute a PR when encountering one.
+P.S: Docker is for now not available but I would be happy if someone contributes a PR. The g4f GUI will be uploaded soon enough.
 
 ### New
 - pypi package:
@@ -351,7 +351,7 @@ for message in response:
 
 ## ChatGPT clone
 
-> Currently implementing new features and trying to scale it, please be patient it may be unstable  
+> We are currently implementing new features and trying to scale it, but please be patient as it may be unstable  
 > https://chat.g4f.ai/chat
 > This site was developed by me and includes **gpt-4/3.5**, **internet access** and **gpt-jailbreak's** like DAN  
 > Run locally here: https://github.com/xtekky/chatgpt-clone
