@@ -13,34 +13,54 @@ from .base_provider import BaseProvider
 
 class Bing(BaseProvider):
     url = "https://bing.com/chat"
+    working = True
     supports_gpt_4 = True
 
-    @staticmethod
+    @classmethod
     def create_completion(
+        cls,
         model: str,
         messages: list[dict[str, str]],
         stream: bool,
         **kwargs: Any
     ) -> CreateResult:
-        yield from run(create(messages, **kwargs))
+        if stream:
+            yield from run(cls.create_async_generator(model, messages, **kwargs))
+        else:
+            yield asyncio.run(cls.create_async(model, messages, **kwargs))
 
-def create(
+    @classmethod
+    async def create_async(
+        cls,
+        model: str,
         messages: list[dict[str, str]],
-        cookies: dict = {}
-    ):
-    if len(messages) < 2:
-        prompt = messages[0]["content"]
-        context = None
+        **kwargs: Any,
+    ) -> str:
+        result = []
+        async for chunk in cls.create_async_generator(model, messages, **kwargs):
+            result.append(chunk)
+        if result:
+            return "".join(result)
+        
+    @staticmethod
+    def create_async_generator(
+            model: str,
+            messages: list[dict[str, str]],
+            cookies: dict = {}
+        ) -> AsyncGenerator:
+        if len(messages) < 2:
+            prompt = messages[0]["content"]
+            context = None
 
-    else:
-        prompt = messages[-1]["content"]
-        context = convert(messages[:-1])
+        else:
+            prompt = messages[-1]["content"]
+            context = convert(messages[:-1])
 
-    if not cookies:
-        for cookie in browser_cookie3.load(domain_name='.bing.com'):
-            cookies[cookie.name] = cookie.value
+        if not cookies:
+            for cookie in browser_cookie3.load(domain_name='.bing.com'):
+                cookies[cookie.name] = cookie.value
 
-    return stream_generate(prompt, context, cookies)
+        return stream_generate(prompt, context, cookies)
 
 def convert(messages: list[dict[str, str]]):
     context = ""
