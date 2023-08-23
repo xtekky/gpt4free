@@ -72,6 +72,8 @@ class Ails(BaseProvider):
             if b"content" in token:
                 completion_chunk = json.loads(token.decode().replace("data: ", ""))
                 token = completion_chunk["choices"][0]["delta"].get("content")
+                if "ai.ls".lower() in token.lower():
+                    raise Exception("Response Error: " + token)
                 if token != None:
                     yield token
 
