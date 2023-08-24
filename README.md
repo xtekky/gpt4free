@@ -1,4 +1,3 @@
-
 ![248433934-7886223b-c1d1-4260-82aa-da5741f303bb](https://github.com/xtekky/gpt4free/assets/98614666/ea012c87-76e0-496a-8ac4-e2de090cc6c9)
 
 By using this repository or any code related to it, you agree to the [legal notice](./LEGAL_NOTICE.md). The author is not responsible for any copies, forks, reuploads made by other users, or anything else related to gpt4free. This is the author's only account and repository. To prevent impersonation or irresponsible actions, please comply with the GNU GPL license this Repository uses.
@@ -7,54 +6,69 @@ This (quite censored) New Version of gpt4free, was just released so it may conta
 P.S: Docker is for now not available but I would be happy if someone contributes a PR. The g4f GUI will be uploaded soon enough.
 
 ### New
+
 - pypi package:
+
 ```
 pip install -U g4f
 ```
 
 ## Table of Contents:
 
+- [Table of Contents:](#table-of-contents)
 - [Getting Started](#getting-started)
-    + [Prerequisites](#prerequisites)
-    + [Setting up the project](#setting-up-the-project)
+  - [Prerequisites:](#prerequisites)
+  - [Setting up the project:](#setting-up-the-project)
+    - [Install using pypi](#install-using-pypi)
+    - [or](#or)
+    - [Setting up with Docker:](#setting-up-with-docker)
 - [Usage](#usage)
-  * [The `g4f` Package](#the-g4f-package)
-  * [interference openai-proxy api](#interference-openai-proxy-api-use-with-openai-python-package)
+  - [The `g4f` Package](#the-g4f-package)
+  - [interference openai-proxy api (use with openai python package)](#interference-openai-proxy-api-use-with-openai-python-package)
 - [Models](#models)
-  * [gpt-3.5 / gpt-4](#gpt-35--gpt-4)
-  * [Other Models](#other-models)
+  - [gpt-3.5 / gpt-4](#gpt-35--gpt-4)
+  - [Other Models](#other-models)
 - [Related gpt4free projects](#related-gpt4free-projects)
 - [Contribute](#contribute)
 - [ChatGPT clone](#chatgpt-clone)
-- [Copyright](#copyright)
-- [Copyright Notice](#copyright-notice)
+- [Copyright:](#copyright)
+- [Copyright Notice:](#copyright-notice)
 - [Star History](#star-history)
 
 ## Getting Started
 
 #### Prerequisites:
+
 1. [Download and install Python](https://www.python.org/downloads/) (Version 3.x is recommended).
 
 #### Setting up the project:
+
 ##### Install using pypi
+
 ```
 pip install -U g4f
 ```
 
 ##### or
 
-1. Clone the GitHub repository: 
+1. Clone the GitHub repository:
+
 ```
 git clone https://github.com/xtekky/gpt4free.git
 ```
+
 2. Navigate to the project directory:
+
 ```
 cd gpt4free
 ```
+
 3. (Recommended) Create a virtual environment to manage Python packages for your project:
+
 ```
 python3 -m venv venv
 ```
+
 4. Activate the virtual environment:
    - On Windows:
    ```
@@ -65,20 +79,66 @@ python3 -m venv venv
    source venv/bin/activate
    ```
 5. Install the required Python packages from `requirements.txt`:
+
 ```
 pip install -r requirements.txt
 ```
 
 6. Create a `test.py` file in the root folder and start using the repo, further Instructions are below
+
 ```py
 import g4f
 
 ...
 ```
 
+##### Setting up with Docker:
+
+If you have Docker installed, you can easily set up and run the project without manually installing dependencies.
+
+1. First, ensure you have both Docker and Docker Compose installed.
+
+   - [Install Docker](https://docs.docker.com/get-docker/)
+   - [Install Docker Compose](https://docs.docker.com/compose/install/)
+
+2. Clone the GitHub repo:
+
+```bash
+git clone https://github.com/xtekky/gpt4free.git
+```
+
+3. Navigate to the project directory:
+
+```bash
+cd gpt4free
+```
+
+4. Build the Docker image:
+
+```bash
+docker compose build
+```
+
+5. Start the service using Docker Compose:
+
+```bash
+docker compose up
+```
+
+You server will now be running at `http://localhost:1337`. You can interact with the API or run your tests as you would normally.
+
+To stop the Docker containers, simply run:
+
+```bash
+docker compose down
+```
+
+**Note:** When using Docker, any changes you make to your local files will be reflected in the Docker container thanks to the volume mapping in the `docker-compose.yml` file. If you add or remove dependencies, however, you'll need to rebuild the Docker image using `docker compose build`.
+
 ## Usage
 
 ### The `g4f` Package
+
 ```py
 import g4f
 
@@ -119,6 +179,7 @@ for message in response:
 ```
 
 providers:
+
 ```py
 from g4f.Provider import (
     Acytoo,
@@ -139,14 +200,16 @@ from g4f.Provider import (
 response = g4f.ChatCompletion.create(..., provider=ProviderName)
 ```
 
-### interference openai-proxy api (use with openai python package)    
+### interference openai-proxy api (use with openai python package)
 
 get requirements:
+
 ```sh
 pip install -r interference/requirements.txt
 ```
 
 run server:
+
 ```sh
 python3 -m interference.app
 ```
@@ -180,35 +243,36 @@ if __name__ == "__main__":
     main()
 ```
 
-## Models    
+## Models
+
 ### gpt-3.5 / gpt-4
 
-| Website| Provider| gpt-3.5 | gpt-4 | Streaming | Status | Auth |
-| ------ | ------- | ------- | ----- | --------- | ------ | ---- |
-| [www.aitianhu.com](https://www.aitianhu.com/api/chat-process) | g4f.Provider.AItianhu | ✔️ | ❌ | ❌ | ![Inactive](https://img.shields.io/badge/Inactive-red) | ❌ |
-| [chat.acytoo.com](https://chat.acytoo.com/api/completions) | g4f.Provider.Acytoo | ✔️ | ❌ | ❌ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
-| [aiservice.vercel.app](https://aiservice.vercel.app/api/chat/answer) | g4f.Provider.AiService | ✔️ | ❌ | ❌ | ![Inactive](https://img.shields.io/badge/Inactive-red) | ❌ |
-| [chat-gpt.org](https://chat-gpt.org/chat) | g4f.Provider.Aichat | ✔️ | ❌ | ❌ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
-| [ai.ls](https://ai.ls) | g4f.Provider.Ails | ✔️ | ❌ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
-| [bard.google.com](https://bard.google.com) | g4f.Provider.Bard | ❌ | ❌ | ❌ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ✔️ |
-| [bing.com](https://bing.com/chat) | g4f.Provider.Bing | ❌ | ✔️ | ❌ | ![Inactive](https://img.shields.io/badge/Inactive-red) | ❌ |
-| [chatgpt.ai](https://chatgpt.ai/gpt-4/) | g4f.Provider.ChatgptAi | ❌ | ✔️ | ❌ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
-| [chatgptlogin.ac](https://chatgptlogin.ac) | g4f.Provider.ChatgptLogin | ✔️ | ❌ | ❌ | ![Inactive](https://img.shields.io/badge/Inactive-red) | ❌ |
-| [deepai.org](https://deepai.org) | g4f.Provider.DeepAi | ✔️ | ❌ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
-| [chat.dfehub.com](https://chat.dfehub.com/api/chat) | g4f.Provider.DfeHub | ✔️ | ❌ | ✔️ | ![Inactive](https://img.shields.io/badge/Inactive-red) | ❌ |
-| [free.easychat.work](https://free.easychat.work) | g4f.Provider.EasyChat | ✔️ | ❌ | ✔️ | ![Inactive](https://img.shields.io/badge/Inactive-red) | ❌ |
-| [forefront.com](https://forefront.com) | g4f.Provider.Forefront | ✔️ | ❌ | ✔️ | ![Inactive](https://img.shields.io/badge/Inactive-red) | ❌ |
-| [chat.getgpt.world](https://chat.getgpt.world/) | g4f.Provider.GetGpt | ✔️ | ❌ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
-| [gpt-gm.h2o.ai](https://gpt-gm.h2o.ai) | g4f.Provider.H2o | ❌ | ❌ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
-| [liaobots.com](https://liaobots.com) | g4f.Provider.Liaobots | ✔️ | ✔️ | ✔️ | ![Inactive](https://img.shields.io/badge/Inactive-red) | ✔️ |
-| [supertest.lockchat.app](http://supertest.lockchat.app) | g4f.Provider.Lockchat | ✔️ | ✔️ | ✔️ | ![Inactive](https://img.shields.io/badge/Inactive-red) | ❌ |
-| [opchatgpts.net](https://opchatgpts.net) | g4f.Provider.Opchatgpts | ✔️ | ❌ | ❌ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
-| [backend.raycast.com](https://backend.raycast.com/api/v1/ai/chat_completions) | g4f.Provider.Raycast | ✔️ | ✔️ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ✔️ |
-| [theb.ai](https://theb.ai) | g4f.Provider.Theb | ✔️ | ❌ | ✔️ | ![Inactive](https://img.shields.io/badge/Inactive-red) | ❌ |
-| [play.vercel.ai](https://play.vercel.ai) | g4f.Provider.Vercel | ✔️ | ❌ | ❌ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
-| [wewordle.org](https://wewordle.org/gptapi/v1/android/turbo) | g4f.Provider.Wewordle | ✔️ | ❌ | ❌ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
-| [you.com](https://you.com) | g4f.Provider.You | ✔️ | ❌ | ❌ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
-| [chat9.yqcloud.top](https://chat9.yqcloud.top/) | g4f.Provider.Yqcloud | ✔️ | ❌ | ❌ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
+| Website                                                                       | Provider                  | gpt-3.5 | gpt-4 | Streaming | Status                                                     | Auth |
+| ----------------------------------------------------------------------------- | ------------------------- | ------- | ----- | --------- | ---------------------------------------------------------- | ---- |
+| [www.aitianhu.com](https://www.aitianhu.com/api/chat-process)                 | g4f.Provider.AItianhu     | ✔️      | ❌    | ❌        | ![Inactive](https://img.shields.io/badge/Inactive-red)     | ❌   |
+| [chat.acytoo.com](https://chat.acytoo.com/api/completions)                    | g4f.Provider.Acytoo       | ✔️      | ❌    | ❌        | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌   |
+| [aiservice.vercel.app](https://aiservice.vercel.app/api/chat/answer)          | g4f.Provider.AiService    | ✔️      | ❌    | ❌        | ![Inactive](https://img.shields.io/badge/Inactive-red)     | ❌   |
+| [chat-gpt.org](https://chat-gpt.org/chat)                                     | g4f.Provider.Aichat       | ✔️      | ❌    | ❌        | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌   |
+| [ai.ls](https://ai.ls)                                                        | g4f.Provider.Ails         | ✔️      | ❌    | ✔️        | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌   |
+| [bard.google.com](https://bard.google.com)                                    | g4f.Provider.Bard         | ❌      | ❌    | ❌        | ![Active](https://img.shields.io/badge/Active-brightgreen) | ✔️   |
+| [bing.com](https://bing.com/chat)                                             | g4f.Provider.Bing         | ❌      | ✔️    | ❌        | ![Inactive](https://img.shields.io/badge/Inactive-red)     | ❌   |
+| [chatgpt.ai](https://chatgpt.ai/gpt-4/)                                       | g4f.Provider.ChatgptAi    | ❌      | ✔️    | ❌        | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌   |
+| [chatgptlogin.ac](https://chatgptlogin.ac)                                    | g4f.Provider.ChatgptLogin | ✔️      | ❌    | ❌        | ![Inactive](https://img.shields.io/badge/Inactive-red)     | ❌   |
+| [deepai.org](https://deepai.org)                                              | g4f.Provider.DeepAi       | ✔️      | ❌    | ✔️        | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌   |
+| [chat.dfehub.com](https://chat.dfehub.com/api/chat)                           | g4f.Provider.DfeHub       | ✔️      | ❌    | ✔️        | ![Inactive](https://img.shields.io/badge/Inactive-red)     | ❌   |
+| [free.easychat.work](https://free.easychat.work)                              | g4f.Provider.EasyChat     | ✔️      | ❌    | ✔️        | ![Inactive](https://img.shields.io/badge/Inactive-red)     | ❌   |
+| [forefront.com](https://forefront.com)                                        | g4f.Provider.Forefront    | ✔️      | ❌    | ✔️        | ![Inactive](https://img.shields.io/badge/Inactive-red)     | ❌   |
+| [chat.getgpt.world](https://chat.getgpt.world/)                               | g4f.Provider.GetGpt       | ✔️      | ❌    | ✔️        | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌   |
+| [gpt-gm.h2o.ai](https://gpt-gm.h2o.ai)                                        | g4f.Provider.H2o          | ❌      | ❌    | ✔️        | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌   |
+| [liaobots.com](https://liaobots.com)                                          | g4f.Provider.Liaobots     | ✔️      | ✔️    | ✔️        | ![Inactive](https://img.shields.io/badge/Inactive-red)     | ✔️   |
+| [supertest.lockchat.app](http://supertest.lockchat.app)                       | g4f.Provider.Lockchat     | ✔️      | ✔️    | ✔️        | ![Inactive](https://img.shields.io/badge/Inactive-red)     | ❌   |
+| [opchatgpts.net](https://opchatgpts.net)                                      | g4f.Provider.Opchatgpts   | ✔️      | ❌    | ❌        | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌   |
+| [backend.raycast.com](https://backend.raycast.com/api/v1/ai/chat_completions) | g4f.Provider.Raycast      | ✔️      | ✔️    | ✔️        | ![Active](https://img.shields.io/badge/Active-brightgreen) | ✔️   |
+| [theb.ai](https://theb.ai)                                                    | g4f.Provider.Theb         | ✔️      | ❌    | ✔️        | ![Inactive](https://img.shields.io/badge/Inactive-red)     | ❌   |
+| [play.vercel.ai](https://play.vercel.ai)                                      | g4f.Provider.Vercel       | ✔️      | ❌    | ❌        | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌   |
+| [wewordle.org](https://wewordle.org/gptapi/v1/android/turbo)                  | g4f.Provider.Wewordle     | ✔️      | ❌    | ❌        | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌   |
+| [you.com](https://you.com)                                                    | g4f.Provider.You          | ✔️      | ❌    | ❌        | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌   |
+| [chat9.yqcloud.top](https://chat9.yqcloud.top/)                               | g4f.Provider.Yqcloud      | ✔️      | ❌    | ❌        | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌   |
 
 ### Other Models
 
@@ -302,6 +366,7 @@ if __name__ == "__main__":
 ## Contribute
 
 to add another provider, its very simple:
+
 1. create a new file in [g4f/provider](./g4f/provider) with the name of the Provider
 2. Implement a class that extends [BaseProvider](./g4f/provider/base_provider.py).
 
@@ -326,8 +391,8 @@ class HogeService(BaseProvider):
 ```
 
 3. Here, you can adjust the settings, for example if the website does support streaming, set `working` to `True`...
-4. Write code to request the provider in `create_completion` and `yield` the response, *even if* its a one-time response, do not hesitate to look at other providers for inspiration
-5. Add the Provider Name in [g4f/provider/__init__.py](./g4f/provider/__init__.py)
+4. Write code to request the provider in `create_completion` and `yield` the response, _even if_ its a one-time response, do not hesitate to look at other providers for inspiration
+5. Add the Provider Name in [g4f/provider/**init**.py](./g4f/provider/__init__.py)
 
 ```py
 from .base_provider import BaseProvider
@@ -339,6 +404,7 @@ __all__ = [
 ```
 
 6. You are done !, test the provider by calling it:
+
 ```py
 import g4f
 
@@ -378,7 +444,6 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ```
-
 
 ## Star History
 

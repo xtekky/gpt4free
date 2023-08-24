@@ -1,0 +1,13 @@
+version: '3'
+
+services:
+  gpt4free:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/app
+    ports:
+      - '1337:1337'
+    environment:
+      - PYTHONUNBUFFERED=1
