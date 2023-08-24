@@ -7,7 +7,7 @@ sys.path.append(str(Path(__file__).parent.parent))
 
 from g4f import models, Provider
 from g4f.Provider.base_provider import BaseProvider
-
+from testing.test_providers import test
 
 def main():
     print_providers()
@@ -21,25 +21,30 @@ def print_providers():
         "| ------ | ------- | ------- | ----- | --------- | ------ | ---- |",
     ]
     providers = get_providers()
-    for _provider in providers:
-        netloc = urlparse(_provider.url).netloc
-        website = f"[{netloc}]({_provider.url})"
+    for is_working in (True, False):
+        for _provider in providers:
+            if is_working != _provider.working:
+                continue
+            netloc = urlparse(_provider.url).netloc
+            website = f"[{netloc}]({_provider.url})"
 
-        provider_name = f"g4f.provider.{_provider.__name__}"
+            provider_name = f"g4f.provider.{_provider.__name__}"
 
-        has_gpt_35 = "✔️" if _provider.supports_gpt_35_turbo else "❌"
-        has_gpt_4 = "✔️" if _provider.supports_gpt_4 else "❌"
-        stream = "✔️" if _provider.supports_stream else "❌"
-        status = (
-            "![Active](https://img.shields.io/badge/Active-brightgreen)"
-            if _provider.working
-            else "![Inactive](https://img.shields.io/badge/Inactive-red)"
-        )
-        auth = "✔️" if _provider.needs_auth else "❌"
+            has_gpt_35 = "✔️" if _provider.supports_gpt_35_turbo else "❌"
+            has_gpt_4 = "✔️" if _provider.supports_gpt_4 else "❌"
+            stream = "✔️" if _provider.supports_stream else "❌"
+            if _provider.working:
+                if test(_provider):
+                    status = '![Active](https://img.shields.io/badge/Active-brightgreen)'
+                else:
+                    status = '![Unknown](https://img.shields.io/badge/Unknown-grey)'
+            else:
+                status = '![Inactive](https://img.shields.io/badge/Inactive-red)'
+            auth = "✔️" if _provider.needs_auth else "❌"
 
-        lines.append(
-            f"| {website} | {provider_name} | {has_gpt_35} | {has_gpt_4} | {stream} | {status} | {auth} |"
-        )
+            lines.append(
+                f"| {website} | {provider_name} | {has_gpt_35} | {has_gpt_4} | {stream} | {status} | {auth} |"
+            )
     print("\n".join(lines))
 
 
@@ -79,6 +84,8 @@ def print_models():
 
     _models = get_models()
     for model in _models:
+        if model.best_provider.__name__ not in provider_urls:
+            continue
         split_name = re.split(r":|/", model.name)
         name = split_name[-1]
 

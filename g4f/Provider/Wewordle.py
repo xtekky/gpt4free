@@ -10,12 +10,13 @@ from .base_provider import BaseProvider
 
 
 class Wewordle(BaseProvider):
-    url = "https://wewordle.org/gptapi/v1/android/turbo"
+    url = "https://wewordle.org/"
     working = True
     supports_gpt_35_turbo = True
 
-    @staticmethod
+    @classmethod
     def create_completion(
+        cls,
         model: str,
         messages: list[dict[str, str]],
         stream: bool,
@@ -62,8 +63,7 @@ class Wewordle(BaseProvider):
             },
         }
 
-        url = "https://wewordle.org/gptapi/v1/android/turbo"
-        response = requests.post(url, headers=headers, data=json.dumps(data))
+        response = requests.post(f"{cls.url}gptapi/v1/android/turbo", headers=headers, data=json.dumps(data))
         response.raise_for_status()
         _json = response.json()
         if "message" in _json:

@@ -7,12 +7,13 @@ from .base_provider import BaseProvider
 
 
 class Acytoo(BaseProvider):
-    url = "https://chat.acytoo.com/api/completions"
+    url = "https://chat.acytoo.com/"
     working = True
     supports_gpt_35_turbo = True
 
-    @staticmethod
+    @classmethod
     def create_completion(
+        cls,
         model: str,
         messages: list[dict[str, str]],
         stream: bool,
@@ -21,8 +22,7 @@ class Acytoo(BaseProvider):
         headers = _create_header()
         payload = _create_payload(messages, kwargs.get('temperature', 0.5))
 
-        url = "https://chat.acytoo.com/api/completions"
-        response = requests.post(url=url, headers=headers, json=payload)
+        response = requests.post("{cls.url}api/completions", headers=headers, json=payload)
         response.raise_for_status()
         response.encoding = "utf-8"
         yield response.text

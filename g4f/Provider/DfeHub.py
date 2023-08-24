@@ -9,7 +9,7 @@ from .base_provider import BaseProvider
 
 
 class DfeHub(BaseProvider):
-    url = "https://chat.dfehub.com/api/chat"
+    url = "https://chat.dfehub.com/"
     supports_stream = True
     supports_gpt_35_turbo = True
 
