@@ -40,9 +40,9 @@ class Aichat(BaseProvider):
 
         json_data = {
             "message": base,
-            "temperature": 1,
+            "temperature": kwargs.get('temperature', 0.5),
             "presence_penalty": 0,
-            "top_p": 1,
+            "top_p": kwargs.get('top_p', 1),
             "frequency_penalty": 0,
         }
 
@@ -52,4 +52,6 @@ class Aichat(BaseProvider):
             json=json_data,
         )
         response.raise_for_status()
+        if not response.json()['response']:
+            raise Exception("Error Response: " + response.json())
         yield response.json()["message"]

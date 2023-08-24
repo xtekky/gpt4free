@@ -9,8 +9,9 @@ from .base_provider import BaseProvider
 
 
 class ChatgptLogin(BaseProvider):
-    url = "https://chatgptlogin.ac"
+    url = "https://opchatgpts.net"
     supports_gpt_35_turbo = True
+    working = True
 
     @staticmethod
     def create_completion(
@@ -24,15 +25,15 @@ class ChatgptLogin(BaseProvider):
             "accept": "*/*",
             "accept-language": "en,fr-FR;q=0.9,fr;q=0.8,es-ES;q=0.7,es;q=0.6,en-US;q=0.5,am;q=0.4,de;q=0.3",
             "content-type": "application/json",
-            "origin": "https://chatgptlogin.ac",
-            "referer": "https://chatgptlogin.ac/use-chatgpt-free/",
-            "sec-ch-ua": '"Not.A/Brand";v="8", "Chromium";v="114", "Google Chrome";v="114"',
+            "origin": "https://opchatgpts.net",
+            "referer": "https://opchatgpts.net/chatgpt-free-use/",
+            "sec-ch-ua": '"Chromium";v="116", "Not)A;Brand";v="24", "Google Chrome";v="116"',
             "sec-ch-ua-mobile": "?0",
             "sec-ch-ua-platform": '"Windows"',
             "sec-fetch-dest": "empty",
             "sec-fetch-mode": "cors",
             "sec-fetch-site": "same-origin",
-            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36",
             "x-wp-nonce": _get_nonce(),
         }
 
@@ -59,7 +60,7 @@ class ChatgptLogin(BaseProvider):
         }
 
         response = requests.post(
-            "https://chatgptlogin.ac/wp-json/ai-chatbot/v1/chat",
+            "https://opchatgpts.net/wp-json/ai-chatbot/v1/chat",
             headers=headers,
             json=json_data,
         )
@@ -81,9 +82,9 @@ class ChatgptLogin(BaseProvider):
 
 def _get_nonce() -> str:
     res = requests.get(
-        "https://chatgptlogin.ac/use-chatgpt-free/",
+        "https://opchatgpts.net/chatgpt-free-use/",
         headers={
-            "Referer": "https://chatgptlogin.ac/use-chatgpt-free/",
+            "Referer": "https://opchatgpts.net/chatgpt-free-use/",
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36",
         },
     )

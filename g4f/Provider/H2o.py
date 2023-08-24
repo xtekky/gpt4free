@@ -75,6 +75,8 @@ class H2o(BaseProvider):
             headers=headers,
             json=data,
         )
+        response.raise_for_status()
+        response.encoding = "utf-8"
         generated_text = response.text.replace("\n", "").split("data:")
         generated_text = json.loads(generated_text[-1])
 

@@ -10,6 +10,7 @@ class EasyChat(BaseProvider):
     url = "https://free.easychat.work"
     supports_stream = True
     supports_gpt_35_turbo = True
+    working = True
 
     @staticmethod
     def create_completion(
@@ -25,6 +26,7 @@ class EasyChat(BaseProvider):
             "https://chat2.fastgpt.me",
             "https://chat3.fastgpt.me",
             "https://chat4.fastgpt.me",
+            "https://gxos1h1ddt.fastgpt.me"
         ]
         server = active_servers[kwargs.get("active_server", 0)]
         headers = {
@@ -34,9 +36,17 @@ class EasyChat(BaseProvider):
             "content-type": "application/json",
             "origin": f"{server}",
             "referer": f"{server}/",
-            "sec-ch-ua": '"Not.A/Brand";v="8", "Chromium";v="114", "Google Chrome";v="114"',
-            "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36",
             "x-requested-with": "XMLHttpRequest",
+            'plugins': '0',
+            'sec-ch-ua': '"Chromium";v="116", "Not)A;Brand";v="24", "Google Chrome";v="116"',
+            'sec-ch-ua-mobile': '?0',
+            'sec-ch-ua-platform': '"Windows"',
+            'sec-fetch-dest': 'empty',
+            'sec-fetch-mode': 'cors',
+            'sec-fetch-site': 'same-origin',
+            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36',
+            'usesearch': 'false',
+            'x-requested-with': 'XMLHttpRequest'
         }
 
         json_data = {
@@ -57,14 +67,25 @@ class EasyChat(BaseProvider):
             f"{server}/api/openai/v1/chat/completions",
             headers=headers,
             json=json_data,
+            stream=stream,
         )
-
-        response.raise_for_status()
-        print(response.text)
-        for chunk in response.iter_lines():
-            if b"content" in chunk:
-                data = json.loads(chunk.decode().split("data: ")[1])
-                yield data["choices"][0]["delta"]["content"]
+        if response.status_code == 200:
+            if stream == False:
+                json_data = response.json()
+                if "choices" in json_data:
+                    yield json_data["choices"][0]["message"]["content"]
+                else:
+                    yield Exception("No response from server")
+            else:
+                
+                for chunk in response.iter_lines():
+                    if b"content" in chunk:
+                        splitData = chunk.decode().split("data: ")
+                        if len(splitData) > 1:
+                            yield json.loads(splitData[1])["choices"][0]["delta"]["content"]
+        else:
+            yield Exception(f"Error {response.status_code} from server")
+      
 
     @classmethod
     @property
