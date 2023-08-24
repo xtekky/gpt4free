@@ -1,4 +1,21 @@
 import g4f
+from g4f.Provider import (
+    Acytoo,
+    Aichat,
+    Ails,
+    AiService,
+    AItianhu,
+    Bard,
+    Bing,
+    ChatgptAi,
+    ChatgptLogin,
+    DeepAi,
+    GetGpt
+)
+
+
+# usage:
+response = g4f.ChatCompletion.create(..., provider=ProviderName)
 
 
 print(g4f.Provider.Ails.params)  # supported args
@@ -34,3 +51,4 @@ response = g4f.ChatCompletion.create(
 
 for message in response:
     print(message)
+    
