@@ -16,16 +16,16 @@ def main():
         if _provider.needs_auth:
             continue
         print("Provider:", _provider.__name__)
-        result = judge(_provider)
+        result = test(_provider)
         print("Result:", result)
         if _provider.working and not result:
-            failed_providers.append([_provider, result])
+            failed_providers.append(_provider)
 
     print()
 
     if failed_providers:
         print(f"{Fore.RED}Failed providers:\n")
-        for _provider, result in failed_providers:
+        for _provider in failed_providers:
             print(f"{Fore.RED}{_provider.__name__}")
     else:
         print(f"{Fore.GREEN}All providers are working")
@@ -61,12 +61,6 @@ def create_response(_provider: type[BaseProvider]) -> str:
     )
     return "".join(response)
 
-
-def judge(_provider: type[BaseProvider]) -> bool:
-    if _provider.needs_auth:
-        return _provider.working
-
-    return test(_provider)
     
 def test(_provider: type[BaseProvider]) -> bool:
     try:
