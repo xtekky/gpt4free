@@ -5,48 +5,24 @@ import random
 
 import aiohttp
 import asyncio
-import browser_cookie3
 from aiohttp import ClientSession
 
 from ..typing import Any, AsyncGenerator, CreateResult, Union
-from .base_provider import BaseProvider
+from .base_provider import AsyncGeneratorProvider, get_cookies
 
-class Bing(BaseProvider):
+class Bing(AsyncGeneratorProvider):
     url = "https://bing.com/chat"
+    needs_auth = True
     working = True
     supports_gpt_4 = True
-
-    @classmethod
-    def create_completion(
-        cls,
-        model: str,
-        messages: list[dict[str, str]],
-        stream: bool,
-        **kwargs: Any
-    ) -> CreateResult:
-        if stream:
-            yield from run(cls.create_async_generator(model, messages, **kwargs))
-        else:
-            yield asyncio.run(cls.create_async(model, messages, **kwargs))
-
-    @classmethod
-    async def create_async(
-        cls,
-        model: str,
-        messages: list[dict[str, str]],
-        **kwargs: Any,
-    ) -> str:
-        result = []
-        async for chunk in cls.create_async_generator(model, messages, **kwargs):
-            result.append(chunk)
-        if result:
-            return "".join(result)
+    supports_stream=True
         
     @staticmethod
     def create_async_generator(
             model: str,
             messages: list[dict[str, str]],
-            cookies: dict = {}
+            cookies: dict = get_cookies(".bing.com"),
+            **kwargs
         ) -> AsyncGenerator:
         if len(messages) < 2:
             prompt = messages[0]["content"]
@@ -54,15 +30,11 @@ class Bing(BaseProvider):
 
         else:
             prompt = messages[-1]["content"]
-            context = convert(messages[:-1])
-
-        if not cookies:
-            for cookie in browser_cookie3.load(domain_name='.bing.com'):
-                cookies[cookie.name] = cookie.value
+            context = create_context(messages[:-1])
 
         return stream_generate(prompt, context, cookies)
 
-def convert(messages: list[dict[str, str]]):
+def create_context(messages: list[dict[str, str]]):
     context = ""
 
     for message in messages:
@@ -187,34 +159,32 @@ class Defaults:
         'x-forwarded-for': ip_address,
     }
 
-    optionsSets = {
-        "optionsSets": [
-            'saharasugg',
-            'enablenewsfc',
-            'clgalileo',
-            'gencontentv3',
-            "nlu_direct_response_filter",
-            "deepleo",
-            "disable_emoji_spoken_text",
-            "responsible_ai_policy_235",
-            "enablemm",
-            "h3precise"
-            "dtappid",
-            "cricinfo",
-            "cricinfov2",
-            "dv3sugg",
-            "nojbfedge"
-        ]
-    }
+    optionsSets = [
+        'saharasugg',
+        'enablenewsfc',
+        'clgalileo',
+        'gencontentv3',
+        "nlu_direct_response_filter",
+        "deepleo",
+        "disable_emoji_spoken_text",
+        "responsible_ai_policy_235",
+        "enablemm",
+        "h3precise"
+        "dtappid",
+        "cricinfo",
+        "cricinfov2",
+        "dv3sugg",
+        "nojbfedge"
+    ]
 
-def format_message(msg: dict) -> str:
-    return json.dumps(msg, ensure_ascii=False) + Defaults.delimiter
+def format_message(message: dict) -> str:
+    return json.dumps(message, ensure_ascii=False) + Defaults.delimiter
 
 def create_message(conversation: Conversation, prompt: str, context: str=None) -> str:
     struct = {
         'arguments': [
             {
-                **Defaults.optionsSets,
+                'optionsSets': Defaults.optionsSets,
                 'source': 'cib',
                 'allowedMessageTypes': Defaults.allowedMessageTypes,
                 'sliceIds': Defaults.sliceIds,
