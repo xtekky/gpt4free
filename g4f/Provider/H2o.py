@@ -11,6 +11,7 @@ class H2o(BaseProvider):
     url = "https://gpt-gm.h2o.ai"
     working = True
     supports_stream = True
+    model = "h2oai/h2ogpt-gm-oasst1-en-2048-falcon-40b-v1"
 
     @staticmethod
     def create_completion(
@@ -47,8 +48,9 @@ class H2o(BaseProvider):
             "https://gpt-gm.h2o.ai/conversation",
             headers=headers,
             json=data,
-        )
-        conversation_id = response.json()["conversationId"]
+        ).json()
+        if "conversationId" not in response:
+            return
 
         data = {
             "inputs": conversation,
@@ -71,7 +73,7 @@ class H2o(BaseProvider):
         }
 
         response = session.post(
-            f"https://gpt-gm.h2o.ai/conversation/{conversation_id}",
+            f"https://gpt-gm.h2o.ai/conversation/{response['conversationId']}",
             headers=headers,
             json=data,
         )

@@ -1,5 +1,6 @@
 import re
 import urllib.parse
+import json
 
 from curl_cffi import requests
 
@@ -28,8 +29,12 @@ class You(BaseProvider):
             impersonate="chrome107",
         )
         response.raise_for_status()
-        yield _parse_output(response.text).encode().decode("unicode_escape")
-
+        
+        start = 'data: {"youChatToken": '
+        for line in response.content.splitlines():
+            line = line.decode('utf-8')
+            if line.startswith(start):
+                yield json.loads(line[len(start): -1])
 
 def _create_url_param(messages: list[dict[str, str]], history: list[dict[str, str]]):
     prompt = ""
@@ -54,9 +59,3 @@ def _create_header():
         "accept": "text/event-stream",
         "referer": "https://you.com/search?fromSearchBar=true&tbm=youchat",
     }
-
-
-def _parse_output(output: str) -> str:
-    regex = r"^data:\s{\"youChatToken\": \"(.*)\"}$"
-    tokens = [token for token in re.findall(regex, output, re.MULTILINE)]
-    return "".join(tokens)

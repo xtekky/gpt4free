@@ -7,7 +7,7 @@ from .base_provider import BaseProvider
 
 
 class AItianhu(BaseProvider):
-    url = "https://www.aitianhu.com/api/chat-process"
+    url = "https://www.aitianhu.com/"
     working = False
     supports_gpt_35_turbo = True
 

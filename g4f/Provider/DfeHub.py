@@ -9,7 +9,7 @@ from .base_provider import BaseProvider
 
 
 class DfeHub(BaseProvider):
-    url = "https://chat.dfehub.com/api/chat"
+    url = "https://chat.dfehub.com/"
     supports_stream = True
     supports_gpt_35_turbo = True
 
@@ -50,6 +50,7 @@ class DfeHub(BaseProvider):
             "https://chat.dfehub.com/api/openai/v1/chat/completions",
             headers=headers,
             json=json_data,
+            timeout=3
         )
 
         for chunk in response.iter_lines():
