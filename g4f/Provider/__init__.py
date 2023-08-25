@@ -28,6 +28,7 @@ from .Yqcloud import Yqcloud
 from .Equing import Equing
 from .FastGpt import FastGpt
 from .V50 import V50
+from .Wuguokai import Wuguokai
 
 __all__ = [
     "BaseProvider",
@@ -59,5 +60,6 @@ __all__ = [
     "Yqcloud",
     "Equing",
     "FastGpt",
+    "Wuguokai"
     "V50"
 ]
