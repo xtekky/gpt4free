@@ -75,16 +75,18 @@ class EasyChat(BaseProvider):
                 if "choices" in json_data:
                     yield json_data["choices"][0]["message"]["content"]
                 else:
-                    yield Exception("No response from server")
+                    raise Exception("No response from server")
             else:
                 
                 for chunk in response.iter_lines():
                     if b"content" in chunk:
-                        splitData = chunk.decode().split("data: ")
+                        splitData = chunk.decode().split("data:")
                         if len(splitData) > 1:
                             yield json.loads(splitData[1])["choices"][0]["delta"]["content"]
+                        else:
+                            continue
         else:
-            yield Exception(f"Error {response.status_code} from server")
+            raise Exception(f"Error {response.status_code} from server : {response.reason}")
       
 
     @classmethod
