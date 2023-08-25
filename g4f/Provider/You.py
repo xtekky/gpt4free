@@ -19,7 +19,7 @@ class You(BaseProvider):
         stream: bool,
         **kwargs: Any,
     ) -> CreateResult:
-        url_param = _create_url_param(messages)
+        url_param = _create_url_param(messages, kwargs.get("history", []))
         headers = _create_header()
         url = f"https://you.com/api/streamingSearch?{url_param}"
         response = requests.get(
@@ -28,12 +28,15 @@ class You(BaseProvider):
             impersonate="chrome107",
         )
         response.raise_for_status()
-        yield _parse_output(response.text)
+        yield _parse_output(response.text).encode().decode("unicode_escape")
 
 
-def _create_url_param(messages: list[dict[str, str]]):
-    prompt = messages.pop()["content"]
-    chat = _convert_chat(messages)
+def _create_url_param(messages: list[dict[str, str]], history: list[dict[str, str]]):
+    prompt = ""
+    for message in messages:
+        prompt += "%s: %s\n" % (message["role"], message["content"])
+    prompt += "assistant:"
+    chat = _convert_chat(history)
     param = {"q": prompt, "domain": "youchat", "chat": chat}
     return urllib.parse.urlencode(param)
 
