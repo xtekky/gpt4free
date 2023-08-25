@@ -35,7 +35,10 @@ def _create_header():
 
 
 def _create_payload(messages: list[dict[str, str]]):
-    prompt = messages[-1]["content"]
+    prompt = ""
+    for message in messages:
+        prompt += "%s: %s\n" % (message["role"], message["content"])
+    prompt += "assistant:"
     return {
         "prompt": prompt,
         "network": True,

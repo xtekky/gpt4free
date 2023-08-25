@@ -14,9 +14,11 @@ from .EasyChat import EasyChat
 from .Forefront import Forefront
 from .GetGpt import GetGpt
 from .H2o import H2o
+from .Hugchat import Hugchat
 from .Liaobots import Liaobots
 from .Lockchat import Lockchat
 from .Opchatgpts import Opchatgpts
+from .OpenaiChat import OpenaiChat
 from .Raycast import Raycast
 from .Theb import Theb
 from .Vercel import Vercel
@@ -26,6 +28,7 @@ from .Yqcloud import Yqcloud
 from .Equing import Equing
 from .FastGpt import FastGpt
 from .V50 import V50
+from .Wuguokai import Wuguokai
 
 __all__ = [
     "BaseProvider",
@@ -44,10 +47,12 @@ __all__ = [
     "Forefront",
     "GetGpt",
     "H2o",
+    "Hugchat",
     "Liaobots",
     "Lockchat",
     "Opchatgpts",
     "Raycast",
+    "OpenaiChat",
     "Theb",
     "Vercel",
     "Wewordle",
@@ -55,5 +60,6 @@ __all__ = [
     "Yqcloud",
     "Equing",
     "FastGpt",
+    "Wuguokai"
     "V50"
 ]

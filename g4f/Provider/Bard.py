@@ -2,29 +2,16 @@ import json
 import random
 import re
 
-import browser_cookie3
 from aiohttp import ClientSession
 import asyncio
 
 from ..typing import Any, CreateResult
-from .base_provider import BaseProvider
+from .base_provider import AsyncProvider, get_cookies
 
-class Bard(BaseProvider):
+class Bard(AsyncProvider):
     url = "https://bard.google.com"
     needs_auth = True
     working = True
-
-    @classmethod
-    def create_completion(
-        cls,
-        model: str,
-        messages: list[dict[str, str]],
-        stream: bool,
-        proxy: str = None,
-        cookies: dict = {},
-        **kwargs: Any,
-    ) -> CreateResult:
-        yield asyncio.run(cls.create_async(str, messages, proxy, cookies))
 
     @classmethod
     async def create_async(
@@ -32,12 +19,9 @@ class Bard(BaseProvider):
         model: str,
         messages: list[dict[str, str]],
         proxy: str = None,
-        cookies: dict = {},
+        cookies: dict = get_cookies(".google.com"),
         **kwargs: Any,
     ) -> str:
-        if not cookies:
-            for cookie in browser_cookie3.load(domain_name='.google.com'):
-                cookies[cookie.name] = cookie.value
 
         formatted = "\n".join(
             ["%s: %s" % (message["role"], message["content"]) for message in messages]
