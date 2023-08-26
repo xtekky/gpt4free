@@ -60,6 +60,6 @@ __all__ = [
     "Yqcloud",
     "Equing",
     "FastGpt",
-    "Wuguokai"
+    "Wuguokai",
     "V50"
 ]
