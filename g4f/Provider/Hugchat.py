@@ -20,9 +20,12 @@ class Hugchat(BaseProvider):
         messages: list[dict[str, str]],
         stream: bool = False,
         proxy: str = None,
-        cookies: str = get_cookies(".huggingface.co"),
+        cookies: str = None,
         **kwargs
     ) -> CreateResult:
+        if not cookies:
+            cookies = get_cookies(".huggingface.co")
+
         bot = ChatBot(
             cookies=cookies
         )

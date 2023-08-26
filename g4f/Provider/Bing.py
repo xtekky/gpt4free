@@ -21,7 +21,7 @@ class Bing(AsyncGeneratorProvider):
     def create_async_generator(
             model: str,
             messages: list[dict[str, str]],
-            cookies: dict = get_cookies(".bing.com"),
+            cookies: dict = None,
             **kwargs
         ) -> AsyncGenerator:
         if len(messages) < 2:
@@ -31,6 +31,9 @@ class Bing(AsyncGeneratorProvider):
         else:
             prompt = messages[-1]["content"]
             context = create_context(messages[:-1])
+
+        if not cookies:
+            cookies = get_cookies(".bing.com")
 
         return stream_generate(prompt, context, cookies)
 

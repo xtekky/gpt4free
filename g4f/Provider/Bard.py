@@ -19,7 +19,7 @@ class Bard(AsyncProvider):
         model: str,
         messages: list[dict[str, str]],
         proxy: str = None,
-        cookies: dict = get_cookies(".google.com"),
+        cookies: dict = None,
         **kwargs: Any,
     ) -> str:
 
@@ -30,6 +30,9 @@ class Bard(AsyncProvider):
 
         if proxy and "://" not in proxy:
             proxy = f"http://{proxy}"
+
+        if not cookies:
+            cookies = get_cookies(".google.com")
 
         headers = {
             'authority': 'bard.google.com',
