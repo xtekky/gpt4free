@@ -1,12 +1,9 @@
 import json
 import random
 import re
-
 from aiohttp import ClientSession
-import asyncio
 
-from ..typing import Any, CreateResult
-from .base_provider import AsyncProvider, get_cookies
+from .base_provider import AsyncProvider, get_cookies, format_prompt
 
 class Bard(AsyncProvider):
     url = "https://bard.google.com"
@@ -19,15 +16,14 @@ class Bard(AsyncProvider):
         model: str,
         messages: list[dict[str, str]],
         proxy: str = None,
-        cookies: dict = get_cookies(".google.com"), **kwargs: Any,) -> str:
-
-        formatted = "\n".join(
-            ["%s: %s" % (message["role"], message["content"]) for message in messages]
-        )
-        prompt = f"{formatted}\nAssistant:"
-
+        cookies: dict = None,
+        **kwargs
+    ) -> str:
+        prompt = format_prompt(messages)
         if proxy and "://" not in proxy:
             proxy = f"http://{proxy}"
+        if not cookies:
+            cookies = get_cookies(".google.com")
 
         headers = {
             'authority': 'bard.google.com',
@@ -44,10 +40,11 @@ class Bard(AsyncProvider):
         ) as session:
             async with session.get(cls.url, proxy=proxy) as response:
                 text = await response.text()
-            
+
             match = re.search(r'SNlM0e\":\"(.*?)\"', text)
-            if match:
-                snlm0e = match.group(1)
+            if not match:
+                raise RuntimeError("No snlm0e value.")
+            snlm0e = match.group(1)
             
             params = {
                 'bl': 'boq_assistant-bard-web-server_20230326.21_p0',

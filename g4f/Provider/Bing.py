@@ -15,8 +15,11 @@ class Bing(AsyncGeneratorProvider):
     def create_async_generator(
             model: str,
             messages: list[dict[str, str]],
-            cookies: dict = get_cookies(".bing.com"), **kwargs) -> AsyncGenerator:
-        
+            cookies: dict = None,
+            **kwargs
+        ) -> AsyncGenerator:
+        if not cookies:
+            cookies = get_cookies(".bing.com")
         if len(messages) < 2:
             prompt = messages[0]["content"]
             context = None
@@ -274,14 +277,3 @@ async def stream_generate(
                             break
         finally:
             await delete_conversation(session, conversation)
-
-def run(generator: AsyncGenerator[Union[Any, str], Any]):
-    loop = asyncio.get_event_loop()
-    gen = generator.__aiter__()
-
-    while True:
-        try:
-            yield loop.run_until_complete(gen.__anext__())
-
-        except StopAsyncIteration:
-            break

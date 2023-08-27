@@ -7,6 +7,13 @@ class Model:
     base_provider: str
     best_provider: type[BaseProvider]
 
+# Config for HuggingChat, OpenAssistant
+# Works for Liaobots, H2o, OpenaiChat, Yqcloud, You
+default = Model(
+    name="",
+    base_provider="huggingface",
+    best_provider=H2o,
+)
 
 # GPT-3.5 / GPT-4
 gpt_35_turbo = Model(
