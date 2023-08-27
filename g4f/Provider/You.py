@@ -1,33 +1,27 @@
-import re
-import urllib.parse
-import json
+import urllib.parse, json
 
-from curl_cffi import requests
-
-from ..typing import Any, CreateResult
+from curl_cffi      import requests
+from ..typing       import Any, CreateResult
 from .base_provider import BaseProvider
 
 
 class You(BaseProvider):
-    url = "https://you.com"
-    working = True
+    url                   = "https://you.com"
+    working               = True
     supports_gpt_35_turbo = True
 
     @staticmethod
     def create_completion(
         model: str,
         messages: list[dict[str, str]],
-        stream: bool,
-        **kwargs: Any,
-    ) -> CreateResult:
+        stream: bool, **kwargs: Any) -> CreateResult:
+        
         url_param = _create_url_param(messages, kwargs.get("history", []))
-        headers = _create_header()
-        url = f"https://you.com/api/streamingSearch?{url_param}"
-        response = requests.get(
-            url,
-            headers=headers,
-            impersonate="chrome107",
-        )
+        headers   = _create_header()
+        
+        response = requests.get(f"https://you.com/api/streamingSearch?{url_param}",
+            headers=headers, impersonate="chrome107")
+        
         response.raise_for_status()
         
         start = 'data: {"youChatToken": '

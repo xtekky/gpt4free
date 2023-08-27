@@ -5,13 +5,13 @@ except ImportError:
     has_module = False
 
 from .base_provider import BaseProvider, get_cookies
-from g4f.typing import CreateResult
+from g4f.typing     import CreateResult
 
 class Hugchat(BaseProvider):
-    url = "https://huggingface.co/chat/"
+    url        = "https://huggingface.co/chat/"
     needs_auth = True
-    working = has_module
-    llms = ['OpenAssistant/oasst-sft-6-llama-30b-xor', 'meta-llama/Llama-2-70b-chat-hf']
+    working    = has_module
+    llms       = ['OpenAssistant/oasst-sft-6-llama-30b-xor', 'meta-llama/Llama-2-70b-chat-hf']
 
     @classmethod
     def create_completion(
@@ -20,12 +20,10 @@ class Hugchat(BaseProvider):
         messages: list[dict[str, str]],
         stream: bool = False,
         proxy: str = None,
-        cookies: str = get_cookies(".huggingface.co"),
-        **kwargs
-    ) -> CreateResult:
+        cookies: str = get_cookies(".huggingface.co"), **kwargs) -> CreateResult:
+        
         bot = ChatBot(
-            cookies=cookies
-        )
+            cookies=cookies)
         
         if proxy and "://" not in proxy:
             proxy = f"http://{proxy}"

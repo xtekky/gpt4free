@@ -9,20 +9,18 @@ import requests
 from ..typing import SHA256, Any, CreateResult
 from .base_provider import BaseProvider
 
-
 class Ails(BaseProvider):
-    url: str = "https://ai.ls"
-    working = True
-    supports_stream = True
+    url: str              = "https://ai.ls"
+    working               = True
+    supports_stream       = True
     supports_gpt_35_turbo = True
 
     @staticmethod
     def create_completion(
         model: str,
         messages: list[dict[str, str]],
-        stream: bool,
-        **kwargs: Any,
-    ) -> CreateResult:
+        stream: bool, **kwargs: Any) -> CreateResult:
+        
         headers = {
             "authority": "api.caipacity.com",
             "accept": "*/*",

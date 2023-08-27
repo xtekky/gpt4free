@@ -1,17 +1,16 @@
-import json
-import requests
-from ..typing import Any, CreateResult
+import json, requests
+
+from ..typing       import Any, CreateResult
 from .base_provider import BaseProvider
 
 
 class Raycast(BaseProvider):
-    url = "https://raycast.com"
-    # model = ['gpt-3.5-turbo', 'gpt-4']
-    supports_gpt_35_turbo = True
-    supports_gpt_4 = True
-    supports_stream = True
-    needs_auth = True
-    working = True
+    url                     = "https://raycast.com"
+    supports_gpt_35_turbo   = True
+    supports_gpt_4          = True
+    supports_stream         = True
+    needs_auth              = True
+    working                 = True
 
     @staticmethod
     def create_completion(

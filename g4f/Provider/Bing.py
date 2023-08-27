@@ -1,29 +1,22 @@
-import asyncio
-import json
-import os
-import random
+import asyncio, aiohttp, json, os, random
 
-import aiohttp
-import asyncio
-from aiohttp import ClientSession
-
-from ..typing import Any, AsyncGenerator, CreateResult, Union
+from aiohttp        import ClientSession
+from ..typing       import Any, AsyncGenerator, CreateResult, Union
 from .base_provider import AsyncGeneratorProvider, get_cookies
 
 class Bing(AsyncGeneratorProvider):
-    url = "https://bing.com/chat"
-    needs_auth = True
-    working = True
-    supports_gpt_4 = True
-    supports_stream=True
+    url             = "https://bing.com/chat"
+    needs_auth      = True
+    working         = True
+    supports_gpt_4  = True
+    supports_stream = True
         
     @staticmethod
     def create_async_generator(
             model: str,
             messages: list[dict[str, str]],
-            cookies: dict = get_cookies(".bing.com"),
-            **kwargs
-        ) -> AsyncGenerator:
+            cookies: dict = get_cookies(".bing.com"), **kwargs) -> AsyncGenerator:
+        
         if len(messages) < 2:
             prompt = messages[0]["content"]
             context = None

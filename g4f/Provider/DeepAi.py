@@ -1,26 +1,21 @@
-import json
+import json, js2py, requests
 
-import js2py
-import requests
-
-from ..typing import Any, CreateResult
+from ..typing       import Any, CreateResult
 from .base_provider import BaseProvider
 
 
 class DeepAi(BaseProvider):
-    url = "https://deepai.org"
-    working = True
-    supports_stream = True
+    url: str              = "https://deepai.org"
+    working               = True
+    supports_stream       = True
     supports_gpt_35_turbo = True
 
     @staticmethod
     def create_completion(
         model: str,
         messages: list[dict[str, str]],
-        stream: bool,
-        **kwargs: Any,
-    ) -> CreateResult:
-        url = "https://api.deepai.org/make_me_a_pizza"
+        stream: bool, **kwargs: Any) -> CreateResult:
+        
         token_js = """
 var agent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36'
 var a, b, c, d, e, h, f, l, g, k, m, n, r, x, C, E, N, F, T, O, P, w, D, G, Q, R, W, I, aa, fa, na, oa, ha, ba, X, ia, ja, ka, J, la, K, L, ca, S, U, M, ma, B, da, V, Y;
@@ -54,7 +49,9 @@ f = function () {
             "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36",
         }
 
-        response = requests.post(url, headers=headers, data=payload, stream=True)
+        response = requests.post("https://api.deepai.org/make_me_a_pizza", 
+                                 headers=headers, data=payload, stream=True)
+        
         for chunk in response.iter_content(chunk_size=None):
             response.raise_for_status()
             yield chunk.decode()
