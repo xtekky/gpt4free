@@ -8,33 +8,65 @@ import asyncio
 from aiohttp import ClientSession
 
 from ..typing import Any, AsyncGenerator, CreateResult, Union
-from .base_provider import AsyncGeneratorProvider, get_cookies
+from .base_provider import BaseProvider
 
-class Bing(AsyncGeneratorProvider):
+class Bing(BaseProvider):
     url = "https://bing.com/chat"
-    needs_auth = True
-    working = True
     supports_gpt_4 = True
+    working=True
     supports_stream=True
-        
+
     @staticmethod
-    def create_async_generator(
-            model: str,
-            messages: list[dict[str, str]],
-            cookies: dict = get_cookies(".bing.com"),
-            **kwargs
-        ) -> AsyncGenerator:
-        if len(messages) < 2:
-            prompt = messages[0]["content"]
-            context = None
+    def create_completion(
+        model: str,
+        messages: list[dict[str, str]],
+        stream: bool,
+        **kwargs: Any
+    ) -> CreateResult:
+        yield from run(create(messages, **kwargs))
 
-        else:
-            prompt = messages[-1]["content"]
-            context = create_context(messages[:-1])
+def create(
+        messages: list[dict[str, str]],
+        cookies: dict = {}
+    ):
+    if len(messages) < 2:
+        prompt = messages[0]["content"]
+        context = None
 
-        return stream_generate(prompt, context, cookies)
+    else:
+        prompt = messages[-1]["content"]
+        context = convert(messages[:-1])
 
-def create_context(messages: list[dict[str, str]]):
+    if not cookies:
+        cookies = {
+            'MUID': '',
+            'BCP': '',
+            'MUIDB': '',
+            'USRLOC': '',
+            'SRCHD': 'AF=hpcodx',
+            'MMCASM': '',
+            '_UR': '',
+            'ANON': '',
+            'NAP': '',
+            'ABDEF': '',
+            'PPLState': '1',
+            'KievRPSSecAuth': '',
+            '_U': '',
+            'SUID': '',
+            '_EDGE_S': '',
+            'WLS': '',
+            '_HPVN': '',
+            '_SS': '',
+            '_clck': '',
+            'SRCHUSR': '',
+            '_RwBf': '',
+            'SRCHHPGUSR': '',
+            'ipv6': '',
+        }
+
+    return stream_generate(prompt, context, cookies)
+
+def convert(messages: list[dict[str, str]]):
     context = ""
 
     for message in messages:
@@ -159,32 +191,34 @@ class Defaults:
         'x-forwarded-for': ip_address,
     }
 
-    optionsSets = [
-        'saharasugg',
-        'enablenewsfc',
-        'clgalileo',
-        'gencontentv3',
-        "nlu_direct_response_filter",
-        "deepleo",
-        "disable_emoji_spoken_text",
-        "responsible_ai_policy_235",
-        "enablemm",
-        "h3precise"
-        "dtappid",
-        "cricinfo",
-        "cricinfov2",
-        "dv3sugg",
-        "nojbfedge"
-    ]
+    optionsSets = {
+        "optionsSets": [
+            'saharasugg',
+            'enablenewsfc',
+            'clgalileo',
+            'gencontentv3',
+            "nlu_direct_response_filter",
+            "deepleo",
+            "disable_emoji_spoken_text",
+            "responsible_ai_policy_235",
+            "enablemm",
+            "h3precise"
+            "dtappid",
+            "cricinfo",
+            "cricinfov2",
+            "dv3sugg",
+            "nojbfedge"
+        ]
+    }
 
-def format_message(message: dict) -> str:
-    return json.dumps(message, ensure_ascii=False) + Defaults.delimiter
+def format_message(msg: dict) -> str:
+    return json.dumps(msg, ensure_ascii=False) + Defaults.delimiter
 
 def create_message(conversation: Conversation, prompt: str, context: str=None) -> str:
     struct = {
         'arguments': [
             {
-                'optionsSets': Defaults.optionsSets,
+                **Defaults.optionsSets,
                 'source': 'cib',
                 'allowedMessageTypes': Defaults.allowedMessageTypes,
                 'sliceIds': Defaults.sliceIds,
@@ -263,10 +297,6 @@ async def stream_generate(
                                     inline_txt = message['adaptiveCards'][0]['body'][0]['inlines'][0].get('text')
                                     response_txt += inline_txt + '\n'
                                     result_text += inline_txt + '\n'
-
-                            if returned_text.endswith('   '):
-                                final = True
-                                break
 
                             if response_txt.startswith(returned_text):
                                 new = response_txt[len(returned_text):]
