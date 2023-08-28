@@ -15,9 +15,8 @@ class Bing(AsyncGeneratorProvider):
     def create_async_generator(
             model: str,
             messages: list[dict[str, str]],
-            cookies: dict = None,
-            **kwargs
-        ) -> AsyncGenerator:
+            cookies: dict = None, **kwargs) -> AsyncGenerator:
+        
         if not cookies:
             cookies = get_cookies(".bing.com")
         if len(messages) < 2:
@@ -30,30 +29,31 @@ class Bing(AsyncGeneratorProvider):
         if cookies:
             #TODO: Will implement proper cookie retrieval later and use a try-except mechanism in 'stream_generate' instead of defaulting the cookie value like this
             cookies_dict = {
-                'MUID': '',
-                'BCP': '',
-                'MUIDB': '',
-                'USRLOC': '',
-                'SRCHD': 'AF=hpcodx',
-                'MMCASM': '',
-                '_UR': '',
-                'ANON': '',
-                'NAP': '',
-                'ABDEF': '',
-                'PPLState': '1',
+                'MUID'          : '',
+                'BCP'           : '',
+                'MUIDB'         : '',
+                'USRLOC'        : '',
+                'SRCHD'         : 'AF=hpcodx',
+                'MMCASM'        : '',
+                '_UR'           : '',
+                'ANON'          : '',
+                'NAP'           : '',
+                'ABDEF'         : '',
+                'PPLState'      : '1',
                 'KievRPSSecAuth': '',
-                '_U': '',
-                'SUID': '',
-                '_EDGE_S': '',
-                'WLS': '',
-                '_HPVN': '',
-                '_SS': '',
-                '_clck': '',
-                'SRCHUSR': '',
-                '_RwBf': '',
-                'SRCHHPGUSR': '',
-                'ipv6': '',
+                '_U'            : '',
+                'SUID'          : '',
+                '_EDGE_S'       : '',
+                'WLS'           : '',
+                '_HPVN'         : '',
+                '_SS'           : '',
+                '_clck'         : '',
+                'SRCHUSR'       : '',
+                '_RwBf'         : '',
+                'SRCHHPGUSR'    : '',
+                'ipv6'          : '',
             }
+        
         return stream_generate(prompt, context, cookies_dict)
 
 def create_context(messages: list[dict[str, str]]):
