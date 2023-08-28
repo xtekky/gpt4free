@@ -20,12 +20,38 @@ class Bing(AsyncGeneratorProvider):
         if len(messages) < 2:
             prompt = messages[0]["content"]
             context = None
-
         else:
             prompt = messages[-1]["content"]
             context = create_context(messages[:-1])
-
-        return stream_generate(prompt, context, cookies)
+        
+        if cookies:
+            #TODO: Will implement proper cookie retrieval later and use a try-except mechanism in 'stream_generate' instead of defaulting the cookie value like this
+            cookies_dict = {
+                'MUID': '',
+                'BCP': '',
+                'MUIDB': '',
+                'USRLOC': '',
+                'SRCHD': 'AF=hpcodx',
+                'MMCASM': '',
+                '_UR': '',
+                'ANON': '',
+                'NAP': '',
+                'ABDEF': '',
+                'PPLState': '1',
+                'KievRPSSecAuth': '',
+                '_U': '',
+                'SUID': '',
+                '_EDGE_S': '',
+                'WLS': '',
+                '_HPVN': '',
+                '_SS': '',
+                '_clck': '',
+                'SRCHUSR': '',
+                '_RwBf': '',
+                'SRCHHPGUSR': '',
+                'ipv6': '',
+            }
+        return stream_generate(prompt, context, cookies_dict)
 
 def create_context(messages: list[dict[str, str]]):
     context = ""
@@ -152,32 +178,34 @@ class Defaults:
         'x-forwarded-for': ip_address,
     }
 
-    optionsSets = [
-        'saharasugg',
-        'enablenewsfc',
-        'clgalileo',
-        'gencontentv3',
-        "nlu_direct_response_filter",
-        "deepleo",
-        "disable_emoji_spoken_text",
-        "responsible_ai_policy_235",
-        "enablemm",
-        "h3precise"
-        "dtappid",
-        "cricinfo",
-        "cricinfov2",
-        "dv3sugg",
-        "nojbfedge"
-    ]
+    optionsSets = {
+        "optionsSets": [
+            'saharasugg',
+            'enablenewsfc',
+            'clgalileo',
+            'gencontentv3',
+            "nlu_direct_response_filter",
+            "deepleo",
+            "disable_emoji_spoken_text",
+            "responsible_ai_policy_235",
+            "enablemm",
+            "h3precise"
+            "dtappid",
+            "cricinfo",
+            "cricinfov2",
+            "dv3sugg",
+            "nojbfedge"
+        ]
+    }
 
-def format_message(message: dict) -> str:
-    return json.dumps(message, ensure_ascii=False) + Defaults.delimiter
+def format_message(msg: dict) -> str:
+    return json.dumps(msg, ensure_ascii=False) + Defaults.delimiter
 
 def create_message(conversation: Conversation, prompt: str, context: str=None) -> str:
     struct = {
         'arguments': [
             {
-                'optionsSets': Defaults.optionsSets,
+                **Defaults.optionsSets,
                 'source': 'cib',
                 'allowedMessageTypes': Defaults.allowedMessageTypes,
                 'sliceIds': Defaults.sliceIds,
@@ -256,10 +284,6 @@ async def stream_generate(
                                     inline_txt = message['adaptiveCards'][0]['body'][0]['inlines'][0].get('text')
                                     response_txt += inline_txt + '\n'
                                     result_text += inline_txt + '\n'
-
-                            if returned_text.endswith('   '):
-                                final = True
-                                break
 
                             if response_txt.startswith(returned_text):
                                 new = response_txt[len(returned_text):]
