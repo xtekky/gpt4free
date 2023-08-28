@@ -10,12 +10,13 @@ class Bing(AsyncGeneratorProvider):
     supports_gpt_4 = True
     working=True
     supports_stream=True
+    needs_auth=True
 
     @staticmethod
     def create_completion(
         model: str,
         messages: list[dict[str, str]],
-        cookies: dict = None,
+        cookies: dict,
         **kwargs
     ) -> AsyncGenerator:
         
@@ -26,11 +27,11 @@ class Bing(AsyncGeneratorProvider):
         else:
             prompt = messages[-1]["content"]
             context = create_context(messages[:-1])
-        if cookies is None:
+        
+        if cookies:
             #TODO: Will implement proper cookie retrieval later and use a try-except mechanism in 'stream_generate' instead of defaulting the cookie value like this
-            #cookies = get_cookies(".bing.com")
-            cookies = 
-            {
+            #cookies_dict = get_cookies(".bing.com")
+            cookies_dict = {
                 'MUID': '',
                 'BCP': '',
                 'MUIDB': '',
@@ -55,8 +56,7 @@ class Bing(AsyncGeneratorProvider):
                 'SRCHHPGUSR': '',
                 'ipv6': '',
             }
-
-        return stream_generate(prompt, context, cookies)
+        return stream_generate(prompt, context, cookies_dict)
 
 def create_context(messages: list[dict[str, str]]):
     context = ""
