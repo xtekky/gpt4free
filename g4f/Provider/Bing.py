@@ -1,22 +1,25 @@
 import asyncio, aiohttp, json, os, random
 
-from aiohttp        import ClientSession
-from ..typing       import Any, AsyncGenerator, CreateResult, Union
+from aiohttp import ClientSession
+from ..typing import Any, AsyncGenerator, CreateResult, Union
 from .base_provider import AsyncGeneratorProvider, get_cookies
 
+
 class Bing(AsyncGeneratorProvider):
-    url             = "https://bing.com/chat"
-    needs_auth      = True
-    working         = True
-    supports_gpt_4  = True
+    url = "https://bing.com/chat"
+    needs_auth = True
+    working = True
+    supports_gpt_4 = True
     supports_stream = True
-        
+
     @staticmethod
     def create_async_generator(
-            model: str,
-            messages: list[dict[str, str]],
-            cookies: dict = get_cookies(".bing.com"), **kwargs) -> AsyncGenerator:
-        
+        model: str, messages: list[dict[str, str]], cookies: dict = {}, **kwargs
+    ) -> AsyncGenerator:
+        try:
+            cookies = get_cookies(".bing.com")
+        except:
+            cookies = {}
         if len(messages) < 2:
             prompt = messages[0]["content"]
             context = None
@@ -27,6 +30,7 @@ class Bing(AsyncGeneratorProvider):
 
         return stream_generate(prompt, context, cookies)
 
+
 def create_context(messages: list[dict[str, str]]):
     context = ""
 
@@ -35,43 +39,52 @@ def create_context(messages: list[dict[str, str]]):
 
     return context
 
-class Conversation():
-    def __init__(self, conversationId: str, clientId: str, conversationSignature: str) -> None:
+
+class Conversation:
+    def __init__(
+        self, conversationId: str, clientId: str, conversationSignature: str
+    ) -> None:
         self.conversationId = conversationId
         self.clientId = clientId
         self.conversationSignature = conversationSignature
 
+
 async def create_conversation(session: ClientSession) -> Conversation:
-    url = 'https://www.bing.com/turing/conversation/create'
+    url = "https://www.bing.com/turing/conversation/create"
     async with await session.get(url) as response:
         response = await response.json()
-        conversationId = response.get('conversationId')
-        clientId = response.get('clientId')
-        conversationSignature = response.get('conversationSignature')
+        conversationId = response.get("conversationId")
+        clientId = response.get("clientId")
+        conversationSignature = response.get("conversationSignature")
 
         if not conversationId or not clientId or not conversationSignature:
-            raise Exception('Failed to create conversation.')
-        
+            raise Exception("Failed to create conversation.")
+
         return Conversation(conversationId, clientId, conversationSignature)
+
 
 async def list_conversations(session: ClientSession) -> list:
     url = "https://www.bing.com/turing/conversation/chats"
     async with session.get(url) as response:
         response = await response.json()
         return response["chats"]
-        
-async def delete_conversation(session: ClientSession, conversation: Conversation) -> list:
+
+
+async def delete_conversation(
+    session: ClientSession, conversation: Conversation
+) -> list:
     url = "https://sydney.bing.com/sydney/DeleteSingleConversation"
     json = {
         "conversationId": conversation.conversationId,
         "conversationSignature": conversation.conversationSignature,
         "participant": {"id": conversation.clientId},
         "source": "cib",
-        "optionsSets": ["autosave"]
+        "optionsSets": ["autosave"],
     }
     async with session.post(url, json=json) as response:
         response = await response.json()
         return response["result"]["value"] == "Success"
+
 
 class Defaults:
     delimiter = "\x1e"
@@ -130,92 +143,91 @@ class Defaults:
     }
 
     headers = {
-        'accept': '*/*',
-        'accept-language': 'en-US,en;q=0.9',
-        'cache-control': 'max-age=0',
-        'sec-ch-ua': '"Chromium";v="110", "Not A(Brand";v="24", "Microsoft Edge";v="110"',
-        'sec-ch-ua-arch': '"x86"',
-        'sec-ch-ua-bitness': '"64"',
-        'sec-ch-ua-full-version': '"110.0.1587.69"',
-        'sec-ch-ua-full-version-list': '"Chromium";v="110.0.5481.192", "Not A(Brand";v="24.0.0.0", "Microsoft Edge";v="110.0.1587.69"',
-        'sec-ch-ua-mobile': '?0',
-        'sec-ch-ua-model': '""',
-        'sec-ch-ua-platform': '"Windows"',
-        'sec-ch-ua-platform-version': '"15.0.0"',
-        'sec-fetch-dest': 'document',
-        'sec-fetch-mode': 'navigate',
-        'sec-fetch-site': 'none',
-        'sec-fetch-user': '?1',
-        'upgrade-insecure-requests': '1',
-        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36 Edg/110.0.1587.69',
-        'x-edge-shopping-flag': '1',
-        'x-forwarded-for': ip_address,
+        "accept": "*/*",
+        "accept-language": "en-US,en;q=0.9",
+        "cache-control": "max-age=0",
+        "sec-ch-ua": '"Chromium";v="110", "Not A(Brand";v="24", "Microsoft Edge";v="110"',
+        "sec-ch-ua-arch": '"x86"',
+        "sec-ch-ua-bitness": '"64"',
+        "sec-ch-ua-full-version": '"110.0.1587.69"',
+        "sec-ch-ua-full-version-list": '"Chromium";v="110.0.5481.192", "Not A(Brand";v="24.0.0.0", "Microsoft Edge";v="110.0.1587.69"',
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-model": '""',
+        "sec-ch-ua-platform": '"Windows"',
+        "sec-ch-ua-platform-version": '"15.0.0"',
+        "sec-fetch-dest": "document",
+        "sec-fetch-mode": "navigate",
+        "sec-fetch-site": "none",
+        "sec-fetch-user": "?1",
+        "upgrade-insecure-requests": "1",
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36 Edg/110.0.1587.69",
+        "x-edge-shopping-flag": "1",
+        "x-forwarded-for": ip_address,
     }
 
     optionsSets = [
-        'saharasugg',
-        'enablenewsfc',
-        'clgalileo',
-        'gencontentv3',
+        "saharasugg",
+        "enablenewsfc",
+        "clgalileo",
+        "gencontentv3",
         "nlu_direct_response_filter",
         "deepleo",
         "disable_emoji_spoken_text",
         "responsible_ai_policy_235",
         "enablemm",
-        "h3precise"
-        "dtappid",
+        "h3precise" "dtappid",
         "cricinfo",
         "cricinfov2",
         "dv3sugg",
-        "nojbfedge"
+        "nojbfedge",
     ]
+
 
 def format_message(message: dict) -> str:
     return json.dumps(message, ensure_ascii=False) + Defaults.delimiter
 
-def create_message(conversation: Conversation, prompt: str, context: str=None) -> str:
+
+def create_message(conversation: Conversation, prompt: str, context: str = None) -> str:
     struct = {
-        'arguments': [
+        "arguments": [
             {
-                'optionsSets': Defaults.optionsSets,
-                'source': 'cib',
-                'allowedMessageTypes': Defaults.allowedMessageTypes,
-                'sliceIds': Defaults.sliceIds,
-                'traceId': os.urandom(16).hex(),
-                'isStartOfSession': True,
-                'message': Defaults.location | {
-                    'author': 'user',
-                    'inputMethod': 'Keyboard',
-                    'text': prompt,
-                    'messageType': 'Chat'
+                "optionsSets": Defaults.optionsSets,
+                "source": "cib",
+                "allowedMessageTypes": Defaults.allowedMessageTypes,
+                "sliceIds": Defaults.sliceIds,
+                "traceId": os.urandom(16).hex(),
+                "isStartOfSession": True,
+                "message": Defaults.location
+                | {
+                    "author": "user",
+                    "inputMethod": "Keyboard",
+                    "text": prompt,
+                    "messageType": "Chat",
                 },
-                'conversationSignature': conversation.conversationSignature,
-                'participant': {
-                    'id': conversation.clientId
-                },
-                'conversationId': conversation.conversationId
+                "conversationSignature": conversation.conversationSignature,
+                "participant": {"id": conversation.clientId},
+                "conversationId": conversation.conversationId,
             }
         ],
-        'invocationId': '0',
-        'target': 'chat',
-        'type': 4
+        "invocationId": "0",
+        "target": "chat",
+        "type": 4,
     }
 
     if context:
-        struct['arguments'][0]['previousMessages'] = [{
-            "author": "user",
-            "description": context,
-            "contextType": "WebPage",
-            "messageType": "Context",
-            "messageId": "discover-web--page-ping-mriduna-----"
-        }]
+        struct["arguments"][0]["previousMessages"] = [
+            {
+                "author": "user",
+                "description": context,
+                "contextType": "WebPage",
+                "messageType": "Context",
+                "messageId": "discover-web--page-ping-mriduna-----",
+            }
+        ]
     return format_message(struct)
 
-async def stream_generate(
-        prompt: str,
-        context: str=None,
-        cookies: dict=None
-    ):
+
+async def stream_generate(prompt: str, context: str = None, cookies: dict = None):
     async with ClientSession(
         timeout=aiohttp.ClientTimeout(total=900),
         cookies=cookies,
@@ -224,18 +236,17 @@ async def stream_generate(
         conversation = await create_conversation(session)
         try:
             async with session.ws_connect(
-                'wss://sydney.bing.com/sydney/ChatHub',
+                "wss://sydney.bing.com/sydney/ChatHub",
                 autoping=False,
             ) as wss:
-                
-                await wss.send_str(format_message({'protocol': 'json', 'version': 1}))
+                await wss.send_str(format_message({"protocol": "json", "version": 1}))
                 msg = await wss.receive(timeout=900)
 
                 await wss.send_str(create_message(conversation, prompt, context))
 
-                response_txt = ''
-                result_text = ''
-                returned_text = ''
+                response_txt = ""
+                result_text = ""
+                returned_text = ""
                 final = False
 
                 while not final:
@@ -246,34 +257,42 @@ async def stream_generate(
                             continue
 
                         response = json.loads(obj)
-                        if response.get('type') == 1 and response['arguments'][0].get('messages'):
-                            message = response['arguments'][0]['messages'][0]
-                            if (message['contentOrigin'] != 'Apology'):
-                                response_txt = result_text + \
-                                    message['adaptiveCards'][0]['body'][0].get('text', '')
-                                
-                                if message.get('messageType'):
-                                    inline_txt = message['adaptiveCards'][0]['body'][0]['inlines'][0].get('text')
-                                    response_txt += inline_txt + '\n'
-                                    result_text += inline_txt + '\n'
+                        if response.get("type") == 1 and response["arguments"][0].get(
+                            "messages"
+                        ):
+                            message = response["arguments"][0]["messages"][0]
+                            if message["contentOrigin"] != "Apology":
+                                response_txt = result_text + message["adaptiveCards"][
+                                    0
+                                ]["body"][0].get("text", "")
 
-                            if returned_text.endswith('   '):
+                                if message.get("messageType"):
+                                    inline_txt = message["adaptiveCards"][0]["body"][0][
+                                        "inlines"
+                                    ][0].get("text")
+                                    response_txt += inline_txt + "\n"
+                                    result_text += inline_txt + "\n"
+
+                            if returned_text.endswith("   "):
                                 final = True
                                 break
 
                             if response_txt.startswith(returned_text):
-                                new = response_txt[len(returned_text):]
+                                new = response_txt[len(returned_text) :]
                                 if new != "\n":
                                     yield new
                                     returned_text = response_txt
-                        elif response.get('type') == 2:
-                            result = response['item']['result']
-                            if result.get('error'):
-                                raise Exception(f"{result['value']}: {result['message']}")
+                        elif response.get("type") == 2:
+                            result = response["item"]["result"]
+                            if result.get("error"):
+                                raise Exception(
+                                    f"{result['value']}: {result['message']}"
+                                )
                             final = True
                             break
         finally:
             await delete_conversation(session, conversation)
+
 
 def run(generator: AsyncGenerator[Union[Any, str], Any]):
     loop = asyncio.get_event_loop()

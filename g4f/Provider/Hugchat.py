@@ -5,13 +5,14 @@ except ImportError:
     has_module = False
 
 from .base_provider import BaseProvider, get_cookies
-from g4f.typing     import CreateResult
+from g4f.typing import CreateResult
+
 
 class Hugchat(BaseProvider):
-    url        = "https://huggingface.co/chat/"
+    url = "https://huggingface.co/chat/"
     needs_auth = True
-    working    = has_module
-    llms       = ['OpenAssistant/oasst-sft-6-llama-30b-xor', 'meta-llama/Llama-2-70b-chat-hf']
+    working = has_module
+    llms = ["OpenAssistant/oasst-sft-6-llama-30b-xor", "meta-llama/Llama-2-70b-chat-hf"]
 
     @classmethod
     def create_completion(
@@ -20,11 +21,15 @@ class Hugchat(BaseProvider):
         messages: list[dict[str, str]],
         stream: bool = False,
         proxy: str = None,
-        cookies: str = get_cookies(".huggingface.co"), **kwargs) -> CreateResult:
-        
-        bot = ChatBot(
-            cookies=cookies)
-        
+        cookies: dict = {},
+        **kwargs,
+    ) -> CreateResult:
+        try:
+            cookies = get_cookies(".huggingface.co")
+        except:
+            cookies = {}
+        bot = ChatBot(cookies=cookies)
+
         if proxy and "://" not in proxy:
             proxy = f"http://{proxy}"
             bot.session.proxies = {"http": proxy, "https": proxy}
@@ -39,7 +44,10 @@ class Hugchat(BaseProvider):
 
         if len(messages) > 1:
             formatted = "\n".join(
-                ["%s: %s" % (message["role"], message["content"]) for message in messages]
+                [
+                    "%s: %s" % (message["role"], message["content"])
+                    for message in messages
+                ]
             )
             prompt = f"{formatted}\nAssistant:"
         else:
