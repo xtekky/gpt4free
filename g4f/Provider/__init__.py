@@ -13,11 +13,12 @@ from .EasyChat      import EasyChat
 from .Forefront     import Forefront
 from .GetGpt        import GetGpt
 from .H2o           import H2o
-from .Hugchat       import Hugchat
+from .HuggingChat   import HuggingChat
 from .Liaobots      import Liaobots
 from .Lockchat      import Lockchat
 from .Opchatgpts    import Opchatgpts
 from .OpenaiChat    import OpenaiChat
+from .OpenAssistant import OpenAssistant
 from .Raycast       import Raycast
 from .Theb          import Theb
 from .Vercel        import Vercel
@@ -48,12 +49,13 @@ __all__ = [
     'Forefront',
     'GetGpt',
     'H2o',
-    'Hugchat',
+    'HuggingChat',
     'Liaobots',
     'Lockchat',
     'Opchatgpts',
     'Raycast',
     'OpenaiChat',
+    'OpenAssistant',
     'Theb',
     'Vercel',
     'Wewordle',

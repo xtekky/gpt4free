@@ -15,8 +15,11 @@ class Bing(AsyncGeneratorProvider):
     def create_async_generator(
             model: str,
             messages: list[dict[str, str]],
-            cookies: dict = get_cookies(".bing.com"), **kwargs) -> AsyncGenerator:
-        
+            cookies: dict = None,
+            **kwargs
+        ) -> AsyncGenerator:
+        if not cookies:
+            cookies = get_cookies(".bing.com")
         if len(messages) < 2:
             prompt = messages[0]["content"]
             context = None
@@ -309,3 +312,4 @@ def run(generator: AsyncGenerator[Union[Any, str], Any]):
 
         except StopAsyncIteration:
             break
+
