@@ -15,9 +15,8 @@ class AItianhu(BaseProvider):
     def create_completion(
         model: str,
         messages: list[dict[str, str]],
-        stream: bool,
-        **kwargs: Any,
-    ) -> CreateResult:
+        stream: bool, **kwargs: Any) -> CreateResult:
+        
         base = ""
         for message in messages:
             base += "%s: %s\n" % (message["role"], message["content"])

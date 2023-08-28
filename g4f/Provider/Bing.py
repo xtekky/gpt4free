@@ -1,36 +1,31 @@
-import asyncio, json, os, random, aiohttp
+import asyncio, aiohttp, json, os, random
 
-from aiohttp import ClientSession
-
-from ..typing import Any, AsyncGenerator, CreateResult, Union
+from aiohttp        import ClientSession
+from ..typing       import Any, AsyncGenerator, CreateResult, Union
 from .base_provider import AsyncGeneratorProvider, get_cookies
 
 class Bing(AsyncGeneratorProvider):
-    url = "https://bing.com/chat"
-    supports_gpt_4 = True
-    working=True
-    supports_stream=True
-    needs_auth=True
-
+    url             = "https://bing.com/chat"
+    needs_auth      = True
+    working         = True
+    supports_gpt_4  = True
+    supports_stream = True
+        
     @staticmethod
-    def create_completion(
-        model: str,
-        messages: list[dict[str, str]],
-        cookies: dict,
-        **kwargs
-    ) -> AsyncGenerator:
+    def create_async_generator(
+            model: str,
+            messages: list[dict[str, str]],
+            cookies: dict = get_cookies(".bing.com"), **kwargs) -> AsyncGenerator:
         
         if len(messages) < 2:
             prompt = messages[0]["content"]
             context = None
-
         else:
             prompt = messages[-1]["content"]
             context = create_context(messages[:-1])
         
         if cookies:
             #TODO: Will implement proper cookie retrieval later and use a try-except mechanism in 'stream_generate' instead of defaulting the cookie value like this
-            #cookies_dict = get_cookies(".bing.com")
             cookies_dict = {
                 'MUID': '',
                 'BCP': '',

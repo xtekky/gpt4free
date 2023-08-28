@@ -3,16 +3,17 @@ try:
     from revChatGPT.V1 import AsyncChatbot
 except ImportError:
     has_module = False
+
 from .base_provider import AsyncGeneratorProvider, get_cookies
-from ..typing import AsyncGenerator
+from ..typing       import AsyncGenerator
 
 class OpenaiChat(AsyncGeneratorProvider):
-    url = "https://chat.openai.com"
-    needs_auth = True
-    working = has_module
+    url                   = "https://chat.openai.com"
+    needs_auth            = True
+    working               = has_module
     supports_gpt_35_turbo = True
-    supports_gpt_4 = True
-    supports_stream = True
+    supports_gpt_4        = True
+    supports_stream       = True
 
     @classmethod
     async def create_async_generator(
@@ -36,8 +37,8 @@ class OpenaiChat(AsyncGeneratorProvider):
         )
 
         if not access_token:
-            cookies = cookies if cookies else get_cookies("chat.openai.com")
-            response = await bot.session.get("https://chat.openai.com/api/auth/session", cookies=cookies)
+            cookies      = cookies if cookies else get_cookies("chat.openai.com")
+            response     = await bot.session.get("https://chat.openai.com/api/auth/session", cookies=cookies)
             access_token = response.json()["accessToken"]
             bot.set_access_token(access_token)
 

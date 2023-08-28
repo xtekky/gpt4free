@@ -7,8 +7,8 @@ from .base_provider import BaseProvider
 
 
 class Acytoo(BaseProvider):
-    url = "https://chat.acytoo.com/"
-    working = True
+    url                   = 'https://chat.acytoo.com/'
+    working               = True
     supports_gpt_35_turbo = True
 
     @classmethod
@@ -16,33 +16,33 @@ class Acytoo(BaseProvider):
         cls,
         model: str,
         messages: list[dict[str, str]],
-        stream: bool,
-        **kwargs: Any,
-    ) -> CreateResult:
-        headers = _create_header()
-        payload = _create_payload(messages, kwargs.get('temperature', 0.5))
+        stream: bool, **kwargs: Any) -> CreateResult:
 
-        response = requests.post("{cls.url}api/completions", headers=headers, json=payload)
+        response = requests.post(f'{cls.url}api/completions', 
+                                 headers=_create_header(), json=_create_payload(messages, kwargs.get('temperature', 0.5)))
+        
         response.raise_for_status()
-        response.encoding = "utf-8"
+        response.encoding = 'utf-8'
+        
         yield response.text
 
 
 def _create_header():
     return {
-        "accept": "*/*",
-        "content-type": "application/json",
+        'accept': '*/*',
+        'content-type': 'application/json',
     }
 
 
 def _create_payload(messages: list[dict[str, str]], temperature):
     payload_messages = [
-        message | {"createdAt": int(time.time()) * 1000} for message in messages
+        message | {'createdAt': int(time.time()) * 1000} for message in messages
     ]
+    
     return {
-        "key": "",
-        "model": "gpt-3.5-turbo",
-        "messages": payload_messages,
-        "temperature": temperature,
-        "password": "",
+        'key'         : '',
+        'model'       : 'gpt-3.5-turbo',
+        'messages'    : payload_messages,
+        'temperature' : temperature,
+        'password'    : ''
     }

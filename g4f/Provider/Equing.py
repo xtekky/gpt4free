@@ -1,58 +1,58 @@
 import requests, json
-from abc import ABC, abstractmethod
 
+from abc      import ABC, abstractmethod
 from ..typing import Any, CreateResult
 
 
 class Equing(ABC):
-    url: str = 'https://next.eqing.tech/'
-    working = True
-    needs_auth = False
-    supports_stream = True
+    url: str              = 'https://next.eqing.tech/'
+    working               = True
+    needs_auth            = False
+    supports_stream       = True
     supports_gpt_35_turbo = True
-    supports_gpt_4 = False
+    supports_gpt_4        = False
 
     @staticmethod
     @abstractmethod
     def create_completion(
         model: str,
         messages: list[dict[str, str]],
-        stream: bool,
-        **kwargs: Any) -> CreateResult:
+        stream: bool, **kwargs: Any) -> CreateResult:
 
         headers = {
-            'authority': 'next.eqing.tech',
-            'accept': 'text/event-stream',
-            'accept-language': 'en,fr-FR;q=0.9,fr;q=0.8,es-ES;q=0.7,es;q=0.6,en-US;q=0.5,am;q=0.4,de;q=0.3',
-            'cache-control': 'no-cache',
-            'content-type': 'application/json',
-            'origin': 'https://next.eqing.tech',
-            'plugins': '0',
-            'pragma': 'no-cache',
-            'referer': 'https://next.eqing.tech/',
-            'sec-ch-ua': '"Not/A)Brand";v="99", "Google Chrome";v="115", "Chromium";v="115"',
-            'sec-ch-ua-mobile': '?0',
+            'authority'         : 'next.eqing.tech',
+            'accept'            : 'text/event-stream',
+            'accept-language'   : 'en,fr-FR;q=0.9,fr;q=0.8,es-ES;q=0.7,es;q=0.6,en-US;q=0.5,am;q=0.4,de;q=0.3',
+            'cache-control'     : 'no-cache',
+            'content-type'      : 'application/json',
+            'origin'            : 'https://next.eqing.tech',
+            'plugins'           : '0',
+            'pragma'            : 'no-cache',
+            'referer'           : 'https://next.eqing.tech/',
+            'sec-ch-ua'         : '"Not/A)Brand";v="99", "Google Chrome";v="115", "Chromium";v="115"',
+            'sec-ch-ua-mobile'  : '?0',
             'sec-ch-ua-platform': '"macOS"',
-            'sec-fetch-dest': 'empty',
-            'sec-fetch-mode': 'cors',
-            'sec-fetch-site': 'same-origin',
-            'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36',
-            'usesearch': 'false',
-            'x-requested-with': 'XMLHttpRequest',
+            'sec-fetch-dest'    : 'empty',
+            'sec-fetch-mode'    : 'cors',
+            'sec-fetch-site'    : 'same-origin',
+            'user-agent'        : 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36',
+            'usesearch'         : 'false',
+            'x-requested-with'  : 'XMLHttpRequest'
         }
 
         json_data = {
-            'messages': messages,
-            'stream': stream,
-            'model': model,
-            'temperature': kwargs.get('temperature', 0.5),
-            'presence_penalty': kwargs.get('presence_penalty', 0),
-            'frequency_penalty': kwargs.get('frequency_penalty', 0),
-            'top_p': kwargs.get('top_p', 1),
+            'messages'          : messages,
+            'stream'            : stream,
+            'model'             : model,
+            'temperature'       : kwargs.get('temperature', 0.5),
+            'presence_penalty'  : kwargs.get('presence_penalty', 0),
+            'frequency_penalty' : kwargs.get('frequency_penalty', 0),
+            'top_p'             : kwargs.get('top_p', 1),
         }
 
         response = requests.post('https://next.eqing.tech/api/openai/v1/chat/completions',
             headers=headers, json=json_data, stream=stream)
+        
         if not stream:
             yield response.json()["choices"][0]["message"]["content"]
             return

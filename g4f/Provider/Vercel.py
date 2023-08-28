@@ -1,26 +1,21 @@
-import base64
-import json
-import uuid
+import base64, json, uuid, quickjs
 
-import quickjs
-from curl_cffi import requests
-
-from ..typing import Any, CreateResult, TypedDict
+from curl_cffi      import requests
+from ..typing       import Any, CreateResult, TypedDict
 from .base_provider import BaseProvider
 
 
 class Vercel(BaseProvider):
-    url = "https://play.vercel.ai"
-    working = True
+    url                   = "https://play.vercel.ai"
+    working               = True
     supports_gpt_35_turbo = True
 
     @staticmethod
     def create_completion(
         model: str,
         messages: list[dict[str, str]],
-        stream: bool,
-        **kwargs: Any,
-    ) -> CreateResult:
+        stream: bool, **kwargs: Any) -> CreateResult:
+        
         if model in ["gpt-3.5-turbo", "gpt-4"]:
             model = "openai:" + model
         yield _chat(model_id=model, messages=messages)
@@ -29,8 +24,8 @@ class Vercel(BaseProvider):
 def _chat(model_id: str, messages: list[dict[str, str]]) -> str:
     session = requests.Session(impersonate="chrome107")
 
-    url = "https://sdk.vercel.ai/api/generate"
-    header = _create_header(session)
+    url     = "https://sdk.vercel.ai/api/generate"
+    header  = _create_header(session)
     payload = _create_payload(model_id, messages)
 
     response = session.post(url=url, headers=header, json=payload)
@@ -44,14 +39,12 @@ def _create_payload(model_id: str, messages: list[dict[str, str]]) -> dict[str, 
         "messages": messages,
         "playgroundId": str(uuid.uuid4()),
         "chatIndex": 0,
-        "model": model_id,
-    } | default_params
+        "model": model_id} | default_params
 
 
 def _create_header(session: requests.Session):
     custom_encoding = _get_custom_encoding(session)
     return {"custom-encoding": custom_encoding}
-
 
 # based on https://github.com/ading2210/vercel-llm-api
 def _get_custom_encoding(session: requests.Session):

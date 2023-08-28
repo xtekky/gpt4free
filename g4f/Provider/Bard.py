@@ -19,9 +19,7 @@ class Bard(AsyncProvider):
         model: str,
         messages: list[dict[str, str]],
         proxy: str = None,
-        cookies: dict = get_cookies(".google.com"),
-        **kwargs: Any,
-    ) -> str:
+        cookies: dict = get_cookies(".google.com"), **kwargs: Any,) -> str:
 
         formatted = "\n".join(
             ["%s: %s" % (message["role"], message["content"]) for message in messages]
