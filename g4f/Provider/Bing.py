@@ -1,16 +1,11 @@
-import asyncio
-import json
-import os
-import random
+import asyncio, json, os, random, aiohttp
 
-import aiohttp
-import asyncio
 from aiohttp import ClientSession
 
 from ..typing import Any, AsyncGenerator, CreateResult, Union
-from .base_provider import BaseProvider
+from .base_provider import AsyncGeneratorProvider, get_cookies
 
-class Bing(BaseProvider):
+class Bing(AsyncGeneratorProvider):
     url = "https://bing.com/chat"
     supports_gpt_4 = True
     working=True
@@ -20,53 +15,50 @@ class Bing(BaseProvider):
     def create_completion(
         model: str,
         messages: list[dict[str, str]],
-        stream: bool,
-        **kwargs: Any
-    ) -> CreateResult:
-        yield from run(create(messages, **kwargs))
+        cookies: dict = None,
+        **kwargs
+    ) -> AsyncGenerator:
+        
+        if len(messages) < 2:
+            prompt = messages[0]["content"]
+            context = None
 
-def create(
-        messages: list[dict[str, str]],
-        cookies: dict = {}
-    ):
-    if len(messages) < 2:
-        prompt = messages[0]["content"]
-        context = None
+        else:
+            prompt = messages[-1]["content"]
+            context = create_context(messages[:-1])
+        if cookies is None:
+            #TODO: Will implement proper cookie retrieval later and use a try-except mechanism in 'stream_generate' instead of defaulting the cookie value like this
+            #cookies = get_cookies(".bing.com")
+            cookies = 
+            {
+                'MUID': '',
+                'BCP': '',
+                'MUIDB': '',
+                'USRLOC': '',
+                'SRCHD': 'AF=hpcodx',
+                'MMCASM': '',
+                '_UR': '',
+                'ANON': '',
+                'NAP': '',
+                'ABDEF': '',
+                'PPLState': '1',
+                'KievRPSSecAuth': '',
+                '_U': '',
+                'SUID': '',
+                '_EDGE_S': '',
+                'WLS': '',
+                '_HPVN': '',
+                '_SS': '',
+                '_clck': '',
+                'SRCHUSR': '',
+                '_RwBf': '',
+                'SRCHHPGUSR': '',
+                'ipv6': '',
+            }
 
-    else:
-        prompt = messages[-1]["content"]
-        context = convert(messages[:-1])
+        return stream_generate(prompt, context, cookies)
 
-    if not cookies:
-        cookies = {
-            'MUID': '',
-            'BCP': '',
-            'MUIDB': '',
-            'USRLOC': '',
-            'SRCHD': 'AF=hpcodx',
-            'MMCASM': '',
-            '_UR': '',
-            'ANON': '',
-            'NAP': '',
-            'ABDEF': '',
-            'PPLState': '1',
-            'KievRPSSecAuth': '',
-            '_U': '',
-            'SUID': '',
-            '_EDGE_S': '',
-            'WLS': '',
-            '_HPVN': '',
-            '_SS': '',
-            '_clck': '',
-            'SRCHUSR': '',
-            '_RwBf': '',
-            'SRCHHPGUSR': '',
-            'ipv6': '',
-        }
-
-    return stream_generate(prompt, context, cookies)
-
-def convert(messages: list[dict[str, str]]):
+def create_context(messages: list[dict[str, str]]):
     context = ""
 
     for message in messages:
