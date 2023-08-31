@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from .Provider import Bard, BaseProvider, GetGpt, H2o, Liaobots, Vercel, Equing
 
 @dataclass
+
 class Model:
     name: str
     base_provider: str
