@@ -1,7 +1,11 @@
-import os, json, uuid, requests
+import json
+import os
+import uuid
 
-from Crypto.Cipher  import AES
-from ..typing       import Any, CreateResult
+import requests
+from Crypto.Cipher import AES
+
+from ..typing import Any, CreateResult, Dict, List
 from .base_provider import BaseProvider
 
 
@@ -14,7 +18,7 @@ class GetGpt(BaseProvider):
     @staticmethod
     def create_completion(
         model: str,
-        messages: list[dict[str, str]],
+        messages: List[Dict[str, str]],
         stream: bool, **kwargs: Any) -> CreateResult:
         
         headers = {
@@ -51,7 +55,7 @@ class GetGpt(BaseProvider):
     def params(cls):
         params = [
             ('model', 'str'),
-            ('messages', 'list[dict[str, str]]'),
+            ('messages', 'List[Dict[str, str]]'),
             ('stream', 'bool'),
             ('temperature', 'float'),
             ('presence_penalty', 'int'),

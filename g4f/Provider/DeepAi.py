@@ -1,6 +1,9 @@
-import json, js2py, requests
+import json
 
-from ..typing       import Any, CreateResult
+import js2py
+import requests
+
+from ..typing import Any, CreateResult, Dict, List
 from .base_provider import BaseProvider
 
 
@@ -13,7 +16,7 @@ class DeepAi(BaseProvider):
     @staticmethod
     def create_completion(
         model: str,
-        messages: list[dict[str, str]],
+        messages: List[Dict[str, str]],
         stream: bool, **kwargs: Any) -> CreateResult:
         
         token_js = """

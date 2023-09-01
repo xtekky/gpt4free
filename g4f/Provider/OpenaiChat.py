@@ -4,10 +4,12 @@ try:
 except ImportError:
     has_module = False
 
-from .base_provider import AsyncGeneratorProvider, get_cookies, format_prompt
-from ..typing import AsyncGenerator
-from httpx import AsyncClient
 import json
+
+from httpx import AsyncClient
+
+from ..typing import AsyncGenerator, Dict, List
+from .base_provider import AsyncGeneratorProvider, format_prompt, get_cookies
 
 
 class OpenaiChat(AsyncGeneratorProvider):
@@ -23,7 +25,7 @@ class OpenaiChat(AsyncGeneratorProvider):
     async def create_async_generator(
         cls,
         model: str,
-        messages: list[dict[str, str]],
+        messages: List[Dict[str, str]],
         proxy: str = None,
         access_token: str = _access_token,
         cookies: dict = None,
@@ -65,7 +67,7 @@ class OpenaiChat(AsyncGeneratorProvider):
     def params(cls):
         params = [
             ("model", "str"),
-            ("messages", "list[dict[str, str]]"),
+            ("messages", "List[Dict[str, str]]"),
             ("stream", "bool"),
             ("proxy", "str"),
         ]

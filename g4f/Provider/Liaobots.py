@@ -1,8 +1,9 @@
-import uuid
 import json
+import uuid
+
 from aiohttp import ClientSession
 
-from ..typing import AsyncGenerator
+from ..typing import AsyncGenerator, Dict, List
 from .base_provider import AsyncGeneratorProvider
 
 models = {
@@ -37,7 +38,7 @@ class Liaobots(AsyncGeneratorProvider):
     async def create_async_generator(
         cls,
         model: str,
-        messages: list[dict[str, str]],
+        messages: List[Dict[str, str]],
         auth: str = None,
         proxy: str = None,
         **kwargs
@@ -78,7 +79,7 @@ class Liaobots(AsyncGeneratorProvider):
     def params(cls):
         params = [
             ("model", "str"),
-            ("messages", "list[dict[str, str]]"),
+            ("messages", "List[Dict[str, str]]"),
             ("stream", "bool"),
             ("proxy", "str"),
             ("auth", "str"),

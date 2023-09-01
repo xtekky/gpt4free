@@ -1,8 +1,14 @@
-import asyncio, aiohttp, json, os, random
+import asyncio
+import json
+import os
+import random
 
-from aiohttp        import ClientSession
-from ..typing       import Any, AsyncGenerator, CreateResult, Union
+import aiohttp
+from aiohttp import ClientSession
+
+from ..typing import Any, AsyncGenerator, CreateResult, Dict, List, Union
 from .base_provider import AsyncGeneratorProvider, get_cookies
+
 
 class Bing(AsyncGeneratorProvider):
     url             = "https://bing.com/chat"
@@ -14,7 +20,7 @@ class Bing(AsyncGeneratorProvider):
     @staticmethod
     def create_async_generator(
             model: str,
-            messages: list[dict[str, str]],
+            messages: List[Dict[str, str]],
             cookies: dict = None, **kwargs) -> AsyncGenerator:
         
         if not cookies:
@@ -56,7 +62,7 @@ class Bing(AsyncGeneratorProvider):
         
         return stream_generate(prompt, context, cookies_dict)
 
-def create_context(messages: list[dict[str, str]]):
+def create_context(messages: List[Dict[str, str]]):
     context = ""
 
     for message in messages:

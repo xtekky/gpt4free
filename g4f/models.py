@@ -1,11 +1,14 @@
 from dataclasses import dataclass
-from .Provider import Bard, BaseProvider, GetGpt, H2o, Liaobots, Vercel, Equing
+from typing import Dict
+
+from .Provider import Bard, BaseProvider, Equing, GetGpt, H2o, Liaobots, Vercel
+
 
 @dataclass
 class Model:
     name: str
     base_provider: str
-    best_provider: type[BaseProvider]
+    best_provider: BaseProvider
 
 # Config for HuggingChat, OpenAssistant
 # Works for Liaobots, H2o, OpenaiChat, Yqcloud, You
@@ -161,7 +164,7 @@ llama7b_v2_chat = Model(
 
 
 class ModelUtils:
-    convert: dict[str, Model] = {
+    convert: Dict[str, Model] = {
         # GPT-3.5 / GPT-4
         'gpt-3.5-turbo' : gpt_35_turbo,
         'gpt-4'         : gpt_4,

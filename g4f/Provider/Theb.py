@@ -1,6 +1,9 @@
-import json, random, requests
+import json
+import random
 
-from ..typing       import Any, CreateResult
+import requests
+
+from ..typing import Any, CreateResult, Dict, List
 from .base_provider import BaseProvider
 
 
@@ -14,7 +17,7 @@ class Theb(BaseProvider):
     @staticmethod
     def create_completion(
         model: str,
-        messages: list[dict[str, str]],
+        messages: List[Dict[str, str]],
         stream: bool, **kwargs: Any) -> CreateResult:
         
         conversation = ''
@@ -82,8 +85,8 @@ class Theb(BaseProvider):
     def params(cls):
         params = [
             ("model", "str"),
-            ("messages", "list[dict[str, str]]"),
-            ("auth", "list[dict[str, str]]"),
+            ("messages", "List[Dict[str, str]]"),
+            ("auth", "List[Dict[str, str]]"),
             ("stream", "bool"),
             ("temperature", "float"),
             ("presence_penalty", "int"),

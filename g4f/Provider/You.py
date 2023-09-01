@@ -1,7 +1,8 @@
-from aiohttp import ClientSession
 import json
 
-from ..typing import AsyncGenerator
+from aiohttp import ClientSession
+
+from ..typing import AsyncGenerator, Dict, List
 from .base_provider import AsyncGeneratorProvider, format_prompt, get_cookies
 
 
@@ -14,7 +15,7 @@ class You(AsyncGeneratorProvider):
     @staticmethod
     async def create_async_generator(
         model: str,
-        messages: list[dict[str, str]],
+        messages: List[Dict[str, str]],
         cookies: dict = None,
         **kwargs,
     ) -> AsyncGenerator:

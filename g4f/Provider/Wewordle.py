@@ -1,6 +1,11 @@
-import json, random, string, time, requests
+import json
+import random
+import string
+import time
 
-from ..typing       import Any, CreateResult
+import requests
+
+from ..typing import Any, CreateResult, Dict, List
 from .base_provider import BaseProvider
 
 
@@ -13,7 +18,7 @@ class Wewordle(BaseProvider):
     def create_completion(
         cls,
         model: str,
-        messages: list[dict[str, str]],
+        messages: List[Dict[str, str]],
         stream: bool, **kwargs: Any) -> CreateResult:
         
         # randomize user id and app id

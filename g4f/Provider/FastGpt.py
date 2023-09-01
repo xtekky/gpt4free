@@ -1,7 +1,10 @@
-import requests, json, random
+import json
+import random
 from abc import ABC, abstractmethod
 
-from ..typing import Any, CreateResult
+import requests
+
+from ..typing import Any, CreateResult, Dict, List
 
 
 class FastGpt(ABC):
@@ -16,7 +19,7 @@ class FastGpt(ABC):
     @abstractmethod
     def create_completion(
         model: str,
-        messages: list[dict[str, str]],
+        messages: List[Dict[str, str]],
         stream: bool, **kwargs: Any) -> CreateResult:
 
         headers = {
@@ -74,7 +77,7 @@ class FastGpt(ABC):
     def params(cls):
         params = [
             ("model", "str"),
-            ("messages", "list[dict[str, str]]"),
+            ("messages", "List[Dict[str, str]]"),
             ("stream", "bool"),
         ]
         param = ", ".join([": ".join(p) for p in params])

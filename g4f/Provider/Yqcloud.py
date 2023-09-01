@@ -1,5 +1,6 @@
 from aiohttp import ClientSession
 
+from ..typing import Dict, List
 from .base_provider import AsyncProvider, format_prompt
 
 
@@ -11,7 +12,7 @@ class Yqcloud(AsyncProvider):
     @staticmethod
     async def create_async(
         model: str,
-        messages: list[dict[str, str]],
+        messages: List[Dict[str, str]],
         proxy: str = None,
         **kwargs,
     ) -> str:
@@ -32,7 +33,7 @@ def _create_header():
     }
 
 
-def _create_payload(messages: list[dict[str, str]]):
+def _create_payload(messages: List[Dict[str, str]]):
     return {
         "prompt": format_prompt(messages),
         "network": True,

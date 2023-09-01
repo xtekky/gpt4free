@@ -1,7 +1,9 @@
-import requests, json
+import json
+from abc import ABC, abstractmethod
 
-from abc      import ABC, abstractmethod
-from ..typing import Any, CreateResult
+import requests
+
+from ..typing import Any, CreateResult, Dict, List
 
 
 class Equing(ABC):
@@ -16,7 +18,7 @@ class Equing(ABC):
     @abstractmethod
     def create_completion(
         model: str,
-        messages: list[dict[str, str]],
+        messages: List[Dict[str, str]],
         stream: bool, **kwargs: Any) -> CreateResult:
 
         headers = {
@@ -70,7 +72,7 @@ class Equing(ABC):
     def params(cls):
         params = [
             ("model", "str"),
-            ("messages", "list[dict[str, str]]"),
+            ("messages", "List[Dict[str, str]]"),
             ("stream", "bool"),
         ]
         param = ", ".join([": ".join(p) for p in params])

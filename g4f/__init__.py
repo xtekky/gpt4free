@@ -1,6 +1,6 @@
-from .          import models
-from .Provider  import BaseProvider
-from .typing    import Any, CreateResult, Union
+from . import models
+from .Provider import BaseProvider
+from .typing import Any, CreateResult, Dict, List, Union
 
 logging = False
 
@@ -8,8 +8,8 @@ class ChatCompletion:
     @staticmethod
     def create(
         model    : Union[models.Model, str],
-        messages : list[dict[str, str]],
-        provider : Union[type[BaseProvider], None] = None,
+        messages : List[Dict[str, str]],
+        provider : Union[BaseProvider, None] = None,
         stream   : bool                            = False,
         auth     : Union[str, None]                = None, **kwargs: Any) -> Union[CreateResult, str]:
         

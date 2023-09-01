@@ -1,6 +1,10 @@
-import base64, os, re, requests
+import base64
+import os
+import re
 
-from ..typing       import Any, CreateResult
+import requests
+
+from ..typing import Any, CreateResult, Dict, List
 from .base_provider import BaseProvider
 
 
@@ -12,7 +16,7 @@ class ChatgptLogin(BaseProvider):
     @staticmethod
     def create_completion(
         model: str,
-        messages: list[dict[str, str]],
+        messages: List[Dict[str, str]],
         stream: bool, **kwargs: Any) -> CreateResult:
         
         headers = {
@@ -65,7 +69,7 @@ class ChatgptLogin(BaseProvider):
     def params(cls):
         params = [
             ("model", "str"),
-            ("messages", "list[dict[str, str]]"),
+            ("messages", "List[Dict[str, str]]"),
             ("stream", "bool"),
             ("temperature", "float"),
         ]
@@ -93,7 +97,7 @@ def _get_nonce() -> str:
     return "" if result is None else result.group(1)
 
 
-def _transform(messages: list[dict[str, str]]) -> list[dict[str, Any]]:
+def _transform(messages: List[Dict[str, str]]) -> List[Dict[str, Any]]:
     return [
         {
             "id"     : os.urandom(6).hex(),

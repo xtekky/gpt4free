@@ -1,6 +1,9 @@
-import json, requests, random
+import json
+import random
 
-from ..typing       import Any, CreateResult
+import requests
+
+from ..typing import Any, CreateResult, Dict, List
 from .base_provider import BaseProvider
 
 
@@ -13,7 +16,7 @@ class EasyChat(BaseProvider):
     @staticmethod
     def create_completion(
         model: str,
-        messages: list[dict[str, str]],
+        messages: List[Dict[str, str]],
         stream: bool, **kwargs: Any) -> CreateResult:
         
         active_servers = [
@@ -94,7 +97,7 @@ class EasyChat(BaseProvider):
     def params(cls):
         params = [
             ("model", "str"),
-            ("messages", "list[dict[str, str]]"),
+            ("messages", "List[Dict[str, str]]"),
             ("stream", "bool"),
             ("temperature", "float"),
             ("presence_penalty", "int"),

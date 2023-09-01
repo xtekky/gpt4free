@@ -1,7 +1,11 @@
-import base64, json, uuid, quickjs
+import base64
+import json
+import uuid
 
-from curl_cffi      import requests
-from ..typing       import Any, CreateResult, TypedDict
+import quickjs
+from curl_cffi import requests
+
+from ..typing import Any, CreateResult, Dict, List, TypedDict
 from .base_provider import BaseProvider
 
 
@@ -13,7 +17,7 @@ class Vercel(BaseProvider):
     @staticmethod
     def create_completion(
         model: str,
-        messages: list[dict[str, str]],
+        messages: List[Dict[str, str]],
         stream: bool, **kwargs: Any) -> CreateResult:
         
         if model in ["gpt-3.5-turbo", "gpt-4"]:
@@ -21,7 +25,7 @@ class Vercel(BaseProvider):
         yield _chat(model_id=model, messages=messages)
 
 
-def _chat(model_id: str, messages: list[dict[str, str]]) -> str:
+def _chat(model_id: str, messages: List[Dict[str, str]]) -> str:
     session = requests.Session(impersonate="chrome107")
 
     url     = "https://sdk.vercel.ai/api/generate"
@@ -33,7 +37,7 @@ def _chat(model_id: str, messages: list[dict[str, str]]) -> str:
     return response.text
 
 
-def _create_payload(model_id: str, messages: list[dict[str, str]]) -> dict[str, Any]:
+def _create_payload(model_id: str, messages: List[Dict[str, str]]) -> Dict[str, Any]:
     default_params = model_info[model_id]["default_params"]
     return {
         "messages": messages,
@@ -72,10 +76,10 @@ def _get_custom_encoding(session: requests.Session):
 
 class ModelInfo(TypedDict):
     id: str
-    default_params: dict[str, Any]
+    default_params: Dict[str, Any]
 
 
-model_info: dict[str, ModelInfo] = {
+model_info: Dict[str, ModelInfo] = {
     "anthropic:claude-instant-v1": {
         "id": "anthropic:claude-instant-v1",
         "default_params": {

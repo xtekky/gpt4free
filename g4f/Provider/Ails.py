@@ -6,8 +6,9 @@ from datetime import datetime
 
 import requests
 
-from ..typing import SHA256, Any, CreateResult
+from ..typing import SHA256, Any, CreateResult, Dict, List
 from .base_provider import BaseProvider
+
 
 class Ails(BaseProvider):
     url: str              = "https://ai.ls"
@@ -18,7 +19,7 @@ class Ails(BaseProvider):
     @staticmethod
     def create_completion(
         model: str,
-        messages: list[dict[str, str]],
+        messages: List[Dict[str, str]],
         stream: bool, **kwargs: Any) -> CreateResult:
         
         headers = {
@@ -80,7 +81,7 @@ class Ails(BaseProvider):
     def params(cls):
         params = [
             ("model", "str"),
-            ("messages", "list[dict[str, str]]"),
+            ("messages", "List[Dict[str, str]]"),
             ("stream", "bool"),
             ("temperature", "float"),
         ]
@@ -88,7 +89,7 @@ class Ails(BaseProvider):
         return f"g4f.provider.{cls.__name__} supports: ({param})"
 
 
-def _hash(json_data: dict[str, str]) -> SHA256:
+def _hash(json_data: Dict[str, str]) -> SHA256:
     base_string: str = "%s:%s:%s:%s" % (
         json_data["t"],
         json_data["m"],

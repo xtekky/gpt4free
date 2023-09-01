@@ -1,9 +1,12 @@
 import json
 import random
 import re
+
 from aiohttp import ClientSession
 
-from .base_provider import AsyncProvider, get_cookies, format_prompt
+from ..typing import Dict, List
+from .base_provider import AsyncProvider, format_prompt, get_cookies
+
 
 class Bard(AsyncProvider):
     url = "https://bard.google.com"
@@ -14,7 +17,7 @@ class Bard(AsyncProvider):
     async def create_async(
         cls,
         model: str,
-        messages: list[dict[str, str]],
+        messages: List[Dict[str, str]],
         proxy: str = None,
         cookies: dict = None,
         **kwargs
@@ -79,7 +82,7 @@ class Bard(AsyncProvider):
     def params(cls):
         params = [
             ("model", "str"),
-            ("messages", "list[dict[str, str]]"),
+            ("messages", "List[Dict[str, str]]"),
             ("stream", "bool"),
             ("proxy", "str"),
         ]

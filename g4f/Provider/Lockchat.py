@@ -1,6 +1,8 @@
-import json, requests
+import json
 
-from ..typing       import Any, CreateResult
+import requests
+
+from ..typing import Any, CreateResult, Dict, List
 from .base_provider import BaseProvider
 
 
@@ -13,7 +15,7 @@ class Lockchat(BaseProvider):
     @staticmethod
     def create_completion(
         model: str,
-        messages: list[dict[str, str]],
+        messages: List[Dict[str, str]],
         stream: bool, **kwargs: Any) -> CreateResult:
 
         temperature = float(kwargs.get("temperature", 0.7))
@@ -52,7 +54,7 @@ class Lockchat(BaseProvider):
     def params(cls):
         params = [
             ("model", "str"),
-            ("messages", "list[dict[str, str]]"),
+            ("messages", "List[Dict[str, str]]"),
             ("stream", "bool"),
             ("temperature", "float"),
         ]

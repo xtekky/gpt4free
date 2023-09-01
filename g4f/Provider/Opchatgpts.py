@@ -1,6 +1,6 @@
 import requests
 
-from ..typing       import Any, CreateResult
+from ..typing import Any, CreateResult, Dict, List
 from .base_provider import BaseProvider
 
 
@@ -12,7 +12,7 @@ class Opchatgpts(BaseProvider):
     @staticmethod
     def create_completion(
         model: str,
-        messages: list[dict[str, str]],
+        messages: List[Dict[str, str]],
         stream: bool, **kwargs: Any) -> CreateResult:
         
         temperature   = kwargs.get("temperature", 0.8)
@@ -34,7 +34,7 @@ class Opchatgpts(BaseProvider):
 
 
 def _create_payload(
-    messages: list[dict[str, str]],
+    messages: List[Dict[str, str]],
     temperature: float,
     max_tokens: int, system_prompt: str) -> dict:
     

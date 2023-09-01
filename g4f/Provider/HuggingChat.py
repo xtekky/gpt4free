@@ -1,8 +1,9 @@
 import json
+
 from aiohttp import ClientSession
 
-from ..typing import AsyncGenerator
-from .base_provider import AsyncGeneratorProvider, get_cookies, format_prompt
+from ..typing import AsyncGenerator, Dict, List
+from .base_provider import AsyncGeneratorProvider, format_prompt, get_cookies
 
 
 class HuggingChat(AsyncGeneratorProvider):
@@ -15,7 +16,7 @@ class HuggingChat(AsyncGeneratorProvider):
     async def create_async_generator(
         cls,
         model: str,
-        messages: list[dict[str, str]],
+        messages: List[Dict[str, str]],
         stream: bool = True,
         proxy: str = None,
         cookies: dict = None,
@@ -99,7 +100,7 @@ class HuggingChat(AsyncGeneratorProvider):
     def params(cls):
         params = [
             ("model", "str"),
-            ("messages", "list[dict[str, str]]"),
+            ("messages", "List[Dict[str, str]]"),
             ("stream", "bool"),
             ("proxy", "str"),
         ]

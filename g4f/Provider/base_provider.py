@@ -1,9 +1,9 @@
+import asyncio
 from abc import ABC, abstractmethod
 
-from ..typing import Any, CreateResult, AsyncGenerator, Union
-
 import browser_cookie3
-import asyncio
+
+from ..typing import Any, AsyncGenerator, CreateResult, Dict, List, Union
 
 
 class BaseProvider(ABC):
@@ -18,7 +18,7 @@ class BaseProvider(ABC):
     @abstractmethod
     def create_completion(
         model: str,
-        messages: list[dict[str, str]],
+        messages: List[Dict[str, str]],
         stream: bool, **kwargs: Any) -> CreateResult:
         
         raise NotImplementedError()
@@ -28,7 +28,7 @@ class BaseProvider(ABC):
     def params(cls):
         params = [
             ("model", "str"),
-            ("messages", "list[dict[str, str]]"),
+            ("messages", "List[Dict[str, str]]"),
             ("stream", "bool"),
         ]
         param = ", ".join([": ".join(p) for p in params])
@@ -47,7 +47,7 @@ def get_cookies(cookie_domain: str) -> dict:
     return _cookies[cookie_domain]
 
 
-def format_prompt(messages: list[dict[str, str]], add_special_tokens=False):
+def format_prompt(messages: List[Dict[str, str]], add_special_tokens=False):
     if add_special_tokens or len(messages) > 1:
         formatted = "\n".join(
             ["%s: %s" % ((message["role"]).capitalize(), message["content"]) for message in messages]
@@ -63,7 +63,7 @@ class AsyncProvider(BaseProvider):
     def create_completion(
         cls,
         model: str,
-        messages: list[dict[str, str]],
+        messages: List[Dict[str, str]],
         stream: bool = False, **kwargs: Any) -> CreateResult:
         
         yield asyncio.run(cls.create_async(model, messages, **kwargs))
@@ -72,7 +72,7 @@ class AsyncProvider(BaseProvider):
     @abstractmethod
     async def create_async(
         model: str,
-        messages: list[dict[str, str]], **kwargs: Any) -> str:
+        messages: List[Dict[str, str]], **kwargs: Any) -> str:
         raise NotImplementedError()
 
 
@@ -81,7 +81,7 @@ class AsyncGeneratorProvider(AsyncProvider):
     def create_completion(
         cls,
         model: str,
-        messages: list[dict[str, str]],
+        messages: List[Dict[str, str]],
         stream: bool = True,
         **kwargs
     ) -> CreateResult:
@@ -91,7 +91,7 @@ class AsyncGeneratorProvider(AsyncProvider):
     async def create_async(
         cls,
         model: str,
-        messages: list[dict[str, str]],
+        messages: List[Dict[str, str]],
         **kwargs
     ) -> str:
         chunks = [chunk async for chunk in cls.create_async_generator(model, messages, stream=False, **kwargs)]
@@ -102,7 +102,7 @@ class AsyncGeneratorProvider(AsyncProvider):
     @abstractmethod
     def create_async_generator(
             model: str,
-            messages: list[dict[str, str]],
+            messages: List[Dict[str, str]],
             **kwargs
         ) -> AsyncGenerator:
         raise NotImplementedError()

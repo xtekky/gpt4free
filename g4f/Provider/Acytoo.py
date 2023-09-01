@@ -2,7 +2,7 @@ import time
 
 import requests
 
-from ..typing import Any, CreateResult
+from ..typing import Any, CreateResult, Dict, List
 from .base_provider import BaseProvider
 
 
@@ -15,7 +15,7 @@ class Acytoo(BaseProvider):
     def create_completion(
         cls,
         model: str,
-        messages: list[dict[str, str]],
+        messages: List[Dict[str, str]],
         stream: bool, **kwargs: Any) -> CreateResult:
 
         response = requests.post(f'{cls.url}api/completions', 
@@ -34,7 +34,7 @@ def _create_header():
     }
 
 
-def _create_payload(messages: list[dict[str, str]], temperature):
+def _create_payload(messages: List[Dict[str, str]], temperature):
     payload_messages = [
         message | {'createdAt': int(time.time()) * 1000} for message in messages
     ]

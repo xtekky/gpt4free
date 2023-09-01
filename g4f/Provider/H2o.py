@@ -1,8 +1,9 @@
 import json
 import uuid
+
 from aiohttp import ClientSession
 
-from ..typing import AsyncGenerator
+from ..typing import AsyncGenerator, Dict, List
 from .base_provider import AsyncGeneratorProvider, format_prompt
 
 
@@ -16,7 +17,7 @@ class H2o(AsyncGeneratorProvider):
     async def create_async_generator(
         cls,
         model: str,
-        messages: list[dict[str, str]],
+        messages: List[Dict[str, str]],
         proxy: str = None,
         **kwargs
     ) -> AsyncGenerator:
@@ -86,7 +87,7 @@ class H2o(AsyncGeneratorProvider):
     def params(cls):
         params = [
             ("model", "str"),
-            ("messages", "list[dict[str, str]]"),
+            ("messages", "List[Dict[str, str]]"),
             ("stream", "bool"),
             ("temperature", "float"),
             ("truncate", "int"),

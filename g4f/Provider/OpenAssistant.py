@@ -1,8 +1,10 @@
 import json
+
 from aiohttp import ClientSession
 
-from ..typing import Any, AsyncGenerator
-from .base_provider import AsyncGeneratorProvider, get_cookies, format_prompt
+from ..typing import Any, AsyncGenerator, Dict, List
+from .base_provider import AsyncGeneratorProvider, format_prompt, get_cookies
+
 
 class OpenAssistant(AsyncGeneratorProvider):
     url = "https://open-assistant.io/chat"
@@ -14,7 +16,7 @@ class OpenAssistant(AsyncGeneratorProvider):
     async def create_async_generator(
         cls,
         model: str,
-        messages: list[dict[str, str]],
+        messages: List[Dict[str, str]],
         proxy: str = None,
         cookies: dict = None,
         **kwargs: Any
@@ -90,7 +92,7 @@ class OpenAssistant(AsyncGeneratorProvider):
     def params(cls):
         params = [
             ("model", "str"),
-            ("messages", "list[dict[str, str]]"),
+            ("messages", "List[Dict[str, str]]"),
             ("stream", "bool"),
             ("proxy", "str"),
         ]
