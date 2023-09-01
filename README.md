@@ -158,6 +158,7 @@ If you run the g4l package locally,
 cookies from your browsers are readed with `get_cookies`.
 Else you have pass them in the parameter `cookies`:
 ```py
+import g4f
 from g4f.Provider import (
     Bard,
     Bing,
@@ -171,9 +172,9 @@ from g4f.Provider import (
 response = g4f.ChatCompletion.create(
     model=g4f.models.default,
     messages=[{"role": "user", "content": "Hello"}],
-    provider=g4f.Provider.Name,
+    provider=Bard,
     #cookies=g4f.get_cookies(".google.com"),
-    cookies={"name": "value", "name1": "value1"},
+    cookies={"cookie_name": "value", "cookie_name2": "value2"},
     auth=True
 )
 ```
@@ -181,7 +182,7 @@ response = g4f.ChatCompletion.create(
 ##### Async support:
 
 Run providers `async` to improve speed / performance.
-The full execution time corresponds to the maximum execution time of a provider.
+The full execution time corresponds to the execution time of the slowest provider.
 
 ```py
 import g4f, asyncio
