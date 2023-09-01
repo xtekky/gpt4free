@@ -26,32 +26,15 @@ class Bing(AsyncGeneratorProvider):
             prompt = messages[-1]["content"]
             context = create_context(messages[:-1])
         
-        if cookies:
+        if cookies and "SRCHD" in cookies:
             #TODO: Will implement proper cookie retrieval later and use a try-except mechanism in 'stream_generate' instead of defaulting the cookie value like this
             cookies_dict = {
-                'MUID'          : '',
-                'BCP'           : '',
-                'MUIDB'         : '',
-                'USRLOC'        : '',
-                'SRCHD'         : 'AF=hpcodx',
-                'MMCASM'        : '',
-                '_UR'           : '',
-                'ANON'          : '',
-                'NAP'           : '',
-                'ABDEF'         : '',
+                'SRCHD'         : cookies["SRCHD"],
                 'PPLState'      : '1',
                 'KievRPSSecAuth': '',
-                '_U'            : '',
                 'SUID'          : '',
-                '_EDGE_S'       : '',
-                'WLS'           : '',
-                '_HPVN'         : '',
-                '_SS'           : '',
-                '_clck'         : '',
                 'SRCHUSR'       : '',
-                '_RwBf'         : '',
                 'SRCHHPGUSR'    : '',
-                'ipv6'          : '',
             }
         
         return stream_generate(prompt, context, cookies_dict)

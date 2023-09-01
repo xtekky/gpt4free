@@ -36,14 +36,14 @@ Bing: Hello! How can I help you today? 3.28 secs
 No Stream Total: 10.14 secs
 """
 
-print("Yqcloud:", end="")
+print("Bing: ", end="")
 for response in log_time_yield(
     g4f.ChatCompletion.create,
     model=g4f.models.gpt_35_turbo,
     messages=[{"role": "user", "content": _instruct}],
-    provider=g4f.Provider.Yqcloud,
+    provider=g4f.Provider.Bing,
     #cookies=g4f.get_cookies(".huggingface.co"),
-    stream=True,
+    #stream=True,
     auth=True
 ):
     print(response, end="")

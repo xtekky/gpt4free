@@ -30,7 +30,7 @@ from .FastGpt       import FastGpt
 from .V50           import V50
 from .Wuguokai      import Wuguokai
 
-from .base_provider import BaseProvider
+from .base_provider import BaseProvider, AsyncProvider, AsyncGeneratorProvider
 
 __all__ = [
     'BaseProvider',

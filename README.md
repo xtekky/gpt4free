@@ -118,25 +118,98 @@ for message in response:
     print(message)
 ```
 
-providers:
+##### Providers:
 ```py
 from g4f.Provider import (
     Acytoo,
     Aichat,
     Ails,
-    AiService,
-    AItianhu,
     Bard,
     Bing,
     ChatgptAi,
     ChatgptLogin,
     DeepAi,
-    GetGpt
+    EasyChat,
+    Equing,
+    GetGpt,
+    H2o,
+    HuggingChat,
+    Opchatgpts,
+    OpenAssistant,
+    OpenaiChat,
+    Raycast,
+    Theb,
+    Vercel,
+    Wewordle,
+    Wuguokai,
+    You,
+    Yqcloud
 )
-
-
-# usage:
+# Usage:
 response = g4f.ChatCompletion.create(..., provider=ProviderName)
+```
+
+##### Needs cookies:
+
+Many providers need cookies to work.
+In Bing you need a session, where you have passed the captcha.
+And in others providers you have to log-in into your account.
+If you run the g4l package locally,
+cookies from your browsers are readed with `get_cookies`.
+Else you have pass them in the parameter `cookies`:
+```py
+from g4f.Provider import (
+    Bard,
+    Bing,
+    H2o,
+    HuggingChat,
+    OpenAssistant,
+    OpenaiChat,
+    You,
+)
+# Usage:
+response = g4f.ChatCompletion.create(
+    model=g4f.models.default,
+    messages=[{"role": "user", "content": "Hello"}],
+    provider=g4f.Provider.Name,
+    #cookies=g4f.get_cookies(".google.com"),
+    cookies={"name": "value", "name1": "value1"},
+    auth=True
+)
+```
+
+##### Async support:
+
+Run providers `async` to improve speed / performance.
+The full execution time corresponds to the maximum execution time of a provider.
+
+```py
+import g4f, asyncio
+
+async def run_async():
+  _providers = [
+      g4f.Provider.Bard,
+      g4f.Provider.Bing,
+      g4f.Provider.H2o,
+      g4f.Provider.HuggingChat,
+      g4f.Provider.Liaobots,
+      g4f.Provider.OpenAssistant,
+      g4f.Provider.OpenaiChat,
+      g4f.Provider.You,
+      g4f.Provider.Yqcloud,
+  ]
+  responses = [
+      provider.create_async(
+          model=None,
+          messages=[{"role": "user", "content": "Hello"}],
+      )
+      for provider in _providers
+  ]
+  responses = await asyncio.gather(*responses)
+  for idx, provider in enumerate(_providers):
+      print(f"{provider.__name__}:", responses[idx])
+
+asyncio.run(run_async())
 ```
 
 ### interference openai-proxy api (use with openai python package)    
@@ -186,30 +259,34 @@ if __name__ == "__main__":
 | Website| Provider| gpt-3.5 | gpt-4 | Streaming | Status | Auth |
 | ------ | ------- | ------- | ----- | --------- | ------ | ---- |
 | [chat.acytoo.com](https://chat.acytoo.com/) | g4f.provider.Acytoo | ✔️ | ❌ | ❌ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ❌ |
-| [chat-gpt.org](https://chat-gpt.org/chat) | g4f.provider.Aichat | ✔️ | ❌ | ❌ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ❌ |
-| [ai.ls](https://ai.ls) | g4f.provider.Ails | ✔️ | ❌ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
+| [chat-gpt.org](https://chat-gpt.org/chat) | g4f.provider.Aichat | ✔️ | ❌ | ❌ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
+| [ai.ls](https://ai.ls) | g4f.provider.Ails | ✔️ | ❌ | ✔️ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ❌ |
 | [bard.google.com](https://bard.google.com) | g4f.provider.Bard | ❌ | ❌ | ❌ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ✔️ |
-| [chatgpt.ai](https://chatgpt.ai/gpt-4/) | g4f.provider.ChatgptAi | ❌ | ✔️ | ❌ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
-| [opchatgpts.net](https://opchatgpts.net) | g4f.provider.ChatgptLogin | ✔️ | ❌ | ❌ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
+| [bing.com](https://bing.com/chat) | g4f.provider.Bing | ❌ | ✔️ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ✔️ |
+| [chatgpt.ai](https://chatgpt.ai/gpt-4/) | g4f.provider.ChatgptAi | ❌ | ✔️ | ❌ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ❌ |
+| [opchatgpts.net](https://opchatgpts.net) | g4f.provider.ChatgptLogin | ✔️ | ❌ | ❌ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ❌ |
 | [deepai.org](https://deepai.org) | g4f.provider.DeepAi | ✔️ | ❌ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
 | [free.easychat.work](https://free.easychat.work) | g4f.provider.EasyChat | ✔️ | ❌ | ✔️ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ❌ |
 | [next.eqing.tech](https://next.eqing.tech/) | g4f.provider.Equing | ✔️ | ❌ | ✔️ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ❌ |
 | [chat.getgpt.world](https://chat.getgpt.world/) | g4f.provider.GetGpt | ✔️ | ❌ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
 | [gpt-gm.h2o.ai](https://gpt-gm.h2o.ai) | g4f.provider.H2o | ❌ | ❌ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
-| [opchatgpts.net](https://opchatgpts.net) | g4f.provider.Opchatgpts | ✔️ | ❌ | ❌ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
+| [huggingface.co](https://huggingface.co/chat/) | g4f.provider.HuggingChat | ❌ | ❌ | ❌ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ✔️ |
+| [liaobots.com](https://liaobots.com) | g4f.provider.Liaobots | ✔️ | ✔️ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
+| [opchatgpts.net](https://opchatgpts.net) | g4f.provider.Opchatgpts | ✔️ | ❌ | ❌ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ❌ |
+| [open-assistant.io](https://open-assistant.io/chat) | g4f.provider.OpenAssistant | ❌ | ❌ | ❌ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ✔️ |
+| [chat.openai.com](https://chat.openai.com) | g4f.provider.OpenaiChat | ✔️ | ✔️ | ✔️ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ✔️ |
 | [raycast.com](https://raycast.com) | g4f.provider.Raycast | ✔️ | ✔️ | ✔️ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ✔️ |
 | [theb.ai](https://theb.ai) | g4f.provider.Theb | ✔️ | ❌ | ✔️ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ✔️ |
 | [play.vercel.ai](https://play.vercel.ai) | g4f.provider.Vercel | ✔️ | ❌ | ❌ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ❌ |
 | [wewordle.org](https://wewordle.org/) | g4f.provider.Wewordle | ✔️ | ❌ | ❌ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
-| [you.com](https://you.com) | g4f.provider.You | ✔️ | ❌ | ❌ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
+| [chat.wuguokai.xyz](https://chat.wuguokai.xyz) | g4f.provider.Wuguokai | ✔️ | ❌ | ❌ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ❌ |
+| [you.com](https://you.com) | g4f.provider.You | ✔️ | ❌ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
 | [chat9.yqcloud.top](https://chat9.yqcloud.top/) | g4f.provider.Yqcloud | ✔️ | ❌ | ❌ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
 | [www.aitianhu.com](https://www.aitianhu.com/) | g4f.provider.AItianhu | ✔️ | ❌ | ❌ | ![Inactive](https://img.shields.io/badge/Inactive-red) | ❌ |
 | [aiservice.vercel.app](https://aiservice.vercel.app/) | g4f.provider.AiService | ✔️ | ❌ | ❌ | ![Inactive](https://img.shields.io/badge/Inactive-red) | ❌ |
-| [bing.com](https://bing.com/chat) | g4f.provider.Bing | ❌ | ✔️ | ❌ | ![Inactive](https://img.shields.io/badge/Inactive-red) | ❌ |
 | [chat.dfehub.com](https://chat.dfehub.com/) | g4f.provider.DfeHub | ✔️ | ❌ | ✔️ | ![Inactive](https://img.shields.io/badge/Inactive-red) | ❌ |
 | [chat9.fastgpt.me](https://chat9.fastgpt.me/) | g4f.provider.FastGpt | ✔️ | ❌ | ✔️ | ![Inactive](https://img.shields.io/badge/Inactive-red) | ❌ |
 | [forefront.com](https://forefront.com) | g4f.provider.Forefront | ✔️ | ❌ | ✔️ | ![Inactive](https://img.shields.io/badge/Inactive-red) | ❌ |
-| [liaobots.com](https://liaobots.com) | g4f.provider.Liaobots | ✔️ | ✔️ | ✔️ | ![Inactive](https://img.shields.io/badge/Inactive-red) | ✔️ |
 | [supertest.lockchat.app](http://supertest.lockchat.app) | g4f.provider.Lockchat | ✔️ | ✔️ | ✔️ | ![Inactive](https://img.shields.io/badge/Inactive-red) | ❌ |
 | [p5.v50.ltd](https://p5.v50.ltd) | g4f.provider.V50 | ✔️ | ❌ | ❌ | ![Inactive](https://img.shields.io/badge/Inactive-red) | ❌ |
 
