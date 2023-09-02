@@ -6,14 +6,35 @@ from urllib.parse import urlparse
 sys.path.append(str(Path(__file__).parent.parent))
 
 from g4f import models, Provider
-from g4f.Provider.base_provider import BaseProvider
+from g4f.Provider.base_provider import BaseProvider, AsyncProvider
 from testing.test_providers import test
 
-def main():
-    print_providers()
-    print("\n", "-" * 50, "\n")
-    print_models()
 
+def print_imports():
+    print("##### Providers:")
+    print("```py")
+    print("from g4f.Provider import (")
+    for _provider in get_providers():
+        if _provider.working:
+            print(f"    {_provider.__name__},")
+    print(")")
+    print("# Usage:")
+    print("response = g4f.ChatCompletion.create(..., provider=ProviderName)")
+    print("```")
+    print()
+    print()
+
+def print_async():
+    print("##### Async support:")
+    print("```py")
+    print("from g4f.Provider import (")
+    for _provider in get_providers():
+        if issubclass(_provider, AsyncProvider):
+            print(f"    {_provider.__name__},")
+    print(")")
+    print("```")
+    print()
+    print()
 
 def print_providers():
     lines = [
@@ -48,18 +69,23 @@ def print_providers():
     print("\n".join(lines))
 
 
-def get_providers() -> list[type[BaseProvider]]:
+def get_provider_names() -> list[str]:
     provider_names = dir(Provider)
     ignore_names = [
         "base_provider",
         "BaseProvider",
+        "AsyncProvider",
+        "AsyncGeneratorProvider"
     ]
-    provider_names = [
+    return [
         provider_name
         for provider_name in provider_names
         if not provider_name.startswith("__") and provider_name not in ignore_names
     ]
-    return [getattr(Provider, provider_name) for provider_name in provider_names]
+
+
+def get_providers() -> list[type[BaseProvider]]:
+    return [getattr(Provider, provider_name) for provider_name in get_provider_names()]
 
 
 def print_models():
@@ -107,4 +133,8 @@ def get_models():
 
 
 if __name__ == "__main__":
-    main()
+    print_imports()
+    print_async()
+    print_providers()
+    print("\n", "-" * 50, "\n")
+    print_models()

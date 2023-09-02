@@ -1,4 +1,4 @@
-import random, requests, json
+import random, requests
 from ..typing import Any, CreateResult
 from .base_provider import BaseProvider
 
@@ -6,8 +6,6 @@ from .base_provider import BaseProvider
 class Wuguokai(BaseProvider):
     url = 'https://chat.wuguokai.xyz'
     supports_gpt_35_turbo = True
-    supports_stream = False
-    needs_auth = False
     working = True
 
     @staticmethod
@@ -43,7 +41,7 @@ class Wuguokai(BaseProvider):
             "userId": f"#/chat/{random.randint(1,99999999)}",
             "usingContext": True
         }
-        response = requests.post("https://ai-api20.wuguokai.xyz/api/chat-process", headers=headers, data=json.dumps(data),proxies=kwargs['proxy'] if 'proxy' in kwargs else {})
+        response = requests.post("https://ai-api20.wuguokai.xyz/api/chat-process", headers=headers, timeout=3, json=data, proxies=kwargs['proxy'] if 'proxy' in kwargs else {})
         _split = response.text.split("> 若回答失败请重试或多刷新几次界面后重试")
         if response.status_code == 200:
             if len(_split) > 1:
