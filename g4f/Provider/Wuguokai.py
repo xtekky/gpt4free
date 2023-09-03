@@ -1,4 +1,9 @@
-import random, requests
+from __future__ import annotations
+
+import random
+
+import requests
+
 from ..typing import Any, CreateResult
 from .base_provider import BaseProvider
 

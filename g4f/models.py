@@ -1,3 +1,4 @@
+from __future__ import annotations
 from dataclasses import dataclass
 from .Provider import Bard, BaseProvider, GetGpt, H2o, Liaobots, Vercel, Equing
 

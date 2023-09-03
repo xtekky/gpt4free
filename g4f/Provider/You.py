@@ -1,5 +1,8 @@
-from aiohttp import ClientSession
+from __future__ import annotations
+
 import json
+
+from aiohttp import ClientSession
 
 from ..typing import AsyncGenerator
 from .base_provider import AsyncGeneratorProvider, format_prompt, get_cookies

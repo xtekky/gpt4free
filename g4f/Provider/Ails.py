@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import hashlib
 import json
 import time
@@ -8,6 +10,7 @@ import requests
 
 from ..typing import SHA256, Any, CreateResult
 from .base_provider import BaseProvider
+
 
 class Ails(BaseProvider):
     url: str              = "https://ai.ls"

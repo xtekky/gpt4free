@@ -1,5 +1,10 @@
-import requests, json, random
+from __future__ import annotations
+
+import json
+import random
 from abc import ABC, abstractmethod
+
+import requests
 
 from ..typing import Any, CreateResult
 

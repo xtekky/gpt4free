@@ -1,13 +1,17 @@
+from __future__ import annotations
+
 has_module = True
 try:
     from revChatGPT.V1 import AsyncChatbot
 except ImportError:
     has_module = False
 
-from .base_provider import AsyncGeneratorProvider, get_cookies, format_prompt
-from ..typing import AsyncGenerator
-from httpx import AsyncClient
 import json
+
+from httpx import AsyncClient
+
+from ..typing import AsyncGenerator
+from .base_provider import AsyncGeneratorProvider, format_prompt, get_cookies
 
 
 class OpenaiChat(AsyncGeneratorProvider):

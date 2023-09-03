@@ -1,7 +1,13 @@
-import base64, json, uuid, quickjs
+from __future__ import annotations
 
-from curl_cffi      import requests
-from ..typing       import Any, CreateResult, TypedDict
+import base64
+import json
+import uuid
+
+import quickjs
+from curl_cffi import requests
+
+from ..typing import Any, CreateResult, TypedDict
 from .base_provider import BaseProvider
 
 

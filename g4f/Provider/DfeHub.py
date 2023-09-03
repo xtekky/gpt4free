@@ -1,6 +1,12 @@
-import json, re, time , requests
+from __future__ import annotations
 
-from ..typing       import Any, CreateResult
+import json
+import re
+import time
+
+import requests
+
+from ..typing import Any, CreateResult
 from .base_provider import BaseProvider
 
 

@@ -1,6 +1,11 @@
-import json, js2py, requests
+from __future__ import annotations
 
-from ..typing       import Any, CreateResult
+import json
+
+import js2py
+import requests
+
+from ..typing import Any, CreateResult
 from .base_provider import BaseProvider
 
 

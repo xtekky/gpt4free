@@ -1,6 +1,11 @@
-import json, requests, random
+from __future__ import annotations
 
-from ..typing       import Any, CreateResult
+import json
+import random
+
+import requests
+
+from ..typing import Any, CreateResult
 from .base_provider import BaseProvider
 
 

@@ -1,9 +1,11 @@
+from __future__ import annotations
+
+import asyncio
 from abc import ABC, abstractmethod
 
-from ..typing import Any, CreateResult, AsyncGenerator, Union
-
 import browser_cookie3
-import asyncio
+
+from ..typing import Any, AsyncGenerator, CreateResult, Union
 
 
 class BaseProvider(ABC):

@@ -1,8 +1,12 @@
+from __future__ import annotations
+
 import json
+
 from aiohttp import ClientSession
 
 from ..typing import Any, AsyncGenerator
-from .base_provider import AsyncGeneratorProvider, get_cookies, format_prompt
+from .base_provider import AsyncGeneratorProvider, format_prompt, get_cookies
+
 
 class OpenAssistant(AsyncGeneratorProvider):
     url = "https://open-assistant.io/chat"

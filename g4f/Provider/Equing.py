@@ -1,6 +1,10 @@
-import requests, json
+from __future__ import annotations
 
-from abc      import ABC, abstractmethod
+import json
+from abc import ABC, abstractmethod
+
+import requests
+
 from ..typing import Any, CreateResult
 
 
