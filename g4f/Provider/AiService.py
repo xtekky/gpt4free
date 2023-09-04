@@ -16,10 +16,8 @@ class AiService(BaseProvider):
         stream: bool,
         **kwargs: Any,
     ) -> CreateResult:
-        base = ""
-        for message in messages:
-            base += "%s: %s\n" % (message["role"], message["content"])
-        base += "assistant:"
+        base = "\n".join(f"{message['role']}: {message['content']}" for message in messages)
+        base += "\nassistant: "
 
         headers = {
             "accept": "*/*",

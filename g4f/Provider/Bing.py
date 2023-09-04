@@ -40,10 +40,7 @@ class Bing(AsyncGeneratorProvider):
         return stream_generate(prompt, context, cookies_dict)
 
 def create_context(messages: list[dict[str, str]]):
-    context = ""
-
-    for message in messages:
-        context += "[%s](#message)\n%s\n\n" % (message["role"], message["content"])
+    context = "".join(f"[{message['role']}](#message)\n{message['content']}\n\n" for message in messages)
 
     return context
 
