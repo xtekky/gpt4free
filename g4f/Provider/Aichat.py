@@ -17,10 +17,8 @@ class Aichat(BaseProvider):
         messages: list[dict[str, str]],
         stream: bool, **kwargs: Any) -> CreateResult:
         
-        base = ""
-        for message in messages:
-            base += "%s: %s\n" % (message["role"], message["content"])
-        base += "assistant:"
+        chat = "\n".join(f"{message['role']}: {message['content']}" for message in messages)
+        chat += "\nassistant: "
 
         headers = {
             "authority": "chat-gpt.org",

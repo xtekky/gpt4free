@@ -19,10 +19,8 @@ class ChatgptAi(BaseProvider):
         messages: list[dict[str, str]],
         stream: bool, **kwargs: Any) -> CreateResult:
         
-        chat = ""
-        for message in messages:
-            chat += "%s: %s\n" % (message["role"], message["content"])
-        chat += "assistant: "
+        chat = "\n".join(f"{message['role']}: {message['content']}" for message in messages)
+        chat += "\nassistant: "
 
         response = requests.get("https://chatgpt.ai/")
         nonce, post_id, _, bot_id = re.findall(

@@ -21,11 +21,9 @@ class V50(BaseProvider):
         messages: list[dict[str, str]],
         stream: bool, **kwargs: Any) -> CreateResult:
         
-        conversation = ''
-        for message in messages:
-            conversation += '%s: %s\n' % (message['role'], message['content'])
-        
-        conversation += 'assistant: '
+        conversation = "\n".join(f"{message['role']}: {message['content']}" for message in messages)
+        conversation += "\nassistant: "
+
         payload = {
             "prompt"        : conversation,
             "options"       : {},
