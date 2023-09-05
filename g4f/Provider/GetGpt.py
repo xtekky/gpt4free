@@ -1,7 +1,13 @@
-import os, json, uuid, requests
+from __future__ import annotations
 
-from Crypto.Cipher  import AES
-from ..typing       import Any, CreateResult
+import json
+import os
+import uuid
+
+import requests
+from Crypto.Cipher import AES
+
+from ..typing import Any, CreateResult
 from .base_provider import BaseProvider
 
 

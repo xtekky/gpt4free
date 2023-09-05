@@ -1,7 +1,12 @@
-import uuid, requests
+from __future__ import annotations
 
-from ..typing       import Any, CreateResult
+import uuid
+
+import requests
+
+from ..typing import Any, CreateResult
 from .base_provider import BaseProvider
+
 
 class V50(BaseProvider):
     url                     = 'https://p5.v50.ltd'

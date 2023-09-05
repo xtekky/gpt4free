@@ -1,8 +1,16 @@
-import asyncio, aiohttp, json, os, random
+from __future__ import annotations
 
-from aiohttp        import ClientSession
-from ..typing       import Any, AsyncGenerator, CreateResult, Union
+import asyncio
+import json
+import os
+import random
+
+import aiohttp
+from aiohttp import ClientSession
+
+from ..typing import Any, AsyncGenerator, CreateResult, Union
 from .base_provider import AsyncGeneratorProvider, get_cookies
+
 
 class Bing(AsyncGeneratorProvider):
     url             = "https://bing.com/chat"

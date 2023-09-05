@@ -1,3 +1,4 @@
+from __future__ import annotations
 from .Acytoo        import Acytoo
 from .Aichat        import Aichat
 from .Ails          import Ails

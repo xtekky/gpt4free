@@ -1,6 +1,12 @@
-import base64, os, re, requests
+from __future__ import annotations
 
-from ..typing       import Any, CreateResult
+import base64
+import os
+import re
+
+import requests
+
+from ..typing import Any, CreateResult
 from .base_provider import BaseProvider
 
 

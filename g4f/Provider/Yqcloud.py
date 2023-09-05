@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from aiohttp import ClientSession
 
 from .base_provider import AsyncProvider, format_prompt

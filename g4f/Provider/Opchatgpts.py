@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 import requests
 
-from ..typing       import Any, CreateResult
+from ..typing import Any, CreateResult
 from .base_provider import BaseProvider
 
 
