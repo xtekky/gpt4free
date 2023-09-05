@@ -39,6 +39,7 @@ def main():
 def get_providers() -> list[type[BaseProvider]]:
     provider_names = dir(Provider)
     ignore_names = [
+        "annotations",
         "base_provider",
         "BaseProvider",
         "AsyncProvider",

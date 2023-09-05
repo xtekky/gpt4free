@@ -1,7 +1,10 @@
 from __future__ import annotations
 
-from aiohttp        import ClientSession
-from ..typing       import Any, AsyncGenerator, Union
+import random
+import json
+import os
+from aiohttp        import ClientSession, ClientTimeout
+from ..typing       import AsyncGenerator
 from .base_provider import AsyncGeneratorProvider, get_cookies
 
 
@@ -225,7 +228,7 @@ async def stream_generate(
         cookies: dict=None
     ):
     async with ClientSession(
-        timeout=aiohttp.ClientTimeout(total=900),
+        timeout=ClientTimeout(total=900),
         cookies=cookies,
         headers=Defaults.headers,
     ) as session:
@@ -278,15 +281,3 @@ async def stream_generate(
                             break
         finally:
             await delete_conversation(session, conversation)
-
-def run(generator: AsyncGenerator[Union[Any, str], Any]):
-    loop = asyncio.get_event_loop()
-    gen = generator.__aiter__()
-
-    while True:
-        try:
-            yield loop.run_until_complete(gen.__anext__())
-
-        except StopAsyncIteration:
-            break
-
