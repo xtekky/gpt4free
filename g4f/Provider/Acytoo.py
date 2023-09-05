@@ -1,32 +1,37 @@
 from __future__ import annotations
 
-import time
+from aiohttp import ClientSession
 
-import requests
-
-from ..typing import Any, CreateResult
-from .base_provider import BaseProvider
+from ..typing import AsyncGenerator
+from .base_provider import AsyncGeneratorProvider
 
 
-class Acytoo(BaseProvider):
-    url                   = 'https://chat.acytoo.com/'
+class Acytoo(AsyncGeneratorProvider):
+    url                   = 'https://chat.acytoo.com'
     working               = True
     supports_gpt_35_turbo = True
 
     @classmethod
-    def create_completion(
+    async def create_async_generator(
         cls,
         model: str,
         messages: list[dict[str, str]],
-        stream: bool, **kwargs: Any) -> CreateResult:
+        proxy: str = None,
+        **kwargs
+    ) -> AsyncGenerator:
 
-        response = requests.post(f'{cls.url}api/completions', 
-                                 headers=_create_header(), json=_create_payload(messages, kwargs.get('temperature', 0.5)))
-        
-        response.raise_for_status()
-        response.encoding = 'utf-8'
-        
-        yield response.text
+        async with ClientSession(
+            headers=_create_header()
+        ) as session:
+            async with session.post(
+                cls.url + '/api/completions',
+                proxy=proxy,
+                json=_create_payload(messages, **kwargs)
+            ) as response:
+                response.raise_for_status()
+                async for stream in response.content.iter_any():
+                    if stream:
+                        yield stream.decode()
 
 
 def _create_header():
@@ -36,15 +41,11 @@ def _create_header():
     }
 
 
-def _create_payload(messages: list[dict[str, str]], temperature):
-    payload_messages = [
-        message | {'createdAt': int(time.time()) * 1000} for message in messages
-    ]
-    
+def _create_payload(messages: list[dict[str, str]], temperature: float = 0.5, **kwargs):
     return {
         'key'         : '',
         'model'       : 'gpt-3.5-turbo',
-        'messages'    : payload_messages,
+        'messages'    : messages,
         'temperature' : temperature,
         'password'    : ''
     }

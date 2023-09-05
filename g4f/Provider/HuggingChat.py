@@ -24,9 +24,9 @@ class HuggingChat(AsyncGeneratorProvider):
         cookies: dict = None,
         **kwargs
     ) -> AsyncGenerator:
+        model = model if model else cls.model
         if not cookies:
             cookies = get_cookies(".huggingface.co")
-        model = model if model else cls.model
         if proxy and "://" not in proxy:
             proxy = f"http://{proxy}"
 
@@ -62,36 +62,32 @@ class HuggingChat(AsyncGeneratorProvider):
                     "web_search_id": ""
                 }
             }
-            start = "data:"
-            first = True
             async with session.post(f"https://huggingface.co/chat/conversation/{conversation_id}", proxy=proxy, json=send) as response:
-                async for line in response.content:
-                    line = line.decode("utf-8")
-                    if not line:
-                        continue
-                    if not stream:
-                        try:
-                            data = json.loads(line)
-                        except json.decoder.JSONDecodeError:
-                            raise RuntimeError(f"No json: {line}")
-                        if "error" in data:
-                            raise RuntimeError(data["error"])
-                        elif isinstance(data, list):
-                            yield data[0]["generated_text"]
-                        else:
-                            raise RuntimeError(f"Response: {line}")
-                    elif line.startswith(start):
-                        line = json.loads(line[len(start):-1])
+                if not stream:
+                    data = await response.json()
+                    if "error" in data:
+                        raise RuntimeError(data["error"])
+                    elif isinstance(data, list):
+                        yield data[0]["generated_text"]
+                    else:
+                        raise RuntimeError(f"Response: {data}")
+                else:
+                    start = "data:"
+                    first = True
+                    async for line in response.content:
+                        line = line.decode("utf-8")
                         if not line:
                             continue
-                        if "token" not in line:
-                            raise RuntimeError(f"Response: {line}")
-                        if not line["token"]["special"]:
-                            if first:
-                                yield line["token"]["text"].lstrip()
-                                first = False
-                            else:
-                                yield line["token"]["text"]
+                        if line.startswith(start):
+                            line = json.loads(line[len(start):-1])
+                            if "token" not in line:
+                                raise RuntimeError(f"Response: {line}")
+                            if not line["token"]["special"]:
+                                if first:
+                                    yield line["token"]["text"].lstrip()
+                                    first = False
+                                else:
+                                    yield line["token"]["text"]
                 
             async with session.delete(f"https://huggingface.co/chat/conversation/{conversation_id}", proxy=proxy) as response:
                 response.raise_for_status()

@@ -42,10 +42,11 @@ _cookies = {}
 def get_cookies(cookie_domain: str) -> dict:
     if cookie_domain not in _cookies:
         _cookies[cookie_domain] = {}
-        
-        for cookie in browser_cookie3.load(cookie_domain):
-            _cookies[cookie_domain][cookie.name] = cookie.value
-    
+        try:
+            for cookie in browser_cookie3.load(cookie_domain):
+                _cookies[cookie_domain][cookie.name] = cookie.value
+        except:
+            pass
     return _cookies[cookie_domain]
 
 
@@ -79,6 +80,8 @@ class AsyncProvider(BaseProvider):
 
 
 class AsyncGeneratorProvider(AsyncProvider):
+    supports_stream = True
+
     @classmethod
     def create_completion(
         cls,
