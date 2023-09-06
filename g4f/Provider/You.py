@@ -1,59 +1,40 @@
-import re
-import urllib.parse
+from __future__ import annotations
 
-from curl_cffi import requests
+import json
 
-from ..typing import Any, CreateResult
-from .base_provider import BaseProvider
+from aiohttp import ClientSession
+
+from ..typing import AsyncGenerator
+from .base_provider import AsyncGeneratorProvider, format_prompt, get_cookies
 
 
-class You(BaseProvider):
+class You(AsyncGeneratorProvider):
     url = "https://you.com"
     working = True
     supports_gpt_35_turbo = True
+    supports_stream = True
 
     @staticmethod
-    def create_completion(
+    async def create_async_generator(
         model: str,
         messages: list[dict[str, str]],
-        stream: bool,
-        **kwargs: Any,
-    ) -> CreateResult:
-        url_param = _create_url_param(messages)
-        headers = _create_header()
-        url = f"https://you.com/api/streamingSearch?{url_param}"
-        response = requests.get(
-            url,
-            headers=headers,
-            impersonate="chrome107",
-        )
-        response.raise_for_status()
-        yield _parse_output(response.text)
-
-
-def _create_url_param(messages: list[dict[str, str]]):
-    prompt = messages.pop()["content"]
-    chat = _convert_chat(messages)
-    param = {"q": prompt, "domain": "youchat", "chat": chat}
-    return urllib.parse.urlencode(param)
-
-
-def _convert_chat(messages: list[dict[str, str]]):
-    message_iter = iter(messages)
-    return [
-        {"question": user["content"], "answer": assistant["content"]}
-        for user, assistant in zip(message_iter, message_iter)
-    ]
-
-
-def _create_header():
-    return {
-        "accept": "text/event-stream",
-        "referer": "https://you.com/search?fromSearchBar=true&tbm=youchat",
-    }
-
-
-def _parse_output(output: str) -> str:
-    regex = r"^data:\s{\"youChatToken\": \"(.*)\"}$"
-    tokens = [token for token in re.findall(regex, output, re.MULTILINE)]
-    return "".join(tokens)
+        cookies: dict = None,
+        **kwargs,
+    ) -> AsyncGenerator:
+        if not cookies:
+            cookies = get_cookies("you.com")
+        headers = {
+            "Accept": "text/event-stream",
+            "Referer": "https://you.com/search?fromSearchBar=true&tbm=youchat",
+            "User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/116.0"
+        }
+        async with ClientSession(headers=headers, cookies=cookies) as session:
+            async with session.get(
+                "https://you.com/api/streamingSearch",
+                params={"q": format_prompt(messages), "domain": "youchat", "chat": ""},
+            ) as response:  
+                start = 'data: {"youChatToken": '
+                async for line in response.content:
+                    line = line.decode('utf-8')
+                    if line.startswith(start):
+                        yield json.loads(line[len(start): -2])

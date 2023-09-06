@@ -1,55 +1,58 @@
-import requests, json, random
+from __future__ import annotations
+
+import json
+import random
 from abc import ABC, abstractmethod
+
+import requests
 
 from ..typing import Any, CreateResult
 
 
 class FastGpt(ABC):
-    url: str = 'https://chat9.fastgpt.me/'
-    working = True
-    needs_auth = False
-    supports_stream = True
-    supports_gpt_35_turbo = True
-    supports_gpt_4 = False
+    url: str                = 'https://chat9.fastgpt.me/'
+    working                 = False
+    needs_auth              = False
+    supports_stream         = True
+    supports_gpt_35_turbo   = True
+    supports_gpt_4          = False
 
     @staticmethod
     @abstractmethod
     def create_completion(
         model: str,
         messages: list[dict[str, str]],
-        stream: bool,
-        **kwargs: Any) -> CreateResult:
+        stream: bool, **kwargs: Any) -> CreateResult:
 
         headers = {
-            'authority': 'chat9.fastgpt.me',
-            'accept': 'text/event-stream',
-            'accept-language': 'en,fr-FR;q=0.9,fr;q=0.8,es-ES;q=0.7,es;q=0.6,en-US;q=0.5,am;q=0.4,de;q=0.3',
-            'cache-control': 'no-cache',
-            'content-type': 'application/json',
-            # 'cookie': 'cf_clearance=idIAwtoSCn0uCzcWLGuD.KtiAJv9a1GsPduEOqIkyHU-1692278595-0-1-cb11fd7a.ab1546d4.ccf35fd7-0.2.1692278595; Hm_lvt_563fb31e93813a8a7094966df6671d3f=1691966491,1692278597; Hm_lpvt_563fb31e93813a8a7094966df6671d3f=1692278597',
-            'origin': 'https://chat9.fastgpt.me',
-            'plugins': '0',
-            'pragma': 'no-cache',
-            'referer': 'https://chat9.fastgpt.me/',
-            'sec-ch-ua': '"Not/A)Brand";v="99", "Google Chrome";v="115", "Chromium";v="115"',
-            'sec-ch-ua-mobile': '?0',
+            'authority'         : 'chat9.fastgpt.me',
+            'accept'            : 'text/event-stream',
+            'accept-language'   : 'en,fr-FR;q=0.9,fr;q=0.8,es-ES;q=0.7,es;q=0.6,en-US;q=0.5,am;q=0.4,de;q=0.3',
+            'cache-control'     : 'no-cache',
+            'content-type'      : 'application/json',
+            'origin'            : 'https://chat9.fastgpt.me',
+            'plugins'           : '0',
+            'pragma'            : 'no-cache',
+            'referer'           : 'https://chat9.fastgpt.me/',
+            'sec-ch-ua'         : '"Not/A)Brand";v="99", "Google Chrome";v="115", "Chromium";v="115"',
+            'sec-ch-ua-mobile'  : '?0',
             'sec-ch-ua-platform': '"macOS"',
-            'sec-fetch-dest': 'empty',
-            'sec-fetch-mode': 'cors',
-            'sec-fetch-site': 'same-origin',
-            'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36',
-            'usesearch': 'false',
-            'x-requested-with': 'XMLHttpRequest',
+            'sec-fetch-dest'    : 'empty',
+            'sec-fetch-mode'    : 'cors',
+            'sec-fetch-site'    : 'same-origin',
+            'user-agent'        : 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36',
+            'usesearch'         : 'false',
+            'x-requested-with'  : 'XMLHttpRequest',
         }
 
         json_data = {
-            'messages': messages,
-            'stream': stream,
-            'model': model,
-            'temperature': kwargs.get('temperature', 0.5),
-            'presence_penalty': kwargs.get('presence_penalty', 0),
-            'frequency_penalty': kwargs.get('frequency_penalty', 0),
-            'top_p': kwargs.get('top_p', 1),
+            'messages'          : messages,
+            'stream'            : stream,
+            'model'             : model,
+            'temperature'       : kwargs.get('temperature', 0.5),
+            'presence_penalty'  : kwargs.get('presence_penalty', 0),
+            'frequency_penalty' : kwargs.get('frequency_penalty', 0),
+            'top_p'             : kwargs.get('top_p', 1),
         }
         
         subdomain = random.choice([
@@ -58,7 +61,7 @@ class FastGpt(ABC):
         ])
 
         response = requests.post(f'https://{subdomain}.fastgpt.me/api/openai/v1/chat/completions',
-            headers=headers, json=json_data, stream=stream)
+                                 headers=headers, json=json_data, stream=stream)
         
         for line in response.iter_lines():
             if line:

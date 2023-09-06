@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import requests
 
 from ..typing import Any, CreateResult
@@ -5,7 +7,7 @@ from .base_provider import BaseProvider
 
 
 class AiService(BaseProvider):
-    url = "https://aiservice.vercel.app/api/chat/answer"
+    url = "https://aiservice.vercel.app/"
     working = False
     supports_gpt_35_turbo = True
 
@@ -16,10 +18,8 @@ class AiService(BaseProvider):
         stream: bool,
         **kwargs: Any,
     ) -> CreateResult:
-        base = ""
-        for message in messages:
-            base += "%s: %s\n" % (message["role"], message["content"])
-        base += "assistant:"
+        base = "\n".join(f"{message['role']}: {message['content']}" for message in messages)
+        base += "\nassistant: "
 
         headers = {
             "accept": "*/*",

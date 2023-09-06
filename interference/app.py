@@ -12,6 +12,7 @@ from g4f import ChatCompletion
 app = Flask(__name__)
 CORS(app)
 
+
 @app.route("/chat/completions", methods=["POST"])
 def chat_completions():
     model = request.get_json().get("model", "gpt-3.5-turbo")
@@ -87,5 +88,9 @@ def chat_completions():
     return app.response_class(streaming(), mimetype="text/event-stream")
 
 
-if __name__ == "__main__":
+def main():
     app.run(host="0.0.0.0", port=1337, debug=True)
+
+
+if __name__ == "__main__":
+    main()

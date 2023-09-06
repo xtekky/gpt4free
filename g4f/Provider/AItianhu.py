@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 
 import requests
@@ -7,7 +9,7 @@ from .base_provider import BaseProvider
 
 
 class AItianhu(BaseProvider):
-    url = "https://www.aitianhu.com/api/chat-process"
+    url = "https://www.aitianhu.com/"
     working = False
     supports_gpt_35_turbo = True
 
@@ -15,13 +17,10 @@ class AItianhu(BaseProvider):
     def create_completion(
         model: str,
         messages: list[dict[str, str]],
-        stream: bool,
-        **kwargs: Any,
-    ) -> CreateResult:
-        base = ""
-        for message in messages:
-            base += "%s: %s\n" % (message["role"], message["content"])
-        base += "assistant:"
+        stream: bool, **kwargs: Any) -> CreateResult:
+        
+        base = "\n".join(f"{message['role']}: {message['content']}" for message in messages)
+        base += "\nassistant: "
 
         headers = {
             "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36"

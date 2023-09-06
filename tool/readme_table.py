@@ -6,14 +6,35 @@ from urllib.parse import urlparse
 sys.path.append(str(Path(__file__).parent.parent))
 
 from g4f import models, Provider
-from g4f.Provider.base_provider import BaseProvider
+from g4f.Provider.base_provider import BaseProvider, AsyncProvider
+from testing.test_providers import test
 
 
-def main():
-    print_providers()
-    print("\n", "-" * 50, "\n")
-    print_models()
+def print_imports():
+    print("##### Providers:")
+    print("```py")
+    print("from g4f.Provider import (")
+    for _provider in get_providers():
+        if _provider.working:
+            print(f"    {_provider.__name__},")
+    print(")")
+    print("# Usage:")
+    print("response = g4f.ChatCompletion.create(..., provider=ProviderName)")
+    print("```")
+    print()
+    print()
 
+def print_async():
+    print("##### Async support:")
+    print("```py")
+    print("from g4f.Provider import (")
+    for _provider in get_providers():
+        if issubclass(_provider, AsyncProvider):
+            print(f"    {_provider.__name__},")
+    print(")")
+    print("```")
+    print()
+    print()
 
 def print_providers():
     lines = [
@@ -21,40 +42,50 @@ def print_providers():
         "| ------ | ------- | ------- | ----- | --------- | ------ | ---- |",
     ]
     providers = get_providers()
-    for _provider in providers:
-        netloc = urlparse(_provider.url).netloc
-        website = f"[{netloc}]({_provider.url})"
+    for is_working in (True, False):
+        for _provider in providers:
+            if is_working != _provider.working:
+                continue
+            netloc = urlparse(_provider.url).netloc
+            website = f"[{netloc}]({_provider.url})"
 
-        provider_name = f"g4f.provider.{_provider.__name__}"
+            provider_name = f"g4f.provider.{_provider.__name__}"
 
-        has_gpt_35 = "✔️" if _provider.supports_gpt_35_turbo else "❌"
-        has_gpt_4 = "✔️" if _provider.supports_gpt_4 else "❌"
-        stream = "✔️" if _provider.supports_stream else "❌"
-        status = (
-            "![Active](https://img.shields.io/badge/Active-brightgreen)"
-            if _provider.working
-            else "![Inactive](https://img.shields.io/badge/Inactive-red)"
-        )
-        auth = "✔️" if _provider.needs_auth else "❌"
+            has_gpt_35 = "✔️" if _provider.supports_gpt_35_turbo else "❌"
+            has_gpt_4 = "✔️" if _provider.supports_gpt_4 else "❌"
+            stream = "✔️" if _provider.supports_stream else "❌"
+            if _provider.working:
+                if test(_provider):
+                    status = '![Active](https://img.shields.io/badge/Active-brightgreen)'
+                else:
+                    status = '![Unknown](https://img.shields.io/badge/Unknown-grey)'
+            else:
+                status = '![Inactive](https://img.shields.io/badge/Inactive-red)'
+            auth = "✔️" if _provider.needs_auth else "❌"
 
-        lines.append(
-            f"| {website} | {provider_name} | {has_gpt_35} | {has_gpt_4} | {stream} | {status} | {auth} |"
-        )
+            lines.append(
+                f"| {website} | {provider_name} | {has_gpt_35} | {has_gpt_4} | {stream} | {status} | {auth} |"
+            )
     print("\n".join(lines))
 
 
-def get_providers() -> list[type[BaseProvider]]:
+def get_provider_names() -> list[str]:
     provider_names = dir(Provider)
     ignore_names = [
         "base_provider",
         "BaseProvider",
+        "AsyncProvider",
+        "AsyncGeneratorProvider"
     ]
-    provider_names = [
+    return [
         provider_name
         for provider_name in provider_names
         if not provider_name.startswith("__") and provider_name not in ignore_names
     ]
-    return [getattr(Provider, provider_name) for provider_name in provider_names]
+
+
+def get_providers() -> list[type[BaseProvider]]:
+    return [getattr(Provider, provider_name) for provider_name in get_provider_names()]
 
 
 def print_models():
@@ -79,6 +110,8 @@ def print_models():
 
     _models = get_models()
     for model in _models:
+        if model.best_provider.__name__ not in provider_urls:
+            continue
         split_name = re.split(r":|/", model.name)
         name = split_name[-1]
 
@@ -100,4 +133,8 @@ def get_models():
 
 
 if __name__ == "__main__":
-    main()
+    print_imports()
+    print_async()
+    print_providers()
+    print("\n", "-" * 50, "\n")
+    print_models()

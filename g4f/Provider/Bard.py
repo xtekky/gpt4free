@@ -1,30 +1,18 @@
+from __future__ import annotations
+
 import json
 import random
 import re
 
-import browser_cookie3
 from aiohttp import ClientSession
-import asyncio
 
-from ..typing import Any, CreateResult
-from .base_provider import BaseProvider
+from .base_provider import AsyncProvider, format_prompt, get_cookies
 
-class Bard(BaseProvider):
+
+class Bard(AsyncProvider):
     url = "https://bard.google.com"
     needs_auth = True
     working = True
-
-    @classmethod
-    def create_completion(
-        cls,
-        model: str,
-        messages: list[dict[str, str]],
-        stream: bool,
-        proxy: str = None,
-        cookies: dict = {},
-        **kwargs: Any,
-    ) -> CreateResult:
-        yield asyncio.run(cls.create_async(str, messages, proxy, cookies))
 
     @classmethod
     async def create_async(
@@ -32,20 +20,14 @@ class Bard(BaseProvider):
         model: str,
         messages: list[dict[str, str]],
         proxy: str = None,
-        cookies: dict = {},
-        **kwargs: Any,
+        cookies: dict = None,
+        **kwargs
     ) -> str:
-        if not cookies:
-            for cookie in browser_cookie3.load(domain_name='.google.com'):
-                cookies[cookie.name] = cookie.value
-
-        formatted = "\n".join(
-            ["%s: %s" % (message["role"], message["content"]) for message in messages]
-        )
-        prompt = f"{formatted}\nAssistant:"
-
+        prompt = format_prompt(messages)
         if proxy and "://" not in proxy:
             proxy = f"http://{proxy}"
+        if not cookies:
+            cookies = get_cookies(".google.com")
 
         headers = {
             'authority': 'bard.google.com',
@@ -62,10 +44,11 @@ class Bard(BaseProvider):
         ) as session:
             async with session.get(cls.url, proxy=proxy) as response:
                 text = await response.text()
-            
+
             match = re.search(r'SNlM0e\":\"(.*?)\"', text)
-            if match:
-                snlm0e = match.group(1)
+            if not match:
+                raise RuntimeError("No snlm0e value.")
+            snlm0e = match.group(1)
             
             params = {
                 'bl': 'boq_assistant-bard-web-server_20230326.21_p0',

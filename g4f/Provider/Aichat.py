@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import requests
 
 from ..typing import Any, CreateResult
@@ -5,22 +7,18 @@ from .base_provider import BaseProvider
 
 
 class Aichat(BaseProvider):
-    url = "https://chat-gpt.org/chat"
-    working = True
+    url                   = "https://chat-gpt.org/chat"
+    working               = True
     supports_gpt_35_turbo = True
 
     @staticmethod
     def create_completion(
         model: str,
         messages: list[dict[str, str]],
-        stream: bool,
-        **kwargs: Any,
-    ) -> CreateResult:
-        base = ""
-
-        for message in messages:
-            base += "%s: %s\n" % (message["role"], message["content"])
-        base += "assistant:"
+        stream: bool, **kwargs: Any) -> CreateResult:
+        
+        chat = "\n".join(f"{message['role']}: {message['content']}" for message in messages)
+        chat += "\nassistant: "
 
         headers = {
             "authority": "chat-gpt.org",

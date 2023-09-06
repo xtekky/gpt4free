@@ -9,3 +9,4 @@ js2py
 quickjs
 flask
 flask-cors
+httpx

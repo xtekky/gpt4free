@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 import random
 import string
@@ -10,65 +12,62 @@ from .base_provider import BaseProvider
 
 
 class Wewordle(BaseProvider):
-    url = "https://wewordle.org/gptapi/v1/android/turbo"
-    working = True
-    supports_gpt_35_turbo = True
+    url                    = "https://wewordle.org/"
+    working                = True
+    supports_gpt_35_turbo  = True
 
-    @staticmethod
+    @classmethod
     def create_completion(
+        cls,
         model: str,
         messages: list[dict[str, str]],
-        stream: bool,
-        **kwargs: Any,
-    ) -> CreateResult:
-        base = ""
-
-        for message in messages:
-            base += "%s: %s\n" % (message["role"], message["content"])
-        base += "assistant:"
+        stream: bool, **kwargs: Any) -> CreateResult:
+        
         # randomize user id and app id
         _user_id = "".join(
-            random.choices(f"{string.ascii_lowercase}{string.digits}", k=16)
-        )
+            random.choices(f"{string.ascii_lowercase}{string.digits}", k=16))
+        
         _app_id = "".join(
-            random.choices(f"{string.ascii_lowercase}{string.digits}", k=31)
-        )
+            random.choices(f"{string.ascii_lowercase}{string.digits}", k=31))
+        
         # make current date with format utc
         _request_date = time.strftime("%Y-%m-%dT%H:%M:%S.000Z", time.gmtime())
         headers = {
-            "accept": "*/*",
-            "pragma": "no-cache",
-            "Content-Type": "application/json",
-            "Connection": "keep-alive"
+            "accept"        : "*/*",
+            "pragma"        : "no-cache",
+            "Content-Type"  : "application/json",
+            "Connection"    : "keep-alive"
             # user agent android client
             # 'User-Agent': 'Dalvik/2.1.0 (Linux; U; Android 10; SM-G975F Build/QP1A.190711.020)',
         }
+        
         data: dict[str, Any] = {
-            "user": _user_id,
-            "messages": [{"role": "user", "content": base}],
+            "user"      : _user_id,
+            "messages"  : messages,
             "subscriber": {
-                "originalPurchaseDate": None,
-                "originalApplicationVersion": None,
-                "allPurchaseDatesMillis": {},
-                "entitlements": {"active": {}, "all": {}},
-                "allPurchaseDates": {},
-                "allExpirationDatesMillis": {},
-                "allExpirationDates": {},
-                "originalAppUserId": f"$RCAnonymousID:{_app_id}",
-                "latestExpirationDate": None,
-                "requestDate": _request_date,
-                "latestExpirationDateMillis": None,
-                "nonSubscriptionTransactions": [],
-                "originalPurchaseDateMillis": None,
-                "managementURL": None,
+                "originalPurchaseDate"          : None,
+                "originalApplicationVersion"    : None,
+                "allPurchaseDatesMillis"        : {},
+                "entitlements"                  : {"active": {}, "all": {}},
+                "allPurchaseDates"              : {},
+                "allExpirationDatesMillis"      : {},
+                "allExpirationDates"            : {},
+                "originalAppUserId"             : f"$RCAnonymousID:{_app_id}",
+                "latestExpirationDate"          : None,
+                "requestDate"                   : _request_date,
+                "latestExpirationDateMillis"    : None,
+                "nonSubscriptionTransactions"   : [],
+                "originalPurchaseDateMillis"    : None,
+                "managementURL"                 : None,
                 "allPurchasedProductIdentifiers": [],
-                "firstSeen": _request_date,
-                "activeSubscriptions": [],
-            },
+                "firstSeen"                     : _request_date,
+                "activeSubscriptions"           : [],
+            }
         }
 
-        url = "https://wewordle.org/gptapi/v1/android/turbo"
-        response = requests.post(url, headers=headers, data=json.dumps(data))
+        response = requests.post(f"{cls.url}gptapi/v1/android/turbo", 
+                                 headers=headers, data=json.dumps(data))
+        
         response.raise_for_status()
         _json = response.json()
         if "message" in _json:
