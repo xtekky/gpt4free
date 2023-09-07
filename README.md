@@ -155,7 +155,7 @@ Many providers need cookies to work.
 In Bing you need a session, where you have passed the captcha.
 And in others providers you have to log-in into your account.
 If you run the g4l package locally,
-cookies from your browsers are readed with `get_cookies`.
+cookies from your browsers are read with `get_cookies`.
 Else you have pass them in the parameter `cookies`:
 ```py
 import g4f
