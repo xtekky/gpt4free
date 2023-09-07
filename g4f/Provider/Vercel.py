@@ -1,63 +1,72 @@
 from __future__ import annotations
 
-import base64
-import json
-import uuid
+import base64, json, uuid, quickjs, random
+from curl_cffi.requests import AsyncSession
 
-import quickjs
-from curl_cffi import requests
-
-from ..typing import Any, CreateResult, TypedDict
-from .base_provider import BaseProvider
+from ..typing       import Any, TypedDict
+from .base_provider import AsyncProvider
 
 
-class Vercel(BaseProvider):
-    url                   = "https://play.vercel.ai"
+class Vercel(AsyncProvider):
+    url                   = "https://sdk.vercel.ai"
     working               = True
     supports_gpt_35_turbo = True
+    model                 = "replicate:replicate/llama-2-70b-chat"
 
-    @staticmethod
-    def create_completion(
+    @classmethod
+    async def create_async(
+        cls,
         model: str,
         messages: list[dict[str, str]],
-        stream: bool, **kwargs: Any) -> CreateResult:
-        
+        proxy: str = None,
+        **kwargs
+    ) -> str:
         if model in ["gpt-3.5-turbo", "gpt-4"]:
             model = "openai:" + model
-        yield _chat(model_id=model, messages=messages)
+        model = model if model else cls.model
+        proxies = None
+        if proxy:
+            if "://" not in proxy:
+                proxy = "http://" + proxy
+            proxies = {"http": proxy, "https": proxy}
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.{rand1}.{rand2} Safari/537.36".format(
+                rand1=random.randint(0,9999),
+                rand2=random.randint(0,9999)
+            ),
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+            "Accept-Encoding": "gzip, deflate, br",
+            "Accept-Language": "en-US,en;q=0.5",
+            "TE": "trailers",
+        }
+        async with AsyncSession(headers=headers, proxies=proxies, impersonate="chrome107") as session:
+            response = await session.get(cls.url + "/openai.jpeg")
+            response.raise_for_status()
+            custom_encoding = _get_custom_encoding(response.text)
+            headers = {
+                "Content-Type": "application/json",
+                "Custom-Encoding": custom_encoding,
+            }
+            data = _create_payload(model, messages)
+            response = await session.post(cls.url + "/api/generate", json=data, headers=headers)
+            response.raise_for_status()
+            return response.text
 
 
-def _chat(model_id: str, messages: list[dict[str, str]]) -> str:
-    session = requests.Session(impersonate="chrome107")
-
-    url     = "https://sdk.vercel.ai/api/generate"
-    header  = _create_header(session)
-    payload = _create_payload(model_id, messages)
-
-    response = session.post(url=url, headers=header, json=payload)
-    response.raise_for_status()
-    return response.text
-
-
-def _create_payload(model_id: str, messages: list[dict[str, str]]) -> dict[str, Any]:
-    default_params = model_info[model_id]["default_params"]
+def _create_payload(model: str, messages: list[dict[str, str]]) -> dict[str, Any]:
+    if model not in model_info:
+        raise RuntimeError(f'Model "{model}" are not supported')
+    default_params = model_info[model]["default_params"]
     return {
         "messages": messages,
         "playgroundId": str(uuid.uuid4()),
         "chatIndex": 0,
-        "model": model_id} | default_params
-
-
-def _create_header(session: requests.Session):
-    custom_encoding = _get_custom_encoding(session)
-    return {"custom-encoding": custom_encoding}
+        "model": model
+    } | default_params
 
 # based on https://github.com/ading2210/vercel-llm-api
-def _get_custom_encoding(session: requests.Session):
-    url = "https://sdk.vercel.ai/openai.jpeg"
-    response = session.get(url=url)
-
-    data = json.loads(base64.b64decode(response.text, validate=True))
+def _get_custom_encoding(text: str) -> str:
+    data = json.loads(base64.b64decode(text, validate=True))
     script = """
       String.prototype.fontcolor = function() {{
         return `<font>${{this}}</font>`
@@ -67,7 +76,6 @@ def _get_custom_encoding(session: requests.Session):
     """.format(
         script=data["c"], key=data["a"]
     )
-
     context = quickjs.Context()  # type: ignore
     token_data = json.loads(context.eval(script).json())  # type: ignore
     token_data[2] = "mark"
@@ -132,6 +140,15 @@ model_info: dict[str, ModelInfo] = {
         "default_params": {
             "temperature": 0.75,
             "maxTokens": 500,
+            "topP": 1,
+            "repetitionPenalty": 1,
+        },
+    },
+    "replicate:replicate/llama-2-70b-chat": {
+        "id": "replicate:replicate/llama-2-70b-chat",
+        "default_params": {
+            "temperature": 0.75,
+            "maxTokens": 1000,
             "topP": 1,
             "repetitionPenalty": 1,
         },

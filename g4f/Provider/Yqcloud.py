@@ -2,28 +2,31 @@ from __future__ import annotations
 
 from aiohttp import ClientSession
 
-from .base_provider import AsyncProvider, format_prompt
+from ..typing import AsyncGenerator
+from .base_provider import AsyncGeneratorProvider, format_prompt
 
 
-class Yqcloud(AsyncProvider):
+class Yqcloud(AsyncGeneratorProvider):
     url = "https://chat9.yqcloud.top/"
     working = True
     supports_gpt_35_turbo = True
 
     @staticmethod
-    async def create_async(
+    async def create_async_generator(
         model: str,
         messages: list[dict[str, str]],
         proxy: str = None,
         **kwargs,
-    ) -> str:
+    ) -> AsyncGenerator:
         async with ClientSession(
             headers=_create_header()
         ) as session:
             payload = _create_payload(messages)
             async with session.post("https://api.aichatos.cloud/api/generateStream", proxy=proxy, json=payload) as response:
                 response.raise_for_status()
-                return await response.text()
+                async for stream in response.content.iter_any():
+                    if stream:
+                        yield stream.decode()
 
 
 def _create_header():
@@ -40,6 +43,6 @@ def _create_payload(messages: list[dict[str, str]]):
         "network": True,
         "system": "",
         "withoutContext": False,
-        "stream": False,
+        "stream": True,
         "userId": "#/chat/1693025544336"
     }

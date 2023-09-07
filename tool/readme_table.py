@@ -5,10 +5,9 @@ from urllib.parse import urlparse
 
 sys.path.append(str(Path(__file__).parent.parent))
 
-from g4f import models, Provider
-from g4f.Provider.base_provider import BaseProvider, AsyncProvider
-from testing.test_providers import test
-
+from g4f import models
+from g4f.Provider.base_provider import AsyncProvider
+from testing.test_providers import test, get_providers
 
 def print_imports():
     print("##### Providers:")
@@ -67,26 +66,6 @@ def print_providers():
                 f"| {website} | {provider_name} | {has_gpt_35} | {has_gpt_4} | {stream} | {status} | {auth} |"
             )
     print("\n".join(lines))
-
-
-def get_provider_names() -> list[str]:
-    provider_names = dir(Provider)
-    ignore_names = [
-        "base_provider",
-        "BaseProvider",
-        "AsyncProvider",
-        "AsyncGeneratorProvider"
-    ]
-    return [
-        provider_name
-        for provider_name in provider_names
-        if not provider_name.startswith("__") and provider_name not in ignore_names
-    ]
-
-
-def get_providers() -> list[type[BaseProvider]]:
-    return [getattr(Provider, provider_name) for provider_name in get_provider_names()]
-
 
 def print_models():
     base_provider_names = {

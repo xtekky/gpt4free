@@ -1,23 +1,17 @@
 from __future__ import annotations
 
-import asyncio
+import random
 import json
 import os
-import random
-
-import aiohttp
-from aiohttp import ClientSession
-
-from ..typing import Any, AsyncGenerator, CreateResult, Union
+from aiohttp        import ClientSession, ClientTimeout
+from ..typing       import AsyncGenerator
 from .base_provider import AsyncGeneratorProvider, get_cookies
 
 
 class Bing(AsyncGeneratorProvider):
     url             = "https://bing.com/chat"
-    needs_auth      = True
     working         = True
     supports_gpt_4  = True
-    supports_stream = True
         
     @staticmethod
     def create_async_generator(
@@ -34,18 +28,16 @@ class Bing(AsyncGeneratorProvider):
             prompt = messages[-1]["content"]
             context = create_context(messages[:-1])
         
-        if cookies and "SRCHD" in cookies:
-            #TODO: Will implement proper cookie retrieval later and use a try-except mechanism in 'stream_generate' instead of defaulting the cookie value like this
-            cookies_dict = {
-                'SRCHD'         : cookies["SRCHD"],
+        if not cookies or "SRCHD" not in cookies:
+            cookies = {
+                'SRCHD'         : 'AF=NOFORM',
                 'PPLState'      : '1',
                 'KievRPSSecAuth': '',
                 'SUID'          : '',
                 'SRCHUSR'       : '',
                 'SRCHHPGUSR'    : '',
             }
-        
-        return stream_generate(prompt, context, cookies_dict)
+        return stream_generate(prompt, context, cookies)
 
 def create_context(messages: list[dict[str, str]]):
     context = "".join(f"[{message['role']}](#message)\n{message['content']}\n\n" for message in messages)
@@ -236,7 +228,7 @@ async def stream_generate(
         cookies: dict=None
     ):
     async with ClientSession(
-        timeout=aiohttp.ClientTimeout(total=900),
+        timeout=ClientTimeout(total=900),
         cookies=cookies,
         headers=Defaults.headers,
     ) as session:
@@ -289,15 +281,3 @@ async def stream_generate(
                             break
         finally:
             await delete_conversation(session, conversation)
-
-def run(generator: AsyncGenerator[Union[Any, str], Any]):
-    loop = asyncio.get_event_loop()
-    gen = generator.__aiter__()
-
-    while True:
-        try:
-            yield loop.run_until_complete(gen.__anext__())
-
-        except StopAsyncIteration:
-            break
-
