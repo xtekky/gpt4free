@@ -34,7 +34,7 @@ class OpenaiChat(AsyncProvider):
                 "https": proxy
             }
         if not access_token:
-            access_token = await cls.get_access_token(cookies)
+            access_token = await cls.get_access_token(cookies, proxies)
         headers = {
             "Accept": "text/event-stream",
             "Authorization": f"Bearer {access_token}",
