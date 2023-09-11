@@ -26,11 +26,11 @@ def print_imports():
 def print_async():
     print("##### Async support:")
     print("```py")
-    print("from g4f.Provider import (")
+    print("_providers = [")
     for _provider in get_providers():
         if issubclass(_provider, AsyncProvider):
-            print(f"    {_provider.__name__},")
-    print(")")
+            print(f"      g4f.Provider.{_provider.__name__},")
+    print("]")
     print("```")
     print()
     print()
