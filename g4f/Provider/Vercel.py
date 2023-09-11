@@ -55,7 +55,7 @@ class Vercel(AsyncProvider):
 
 def _create_payload(model: str, messages: list[dict[str, str]]) -> dict[str, Any]:
     if model not in model_info:
-        raise RuntimeError(f'Model "{model}" are not supported')
+        raise ValueError(f'Model are not supported: {model}')
     default_params = model_info[model]["default_params"]
     return {
         "messages": messages,
