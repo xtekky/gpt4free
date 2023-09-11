@@ -6,8 +6,10 @@ from .AiService     import AiService
 from .AItianhu      import AItianhu
 from .Bard          import Bard
 from .Bing          import Bing
+from .ChatBase      import ChatBase
 from .ChatgptAi     import ChatgptAi
 from .ChatgptLogin  import ChatgptLogin
+from .CodeLinkAva   import CodeLinkAva
 from .DeepAi        import DeepAi
 from .DfeHub        import DfeHub
 from .EasyChat      import EasyChat
@@ -42,8 +44,10 @@ __all__ = [
     'AItianhu',
     'Bard',
     'Bing',
+    'ChatBase',
     'ChatgptAi',
     'ChatgptLogin',
+    'CodeLinkAva',
     'DeepAi',
     'DfeHub',
     'EasyChat',

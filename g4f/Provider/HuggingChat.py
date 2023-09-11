@@ -68,7 +68,7 @@ class HuggingChat(AsyncGeneratorProvider):
                     if "error" in data:
                         raise RuntimeError(data["error"])
                     elif isinstance(data, list):
-                        yield data[0]["generated_text"]
+                        yield data[0]["generated_text"].strip()
                     else:
                         raise RuntimeError(f"Response: {data}")
                 else:
