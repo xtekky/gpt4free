@@ -1,31 +1,37 @@
 from __future__ import annotations
 from dataclasses import dataclass
-from .Provider import Bard, BaseProvider, GetGpt, H2o, Liaobots, Vercel, Equing
+from .Provider import BaseProvider, Bard, H2o, Vercel
+from .Provider import Aichat, Aivvm, ChatBase, ChatgptAi, ChatgptLogin, CodeLinkAva
+from .Provider import DeepAi, Vercel, Vitalentum, Ylokh, You, Yqcloud
+from .typing import Union
 
 @dataclass
 class Model:
     name: str
     base_provider: str
-    best_provider: type[BaseProvider]
+    best_provider: Union[type[BaseProvider], tuple[type[BaseProvider]]] = None
 
 # Config for HuggingChat, OpenAssistant
 # Works for Liaobots, H2o, OpenaiChat, Yqcloud, You
 default = Model(
     name="",
-    base_provider="huggingface",
-    best_provider=H2o,
+    base_provider="huggingface"
 )
 
 # GPT-3.5 / GPT-4
 gpt_35_turbo = Model(
     name          = 'gpt-3.5-turbo',
     base_provider = 'openai',
-    best_provider = GetGpt)
+    best_provider = (
+        Vercel, Aichat, Aivvm, ChatBase, ChatgptAi, ChatgptLogin,
+        CodeLinkAva, DeepAi, Vitalentum, Ylokh, You, Yqcloud
+    )
+)
 
 gpt_4 = Model(
     name          = 'gpt-4',
     base_provider = 'openai',
-    best_provider = Liaobots)
+)
 
 # Bard
 palm = Model(
@@ -117,8 +123,7 @@ gpt_35_turbo_16k = Model(
 
 gpt_35_turbo_16k_0613 = Model(
     name          = 'openai:gpt-3.5-turbo-16k-0613',
-    base_provider = 'openai',
-    best_provider = Equing)
+    base_provider = 'openai')
 
 gpt_4_0613 = Model(
     name          = 'openai:gpt-4-0613',

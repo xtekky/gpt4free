@@ -13,7 +13,7 @@ class EasyChat(BaseProvider):
     url: str              = "https://free.easychat.work"
     supports_stream       = True
     supports_gpt_35_turbo = True
-    working               = True
+    working               = False
 
     @staticmethod
     def create_completion(

@@ -2,6 +2,7 @@ from __future__ import annotations
 from .          import models
 from .Provider  import BaseProvider
 from .typing    import Any, CreateResult, Union
+import random
 
 logging = False
 
@@ -13,14 +14,22 @@ class ChatCompletion:
         provider : Union[type[BaseProvider], None] = None,
         stream   : bool                            = False,
         auth     : Union[str, None]                = None, **kwargs: Any) -> Union[CreateResult, str]:
-        
+
         if isinstance(model, str):
             try:
                 model = models.ModelUtils.convert[model]
             except KeyError:
                 raise Exception(f'The model: {model} does not exist')
 
-        provider = model.best_provider if provider == None else provider
+
+        if not provider:
+            if isinstance(model.best_provider, tuple):
+                provider = random.choice(model.best_provider)
+            else:
+                provider = model.best_provider
+
+        if not provider:
+            raise Exception(f'No provider found')
 
         if not provider.working:
             raise Exception(f'{provider.__name__} is not working')
