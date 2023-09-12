@@ -1,53 +1,56 @@
 from __future__ import annotations
 
+import json
 from aiohttp import ClientSession
 
-from ..typing       import AsyncGenerator
 from .base_provider import AsyncGeneratorProvider
+from ..typing import AsyncGenerator
 
-
-class ChatBase(AsyncGeneratorProvider):
-    url                   = "https://www.chatbase.co"
-    supports_gpt_35_turbo = True
-    supports_gpt_4        = True
+class Vitalentum(AsyncGeneratorProvider):
+    url                   = "https://app.vitalentum.io"
     working               = True
+    supports_gpt_35_turbo = True
+
 
     @classmethod
     async def create_async_generator(
         cls,
         model: str,
         messages: list[dict[str, str]],
+        proxy: str = None,
         **kwargs
     ) -> AsyncGenerator:
-        if model == "gpt-4":
-            chat_id = "quran---tafseer-saadi-pdf-wbgknt7zn"
-        elif model == "gpt-3.5-turbo" or not model:
-            chat_id = "chatbase--1--pdf-p680fxvnm"
-        else:
-            raise ValueError(f"Model are not supported: {model}")
         headers = {
             "User-Agent"         : "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36",
-            "Accept"             : "*/*",
-            "Accept-language"    : "en,fr-FR;q=0.9,fr;q=0.8,es-ES;q=0.7,es;q=0.6,en-US;q=0.5,am;q=0.4,de;q=0.3",
+            "Accept"             : "text/event-stream",
+            "Accept-language"    : "de,en-US;q=0.7,en;q=0.3",
             "Origin"             : cls.url,
             "Referer"            : cls.url + "/",
             "Sec-Fetch-Dest"     : "empty",
             "Sec-Fetch-Mode"     : "cors",
             "Sec-Fetch-Site"     : "same-origin",
         }
+        conversation = json.dumps({"history": [{
+            "speaker": "human" if message["role"] == "user" else "bot",
+            "text": message["content"],
+        } for message in messages]})
+        data = {
+            "conversation": conversation,
+            "temperature": 0.7,
+            **kwargs
+        }
         async with ClientSession(
             headers=headers
         ) as session:
-            data = {
-                "messages": messages,
-                "captchaCode": "hadsa",
-                "chatId": chat_id,
-                "conversationId": f"kcXpqEnqUie3dnJlsRi_O-{chat_id}"
-            }
-            async with session.post("https://www.chatbase.co/api/fe/chat", json=data) as response:
+            async with session.post(cls.url + "/api/converse-edge", json=data, proxy=proxy) as response:
                 response.raise_for_status()
-                async for stream in response.content.iter_any():
-                    yield stream.decode()
+                async for line in response.content:
+                    line = line.decode()
+                    if line.startswith("data: ") and not line.startswith("data: [DONE]"):
+                        line = json.loads(line[6:-1])
+                        content = line["choices"][0]["delta"].get("content")
+                        if content:
+                            yield content
 
 
     @classmethod
@@ -57,6 +60,7 @@ class ChatBase(AsyncGeneratorProvider):
             ("model", "str"),
             ("messages", "list[dict[str, str]]"),
             ("stream", "bool"),
+            ("temperature", "float"),
         ]
         param = ", ".join([": ".join(p) for p in params])
         return f"g4f.provider.{cls.__name__} supports: ({param})"

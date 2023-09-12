@@ -4,6 +4,7 @@ from .Aichat        import Aichat
 from .Ails          import Ails
 from .AiService     import AiService
 from .AItianhu      import AItianhu
+from .Aivvm         import Aivvm
 from .Bard          import Bard
 from .Bing          import Bing
 from .ChatBase      import ChatBase
@@ -25,7 +26,9 @@ from .OpenAssistant import OpenAssistant
 from .Raycast       import Raycast
 from .Theb          import Theb
 from .Vercel        import Vercel
+from .Vitalentum    import Vitalentum
 from .Wewordle      import Wewordle
+from .Ylokh         import Ylokh
 from .You           import You
 from .Yqcloud       import Yqcloud
 from .Equing        import Equing
@@ -42,6 +45,7 @@ __all__ = [
     'Ails',
     'AiService',
     'AItianhu',
+    'Aivvm',
     'Bard',
     'Bing',
     'ChatBase',
@@ -63,7 +67,9 @@ __all__ = [
     'OpenAssistant',
     'Theb',
     'Vercel',
+    'Vitalentum',
     'Wewordle',
+    'Ylokh',
     'You',
     'Yqcloud',
     'Equing',

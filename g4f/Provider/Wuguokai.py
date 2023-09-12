@@ -5,13 +5,13 @@ import random
 import requests
 
 from ..typing import Any, CreateResult
-from .base_provider import BaseProvider
+from .base_provider import BaseProvider, format_prompt
 
 
 class Wuguokai(BaseProvider):
     url = 'https://chat.wuguokai.xyz'
     supports_gpt_35_turbo = True
-    working = True
+    working = False
 
     @staticmethod
     def create_completion(
@@ -20,11 +20,6 @@ class Wuguokai(BaseProvider):
         stream: bool,
         **kwargs: Any,
     ) -> CreateResult:
-        base = ''
-        for message in messages:
-            base += '%s: %s\n' % (message['role'], message['content'])
-        base += 'assistant:'
-
         headers = {
             'authority': 'ai-api.wuguokai.xyz',
             'accept': 'application/json, text/plain, */*',
@@ -41,7 +36,7 @@ class Wuguokai(BaseProvider):
             'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36'
         }
         data ={
-            "prompt": base,
+            "prompt": format_prompt(messages),
             "options": {},
             "userId": f"#/chat/{random.randint(1,99999999)}",
             "usingContext": True

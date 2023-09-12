@@ -2,28 +2,41 @@ from __future__ import annotations
 
 from aiohttp import ClientSession
 
-from ..typing       import AsyncGenerator
 from .base_provider import AsyncGeneratorProvider
+from ..typing import AsyncGenerator
 
+models = {
+    "gpt-4": {
+        "id": "gpt-4",
+        "name": "GPT-4",
+    },
+    "gpt-3.5-turbo": {
+        "id": "gpt-3.5-turbo",
+        "name": "GPT-3.5",
+    },
+    "gpt-3.5-turbo-16k": {
+        "id": "gpt-3.5-turbo-16k",
+        "name": "GPT-3.5-16k",
+    },
+}
 
-class ChatBase(AsyncGeneratorProvider):
-    url                   = "https://www.chatbase.co"
+class Aivvm(AsyncGeneratorProvider):
+    url                   = "https://chat.aivvm.com"
+    working               = True
     supports_gpt_35_turbo = True
     supports_gpt_4        = True
-    working               = True
+
 
     @classmethod
     async def create_async_generator(
         cls,
         model: str,
         messages: list[dict[str, str]],
+        proxy: str = None,
         **kwargs
     ) -> AsyncGenerator:
-        if model == "gpt-4":
-            chat_id = "quran---tafseer-saadi-pdf-wbgknt7zn"
-        elif model == "gpt-3.5-turbo" or not model:
-            chat_id = "chatbase--1--pdf-p680fxvnm"
-        else:
+        model = model if model else "gpt-3.5-turbo"
+        if model not in models:
             raise ValueError(f"Model are not supported: {model}")
         headers = {
             "User-Agent"         : "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36",
@@ -39,12 +52,14 @@ class ChatBase(AsyncGeneratorProvider):
             headers=headers
         ) as session:
             data = {
+                "temperature": 1,
+                "key": "",
                 "messages": messages,
-                "captchaCode": "hadsa",
-                "chatId": chat_id,
-                "conversationId": f"kcXpqEnqUie3dnJlsRi_O-{chat_id}"
+                "model": models[model],
+                "prompt": "",
+                **kwargs
             }
-            async with session.post("https://www.chatbase.co/api/fe/chat", json=data) as response:
+            async with session.post(cls.url + "/api/chat", json=data, proxy=proxy) as response:
                 response.raise_for_status()
                 async for stream in response.content.iter_any():
                     yield stream.decode()
@@ -57,6 +72,7 @@ class ChatBase(AsyncGeneratorProvider):
             ("model", "str"),
             ("messages", "list[dict[str, str]]"),
             ("stream", "bool"),
+            ("temperature", "float"),
         ]
         param = ", ".join([": ".join(p) for p in params])
         return f"g4f.provider.{cls.__name__} supports: ({param})"

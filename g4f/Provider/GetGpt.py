@@ -14,7 +14,7 @@ from .base_provider import BaseProvider
 class GetGpt(BaseProvider):
     url                   = 'https://chat.getgpt.world/'
     supports_stream       = True
-    working               = True
+    working               = False
     supports_gpt_35_turbo = True
 
     @staticmethod
