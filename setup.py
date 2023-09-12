@@ -14,7 +14,7 @@ with open("requirements.txt") as f:
 with open("interference/requirements.txt") as f:
     api_required = f.read().splitlines()
 
-VERSION = '0.0.2.8'
+VERSION = '0.0.2.9'
 DESCRIPTION = (
     "The official gpt4free repository | various collection of powerful language models"
 )
