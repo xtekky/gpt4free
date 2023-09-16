@@ -6,6 +6,7 @@ import random
 
 logging = False
 
+
 class ChatCompletion:
     @staticmethod
     def create(
@@ -21,9 +22,8 @@ class ChatCompletion:
             except KeyError:
                 raise Exception(f'The model: {model} does not exist')
 
-
         if not provider:
-            if isinstance(model.best_provider, tuple):
+            if isinstance(model.best_provider, list):
                 provider = random.choice(model.best_provider)
             else:
                 provider = model.best_provider
