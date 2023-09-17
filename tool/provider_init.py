@@ -3,13 +3,13 @@ from pathlib import Path
 
 def main():
     content = create_content()
-    with open("g4f/provider/__init__.py", "w", encoding="utf-8") as f:
+    with open("g4f/Provider/__init__.py", "w", encoding="utf-8") as f:
         f.write(content)
 
 
 def create_content():
     path = Path()
-    paths = path.glob("g4f/provider/*.py")
+    paths = path.glob("g4f/Provider/*.py")
     paths = [p for p in paths if p.name not in ["__init__.py", "base_provider.py"]]
     classnames = [p.stem for p in paths]
 
