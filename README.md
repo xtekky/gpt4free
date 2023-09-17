@@ -521,10 +521,10 @@ for message in response:
 
 ## ChatGPT clone
 
-> We are currently implementing new features and trying to scale it, but please be patient as it may be unstable  
+> We are currently implementing new features and trying to scale it, but please be patient as it may be unstable. 
 > https://chat.g4f.ai/chat
 > This site was developed by me and includes **gpt-4/3.5**, **internet access** and **gpt-jailbreak's** like DAN  
-> Run locally here: https://github.com/xtekky/chatgpt-clone
+> Run locally here: https://github.com/xtekky/chatgpt-clone. 
 
 ## Copyright:
 
