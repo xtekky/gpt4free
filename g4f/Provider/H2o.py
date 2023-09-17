@@ -98,4 +98,4 @@ class H2o(AsyncGeneratorProvider):
             ("return_full_text", "bool"),
         ]
         param = ", ".join([": ".join(p) for p in params])
-        return f"g4f.Provider.{cls.__name__} supports: ({param})"
+        return f"g4f.provider.{cls.__name__} supports: ({param})"

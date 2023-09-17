@@ -145,7 +145,7 @@ import g4f
 
 print(g4f.Provider.Ails.params)  # supported args
 
-# Automatic selection of Provider
+# Automatic selection of provider
 
 # streamed completion
 response = g4f.ChatCompletion.create(
@@ -166,7 +166,7 @@ response = g4f.ChatCompletion.create(
 print(response)
 
 
-# Set with Provider
+# Set with provider
 response = g4f.ChatCompletion.create(
     model="gpt-3.5-turbo",
     provider=g4f.Provider.DeepAi,
@@ -474,8 +474,8 @@ if __name__ == "__main__":
 
 to add another provider, its very simple:
 
-1. create a new file in [g4f/Provider](./g4f/Provider) with the name of the Provider
-2. Implement a class that extends [BaseProvider](./g4f/Provider/base_provider.py).
+1. create a new file in [g4f/provider](./g4f/provider) with the name of the Provider
+2. Implement a class that extends [BaseProvider](./g4f/provider/base_provider.py).
 
 ```py
 from .base_provider import BaseProvider
@@ -499,7 +499,7 @@ class HogeService(BaseProvider):
 
 3. Here, you can adjust the settings, for example if the website does support streaming, set `working` to `True`...
 4. Write code to request the provider in `create_completion` and `yield` the response, _even if_ its a one-time response, do not hesitate to look at other providers for inspiration
-5. Add the Provider Name in [g4f/provider/\_\_init__.py](./g4f/Provider/__init__.py)
+5. Add the Provider Name in [g4f/provider/**init**.py](./g4f/provider/__init__.py)
 
 ```py
 from .base_provider import BaseProvider
