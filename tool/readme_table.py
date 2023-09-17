@@ -81,7 +81,7 @@ def print_providers():
             netloc = urlparse(_provider.url).netloc
             website = f"[{netloc}]({_provider.url})"
 
-            provider_name = f"g4f.Provider.{_provider.__name__}"
+            provider_name = f"g4f.provider.{_provider.__name__}"
 
             has_gpt_35 = "✔️" if _provider.supports_gpt_35_turbo else "❌"
             has_gpt_4 = "✔️" if _provider.supports_gpt_4 else "❌"
@@ -128,7 +128,7 @@ def print_models():
 
         name = re.split(r":|/", model.name)[-1]
         base_provider = base_provider_names[model.base_provider]
-        provider_name = f"g4f.Provider.{model.best_provider.__name__}"
+        provider_name = f"g4f.provider.{model.best_provider.__name__}"
         provider_url = provider_urls[model.best_provider.__name__]
         netloc = urlparse(provider_url).netloc
         website = f"[{netloc}]({provider_url})"
