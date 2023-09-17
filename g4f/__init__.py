@@ -1,11 +1,10 @@
 from __future__ import annotations
-from .          import models
+from g4f        import models
 from .Provider  import BaseProvider
 from .typing    import Any, CreateResult, Union
 import random
 
 logging = False
-
 
 class ChatCompletion:
     @staticmethod
