@@ -2,9 +2,6 @@
 
 By using this repository or any code related to it, you agree to the [legal notice](./LEGAL_NOTICE.md). The author is not responsible for any copies, forks, reuploads made by other users, or anything else related to gpt4free. This is the author's only account and repository. To prevent impersonation or irresponsible actions, please comply with the GNU GPL license this Repository uses.
 
-This (quite censored) New Version of gpt4free, was just released so it may contain bugs. Please open an issue or contribute a PR when encountering one.
-P.S: Docker is for now not available but I would be happy if someone contributes a PR. The g4f GUI will be uploaded soon enough.
-
 ### New
 
 - pypi package:
