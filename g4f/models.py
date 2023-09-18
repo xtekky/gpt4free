@@ -7,7 +7,6 @@ from .Provider   import (
     CodeLinkAva,
     ChatgptAi, 
     ChatBase, 
-    Yqcloud,
     Vercel, 
     DeepAi, 
     Aivvm, 
@@ -32,7 +31,7 @@ gpt_35_turbo = Model(
     name          = 'gpt-3.5-turbo',
     base_provider = 'openai',
     best_provider = [
-        Yqcloud, DeepAi, CodeLinkAva, ChatgptLogin, ChatgptAi, ChatBase, Aivvm
+        DeepAi, CodeLinkAva, ChatgptLogin, ChatgptAi, ChatBase, Aivvm
     ]
 )
 
