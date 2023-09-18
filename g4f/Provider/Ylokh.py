@@ -51,7 +51,9 @@ class Ylokh(AsyncGeneratorProvider):
                 if stream:
                     async for line in response.content:
                         line = line.decode()
-                        if line.startswith("data: ") and not line.startswith("data: [DONE]"):
+                        if line.startswith("data: "):
+                            if line.startswith("data: [DONE]"):
+                                break
                             line = json.loads(line[6:-1])
                             content = line["choices"][0]["delta"].get("content")
                             if content:
@@ -71,6 +73,7 @@ class Ylokh(AsyncGeneratorProvider):
             ("stream", "bool"),
             ("proxy", "str"),
             ("temperature", "float"),
+            ("top_p", "float"),
         ]
         param = ", ".join([": ".join(p) for p in params])
         return f"g4f.provider.{cls.__name__} supports: ({param})"
