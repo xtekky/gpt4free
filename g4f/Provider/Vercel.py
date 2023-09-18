@@ -9,7 +9,7 @@ from .base_provider import AsyncProvider
 
 class Vercel(AsyncProvider):
     url                   = "https://sdk.vercel.ai"
-    working               = True
+    working               = False
     supports_gpt_35_turbo = True
     model                 = "replicate:replicate/llama-2-70b-chat"
 
@@ -21,73 +21,11 @@ class Vercel(AsyncProvider):
         proxy: str = None,
         **kwargs
     ) -> str:
-        if model in ["gpt-3.5-turbo", "gpt-4"]:
-            model = "openai:" + model
-        model = model if model else cls.model
-        proxies = None
-        if proxy:
-            if "://" not in proxy:
-                proxy = "http://" + proxy
-            proxies = {"http": proxy, "https": proxy}
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.{rand1}.{rand2} Safari/537.36".format(
-                rand1=random.randint(0,9999),
-                rand2=random.randint(0,9999)
-            ),
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-            "Accept-Encoding": "gzip, deflate, br",
-            "Accept-Language": "en-US,en;q=0.5",
-            "TE": "trailers",
-        }
-        async with AsyncSession(headers=headers, proxies=proxies, impersonate="chrome107") as session:
-            response = await session.get(cls.url + "/openai.jpeg")
-            response.raise_for_status()
-            custom_encoding = _get_custom_encoding(response.text)
-            headers = {
-                "Content-Type": "application/json",
-                "Custom-Encoding": custom_encoding,
-            }
-            data = _create_payload(model, messages)
-            response = await session.post(cls.url + "/api/generate", json=data, headers=headers)
-            response.raise_for_status()
-            return response.text
-
-
-def _create_payload(model: str, messages: list[dict[str, str]]) -> dict[str, Any]:
-    if model not in model_info:
-        raise ValueError(f'Model are not supported: {model}')
-    default_params = model_info[model]["default_params"]
-    return {
-        "messages": messages,
-        "playgroundId": str(uuid.uuid4()),
-        "chatIndex": 0,
-        "model": model
-    } | default_params
-
-# based on https://github.com/ading2210/vercel-llm-api
-def _get_custom_encoding(text: str) -> str:
-    data = json.loads(base64.b64decode(text, validate=True))
-    script = """
-      String.prototype.fontcolor = function() {{
-        return `<font>${{this}}</font>`
-      }}
-      var globalThis = {{marker: "mark"}};
-      ({script})({key})
-    """.format(
-        script=data["c"], key=data["a"]
-    )
-    context = quickjs.Context()  # type: ignore
-    token_data = json.loads(context.eval(script).json())  # type: ignore
-    token_data[2] = "mark"
-    token = {"r": token_data, "t": data["t"]}
-    token_str = json.dumps(token, separators=(",", ":")).encode("utf-16le")
-    return base64.b64encode(token_str).decode()
-
+        return
 
 class ModelInfo(TypedDict):
     id: str
     default_params: dict[str, Any]
-
 
 model_info: dict[str, ModelInfo] = {
     "anthropic:claude-instant-v1": {
