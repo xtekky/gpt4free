@@ -17,7 +17,7 @@ _providers = [
     g4f.Provider.Bard
 ]
 
-_instruct = "Hello, tell about you in one sentence."
+_instruct = "Hello, are you GPT 4?."
 
 _example = """
 OpenaiChat: Hello! How can I assist you today? 2.0 secs
@@ -39,14 +39,14 @@ No Stream Total: 10.14 secs
 print("Bing: ", end="")
 for response in log_time_yield(
     g4f.ChatCompletion.create,
-    model=g4f.models.gpt_35_turbo,
+    model=g4f.models.default,
     messages=[{"role": "user", "content": _instruct}],
     provider=g4f.Provider.Bing,
     #cookies=g4f.get_cookies(".huggingface.co"),
-    #stream=True,
+    stream=True,
     auth=True
 ):
-    print(response, end="")
+    print(response, end="", flush=True)
 print()
 print()
 
@@ -75,7 +75,7 @@ def run_stream():
             model=None,
             messages=[{"role": "user", "content": _instruct}],
         ):
-            print(response, end="")
+            print(response, end="", flush=True)
         print()
 print("Stream Total:", log_time(run_stream))
 print()

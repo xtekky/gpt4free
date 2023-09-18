@@ -16,6 +16,7 @@ from .DfeHub        import DfeHub
 from .EasyChat      import EasyChat
 from .Forefront     import Forefront
 from .GetGpt        import GetGpt
+from .GptGo         import GptGo
 from .H2o           import H2o
 from .HuggingChat   import HuggingChat
 from .Liaobots      import Liaobots
@@ -57,6 +58,7 @@ __all__ = [
     'EasyChat',
     'Forefront',
     'GetGpt',
+    'GptGo',
     'H2o',
     'HuggingChat',
     'Liaobots',
