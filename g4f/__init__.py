@@ -8,7 +8,7 @@ logging = False
 
 class ChatCompletion:
     @staticmethod
-    def create(
+    async def create(
         model    : Union[models.Model, str],
         messages : list[dict[str, str]],
         provider : Union[type[BaseProvider], None] = None,
@@ -51,4 +51,4 @@ class ChatCompletion:
             print(f'Using {provider.__name__} provider')
 
         result = provider.create_completion(model.name, messages, stream, **kwargs)
-        return result if stream else ''.join(result)
+        return result if stream else ''.join([item async for item in result])

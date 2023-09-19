@@ -39,14 +39,15 @@ class BaseProvider(ABC):
 
 class AsyncProvider(BaseProvider):
     @classmethod
-    def create_completion(
+    async def create_completion(
         cls,
         model: str,
         messages: list[dict[str, str]],
         stream: bool = False,
         **kwargs
     ) -> CreateResult:
-        yield asyncio.run(cls.create_async(model, messages, **kwargs))
+        result = await cls.create_async(model, messages, **kwargs)
+        yield result
 
     @staticmethod
     @abstractmethod
@@ -60,26 +61,24 @@ class AsyncGeneratorProvider(AsyncProvider):
     supports_stream = True
 
     @classmethod
-    def create_completion(
+    async def create_completion(
         cls,
         model: str,
         messages: list[dict[str, str]],
         stream: bool = True,
         **kwargs
     ) -> CreateResult:
-        loop = asyncio.new_event_loop()
+
         try:
-            asyncio.set_event_loop(loop)
-            generator = cls.create_async_generator(model, messages, stream=stream, **kwargs)
-            gen  = generator.__aiter__()
+            generator  = cls.create_async_generator(model, messages, stream=stream, **kwargs)
+            gen = generator.__aiter__()
+
             while True:
-                try:
-                    yield loop.run_until_complete(gen.__anext__())
-                except StopAsyncIteration:
-                    break
-        finally:
-            asyncio.set_event_loop(None)
-            loop.close()
+                result = await gen.__anext__()
+                yield result
+
+        except StopAsyncIteration:
+            break
 
 
     @classmethod
