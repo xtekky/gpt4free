@@ -36,7 +36,7 @@ pip install -U g4f
 
 #### Prerequisites:
 
-1. [Download and install Python](https://www.python.org/downloads/) (Version 3.x is recommended).
+1. [Download and install Python](https://www.python.org/downloads/) (Version 3.10 is recommended).
 
 #### Setting up the project:
 
