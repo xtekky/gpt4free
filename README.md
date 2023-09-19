@@ -297,7 +297,7 @@ python3 -m interference.app
 ```py
 import openai
 
-openai.api_key = "Emppty if you dont use embeddings, otherwise your hugginface token"
+openai.api_key = "Empty if you don't use embeddings, otherwise your hugginface token"
 openai.api_base = "http://localhost:1337"
 
 
