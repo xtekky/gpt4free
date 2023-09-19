@@ -130,3 +130,51 @@ docker compose up
 ```
 
 Ihr Server läuft jetzt unter `http://localhost:1337`. Sie können wie gewohnt mit der API inter
+
+agieren.
+
+## Verwendung
+
+### Das `g4f` Paket
+
+Das `g4f`-Paket ermöglicht es Ihnen, mit dem Modell zu interagieren und Anfragen zu senden. Es ist ein einfacher Wrapper um die OpenAI-API.
+
+### Interferenz openai-Proxy-API (Verwendung mit openai Python-Paket)
+
+Mit dieser API können Sie das Modell über die OpenAI Python-Bibliothek verwenden. Es stellt sicher, dass Sie die gleiche Erfahrung wie mit der offiziellen OpenAI-API haben.
+
+## Modelle
+
+### gpt-3.5 / gpt-4
+
+Dieses Repository enthält Modelle der Versionen gpt-3.5 und gpt-4. Sie können diese Modelle verwenden, um Texte zu generieren oder zu vervollständigen.
+
+### Andere Modelle
+
+Es gibt auch andere Modelle, die Sie verwenden können. Weitere Informationen finden Sie in den Dokumenten.
+
+## Verwandte gpt4free-Projekte
+
+Es gibt viele andere Projekte, die mit gpt4free in Verbindung stehen. Einige von ihnen sind offizielle Projekte, andere sind von der Community erstellt. Sie können diese Projekte verwenden, um Ihre eigenen Anwendungen zu erstellen oder um mehr über gpt4free zu erfahren.
+
+## Beitragen
+
+Wenn Sie zu diesem Projekt beitragen möchten, können Sie dies tun, indem Sie einen Pull-Request senden oder ein Problem melden. Alle Beiträge sind willkommen.
+
+## ChatGPT-Klon
+
+Es gibt einen ChatGPT-Klon, der auf diesem Repository basiert. Sie können ihn verwenden, um mit dem Modell zu chatten und Fragen zu stellen.
+
+## Urheberrecht:
+
+Alle Rechte vorbehalten. Kein Teil dieses Repositorys darf ohne die ausdrückliche schriftliche Genehmigung des Urhebers reproduziert oder übertragen werden.
+
+## Urheberrechtshinweis:
+
+Dieses Repository und alle damit verbundenen Dateien sind urheberrechtlich geschützt. Jede unerlaubte Verwendung kann rechtliche Konsequenzen nach sich ziehen.
+
+## Sternverlauf
+
+Der Sternverlauf zeigt die Anzahl der Sterne, die dieses Repository im Laufe der Zeit erhalten hat. Es hilft, die Popularität des Projekts zu verfolgen.
+```
+
