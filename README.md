@@ -238,43 +238,42 @@ response = g4f.ChatCompletion.create(
 
 ##### Async Support:
 
-To enhance speed and overall performance, execute providers asynchronously. The total execution time will be determined by the duration of the slowest provider's execution.
+To enhance speed and overall performance, execute providers asynchronously.
+The total execution time will be determined by the duration of the slowest provider's execution.
 
 ```py
 import g4f, asyncio
 
-async def run_async():
-  _providers = [
-      g4f.Provider.AItianhu,
-      g4f.Provider.Acytoo,
-      g4f.Provider.Aichat,
-      g4f.Provider.Ails,
-      g4f.Provider.Aivvm,
-      g4f.Provider.ChatBase,
-      g4f.Provider.ChatgptAi,
-      g4f.Provider.ChatgptLogin,
-      g4f.Provider.CodeLinkAva,
-      g4f.Provider.DeepAi,
-      g4f.Provider.Opchatgpts,
-      g4f.Provider.Vercel,
-      g4f.Provider.Vitalentum,
-      g4f.Provider.Wewordle,
-      g4f.Provider.Ylokh,
-      g4f.Provider.You,
-      g4f.Provider.Yqcloud,
-  ]
-  responses = [
-      provider.create_async(
-          model=g4f.models.default,
-          messages=[{"role": "user", "content": "Hello"}],
-      )
-      for provider in _providers
-  ]
-  responses = await asyncio.gather(*responses)
-  for idx, provider in enumerate(_providers):
-      print(f"{provider.__name__}:", responses[idx])
+_providers = [
+    g4f.Provider.Aichat,
+    g4f.Provider.Aivvm,
+    g4f.Provider.ChatBase,
+    g4f.Provider.Bing,
+    g4f.Provider.CodeLinkAva,
+    g4f.Provider.DeepAi,
+    g4f.Provider.GptGo,
+    g4f.Provider.Wewordle,
+    g4f.Provider.You,
+    g4f.Provider.Yqcloud,
+]
 
-asyncio.run(run_async())
+async def run_provider(provider: g4f.Provider.AsyncProvider):
+    try:
+        response = await provider.create_async(
+            model=g4f.models.default.name,
+            messages=[{"role": "user", "content": "Hello"}],
+        )
+        print(f"{provider.__name__}:", response)
+    except Exception as e:
+        print(f"{provider.__name__}:", e)
+        
+async def run_all():
+    calls = [
+        run_provider(provider) for provider in _providers
+    ]
+    await asyncio.gather(*calls)
+
+asyncio.run(run_all())
 ```
 
 ### interference openai-proxy api (use with openai python package)

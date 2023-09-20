@@ -52,7 +52,14 @@ class ChatgptLogin(AsyncProvider):
             }
             async with session.post("https://opchatgpts.net/wp-admin/admin-ajax.php", data=data) as response:
                 response.raise_for_status()
-                return (await response.json())["data"]
+                data = await response.json()
+                if "data" in data:
+                    return data["data"]
+                elif "msg" in data:
+                    raise RuntimeError(data["msg"])
+                else:
+                    raise RuntimeError(f"Response: {data}")
+
 
     @classmethod
     @property

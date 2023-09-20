@@ -14,7 +14,7 @@ from .Provider   import (
     H2o 
 )
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class Model:
     name: str
     base_provider: str

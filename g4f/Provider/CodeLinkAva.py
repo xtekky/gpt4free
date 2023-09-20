@@ -40,11 +40,12 @@ class CodeLinkAva(AsyncGeneratorProvider):
             }
             async with session.post("https://ava-alpha-api.codelink.io/api/chat", json=data) as response:
                 response.raise_for_status()
-                start = "data: "
                 async for line in response.content:
                     line = line.decode()
-                    if line.startswith("data: ") and not line.startswith("data: [DONE]"):
-                        line = json.loads(line[len(start):-1])
+                    if line.startswith("data: "):
+                        if line.startswith("data: [DONE]"):
+                            break
+                        line = json.loads(line[6:-1])
                         content = line["choices"][0]["delta"].get("content")
                         if content:
                             yield content

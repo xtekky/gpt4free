@@ -46,7 +46,9 @@ class Vitalentum(AsyncGeneratorProvider):
                 response.raise_for_status()
                 async for line in response.content:
                     line = line.decode()
-                    if line.startswith("data: ") and not line.startswith("data: [DONE]"):
+                    if line.startswith("data: "):
+                        if line.startswith("data: [DONE]"):
+                            break
                         line = json.loads(line[6:-1])
                         content = line["choices"][0]["delta"].get("content")
                         if content:

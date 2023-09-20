@@ -41,7 +41,7 @@ class Aivvm(AsyncGeneratorProvider):
         headers = {
             "User-Agent"         : "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36",
             "Accept"             : "*/*",
-            "Accept-language"    : "en,fr-FR;q=0.9,fr;q=0.8,es-ES;q=0.7,es;q=0.6,en-US;q=0.5,am;q=0.4,de;q=0.3",
+            "Accept-Language"    : "en,fr-FR;q=0.9,fr;q=0.8,es-ES;q=0.7,es;q=0.6,en-US;q=0.5,am;q=0.4,de;q=0.3",
             "Origin"             : cls.url,
             "Referer"            : cls.url + "/",
             "Sec-Fetch-Dest"     : "empty",
