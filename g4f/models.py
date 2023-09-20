@@ -134,7 +134,7 @@ gpt_35_turbo_0613 = Model(
     name='openai:gpt-3.5-turbo-0613',
     base_provider='openai',
     best_provider=[
-        Yqcloud, Aivvm,ChatgptLogin])
+        Yqcloud, Aivvm, ChatgptLogin])
 
 gpt_35_turbo_16k_0613 = Model(
     name='openai:gpt-3.5-turbo-16k-0613',
@@ -184,45 +184,45 @@ llama7b_v2_chat = Model(
 class ModelUtils:
     convert: dict[str, Model] = {
         # GPT-3.5 / GPT-4
-        'gpt-3.5-turbo': gpt_35_turbo,
-        'gpt-4': gpt_4,
+        'gpt-3.5-turbo':        gpt_35_turbo,
+        'gpt-4':                gpt_4,
 
         # Bard
-        'palm2': palm,
-        'palm': palm,
-        'google': palm,
-        'google-bard': palm,
-        'google-palm': palm,
-        'bard': palm,
+        'palm2':                palm,
+        'palm':                 palm,
+        'google':               palm,
+        'google-bard':          palm,
+        'google-palm':          palm,
+        'bard':                 palm,
 
         # H2o
-        'falcon-40b': falcon_40b,
-        'falcon-7b': falcon_7b,
-        'llama-13b': llama_13b,
+        'falcon-40b':           falcon_40b,
+        'falcon-7b':            falcon_7b,
+        'llama-13b':            llama_13b,
 
         # Vercel
-        'claude-instant-v1': claude_instant_v1,
-        'claude-v1': claude_v1,
-        'claude-v2': claude_v2,
-        'command-nightly': command_nightly,
-        'gpt-neox-20b': gpt_neox_20b,
-        'santacoder': santacoder,
-        'bloom': bloom,
-        'flan-t5-xxl': flan_t5_xxl,
-        'code-davinci-002': code_davinci_002,
-        'gpt-3.5-turbo-16k': gpt_35_turbo_16k,
-        'gpt-4-0613': gpt_4_0613,
-        'text-ada-001': text_ada_001,
-        'text-babbage-001': text_babbage_001,
-        'text-curie-001': text_curie_001,
-        'text-davinci-002': text_davinci_002,
-        'text-davinci-003': text_davinci_003,
-        'llama13b-v2-chat': llama13b_v2_chat,
-        'llama7b-v2-chat': llama7b_v2_chat,
+        'claude-instant-v1':    claude_instant_v1,
+        'claude-v1':            claude_v1,
+        'claude-v2':            claude_v2,
+        'command-nightly':      command_nightly,
+        'gpt-neox-20b':         gpt_neox_20b,
+        'santacoder':           santacoder,
+        'bloom':                bloom,
+        'flan-t5-xxl':          flan_t5_xxl,
+        'code-davinci-002':     code_davinci_002,
+        'gpt-3.5-turbo-16k':    gpt_35_turbo_16k,
+        'gpt-4-0613':           gpt_4_0613,
+        'text-ada-001':         text_ada_001,
+        'text-babbage-001':     text_babbage_001,
+        'text-curie-001':       text_curie_001,
+        'text-davinci-002':     text_davinci_002,
+        'text-davinci-003':     text_davinci_003,
+        'llama13b-v2-chat':     llama13b_v2_chat,
+        'llama7b-v2-chat':      llama7b_v2_chat,
 
-        'oasst-sft-1-pythia-12b': oasst_sft_1_pythia_12b,
+        'oasst-sft-1-pythia-12b':           oasst_sft_1_pythia_12b,
         'oasst-sft-4-pythia-12b-epoch-3.5': oasst_sft_4_pythia_12b_epoch_35,
-        'command-light-nightly': command_light_nightly,
-        'gpt-3.5-turbo-16k-0613': gpt_35_turbo_16k_0613,
-        'gpt-3.5-turbo-0613': gpt_35_turbo_0613,
+        'command-light-nightly':            command_light_nightly,
+        'gpt-3.5-turbo-16k-0613':           gpt_35_turbo_16k_0613,
+        'gpt-3.5-turbo-0613':               gpt_35_turbo_0613,
     }
