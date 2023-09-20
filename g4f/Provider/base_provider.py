@@ -25,6 +25,7 @@ class BaseProvider(ABC):
         
         raise NotImplementedError()
 
+
     @classmethod
     @property
     def params(cls):
@@ -46,6 +47,8 @@ class AsyncProvider(BaseProvider):
         stream: bool = False,
         **kwargs
     ) -> CreateResult:
+        check_running_loop()
+
         yield asyncio.run(cls.create_async(model, messages, **kwargs))
 
     @staticmethod
@@ -67,10 +70,17 @@ class AsyncGeneratorProvider(AsyncProvider):
         stream: bool = True,
         **kwargs
     ) -> CreateResult:
-        loop = asyncio.new_event_loop()
+        check_running_loop()
+
+        # Force use selector event loop on windows
+        loop = asyncio.SelectorEventLoop()
         try:
-            asyncio.set_event_loop(loop)
-            generator = cls.create_async_generator(model, messages, stream=stream, **kwargs)
+            generator = cls.create_async_generator(
+                model,
+                messages,
+                stream=stream,
+                **kwargs
+            )
             gen  = generator.__aiter__()
             while True:
                 try:
@@ -78,9 +88,7 @@ class AsyncGeneratorProvider(AsyncProvider):
                 except StopAsyncIteration:
                     break
         finally:
-            asyncio.set_event_loop(None)
             loop.close()
-
 
     @classmethod
     async def create_async(
@@ -100,6 +108,11 @@ class AsyncGeneratorProvider(AsyncProvider):
     ) -> AsyncGenerator:
         raise NotImplementedError()
 
+# Don't create a new loop in a running loop
+def check_running_loop():
+    if asyncio.events._get_running_loop() is not None:
+        raise RuntimeError(
+            'Use "create_async" instead of "create" function in a async loop.')
 
 _cookies = {}
 
