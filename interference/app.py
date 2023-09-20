@@ -6,7 +6,7 @@ from typing import Any
 import requests
 from flask import Flask, request
 from flask_cors import CORS
-
+from transformers import AutoTokenizer
 from g4f import ChatCompletion
 
 app = Flask(__name__)
