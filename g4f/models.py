@@ -134,8 +134,7 @@ gpt_35_turbo_0613 = Model(
     name='openai:gpt-3.5-turbo-0613',
     base_provider='openai',
     best_provider=[
-        Yqcloud, Aivvm,ChatgptLogin
-    ])
+        Yqcloud, Aivvm,ChatgptLogin])
 
 gpt_35_turbo_16k_0613 = Model(
     name='openai:gpt-3.5-turbo-16k-0613',
@@ -208,7 +207,7 @@ class ModelUtils:
         'command-nightly': command_nightly,
         'gpt-neox-20b': gpt_neox_20b,
         'santacoder': santacoder,
-        'bloom': bloom,ChatgptLogin
+        'bloom': bloom,
         'flan-t5-xxl': flan_t5_xxl,
         'code-davinci-002': code_davinci_002,
         'gpt-3.5-turbo-16k': gpt_35_turbo_16k,
