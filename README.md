@@ -519,12 +519,9 @@ for message in response:
     print(message, flush=True, end='')
 ```
 
-## ChatGPT clone
-
-> We are currently implementing new features and trying to scale it, but please be patient as it may be unstable. 
-> https://chat.g4f.ai/chat
-> This site was developed by me and includes **gpt-4/3.5**, **internet access** and **gpt-jailbreak's** like DAN  
-> Run locally here: https://github.com/xtekky/chatgpt-clone. 
+## Contributors
+A list of the contributors is available [here](https://github.com/xtekky/gpt4free/graphs/contributors)   
+The [`Vercel.py`](https://github.com/xtekky/gpt4free/blob/main/g4f/Provider/Vercel.py) file contains code from [vercel-llm-api](https://github.com/ading2210/vercel-llm-api) by [@ading2210](https://github.com/ading2210), which is licenced under the [GNU GPL v3](https://www.gnu.org/licenses/gpl-3.0.txt)
 
 ## Copyright:
 
