@@ -127,6 +127,10 @@ gpt_35_turbo_16k = Model(
     base_provider = 'openai',
     best_provider = Vercel)
 
+gpt_35_turbo_0613 = Model(
+    name          = 'openai:gpt-3.5-turbo-0613',
+    base_provider = 'openai')
+
 gpt_35_turbo_16k_0613 = Model(
     name          = 'openai:gpt-3.5-turbo-16k-0613',
     base_provider = 'openai')
@@ -215,4 +219,5 @@ class ModelUtils:
         'oasst-sft-4-pythia-12b-epoch-3.5' : oasst_sft_4_pythia_12b_epoch_35,
         'command-light-nightly'            : command_light_nightly,
         'gpt-3.5-turbo-16k-0613'           : gpt_35_turbo_16k_0613,
+        'gpt-3.5-turbo-0613'               : gpt_35_turbo_0613,
     }
