@@ -129,7 +129,10 @@ gpt_35_turbo_16k = Model(
 
 gpt_35_turbo_0613 = Model(
     name          = 'openai:gpt-3.5-turbo-0613',
-    base_provider = 'openai')
+    base_provider = 'openai',
+    best_provider = [
+        DeepAi, CodeLinkAva, ChatgptLogin, ChatgptAi, ChatBase, Aivvm
+    ]
 
 gpt_35_turbo_16k_0613 = Model(
     name          = 'openai:gpt-3.5-turbo-16k-0613',
