@@ -1,14 +1,14 @@
 from __future__ import annotations
 from g4f        import models
-from .Provider  import BaseProvider
+from .Provider  import BaseProvider, AsyncProvider
 from .typing    import Any, CreateResult, Union
-import random
+import random, asyncio
 
 logging = False
 
 class ChatCompletion:
     @staticmethod
-    async def create(
+    def check_completion(
         model    : Union[models.Model, str],
         messages : list[dict[str, str]],
         provider : Union[type[BaseProvider], None] = None,
@@ -50,5 +50,33 @@ class ChatCompletion:
         if logging:
             print(f'Using {provider.__name__} provider')
 
+        return model, provider
+
+    @staticmethod
+    async def async_create(
+        model    : Union[models.Model, str],
+        messages : list[dict[str, str]],
+        provider : Union[type[BaseProvider], None] = None,
+        stream   : bool                            = False,
+        auth     : Union[str, None]                = None, **kwargs: Any) -> Union[CreateResult, str]:
+
+        model, provider = ChatCompletion.check_completion(model, messages, provider, stream, auth, **kwargs)
+
         result = provider.create_completion(model.name, messages, stream, **kwargs)
-        return result if stream else ''.join([item async for item in result])
+        return await anext(result) if stream else ''.join([item async for item in result])
+
+    @staticmethod
+    def create(
+        model    : Union[models.Model, str],
+        messages : list[dict[str, str]],
+        provider : Union[type[BaseProvider], None] = None,
+        stream   : bool                            = False,
+        auth     : Union[str, None]                = None, **kwargs: Any) -> Union[CreateResult, str]:
+
+        if issubclass(provider, AsyncProvider):
+            result = asyncio.run(ChatCompletion.async_create(model, messages, provider, stream, auth, **kwargs), debug=True)
+        else:
+            model, provider = ChatCompletion.check_completion(model, messages, provider, stream, auth, **kwargs)
+            result = provider.create_completion(model.name, messages, stream, **kwargs)
+            
+        return result if stream else ''.join(result)

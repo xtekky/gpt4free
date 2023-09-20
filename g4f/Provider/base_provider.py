@@ -69,16 +69,14 @@ class AsyncGeneratorProvider(AsyncProvider):
         **kwargs
     ) -> CreateResult:
 
-        try:
+        while True:
             generator  = cls.create_async_generator(model, messages, stream=stream, **kwargs)
-            gen = generator.__aiter__()
 
-            while True:
-                result = await gen.__anext__()
+            try:
+                result = await anext(generator)
                 yield result
-
-        except StopAsyncIteration:
-            break
+            except StopAsyncIteration:
+                break
 
 
     @classmethod
