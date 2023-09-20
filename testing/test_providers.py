@@ -1,12 +1,13 @@
-import sys
+import sys, traceback
 from pathlib import Path
 from colorama import Fore
 
 sys.path.append(str(Path(__file__).parent.parent))
 
-from g4f import BaseProvider, models, Provider
+import g4f
+from g4f import BaseProvider, models, Provider, AsyncProvider, ChatCompletion
 
-logging = False
+logging = True
 
 class Styles:
     ENDC = "\033[0m"
@@ -55,16 +56,16 @@ def get_providers() -> list[type[BaseProvider]]:
 
 def create_response(_provider: type[BaseProvider]) -> str:
     if _provider.supports_gpt_35_turbo:
-        model = models.gpt_35_turbo.name    
+        model = models.gpt_35_turbo 
     elif _provider.supports_gpt_4:
-        model = models.gpt_4.name
+        model = models.gpt_4
     else:
-        model = models.default.name
-    response = _provider.create_completion(
-        model=model,
-        messages=[{"role": "user", "content": "Hello, who are you? Answer in detail much as possible."}],
-        stream=False,
-    )
+        model = models.default
+        
+    msgs=[{"role": "user", "content": "Hello, who are you? Answer in detail much as possible."}]
+
+    response = ChatCompletion.create(model, msgs, _provider)
+
     return "".join(response)
 
     
@@ -76,6 +77,7 @@ def test(_provider: type[BaseProvider]) -> bool:
         return response
     except Exception as e:
         if logging:
+            print(traceback.print_tb(e.__traceback__))
             print(e)
         return False
 
