@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 
 import browser_cookie3
 
-from ..typing import Any, AsyncGenerator, CreateResult, Union
+from ..typing import Any, AsyncGenerator, CreateResult
 
 
 class BaseProvider(ABC):
@@ -22,7 +22,9 @@ class BaseProvider(ABC):
     def create_completion(
         model: str,
         messages: list[dict[str, str]],
-        stream: bool, **kwargs: Any) -> CreateResult:
+        stream: bool,
+        **kwargs
+    ) -> CreateResult:
         
         raise NotImplementedError()
 
@@ -118,16 +120,15 @@ class AsyncGeneratorProvider(AsyncProvider):
         raise NotImplementedError()
 
 
+# Don't create a new event loop in a running async loop.
+# Force use selector event loop on windows and linux use it anyway.
 def create_event_loop() -> SelectorEventLoop:
-    # Don't create a new loop in a running loop
     try:
-        if asyncio.get_running_loop() is not None:
-            raise RuntimeError(
-                'Use "create_async" instead of "create" function in a async loop.')
-    except:
-        pass
-    # Force use selector event loop on windows and linux use it anyway
-    return SelectorEventLoop()
+        asyncio.get_running_loop()
+    except RuntimeError:
+        return SelectorEventLoop()
+    raise RuntimeError(
+        'Use "create_async" instead of "create" function in a async loop.')
 
 
 _cookies = {}

@@ -24,6 +24,7 @@ from .Lockchat      import Lockchat
 from .Opchatgpts    import Opchatgpts
 from .OpenaiChat    import OpenaiChat
 from .OpenAssistant import OpenAssistant
+from .PerplexityAi  import PerplexityAi
 from .Raycast       import Raycast
 from .Theb          import Theb
 from .Vercel        import Vercel
@@ -67,6 +68,7 @@ __all__ = [
     'Raycast',
     'OpenaiChat',
     'OpenAssistant',
+    'PerplexityAi',
     'Theb',
     'Vercel',
     'Vitalentum',
