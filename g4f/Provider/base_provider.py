@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from asyncio import SelectorEventLoop
 from abc import ABC, abstractmethod
 
 import browser_cookie3
@@ -57,7 +58,9 @@ class AsyncProvider(BaseProvider):
     @abstractmethod
     async def create_async(
         model: str,
-        messages: list[dict[str, str]], **kwargs: Any) -> str:
+        messages: list[dict[str, str]],
+        **kwargs
+    ) -> str:
         raise NotImplementedError()
 
 
@@ -72,7 +75,7 @@ class AsyncGeneratorProvider(AsyncProvider):
         stream: bool = True,
         **kwargs
     ) -> CreateResult:
-        loop = get_new_event_loop()
+        loop = create_event_loop()
         try:
             generator = cls.create_async_generator(
                 model,
@@ -96,7 +99,14 @@ class AsyncGeneratorProvider(AsyncProvider):
         messages: list[dict[str, str]],
         **kwargs
     ) -> str:
-        return "".join([chunk async for chunk in cls.create_async_generator(model, messages, stream=False, **kwargs)])
+        return "".join([
+            chunk async for chunk in cls.create_async_generator(
+                model,
+                messages,
+                stream=False,
+                **kwargs
+            )
+        ])
         
     @staticmethod
     @abstractmethod
@@ -108,14 +118,16 @@ class AsyncGeneratorProvider(AsyncProvider):
         raise NotImplementedError()
 
 
-def create_event_loop():
+def create_event_loop() -> SelectorEventLoop:
     # Don't create a new loop in a running loop
-    if asyncio.events._get_running_loop() is not None:
-        raise RuntimeError(
-            'Use "create_async" instead of "create" function in a async loop.')
-
-    # Force use selector event loop on windows
-    return asyncio.SelectorEventLoop()
+    try:
+        if asyncio.get_running_loop() is not None:
+            raise RuntimeError(
+                'Use "create_async" instead of "create" function in a async loop.')
+    except:
+        pass
+    # Force use selector event loop on windows and linux use it anyway
+    return SelectorEventLoop()
 
 
 _cookies = {}
