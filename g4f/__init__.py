@@ -14,13 +14,7 @@ def get_model_and_provider(model: Union[models.Model, str], provider: type[BaseP
             raise Exception(f'The model: {model} does not exist')
 
     if not provider:
-        if isinstance(model.best_provider, list):
-            if stream:
-                provider = random.choice([p for p in model.best_provider if p.supports_stream])
-            else:
-                provider = random.choice(model.best_provider)
-        else:
-            provider = model.best_provider
+        provider = model.best_provider
 
     if not provider:
         raise Exception(f'No provider found for model: {model}')
@@ -70,7 +64,7 @@ class ChatCompletion:
         
         model, provider = get_model_and_provider(model, provider, False)
 
-        if not issubclass(provider, AsyncProvider):
+        if not issubclass(type(provider), AsyncProvider):
             raise Exception(f"Provider: {provider.__name__} doesn't support create_async")
 
         return await provider.create_async(model.name, messages, **kwargs)

@@ -1,17 +1,23 @@
 from __future__  import annotations
 from dataclasses import dataclass
 from .typing     import Union
-from .Provider   import BaseProvider 
+from .Provider   import BaseProvider, RetryProvider
 from .Provider   import (
     ChatgptLogin,
-    CodeLinkAva,
     ChatgptAi, 
     ChatBase, 
     Vercel, 
     DeepAi, 
     Aivvm, 
     Bard, 
-    H2o 
+    H2o,
+    GptGo,
+    Bing,
+    PerplexityAi,
+    Wewordle,
+    Yqcloud,
+    AItianhu,
+    Aichat,
 )
 
 @dataclass(unsafe_hash=True)
@@ -24,15 +30,24 @@ class Model:
 # Works for Liaobots, H2o, OpenaiChat, Yqcloud, You
 default = Model(
     name          = "",
-    base_provider = "huggingface")
+    base_provider = "",
+    best_provider = RetryProvider([
+        Bing,         # Not fully GPT 3 or 4
+        PerplexityAi, # Adds references to sources
+        Wewordle,     # Responds with markdown
+        Yqcloud,      # Answers short questions in chinese
+        ChatBase,     # Don't want to answer creatively
+        DeepAi, ChatgptLogin, ChatgptAi, Aivvm, GptGo, AItianhu, Aichat,
+    ])
+)
 
 # GPT-3.5 / GPT-4
 gpt_35_turbo = Model(
     name          = 'gpt-3.5-turbo',
     base_provider = 'openai',
-    best_provider = [
-        DeepAi, CodeLinkAva, ChatgptLogin, ChatgptAi, ChatBase, Aivvm
-    ]
+    best_provider = RetryProvider([
+        DeepAi, ChatgptLogin, ChatgptAi, Aivvm, GptGo, AItianhu, Aichat,
+    ])
 )
 
 gpt_4 = Model(

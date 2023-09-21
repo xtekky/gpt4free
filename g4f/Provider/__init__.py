@@ -38,10 +38,14 @@ from .FastGpt       import FastGpt
 from .V50           import V50
 from .Wuguokai      import Wuguokai
 
-from .base_provider import BaseProvider, AsyncProvider, AsyncGeneratorProvider
+from .base_provider  import BaseProvider, AsyncProvider, AsyncGeneratorProvider
+from .retry_provider import RetryProvider
 
 __all__ = [
     'BaseProvider',
+    'AsyncProvider',
+    'AsyncGeneratorProvider',
+    'RetryProvider',
     'Acytoo',
     'Aichat',
     'Ails',
