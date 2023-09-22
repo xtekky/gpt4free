@@ -13,6 +13,7 @@ class Bard(AsyncProvider):
     url = "https://bard.google.com"
     needs_auth = True
     working = True
+    _snlm0e = None
 
     @classmethod
     async def create_async(
@@ -31,7 +32,6 @@ class Bard(AsyncProvider):
 
         headers = {
             'authority': 'bard.google.com',
-            'content-type': 'application/x-www-form-urlencoded;charset=UTF-8',
             'origin': 'https://bard.google.com',
             'referer': 'https://bard.google.com/',
             'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36',
@@ -42,13 +42,14 @@ class Bard(AsyncProvider):
             cookies=cookies,
             headers=headers
         ) as session:
-            async with session.get(cls.url, proxy=proxy) as response:
-                text = await response.text()
+            if not cls._snlm0e:
+                async with session.get(cls.url, proxy=proxy) as response:
+                    text = await response.text()
 
-            match = re.search(r'SNlM0e\":\"(.*?)\"', text)
-            if not match:
-                raise RuntimeError("No snlm0e value.")
-            snlm0e = match.group(1)
+                match = re.search(r'SNlM0e\":\"(.*?)\"', text)
+                if not match:
+                    raise RuntimeError("No snlm0e value.")
+                cls._snlm0e = match.group(1)
             
             params = {
                 'bl': 'boq_assistant-bard-web-server_20230326.21_p0',
@@ -57,7 +58,7 @@ class Bard(AsyncProvider):
             }
 
             data = {
-                'at': snlm0e,
+                'at': cls._snlm0e,
                 'f.req': json.dumps([None, json.dumps([[prompt]])])
             }
 

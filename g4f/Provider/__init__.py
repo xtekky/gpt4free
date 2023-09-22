@@ -24,6 +24,7 @@ from .Lockchat      import Lockchat
 from .Opchatgpts    import Opchatgpts
 from .OpenaiChat    import OpenaiChat
 from .OpenAssistant import OpenAssistant
+from .PerplexityAi  import PerplexityAi
 from .Raycast       import Raycast
 from .Theb          import Theb
 from .Vercel        import Vercel
@@ -37,10 +38,14 @@ from .FastGpt       import FastGpt
 from .V50           import V50
 from .Wuguokai      import Wuguokai
 
-from .base_provider import BaseProvider, AsyncProvider, AsyncGeneratorProvider
+from .base_provider  import BaseProvider, AsyncProvider, AsyncGeneratorProvider
+from .retry_provider import RetryProvider
 
 __all__ = [
     'BaseProvider',
+    'AsyncProvider',
+    'AsyncGeneratorProvider',
+    'RetryProvider',
     'Acytoo',
     'Aichat',
     'Ails',
@@ -67,6 +72,7 @@ __all__ = [
     'Raycast',
     'OpenaiChat',
     'OpenAssistant',
+    'PerplexityAi',
     'Theb',
     'Vercel',
     'Vitalentum',

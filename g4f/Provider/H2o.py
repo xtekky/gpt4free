@@ -23,7 +23,7 @@ class H2o(AsyncGeneratorProvider):
         **kwargs
     ) -> AsyncGenerator:
         model = model if model else cls.model
-        headers = {"Referer": "https://gpt-gm.h2o.ai/"}
+        headers = {"Referer": cls.url + "/"}
 
         async with ClientSession(
             headers=headers
@@ -36,14 +36,14 @@ class H2o(AsyncGeneratorProvider):
                 "searchEnabled": "true",
             }
             async with session.post(
-                "https://gpt-gm.h2o.ai/settings",
+                f"{cls.url}/settings",
                 proxy=proxy,
                 data=data
             ) as response:
                 response.raise_for_status()
 
             async with session.post(
-                "https://gpt-gm.h2o.ai/conversation",
+                f"{cls.url}/conversation",
                 proxy=proxy,
                 json={"model": model},
             ) as response:
@@ -71,7 +71,7 @@ class H2o(AsyncGeneratorProvider):
                 },
             }
             async with session.post(
-                f"https://gpt-gm.h2o.ai/conversation/{conversationId}",
+                f"{cls.url}/conversation/{conversationId}",
                 proxy=proxy,
                 json=data
              ) as response:
@@ -82,6 +82,14 @@ class H2o(AsyncGeneratorProvider):
                         line = json.loads(line[len(start):-1])
                         if not line["token"]["special"]:
                             yield line["token"]["text"]
+
+            async with session.delete(
+                f"{cls.url}/conversation/{conversationId}",
+                proxy=proxy,
+                json=data
+            ) as response:
+                response.raise_for_status()
+
 
     @classmethod
     @property

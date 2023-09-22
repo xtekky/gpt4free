@@ -25,10 +25,10 @@ class HuggingChat(AsyncGeneratorProvider):
         **kwargs
     ) -> AsyncGenerator:
         model = model if model else cls.model
-        if not cookies:
-            cookies = get_cookies(".huggingface.co")
         if proxy and "://" not in proxy:
             proxy = f"http://{proxy}"
+        if not cookies:
+            cookies = get_cookies(".huggingface.co")
 
         headers = {
             'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36',
@@ -37,7 +37,7 @@ class HuggingChat(AsyncGeneratorProvider):
             cookies=cookies,
             headers=headers
         ) as session:
-            async with session.post("https://huggingface.co/chat/conversation", proxy=proxy, json={"model": model}) as response:
+            async with session.post(f"{cls.url}/conversation", proxy=proxy, json={"model": model}) as response:
                 conversation_id = (await response.json())["conversationId"]
 
             send = {
@@ -62,7 +62,7 @@ class HuggingChat(AsyncGeneratorProvider):
                     "web_search_id": ""
                 }
             }
-            async with session.post(f"https://huggingface.co/chat/conversation/{conversation_id}", proxy=proxy, json=send) as response:
+            async with session.post(f"{cls.url}/conversation/{conversation_id}", proxy=proxy, json=send) as response:
                 if not stream:
                     data = await response.json()
                     if "error" in data:
@@ -76,8 +76,6 @@ class HuggingChat(AsyncGeneratorProvider):
                     first = True
                     async for line in response.content:
                         line = line.decode("utf-8")
-                        if not line:
-                            continue
                         if line.startswith(start):
                             line = json.loads(line[len(start):-1])
                             if "token" not in line:
@@ -89,7 +87,7 @@ class HuggingChat(AsyncGeneratorProvider):
                                 else:
                                     yield line["token"]["text"]
                 
-            async with session.delete(f"https://huggingface.co/chat/conversation/{conversation_id}", proxy=proxy) as response:
+            async with session.delete(f"{cls.url}/conversation/{conversation_id}", proxy=proxy) as response:
                 response.raise_for_status()
 
 
