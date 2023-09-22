@@ -279,6 +279,9 @@ asyncio.run(run_async())
 
 ### interference openai-proxy api (use with openai python package)
 
+If you want to use the embedding function, you need to get a huggingface token. You can get one at https://huggingface.co/settings/tokens make sure your role is set to write. If you have your token, just use it instead of the OpenAI api-key.
+
+
 get requirements:
 
 ```sh
@@ -294,7 +297,7 @@ python3 -m interference.app
 ```py
 import openai
 
-openai.api_key = ""
+openai.api_key = "Empty if you don't use embeddings, otherwise your hugginface token"
 openai.api_base = "http://localhost:1337"
 
 
