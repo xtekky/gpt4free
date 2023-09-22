@@ -10,12 +10,11 @@ By using this repository or any code related to it, you agree to the [legal noti
 pip install -U g4f
 ```
 
-## Table of Contents:
+## Table of Contents
 
-- [Table of Contents:](#table-of-contents)
 - [Getting Started](#getting-started)
-  - [Prerequisites:](#prerequisites)
-  - [Setting up the project:](#setting-up-the-project)
+  - [Prerequisites](#prerequisites)
+  - [Setting up the project](#setting-up-the-project)
     - [Install using pypi](#install-using-pypi)
     - [Install using docker](#setting-up-with-docker)
 - [Usage](#usage)
@@ -28,7 +27,6 @@ pip install -U g4f
 - [Contribute](#contribute)
 - [Contributors](#contributors)
 - [Copyright](#copyright)
-- [Copyright Notice](#copyright-notice)
 - [Star History](#star-history)
 
 ## Getting Started
@@ -521,14 +519,13 @@ for message in response:
 ```
 
 ## Contributors
+
 A list of the contributors is available [here](https://github.com/xtekky/gpt4free/graphs/contributors)   
 The [`Vercel.py`](https://github.com/xtekky/gpt4free/blob/main/g4f/Provider/Vercel.py) file contains code from [vercel-llm-api](https://github.com/ading2210/vercel-llm-api) by [@ading2210](https://github.com/ading2210), which is licenced under the [GNU GPL v3](https://www.gnu.org/licenses/gpl-3.0.txt)
 
-## Copyright:
+## Copyright
 
 This program is licensed under the [GNU GPL v3](https://www.gnu.org/licenses/gpl-3.0.txt)
-
-## Copyright Notice:
 
 ```
 xtekky/gpt4free: Copyright (C) 2023 xtekky
