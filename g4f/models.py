@@ -52,7 +52,11 @@ gpt_35_turbo = Model(
 
 gpt_4 = Model(
     name          = 'gpt-4',
-    base_provider = 'openai')
+    base_provider = 'openai',
+    best_provider = RetryProvider([
+            Aivvm
+    ])
+)
 
 # Bard
 palm = Model(
@@ -133,52 +137,52 @@ flan_t5_xxl = Model(
     best_provider = Vercel)
 
 code_davinci_002 = Model(
-    name          = 'openai:code-davinci-002',
+    name          = 'code-davinci-002',
     base_provider = 'openai',
     best_provider = Vercel)
 
 gpt_35_turbo_16k = Model(
-    name          = 'openai:gpt-3.5-turbo-16k',
+    name          = 'gpt-3.5-turbo-16k',
     base_provider = 'openai',
     best_provider = Vercel)
 
 gpt_35_turbo_16k_0613 = Model(
-    name          = 'openai:gpt-3.5-turbo-16k-0613',
+    name          = 'gpt-3.5-turbo-16k-0613',
     base_provider = 'openai')
 
 gpt_35_turbo_0613 = Model(
-    name          = 'openai:gpt-3.5-turbo-0613',
+    name          = 'gpt-3.5-turbo-0613',
     base_provider = 'openai',
     best_provider = [
         Aivvm, ChatgptLogin])
 
 gpt_4_0613 = Model(
-    name          = 'openai:gpt-4-0613',
+    name          = 'gpt-4-0613',
     base_provider = 'openai',
     best_provider = Vercel)
 
 text_ada_001 = Model(
-    name          = 'openai:text-ada-001',
+    name          = 'text-ada-001',
     base_provider = 'openai',
     best_provider = Vercel)
 
 text_babbage_001 = Model(
-    name          = 'openai:text-babbage-001',
+    name          = 'text-babbage-001',
     base_provider = 'openai',
     best_provider = Vercel)
 
 text_curie_001 = Model(
-    name          = 'openai:text-curie-001',
+    name          = 'text-curie-001',
     base_provider = 'openai',
     best_provider = Vercel)
 
 text_davinci_002 = Model(
-    name          = 'openai:text-davinci-002',
+    name          = 'text-davinci-002',
     base_provider = 'openai',
     best_provider = Vercel)
 
 text_davinci_003 = Model(
-    name          = 'openai:text-davinci-003',
+    name          = 'text-davinci-003',
     base_provider = 'openai',
     best_provider = Vercel)
 
