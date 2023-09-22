@@ -6,7 +6,6 @@ certifi
 browser_cookie3
 websockets
 js2py
-quickjs
 flask
 flask-cors
 typing-extensions
