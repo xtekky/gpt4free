@@ -133,6 +133,7 @@ docker compose down
 
 ### The `g4f` Package
 
+#### ChatCompletion
 ```py
 import g4f
 
@@ -171,7 +172,25 @@ response = g4f.ChatCompletion.create(
 for message in response:
     print(message)
 ```
+##### Completion
+```py
+import g4f
 
+allowed_models = [
+    'code-davinci-002',
+    'text-ada-001',
+    'text-babbage-001',
+    'text-curie-001',
+    'text-davinci-002',
+    'text-davinci-003'
+]
+
+response = g4f.Completion.create(
+    model  = 'text-davinci-003',
+    prompt = 'say this is a test')
+
+print(response)
+```
 
 ##### Providers:
 ```py
