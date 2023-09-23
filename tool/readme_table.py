@@ -74,7 +74,7 @@ def print_providers():
     ]
 
     providers = get_providers()
-    #responses = asyncio.run(test_async_list(providers))
+    responses = asyncio.run(test_async_list(providers))
 
     for is_working in (True, False):
         for idx, _provider in enumerate(providers):
@@ -94,10 +94,10 @@ def print_providers():
             can_async = "✔️" if issubclass(_provider, AsyncProvider) else "❌"
             if _provider.working:
                 status = '![Active](https://img.shields.io/badge/Active-brightgreen)'
-                # if responses[idx]:
-                #     status = '![Active](https://img.shields.io/badge/Active-brightgreen)'
-                # else:
-                #     status = '![Unknown](https://img.shields.io/badge/Unknown-grey)'
+                if responses[idx]:
+                    status = '![Active](https://img.shields.io/badge/Active-brightgreen)'
+                else:
+                    status = '![Unknown](https://img.shields.io/badge/Unknown-grey)'
             else:
                 status = '![Inactive](https://img.shields.io/badge/Inactive-red)'
             auth = "✔️" if _provider.needs_auth else "❌"
@@ -151,8 +151,8 @@ def get_models():
 
 
 if __name__ == "__main__":
-    # print_imports()
-    # print_async()
+    print_imports()
+    print_async()
     print_providers()
-    # print("\n", "-" * 50, "\n")
-    # print_models()
+    print("\n", "-" * 50, "\n")
+    print_models()
