@@ -37,6 +37,7 @@ def get_providers() -> list[type[BaseProvider]]:
     ignore_names = [
         "annotations",
         "base_provider",
+        "retry_provider",
         "BaseProvider",
         "AsyncProvider",
         "AsyncGeneratorProvider"

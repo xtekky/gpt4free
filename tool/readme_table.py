@@ -8,6 +8,7 @@ sys.path.append(str(Path(__file__).parent.parent))
 import asyncio
 from g4f import models
 from g4f.Provider.base_provider import AsyncProvider, BaseProvider
+from g4f.Provider.retry_provider import RetryProvider
 from testing.test_providers import get_providers
 
 logging = False
@@ -20,6 +21,7 @@ def print_imports():
     for _provider in get_providers():
         if _provider.working:
             print(f"    {_provider.__name__},")
+                
     print(")")
     print("# Usage:")
     print("response = g4f.ChatCompletion.create(..., provider=ProviderName)")
@@ -72,26 +74,30 @@ def print_providers():
     ]
 
     providers = get_providers()
-    responses = asyncio.run(test_async_list(providers))
+    #responses = asyncio.run(test_async_list(providers))
 
     for is_working in (True, False):
         for idx, _provider in enumerate(providers):
             if is_working != _provider.working:
                 continue
+            if _provider == RetryProvider:
+                continue
+            
             netloc = urlparse(_provider.url).netloc
             website = f"[{netloc}]({_provider.url})"
 
-            provider_name = f"g4f.provider.{_provider.__name__}"
+            provider_name = f"`g4f.Provider.{_provider.__name__}`"
 
             has_gpt_35 = "✔️" if _provider.supports_gpt_35_turbo else "❌"
             has_gpt_4 = "✔️" if _provider.supports_gpt_4 else "❌"
             stream = "✔️" if _provider.supports_stream else "❌"
             can_async = "✔️" if issubclass(_provider, AsyncProvider) else "❌"
             if _provider.working:
-                if responses[idx]:
-                    status = '![Active](https://img.shields.io/badge/Active-brightgreen)'
-                else:
-                    status = '![Unknown](https://img.shields.io/badge/Unknown-grey)'
+                status = '![Active](https://img.shields.io/badge/Active-brightgreen)'
+                # if responses[idx]:
+                #     status = '![Active](https://img.shields.io/badge/Active-brightgreen)'
+                # else:
+                #     status = '![Unknown](https://img.shields.io/badge/Unknown-grey)'
             else:
                 status = '![Inactive](https://img.shields.io/badge/Inactive-red)'
             auth = "✔️" if _provider.needs_auth else "❌"
@@ -145,8 +151,8 @@ def get_models():
 
 
 if __name__ == "__main__":
-    print_imports()
-    print_async()
+    # print_imports()
+    # print_async()
     print_providers()
-    print("\n", "-" * 50, "\n")
-    print_models()
+    # print("\n", "-" * 50, "\n")
+    # print_models()
