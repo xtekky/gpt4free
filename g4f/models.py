@@ -82,57 +82,57 @@ llama_13b = Model(
 
 # Vercel
 claude_instant_v1 = Model(
-    name          = 'anthropic:claude-instant-v1',
+    name          = 'claude-instant-v1',
     base_provider = 'anthropic',
     best_provider = Vercel)
 
 claude_v1 = Model(
-    name          = 'anthropic:claude-v1',
+    name          = 'claude-v1',
     base_provider = 'anthropic',
     best_provider = Vercel)
 
 claude_v2 = Model(
-    name          = 'anthropic:claude-v2',
+    name          = 'claude-v2',
     base_provider = 'anthropic',
     best_provider = Vercel)
 
 command_light_nightly = Model(
-    name          = 'cohere:command-light-nightly',
+    name          = 'command-light-nightly',
     base_provider = 'cohere',
     best_provider = Vercel)
 
 command_nightly = Model(
-    name          = 'cohere:command-nightly',
+    name          = 'command-nightly',
     base_provider = 'cohere',
     best_provider = Vercel)
 
 gpt_neox_20b = Model(
-    name          = 'huggingface:EleutherAI/gpt-neox-20b',
+    name          = 'EleutherAI/gpt-neox-20b',
     base_provider = 'huggingface',
     best_provider = Vercel)
 
 oasst_sft_1_pythia_12b = Model(
-    name          = 'huggingface:OpenAssistant/oasst-sft-1-pythia-12b',
+    name          = 'OpenAssistant/oasst-sft-1-pythia-12b',
     base_provider = 'huggingface',
     best_provider = Vercel)
 
 oasst_sft_4_pythia_12b_epoch_35 = Model(
-    name          = 'huggingface:OpenAssistant/oasst-sft-4-pythia-12b-epoch-3.5',
+    name          = 'OpenAssistant/oasst-sft-4-pythia-12b-epoch-3.5',
     base_provider = 'huggingface',
     best_provider = Vercel)
 
 santacoder = Model(
-    name          = 'huggingface:bigcode/santacoder',
+    name          = 'bigcode/santacoder',
     base_provider = 'huggingface',
     best_provider = Vercel)
 
 bloom = Model(
-    name          = 'huggingface:bigscience/bloom',
+    name          = 'bigscience/bloom',
     base_provider = 'huggingface',
     best_provider = Vercel)
 
 flan_t5_xxl = Model(
-    name          = 'huggingface:google/flan-t5-xxl',
+    name          = 'google/flan-t5-xxl',
     base_provider = 'huggingface',
     best_provider = Vercel)
 
@@ -199,9 +199,12 @@ llama7b_v2_chat = Model(
 
 class ModelUtils:
     convert: dict[str, Model] = {
-        # GPT-3.5 / GPT-4
-        'gpt-3.5-turbo' : gpt_35_turbo,
-        'gpt-4'         : gpt_4,
+        # gpt-3.5 / gpt-4
+        'gpt-3.5-turbo'          : gpt_35_turbo,
+        'gpt-3.5-turbo-16k'      : gpt_35_turbo_16k,
+        'gpt-4'                  : gpt_4,
+        'gpt-4-0613'             : gpt_4_0613,
+        'gpt-3.5-turbo-16k-0613' : gpt_35_turbo_16k_0613,
         
         # Bard
         'palm2'       : palm,
@@ -226,8 +229,6 @@ class ModelUtils:
         'bloom'             : bloom,
         'flan-t5-xxl'       : flan_t5_xxl,
         'code-davinci-002'  : code_davinci_002,
-        'gpt-3.5-turbo-16k' : gpt_35_turbo_16k,
-        'gpt-4-0613'        : gpt_4_0613,
         'text-ada-001'      : text_ada_001,
         'text-babbage-001'  : text_babbage_001,
         'text-curie-001'    : text_curie_001,
@@ -239,5 +240,4 @@ class ModelUtils:
         'oasst-sft-1-pythia-12b'           : oasst_sft_1_pythia_12b,
         'oasst-sft-4-pythia-12b-epoch-3.5' : oasst_sft_4_pythia_12b_epoch_35,
         'command-light-nightly'            : command_light_nightly,
-        'gpt-3.5-turbo-16k-0613'           : gpt_35_turbo_16k_0613,
     }
