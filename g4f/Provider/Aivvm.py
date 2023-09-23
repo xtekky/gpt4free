@@ -56,7 +56,7 @@ class Aivvm(BaseProvider):
             "https://chat.aivvm.com/api/chat", headers=headers, json=json_data, stream=True)
 
         for line in response.iter_content(chunk_size=1048):
-            yield line
+            yield line.decode('utf-8')
 
     @classmethod
     @property
