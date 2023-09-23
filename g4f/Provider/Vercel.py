@@ -1,65 +1,82 @@
 from __future__ import annotations
 
 import json, base64, requests, execjs, random, uuid
+from aiohttp import ClientSession
 
-from ..typing       import Any, TypedDict, CreateResult
-from .base_provider import BaseProvider
-from abc            import abstractmethod
+from ..typing       import Any, TypedDict, AsyncGenerator
+from .base_provider import AsyncGeneratorProvider
 
 
-class Vercel(BaseProvider):
+class Vercel(AsyncGeneratorProvider):
     url = 'https://sdk.vercel.ai'
     working               = True
     supports_gpt_35_turbo = True
     supports_stream       = True
+    _anti_bot_token       = None
 
-    @staticmethod
-    @abstractmethod
-    def create_completion(
+    @classmethod
+    async def create_async_generator(
+        cls,
         model: str,
         messages: list[dict[str, str]],
-        stream: bool, **kwargs ) -> CreateResult:
+        stream: bool,
+        proxy: str = None,
+        **kwargs
+    ) -> AsyncGenerator:
+        if not model:
+            model = "gpt-3.5-turbo"
+        elif model not in model_info:
+            raise ValueError(f"Model are not supported: {model}")
         
-        headers = {
-            'authority'         : 'sdk.vercel.ai',
-            'accept'            : '*/*',
-            'accept-language'   : 'en,fr-FR;q=0.9,fr;q=0.8,es-ES;q=0.7,es;q=0.6,en-US;q=0.5,am;q=0.4,de;q=0.3',
-            'cache-control'     : 'no-cache',
-            'content-type'      : 'application/json',
-            'custom-encoding'   : AntiBotToken(),
-            'origin'            : 'https://sdk.vercel.ai',
-            'pragma'            : 'no-cache',
-            'referer'           : 'https://sdk.vercel.ai/',
-            'sec-ch-ua'         : '"Google Chrome";v="117", "Not;A=Brand";v="8", "Chromium";v="117"',
-            'sec-ch-ua-mobile'  : '?0',
-            'sec-ch-ua-platform': '"macOS"',
-            'sec-fetch-dest'    : 'empty',
-            'sec-fetch-mode'    : 'cors',
-            'sec-fetch-site'    : 'same-origin',
-            'user-agent'        :  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.%s.%s Safari/537.36' % (
-                random.randint(99, 999),
-                random.randint(99, 999)
-            )
-        }
+        if not cls._anti_bot_token:
+            cls._anti_bot_token = get_anti_bot_token(proxy)
 
         json_data = {
             'model'       : model_info[model]['id'],
             'messages'    : messages,
             'playgroundId': str(uuid.uuid4()),
-            'chatIndex'   : 0} | model_info[model]['default_params']
+            'chatIndex'   : 0
+        } | model_info[model]['default_params']
         
+        for tries in range(100):
+            headers = {
+                'authority'         : 'sdk.vercel.ai',
+                'accept'            : '*/*',
+                'accept-language'   : 'en,fr-FR;q=0.9,fr;q=0.8,es-ES;q=0.7,es;q=0.6,en-US;q=0.5,am;q=0.4,de;q=0.3',
+                'cache-control'     : 'no-cache',
+                'content-type'      : 'application/json',
+                'custom-encoding'   : cls._anti_bot_token,
+                'origin'            : 'https://sdk.vercel.ai',
+                'pragma'            : 'no-cache',
+                'referer'           : 'https://sdk.vercel.ai/',
+                'sec-ch-ua'         : '"Google Chrome";v="117", "Not;A=Brand";v="8", "Chromium";v="117"',
+                'sec-ch-ua-mobile'  : '?0',
+                'sec-ch-ua-platform': '"macOS"',
+                'sec-fetch-dest'    : 'empty',
+                'sec-fetch-mode'    : 'cors',
+                'sec-fetch-site'    : 'same-origin',
+                'user-agent'        :  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.%s.%s Safari/537.36' % (
+                    random.randint(99, 999),
+                    random.randint(99, 999)
+                )
+            }
+            async with ClientSession(
+                headers=headers
+            ) as session:
+                async with session.post(f"{cls.url}/api/generate", proxy=proxy, json=json_data) as response:
+                    try:
+                        response.raise_for_status()
+                    except Exception as e:
+                        if tries >= 99:
+                            raise e
+                        # Maybe the token is the reason for failing
+                        cls._anti_bot_token = get_anti_bot_token(proxy)
+                        continue
+                    async for token in response.content.iter_any():
+                        yield token.decode()
+                    break    
 
-        server_error = True
-        while server_error:
-            response = requests.post('https://sdk.vercel.ai/api/generate', 
-                                    headers=headers, json=json_data, stream=True)
-
-            for token in response.iter_content(chunk_size=2046):
-                if token != b'Internal Server Error':
-                    server_error = False
-                    yield (token.decode())
-
-def AntiBotToken() -> str:
+def get_anti_bot_token(proxy: str = None) -> str:
     headers = {
         'authority'         : 'sdk.vercel.ai',
         'accept'            : '*/*',
@@ -79,8 +96,9 @@ def AntiBotToken() -> str:
         )
     }
     
+    # Does not work with async requests
     response = requests.get('https://sdk.vercel.ai/openai.jpeg', 
-                            headers=headers).text
+                            headers=headers, proxies={"https": proxy}).text
 
     raw_data = json.loads(base64.b64decode(response, 
                                     validate=True))
