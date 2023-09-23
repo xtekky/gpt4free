@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 
 import browser_cookie3
 
-from ..typing import Any, AsyncGenerator, CreateResult
+from ..typing import AsyncGenerator, CreateResult
 
 
 class BaseProvider(ABC):
@@ -25,7 +25,6 @@ class BaseProvider(ABC):
         stream: bool,
         **kwargs
     ) -> CreateResult:
-        
         raise NotImplementedError()
 
 

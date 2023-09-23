@@ -40,7 +40,8 @@ def get_providers() -> list[type[BaseProvider]]:
         "retry_provider",
         "BaseProvider",
         "AsyncProvider",
-        "AsyncGeneratorProvider"
+        "AsyncGeneratorProvider",
+        "RetryProvider",
     ]
     return [
         getattr(Provider, provider_name)

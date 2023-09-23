@@ -9,7 +9,7 @@ from .base_provider import AsyncGeneratorProvider, format_prompt, get_cookies
 
 
 class HuggingChat(AsyncGeneratorProvider):
-    url = "https://huggingface.co/chat/"
+    url = "https://huggingface.co/chat"
     needs_auth = True
     working = True
     model = "OpenAssistant/oasst-sft-6-llama-30b-xor"
