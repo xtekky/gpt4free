@@ -24,7 +24,7 @@ from .Provider   import (
 class Model:
     name: str
     base_provider: str
-    best_provider: Union[type[BaseProvider], tuple[type[BaseProvider]]] = None
+    best_provider: Union[type[BaseProvider], RetryProvider] = None
 
 # Config for HuggingChat, OpenAssistant
 # Works for Liaobots, H2o, OpenaiChat, Yqcloud, You

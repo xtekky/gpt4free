@@ -2,7 +2,7 @@ from __future__ import annotations
 import requests
 
 from .base_provider import BaseProvider
-from ..typing import Any, CreateResult
+from ..typing import CreateResult
 
 models = {
     'gpt-3.5-turbo': {'id': 'gpt-3.5-turbo', 'name': 'GPT-3.5'},
@@ -26,8 +26,14 @@ class Aivvm(BaseProvider):
     def create_completion(cls,
         model: str,
         messages: list[dict[str, str]],
-        stream: bool, **kwargs: Any) -> CreateResult:
-        
+        stream: bool,
+        **kwargs
+    ) -> CreateResult:
+        if not model:
+            model = "gpt-3.5-turbo"
+        elif model not in models:
+            raise ValueError(f"Model are not supported: {model}")
+    
         headers = {
             "authority"          : "chat.aivvm.com",
             "accept"             : "*/*",
