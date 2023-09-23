@@ -68,3 +68,30 @@ class ChatCompletion:
             raise Exception(f"Provider: {provider.__name__} doesn't support create_async")
 
         return await provider.create_async(model.name, messages, **kwargs)
+
+class Completion:
+    @staticmethod
+    def create(
+        model    : Union[models.Model, str],
+        prompt   : str,
+        provider : Union[type[BaseProvider], None] = None,
+        stream   : bool                            = False, **kwargs) -> Union[CreateResult, str]:
+        
+        allowed_models = [
+            'code-davinci-002',
+            'text-ada-001',
+            'text-babbage-001',
+            'text-curie-001',
+            'text-davinci-002',
+            'text-davinci-003'
+        ]
+        
+        if model not in allowed_models:
+            raise Exception(f'ValueError: Can\'t use {model} with Completion.create()')
+        
+        model, provider = get_model_and_provider(model, provider, stream)
+
+        result = provider.create_completion(model.name, 
+                                            [{"role": "user", "content": prompt}], stream, **kwargs)
+
+        return result if stream else ''.join(result)

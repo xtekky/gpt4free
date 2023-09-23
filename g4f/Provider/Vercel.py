@@ -48,9 +48,11 @@ class Vercel(BaseProvider):
             'playgroundId': str(uuid.uuid4()),
             'chatIndex'   : 0} | model_info[model]['default_params']
 
-
         server_error = True
-        while server_error:
+        retries      = 0
+        max_retries  = kwargs.get('max_retries', 20)
+        
+        while server_error and not retries > max_retries:
             response = requests.post('https://sdk.vercel.ai/api/generate', 
                                     headers=headers, json=json_data, stream=True)
 
@@ -58,6 +60,8 @@ class Vercel(BaseProvider):
                 if token != b'Internal Server Error':
                     server_error = False
                     yield (token.decode())
+                    
+            retries += 1
 
 def AntiBotToken() -> str:
     headers = {
