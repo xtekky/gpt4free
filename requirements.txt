@@ -11,3 +11,5 @@ flask-cors
 typing-extensions
 transformers
 PyExecJS
+tensorflow
+torch
