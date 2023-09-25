@@ -96,3 +96,39 @@ class Completion:
                                             [{"role": "user", "content": prompt}], stream, **kwargs)
 
         return result if stream else ''.join(result)
+
+
+class AvailableProviders:
+    providers = [getattr(Provider, provider) for provider in Provider.__all__]
+    model = 'gpt-3.5-turbo'
+
+    @classmethod
+    def _test_provider(cls, provider: Provider) -> str:
+        try:
+            ChatCompletion.create(
+                model=cls.model,
+                messages=[{"role": "user", "content": 'Hello world'}],
+                provider=provider
+            )
+            return provider.__name__
+        except:
+            return
+
+    @classmethod
+    def show(
+        cls,
+        threads_num: int = 4,
+        model: str = 'gpt-3.5-turbo'
+    ) -> list[str]:
+        """Test all the providers then find out which are available"""
+        from multiprocessing.dummy import Pool as ThreadPool
+        cls.model = model
+
+        with ThreadPool(threads_num) as pool:
+            available_providers = pool.map(
+                cls._test_provider, cls.providers
+            )
+        return [
+            available_provider for available_provider in available_providers
+            if available_provider is not None
+        ]
