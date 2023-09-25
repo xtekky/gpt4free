@@ -60,9 +60,10 @@ class Aivvm(BaseProvider):
 
         response = requests.post(
             "https://chat.aivvm.com/api/chat", headers=headers, json=json_data, stream=True)
+        response.raise_for_status()
 
-        for line in response.iter_content(chunk_size=1048):
-            yield line.decode('utf-8')
+        for chunk in response.iter_content(chunk_size=None):
+            yield chunk.decode('utf-8')
 
     @classmethod
     @property
