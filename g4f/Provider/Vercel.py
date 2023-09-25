@@ -18,7 +18,13 @@ class Vercel(BaseProvider):
     def create_completion(
         model: str,
         messages: list[dict[str, str]],
-        stream: bool, **kwargs ) -> CreateResult:
+        stream: bool,
+        **kwargs
+    ) -> CreateResult:
+        if not model:
+            model = "gpt-3.5-turbo"
+        elif model not in model_info:
+            raise ValueError(f"Model are not supported: {model}")
 
         headers = {
             'authority'         : 'sdk.vercel.ai',
@@ -26,7 +32,7 @@ class Vercel(BaseProvider):
             'accept-language'   : 'en,fr-FR;q=0.9,fr;q=0.8,es-ES;q=0.7,es;q=0.6,en-US;q=0.5,am;q=0.4,de;q=0.3',
             'cache-control'     : 'no-cache',
             'content-type'      : 'application/json',
-            'custom-encoding'   : AntiBotToken(),
+            'custom-encoding'   : get_anti_bot_token(),
             'origin'            : 'https://sdk.vercel.ai',
             'pragma'            : 'no-cache',
             'referer'           : 'https://sdk.vercel.ai/',
@@ -48,22 +54,20 @@ class Vercel(BaseProvider):
             'playgroundId': str(uuid.uuid4()),
             'chatIndex'   : 0} | model_info[model]['default_params']
 
-        server_error = True
-        retries      = 0
         max_retries  = kwargs.get('max_retries', 20)
-        
-        while server_error and not retries > max_retries:
+        for i in range(max_retries):
             response = requests.post('https://sdk.vercel.ai/api/generate', 
                                     headers=headers, json=json_data, stream=True)
+            try:
+                response.raise_for_status()
+            except:
+                continue
+            for token in response.iter_content(chunk_size=8):
+                yield token.decode()
+            break
 
-            for token in response.iter_content(chunk_size=2046):
-                if token != b'Internal Server Error':
-                    server_error = False
-                    yield (token.decode())
-                    
-            retries += 1
 
-def AntiBotToken() -> str:
+def get_anti_bot_token() -> str:
     headers = {
         'authority'         : 'sdk.vercel.ai',
         'accept'            : '*/*',

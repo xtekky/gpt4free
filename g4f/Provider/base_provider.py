@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import asyncio
-from asyncio import SelectorEventLoop
+import functools
+from asyncio import SelectorEventLoop, AbstractEventLoop
+from concurrent.futures import ThreadPoolExecutor
 from abc import ABC, abstractmethod
 
 import browser_cookie3
@@ -27,6 +29,31 @@ class BaseProvider(ABC):
     ) -> CreateResult:
         raise NotImplementedError()
 
+    @classmethod
+    async def create_async(
+        cls,
+        model: str,
+        messages: list[dict[str, str]],
+        *,
+        loop: AbstractEventLoop = None,
+        executor: ThreadPoolExecutor = None,
+        **kwargs
+    ) -> str:
+        if not loop:
+            loop = asyncio.get_event_loop()
+
+        partial_func = functools.partial(
+            cls.create_completion,
+            model,
+            messages,
+            False,
+            **kwargs
+        )
+        response = await loop.run_in_executor(
+            executor,
+            partial_func
+        )
+        return "".join(response)
 
     @classmethod
     @property
@@ -127,7 +154,7 @@ def create_event_loop() -> SelectorEventLoop:
     except RuntimeError:
         return SelectorEventLoop()
     raise RuntimeError(
-        'Use "create_async" instead of "create" function in a async loop.')
+        'Use "create_async" instead of "create" function in a running event loop.')
 
 
 _cookies = {}
