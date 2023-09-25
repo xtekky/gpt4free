@@ -25,14 +25,7 @@ class OpenaiChat(AsyncProvider):
         cookies: dict = None,
         **kwargs: dict
     ) -> AsyncGenerator:
-        proxies = None
-        if proxy:
-            if "://" not in proxy:
-                proxy = f"http://{proxy}"
-            proxies = {
-                "http": proxy,
-                "https": proxy
-            }
+        proxies = {"https": proxy}
         if not access_token:
             access_token = await cls.get_access_token(cookies, proxies)
         headers = {
@@ -61,15 +54,16 @@ class OpenaiChat(AsyncProvider):
             for line in response.content.decode().splitlines():
                 if line.startswith("data: "):
                     line = line[6:]
-                    if line != "[DONE]":
-                        line = json.loads(line)
-                        if "message" in line:
-                            last_message = line["message"]["content"]["parts"][0]
+                    if line == "[DONE]":
+                        break
+                    line = json.loads(line)
+                    if "message" in line:
+                        last_message = line["message"]["content"]["parts"][0]
             return last_message
 
 
     @classmethod
-    async def get_access_token(cls, cookies: dict = None, proxies: dict = None):
+    async def get_access_token(cls, cookies: dict = None, proxies: dict = None) -> str:
         if not cls._access_token:
             cookies = cookies if cookies else get_cookies("chat.openai.com")
             async with AsyncSession(proxies=proxies, cookies=cookies, impersonate="chrome107") as session:

@@ -23,8 +23,6 @@ class OpenAssistant(AsyncGeneratorProvider):
         cookies: dict = None,
         **kwargs: Any
     ) -> AsyncGenerator:
-        if proxy and "://" not in proxy:
-            proxy = f"http://{proxy}"
         if not cookies:
             cookies = get_cookies("open-assistant.io")
 
