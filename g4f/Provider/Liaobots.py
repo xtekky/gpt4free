@@ -46,8 +46,6 @@ class Liaobots(AsyncGeneratorProvider):
         **kwargs
     ) -> AsyncGenerator:
         model = model if model in models else "gpt-3.5-turbo"
-        if proxy and "://" not in proxy:
-            proxy = f"http://{proxy}"
         headers = {
             "authority": "liaobots.com",
             "content-type": "application/json",

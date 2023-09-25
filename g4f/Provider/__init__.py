@@ -21,6 +21,7 @@ from .H2o           import H2o
 from .HuggingChat   import HuggingChat
 from .Liaobots      import Liaobots
 from .Lockchat      import Lockchat
+from .Myshell       import Myshell
 from .Opchatgpts    import Opchatgpts
 from .OpenaiChat    import OpenaiChat
 from .OpenAssistant import OpenAssistant
@@ -68,6 +69,7 @@ __all__ = [
     'HuggingChat',
     'Liaobots',
     'Lockchat',
+    'Myshell',
     'Opchatgpts',
     'Raycast',
     'OpenaiChat',
