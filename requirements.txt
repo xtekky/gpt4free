@@ -9,7 +9,4 @@ js2py
 flask
 flask-cors
 typing-extensions
-transformers
 PyExecJS
-tensorflow
-torch
