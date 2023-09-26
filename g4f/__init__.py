@@ -2,9 +2,9 @@ from __future__ import annotations
 from g4f        import models
 from .Provider  import BaseProvider, AsyncProvider
 from .typing    import Any, CreateResult, Union
-import random
 
 logging = False
+version = '0.1.3.6'
 
 def get_model_and_provider(model: Union[models.Model, str], provider: type[BaseProvider], stream: bool):
     if isinstance(model, str):
