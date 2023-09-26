@@ -7,7 +7,7 @@ from aiohttp import StreamReader
 from aiohttp.base_protocol import BaseProtocol
 
 from curl_cffi.requests import AsyncSession as BaseSession
-from curl_cffi.requests.cookies import Request, Response
+from curl_cffi.requests import Request, Response
 
 
 class StreamResponse:
