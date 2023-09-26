@@ -62,7 +62,7 @@ class Vercel(BaseProvider):
                 response.raise_for_status()
             except:
                 continue
-            for token in response.iter_content(chunk_size=8):
+            for token in response.iter_content(chunk_size=None):
                 yield token.decode()
             break
 

@@ -20,6 +20,8 @@ from .Provider   import (
     AItianhuSpace,
     Aichat,
     Myshell,
+    Aibn,
+    ChatgptDuo,
 )
 
 @dataclass(unsafe_hash=True)
@@ -39,7 +41,8 @@ default = Model(
         Wewordle,     # Responds with markdown
         Yqcloud,      # Answers short questions in chinese
         ChatBase,     # Don't want to answer creatively
-        DeepAi, ChatgptLogin, ChatgptAi, Aivvm, GptGo, AItianhu, AItianhuSpace, Aichat, Myshell,
+        ChatgptDuo,   # Include search results
+        DeepAi, ChatgptLogin, ChatgptAi, Aivvm, GptGo, AItianhu, AItianhuSpace, Aichat, Myshell, Aibn,
     ])
 )
 
@@ -48,7 +51,7 @@ gpt_35_turbo = Model(
     name          = 'gpt-3.5-turbo',
     base_provider = 'openai',
     best_provider = RetryProvider([
-        DeepAi, ChatgptLogin, ChatgptAi, Aivvm, GptGo, AItianhu, Aichat, AItianhuSpace, Myshell,
+        DeepAi, ChatgptLogin, ChatgptAi, Aivvm, GptGo, AItianhu, Aichat, AItianhuSpace, Myshell, Aibn,
     ])
 )
 
@@ -56,7 +59,7 @@ gpt_4 = Model(
     name          = 'gpt-4',
     base_provider = 'openai',
     best_provider = RetryProvider([
-        Aivvm, Myshell, AItianhuSpace,
+        Myshell, AItianhuSpace,
     ])
 )
 

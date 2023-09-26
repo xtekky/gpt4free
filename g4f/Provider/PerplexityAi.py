@@ -58,7 +58,7 @@ class PerplexityAi(AsyncProvider):
                         result = json.loads(json.loads(line[3:])[0]["text"])
 
                         cls._sources = [{
-                            "name": source["name"],
+                            "title": source["name"],
                             "url": source["url"],
                             "snippet": source["snippet"]
                         } for source in result["web_results"]]
