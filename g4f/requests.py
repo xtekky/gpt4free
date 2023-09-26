@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import json, sys
+from functools import partialmethod
+
 from aiohttp import StreamReader
 from aiohttp.base_protocol import BaseProtocol
 
-from curl_cffi.requests import AsyncSession
-from curl_cffi.requests.cookies import Request
-from curl_cffi.requests.cookies import Response
+from curl_cffi.requests import AsyncSession as BaseSession
+from curl_cffi.requests.cookies import Request, Response
 
 
 class StreamResponse:
@@ -17,6 +18,8 @@ class StreamResponse:
         self.status_code = inner.status_code
         self.reason = inner.reason
         self.ok = inner.ok
+        self.headers = inner.headers
+        self.cookies = inner.cookies
 
     async def text(self) -> str:
         content = await self.content.read()
@@ -28,7 +31,6 @@ class StreamResponse:
 
     async def json(self, **kwargs):
         return json.loads(await self.content.read(), **kwargs)
-
 
 class StreamRequest:
     def __init__(self, session: AsyncSession, method: str, url: str, **kwargs):
@@ -50,10 +52,13 @@ class StreamRequest:
 
     def on_done(self, task):
         self.content.feed_eof()
+        self.curl.clean_after_perform()
+        self.curl.reset()
+        self.session.push_curl(self.curl)   
 
     async def __aenter__(self) -> StreamResponse:
         self.curl = await self.session.pop_curl()
-        self.enter = self.session.loop.create_future()
+        self.enter = self.loop.create_future()
         request, _, header_buffer = self.session._set_curl_options(
             self.curl,
             self.method,
@@ -61,8 +66,8 @@ class StreamRequest:
             content_callback=self.on_content,
             **self.options
         )
-        handle = self.session.acurl.add_handle(self.curl)
-        self.handle = self.session.loop.create_task(handle)
+        await self.session.acurl.add_handle(self.curl, False)
+        self.handle = self.session.acurl._curl2future[self.curl]
         self.handle.add_done_callback(self.on_done)
         await self.enter
         return StreamResponse(
@@ -72,7 +77,20 @@ class StreamRequest:
         )
             
     async def __aexit__(self, exc_type, exc, tb):
-        await self.handle
-        self.curl.clean_after_perform()
-        self.curl.reset()
-        self.session.push_curl(self.curl)         
+        pass
+
+class AsyncSession(BaseSession):
+    def request(
+        self,
+        method: str,
+        url: str,
+        **kwargs
+    ) -> StreamRequest:
+        return StreamRequest(self, method, url, **kwargs)
+    
+    head = partialmethod(request, "HEAD")
+    get = partialmethod(request, "GET")
+    post = partialmethod(request, "POST")
+    put = partialmethod(request, "PUT")
+    patch = partialmethod(request, "PATCH")
+    delete = partialmethod(request, "DELETE")
