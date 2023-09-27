@@ -4,7 +4,7 @@ from .Provider  import BaseProvider, AsyncProvider
 from .typing    import Any, CreateResult, Union
 
 logging = False
-version = '0.1.3.8'
+version = '0.1.3.9'
 
 def get_model_and_provider(model: Union[models.Model, str], provider: type[BaseProvider], stream: bool):
     if isinstance(model, str):
