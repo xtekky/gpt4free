@@ -5,9 +5,13 @@ By using this repository or any code related to it, you agree to the [legal noti
 ### New
 - official website: *https://g4f.ai*  
 - latest pypi version: ([0.1.4.0](https://pypi.org/project/g4f/0.1.4.0)):
-
 ```sh
 pip install -U g4f
+```
+- check pypi version:
+```py
+import g4f
+print(g4f.version) # 0.1.X.X
 ```
 
 ## Table of Contents
