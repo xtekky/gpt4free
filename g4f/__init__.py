@@ -2,9 +2,23 @@ from __future__ import annotations
 from g4f        import models
 from .Provider  import BaseProvider, AsyncProvider
 from .typing    import Any, CreateResult, Union
+from requests   import get
 
 logging = False
-version = '0.1.3.9'
+version = '0.1.4.0'
+
+def check_pypi_version():
+    try:
+        response = get(f"https://pypi.org/pypi/g4f/json").json()
+        latest_version = response["info"]["version"]
+        
+        if version != latest_version:
+            print(f'New pypi version: {latest_version} (current: {version}) | pip install -U g4f')
+    
+    except Exception as e:
+        print(f'Failed to check g4f pypi version: {e}')
+
+check_pypi_version()
 
 def get_model_and_provider(model: Union[models.Model, str], provider: type[BaseProvider], stream: bool):
     if isinstance(model, str):
