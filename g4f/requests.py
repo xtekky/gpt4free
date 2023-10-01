@@ -8,10 +8,12 @@ from aiohttp.base_protocol import BaseProtocol
 
 from curl_cffi.requests import AsyncSession as BaseSession
 from curl_cffi.requests import Response
-from curl_cffi import AsyncCurl
 
-is_newer_0_5_9 = hasattr(AsyncCurl, "remove_handle")
-is_newer_0_5_8 = hasattr(BaseSession, "_set_cookies")
+import curl_cffi
+
+is_newer_0_5_8 = hasattr(BaseSession, "_set_cookies") or hasattr(curl_cffi.requests.Cookies, "get_cookies_for_curl")
+is_newer_0_5_9 = hasattr(curl_cffi.AsyncCurl, "remove_handle")
+is_newer_0_5_10 = hasattr(BaseSession, "release_curl")
 
 class StreamResponse:
     def __init__(self, inner: Response, content: StreamReader, request):
@@ -65,13 +67,22 @@ class StreamRequest:
     async def __aenter__(self) -> StreamResponse:
         self.curl = await self.session.pop_curl()
         self.enter = self.loop.create_future()
-        request, _, header_buffer = self.session._set_curl_options(
-            self.curl,
-            self.method,
-            self.url,
-            content_callback=self.on_content,
-            **self.options
-        )
+        if is_newer_0_5_10:
+            request, _, header_buffer, _, _ = self.session._set_curl_options(
+                self.curl,
+                self.method,
+                self.url,
+                content_callback=self.on_content,
+                **self.options
+            )
+        else:
+            request, _, header_buffer = self.session._set_curl_options(
+                self.curl,
+                self.method,
+                self.url,
+                content_callback=self.on_content,
+                **self.options
+            )
         if is_newer_0_5_9:
              self.handle = self.session.acurl.add_handle(self.curl)
         else:
