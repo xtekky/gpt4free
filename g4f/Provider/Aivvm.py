@@ -37,16 +37,17 @@ class Aivvm(BaseProvider):
 
         headers = {
             "accept"            : "*/*",
-            "accept-language"   : "hu-HU,hu;q=0.9,en-US;q=0.8,en;q=0.7",
+            "accept-language"   : "en-US,en;q=0.9",
             "content-type"      : "application/json",
-            "sec-ch-ua"         : "\"Kuki\";v=\"116\", \"Not)A;Brand\";v=\"24\", \"Pici Pocoro\";v=\"102\"",
+            "sec-ch-ua"         : '"Brave";v="117", "Not;A=Brand";v="8", "Chromium";v="117"',
             "sec-ch-ua-mobile"  : "?0",
-            "sec-ch-ua-platform": "\"Bandóz\"",
+            "sec-ch-ua-platform": "\"Windows\"",
             "sec-fetch-dest"    : "empty",
             "sec-fetch-mode"    : "cors",
             "sec-fetch-site"    : "same-origin",
             "Referer"           : "https://chat.aivvm.com/",
             "Referrer-Policy"   : "same-origin",
+            "user-agent"        : "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36"
         }
 
         json_data = {
