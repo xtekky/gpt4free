@@ -11,7 +11,7 @@ from curl_cffi.requests import Response
 from curl_cffi import AsyncCurl
 
 is_newer_0_5_9 = hasattr(AsyncCurl, "remove_handle")
-
+is_newer_0_5_8 = hasattr(BaseSession, "_set_cookies")
 
 class StreamResponse:
     def __init__(self, inner: Response, content: StreamReader, request):
@@ -46,6 +46,10 @@ class StreamRequest:
         )
         self.method = method
         self.url = url
+        if "proxy" in kwargs:
+            proxy = kwargs.pop("proxy")
+            if proxy:
+                kwargs["proxies"] = {"http": proxy, "https": proxy}
         self.options = kwargs
 
     def on_content(self, data):
@@ -75,7 +79,7 @@ class StreamRequest:
             self.handle = self.session.acurl._curl2future[self.curl]
         self.handle.add_done_callback(self.on_done)
         await self.enter
-        if is_newer_0_5_9:
+        if is_newer_0_5_8:
             response = self.session._parse_response(self.curl, _, header_buffer)
             response.request = request
         else:
@@ -91,7 +95,7 @@ class StreamRequest:
             self.session.acurl.set_result(self.curl)
         self.curl.clean_after_perform()
         self.curl.reset()
-        self.session.push_curl(self.curl)   
+        self.session.push_curl(self.curl)
 
 class AsyncSession(BaseSession):
     def request(
