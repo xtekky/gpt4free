@@ -47,7 +47,7 @@ f = function () {
 "tryit-" + h + "-" + f(agent + f(agent + f(agent + h + "x")));
 """
 
-        payload = {"chas_style": "chat", "chatHistory": json.dumps(messages)}
+        payload = {"chat_style": "chat", "chatHistory": json.dumps(messages)}
         api_key = js2py.eval_js(token_js)
         headers = {
             "api-key": api_key,
