@@ -1,8 +1,8 @@
 from __future__ import annotations
-import requests
 
-from .base_provider import BaseProvider
-from ..typing import CreateResult
+from ..requests import AsyncSession
+from .base_provider import AsyncGeneratorProvider
+from ..typing import AsyncGenerator
 
 # to recreate this easily, send a post request to https://chat.aivvm.com/api/models
 models = {
@@ -16,7 +16,7 @@ models = {
     'gpt-4-32k-0613': {'id': 'gpt-4-32k-0613', 'name': 'GPT-4-32K-0613'},
 }
 
-class Aivvm(BaseProvider):
+class Aivvm(AsyncGeneratorProvider):
     url                   = 'https://chat.aivvm.com'
     supports_stream       = True
     working               = True
@@ -24,30 +24,17 @@ class Aivvm(BaseProvider):
     supports_gpt_4        = True
 
     @classmethod
-    def create_completion(cls,
+    async def create_async_generator(
+        cls,
         model: str,
         messages: list[dict[str, str]],
         stream: bool,
         **kwargs
-    ) -> CreateResult:
+    ) -> AsyncGenerator:
         if not model:
             model = "gpt-3.5-turbo"
         elif model not in models:
             raise ValueError(f"Model is not supported: {model}")
-
-        headers = {
-            "accept"            : "*/*",
-            "accept-language"   : "hu-HU,hu;q=0.9,en-US;q=0.8,en;q=0.7",
-            "content-type"      : "application/json",
-            "sec-ch-ua"         : "\"Kuki\";v=\"116\", \"Not)A;Brand\";v=\"24\", \"Pici Pocoro\";v=\"102\"",
-            "sec-ch-ua-mobile"  : "?0",
-            "sec-ch-ua-platform": "\"Bandóz\"",
-            "sec-fetch-dest"    : "empty",
-            "sec-fetch-mode"    : "cors",
-            "sec-fetch-site"    : "same-origin",
-            "Referer"           : "https://chat.aivvm.com/",
-            "Referrer-Policy"   : "same-origin",
-        }
 
         json_data = {
             "model"       : models[model],
@@ -56,13 +43,11 @@ class Aivvm(BaseProvider):
             "prompt"      : kwargs.get("system_message", "You are ChatGPT, a large language model trained by OpenAI. Follow the user's instructions carefully. Respond using markdown."),
             "temperature" : kwargs.get("temperature", 0.7)
         }
-
-        response = requests.post(
-            "https://chat.aivvm.com/api/chat", headers=headers, json=json_data, stream=True)
-        response.raise_for_status()
-
-        for chunk in response.iter_content(chunk_size=None):
-            yield chunk.decode('utf-8')
+        async with AsyncSession(impersonate="chrome107") as session:
+            async with session.post(f"{cls.url}/api/chat", json=json_data) as response:
+                response.raise_for_status()
+                async for chunk in response.content.iter_any():
+                    yield chunk.decode('utf-8')
 
     @classmethod
     @property

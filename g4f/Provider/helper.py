@@ -1,18 +1,12 @@
 from __future__ import annotations
 
 import asyncio
-import sys
 from asyncio import AbstractEventLoop
 
 import browser_cookie3
 
 _cookies: dict[str, dict[str, str]] = {}
 
-# Use own event_loop_policy with a selector event loop on windows.
-if sys.platform == 'win32':
-    _event_loop_policy = asyncio.WindowsSelectorEventLoopPolicy()
-else:
-    _event_loop_policy = asyncio.get_event_loop_policy()
     
 # If event loop is already running, handle nested event loops
 # If "nest_asyncio" is installed, patch the event loop.
@@ -20,9 +14,9 @@ def get_event_loop() -> AbstractEventLoop:
     try:
         asyncio.get_running_loop()
     except RuntimeError:
-        return _event_loop_policy.get_event_loop()
+        return asyncio.get_event_loop()
     try:
-        event_loop = _event_loop_policy.get_event_loop()
+        event_loop = asyncio.get_event_loop()
         if not hasattr(event_loop.__class__, "_nest_patched"):
             import nest_asyncio
             nest_asyncio.apply(event_loop)
