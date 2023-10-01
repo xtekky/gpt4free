@@ -47,7 +47,7 @@ class Aivvm(AsyncGeneratorProvider):
             async with session.post(f"{cls.url}/api/chat", json=json_data) as response:
                 response.raise_for_status()
                 async for chunk in response.content.iter_any():
-                    yield chunk.decode('utf-8')
+                    yield chunk.decode()
 
     @classmethod
     @property
