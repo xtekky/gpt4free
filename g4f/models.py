@@ -3,25 +3,25 @@ from dataclasses import dataclass
 from .typing     import Union
 from .Provider   import BaseProvider, RetryProvider
 from .Provider   import (
+    AItianhuSpace,
     ChatgptLogin,
-    ChatgptAi, 
-    ChatBase, 
-    Vercel, 
-    DeepAi, 
-    Aivvm, 
-    Bard, 
-    H2o,
-    GptGo,
-    Bing,
     PerplexityAi,
+    ChatgptDuo,
+    ChatgptAi,
+    ChatBase, 
+    AItianhu,
     Wewordle,
     Yqcloud,
-    AItianhu,
-    AItianhuSpace,
-    Aichat,
     Myshell,
+    Vercel, 
+    DeepAi, 
+    Aichat,
+    Aivvm, 
+    GptGo,
+    Bard, 
     Aibn,
-    ChatgptDuo,
+    Bing,
+    H2o,
 )
 
 @dataclass(unsafe_hash=True)
@@ -166,7 +166,17 @@ gpt_35_turbo_0613 = Model(
 gpt_4_0613 = Model(
     name          = 'gpt-4-0613',
     base_provider = 'openai',
-    best_provider = Vercel)
+    best_provider = Aivvm)
+
+gpt_4_32k = Model(
+    name          = 'gpt-4-32k',
+    base_provider = 'openai',
+    best_provider = Aivvm)
+
+gpt_4_32k_0613 = Model(
+    name          = 'gpt-4-32k-0613',
+    base_provider = 'openai',
+    best_provider = Aivvm)
 
 text_ada_001 = Model(
     name          = 'text-ada-001',
@@ -206,12 +216,16 @@ llama7b_v2_chat = Model(
 
 class ModelUtils:
     convert: dict[str, Model] = {
-        # gpt-3.5 / gpt-4
+        # gpt-3.5
         'gpt-3.5-turbo'          : gpt_35_turbo,
         'gpt-3.5-turbo-16k'      : gpt_35_turbo_16k,
-        'gpt-4'                  : gpt_4,
-        'gpt-4-0613'             : gpt_4_0613,
         'gpt-3.5-turbo-16k-0613' : gpt_35_turbo_16k_0613,
+        
+        # gpt-4
+        'gpt-4'          : gpt_4,
+        'gpt-4-0613'     : gpt_4_0613,
+        'gpt-4-32k'      : gpt_4_32k,
+        'gpt-4-32k-0613' : gpt_4_32k_0613,
         
         # Bard
         'palm2'       : palm,
