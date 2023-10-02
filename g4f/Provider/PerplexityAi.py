@@ -4,7 +4,6 @@ import json
 import time
 import base64
 from curl_cffi.requests import AsyncSession
-from fake_useragent import UserAgent
 
 from .base_provider import AsyncProvider, format_prompt, get_cookies
 
@@ -25,7 +24,6 @@ class PerplexityAi(AsyncProvider):
     ) -> str:
         url = cls.url + "/socket.io/?EIO=4&transport=polling"
         headers = {
-            "User-Agent": UserAgent().random,
             "Referer": f"{cls.url}/"
         }
         async with AsyncSession(headers=headers, proxies={"https": proxy}, impersonate="chrome107") as session:
@@ -43,8 +41,6 @@ class PerplexityAi(AsyncProvider):
 
             response = await session.get(url, params={"t": timestamp(), "sid": sid})
             response.raise_for_status()
-
-            print(session.cookies)
 
             data = '40{"jwt":"anonymous-ask-user"}'
             response = await session.post(url, params={"t": timestamp(), "sid": sid}, data=data)
