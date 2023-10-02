@@ -97,7 +97,8 @@ class StreamRequest:
             self.enter.set_result(None)
         self.queue.put_nowait(None)
 
-        self.loop.call_soon(self.session.release_curl, self.curl)
+        #self.loop.call_soon(self.session.rel, self.curl)
+        return
 
     async def fetch(self) -> StreamResponse:
         if self.handle:
