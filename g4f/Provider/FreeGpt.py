@@ -1,15 +1,18 @@
 from __future__ import annotations
 
-import time
-import hashlib
+import time, hashlib, random
 
 from ..typing import AsyncGenerator
 from ..requests import StreamSession
 from .base_provider import AsyncGeneratorProvider
 
+domains = [
+    'https://k.aifree.site',
+    'https://p.aifree.site'
+]
 
-class Aibn(AsyncGeneratorProvider):
-    url                   = "https://aibn.cc"
+class FreeGpt(AsyncGeneratorProvider):
+    url                   = "https://freegpts1.aifree.site/"
     supports_gpt_35_turbo = True
     working               = True
 
@@ -21,14 +24,16 @@ class Aibn(AsyncGeneratorProvider):
         **kwargs
     ) -> AsyncGenerator:
         async with StreamSession(impersonate="chrome107") as session:
+            prompt = messages[-1]["content"]
             timestamp = int(time.time())
             data = {
                 "messages": messages,
+                "time": timestamp,
                 "pass": None,
-                "sign": generate_signature(timestamp, messages[-1]["content"]),
-                "time": timestamp
+                "sign": generate_signature(timestamp, prompt)
             }
-            async with session.post(f"{cls.url}/api/generate", json=data) as response:
+            url = random.choice(domains)
+            async with session.post(f"{url}/api/generate", json=data) as response:
                 response.raise_for_status()
                 async for chunk in response.iter_content():
                     yield chunk.decode()
@@ -40,12 +45,10 @@ class Aibn(AsyncGeneratorProvider):
             ("model", "str"),
             ("messages", "list[dict[str, str]]"),
             ("stream", "bool"),
-            ("temperature", "float"),
         ]
         param = ", ".join([": ".join(p) for p in params])
         return f"g4f.provider.{cls.__name__} supports: ({param})"
     
-
-def generate_signature(timestamp: int, message: str, secret: str = "undefined"):
+def generate_signature(timestamp: int, message: str, secret: str = ""):
     data = f"{timestamp}:{message}:{secret}"
     return hashlib.sha256(data.encode()).hexdigest()

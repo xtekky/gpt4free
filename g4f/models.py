@@ -8,16 +8,19 @@ from .Provider   import (
     PerplexityAi,
     ChatgptDuo,
     ChatgptAi,
+    ChatForAi,
     ChatBase, 
     AItianhu,
     Wewordle,
     Yqcloud,
     Myshell,
+    FreeGpt,
     Vercel, 
     DeepAi, 
     Aichat,
     Aivvm, 
     GptGo,
+    Ylokh,
     Bard, 
     Aibn,
     Bing,
@@ -42,7 +45,7 @@ default = Model(
         Yqcloud,      # Answers short questions in chinese
         ChatBase,     # Don't want to answer creatively
         ChatgptDuo,   # Include search results
-        DeepAi, ChatgptLogin, ChatgptAi, Aivvm, GptGo, AItianhu, AItianhuSpace, Aichat, Myshell, Aibn,
+        DeepAi, ChatgptLogin, ChatgptAi, Aivvm, GptGo, AItianhu, AItianhuSpace, Aichat, Myshell, Aibn, ChatForAi, FreeGpt, Ylokh,
     ])
 )
 
@@ -51,7 +54,7 @@ gpt_35_turbo = Model(
     name          = 'gpt-3.5-turbo',
     base_provider = 'openai',
     best_provider = RetryProvider([
-        DeepAi, ChatgptLogin, ChatgptAi, Aivvm, GptGo, AItianhu, Aichat, AItianhuSpace, Myshell, Aibn,
+        DeepAi, ChatgptLogin, ChatgptAi, Aivvm, GptGo, AItianhu, Aichat, AItianhuSpace, Myshell, Aibn, ChatForAi, FreeGpt, Ylokh,
     ])
 )
 
@@ -59,7 +62,7 @@ gpt_4 = Model(
     name          = 'gpt-4',
     base_provider = 'openai',
     best_provider = RetryProvider([
-        Myshell, AItianhuSpace,
+        Myshell, Ylokh,
     ])
 )
 
