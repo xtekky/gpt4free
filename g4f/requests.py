@@ -145,7 +145,8 @@ class StreamRequest:
         return await self.fetch()
 
     async def __aexit__(self, *args):
-        self.session.release_curl(self.curl)
+        return
+        #self.session.release_curl(self.curl)
 
 class StreamSession(AsyncSession):
     def request(
