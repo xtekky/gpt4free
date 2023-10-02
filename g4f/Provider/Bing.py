@@ -3,6 +3,7 @@ from __future__ import annotations
 import random
 import json
 import os
+import urllib.parse
 from aiohttp        import ClientSession, ClientTimeout
 from ..typing       import AsyncGenerator
 from .base_provider import AsyncGeneratorProvider, get_cookies
@@ -245,7 +246,6 @@ async def stream_generate(
                 await wss.send_str(create_message(conversation, prompt, context))
 
                 response_txt = ''
-                result_text = ''
                 returned_text = ''
                 final = False
 
@@ -260,14 +260,18 @@ async def stream_generate(
                         if response.get('type') == 1 and response['arguments'][0].get('messages'):
                             message = response['arguments'][0]['messages'][0]
                             if (message['contentOrigin'] != 'Apology'):
-                                response_txt = result_text + \
-                                    message['adaptiveCards'][0]['body'][0].get('text', '')
-                                
-                                if message.get('messageType'):
-                                    inline_txt = message['adaptiveCards'][0]['body'][0]['inlines'][0].get('text')
-                                    response_txt += inline_txt + '\n'
-                                    result_text += inline_txt + '\n'
-
+                                if 'adaptiveCards' in message:
+                                    card = message['adaptiveCards'][0]['body'][0]
+                                    if "text" in card:
+                                        response_txt = card.get('text')
+                                    if message.get('messageType'):
+                                        inline_txt = card['inlines'][0].get('text')
+                                        response_txt += inline_txt + '\n'
+                                elif message.get('contentType') == "IMAGE":
+                                    query = urllib.parse.quote(message.get('text'))
+                                    url = f"\nhttps://www.bing.com/images/create?q={query}"
+                                    response_txt += url
+                                    final = True
                             if response_txt.startswith(returned_text):
                                 new = response_txt[len(returned_text):]
                                 if new != "\n":
