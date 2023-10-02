@@ -5,7 +5,7 @@ from .typing    import Any, CreateResult, Union
 from requests   import get
 
 logging = False
-version = '0.1.4.4'
+version = '0.1.4.5'
 
 def check_pypi_version():
     try:
