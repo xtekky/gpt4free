@@ -97,8 +97,7 @@ class StreamRequest:
             self.enter.set_result(None)
         self.queue.put_nowait(None)
 
-        #self.loop.call_soon(self.session.rel, self.curl)
-        return
+        self.loop.call_soon(self.release_curl)
 
     async def fetch(self) -> StreamResponse:
         if self.handle:
@@ -146,8 +145,22 @@ class StreamRequest:
         return await self.fetch()
 
     async def __aexit__(self, *args):
-        return
-        #self.session.release_curl(self.curl)
+        self.release_curl()
+
+    def release_curl(self):
+        if is_newer_0_5_10:
+            self.session.release_curl(self.curl)
+            return
+        if not self.curl:
+            return
+        self.curl.clean_after_perform()
+        if is_newer_0_5_9:
+            self.session.acurl.remove_handle(self.curl)
+        elif not self.handle.done() and not self.handle.cancelled():
+            self.session.acurl.set_result(self.curl)
+        self.curl.reset()
+        self.session.push_curl(self.curl)
+        self.curl = None
 
 class StreamSession(AsyncSession):
     def request(
