@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from ..requests import AsyncSession
+from ..requests import StreamSession
 from .base_provider import AsyncGeneratorProvider
 from ..typing import AsyncGenerator
 
@@ -43,10 +43,10 @@ class Aivvm(AsyncGeneratorProvider):
             "prompt"      : kwargs.get("system_message", "You are ChatGPT, a large language model trained by OpenAI. Follow the user's instructions carefully. Respond using markdown."),
             "temperature" : kwargs.get("temperature", 0.7)
         }
-        async with AsyncSession(impersonate="chrome107") as session:
+        async with StreamSession(impersonate="chrome107") as session:
             async with session.post(f"{cls.url}/api/chat", json=json_data) as response:
                 response.raise_for_status()
-                async for chunk in response.content.iter_any():
+                async for chunk in response.iter_content():
                     yield chunk.decode()
 
     @classmethod

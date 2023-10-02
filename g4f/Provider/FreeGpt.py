@@ -3,7 +3,7 @@ from __future__ import annotations
 import time, hashlib, random
 
 from ..typing import AsyncGenerator
-from g4f.requests import AsyncSession
+from ..requests import StreamSession
 from .base_provider import AsyncGeneratorProvider
 
 domains = [
@@ -23,7 +23,7 @@ class FreeGpt(AsyncGeneratorProvider):
         messages: list[dict[str, str]],
         **kwargs
     ) -> AsyncGenerator:
-        async with AsyncSession(impersonate="chrome107") as session:
+        async with StreamSession(impersonate="chrome107") as session:
             prompt = messages[-1]["content"]
             timestamp = int(time.time())
             data = {
@@ -35,7 +35,7 @@ class FreeGpt(AsyncGeneratorProvider):
             url = random.choice(domains)
             async with session.post(f"{url}/api/generate", json=data) as response:
                 response.raise_for_status()
-                async for chunk in response.content.iter_any():
+                async for chunk in response.iter_content():
                     yield chunk.decode()
 
     @classmethod

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import random, json
 
-from g4f.requests import AsyncSession
+from ..requests import StreamSession
 from .base_provider import AsyncGeneratorProvider, format_prompt
 
 domains = {
@@ -33,7 +33,7 @@ class AItianhuSpace(AsyncGeneratorProvider):
         domain = domains[model]
         url = f'https://{rand}{domain}'
 
-        async with AsyncSession(impersonate="chrome110", verify=False) as session:
+        async with StreamSession(impersonate="chrome110", verify=False) as session:
             data = {
                 "prompt": format_prompt(messages),
                 "options": {},
@@ -50,10 +50,10 @@ class AItianhuSpace(AsyncGeneratorProvider):
             }
             async with session.post(f"{url}/api/chat-process", json=data, headers=headers) as response:
                 response.raise_for_status()
-                async for line in response.content:
+                async for line in response.iter_lines():
                     if b"platform's risk control" in line:
                         raise RuntimeError("Platform's Risk Control")
-                    line = json.loads(line.rstrip())
+                    line = json.loads(line)
                     if "detail" in line:
                         content = line["detail"]["choices"][0]["delta"].get("content")
                         if content:

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 
-from ..requests import AsyncSession
+from ..requests import StreamSession
 from .base_provider import AsyncGeneratorProvider
 from ..typing import AsyncGenerator
 
@@ -37,18 +37,19 @@ class Ylokh(AsyncGeneratorProvider):
             "stream": stream,
             **kwargs
         }
-        async with AsyncSession(
-            headers=headers
+        async with StreamSession(
+            headers=headers,
+            proxies={"https": proxy}
         ) as session:
-            async with session.post("https://chatapi.ylokh.xyz/v1/chat/completions", json=data, proxy=proxy) as response:
+            async with session.post("https://chatapi.ylokh.xyz/v1/chat/completions", json=data) as response:
                 response.raise_for_status()
                 if stream:
-                    async for line in response.content:
+                    async for line in response.iter_lines():
                         line = line.decode()
                         if line.startswith("data: "):
                             if line.startswith("data: [DONE]"):
                                 break
-                            line = json.loads(line[6:-1])
+                            line = json.loads(line[6:])
                             content = line["choices"][0]["delta"].get("content")
                             if content:
                                 yield content
