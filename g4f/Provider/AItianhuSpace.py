@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import random, json
 
+from ..typing import AsyncGenerator
 from ..requests import StreamSession
 from .base_provider import AsyncGeneratorProvider, format_prompt
 
@@ -22,7 +23,7 @@ class AItianhuSpace(AsyncGeneratorProvider):
         messages: list[dict[str, str]],
         stream: bool = True,
         **kwargs
-    ) -> str:
+    ) -> AsyncGenerator:
         if not model:
             model = "gpt-3.5-turbo"
         elif not model in domains:

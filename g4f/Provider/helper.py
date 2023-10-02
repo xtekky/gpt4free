@@ -21,7 +21,11 @@ def get_event_loop() -> AbstractEventLoop:
     try:
         asyncio.get_running_loop()
     except RuntimeError:
-        return asyncio.get_event_loop()
+        try:
+            return asyncio.get_event_loop()
+        except RuntimeError:
+            asyncio.set_event_loop(asyncio.new_event_loop())
+            return asyncio.get_event_loop()
     try:
         event_loop = asyncio.get_event_loop()
         if not hasattr(event_loop.__class__, "_nest_patched"):

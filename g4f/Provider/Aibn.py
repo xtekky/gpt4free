@@ -4,7 +4,7 @@ import time
 import hashlib
 
 from ..typing import AsyncGenerator
-from ..requests import StreamRequest
+from ..requests import StreamSession
 from .base_provider import AsyncGeneratorProvider
 
 
@@ -20,7 +20,7 @@ class Aibn(AsyncGeneratorProvider):
         messages: list[dict[str, str]],
         **kwargs
     ) -> AsyncGenerator:
-        async with StreamRequest(impersonate="chrome107") as session:
+        async with StreamSession(impersonate="chrome107") as session:
             timestamp = int(time.time())
             data = {
                 "messages": messages,
