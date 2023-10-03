@@ -75,3 +75,4 @@ def test(_provider: type[BaseProvider]) -> bool:
 
 if __name__ == "__main__":
     main()
+    
