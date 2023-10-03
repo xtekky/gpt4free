@@ -57,3 +57,27 @@ def format_prompt(messages: list[dict[str, str]], add_special_tokens=False):
         return f"{formatted}\nAssistant:"
     else:
         return messages[0]["content"]
+    
+
+def get_browser(user_data_dir: str = None):
+    try:
+        from undetected_chromedriver import Chrome
+    except ImportError:
+        return None
+
+    def get_user_data_dir():
+        dirs = [
+            '~/.config/google-chrome/Default',
+            '~/.var/app/com.google.Chrome/config/google-chrome/Default',
+            '%LOCALAPPDATA%\\Google\\Chrome\\User Data\\Default',
+            '~/Library/Application Support/Google/Chrome/Default',
+        ]
+        from os import path
+        for dir in dirs:
+            dir = path.expandvars(dir)
+            if path.exists(dir):
+                return dir
+    if not user_data_dir:
+        user_data_dir = get_user_data_dir()
+
+    return Chrome(user_data_dir=user_data_dir)
