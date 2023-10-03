@@ -63,7 +63,7 @@ class OpenaiChat(AsyncGeneratorProvider):
                             last_message = new_message
 
     @classmethod
-    def fetch_access_token(cls) -> str:
+    def browse_access_token(cls) -> str:
         try:
             from selenium.webdriver.common.by import By
             from selenium.webdriver.support.ui import WebDriverWait
@@ -86,18 +86,24 @@ class OpenaiChat(AsyncGeneratorProvider):
             driver.quit()
 
     @classmethod
+    async def fetch_access_token(cls, cookies: dict, proxies: dict = None) -> str:
+        async with StreamSession(proxies=proxies, cookies=cookies, impersonate="chrome107") as session:
+            async with session.get(f"{cls.url}/api/auth/session") as response:
+                response.raise_for_status()
+                auth = await response.json()
+                if "accessToken" in auth:
+                    return auth["accessToken"]
+
+    @classmethod
     async def get_access_token(cls, cookies: dict = None, proxies: dict = None) -> str:
         if not cls._access_token:
             cookies = cookies if cookies else get_cookies("chat.openai.com")
-            async with StreamSession(proxies=proxies, cookies=cookies, impersonate="chrome107") as session:
-                async with session.get(f"{cls.url}/api/auth/session") as response:
-                    response.raise_for_status()
-                    auth = await response.json()
-                    if "accessToken" in auth:
-                        cls._access_token = auth["accessToken"]
-            cls._access_token = cls.fetch_access_token()
-            if not cls._access_token:
-                raise RuntimeError("Missing access token")
+            if cookies:
+                cls._access_token = await cls.fetch_access_token(cookies, proxies)
+        if not cls._access_token:
+            cls._access_token = cls.browse_access_token()
+        if not cls._access_token:
+            raise RuntimeError("Read access token failed")
         return cls._access_token
 
     @classmethod
