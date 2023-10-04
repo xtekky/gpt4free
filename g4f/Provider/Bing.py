@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import random
+import uuid
 import json
 import os
 import urllib.parse
@@ -57,14 +58,39 @@ class Conversation():
         self.conversationSignature = conversationSignature
 
 async def create_conversation(session: ClientSession) -> Conversation:
-    url = 'https://www.bing.com/turing/conversation/create'
-    async with await session.get(url) as response:
-        response = await response.json()
+    url = 'https://www.bing.com/turing/conversation/create?bundleVersion=1.1055.6'
+    headers = {
+        'authority': 'www.bing.com',
+        'accept': 'application/json',
+        'accept-language': 'en,fr-FR;q=0.9,fr;q=0.8,es-ES;q=0.7,es;q=0.6,en-US;q=0.5,am;q=0.4,de;q=0.3',
+        'cache-control': 'no-cache',
+        'pragma': 'no-cache',
+        'referer': 'https://www.bing.com/search?q=Bing+AI&showconv=1',
+        'sec-ch-ua': '"Google Chrome";v="117", "Not;A=Brand";v="8", "Chromium";v="117"',
+        'sec-ch-ua-arch': '"arm"',
+        'sec-ch-ua-bitness': '"64"',
+        'sec-ch-ua-full-version': '"117.0.5938.132"',
+        'sec-ch-ua-full-version-list': '"Google Chrome";v="117.0.5938.132", "Not;A=Brand";v="8.0.0.0", "Chromium";v="117.0.5938.132"',
+        'sec-ch-ua-mobile': '?0',
+        'sec-ch-ua-model': '""',
+        'sec-ch-ua-platform': '"macOS"',
+        'sec-ch-ua-platform-version': '"14.0.0"',
+        'sec-fetch-dest': 'empty',
+        'sec-fetch-mode': 'cors',
+        'sec-fetch-site': 'same-origin',
+        'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36',
+        'x-ms-client-request-id': str(uuid.uuid4()),
+        'x-ms-useragent': 'azsdk-js-api-client-factory/1.0.0-beta.1 core-rest-pipeline/1.12.0 OS/macOS',
+    }
+    
+    async with await session.get(url, headers=headers) as response:
+        conversationSignature = response.headers.get('X-Sydney-EncryptedConversationSignature', '')
+        
+        response       = await response.json()
         conversationId = response.get('conversationId')
-        clientId = response.get('clientId')
-        conversationSignature = response.get('conversationSignature')
-
-        if not conversationId or not clientId or not conversationSignature:
+        clientId       = response.get('clientId')
+        
+        if not conversationId or not clientId:
             raise Exception('Failed to create conversation.')
         
         return Conversation(conversationId, clientId, conversationSignature)
@@ -249,7 +275,7 @@ async def stream_generate(
         conversation = await retry_conversation(session)
         try:
             async with session.ws_connect(
-                'wss://sydney.bing.com/sydney/ChatHub',
+                f'wss://sydney.bing.com/sydney/ChatHub?sec_access_token={urllib.parse.quote_plus(conversation.conversationSignature)}',
                 autoping=False,
             ) as wss:
                 
