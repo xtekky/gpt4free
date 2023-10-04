@@ -20,7 +20,7 @@ class Cromicle(AsyncGeneratorProvider):
         proxy: str = None,
         **kwargs
     ) -> AsyncGenerator:
-
+        message = messages[-1]["content"]
         async with ClientSession(
             headers=_create_header()
         ) as session:
@@ -46,5 +46,5 @@ def _create_payload(message: str):
     return {
         'message'    : message,
         'token' : 'abc',
-        'hash'    : sha256(token.encode() + message.encode()).hexdigest()
+        'hash'    : sha256('abc'.encode() + message.encode()).hexdigest()
     }
