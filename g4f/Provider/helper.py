@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio, sys
 from asyncio import AbstractEventLoop
-
+from os import path
 import browser_cookie3
 
 # Change event loop policy on windows
@@ -60,24 +60,11 @@ def format_prompt(messages: list[dict[str, str]], add_special_tokens=False):
     
 
 def get_browser(user_data_dir: str = None):
-    try:
-        from undetected_chromedriver import Chrome
-    except ImportError:
-        return None
+    from undetected_chromedriver import Chrome
+    from platformdirs import user_config_dir
 
-    def get_user_data_dir():
-        dirs = [
-            '~/.config/google-chrome/Default',
-            '~/.var/app/com.google.Chrome/config/google-chrome/Default',
-            '%LOCALAPPDATA%\\Google\\Chrome\\User Data\\Default',
-            '~/Library/Application Support/Google/Chrome/Default',
-        ]
-        from os import path
-        for dir in dirs:
-            dir = path.expandvars(dir)
-            if path.exists(dir):
-                return dir
     if not user_data_dir:
-        user_data_dir = get_user_data_dir()
+        user_data_dir = user_config_dir("g4f")
+        user_data_dir = path.join(user_data_dir, "Default")
 
     return Chrome(user_data_dir=user_data_dir)

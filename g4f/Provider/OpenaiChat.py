@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-import uuid
-import json
+import uuid, json, time
 
 from .base_provider import AsyncGeneratorProvider
 from .helper import get_browser, get_cookies, format_prompt
@@ -56,8 +55,13 @@ class OpenaiChat(AsyncGeneratorProvider):
                         line = line[6:]
                         if line == b"[DONE]":
                             break
-                        line = json.loads(line)
-                        if "message" in line and not line["message"]["end_turn"]:
+                        try:
+                            line = json.loads(line)
+                        except:
+                            continue
+                        if "message" not in line or "message_type" not in line["message"]["metadata"]:
+                            continue
+                        if line["message"]["metadata"]["message_type"] == "next":
                             new_message = line["message"]["content"]["parts"][0]
                             yield new_message[len(last_message):]
                             last_message = new_message
@@ -68,11 +72,9 @@ class OpenaiChat(AsyncGeneratorProvider):
             from selenium.webdriver.common.by import By
             from selenium.webdriver.support.ui import WebDriverWait
             from selenium.webdriver.support import expected_conditions as EC
-        except ImportError:
-            return
 
-        driver = get_browser()
-        if not driver:
+            driver = get_browser()
+        except ImportError:
             return
 
         driver.get(f"{cls.url}/")
@@ -83,6 +85,7 @@ class OpenaiChat(AsyncGeneratorProvider):
             javascript = "return (await (await fetch('/api/auth/session')).json())['accessToken']"
             return driver.execute_script(javascript)
         finally:
+            time.sleep(1)
             driver.quit()
 
     @classmethod
