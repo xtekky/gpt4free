@@ -6,7 +6,7 @@ import re
 
 from aiohttp import ClientSession
 
-from .base_provider import AsyncProvider, format_prompt, get_cookies
+from ..base_provider import AsyncProvider, format_prompt, get_cookies
 
 
 class Bard(AsyncProvider):

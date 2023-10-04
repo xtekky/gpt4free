@@ -33,22 +33,10 @@ def main():
 
 
 def get_providers() -> list[type[BaseProvider]]:
-    provider_names = dir(Provider)
-    ignore_names = [
-        "annotations",
-        "helper",
-        "base_provider",
-        "retry_provider",
-        "BaseProvider",
-        "AsyncProvider",
-        "AsyncGeneratorProvider",
-        "RetryProvider",
-    ]
-    return [
-        getattr(Provider, provider_name)
-        for provider_name in provider_names
-        if not provider_name.startswith("__") and provider_name not in ignore_names
-    ]
+    providers = dir(Provider)
+    providers = [getattr(Provider, provider) for provider in providers if provider != "RetryProvider"]
+    providers = [provider for provider in providers if isinstance(provider, type)]
+    return [provider for provider in providers if issubclass(provider, BaseProvider)]
 
 
 def create_response(_provider: type[BaseProvider]) -> str:

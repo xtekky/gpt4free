@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import uuid, json, time
 
-from .base_provider import AsyncGeneratorProvider
-from .helper import get_browser, get_cookies, format_prompt
-from ..typing import AsyncGenerator
-from ..requests import StreamSession
+from ..base_provider import AsyncGeneratorProvider
+from ..helper import get_browser, get_cookies, format_prompt
+from ...typing import AsyncGenerator
+from ...requests import StreamSession
 
 class OpenaiChat(AsyncGeneratorProvider):
     url                   = "https://chat.openai.com"

@@ -4,8 +4,8 @@ import json, uuid
 
 from aiohttp import ClientSession
 
-from ..typing import AsyncGenerator
-from .base_provider import AsyncGeneratorProvider, format_prompt, get_cookies
+from ...typing import AsyncGenerator
+from ..base_provider import AsyncGeneratorProvider, format_prompt, get_cookies
 
 
 class HuggingChat(AsyncGeneratorProvider):
