@@ -3,14 +3,14 @@ from __future__ import annotations
 from aiohttp import ClientSession
 import json
 
-from ..typing       import AsyncGenerator
-from .base_provider import AsyncGeneratorProvider
+from ...typing       import AsyncGenerator
+from ..base_provider import AsyncGeneratorProvider
 
 
 class CodeLinkAva(AsyncGeneratorProvider):
     url                   = "https://ava-ai-ef611.web.app"
     supports_gpt_35_turbo = True
-    working               = True
+    working               = False
 
     @classmethod
     async def create_async_generator(

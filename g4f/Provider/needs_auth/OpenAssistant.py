@@ -4,14 +4,14 @@ import json
 
 from aiohttp import ClientSession
 
-from ..typing import Any, AsyncGenerator
-from .base_provider import AsyncGeneratorProvider, format_prompt, get_cookies
+from ...typing import Any, AsyncGenerator
+from ..base_provider import AsyncGeneratorProvider, format_prompt, get_cookies
 
 
 class OpenAssistant(AsyncGeneratorProvider):
     url = "https://open-assistant.io/chat"
     needs_auth = True
-    working = True
+    working = False
     model = "OA_SFT_Llama_30B_6"
 
     @classmethod

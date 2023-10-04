@@ -4,8 +4,8 @@ import uuid
 
 import requests
 
-from ..typing import Any, CreateResult
-from .base_provider import BaseProvider
+from ...typing import Any, CreateResult
+from ..base_provider import BaseProvider
 
 
 class V50(BaseProvider):

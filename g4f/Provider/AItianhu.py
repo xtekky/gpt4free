@@ -38,6 +38,8 @@ class AItianhu(AsyncGeneratorProvider):
             async with session.post(f"{cls.url}/api/chat-process", json=data) as response:
                 response.raise_for_status()
                 async for line in response.iter_lines():
+                    if line == b"<script>":
+                        raise RuntimeError("Solve Challenge")
                     if b"platform's risk control" in line:
                         raise RuntimeError("Platform's Risk Control")
                     line = json.loads(line)

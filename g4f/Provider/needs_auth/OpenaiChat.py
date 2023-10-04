@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-import uuid
-import json
+import uuid, json, time
 
-from .base_provider import AsyncGeneratorProvider
-from .helper import get_browser, get_cookies, format_prompt
-from ..typing import AsyncGenerator
-from ..requests import StreamSession
+from ..base_provider import AsyncGeneratorProvider
+from ..helper import get_browser, get_cookies, format_prompt
+from ...typing import AsyncGenerator
+from ...requests import StreamSession
 
 class OpenaiChat(AsyncGeneratorProvider):
     url                   = "https://chat.openai.com"
@@ -56,23 +55,26 @@ class OpenaiChat(AsyncGeneratorProvider):
                         line = line[6:]
                         if line == b"[DONE]":
                             break
-                        line = json.loads(line)
-                        if "message" in line and not line["message"]["end_turn"]:
+                        try:
+                            line = json.loads(line)
+                        except:
+                            continue
+                        if "message" not in line or "message_type" not in line["message"]["metadata"]:
+                            continue
+                        if line["message"]["metadata"]["message_type"] == "next":
                             new_message = line["message"]["content"]["parts"][0]
                             yield new_message[len(last_message):]
                             last_message = new_message
 
     @classmethod
-    def fetch_access_token(cls) -> str:
+    def browse_access_token(cls) -> str:
         try:
             from selenium.webdriver.common.by import By
             from selenium.webdriver.support.ui import WebDriverWait
             from selenium.webdriver.support import expected_conditions as EC
-        except ImportError:
-            return
 
-        driver = get_browser()
-        if not driver:
+            driver = get_browser()
+        except ImportError:
             return
 
         driver.get(f"{cls.url}/")
@@ -83,21 +85,28 @@ class OpenaiChat(AsyncGeneratorProvider):
             javascript = "return (await (await fetch('/api/auth/session')).json())['accessToken']"
             return driver.execute_script(javascript)
         finally:
+            time.sleep(1)
             driver.quit()
+
+    @classmethod
+    async def fetch_access_token(cls, cookies: dict, proxies: dict = None) -> str:
+        async with StreamSession(proxies=proxies, cookies=cookies, impersonate="chrome107") as session:
+            async with session.get(f"{cls.url}/api/auth/session") as response:
+                response.raise_for_status()
+                auth = await response.json()
+                if "accessToken" in auth:
+                    return auth["accessToken"]
 
     @classmethod
     async def get_access_token(cls, cookies: dict = None, proxies: dict = None) -> str:
         if not cls._access_token:
             cookies = cookies if cookies else get_cookies("chat.openai.com")
-            async with StreamSession(proxies=proxies, cookies=cookies, impersonate="chrome107") as session:
-                async with session.get(f"{cls.url}/api/auth/session") as response:
-                    response.raise_for_status()
-                    auth = await response.json()
-                    if "accessToken" in auth:
-                        cls._access_token = auth["accessToken"]
-            cls._access_token = cls.fetch_access_token()
-            if not cls._access_token:
-                raise RuntimeError("Missing access token")
+            if cookies:
+                cls._access_token = await cls.fetch_access_token(cookies, proxies)
+        if not cls._access_token:
+            cls._access_token = cls.browse_access_token()
+        if not cls._access_token:
+            raise RuntimeError("Read access token failed")
         return cls._access_token
 
     @classmethod

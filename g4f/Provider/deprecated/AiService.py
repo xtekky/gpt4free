@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import requests
 
-from ..typing import Any, CreateResult
-from .base_provider import BaseProvider
+from ...typing import Any, CreateResult
+from ..base_provider import BaseProvider
 
 
 class AiService(BaseProvider):

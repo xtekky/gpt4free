@@ -57,7 +57,9 @@ f = function () {
         async with ClientSession(
             headers=headers
         ) as session:
-            async with session.post("https://api.deepai.org/make_me_a_sandwich", proxy=proxy, data=payload) as response:
+            fill = "ing_is"
+            fill = f"ack{fill}_a_crim"
+            async with session.post(f"https://api.deepai.org/h{fill}e", proxy=proxy, data=payload) as response:
                 response.raise_for_status()
                 async for stream in response.content.iter_any():
                     if stream:
