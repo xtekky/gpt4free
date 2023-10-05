@@ -22,6 +22,7 @@ class OpenaiChat(AsyncGeneratorProvider):
         proxy: str = None,
         access_token: str = None,
         cookies: dict = None,
+        timeout: int = 30,
         **kwargs: dict
     ) -> AsyncGenerator:
         proxies = {"https": proxy}
@@ -31,7 +32,7 @@ class OpenaiChat(AsyncGeneratorProvider):
             "Accept": "text/event-stream",
             "Authorization": f"Bearer {access_token}",
         }
-        async with StreamSession(proxies=proxies, headers=headers, impersonate="chrome107") as session:
+        async with StreamSession(proxies=proxies, headers=headers, impersonate="chrome107", timeout=timeout) as session:
             messages = [
                 {
                     "id": str(uuid.uuid4()),

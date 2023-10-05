@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import json
 import js2py
+import random
+import hashlib
 from aiohttp import ClientSession
 
 from ..typing       import AsyncGenerator
@@ -64,3 +66,12 @@ f = function () {
                 async for stream in response.content.iter_any():
                     if stream:
                         yield stream.decode()
+
+
+def get_api_key(user_agent: str):
+    e = str(round(1E11 * random.random()))
+
+    def hash(data: str):    
+        return hashlib.md5(data.encode()).hexdigest()[::-1]
+
+    return f"tryit-{e}-" + hash(user_agent + hash(user_agent + hash(user_agent + e + "x")))

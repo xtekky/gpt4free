@@ -14,9 +14,15 @@ class ChatgptDuo(AsyncProvider):
         cls,
         model: str,
         messages: list[dict[str, str]],
+        proxy: str = None,
+        timeout: int = 30,
         **kwargs
     ) -> str:
-        async with AsyncSession(impersonate="chrome107") as session:
+        async with AsyncSession(
+            impersonate="chrome107",
+            proxies={"https": proxy},
+            timeout=timeout
+        ) as session:
             prompt = format_prompt(messages),
             data = {
                 "prompt": prompt,

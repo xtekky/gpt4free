@@ -10,7 +10,6 @@ from ..base_provider import AsyncProvider, format_prompt, get_cookies
 
 class PerplexityAi(AsyncProvider):
     url                   = "https://www.perplexity.ai"
-    working               = False
     supports_gpt_35_turbo = True
     _sources              = []
 

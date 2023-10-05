@@ -4,7 +4,7 @@ import json
 
 from ..typing import AsyncGenerator
 from ..requests import StreamSession
-from .base_provider import AsyncGeneratorProvider, format_prompt
+from .base_provider import AsyncGeneratorProvider, format_prompt, get_cookies
 
 
 class AItianhu(AsyncGeneratorProvider):
@@ -18,8 +18,12 @@ class AItianhu(AsyncGeneratorProvider):
         model: str,
         messages: list[dict[str, str]],
         proxy: str = None,
+        cookies: dict = None,
+        timeout: int = 30,
         **kwargs
     ) -> AsyncGenerator:
+        if not cookies:
+            cookies = get_cookies("www.aitianhu.com")
         data = {
             "prompt": format_prompt(messages),
             "options": {},
@@ -34,12 +38,19 @@ class AItianhu(AsyncGeneratorProvider):
             "Origin": cls.url,
             "Referer": f"{cls.url}/"
         }
-        async with StreamSession(headers=headers, proxies={"https": proxy}, impersonate="chrome107", verify=False) as session:
+        async with StreamSession(
+            headers=headers,
+            cookies=cookies,
+            timeout=timeout,
+            proxies={"https": proxy},
+            impersonate="chrome107",
+            verify=False
+        ) as session:
             async with session.post(f"{cls.url}/api/chat-process", json=data) as response:
                 response.raise_for_status()
                 async for line in response.iter_lines():
                     if line == b"<script>":
-                        raise RuntimeError("Solve Challenge")
+                        raise RuntimeError("Solve challenge and pass cookies")
                     if b"platform's risk control" in line:
                         raise RuntimeError("Platform's Risk Control")
                     line = json.loads(line)

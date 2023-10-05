@@ -18,6 +18,7 @@ class Vitalentum(AsyncGeneratorProvider):
         model: str,
         messages: list[dict[str, str]],
         proxy: str = None,
+        timeout: int = 30,
         **kwargs
     ) -> AsyncGenerator:
         headers = {
@@ -40,7 +41,7 @@ class Vitalentum(AsyncGeneratorProvider):
             **kwargs
         }
         async with ClientSession(
-            headers=headers
+            headers=headers, timeout=timeout
         ) as session:
             async with session.post(cls.url + "/api/converse-edge", json=data, proxy=proxy) as response:
                 response.raise_for_status()

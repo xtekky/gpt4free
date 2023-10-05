@@ -4,6 +4,7 @@ import random
 
 from ..typing import CreateResult
 from .base_provider import BaseProvider, AsyncProvider
+from ..debug import logging
 
 
 class RetryProvider(AsyncProvider):
@@ -41,6 +42,8 @@ class RetryProvider(AsyncProvider):
         started = False
         for provider in providers:
             try:
+                if logging:
+                    print(f"Using {provider.__name__} provider")
                 for token in provider.create_completion(model, messages, stream, **kwargs):
                     yield token
                     started = True
@@ -48,6 +51,8 @@ class RetryProvider(AsyncProvider):
                     return
             except Exception as e:
                 self.exceptions[provider.__name__] = e
+                if logging:
+                    print(f"{provider.__name__}: {e.__class__.__name__}: {e}")
                 if started:
                     break
 
@@ -59,7 +64,7 @@ class RetryProvider(AsyncProvider):
         messages: list[dict[str, str]],
         **kwargs
     ) -> str:
-        providers = [provider for provider in self.providers if issubclass(provider, AsyncProvider)]
+        providers = [provider for provider in self.providers]
         if self.shuffle:
             random.shuffle(providers)
         
@@ -69,6 +74,8 @@ class RetryProvider(AsyncProvider):
                 return await provider.create_async(model, messages, **kwargs)
             except Exception as e:
                 self.exceptions[provider.__name__] = e
+                if logging:
+                    print(f"{provider.__name__}: {e.__class__.__name__}: {e}")
     
         self.raise_exceptions()
     

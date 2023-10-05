@@ -16,10 +16,11 @@ class Yqcloud(AsyncGeneratorProvider):
         model: str,
         messages: list[dict[str, str]],
         proxy: str = None,
+        timeout: int = 30,
         **kwargs,
     ) -> AsyncGenerator:
         async with ClientSession(
-            headers=_create_header()
+            headers=_create_header(), timeout=timeout
         ) as session:
             payload = _create_payload(messages)
             async with session.post("https://api.aichatos.cloud/api/generateStream", proxy=proxy, json=payload) as response:
