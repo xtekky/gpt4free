@@ -26,6 +26,7 @@ from .Provider   import (
     Bing,
     You,
     H2o,
+    Cromicle,
 )
 
 @dataclass(unsafe_hash=True)
@@ -61,7 +62,7 @@ gpt_35_turbo = Model(
     name          = 'gpt-3.5-turbo',
     base_provider = 'openai',
     best_provider = RetryProvider([
-        Aibn, Aichat, Aivvm, ChatForAi, ChatgptAi, ChatgptLogin, DeepAi, FreeGpt, GptGo, Myshell, Ylokh,
+        DeepAi, ChatgptLogin, ChatgptAi, Aivvm, GptGo, AItianhu, Aichat, AItianhuSpace, Myshell, Aibn, ChatForAi, FreeGpt, Ylokh, Cromicle
     ])
 )
 
