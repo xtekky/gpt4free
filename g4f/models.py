@@ -3,27 +3,28 @@ from dataclasses import dataclass
 from .typing     import Union
 from .Provider   import BaseProvider, RetryProvider
 from .Provider   import (
-    AItianhuSpace,
     ChatgptLogin,
-    PerplexityAi,
+    ChatgptDemo,
     ChatgptDuo,
+    Vitalentum,
     ChatgptAi,
     ChatForAi,
-    ChatBase, 
-    AItianhu,
-    Wewordle,
+    ChatBase,
+    Liaobots,
     Yqcloud,
     Myshell,
     FreeGpt,
     Vercel, 
-    DeepAi, 
+    DeepAi,
     Aichat,
+    AiAsk,
     Aivvm, 
     GptGo,
     Ylokh,
     Bard, 
     Aibn,
     Bing,
+    You,
     H2o,
 )
 
@@ -33,19 +34,25 @@ class Model:
     base_provider: str
     best_provider: Union[type[BaseProvider], RetryProvider] = None
 
-# Config for HuggingChat, OpenAssistant
-# Works for Liaobots, H2o, OpenaiChat, Yqcloud, You
 default = Model(
     name          = "",
     base_provider = "",
     best_provider = RetryProvider([
         Bing,         # Not fully GPT 3 or 4
-        PerplexityAi, # Adds references to sources
-        Wewordle,     # Responds with markdown
         Yqcloud,      # Answers short questions in chinese
         ChatBase,     # Don't want to answer creatively
         ChatgptDuo,   # Include search results
-        DeepAi, ChatgptLogin, ChatgptAi, Aivvm, GptGo, AItianhu, AItianhuSpace, Aichat, Myshell, Aibn, ChatForAi, FreeGpt, Ylokh,
+        Aibn, Aichat, Aivvm, ChatForAi, ChatgptAi, ChatgptLogin, DeepAi, FreeGpt, GptGo, Myshell, Ylokh,
+    ])
+)
+
+# GPT-3.5 too, but all providers supports long responses and a custom timeouts
+gpt_35_long = Model(
+    name          = 'gpt-3.5-turbo',
+    base_provider = 'openai',
+    best_provider = RetryProvider([
+        AiAsk, Aibn, Aichat, Aivvm, ChatForAi, ChatgptAi, ChatgptDemo, ChatgptDuo,
+        FreeGpt, GptGo, Liaobots, Myshell, Vitalentum, Ylokh, You, Yqcloud
     ])
 )
 
@@ -54,7 +61,7 @@ gpt_35_turbo = Model(
     name          = 'gpt-3.5-turbo',
     base_provider = 'openai',
     best_provider = RetryProvider([
-        DeepAi, ChatgptLogin, ChatgptAi, Aivvm, GptGo, AItianhu, Aichat, AItianhuSpace, Myshell, Aibn, ChatForAi, FreeGpt, Ylokh,
+        Aibn, Aichat, Aivvm, ChatForAi, ChatgptAi, ChatgptLogin, DeepAi, FreeGpt, GptGo, Myshell, Ylokh,
     ])
 )
 

@@ -17,9 +17,10 @@ class ChatForAi(AsyncGeneratorProvider):
         cls,
         model: str,
         messages: list[dict[str, str]],
+        timeout: int = 30,
         **kwargs
     ) -> AsyncGenerator:
-        async with StreamSession(impersonate="chrome107") as session:
+        async with StreamSession(impersonate="chrome107", timeout=timeout) as session:
             conversation_id = f"id_{int(time.time())}"
             prompt = messages[-1]["content"]
             timestamp = int(time.time())

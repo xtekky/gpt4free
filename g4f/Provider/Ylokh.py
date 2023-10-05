@@ -19,6 +19,7 @@ class Ylokh(AsyncGeneratorProvider):
         messages: list[dict[str, str]],
         stream: bool = True,
         proxy: str = None,
+        timeout: int = 30,
         **kwargs
     ) -> AsyncGenerator:
         model = model if model else "gpt-3.5-turbo"
@@ -39,7 +40,8 @@ class Ylokh(AsyncGeneratorProvider):
         }
         async with StreamSession(
             headers=headers,
-            proxies={"https": proxy}
+            proxies={"https": proxy},
+            timeout=timeout
         ) as session:
             async with session.post("https://chatapi.ylokh.xyz/v1/chat/completions", json=data) as response:
                 response.raise_for_status()

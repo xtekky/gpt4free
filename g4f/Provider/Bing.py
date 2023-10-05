@@ -4,6 +4,7 @@ import random
 import uuid
 import json
 import os
+import uuid
 import urllib.parse
 from aiohttp        import ClientSession, ClientTimeout
 from ..typing       import AsyncGenerator
@@ -13,6 +14,15 @@ class Tones():
     creative = "Creative"
     balanced = "Balanced"
     precise = "Precise"
+
+default_cookies = {
+    'SRCHD'         : 'AF=NOFORM',
+    'PPLState'      : '1',
+    'KievRPSSecAuth': '',
+    'SUID'          : '',
+    'SRCHUSR'       : '',
+    'SRCHHPGUSR'    : '',
+}
 
 class Bing(AsyncGeneratorProvider):
     url             = "https://bing.com/chat"
@@ -27,7 +37,6 @@ class Bing(AsyncGeneratorProvider):
         tone: str = Tones.creative,
         **kwargs
     ) -> AsyncGenerator:
-        
         if len(messages) < 2:
             prompt = messages[0]["content"]
             context = None
@@ -36,14 +45,7 @@ class Bing(AsyncGeneratorProvider):
             context = create_context(messages[:-1])
         
         if not cookies or "SRCHD" not in cookies:
-            cookies = {
-                'SRCHD'         : 'AF=NOFORM',
-                'PPLState'      : '1',
-                'KievRPSSecAuth': '',
-                'SUID'          : '',
-                'SRCHUSR'       : '',
-                'SRCHHPGUSR'    : '',
-            }
+            cookies = default_cookies
         return stream_generate(prompt, tone, context, cookies)
 
 def create_context(messages: list[dict[str, str]]):
@@ -58,50 +60,17 @@ class Conversation():
         self.conversationSignature = conversationSignature
 
 async def create_conversation(session: ClientSession) -> Conversation:
-    url = 'https://www.bing.com/turing/conversation/create?bundleVersion=1.1055.6'
-    headers = {
-        'authority': 'www.bing.com',
-        'accept': 'application/json',
-        'accept-language': 'en,fr-FR;q=0.9,fr;q=0.8,es-ES;q=0.7,es;q=0.6,en-US;q=0.5,am;q=0.4,de;q=0.3',
-        'cache-control': 'no-cache',
-        'pragma': 'no-cache',
-        'referer': 'https://www.bing.com/search?q=Bing+AI&showconv=1',
-        'sec-ch-ua': '"Google Chrome";v="117", "Not;A=Brand";v="8", "Chromium";v="117"',
-        'sec-ch-ua-arch': '"arm"',
-        'sec-ch-ua-bitness': '"64"',
-        'sec-ch-ua-full-version': '"117.0.5938.132"',
-        'sec-ch-ua-full-version-list': '"Google Chrome";v="117.0.5938.132", "Not;A=Brand";v="8.0.0.0", "Chromium";v="117.0.5938.132"',
-        'sec-ch-ua-mobile': '?0',
-        'sec-ch-ua-model': '""',
-        'sec-ch-ua-platform': '"macOS"',
-        'sec-ch-ua-platform-version': '"14.0.0"',
-        'sec-fetch-dest': 'empty',
-        'sec-fetch-mode': 'cors',
-        'sec-fetch-site': 'same-origin',
-        'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36',
-        'x-ms-client-request-id': str(uuid.uuid4()),
-        'x-ms-useragent': 'azsdk-js-api-client-factory/1.0.0-beta.1 core-rest-pipeline/1.12.0 OS/macOS',
-    }
-    
-    async with await session.get(url, headers=headers) as response:
-        conversationSignature = response.headers.get('X-Sydney-EncryptedConversationSignature', '')
-        
-        response       = await response.json()
-        conversationId = response.get('conversationId')
-        clientId       = response.get('clientId')
-        
-        if not conversationId or not clientId:
+    url = 'https://www.bing.com/turing/conversation/create'
+    async with await session.get(url) as response:
+        data = await response.json()
+        conversationId = data.get('conversationId')
+        clientId = data.get('clientId')
+        conversationSignature = response.headers.get('X-Sydney-Encryptedconversationsignature')
+
+        if not conversationId or not clientId or not conversationSignature:
             raise Exception('Failed to create conversation.')
         
         return Conversation(conversationId, clientId, conversationSignature)
-
-async def retry_conversation(session: ClientSession) -> Conversation:
-    for _ in range(5):
-        try:
-            return await create_conversation(session)
-        except:
-            session.cookie_jar.clear()
-    return await create_conversation(session)
 
 async def list_conversations(session: ClientSession) -> list:
     url = "https://www.bing.com/turing/conversation/chats"
@@ -223,30 +192,34 @@ def format_message(msg: dict) -> str:
     return json.dumps(msg, ensure_ascii=False) + Defaults.delimiter
 
 def create_message(conversation: Conversation, prompt: str, tone: str, context: str=None) -> str:
+    request_id = str(uuid.uuid4())
     struct = {
         'arguments': [
             {
-                'optionsSets': Defaults.optionsSets,
                 'source': 'cib',
+                'optionsSets': Defaults.optionsSets,
                 'allowedMessageTypes': Defaults.allowedMessageTypes,
                 'sliceIds': Defaults.sliceIds,
                 'traceId': os.urandom(16).hex(),
                 'isStartOfSession': True,
+                'requestId': request_id,
                 'message': Defaults.location | {
                     'author': 'user',
                     'inputMethod': 'Keyboard',
                     'text': prompt,
-                    'messageType': 'Chat'
+                    'messageType': 'Chat',
+                    'requestId': request_id,
+                    'messageId': request_id,
                 },
                 'tone': tone,
-                'conversationSignature': conversation.conversationSignature,
+                'spokenTextMode': 'None',
+                'conversationId': conversation.conversationId,
                 'participant': {
                     'id': conversation.clientId
                 },
-                'conversationId': conversation.conversationId
             }
         ],
-        'invocationId': '0',
+        'invocationId': '1',
         'target': 'chat',
         'type': 4
     }
@@ -272,16 +245,16 @@ async def stream_generate(
         cookies=cookies,
         headers=Defaults.headers,
     ) as session:
-        conversation = await retry_conversation(session)
+        conversation = await create_conversation(session)
         try:
             async with session.ws_connect(
                 f'wss://sydney.bing.com/sydney/ChatHub?sec_access_token={urllib.parse.quote_plus(conversation.conversationSignature)}',
                 autoping=False,
+                params={'sec_access_token': conversation.conversationSignature}
             ) as wss:
                 
                 await wss.send_str(format_message({'protocol': 'json', 'version': 1}))
-                msg = await wss.receive(timeout=900)
-
+                await wss.receive(timeout=900)
                 await wss.send_str(create_message(conversation, prompt, tone, context))
 
                 response_txt = ''

@@ -1,11 +1,14 @@
 from __future__ import annotations
+
 from g4f        import models
-from .Provider  import BaseProvider, AsyncProvider
-from .typing    import Any, CreateResult, Union
+from .Provider  import BaseProvider
+from .typing    import CreateResult, Union
+from .debug     import logging
 from requests   import get
 
 logging = False
 version = '0.1.4.8'
+
 
 def check_pypi_version():
     try:
