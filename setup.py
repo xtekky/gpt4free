@@ -14,7 +14,7 @@ with open("requirements.txt") as f:
 with open("etc/interference/requirements.txt") as f:
     api_required = f.read().splitlines()
 
-VERSION = '0.1.5.1'
+VERSION = '0.1.5.2'
 DESCRIPTION = (
     "The official gpt4free repository | various collection of powerful language models"
 )
@@ -29,6 +29,7 @@ setup(
     long_description_content_type="text/markdown",
     long_description=long_description,
     packages=find_packages(),
+    package_data={"g4f": ["g4f/gui/client/*", "g4f/gui/server/*"]},
     data_files=["etc/interference/app.py"],
     install_requires=required,
     extras_require={"api": api_required},

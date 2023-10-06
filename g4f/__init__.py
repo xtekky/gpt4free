@@ -7,7 +7,7 @@ from .debug     import logging
 from requests   import get
 
 logging = False
-version = '0.1.5.1'
+version = '0.1.5.2'
 
 def check_pypi_version():
     try:
