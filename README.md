@@ -14,6 +14,9 @@ from g4f.gui import run_gui
 
 run_gui()
 ```
+preview:
+
+<img width="1470" alt="image" src="https://github.com/xtekky/gpt4free/assets/98614666/57ad818a-a0dd-4eae-83e1-3fff848ae040">
 
 - run interference from pypi package:
 ```py
@@ -306,19 +309,26 @@ asyncio.run(run_all())
 
 ### interference openai-proxy api (use with openai python package)
 
-If you want to use the embedding function, you need to get a huggingface token. You can get one at https://huggingface.co/settings/tokens make sure your role is set to write. If you have your token, just use it instead of the OpenAI api-key.
+#### run interference from pypi package:
+```py
+from g4f.interference import run_interference
 
+run_interference()
+```
+
+#### run interference from repo:
+If you want to use the embedding function, you need to get a huggingface token. You can get one at https://huggingface.co/settings/tokens make sure your role is set to write. If you have your token, just use it instead of the OpenAI api-key.
 
 get requirements:
 
 ```sh
-pip install -r interference/requirements.txt
+pip install -r etc/interference/requirements.txt
 ```
 
 run server:
 
 ```sh
-python3 -m interference.app
+python3 -m etc/interference.app
 ```
 
 ```py
