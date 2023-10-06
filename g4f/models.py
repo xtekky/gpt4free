@@ -1,8 +1,9 @@
 from __future__  import annotations
 from dataclasses import dataclass
 from .typing     import Union
-from .Provider import BaseProvider, RetryProvider
+from .Provider   import BaseProvider, RetryProvider
 from .Provider   import (
+    AItianhuSpace,
     ChatgptLogin,
     ChatgptDemo,
     ChatgptDuo,
@@ -10,7 +11,6 @@ from .Provider   import (
     ChatgptAi,
     ChatForAi,
     AItianhu,
-    AItianhuSpace,
     ChatBase,
     Liaobots,
     Yqcloud,
@@ -27,8 +27,7 @@ from .Provider   import (
     Aibn,
     Bing,
     You,
-    H2o,
-    Cromicle,
+    H2o
 )
 
 @dataclass(unsafe_hash=True)
@@ -64,7 +63,7 @@ gpt_35_turbo = Model(
     name          = 'gpt-3.5-turbo',
     base_provider = 'openai',
     best_provider = RetryProvider([
-        DeepAi, ChatgptLogin, ChatgptAi, Aivvm, GptGo, AItianhu, Aichat, AItianhuSpace, Myshell, Aibn, ChatForAi, FreeGpt, Ylokh, Cromicle
+        DeepAi, ChatgptLogin, ChatgptAi, Aivvm, GptGo, AItianhu, Aichat, AItianhuSpace, Myshell, Aibn, ChatForAi, FreeGpt, Ylokh
     ])
 )
 
