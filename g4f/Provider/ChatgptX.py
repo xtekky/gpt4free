@@ -1,8 +1,12 @@
+from __future__ import annotations
+
 import re
+
 from aiohttp import ClientSession
 
 from .base_provider import AsyncProvider
 from .helper import format_prompt
+
 
 class ChatgptX(AsyncProvider):
     url = "https://chatgptx.de"

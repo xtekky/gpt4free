@@ -1,6 +1,10 @@
+from __future__ import annotations
+
 from aiohttp import ClientSession
+
 from ..typing import AsyncGenerator
 from .base_provider import AsyncGeneratorProvider
+
 
 class AiAsk(AsyncGeneratorProvider):
     url = "https://e.aiask.me"
