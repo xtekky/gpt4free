@@ -2,16 +2,24 @@
 
 By using this repository or any code related to it, you agree to the [legal notice](./LEGAL_NOTICE.md). The author is not responsible for any copies, forks, reuploads made by other users, or anything else related to gpt4free. This is the author's only account and repository. To prevent impersonation or irresponsible actions, please comply with the GNU GPL license this Repository uses.
 
-### New
-- official website: *https://g4f.ai*  
-- latest pypi version: ([0.1.5.0](https://pypi.org/project/g4f/0.1.5.0)):
+- latest pypi version: ([0.1.5.1](https://pypi.org/project/g4f/0.1.5.1)):
 ```sh
 pip install -U g4f
 ```
-- check pypi version:
+
+## New features
+- g4f GUI is back !!:
 ```py
-import g4f
-print(g4f.version) # 0.1.X.X
+from g4f.gui import run_gui
+
+run_gui()
+```
+
+- run interference from pypi package:
+```py
+from g4f.interference import run_interference
+
+run_interference()
 ```
 
 ## Table of Contents
