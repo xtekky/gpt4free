@@ -9,7 +9,7 @@ pip install -U g4f
 
 ## New features
 - Telegram Channel: https://t.me/g4f_official
-- g4f GUI is back !! (not available on pypi atm, needs git pull):
+- g4f GUI is back !!:
 ```py
 from g4f.gui import run_gui
 
@@ -602,3 +602,5 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 <a href="https://github.com/xtekky/gpt4free/stargazers">
         <img width="500" alt="Star History Chart" src="https://api.star-history.com/svg?repos=xtekky/gpt4free&type=Date">
 </a>
+
+
