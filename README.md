@@ -4,7 +4,7 @@ By using this repository or any code related to it, you agree to the [legal noti
 
 ### New
 - official website: *https://g4f.ai*  
-- latest pypi version: ([0.1.4.9](https://pypi.org/project/g4f/0.1.4.9)):
+- latest pypi version: ([0.1.5.0](https://pypi.org/project/g4f/0.1.5.0)):
 ```sh
 pip install -U g4f
 ```
