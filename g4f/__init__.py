@@ -9,7 +9,6 @@ from requests   import get
 logging = False
 version = '0.1.5.1'
 
-
 def check_pypi_version():
     try:
         response = get(f"https://pypi.org/pypi/g4f/json").json()
