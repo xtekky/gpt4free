@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from aiohttp import ClientSession
+from aiohttp import ClientSession, ClientTimeout
 
 from .base_provider import AsyncProvider, format_prompt
 
@@ -40,7 +40,7 @@ class ChatgptAi(AsyncProvider):
             "user-agent"         : "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36",
         }
         async with ClientSession(
-            headers=headers, timeout=timeout
+            headers=headers, timeout=ClientTimeout(timeout)
         ) as session:
             if not cls._nonce:
                 async with session.get(cls.url, proxy=proxy) as response:

@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-import json
 import uuid
 
-from aiohttp import ClientSession
+from aiohttp import ClientSession, ClientTimeout
 
 from ..typing import AsyncGenerator
 from .base_provider import AsyncGeneratorProvider
@@ -55,7 +54,7 @@ class Liaobots(AsyncGeneratorProvider):
             "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36",
         }
         async with ClientSession(
-            headers=headers, timeout=timeout
+            headers=headers, timeout=ClientTimeout(timeout)
         ) as session:
             cls._auth_code = auth if isinstance(auth, str) else cls._auth_code
             if not cls._auth_code:

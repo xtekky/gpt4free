@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import time, hashlib
-
 from ..typing import AsyncGenerator
 from ..requests import StreamSession
 from .base_provider import AsyncGeneratorProvider
@@ -21,11 +19,9 @@ class ChatForAi(AsyncGeneratorProvider):
         **kwargs
     ) -> AsyncGenerator:
         async with StreamSession(impersonate="chrome107", timeout=timeout) as session:
-            conversation_id = f"id_{int(time.time())}"
             prompt = messages[-1]["content"]
-            timestamp = int(time.time())
             data = {
-                "conversationId": conversation_id,
+                "conversationId": "temp",
                 "conversationType": "chat_continuous",
                 "botId": "chat_continuous",
                 "globalSettings":{
@@ -39,8 +35,6 @@ class ChatForAi(AsyncGeneratorProvider):
                 "botSettings": {},
                 "prompt": prompt,
                 "messages": messages,
-                "sign": generate_signature(timestamp, conversation_id, prompt),
-                "timestamp": timestamp
             }
             async with session.post(f"{cls.url}/api/handle/provider-openai", json=data) as response:
                 response.raise_for_status()
@@ -57,7 +51,3 @@ class ChatForAi(AsyncGeneratorProvider):
         ]
         param = ", ".join([": ".join(p) for p in params])
         return f"g4f.provider.{cls.__name__} supports: ({param})"
-    
-def generate_signature(timestamp, id, prompt):
-    data = f"{timestamp}:{id}:{prompt}:6B46K4pt"
-    return hashlib.sha256(data.encode()).hexdigest()

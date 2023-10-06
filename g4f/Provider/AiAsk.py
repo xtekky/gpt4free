@@ -1,10 +1,8 @@
 from __future__ import annotations
 
-from aiohttp import ClientSession
-
+from aiohttp import ClientSession, ClientTimeout
 from ..typing import AsyncGenerator
 from .base_provider import AsyncGeneratorProvider
-
 
 class AiAsk(AsyncGeneratorProvider):
     url = "https://e.aiask.me"
@@ -24,7 +22,7 @@ class AiAsk(AsyncGeneratorProvider):
             "origin": cls.url,
             "referer": f"{cls.url}/chat",
         }
-        async with ClientSession(headers=headers, timeout=timeout) as session:
+        async with ClientSession(headers=headers, timeout=ClientTimeout(timeout)) as session:
             data = {
                 "continuous": True,
                 "id": "fRMSQtuHl91A4De9cCvKD",
