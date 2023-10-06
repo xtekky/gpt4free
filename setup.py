@@ -11,7 +11,7 @@ with codecs.open(os.path.join(here, "README.md"), encoding="utf-8") as fh:
 with open("requirements.txt") as f:
     required = f.read().splitlines()
 
-with open("interference/requirements.txt") as f:
+with open("etc/interference/requirements.txt") as f:
     api_required = f.read().splitlines()
 
 VERSION = '0.1.5.1'
@@ -29,7 +29,7 @@ setup(
     long_description_content_type="text/markdown",
     long_description=long_description,
     packages=find_packages(),
-    data_files=["interference/app.py"],
+    data_files=["etc/interference/app.py"],
     install_requires=required,
     extras_require={"api": api_required},
     entry_points={
