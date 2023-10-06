@@ -228,6 +228,7 @@ class ModelUtils:
     convert: dict[str, Model] = {
         # gpt-3.5
         'gpt-3.5-turbo'          : gpt_35_turbo,
+        'gpt-3.5-turbo-0613'     : gpt_35_turbo_0613,
         'gpt-3.5-turbo-16k'      : gpt_35_turbo_16k,
         'gpt-3.5-turbo-16k-0613' : gpt_35_turbo_16k_0613,
         
