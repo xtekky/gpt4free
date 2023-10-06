@@ -40,5 +40,6 @@ lab.js
 bing.py
 bing2.py
 .DS_Store
+MANIFEST.in
 # Emacs crap
 *~
