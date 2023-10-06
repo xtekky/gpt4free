@@ -1,7 +1,7 @@
 from __future__  import annotations
 from dataclasses import dataclass
 from .typing     import Union
-from .Provider   import BaseProvider, RetryProvider
+from .Provider import BaseProvider, RetryProvider
 from .Provider   import (
     ChatgptLogin,
     ChatgptDemo,
@@ -9,6 +9,8 @@ from .Provider   import (
     Vitalentum,
     ChatgptAi,
     ChatForAi,
+    AItianhu,
+    AItianhuSpace,
     ChatBase,
     Liaobots,
     Yqcloud,
