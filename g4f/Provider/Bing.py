@@ -60,9 +60,11 @@ class Conversation():
         self.conversationSignature = conversationSignature
 
 async def create_conversation(session: ClientSession) -> Conversation:
-    url = 'https://www.bing.com/turing/conversation/create'
+    url = 'https://www.bing.com/turing/conversation/create?bundleVersion=1.1150.3'
+    
     async with await session.get(url) as response:
         data = await response.json()
+        
         conversationId = data.get('conversationId')
         clientId = data.get('clientId')
         conversationSignature = response.headers.get('X-Sydney-Encryptedconversationsignature')
@@ -267,7 +269,7 @@ async def stream_generate(
                     for obj in objects:
                         if obj is None or not obj:
                             continue
-
+                        
                         response = json.loads(obj)
                         if response.get('type') == 1 and response['arguments'][0].get('messages'):
                             message = response['arguments'][0]['messages'][0]
