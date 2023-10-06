@@ -9,7 +9,7 @@ pip install -U g4f
 
 ## New features
 - Telegram Channel: https://t.me/g4f_official
-- g4f GUI is back !!:
+- g4f GUI is back !! (not available on pypi atm, needs git pull):
 ```py
 from g4f.gui import run_gui
 
