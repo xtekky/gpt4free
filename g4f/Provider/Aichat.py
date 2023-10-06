@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from aiohttp import ClientSession
+from aiohttp import ClientSession, ClientTimeout
 
 from .base_provider import AsyncProvider, format_prompt
 
@@ -34,7 +34,7 @@ class Aichat(AsyncProvider):
             "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36",
         }
         async with ClientSession(
-            headers=headers, timeout=timeout
+            headers=headers, timeout=ClientTimeout(timeout)
         ) as session:
             json_data = {
                 "message": format_prompt(messages),

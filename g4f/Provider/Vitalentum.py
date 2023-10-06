@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from aiohttp import ClientSession
+from aiohttp import ClientSession, ClientTimeout
 
 from .base_provider import AsyncGeneratorProvider
 from ..typing import AsyncGenerator
@@ -41,7 +41,7 @@ class Vitalentum(AsyncGeneratorProvider):
             **kwargs
         }
         async with ClientSession(
-            headers=headers, timeout=timeout
+            headers=headers, timeout=ClientTimeout(timeout)
         ) as session:
             async with session.post(cls.url + "/api/converse-edge", json=data, proxy=proxy) as response:
                 response.raise_for_status()

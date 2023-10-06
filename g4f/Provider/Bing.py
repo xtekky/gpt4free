@@ -250,7 +250,7 @@ async def stream_generate(
         conversation = await create_conversation(session)
         try:
             async with session.ws_connect(
-                f'wss://sydney.bing.com/sydney/ChatHub?sec_access_token={urllib.parse.quote_plus(conversation.conversationSignature)}',
+                f'wss://sydney.bing.com/sydney/ChatHub',
                 autoping=False,
                 params={'sec_access_token': conversation.conversationSignature}
             ) as wss:
