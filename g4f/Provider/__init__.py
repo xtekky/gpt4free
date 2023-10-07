@@ -18,6 +18,8 @@ from .ChatgptLogin    import ChatgptLogin
 from .ChatgptX        import ChatgptX
 from .DeepAi          import DeepAi
 from .FreeGpt         import FreeGpt
+from .GPTalk          import GPTalk
+from .GptForLove      import GptForLove
 from .GptGo           import GptGo
 from .H2o             import H2o
 from .Liaobots        import Liaobots
@@ -65,6 +67,8 @@ __all__ = [
     'EasyChat',
     'Forefront',
     'FreeGpt',
+    'GPTalk',
+    'GptForLove',
     'GetGpt',
     'GptGo',
     'H2o',
