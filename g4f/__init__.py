@@ -107,7 +107,3 @@ class Completion:
                                             [{"role": "user", "content": prompt}], stream, **kwargs)
 
         return result if stream else ''.join(result)
-
-
-if __name__ == '__main__':
-    print('hi')
