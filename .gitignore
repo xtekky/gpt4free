@@ -41,5 +41,7 @@ bing.py
 bing2.py
 .DS_Store
 MANIFEST.in
+lab/*
+lab
 # Emacs crap
 *~
