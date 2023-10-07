@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from ...requests import StreamSession
-from ..base_provider import AsyncGeneratorProvider
-from ...typing import AsyncGenerator
+from ..requests import StreamSession
+from .base_provider import AsyncGeneratorProvider
+from ..typing import AsyncGenerator
 
 # to recreate this easily, send a post request to https://chat.aivvm.com/api/models
 models = {
@@ -20,6 +20,7 @@ class Aivvm(AsyncGeneratorProvider):
     url                   = 'https://chat.aivvm.com'
     supports_gpt_35_turbo = True
     supports_gpt_4        = True
+    working = True
 
     @classmethod
     async def create_async_generator(
@@ -51,6 +52,9 @@ class Aivvm(AsyncGeneratorProvider):
             async with session.post(f"{cls.url}/api/chat", json=json_data) as response:
                 response.raise_for_status()
                 async for chunk in response.iter_content():
+                    if b'Access denied | chat.aivvm.com used Cloudflare' in chunk:
+                        raise ValueError("Rate Limit | use another provider")
+                    
                     yield chunk.decode()
 
     @classmethod

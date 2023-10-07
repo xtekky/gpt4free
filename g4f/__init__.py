@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 from requests import get
 from g4f.models import Model, ModelUtils
 from .Provider import BaseProvider

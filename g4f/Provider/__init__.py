@@ -4,6 +4,7 @@ from .AiAsk           import AiAsk
 from .Aibn            import Aibn
 from .Aichat          import Aichat
 from .Ails            import Ails
+from .Aivvm           import Aivvm
 from .AItianhu        import AItianhu
 from .AItianhuSpace   import AItianhuSpace
 from .Bing            import Bing
@@ -46,6 +47,7 @@ __all__ = [
     'Aibn',
     'Aichat',
     'Ails',
+    'Aivvm',
     'AiService',
     'AItianhu',
     'AItianhuSpace',

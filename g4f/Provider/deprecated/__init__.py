@@ -12,4 +12,3 @@ from .Wuguokai      import Wuguokai
 from .V50           import V50
 from .FastGpt       import FastGpt
 from .ChatgptLogin  import ChatgptLogin
-from .Aivvm         import Aivvm
