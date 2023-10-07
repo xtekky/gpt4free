@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import time, json, re
-from aiohttp import ClientSession, ClientTimeout
+from aiohttp import ClientSession
 from typing import AsyncGenerator
 
 from .base_provider import AsyncGeneratorProvider
@@ -18,7 +18,6 @@ class ChatgptDemo(AsyncGeneratorProvider):
         model: str,
         messages: list[dict[str, str]],
         proxy: str = None,
-        timeout: int = 30,
         **kwargs
     ) -> AsyncGenerator:
         headers = {
@@ -34,7 +33,7 @@ class ChatgptDemo(AsyncGeneratorProvider):
             "sec-fetch-site": "same-origin",
             "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36"
         }
-        async with ClientSession(headers=headers, timeout=ClientTimeout(timeout)) as session:
+        async with ClientSession(headers=headers) as session:
             async with session.get(f"{cls.url}/", proxy=proxy) as response:
                 response.raise_for_status()
                 response = await response.text()

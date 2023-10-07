@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from aiohttp import ClientSession, ClientTimeout
+from aiohttp import ClientSession
 import json
 
 from ..typing       import AsyncGenerator
@@ -32,7 +32,7 @@ class GptGo(AsyncGeneratorProvider):
             "Sec-Fetch-Site"     : "same-origin",
         }
         async with ClientSession(
-            headers=headers, timeout=ClientTimeout(timeout)
+            headers=headers
         ) as session:
             async with session.get(
                 "https://gptgo.ai/action_get_token.php",

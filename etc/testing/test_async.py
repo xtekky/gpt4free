@@ -3,6 +3,7 @@ from pathlib import Path
 import asyncio
 
 sys.path.append(str(Path(__file__).parent.parent))
+sys.path.append(str(Path(__file__).parent.parent.parent))
 
 import g4f
 from testing.test_providers import get_providers

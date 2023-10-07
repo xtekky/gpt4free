@@ -14,13 +14,13 @@ from .Chatgpt4Online  import Chatgpt4Online
 from .ChatgptAi       import ChatgptAi
 from .ChatgptDemo     import ChatgptDemo
 from .ChatgptDuo      import ChatgptDuo
-from .ChatgptLogin    import ChatgptLogin
 from .ChatgptX        import ChatgptX
 from .DeepAi          import DeepAi
 from .FreeGpt         import FreeGpt
 from .GPTalk          import GPTalk
 from .GptForLove      import GptForLove
 from .GptGo           import GptGo
+from .GptGod          import GptGod
 from .H2o             import H2o
 from .Liaobots        import Liaobots
 from .Myshell         import Myshell
@@ -71,6 +71,7 @@ __all__ = [
     'GptForLove',
     'GetGpt',
     'GptGo',
+    'GptGod',
     'H2o',
     'HuggingChat',
     'Liaobots',
