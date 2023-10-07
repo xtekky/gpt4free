@@ -215,7 +215,6 @@ from g4f.Provider import (
     Acytoo,
     Aichat,
     Ails,
-    Aivvm,
     Bard,
     Bing,
     ChatBase,
@@ -278,7 +277,6 @@ import g4f, asyncio
 
 _providers = [
     g4f.Provider.Aichat,
-    g4f.Provider.Aivvm,
     g4f.Provider.ChatBase,
     g4f.Provider.Bing,
     g4f.Provider.CodeLinkAva,
@@ -371,7 +369,6 @@ if __name__ == "__main__":
 | [chat.acytoo.com](https://chat.acytoo.com) | `g4f.Provider.Acytoo` | ✔️ | ❌ | ✔️ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
 | [chat-gpt.org](https://chat-gpt.org/chat) | `g4f.Provider.Aichat` | ✔️ | ❌ | ❌ | ✔️ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ❌ |
 | [ai.ls](https://ai.ls) | `g4f.Provider.Ails` | ✔️ | ❌ | ✔️ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
-| [chat.aivvm.com](https://chat.aivvm.com) | `g4f.Provider.Aivvm` | ✔️ | ✔️ | ✔️ | ❌ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
 | [bard.google.com](https://bard.google.com) | `g4f.Provider.Bard` | ❌ | ❌ | ❌ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ✔️ |
 | [bing.com](https://bing.com/chat) | `g4f.Provider.Bing` | ❌ | ✔️ | ✔️ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
 | [www.chatbase.co](https://www.chatbase.co) | `g4f.Provider.ChatBase` | ✔️ | ✔️ | ✔️ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |

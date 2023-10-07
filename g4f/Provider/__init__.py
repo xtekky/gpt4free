@@ -6,7 +6,6 @@ from .Aichat          import Aichat
 from .Ails            import Ails
 from .AItianhu        import AItianhu
 from .AItianhuSpace   import AItianhuSpace
-from .Aivvm           import Aivvm
 from .Bing            import Bing
 from .ChatBase        import ChatBase
 from .ChatForAi       import ChatForAi

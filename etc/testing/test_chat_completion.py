@@ -19,7 +19,7 @@ print()
 async def run_async():
     response = await g4f.ChatCompletion.create_async(
         model=g4f.models.gpt_35_turbo_16k_0613,
-        provider=g4f.Provider.Aivvm,
+        provider=g4f.Provider.GptGod,
         messages=[{"role": "user", "content": "hello!"}],
     )
     print("create_async:", response)
