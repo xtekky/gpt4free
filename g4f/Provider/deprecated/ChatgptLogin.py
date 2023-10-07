@@ -3,7 +3,7 @@ from __future__ import annotations
 import os, re
 from aiohttp import ClientSession
 
-from .base_provider import AsyncProvider, format_prompt
+from ..base_provider import AsyncProvider, format_prompt
 
 
 class ChatgptLogin(AsyncProvider):

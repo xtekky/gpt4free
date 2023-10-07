@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from ..requests import StreamSession
-from .base_provider import AsyncGeneratorProvider
-from ..typing import AsyncGenerator
+from ...requests import StreamSession
+from ..base_provider import AsyncGeneratorProvider
+from ...typing import AsyncGenerator
 
 # to recreate this easily, send a post request to https://chat.aivvm.com/api/models
 models = {
@@ -18,8 +18,6 @@ models = {
 
 class Aivvm(AsyncGeneratorProvider):
     url                   = 'https://chat.aivvm.com'
-    supports_stream       = True
-    working               = True
     supports_gpt_35_turbo = True
     supports_gpt_4        = True
 

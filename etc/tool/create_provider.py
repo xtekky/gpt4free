@@ -3,7 +3,7 @@ import sys, re
 from pathlib import Path
 from os import path
 
-sys.path.append(str(Path(__file__).parent.parent))
+sys.path.append(str(Path(__file__).parent.parent.parent))
 
 import g4f
 

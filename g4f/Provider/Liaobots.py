@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import uuid
 
-from aiohttp import ClientSession, ClientTimeout
+from aiohttp import ClientSession
 
 from ..typing import AsyncGenerator
 from .base_provider import AsyncGeneratorProvider
@@ -42,7 +42,6 @@ class Liaobots(AsyncGeneratorProvider):
         messages: list[dict[str, str]],
         auth: str = None,
         proxy: str = None,
-        timeout: int = 30,
         **kwargs
     ) -> AsyncGenerator:
         model = model if model in models else "gpt-3.5-turbo"
@@ -54,7 +53,7 @@ class Liaobots(AsyncGeneratorProvider):
             "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36",
         }
         async with ClientSession(
-            headers=headers, timeout=ClientTimeout(timeout)
+            headers=headers
         ) as session:
             cls._auth_code = auth if isinstance(auth, str) else cls._auth_code
             if not cls._auth_code:
