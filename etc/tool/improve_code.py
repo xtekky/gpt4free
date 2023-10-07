@@ -22,7 +22,10 @@ Improve the code in this file:
 ```py
 {code}
 ```
-Don't remove anything. Add type hints if possible.
+Don't remove anything.
+Add typehints if possible.
+Don't add any typehints to kwargs.
+Don't remove license comments.
 """
 
 print("Create code...")
@@ -30,7 +33,7 @@ response = []
 for chunk in g4f.ChatCompletion.create(
     model=g4f.models.gpt_35_long,
     messages=[{"role": "user", "content": prompt}],
-    timeout=0,
+    timeout=300,
     stream=True
 ):
     response.append(chunk)

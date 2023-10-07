@@ -5,7 +5,7 @@ import json
 import asyncio
 from functools import partialmethod
 from asyncio import Future, Queue
-from typing import AsyncGenerator
+from typing import AsyncGenerator, Union, Optional
 
 from curl_cffi.requests import AsyncSession, Response
 import curl_cffi
@@ -37,7 +37,14 @@ class StreamResponse:
     async def json(self, **kwargs) -> dict:
         return json.loads(await self.read(), **kwargs)
 
-    async def iter_lines(self, chunk_size=None, decode_unicode=False, delimiter=None) -> AsyncGenerator[bytes, None]:
+    async def iter_lines(
+        self, chunk_size: Optional[int] = None, decode_unicode: bool = False, delimiter: Optional[str] = None
+    ) -> AsyncGenerator[bytes, None]:
+        """
+        Copied from: https://requests.readthedocs.io/en/latest/_modules/requests/models/
+        which is under the License: Apache 2.0
+        """
+
         pending: bytes = None
 
         async for chunk in self.iter_content(
@@ -60,7 +67,9 @@ class StreamResponse:
         if pending is not None:
             yield pending
 
-    async def iter_content(self, chunk_size=None, decode_unicode=False) -> AsyncGenerator[bytes, None]:
+    async def iter_content(
+        self, chunk_size: Optional[int] = None, decode_unicode: bool = False
+    ) -> AsyncGenerator[bytes, None]:
         if chunk_size:
             warnings.warn("chunk_size is ignored, there is no way to tell curl that.")
         if decode_unicode:
@@ -76,14 +85,14 @@ class StreamResponse:
 
 
 class StreamRequest:
-    def __init__(self, session: AsyncSession, method: str, url: str, **kwargs) -> None:
+    def __init__(self, session: AsyncSession, method: str, url: str, **kwargs: Union[bool, int, str]) -> None:
         self.session: AsyncSession = session
         self.loop: asyncio.AbstractEventLoop = session.loop if session.loop else asyncio.get_running_loop()
         self.queue: Queue[bytes] = Queue()
         self.method: str = method
         self.url: str = url
         self.options: dict = kwargs
-        self.handle: curl_cffi.AsyncCurl = None
+        self.handle: Optional[curl_cffi.AsyncCurl] = None
 
     def _on_content(self, data: bytes) -> None:
         if not self.enter.done():
@@ -134,10 +143,7 @@ class StreamRequest:
             response.request = request
         else:
             response = self.session._parse_response(self.curl, request, _, header_buffer)
-        return StreamResponse(
-            response,
-            self.queue
-        )
+        return StreamResponse(response, self.queue)
 
     async def __aenter__(self) -> StreamResponse:
         return await self.fetch()
@@ -163,10 +169,7 @@ class StreamRequest:
 
 class StreamSession(AsyncSession):
     def request(
-        self,
-        method: str,
-        url: str,
-        **kwargs
+        self, method: str, url: str, **kwargs
     ) -> StreamRequest:
         return StreamRequest(self, method, url, **kwargs)
 
