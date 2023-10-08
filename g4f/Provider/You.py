@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 
 from ..requests import StreamSession
-from ..typing import AsyncGenerator
+from ..typing import AsyncGenerator, Messages
 from .base_provider import AsyncGeneratorProvider, format_prompt
 
 
@@ -17,19 +17,20 @@ class You(AsyncGeneratorProvider):
     async def create_async_generator(
         cls,
         model: str,
-        messages: list[dict[str, str]],
+        messages: Messages,
         proxy: str = None,
-        timeout: int = 30,
+        timeout: int = 120,
         **kwargs,
     ) -> AsyncGenerator:
         async with StreamSession(proxies={"https": proxy}, impersonate="chrome107", timeout=timeout) as session:
             headers = {
                 "Accept": "text/event-stream",
-                "Referer": "https://you.com/search?fromSearchBar=true&tbm=youchat",
+                "Referer": f"{cls.url}/search?fromSearchBar=true&tbm=youchat",
             }
+            data = {"q": format_prompt(messages), "domain": "youchat", "chat": ""}
             async with session.get(
-                "https://you.com/api/streamingSearch",
-                params={"q": format_prompt(messages), "domain": "youchat", "chat": ""},
+                f"{cls.url}/api/streamingSearch",
+                params=data,
                 headers=headers
             ) as response:
                 response.raise_for_status()

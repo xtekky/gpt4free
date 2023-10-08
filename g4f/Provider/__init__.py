@@ -15,6 +15,7 @@ from .ChatgptAi       import ChatgptAi
 from .ChatgptDemo     import ChatgptDemo
 from .ChatgptDuo      import ChatgptDuo
 from .ChatgptX        import ChatgptX
+from .Cromicle        import Cromicle
 from .DeepAi          import DeepAi
 from .FreeGpt         import FreeGpt
 from .GPTalk          import GPTalk
@@ -62,6 +63,7 @@ __all__ = [
     'ChatgptDuo',
     'ChatgptLogin',
     'ChatgptX',
+    'Cromicle',
     'CodeLinkAva',
     'DeepAi',
     'DfeHub',

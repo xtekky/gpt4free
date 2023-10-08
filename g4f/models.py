@@ -19,6 +19,8 @@ from .Provider   import (
     Vercel, 
     DeepAi,
     Aichat,
+    GPTalk,
+    GptGod,
     AiAsk,
     GptGo,
     Ylokh,
@@ -53,7 +55,8 @@ gpt_35_long = Model(
     base_provider = 'openai',
     best_provider = RetryProvider([
         AiAsk, Aibn, Aichat, ChatForAi, ChatgptAi, ChatgptDemo, ChatgptDuo,
-        FreeGpt, GptGo, Liaobots, Myshell, Vitalentum, Ylokh, You, Yqcloud
+        FreeGpt, GptGo, Liaobots, Myshell, Vitalentum, Ylokh, You, Yqcloud,
+        GPTalk, GptGod
     ])
 )
 
