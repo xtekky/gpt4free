@@ -5,6 +5,7 @@ from aiohttp import ClientSession
 from ..typing import AsyncGenerator
 from .base_provider import AsyncGeneratorProvider, format_prompt
 
+import random
 
 class Yqcloud(AsyncGeneratorProvider):
     url = "https://chat9.yqcloud.top/"
@@ -21,7 +22,7 @@ class Yqcloud(AsyncGeneratorProvider):
         async with ClientSession(
             headers=_create_header()
         ) as session:
-            payload = _create_payload(messages)
+            payload = _create_payload(messages, kwargs.get("system_prompt", ""), kwargs.get("userid", random.randint(1000000000001, 9999999999999)))
             async with session.post("https://api.aichatos.cloud/api/generateStream", proxy=proxy, json=payload) as response:
                 response.raise_for_status()
                 async for stream in response.content.iter_any():
@@ -37,12 +38,12 @@ def _create_header():
     }
 
 
-def _create_payload(messages: list[dict[str, str]]):
+def _create_payload(messages: list[dict[str, str]], system_prompt: str, userid: int):
     return {
         "prompt": format_prompt(messages),
         "network": True,
-        "system": "",
+        "system": system_prompt,
         "withoutContext": False,
         "stream": True,
-        "userId": "#/chat/1693025544336"
+        "userId": f"#/chat/{str(userid)}"
     }
