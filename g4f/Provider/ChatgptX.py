@@ -1,25 +1,26 @@
 from __future__ import annotations
 
 import re
+import json
 
 from aiohttp import ClientSession
-
-from .base_provider import AsyncProvider
+from typing import AsyncGenerator, Dict, List
+from .base_provider import AsyncGeneratorProvider
 from .helper import format_prompt
 
 
-class ChatgptX(AsyncProvider):
+class ChatgptX(AsyncGeneratorProvider):
     url = "https://chatgptx.de"
     supports_gpt_35_turbo = True
     working               = True
 
     @classmethod
-    async def create_async(
+    async def create_async_generator(
         cls,
         model: str,
-        messages: list[dict[str, str]],
+        messages: List[Dict[str, str]],
         **kwargs
-    ) -> str:
+    ) -> AsyncGenerator[str, None]:
         headers = {
             'accept-language': 'de-DE,de;q=0.9,en-DE;q=0.8,en;q=0.7,en-US',
             'sec-ch-ua': '"Google Chrome";v="117", "Not;A=Brand";v="8", "Chromium";v="117"',
@@ -63,8 +64,34 @@ class ChatgptX(AsyncProvider):
             }
             async with session.post(cls.url + '/sendchat', data=data, headers=headers) as response:
                 response.raise_for_status()
-                data = await response.json()
-                if "message" in data:
-                    return data["message"]
-                elif "messages" in data:
-                    raise RuntimeError(f'Response: {data["messages"]}')
+                chat = await response.json()
+                if "response" not in chat or not chat["response"]:
+                    raise RuntimeError(f'Response: {data}')
+            headers = {
+                'authority': 'chatgptx.de',
+                'accept': 'text/event-stream',
+                'referer': f'{cls.url}/',
+                'x-csrf-token': csrf_token,
+                'x-requested-with': 'XMLHttpRequest'
+            }
+            data = {
+                "user_id": user_id,
+                "chats_id": chat_id,
+                "prompt": format_prompt(messages),
+                "current_model": "gpt3",
+                "conversions_id": chat["conversions_id"],
+                "ass_conversions_id": chat["ass_conversions_id"],
+            }
+            async with session.get(f'{cls.url}/chats_stream', params=data, headers=headers) as response:
+                response.raise_for_status()
+                async for line in response.content:
+                    if line.startswith(b"data: "):
+                        row = line[6:-1]
+                        if row == b"[DONE]":
+                            break
+                        try:
+                            content = json.loads(row)["choices"][0]["delta"].get("content")
+                        except:
+                            raise RuntimeError(f"Broken line: {line.decode()}")
+                        if content:
+                            yield content

@@ -26,6 +26,9 @@ class Yqcloud(AsyncGeneratorProvider):
                 response.raise_for_status()
                 async for stream in response.content.iter_any():
                     if stream:
+                        stream = stream.decode()
+                        if "sorry, 您的ip已由于触发防滥用检测而被封禁" in stream:
+                            raise RuntimeError("IP address is blocked by abuse detection.")
                         yield stream.decode()
 
 

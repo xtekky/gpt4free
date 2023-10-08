@@ -50,7 +50,10 @@ class GptForLove(AsyncGeneratorProvider):
             async with session.post("https://api.gptplus.one/chat-process", json=data) as response:
                 response.raise_for_status()
                 async for line in response.content:
-                    line = json.loads(line)
+                    try:
+                        line = json.loads(line)
+                    except:
+                        raise RuntimeError(f"Broken line: {line}")
                     if "detail" in line:
                         content = line["detail"]["choices"][0]["delta"].get("content")
                         if content:

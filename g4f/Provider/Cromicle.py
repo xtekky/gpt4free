@@ -2,32 +2,32 @@ from __future__ import annotations
 
 from aiohttp import ClientSession
 from hashlib import sha256
+from typing import AsyncGenerator, Dict, List
 
-from ..typing import AsyncGenerator
 from .base_provider import AsyncGeneratorProvider
+from .helper import format_prompt
 
 
 class Cromicle(AsyncGeneratorProvider):
-    url                   = 'https://cromicle.top'
-    working               = True
-    supports_gpt_35_turbo = True
+    url: str = 'https://cromicle.top'
+    working: bool = True
+    supports_gpt_35_turbo: bool = True
 
     @classmethod
     async def create_async_generator(
         cls,
         model: str,
-        messages: list[dict[str, str]],
+        messages: List[Dict[str, str]],
         proxy: str = None,
         **kwargs
-    ) -> AsyncGenerator:
-        message = messages[-1]["content"]
+    ) -> AsyncGenerator[str, None]:
         async with ClientSession(
             headers=_create_header()
         ) as session:
             async with session.post(
-                cls.url + '/chat',
+                f'{cls.url}/chat',
                 proxy=proxy,
-                json=_create_payload(message, **kwargs)
+                json=_create_payload(format_prompt(messages))
             ) as response:
                 response.raise_for_status()
                 async for stream in response.content.iter_any():
@@ -35,16 +35,16 @@ class Cromicle(AsyncGeneratorProvider):
                         yield stream.decode()
 
 
-def _create_header():
+def _create_header() -> Dict[str, str]:
     return {
         'accept': '*/*',
         'content-type': 'application/json',
     }
 
 
-def _create_payload(message: str):
+def _create_payload(message: str) -> Dict[str, str]:
     return {
-        'message'    : message,
-        'token' : 'abc',
-        'hash'    : sha256('abc'.encode() + message.encode()).hexdigest()
+        'message': message,
+        'token': 'abc',
+        'hash': sha256('abc'.encode() + message.encode()).hexdigest()
     }
