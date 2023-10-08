@@ -6,6 +6,9 @@ from ..base_provider import AsyncGeneratorProvider
 from ..helper import get_browser, get_cookies, format_prompt
 from ...typing import AsyncGenerator
 from ...requests import StreamSession
+import browser_cookie3
+
+import requests
 
 class OpenaiChat(AsyncGeneratorProvider):
     url                   = "https://chat.openai.com"
@@ -22,17 +25,26 @@ class OpenaiChat(AsyncGeneratorProvider):
         proxy: str = None,
         access_token: str = None,
         cookies: dict = None,
-        timeout: int = 30,
         **kwargs: dict
     ) -> AsyncGenerator:
         proxies = {"https": proxy}
+        cookie=browser_cookie3.chrome(domain_name='chat.openai.com')
+        cookies=requests.utils.dict_from_cookiejar(cookie)
+        cookies_str=''
+        for k,v in cookies.items():
+            cookies_str+=f"{k}={v}; "
+            
         if not access_token:
-            access_token = await cls.get_access_token(cookies, proxies)
+            access_token = await cls.get_access_token(cookies, proxies)            
+        
         headers = {
             "Accept": "text/event-stream",
             "Authorization": f"Bearer {access_token}",
+            "cookie":cookies_str,
+            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36'
         }
-        async with StreamSession(proxies=proxies, headers=headers, impersonate="chrome107", timeout=timeout) as session:
+            
+        async with StreamSession(proxies=proxies, headers=headers, impersonate="chrome107") as session:
             messages = [
                 {
                     "id": str(uuid.uuid4()),
@@ -51,31 +63,42 @@ class OpenaiChat(AsyncGeneratorProvider):
             async with session.post(f"{cls.url}/backend-api/conversation", json=data) as response:
                 response.raise_for_status()
                 last_message = ""
+                first_message = True  # track if it's the first message
                 async for line in response.iter_lines():
                     if line.startswith(b"data: "):
                         line = line[6:]
                         if line == b"[DONE]":
                             break
-                        try:
-                            line = json.loads(line)
-                        except:
-                            continue
-                        if "message" not in line or "message_type" not in line["message"]["metadata"]:
-                            continue
-                        if line["message"]["metadata"]["message_type"] == "next":
+                        line = json.loads(line)
+                        if "message" in line and not line["message"]["end_turn"]:
                             new_message = line["message"]["content"]["parts"][0]
-                            yield new_message[len(last_message):]
+                            if first_message:
+                                first_message = False  #set to False after the first message
+                            else:
+                                yield new_message[len(last_message):]
                             last_message = new_message
 
+
     @classmethod
-    def browse_access_token(cls) -> str:
+    def fetch_access_token(cls,proxies=None) -> str:
         try:
             from selenium.webdriver.common.by import By
             from selenium.webdriver.support.ui import WebDriverWait
             from selenium.webdriver.support import expected_conditions as EC
-
-            driver = get_browser()
+            from selenium import webdriver
         except ImportError:
+            return
+
+        # Define proxy settings
+        proxy = proxies['https']
+        # print(proxy)
+        options = webdriver.ChromeOptions()
+        options.add_experimental_option("debuggerAddress", "127.0.0.1:9222")
+        options.add_argument(f'--proxy-server={proxy}')
+        options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.45 Safari/537.36")
+        driver = webdriver.Chrome(options=options)  # Initialize the driver with options
+
+        if not driver:
             return
 
         driver.get(f"{cls.url}/")
@@ -86,28 +109,21 @@ class OpenaiChat(AsyncGeneratorProvider):
             javascript = "return (await (await fetch('/api/auth/session')).json())['accessToken']"
             return driver.execute_script(javascript)
         finally:
-            time.sleep(1)
             driver.quit()
-
-    @classmethod
-    async def fetch_access_token(cls, cookies: dict, proxies: dict = None) -> str:
-        async with StreamSession(proxies=proxies, cookies=cookies, impersonate="chrome107") as session:
-            async with session.get(f"{cls.url}/api/auth/session") as response:
-                response.raise_for_status()
-                auth = await response.json()
-                if "accessToken" in auth:
-                    return auth["accessToken"]
 
     @classmethod
     async def get_access_token(cls, cookies: dict = None, proxies: dict = None) -> str:
         if not cls._access_token:
             cookies = cookies if cookies else get_cookies("chat.openai.com")
-            if cookies:
-                cls._access_token = await cls.fetch_access_token(cookies, proxies)
-        if not cls._access_token:
-            cls._access_token = cls.browse_access_token()
-        if not cls._access_token:
-            raise RuntimeError("Read access token failed")
+            async with StreamSession(proxies=proxies, cookies=cookies, impersonate="chrome107") as session:
+                async with session.get(f"{cls.url}/api/auth/session") as response:
+                    response.raise_for_status()
+                    auth = await response.json()
+                    if "accessToken" in auth:
+                        cls._access_token = auth["accessToken"]
+            cls._access_token = cls.fetch_access_token(proxies=proxies)
+            if not cls._access_token:
+                raise RuntimeError("Missing access token")
         return cls._access_token
 
     @classmethod
