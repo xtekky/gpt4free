@@ -9,11 +9,14 @@ pip install -U g4f
 
 ## New features
 - Telegram Channel: https://t.me/g4f_official
-- g4f GUI is back !!:
+- g4f GUI is back !!:   
+Install g4f with pip and then run:
 ```py
-from g4f.gui import run_gui
-
-run_gui()
+python -m g4f.gui.run
+```
+or
+```py
+from g4f.gui import run_gui; run_gui()
 ```
 preview:
 
@@ -21,9 +24,11 @@ preview:
 
 - run interference from pypi package:
 ```py
-from g4f.interference import run_interference
-
-run_interference()
+python -m g4f.interference.run
+```
+or
+```py
+from g4f.interference import run_interference; run_interference()
 ```
 
 ## Table of Contents
