@@ -5,7 +5,8 @@ from .Provider import BaseProvider
 from .typing import CreateResult, Union
 from .debug import logging
 
-version = '0.1.5.5'
+version = '0.1.5.6'
+version_check = True
 
 def check_pypi_version() -> None:
     try:
@@ -18,9 +19,10 @@ def check_pypi_version() -> None:
     except Exception as e:
         print(f'Failed to check g4f pypi version: {e}')
 
-check_pypi_version()
-
-def get_model_and_provider(model: Union[Model, str], provider: Union[type[BaseProvider], None], stream: bool) -> tuple[Model, type[BaseProvider]]:
+def get_model_and_provider(model    : Union[Model, str], 
+                           provider : Union[type[BaseProvider], None], 
+                           stream   : bool) -> tuple[Model, type[BaseProvider]]:
+    
     if isinstance(model, str):
         if model in ModelUtils.convert:
             model = ModelUtils.convert[model]
@@ -46,14 +48,11 @@ def get_model_and_provider(model: Union[Model, str], provider: Union[type[BasePr
 
 class ChatCompletion:
     @staticmethod
-    def create(
-        model: Union[Model, str],
-        messages: list[dict[str, str]],
-        provider: Union[type[BaseProvider], None] = None,
-        stream: bool = False,
-        auth: Union[str, None] = None,
-        **kwargs
-    ) -> Union[CreateResult, str]:
+    def create(model: Union[Model, str],
+        messages : list[dict[str, str]],
+        provider : Union[type[BaseProvider], None] = None,
+        stream   : bool = False,
+        auth     : Union[str, None] = None, **kwargs) -> Union[CreateResult, str]:
 
         model, provider = get_model_and_provider(model, provider, stream)
 
@@ -105,3 +104,6 @@ class Completion:
         result = provider.create_completion(model.name, [{"role": "user", "content": prompt}], stream, **kwargs)
 
         return result if stream else ''.join(result)
+    
+if version_check:
+    check_pypi_version()

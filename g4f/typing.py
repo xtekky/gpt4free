@@ -8,7 +8,7 @@ else:
 
 SHA256 = NewType('sha_256_hash', str)
 CreateResult = Generator[str, None, None]
-AsyncResult = AsyncGenerator[str]
+AsyncResult = AsyncGenerator[str, None]
 Messages = List[Dict[str, str]]
 
 __all__ = [
