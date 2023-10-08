@@ -4,7 +4,7 @@ import json
 
 from ..requests import StreamSession
 from .base_provider import AsyncGeneratorProvider
-from ..typing import AsyncGenerator
+from ..typing import AsyncResult, Messages
 
 class Ylokh(AsyncGeneratorProvider):
     url                   = "https://chat.ylokh.xyz"
@@ -16,16 +16,16 @@ class Ylokh(AsyncGeneratorProvider):
     async def create_async_generator(
         cls,
         model: str,
-        messages: list[dict[str, str]],
+        messages: Messages,
         stream: bool = True,
         proxy: str = None,
-        timeout: int = 30,
+        timeout: int = 120,
         **kwargs
-    ) -> AsyncGenerator:
+    ) -> AsyncResult:
         model = model if model else "gpt-3.5-turbo"
         headers = {
-            "Origin"             : cls.url,
-            "Referer"            : cls.url + "/",
+            "Origin" : cls.url,
+            "Referer": cls.url + "/",
         }
         data = {
             "messages": messages,
@@ -69,6 +69,7 @@ class Ylokh(AsyncGeneratorProvider):
             ("messages", "list[dict[str, str]]"),
             ("stream", "bool"),
             ("proxy", "str"),
+            ("timeout", "int"),
             ("temperature", "float"),
             ("top_p", "float"),
         ]

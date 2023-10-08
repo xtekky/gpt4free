@@ -4,7 +4,7 @@ import re
 import json
 
 from aiohttp import ClientSession
-from typing import AsyncGenerator, Dict, List
+from ..typing import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider
 from .helper import format_prompt
 
@@ -18,9 +18,9 @@ class ChatgptX(AsyncGeneratorProvider):
     async def create_async_generator(
         cls,
         model: str,
-        messages: List[Dict[str, str]],
+        messages: Messages,
         **kwargs
-    ) -> AsyncGenerator[str, None]:
+    ) -> AsyncResult:
         headers = {
             'accept-language': 'de-DE,de;q=0.9,en-DE;q=0.8,en;q=0.7,en-US',
             'sec-ch-ua': '"Google Chrome";v="117", "Not;A=Brand";v="8", "Chromium";v="117"',
@@ -66,7 +66,7 @@ class ChatgptX(AsyncGeneratorProvider):
                 response.raise_for_status()
                 chat = await response.json()
                 if "response" not in chat or not chat["response"]:
-                    raise RuntimeError(f'Response: {data}')
+                    raise RuntimeError(f'Response: {chat}')
             headers = {
                 'authority': 'chatgptx.de',
                 'accept': 'text/event-stream',
