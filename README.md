@@ -521,38 +521,50 @@ if __name__ == "__main__":
 
 ## Contribute
 
-to add another provider, its very simple:
+####Create Provider with AI Tool
+
+Call in your terminal the "create_provider" script:
+```bash
+$ python etc/tool/create_provider.py
+```
+1. Enter your name for the new provider.
+2. Copy&Paste cURL command from your browser developer tools.
+3. Let the AI ​​create the provider for you.
+4. Customize the provider according to your needs.
+
+####Create Provider
 
 0. Check out the current [list of potential providers](https://github.com/zukixa/cool-ai-stuff#ai-chat-websites), or find your own provider source!
 1. Create a new file in [g4f/provider](./g4f/provider) with the name of the Provider
 2. Implement a class that extends [BaseProvider](./g4f/provider/base_provider.py).
 
 ```py
-from .base_provider import BaseProvider
-from ..typing import CreateResult, Any
+from __future__ import annotations
 
+from ..typing import AsyncResult, Messages
+from .base_provider import AsyncGeneratorProvider
 
-class HogeService(BaseProvider):
-    url = "http://hoge.com"
-    working = True
+class HogeService(AsyncGeneratorProvider):
+    url                   = "https://chat-gpt.com"
     supports_gpt_35_turbo = True
+    working               = True
 
-    @staticmethod
-    def create_completion(
+    @classmethod
+    async def create_async_generator(
+        cls,
         model: str,
-        messages: list[dict[str, str]],
-        stream: bool,
-        **kwargs: Any,
-    ) -> CreateResult:
-        pass
+        messages: Messages,
+        proxy: str = None,
+        **kwargs
+    ) -> AsyncResult:
+        yield ""
 ```
 
-3. Here, you can adjust the settings, for example if the website does support streaming, set `working` to `True`...
-4. Write code to request the provider in `create_completion` and `yield` the response, _even if_ its a one-time response, do not hesitate to look at other providers for inspiration
+3. Here, you can adjust the settings, for example if the website does support streaming, set `supports_stream` to `True`...
+4. Write code to request the provider in `create_async_generator` and `yield` the response, _even if_ its a one-time response, do not hesitate to look at other providers for inspiration
 5. Add the Provider Name in [g4f/provider/**init**.py](./g4f/provider/__init__.py)
 
 ```py
-from .base_provider import BaseProvider
 from .HogeService import HogeService
 
 __all__ = [
