@@ -42,7 +42,7 @@ class Vitalentum(AsyncGeneratorProvider):
         async with ClientSession(
             headers=headers
         ) as session:
-            async with session.post(cls.url + "/api/converse-edge", json=data, proxy=proxy) as response:
+            async with session.post(f"{cls.url}/api/converse-edge", json=data, proxy=proxy) as response:
                 response.raise_for_status()
                 async for line in response.content:
                     line = line.decode()

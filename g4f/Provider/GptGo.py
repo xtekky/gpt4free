@@ -18,7 +18,6 @@ class GptGo(AsyncGeneratorProvider):
         model: str,
         messages: list[dict[str, str]],
         proxy: str = None,
-        timeout: int = 30,
         **kwargs
     ) -> AsyncGenerator:
         headers = {
@@ -73,6 +72,7 @@ class GptGo(AsyncGeneratorProvider):
             ("model", "str"),
             ("messages", "list[dict[str, str]]"),
             ("stream", "bool"),
+            ("proxy", "str"),
             ("temperature", "float"),
         ]
         param = ", ".join([": ".join(p) for p in params])

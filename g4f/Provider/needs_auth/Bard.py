@@ -6,7 +6,9 @@ import re
 
 from aiohttp import ClientSession
 
-from ..base_provider import AsyncProvider, format_prompt, get_cookies
+from ...typing import Messages
+from ..base_provider import AsyncProvider
+from ..helper import format_prompt, get_cookies
 
 
 class Bard(AsyncProvider):
@@ -19,25 +21,22 @@ class Bard(AsyncProvider):
     async def create_async(
         cls,
         model: str,
-        messages: list[dict[str, str]],
+        messages: Messages,
         proxy: str = None,
         cookies: dict = None,
         **kwargs
     ) -> str:
         prompt = format_prompt(messages)
-        if proxy and "://" not in proxy:
-            proxy = f"http://{proxy}"
         if not cookies:
             cookies = get_cookies(".google.com")
 
         headers = {
             'authority': 'bard.google.com',
-            'origin': 'https://bard.google.com',
-            'referer': 'https://bard.google.com/',
+            'origin': cls.url,
+            'referer': f'{cls.url}/',
             'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36',
             'x-same-domain': '1',
         }
-
         async with ClientSession(
             cookies=cookies,
             headers=headers
@@ -67,7 +66,6 @@ class Bard(AsyncProvider):
                 'lamda',
                 'BardFrontendService'
             ])
-
             async with session.post(
                 f'{cls.url}/_/BardChatUi/data/{intents}/StreamGenerate',
                 data=data,

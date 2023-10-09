@@ -4,7 +4,7 @@ import uuid, json, time
 
 from ..base_provider import AsyncGeneratorProvider
 from ..helper import get_browser, get_cookies, format_prompt
-from ...typing import AsyncGenerator
+from ...typing import AsyncResult, Messages
 from ...requests import StreamSession
 
 class OpenaiChat(AsyncGeneratorProvider):
@@ -18,13 +18,13 @@ class OpenaiChat(AsyncGeneratorProvider):
     async def create_async_generator(
         cls,
         model: str,
-        messages: list[dict[str, str]],
+        messages: Messages,
         proxy: str = None,
+        timeout: int = 120,
         access_token: str = None,
         cookies: dict = None,
-        timeout: int = 30,
-        **kwargs: dict
-    ) -> AsyncGenerator:
+        **kwargs
+    ) -> AsyncResult:
         proxies = {"https": proxy}
         if not access_token:
             access_token = await cls.get_access_token(cookies, proxies)
@@ -32,7 +32,12 @@ class OpenaiChat(AsyncGeneratorProvider):
             "Accept": "text/event-stream",
             "Authorization": f"Bearer {access_token}",
         }
-        async with StreamSession(proxies=proxies, headers=headers, impersonate="chrome107", timeout=timeout) as session:
+        async with StreamSession(
+            proxies=proxies,
+            headers=headers,
+            impersonate="chrome107",
+            timeout=timeout
+        ) as session:
             messages = [
                 {
                     "id": str(uuid.uuid4()),

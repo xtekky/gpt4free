@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 
-from ..typing import AsyncGenerator
+from ..typing import AsyncResult, Messages
 from ..requests import StreamSession
 from .base_provider import AsyncGeneratorProvider, format_prompt, get_cookies
 
@@ -16,12 +16,12 @@ class AItianhu(AsyncGeneratorProvider):
     async def create_async_generator(
         cls,
         model: str,
-        messages: list[dict[str, str]],
+        messages: Messages,
         proxy: str = None,
         cookies: dict = None,
-        timeout: int = 30,
+        timeout: int = 120,
         **kwargs
-    ) -> AsyncGenerator:
+    ) -> AsyncResult:
         if not cookies:
             cookies = get_cookies("www.aitianhu.com")
         data = {

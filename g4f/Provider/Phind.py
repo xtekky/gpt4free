@@ -19,6 +19,7 @@ class Phind(AsyncGeneratorProvider):
         model: str,
         messages: list[dict[str, str]],
         proxy: str = None,
+        timeout: int = 120,
         **kwargs
     ) -> AsyncGenerator:
         chars = 'abcdefghijklmnopqrstuvwxyz0123456789'
@@ -43,7 +44,12 @@ class Phind(AsyncGeneratorProvider):
             "Origin": cls.url,
             "Referer": f"{cls.url}/"
         }
-        async with StreamSession(headers=headers, timeout=(5, 180), proxies={"https": proxy}, impersonate="chrome107") as session:
+        async with StreamSession(
+            headers=headers,
+            timeout=(5, timeout),
+            proxies={"https": proxy},
+            impersonate="chrome107"
+        ) as session:
             async with session.post(f"{cls.url}/api/infer/answer", json=data) as response:
                 response.raise_for_status()
                 new_lines = 0
@@ -71,6 +77,7 @@ class Phind(AsyncGeneratorProvider):
             ("messages", "list[dict[str, str]]"),
             ("stream", "bool"),
             ("proxy", "str"),
+            ("timeout", "int"),
         ]
         param = ", ".join([": ".join(p) for p in params])
         return f"g4f.provider.{cls.__name__} supports: ({param})"

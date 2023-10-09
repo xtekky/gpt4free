@@ -7,7 +7,7 @@ import json
 from datetime import datetime
 from aiohttp import ClientSession
 
-from ..typing import SHA256, AsyncGenerator
+from ..typing import SHA256, AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider
 
 
@@ -19,11 +19,11 @@ class Ails(AsyncGeneratorProvider):
     @staticmethod
     async def create_async_generator(
         model: str,
-        messages: list[dict[str, str]],
+        messages: Messages,
         stream: bool,
         proxy: str = None,
         **kwargs
-    ) -> AsyncGenerator:
+    ) -> AsyncResult:
         headers = {
             "authority": "api.caipacity.com",
             "accept": "*/*",
