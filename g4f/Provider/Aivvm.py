@@ -3,6 +3,7 @@ import requests
 
 from .base_provider import BaseProvider
 from ..typing import CreateResult
+from json import dumps
 
 # to recreate this easily, send a post request to https://chat.aivvm.com/api/models
 models = {
@@ -35,20 +36,6 @@ class Aivvm(BaseProvider):
         elif model not in models:
             raise ValueError(f"Model is not supported: {model}")
 
-        headers = {
-            "accept"            : "*/*",
-            "accept-language"   : "hu-HU,hu;q=0.9,en-US;q=0.8,en;q=0.7",
-            "content-type"      : "application/json",
-            "sec-ch-ua"         : "\"Kuki\";v=\"116\", \"Not)A;Brand\";v=\"24\", \"Pici Pocoro\";v=\"102\"",
-            "sec-ch-ua-mobile"  : "?0",
-            "sec-ch-ua-platform": "\"Bandóz\"",
-            "sec-fetch-dest"    : "empty",
-            "sec-fetch-mode"    : "cors",
-            "sec-fetch-site"    : "same-origin",
-            "Referer"           : "https://chat.aivvm.com/",
-            "Referrer-Policy"   : "same-origin",
-        }
-
         json_data = {
             "model"       : models[model],
             "messages"    : messages,
@@ -57,12 +44,29 @@ class Aivvm(BaseProvider):
             "temperature" : kwargs.get("temperature", 0.7)
         }
 
-        response = requests.post(
-            "https://chat.aivvm.com/api/chat", headers=headers, json=json_data, stream=True)
+        headers = {
+            "accept"            : "text/event-stream",
+            "accept-language"   : "en-US,en;q=0.9",
+            "content-type"      : "application/json",
+            "content-length"    : str(len(dumps(json_data))),
+            "sec-ch-ua"         : "\"Chrome\";v=\"117\", \"Not;A=Brand\";v=\"8\", \"Chromium\";v=\"117\"",
+            "sec-ch-ua-mobile"  : "?0",
+            "sec-ch-ua-platform": "\"Windows\"",
+            "sec-fetch-dest"    : "empty",
+            "sec-fetch-mode"    : "cors",
+            "sec-fetch-site"    : "same-origin",
+            "sec-gpc"           : "1",
+            "referrer"          : "https://chat.aivvm.com/"
+        }
+
+        response = requests.post("https://chat.aivvm.com/api/chat", headers=headers, json=json_data, stream=True)
         response.raise_for_status()
 
-        for chunk in response.iter_content(chunk_size=None):
-            yield chunk.decode('utf-8')
+        for chunk in response.iter_content():
+            try:
+                yield chunk.decode("utf-8")
+            except UnicodeDecodeError:
+                yield chunk.decode("unicode-escape")
 
     @classmethod
     @property

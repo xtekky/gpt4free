@@ -65,7 +65,10 @@ f = function () {
                 response.raise_for_status()
                 async for stream in response.content.iter_any():
                     if stream:
-                        yield stream.decode()
+                        try:
+                            yield stream.decode("utf-8")
+                        except UnicodeDecodeError:
+                            yield stream.decode("unicode-escape")
 
 
 def get_api_key(user_agent: str):
