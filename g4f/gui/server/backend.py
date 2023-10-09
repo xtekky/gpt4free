@@ -1,9 +1,11 @@
 import g4f
 
 from flask      import request
-from threading  import Thread
 from .internet  import search
 from .config    import special_instructions
+from .provider  import get_provider
+
+g4f.logging = True
 
 class Backend_Api:
     def __init__(self, app) -> None:
@@ -31,22 +33,25 @@ class Backend_Api:
             conversation    = request.json['meta']['content']['conversation']
             prompt          = request.json['meta']['content']['parts'][0]
             model           = request.json['model']
+            provider        = get_provider(request.json.get('provider'))
             
             messages = special_instructions[jailbreak] + conversation + search(internet_access, prompt) + [prompt]
             
             def stream():
-                answer = g4f.ChatCompletion.create(model = model, 
-                                                    messages = messages, stream=True)
+                if provider:
+                    answer = g4f.ChatCompletion.create(model=model,
+                                                        provider=provider, messages=messages, stream=True)
+                else:
+                    answer = g4f.ChatCompletion.create(model=model,
+                                                        messages=messages, stream=True)
                 
                 for token in answer:
                     yield token
-                                
+
             return self.app.response_class(stream(), mimetype='text/event-stream')
 
-        except Exception as e:
-            print(e)            
+        except Exception as e:    
             return {
-                '_token': 'anerroroccuredmf',
                 '_action': '_ask',
                 'success': False,
                 "error": f"an error occured {str(e)}"}, 400
