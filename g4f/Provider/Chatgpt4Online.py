@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from aiohttp import ClientSession
 
-from ..typing       import AsyncGenerator
+from ..typing       import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider
 
 
@@ -16,9 +16,10 @@ class Chatgpt4Online(AsyncGeneratorProvider):
     async def create_async_generator(
         cls,
         model: str,
-        messages: list[dict[str, str]],
+        messages: Messages,
+        proxy: str = None,
         **kwargs
-    ) -> AsyncGenerator:
+    ) -> AsyncResult:
         async with ClientSession() as session:
             data = {
                 "botId": "default",
@@ -30,7 +31,7 @@ class Chatgpt4Online(AsyncGeneratorProvider):
                 "newMessage": messages[-1]["content"],
                 "stream": True
             }
-            async with session.post(cls.url + "/wp-json/mwai-ui/v1/chats/submit", json=data) as response:
+            async with session.post(cls.url + "/wp-json/mwai-ui/v1/chats/submit", json=data, proxy=proxy) as response:
                 response.raise_for_status()
                 async for line in response.content:
                     if line.startswith(b"data: "):

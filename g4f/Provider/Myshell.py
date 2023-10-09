@@ -28,6 +28,7 @@ class Myshell(AsyncGeneratorProvider):
         cls,
         model: str,
         messages: list[dict[str, str]],
+        proxy: str = None,
         timeout: int = 90,
         **kwargs
     ) -> AsyncGenerator:
@@ -47,7 +48,8 @@ class Myshell(AsyncGeneratorProvider):
             async with session.ws_connect(
                 "wss://api.myshell.ai/ws/?EIO=4&transport=websocket",
                 autoping=False,
-                timeout=timeout
+                timeout=timeout,
+                proxy=proxy
             ) as wss:
                 # Send and receive hello message
                 await wss.receive_str()

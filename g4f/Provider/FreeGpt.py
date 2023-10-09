@@ -21,10 +21,15 @@ class FreeGpt(AsyncGeneratorProvider):
         cls,
         model: str,
         messages: list[dict[str, str]],
-        timeout: int = 30,
+        proxy: str = None,
+        timeout: int = 120,
         **kwargs
     ) -> AsyncGenerator:
-        async with StreamSession(impersonate="chrome107", timeout=timeout) as session:
+        async with StreamSession(
+            impersonate="chrome107",
+            timeout=timeout,
+            proxies={"https": proxy}
+        ) as session:
             prompt = messages[-1]["content"]
             timestamp = int(time.time())
             data = {

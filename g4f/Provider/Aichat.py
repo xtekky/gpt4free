@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from aiohttp import ClientSession
 
+from ..typing import Messages
 from .base_provider import AsyncProvider, format_prompt
 
 
@@ -13,7 +14,7 @@ class Aichat(AsyncProvider):
     @staticmethod
     async def create_async(
         model: str,
-        messages: list[dict[str, str]],
+        messages: Messages,
         proxy: str = None,
         **kwargs
     ) -> str:

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from ..requests import StreamSession
 from .base_provider import AsyncGeneratorProvider
-from ..typing import AsyncGenerator
+from ..typing import AsyncResult, Messages
 
 # to recreate this easily, send a post request to https://chat.aivvm.com/api/models
 models = {
@@ -26,11 +26,12 @@ class Aivvm(AsyncGeneratorProvider):
     async def create_async_generator(
         cls,
         model: str,
-        messages: list[dict[str, str]],
+        messages: Messages,
         stream: bool,
-        timeout: int = 30,
+        proxy: str = None,
+        timeout: int = 120,
         **kwargs
-    ) -> AsyncGenerator:
+    ) -> AsyncResult:
         if not model:
             model = "gpt-3.5-turbo"
         elif model not in models:
@@ -48,7 +49,12 @@ class Aivvm(AsyncGeneratorProvider):
             "Origin": cls.url,
             "Referer": f"{cls.url}/",
         }
-        async with StreamSession(impersonate="chrome107", headers=headers, timeout=timeout) as session:
+        async with StreamSession(
+            impersonate="chrome107",
+            headers=headers,
+            proxies={"https": proxy},
+            timeout=timeout
+        ) as session:
             async with session.post(f"{cls.url}/api/chat", json=json_data) as response:
                 response.raise_for_status()
                 async for chunk in response.iter_content():
