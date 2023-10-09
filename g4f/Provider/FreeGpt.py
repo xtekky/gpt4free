@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import time, hashlib, random
 
-from ..typing import AsyncGenerator
+from ..typing import AsyncResult, Messages
 from ..requests import StreamSession
 from .base_provider import AsyncGeneratorProvider
 
@@ -20,11 +20,11 @@ class FreeGpt(AsyncGeneratorProvider):
     async def create_async_generator(
         cls,
         model: str,
-        messages: list[dict[str, str]],
+        messages: Messages,
         proxy: str = None,
         timeout: int = 120,
         **kwargs
-    ) -> AsyncGenerator:
+    ) -> AsyncResult:
         async with StreamSession(
             impersonate="chrome107",
             timeout=timeout,

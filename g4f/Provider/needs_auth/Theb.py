@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import json
 import random
-
 import requests
 
-from ...typing import Any, CreateResult
+from ...typing import Any, CreateResult, Messages
 from ..base_provider import BaseProvider
+from ..helper import format_prompt
 
 
 class Theb(BaseProvider):
@@ -19,12 +19,11 @@ class Theb(BaseProvider):
     @staticmethod
     def create_completion(
         model: str,
-        messages: list[dict[str, str]],
-        stream: bool, **kwargs: Any) -> CreateResult:
-        
-        conversation = "\n".join(f"{message['role']}: {message['content']}" for message in messages)
-        conversation += "\nassistant: "
-        
+        messages: Messages,
+        stream: bool,
+        proxy: str = None,
+        **kwargs
+    ) -> CreateResult:
         auth = kwargs.get("auth", {
             "bearer_token":"free",
             "org_id":"theb",
@@ -54,7 +53,7 @@ class Theb(BaseProvider):
         req_rand = random.randint(100000000, 9999999999)
 
         json_data: dict[str, Any] = {
-            "text"      : conversation,
+            "text"      : format_prompt(messages),
             "category"  : "04f58f64a4aa4191a957b47290fee864",
             "model"     : "ee8d4f29cb7047f78cbe84313ed6ace8",
             "model_params": {
@@ -67,8 +66,13 @@ class Theb(BaseProvider):
             }
         }
         
-        response = requests.post(f"https://beta.theb.ai/api/conversation?org_id={org_id}&req_rand={req_rand}",
-                                 headers=headers, json=json_data, stream=True)
+        response = requests.post(
+            f"https://beta.theb.ai/api/conversation?org_id={org_id}&req_rand={req_rand}",
+            headers=headers,
+            json=json_data,
+            stream=True,
+            proxies={"https": proxy}
+        )
         
         response.raise_for_status()
         content = ""

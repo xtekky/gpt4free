@@ -224,19 +224,15 @@ from g4f.Provider import (
     Bing,
     ChatBase,
     ChatgptAi,
-    ChatgptLogin,
-    CodeLinkAva,
     DeepAi,
     H2o,
     HuggingChat,
-    Opchatgpts,
     OpenAssistant,
     OpenaiChat,
     Raycast,
     Theb,
     Vercel,
     Vitalentum,
-    Wewordle,
     Ylokh,
     You,
     Yqcloud,
@@ -284,19 +280,18 @@ _providers = [
     g4f.Provider.Aichat,
     g4f.Provider.ChatBase,
     g4f.Provider.Bing,
-    g4f.Provider.CodeLinkAva,
     g4f.Provider.DeepAi,
     g4f.Provider.GptGo,
-    g4f.Provider.Wewordle,
     g4f.Provider.You,
     g4f.Provider.Yqcloud,
 ]
 
-async def run_provider(provider: g4f.Provider.AsyncProvider):
+async def run_provider(provider: g4f.Provider.BaseProvider):
     try:
-        response = await provider.create_async(
-            model=g4f.models.default.name,
+        response = await g4f.ChatCompletion.create_async(
+            model=g4f.models.default,
             messages=[{"role": "user", "content": "Hello"}],
+            provider=provider,
         )
         print(f"{provider.__name__}:", response)
     except Exception as e:
@@ -309,6 +304,22 @@ async def run_all():
     await asyncio.gather(*calls)
 
 asyncio.run(run_all())
+```
+
+##### Proxy Support:
+
+All providers support specifying a proxy in the create function.
+
+```py
+import g4f
+
+response = await g4f.ChatCompletion.create(
+    model=g4f.models.default,
+    messages=[{"role": "user", "content": "Hello"}],
+    proxy="http://host:port",
+    # or socks5://user:pass@host:port
+)
+print(f"Result:", response)
 ```
 
 ### interference openai-proxy api (use with openai python package)
@@ -528,7 +539,7 @@ Call in your terminal the "create_provider" script:
 $ python etc/tool/create_provider.py
 ```
 1. Enter your name for the new provider.
-2. Copy&Paste cURL command from your browser developer tools.
+2. Copy&Paste a cURL command from your browser developer tools.
 3. Let the AI ​​create the provider for you.
 4. Customize the provider according to your needs.
 
