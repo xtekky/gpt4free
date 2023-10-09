@@ -9,7 +9,6 @@ from .Provider   import (
     ChatgptDuo,
     Vitalentum,
     ChatgptAi,
-    ChatForAi,
     AItianhu,
     ChatBase,
     Liaobots,
@@ -28,7 +27,8 @@ from .Provider   import (
     Aibn,
     Bing,
     You,
-    H2o
+    H2o,
+    Aivvm
 )
 
 @dataclass(unsafe_hash=True)
@@ -45,7 +45,7 @@ default = Model(
         Yqcloud,      # Answers short questions in chinese
         ChatBase,     # Don't want to answer creatively
         ChatgptDuo,   # Include search results
-        Aibn, Aichat, ChatForAi, ChatgptAi, ChatgptLogin, DeepAi, FreeGpt, GptGo, Myshell, Ylokh,
+        Aibn, Aichat, ChatgptAi, ChatgptLogin, DeepAi, FreeGpt, GptGo, Myshell, Ylokh,
     ])
 )
 
@@ -54,7 +54,7 @@ gpt_35_long = Model(
     name          = 'gpt-3.5-turbo',
     base_provider = 'openai',
     best_provider = RetryProvider([
-        AiAsk, Aibn, Aichat, ChatForAi, ChatgptAi, ChatgptDemo, ChatgptDuo,
+        AiAsk, Aibn, Aichat, ChatgptAi, ChatgptDemo, ChatgptDuo,
         FreeGpt, GptGo, Liaobots, Myshell, Vitalentum, Ylokh, You, Yqcloud,
         GPTalk, GptGod
     ])
@@ -65,7 +65,7 @@ gpt_35_turbo = Model(
     name          = 'gpt-3.5-turbo',
     base_provider = 'openai',
     best_provider = RetryProvider([
-        DeepAi, ChatgptLogin, ChatgptAi, GptGo, AItianhu, Aichat, AItianhuSpace, Myshell, Aibn, ChatForAi, FreeGpt, Ylokh
+        DeepAi, ChatgptLogin, ChatgptAi, GptGo, AItianhu, Aichat, AItianhuSpace, Myshell, Aibn, FreeGpt, Ylokh
     ])
 )
 
@@ -169,7 +169,8 @@ gpt_35_turbo_16k_0613 = Model(
 
 gpt_35_turbo_0613 = Model(
     name          = 'gpt-3.5-turbo-0613',
-    base_provider = 'openai'
+    base_provider = 'openai',
+    best_provider=Aivvm
 )
 
 gpt_4_0613 = Model(
