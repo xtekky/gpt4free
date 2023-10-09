@@ -27,10 +27,10 @@ RUN pip install --upgrade pip && pip install -r requirements.txt
 COPY . /app/
 
 # Install additional requirements specific to the interference module/package.
-RUN pip install -r interference/requirements.txt
+RUN pip install -r etc/interference/requirements.txt
 
 # Expose port 1337
 EXPOSE 1337
 
 # Define the default command to run the app using Python's module mode.
-CMD ["python", "-m", "interference.app"]
+CMD ["python", "-m", "etc.interference.app"]

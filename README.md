@@ -2,16 +2,33 @@
 
 By using this repository or any code related to it, you agree to the [legal notice](./LEGAL_NOTICE.md). The author is not responsible for any copies, forks, reuploads made by other users, or anything else related to gpt4free. This is the author's only account and repository. To prevent impersonation or irresponsible actions, please comply with the GNU GPL license this Repository uses.
 
-### New
-- official website: *https://g4f.ai*  
-- latest pypi version: ([0.1.4.2](https://pypi.org/project/g4f/0.1.4.2)):
+- latest pypi version: ([0.1.5.6](https://pypi.org/project/g4f/0.1.5.6)):
 ```sh
 pip install -U g4f
 ```
-- check pypi version:
+
+## New features
+- Telegram Channel: https://t.me/g4f_official
+- g4f GUI is back !!:   
+Install g4f with pip and then run:
 ```py
-import g4f
-print(g4f.version) # 0.1.X.X
+python -m g4f.gui.run
+```
+or
+```py
+from g4f.gui import run_gui; run_gui()
+```
+preview:
+
+<img width="1470" alt="image" src="https://github.com/xtekky/gpt4free/assets/98614666/57ad818a-a0dd-4eae-83e1-3fff848ae040">
+
+- run interference from pypi package:
+```py
+python -m g4f.interference.run
+```
+or
+```py
+from g4f.interference import run_interference; run_interference()
 ```
 
 ## Table of Contents
@@ -203,7 +220,6 @@ from g4f.Provider import (
     Acytoo,
     Aichat,
     Ails,
-    Aivvm,
     Bard,
     Bing,
     ChatBase,
@@ -266,7 +282,6 @@ import g4f, asyncio
 
 _providers = [
     g4f.Provider.Aichat,
-    g4f.Provider.Aivvm,
     g4f.Provider.ChatBase,
     g4f.Provider.Bing,
     g4f.Provider.CodeLinkAva,
@@ -298,19 +313,26 @@ asyncio.run(run_all())
 
 ### interference openai-proxy api (use with openai python package)
 
-If you want to use the embedding function, you need to get a huggingface token. You can get one at https://huggingface.co/settings/tokens make sure your role is set to write. If you have your token, just use it instead of the OpenAI api-key.
+#### run interference from pypi package:
+```py
+from g4f.interference import run_interference
 
+run_interference()
+```
+
+#### run interference from repo:
+If you want to use the embedding function, you need to get a huggingface token. You can get one at https://huggingface.co/settings/tokens make sure your role is set to write. If you have your token, just use it instead of the OpenAI api-key.
 
 get requirements:
 
 ```sh
-pip install -r interference/requirements.txt
+pip install -r etc/interference/requirements.txt
 ```
 
 run server:
 
 ```sh
-python3 -m interference.app
+python3 -m etc/interference.app
 ```
 
 ```py
@@ -352,7 +374,6 @@ if __name__ == "__main__":
 | [chat.acytoo.com](https://chat.acytoo.com) | `g4f.Provider.Acytoo` | ✔️ | ❌ | ✔️ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
 | [chat-gpt.org](https://chat-gpt.org/chat) | `g4f.Provider.Aichat` | ✔️ | ❌ | ❌ | ✔️ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ❌ |
 | [ai.ls](https://ai.ls) | `g4f.Provider.Ails` | ✔️ | ❌ | ✔️ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
-| [chat.aivvm.com](https://chat.aivvm.com) | `g4f.Provider.Aivvm` | ✔️ | ✔️ | ✔️ | ❌ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
 | [bard.google.com](https://bard.google.com) | `g4f.Provider.Bard` | ❌ | ❌ | ❌ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ✔️ |
 | [bing.com](https://bing.com/chat) | `g4f.Provider.Bing` | ❌ | ✔️ | ✔️ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
 | [www.chatbase.co](https://www.chatbase.co) | `g4f.Provider.ChatBase` | ✔️ | ✔️ | ✔️ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
@@ -375,6 +396,7 @@ if __name__ == "__main__":
 | [chat.ylokh.xyz](https://chat.ylokh.xyz) | `g4f.Provider.Ylokh` | ✔️ | ❌ | ✔️ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
 | [you.com](https://you.com) | `g4f.Provider.You` | ✔️ | ❌ | ❌ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
 | [chat9.yqcloud.top](https://chat9.yqcloud.top/) | `g4f.Provider.Yqcloud` | ✔️ | ❌ | ✔️ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
+| [cromicle.top](https://cromicle.top) | `g4f.Provider.Cromicle` | ✔️ | ❌ | ✔️ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
 | [aiservice.vercel.app](https://aiservice.vercel.app/) | `g4f.Provider.AiService` | ✔️ | ❌ | ❌ | ❌ | ![Inactive](https://img.shields.io/badge/Inactive-red) | ❌ |
 | [chat.dfehub.com](https://chat.dfehub.com/) | `g4f.Provider.DfeHub` | ✔️ | ❌ | ✔️ | ❌ | ![Inactive](https://img.shields.io/badge/Inactive-red) | ❌ |
 | [free.easychat.work](https://free.easychat.work) | `g4f.Provider.EasyChat` | ✔️ | ❌ | ✔️ | ❌ | ![Inactive](https://img.shields.io/badge/Inactive-red) | ❌ |
@@ -438,13 +460,20 @@ if __name__ == "__main__":
       <td><a href="https://github.com/xtekky/gpt4free/issues"><img alt="Issues" src="https://img.shields.io/github/issues/xtekky/gpt4free?style=flat-square&labelColor=343b41"/></a></td>
       <td><a href="https://github.com/xtekky/gpt4free/pulls"><img alt="Pull Requests" src="https://img.shields.io/github/issues-pr/xtekky/gpt4free?style=flat-square&labelColor=343b41"/></a></td>
     </tr>
-    <tr>
       <td><a href="https://github.com/xiangsx/gpt4free-ts"><b>gpt4free-ts</b></a></td>
       <td><a href="https://github.com/xiangsx/gpt4free-ts/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/xiangsx/gpt4free-ts?style=flat-square&labelColor=343b41"/></a></td>
       <td><a href="https://github.com/xiangsx/gpt4free-ts/network/members"><img alt="Forks" src="https://img.shields.io/github/forks/xiangsx/gpt4free-ts?style=flat-square&labelColor=343b41"/></a></td>
       <td><a href="https://github.com/xiangsx/gpt4free-ts/issues"><img alt="Issues" src="https://img.shields.io/github/issues/xiangsx/gpt4free-ts?style=flat-square&labelColor=343b41"/></a></td>
       <td><a href="https://github.com/xiangsx/gpt4free-ts/pulls"><img alt="Pull Requests" src="https://img.shields.io/github/issues-pr/xiangsx/gpt4free-ts?style=flat-square&labelColor=343b41"/></a></td>
     </tr>
+     <tr>
+      <td><a href="https://github.com/zukixa/cool-ai-stuff/"><b>Free AI API's & Potential Providers List</b></a></td>
+      <td><a href="https://github.com/zukixa/cool-ai-stuff/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/zukixa/cool-ai-stuff?style=flat-square&labelColor=343b41"/></a></td>
+      <td><a href="https://github.com/zukixa/cool-ai-stuff/network/members"><img alt="Forks" src="https://img.shields.io/github/forks/zukixa/cool-ai-stuff?style=flat-square&labelColor=343b41"/></a></td>
+      <td><a href="https://github.com/zukixa/cool-ai-stuff/issues"><img alt="Issues" src="https://img.shields.io/github/issues/zukixa/cool-ai-stuff?style=flat-square&labelColor=343b41"/></a></td>
+      <td><a href="https://github.com/zukixa/cool-ai-stuff/pulls"><img alt="Pull Requests" src="https://img.shields.io/github/issues-pr/zukixa/cool-ai-stuff?style=flat-square&labelColor=343b41"/></a></td>
+    </tr>
+    <tr>
     <tr>
       <td><a href="https://github.com/xtekky/chatgpt-clone"><b>ChatGPT-Clone</b></a></td>
       <td><a href="https://github.com/xtekky/chatgpt-clone/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/xtekky/chatgpt-clone?style=flat-square&labelColor=343b41"/></a></td>
@@ -494,7 +523,8 @@ if __name__ == "__main__":
 
 to add another provider, its very simple:
 
-1. create a new file in [g4f/provider](./g4f/provider) with the name of the Provider
+0. Check out the current [list of potential providers](https://github.com/zukixa/cool-ai-stuff#ai-chat-websites), or find your own provider source!
+1. Create a new file in [g4f/provider](./g4f/provider) with the name of the Provider
 2. Implement a class that extends [BaseProvider](./g4f/provider/base_provider.py).
 
 ```py
@@ -574,3 +604,5 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 <a href="https://github.com/xtekky/gpt4free/stargazers">
         <img width="500" alt="Star History Chart" src="https://api.star-history.com/svg?repos=xtekky/gpt4free&type=Date">
 </a>
+
+

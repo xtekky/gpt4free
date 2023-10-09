@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0 maximum-scale=1.0">
+        <meta name="description" content="A conversational AI system that listens, learns, and challenges">
+        <meta property="og:title" content="ChatGPT">
+        <meta property="og:image" content="https://openai.com/content/images/2022/11/ChatGPT.jpg">
+        <meta property="og:description" content="A conversational AI system that listens, learns, and challenges">
+        <meta property="og:url" content="https://g4f.ai">
+        <link rel="stylesheet" href="/assets/css/style.css">
+        <link rel="apple-touch-icon" sizes="180x180" href="/assets/img/apple-touch-icon.png">
+        <link rel="icon" type="image/png" sizes="32x32" href="/assets/img/favicon-32x32.png">
+        <link rel="icon" type="image/png" sizes="16x16" href="/assets/img/favicon-16x16.png">
+        <link rel="manifest" href="/assets/img/site.webmanifest">
+        <script src="/assets/js/icons.js"></script>
+        <script src="/assets/js/highlightjs-copy.min.js"></script>
+        <script src="/assets/js/chat.v2.js" defer></script>
+        <script src="https://cdn.jsdelivr.net/npm/markdown-it@13.0.1/dist/markdown-it.min.js"></script>
+        <link rel="stylesheet" href="//cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.7.0/build/styles/base16/dracula.min.css">
+        <script>
+            const user_image        = `<img src="/assets/img/user.png" alt="your avatar">`;
+            const gpt_image         = `<img src="/assets/img/gpt.png" alt="your avatar">`;
+        </script>
+        <style>
+            .hljs {
+                color: #e9e9f4;
+                background: #28293629;
+                border-radius: var(--border-radius-1);
+                border: 1px solid var(--blur-border);
+                font-size: 15px;
+            }
+
+            #message-input {
+                margin-right: 30px;
+                height: 80px;
+            }
+
+            #message-input::-webkit-scrollbar {
+                width: 5px;
+            }
+
+            /* Track */
+            #message-input::-webkit-scrollbar-track {
+                background: #f1f1f1; 
+            }
+            
+            /* Handle */
+            #message-input::-webkit-scrollbar-thumb {
+                background: #c7a2ff; 
+            }
+
+            /* Handle on hover */
+            #message-input::-webkit-scrollbar-thumb:hover {
+                background: #8b3dff; 
+            }
+        </style>
+        <script src="/assets/js/highlight.min.js"></script>
+        <script>window.conversation_id = `{{chat_id}}`</script>
+        <title>g4f - gui</title>
+    </head>
+    <body>
+        <div class="gradient"></div>
+        <div class="row">
+            <div class="box conversations">
+                <div class="top">
+                    <button class="new_convo" onclick="new_conversation()">
+                        <i class="fa-regular fa-plus"></i>
+                        <span>New Conversation</span>
+                    </button>
+                </div>
+                <div class="bottom_buttons">
+                    <button onclick="delete_conversations()">
+                        <i class="fa-regular fa-trash"></i>
+                        <span>Clear Conversations</span>
+                    </button>
+                    <div class="info">
+                        <i class="fa-brands fa-discord"></i>
+                        <span class="convo-title">telegram: <a href="https://t.me/g4f_official">@g4f_official</a><br>
+                        </span>
+                    </div>
+                    <div class="info">
+                        <i class="fa-brands fa-github"></i>
+                        <span class="convo-title">github: <a href="https://github.com/xtekky/gpt4free">@gpt4free</a><br>
+                            leave a star ; )
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <div class="conversation">
+                <div class="stop_generating stop_generating-hidden">
+                    <button id="cancelButton">
+                        <span>Stop Generating</span>
+                        <i class="fa-regular fa-stop"></i>
+                    </button>
+                </div>
+                <div class="box" id="messages">
+                </div>
+                <div class="user-input">
+                    <div class="box input-box">
+                        <textarea id="message-input" placeholder="Ask a question" cols="30" rows="10" style="white-space: pre-wrap;resize: none;"></textarea>
+                        <div id="send-button">
+                            <i class="fa-solid fa-paper-plane-top"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="buttons">
+                    <div class="field">
+                        <input type="checkbox" id="switch"/>
+                        <label for="switch"></label>
+                        <span class="about">Web Access</span>
+                    </div>
+                    <div class="field">
+                        <select name="model" id="model">
+                            <option value="gpt-3.5-turbo" selected>gpt-3.5</option>
+                            <option value="gpt-4">gpt-4</option>
+                            <option value="gpt-3.5-turbo-0613">gpt-3.5 fast</option>
+                            <option value="gpt-3.5-turbo-16k">gpt-3.5 16k</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <select name="jailbreak" id="jailbreak">
+                            <option value="default" selected>default</option>
+                            <option value="gpt-math-1.0">math 1.0</option>
+                            <option value="gpt-dude-1.0">dude 1.0</option>
+                            <option value="gpt-dan-1.0">dan 1.0</option>
+                            <option value="gpt-dan-2.0">dan 2.0</option>
+                            <option value="gpt-dev-2.0">dev 2.0</option>
+                            <option value="gpt-evil-1.0">evil 1.0</option>
+                        </select>
+                        <form class="color-picker" action="">
+                            <fieldset>
+                                <legend class="visually-hidden">Pick a color scheme</legend>
+                                <label for="light" class="visually-hidden">Light</label>
+                                <input type="radio" name="theme" id="light" checked>
+                            
+                                <label for="pink" class="visually-hidden">Pink theme</label>
+                                <input type="radio" id="pink" name="theme">
+                            
+                                <label for="blue" class="visually-hidden">Blue theme</label>
+                                <input type="radio" id="blue" name="theme">
+                                
+                                <label for="green" class="visually-hidden">Green theme</label>
+                                <input type="radio" id="green" name="theme">
+                            
+                                <label for="dark" class="visually-hidden">Dark theme</label>
+                                <input type="radio" id="dark" name="theme">
+                            </fieldset>
+                            </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    <div class="mobile-sidebar">
+        <i class="fa-solid fa-bars"></i>
+    </div>
+    <script>
+    </script>
+    </body>
+</html>

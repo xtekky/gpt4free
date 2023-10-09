@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from g4f.requests import AsyncSession
+from curl_cffi.requests import AsyncSession
 from .base_provider import AsyncProvider, format_prompt
 
 
@@ -14,26 +14,32 @@ class ChatgptDuo(AsyncProvider):
         cls,
         model: str,
         messages: list[dict[str, str]],
+        proxy: str = None,
+        timeout: int = 30,
         **kwargs
     ) -> str:
-        async with AsyncSession(impersonate="chrome107") as session:
+        async with AsyncSession(
+            impersonate="chrome107",
+            proxies={"https": proxy},
+            timeout=timeout
+        ) as session:
             prompt = format_prompt(messages),
             data = {
                 "prompt": prompt,
                 "search": prompt,
                 "purpose": "ask",
             }
-            async with session.post(f"{cls.url}/", data=data) as response:
-                response.raise_for_status()
-                data = await response.json()
+            response = await session.post(f"{cls.url}/", data=data)
+            response.raise_for_status()
+            data = response.json()
 
-                cls._sources = [{
-                    "title": source["title"],
-                    "url": source["link"],
-                    "snippet": source["snippet"]
-                } for source in data["results"]]
+            cls._sources = [{
+                "title": source["title"],
+                "url": source["link"],
+                "snippet": source["snippet"]
+            } for source in data["results"]]
 
-                return data["answer"]
+            return data["answer"]
 
     @classmethod
     def get_sources(cls):

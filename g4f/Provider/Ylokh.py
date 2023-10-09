@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import json
-from aiohttp import ClientSession
 
+from ..requests import StreamSession
 from .base_provider import AsyncGeneratorProvider
-from ..typing import AsyncGenerator
+from ..typing import AsyncResult, Messages
 
 class Ylokh(AsyncGeneratorProvider):
     url                   = "https://chat.ylokh.xyz"
@@ -16,21 +16,16 @@ class Ylokh(AsyncGeneratorProvider):
     async def create_async_generator(
         cls,
         model: str,
-        messages: list[dict[str, str]],
+        messages: Messages,
         stream: bool = True,
         proxy: str = None,
+        timeout: int = 120,
         **kwargs
-    ) -> AsyncGenerator:
+    ) -> AsyncResult:
         model = model if model else "gpt-3.5-turbo"
         headers = {
-            "User-Agent"         : "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/116.0",
-            "Accept"             : "*/*",
-            "Accept-language"    : "de,en-US;q=0.7,en;q=0.3",
-            "Origin"             : cls.url,
-            "Referer"            : cls.url + "/",
-            "Sec-Fetch-Dest"     : "empty",
-            "Sec-Fetch-Mode"     : "cors",
-            "Sec-Fetch-Site"     : "same-origin",
+            "Origin" : cls.url,
+            "Referer": cls.url + "/",
         }
         data = {
             "messages": messages,
@@ -43,18 +38,20 @@ class Ylokh(AsyncGeneratorProvider):
             "stream": stream,
             **kwargs
         }
-        async with ClientSession(
-            headers=headers
+        async with StreamSession(
+            headers=headers,
+            proxies={"https": proxy},
+            timeout=timeout
         ) as session:
-            async with session.post("https://chatapi.ylokh.xyz/v1/chat/completions", json=data, proxy=proxy) as response:
+            async with session.post("https://chatapi.ylokh.xyz/v1/chat/completions", json=data) as response:
                 response.raise_for_status()
                 if stream:
-                    async for line in response.content:
+                    async for line in response.iter_lines():
                         line = line.decode()
                         if line.startswith("data: "):
                             if line.startswith("data: [DONE]"):
                                 break
-                            line = json.loads(line[6:-1])
+                            line = json.loads(line[6:])
                             content = line["choices"][0]["delta"].get("content")
                             if content:
                                 yield content
@@ -72,6 +69,7 @@ class Ylokh(AsyncGeneratorProvider):
             ("messages", "list[dict[str, str]]"),
             ("stream", "bool"),
             ("proxy", "str"),
+            ("timeout", "int"),
             ("temperature", "float"),
             ("top_p", "float"),
         ]

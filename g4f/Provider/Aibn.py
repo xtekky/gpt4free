@@ -4,7 +4,7 @@ import time
 import hashlib
 
 from ..typing import AsyncGenerator
-from g4f.requests import AsyncSession
+from ..requests import StreamSession
 from .base_provider import AsyncGeneratorProvider
 
 
@@ -18,9 +18,10 @@ class Aibn(AsyncGeneratorProvider):
         cls,
         model: str,
         messages: list[dict[str, str]],
+        timeout: int = 30,
         **kwargs
     ) -> AsyncGenerator:
-        async with AsyncSession(impersonate="chrome107") as session:
+        async with StreamSession(impersonate="chrome107", timeout=timeout) as session:
             timestamp = int(time.time())
             data = {
                 "messages": messages,
@@ -30,7 +31,7 @@ class Aibn(AsyncGeneratorProvider):
             }
             async with session.post(f"{cls.url}/api/generate", json=data) as response:
                 response.raise_for_status()
-                async for chunk in response.content.iter_any():
+                async for chunk in response.iter_content():
                     yield chunk.decode()
 
     @classmethod

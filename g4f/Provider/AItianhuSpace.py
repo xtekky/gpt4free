@@ -2,12 +2,13 @@ from __future__ import annotations
 
 import random, json
 
-from g4f.requests import AsyncSession, StreamRequest
-from .base_provider import AsyncGeneratorProvider, format_prompt
+from ..typing import AsyncGenerator
+from ..requests import StreamSession
+from .base_provider import AsyncGeneratorProvider, format_prompt, get_cookies
 
 domains = {
-    "gpt-3.5-turbo": ".aitianhu.space",
-    "gpt-4": ".aitianhu.website",
+    "gpt-3.5-turbo": "aitianhu.space",
+    "gpt-4": "aitianhu.website",
 }
 
 class AItianhuSpace(AsyncGeneratorProvider):
@@ -20,23 +21,31 @@ class AItianhuSpace(AsyncGeneratorProvider):
         cls,
         model: str,
         messages: list[dict[str, str]],
-        stream: bool = True,
+        proxy: str = None,
+        domain: str = None,
+        cookies: dict = None,
+        timeout: int = 30,
         **kwargs
-    ) -> str:
+    ) -> AsyncGenerator:
         if not model:
             model = "gpt-3.5-turbo"
         elif not model in domains:
             raise ValueError(f"Model are not supported: {model}")
+        if not domain:
+            chars = 'abcdefghijklmnopqrstuvwxyz0123456789'
+            rand = ''.join(random.choice(chars) for _ in range(6))
+            domain = f"{rand}.{domains[model]}"
+        if not cookies:
+            cookies = get_cookies(domain)
         
-        chars = 'abcdefghijklmnopqrstuvwxyz0123456789'
-        rand = ''.join(random.choice(chars) for _ in range(6))
-        domain = domains[model]
-        url = f'https://{rand}{domain}/api/chat-process'
-
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36",
-        }
-        async with AsyncSession(headers=headers, impersonate="chrome107", verify=False) as session:
+        url = f'https://{domain}'
+        async with StreamSession(
+            proxies={"https": proxy},
+            cookies=cookies,
+            timeout=timeout,
+            impersonate="chrome110",
+            verify=False
+        ) as session:
             data = {
                 "prompt": format_prompt(messages),
                 "options": {},
@@ -45,10 +54,20 @@ class AItianhuSpace(AsyncGeneratorProvider):
                 "top_p": 1,
                 **kwargs
             }
-            async with StreamRequest(session, "POST", url, json=data) as response:
+            headers = {
+                "Authority": url,
+                "Accept": "application/json, text/plain, */*",
+                "Origin": url,
+                "Referer": f"{url}/"
+            }
+            async with session.post(f"{url}/api/chat-process", json=data, headers=headers) as response:
                 response.raise_for_status()
-                async for line in response.content:
-                    line = json.loads(line.rstrip())
+                async for line in response.iter_lines():
+                    if line == b"<script>":
+                        raise RuntimeError("Solve challenge and pass cookies and a fixed domain")
+                    if b"platform's risk control" in line:
+                        raise RuntimeError("Platform's Risk Control")
+                    line = json.loads(line)
                     if "detail" in line:
                         content = line["detail"]["choices"][0]["delta"].get("content")
                         if content:
@@ -56,7 +75,7 @@ class AItianhuSpace(AsyncGeneratorProvider):
                     elif "message" in line and "AI-4接口非常昂贵" in line["message"]:
                         raise RuntimeError("Rate limit for GPT 4 reached")
                     else:
-                        raise RuntimeError("Response: {line}")
+                        raise RuntimeError(f"Response: {line}")
         
 
     @classmethod

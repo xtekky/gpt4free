@@ -2,9 +2,8 @@ from __future__ import annotations
 
 import json
 
-from curl_cffi.requests import AsyncSession
-
-from ..typing import AsyncGenerator
+from ..requests import StreamSession
+from ..typing import AsyncGenerator, Messages
 from .base_provider import AsyncGeneratorProvider, format_prompt
 
 
@@ -12,29 +11,30 @@ class You(AsyncGeneratorProvider):
     url = "https://you.com"
     working = True
     supports_gpt_35_turbo = True
-    supports_stream = False
 
 
     @classmethod
     async def create_async_generator(
         cls,
         model: str,
-        messages: list[dict[str, str]],
+        messages: Messages,
         proxy: str = None,
+        timeout: int = 120,
         **kwargs,
     ) -> AsyncGenerator:
-        async with AsyncSession(proxies={"https": proxy}, impersonate="chrome107") as session:
+        async with StreamSession(proxies={"https": proxy}, impersonate="chrome107", timeout=timeout) as session:
             headers = {
                 "Accept": "text/event-stream",
-                "Referer": "https://you.com/search?fromSearchBar=true&tbm=youchat",
+                "Referer": f"{cls.url}/search?fromSearchBar=true&tbm=youchat",
             }
-            response = await session.get(
-                "https://you.com/api/streamingSearch",
-                params={"q": format_prompt(messages), "domain": "youchat", "chat": ""},
+            data = {"q": format_prompt(messages), "domain": "youchat", "chat": ""}
+            async with session.get(
+                f"{cls.url}/api/streamingSearch",
+                params=data,
                 headers=headers
-            )
-            response.raise_for_status()
-            start = 'data: {"youChatToken": '
-            for line in response.text.splitlines():
-                if line.startswith(start):
-                    yield json.loads(line[len(start): -1])
+            ) as response:
+                response.raise_for_status()
+                start = b'data: {"youChatToken": '
+                async for line in response.iter_lines():
+                    if line.startswith(start):
+                        yield json.loads(line[len(start):-1])

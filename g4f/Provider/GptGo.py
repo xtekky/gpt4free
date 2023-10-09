@@ -18,6 +18,7 @@ class GptGo(AsyncGeneratorProvider):
         model: str,
         messages: list[dict[str, str]],
         proxy: str = None,
+        timeout: int = 30,
         **kwargs
     ) -> AsyncGenerator:
         headers = {

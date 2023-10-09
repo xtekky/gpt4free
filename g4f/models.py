@@ -5,23 +5,30 @@ from .Provider   import BaseProvider, RetryProvider
 from .Provider   import (
     AItianhuSpace,
     ChatgptLogin,
-    PerplexityAi,
+    ChatgptDemo,
     ChatgptDuo,
+    Vitalentum,
     ChatgptAi,
-    ChatBase, 
+    ChatForAi,
     AItianhu,
-    Wewordle,
+    ChatBase,
+    Liaobots,
     Yqcloud,
     Myshell,
+    FreeGpt,
     Vercel, 
-    DeepAi, 
+    DeepAi,
     Aichat,
-    Aivvm, 
+    GPTalk,
+    GptGod,
+    AiAsk,
     GptGo,
+    Ylokh,
     Bard, 
     Aibn,
     Bing,
-    H2o,
+    You,
+    H2o
 )
 
 @dataclass(unsafe_hash=True)
@@ -30,19 +37,26 @@ class Model:
     base_provider: str
     best_provider: Union[type[BaseProvider], RetryProvider] = None
 
-# Config for HuggingChat, OpenAssistant
-# Works for Liaobots, H2o, OpenaiChat, Yqcloud, You
 default = Model(
     name          = "",
     base_provider = "",
     best_provider = RetryProvider([
         Bing,         # Not fully GPT 3 or 4
-        PerplexityAi, # Adds references to sources
-        Wewordle,     # Responds with markdown
         Yqcloud,      # Answers short questions in chinese
         ChatBase,     # Don't want to answer creatively
         ChatgptDuo,   # Include search results
-        DeepAi, ChatgptLogin, ChatgptAi, Aivvm, GptGo, AItianhu, AItianhuSpace, Aichat, Myshell, Aibn,
+        Aibn, Aichat, ChatForAi, ChatgptAi, ChatgptLogin, DeepAi, FreeGpt, GptGo, Myshell, Ylokh,
+    ])
+)
+
+# GPT-3.5 too, but all providers supports long responses and a custom timeouts
+gpt_35_long = Model(
+    name          = 'gpt-3.5-turbo',
+    base_provider = 'openai',
+    best_provider = RetryProvider([
+        AiAsk, Aibn, Aichat, ChatForAi, ChatgptAi, ChatgptDemo, ChatgptDuo,
+        FreeGpt, GptGo, Liaobots, Myshell, Vitalentum, Ylokh, You, Yqcloud,
+        GPTalk, GptGod
     ])
 )
 
@@ -51,16 +65,14 @@ gpt_35_turbo = Model(
     name          = 'gpt-3.5-turbo',
     base_provider = 'openai',
     best_provider = RetryProvider([
-        DeepAi, ChatgptLogin, ChatgptAi, Aivvm, GptGo, AItianhu, Aichat, AItianhuSpace, Myshell, Aibn,
+        DeepAi, ChatgptLogin, ChatgptAi, GptGo, AItianhu, Aichat, AItianhuSpace, Myshell, Aibn, ChatForAi, FreeGpt, Ylokh
     ])
 )
 
 gpt_4 = Model(
     name          = 'gpt-4',
     base_provider = 'openai',
-    best_provider = RetryProvider([
-        Myshell, AItianhuSpace,
-    ])
+    best_provider = Bing
 )
 
 # Bard
@@ -157,26 +169,23 @@ gpt_35_turbo_16k_0613 = Model(
 
 gpt_35_turbo_0613 = Model(
     name          = 'gpt-3.5-turbo-0613',
-    base_provider = 'openai',
-    best_provider = RetryProvider([
-        Aivvm, ChatgptLogin
-    ])
+    base_provider = 'openai'
 )
 
 gpt_4_0613 = Model(
     name          = 'gpt-4-0613',
-    base_provider = 'openai',
-    best_provider = Aivvm)
+    base_provider = 'openai'
+)
 
 gpt_4_32k = Model(
     name          = 'gpt-4-32k',
-    base_provider = 'openai',
-    best_provider = Aivvm)
+    base_provider = 'openai'
+)
 
 gpt_4_32k_0613 = Model(
     name          = 'gpt-4-32k-0613',
-    base_provider = 'openai',
-    best_provider = Aivvm)
+    base_provider = 'openai'
+)
 
 text_ada_001 = Model(
     name          = 'text-ada-001',
@@ -218,6 +227,7 @@ class ModelUtils:
     convert: dict[str, Model] = {
         # gpt-3.5
         'gpt-3.5-turbo'          : gpt_35_turbo,
+        'gpt-3.5-turbo-0613'     : gpt_35_turbo_0613,
         'gpt-3.5-turbo-16k'      : gpt_35_turbo_16k,
         'gpt-3.5-turbo-16k-0613' : gpt_35_turbo_16k_0613,
         

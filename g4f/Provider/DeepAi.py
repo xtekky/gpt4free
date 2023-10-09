@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import json
 import js2py
+import random
+import hashlib
 from aiohttp import ClientSession
 
 from ..typing       import AsyncGenerator
@@ -47,17 +49,29 @@ f = function () {
 "tryit-" + h + "-" + f(agent + f(agent + f(agent + h + "x")));
 """
 
-        payload = {"chas_style": "chat", "chatHistory": json.dumps(messages)}
+        payload = {"chat_style": "chat", "chatHistory": json.dumps(messages)}
         api_key = js2py.eval_js(token_js)
         headers = {
             "api-key": api_key,
             "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36",
+            **kwargs.get("headers", {})
         }
         async with ClientSession(
             headers=headers
         ) as session:
-            async with session.post("https://api.deepai.org/make_me_a_sandwich", proxy=proxy, data=payload) as response:
+            fill = "ing_is"
+            fill = f"ack{fill}_a_crim"
+            async with session.post(f"https://api.deepai.org/h{fill}e", proxy=proxy, data=payload) as response:
                 response.raise_for_status()
                 async for stream in response.content.iter_any():
                     if stream:
                         yield stream.decode()
+
+
+def get_api_key(user_agent: str):
+    e = str(round(1E11 * random.random()))
+
+    def hash(data: str):    
+        return hashlib.md5(data.encode()).hexdigest()[::-1]
+
+    return f"tryit-{e}-" + hash(user_agent + hash(user_agent + hash(user_agent + e + "x")))
