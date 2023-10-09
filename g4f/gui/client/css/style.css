@@ -89,6 +89,26 @@ body {
     height: 100vh;
 }
 
+* {
+    scrollbar-width: thin;
+    scrollbar-color: var(--accent) var(--conversations);
+}
+
+/* Chrome, Edge and Safari */
+*::-webkit-scrollbar {
+    height: 10px;
+    width: 10px;
+}
+*::-webkit-scrollbar-track {
+    border-radius: 5px;
+    background-color: var(--conversations);
+}
+
+*::-webkit-scrollbar-thumb {
+    border-radius: 5px;
+    background-color: var(--accent);
+}
+
 .row {
     display: flex;
     gap: var(--section-gap);
