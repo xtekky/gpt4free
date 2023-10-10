@@ -144,7 +144,7 @@ const ask_gpt = async (message) => {
 
             chunk = new TextDecoder().decode(value);
 
-            if (chunk.includes(`<form id="challenge-form" action="/backend-api/v2/conversation?")) {
+            if (chunk.includes('<form id="challenge-form" action="/backend-api/v2/conversation?"')) {
                 chunk = `cloudflare token expired, please refresh the page.`;
             }
 
@@ -161,7 +161,7 @@ const ask_gpt = async (message) => {
         }
 
         // if text contains :
-        if (text.includes(`instead. Maintaining this website and API costs a lot of money`)) {
+        if (text.includes("instead. Maintaining this website and API costs a lot of money")) {
             document.getElementById(`gpt_${window.token}`).innerHTML = "An error occured, please reload / refresh cache and try again or use a differnet browser";
         }
 
@@ -547,7 +547,7 @@ colorThemes.forEach((themeOption) => {
 setTimeout(() => {
     ads_div = document.querySelector('.ads')
 
-    if (ads_div.getElementsByTagName("iframe").length == 0) {
+    if (ads_div != null && ads_div.getElementsByTagName("iframe").length == 0) {
         ads_div.removeChild(ads_div.querySelector('.sorry'))
 
         ads_div.innerHTML += `
