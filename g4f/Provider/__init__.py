@@ -16,7 +16,6 @@ from .ChatgptDemo     import ChatgptDemo
 from .ChatgptDuo      import ChatgptDuo
 from .ChatgptX        import ChatgptX
 from .Cromicle        import Cromicle
-from .DeepAi          import DeepAi
 from .FreeGpt         import FreeGpt
 from .GPTalk          import GPTalk
 from .GptForLove      import GptForLove
@@ -64,7 +63,6 @@ class ProviderUtils:
         'ChatgptX': ChatgptX,
         'CodeLinkAva': CodeLinkAva,
         'Cromicle': Cromicle,
-        'DeepAi': DeepAi,
         'DfeHub': DfeHub,
         'EasyChat': EasyChat,
         'Equing': Equing,
@@ -127,7 +125,6 @@ __all__ = [
     'ChatgptX',
     'Cromicle',
     'CodeLinkAva',
-    'DeepAi',
     'DfeHub',
     'EasyChat',
     'Forefront',

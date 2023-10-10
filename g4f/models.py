@@ -16,7 +16,6 @@ from .Provider   import (
     Myshell,
     FreeGpt,
     Vercel, 
-    DeepAi,
     Aichat,
     GPTalk,
     GptGod,
@@ -45,7 +44,7 @@ default = Model(
         Yqcloud,      # Answers short questions in chinese
         ChatBase,     # Don't want to answer creatively
         ChatgptDuo,   # Include search results
-        Aibn, Aichat, ChatgptAi, ChatgptLogin, DeepAi, FreeGpt, GptGo, Myshell, Ylokh,
+        Aibn, Aichat, ChatgptAi, ChatgptLogin, FreeGpt, GptGo, Myshell, Ylokh,
     ])
 )
 
@@ -65,7 +64,7 @@ gpt_35_turbo = Model(
     name          = 'gpt-3.5-turbo',
     base_provider = 'openai',
     best_provider = RetryProvider([
-        DeepAi, Aivvm, ChatgptLogin, ChatgptAi, GptGo, AItianhu, Aichat, AItianhuSpace, Myshell, Aibn, FreeGpt, Ylokh
+        Aivvm, ChatgptLogin, ChatgptAi, GptGo, AItianhu, Aichat, AItianhuSpace, Myshell, Aibn, FreeGpt, Ylokh
     ])
 )
 

@@ -215,7 +215,6 @@ from g4f.Provider import (
     Bing,
     ChatBase,
     ChatgptAi,
-    DeepAi,
     H2o,
     HuggingChat,
     OpenAssistant,
@@ -282,7 +281,6 @@ _providers = [
     g4f.Provider.Aichat,
     g4f.Provider.ChatBase,
     g4f.Provider.Bing,
-    g4f.Provider.DeepAi,
     g4f.Provider.GptGo,
     g4f.Provider.You,
     g4f.Provider.Yqcloud,
@@ -394,7 +392,6 @@ if __name__ == "__main__":
 | [chatgpt.ai](https://chatgpt.ai/) | `g4f.Provider.ChatgptAi` | ✔️ | ❌ | ✔️ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
 | [opchatgpts.net](https://opchatgpts.net) | `g4f.Provider.ChatgptLogin` | ✔️ | ❌ | ❌ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
 | [ava-ai-ef611.web.app](https://ava-ai-ef611.web.app) | `g4f.Provider.CodeLinkAva` | ✔️ | ❌ | ✔️ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
-| [deepai.org](https://deepai.org) | `g4f.Provider.DeepAi` | ✔️ | ❌ | ✔️ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
 | [gptgo.ai](https://gptgo.ai) | `g4f.Provider.GptGo` | ✔️ | ❌ | ✔️ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
 | [gpt-gm.h2o.ai](https://gpt-gm.h2o.ai) | `g4f.Provider.H2o` | ❌ | ❌ | ✔️ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
 | [huggingface.co](https://huggingface.co/chat/) | `g4f.Provider.HuggingChat` | ❌ | ❌ | ✔️ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ✔️ |
