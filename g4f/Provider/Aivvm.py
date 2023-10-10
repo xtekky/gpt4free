@@ -17,7 +17,7 @@ models = {
 }
 
 class Aivvm(AsyncGeneratorProvider):
-    url                   = 'https://chat.aivvm.com'
+    url                   = 'https://chat.geekgpt.org'
     supports_gpt_35_turbo = True
     supports_gpt_4        = True
     working = True
