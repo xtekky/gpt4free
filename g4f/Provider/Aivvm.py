@@ -45,12 +45,12 @@ class Aivvm(AsyncGeneratorProvider):
             "temperature" : kwargs.get("temperature", 0.7)
         }
         headers = {
-            "Accept": "*/*",
+            "Accept": "text/event-stream",
             "Origin": cls.url,
             "Referer": f"{cls.url}/",
         }
         async with StreamSession(
-            impersonate="chrome107",
+            impersonate="chrome117",
             headers=headers,
             proxies={"https": proxy},
             timeout=timeout
