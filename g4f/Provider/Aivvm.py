@@ -65,7 +65,7 @@ class Aivvm(BaseProvider):
         response = requests.post("https://chat.aivvm.com/api/chat", headers=headers, data=data, stream=True)
         response.raise_for_status()
 
-        for chunk in response.iter_content():
+        for chunk in response.iter_content(chunk_size=4096):
             try:
                 yield chunk.decode("utf-8")
             except UnicodeDecodeError:

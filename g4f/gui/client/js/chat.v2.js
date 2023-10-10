@@ -144,10 +144,6 @@ const ask_gpt = async (message) => {
 
             chunk = new TextDecoder().decode(value);
 
-            if (chunk.includes('<form id="challenge-form" action="/backend-api/v2/conversation?"')) {
-                chunk = `cloudflare token expired, please refresh the page.`;
-            }
-
             text += chunk;
 
             document.getElementById(`gpt_${window.token}`).innerHTML =
@@ -160,12 +156,7 @@ const ask_gpt = async (message) => {
             message_box.scrollTo({ top: message_box.scrollHeight, behavior: "auto" });
         }
 
-        // if text contains :
-        if (text.includes("instead. Maintaining this website and API costs a lot of money")) {
-            document.getElementById(`gpt_${window.token}`).innerHTML = "An error occured, please reload / refresh cache and try again or use a differnet browser";
-        }
-
-        if (text.includes(`anerroroccuredmf`)) {
+        if (text.includes(`G4F_ERROR`)) {
             document.getElementById(`gpt_${window.token}`).innerHTML = "An error occured, please try again, if the problem persists, please reload / refresh cache or use a differnet browser";
         }
 

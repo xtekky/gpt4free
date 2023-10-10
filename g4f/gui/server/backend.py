@@ -33,7 +33,7 @@ class Backend_Api:
             conversation    = request.json['meta']['content']['conversation']
             prompt          = request.json['meta']['content']['parts'][0]
             model           = request.json['model']
-            provider        = request.json.get('provider').split("g4f.Provider.")[1]
+            provider        = request.json.get('provider').split('g4f.Provider.')[1]
             
             messages = special_instructions[jailbreak] + conversation + search(internet_access, prompt) + [prompt]
             
@@ -52,6 +52,7 @@ class Backend_Api:
 
         except Exception as e:    
             return {
+                'code'   : 'G4F_ERROR',
                 '_action': '_ask',
                 'success': False,
-                "error": f"an error occured {str(e)}"}, 400
+                'error'  : f'an error occured {str(e)}'}, 400
