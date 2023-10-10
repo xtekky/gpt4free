@@ -1,6 +1,8 @@
 import g4f
+from g4f import BaseProvider
 
-def get_provider(provider: str) -> g4f.Provider.BaseProvider:
+
+def get_provider(provider: str) -> BaseProvider | None:
     
     if isinstance(provider, str):
         print(provider)
