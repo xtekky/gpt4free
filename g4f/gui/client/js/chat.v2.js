@@ -144,7 +144,7 @@ const ask_gpt = async (message) => {
 
             chunk = new TextDecoder().decode(value);
 
-            if (chunk.includes(`<form id="challenge-form" action="/backend-api/v2/conversation?`)) {
+            if (chunk.includes(`<form id="challenge-form" action="/backend-api/v2/conversation?")) {
                 chunk = `cloudflare token expired, please refresh the page.`;
             }
 
