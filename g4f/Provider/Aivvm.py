@@ -44,11 +44,13 @@ class Aivvm(BaseProvider):
             "temperature" : kwargs.get("temperature", 0.7)
         }
 
+        data = dumps(json_data)
+
         headers = {
             "accept"            : "text/event-stream",
             "accept-language"   : "en-US,en;q=0.9",
             "content-type"      : "application/json",
-            "content-length"    : str(len(dumps(json_data))),
+            "content-length"    : str(len(data)),
             "sec-ch-ua"         : "\"Chrome\";v=\"117\", \"Not;A=Brand\";v=\"8\", \"Chromium\";v=\"117\"",
             "sec-ch-ua-mobile"  : "?0",
             "sec-ch-ua-platform": "\"Windows\"",
@@ -56,10 +58,11 @@ class Aivvm(BaseProvider):
             "sec-fetch-mode"    : "cors",
             "sec-fetch-site"    : "same-origin",
             "sec-gpc"           : "1",
-            "referrer"          : "https://chat.aivvm.com/"
+            "referrer"          : "https://chat.aivvm.com/",
+            "user-agent"        : "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36"
         }
 
-        response = requests.post("https://chat.aivvm.com/api/chat", headers=headers, json=json_data, stream=True)
+        response = requests.post("https://chat.aivvm.com/api/chat", headers=headers, data=data, stream=True)
         response.raise_for_status()
 
         for chunk in response.iter_content():
