@@ -86,15 +86,16 @@ Replace "hello" with `format_prompt(messages)`.
 And replace "gpt-3.5-turbo" with `model`.
 """
 
+    print("Create code...")
     response = []
     for chunk in g4f.ChatCompletion.create(
         model=g4f.models.gpt_35_long,
         messages=[{"role": "user", "content": prompt}],
         timeout=300,
-        stream=True
+        stream=True,
     ):
-        response.append(chunk)
         print(chunk, end="", flush=True)
+        response.append(chunk)
     print()
     response = "".join(response)
 

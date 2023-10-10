@@ -5,7 +5,7 @@ import uuid
 
 from aiohttp import ClientSession
 
-from ..typing import AsyncGenerator
+from ..typing import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider, format_prompt
 
 
@@ -18,10 +18,10 @@ class H2o(AsyncGeneratorProvider):
     async def create_async_generator(
         cls,
         model: str,
-        messages: list[dict[str, str]],
+        messages: Messages,
         proxy: str = None,
         **kwargs
-    ) -> AsyncGenerator:
+    ) -> AsyncResult:
         model = model if model else cls.model
         headers = {"Referer": cls.url + "/"}
 

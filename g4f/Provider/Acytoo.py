@@ -23,7 +23,7 @@ class Acytoo(AsyncGeneratorProvider):
             headers=_create_header()
         ) as session:
             async with session.post(
-                cls.url + '/api/completions',
+                f'{cls.url}/api/completions',
                 proxy=proxy,
                 json=_create_payload(messages, **kwargs)
             ) as response:
@@ -40,7 +40,7 @@ def _create_header():
     }
 
 
-def _create_payload(messages: list[dict[str, str]], temperature: float = 0.5, **kwargs):
+def _create_payload(messages: Messages, temperature: float = 0.5, **kwargs):
     return {
         'key'         : '',
         'model'       : 'gpt-3.5-turbo',

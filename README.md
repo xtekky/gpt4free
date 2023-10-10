@@ -158,7 +158,6 @@ docker compose down
 ```py
 import g4f
 
-
 print(g4f.Provider.Ails.params)  # supported args
 
 # Automatic selection of provider
@@ -166,7 +165,7 @@ print(g4f.Provider.Ails.params)  # supported args
 # streamed completion
 response = g4f.ChatCompletion.create(
     model="gpt-3.5-turbo",
-    messages=[{"role": "user", "content": "Hello world"}],
+    messages=[{"role": "user", "content": "Hello"}],
     stream=True,
 )
 
@@ -176,22 +175,10 @@ for message in response:
 # normal response
 response = g4f.ChatCompletion.create(
     model=g4f.models.gpt_4,
-    messages=[{"role": "user", "content": "hi"}],
+    messages=[{"role": "user", "content": "Hello"}],
 )  # alterative model setting
 
 print(response)
-
-
-# Set with provider
-response = g4f.ChatCompletion.create(
-    model="gpt-3.5-turbo",
-    provider=g4f.Provider.DeepAi,
-    messages=[{"role": "user", "content": "Hello world"}],
-    stream=True,
-)
-
-for message in response:
-    print(message)
 ```
 ##### Completion
 ```py
@@ -215,6 +202,7 @@ print(response)
 
 ##### Providers:
 ```py
+import g4f
 from g4f.Provider import (
     AItianhu,
     Acytoo,
@@ -237,8 +225,17 @@ from g4f.Provider import (
     You,
     Yqcloud,
 )
-# Usage:
-response = g4f.ChatCompletion.create(..., provider=ProviderName)
+
+# Set with provider
+response = g4f.ChatCompletion.create(
+    model="gpt-3.5-turbo",
+    provider=g4f.Provider.Aichat,
+    messages=[{"role": "user", "content": "Hello"}],
+    stream=True,
+)
+
+for message in response:
+    print(message)
 ```
 
 ##### Cookies Required:
@@ -250,6 +247,7 @@ When running the g4f package locally, the package automatically retrieves cookie
 
 ```py
 import g4f
+
 from g4f.Provider import (
     Bard,
     Bing,
@@ -257,6 +255,7 @@ from g4f.Provider import (
     OpenAssistant,
     OpenaiChat,
 )
+
 # Usage:
 response = g4f.ChatCompletion.create(
     model=g4f.models.default,
@@ -319,6 +318,7 @@ response = await g4f.ChatCompletion.create(
     proxy="http://host:port",
     # or socks5://user:pass@host:port
 )
+
 print(f"Result:", response)
 ```
 
@@ -532,18 +532,18 @@ if __name__ == "__main__":
 
 ## Contribute
 
-####Create Provider with AI Tool
+#### Create Provider with AI Tool
 
 Call in your terminal the "create_provider" script:
 ```bash
-$ python etc/tool/create_provider.py
+python etc/tool/create_provider.py
 ```
 1. Enter your name for the new provider.
 2. Copy&Paste a cURL command from your browser developer tools.
 3. Let the AI ​​create the provider for you.
 4. Customize the provider according to your needs.
 
-####Create Provider
+#### Create Provider
 
 0. Check out the current [list of potential providers](https://github.com/zukixa/cool-ai-stuff#ai-chat-websites), or find your own provider source!
 1. Create a new file in [g4f/provider](./g4f/provider) with the name of the Provider

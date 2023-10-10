@@ -4,7 +4,7 @@ import asyncio
 import sys
 from asyncio import AbstractEventLoop
 from os import path
-from typing import Dict, List
+from ..typing import Dict, List, Messages
 import browser_cookie3
 
 # Change event loop policy on windows
@@ -53,7 +53,7 @@ def get_cookies(cookie_domain: str) -> Dict[str, str]:
     return _cookies[cookie_domain]
 
 
-def format_prompt(messages: List[Dict[str, str]], add_special_tokens=False) -> str:
+def format_prompt(messages: Messages, add_special_tokens=False) -> str:
     if add_special_tokens or len(messages) > 1:
         formatted = "\n".join(
             [

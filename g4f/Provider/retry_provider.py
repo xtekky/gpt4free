@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import random
 from typing import List, Type, Dict
-from ..typing import CreateResult
+from ..typing import CreateResult, Messages
 from .base_provider import BaseProvider, AsyncProvider
 from ..debug import logging
 
@@ -10,10 +10,7 @@ from ..debug import logging
 class RetryProvider(AsyncProvider):
     __name__: str = "RetryProvider"
     working: bool = True
-    needs_auth: bool = False
     supports_stream: bool = True
-    supports_gpt_35_turbo: bool = False
-    supports_gpt_4: bool = False
 
     def __init__(
         self,
@@ -27,7 +24,7 @@ class RetryProvider(AsyncProvider):
     def create_completion(
         self,
         model: str,
-        messages: List[Dict[str, str]],
+        messages: Messages,
         stream: bool = False,
         **kwargs
     ) -> CreateResult:
@@ -54,17 +51,17 @@ class RetryProvider(AsyncProvider):
                 if logging:
                     print(f"{provider.__name__}: {e.__class__.__name__}: {e}")
                 if started:
-                    break
+                    raise e
 
         self.raise_exceptions()
 
     async def create_async(
         self,
         model: str,
-        messages: List[Dict[str, str]],
+        messages: Messages,
         **kwargs
     ) -> str:
-        providers = [provider for provider in self.providers]
+        providers = self.providers
         if self.shuffle:
             random.shuffle(providers)
         
