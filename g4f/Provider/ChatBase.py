@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from aiohttp import ClientSession
 
-from ..typing       import AsyncGenerator
+from ..typing       import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider
 
 
@@ -16,9 +16,10 @@ class ChatBase(AsyncGeneratorProvider):
     async def create_async_generator(
         cls,
         model: str,
-        messages: list[dict[str, str]],
+        messages: Messages,
+        proxy: str = None,
         **kwargs
-    ) -> AsyncGenerator:
+    ) -> AsyncResult:
         if model == "gpt-4":
             chat_id = "quran---tafseer-saadi-pdf-wbgknt7zn"
         elif model == "gpt-3.5-turbo" or not model:
@@ -44,7 +45,7 @@ class ChatBase(AsyncGeneratorProvider):
                 "chatId": chat_id,
                 "conversationId": f"kcXpqEnqUie3dnJlsRi_O-{chat_id}"
             }
-            async with session.post("https://www.chatbase.co/api/fe/chat", json=data) as response:
+            async with session.post("https://www.chatbase.co/api/fe/chat", json=data, proxy=proxy) as response:
                 response.raise_for_status()
                 async for stream in response.content.iter_any():
                     yield stream.decode()

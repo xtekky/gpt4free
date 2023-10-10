@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import time, json, re
 from aiohttp import ClientSession
-from typing import AsyncGenerator
 
+from ..typing import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider
 from .helper import format_prompt
 
@@ -16,10 +16,10 @@ class ChatgptDemo(AsyncGeneratorProvider):
     async def create_async_generator(
         cls,
         model: str,
-        messages: list[dict[str, str]],
+        messages: Messages,
         proxy: str = None,
         **kwargs
-    ) -> AsyncGenerator:
+    ) -> AsyncResult:
         headers = {
             "authority": "chat.chatgptdemo.net",
             "accept-language": "de-DE,de;q=0.9,en-DE;q=0.8,en;q=0.7,en-US",

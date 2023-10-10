@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 from aiohttp import ClientSession
 
+from ..typing import Messages
 from .base_provider import AsyncProvider, format_prompt
 
 
@@ -18,7 +19,7 @@ class ChatgptAi(AsyncProvider):
     async def create_async(
         cls,
         model: str,
-        messages: list[dict[str, str]],
+        messages: Messages,
         proxy: str = None,
         **kwargs
     ) -> str:

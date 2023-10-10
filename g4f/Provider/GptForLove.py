@@ -3,7 +3,7 @@ from __future__ import annotations
 from aiohttp import ClientSession
 import execjs, os, json
 
-from ..typing import AsyncGenerator
+from ..typing import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider
 from .helper import format_prompt
 
@@ -16,9 +16,10 @@ class GptForLove(AsyncGeneratorProvider):
     async def create_async_generator(
         cls,
         model: str,
-        messages: list[dict[str, str]],
+        messages: Messages,
+        proxy: str = None,
         **kwargs
-    ) -> AsyncGenerator:
+    ) -> AsyncResult:
         if not model:
             model = "gpt-3.5-turbo"
         headers = {
@@ -47,7 +48,7 @@ class GptForLove(AsyncGeneratorProvider):
                 "secret": get_secret(),
                 **kwargs
             }
-            async with session.post("https://api.gptplus.one/chat-process", json=data) as response:
+            async with session.post("https://api.gptplus.one/chat-process", json=data, proxy=proxy) as response:
                 response.raise_for_status()
                 async for line in response.content:
                     try:

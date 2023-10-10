@@ -19,6 +19,7 @@ class ChatgptX(AsyncGeneratorProvider):
         cls,
         model: str,
         messages: Messages,
+        proxy: str = None,
         **kwargs
     ) -> AsyncResult:
         headers = {
@@ -32,7 +33,7 @@ class ChatgptX(AsyncGeneratorProvider):
             'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36',
         }
         async with ClientSession(headers=headers) as session:
-            async with session.get(f"{cls.url}/") as response:
+            async with session.get(f"{cls.url}/", proxy=proxy) as response:
                 response = await response.text()
                 result = re.search(r'<meta name="csrf-token" content="(.*?)"', response)
                 if result:
@@ -62,7 +63,7 @@ class ChatgptX(AsyncGeneratorProvider):
                 'x-csrf-token': csrf_token,
                 'x-requested-with': 'XMLHttpRequest'
             }
-            async with session.post(cls.url + '/sendchat', data=data, headers=headers) as response:
+            async with session.post(cls.url + '/sendchat', data=data, headers=headers, proxy=proxy) as response:
                 response.raise_for_status()
                 chat = await response.json()
                 if "response" not in chat or not chat["response"]:
@@ -82,7 +83,7 @@ class ChatgptX(AsyncGeneratorProvider):
                 "conversions_id": chat["conversions_id"],
                 "ass_conversions_id": chat["ass_conversions_id"],
             }
-            async with session.get(f'{cls.url}/chats_stream', params=data, headers=headers) as response:
+            async with session.get(f'{cls.url}/chats_stream', params=data, headers=headers, proxy=proxy) as response:
                 response.raise_for_status()
                 async for line in response.content:
                     if line.startswith(b"data: "):

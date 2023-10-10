@@ -6,22 +6,22 @@ import random
 import hashlib
 from aiohttp import ClientSession
 
-from ..typing       import AsyncGenerator
+from ..typing import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider
 
 
 class DeepAi(AsyncGeneratorProvider):
-    url: str              = "https://deepai.org"
+    url                 = "https://deepai.org"
     working               = True
     supports_gpt_35_turbo = True
 
     @staticmethod
     async def create_async_generator(
         model: str,
-        messages: list[dict[str, str]],
+        messages: Messages,
         proxy: str = None,
         **kwargs
-    ) -> AsyncGenerator:
+    ) -> AsyncResult:
         
         token_js = """
 var agent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36'

@@ -4,8 +4,9 @@ import json, uuid
 
 from aiohttp import ClientSession
 
-from ...typing import AsyncGenerator
-from ..base_provider import AsyncGeneratorProvider, format_prompt, get_cookies
+from ...typing import AsyncResult, Messages
+from ..base_provider import AsyncGeneratorProvider
+from ..helper import format_prompt, get_cookies
 
 
 class HuggingChat(AsyncGeneratorProvider):
@@ -18,12 +19,12 @@ class HuggingChat(AsyncGeneratorProvider):
     async def create_async_generator(
         cls,
         model: str,
-        messages: list[dict[str, str]],
+        messages: Messages,
         stream: bool = True,
         proxy: str = None,
         cookies: dict = None,
         **kwargs
-    ) -> AsyncGenerator:
+    ) -> AsyncResult:
         model = model if model else cls.model
         if proxy and "://" not in proxy:
             proxy = f"http://{proxy}"

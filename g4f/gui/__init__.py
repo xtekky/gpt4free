@@ -16,7 +16,7 @@ def run_gui(host: str = '0.0.0.0', port: int = 80, debug: bool = False) -> None:
             view_func = site.routes[route]['function'],
             methods   = site.routes[route]['methods'],
         )
-
+    
     backend_api  = Backend_Api(app)
     for route in backend_api.routes:
         app.add_url_rule(

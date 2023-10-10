@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from aiohttp import ClientSession
 
-from ..typing import AsyncGenerator
+from ..typing import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider
 
 
@@ -15,11 +15,10 @@ class Acytoo(AsyncGeneratorProvider):
     async def create_async_generator(
         cls,
         model: str,
-        messages: list[dict[str, str]],
+        messages: Messages,
         proxy: str = None,
         **kwargs
-    ) -> AsyncGenerator:
-
+    ) -> AsyncResult:
         async with ClientSession(
             headers=_create_header()
         ) as session:

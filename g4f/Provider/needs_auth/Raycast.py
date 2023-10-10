@@ -4,7 +4,7 @@ import json
 
 import requests
 
-from ...typing import Any, CreateResult
+from ...typing import CreateResult, Messages
 from ..base_provider import BaseProvider
 
 
@@ -19,9 +19,10 @@ class Raycast(BaseProvider):
     @staticmethod
     def create_completion(
         model: str,
-        messages: list[dict[str, str]],
+        messages: Messages,
         stream: bool,
-        **kwargs: Any,
+        proxy: str = None,
+        **kwargs,
     ) -> CreateResult:
         auth = kwargs.get('auth')
         headers = {
@@ -47,7 +48,13 @@ class Raycast(BaseProvider):
             "system_instruction": "markdown",
             "temperature": 0.5
         }
-        response = requests.post("https://backend.raycast.com/api/v1/ai/chat_completions", headers=headers, json=data, stream=True)
+        response = requests.post(
+            "https://backend.raycast.com/api/v1/ai/chat_completions",
+            headers=headers,
+            json=data,
+            stream=True,
+            proxies={"https": proxy}
+        )
         for token in response.iter_lines():
             if b'data: ' not in token:
                 continue

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from aiohttp import ClientSession
 from hashlib import sha256
-from typing import AsyncGenerator, Dict, List
+from ..typing import AsyncResult, Messages, Dict
 
 from .base_provider import AsyncGeneratorProvider
 from .helper import format_prompt
@@ -17,10 +17,10 @@ class Cromicle(AsyncGeneratorProvider):
     async def create_async_generator(
         cls,
         model: str,
-        messages: List[Dict[str, str]],
+        messages: Messages,
         proxy: str = None,
         **kwargs
-    ) -> AsyncGenerator[str, None]:
+    ) -> AsyncResult:
         async with ClientSession(
             headers=_create_header()
         ) as session:

@@ -52,7 +52,7 @@ const remove_cancel_button = async () => {
 
 const ask_gpt = async (message) => {
     try {
-        message_input.value = ``;
+        message_input.value     = ``;
         message_input.innerHTML = ``;
         message_input.innerText = ``;
 
@@ -60,10 +60,11 @@ const ask_gpt = async (message) => {
         window.scrollTo(0, 0);
         window.controller = new AbortController();
 
-        jailbreak = document.getElementById("jailbreak");
-        model = document.getElementById("model");
-        prompt_lock = true;
-        window.text = ``;
+        jailbreak    = document.getElementById("jailbreak");
+        provider     = document.getElementById("provider");
+        model        = document.getElementById("model");
+        prompt_lock  = true;
+        window.text  = ``;
         window.token = message_id();
 
         stop_generating.classList.remove(`stop_generating-hidden`);
@@ -109,12 +110,15 @@ const ask_gpt = async (message) => {
             headers: {
                 "content-type": `application/json`,
                 accept: `text/event-stream`,
+                // v: `1.0.0`,
+                // ts: Date.now().toString(),
             },
             body: JSON.stringify({
                 conversation_id: window.conversation_id,
                 action: `_ask`,
                 model: model.options[model.selectedIndex].value,
                 jailbreak: jailbreak.options[jailbreak.selectedIndex].value,
+                provider: provider.options[provider.selectedIndex].value,
                 meta: {
                     id: window.token,
                     content: {
