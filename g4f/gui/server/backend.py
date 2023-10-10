@@ -33,17 +33,17 @@ class Backend_Api:
             conversation    = request.json['meta']['content']['conversation']
             prompt          = request.json['meta']['content']['parts'][0]
             model           = request.json['model']
-            provider        = get_provider(request.json.get('provider'))
+            provider        = request.json.get('provider').split("g4f.Provider.")[1]
             
             messages = special_instructions[jailbreak] + conversation + search(internet_access, prompt) + [prompt]
             
             def stream():
                 if provider:
                     answer = g4f.ChatCompletion.create(model=model,
-                                                        provider=provider, messages=messages, stream=True)
+                                                       provider=get_provider(provider), messages=messages, stream=True)
                 else:
                     answer = g4f.ChatCompletion.create(model=model,
-                                                        messages=messages, stream=True)
+                                                       messages=messages, stream=True)
                 
                 for token in answer:
                     yield token

@@ -7,10 +7,10 @@ import g4f, asyncio
 
 print("create:", end=" ", flush=True)
 for response in g4f.ChatCompletion.create(
-    model=g4f.models.default,
-    provider=g4f.Provider.GptForLove,
-    messages=[{"role": "user", "content": "send a bunch of emojis. i want to test something"}],
-    temperature=0.0,
+    model=g4f.models.gpt_4_32k_0613,
+    provider=g4f.Provider.Aivvm,
+    messages=[{"role": "user", "content": "write a poem about a tree"}],
+    temperature=0.1,
     stream=True
 ):
     print(response, end="", flush=True)

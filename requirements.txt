@@ -10,5 +10,4 @@ flask
 flask-cors
 typing-extensions
 PyExecJS
-flask
-flask-cors
+duckduckgo-search
