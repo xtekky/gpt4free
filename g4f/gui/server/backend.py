@@ -40,7 +40,7 @@ class Backend_Api:
             def stream():
                 if provider:
                     answer = g4f.ChatCompletion.create(model=model,
-                                                        provider=provider, messages=messages, stream=True)
+                                                       provider=g4f.Provider.ProviderUtils.convert.get(provider), messages=messages, stream=True)
                 else:
                     answer = g4f.ChatCompletion.create(model=model,
                                                         messages=messages, stream=True)
