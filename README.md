@@ -78,7 +78,9 @@ git clone https://github.com/xtekky/gpt4free.git
 cd gpt4free
 ```
 
-3. (Recommended) Create a virtual environment to manage Python packages for your project:
+3. (Recommended) Create a Python virtual environment:
+You can follow the [Python official documentation](https://docs.python.org/3/tutorial/venv.html) for virtual environments .
+
 
 ```
 python3 -m venv venv
