@@ -20,7 +20,7 @@ models = {
 class Aivvm(BaseProvider):
     url                   = 'https://chat.aivvm.com'
     supports_stream       = True
-    working               = True
+    working               = False
     supports_gpt_35_turbo = True
     supports_gpt_4        = True
 

@@ -11,7 +11,7 @@ from .base_provider import AsyncGeneratorProvider, format_prompt
 
 class H2o(AsyncGeneratorProvider):
     url = "https://gpt-gm.h2o.ai"
-    working = True
+    working = False
     model = "h2oai/h2ogpt-gm-oasst1-en-2048-falcon-40b-v1"
 
     @classmethod

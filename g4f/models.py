@@ -27,7 +27,6 @@ from .Provider   import (
     Bing,
     You,
     H2o,
-    Aivvm
 )
 
 @dataclass(unsafe_hash=True)
@@ -64,7 +63,7 @@ gpt_35_turbo = Model(
     name          = 'gpt-3.5-turbo',
     base_provider = 'openai',
     best_provider = RetryProvider([
-        Aivvm, ChatgptLogin, ChatgptAi, GptGo, AItianhu, Aichat, AItianhuSpace, Myshell, Aibn, FreeGpt, Ylokh
+        ChatgptLogin, ChatgptAi, GptGo, AItianhu, Aichat, AItianhuSpace, Myshell, Aibn, FreeGpt, Ylokh
     ])
 )
 
@@ -72,7 +71,7 @@ gpt_4 = Model(
     name          = 'gpt-4',
     base_provider = 'openai',
     best_provider = RetryProvider([
-        Aivvm, Bing
+        Bing
     ])
 )
 
@@ -167,31 +166,31 @@ gpt_35_turbo_16k = Model(
 gpt_35_turbo_16k_0613 = Model(
     name          = 'gpt-3.5-turbo-16k-0613',
     base_provider = 'openai',
-    best_provider = Aivvm
+    best_provider = gpt_35_turbo.best_provider
 )
 
 gpt_35_turbo_0613 = Model(
     name          = 'gpt-3.5-turbo-0613',
     base_provider = 'openai',
-    best_provider = Aivvm
+    best_provider = gpt_35_turbo.best_provider
 )
 
 gpt_4_0613 = Model(
     name          = 'gpt-4-0613',
     base_provider = 'openai',
-    best_provider = Aivvm
+    best_provider = gpt_4.best_provider
 )
 
 gpt_4_32k = Model(
     name          = 'gpt-4-32k',
     base_provider = 'openai',
-    best_provider = Aivvm
+    best_provider = gpt_4.best_provider
 )
 
 gpt_4_32k_0613 = Model(
     name          = 'gpt-4-32k-0613',
     base_provider = 'openai',
-    best_provider = Aivvm
+    best_provider = gpt_4.best_provider
 )
 
 text_ada_001 = Model(
