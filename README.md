@@ -14,10 +14,6 @@ Install g4f with pip and then run:
 ```py
 python -m g4f.gui.run
 ```
-or
-```py
-from g4f.gui import run_gui; run_gui()
-```
 preview:
 
 <img width="1470" alt="image" src="https://github.com/xtekky/gpt4free/assets/98614666/57ad818a-a0dd-4eae-83e1-3fff848ae040">
@@ -25,10 +21,6 @@ preview:
 - run interference from pypi package:
 ```py
 python -m g4f.interference.run
-```
-or
-```py
-from g4f.interference import run_interference; run_interference()
 ```
 
 ## Table of Contents
@@ -79,7 +71,7 @@ cd gpt4free
 ```
 
 3. (Recommended) Create a Python virtual environment:
-You can follow the [Python official documentation](https://docs.python.org/3/tutorial/venv.html) for virtual environments .
+You can follow the [Python official documentation](https://docs.python.org/3/tutorial/venv.html) for virtual environments.
 
 
 ```
