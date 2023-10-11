@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import g4f
 from g4f import BaseProvider
 
