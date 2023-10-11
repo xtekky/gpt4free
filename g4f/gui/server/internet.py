@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 from datetime import datetime
+
 from duckduckgo_search import DDGS
 
 ddgs = DDGS(timeout=20)
