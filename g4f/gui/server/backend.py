@@ -55,4 +55,4 @@ class Backend_Api:
                 'code'   : 'G4F_ERROR',
                 '_action': '_ask',
                 'success': False,
-                'error'  : f'an error occured {str(e)}'}, 400
+                'error'  : f'an error occurred {str(e)}'}, 400
