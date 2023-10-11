@@ -41,6 +41,7 @@ python -m g4f.interference.run
 - [Contributors](#contributors)
 - [Copyright](#copyright)
 - [Star History](#star-history)
+- [License](#license)
 
 ## Getting Started
 
