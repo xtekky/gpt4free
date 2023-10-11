@@ -622,4 +622,16 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
         <img width="500" alt="Star History Chart" src="https://api.star-history.com/svg?repos=xtekky/gpt4free&type=Date">
 </a>
 
+## License
 
+<table>
+  <tr>
+     <td>
+       <p align="center"> <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/9/93/GPLv3_Logo.svg/1200px-GPLv3_Logo.svg.png" width="80%"></img>
+    </td>
+    <td> 
+      <img src="https://img.shields.io/badge/License-GNU_GPL_v3.0-red.svg"/> <br> 
+This project is licensed under <a href="./LICENSE">GNU_GPL_v3.0</a>. <img width=2300/>
+    </td>
+  </tr>
+</table>
