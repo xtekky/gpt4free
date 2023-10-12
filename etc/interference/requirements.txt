@@ -1,5 +1,0 @@
-flask_cors
-watchdog~=3.0.0
-transformers
-tensorflow
-torch

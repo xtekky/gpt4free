@@ -11,10 +11,7 @@ with codecs.open(os.path.join(here, "README.md"), encoding="utf-8") as fh:
 with open("requirements.txt") as f:
     required = f.read().splitlines()
 
-with open("etc/interference/requirements.txt") as f:
-    api_required = f.read().splitlines()
-
-VERSION = '0.1.6.1'
+VERSION = "0.1.6.1"
 DESCRIPTION = (
     "The official gpt4free repository | various collection of powerful language models"
 )
@@ -29,13 +26,13 @@ setup(
     long_description_content_type="text/markdown",
     long_description=long_description,
     packages=find_packages(),
-    package_data={"g4f": ["g4f/gui/client/*", "g4f/gui/server/*"]},
+    package_data={
+        "g4f": ["g4f/interference/*", "g4f/gui/client/*", "g4f/gui/server/*"]
+    },
     include_package_data=True,
-    data_files=["etc/interference/app.py"],
     install_requires=required,
-    extras_require={"api": api_required},
     entry_points={
-        "console_scripts": ["g4f=interference.app:main"],
+        "console_scripts": ["g4f=g4f.cli:main"],
     },
     url="https://github.com/xtekky/gpt4free",  # Link to your GitHub repository
     project_urls={

@@ -7,18 +7,39 @@ By using this repository or any code related to it, you agree to the [legal noti
 pip install -U g4f
 ```
 
+or if you just want to use the gui or interference api, install with [pipx](https://pypa.github.io/pipx/)
+
+```sh
+pipx install g4f
+```
+
 ## New features
 - Telegram Channel: https://t.me/g4f_channel
 - g4f GUI is back !!:   
 Install g4f with pip and then run:
-```py
+
+```sh
+g4f gui
+```
+
+or 
+
+```sh
 python -m g4f.gui.run
 ```
+
 preview:
 
 <img width="1470" alt="image" src="https://github.com/xtekky/gpt4free/assets/98614666/57ad818a-a0dd-4eae-83e1-3fff848ae040">
 
-- run interference from pypi package:
+- run interference api from pypi package:
+
+```sh
+g4f api
+```
+
+or
+
 ```py
 python -m g4f.interference.run
 ```
@@ -320,26 +341,26 @@ print(f"Result:", response)
 
 ### interference openai-proxy api (use with openai python package)
 
-#### run interference from pypi package:
+#### run interference api from pypi package:
 ```py
-from g4f.interference import run_interference
+from g4f.api import run_api
 
-run_interference()
+run_api()
 ```
 
-#### run interference from repo:
+#### run interference api from repo:
 If you want to use the embedding function, you need to get a huggingface token. You can get one at https://huggingface.co/settings/tokens make sure your role is set to write. If you have your token, just use it instead of the OpenAI api-key.
-
-get requirements:
-
-```sh
-pip install -r etc/interference/requirements.txt
-```
 
 run server:
 
 ```sh
-python3 -m etc/interference.app
+g4f api
+```
+
+or
+
+```sh
+python -m g4f.api
 ```
 
 ```py
