@@ -11,3 +11,5 @@ flask-cors
 typing-extensions
 PyExecJS
 duckduckgo-search
+transformers
+tensorflow
