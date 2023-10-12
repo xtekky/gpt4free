@@ -14,10 +14,13 @@ from .Chatgpt4Online  import Chatgpt4Online
 from .ChatgptAi       import ChatgptAi
 from .ChatgptDemo     import ChatgptDemo
 from .ChatgptDuo      import ChatgptDuo
+from .ChatgptFree     import ChatgptFree
+from .ChatgptLogin    import ChatgptLogin
 from .ChatgptX        import ChatgptX
 from .Cromicle        import Cromicle
 from .FreeGpt         import FreeGpt
 from .GPTalk          import GPTalk
+from .GptChatly       import GptChatly
 from .GptForLove      import GptForLove
 from .GptGo           import GptGo
 from .GptGod          import GptGod
@@ -59,6 +62,7 @@ class ProviderUtils:
         'ChatgptAi': ChatgptAi,
         'ChatgptDemo': ChatgptDemo,
         'ChatgptDuo': ChatgptDuo,
+        'ChatgptFree': ChatgptFree,
         'ChatgptLogin': ChatgptLogin,
         'ChatgptX': ChatgptX,
         'CodeLinkAva': CodeLinkAva,
@@ -70,6 +74,7 @@ class ProviderUtils:
         'Forefront': Forefront,
         'FreeGpt': FreeGpt,
         'GPTalk': GPTalk,
+        'GptChatly': GptChatly,
         'GetGpt': GetGpt,
         'GptForLove': GptForLove,
         'GptGo': GptGo,
@@ -121,6 +126,7 @@ __all__ = [
     'ChatgptAi',
     'ChatgptDemo',
     'ChatgptDuo',
+    'ChatgptFree',
     'ChatgptLogin',
     'ChatgptX',
     'Cromicle',
@@ -130,6 +136,7 @@ __all__ = [
     'Forefront',
     'FreeGpt',
     'GPTalk',
+    'GptChatly',
     'GptForLove',
     'GetGpt',
     'GptGo',
