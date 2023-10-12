@@ -1,14 +1,13 @@
 from __future__ import annotations
 
-from ..typing import AsyncResult, Messages
-from ..requests import StreamSession
-from .base_provider import AsyncGeneratorProvider
+from ...typing import AsyncResult, Messages
+from ...requests import StreamSession
+from ..base_provider import AsyncGeneratorProvider
 
 
 class ChatForAi(AsyncGeneratorProvider):
     url                   = "https://chatforai.com"
     supports_gpt_35_turbo = True
-    working               = True
 
     @classmethod
     async def create_async_generator(
@@ -40,6 +39,8 @@ class ChatForAi(AsyncGeneratorProvider):
             async with session.post(f"{cls.url}/api/handle/provider-openai", json=data) as response:
                 response.raise_for_status()
                 async for chunk in response.iter_content():
+                    if b"https://chatforai.store" in chunk:
+                        raise RuntimeError(f"Response: {chunk.decode()}")
                     yield chunk.decode()
 
     @classmethod

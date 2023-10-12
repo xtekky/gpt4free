@@ -9,7 +9,6 @@ from .AItianhu        import AItianhu
 from .AItianhuSpace   import AItianhuSpace
 from .Bing            import Bing
 from .ChatBase        import ChatBase
-from .ChatForAi       import ChatForAi
 from .Chatgpt4Online  import Chatgpt4Online
 from .ChatgptAi       import ChatgptAi
 from .ChatgptDemo     import ChatgptDemo
