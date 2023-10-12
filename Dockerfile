@@ -26,11 +26,8 @@ RUN pip install --upgrade pip && pip install -r requirements.txt
 # This may include all code, assets, and configuration files required to run the application.
 COPY . /app/
 
-# Install additional requirements specific to the interference module/package.
-RUN pip install -r etc/interference/requirements.txt
-
 # Expose port 1337
 EXPOSE 1337
 
 # Define the default command to run the app using Python's module mode.
-CMD ["python", "-m", "etc.interference.app"]
+CMD ["python", "-m", "g4f.api.run"]
