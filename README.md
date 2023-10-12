@@ -54,7 +54,7 @@ python -m g4f.interference.run
 - [Usage](#usage)
   - [The `g4f` Package](#the-g4f-package)
   - [interference openai-proxy api (use with openai python package)](#interference-openai-proxy-api-use-with-openai-python-package)
-- [Models](#models)
+- [Providers](#models)
   - [gpt-3.5 / gpt-4](#gpt-35--gpt-4)
   - [Other Models](#other-models)
 - [Related gpt4free projects](#related-gpt4free-projects)
