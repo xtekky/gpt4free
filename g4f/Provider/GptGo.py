@@ -60,6 +60,8 @@ class GptGo(AsyncGeneratorProvider):
                         if line.startswith("data: [DONE]"):
                             break
                         line = json.loads(line[len(start):-1])
+                        if line["choices"][0]["finish_reason"] == "stop":
+                            break
                         content = line["choices"][0]["delta"].get("content")
                         if content:
                             yield content
