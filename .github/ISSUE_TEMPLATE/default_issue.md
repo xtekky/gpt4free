@@ -25,7 +25,7 @@ ex.
 **Screenshots**
 If applicable, add screenshots to help explain your problem.
 
-**Environement**
+**Environment**
 - python version
 - location ( are you in a cloudfare flagged country ) ?
 
