@@ -42,11 +42,10 @@ class GptForLove(AsyncGeneratorProvider):
             data = {
                 "prompt": prompt,
                 "options": {},
-                "systemMessage": "You are ChatGPT, the version is GPT3.5, a large language model trained by OpenAI. Follow the user's instructions carefully. Respond using markdown.",
-                "temperature": 0.8,
-                "top_p": 1,
+                "systemMessage": kwargs.get("system_message", "You are ChatGPT, the version is GPT3.5, a large language model trained by OpenAI. Follow the user's instructions carefully."),
+                "temperature": kwargs.get("temperature", 0.8),
+                "top_p": kwargs.get("top_p", 1),
                 "secret": get_secret(),
-                **kwargs
             }
             async with session.post("https://api.gptplus.one/chat-process", json=data, proxy=proxy) as response:
                 response.raise_for_status()
@@ -67,9 +66,9 @@ class GptForLove(AsyncGeneratorProvider):
 
 def get_secret() -> str:
     dir = os.path.dirname(__file__)
-    dir += '/npm/node_modules/crypto-js'
+    include = dir + '/npm/node_modules/crypto-js/crypto-js'
     source = """
-CryptoJS = require('{dir}/crypto-js')
+CryptoJS = require({include})
 var k = '14487141bvirvvG'
     , e = Math.floor(new Date().getTime() / 1e3);
 var t = CryptoJS.enc.Utf8.parse(e)
@@ -79,5 +78,5 @@ var t = CryptoJS.enc.Utf8.parse(e)
 });
 return o.toString()
 """
-    source = source.replace('{dir}', dir)
+    source = source.replace('{include}', json.dumps(include))
     return execjs.compile(source).call('')

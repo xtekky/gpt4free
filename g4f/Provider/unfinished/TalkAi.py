@@ -9,7 +9,6 @@ from ..base_provider import AsyncGeneratorProvider
 class TalkAi(AsyncGeneratorProvider):
     url                   = "https://talkai.info"
     supports_gpt_35_turbo = True
-    working               = True
 
     @classmethod
     async def create_async_generator(

@@ -11,7 +11,6 @@ from ..helper import format_prompt
 class ChatAiGpt(AsyncGeneratorProvider):
     url                   = "https://chataigpt.org"
     supports_gpt_35_turbo = True
-    working               = True
     _nonce                = None
     _post_id              = None
 

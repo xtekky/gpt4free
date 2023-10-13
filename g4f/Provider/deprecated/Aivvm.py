@@ -1,8 +1,8 @@
 from __future__ import annotations
 import requests
 
-from .base_provider import BaseProvider
-from ..typing import CreateResult
+from ..base_provider import BaseProvider
+from ...typing import CreateResult, Messages
 from json import dumps
 
 # to recreate this easily, send a post request to https://chat.aivvm.com/api/models
@@ -27,7 +27,7 @@ class Aivvm(BaseProvider):
     @classmethod
     def create_completion(cls,
         model: str,
-        messages: list[dict[str, str]],
+        messages: Messages,
         stream: bool,
         **kwargs
     ) -> CreateResult:

@@ -3,12 +3,11 @@ from __future__ import annotations
 import json
 from aiohttp import ClientSession
 
-from .base_provider import AsyncGeneratorProvider
-from ..typing import AsyncResult, Messages
+from ..base_provider import AsyncGeneratorProvider
+from ...typing import AsyncResult, Messages
 
 class Vitalentum(AsyncGeneratorProvider):
     url                   = "https://app.vitalentum.io"
-    working               = True
     supports_gpt_35_turbo = True
 
 
