@@ -1,13 +1,18 @@
 version: '3'
 
 services:
-  gpt4free:
+  gpt4free-api: &gpt4free
+    image: gpt4free:latest
     build:
       context: .
       dockerfile: Dockerfile
-    volumes:
-      - .:/app
+      cache_from:
+        - gpt4free:latest
     ports:
       - '1337:1337'
-    environment:
-      - PYTHONUNBUFFERED=1
+    command: api
+  gpt4free-gui:
+    <<: *gpt4free
+    ports:
+      - '8080:80'
+    command: gui
