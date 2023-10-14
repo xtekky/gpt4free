@@ -5,7 +5,7 @@ from .Provider import BaseProvider, RetryProvider
 from .typing import Messages, CreateResult, Union, List
 from .debug import logging
 
-version = '0.1.6.3'
+version = '0.1.6.4'
 version_check = True
 
 
