@@ -26,8 +26,8 @@ RUN pip install --upgrade pip && pip install -r requirements.txt
 # This may include all code, assets, and configuration files required to run the application.
 COPY . /app/
 
-# Expose port 1337
-EXPOSE 1337
+# Expose port 80 and 1337
+EXPOSE 80 1337
 
 # Define the default command to run the app using Python's module mode.
-CMD ["python", "-m", "g4f.api.run"]
+ENTRYPOINT ["python", "-m", "g4f.cli"]
