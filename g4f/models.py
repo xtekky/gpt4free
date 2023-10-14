@@ -7,8 +7,10 @@ from .Provider   import (
     ChatgptLogin,
     ChatgptDemo,
     ChatgptDuo,
-    Vitalentum,
+    GptForLove,
+    Opchatgpts,
     ChatgptAi,
+    GptChatly,
     AItianhu,
     Liaobots,
     Yqcloud,
@@ -17,7 +19,6 @@ from .Provider   import (
     Vercel, 
     Aichat,
     GPTalk,
-    GptGod,
     AiAsk,
     GptGo,
     Ylokh,
@@ -50,9 +51,8 @@ gpt_35_long = Model(
     name          = 'gpt-3.5-turbo',
     base_provider = 'openai',
     best_provider = RetryProvider([
-        AiAsk, Aibn, Aichat, ChatgptAi, ChatgptDemo, ChatgptDuo,
-        FreeGpt, GptGo, Liaobots, Myshell, Vitalentum, Ylokh, You, Yqcloud,
-        GPTalk, GptGod
+        AiAsk, Aichat, ChatgptDemo, FreeGpt, GptGo, Liaobots, You,
+        GPTalk, ChatgptLogin, GptChatly, GptForLove, Opchatgpts,
     ])
 )
 

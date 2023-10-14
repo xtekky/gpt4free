@@ -4,11 +4,11 @@ from .AiAsk           import AiAsk
 from .Aibn            import Aibn
 from .Aichat          import Aichat
 from .Ails            import Ails
-from .Aivvm           import Aivvm
 from .AItianhu        import AItianhu
 from .AItianhuSpace   import AItianhuSpace
 from .Bing            import Bing
 from .ChatBase        import ChatBase
+from .ChatForAi       import ChatForAi
 from .Chatgpt4Online  import Chatgpt4Online
 from .ChatgptAi       import ChatgptAi
 from .ChatgptDemo     import ChatgptDemo
@@ -26,9 +26,9 @@ from .GptGod          import GptGod
 from .H2o             import H2o
 from .Liaobots        import Liaobots
 from .Myshell         import Myshell
+from .Opchatgpts      import Opchatgpts
 from .Phind           import Phind
 from .Vercel          import Vercel
-from .Vitalentum      import Vitalentum
 from .Ylokh           import Ylokh
 from .You             import You
 from .Yqcloud         import Yqcloud
