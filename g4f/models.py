@@ -10,7 +10,6 @@ from .Provider   import (
     Vitalentum,
     ChatgptAi,
     AItianhu,
-    ChatBase,
     Liaobots,
     Yqcloud,
     Myshell,
@@ -41,7 +40,6 @@ default = Model(
     best_provider = RetryProvider([
         Bing,         # Not fully GPT 3 or 4
         Yqcloud,      # Answers short questions in chinese
-        ChatBase,     # Don't want to answer creatively
         ChatgptDuo,   # Include search results
         Aibn, Aichat, ChatgptAi, ChatgptLogin, FreeGpt, GptGo, Myshell, Ylokh,
     ])

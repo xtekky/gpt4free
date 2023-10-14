@@ -1,4 +1,4 @@
-from __future__ import annotations
+from __future__       import annotations
 from .Acytoo          import Acytoo
 from .AiAsk           import AiAsk
 from .Aibn            import Aibn
@@ -99,7 +99,12 @@ class ProviderUtils:
         'Wuguokai': Wuguokai,
         'Ylokh': Ylokh,
         'You': You,
-        'Yqcloud': Yqcloud
+        'Yqcloud': Yqcloud,
+        
+        'BaseProvider': BaseProvider,
+        'AsyncProvider': AsyncProvider,
+        'AsyncGeneratorProvider': AsyncGeneratorProvider,
+        'RetryProvider': RetryProvider,
     }
 
 __all__ = [
