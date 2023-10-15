@@ -325,12 +325,12 @@ asyncio.run(run_all())
 
 ##### Proxy Support:
 
-All providers support specifying a proxy in the create function.
+All providers support specifying a proxy in the create functions.
 
 ```py
 import g4f
 
-response = await g4f.ChatCompletion.create(
+response = g4f.ChatCompletion.create(
     model=g4f.models.default,
     messages=[{"role": "user", "content": "Hello"}],
     proxy="http://host:port",
