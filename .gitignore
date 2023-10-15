@@ -43,5 +43,6 @@ bing2.py
 MANIFEST.in
 lab/*
 lab
+tstt.py
 # Emacs crap
 *~
