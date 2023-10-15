@@ -37,6 +37,8 @@ class AItianhuSpace(AsyncGeneratorProvider):
             domain = f"{rand}.{domains[model]}"
         if not cookies:
             cookies = get_cookies(domain)
+            if not cookies:
+                raise RuntimeError(f"g4f.provider.{cls.__name__} requires cookies")
         
         url = f'https://{domain}'
         async with StreamSession(

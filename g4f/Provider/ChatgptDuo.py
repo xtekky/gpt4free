@@ -8,7 +8,7 @@ from .base_provider import AsyncProvider, format_prompt
 class ChatgptDuo(AsyncProvider):
     url                   = "https://chatgptduo.com"
     supports_gpt_35_turbo = True
-    working               = True
+    working               = False
 
     @classmethod
     async def create_async(

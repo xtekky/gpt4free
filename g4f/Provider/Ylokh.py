@@ -8,7 +8,7 @@ from ..typing import AsyncResult, Messages
 
 class Ylokh(AsyncGeneratorProvider):
     url                   = "https://chat.ylokh.xyz"
-    working               = True
+    working               = False
     supports_gpt_35_turbo = True
 
 

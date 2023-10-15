@@ -10,7 +10,7 @@ from .helper import format_prompt
 
 class Cromicle(AsyncGeneratorProvider):
     url: str = 'https://cromicle.top'
-    working: bool = True
+    working: bool = False
     supports_gpt_35_turbo: bool = True
 
     @classmethod

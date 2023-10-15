@@ -13,7 +13,7 @@ from .base_provider import AsyncGeneratorProvider
 
 class Ails(AsyncGeneratorProvider):
     url: str              = "https://ai.ls"
-    working               = True
+    working               = False
     supports_gpt_35_turbo = True
 
     @staticmethod

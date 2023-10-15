@@ -1,29 +1,36 @@
+# cloudflare block
+
 from __future__ import annotations
 
 from aiohttp import ClientSession
 
 from ..typing import Messages
 from .base_provider import AsyncProvider
+from .helper import get_cookies
 
 
 class GptChatly(AsyncProvider):
     url                   = "https://gptchatly.com"
     supports_gpt_35_turbo = True
     supports_gpt_4        = True
-    working               = True
+    working               = False
 
     @classmethod
     async def create_async(
         cls,
         model: str,
         messages: Messages,
-        proxy: str = None,
-        **kwargs
-    ) -> str:
+        proxy: str = None, cookies: dict = None, **kwargs) -> str:
+
+        if not cookies:
+            cookies = get_cookies('gptchatly.com')
+
+        
         if model.startswith("gpt-4"):
             chat_url = f"{cls.url}/fetch-gpt4-response"
         else:
             chat_url = f"{cls.url}/fetch-response"
+        
         headers = {
             "User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/118.0",
             "Accept": "*/*",

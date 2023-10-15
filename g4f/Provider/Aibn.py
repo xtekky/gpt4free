@@ -11,7 +11,7 @@ from .base_provider import AsyncGeneratorProvider
 class Aibn(AsyncGeneratorProvider):
     url                   = "https://aibn.cc"
     supports_gpt_35_turbo = True
-    working               = True
+    working               = False
 
     @classmethod
     async def create_async_generator(

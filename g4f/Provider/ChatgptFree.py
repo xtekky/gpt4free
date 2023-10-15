@@ -1,3 +1,5 @@
+#cloudflare block
+
 from __future__ import annotations
 
 import re
@@ -5,13 +7,13 @@ from aiohttp import ClientSession
 
 from ..typing import Messages
 from .base_provider import AsyncProvider
-from .helper import format_prompt
+from .helper import format_prompt, get_cookies
 
 
 class ChatgptFree(AsyncProvider):
     url                   = "https://chatgptfree.ai"
     supports_gpt_35_turbo = True
-    working               = True
+    working               = False
     _post_id              = None
     _nonce                = None
 
@@ -23,6 +25,8 @@ class ChatgptFree(AsyncProvider):
         proxy: str = None,
         **kwargs
     ) -> str:
+        cookies = get_cookies('chatgptfree.ai')
+        
         headers = {
             "User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/118.0",
             "Accept": "*/*",
@@ -41,7 +45,8 @@ class ChatgptFree(AsyncProvider):
         }
         async with ClientSession(headers=headers) as session:
             if not cls._nonce:
-                async with session.get(f"{cls.url}/", proxy=proxy) as response:
+                async with session.get(f"{cls.url}/", 
+                                       proxy=proxy, cookies=cookies) as response:
                     response.raise_for_status()
                     response = await response.text()
                     result = re.search(r'data-post-id="([0-9]+)"', response)
