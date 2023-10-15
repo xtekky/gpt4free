@@ -23,9 +23,10 @@ from .GptChatly       import GptChatly
 from .GptForLove      import GptForLove
 from .GptGo           import GptGo
 from .GptGod          import GptGod
-from .H2o             import H2o
 from .Liaobots        import Liaobots
+from .Llama2          import Llama2
 from .Myshell         import Myshell
+from .NoowAi          import NoowAi
 from .Opchatgpts      import Opchatgpts
 from .Phind           import Phind
 from .Vercel          import Vercel
@@ -82,9 +83,11 @@ class ProviderUtils:
         'HuggingChat': HuggingChat,
         'Komo': Komo,
         'Liaobots': Liaobots,
+        'Llama2': Llama2,
         'Lockchat': Lockchat,
         'MikuChat': MikuChat,
         'Myshell': Myshell,
+        'NoowAi': NoowAi,
         'Opchatgpts': Opchatgpts,
         'OpenAssistant': OpenAssistant,
         'OpenaiChat': OpenaiChat,
@@ -148,8 +151,10 @@ __all__ = [
     'H2o',
     'HuggingChat',
     'Liaobots',
+    'Llama2',
     'Lockchat',
     'Myshell',
+    'NoowAi',
     'Opchatgpts',
     'Raycast',
     'OpenaiChat',

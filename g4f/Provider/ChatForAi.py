@@ -44,7 +44,7 @@ class ChatForAi(AsyncGeneratorProvider):
                     **kwargs
                 },
                 "botSettings": {},
-                "prompt":  prompt,
+                "prompt": prompt,
                 "messages": messages,
                 "timestamp": timestamp,
                 "sign": generate_signature(timestamp, prompt, conversation_id)

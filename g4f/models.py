@@ -16,6 +16,7 @@ from .Provider   import (
     Yqcloud,
     Myshell,
     FreeGpt,
+    NoowAi,
     Vercel, 
     Aichat,
     GPTalk,
@@ -51,8 +52,9 @@ gpt_35_long = Model(
     name          = 'gpt-3.5-turbo',
     base_provider = 'openai',
     best_provider = RetryProvider([
-        AiAsk, Aichat, ChatgptDemo, FreeGpt, GptGo, Liaobots, You,
+        AiAsk, Aichat, ChatgptDemo, FreeGpt, Liaobots, You,
         GPTalk, ChatgptLogin, GptChatly, GptForLove, Opchatgpts,
+        NoowAi,
     ])
 )
 

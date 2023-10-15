@@ -5,13 +5,12 @@ import uuid
 
 from aiohttp import ClientSession
 
-from ..typing import AsyncResult, Messages
-from .base_provider import AsyncGeneratorProvider, format_prompt
+from ...typing import AsyncResult, Messages
+from ..base_provider import AsyncGeneratorProvider, format_prompt
 
 
 class H2o(AsyncGeneratorProvider):
     url = "https://gpt-gm.h2o.ai"
-    working = False
     model = "h2oai/h2ogpt-gm-oasst1-en-2048-falcon-40b-v1"
 
     @classmethod
@@ -86,7 +85,6 @@ class H2o(AsyncGeneratorProvider):
             async with session.delete(
                 f"{cls.url}/conversation/{conversationId}",
                 proxy=proxy,
-                json=data
             ) as response:
                 response.raise_for_status()
 
