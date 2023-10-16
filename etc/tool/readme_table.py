@@ -9,7 +9,7 @@ import asyncio
 from g4f import models
 from g4f.Provider.base_provider import AsyncProvider, BaseProvider
 from g4f.Provider.retry_provider import RetryProvider
-from testing.test_providers import get_providers
+from testing._providers import get_providers
 
 logging = False
 
