@@ -19,6 +19,8 @@ def index():
     return "interference api, url: http://127.0.0.1:1337"
 
 
+
+
 @app.route("/chat/completions", methods=["POST"])
 def chat_completions():
     model = request.get_json().get("model", "gpt-3.5-turbo")
@@ -93,7 +95,47 @@ def chat_completions():
 
     return app.response_class(streaming(), mimetype="text/event-stream")
 
-
+@app.route("/completions", methods=["POST"])
+def completions():
+    prompt = request.get_json().get("prompt")
+    prompt = ' '.join(map(str, prompt))
+    requested_model = request.get_json().get("model", "gpt-3.5-turbo")
+    max_attempts = 50
+    error_count = 0
+    while True:
+        try:
+            response = ChatCompletion.create(model="gpt-3.5-turbo",
+            messages=[{"role": "user", "content": prompt}], stream=False)
+        except Exception as e:
+            print("error", e)
+            error_count += 1
+            if error_count >= max_attempts:
+                break
+            else:
+                time.sleep(1)
+                continue
+        break
+    completion_id = "".join(random.choices(string.ascii_letters + string.digits, k=29))
+    completion_timestamp = int(time.time())
+    return{
+  "id": completion_id,
+  "object": "text_completion",
+  "created": completion_timestamp,
+  "model": requested_model,
+  "choices": [
+    {
+      "text": response,
+      "index": 0,
+      "logprobs": None,
+      "finish_reason": None
+    }
+  ],
+  "usage": {
+    "prompt_tokens": None,
+    "completion_tokens": None,
+    "total_tokens": None
+  }
+}
 # Get the embedding from huggingface
 # def get_embedding(input_text, token):
 #     huggingface_token = token
