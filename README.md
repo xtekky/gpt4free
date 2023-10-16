@@ -395,7 +395,7 @@ if __name__ == "__main__":
 
 ## Models
 ### gpt-4
-| Website| Provider| gpt-3.5 | gpt-4 | Streaming | Asynchron | Status | Auth |
+| Website| Provider| gpt-3.5 | gpt-4 | Stream | Async | Status | Auth |
 | ------ | ------- | ------- | ----- | --------- | --------- | ------ | ---- |
 | [bing.com](https://bing.com/chat) | `g4f.Provider.Bing` | ❌ | ✔️ | ✔️ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
 | [chat.geekgpt.org](https://chat.geekgpt.org) | `g4f.Provider.GeekGpt` | ✔️ | ✔️ | ✔️ | ❌ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
@@ -409,7 +409,7 @@ if __name__ == "__main__":
 
 ### gpt-3.5
 
-| Website| Provider| gpt-3.5 | gpt-4 | Streaming | Asynchron | Status | Auth |
+| Website| Provider| gpt-3.5 | gpt-4 | Stream    | Async     | Status | Auth |
 | ------ | ------- | ------- | ----- | --------- | --------- | ------ | ---- |
 | [chat3.aiyunos.top](https://chat3.aiyunos.top/) | `g4f.Provider.AItianhuSpace` | ✔️ | ❌ | ✔️ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
 | [e.aiask.me](https://e.aiask.me) | `g4f.Provider.AiAsk` | ✔️ | ❌ | ✔️ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
