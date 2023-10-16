@@ -102,19 +102,8 @@ def completions():
     requested_model = request.get_json().get("model", "gpt-3.5-turbo")
     max_attempts = 50
     error_count = 0
-    while True:
-        try:
-            response = ChatCompletion.create(model="gpt-3.5-turbo",
+    response = ChatCompletion.create(model="gpt-3.5-turbo",
             messages=[{"role": "user", "content": prompt}], stream=False)
-        except Exception as e:
-            print("error", e)
-            error_count += 1
-            if error_count >= max_attempts:
-                break
-            else:
-                time.sleep(1)
-                continue
-        break
     completion_id = "".join(random.choices(string.ascii_letters + string.digits, k=29))
     completion_timestamp = int(time.time())
     return{
