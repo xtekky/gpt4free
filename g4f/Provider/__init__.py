@@ -33,6 +33,7 @@ from .Vercel          import Vercel
 from .Ylokh           import Ylokh
 from .You             import You
 from .Yqcloud         import Yqcloud
+from .Geekgpt         import GeekGpt
 
 from .base_provider  import BaseProvider, AsyncProvider, AsyncGeneratorProvider
 from .retry_provider import RetryProvider
@@ -103,6 +104,7 @@ class ProviderUtils:
         'Ylokh': Ylokh,
         'You': You,
         'Yqcloud': Yqcloud,
+        'Geekgpt': GeekGpt,
         
         'BaseProvider': BaseProvider,
         'AsyncProvider': AsyncProvider,
@@ -171,5 +173,6 @@ __all__ = [
     'Equing',
     'FastGpt',
     'Wuguokai',
-    'V50'
+    'V50',
+    'GeekGpt'
 ]
