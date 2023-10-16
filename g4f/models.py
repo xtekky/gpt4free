@@ -14,6 +14,7 @@ from .Provider   import (
     AItianhu,
     Liaobots,
     Yqcloud,
+    GeekGpt,
     Myshell,
     FreeGpt,
     NoowAi,
@@ -22,6 +23,7 @@ from .Provider   import (
     GPTalk,
     AiAsk,
     GptGo,
+    Phind,
     Ylokh,
     Bard, 
     Aibn,
@@ -43,7 +45,7 @@ default = Model(
         Bing,         # Not fully GPT 3 or 4
         Yqcloud,      # Answers short questions in chinese
         ChatgptDuo,   # Include search results
-        Aibn, Aichat, ChatgptAi, ChatgptLogin, FreeGpt, GptGo, Myshell, Ylokh,
+        Aibn, Aichat, ChatgptAi, ChatgptLogin, FreeGpt, GptGo, Myshell, Ylokh, GeekGpt
     ])
 )
 
@@ -54,7 +56,7 @@ gpt_35_long = Model(
     best_provider = RetryProvider([
         AiAsk, Aichat, ChatgptDemo, FreeGpt, Liaobots, You,
         GPTalk, ChatgptLogin, GptChatly, GptForLove, Opchatgpts,
-        NoowAi,
+        NoowAi, GeekGpt
     ])
 )
 
@@ -63,7 +65,8 @@ gpt_35_turbo = Model(
     name          = 'gpt-3.5-turbo',
     base_provider = 'openai',
     best_provider = RetryProvider([
-        ChatgptLogin, ChatgptAi, GptGo, AItianhu, Aichat, AItianhuSpace, Myshell, Aibn, FreeGpt, Ylokh
+        GeekGpt, ChatgptLogin, ChatgptAi, GptGo, 
+        AItianhu, Aichat, AItianhuSpace, Myshell, Aibn, FreeGpt, Ylokh
     ])
 )
 
@@ -71,7 +74,7 @@ gpt_4 = Model(
     name          = 'gpt-4',
     base_provider = 'openai',
     best_provider = RetryProvider([
-        Bing
+        Bing, GeekGpt, Liaobots, Phind
     ])
 )
 
@@ -161,7 +164,7 @@ code_davinci_002 = Model(
 gpt_35_turbo_16k = Model(
     name          = 'gpt-3.5-turbo-16k',
     base_provider = 'openai',
-    best_provider = Vercel)
+    best_provider = gpt_35_turbo.best_provider)
 
 gpt_35_turbo_16k_0613 = Model(
     name          = 'gpt-3.5-turbo-16k-0613',
