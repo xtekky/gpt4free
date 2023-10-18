@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import random
 from typing import List, Type, Dict
 from ..typing import CreateResult, Messages
@@ -68,7 +69,11 @@ class RetryProvider(AsyncProvider):
         self.exceptions: Dict[str, Exception] = {}
         for provider in providers:
             try:
-                return await provider.create_async(model, messages, **kwargs)
+                return await asyncio.wait_for(provider.create_async(model, messages, **kwargs), timeout=60)
+            except asyncio.TimeoutError as e:
+                self.exceptions[provider.__name__] = e
+                if logging:
+                    print(f"{provider.__name__}: TimeoutError: {e}")
             except Exception as e:
                 self.exceptions[provider.__name__] = e
                 if logging:
