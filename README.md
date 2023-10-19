@@ -196,7 +196,7 @@ for message in response:
 response = g4f.ChatCompletion.create(
     model=g4f.models.gpt_4,
     messages=[{"role": "user", "content": "Hello"}],
-)  # alterative model setting
+)  # alternative model setting
 
 print(response)
 ```
