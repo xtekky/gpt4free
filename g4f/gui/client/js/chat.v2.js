@@ -597,15 +597,21 @@ observer.observe(message_input, { attributes: true });
 
 
 const load_models = async () => {
-    response = await fetch('/backend-api/v2/models')
-    models = await response.json()
+    models = localStorage.getItem('_models')
 
-    var MODELS_SELECT = document.getElementById('model');
+    if (models === null) {
+        response = await fetch('/backend-api/v2/models')
+        models = await response.json()
+        localStorage.setItem('_models', JSON.stringify(models))
+    
+    } else {
+        models = JSON.parse(models)
+    }
+
+    let MODELS_SELECT = document.getElementById('model');
 
     for (model of models) {
-
-        // Create new option elements
-        var model_info = document.createElement('option');
+        let model_info = document.createElement('option');
         model_info.value = model
         model_info.text = model
 

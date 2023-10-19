@@ -27,7 +27,6 @@ class Backend_Api:
     
     def models(self):
         models = g4f._all_models
-        models.remove('oasst-sft-4-pythia-12b-epoch-3.5')
         
         return models
     

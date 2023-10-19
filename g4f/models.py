@@ -168,12 +168,12 @@ code_davinci_002 = Model(
 gpt_35_turbo_16k = Model(
     name          = 'gpt-3.5-turbo-16k',
     base_provider = 'openai',
-    best_provider = gpt_35_turbo.best_provider)
+    best_provider = gpt_35_long.best_provider)
 
 gpt_35_turbo_16k_0613 = Model(
     name          = 'gpt-3.5-turbo-16k-0613',
     base_provider = 'openai',
-    best_provider = gpt_35_turbo.best_provider
+    best_provider = gpt_35_long.best_provider
 )
 
 gpt_35_turbo_0613 = Model(
