@@ -11,6 +11,10 @@ class Backend_Api:
     def __init__(self, app) -> None:
         self.app = app
         self.routes = {
+            '/backend-api/v2/models': {
+                'function': self.models,
+                'methods' : ['GET']
+            },
             '/backend-api/v2/conversation': {
                 'function': self._conversation,
                 'methods': ['POST']
@@ -20,6 +24,9 @@ class Backend_Api:
                 'methods': ['POST']
             },
         }
+        
+    def models(self):
+        return {}
     
     def _gen_title(self):
         return {
