@@ -48,6 +48,7 @@ def get_model_and_provider(model    : Union[Model, str],
         raise ValueError(f'{provider.__name__} does not support "stream" argument')
 
     if logging:
+        RetryProvider.logging = True
         print(f'Using {provider.__name__} provider')
 
     return model, provider
