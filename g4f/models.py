@@ -3,7 +3,6 @@ from dataclasses import dataclass
 from .typing     import Union
 from .Provider   import BaseProvider, RetryProvider
 from .Provider   import (
-    AItianhuSpace,
     ChatgptLogin,
     ChatgptDemo,
     ChatgptDuo,
@@ -11,7 +10,6 @@ from .Provider   import (
     Opchatgpts,
     ChatgptAi,
     GptChatly,
-    AItianhu,
     Liaobots,
     Yqcloud,
     GeekGpt,
@@ -30,6 +28,9 @@ from .Provider   import (
     Bing,
     You,
     H2o,
+    
+    ChatForAi,
+    ChatBase
 )
 
 @dataclass(unsafe_hash=True)
@@ -60,7 +61,7 @@ gpt_35_long = Model(
     best_provider = RetryProvider([
         AiAsk, Aichat, ChatgptDemo, FreeGpt, Liaobots, You,
         GPTalk, ChatgptLogin, GptChatly, GptForLove, Opchatgpts,
-        NoowAi, GeekGpt
+        NoowAi, GeekGpt, Phind
     ])
 )
 
@@ -69,8 +70,8 @@ gpt_35_turbo = Model(
     name          = 'gpt-3.5-turbo',
     base_provider = 'openai',
     best_provider = RetryProvider([
-        GeekGpt, ChatgptLogin, ChatgptAi, GptGo, 
-        AItianhu, Aichat, AItianhuSpace, Myshell, Aibn, FreeGpt, Ylokh
+        Aichat, ChatgptDemo, AiAsk, ChatForAi, GPTalk, 
+        GptGo, You, Vercel, GptForLove, ChatBase, Bing
     ])
 )
 
