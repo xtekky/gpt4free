@@ -24,9 +24,12 @@ class Backend_Api:
                 'methods': ['POST']
             },
         }
-        
+    
     def models(self):
-        return {}
+        models = g4f._all_models
+        models.remove('oasst-sft-4-pythia-12b-epoch-3.5')
+        
+        return models
     
     def _gen_title(self):
         return {

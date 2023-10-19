@@ -1,13 +1,12 @@
 from __future__ import annotations
-from requests import get
-from g4f.models import Model, ModelUtils
-from .Provider import BaseProvider, RetryProvider
-from .typing import Messages, CreateResult, Union, List
-from .debug import logging
+from requests   import get
+from .models    import Model, ModelUtils, _all_models
+from .Provider  import BaseProvider, RetryProvider
+from .typing    import Messages, CreateResult, Union, List
+from .debug     import logging
 
-version = '0.1.6.6'
+version       = '0.1.6.6'
 version_check = True
-
 
 def check_pypi_version() -> None:
     try:
@@ -19,7 +18,6 @@ def check_pypi_version() -> None:
 
     except Exception as e:
         print(f'Failed to check g4f pypi version: {e}')
-
 
 def get_model_and_provider(model    : Union[Model, str], 
                            provider : Union[type[BaseProvider], None], 
@@ -56,7 +54,7 @@ def get_model_and_provider(model    : Union[Model, str],
 
 class ChatCompletion:
     @staticmethod
-    def create(model: Union[Model, str],
+    def create(model    : Union[Model, str],
                messages : Messages,
                provider : Union[type[BaseProvider], None] = None,
                stream   : bool = False,
@@ -76,12 +74,11 @@ class ChatCompletion:
         return result if stream else ''.join(result)
 
     @staticmethod
-    async def create_async(
-        model   : Union[Model, str],
-        messages: Messages,
-        provider: Union[type[BaseProvider], None] = None,
-        stream  : bool = False,
-        ignored  : List[str] = None, **kwargs) -> str:
+    async def create_async(model    : Union[Model, str],
+                           messages : Messages,
+                           provider : Union[type[BaseProvider], None] = None,
+                           stream   : bool = False,
+                           ignored  : List[str] = None, **kwargs) -> str:
         
         if stream:
             raise ValueError(f'"create_async" does not support "stream" argument')
@@ -90,17 +87,13 @@ class ChatCompletion:
 
         return await provider.create_async(model.name, messages, **kwargs)
 
-
 class Completion:
     @staticmethod
-    def create(
-        model: str,
-        prompt: str,
-        provider: Union[type[BaseProvider], None] = None,
-        stream: bool = False,
-        ignored  : List[str] = None,
-        **kwargs
-    ) -> Union[CreateResult, str]:
+    def create(model    : Union[Model, str],
+               prompt   : str,
+               provider : Union[type[BaseProvider], None] = None,
+               stream   : bool = False,
+               ignored  : List[str] = None, **kwargs) -> Union[CreateResult, str]:
 
         allowed_models = [
             'code-davinci-002',

@@ -1,13 +1,12 @@
-const query = (obj) => Object.keys(obj).map((k) => encodeURIComponent(k) + "=" + encodeURIComponent(obj[k])).join("&");
-const colorThemes = document.querySelectorAll('[name="theme"]');
-const markdown = window.markdownit();
-const message_box = document.getElementById(`messages`);
-const message_input = document.getElementById(`message-input`);
+const colorThemes       = document.querySelectorAll('[name="theme"]');
+const markdown          = window.markdownit();
+const message_box       = document.getElementById(`messages`);
+const message_input     = document.getElementById(`message-input`);
 const box_conversations = document.querySelector(`.top`);
-const spinner = box_conversations.querySelector(".spinner");
-const stop_generating = document.querySelector(`.stop_generating`);
-const send_button = document.querySelector(`#send-button`);
-let prompt_lock = false;
+const spinner           = box_conversations.querySelector(".spinner");
+const stop_generating   = document.querySelector(`.stop_generating`);
+const send_button       = document.querySelector(`#send-button`);
+let   prompt_lock       = false;
 
 hljs.addPlugin(new CopyButtonPlugin());
 
@@ -81,8 +80,6 @@ const ask_gpt = async (message) => {
             </div>
         `;
 
-        /* .replace(/(?:\r\n|\r|\n)/g, '<br>') */
-
         message_box.scrollTop = message_box.scrollHeight;
         window.scrollTo(0, 0);
         await new Promise((r) => setTimeout(r, 500));
@@ -108,10 +105,8 @@ const ask_gpt = async (message) => {
             method: `POST`,
             signal: window.controller.signal,
             headers: {
-                "content-type": `application/json`,
+                'content-type': `application/json`,
                 accept: `text/event-stream`,
-                // v: `1.0.0`,
-                // ts: Date.now().toString(),
             },
             body: JSON.stringify({
                 conversation_id: window.conversation_id,
@@ -123,12 +118,12 @@ const ask_gpt = async (message) => {
                     id: window.token,
                     content: {
                         conversation: await get_conversation(window.conversation_id),
-                        internet_access: document.getElementById("switch").checked,
-                        content_type: "text",
+                        internet_access: document.getElementById(`switch`).checked,
+                        content_type: `text`,
                         parts: [
                             {
                                 content: message,
-                                role: "user",
+                                role: `user`,
                             },
                         ],
                     },
@@ -146,8 +141,7 @@ const ask_gpt = async (message) => {
 
             text += chunk;
 
-            document.getElementById(`gpt_${window.token}`).innerHTML =
-                markdown.render(text);
+            document.getElementById(`gpt_${window.token}`).innerHTML = markdown.render(text);
             document.querySelectorAll(`code`).forEach((el) => {
                 hljs.highlightElement(el);
             });
@@ -169,6 +163,7 @@ const ask_gpt = async (message) => {
 
         await load_conversations(20, 0);
         window.scrollTo(0, 0);
+    
     } catch (e) {
         add_message(window.conversation_id, "user", message);
 
@@ -227,19 +222,19 @@ const show_option = async (conversation_id) => {
     const yes = document.getElementById(`yes-${conversation_id}`);
     const not = document.getElementById(`not-${conversation_id}`);
 
-    conv.style.display = "none";
-    yes.style.display = "block";
-    not.style.display = "block";
+    conv.style.display = `none`;
+    yes.style.display  = `block`;
+    not.style.display  = `block`;
 };
 
 const hide_option = async (conversation_id) => {
     const conv = document.getElementById(`conv-${conversation_id}`);
-    const yes = document.getElementById(`yes-${conversation_id}`);
-    const not = document.getElementById(`not-${conversation_id}`);
+    const yes  = document.getElementById(`yes-${conversation_id}`);
+    const not  = document.getElementById(`not-${conversation_id}`);
 
-    conv.style.display = "block";
-    yes.style.display = "none";
-    not.style.display = "none";
+    conv.style.display = `block`;
+    yes.style.display  = `none`;
+    not.style.display  = `none`;
 };
 
 const delete_conversation = async (conversation_id) => {
@@ -272,7 +267,7 @@ const new_conversation = async () => {
     await clear_conversation();
     await load_conversations(20, 0, true);
 
-    await make_announcement()
+    await say_hello()
 };
 
 const load_conversation = async (conversation_id) => {
@@ -287,15 +282,15 @@ const load_conversation = async (conversation_id) => {
                 <div class="user">
                     ${item.role == "assistant" ? gpt_image : user_image}
                     ${item.role == "assistant"
-                ? `<i class="fa-regular fa-phone-arrow-down-left"></i>`
-                : `<i class="fa-regular fa-phone-arrow-up-right"></i>`
-            }
+                        ? `<i class="fa-regular fa-phone-arrow-down-left"></i>`
+                        : `<i class="fa-regular fa-phone-arrow-up-right"></i>`
+                    }
                 </div>
                 <div class="content">
                     ${item.role == "assistant"
-                ? markdown.render(item.content)
-                : item.content
-            }
+                        ? markdown.render(item.content)
+                        : item.content
+                    }
                 </div>
             </div>
         `;
@@ -351,13 +346,10 @@ const add_message = async (conversation_id, role, content) => {
     localStorage.setItem(
         `conversation:${conversation_id}`,
         JSON.stringify(before_adding)
-    ); // update conversation
+    );
 };
 
 const load_conversations = async (limit, offset, loader) => {
-    //console.log(loader);
-    //if (loader === undefined) box_conversations.appendChild(spinner);
-
     let conversations = [];
     for (let i = 0; i < localStorage.length; i++) {
         if (localStorage.key(i).startsWith("conversation:")) {
@@ -366,7 +358,6 @@ const load_conversations = async (limit, offset, loader) => {
         }
     }
 
-    //if (loader === undefined) spinner.parentNode.removeChild(spinner)
     await clear_conversations();
 
     for (conversation of conversations) {
@@ -392,17 +383,6 @@ document.getElementById(`cancelButton`).addEventListener(`click`, async () => {
     window.controller.abort();
     console.log(`aborted ${window.conversation_id}`);
 });
-
-function h2a(str1) {
-    var hex = str1.toString();
-    var str = "";
-
-    for (var n = 0; n < hex.length; n += 2) {
-        str += String.fromCharCode(parseInt(hex.substr(n, 2), 16));
-    }
-
-    return str;
-}
 
 const uuid = () => {
     return `xxxxxxxx-xxxx-4xxx-yxxx-${Date.now().toString(16)}`.replace(
@@ -476,7 +456,7 @@ const load_settings_localstorage = async () => {
     });
 };
 
-const make_announcement = async () => {
+const say_hello = async () => {
     tokens = [`Hello`, `!`, ` How`,` can`, ` I`,` assist`,` you`,` today`,`?`]
 
     message_box.innerHTML += `
@@ -569,8 +549,9 @@ window.onload = async () => {
             await load_conversation(window.conversation_id);
         }
     }
-
-    await make_announcement()
+    
+    await load_models();
+    await say_hello()
     
     message_input.addEventListener(`keydown`, async (evt) => {
         if (prompt_lock) return;
@@ -613,3 +594,21 @@ const observer = new MutationObserver((mutationsList) => {
 });
 
 observer.observe(message_input, { attributes: true });
+
+
+const load_models = async () => {
+    response = await fetch('/backend-api/v2/models')
+    models = await response.json()
+
+    var MODELS_SELECT = document.getElementById('model');
+
+    for (model of models) {
+
+        // Create new option elements
+        var model_info = document.createElement('option');
+        model_info.value = model
+        model_info.text = model
+
+        MODELS_SELECT.appendChild(model_info);
+    }
+}
