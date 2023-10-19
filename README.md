@@ -30,7 +30,7 @@ python -m g4f.gui.run
 
 preview:
 
-<img width="1470" alt="image" src="https://github.com/xtekky/gpt4free/assets/98614666/57ad818a-a0dd-4eae-83e1-3fff848ae040">
+<img width="1470" alt="image" src="https://github.com/xtekky/gpt4free/assets/98614666/a767290f-d29c-471c-9db4-6905d1cb6489">
 
 - run interference api from pypi package:
 
