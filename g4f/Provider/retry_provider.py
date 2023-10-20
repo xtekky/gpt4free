@@ -41,11 +41,14 @@ class RetryProvider(AsyncProvider):
             try:
                 if self.logging:
                     print(f"Using {provider.__name__} provider")
+                
                 for token in provider.create_completion(model, messages, stream, **kwargs):
                     yield token
                     started = True
+                
                 if started:
                     return
+                
             except Exception as e:
                 self.exceptions[provider.__name__] = e
                 if self.logging:

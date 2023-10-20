@@ -11,6 +11,7 @@ from .Provider   import (
     ChatgptAi,
     GptChatly,
     Liaobots,
+    ChatgptX,
     Yqcloud,
     GeekGpt,
     Myshell,
@@ -69,9 +70,9 @@ gpt_35_long = Model(
 gpt_35_turbo = Model(
     name          = 'gpt-3.5-turbo',
     base_provider = 'openai',
-    best_provider = RetryProvider([
-        Aichat, ChatgptDemo, AiAsk, ChatForAi, GPTalk, 
-        GptGo, You, GptForLove, ChatBase
+    best_provider=RetryProvider([
+        ChatgptX, ChatgptDemo, GptGo, You, 
+        NoowAi, GPTalk, GptForLove, Phind, ChatBase
     ])
 )
 

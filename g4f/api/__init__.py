@@ -1,4 +1,4 @@
-import g4f
+import g4f; g4f.logging = True
 import time
 import json
 import random
