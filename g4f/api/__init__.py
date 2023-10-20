@@ -53,7 +53,7 @@ class Api:
             'Content-Disposition'], 'max_age': 600}})
         
         self.app.route('/v1/models',           methods=['GET'])(self.models)
-        self.app.route('v1/models/<model_id>', methods=['GET'])(self.model_info)
+        self.app.route('/v1/models/<model_id>', methods=['GET'])(self.model_info)
         
         self.app.route('/v1/chat/completions', methods=['POST'])(self.chat_completions)
         self.app.route('/v1/completions',      methods=['POST'])(self.completions)
