@@ -369,7 +369,7 @@ python -m g4f.api
 import openai
 
 openai.api_key = "Empty if you don't use embeddings, otherwise your hugginface token"
-openai.api_base = "http://localhost:1337"
+openai.api_base = "http://localhost:1337/v1"
 
 
 def main():

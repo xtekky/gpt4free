@@ -11,3 +11,6 @@ flask-cors
 typing-extensions
 PyExecJS
 duckduckgo-search
+nest_asyncio
+waitress
+werkzeug

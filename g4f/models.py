@@ -71,7 +71,7 @@ gpt_35_turbo = Model(
     base_provider = 'openai',
     best_provider = RetryProvider([
         Aichat, ChatgptDemo, AiAsk, ChatForAi, GPTalk, 
-        GptGo, You, Vercel, GptForLove, ChatBase, Bing
+        GptGo, You, GptForLove, ChatBase
     ])
 )
 

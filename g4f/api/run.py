@@ -1,4 +1,5 @@
-from g4f.api import run_api
+import g4f
+import g4f.api
 
 if __name__ == "__main__":
-    run_api()
+    g4f.api.Api(g4f).run('localhost:1337', 8)
