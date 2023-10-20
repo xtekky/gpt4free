@@ -1,6 +1,7 @@
 import argparse
+import g4f
 
-from g4f.api import run_api
+from g4f.api import Api
 from g4f.gui.run import gui_parser, run_gui_args
 
 
@@ -16,7 +17,7 @@ def main():
 
     args = parser.parse_args()
     if args.mode == "api":
-        run_api()
+        Api(g4f).run('localhost:1337', 8)
     elif args.mode == "gui":
         run_gui_args(args)
     else:
