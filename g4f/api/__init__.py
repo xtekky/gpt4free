@@ -19,7 +19,7 @@ def index():
     return "interference api, url: http://127.0.0.1:1337"
 
 
-@app.route("/chat/completions", methods=["POST"])
+@app.route("/v1/chat/completions", methods=["POST"])
 def chat_completions():
     model = request.get_json().get("model", "gpt-3.5-turbo")
     stream = request.get_json().get("stream", False)

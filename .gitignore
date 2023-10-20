@@ -40,7 +40,6 @@ lab.js
 bing.py
 bing2.py
 .DS_Store
-MANIFEST.in
 lab/*
 lab
 tstt.py
