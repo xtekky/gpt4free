@@ -1,0 +1,2 @@
+recursive-include g4f/gui/server *
+recursive-include g4f/gui/client *
