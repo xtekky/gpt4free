@@ -8,7 +8,7 @@ from .helper import format_prompt
 class GptGod(AsyncGeneratorProvider):
     url = "https://gptgod.site"
     supports_gpt_35_turbo = True
-    working = True
+    working = False
 
     @classmethod
     async def create_async_generator(
@@ -18,6 +18,7 @@ class GptGod(AsyncGeneratorProvider):
         proxy: str = None,
         **kwargs
     ) -> AsyncResult:
+        
         headers = {
             "User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/118.0",
             "Accept": "text/event-stream",
@@ -32,6 +33,7 @@ class GptGod(AsyncGeneratorProvider):
             "Pragma": "no-cache",
             "Cache-Control": "no-cache",
         }
+        
         async with ClientSession(headers=headers) as session:
             prompt = format_prompt(messages)
             data = {
@@ -42,6 +44,8 @@ class GptGod(AsyncGeneratorProvider):
                 response.raise_for_status()
                 event = None
                 async for line in response.content:
+                    print(line)
+                    
                     if line.startswith(b'event: '):
                         event = line[7:-1]
                     elif event == b"data" and line.startswith(b"data: "):

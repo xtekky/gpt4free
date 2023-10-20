@@ -16,6 +16,7 @@ from .Provider   import (
     GeekGpt,
     Myshell,
     FreeGpt,
+    Cromicle,
     NoowAi,
     Vercel, 
     Aichat,
@@ -72,7 +73,7 @@ gpt_35_turbo = Model(
     base_provider = 'openai',
     best_provider=RetryProvider([
         ChatgptX, ChatgptDemo, GptGo, You, 
-        NoowAi, GPTalk, GptForLove, Phind, ChatBase
+        NoowAi, GPTalk, GptForLove, Phind, ChatBase, Cromicle
     ])
 )
 

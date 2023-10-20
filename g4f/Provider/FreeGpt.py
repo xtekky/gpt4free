@@ -7,8 +7,7 @@ from ..requests import StreamSession
 from .base_provider import AsyncGeneratorProvider
 
 domains = [
-    'https://k.aifree.site',
-    'https://p.aifree.site'
+    'https://r.aifree.site'
 ]
 
 class FreeGpt(AsyncGeneratorProvider):

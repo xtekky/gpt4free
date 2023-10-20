@@ -10,7 +10,7 @@ from .base_provider import AsyncGeneratorProvider
 
 class ChatForAi(AsyncGeneratorProvider):
     url                   = "https://chatforai.store"
-    working               = True
+    working               = False
     supports_gpt_35_turbo = True
 
     @classmethod

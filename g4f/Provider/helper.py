@@ -1,11 +1,15 @@
 from __future__ import annotations
 
-import asyncio
 import sys
-from asyncio import AbstractEventLoop
-from os import path
-from ..typing import Dict, List, Messages
-import browser_cookie3
+import asyncio
+import webbrowser
+import http.cookiejar
+
+from os              import path
+from asyncio         import AbstractEventLoop
+from ..typing        import Dict, Messages
+from browser_cookie3 import chrome, chromium, opera, opera_gx, brave, edge, vivaldi, firefox, BrowserCookieError
+
 
 # Change event loop policy on windows
 if sys.platform == 'win32':
@@ -39,18 +43,46 @@ def get_event_loop() -> AbstractEventLoop:
             'Use "create_async" instead of "create" function in a running event loop. Or install the "nest_asyncio" package.'
         )
 
+def init_cookies():
+    
+    urls = [
+        'https://chat-gpt.org',
+        'https://www.aitianhu.com',
+        'https://chatgptfree.ai',
+        'https://gptchatly.com',
+        'https://bard.google.com',
+        'https://huggingface.co/chat',
+        'https://open-assistant.io/chat'
+    ]
+
+    browsers = ['google-chrome', 'chrome', 'firefox', 'safari']
+
+    def open_urls_in_browser(browser):
+        b = webbrowser.get(browser)
+        for url in urls:
+            b.open(url, new=0, autoraise=True)
+
+    for browser in browsers:
+        try:
+            open_urls_in_browser(browser)
+            break 
+        except webbrowser.Error:
+            continue
 
 # Load cookies for a domain from all supported browsers.
 # Cache the results in the "_cookies" variable.
-def get_cookies(cookie_domain: str) -> Dict[str, str]:
-    if cookie_domain not in _cookies:
-        _cookies[cookie_domain] = {}
+def get_cookies(domain_name=''):
+    cj = http.cookiejar.CookieJar()
+    for cookie_fn in [chrome, chromium, opera, opera_gx, brave, edge, vivaldi, firefox]:
         try:
-            for cookie in browser_cookie3.load(cookie_domain):
-                _cookies[cookie_domain][cookie.name] = cookie.value
-        except:
+            for cookie in cookie_fn(domain_name=domain_name):
+                cj.set_cookie(cookie)
+        except BrowserCookieError:
             pass
-    return _cookies[cookie_domain]
+    
+    _cookies[domain_name] = {cookie.name: cookie.value for cookie in cj}
+    
+    return _cookies[domain_name]
 
 
 def format_prompt(messages: Messages, add_special_tokens=False) -> str:

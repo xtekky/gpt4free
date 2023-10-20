@@ -22,8 +22,6 @@ class Vercel(BaseProvider):
         stream: bool,
         proxy: str = None, **kwargs) -> CreateResult:
         
-        print(model)
-        
         if not model:
             model = "gpt-3.5-turbo"
         

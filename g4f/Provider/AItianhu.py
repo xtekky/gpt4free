@@ -10,7 +10,7 @@ from .base_provider import AsyncGeneratorProvider, format_prompt, get_cookies
 
 class AItianhu(AsyncGeneratorProvider):
     url = "https://www.aitianhu.com"
-    working = False
+    working = True
     supports_gpt_35_turbo = True
 
     @classmethod
@@ -23,9 +23,9 @@ class AItianhu(AsyncGeneratorProvider):
         timeout: int = 120, **kwargs) -> AsyncResult:
         
         if not cookies:
-            cookies = browser_cookie3.chrome(domain_name='www.aitianhu.com')
+            cookies = get_cookies(domain_name='www.aitianhu.com')
             if not cookies:
-                raise RuntimeError(f"g4f.provider.{cls.__name__} requires cookies")
+                raise RuntimeError(f"g4f.provider.{cls.__name__} requires cookies [refresh https://www.aitianhu.com on chrome]")
         
         data = {
             "prompt": format_prompt(messages),
@@ -68,7 +68,6 @@ class AItianhu(AsyncGeneratorProvider):
                     if b"platform's risk control" in line:
                         raise RuntimeError("Platform's Risk Control")
                     
-                    print(line)
                     line = json.loads(line)
                     
                     if "detail" in line:

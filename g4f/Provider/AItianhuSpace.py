@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import random, json
-
-from ..typing import AsyncResult, Messages
-from ..requests import StreamSession
+from ..debug        import logging
+from ..typing       import AsyncResult, Messages
+from ..requests     import StreamSession
 from .base_provider import AsyncGeneratorProvider, format_prompt, get_cookies
 
 domains = {
@@ -17,37 +17,37 @@ class AItianhuSpace(AsyncGeneratorProvider):
     supports_gpt_35_turbo = True
 
     @classmethod
-    async def create_async_generator(
-        cls,
-        model: str,
-        messages: Messages,
-        proxy: str = None,
-        domain: str = None,
-        cookies: dict = None,
-        timeout: int = 120,
-        **kwargs
-    ) -> AsyncResult:
+    async def create_async_generator(cls,
+                                     model: str,
+                                     messages: Messages,
+                                     proxy: str = None,
+                                     domain: str = None,
+                                     cookies: dict = None,
+                                     timeout: int = 10, **kwargs) -> AsyncResult:
+        
         if not model:
             model = "gpt-3.5-turbo"
+        
         elif not model in domains:
             raise ValueError(f"Model are not supported: {model}")
+        
         if not domain:
             chars = 'abcdefghijklmnopqrstuvwxyz0123456789'
             rand = ''.join(random.choice(chars) for _ in range(6))
             domain = f"{rand}.{domains[model]}"
+        
+        if logging:
+            print(f"AItianhuSpace | using domain: {domain}")
+        
         if not cookies:
-            cookies = get_cookies(domain)
+            cookies = get_cookies('.aitianhu.space')
             if not cookies:
-                raise RuntimeError(f"g4f.provider.{cls.__name__} requires cookies")
+                raise RuntimeError(f"g4f.provider.{cls.__name__} requires cookies [refresh https://{domain} on chrome]")
         
         url = f'https://{domain}'
-        async with StreamSession(
-            proxies={"https": proxy},
-            cookies=cookies,
-            timeout=timeout,
-            impersonate="chrome110",
-            verify=False
-        ) as session:
+        async with StreamSession(proxies={"https": proxy},
+            cookies=cookies, timeout=timeout, impersonate="chrome110", verify=False) as session:
+            
             data = {
                 "prompt": format_prompt(messages),
                 "options": {},

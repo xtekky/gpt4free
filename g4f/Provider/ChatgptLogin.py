@@ -13,7 +13,7 @@ from .helper import format_prompt
 class ChatgptLogin(AsyncGeneratorProvider):
     url                   = "https://chatgptlogin.ai"
     supports_gpt_35_turbo = True
-    working               = True
+    working               = False
     _user_id              = None
 
     @classmethod

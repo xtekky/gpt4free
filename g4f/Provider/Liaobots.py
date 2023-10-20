@@ -30,7 +30,7 @@ models = {
 
 class Liaobots(AsyncGeneratorProvider):
     url = "https://liaobots.site"
-    working = True
+    working = False
     supports_gpt_35_turbo = True
     supports_gpt_4 = True
     _auth_code = None

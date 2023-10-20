@@ -5,7 +5,7 @@ from .Provider  import BaseProvider, RetryProvider
 from .typing    import Messages, CreateResult, Union, List
 from .debug     import logging
 
-version       = '0.1.7.1'
+version       = '0.1.7.2'
 version_check = True
 
 def check_pypi_version() -> None:
@@ -22,7 +22,8 @@ def check_pypi_version() -> None:
 def get_model_and_provider(model    : Union[Model, str], 
                            provider : Union[type[BaseProvider], None], 
                            stream   : bool,
-                           ignored  : List[str] = None) -> tuple[Model, type[BaseProvider]]:
+                           ignored  : List[str] = None,
+                           ignore_working: bool = False) -> tuple[Model, type[BaseProvider]]:
     
     if isinstance(model, str):
         if model in ModelUtils.convert:
@@ -39,7 +40,7 @@ def get_model_and_provider(model    : Union[Model, str],
     if not provider:
         raise RuntimeError(f'No provider found for model: {model}')
 
-    if not provider.working:
+    if not provider.working and not ignore_working:
         raise RuntimeError(f'{provider.__name__} is not working')
 
     if not provider.supports_stream and stream:
@@ -59,9 +60,10 @@ class ChatCompletion:
                provider : Union[type[BaseProvider], None] = None,
                stream   : bool = False,
                auth     : Union[str, None] = None,
-               ignored  : List[str] = None, **kwargs) -> Union[CreateResult, str]:
+               ignored  : List[str] = None, 
+               ignore_working: bool = False, **kwargs) -> Union[CreateResult, str]:
 
-        model, provider = get_model_and_provider(model, provider, stream, ignored)
+        model, provider = get_model_and_provider(model, provider, stream, ignored, ignore_working)
 
         if provider.needs_auth and not auth:
             raise ValueError(

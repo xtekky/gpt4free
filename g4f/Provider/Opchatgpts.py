@@ -10,16 +10,15 @@ from .base_provider import AsyncGeneratorProvider
 class Opchatgpts(AsyncGeneratorProvider):
     url                   = "https://opchatgpts.net"
     supports_gpt_35_turbo = True
-    working               = True
+    working               = False
 
     @classmethod
     async def create_async_generator(
         cls,
         model: str,
         messages: Messages,
-        proxy: str = None,
-        **kwargs
-    ) -> AsyncResult:
+        proxy: str = None, **kwargs) -> AsyncResult:
+        
         headers = {
             "User-Agent"         : "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36",
             "Accept"             : "*/*",
@@ -58,7 +57,6 @@ class Opchatgpts(AsyncGeneratorProvider):
                         elif line["type"] == "end":
                             break
 
-
     @classmethod
     @property
     def params(cls):
@@ -70,7 +68,6 @@ class Opchatgpts(AsyncGeneratorProvider):
         ]
         param = ", ".join([": ".join(p) for p in params])
         return f"g4f.provider.{cls.__name__} supports: ({param})"
-    
 
 def random_string(length: int = 10):
     return ''.join(random.choice(string.ascii_lowercase + string.digits) for _ in range(length))
