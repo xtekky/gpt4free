@@ -4,19 +4,18 @@ from .typing     import Union
 from .Provider   import BaseProvider, RetryProvider
 from .Provider   import (
     ChatgptLogin,
-    ChatgptDemo,
     ChatgptDuo,
     GptForLove,
-    Opchatgpts,
     ChatgptAi,
     GptChatly,
     Liaobots,
     ChatgptX,
+    ChatBase,
     Yqcloud,
     GeekGpt,
+    FakeGpt,
     Myshell,
     FreeGpt,
-    Cromicle,
     NoowAi,
     Vercel, 
     Aichat,
@@ -30,9 +29,6 @@ from .Provider   import (
     Bing,
     You,
     H2o,
-    
-    ChatForAi,
-    ChatBase
 )
 
 @dataclass(unsafe_hash=True)
@@ -50,9 +46,8 @@ default = Model(
     base_provider = "",
     best_provider = RetryProvider([
         Bing,         # Not fully GPT 3 or 4
-        Yqcloud,      # Answers short questions in chinese
-        ChatgptDuo,   # Include search results
-        Aibn, Aichat, ChatgptAi, ChatgptLogin, FreeGpt, GptGo, Myshell, Ylokh, GeekGpt
+        AiAsk, Aichat, ChatgptAi, FreeGpt, GptGo, GeekGpt,
+        Phind, You
     ])
 )
 
@@ -61,9 +56,10 @@ gpt_35_long = Model(
     name          = 'gpt-3.5-turbo',
     base_provider = 'openai',
     best_provider = RetryProvider([
-        AiAsk, Aichat, ChatgptDemo, FreeGpt, Liaobots, You,
-        GPTalk, ChatgptLogin, GptChatly, GptForLove, Opchatgpts,
-        NoowAi, GeekGpt, Phind
+        AiAsk, Aichat, FreeGpt, You,
+        GptChatly, GptForLove,
+        NoowAi, GeekGpt, Phind,
+        FakeGpt
     ])
 )
 
@@ -72,8 +68,8 @@ gpt_35_turbo = Model(
     name          = 'gpt-3.5-turbo',
     base_provider = 'openai',
     best_provider=RetryProvider([
-        ChatgptX, ChatgptDemo, GptGo, You, 
-        NoowAi, GPTalk, GptForLove, Phind, ChatBase, Cromicle
+        ChatgptX, GptGo, You, 
+        NoowAi, GPTalk, GptForLove, Phind, ChatBase
     ])
 )
 
@@ -81,7 +77,7 @@ gpt_4 = Model(
     name          = 'gpt-4',
     base_provider = 'openai',
     best_provider = RetryProvider([
-        Bing, GeekGpt, Liaobots, Phind
+        Bing, GeekGpt, Phind
     ])
 )
 

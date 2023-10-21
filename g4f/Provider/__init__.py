@@ -17,6 +17,7 @@ from .ChatgptFree     import ChatgptFree
 from .ChatgptLogin    import ChatgptLogin
 from .ChatgptX        import ChatgptX
 from .Cromicle        import Cromicle
+from .FakeGpt         import FakeGpt
 from .FreeGpt         import FreeGpt
 from .GPTalk          import GPTalk
 from .GptChatly       import GptChatly
@@ -73,6 +74,7 @@ class ProviderUtils:
         'Equing': Equing,
         'FastGpt': FastGpt,
         'Forefront': Forefront,
+        'FakeGpt': FakeGpt,
         'FreeGpt': FreeGpt,
         'GPTalk': GPTalk,
         'GptChatly': GptChatly,
@@ -143,6 +145,7 @@ __all__ = [
     'DfeHub',
     'EasyChat',
     'Forefront',
+    'FakeGpt',
     'FreeGpt',
     'GPTalk',
     'GptChatly',
