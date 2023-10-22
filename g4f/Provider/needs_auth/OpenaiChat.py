@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid, json, time
 
 from ..base_provider import AsyncGeneratorProvider
-from ..helper import get_browser, get_cookies, format_prompt
+from ..helper import get_browser, get_cookies, format_prompt, get_event_loop
 from ...typing import AsyncResult, Messages
 from ...requests import StreamSession
 
@@ -73,26 +73,33 @@ class OpenaiChat(AsyncGeneratorProvider):
                             last_message = new_message
 
     @classmethod
-    def browse_access_token(cls) -> str:
-        try:
-            from selenium.webdriver.common.by import By
-            from selenium.webdriver.support.ui import WebDriverWait
-            from selenium.webdriver.support import expected_conditions as EC
+    async def browse_access_token(cls) -> str:
+        def browse() -> str:
+            try:
+                from selenium.webdriver.common.by import By
+                from selenium.webdriver.support.ui import WebDriverWait
+                from selenium.webdriver.support import expected_conditions as EC
 
-            driver = get_browser()
-        except ImportError:
-            return
+                driver = get_browser()
+            except ImportError:
+                return
 
-        driver.get(f"{cls.url}/")
-        try:
-            WebDriverWait(driver, 1200).until(
-                EC.presence_of_element_located((By.ID, "prompt-textarea"))
-            )
-            javascript = "return (await (await fetch('/api/auth/session')).json())['accessToken']"
-            return driver.execute_script(javascript)
-        finally:
-            time.sleep(1)
-            driver.quit()
+            driver.get(f"{cls.url}/")
+            try:
+                WebDriverWait(driver, 1200).until(
+                    EC.presence_of_element_located((By.ID, "prompt-textarea"))
+                )
+                javascript = "return (await (await fetch('/api/auth/session')).json())['accessToken']"
+                return driver.execute_script(javascript)
+            finally:
+                driver.close()
+                time.sleep(0.1)
+                driver.quit()
+        loop = get_event_loop()
+        return await loop.run_in_executor(
+            None,
+            browse
+        )
 
     @classmethod
     async def fetch_access_token(cls, cookies: dict, proxies: dict = None) -> str:
@@ -110,7 +117,7 @@ class OpenaiChat(AsyncGeneratorProvider):
             if cookies:
                 cls._access_token = await cls.fetch_access_token(cookies, proxies)
         if not cls._access_token:
-            cls._access_token = cls.browse_access_token()
+            cls._access_token = await cls.browse_access_token()
         if not cls._access_token:
             raise RuntimeError("Read access token failed")
         return cls._access_token
