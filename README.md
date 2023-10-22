@@ -226,22 +226,13 @@ import g4f
 
 from g4f.Provider import (
     AItianhu,
-    Acytoo,
     Aichat,
-    Ails,
     Bard,
     Bing,
     ChatBase,
     ChatgptAi,
-    H2o,
-    HuggingChat,
-    OpenAssistant,
     OpenaiChat,
-    Raycast,
-    Theb,
     Vercel,
-    Vitalentum,
-    Ylokh,
     You,
     Yqcloud,
 )
@@ -324,9 +315,9 @@ async def run_all():
 asyncio.run(run_all())
 ```
 
-##### Proxy Support:
+##### Proxy and Timeout Support:
 
-All providers support specifying a proxy in the create functions.
+All providers support specifying a proxy and increasing timeout in the create functions.
 
 ```py
 import g4f
@@ -336,6 +327,7 @@ response = g4f.ChatCompletion.create(
     messages=[{"role": "user", "content": "Hello"}],
     proxy="http://host:port",
     # or socks5://user:pass@host:port
+    timeout=120, # in secs
 )
 
 print(f"Result:", response)

@@ -6,7 +6,7 @@ sys.path.append(str(Path(__file__).parent.parent))
 sys.path.append(str(Path(__file__).parent.parent.parent))
 
 import g4f
-from testing.test_providers import get_providers
+from testing._providers import get_providers
 from testing.log_time import log_time_async
 
 async def create_async(provider):

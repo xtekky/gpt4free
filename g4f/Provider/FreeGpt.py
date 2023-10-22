@@ -41,7 +41,10 @@ class FreeGpt(AsyncGeneratorProvider):
             async with session.post(f"{url}/api/generate", json=data) as response:
                 response.raise_for_status()
                 async for chunk in response.iter_content():
-                    yield chunk.decode()
+                    chunk = chunk.decode()
+                    if chunk == "当前地区当日额度已消耗完":
+                        raise RuntimeError("Rate limit reached")
+                    yield chunk
 
     @classmethod
     @property

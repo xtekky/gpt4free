@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import random
+import random, string
 from datetime import datetime
 
 from ..typing import AsyncResult, Messages
@@ -22,7 +22,7 @@ class Phind(AsyncGeneratorProvider):
         timeout: int = 120,
         **kwargs
     ) -> AsyncResult:
-        chars = 'abcdefghijklmnopqrstuvwxyz0123456789'
+        chars = string.ascii_lowercase + string.digits
         user_id = ''.join(random.choice(chars) for _ in range(24))
         data = {
             "question": format_prompt(messages),

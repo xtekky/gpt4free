@@ -71,11 +71,10 @@ class RetryProvider(AsyncProvider):
         self.exceptions: Dict[str, Exception] = {}
         for provider in providers:
             try:
-                return await asyncio.wait_for(provider.create_async(model, messages, **kwargs), timeout=60)
-            except asyncio.TimeoutError as e:
-                self.exceptions[provider.__name__] = e
-                if self.logging:
-                    print(f"{provider.__name__}: TimeoutError: {e}")
+                return await asyncio.wait_for(
+                    provider.create_async(model, messages, **kwargs),
+                    timeout=kwargs.get("timeout", 60)
+                )
             except Exception as e:
                 self.exceptions[provider.__name__] = e
                 if self.logging:
@@ -85,8 +84,8 @@ class RetryProvider(AsyncProvider):
     
     def raise_exceptions(self) -> None:
         if self.exceptions:
-            raise RuntimeError("\n".join(["All providers failed:"] + [
+            raise RuntimeError("\n".join(["RetryProvider failed:"] + [
                 f"{p}: {self.exceptions[p].__class__.__name__}: {self.exceptions[p]}" for p in self.exceptions
             ]))
         
-        raise RuntimeError("No provider found")
+        raise RuntimeError("RetryProvider: No provider found")

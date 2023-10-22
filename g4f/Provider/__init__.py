@@ -17,15 +17,17 @@ from .ChatgptFree     import ChatgptFree
 from .ChatgptLogin    import ChatgptLogin
 from .ChatgptX        import ChatgptX
 from .Cromicle        import Cromicle
+from .FakeGpt         import FakeGpt
 from .FreeGpt         import FreeGpt
 from .GPTalk          import GPTalk
 from .GptChatly       import GptChatly
 from .GptForLove      import GptForLove
 from .GptGo           import GptGo
 from .GptGod          import GptGod
+from .Hashnode        import Hashnode
 from .Liaobots        import Liaobots
 from .Llama2          import Llama2
-from .Myshell         import Myshell
+from .MyShell         import MyShell
 from .NoowAi          import NoowAi
 from .Opchatgpts      import Opchatgpts
 from .Phind           import Phind
@@ -73,6 +75,7 @@ class ProviderUtils:
         'Equing': Equing,
         'FastGpt': FastGpt,
         'Forefront': Forefront,
+        'FakeGpt': FakeGpt,
         'FreeGpt': FreeGpt,
         'GPTalk': GPTalk,
         'GptChatly': GptChatly,
@@ -80,6 +83,7 @@ class ProviderUtils:
         'GptForLove': GptForLove,
         'GptGo': GptGo,
         'GptGod': GptGod,
+        'Hashnode': Hashnode,
         'H2o': H2o,
         'HuggingChat': HuggingChat,
         'Komo': Komo,
@@ -88,6 +92,7 @@ class ProviderUtils:
         'Lockchat': Lockchat,
         'MikuChat': MikuChat,
         'Myshell': Myshell,
+        'MyShell': MyShell,
         'NoowAi': NoowAi,
         'Opchatgpts': Opchatgpts,
         'OpenAssistant': OpenAssistant,
@@ -143,6 +148,7 @@ __all__ = [
     'DfeHub',
     'EasyChat',
     'Forefront',
+    'FakeGpt',
     'FreeGpt',
     'GPTalk',
     'GptChatly',
@@ -150,12 +156,14 @@ __all__ = [
     'GetGpt',
     'GptGo',
     'GptGod',
+    'Hashnode',
     'H2o',
     'HuggingChat',
     'Liaobots',
     'Llama2',
     'Lockchat',
     'Myshell',
+    'MyShell',
     'NoowAi',
     'Opchatgpts',
     'Raycast',
