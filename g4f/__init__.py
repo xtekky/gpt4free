@@ -3,7 +3,7 @@ from requests   import get
 from .models    import Model, ModelUtils, _all_models
 from .Provider  import BaseProvider, RetryProvider
 from .typing    import Messages, CreateResult, Union, List
-from .debug     import logging
+from . import debug
 
 version       = '0.1.7.4'
 version_check = True
@@ -46,8 +46,7 @@ def get_model_and_provider(model    : Union[Model, str],
     if not provider.supports_stream and stream:
         raise ValueError(f'{provider.__name__} does not support "stream" argument')
 
-    if logging:
-        RetryProvider.logging = True
+    if debug.logging:
         print(f'Using {provider.__name__} provider')
 
     return model, provider

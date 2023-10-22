@@ -14,7 +14,7 @@ from .helper import format_prompt, get_cookies
 class ChatgptFree(AsyncProvider):
     url                   = "https://chatgptfree.ai"
     supports_gpt_35_turbo = True
-    working               = True
+    working               = False
     _post_id              = None
     _nonce                = None
 
@@ -24,6 +24,7 @@ class ChatgptFree(AsyncProvider):
         model: str,
         messages: Messages,
         proxy: str = None,
+        timeout: int = 120,
         cookies: dict = None,
         **kwargs
     ) -> str:
@@ -45,14 +46,19 @@ class ChatgptFree(AsyncProvider):
             'sec-fetch-dest': 'empty',
             'sec-fetch-mode': 'cors',
             'sec-fetch-site': 'same-origin',
-            'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36',
+            'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36',
         }
         
-        async with StreamSession(headers=headers,
-            impersonate="chrome107", proxies={"https": proxy}, timeout=10) as session:
+        async with StreamSession(
+            headers=headers,
+            cookies=cookies,
+            impersonate="chrome107",
+            proxies={"https": proxy},
+            timeout=timeout
+        ) as session:
             
             if not cls._nonce:
-                async with session.get(f"{cls.url}/", cookies=cookies) as response:
+                async with session.get(f"{cls.url}/") as response:
                     
                     response.raise_for_status()
                     response = await response.text()
