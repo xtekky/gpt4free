@@ -1,10 +1,16 @@
 from __future__ import annotations
 
+import string
 import random
 import json
 import os
+import re
+import io
+import base64
+import numpy as np
 import uuid
 import urllib.parse
+from PIL import Image
 from aiohttp        import ClientSession, ClientTimeout
 from ..typing       import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider
@@ -35,6 +41,7 @@ class Bing(AsyncGeneratorProvider):
         proxy: str = None,
         cookies: dict = None,
         tone: str = Tones.creative,
+        image: str = None,
         **kwargs
     ) -> AsyncResult:
         if len(messages) < 2:
@@ -46,7 +53,7 @@ class Bing(AsyncGeneratorProvider):
         
         if not cookies or "SRCHD" not in cookies:
             cookies = default_cookies
-        return stream_generate(prompt, tone, context, proxy, cookies)
+        return stream_generate(prompt, tone, image, context, proxy, cookies)
 
 def create_context(messages: Messages):
     context = "".join(f"[{message['role']}](#message)\n{message['content']}\n\n" for message in messages)
@@ -54,14 +61,14 @@ def create_context(messages: Messages):
     return context
 
 class Conversation():
-    def __init__(self, conversationId: str, clientId: str, conversationSignature: str) -> None:
+    def __init__(self, conversationId: str, clientId: str, conversationSignature: str, imageInfo: dict=None) -> None:
         self.conversationId = conversationId
         self.clientId = clientId
         self.conversationSignature = conversationSignature
+        self.imageInfo = imageInfo
 
-async def create_conversation(session: ClientSession, proxy: str = None) -> Conversation:
-    url = 'https://www.bing.com/turing/conversation/create?bundleVersion=1.1150.3'
-    
+async def create_conversation(session: ClientSession, tone: str, image: str = None, proxy: str = None) -> Conversation:
+    url = 'https://www.bing.com/turing/conversation/create?bundleVersion=1.1199.4'
     async with await session.get(url, proxy=proxy) as response:
         data = await response.json()
         
@@ -71,8 +78,65 @@ async def create_conversation(session: ClientSession, proxy: str = None) -> Conv
 
         if not conversationId or not clientId or not conversationSignature:
             raise Exception('Failed to create conversation.')
-        
-        return Conversation(conversationId, clientId, conversationSignature)
+        conversation = Conversation(conversationId, clientId, conversationSignature, None)
+        if isinstance(image,str):
+            try:
+                config = {
+                    "visualSearch": {
+                        "maxImagePixels": 360000,
+                        "imageCompressionRate": 0.7,
+                        "enableFaceBlurDebug": 0,
+                    }
+                }
+                is_data_uri_an_image(image)
+                img_binary_data = extract_data_uri(image)
+                is_accepted_format(img_binary_data)
+                img = Image.open(io.BytesIO(img_binary_data))
+                width, height = img.size
+                max_image_pixels = config['visualSearch']['maxImagePixels']
+                compression_rate = config['visualSearch']['imageCompressionRate']
+
+                if max_image_pixels / (width * height) < 1:
+                    new_width = int(width * np.sqrt(max_image_pixels / (width * height)))
+                    new_height = int(height * np.sqrt(max_image_pixels / (width * height)))
+                else:
+                    new_width = width
+                    new_height = height
+                try:
+                    orientation = get_orientation(img)
+                except Exception:
+                    orientation = None
+                new_img = process_image(orientation, img, new_width, new_height)
+                new_img_binary_data = compress_image_to_base64(new_img, compression_rate)
+                data, boundary = build_image_upload_api_payload(new_img_binary_data, conversation, tone)
+                headers = session.headers.copy()
+                headers["content-type"] = 'multipart/form-data; boundary=' + boundary
+                headers["referer"] = 'https://www.bing.com/search?q=Bing+AI&showconv=1&FORM=hpcodx'
+                headers["origin"] = 'https://www.bing.com'
+                async with await session.post("https://www.bing.com/images/kblob", data=data, headers=headers, proxy=proxy) as image_upload_response:
+                    if image_upload_response.status == 200:
+                        image_info = await image_upload_response.json()
+                        result = {}
+                        if image_info.get('blobId'):
+                            result['bcid'] = image_info.get('blobId', "")
+                            result['blurredBcid'] = image_info.get('processedBlobId', "")
+                            if result['blurredBcid'] != "":
+                                result["imageUrl"] = "https://www.bing.com/images/blob?bcid=" + result['blurredBcid']
+                            elif result['bcid'] != "":
+                                result["imageUrl"] = "https://www.bing.com/images/blob?bcid=" + result['bcid']
+                            if config['visualSearch']["enableFaceBlurDebug"]:
+                                result['originalImageUrl'] = "https://www.bing.com/images/blob?bcid=" + result['blurredBcid']
+                            else:
+                                result['originalImageUrl'] = "https://www.bing.com/images/blob?bcid=" + result['bcid']
+                            conversation.imageInfo = result
+                        else:
+                            raise Exception("Failed to parse image info.")
+                    else:
+                        raise Exception("Failed to upload image.")
+
+            except Exception as e:
+                print(f"An error happened while trying to send image: {str(e)}")
+        return conversation
 
 async def list_conversations(session: ClientSession) -> list:
     url = "https://www.bing.com/turing/conversation/chats"
@@ -98,37 +162,47 @@ class Defaults:
     ip_address = f"13.{random.randint(104, 107)}.{random.randint(0, 255)}.{random.randint(0, 255)}"
 
     allowedMessageTypes = [
+        "ActionRequest",
         "Chat",
+        "Context",
         "Disengaged",
+        "Progress",
         "AdsQuery",
         "SemanticSerp",
         "GenerateContentQuery",
         "SearchQuery",
-        "ActionRequest",
-        "Context",
-        "Progress",
-        "AdsQuery",
-        "SemanticSerp",
+        # The following message types should not be added so that it does not flood with
+        # useless messages (such as "Analyzing images" or "Searching the web") while it's retrieving the AI response
+        # "InternalSearchQuery",
+        # "InternalSearchResult",
+        # Not entirely certain about these two, but these parameters may be used for real-time markdown rendering.
+        # Keeping them could potentially complicate the retrieval of the messages because link references written while
+        # the AI is responding would then be moved to the very end of its message.
+        # "RenderCardRequest",
+        # "RenderContentRequest"
     ]
 
     sliceIds = [
-        "winmuid3tf",
-        "osbsdusgreccf",
-        "ttstmout",
-        "crchatrev",
-        "winlongmsgtf",
-        "ctrlworkpay",
-        "norespwtf",
-        "tempcacheread",
-        "temptacache",
-        "505scss0",
-        "508jbcars0",
-        "515enbotdets0",
-        "5082tsports",
-        "515vaoprvs",
-        "424dagslnv1s0",
-        "kcimgattcf",
-        "427startpms0",
+        "wrapuxslimt5",
+        "wrapalgo",
+        "wraptopalgo",
+        "st14",
+        "arankr1_1_9_9",
+        "0731ziv2s0",
+        "voiceall",
+        "1015onstblg",
+        "vsspec",
+        "cacdiscf",
+        "909ajcopus0",
+        "scpbfmob",
+        "rwt1",
+        "cacmuidarb",
+        "sappdlpt",
+        "917fluxv14",
+        "delaygc",
+        "remsaconn3p",
+        "splitcss3p",
+        "sydconfigoptt"
     ]
 
     location = {
@@ -173,27 +247,128 @@ class Defaults:
     }
 
     optionsSets = [
-        'saharasugg',
-        'enablenewsfc',
-        'clgalileo',
-        'gencontentv3',
         "nlu_direct_response_filter",
         "deepleo",
         "disable_emoji_spoken_text",
         "responsible_ai_policy_235",
         "enablemm",
-        "h3precise"
-        "dtappid",
-        "cricinfo",
-        "cricinfov2",
         "dv3sugg",
-        "nojbfedge"
+        "iyxapbing",
+        "iycapbing",
+        "h3imaginative",
+        "clgalileo",
+        "gencontentv3",
+        "fluxv14",
+        "eredirecturl"
     ]
 
 def format_message(msg: dict) -> str:
     return json.dumps(msg, ensure_ascii=False) + Defaults.delimiter
 
+def build_image_upload_api_payload(image_bin: str, conversation: Conversation, tone: str):
+    payload = {
+        'invokedSkills': ["ImageById"],
+        'subscriptionId': "Bing.Chat.Multimodal",
+        'invokedSkillsRequestData': {
+            'enableFaceBlur': True
+        },
+        'convoData': {
+            'convoid': "",
+            'convotone': tone
+        }
+    }
+    knowledge_request = {
+        'imageInfo': {},
+        'knowledgeRequest': payload
+    }
+    boundary="----WebKitFormBoundary" + ''.join(random.choices(string.ascii_letters + string.digits, k=16))
+    data = '--' + boundary + '\r\nContent-Disposition: form-data; name="knowledgeRequest"\r\n\r\n' + json.dumps(knowledge_request,ensure_ascii=False) + "\r\n--" + boundary + '\r\nContent-Disposition: form-data; name="imageBase64"\r\n\r\n' + image_bin + "\r\n--" + boundary + "--\r\n"
+    return data, boundary
+
+def is_data_uri_an_image(data_uri):
+    try:
+        # Check if the data URI starts with 'data:image' and contains an image format (e.g., jpeg, png, gif)
+        if not re.match(r'data:image/(\w+);base64,', data_uri):
+            raise ValueError("Invalid data URI image.")
+            # Extract the image format from the data URI
+        image_format = re.match(r'data:image/(\w+);base64,', data_uri).group(1)
+        # Check if the image format is one of the allowed formats (jpg, jpeg, png, gif)
+        if image_format.lower() not in ['jpeg', 'jpg', 'png', 'gif']:
+            raise ValueError("Invalid image format (from mime file type).")
+    except Exception as e:
+        raise e
+
+def is_accepted_format(binary_data):
+        try:
+            check = False
+            if binary_data.startswith(b'\xFF\xD8\xFF'):
+                check = True  # It's a JPEG image
+            elif binary_data.startswith(b'\x89PNG\r\n\x1a\n'):
+                check = True  # It's a PNG image
+            elif binary_data.startswith(b'GIF87a') or binary_data.startswith(b'GIF89a'):
+                check = True  # It's a GIF image
+            elif binary_data.startswith(b'\x89JFIF') or binary_data.startswith(b'JFIF\x00'):
+                check = True  # It's a JPEG image
+            elif binary_data.startswith(b'\xFF\xD8'):
+                check = True  # It's a JPEG image
+            elif binary_data.startswith(b'RIFF') and binary_data[8:12] == b'WEBP':
+                check = True  # It's a WebP image
+            # else we raise ValueError
+            if not check:
+                raise ValueError("Invalid image format (from magic code).")
+        except Exception as e:
+            raise e
+    
+def extract_data_uri(data_uri):
+    try:
+        data = data_uri.split(",")[1]
+        data = base64.b64decode(data)
+        return data
+    except Exception as e:
+        raise e
+
+def get_orientation(data: bytes):
+    try:
+        if data[0:2] != b'\xFF\xD8':
+            raise Exception('NotJpeg')
+        with Image.open(data) as img:
+            exif_data = img._getexif()
+            if exif_data is not None:
+                orientation = exif_data.get(274)  # 274 corresponds to the orientation tag in EXIF
+                if orientation is not None:
+                    return orientation
+    except Exception:
+        pass
+
+def process_image(orientation, img, new_width, new_height):
+    try:
+        # Initialize the canvas
+        new_img = Image.new("RGB", (new_width, new_height), color="#FFFFFF")
+        if orientation:
+            if orientation > 4:
+                img = img.transpose(Image.FLIP_LEFT_RIGHT)
+            if orientation == 3 or orientation == 4:
+                img = img.transpose(Image.ROTATE_180)
+            if orientation == 5 or orientation == 6:
+                img = img.transpose(Image.ROTATE_270)
+            if orientation == 7 or orientation == 8:
+                img = img.transpose(Image.ROTATE_90)
+        new_img.paste(img, (0, 0))
+        return new_img
+    except Exception as e:
+        raise e
+    
+def compress_image_to_base64(img, compression_rate):
+    try:
+        output_buffer = io.BytesIO()
+        img.save(output_buffer, format="JPEG", quality=int(compression_rate * 100))
+        base64_image = base64.b64encode(output_buffer.getvalue()).decode('utf-8')
+        return base64_image
+    except Exception as e:
+        raise e
+
 def create_message(conversation: Conversation, prompt: str, tone: str, context: str=None) -> str:
+    
     request_id = str(uuid.uuid4())
     struct = {
         'arguments': [
@@ -213,6 +388,7 @@ def create_message(conversation: Conversation, prompt: str, tone: str, context: 
                     'requestId': request_id,
                     'messageId': request_id,
                 },
+                "scenario": "SERP",
                 'tone': tone,
                 'spokenTextMode': 'None',
                 'conversationId': conversation.conversationId,
@@ -225,7 +401,11 @@ def create_message(conversation: Conversation, prompt: str, tone: str, context: 
         'target': 'chat',
         'type': 4
     }
-
+    if conversation.imageInfo != None and "imageUrl" in conversation.imageInfo and "originalImageUrl" in conversation.imageInfo:
+        struct['arguments'][0]['message']['originalImageUrl'] = conversation.imageInfo['originalImageUrl']
+        struct['arguments'][0]['message']['imageUrl'] = conversation.imageInfo['imageUrl']
+        struct['arguments'][0]['experienceType'] = None
+        struct['arguments'][0]['attachedFileInfo'] = {"fileName": None, "fileType": None}
     if context:
         struct['arguments'][0]['previousMessages'] = [{
             "author": "user",
@@ -239,6 +419,7 @@ def create_message(conversation: Conversation, prompt: str, tone: str, context: 
 async def stream_generate(
         prompt: str,
         tone: str,
+        image: str = None,
         context: str = None,
         proxy: str = None,
         cookies: dict = None
@@ -248,7 +429,7 @@ async def stream_generate(
         cookies=cookies,
         headers=Defaults.headers,
     ) as session:
-        conversation = await create_conversation(session, proxy)
+        conversation = await create_conversation(session, tone, image, proxy)
         try:
             async with session.ws_connect(
                 f'wss://sydney.bing.com/sydney/ChatHub',
@@ -264,7 +445,6 @@ async def stream_generate(
                 response_txt = ''
                 returned_text = ''
                 final = False
-
                 while not final:
                     msg = await wss.receive(timeout=900)
                     objects = msg.data.split(Defaults.delimiter)
