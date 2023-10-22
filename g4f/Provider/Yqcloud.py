@@ -9,7 +9,7 @@ from .base_provider import AsyncGeneratorProvider, format_prompt
 
 class Yqcloud(AsyncGeneratorProvider):
     url = "https://chat9.yqcloud.top/"
-    working = False
+    working = True
     supports_gpt_35_turbo = True
 
     @staticmethod
@@ -17,10 +17,11 @@ class Yqcloud(AsyncGeneratorProvider):
         model: str,
         messages: Messages,
         proxy: str = None,
+        timeout: int = 120,
         **kwargs,
     ) -> AsyncResult:
         async with StreamSession(
-            headers=_create_header(), proxies={"https": proxy}
+            headers=_create_header(), proxies={"https": proxy}, timeout=timeout
         ) as session:
             payload = _create_payload(messages, **kwargs)
             async with session.post("https://api.aichatos.cloud/api/generateStream", json=payload) as response:

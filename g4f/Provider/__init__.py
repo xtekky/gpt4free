@@ -24,6 +24,7 @@ from .GptChatly       import GptChatly
 from .GptForLove      import GptForLove
 from .GptGo           import GptGo
 from .GptGod          import GptGod
+from .Hashnode        import Hashnode
 from .Liaobots        import Liaobots
 from .Llama2          import Llama2
 from .MyShell         import MyShell
@@ -82,6 +83,7 @@ class ProviderUtils:
         'GptForLove': GptForLove,
         'GptGo': GptGo,
         'GptGod': GptGod,
+        'Hashnode': Hashnode,
         'H2o': H2o,
         'HuggingChat': HuggingChat,
         'Komo': Komo,
@@ -154,6 +156,7 @@ __all__ = [
     'GetGpt',
     'GptGo',
     'GptGod',
+    'Hashnode',
     'H2o',
     'HuggingChat',
     'Liaobots',
