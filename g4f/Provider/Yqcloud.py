@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import random
-from aiohttp import ClientSession
+from ..requests import StreamSession
 
 from ..typing import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider, format_prompt
@@ -19,13 +19,13 @@ class Yqcloud(AsyncGeneratorProvider):
         proxy: str = None,
         **kwargs,
     ) -> AsyncResult:
-        async with ClientSession(
-            headers=_create_header()
+        async with StreamSession(
+            headers=_create_header(), proxies={"https": proxy}
         ) as session:
             payload = _create_payload(messages, **kwargs)
-            async with session.post("https://api.aichatos.cloud/api/generateStream", proxy=proxy, json=payload) as response:
+            async with session.post("https://api.aichatos.cloud/api/generateStream", json=payload) as response:
                 response.raise_for_status()
-                async for chunk in response.content.iter_any():
+                async for chunk in response.iter_content():
                     if chunk:
                         chunk = chunk.decode()
                         if "sorry, 您的ip已由于触发防滥用检测而被封禁" in chunk:
@@ -38,6 +38,7 @@ def _create_header():
         "accept"        : "application/json, text/plain, */*",
         "content-type"  : "application/json",
         "origin"        : "https://chat9.yqcloud.top",
+        "referer"       : "https://chat9.yqcloud.top/"
     }
 
 

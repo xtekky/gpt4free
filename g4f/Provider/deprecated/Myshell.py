@@ -8,8 +8,8 @@ from aiohttp import ClientSession
 from aiohttp.http import WSMsgType
 import asyncio
 
-from ..typing import AsyncResult, Messages
-from .base_provider import AsyncGeneratorProvider, format_prompt
+from ...typing import AsyncResult, Messages
+from ..base_provider import AsyncGeneratorProvider, format_prompt
 
 
 models = {

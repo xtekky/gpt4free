@@ -4,7 +4,6 @@ import json, base64, requests, execjs, random, uuid
 
 from ..typing       import Messages, TypedDict, CreateResult, Any
 from .base_provider import BaseProvider
-from abc            import abstractmethod
 from ..debug        import logging
 
 
@@ -15,12 +14,13 @@ class Vercel(BaseProvider):
     supports_stream       = True
 
     @staticmethod
-    @abstractmethod
     def create_completion(
         model: str,
         messages: Messages,
         stream: bool,
-        proxy: str = None, **kwargs) -> CreateResult:
+        proxy: str = None,
+        **kwargs
+    ) -> CreateResult:
         
         if not model:
             model = "gpt-3.5-turbo"
@@ -65,7 +65,7 @@ class Vercel(BaseProvider):
                                     headers=headers, json=json_data, stream=True, proxies={"https": proxy})
             try:
                 response.raise_for_status()
-            except Exception:
+            except:
                 continue
             for token in response.iter_content(chunk_size=None):
                 yield token.decode()

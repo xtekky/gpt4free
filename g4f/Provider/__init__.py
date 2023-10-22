@@ -26,7 +26,7 @@ from .GptGo           import GptGo
 from .GptGod          import GptGod
 from .Liaobots        import Liaobots
 from .Llama2          import Llama2
-from .Myshell         import Myshell
+from .MyShell         import MyShell
 from .NoowAi          import NoowAi
 from .Opchatgpts      import Opchatgpts
 from .Phind           import Phind
@@ -90,6 +90,7 @@ class ProviderUtils:
         'Lockchat': Lockchat,
         'MikuChat': MikuChat,
         'Myshell': Myshell,
+        'MyShell': MyShell,
         'NoowAi': NoowAi,
         'Opchatgpts': Opchatgpts,
         'OpenAssistant': OpenAssistant,
@@ -159,6 +160,7 @@ __all__ = [
     'Llama2',
     'Lockchat',
     'Myshell',
+    'MyShell',
     'NoowAi',
     'Opchatgpts',
     'Raycast',

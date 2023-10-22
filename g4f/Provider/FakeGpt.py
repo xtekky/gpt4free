@@ -83,8 +83,8 @@ class FakeGpt(AsyncGeneratorProvider):
                             line = json.loads(line)
                             if line["message"]["metadata"]["message_type"] == "next":
                                 new_message = line["message"]["content"]["parts"][0]
-                            yield new_message[len(last_message):]
-                            last_message = new_message
+                                yield new_message[len(last_message):]
+                                last_message = new_message
                         except:
                             continue
             if not last_message:

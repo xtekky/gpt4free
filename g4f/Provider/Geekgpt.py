@@ -21,12 +21,12 @@ class GeekGpt(BaseProvider):
 
         json_data = {
             'messages': messages,
-                'model': model,
-                'temperature': kwargs.get('temperature', 0.9),
-                'presence_penalty': kwargs.get('presence_penalty', 0),
-                'top_p': kwargs.get('top_p', 1),
-                'frequency_penalty': kwargs.get('frequency_penalty', 0),
-                'stream': True
+            'model': model,
+            'temperature': kwargs.get('temperature', 0.9),
+            'presence_penalty': kwargs.get('presence_penalty', 0),
+            'top_p': kwargs.get('top_p', 1),
+            'frequency_penalty': kwargs.get('frequency_penalty', 0),
+            'stream': True
         }
 
         data = dumps(json_data, separators=(',', ':'))
@@ -61,7 +61,6 @@ class GeekGpt(BaseProvider):
                 
                 try:
                     content = json.loads(json_data)["choices"][0]["delta"].get("content")
-                
                 except Exception as e:
                     raise RuntimeError(f'error | {e} :', json_data)
                 
