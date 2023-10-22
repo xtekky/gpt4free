@@ -3,10 +3,11 @@ from __future__ import annotations
 import sys
 import asyncio
 import webbrowser
-import http.cookiejar
 
 from os              import path
 from asyncio         import AbstractEventLoop
+from platformdirs    import user_config_dir
+
 from ..typing        import Dict, Messages
 from browser_cookie3 import chrome, chromium, opera, opera_gx, brave, edge, vivaldi, firefox, BrowserCookieError
 
@@ -72,16 +73,22 @@ def init_cookies():
 # Load cookies for a domain from all supported browsers.
 # Cache the results in the "_cookies" variable.
 def get_cookies(domain_name=''):
-    cj = http.cookiejar.CookieJar()
-    for cookie_fn in [chrome, chromium, opera, opera_gx, brave, edge, vivaldi, firefox]:
+    def g4f(domain_name):
+        user_data_dir = user_config_dir("g4f")
+        cookie_file = path.join(user_data_dir, "Default", "Cookies")
+        if not path.exists(cookie_file):
+            return []
+        return chrome(cookie_file, domain_name)
+    cookie_jar = []
+    for cookie_fn in [g4f, chrome, chromium, opera, opera_gx, brave, edge, vivaldi, firefox]:
         try:
-            for cookie in cookie_fn(domain_name=domain_name):
-                cj.set_cookie(cookie)
+            cookie_jar = cookie_fn(domain_name=domain_name)
+            if len(cookie_jar) > 0:
+                break
         except BrowserCookieError:
             pass
     
-    _cookies[domain_name] = {cookie.name: cookie.value for cookie in cj}
-    
+    _cookies[domain_name] = {cookie.name: cookie.value for cookie in cookie_jar}
     return _cookies[domain_name]
 
 
@@ -100,10 +107,8 @@ def format_prompt(messages: Messages, add_special_tokens=False) -> str:
 
 def get_browser(user_data_dir: str = None):
     from undetected_chromedriver import Chrome
-    from platformdirs import user_config_dir
 
     if not user_data_dir:
         user_data_dir = user_config_dir("g4f")
-        user_data_dir = path.join(user_data_dir, "Default")
 
     return Chrome(user_data_dir=user_data_dir)
