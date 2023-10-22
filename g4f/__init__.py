@@ -3,9 +3,9 @@ from requests   import get
 from .models    import Model, ModelUtils, _all_models
 from .Provider  import BaseProvider, RetryProvider
 from .typing    import Messages, CreateResult, Union, List
-from . import debug
+from .          import debug
 
-version       = '0.1.7.4'
+version       = '0.1.7.5'
 version_check = True
 
 def check_pypi_version() -> None:

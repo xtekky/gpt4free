@@ -16,4 +16,6 @@ waitress
 werkzeug
 loguru
 tiktoken
-Pillow
+pillow
+platformdirs
+numpy
