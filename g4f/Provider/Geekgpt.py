@@ -14,11 +14,15 @@ class GeekGpt(BaseProvider):
     supports_gpt_4        = True
 
     @classmethod
-    def create_completion(cls,
-                        model: str,
-                        messages: Messages,
-                        stream: bool, **kwargs) -> CreateResult:
-
+    def create_completion(
+        cls,
+        model: str,
+        messages: Messages,
+        stream: bool,
+        **kwargs
+    ) -> CreateResult:
+        if not model:
+            model = "gpt-3.5-turbo"
         json_data = {
             'messages': messages,
             'model': model,
