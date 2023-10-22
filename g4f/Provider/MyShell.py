@@ -8,7 +8,7 @@ from .base_provider import AsyncGeneratorProvider
 from .helper import format_prompt
 
 class MyShell(AsyncGeneratorProvider):
-    url = "https://api.myshell.ai/v1/bot/chat/send_message"
+    url = "https://app.myshell.ai/chat"
 
     @classmethod
     async def create_async_generator(
@@ -38,7 +38,7 @@ class MyShell(AsyncGeneratorProvider):
                 "message": prompt,
                 "messageType": 1
             }
-            async with session.post(cls.url, json=data) as response:
+            async with session.post("https://api.myshell.ai/v1/bot/chat/send_message", json=data) as response:
                 response.raise_for_status()
                 event = None
                 async for line in response.iter_lines():
