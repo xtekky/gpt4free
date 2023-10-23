@@ -57,7 +57,7 @@ class Bing(AsyncGeneratorProvider):
 
 def create_context(messages: Messages):
     return "".join(
-        f"[{message['role']}](#message)\n{message['content']}\n\n"
+        f"[{message['role']}]" + ("(#message)" if message['role']!="system" else "(#additional_instructions)") + f"\n{message['content']}\n\n"
         for message in messages
     )
 
@@ -166,9 +166,9 @@ class Defaults:
         "ActionRequest",
         "Chat",
         "Context",
-        "Disengaged",
+        # "Disengaged", unwanted
         "Progress",
-        "AdsQuery",
+        # "AdsQuery", unwanted
         "SemanticSerp",
         "GenerateContentQuery",
         "SearchQuery",
@@ -176,34 +176,21 @@ class Defaults:
         # useless messages (such as "Analyzing images" or "Searching the web") while it's retrieving the AI response
         # "InternalSearchQuery",
         # "InternalSearchResult",
-        # Not entirely certain about these two, but these parameters may be used for real-time markdown rendering.
-        # Keeping them could potentially complicate the retrieval of the messages because link references written while
-        # the AI is responding would then be moved to the very end of its message.
-        # "RenderCardRequest",
+        "RenderCardRequest",
         # "RenderContentRequest"
     ]
 
     sliceIds = [
-        "wrapuxslimt5",
-        "wrapalgo",
-        "wraptopalgo",
-        "st14",
-        "arankr1_1_9_9",
-        "0731ziv2s0",
-        "voiceall",
-        "1015onstblg",
-        "vsspec",
-        "cacdiscf",
-        "909ajcopus0",
-        "scpbfmob",
-        "rwt1",
-        "cacmuidarb",
-        "sappdlpt",
-        "917fluxv14",
-        "delaygc",
-        "remsaconn3p",
-        "splitcss3p",
-        "sydconfigoptt"
+        'abv2',
+        'srdicton',
+        'convcssclick',
+        'stylewv2',
+        'contctxp2tf',
+        '802fluxv1pc_a',
+        '806log2sphs0',
+        '727savemem',
+        '277teditgnds0',
+        '207hlthgrds0',
     ]
 
     location = {
@@ -248,19 +235,21 @@ class Defaults:
     }
 
     optionsSets = [
-        "nlu_direct_response_filter",
-        "deepleo",
-        "disable_emoji_spoken_text",
-        "responsible_ai_policy_235",
-        "enablemm",
-        "dv3sugg",
-        "iyxapbing",
-        "iycapbing",
-        "h3imaginative",
-        "clgalileo",
-        "gencontentv3",
-        "fluxv14",
-        "eredirecturl"
+        'nlu_direct_response_filter',
+        'deepleo',
+        'disable_emoji_spoken_text',
+        'responsible_ai_policy_235',
+        'enablemm',
+        'iyxapbing',
+        'iycapbing',
+        'gencontentv3',
+        'fluxsrtrunc',
+        'fluxtrunc',
+        'fluxv1',
+        'rai278',
+        'replaceurl',
+        'eredirecturl',
+        'nojbfedge'
     ]
 
 def format_message(msg: dict) -> str:
@@ -297,7 +286,7 @@ def build_image_upload_api_payload(image_bin: str, conversation: Conversation, t
     )
     return data, boundary
 
-def is_data_uri_an_image(data_uri):
+def is_data_uri_an_image(data_uri: str):
     try:
         # Check if the data URI starts with 'data:image' and contains an image format (e.g., jpeg, png, gif)
         if not re.match(r'data:image/(\w+);base64,', data_uri):
@@ -310,7 +299,7 @@ def is_data_uri_an_image(data_uri):
     except Exception as e:
         raise e
 
-def is_accepted_format(binary_data):
+def is_accepted_format(binary_data: bytes) -> bool:
         try:
             check = False
             if binary_data.startswith(b'\xFF\xD8\xFF'):
@@ -331,7 +320,7 @@ def is_accepted_format(binary_data):
         except Exception as e:
             raise e
     
-def extract_data_uri(data_uri):
+def extract_data_uri(data_uri: str) -> bytes:
     try:
         data = data_uri.split(",")[1]
         data = base64.b64decode(data)
@@ -339,7 +328,7 @@ def extract_data_uri(data_uri):
     except Exception as e:
         raise e
 
-def get_orientation(data: bytes):
+def get_orientation(data: bytes) -> int:
     try:
         if data[:2] != b'\xFF\xD8':
             raise Exception('NotJpeg')
@@ -352,7 +341,7 @@ def get_orientation(data: bytes):
     except Exception:
         pass
 
-def process_image(orientation, img, new_width, new_height):
+def process_image(orientation: int, img: Image.Image, new_width: int, new_height: int) -> Image.Image:
     try:
         # Initialize the canvas
         new_img = Image.new("RGB", (new_width, new_height), color="#FFFFFF")
@@ -370,7 +359,7 @@ def process_image(orientation, img, new_width, new_height):
     except Exception as e:
         raise e
     
-def compress_image_to_base64(img, compression_rate):
+def compress_image_to_base64(img, compression_rate) -> str:
     try:
         output_buffer = io.BytesIO()
         img.save(output_buffer, format="JPEG", quality=int(compression_rate * 100))
@@ -379,13 +368,22 @@ def compress_image_to_base64(img, compression_rate):
         raise e
 
 def create_message(conversation: Conversation, prompt: str, tone: str, context: str=None) -> str:
+    options_sets = Defaults.optionsSets
+    if tone == Tones.creative:
+        options_sets.append("h3imaginative")
+    elif tone == Tones.precise:
+        options_sets.append("h3precise")
+    elif tone == Tones.balanced:
+        options_sets.append("galileo")
+    else:
+        options_sets.append("harmonyv3")
     
     request_id = str(uuid.uuid4())
     struct = {
         'arguments': [
             {
                 'source': 'cib',
-                'optionsSets': Defaults.optionsSets,
+                'optionsSets': options_sets,
                 'allowedMessageTypes': Defaults.allowedMessageTypes,
                 'sliceIds': Defaults.sliceIds,
                 'traceId': os.urandom(16).hex(),
