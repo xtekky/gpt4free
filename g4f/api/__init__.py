@@ -1,4 +1,9 @@
-import g4f; g4f.logging = True
+import typing
+
+import g4f;
+from .. import BaseProvider
+
+g4f.logging = True
 import time
 import json
 import random
@@ -26,10 +31,12 @@ class Api:
     __default_ip   = '127.0.0.1'
     __default_port = 1337
     
-    def __init__(self, engine: g4f, debug: bool = True, sentry: bool = False) -> None:
+    def __init__(self, engine: g4f, debug: bool = True, sentry: bool = False,
+                 list_ignored_providers:typing.List[typing.Union[str, BaseProvider]]=None) -> None:
         self.engine    = engine
         self.debug     = debug
         self.sentry    = sentry
+        self.list_ignored_providers     = list_ignored_providers
         self.log_level = logging.DEBUG if debug else logging.WARN
         
         hook_logging(level=self.log_level, format='[%(asctime)s] %(levelname)s in %(module)s: %(message)s')
@@ -102,7 +109,8 @@ class Api:
         logger.info(f'model: {model}, stream: {stream}, request: {messages[-1]["content"]}')
 
         response = self.engine.ChatCompletion.create(model=model, 
-                                                     stream=stream, messages=messages)
+                                                     stream=stream, messages=messages,
+                                                     ignored=self.list_ignored_providers)
 
         completion_id        = ''.join(random.choices(string.ascii_letters + string.digits, k=28))
         completion_timestamp = int(time.time())
