@@ -343,7 +343,7 @@ run_api()
 ```
 
 #### run interference api from repo:
-If you want to use the embedding function, you need to get a huggingface token. You can get one at https://huggingface.co/settings/tokens make sure your role is set to write. If you have your token, just use it instead of the OpenAI api-key.
+If you want to use the embedding function, you need to get a Hugging Face token. You can get one at https://huggingface.co/settings/tokens make sure your role is set to write. If you have your token, just use it instead of the OpenAI api-key.
 
 run server:
 
@@ -458,20 +458,20 @@ if __name__ == "__main__":
 | Model                                   | Base Provider | Provider            | Website                                     |
 | --------------------------------------- | ------------- | ------------------- | ------------------------------------------- |
 | palm                                    | Google        | g4f.Provider.Bard   | [bard.google.com](https://bard.google.com/) |
-| h2ogpt-gm-oasst1-en-2048-falcon-7b-v3   | Huggingface   | g4f.Provider.H2o    | [www.h2o.ai](https://www.h2o.ai/)           |
-| h2ogpt-gm-oasst1-en-2048-falcon-40b-v1  | Huggingface   | g4f.Provider.H2o    | [www.h2o.ai](https://www.h2o.ai/)           |
-| h2ogpt-gm-oasst1-en-2048-open-llama-13b | Huggingface   | g4f.Provider.H2o    | [www.h2o.ai](https://www.h2o.ai/)           |
+| h2ogpt-gm-oasst1-en-2048-falcon-7b-v3   | Hugging Face  | g4f.Provider.H2o    | [www.h2o.ai](https://www.h2o.ai/)           |
+| h2ogpt-gm-oasst1-en-2048-falcon-40b-v1  | Hugging Face  | g4f.Provider.H2o    | [www.h2o.ai](https://www.h2o.ai/)           |
+| h2ogpt-gm-oasst1-en-2048-open-llama-13b | Hugging Face  | g4f.Provider.H2o    | [www.h2o.ai](https://www.h2o.ai/)           |
 | claude-instant-v1                       | Anthropic     | g4f.Provider.Vercel | [sdk.vercel.ai](https://sdk.vercel.ai/)     |
 | claude-v1                               | Anthropic     | g4f.Provider.Vercel | [sdk.vercel.ai](https://sdk.vercel.ai/)     |
 | claude-v2                               | Anthropic     | g4f.Provider.Vercel | [sdk.vercel.ai](https://sdk.vercel.ai/)     |
 | command-light-nightly                   | Cohere        | g4f.Provider.Vercel | [sdk.vercel.ai](https://sdk.vercel.ai/)     |
 | command-nightly                         | Cohere        | g4f.Provider.Vercel | [sdk.vercel.ai](https://sdk.vercel.ai/)     |
-| gpt-neox-20b                            | Huggingface   | g4f.Provider.Vercel | [sdk.vercel.ai](https://sdk.vercel.ai/)     |
-| oasst-sft-1-pythia-12b                  | Huggingface   | g4f.Provider.Vercel | [sdk.vercel.ai](https://sdk.vercel.ai/)     |
-| oasst-sft-4-pythia-12b-epoch-3.5        | Huggingface   | g4f.Provider.Vercel | [sdk.vercel.ai](https://sdk.vercel.ai/)     |
-| santacoder                              | Huggingface   | g4f.Provider.Vercel | [sdk.vercel.ai](https://sdk.vercel.ai/)     |
-| bloom                                   | Huggingface   | g4f.Provider.Vercel | [sdk.vercel.ai](https://sdk.vercel.ai/)     |
-| flan-t5-xxl                             | Huggingface   | g4f.Provider.Vercel | [sdk.vercel.ai](https://sdk.vercel.ai/)     |
+| gpt-neox-20b                            | Hugging Face  | g4f.Provider.Vercel | [sdk.vercel.ai](https://sdk.vercel.ai/)     |
+| oasst-sft-1-pythia-12b                  | Hugging Face  | g4f.Provider.Vercel | [sdk.vercel.ai](https://sdk.vercel.ai/)     |
+| oasst-sft-4-pythia-12b-epoch-3.5        | Hugging Face  | g4f.Provider.Vercel | [sdk.vercel.ai](https://sdk.vercel.ai/)     |
+| santacoder                              | Hugging Face  | g4f.Provider.Vercel | [sdk.vercel.ai](https://sdk.vercel.ai/)     |
+| bloom                                   | Hugging Face  | g4f.Provider.Vercel | [sdk.vercel.ai](https://sdk.vercel.ai/)     |
+| flan-t5-xxl                             | Hugging Face  | g4f.Provider.Vercel | [sdk.vercel.ai](https://sdk.vercel.ai/)     |
 | code-davinci-002                        | OpenAI        | g4f.Provider.Vercel | [sdk.vercel.ai](https://sdk.vercel.ai/)     |
 | gpt-3.5-turbo-16k                       | OpenAI        | g4f.Provider.Vercel | [sdk.vercel.ai](https://sdk.vercel.ai/)     |
 | gpt-3.5-turbo-16k-0613                  | OpenAI        | g4f.Provider.Vercel | [sdk.vercel.ai](https://sdk.vercel.ai/)     |
