@@ -23,10 +23,7 @@ class Ylokh(AsyncGeneratorProvider):
         **kwargs
     ) -> AsyncResult:
         model = model if model else "gpt-3.5-turbo"
-        headers = {
-            "Origin" : cls.url,
-            "Referer": cls.url + "/",
-        }
+        headers = {"Origin": cls.url, "Referer": f"{cls.url}/"}
         data = {
             "messages": messages,
             "model": model,
@@ -39,10 +36,10 @@ class Ylokh(AsyncGeneratorProvider):
             **kwargs
         }
         async with StreamSession(
-            headers=headers,
-            proxies={"https": proxy},
-            timeout=timeout
-        ) as session:
+                headers=headers,
+                proxies={"https": proxy},
+                timeout=timeout
+            ) as session:
             async with session.post("https://chatapi.ylokh.xyz/v1/chat/completions", json=data) as response:
                 response.raise_for_status()
                 if stream:
@@ -52,8 +49,9 @@ class Ylokh(AsyncGeneratorProvider):
                             if line.startswith("data: [DONE]"):
                                 break
                             line = json.loads(line[6:])
-                            content = line["choices"][0]["delta"].get("content")
-                            if content:
+                            if content := line["choices"][0]["delta"].get(
+                                "content"
+                            ):
                                 yield content
                 else:
                     chat = await response.json()

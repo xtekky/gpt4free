@@ -20,8 +20,10 @@ class Aichat(AsyncProvider):
         
         cookies = get_cookies('chat-gpt.org') if not kwargs.get('cookies') else kwargs.get('cookies')
         if not cookies:
-            raise RuntimeError(f"g4f.provider.Aichat requires cookies, [refresh https://chat-gpt.org on chrome]")
-        
+            raise RuntimeError(
+                "g4f.provider.Aichat requires cookies, [refresh https://chat-gpt.org on chrome]"
+            )
+
         headers = {
             'authority': 'chat-gpt.org',
             'accept': '*/*',
@@ -37,13 +39,13 @@ class Aichat(AsyncProvider):
             'sec-fetch-site': 'same-origin',
             'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36',
         }
-        
+
         async with StreamSession(headers=headers,
                                     cookies=cookies,
                                     timeout=6,
                                     proxies={"https": proxy} if proxy else None,
                                     impersonate="chrome110", verify=False) as session:
-            
+
             json_data = {
                 "message": format_prompt(messages),
                 "temperature": kwargs.get('temperature', 0.5),
@@ -51,14 +53,14 @@ class Aichat(AsyncProvider):
                 "top_p": kwargs.get('top_p', 1),
                 "frequency_penalty": 0,
             }
-            
+
             async with session.post("https://chat-gpt.org/api/text",
                                     json=json_data) as response:
-                
+
                 response.raise_for_status()
                 result = await response.json()
-                
+
                 if not result['response']:
                     raise Exception(f"Error Response: {result}")
-                
+
                 return result["message"]

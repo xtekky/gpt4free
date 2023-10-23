@@ -31,8 +31,8 @@ class Chatgpt4Online(AsyncGeneratorProvider):
                 "newMessage": messages[-1]["content"],
                 "stream": True
             }
-            
-            async with session.post(cls.url + "/wp-json/mwai-ui/v1/chats/submit", json=data, proxy=proxy) as response:
+
+            async with session.post(f"{cls.url}/wp-json/mwai-ui/v1/chats/submit", json=data, proxy=proxy) as response:
                 response.raise_for_status()
                 async for line in response.content:
                     if line.startswith(b"data: "):

@@ -49,7 +49,7 @@ class GPTalk(AsyncGeneratorProvider):
                     "fingerprint": secrets.token_hex(16).zfill(32),
                     "platform": "fingerprint"
                 }
-                async with session.post(cls.url + "/api/chatgpt/user/login", json=data, proxy=proxy) as response:
+                async with session.post(f"{cls.url}/api/chatgpt/user/login", json=data, proxy=proxy) as response:
                     response.raise_for_status()
                     cls._auth = (await response.json())["data"]
             data = {
@@ -69,11 +69,11 @@ class GPTalk(AsyncGeneratorProvider):
             headers = {
                 'authorization': f'Bearer {cls._auth["token"]}',
             }
-            async with session.post(cls.url + "/api/chatgpt/chatapi/text", json=data, headers=headers, proxy=proxy) as response:
+            async with session.post(f"{cls.url}/api/chatgpt/chatapi/text", json=data, headers=headers, proxy=proxy) as response:
                 response.raise_for_status()
                 token = (await response.json())["data"]["token"]
             last_message = ""
-            async with session.get(cls.url + "/api/chatgpt/chatapi/stream", params={"token": token}, proxy=proxy) as response:
+            async with session.get(f"{cls.url}/api/chatgpt/chatapi/stream", params={"token": token}, proxy=proxy) as response:
                 response.raise_for_status()
                 async for line in response.content:
                     if line.startswith(b"data: "):

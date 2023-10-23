@@ -55,7 +55,7 @@ class FastGpt(BaseProvider):
             'frequency_penalty' : kwargs.get('frequency_penalty', 0),
             'top_p'             : kwargs.get('top_p', 1),
         }
-        
+
         subdomain = random.choice([
             'jdaen979ew',
             'chat9'
@@ -63,15 +63,16 @@ class FastGpt(BaseProvider):
 
         response = requests.post(f'https://{subdomain}.fastgpt.me/api/openai/v1/chat/completions',
                                  headers=headers, json=json_data, stream=stream)
-        
+
         for line in response.iter_lines():
             if line:
                 try:
                     if b'content' in line:
-                            line_json = json.loads(line.decode('utf-8').split('data: ')[1])
-                            token = line_json['choices'][0]['delta'].get('content')
-                            if token:
-                                yield token
+                        line_json = json.loads(line.decode('utf-8').split('data: ')[1])
+                        if token := line_json['choices'][0]['delta'].get(
+                            'content'
+                        ):
+                            yield token
                 except:
                     continue
 

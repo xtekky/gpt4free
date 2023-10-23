@@ -56,9 +56,10 @@ class Bing(AsyncGeneratorProvider):
         return stream_generate(prompt, tone, image, context, proxy, cookies)
 
 def create_context(messages: Messages):
-    context = "".join(f"[{message['role']}](#message)\n{message['content']}\n\n" for message in messages)
-
-    return context
+    return "".join(
+        f"[{message['role']}](#message)\n{message['content']}\n\n"
+        for message in messages
+    )
 
 class Conversation():
     def __init__(self, conversationId: str, clientId: str, conversationSignature: str, imageInfo: dict=None) -> None:
@@ -71,7 +72,7 @@ async def create_conversation(session: ClientSession, tone: str, image: str = No
     url = 'https://www.bing.com/turing/conversation/create?bundleVersion=1.1199.4'
     async with await session.get(url, proxy=proxy) as response:
         data = await response.json()
-        
+
         conversationId = data.get('conversationId')
         clientId = data.get('clientId')
         conversationSignature = response.headers.get('X-Sydney-Encryptedconversationsignature')
@@ -110,30 +111,30 @@ async def create_conversation(session: ClientSession, tone: str, image: str = No
                 new_img_binary_data = compress_image_to_base64(new_img, compression_rate)
                 data, boundary = build_image_upload_api_payload(new_img_binary_data, conversation, tone)
                 headers = session.headers.copy()
-                headers["content-type"] = 'multipart/form-data; boundary=' + boundary
+                headers["content-type"] = f'multipart/form-data; boundary={boundary}'
                 headers["referer"] = 'https://www.bing.com/search?q=Bing+AI&showconv=1&FORM=hpcodx'
                 headers["origin"] = 'https://www.bing.com'
                 async with await session.post("https://www.bing.com/images/kblob", data=data, headers=headers, proxy=proxy) as image_upload_response:
-                    if image_upload_response.status == 200:
-                        image_info = await image_upload_response.json()
-                        result = {}
-                        if image_info.get('blobId'):
-                            result['bcid'] = image_info.get('blobId', "")
-                            result['blurredBcid'] = image_info.get('processedBlobId', "")
-                            if result['blurredBcid'] != "":
-                                result["imageUrl"] = "https://www.bing.com/images/blob?bcid=" + result['blurredBcid']
-                            elif result['bcid'] != "":
-                                result["imageUrl"] = "https://www.bing.com/images/blob?bcid=" + result['bcid']
-                            if config['visualSearch']["enableFaceBlurDebug"]:
-                                result['originalImageUrl'] = "https://www.bing.com/images/blob?bcid=" + result['blurredBcid']
-                            else:
-                                result['originalImageUrl'] = "https://www.bing.com/images/blob?bcid=" + result['bcid']
-                            conversation.imageInfo = result
-                        else:
-                            raise Exception("Failed to parse image info.")
-                    else:
+                    if image_upload_response.status != 200:
                         raise Exception("Failed to upload image.")
 
+                    image_info = await image_upload_response.json()
+                    if not image_info.get('blobId'):
+                        raise Exception("Failed to parse image info.")
+                    result = {'bcid': image_info.get('blobId', "")}
+                    result['blurredBcid'] = image_info.get('processedBlobId', "")
+                    if result['blurredBcid'] != "":
+                        result["imageUrl"] = "https://www.bing.com/images/blob?bcid=" + result['blurredBcid']
+                    elif result['bcid'] != "":
+                        result["imageUrl"] = "https://www.bing.com/images/blob?bcid=" + result['bcid']
+                    result['originalImageUrl'] = (
+                        "https://www.bing.com/images/blob?bcid="
+                        + result['blurredBcid']
+                        if config['visualSearch']["enableFaceBlurDebug"]
+                        else "https://www.bing.com/images/blob?bcid="
+                        + result['bcid']
+                    )
+                    conversation.imageInfo = result
             except Exception as e:
                 print(f"An error happened while trying to send image: {str(e)}")
         return conversation
@@ -282,7 +283,18 @@ def build_image_upload_api_payload(image_bin: str, conversation: Conversation, t
         'knowledgeRequest': payload
     }
     boundary="----WebKitFormBoundary" + ''.join(random.choices(string.ascii_letters + string.digits, k=16))
-    data = '--' + boundary + '\r\nContent-Disposition: form-data; name="knowledgeRequest"\r\n\r\n' + json.dumps(knowledge_request,ensure_ascii=False) + "\r\n--" + boundary + '\r\nContent-Disposition: form-data; name="imageBase64"\r\n\r\n' + image_bin + "\r\n--" + boundary + "--\r\n"
+    data = (
+        f'--{boundary}'
+        + '\r\nContent-Disposition: form-data; name="knowledgeRequest"\r\n\r\n'
+        + json.dumps(knowledge_request, ensure_ascii=False)
+        + "\r\n--"
+        + boundary
+        + '\r\nContent-Disposition: form-data; name="imageBase64"\r\n\r\n'
+        + image_bin
+        + "\r\n--"
+        + boundary
+        + "--\r\n"
+    )
     return data, boundary
 
 def is_data_uri_an_image(data_uri):
@@ -329,7 +341,7 @@ def extract_data_uri(data_uri):
 
 def get_orientation(data: bytes):
     try:
-        if data[0:2] != b'\xFF\xD8':
+        if data[:2] != b'\xFF\xD8':
             raise Exception('NotJpeg')
         with Image.open(data) as img:
             exif_data = img._getexif()
@@ -347,11 +359,11 @@ def process_image(orientation, img, new_width, new_height):
         if orientation:
             if orientation > 4:
                 img = img.transpose(Image.FLIP_LEFT_RIGHT)
-            if orientation == 3 or orientation == 4:
+            if orientation in [3, 4]:
                 img = img.transpose(Image.ROTATE_180)
-            if orientation == 5 or orientation == 6:
+            if orientation in [5, 6]:
                 img = img.transpose(Image.ROTATE_270)
-            if orientation == 7 or orientation == 8:
+            if orientation in [7, 8]:
                 img = img.transpose(Image.ROTATE_90)
         new_img.paste(img, (0, 0))
         return new_img
@@ -362,8 +374,7 @@ def compress_image_to_base64(img, compression_rate):
     try:
         output_buffer = io.BytesIO()
         img.save(output_buffer, format="JPEG", quality=int(compression_rate * 100))
-        base64_image = base64.b64encode(output_buffer.getvalue()).decode('utf-8')
-        return base64_image
+        return base64.b64encode(output_buffer.getvalue()).decode('utf-8')
     except Exception as e:
         raise e
 
@@ -425,19 +436,14 @@ async def stream_generate(
         cookies: dict = None
     ):
     async with ClientSession(
-        timeout=ClientTimeout(total=900),
-        cookies=cookies,
-        headers=Defaults.headers,
-    ) as session:
+            timeout=ClientTimeout(total=900),
+            cookies=cookies,
+            headers=Defaults.headers,
+        ) as session:
         conversation = await create_conversation(session, tone, image, proxy)
         try:
-            async with session.ws_connect(
-                f'wss://sydney.bing.com/sydney/ChatHub',
-                autoping=False,
-                params={'sec_access_token': conversation.conversationSignature},
-                proxy=proxy
-            ) as wss:
-                
+            async with session.ws_connect('wss://sydney.bing.com/sydney/ChatHub', autoping=False, params={'sec_access_token': conversation.conversationSignature}, proxy=proxy) as wss:
+
                 await wss.send_str(format_message({'protocol': 'json', 'version': 1}))
                 await wss.receive(timeout=900)
                 await wss.send_str(create_message(conversation, prompt, tone, context))
@@ -451,7 +457,7 @@ async def stream_generate(
                     for obj in objects:
                         if obj is None or not obj:
                             continue
-                        
+
                         response = json.loads(obj)
                         if response.get('type') == 1 and response['arguments'][0].get('messages'):
                             message = response['arguments'][0]['messages'][0]

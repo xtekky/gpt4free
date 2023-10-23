@@ -41,7 +41,7 @@ class Api:
         
     def run(self, bind_str, threads=8):
         host, port = self.__parse_bind(bind_str)
-        
+
         CORS(self.app, resources={r'/v1/*': {'supports_credentials': True, 'expose_headers': [
             'Content-Type',
             'Authorization',
@@ -51,18 +51,18 @@ class Api:
             'Access-Control-Request-Method',
             'Access-Control-Request-Headers',
             'Content-Disposition'], 'max_age': 600}})
-        
+
         self.app.route('/v1/models',           methods=['GET'])(self.models)
         self.app.route('/v1/models/<model_id>', methods=['GET'])(self.model_info)
-        
+
         self.app.route('/v1/chat/completions', methods=['POST'])(self.chat_completions)
         self.app.route('/v1/completions',      methods=['POST'])(self.completions)
 
         for ex in default_exceptions:
             self.app.register_error_handler(ex, self.__handle_error)
-        
+
         if not self.debug:
-            self.logger.warning('Serving on http://{}:{}'.format(host, port))
+            self.logger.warning(f'Serving on http://{host}:{port}')
 
         WSGIRequestHandler.protocol_version = 'HTTP/1.1'
         serve(self.app, host=host, port=port, ident=None, threads=threads)
@@ -76,7 +76,7 @@ class Api:
     
     @staticmethod
     def __after_request(resp):
-        resp.headers['X-Server'] = 'g4f/%s' % g4f.version
+        resp.headers['X-Server'] = f'g4f/{g4f.version}'
 
         return resp
     
