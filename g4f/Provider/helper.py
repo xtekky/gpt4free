@@ -77,9 +77,8 @@ def get_cookies(domain_name=''):
     def g4f(domain_name):
         user_data_dir = user_config_dir("g4f")
         cookie_file = path.join(user_data_dir, "Default", "Cookies")
-        if not path.exists(cookie_file):
-            return []
-        return chrome(cookie_file, domain_name)
+        return [] if not path.exists(cookie_file) else chrome(cookie_file, domain_name)
+
     cookies = {}
     for cookie_fn in [g4f, chrome, chromium, opera, opera_gx, brave, edge, vivaldi, firefox]:
         try:
@@ -96,16 +95,15 @@ def get_cookies(domain_name=''):
 
 
 def format_prompt(messages: Messages, add_special_tokens=False) -> str:
-    if add_special_tokens or len(messages) > 1:
-        formatted = "\n".join(
-            [
-                "%s: %s" % ((message["role"]).capitalize(), message["content"])
-                for message in messages
-            ]
-        )
-        return f"{formatted}\nAssistant:"
-    else:
+    if not add_special_tokens and len(messages) <= 1:
         return messages[0]["content"]
+    formatted = "\n".join(
+        [
+            f'{message["role"].capitalize()}: {message["content"]}'
+            for message in messages
+        ]
+    )
+    return f"{formatted}\nAssistant:"
 
 
 def get_browser(user_data_dir: str = None):

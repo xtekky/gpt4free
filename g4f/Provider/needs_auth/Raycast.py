@@ -32,12 +32,10 @@ class Raycast(BaseProvider):
             'Content-Type': 'application/json',
             'User-Agent': 'Raycast/0 CFNetwork/1410.0.3 Darwin/22.6.0',
         }
-        parsed_messages = []
-        for message in messages:
-            parsed_messages.append({
-                'author': message['role'],
-                'content': {'text': message['content']}
-            })
+        parsed_messages = [
+            {'author': message['role'], 'content': {'text': message['content']}}
+            for message in messages
+        ]
         data = {
             "debug": False,
             "locale": "en-CN",

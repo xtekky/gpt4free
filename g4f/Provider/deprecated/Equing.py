@@ -56,18 +56,17 @@ class Equing(BaseProvider):
 
         response = requests.post('https://next.eqing.tech/api/openai/v1/chat/completions',
             headers=headers, json=json_data, stream=stream)
-        
+
         if not stream:
             yield response.json()["choices"][0]["message"]["content"]
             return
-        
+
         for line in response.iter_content(chunk_size=1024):
             if line:
                 if b'content' in line:
-                        line_json = json.loads(line.decode('utf-8').split('data: ')[1])
-                        token = line_json['choices'][0]['delta'].get('content')
-                        if token:
-                            yield token
+                    line_json = json.loads(line.decode('utf-8').split('data: ')[1])
+                    if token := line_json['choices'][0]['delta'].get('content'):
+                        yield token
 
     @classmethod
     @property

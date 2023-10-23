@@ -52,7 +52,7 @@ async def test_async(provider: type[BaseProvider]):
             response = await provider.create_async(model=model, messages=messages)
         else:
             response = provider.create_completion(model=model, messages=messages, stream=False)
-        return True if response else False
+        return bool(response)
     except Exception as e:
         if logging:
             print(f"{provider.__name__}: {e.__class__.__name__}: {e}")

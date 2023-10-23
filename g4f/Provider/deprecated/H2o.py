@@ -22,7 +22,7 @@ class H2o(AsyncGeneratorProvider):
         **kwargs
     ) -> AsyncResult:
         model = model if model else cls.model
-        headers = {"Referer": cls.url + "/"}
+        headers = {"Referer": f"{cls.url}/"}
 
         async with ClientSession(
             headers=headers

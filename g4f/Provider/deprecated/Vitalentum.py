@@ -20,14 +20,14 @@ class Vitalentum(AsyncGeneratorProvider):
         **kwargs
     ) -> AsyncResult:
         headers = {
-            "User-Agent"         : "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36",
-            "Accept"             : "text/event-stream",
-            "Accept-language"    : "de,en-US;q=0.7,en;q=0.3",
-            "Origin"             : cls.url,
-            "Referer"            : cls.url + "/",
-            "Sec-Fetch-Dest"     : "empty",
-            "Sec-Fetch-Mode"     : "cors",
-            "Sec-Fetch-Site"     : "same-origin",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36",
+            "Accept": "text/event-stream",
+            "Accept-language": "de,en-US;q=0.7,en;q=0.3",
+            "Origin": cls.url,
+            "Referer": f"{cls.url}/",
+            "Sec-Fetch-Dest": "empty",
+            "Sec-Fetch-Mode": "cors",
+            "Sec-Fetch-Site": "same-origin",
         }
         conversation = json.dumps({"history": [{
             "speaker": "human" if message["role"] == "user" else "bot",
@@ -39,8 +39,8 @@ class Vitalentum(AsyncGeneratorProvider):
             **kwargs
         }
         async with ClientSession(
-            headers=headers
-        ) as session:
+                headers=headers
+            ) as session:
             async with session.post(f"{cls.url}/api/converse-edge", json=data, proxy=proxy) as response:
                 response.raise_for_status()
                 async for line in response.content:
@@ -49,8 +49,7 @@ class Vitalentum(AsyncGeneratorProvider):
                         if line.startswith("data: [DONE]"):
                             break
                         line = json.loads(line[6:-1])
-                        content = line["choices"][0]["delta"].get("content")
-                        if content:
+                        if content := line["choices"][0]["delta"].get("content"):
                             yield content
 
 

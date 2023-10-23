@@ -38,18 +38,17 @@ class ChatgptAi(AsyncGeneratorProvider):
             "user-agent"         : "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36",
         }
         async with ClientSession(
-            headers=headers
-        ) as session:
+                headers=headers
+            ) as session:
             if not cls._system:
                 async with session.get(cls.url, proxy=proxy) as response:
                     response.raise_for_status()
                     text = await response.text()
-                result = re.search(r"data-system='(.*?)'", text)
-                if result:
+                if result := re.search(r"data-system='(.*?)'", text):
                     cls._system = json.loads(html.unescape(result.group(1)))
-                if not cls._system:
-                    raise RuntimeError("System args not found")
-                
+            if not cls._system:
+                raise RuntimeError("System args not found")
+
             data = {
                 "botId": cls._system["botId"],
                 "customId": cls._system["customId"],
