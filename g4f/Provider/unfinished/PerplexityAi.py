@@ -21,7 +21,7 @@ class PerplexityAi(AsyncProvider):
         proxy: str = None,
         **kwargs
     ) -> str:
-        url = cls.url + "/socket.io/?EIO=4&transport=polling"
+        url = f"{cls.url}/socket.io/?EIO=4&transport=polling"
         headers = {
             "Referer": f"{cls.url}/"
         }

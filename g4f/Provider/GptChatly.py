@@ -23,13 +23,15 @@ class GptChatly(AsyncProvider):
 
         cookies = get_cookies('gptchatly.com') if not cookies else cookies
         if not cookies:
-            raise RuntimeError(f"g4f.provider.GptChatly requires cookies, [refresh https://gptchatly.com on chrome]")
-        
+            raise RuntimeError(
+                "g4f.provider.GptChatly requires cookies, [refresh https://gptchatly.com on chrome]"
+            )
+
         if model.startswith("gpt-4"):
             chat_url = f"{cls.url}/fetch-gpt4-response"
         else:
             chat_url = f"{cls.url}/fetch-response"
-        
+
         headers = {
             'authority': 'gptchatly.com',
             'accept': '*/*',
@@ -45,7 +47,7 @@ class GptChatly(AsyncProvider):
             'sec-fetch-site': 'same-origin',
             'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36',
         }
-        
+
         async with StreamSession(headers=headers, 
                                  proxies={"https": proxy}, cookies=cookies, impersonate='chrome110') as session:
             data = {

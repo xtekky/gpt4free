@@ -52,10 +52,7 @@ class StreamResponse:
         ):
             if pending is not None:
                 chunk = pending + chunk
-            if delimiter:
-                lines = chunk.split(delimiter)
-            else:
-                lines = chunk.splitlines()
+            lines = chunk.split(delimiter) if delimiter else chunk.splitlines()
             if lines and lines[-1] and chunk and lines[-1][-1] == chunk[-1]:
                 pending = lines.pop()
             else:

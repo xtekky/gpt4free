@@ -31,8 +31,8 @@ class ChatgptFree(AsyncProvider):
         
         if not cookies:
             cookies = get_cookies('chatgptfree.ai')
-            if not cookies:
-                raise RuntimeError(f"g4f.provider.{cls.__name__} requires cookies [refresh https://chatgptfree.ai on chrome]")
+        if not cookies:
+            raise RuntimeError(f"g4f.provider.{cls.__name__} requires cookies [refresh https://chatgptfree.ai on chrome]")
 
         headers = {
             'authority': 'chatgptfree.ai',
@@ -48,14 +48,14 @@ class ChatgptFree(AsyncProvider):
             'sec-fetch-site': 'same-origin',
             'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36',
         }
-        
+
         async with StreamSession(
-            headers=headers,
-            cookies=cookies,
-            impersonate="chrome107",
-            proxies={"https": proxy},
-            timeout=timeout
-        ) as session:
+                headers=headers,
+                cookies=cookies,
+                impersonate="chrome107",
+                proxies={"https": proxy},
+                timeout=timeout
+            ) as session:
             
             if not cls._nonce:
                 async with session.get(f"{cls.url}/") as response:
@@ -67,13 +67,13 @@ class ChatgptFree(AsyncProvider):
                     if not result:
                         raise RuntimeError("No post id found")
                     cls._post_id = result.group(1)
-                    
-                    result = re.search(r'data-nonce="(.*?)"', response)
-                    if not result:
+
+                    if result := re.search(r'data-nonce="(.*?)"', response):
+                        cls._nonce = result.group(1)
+
+                    else:
                         raise RuntimeError("No nonce found")
- 
-                    cls._nonce = result.group(1)
-            
+
             prompt = format_prompt(messages)
             data = {
                 "_wpnonce": cls._nonce,
@@ -83,8 +83,7 @@ class ChatgptFree(AsyncProvider):
                 "message": prompt,
                 "bot_id": "0"
             }
-            async with session.post(cls.url + "/wp-admin/admin-ajax.php",
-                                    data=data, cookies=cookies) as response:
-                
+            async with session.post(f"{cls.url}/wp-admin/admin-ajax.php", data=data, cookies=cookies) as response:
+
                 response.raise_for_status()
                 return (await response.json())["data"]

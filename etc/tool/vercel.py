@@ -22,11 +22,9 @@ def get_model_info() -> dict[str, Any]:
     urls = [f"{url}/_next/{path}" for path in paths]
     scripts = [session.get(url).text for url in urls]
 
+    models_regex = r'let .="\\n\\nHuman:\",r=(.+?),.='
     for script in scripts:
-        models_regex = r'let .="\\n\\nHuman:\",r=(.+?),.='
-        matches = re.findall(models_regex, script)
-
-        if matches:
+        if matches := re.findall(models_regex, script):
             models_str = matches[0]
             stop_sequences_regex = r"(?<=stopSequences:{value:\[)\D(?<!\])"
             models_str = re.sub(

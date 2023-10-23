@@ -8,8 +8,7 @@ sys.path.append(str(Path(__file__).parent.parent.parent))
 import g4f
 
 def read_code(text):
-    match = re.search(r"```(python|py|)\n(?P<code>[\S\s]+?)\n```", text)
-    if match:
+    if match := re.search(r"```(python|py|)\n(?P<code>[\S\s]+?)\n```", text):
         return match.group("code")
     
 path = input("Path: ")
@@ -41,7 +40,6 @@ for chunk in g4f.ChatCompletion.create(
 print()
 response = "".join(response)
 
-code = read_code(response)
-if code:
+if code := read_code(response):
     with open(path, "w") as file:
         file.write(code)

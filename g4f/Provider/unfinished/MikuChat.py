@@ -48,8 +48,7 @@ class MikuChat(AsyncGeneratorProvider):
                 async for line in response.iter_lines():
                     if line.startswith(b"data: "):
                         line = json.loads(line[6:])
-                        chunk = line["choices"][0]["delta"].get("content")
-                        if chunk:
+                        if chunk := line["choices"][0]["delta"].get("content"):
                             yield chunk
 
 def k(e: str, t: int):
