@@ -5,9 +5,7 @@ async def log_time_async(method: callable, **kwargs):
     start = time()
     result = await method(**kwargs)
     secs = f"{round(time() - start, 2)} secs"
-    if result:
-        return " ".join([result, secs])
-    return secs
+    return " ".join([result, secs]) if result else secs
 
 
 def log_time_yield(method: callable, **kwargs):
@@ -20,6 +18,4 @@ def log_time(method: callable, **kwargs):
     start = time()
     result = method(**kwargs)
     secs = f"{round(time() - start, 2)} secs"
-    if result:
-        return " ".join([result, secs])
-    return secs
+    return " ".join([result, secs]) if result else secs

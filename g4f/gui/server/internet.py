@@ -9,21 +9,20 @@ ddgs = DDGS(timeout=20)
 
 def search(internet_access, prompt):
     print(prompt)
-    
+
     try:
         if not internet_access:
             return []
-        
+
         results = duckduckgo_search(q=prompt)
 
         if not search:
             return []
 
-        blob = ''
-
-        for index, result in enumerate(results):
-            blob += f'[{index}] "{result["body"]}"\nURL:{result["href"]}\n\n'
-
+        blob = ''.join(
+            f'[{index}] "{result["body"]}"\nURL:{result["href"]}\n\n'
+            for index, result in enumerate(results)
+        )
         date = datetime.now().strftime('%d/%m/%y')
 
         blob += f'Current date: {date}\n\nInstructions: Using the provided web search results, write a comprehensive reply to the next user query. Make sure to cite results using [[number](URL)] notation after the reference. If the provided search results refer to multiple subjects with the same name, write separate answers for each subject. Ignore your previous response if any.'

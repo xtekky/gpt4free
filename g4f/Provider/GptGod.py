@@ -33,7 +33,7 @@ class GptGod(AsyncGeneratorProvider):
             "Pragma": "no-cache",
             "Cache-Control": "no-cache",
         }
-        
+
         async with ClientSession(headers=headers) as session:
             prompt = format_prompt(messages)
             data = {
@@ -45,12 +45,11 @@ class GptGod(AsyncGeneratorProvider):
                 event = None
                 async for line in response.content:
                     print(line)
-                    
+
                     if line.startswith(b'event: '):
                         event = line[7:-1]
                     elif event == b"data" and line.startswith(b"data: "):
-                        data = json.loads(line[6:-1])
-                        if data:
+                        if data := json.loads(line[6:-1]):
                             yield data
                     elif event == b"done":
                         break

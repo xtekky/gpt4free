@@ -38,18 +38,18 @@ class Bard(AsyncProvider):
             'x-same-domain': '1',
         }
         async with ClientSession(
-            cookies=cookies,
-            headers=headers
-        ) as session:
+                cookies=cookies,
+                headers=headers
+            ) as session:
             if not cls._snlm0e:
                 async with session.get(cls.url, proxy=proxy) as response:
                     text = await response.text()
 
-                match = re.search(r'SNlM0e\":\"(.*?)\"', text)
-                if not match:
+                if match := re.search(r'SNlM0e\":\"(.*?)\"', text):
+                    cls._snlm0e = match.group(1)
+
+                else:
                     raise RuntimeError("No snlm0e value.")
-                cls._snlm0e = match.group(1)
-            
             params = {
                 'bl': 'boq_assistant-bard-web-server_20230326.21_p0',
                 '_reqid': random.randint(1111, 9999),

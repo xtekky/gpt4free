@@ -22,11 +22,11 @@ def test_provider(provider):
         return None
 
 with concurrent.futures.ThreadPoolExecutor() as executor:
-    futures = []
-    for provider in __all__:
-        if provider not in _:
-            futures.append(executor.submit(test_provider, provider))
+    futures = [
+        executor.submit(test_provider, provider)
+        for provider in __all__
+        if provider not in _
+    ]
     for future in concurrent.futures.as_completed(futures):
-        result = future.result()
-        if result:
+        if result := future.result():
             print(f'{result[1]} | {result[0]}')
