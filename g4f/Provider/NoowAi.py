@@ -61,6 +61,8 @@ class NoowAi(AsyncGeneratorProvider):
                             yield line["data"]
                         elif line["type"] == "end":
                             break
+                        elif line["type"] == "error":
+                            raise RuntimeError(line["data"])
                 
 def random_string(length: int = 10):
     return ''.join(random.choice(string.ascii_lowercase + string.digits) for _ in range(length))

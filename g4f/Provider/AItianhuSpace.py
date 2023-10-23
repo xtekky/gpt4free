@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import random, json
-from ..debug        import logging
+from .. import debug
 from ..typing       import AsyncResult, Messages
 from ..requests     import StreamSession
 from .base_provider import AsyncGeneratorProvider, format_prompt, get_cookies
@@ -36,7 +36,7 @@ class AItianhuSpace(AsyncGeneratorProvider):
             rand = ''.join(random.choice(chars) for _ in range(6))
             domain = f"{rand}.{domains[model]}"
         
-        if logging:
+        if debug.logging:
             print(f"AItianhuSpace | using domain: {domain}")
         
         if not cookies:

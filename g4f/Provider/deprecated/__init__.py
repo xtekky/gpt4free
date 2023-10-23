@@ -13,3 +13,4 @@ from .FastGpt       import FastGpt
 from .Aivvm         import Aivvm
 from .Vitalentum    import Vitalentum
 from .H2o           import H2o
+from .Myshell       import Myshell

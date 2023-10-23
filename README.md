@@ -2,7 +2,7 @@
 
 By using this repository or any code related to it, you agree to the [legal notice](./LEGAL_NOTICE.md). The author is not responsible for any copies, forks, reuploads made by other users, or anything else related to gpt4free. This is the author's only account and repository. To prevent impersonation or irresponsible actions, please comply with the GNU GPL license this Repository uses.
 
-- latest pypi version: [`0.1.7.3`](https://pypi.org/project/g4f/0.1.7.3)
+- latest pypi version: [`0.1.7.5`](https://pypi.org/project/g4f/0.1.7.5)
 ```sh
 pip install -U g4f
 ```
@@ -175,7 +175,7 @@ docker compose down
 ```py
 import g4f
 
-g4f.logging = True # enable logging
+g4f.debug.logging = True # enable logging
 g4f.check_version = False # Disable automatic version checking
 print(g4f.version) # check version
 print(g4f.Provider.Ails.params)  # supported args
@@ -226,22 +226,13 @@ import g4f
 
 from g4f.Provider import (
     AItianhu,
-    Acytoo,
     Aichat,
-    Ails,
     Bard,
     Bing,
     ChatBase,
     ChatgptAi,
-    H2o,
-    HuggingChat,
-    OpenAssistant,
     OpenaiChat,
-    Raycast,
-    Theb,
     Vercel,
-    Vitalentum,
-    Ylokh,
     You,
     Yqcloud,
 )
@@ -324,9 +315,9 @@ async def run_all():
 asyncio.run(run_all())
 ```
 
-##### Proxy Support:
+##### Proxy and Timeout Support:
 
-All providers support specifying a proxy in the create functions.
+All providers support specifying a proxy and increasing timeout in the create functions.
 
 ```py
 import g4f
@@ -336,6 +327,7 @@ response = g4f.ChatCompletion.create(
     messages=[{"role": "user", "content": "Hello"}],
     proxy="http://host:port",
     # or socks5://user:pass@host:port
+    timeout=120, # in secs
 )
 
 print(f"Result:", response)

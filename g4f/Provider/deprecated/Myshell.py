@@ -8,8 +8,8 @@ from aiohttp import ClientSession
 from aiohttp.http import WSMsgType
 import asyncio
 
-from ..typing import AsyncResult, Messages
-from .base_provider import AsyncGeneratorProvider, format_prompt
+from ...typing import AsyncResult, Messages
+from ..base_provider import AsyncGeneratorProvider, format_prompt
 
 
 models = {
@@ -175,45 +175,3 @@ def generate_visitor_id(user_agent: str) -> str:
     d = xor_hash(user_agent)
     e = hex(1080 * 1920)[2:]
     return f"{f}-{r}-{d}-{e}-{f}"
-
-
-
-# update
-# from g4f.requests import StreamSession
-
-# async def main():
-#     headers = {
-#         'authority': 'api.myshell.ai',
-#         'accept': 'application/json',
-#         'accept-language': 'en,fr-FR;q=0.9,fr;q=0.8,es-ES;q=0.7,es;q=0.6,en-US;q=0.5,am;q=0.4,de;q=0.3',
-#         'content-type': 'application/json',
-#         'myshell-service-name': 'organics-api',
-#         'origin': 'https://app.myshell.ai',
-#         'referer': 'https://app.myshell.ai/',
-#         'sec-ch-ua': '"Chromium";v="118", "Google Chrome";v="118", "Not=A?Brand";v="99"',
-#         'sec-ch-ua-mobile': '?0',
-#         'sec-ch-ua-platform': '"macOS"',
-#         'sec-fetch-dest': 'empty',
-#         'sec-fetch-mode': 'cors',
-#         'sec-fetch-site': 'same-site',
-#         'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36',
-#         'visitor-id': '18ae8fe5d916d3-0213f29594b17f-18525634-157188-18ae8fe5d916d3',
-#     }
-
-#     json_data = {
-#         'conversation_scenario': 3,
-#         'botId': '4738',
-#         'message': 'hi',
-#         'messageType': 1,
-#     }
-    
-#     async with StreamSession(headers=headers, impersonate="chrome110") as session:
-#         async with session.post(f'https://api.myshell.ai/v1/bot/chat/send_message', 
-#                                 json=json_data) as response:
-            
-#             response.raise_for_status()
-#             async for chunk in response.iter_content():
-#                 print(chunk.decode("utf-8"))
-                    
-# import asyncio
-# asyncio.run(main())
