@@ -9,6 +9,7 @@ from .helper import format_prompt
 
 class GptForLove(AsyncGeneratorProvider):
     url = "https://ai18.gptforlove.com"
+    supports_message_history = True
     supports_gpt_35_turbo = True
     working = True
 
