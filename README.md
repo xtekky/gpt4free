@@ -7,42 +7,9 @@ By using this repository or any code related to it, you agree to the [legal noti
 pip install -U g4f
 ```
 
-or if you just want to use the gui or interference api, install with [pipx](https://pypa.github.io/pipx/)
-
-```sh
-pipx install g4f
-```
-
 ## New features
-- Telegram Channel: https://t.me/g4f_channel
-- g4f GUI is back !!:   
-Install g4f with pip and then run:
-
-```sh
-g4f gui
-```
-
-or 
-
-```sh
-python -m g4f.gui.run
-```
-
-preview:
-
-<img width="1470" alt="image" src="https://github.com/xtekky/gpt4free/assets/98614666/a767290f-d29c-471c-9db4-6905d1cb6489">
-
-- run interference api from pypi package:
-
-```sh
-g4f api
-```
-
-or
-
-```py
-python -m g4f.interference.run
-```
+* Telegram Channel: [t.me/g4f_channel](https://t.me/g4f_channel)
+* g4f documentation (unfinished): [docs.g4f.ai](https://docs.g4f.ai) | Contribute to the docs via: [github.com/xtekky/gpt4free-docs](https://github.com/xtekky/gpt4free-docs)
 
 ## Table of Contents
 
