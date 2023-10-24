@@ -545,9 +545,9 @@ python etc/tool/create_provider.py
 
 #### Create Provider
 
-0. Check out the current [list of potential providers](https://github.com/zukixa/cool-ai-stuff#ai-chat-websites), or find your own provider source!
-1. Create a new file in [g4f/provider](./g4f/provider) with the name of the Provider
-2. Implement a class that extends [BaseProvider](./g4f/provider/base_provider.py).
+1. Check out the current [list of potential providers](https://github.com/zukixa/cool-ai-stuff#ai-chat-websites), or find your own provider source!
+2. Create a new file in [g4f/provider](./g4f/provider) with the name of the Provider
+3. Implement a class that extends [BaseProvider](./g4f/provider/base_provider.py).
 
 ```py
 from __future__ import annotations
@@ -571,9 +571,9 @@ class HogeService(AsyncGeneratorProvider):
         yield ""
 ```
 
-3. Here, you can adjust the settings, for example if the website does support streaming, set `supports_stream` to `True`...
-4. Write code to request the provider in `create_async_generator` and `yield` the response, _even if_ its a one-time response, do not hesitate to look at other providers for inspiration
-5. Add the Provider Name in [g4f/provider/**init**.py](./g4f/provider/__init__.py)
+4. Here, you can adjust the settings, for example if the website does support streaming, set `supports_stream` to `True`...
+5. Write code to request the provider in `create_async_generator` and `yield` the response, _even if_ its a one-time response, do not hesitate to look at other providers for inspiration
+6. Add the Provider Name in [g4f/provider/**init**.py](./g4f/provider/__init__.py)
 
 ```py
 from .HogeService import HogeService
@@ -583,7 +583,7 @@ __all__ = [
 ]
 ```
 
-6. You are done !, test the provider by calling it:
+7. You are done !, test the provider by calling it:
 
 ```py
 import g4f
