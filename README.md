@@ -9,7 +9,7 @@ pip install -U g4f
 
 ## New features
 * Telegram Channel: [t.me/g4f_channel](https://t.me/g4f_channel)
-* g4f documentation (unfinished): [docs.g4f.ai](https://docs.g4f.ai) | Contribute to the docs via: [github.com/xtekky/gpt4free-docs](https://github.com/xtekky/gpt4free-docs)
+* g4f documentation (unfinished): [g4f.mintlify.app](https://g4f.mintlify.app) | Contribute to the docs via: [github.com/xtekky/gpt4free-docs](https://github.com/xtekky/gpt4free-docs)
 
 ## Table of Contents
 
