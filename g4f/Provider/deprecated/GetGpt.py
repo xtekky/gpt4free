@@ -5,7 +5,10 @@ import os
 import uuid
 
 import requests
-from Crypto.Cipher import AES
+try:
+    from Crypto.Cipher import AES
+except ImportError:
+    from Cryptodome.Cipher import AES
 
 from ...typing import Any, CreateResult
 from ..base_provider import BaseProvider
