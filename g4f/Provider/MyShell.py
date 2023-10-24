@@ -9,6 +9,7 @@ from .helper import format_prompt
 
 class MyShell(AsyncGeneratorProvider):
     url = "https://app.myshell.ai/chat"
+    working = True
 
     @classmethod
     async def create_async_generator(
