@@ -15,6 +15,7 @@ class BaseProvider(ABC):
     supports_stream: bool = False
     supports_gpt_35_turbo: bool = False
     supports_gpt_4: bool = False
+    supports_message_history: bool = False
 
     @staticmethod
     @abstractmethod
