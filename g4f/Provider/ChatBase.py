@@ -10,6 +10,8 @@ class ChatBase(AsyncGeneratorProvider):
     url                   = "https://www.chatbase.co"
     supports_gpt_35_turbo = True
     working               = True
+    list_incorrect_responses    = ["Hmm, I am not sure. Email support@chatbase.co for more info.",
+                                   "I can only provide support and information about Chatbase"]
 
     @classmethod
     async def create_async_generator(
@@ -41,7 +43,12 @@ class ChatBase(AsyncGeneratorProvider):
 
             async with session.post("https://www.chatbase.co/api/fe/chat", json=data, proxy=proxy) as response:
                 response.raise_for_status()
+                response_data = ""
                 async for stream in response.content.iter_any():
+                    response_data += stream.decode()
+                    for incorrect_response in cls.list_incorrect_responses:
+                        if incorrect_response in response_data:
+                            raise RuntimeError("Incorrect response")
                     yield stream.decode()
 
     @classmethod
