@@ -32,6 +32,7 @@ default_cookies = {
 class Bing(AsyncGeneratorProvider):
     url             = "https://bing.com/chat"
     working         = True
+    supports_message_history = True
     supports_gpt_4  = True
         
     @staticmethod
