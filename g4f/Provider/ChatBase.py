@@ -10,8 +10,8 @@ class ChatBase(AsyncGeneratorProvider):
     url                   = "https://www.chatbase.co"
     supports_gpt_35_turbo = True
     working               = True
-    list_incorrect_responses    = ["Hmm, I am not sure. Email support@chatbase.co for more info.",
-                                   "I can only provide support and information about Chatbase"]
+    list_incorrect_responses    = ["support@chatbase",
+                                   "about Chatbase"]
 
     @classmethod
     async def create_async_generator(
