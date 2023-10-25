@@ -31,12 +31,48 @@ const handle_ask = async () => {
     message_input.style.height = `80px`;
     message_input.focus();
 
+    // start parse
+
+    let txtMsgs = [];
+    let UorA = true;
+    const divTags = document.getElementsByClassName("content");
+    for(let i=0;i<divTags.length;i++){
+        if(!divTags[i].classList.contains("welcome-message")){
+            if(UorA){
+                const msg = {
+                    role: "user",
+                    content: divTags[i].textContent
+                };
+                txtMsgs.push(msg);
+            }else{
+                const msg = {
+                    role: "assistant",
+                    content: divTags[i].textContent
+                };
+                txtMsgs.push(msg);
+            }
+
+            //console.log(divTag.textContent);
+
+            UorA=!UorA;
+        }
+    }
+
+    // end parse
+
     window.scrollTo(0, 0);
     let message = message_input.value;
+    const msg = {
+        role: "user",
+        content: message
+    };
+    txtMsgs.push(msg); // added
 
     if (message.length > 0) {
         message_input.value = ``;
-        await ask_gpt(message);
+
+        await ask_gpt(txtMsgs);
+        // await ask_gpt(message);
     }
 };
 
@@ -49,13 +85,16 @@ const remove_cancel_button = async () => {
     }, 300);
 };
 
-const ask_gpt = async (message) => {
+// const ask_gpt = async (message) => {
+const ask_gpt = async (txtMsgs) => {
     try {
         message_input.value     = ``;
         message_input.innerHTML = ``;
         message_input.innerText = ``;
 
-        add_conversation(window.conversation_id, message);
+        // add_conversation(window.conversation_id, message);
+        add_conversation(window.conversation_id, txtMsgs[0].content);
+
         window.scrollTo(0, 0);
         window.controller = new AbortController();
 
@@ -75,10 +114,22 @@ const ask_gpt = async (message) => {
                     <i class="fa-regular fa-phone-arrow-up-right"></i>
                 </div>
                 <div class="content" id="user_${token}"> 
-                    ${format(message)}
+                    ${format(txtMsgs[txtMsgs.length-1].content)}
                 </div>
             </div>
         `;
+        /*
+        message_box.innerHTML += `
+            <div class="message">
+                <div class="user">
+                    ${user_image}
+                    <i class="fa-regular fa-phone-arrow-up-right"></i>
+                </div>
+                <div class="content" id="user_${token}"> 
+                    ${format(message)}
+                </div>
+            </div>
+        `;*/
 
         message_box.scrollTop = message_box.scrollHeight;
         window.scrollTo(0, 0);
@@ -120,12 +171,13 @@ const ask_gpt = async (message) => {
                         conversation: await get_conversation(window.conversation_id),
                         internet_access: document.getElementById(`switch`).checked,
                         content_type: `text`,
+                        parts: txtMsgs,/*
                         parts: [
                             {
                                 content: message,
                                 role: `user`,
                             },
-                        ],
+                        ],*/
                     },
                 },
             }),
@@ -154,7 +206,8 @@ const ask_gpt = async (message) => {
             document.getElementById(`gpt_${window.token}`).innerHTML = "An error occured, please try again, if the problem persists, please reload / refresh cache or use a differnet browser";
         }
 
-        add_message(window.conversation_id, "user", message);
+        // add_message(window.conversation_id, "user", message);
+        add_message(window.conversation_id, "user", txtMsgs[txtMsgs.length-1].content);
         add_message(window.conversation_id, "assistant", text);
 
         message_box.scrollTop = message_box.scrollHeight;
@@ -165,7 +218,8 @@ const ask_gpt = async (message) => {
         window.scrollTo(0, 0);
     
     } catch (e) {
-        add_message(window.conversation_id, "user", message);
+        // add_message(window.conversation_id, "user", message);
+        add_message(window.conversation_id, "user", txtMsgs[txtMsgs.length-1].content);
 
         message_box.scrollTop = message_box.scrollHeight;
         await remove_cancel_button();
@@ -316,7 +370,7 @@ const get_conversation = async (conversation_id) => {
 
 const add_conversation = async (conversation_id, content) => {
     if (content.length > 17) {
-        title = content.substring(0, 17) + '..'
+        title = content.substring(0, 17) + '...'
     } else {
         title = content + '&nbsp;'.repeat(19 - content.length)
     }
