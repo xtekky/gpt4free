@@ -300,16 +300,16 @@ response = g4f.ChatCompletion.create(
 print(f"Result:", response)
 ```
 
-### interference openai-proxy api (use with openai python package)
+### interference openai-proxy API (use with openai python package)
 
-#### run interference api from pypi package:
+#### run interference API from pypi package:
 ```py
 from g4f.api import run_api
 
 run_api()
 ```
 
-#### run interference api from repo:
+#### run interference API from repo:
 If you want to use the embedding function, you need to get a Hugging Face token. You can get one at https://huggingface.co/settings/tokens make sure your role is set to write. If you have your token, just use it instead of the OpenAI api-key.
 
 run server:
@@ -539,7 +539,7 @@ Call in your terminal the "create_provider" script:
 python etc/tool/create_provider.py
 ```
 1. Enter your name for the new provider.
-2. Copy & Paste a cURL command from your browser developer tools.
+2. Copy and paste a cURL command from your browser developer tools.
 3. Let the AI ​​create the provider for you.
 4. Customize the provider according to your needs.
 
@@ -571,8 +571,8 @@ class HogeService(AsyncGeneratorProvider):
         yield ""
 ```
 
-4. Here, you can adjust the settings, for example if the website does support streaming, set `supports_stream` to `True`...
-5. Write code to request the provider in `create_async_generator` and `yield` the response, _even if_ its a one-time response, do not hesitate to look at other providers for inspiration
+4. Here, you can adjust the settings, for example, if the website does support streaming, set `supports_stream` to `True`...
+5. Write code to request the provider in `create_async_generator` and `yield` the response, _even if_ it's a one-time response, do not hesitate to look at other providers for inspiration
 6. Add the Provider Name in [g4f/provider/**init**.py](./g4f/provider/__init__.py)
 
 ```py
