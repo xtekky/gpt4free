@@ -9,6 +9,7 @@ from .base_provider import AsyncGeneratorProvider
 class ChatBase(AsyncGeneratorProvider):
     url                   = "https://www.chatbase.co"
     supports_gpt_35_turbo = True
+    supports_message_history = True
     working               = True
     list_incorrect_responses    = ["Hmm, I am not sure. Email support@chatbase.co for more info.",
                                    "I can only provide support and information about Chatbase"]

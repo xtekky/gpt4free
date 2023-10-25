@@ -12,6 +12,7 @@ domains = [
 
 class FreeGpt(AsyncGeneratorProvider):
     url                   = "https://freegpts1.aifree.site/"
+    supports_message_history = True
     supports_gpt_35_turbo = True
     working               = True
 

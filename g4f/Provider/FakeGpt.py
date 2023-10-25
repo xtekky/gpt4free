@@ -10,6 +10,7 @@ from .helper import format_prompt
 
 class FakeGpt(AsyncGeneratorProvider):
     url                   = "https://chat-shared2.zhile.io"
+    supports_message_history = True
     supports_gpt_35_turbo = True
     working               = True
     _access_token         = None
