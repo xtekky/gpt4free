@@ -331,7 +331,7 @@ python -m g4f.api
 ```py
 import openai
 
-openai.api_key = "Empty if you don't use embeddings, otherwise your hugginface token"
+openai.api_key = "Empty if you don't use embeddings, otherwise your Hugging Face token"
 openai.api_base = "http://localhost:1337/v1"
 
 
@@ -550,8 +550,8 @@ python etc/tool/create_provider.py
 #### Create Provider
 
 1. Check out the current [list of potential providers](https://github.com/zukixa/cool-ai-stuff#ai-chat-websites), or find your own provider source!
-2. Create a new file in [g4f/provider](./g4f/provider) with the name of the Provider
-3. Implement a class that extends [BaseProvider](./g4f/provider/base_provider.py).
+2. Create a new file in [g4f/Provider](./g4f/Provider) with the name of the Provider
+3. Implement a class that extends [BaseProvider](./g4f/Provider/base_provider.py).
 
 ```py
 from __future__ import annotations
@@ -577,7 +577,7 @@ class HogeService(AsyncGeneratorProvider):
 
 4. Here, you can adjust the settings, for example, if the website does support streaming, set `supports_stream` to `True`...
 5. Write code to request the provider in `create_async_generator` and `yield` the response, _even if_ it's a one-time response, do not hesitate to look at other providers for inspiration
-6. Add the Provider Name in [g4f/provider/**init**.py](./g4f/provider/__init__.py)
+6. Add the Provider Name in [g4f/Provider/**init**.py](./g4f/Provider/__init__.py)
 
 ```py
 from .HogeService import HogeService
