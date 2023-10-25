@@ -127,7 +127,7 @@ docker compose build
 docker compose up
 ```
 
-You server will now be running at `http://localhost:1337`. You can interact with the API or run your tests as you would normally.
+Your server will now be running at `http://localhost:1337`. You can interact with the API or run your tests as you would normally.
 
 To stop the Docker containers, simply run:
 
@@ -331,7 +331,7 @@ python -m g4f.api
 ```py
 import openai
 
-openai.api_key = "Empty if you don't use embeddings, otherwise your Hugging Face token"
+openai.api_key = " Leave Empty if you don't use embeddings, otherwise your Hugging Face token"
 openai.api_base = "http://localhost:1337/v1"
 
 
