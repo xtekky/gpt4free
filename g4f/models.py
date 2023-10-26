@@ -218,17 +218,17 @@ text_davinci_003 = Model(
     best_provider = Vercel)
 
 llama13b_v2_chat = Model(
-    name          = 'replicate:a16z-infra/llama13b-v2-chat',
+    name          = '13B',
     base_provider = 'replicate',
     best_provider = Vercel)
 
 llama7b_v2_chat = Model(
-    name          = 'replicate:a16z-infra/llama7b-v2-chat',
+    name          = '7B',
     base_provider = 'replicate',
     best_provider = Vercel)
 
 llama70b_v2_chat = Model(
-    name          = 'replicate/llama70b-v2-chat',
+    name          = '70B',
     base_provider = 'replicate',
     best_provider = Vercel)
 
