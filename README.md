@@ -331,9 +331,12 @@ python -m g4f.api
 ```py
 import openai
 
-openai.api_key = " Leave Empty if you don't use embeddings, otherwise your Hugging Face token"
-openai.api_base = "http://localhost:1337/v1"
+# Set your Hugging Face token as the API key if you use embeddings
+# If you don't use embeddings, leave it empty
+openai.api_key = "YOUR_HUGGING_FACE_TOKEN"  # Replace with your actual token
 
+# Set the API base URL if needed, e.g., for a local development environment
+openai.api_base = "http://localhost:1337/v1"
 
 def main():
     chat_completion = openai.ChatCompletion.create(
@@ -343,18 +346,18 @@ def main():
     )
 
     if isinstance(chat_completion, dict):
-        # not stream
+        # Not streaming
         print(chat_completion.choices[0].message.content)
     else:
-        # stream
+        # Streaming
         for token in chat_completion:
             content = token["choices"][0]["delta"].get("content")
-            if content != None:
+            if content is not None:
                 print(content, end="", flush=True)
 
-
-if __name__ == "__main__":
+if __name__ == "__main":
     main()
+
 ```
 
 ## Models
