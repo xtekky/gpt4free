@@ -1,4 +1,5 @@
 import g4f
+import json
 
 from flask      import request
 from .internet  import search
@@ -43,6 +44,15 @@ class Backend_Api:
         }
     
     def _conversation(self):
+        config = None
+        proxy = None
+        try:
+            config = json.load(open("config.json","r",encoding="utf-8"))
+            proxy = config["proxy"]
+
+        except Exception:
+            pass
+
         try:
             jailbreak       = request.json['jailbreak']
             internet_access = request.json['meta']['content']['internet_access']
@@ -54,14 +64,25 @@ class Backend_Api:
             messages = special_instructions[jailbreak] + conversation + search(internet_access, prompt) + [prompt]
 
             def stream():
-                yield from g4f.ChatCompletion.create(
-                    model=model,
-                    provider=get_provider(provider),
-                    messages=messages,
-                    stream=True,
-                ) if provider else g4f.ChatCompletion.create(
-                    model=model, messages=messages, stream=True
-                )
+                if proxy != None:
+                    yield from g4f.ChatCompletion.create(
+                        model=model,
+                        provider=get_provider(provider),
+                        messages=messages,
+                        stream=True,
+                        proxy=proxy
+                    ) if provider else g4f.ChatCompletion.create(
+                        model=model, messages=messages, stream=True, proxy=proxy
+                    )
+                else:
+                    yield from g4f.ChatCompletion.create(
+                        model=model,
+                        provider=get_provider(provider),
+                        messages=messages,
+                        stream=True,
+                    ) if provider else g4f.ChatCompletion.create(
+                        model=model, messages=messages, stream=True
+                    )
 
             return self.app.response_class(stream(), mimetype='text/event-stream')
 
