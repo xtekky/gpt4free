@@ -22,6 +22,7 @@ from .Provider   import (
     Bing,
     You,
     H2o,
+    Llama2,
 )
 
 @dataclass(unsafe_hash=True)
@@ -220,17 +221,17 @@ text_davinci_003 = Model(
 llama13b_v2_chat = Model(
     name          = '13B',
     base_provider = 'replicate',
-    best_provider = Vercel)
+    best_provider = Llama2)
 
 llama7b_v2_chat = Model(
     name          = '7B',
     base_provider = 'replicate',
-    best_provider = Vercel)
+    best_provider = Llama2)
 
 llama70b_v2_chat = Model(
     name          = '70B',
     base_provider = 'replicate',
-    best_provider = Vercel)
+    best_provider = Llama2)
 
 
 class ModelUtils:
@@ -275,6 +276,8 @@ class ModelUtils:
         'text-curie-001'    : text_curie_001,
         'text-davinci-002'  : text_davinci_002,
         'text-davinci-003'  : text_davinci_003,
+
+        #Llama2
         'llama70b-v2-chat'  : llama70b_v2_chat,
         'llama13b-v2-chat'  : llama13b_v2_chat,
         'llama7b-v2-chat'   : llama7b_v2_chat,
