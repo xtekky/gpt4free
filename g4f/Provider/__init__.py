@@ -17,6 +17,7 @@ from .ChatgptFree     import ChatgptFree
 from .ChatgptLogin    import ChatgptLogin
 from .ChatgptX        import ChatgptX
 from .Cromicle        import Cromicle
+from .DeepInfra       import DeepInfra
 from .FakeGpt         import FakeGpt
 from .FreeGpt         import FreeGpt
 from .GPTalk          import GPTalk
@@ -70,6 +71,7 @@ class ProviderUtils:
         'ChatgptX': ChatgptX,
         'CodeLinkAva': CodeLinkAva,
         'Cromicle': Cromicle,
+        'DeepInfra': DeepInfra,
         'DfeHub': DfeHub,
         'EasyChat': EasyChat,
         'Equing': Equing,
@@ -144,6 +146,7 @@ __all__ = [
     'ChatgptLogin',
     'ChatgptX',
     'Cromicle',
+    'DeepInfra',
     'CodeLinkAva',
     'DfeHub',
     'EasyChat',

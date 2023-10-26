@@ -6,12 +6,14 @@ from .Provider   import (
     GptForLove,
     ChatgptAi,
     GptChatly,
+    DeepInfra,
     ChatgptX,
     ChatBase,
     GeekGpt,
     FakeGpt,
     FreeGpt,
     NoowAi,
+    Llama2,
     Vercel, 
     Aichat,
     GPTalk,
@@ -73,6 +75,21 @@ gpt_4 = Model(
         Bing, GeekGpt, Phind
     ])
 )
+
+llama2_7b = Model(
+    name          = "meta-llama/Llama-2-7b-chat-hf",
+    base_provider = 'huggingface',
+    best_provider = RetryProvider([Llama2, DeepInfra]))
+
+llama2_13b = Model(
+    name          ="meta-llama/Llama-2-13b-chat-hf",
+    base_provider = 'huggingface',
+    best_provider = RetryProvider([Llama2, DeepInfra]))
+
+llama2_70b = Model(
+    name          = "meta-llama/Llama-2-70b-chat-hf",
+    base_provider = "huggingface",
+    best_provider = RetryProvider([Llama2, DeepInfra]))
 
 # Bard
 palm = Model(
