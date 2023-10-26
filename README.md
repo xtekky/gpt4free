@@ -7,7 +7,7 @@
 > **Note**
 > Latest pypi version: [`0.1.7.7`](https://pypi.org/project/g4f/0.1.7.7)
 ```sh
-pip install -U g4f
+pip install -U g4f 
 ```
 
 ## New features
