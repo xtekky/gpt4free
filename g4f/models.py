@@ -263,6 +263,11 @@ class ModelUtils:
         'gpt-4-0613'     : gpt_4_0613,
         'gpt-4-32k'      : gpt_4_32k,
         'gpt-4-32k-0613' : gpt_4_32k_0613,
+
+        # Llama 2
+        'llama2-7b' : llama2_7b,
+        'llama2-13b': llama2_13b,
+        'llama2-70b': llama2_70b,
         
         # Bard
         'palm2'       : palm,
