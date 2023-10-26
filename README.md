@@ -248,6 +248,12 @@ response = g4f.ChatCompletion.create(
     auth=True
 )
 ```
+##### Manual Entry:
+
+If not running G4F locally, you can manually provide cookies as parameters using the cookies parameter:
+```py
+cookies = {"cookie_name": "value", "cookie_name2": "value2"}
+```
 
 ##### Async Support:
 
