@@ -8,9 +8,10 @@ from .base_provider import AsyncGeneratorProvider
 
 
 class Opchatgpts(AsyncGeneratorProvider):
-    url                   = "https://opchatgpts.net"
+    url = "https://opchatgpts.net"
+    working = False
+    supports_message_history = True
     supports_gpt_35_turbo = True
-    working               = False
 
     @classmethod
     async def create_async_generator(

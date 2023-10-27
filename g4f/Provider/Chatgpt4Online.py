@@ -8,9 +8,10 @@ from .base_provider import AsyncGeneratorProvider
 
 
 class Chatgpt4Online(AsyncGeneratorProvider):
-    url                   = "https://chatgpt4online.org"
+    url = "https://chatgpt4online.org"
+    supports_message_history = True
     supports_gpt_35_turbo = True
-    working               = False
+    working = False
 
     @classmethod
     async def create_async_generator(

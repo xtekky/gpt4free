@@ -9,10 +9,11 @@ from .helper        import get_cookies
 
 
 class GptChatly(AsyncProvider):
-    url                   = "https://gptchatly.com"
+    url = "https://gptchatly.com"
+    working = True
+    supports_message_history = True
     supports_gpt_35_turbo = True
-    supports_gpt_4        = True
-    working               = True
+    supports_gpt_4 = True
 
     @classmethod
     async def create_async(

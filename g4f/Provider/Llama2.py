@@ -13,8 +13,9 @@ models = {
 }
 
 class Llama2(AsyncGeneratorProvider):
-    url                   = "https://www.llama2.ai"
-    working               = True
+    url = "https://www.llama2.ai"
+    working = True
+    supports_message_history = True
 
     @classmethod
     async def create_async_generator(

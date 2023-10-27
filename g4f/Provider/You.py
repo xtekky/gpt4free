@@ -10,7 +10,6 @@ from .base_provider import AsyncGeneratorProvider, format_prompt
 class You(AsyncGeneratorProvider):
     url = "https://you.com"
     working = True
-    supports_message_history = True
     supports_gpt_35_turbo = True
 
 

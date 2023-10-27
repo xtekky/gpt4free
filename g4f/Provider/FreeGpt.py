@@ -11,10 +11,10 @@ domains = [
 ]
 
 class FreeGpt(AsyncGeneratorProvider):
-    url                   = "https://freegpts1.aifree.site/"
+    url = "https://freegpts1.aifree.site/"
+    working = True
     supports_message_history = True
     supports_gpt_35_turbo = True
-    working               = True
 
     @classmethod
     async def create_async_generator(
