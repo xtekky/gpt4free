@@ -105,9 +105,25 @@ class Api:
         
         logger.info(f'model: {model}, stream: {stream}, request: {messages[-1]["content"]}')
 
-        response = self.engine.ChatCompletion.create(model=model, 
-                                                     stream=stream, messages=messages,
-                                                     ignored=self.list_ignored_providers)
+        config = None
+        proxy = None
+
+        try:
+            config = json.load(open("config.json","r",encoding="utf-8"))
+            proxy = config["proxy"]
+
+        except Exception:
+            pass
+
+        if proxy != None:
+            response = self.engine.ChatCompletion.create(model=model,
+                                                        stream=stream, messages=messages,
+                                                        ignored=self.list_ignored_providers,
+                                                        proxy=proxy)
+        else:
+            response = self.engine.ChatCompletion.create(model=model,
+                                                        stream=stream, messages=messages,
+                                                        ignored=self.list_ignored_providers)
 
         completion_id        = ''.join(random.choices(string.ascii_letters + string.digits, k=28))
         completion_timestamp = int(time.time())
