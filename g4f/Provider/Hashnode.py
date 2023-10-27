@@ -13,8 +13,9 @@ class SearchTypes():
 
 class Hashnode(AsyncGeneratorProvider):
     url = "https://hashnode.com"
-    supports_gpt_35_turbo = True
     working = True
+    supports_message_history = True
+    supports_gpt_35_turbo = True
     _sources = []
 
     @classmethod

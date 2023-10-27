@@ -7,11 +7,12 @@ from json           import dumps
 
 
 class GeekGpt(BaseProvider):
-    url                   = 'https://chat.geekgpt.org'
-    supports_stream       = True
-    working               = True
+    url = 'https://chat.geekgpt.org'
+    working = True
+    supports_message_history = True
+    supports_stream = True
     supports_gpt_35_turbo = True
-    supports_gpt_4        = True
+    supports_gpt_4 = True
 
     @classmethod
     def create_completion(

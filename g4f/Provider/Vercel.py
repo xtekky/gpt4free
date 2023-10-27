@@ -9,9 +9,10 @@ from ..debug        import logging
 
 class Vercel(BaseProvider):
     url = 'https://sdk.vercel.ai'
-    working               = True
+    working = True
+    supports_message_history = True 
     supports_gpt_35_turbo = True
-    supports_stream       = True
+    supports_stream = True
 
     @staticmethod
     def create_completion(

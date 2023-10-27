@@ -9,6 +9,7 @@ from .base_provider import AsyncGeneratorProvider
 
 class DeepInfra(AsyncGeneratorProvider):
     url = "https://deepinfra.com"
+    supports_message_history = True
     working = True
 
     @classmethod

@@ -36,7 +36,7 @@ from .Vercel          import Vercel
 from .Ylokh           import Ylokh
 from .You             import You
 from .Yqcloud         import Yqcloud
-from .Geekgpt         import GeekGpt
+from .GeekGpt         import GeekGpt
 
 from .base_provider  import BaseProvider, AsyncProvider, AsyncGeneratorProvider
 from .retry_provider import RetryProvider
@@ -111,7 +111,7 @@ class ProviderUtils:
         'Ylokh': Ylokh,
         'You': You,
         'Yqcloud': Yqcloud,
-        'Geekgpt': GeekGpt,
+        'GeekGpt': GeekGpt,
         
         'BaseProvider': BaseProvider,
         'AsyncProvider': AsyncProvider,

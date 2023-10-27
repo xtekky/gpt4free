@@ -30,10 +30,10 @@ default_cookies = {
 }
 
 class Bing(AsyncGeneratorProvider):
-    url             = "https://bing.com/chat"
-    working         = True
+    url = "https://bing.com/chat"
+    working = True
     supports_message_history = True
-    supports_gpt_4  = True
+    supports_gpt_4 = True
         
     @staticmethod
     def create_async_generator(

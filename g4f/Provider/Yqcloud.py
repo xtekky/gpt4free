@@ -10,7 +10,6 @@ from .base_provider import AsyncGeneratorProvider, format_prompt
 class Yqcloud(AsyncGeneratorProvider):
     url = "https://chat9.yqcloud.top/"
     working = True
-    supports_message_history = True
     supports_gpt_35_turbo = True
 
     @staticmethod
