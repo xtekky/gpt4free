@@ -260,6 +260,32 @@ body {
     z-index: 10000;
 }
 
+.message .assistant{
+    max-width: 48px;
+    max-height: 48px;
+    flex-shrink: 0;
+}
+
+.message .assistant img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 8px;
+    outline: 1px solid var(--blur-border);
+}
+
+.message .assistant:after {
+    content: "63";
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    height: 60%;
+    width: 60%;
+    background: var(--colour-3);
+    filter: blur(10px) opacity(0.5);
+    z-index: 10000;
+}
+
 .message .content {
     display: flex;
     flex-direction: column;
@@ -274,6 +300,13 @@ body {
 }
 
 .message .user i {
+    position: absolute;
+    bottom: -6px;
+    right: -6px;
+    z-index: 1000;
+}
+
+.message .assistant i {
     position: absolute;
     bottom: -6px;
     right: -6px;
