@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import uuid, json, time, os
-import tempfile, subprocess, shutil
+import tempfile, shutil, asyncio
 
 from ..base_provider import AsyncGeneratorProvider
 from ..helper import get_browser, get_cookies, format_prompt, get_event_loop
@@ -174,7 +174,14 @@ fun.getToken(config).then(token => {
     tmp.write(source.encode())
     tmp.close()
     try:
-        p = subprocess.Popen([node, tmp.name], stdout=subprocess.PIPE)
-        return p.stdout.read().decode()
+        p = await asyncio.create_subprocess_exec(
+            node, tmp.name,
+            stderr=asyncio.subprocess.PIPE,
+            stdout=asyncio.subprocess.PIPE
+        )
+        stdout, stderr = await p.communicate()
+        if p.returncode == 0:
+            return stdout.decode()
+        raise RuntimeError(f"Exec Error: {stderr.decode()}")
     finally:
         os.unlink(tmp.name)
