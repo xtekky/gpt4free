@@ -19,7 +19,7 @@ pip install -U g4f
 - [Getting Started](#getting-started)
   - [Prerequisites](#prerequisites)
   - [Setting up the project](#setting-up-the-project)
-    - [Install using pypi](#install-using-pypi)
+    - [Install using PyPi](#install-using-pypi)
     - [Install using docker](#setting-up-with-docker)
 - [Usage](#usage)
   - [The `g4f` Package](#the-g4f-package)
@@ -251,7 +251,7 @@ response = g4f.ChatCompletion.create(
 
 ##### Async Support:
 
-To enhance speed and overall performance, execute providers asynchronously.
+To enhance speed and overall performance, execute providers asyncronously.
 The total execution time will be determined by the duration of the slowest provider's execution.
 
 ```py
@@ -306,7 +306,7 @@ print(f"Result:", response)
 
 ### interference openai-proxy API (use with openai python package)
 
-#### run interference API from pypi package:
+#### run interference API from PyPi package:
 ```py
 from g4f.api import run_api
 
