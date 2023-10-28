@@ -19,3 +19,4 @@ tiktoken
 pillow
 platformdirs
 numpy
+asgiref
