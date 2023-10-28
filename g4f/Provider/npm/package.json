@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "crypto-js": "^4.2.0",
+    "funcaptcha": "^1.1.7"
+  }
+}
