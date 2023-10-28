@@ -1,0 +1,27 @@
+{
+    "name": "funcaptcha",
+    "version": "1.1.7",
+    "description": "A library used to interact with funcaptchas.",
+    "author": "noahcoolboy",
+    "license": "MIT",
+    "keywords": [
+        "funcaptcha"
+    ],
+    "main": "lib/index.js",
+    "types": "lib/index.d.ts",
+    "scripts": {
+        "build": "rimraf lib && tsc",
+        "test": "node test/test.js",
+        "benchmark": "node test/benchmark.js",
+        "roblox": "node test/roblox.js"
+    },
+    "dependencies": {
+        "undici": "^5.22.0"
+    },
+    "devDependencies": {
+        "@types/node": "^17.0.42",
+        "rimraf": "^3.0.2",
+        "typescript": "^4.7.4"
+    },
+    "repository": "github:noahcoolboy/funcaptcha"
+}
