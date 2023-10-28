@@ -31,12 +31,37 @@ const handle_ask = async () => {
     message_input.style.height = `80px`;
     message_input.focus();
 
+    let txtMsgs = [];
+    const divTags = document.getElementsByClassName("message");
+    for(let i=0;i<divTags.length;i++){
+        if(!divTags[i].children[1].classList.contains("welcome-message")){
+            if(divTags[i].children[0].className == "assistant"){
+                const msg = {
+                    role: "assistant",
+                    content: divTags[i].children[1].textContent+" "
+                };
+                txtMsgs.push(msg);
+            }else{
+                const msg = {
+                    role: "user",
+                    content: divTags[i].children[1].textContent+" "
+                };
+                txtMsgs.push(msg);
+            }
+        }
+    }
+
     window.scrollTo(0, 0);
     let message = message_input.value;
+    const msg = {
+        role: "user",
+        content: message
+    };
+    txtMsgs.push(msg);
 
     if (message.length > 0) {
         message_input.value = ``;
-        await ask_gpt(message);
+        await ask_gpt(txtMsgs);
     }
 };
 
@@ -49,13 +74,13 @@ const remove_cancel_button = async () => {
     }, 300);
 };
 
-const ask_gpt = async (message) => {
+const ask_gpt = async (txtMsgs) => {
     try {
         message_input.value     = ``;
         message_input.innerHTML = ``;
         message_input.innerText = ``;
 
-        add_conversation(window.conversation_id, message);
+        add_conversation(window.conversation_id, txtMsgs[0].content);
         window.scrollTo(0, 0);
         window.controller = new AbortController();
 
@@ -75,7 +100,7 @@ const ask_gpt = async (message) => {
                     <i class="fa-regular fa-phone-arrow-up-right"></i>
                 </div>
                 <div class="content" id="user_${token}"> 
-                    ${format(message)}
+                    ${format(txtMsgs[txtMsgs.length-1].content)}
                 </div>
             </div>
         `;
@@ -87,7 +112,7 @@ const ask_gpt = async (message) => {
 
         message_box.innerHTML += `
             <div class="message">
-                <div class="user">
+                <div class="assistant">
                     ${gpt_image} <i class="fa-regular fa-phone-arrow-down-left"></i>
                 </div>
                 <div class="content" id="gpt_${window.token}">
@@ -120,12 +145,7 @@ const ask_gpt = async (message) => {
                         conversation: await get_conversation(window.conversation_id),
                         internet_access: document.getElementById(`switch`).checked,
                         content_type: `text`,
-                        parts: [
-                            {
-                                content: message,
-                                role: `user`,
-                            },
-                        ],
+                        parts: txtMsgs,
                     },
                 },
             }),
@@ -154,7 +174,7 @@ const ask_gpt = async (message) => {
             document.getElementById(`gpt_${window.token}`).innerHTML = "An error occured, please try again, if the problem persists, please reload / refresh cache or use a differnet browser";
         }
 
-        add_message(window.conversation_id, "user", message);
+        add_message(window.conversation_id, "user", txtMsgs[txtMsgs.length-1].content);
         add_message(window.conversation_id, "assistant", text);
 
         message_box.scrollTop = message_box.scrollHeight;
@@ -165,7 +185,7 @@ const ask_gpt = async (message) => {
         window.scrollTo(0, 0);
     
     } catch (e) {
-        add_message(window.conversation_id, "user", message);
+        add_message(window.conversation_id, "user", txtMsgs[txtMsgs.length-1].content);
 
         message_box.scrollTop = message_box.scrollHeight;
         await remove_cancel_button();
@@ -279,7 +299,7 @@ const load_conversation = async (conversation_id) => {
     for (item of conversation.items) {
         message_box.innerHTML += `
             <div class="message">
-                <div class="user">
+                <div class=${item.role == "assistant" ? "assistant" : "user"}>
                     ${item.role == "assistant" ? gpt_image : user_image}
                     ${item.role == "assistant"
                         ? `<i class="fa-regular fa-phone-arrow-down-left"></i>`
@@ -316,7 +336,7 @@ const get_conversation = async (conversation_id) => {
 
 const add_conversation = async (conversation_id, content) => {
     if (content.length > 17) {
-        title = content.substring(0, 17) + '..'
+        title = content.substring(0, 17) + '...'
     } else {
         title = content + '&nbsp;'.repeat(19 - content.length)
     }
@@ -461,7 +481,7 @@ const say_hello = async () => {
 
     message_box.innerHTML += `
         <div class="message">
-            <div class="user">
+            <div class="assistant">
                 ${gpt_image}
                 <i class="fa-regular fa-phone-arrow-down-left"></i>
             </div>
