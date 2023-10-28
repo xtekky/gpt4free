@@ -56,7 +56,7 @@ class Backend_Api:
 
             def stream():
                 yield from g4f.ChatCompletion.create(
-                    model=g4f.models.gpt_35_long,
+                    model=model,
                     provider=get_provider(provider),
                     messages=messages,
                     stream=True,
