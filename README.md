@@ -1,3 +1,5 @@
+<div id="top"></div>
+
 ![248433934-7886223b-c1d1-4260-82aa-da5741f303bb](https://github.com/xtekky/gpt4free/assets/98614666/ea012c87-76e0-496a-8ac4-e2de090cc6c9)
 
 
@@ -648,3 +650,5 @@ This project is licensed under <a href="./LICENSE">GNU_GPL_v3.0</a>. <img width=
     </td>
   </tr>
 </table>
+
+<p align="right">(<a href="#top">🔼 Back to top</a>)</p>
