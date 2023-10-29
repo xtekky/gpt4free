@@ -27,7 +27,7 @@ setup(
     long_description=long_description,
     packages=find_packages(),
     package_data={
-        "g4f": ["g4f/interference/*", "g4f/gui/client/*", "g4f/gui/server/*"]
+        "g4f": ["g4f/interference/*", "g4f/gui/client/*", "g4f/gui/server/*", "g4f/Provider/npm/*"]
     },
     include_package_data=True,
     install_requires=required,
