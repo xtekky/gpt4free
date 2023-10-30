@@ -1,3 +1,5 @@
+<div id="top"></div>
+
 ![248433934-7886223b-c1d1-4260-82aa-da5741f303bb](https://github.com/xtekky/gpt4free/assets/98614666/ea012c87-76e0-496a-8ac4-e2de090cc6c9)
 
 
@@ -19,7 +21,7 @@ pip install -U g4f
 - [Getting Started](#getting-started)
   - [Prerequisites](#prerequisites)
   - [Setting up the project](#setting-up-the-project)
-    - [Install using pypi](#install-using-pypi)
+    - [Install using PyPi](#install-using-pypi)
     - [Install using docker](#setting-up-with-docker)
 - [Usage](#usage)
   - [The `g4f` Package](#the-g4f-package)
@@ -251,7 +253,7 @@ response = g4f.ChatCompletion.create(
 
 ##### Async Support:
 
-To enhance speed and overall performance, execute providers asynchronously.
+To enhance speed and overall performance, execute providers asyncronously.
 The total execution time will be determined by the duration of the slowest provider's execution.
 
 ```py
@@ -306,7 +308,7 @@ print(f"Result:", response)
 
 ### interference openai-proxy API (use with openai python package)
 
-#### run interference API from pypi package:
+#### run interference API from PyPi package:
 ```py
 from g4f.api import run_api
 
@@ -648,3 +650,5 @@ This project is licensed under <a href="./LICENSE">GNU_GPL_v3.0</a>. <img width=
     </td>
   </tr>
 </table>
+
+<p align="right">(<a href="#top">🔼 Back to top</a>)</p>
