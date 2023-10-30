@@ -3,10 +3,10 @@
 ![248433934-7886223b-c1d1-4260-82aa-da5741f303bb](https://github.com/xtekky/gpt4free/assets/98614666/ea012c87-76e0-496a-8ac4-e2de090cc6c9)
 
 
-> **Note**
+> **Note:**
 > By using this repository or any code related to it, you agree to the [legal notice](./LEGAL_NOTICE.md). The author is not responsible for any copies, forks, re-uploads made by other users, or anything else related to GPT4Free. This is the author's only account and repository. To prevent impersonation or irresponsible actions, please comply with the GNU GPL license this Repository uses.
 
-> **Note**
+> **Note:**
 > Latest pypi version: [`0.1.7.8`](https://pypi.org/project/g4f/0.1.7.8)
 ```sh
 pip install -U g4f
@@ -45,7 +45,7 @@ pip install -U g4f
 
 #### Setting up the project:
 
-##### Install using pypi
+##### Install using pypi:
 
 ```
 pip install -U g4f
@@ -66,7 +66,7 @@ cd gpt4free
 ```
 
 3. (Recommended) Create a Python virtual environment:
-You can follow the [Python official documentation](https://docs.python.org/3/tutorial/venv.html) for virtual environments.
+You can follow the [Python official documentation](https://docs.python.org/3/tutorial/venv.html) for virtual environments:
 
 
 ```
@@ -88,7 +88,7 @@ python3 -m venv venv
 pip install -r requirements.txt
 ```
 
-6. Create a `test.py` file in the root folder and start using the repo, further Instructions are below
+6. Create a `test.py` file in the root folder and start using the repo, further Instructions are below:
 
 ```py
 import g4f
@@ -98,7 +98,7 @@ import g4f
 
 ##### Setting up with Docker:
 
-If you have Docker installed, you can easily set up and run the project without manually installing dependencies.
+If you have Docker installed, you can easily set up and run the project without manually installing dependencies:
 
 1. First, ensure you have both Docker and Docker Compose installed.
 
