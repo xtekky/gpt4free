@@ -253,7 +253,7 @@ response = g4f.ChatCompletion.create(
 
 ##### Async Support:
 
-To enhance speed and overall performance, execute providers asyncronously.
+To enhance speed and overall performance, execute providers asynchronously.
 The total execution time will be determined by the duration of the slowest provider's execution.
 
 ```py
