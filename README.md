@@ -7,7 +7,7 @@
 > By using this repository or any code related to it, you agree to the [legal notice](./LEGAL_NOTICE.md). The author is not responsible for any copies, forks, re-uploads made by other users, or anything else related to GPT4Free. This is the author's only account and repository. To prevent impersonation or irresponsible actions, please comply with the GNU GPL license this Repository uses.
 
 > **Note**
-> Latest pypi version: [`0.1.7.8`](https://pypi.org/project/g4f/0.1.7.8)
+> Latest pypi version: [`0.1.7.9`](https://pypi.org/project/g4f/0.1.7.9)
 ```sh
 pip install -U g4f
 ```
@@ -253,7 +253,7 @@ response = g4f.ChatCompletion.create(
 
 ##### Async Support:
 
-To enhance speed and overall performance, execute providers asyncronously.
+To enhance speed and overall performance, execute providers asynchronously.
 The total execution time will be determined by the duration of the slowest provider's execution.
 
 ```py
@@ -607,7 +607,7 @@ for message in response:
 ## Contributors
 
 A list of the contributors is available [here](https://github.com/xtekky/gpt4free/graphs/contributors)   
-The [`Vercel.py`](https://github.com/xtekky/gpt4free/blob/main/g4f/Provider/Vercel.py) file contains code from [vercel-llm-api](https://github.com/ading2210/vercel-llm-api) by [@ading2210](https://github.com/ading2210), which is licenced under the [GNU GPL v3](https://www.gnu.org/licenses/gpl-3.0.txt)   
+The [`Vercel.py`](https://github.com/xtekky/gpt4free/blob/main/g4f/Provider/Vercel.py) file contains code from [vercel-llm-api](https://github.com/ading2210/vercel-llm-api) by [@ading2210](https://github.com/ading2210), which is licensed under the [GNU GPL v3](https://www.gnu.org/licenses/gpl-3.0.txt)   
 Top 1 Contributor: [@hlohaus](https://github.com/hlohaus)
 
 ## Copyright
