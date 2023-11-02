@@ -164,4 +164,4 @@ async def completions():
 
 def run(ip):
     split_ip = ip.split(":")
-    uvicorn.run(app, host=split_ip[0], port=int(split_ip[1]), use_colors=False, loop='asyncio')
+    uvicorn.run(app, host=split_ip[0], port=int(split_ip[1]), use_colors=False)
