@@ -19,3 +19,4 @@ platformdirs
 numpy
 asgiref
 fastapi
+uvicorn
