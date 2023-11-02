@@ -2,7 +2,6 @@ from fastapi                  import FastAPI, Response, Request
 from fastapi.middleware.cors  import CORSMiddleware
 from typing                   import List, Union, Any, Dict, AnyStr
 from ._tokenizer              import tokenize
-import sqlite3
 import g4f
 import time
 import json
