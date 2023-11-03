@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import uuid, json, time, os
 import tempfile, shutil, asyncio
+import sys, subprocess
 
 from ..base_provider import AsyncGeneratorProvider
 from ..helper import get_browser, get_cookies, format_prompt, get_event_loop
@@ -174,6 +175,15 @@ fun.getToken(config).then(token => {
     tmp.write(source.encode())
     tmp.close()
     try:
+        if sys.platform == 'win32':
+            p = subprocess.Popen(
+                [node, tmp.name],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE
+            )
+            if p.returncode == 0:
+                return p.stdout.read().decode()
+            raise RuntimeError(f"Exec Error: {p.stderr.read().decode()}")
         p = await asyncio.create_subprocess_exec(
             node, tmp.name,
             stderr=asyncio.subprocess.PIPE,
