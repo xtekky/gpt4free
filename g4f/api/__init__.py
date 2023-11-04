@@ -159,4 +159,4 @@ class Api:
 
     def run(self, ip):
         split_ip = ip.split(":")
-        uvicorn.run(host=split_ip[0], port=int(split_ip[1]), use_colors=False)
+        uvicorn.run(app=self.app, host=split_ip[0], port=int(split_ip[1]), use_colors=False)
