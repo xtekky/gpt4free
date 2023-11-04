@@ -5,7 +5,7 @@ from .Provider  import BaseProvider, RetryProvider
 from .typing    import Messages, CreateResult, Union, List
 from .          import debug
 
-version       = '0.1.7.9'
+version       = '0.1.8.0'
 version_check = True
 
 def check_pypi_version() -> None:
