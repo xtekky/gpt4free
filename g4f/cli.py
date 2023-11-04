@@ -23,7 +23,7 @@ def main():
 
     args = parser.parse_args()
     if args.mode == "api":
-        controller=Api(g4f, debug=args.debug, list_ignored_providers=args.ignored_providers)
+        controller=Api(engine=g4f, debug=args.debug, list_ignored_providers=args.ignored_providers)
         controller.run(args.bind)
     elif args.mode == "gui":
         run_gui_args(args)
