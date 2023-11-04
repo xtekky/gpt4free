@@ -162,6 +162,6 @@ async def chat_completions(request: Request, item: JSONStructure = None):
 async def completions():
     return Response(content=json.dumps({'info': 'Not working yet.'}, indent=4), media_type="application/json")
 
-def run(ip):
+def run(ip, thread_quantity):
     split_ip = ip.split(":")
-    uvicorn.run(app, host=split_ip[0], port=int(split_ip[1]), use_colors=False)
+    uvicorn.run(app, host=split_ip[0], port=int(split_ip[1]), use_colors=False, workers=thread_quantity)
