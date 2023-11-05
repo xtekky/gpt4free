@@ -6,8 +6,6 @@ certifi
 browser_cookie3
 websockets
 js2py
-flask[async]
-flask-cors
 typing-extensions
 PyExecJS
 duckduckgo-search
@@ -20,3 +18,5 @@ pillow
 platformdirs
 numpy
 asgiref
+fastapi
+uvicorn
