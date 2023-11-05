@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import uuid, json, time, os
 import tempfile, shutil, asyncio
+import sys, subprocess
 
 from ..base_provider import AsyncGeneratorProvider
 from ..helper import get_browser, get_cookies, format_prompt, get_event_loop
@@ -144,11 +145,6 @@ class OpenaiChat(AsyncGeneratorProvider):
         return f"g4f.provider.{cls.__name__} supports: ({param})"
     
 async def get_arkose_token(proxy: str = None) -> str:
-    node = shutil.which("node")
-    if not node:
-        if debug.logging:
-            print('OpenaiChat: "node" not found')
-        return
     dir = os.path.dirname(os.path.dirname(__file__))
     include = f'{dir}/npm/node_modules/funcaptcha'
     config = {
@@ -174,14 +170,32 @@ fun.getToken(config).then(token => {
     tmp.write(source.encode())
     tmp.close()
     try:
-        p = await asyncio.create_subprocess_exec(
-            node, tmp.name,
-            stderr=asyncio.subprocess.PIPE,
-            stdout=asyncio.subprocess.PIPE
+        return await exec_js(tmp.name)
+    finally:
+        os.unlink(tmp.name)
+
+async def exec_js(file: str) -> str:
+    node = shutil.which("node")
+    if not node:
+        if debug.logging:
+            print('OpenaiChat: "node" not found')
+        return
+    if sys.platform == 'win32':
+        p = subprocess.Popen(
+            [node, file],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE
         )
-        stdout, stderr = await p.communicate()
+        stdout, stderr = p.communicate()
         if p.returncode == 0:
             return stdout.decode()
         raise RuntimeError(f"Exec Error: {stderr.decode()}")
-    finally:
-        os.unlink(tmp.name)
+    p = await asyncio.create_subprocess_exec(
+        node, file,
+        stderr=asyncio.subprocess.PIPE,
+        stdout=asyncio.subprocess.PIPE
+    )
+    stdout, stderr = await p.communicate()
+    if p.returncode == 0:
+        return stdout.decode()
+    raise RuntimeError(f"Exec Error: {stderr.decode()}")
