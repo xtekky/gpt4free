@@ -20,3 +20,4 @@ numpy
 asgiref
 fastapi
 uvicorn
+flask
