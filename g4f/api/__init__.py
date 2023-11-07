@@ -1,4 +1,5 @@
 from fastapi            import FastAPI, Response, Request
+from fastapi.responses import StreamingResponse
 from typing             import List, Union, Any, Dict, AnyStr
 from ._tokenizer        import tokenize
 from ..                 import BaseProvider
@@ -151,7 +152,7 @@ class Api:
                 except GeneratorExit:
                     pass
 
-            return Response(content=json.dumps(streaming(), indent=4), media_type="application/json")
+            return StreamingResponse(streaming(), media_type="text/event-stream")
 
         @self.app.post("/v1/completions")
         async def completions():
