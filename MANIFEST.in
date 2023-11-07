@@ -1,2 +1,3 @@
 recursive-include g4f/gui/server *
 recursive-include g4f/gui/client *
+recursive-include g4f/Provider/npm *
