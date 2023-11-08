@@ -660,12 +660,6 @@ ul {
     }
 }
 
-@media screen and (max-height: 640px) and (min-width: 990px) {
-    body {
-        height: 87vh
-    }
-}
-
 .shown {
     display: flex;
 }
