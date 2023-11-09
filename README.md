@@ -1,3 +1,5 @@
+new discord server: [discord.gg/XfybzPXPH5](https://discord.gg/XfybzPXPH5)
+
 <div id="top"></div>
 
 ![248433934-7886223b-c1d1-4260-82aa-da5741f303bb](https://github.com/xtekky/gpt4free/assets/98614666/ea012c87-76e0-496a-8ac4-e2de090cc6c9)
@@ -13,7 +15,6 @@ pip install -U g4f
 ```
 
 ## New features
-* Discord Channel: [discord.gg/XfybzPXPH5](https://discord.gg/XfybzPXPH5)
 * Telegram Channel: [t.me/g4f_channel](https://telegram.me/g4f_channel)
 * g4f documentation (unfinished): [g4f.mintlify.app](https://g4f.mintlify.app) | Contribute to the docs via: [github.com/xtekky/gpt4free-docs](https://github.com/xtekky/gpt4free-docs)
 
