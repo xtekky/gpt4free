@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 import uuid, json, time, os
-import tempfile, shutil, asyncio
-import sys, subprocess
+from py_arkose_generator.arkose import get_values_for_request
 
 from ..base_provider import AsyncGeneratorProvider
 from ..helper import get_browser, get_cookies, format_prompt, get_event_loop
@@ -145,57 +144,22 @@ class OpenaiChat(AsyncGeneratorProvider):
         return f"g4f.provider.{cls.__name__} supports: ({param})"
     
 async def get_arkose_token(proxy: str = None) -> str:
-    dir = os.path.dirname(os.path.dirname(__file__))
-    include = f'{dir}/npm/node_modules/funcaptcha'
     config = {
         "pkey": "3D86FBBA-9D22-402A-B512-3420086BA6CC",
         "surl": "https://tcr9i.chat.openai.com",
-        "data": {},
         "headers": {
             "User-Agent": 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36'
         },
         "site": "https://chat.openai.com",
-        "proxy": proxy
     }
-    source = """
-fun = require({include})
-config = {config}
-fun.getToken(config).then(token => {
-    console.log(token.token)
-})
-"""
-    source = source.replace('{include}', json.dumps(include))
-    source = source.replace('{config}', json.dumps(config))
-    tmp = tempfile.NamedTemporaryFile(delete=False)
-    tmp.write(source.encode())
-    tmp.close()
-    try:
-        return await exec_js(tmp.name)
-    finally:
-        os.unlink(tmp.name)
-
-async def exec_js(file: str) -> str:
-    node = shutil.which("node")
-    if not node:
-        if debug.logging:
-            print('OpenaiChat: "node" not found')
-        return
-    if sys.platform == 'win32':
-        p = subprocess.Popen(
-            [node, file],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE
-        )
-        stdout, stderr = p.communicate()
-        if p.returncode == 0:
-            return stdout.decode()
-        raise RuntimeError(f"Exec Error: {stderr.decode()}")
-    p = await asyncio.create_subprocess_exec(
-        node, file,
-        stderr=asyncio.subprocess.PIPE,
-        stdout=asyncio.subprocess.PIPE
-    )
-    stdout, stderr = await p.communicate()
-    if p.returncode == 0:
-        return stdout.decode()
-    raise RuntimeError(f"Exec Error: {stderr.decode()}")
+    args_for_request = get_values_for_request(config)
+    async with StreamSession(
+        proxies={"https": proxy},
+        impersonate="chrome107",
+    ) as session:
+        async with session.post(**args_for_request) as response:
+            response.raise_for_status()
+            decoded_json = await response.json()
+            if "token" in decoded_json:
+                return decoded_json["token"]
+            raise RuntimeError(f"Response: {decoded_json}")
