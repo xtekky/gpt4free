@@ -21,3 +21,4 @@ asgiref
 fastapi
 uvicorn
 flask
+git+https://github.com/hlohaus/py-arkose-token-generator.git
