@@ -3,58 +3,32 @@ import sys
 from pathlib import Path
 from urllib.parse import urlparse
 
-sys.path.append(str(Path(__file__).parent.parent))
+sys.path.append(str(Path(__file__).parent.parent.parent))
 
 import asyncio
 from g4f import models
-from g4f.Provider.base_provider import AsyncProvider, BaseProvider
-from g4f.Provider.retry_provider import RetryProvider
-from testing._providers import get_providers
+from g4f import ChatCompletion
+from g4f.Provider.base_provider import BaseProvider
+from etc.testing._providers import get_providers
 
-logging = False
+from g4f import debug
 
-
-def print_imports():
-    print("##### Providers:")
-    print("```py")
-    print("from g4f.Provider import (")
-    for _provider in get_providers():
-        if _provider.working:
-            print(f"    {_provider.__name__},")
-                
-    print(")")
-    print("# Usage:")
-    print("response = g4f.ChatCompletion.create(..., provider=ProviderName)")
-    print("```")
-    print()
-    print()
-
-def print_async():
-    print("##### Async support:")
-    print("```py")
-    print("_providers = [")
-    for _provider in get_providers():
-        if _provider.working and issubclass(_provider, AsyncProvider):
-            print(f"      g4f.Provider.{_provider.__name__},")
-    print("]")
-    print("```")
-    print()
-    print()
+debug.logging = True
 
 
 async def test_async(provider: type[BaseProvider]):
     if not provider.working:
         return False
-    model = models.gpt_35_turbo.name if provider.supports_gpt_35_turbo else models.default.name
     messages = [{"role": "user", "content": "Hello Assistant!"}]
     try:
-        if issubclass(provider, AsyncProvider):
-            response = await provider.create_async(model=model, messages=messages)
-        else:
-            response = provider.create_completion(model=model, messages=messages, stream=False)
+        response = await asyncio.wait_for(ChatCompletion.create_async(
+            model=models.default,
+            messages=messages,
+            provider=provider
+        ), 30)
         return bool(response)
     except Exception as e:
-        if logging:
+        if debug.logging:
             print(f"{provider.__name__}: {e.__class__.__name__}: {e}")
         return False
 
@@ -68,44 +42,53 @@ async def test_async_list(providers: list[type[BaseProvider]]):
 
 
 def print_providers():
-    lines = [
-        "| Website| Provider| gpt-3.5 | gpt-4 | Streaming | Asynchron | Status | Auth |",
-        "| ------ | ------- | ------- | ----- | --------- | --------- | ------ | ---- |",
-    ]
 
     providers = get_providers()
     responses = asyncio.run(test_async_list(providers))
 
-    for is_working in (True, False):
-        for idx, _provider in enumerate(providers):
-            if is_working != _provider.working:
-                continue
-            if _provider == RetryProvider:
-                continue
-            
-            netloc = urlparse(_provider.url).netloc
-            website = f"[{netloc}]({_provider.url})"
+    for type in ("GPT-4", "GPT-3.5", "Other"):
+        lines = [
+            "",
+            f"### {type}",
+            "",
+            "| Website | Provider | GPT-3.5 | GPT-4 | Stream | Status | Auth |",
+            "| ------  | -------  | ------- | ----- | ------ | ------ | ---- |",
+        ]
+        for is_working in (True, False):
+            for idx, _provider in enumerate(providers):
+                if is_working != _provider.working:
+                    continue
+                do_continue = False
+                if type == "GPT-4" and _provider.supports_gpt_4:
+                    do_continue = True
+                elif type == "GPT-3.5" and not _provider.supports_gpt_4 and _provider.supports_gpt_35_turbo:
+                    do_continue = True
+                elif type == "Other" and not _provider.supports_gpt_4 and not _provider.supports_gpt_35_turbo:
+                    do_continue = True
+                if not do_continue:
+                    continue
+                netloc = urlparse(_provider.url).netloc
+                website = f"[{netloc}]({_provider.url})"
 
-            provider_name = f"`g4f.Provider.{_provider.__name__}`"
+                provider_name = f"`g4f.Provider.{_provider.__name__}`"
 
-            has_gpt_35 = "✔️" if _provider.supports_gpt_35_turbo else "❌"
-            has_gpt_4 = "✔️" if _provider.supports_gpt_4 else "❌"
-            stream = "✔️" if _provider.supports_stream else "❌"
-            can_async = "✔️" if issubclass(_provider, AsyncProvider) else "❌"
-            if _provider.working:
-                status = '![Active](https://img.shields.io/badge/Active-brightgreen)'
-                if responses[idx]:
+                has_gpt_35 = "✔️" if _provider.supports_gpt_35_turbo else "❌"
+                has_gpt_4 = "✔️" if _provider.supports_gpt_4 else "❌"
+                stream = "✔️" if _provider.supports_stream else "❌"
+                if _provider.working:
                     status = '![Active](https://img.shields.io/badge/Active-brightgreen)'
+                    if responses[idx]:
+                        status = '![Active](https://img.shields.io/badge/Active-brightgreen)'
+                    else:
+                        status = '![Unknown](https://img.shields.io/badge/Unknown-grey)'
                 else:
-                    status = '![Unknown](https://img.shields.io/badge/Unknown-grey)'
-            else:
-                status = '![Inactive](https://img.shields.io/badge/Inactive-red)'
-            auth = "✔️" if _provider.needs_auth else "❌"
+                    status = '![Inactive](https://img.shields.io/badge/Inactive-red)'
+                auth = "✔️" if _provider.needs_auth else "❌"
 
-            lines.append(
-                f"| {website} | {provider_name} | {has_gpt_35} | {has_gpt_4} | {stream} | {can_async} | {status} | {auth} |"
-            )
-    print("\n".join(lines))
+                lines.append(
+                    f"| {website} | {provider_name} | {has_gpt_35} | {has_gpt_4} | {stream} | {status} | {auth} |"
+                )
+        print("\n".join(lines))
 
 def print_models():
     base_provider_names = {
@@ -151,8 +134,6 @@ def get_models():
 
 
 if __name__ == "__main__":
-    print_imports()
-    print_async()
     print_providers()
     print("\n", "-" * 50, "\n")
     print_models()

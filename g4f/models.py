@@ -82,7 +82,7 @@ llama2_7b = Model(
     best_provider = RetryProvider([Llama2, DeepInfra]))
 
 llama2_13b = Model(
-    name          ="meta-llama/Llama-2-13b-chat-hf",
+    name          = "meta-llama/Llama-2-13b-chat-hf",
     base_provider = 'huggingface',
     best_provider = RetryProvider([Llama2, DeepInfra]))
 
