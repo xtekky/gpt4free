@@ -10,6 +10,7 @@ from .helper import format_prompt
 class MyShell(AsyncGeneratorProvider):
     url = "https://app.myshell.ai/chat"
     working = True
+    supports_gpt_35_turbo = True
 
     @classmethod
     async def create_async_generator(
