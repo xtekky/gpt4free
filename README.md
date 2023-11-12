@@ -9,7 +9,7 @@ new discord server: [discord.gg/XfybzPXPH5](https://discord.gg/XfybzPXPH5)
 > By using this repository or any code related to it, you agree to the [legal notice](./LEGAL_NOTICE.md). The author is not responsible for any copies, forks, re-uploads made by other users, or anything else related to GPT4Free. This is the author's only account and repository. To prevent impersonation or irresponsible actions, please comply with the GNU GPL license this Repository uses.
 
 > **Note**
-> Latest pypi version: [`0.1.8.1`](https://pypi.org/project/g4f/0.1.8.1)
+> Latest pypi version: [`0.1.8.2`](https://pypi.org/project/g4f/0.1.8.2)
 ```sh
 pip install -U g4f
 ```
