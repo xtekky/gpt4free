@@ -14,9 +14,10 @@ new discord server: [discord.gg/XfybzPXPH5](https://discord.gg/XfybzPXPH5)
 pip install -U g4f
 ```
 
-## 🚀 New Features
-* Telegram Channel: [t.me/g4f_channel](https://telegram.me/g4f_channel)
-* g4f Documentation (unfinished): [g4f.mintlify.app](https://g4f.mintlify.app) | Contribute to the docs via: [github.com/xtekky/gpt4free-docs](https://github.com/xtekky/gpt4free-docs)
+## 🆕 What's New
+
+- Join our Telegram Channel: [t.me/g4f_channel](https://telegram.me/g4f_channel)
+- Explore the g4f Documentation (unfinished): [g4f.mintlify.app](https://g4f.mintlify.app) | Contribute to the docs via: [github.com/xtekky/gpt4free-docs](https://github.com/xtekky/gpt4free-docs)
 
 ## 📚 Table of Contents
 
