@@ -6,6 +6,7 @@ from .Aichat          import Aichat
 from .Ails            import Ails
 from .AItianhu        import AItianhu
 from .AItianhuSpace   import AItianhuSpace
+from .Berlin          import Berlin
 from .Bing            import Bing
 from .ChatBase        import ChatBase
 from .ChatForAi       import ChatForAi
@@ -26,6 +27,7 @@ from .GptForLove      import GptForLove
 from .GptGo           import GptGo
 from .GptGod          import GptGod
 from .Hashnode        import Hashnode
+from .Koala           import Koala
 from .Liaobots        import Liaobots
 from .Llama2          import Llama2
 from .MyShell         import MyShell
@@ -59,6 +61,7 @@ class ProviderUtils:
         'AsyncProvider': AsyncProvider,
         'Bard': Bard,
         'BaseProvider': BaseProvider,
+        'Berlin': Berlin,
         'Bing': Bing,
         'ChatBase': ChatBase,
         'ChatForAi': ChatForAi,
@@ -89,6 +92,7 @@ class ProviderUtils:
         'H2o': H2o,
         'HuggingChat': HuggingChat,
         'Komo': Komo,
+        'Koala': Koala,
         'Liaobots': Liaobots,
         'Llama2': Llama2,
         'Lockchat': Lockchat,
@@ -135,6 +139,7 @@ __all__ = [
     'AItianhuSpace',
     'Aivvm',
     'Bard',
+    'Berlin',
     'Bing',
     'ChatBase',
     'ChatForAi',
@@ -162,6 +167,7 @@ __all__ = [
     'Hashnode',
     'H2o',
     'HuggingChat',
+    'Koala',
     'Liaobots',
     'Llama2',
     'Lockchat',

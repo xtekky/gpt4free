@@ -7,6 +7,8 @@ sys.path.append(str(Path(__file__).parent.parent.parent))
 
 import g4f
 
+g4f.debug.logging = True
+
 def read_code(text):
     if match := re.search(r"```(python|py|)\n(?P<code>[\S\s]+?)\n```", text):
         return match.group("code")
