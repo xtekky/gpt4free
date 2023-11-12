@@ -14,11 +14,11 @@ new discord server: [discord.gg/XfybzPXPH5](https://discord.gg/XfybzPXPH5)
 pip install -U g4f
 ```
 
-## New features
+## 🚀 New Features
 * Telegram Channel: [t.me/g4f_channel](https://telegram.me/g4f_channel)
-* g4f documentation (unfinished): [g4f.mintlify.app](https://g4f.mintlify.app) | Contribute to the docs via: [github.com/xtekky/gpt4free-docs](https://github.com/xtekky/gpt4free-docs)
+* g4f Documentation (unfinished): [g4f.mintlify.app](https://g4f.mintlify.app) | Contribute to the docs via: [github.com/xtekky/gpt4free-docs](https://github.com/xtekky/gpt4free-docs)
 
-## Table of Contents
+## 📚 Table of Contents
 
 - [Getting Started](#getting-started)
   - [Prerequisites](#prerequisites)
@@ -39,7 +39,7 @@ pip install -U g4f
 - [Star History](#star-history)
 - [License](#license)
 
-## Getting Started
+## 🛠️ Getting Started
 
 #### Prerequisites:
 
@@ -142,22 +142,23 @@ docker compose down
 > **Note**
 > When using Docker, any changes you make to your local files will be reflected in the Docker container thanks to the volume mapping in the `docker-compose.yml` file. If you add or remove dependencies, however, you'll need to rebuild the Docker image using `docker compose build`.
 
-## Usage
+## 💡 Usage
 
 ### The `g4f` Package
 
 #### ChatCompletion
-```py
+
+```python
 import g4f
 
-g4f.debug.logging = True # enable logging
-g4f.check_version = False # Disable automatic version checking
-print(g4f.version) # check version
-print(g4f.Provider.Ails.params)  # supported args
+g4f.debug.logging = True  # Enable logging
+g4f.check_version = False  # Disable automatic version checking
+print(g4f.version)  # Check version
+print(g4f.Provider.Ails.params)  # Supported args
 
 # Automatic selection of provider
 
-# streamed completion
+# Streamed completion
 response = g4f.ChatCompletion.create(
     model="gpt-3.5-turbo",
     messages=[{"role": "user", "content": "Hello"}],
@@ -167,16 +168,18 @@ response = g4f.ChatCompletion.create(
 for message in response:
     print(message, flush=True, end='')
 
-# normal response
+# Normal response
 response = g4f.ChatCompletion.create(
     model=g4f.models.gpt_4,
     messages=[{"role": "user", "content": "Hello"}],
-)  # alternative model setting
+)  # Alternative model setting
 
 print(response)
 ```
+
 ##### Completion
-```py
+
+```python
 import g4f
 
 allowed_models = [
@@ -189,14 +192,16 @@ allowed_models = [
 ]
 
 response = g4f.Completion.create(
-    model  = 'text-davinci-003',
-    prompt = 'say this is a test')
+    model='text-davinci-003',
+    prompt='say this is a test'
+)
 
 print(response)
 ```
 
-##### Providers:
-```py
+##### Providers
+
+```python
 import g4f
 
 from g4f.Provider import (
@@ -224,14 +229,13 @@ for message in response:
     print(message)
 ```
 
-##### Cookies Required:
+##### Cookies Required
 
-Cookies are essential for the proper functioning of some service providers.
-It is imperative to maintain an active session, typically achieved by logging into your account.
+Cookies are essential for the proper functioning of some service providers. It is imperative to maintain an active session, typically achieved by logging into your account.
 
 When running the g4f package locally, the package automatically retrieves cookies from your web browser using the `get_cookies` function. However, if you're not running it locally, you'll need to provide the cookies manually by passing them as parameters using the `cookies` parameter.
 
-```py
+```python
 import g4f
 
 from g4f.Provider import (
@@ -242,7 +246,7 @@ from g4f.Provider import (
     OpenaiChat,
 )
 
-# Usage:
+# Usage
 response = g4f.ChatCompletion.create(
     model=g4f.models.default,
     messages=[{"role": "user", "content": "Hello"}],
@@ -253,13 +257,13 @@ response = g4f.ChatCompletion.create(
 )
 ```
 
-##### Async Support:
+##### Async Support
 
-To enhance speed and overall performance, execute providers asynchronously.
-The total execution time will be determined by the duration of the slowest provider's execution.
+To enhance speed and overall performance, execute providers asynchronously. The total execution time will be determined by the duration of the slowest provider's execution.
 
-```py
-import g4f, asyncio
+```python
+import g4f
+import asyncio
 
 _providers = [
     g4f.Provider.Aichat,
@@ -290,11 +294,11 @@ async def run_all():
 asyncio.run(run_all())
 ```
 
-##### Proxy and Timeout Support:
+##### Proxy and Timeout Support
 
 All providers support specifying a proxy and increasing timeout in the create functions.
 
-```py
+```python
 import g4f
 
 response = g4f.ChatCompletion.create(
@@ -302,25 +306,27 @@ response = g4f.ChatCompletion.create(
     messages=[{"role": "user", "content": "Hello"}],
     proxy="http://host:port",
     # or socks5://user:pass@host:port
-    timeout=120, # in secs
+    timeout=120,  # in secs
 )
 
 print(f"Result:", response)
 ```
 
-### interference openai-proxy API (use with openai python package)
+### Interference openai-proxy API (Use with openai python package)
 
-#### run interference API from PyPi package:
-```py
+#### Run interference API from PyPi package
+
+```python
 from g4f.api import run_api
 
 run_api()
 ```
 
-#### run interference API from repo:
-If you want to use the embedding function, you need to get a Hugging Face token. You can get one at https://huggingface.co/settings/tokens make sure your role is set to write. If you have your token, just use it instead of the OpenAI api-key.
+#### Run interference API from repo
 
-run server:
+If you want to use the embedding function, you need to get a Hugging Face token. You can get one at [Hugging Face Tokens](https://huggingface.co/settings/tokens). Make sure your role is set to write. If you have your token, just use it instead of the OpenAI api-key.
+
+Run server:
 
 ```sh
 g4f api
@@ -332,7 +338,7 @@ or
 python -m g4f.api
 ```
 
-```py
+```python
 import openai
 
 # Set your Hugging Face token as the API key if you use embeddings
@@ -359,13 +365,12 @@ def main():
             if content is not None:
                 print(content, end="", flush=True)
 
-if __name__ == "__main":
+if __name__ == "__main__":
     main()
-
 ```
 
-## Models
-### gpt-4
+## 🚀 Providers and Models
+### GPT-4
 | Website| Provider| gpt-3.5 | gpt-4 | Stream | Async | Status | Auth |
 | ------ | ------- | ------- | ----- | --------- | --------- | ------ | ---- |
 | [bing.com](https://bing.com/chat) | `g4f.Provider.Bing` | ❌ | ✔️ | ✔️ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
@@ -378,7 +383,7 @@ if __name__ == "__main":
 | [supertest.lockchat.app](http://supertest.lockchat.app) | `g4f.Provider.Lockchat` | ✔️ | ✔️ | ✔️ | ❌ | ![Inactive](https://img.shields.io/badge/Inactive-red) | ❌ |
 | [app.myshell.ai](https://app.myshell.ai/chat) | `g4f.Provider.Myshell` | ✔️ | ✔️ | ✔️ | ✔️ | ![Inactive](https://img.shields.io/badge/Inactive-red) | ❌ |
 
-### gpt-3.5
+### GPT-3.5
 
 | Website| Provider| gpt-3.5 | Stream    | Async     | Status | Auth |
 | ------ | ------- | ------- | --------- | --------- | ------ | ---- |
@@ -462,7 +467,7 @@ if __name__ == "__main":
 | llama13b-v2-chat                        | Replicate     | g4f.Provider.Vercel | [sdk.vercel.ai](https://sdk.vercel.ai/)     |
 | llama7b-v2-chat                         | Replicate     | g4f.Provider.Vercel | [sdk.vercel.ai](https://sdk.vercel.ai/)     |
 
-## Related gpt4free projects
+## 🔗 Related GPT4Free Projects
 
 <table>
   <thead align="center">
@@ -548,7 +553,7 @@ if __name__ == "__main":
   </tbody>
 </table>
 
-## Contribute
+## 🤝 Contribute
 
 #### Create Provider with AI Tool
 
@@ -613,13 +618,13 @@ for message in response:
     print(message, flush=True, end='')
 ```
 
-## Contributors
+## 🙌 Contributors
 
 A list of the contributors is available [here](https://github.com/xtekky/gpt4free/graphs/contributors)   
 The [`Vercel.py`](https://github.com/xtekky/gpt4free/blob/main/g4f/Provider/Vercel.py) file contains code from [vercel-llm-api](https://github.com/ading2210/vercel-llm-api) by [@ading2210](https://github.com/ading2210), which is licensed under the [GNU GPL v3](https://www.gnu.org/licenses/gpl-3.0.txt)   
 Top 1 Contributor: [@hlohaus](https://github.com/hlohaus)
 
-## Copyright
+## ©️ Copyright
 
 This program is licensed under the [GNU GPL v3](https://www.gnu.org/licenses/gpl-3.0.txt)
 
@@ -640,13 +645,13 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ```
 
-## Star History
+## ⭐ Star History
 
 <a href="https://github.com/xtekky/gpt4free/stargazers">
         <img width="500" alt="Star History Chart" src="https://api.star-history.com/svg?repos=xtekky/gpt4free&type=Date">
 </a>
 
-## License
+## 📄 License
 
 <table>
   <tr>
