@@ -15,6 +15,8 @@ def check_pypi_version() -> None:
 
         if version != latest_version:
             print(f'New pypi version: {latest_version} (current: {version}) | pip install -U g4f')
+            return False
+        return True
 
     except Exception as e:
         print(f'Failed to check g4f pypi version: {e}')
