@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from ..typing import Messages
+from ...typing import Messages
 from curl_cffi.requests import AsyncSession
-from .base_provider import AsyncProvider, format_prompt
+from ..base_provider import AsyncProvider, format_prompt
 
 
 class ChatgptDuo(AsyncProvider):

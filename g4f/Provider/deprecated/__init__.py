@@ -14,3 +14,8 @@ from .Aivvm         import Aivvm
 from .Vitalentum    import Vitalentum
 from .H2o           import H2o
 from .Myshell       import Myshell
+from .Acytoo        import Acytoo
+from .Aibn          import Aibn
+from .Ails          import Ails 
+from .ChatgptDuo    import ChatgptDuo
+from .Cromicle      import Cromicle

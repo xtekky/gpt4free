@@ -3,9 +3,9 @@ from __future__ import annotations
 import time
 import hashlib
 
-from ..typing import AsyncResult, Messages
-from ..requests import StreamSession
-from .base_provider import AsyncGeneratorProvider
+from ...typing import AsyncResult, Messages
+from ...requests import StreamSession
+from ..base_provider import AsyncGeneratorProvider
 
 
 class Aibn(AsyncGeneratorProvider):
