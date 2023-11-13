@@ -1,3 +1,6 @@
+import ast
+import logging
+
 from fastapi            import FastAPI, Response, Request
 from fastapi.responses import StreamingResponse
 from typing             import List, Union, Any, Dict, AnyStr
@@ -68,14 +71,20 @@ class Api:
                 'stream': False,
             }
 
-            item_data.update(item or {})
+            # item contains byte keys, and dict.get suppresses error
+            item_data.update({key.decode('utf-8') if isinstance(key, bytes) else key: str(value) for key, value in (item or {}).items()})
+            # messages is str, need dict
+            if isinstance(item_data.get('messages'), str):
+                item_data['messages'] = ast.literal_eval(item_data.get('messages'))
+
             model = item_data.get('model')
             stream = item_data.get('stream')
             messages = item_data.get('messages')
 
             try:
                 response = g4f.ChatCompletion.create(model=model, stream=stream, messages=messages)
-            except:
+            except Exception as e:
+                logging.exception(e)
                 return Response(content=json.dumps({"error": "An error occurred while generating the response."}, indent=4), media_type="application/json")
 
             completion_id = ''.join(random.choices(string.ascii_letters + string.digits, k=28))
