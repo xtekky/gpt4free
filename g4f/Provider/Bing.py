@@ -71,7 +71,7 @@ class Conversation():
 
 async def create_conversation(session: ClientSession, tone: str, image: str = None, proxy: str = None) -> Conversation:
     url = 'https://www.bing.com/turing/conversation/create?bundleVersion=1.1199.4'
-    async with await session.get(url, proxy=proxy) as response:
+    async with session.get(url, proxy=proxy) as response:
         data = await response.json()
 
         conversationId = data.get('conversationId')
@@ -115,7 +115,7 @@ async def create_conversation(session: ClientSession, tone: str, image: str = No
                 headers["content-type"] = f'multipart/form-data; boundary={boundary}'
                 headers["referer"] = 'https://www.bing.com/search?q=Bing+AI&showconv=1&FORM=hpcodx'
                 headers["origin"] = 'https://www.bing.com'
-                async with await session.post("https://www.bing.com/images/kblob", data=data, headers=headers, proxy=proxy) as image_upload_response:
+                async with session.post("https://www.bing.com/images/kblob", data=data, headers=headers, proxy=proxy) as image_upload_response:
                     if image_upload_response.status != 200:
                         raise Exception("Failed to upload image.")
 

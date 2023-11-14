@@ -35,8 +35,14 @@ def main():
 def get_providers() -> list[type[BaseProvider]]:
     providers = dir(Provider)
     providers = [getattr(Provider, provider) for provider in providers if provider != "RetryProvider"]
-    providers = [provider for provider in providers if isinstance(provider, type)]
-    return [provider for provider in providers if issubclass(provider, BaseProvider)]
+    providers = [provider for provider in providers if isinstance(provider, type) and hasattr(provider, "url")]
+    return [
+        provider
+        for provider in providers
+        if issubclass(provider, BaseProvider)
+        and provider.__name__ not in dir(Provider.deprecated)
+        and provider.__name__ not in dir(Provider.unfinished)
+    ]
 
 
 def create_response(_provider: type[BaseProvider]) -> str:

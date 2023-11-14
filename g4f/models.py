@@ -5,7 +5,6 @@ from .Provider   import BaseProvider, RetryProvider
 from .Provider   import (
     GptForLove,
     ChatgptAi,
-    GptChatly,
     DeepInfra,
     ChatgptX,
     ChatBase,
@@ -13,10 +12,12 @@ from .Provider   import (
     FakeGpt,
     FreeGpt,
     NoowAi,
+    Berlin,
     Llama2,
     Vercel, 
     Aichat,
     GPTalk,
+    Koala,
     AiAsk,
     GptGo,
     Phind,
@@ -51,10 +52,9 @@ gpt_35_long = Model(
     name          = 'gpt-3.5-turbo',
     base_provider = 'openai',
     best_provider = RetryProvider([
-        AiAsk, Aichat, FreeGpt, You,
-        GptChatly, GptForLove,
-        NoowAi, GeekGpt, Phind,
-        FakeGpt
+        FreeGpt, You,
+        GeekGpt, FakeGpt,
+        Berlin, Koala
     ])
 )
 
@@ -82,7 +82,7 @@ llama2_7b = Model(
     best_provider = RetryProvider([Llama2, DeepInfra]))
 
 llama2_13b = Model(
-    name          ="meta-llama/Llama-2-13b-chat-hf",
+    name          = "meta-llama/Llama-2-13b-chat-hf",
     base_provider = 'huggingface',
     best_provider = RetryProvider([Llama2, DeepInfra]))
 
