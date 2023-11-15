@@ -53,6 +53,7 @@ class OpenaiChat(AsyncGeneratorProvider):
             "history_and_training_disabled": not auto_continue,
         }
         conversation_id = None
+        end_turn = False
         while not end_turn:
             if not auto_continue:
                 end_turn = True
