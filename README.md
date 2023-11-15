@@ -578,7 +578,7 @@ Call in your terminal the "create_provider" script:
 python etc/tool/create_provider.py
 ```
 1. Enter your name for the new provider.
-2. Copy and paste the `URL` command from your browser developer tools.
+2. Copy and paste the `cURL` command from your browser developer tools.
 3. Let the AI ​​create the provider for you.
 4. Customize the provider according to your needs.
 
