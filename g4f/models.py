@@ -15,10 +15,8 @@ from .Provider   import (
     Berlin,
     Llama2,
     Vercel, 
-    Aichat,
     GPTalk,
     Koala,
-    AiAsk,
     GptGo,
     Phind,
     Bard, 
@@ -42,7 +40,7 @@ default = Model(
     base_provider = "",
     best_provider = RetryProvider([
         Bing,         # Not fully GPT 3 or 4
-        AiAsk, Aichat, ChatgptAi, FreeGpt, GptGo, GeekGpt,
+        ChatgptAi, GptGo, GeekGpt,
         Phind, You
     ])
 )

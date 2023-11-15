@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from aiohttp import ClientSession
 from hashlib import sha256
-from ..typing import AsyncResult, Messages, Dict
+from ...typing import AsyncResult, Messages, Dict
 
-from .base_provider import AsyncGeneratorProvider
-from .helper import format_prompt
+from ..base_provider import AsyncGeneratorProvider
+from ..helper import format_prompt
 
 
 class Cromicle(AsyncGeneratorProvider):

@@ -1,42 +1,44 @@
 from __future__ import annotations
 
-import json
+import re
 from aiohttp import ClientSession
 
-from ..typing       import AsyncResult, Messages
-from .base_provider import AsyncGeneratorProvider
+from ..typing import Messages
+from .base_provider import AsyncProvider
+from .helper import format_prompt
 
-
-class Chatgpt4Online(AsyncGeneratorProvider):
+class Chatgpt4Online(AsyncProvider):
     url = "https://chatgpt4online.org"
     supports_message_history = True
     supports_gpt_35_turbo = True
-    working = False
+    working = True
+    _wpnonce = None
 
     @classmethod
-    async def create_async_generator(
+    async def create_async(
         cls,
         model: str,
         messages: Messages,
         proxy: str = None,
         **kwargs
-    ) -> AsyncResult:
+    ) -> str:
         async with ClientSession() as session:
+            if not cls._wpnonce:
+                async with session.get(f"{cls.url}/", proxy=proxy) as response:
+                    response.raise_for_status()
+                    response = await response.text()
+                    if result := re.search(r'data-nonce="(.*?)"', response):
+                        cls._wpnonce = result.group(1)
+                    else:
+                        raise RuntimeError("No nonce found")
             data = {
-                "botId": "default",
-                "customId": None,
-                "session": "N/A",
-                "chatId": "",
-                "contextId": 58,
-                "messages": messages,
-                "newMessage": messages[-1]["content"],
-                "stream": True
+                "_wpnonce": cls._wpnonce,
+                "post_id": 58,
+                "url": "https://chatgpt4online.org",
+                "action": "wpaicg_chat_shortcode_message",
+                "message": format_prompt(messages),
+                "bot_id": 3405
             }
-
-            async with session.post(f"{cls.url}/wp-json/mwai-ui/v1/chats/submit", json=data, proxy=proxy) as response:
+            async with session.post(f"{cls.url}/rizq", data=data, proxy=proxy) as response:
                 response.raise_for_status()
-                async for line in response.content:
-                    if line.startswith(b"data: "):
-                        line = json.loads(line[6:])
-                        if line["type"] == "live":
-                            yield line["data"]
+                return (await response.json())["data"]

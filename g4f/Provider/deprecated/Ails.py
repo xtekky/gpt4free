@@ -7,8 +7,8 @@ import json
 from datetime import datetime
 from aiohttp import ClientSession
 
-from ..typing import SHA256, AsyncResult, Messages
-from .base_provider import AsyncGeneratorProvider
+from ...typing import SHA256, AsyncResult, Messages
+from ..base_provider import AsyncGeneratorProvider
 
 
 class Ails(AsyncGeneratorProvider):
