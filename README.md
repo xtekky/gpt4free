@@ -5,10 +5,10 @@ new discord server: [discord.gg/XfybzPXPH5](https://discord.gg/XfybzPXPH5)
 ![248433934-7886223b-c1d1-4260-82aa-da5741f303bb](https://github.com/xtekky/gpt4free/assets/98614666/ea012c87-76e0-496a-8ac4-e2de090cc6c9)
 
 
-> **Note**
-> By using this repository or any code related to it, you agree to the [legal notice](https://github.com/xtekky/gpt4free/blob/main/LEGAL_NOTICE.md). The author is not responsible for any copies, forks, re-uploads made by other users, or anything else related to GPT4Free. This is the author's only account and repository. To prevent impersonation or irresponsible actions, please comply with the GNU GPL license this Repository uses.
+> [!Note]
+> By using this repository or any code related to it, you agree to the [legal notice](LEGAL_NOTICE.md). The author is not responsible for any copies, forks, re-uploads made by other users, or anything else related to GPT4Free. This is the author's only account and repository. To prevent impersonation or irresponsible actions, please comply with the GNU GPL license this Repository uses.
 
-> **Note**
+> [!Note]
 > Latest pypi version: [`0.1.8.2`](https://pypi.org/project/g4f/0.1.8.2)
 ```sh
 pip install -U g4f
@@ -154,7 +154,7 @@ To stop the Docker containers, simply run:
 docker compose down
 ```
 
-> **Note**
+> [!Note]
 > When using Docker, any changes you make to your local files will be reflected in the Docker container thanks to the volume mapping in the `docker-compose.yml` file. If you add or remove dependencies, however, you'll need to rebuild the Docker image using `docker compose build`.
 
 ## 💡 Usage
