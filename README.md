@@ -21,24 +21,38 @@ pip install -U g4f
 
 ## 📚 Table of Contents
 
-- [Getting Started](#getting-started)
-  - [Prerequisites](#prerequisites)
-  - [Setting up the project](#setting-up-the-project)
-    - [Install using PyPi](#install-using-pypi)
-    - [Install using docker](#setting-up-with-docker)
-- [Usage](#usage)
+- [🆕 What's New](#-whats-new)
+- [📚 Table of Contents](#-table-of-contents)
+- [🛠️ Getting Started](#️-getting-started)
+    - [Prerequisites:](#prerequisites)
+    - [Setting up the project:](#setting-up-the-project)
+      - [Install using pypi](#install-using-pypi)
+      - [or](#or)
+      - [Setting up with Docker:](#setting-up-with-docker)
+- [💡 Usage](#-usage)
   - [The `g4f` Package](#the-g4f-package)
-  - [interference openai-proxy api (use with openai python package)](#interference-openai-proxy-api-use-with-openai-python-package)
-- [Providers](#models)
-  - [gpt-3.5](#gpt-35)
-  - [gpt-4](#gpt-4)
-  - [Other Models](#other-models)
-- [Related gpt4free projects](#related-gpt4free-projects)
-- [Contribute](#contribute)
-- [Contributors](#contributors)
-- [Copyright](#copyright)
-- [Star History](#star-history)
-- [License](#license)
+    - [ChatCompletion](#chatcompletion)
+      - [Completion](#completion)
+      - [Providers](#providers)
+      - [Cookies Required](#cookies-required)
+      - [Async Support](#async-support)
+      - [Proxy and Timeout Support](#proxy-and-timeout-support)
+  - [Interference openai-proxy API (Use with openai python package)](#interference-openai-proxy-api-use-with-openai-python-package)
+    - [Run interference API from PyPi package](#run-interference-api-from-pypi-package)
+    - [Run interference API from repo](#run-interference-api-from-repo)
+- [🚀 Providers and Models](#-providers-and-models)
+  - [GPT-4](#gpt-4)
+  - [GPT-3.5](#gpt-35)
+  - [Other](#other)
+  - [Models](#models)
+- [🔗 Related GPT4Free Projects](#-related-gpt4free-projects)
+- [🤝 Contribute](#-contribute)
+    - [Create Provider with AI Tool](#create-provider-with-ai-tool)
+    - [Create Provider](#create-provider)
+- [🙌 Contributors](#-contributors)
+- [©️ Copyright](#️-copyright)
+- [⭐ Star History](#-star-history)
+- [📄 License](#-license)
 
 ## 🛠️ Getting Started
 
@@ -530,6 +544,13 @@ if __name__ == "__main__":
       <td><a href="https://github.com/HexyeDEV/Telegram-Chatbot-Gpt4Free/network/members"><img alt="Forks" src="https://img.shields.io/github/forks/HexyeDEV/Telegram-Chatbot-Gpt4Free?style=flat-square&labelColor=343b41"/></a></td>
       <td><a href="https://github.com/HexyeDEV/Telegram-Chatbot-Gpt4Free/issues"><img alt="Issues" src="https://img.shields.io/github/issues/HexyeDEV/Telegram-Chatbot-Gpt4Free?style=flat-square&labelColor=343b41"/></a></td>
       <td><a href="https://github.com/HexyeDEV/Telegram-Chatbot-Gpt4Free/pulls"><img alt="Pull Requests" src="https://img.shields.io/github/issues-pr/HexyeDEV/Telegram-Chatbot-Gpt4Free?style=flat-square&labelColor=343b41"/></a></td>
+    </tr>
+        <tr>
+      <td><a href="https://github.com/Lin-jun-xiang/chatgpt-line-bot"><b>ChatGpt Line Bot</b></a></td>
+      <td><a href="https://github.com/Lin-jun-xiang/chatgpt-line-bot/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/Lin-jun-xiang/chatgpt-line-bot?style=flat-square&labelColor=343b41"/></a></td>
+      <td><a href="https://github.com/Lin-jun-xiang/chatgpt-line-bot/network/members"><img alt="Forks" src="https://img.shields.io/github/forks/Lin-jun-xiang/chatgpt-line-bot?style=flat-square&labelColor=343b41"/></a></td>
+      <td><a href="https://github.com/Lin-jun-xiang/chatgpt-line-bot/issues"><img alt="Issues" src="https://img.shields.io/github/issues/Lin-jun-xiang/chatgpt-line-bot?style=flat-square&labelColor=343b41"/></a></td>
+      <td><a href="https://github.com/Lin-jun-xiang/chatgpt-line-bot/pulls"><img alt="Pull Requests" src="https://img.shields.io/github/issues-pr/Lin-jun-xiang/chatgpt-line-bot?style=flat-square&labelColor=343b41"/></a></td>
     </tr>
     <tr>
       <td><a href="https://github.com/Lin-jun-xiang/action-translate-readme"><b>Action Translate Readme</b></a></td>
