@@ -42,6 +42,7 @@ except ImportError:
 
 from ..typing import Dict, Messages, Union, Tuple
 from .. import debug
+DisplayType = Union[Display, bool]
 
 # Change event loop policy on windows
 if sys.platform == 'win32':
