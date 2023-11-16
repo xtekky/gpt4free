@@ -65,6 +65,7 @@ window.reader = response.body.getReader();
             driver.execute_script(script.replace("{body}", json.dumps(data)))
             script = """
 chunk = await window.reader.read();
+if (chunk['done']) return null;
 text = await (new Response(chunk['value']).text());
 content = '';
 text.split('\\n').forEach((line, index) => {
@@ -79,8 +80,12 @@ text.split('\\n').forEach((line, index) => {
 });
 return content;
 """
-            while chunk := driver.execute_script(script):
-                yield chunk
+            while True:
+                chunk = driver.execute_script(script):
+                if chunk:
+                    yield chunk
+                elif chunk != "":
+                    break
         finally:
             driver.close()
             if not browser:
