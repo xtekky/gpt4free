@@ -2,15 +2,9 @@ from __future__ import annotations
 
 import time, json
 
-try:
-    from selenium.webdriver.remote.webdriver import WebDriver
-except ImportError:
-    class WebDriver():
-        pass
-
 from ..typing import CreateResult, Messages
 from .base_provider import BaseProvider
-from .helper import format_prompt, get_browser
+from .helper import WebDriver, format_prompt, get_browser
 
 class MyShell(BaseProvider):
     url = "https://app.myshell.ai/chat"
@@ -27,11 +21,11 @@ class MyShell(BaseProvider):
         proxy: str = None,
         timeout: int = 120,
         browser: WebDriver = None,
-        display: bool = True,
+        hidden_display: bool = True,
         **kwargs
     ) -> CreateResult:
         if not browser:
-            if display:
+            if hidden_display:
                 driver, display = get_browser("", True, proxy)
             else:
                 display = get_browser("", False, proxy)
@@ -44,9 +38,11 @@ class MyShell(BaseProvider):
 
         driver.get(cls.url)
         try:
+            # Wait for page load
             WebDriverWait(driver, timeout).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, "body:not(.no-js)"))
             )
+            # Send message
             script = """
 response = await fetch("https://api.myshell.ai/v1/bot/chat/send_message", {
     "headers": {
@@ -90,5 +86,5 @@ return content;
             if not browser:
                 time.sleep(0.1)
                 driver.quit()
-            if display:
+            if hidden_display:
                 display.stop()
