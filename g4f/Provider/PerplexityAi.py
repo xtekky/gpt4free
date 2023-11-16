@@ -14,7 +14,7 @@ from .helper import format_prompt, get_browser
 class PerplexityAi(BaseProvider):
     url = "https://www.perplexity.ai"
     working = True
-    supports_gpt_4 = True
+    supports_gpt_35_turbo = True
     supports_stream = True
 
     @classmethod
@@ -30,10 +30,6 @@ class PerplexityAi(BaseProvider):
         display: bool = True,
         **kwargs
     ) -> CreateResult:
-        from selenium.webdriver.common.by import By
-        from selenium.webdriver.support.ui import WebDriverWait
-        from selenium.webdriver.support import expected_conditions as EC
-
         if browser:
             driver = browser
         else:
@@ -42,10 +38,17 @@ class PerplexityAi(BaseProvider):
             else:
                 driver = get_browser("", False, proxy)
 
+        from selenium.webdriver.common.by import By
+        from selenium.webdriver.support.ui import WebDriverWait
+        from selenium.webdriver.support import expected_conditions as EC
+
         prompt = format_prompt(messages)
 
         driver.get(f"{cls.url}/")
         wait = WebDriverWait(driver, timeout)
+
+        # Page loaded?
+        wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, "textarea[placeholder='Ask anything...']")))
 
         script = """
 window._message = window._last_message = "";
@@ -74,9 +77,6 @@ WebSocket.prototype.send = function(...args) {
 };
 """
         driver.execute_script(script)
-
-        # Page loaded?
-        wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, "textarea[placeholder='Ask anything...']")))
 
         if copilot:
             try:

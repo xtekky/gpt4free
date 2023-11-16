@@ -5,7 +5,6 @@ from .Provider   import BaseProvider, RetryProvider
 from .Provider   import (
     Chatgpt4Online,
     ChatAnywhere,
-    PerplexityAi,
     GptForLove,
     ChatgptAi,
     DeepInfra,
@@ -77,7 +76,7 @@ gpt_4 = Model(
     name          = 'gpt-4',
     base_provider = 'openai',
     best_provider = RetryProvider([
-        Bing, Phind, PerplexityAi
+        Bing, Phind
     ])
 )
 
