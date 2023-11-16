@@ -17,12 +17,17 @@ from browser_cookie3 import (
     firefox,
     BrowserCookieError
 )
+try: 
+     from selenium.webdriver.remote.webdriver import WebDriver 
+ except ImportError: 
+     class WebDriver(): 
+         pass
 try:
     from undetected_chromedriver import Chrome, ChromeOptions
 except ImportError:
     class Chrome():
         def __init__():
-            raise RuntimeError('Please install "undetected_chromedriver" and "pyvirtualdisplay" package')
+            raise RuntimeError('Please install the "undetected_chromedriver" package')
     class ChromeOptions():
         def add_argument():
             pass
