@@ -42,7 +42,6 @@ except ImportError:
 
 from ..typing import Dict, Messages, Union, Tuple
 from .. import debug
-DisplayType = Union[Display, bool]
 
 # Change event loop policy on windows
 if sys.platform == 'win32':
@@ -140,23 +139,24 @@ def format_prompt(messages: Messages, add_special_tokens=False) -> str:
 
 def get_browser(
     user_data_dir: str = None,
-    display: bool = False,
-    proxy: str = None
+    hidden_display: bool = False,
+    proxy: str = None,
+    options: ChromeOptions = None
 ) -> Union[Chrome, Tuple[Chrome, Display]] :
     if user_data_dir == None:
         user_data_dir = user_config_dir("g4f")
 
-    if display:
+    if hidden_display:
         display = Display(visible=0, size=(1920, 1080))
         display.start()
 
-    options = None
     if proxy:
-        options = ChromeOptions()
-        options.add_argument(f'--proxy-server={proxy}')
+        if not options:
+            options = ChromeOptions()
+         options.add_argument(f'--proxy-server={proxy}')
 
     browser = Chrome(user_data_dir=user_data_dir, options=options)
-    if display:
+    if hidden_display:
         return browser, display
 
     return browser
