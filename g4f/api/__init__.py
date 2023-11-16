@@ -86,7 +86,7 @@ class Api:
                     model=model,
                     stream=stream,
                     messages=messages,
-                    list_ignored_providers=self.list_ignored_providers)
+                    ignored=self.list_ignored_providers)
             except Exception as e:
                 logging.exception(e)
                 return Response(content=json.dumps({"error": "An error occurred while generating the response."}, indent=4), media_type="application/json")
