@@ -26,10 +26,6 @@ class Phind(BaseProvider):
         hidden_display: bool = True,
         **kwargs
     ) -> CreateResult:
-        from selenium.webdriver.common.by import By
-        from selenium.webdriver.support.ui import WebDriverWait
-        from selenium.webdriver.support import expected_conditions as EC
-
         if browser:
             driver = browser
         else:
@@ -37,6 +33,10 @@ class Phind(BaseProvider):
                 driver, display = get_browser("", True, proxy)
             else:
                 driver = get_browser("", False, proxy)
+
+        from selenium.webdriver.common.by import By
+        from selenium.webdriver.support.ui import WebDriverWait
+        from selenium.webdriver.support import expected_conditions as EC
 
         prompt = quote(format_prompt(messages))
         driver.get(f"{cls.url}/search?q={prompt}&source=searchbox")
@@ -58,6 +58,7 @@ class Phind(BaseProvider):
             wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, ".search-container")))
 
         try:
+            # Fetch hook
             script = """
 window._fetch = window.fetch;
 window.fetch = (url, options) => {
@@ -78,7 +79,7 @@ window.fetch = (url, options) => {
 if(window.reader) {
     chunk = await window.reader.read();
     if (chunk['done']) return null;
-    text = await (new Response(chunk['value']).text());
+    text = (new TextDecoder()).decode(chunk['value']);
     content = '';
     text.split('\\r\\n').forEach((line, index) => {
         if (line.startsWith('data: ')) {
