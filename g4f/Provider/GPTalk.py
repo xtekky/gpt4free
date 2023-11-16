@@ -13,6 +13,7 @@ class GPTalk(AsyncGeneratorProvider):
     working = True
     supports_gpt_35_turbo = True
     _auth = None
+    used_times = 0
 
     @classmethod
     async def create_async_generator(
@@ -44,7 +45,7 @@ class GPTalk(AsyncGeneratorProvider):
             'x-auth-timestamp': f"{timestamp}",
         }
         async with ClientSession(headers=headers) as session:
-            if not cls._auth or cls._auth["expires_at"] < timestamp:
+            if not cls._auth or cls._auth["expires_at"] < timestamp or cls.used_times == 5:
                 data = {
                     "fingerprint": secrets.token_hex(16).zfill(32),
                     "platform": "fingerprint"
@@ -52,6 +53,7 @@ class GPTalk(AsyncGeneratorProvider):
                 async with session.post(f"{cls.url}/api/chatgpt/user/login", json=data, proxy=proxy) as response:
                     response.raise_for_status()
                     cls._auth = (await response.json())["data"]
+                cls.used_times = 0
             data = {
                 "content": format_prompt(messages),
                 "accept": "stream",
@@ -72,6 +74,7 @@ class GPTalk(AsyncGeneratorProvider):
             async with session.post(f"{cls.url}/api/chatgpt/chatapi/text", json=data, headers=headers, proxy=proxy) as response:
                 response.raise_for_status()
                 token = (await response.json())["data"]["token"]
+                cls.used_times += 1
             last_message = ""
             async with session.get(f"{cls.url}/api/chatgpt/chatapi/stream", params={"token": token}, proxy=proxy) as response:
                 response.raise_for_status()
