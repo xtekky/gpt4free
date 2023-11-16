@@ -78,7 +78,7 @@ class Api:
                 item_data['messages'] = ast.literal_eval(item_data.get('messages'))
 
             model = item_data.get('model')
-            stream = item_data.get('stream')
+            stream = True if item_data.get("stream") == "True" else False
             messages = item_data.get('messages')
 
             try:
