@@ -1,91 +1,95 @@
 from __future__ import annotations
 
-import time, random, json
+import time, json
 
-from ..requests import StreamSession
-from ..typing import AsyncResult, Messages
-from .base_provider import AsyncGeneratorProvider
-from .helper import format_prompt
+from ..typing import CreateResult, Messages
+from .base_provider import BaseProvider
+from .helper import WebDriver, format_prompt, get_browser
 
-class MyShell(AsyncGeneratorProvider):
+class MyShell(BaseProvider):
     url = "https://app.myshell.ai/chat"
     working = True
     supports_gpt_35_turbo = True
+    supports_stream = True
 
     @classmethod
-    async def create_async_generator(
+    def create_completion(
         cls,
         model: str,
         messages: Messages,
+        stream: bool,
         proxy: str = None,
         timeout: int = 120,
+        browser: WebDriver = None,
+        hidden_display: bool = True,
         **kwargs
-    ) -> AsyncResult:
-        user_agent = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36"
-        headers = {
-            "User-Agent": user_agent,
-            "Myshell-Service-Name": "organics-api",
-            "Visitor-Id": generate_visitor_id(user_agent)
-        }
-        async with StreamSession(
-            impersonate="chrome107",
-            proxies={"https": proxy},
-            timeout=timeout,
-            headers=headers
-        ) as session:
-            prompt = format_prompt(messages)
+    ) -> CreateResult:
+        if browser:
+            driver = browser
+        else:
+            if hidden_display:
+                driver, display = get_browser("", True, proxy)
+            else:
+                driver = get_browser("", False, proxy)
+
+        from selenium.webdriver.common.by import By
+        from selenium.webdriver.support.ui import WebDriverWait
+        from selenium.webdriver.support import expected_conditions as EC
+
+        driver.get(cls.url)
+        try:
+            # Wait for page load
+            WebDriverWait(driver, timeout).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, "body:not(.no-js)"))
+            )
+            # Send message
+            script = """
+response = await fetch("https://api.myshell.ai/v1/bot/chat/send_message", {
+    "headers": {
+        "accept": "application/json",
+        "content-type": "application/json",
+        "myshell-service-name": "organics-api",
+        "visitor-id": localStorage.getItem("mix_visitorId")
+    },
+    "body": '{body}',
+    "method": "POST"
+})
+window.reader = response.body.getReader();
+"""
             data = {
-                "botId": "1",
+                "botId": "4738",
                 "conversation_scenario": 3,
-                "message": prompt,
+                "message": format_prompt(messages),
                 "messageType": 1
             }
-            async with session.post("https://api.myshell.ai/v1/bot/chat/send_message", json=data) as response:
-                response.raise_for_status()
-                event = None
-                async for line in response.iter_lines():
-                    if line.startswith(b"event: "):
-                        event = line[7:]
-                    elif event == b"MESSAGE_REPLY_SSE_ELEMENT_EVENT_NAME_TEXT":
-                        if line.startswith(b"data: "):
-                            yield json.loads(line[6:])["content"]
-                    if event == b"MESSAGE_REPLY_SSE_ELEMENT_EVENT_NAME_TEXT_STREAM_PUSH_FINISHED":
-                        break
-
-
-def xor_hash(B: str):
-    r = []
-    i = 0
-    
-    def o(e, t):
-        o_val = 0
-        for i in range(len(t)):
-            o_val |= r[i] << (8 * i)
-        return e ^ o_val
-    
-    for e in range(len(B)):
-        t = ord(B[e])
-        r.insert(0, 255 & t)
-        
-        if len(r) >= 4:
-            i = o(i, r)
-            r = []
-    
-    if len(r) > 0:
-        i = o(i, r)
-    
-    return hex(i)[2:]
-
-def performance() -> str:
-    t = int(time.time() * 1000)
-    e = 0
-    while t == int(time.time() * 1000):
-        e += 1
-    return hex(t)[2:] + hex(e)[2:]
-
-def generate_visitor_id(user_agent: str) -> str:
-    f = performance()
-    r = hex(int(random.random() * (16**16)))[2:-2]
-    d = xor_hash(user_agent)
-    e = hex(1080 * 1920)[2:]
-    return f"{f}-{r}-{d}-{e}-{f}"
+            driver.execute_script(script.replace("{body}", json.dumps(data)))
+            script = """
+chunk = await window.reader.read();
+if (chunk['done']) return null;
+text = (new TextDecoder ()).decode(chunk['value']);
+content = '';
+text.split('\\n').forEach((line, index) => {
+    if (line.startsWith('data: ')) {
+        try {
+            const data = JSON.parse(line.substring('data: '.length));
+            if ('content' in data) {
+                content += data['content'];
+            }
+        } catch(e) {}
+    }
+});
+return content;
+"""
+            while True:
+                chunk = driver.execute_script(script):
+                if chunk:
+                    yield chunk
+                elif chunk != "":
+                    break
+        finally:
+            driver.close()
+            if not browser:
+                time.sleep(0.1)
+                driver.quit()
+            if hidden_display:
+                display.stop()

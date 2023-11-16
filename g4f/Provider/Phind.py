@@ -1,83 +1,119 @@
 from __future__ import annotations
 
-import random, string
-from datetime import datetime
+import time
+from urllib.parse import quote
 
-from ..typing import AsyncResult, Messages
-from ..requests import StreamSession
-from .base_provider import AsyncGeneratorProvider, format_prompt
+from ..typing import CreateResult, Messages
+from .base_provider import BaseProvider
+from .helper import WebDriver, format_prompt, get_browser
 
-
-class Phind(AsyncGeneratorProvider):
+class Phind(BaseProvider):
     url = "https://www.phind.com"
     working = True
     supports_gpt_4 = True
+    supports_stream = True
 
     @classmethod
-    async def create_async_generator(
+    def create_completion(
         cls,
         model: str,
         messages: Messages,
+        stream: bool,
         proxy: str = None,
         timeout: int = 120,
+        browser: WebDriver = None,
+        creative_mode: bool = None,
+        hidden_display: bool = True,
         **kwargs
-    ) -> AsyncResult:
-        chars = string.ascii_lowercase + string.digits
-        user_id = ''.join(random.choice(chars) for _ in range(24))
-        data = {
-            "question": format_prompt(messages),
-            "webResults": [],
-            "options": {
-                "date": datetime.now().strftime("%d.%m.%Y"),
-                "language": "en",
-                "detailed": True,
-                "anonUserId": user_id,
-                "answerModel": "GPT-4",
-                "creativeMode": False,
-                "customLinks": []
-            },
-            "context":""
-        }
-        headers = {
-            "Authority": cls.url,
-            "Accept": "application/json, text/plain, */*",
-            "Origin": cls.url,
-            "Referer": f"{cls.url}/"
-        }
-        async with StreamSession(
-            headers=headers,
-            timeout=(5, timeout),
-            proxies={"https": proxy},
-            impersonate="chrome107"
-        ) as session:
-            async with session.post(f"{cls.url}/api/infer/answer", json=data) as response:
-                response.raise_for_status()
-                new_lines = 0
-                async for line in response.iter_lines():
-                    if not line:
-                        continue
-                    if line.startswith(b"data: "):
-                        line = line[6:]
-                    if line.startswith(b"<PHIND_METADATA>"):
-                        continue
-                    if line:
-                        if new_lines:
-                            yield "".join(["\n" for _ in range(int(new_lines / 2))])
-                            new_lines = 0
-                        yield line.decode()
-                    else:
-                        new_lines += 1
+    ) -> CreateResult:
+        if browser:
+            driver = browser
+        else:
+            if hidden_display:
+                driver, display = get_browser("", True, proxy)
+            else:
+                driver = get_browser("", False, proxy)
 
+        from selenium.webdriver.common.by import By
+        from selenium.webdriver.support.ui import WebDriverWait
+        from selenium.webdriver.support import expected_conditions as EC
 
-    @classmethod
-    @property
-    def params(cls):
-        params = [
-            ("model", "str"),
-            ("messages", "list[dict[str, str]]"),
-            ("stream", "bool"),
-            ("proxy", "str"),
-            ("timeout", "int"),
-        ]
-        param = ", ".join([": ".join(p) for p in params])
-        return f"g4f.provider.{cls.__name__} supports: ({param})"
+        prompt = quote(format_prompt(messages))
+        driver.get(f"{cls.url}/search?q={prompt}&source=searchbox")
+
+        # Need to change settinge
+        if model.startswith("gpt-4") or creative_mode:
+            wait = WebDriverWait(driver, timeout)
+            # Open settings dropdown
+            wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, "button.text-dark.dropdown-toggle")))
+            driver.find_element(By.CSS_SELECTOR, "button.text-dark.dropdown-toggle").click()
+            # Wait for dropdown toggle
+            wait.until(EC.visibility_of_element_located((By.XPATH, "//button[text()='GPT-4']")))
+            # Enable GPT-4
+            if model.startswith("gpt-4"):
+                driver.find_element(By.XPATH, "//button[text()='GPT-4']").click()
+            # Enable creative mode
+            if creative_mode or creative_mode == None:
+                driver.find_element(By.ID, "Creative Mode").click()
+            # Submit changes
+            driver.find_element(By.CSS_SELECTOR, ".search-bar-input-group button[type='submit']").click()
+           # Wait for page reload
+            wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, ".search-container")))
+
+        try:
+            # Add fetch hook
+            script = """
+window._fetch = window.fetch;
+window.fetch = (url, options) => {
+    // Call parent fetch method
+    const result = window._fetch(url, options);
+    if (url != "/api/infer/answer") return result;
+    // Load response reader
+    result.then((response) => {
+        if (!response.body.locked) {
+            window.reader = response.body.getReader();
+        }
+    });
+    // Return dummy response
+    return new Promise((resolve, reject) => {
+        resolve(new Response(new ReadableStream()))
+    });
+}
+"""
+            # Read response from reader
+            driver.execute_script(script)
+            script = """
+if(window.reader) {
+    chunk = await window.reader.read();
+    if (chunk['done']) return null;
+    text = (new TextDecoder()).decode(chunk['value']);
+    content = '';
+    text.split('\\r\\n').forEach((line, index) => {
+        if (line.startsWith('data: ')) {
+            line = line.substring('data: '.length);
+            if (!line.startsWith('<PHIND_METADATA>')) {
+                if (line) content += line;
+                else content += '\\n';
+            }
+        }
+    });
+    return content.replace('\\n\\n', '\\n');
+} else {
+    return ''
+}
+"""
+            while True:
+                chunk = driver.execute_script(script)
+                if chunk:
+                    yield chunk
+                elif chunk != "":
+                    break
+                else:
+                    time.sleep(0.1)
+        finally:
+            driver.close()
+            if not browser:
+                time.sleep(0.1)
+                driver.quit()
+            if hidden_display:
+                display.stop()
