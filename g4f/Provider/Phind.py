@@ -2,15 +2,10 @@ from __future__ import annotations
 
 import time
 from urllib.parse import quote
-try:
-    from selenium.webdriver.remote.webdriver import WebDriver
-except ImportError:
-    class WebDriver():
-        pass
 
 from ..typing import CreateResult, Messages
 from .base_provider import BaseProvider
-from .helper import format_prompt, get_browser
+from .helper import WebDriver, format_prompt, get_browser
 
 class Phind(BaseProvider):
     url = "https://www.phind.com"
@@ -28,7 +23,7 @@ class Phind(BaseProvider):
         timeout: int = 120,
         browser: WebDriver = None,
         creative_mode: bool = None,
-        display: bool = True,
+        hidden_display: bool = True,
         **kwargs
     ) -> CreateResult:
         from selenium.webdriver.common.by import By
@@ -38,7 +33,7 @@ class Phind(BaseProvider):
         if browser:
             driver = browser
         else:
-            if display:
+            if hidden_display:
                 driver, display = get_browser("", True, proxy)
             else:
                 driver = get_browser("", False, proxy)
@@ -112,5 +107,5 @@ if(window.reader) {
             if not browser:
                 time.sleep(0.1)
                 driver.quit()
-            if display:
+            if hidden_display:
                 display.stop()
