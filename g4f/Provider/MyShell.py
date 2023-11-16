@@ -24,13 +24,13 @@ class MyShell(BaseProvider):
         hidden_display: bool = True,
         **kwargs
     ) -> CreateResult:
-        if not browser:
+        if browser:
+            driver = browser
+        else:
             if hidden_display:
                 driver, display = get_browser("", True, proxy)
             else:
-                display = get_browser("", False, proxy)
-        else:
-            driver = browser
+                driver = get_browser("", False, proxy)
 
         from selenium.webdriver.common.by import By
         from selenium.webdriver.support.ui import WebDriverWait
@@ -66,7 +66,7 @@ window.reader = response.body.getReader();
             script = """
 chunk = await window.reader.read();
 if (chunk['done']) return null;
-text = await (new Response(chunk['value']).text());
+text = (new TextDecoder ()).decode(chunk['value']);
 content = '';
 text.split('\\n').forEach((line, index) => {
     if (line.startsWith('data: ')) {
