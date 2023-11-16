@@ -1,15 +1,10 @@
 from __future__ import annotations
 
 import time
-try:
-    from selenium.webdriver.remote.webdriver import WebDriver
-except ImportError:
-    class WebDriver():
-        pass
 
 from ...typing import CreateResult, Messages
 from ..base_provider import BaseProvider
-from ..helper import format_prompt, get_browser
+from ..helper import WebDriver, format_prompt, get_browser
 
 class Bard(BaseProvider):
     url = "https://bard.google.com"
@@ -24,14 +19,14 @@ class Bard(BaseProvider):
         stream: bool,
         proxy: str = None,
         browser: WebDriver = None,
-        display: bool = True,
+        hidden_display: bool = True,
         **kwargs
     ) -> CreateResult:
         prompt = format_prompt(messages)
         if browser:
             driver = browser
         else:
-            if display:
+            if hidden_display:
                 driver, display = get_browser(None, True, proxy)
             else:
                 driver = get_browser(None, False, proxy)
@@ -49,7 +44,7 @@ class Bard(BaseProvider):
             if not browser:
                 driver.quit()
                 # New browser should be visible
-                if display:
+                if hidden_display:
                     display.stop()
                 driver = get_browser(None, False, proxy)
                 driver.get(f"{cls.url}/chat")
@@ -74,11 +69,11 @@ XMLHttpRequest.prototype.open = function(method, url) {
 """
             driver.execute_script(script)
 
-            # Send prompt
+            # Input and submit prompt
             driver.find_element(By.CSS_SELECTOR, "div.ql-editor.ql-blank.textarea").send_keys(prompt)
             driver.find_element(By.CSS_SELECTOR, "button.send-button").click()
 
-            # Read response
+            # Yield response
             script = "return window._message;"
             while True:
                 chunk = driver.execute_script(script)
@@ -92,5 +87,5 @@ XMLHttpRequest.prototype.open = function(method, url) {
             if not browser:
                 time.sleep(0.1)
                 driver.quit()
-            if display:
+            if hidden_display:
                 display.stop()
