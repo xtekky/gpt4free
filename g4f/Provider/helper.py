@@ -3,13 +3,39 @@ from __future__ import annotations
 import sys
 import asyncio
 import webbrowser
-
 from os              import path
 from asyncio         import AbstractEventLoop
 from platformdirs    import user_config_dir
+from browser_cookie3 import (
+    chrome,
+    chromium,
+    opera,
+    opera_gx,
+    brave,
+    edge,
+    vivaldi,
+    firefox,
+    BrowserCookieError
+)
+try:
+    from undetected_chromedriver import Chrome, ChromeOptions
+except ImportError:
+    class Chrome():
+        def __init__():
+            raise RuntimeError('Please install "undetected_chromedriver" and "pyvirtualdisplay" package')
+    class ChromeOptions():
+        def add_argument():
+            pass
+try:
+    from pyvirtualdisplay import Display
+except ImportError:
+    class Display():
+        def start():
+            pass
+        def stop():
+            pass
 
-from ..typing        import Dict, Messages
-from browser_cookie3 import chrome, chromium, opera, opera_gx, brave, edge, vivaldi, firefox, BrowserCookieError
+from ..typing import Dict, Messages, Union, Tuple
 from .. import debug
 
 # Change event loop policy on windows
@@ -106,10 +132,25 @@ def format_prompt(messages: Messages, add_special_tokens=False) -> str:
     return f"{formatted}\nAssistant:"
 
 
-def get_browser(user_data_dir: str = None):
-    from undetected_chromedriver import Chrome
-
-    if not user_data_dir:
+def get_browser(
+    user_data_dir: str = None,
+    display: bool = False,
+    proxy: str = None
+) -> Union[Chrome, Tuple[Chrome, Display]] :
+    if user_data_dir == None:
         user_data_dir = user_config_dir("g4f")
 
-    return Chrome(user_data_dir=user_data_dir)
+    if display:
+        display = Display(visible=0, size=(1920, 1080))
+        display.start()
+
+    options = None
+    if proxy:
+        options = ChromeOptions()
+        options.add_argument(f'--proxy-server={proxy}')
+
+    browser = Chrome(user_data_dir=user_data_dir, options=options)
+    if display:
+        return browser, display
+
+    return browser
