@@ -1,15 +1,10 @@
 from __future__ import annotations
 
 import time
-try:
-    from selenium.webdriver.remote.webdriver import WebDriver
-except ImportError:
-    class WebDriver():
-        pass
 
 from ..typing import CreateResult, Messages
 from .base_provider import BaseProvider
-from .helper import format_prompt, get_browser
+from .helper import WebDriver, format_prompt, get_browser
 
 class PerplexityAi(BaseProvider):
     url = "https://www.perplexity.ai"
@@ -27,13 +22,13 @@ class PerplexityAi(BaseProvider):
         timeout: int = 120,
         browser: WebDriver = None,
         copilot: bool = False,
-        display: bool = True,
+        hidden_display: bool = True,
         **kwargs
     ) -> CreateResult:
         if browser:
             driver = browser
         else:
-            if display:
+            if hidden_display:
                 driver, display = get_browser("", True, proxy)
             else:
                 driver = get_browser("", False, proxy)
@@ -50,6 +45,7 @@ class PerplexityAi(BaseProvider):
         # Page loaded?
         wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, "textarea[placeholder='Ask anything...']")))
 
+        # Add WebSocket hook
         script = """
 window._message = window._last_message = "";
 window._message_finished = false;
@@ -80,10 +76,12 @@ WebSocket.prototype.send = function(...args) {
 
         if copilot:
             try:
+               # Check account
                 driver.find_element(By.CSS_SELECTOR, "img[alt='User avatar']")
+               # Enable copilot
                 driver.find_element(By.CSS_SELECTOR, "button[data-testid='copilot-toggle']").click()
             except:
-                pass
+                raise RuntimeError("For copilot you needs a account")
 
         # Enter question
         driver.find_element(By.CSS_SELECTOR, "textarea[placeholder='Ask anything...']").send_keys(prompt)
@@ -91,6 +89,7 @@ WebSocket.prototype.send = function(...args) {
         driver.find_element(By.CSS_SELECTOR, "button.bg-super svg[data-icon='arrow-right']").click()
 
         try:
+            # Yield response
             script = """
 if(window._message && window._message != window._last_message) {
     try {
@@ -117,5 +116,5 @@ if(window._message && window._message != window._last_message) {
             if not browser:
                 time.sleep(0.1)
                 driver.quit()
-            if display:
+            if hidden_display:
                 display.stop()
