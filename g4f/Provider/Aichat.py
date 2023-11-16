@@ -8,8 +8,8 @@ from .helper import get_cookies
 from ..requests import StreamSession
 
 class Aichat(AsyncProvider):
-    url                   = "https://chat-gpt.org/chat"
-    working               = True
+    url = "https://chat-gpt.org/chat"
+    working = False
     supports_gpt_35_turbo = True
 
     @staticmethod

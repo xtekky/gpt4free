@@ -1,14 +1,12 @@
-new discord server: [discord.gg/XfybzPXPH5](https://discord.gg/XfybzPXPH5)
+![248433934-7886223b-c1d1-4260-82aa-da5741f303bb](https://github.com/xtekky/gpt4free/assets/98614666/ea012c87-76e0-496a-8ac4-e2de090cc6c9)
+
+<a href='https://ko-fi.com/xtekky' target='_blank'><img height='35' style='border:0px;height:46px;' src='https://az743702.vo.msecnd.net/cdn/kofi3.png?v=0' border='0' alt='Buy Me a Coffee at ko-fi.com' />
 
 <div id="top"></div>
 
-![248433934-7886223b-c1d1-4260-82aa-da5741f303bb](https://github.com/xtekky/gpt4free/assets/98614666/ea012c87-76e0-496a-8ac4-e2de090cc6c9)
+> By using this repository or any code related to it, you agree to the [legal notice](LEGAL_NOTICE.md). The author is not responsible for any copies, forks, re-uploads made by other users, or anything else related to GPT4Free. This is the author's only account and repository. To prevent impersonation or irresponsible actions, please comply with the GNU GPL license this Repository uses.
 
-
-> **Note**
-> By using this repository or any code related to it, you agree to the [legal notice](https://github.com/xtekky/gpt4free/blob/main/LEGAL_NOTICE.md). The author is not responsible for any copies, forks, re-uploads made by other users, or anything else related to GPT4Free. This is the author's only account and repository. To prevent impersonation or irresponsible actions, please comply with the GNU GPL license this Repository uses.
-
-> **Note**
+> [!Note]
 > Latest pypi version: [`0.1.8.2`](https://pypi.org/project/g4f/0.1.8.2)
 ```sh
 pip install -U g4f
@@ -17,28 +15,43 @@ pip install -U g4f
 ## 🆕 What's New
 
 - Join our Telegram Channel: [t.me/g4f_channel](https://telegram.me/g4f_channel)
+- Join our Discord Group: [discord.gg/XfybzPXPH5](https://discord.gg/XfybzPXPH5)
 - Explore the g4f Documentation (unfinished): [g4f.mintlify.app](https://g4f.mintlify.app) | Contribute to the docs via: [github.com/xtekky/gpt4free-docs](https://github.com/xtekky/gpt4free-docs)
 
 ## 📚 Table of Contents
 
-- [Getting Started](#getting-started)
-  - [Prerequisites](#prerequisites)
-  - [Setting up the project](#setting-up-the-project)
-    - [Install using PyPi](#install-using-pypi)
-    - [Install using docker](#setting-up-with-docker)
-- [Usage](#usage)
+- [🆕 What's New](#-whats-new)
+- [📚 Table of Contents](#-table-of-contents)
+- [🛠️ Getting Started](#️-getting-started)
+    - [Prerequisites:](#prerequisites)
+    - [Setting up the project:](#setting-up-the-project)
+      - [Install using pypi](#install-using-pypi)
+      - [or](#or)
+      - [Setting up with Docker:](#setting-up-with-docker)
+- [💡 Usage](#-usage)
   - [The `g4f` Package](#the-g4f-package)
-  - [interference openai-proxy api (use with openai python package)](#interference-openai-proxy-api-use-with-openai-python-package)
-- [Providers](#models)
-  - [gpt-3.5](#gpt-35)
-  - [gpt-4](#gpt-4)
-  - [Other Models](#other-models)
-- [Related gpt4free projects](#related-gpt4free-projects)
-- [Contribute](#contribute)
-- [Contributors](#contributors)
-- [Copyright](#copyright)
-- [Star History](#star-history)
-- [License](#license)
+    - [ChatCompletion](#chatcompletion)
+      - [Completion](#completion)
+      - [Providers](#providers)
+      - [Cookies Required](#cookies-required)
+      - [Async Support](#async-support)
+      - [Proxy and Timeout Support](#proxy-and-timeout-support)
+  - [Interference openai-proxy API (Use with openai python package)](#interference-openai-proxy-api-use-with-openai-python-package)
+    - [Run interference API from PyPi package](#run-interference-api-from-pypi-package)
+    - [Run interference API from repo](#run-interference-api-from-repo)
+- [🚀 Providers and Models](#-providers-and-models)
+  - [GPT-4](#gpt-4)
+  - [GPT-3.5](#gpt-35)
+  - [Other](#other)
+  - [Models](#models)
+- [🔗 Related GPT4Free Projects](#-related-gpt4free-projects)
+- [🤝 Contribute](#-contribute)
+    - [Create Provider with AI Tool](#create-provider-with-ai-tool)
+    - [Create Provider](#create-provider)
+- [🙌 Contributors](#-contributors)
+- [©️ Copyright](#️-copyright)
+- [⭐ Star History](#-star-history)
+- [📄 License](#-license)
 
 ## 🛠️ Getting Started
 
@@ -123,13 +136,13 @@ cd gpt4free
 4. Build the Docker image:
 
 ```bash
-docker compose build
+docker-compose build
 ```
 
 5. Start the service using Docker Compose:
 
 ```bash
-docker compose up
+docker-compose up
 ```
 
 Your server will now be running at `http://localhost:1337`. You can interact with the API or run your tests as you would normally.
@@ -137,11 +150,11 @@ Your server will now be running at `http://localhost:1337`. You can interact wit
 To stop the Docker containers, simply run:
 
 ```bash
-docker compose down
+docker-compose down
 ```
 
-> **Note**
-> When using Docker, any changes you make to your local files will be reflected in the Docker container thanks to the volume mapping in the `docker-compose.yml` file. If you add or remove dependencies, however, you'll need to rebuild the Docker image using `docker compose build`.
+> [!Note]
+> When using Docker, any changes you make to your local files will be reflected in the Docker container thanks to the volume mapping in the `docker-compose.yml` file. If you add or remove dependencies, however, you'll need to rebuild the Docker image using `docker-compose build`.
 
 ## 💡 Usage
 
@@ -531,6 +544,13 @@ if __name__ == "__main__":
       <td><a href="https://github.com/HexyeDEV/Telegram-Chatbot-Gpt4Free/issues"><img alt="Issues" src="https://img.shields.io/github/issues/HexyeDEV/Telegram-Chatbot-Gpt4Free?style=flat-square&labelColor=343b41"/></a></td>
       <td><a href="https://github.com/HexyeDEV/Telegram-Chatbot-Gpt4Free/pulls"><img alt="Pull Requests" src="https://img.shields.io/github/issues-pr/HexyeDEV/Telegram-Chatbot-Gpt4Free?style=flat-square&labelColor=343b41"/></a></td>
     </tr>
+        <tr>
+      <td><a href="https://github.com/Lin-jun-xiang/chatgpt-line-bot"><b>ChatGpt Line Bot</b></a></td>
+      <td><a href="https://github.com/Lin-jun-xiang/chatgpt-line-bot/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/Lin-jun-xiang/chatgpt-line-bot?style=flat-square&labelColor=343b41"/></a></td>
+      <td><a href="https://github.com/Lin-jun-xiang/chatgpt-line-bot/network/members"><img alt="Forks" src="https://img.shields.io/github/forks/Lin-jun-xiang/chatgpt-line-bot?style=flat-square&labelColor=343b41"/></a></td>
+      <td><a href="https://github.com/Lin-jun-xiang/chatgpt-line-bot/issues"><img alt="Issues" src="https://img.shields.io/github/issues/Lin-jun-xiang/chatgpt-line-bot?style=flat-square&labelColor=343b41"/></a></td>
+      <td><a href="https://github.com/Lin-jun-xiang/chatgpt-line-bot/pulls"><img alt="Pull Requests" src="https://img.shields.io/github/issues-pr/Lin-jun-xiang/chatgpt-line-bot?style=flat-square&labelColor=343b41"/></a></td>
+    </tr>
     <tr>
       <td><a href="https://github.com/Lin-jun-xiang/action-translate-readme"><b>Action Translate Readme</b></a></td>
       <td><a href="https://github.com/Lin-jun-xiang/action-translate-readme/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/Lin-jun-xiang/action-translate-readme?style=flat-square&labelColor=343b41"/></a></td>
@@ -557,7 +577,7 @@ Call in your terminal the "create_provider" script:
 python etc/tool/create_provider.py
 ```
 1. Enter your name for the new provider.
-2. Copy and paste the `URL` command from your browser developer tools.
+2. Copy and paste the `cURL` command from your browser developer tools.
 3. Let the AI ​​create the provider for you.
 4. Customize the provider according to your needs.
 
