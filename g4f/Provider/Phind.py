@@ -41,39 +41,46 @@ class Phind(BaseProvider):
         prompt = quote(format_prompt(messages))
         driver.get(f"{cls.url}/search?q={prompt}&source=searchbox")
 
+        # Need to change settinge
         if model.startswith("gpt-4") or creative_mode:
             wait = WebDriverWait(driver, timeout)
-            # Open dropdown
+            # Open settings dropdown
             wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, "button.text-dark.dropdown-toggle")))
             driver.find_element(By.CSS_SELECTOR, "button.text-dark.dropdown-toggle").click()
-            # Enable GPT-4
+            # Wait for dropdown toggle
             wait.until(EC.visibility_of_element_located((By.XPATH, "//button[text()='GPT-4']")))
+            # Enable GPT-4
             if model.startswith("gpt-4"):
                 driver.find_element(By.XPATH, "//button[text()='GPT-4']").click()
             # Enable creative mode
             if creative_mode or creative_mode == None:
                 driver.find_element(By.ID, "Creative Mode").click()
-            # Submit question
+            # Submit changes
             driver.find_element(By.CSS_SELECTOR, ".search-bar-input-group button[type='submit']").click()
+           # Wait for page reload
             wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, ".search-container")))
 
         try:
-            # Fetch hook
+            # Add fetch hook
             script = """
 window._fetch = window.fetch;
 window.fetch = (url, options) => {
+    // Call parent fetch method
     const result = window._fetch(url, options);
     if (url != "/api/infer/answer") return result;
+    // Load response reader
     result.then((response) => {
         if (!response.body.locked) {
             window.reader = response.body.getReader();
         }
     });
+    // Return dummy response
     return new Promise((resolve, reject) => {
         resolve(new Response(new ReadableStream()))
     });
 }
 """
+            # Read response from reader
             driver.execute_script(script)
             script = """
 if(window.reader) {
