@@ -38,11 +38,11 @@ class MyShell(BaseProvider):
 
         driver.get(cls.url)
         try:
-            # Wait for page load
+            # Wait for page load and cloudflare validation
             WebDriverWait(driver, timeout).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, "body:not(.no-js)"))
             )
-            # Send message
+            # Send request with message
             script = """
 response = await fetch("https://api.myshell.ai/v1/bot/chat/send_message", {
     "headers": {
@@ -66,7 +66,7 @@ window.reader = response.body.getReader();
             script = """
 chunk = await window.reader.read();
 if (chunk['done']) return null;
-text = (new TextDecoder ()).decode(chunk['value']);
+text = (new TextDecoder()).decode(chunk['value']);
 content = '';
 text.split('\\n').forEach((line, index) => {
     if (line.startsWith('data: ')) {
@@ -81,7 +81,7 @@ text.split('\\n').forEach((line, index) => {
 return content;
 """
             while True:
-                chunk = driver.execute_script(script):
+                chunk = driver.execute_script(script)
                 if chunk:
                     yield chunk
                 elif chunk != "":

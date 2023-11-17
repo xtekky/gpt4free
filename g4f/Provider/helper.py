@@ -18,10 +18,10 @@ from browser_cookie3 import (
     BrowserCookieError
 )
 try: 
-     from selenium.webdriver.remote.webdriver import WebDriver 
- except ImportError: 
-     class WebDriver(): 
-         pass
+    from selenium.webdriver.remote.webdriver import WebDriver 
+except ImportError: 
+    class WebDriver(): 
+        pass
 try:
     from undetected_chromedriver import Chrome, ChromeOptions
 except ImportError:
@@ -153,7 +153,7 @@ def get_browser(
     if proxy:
         if not options:
             options = ChromeOptions()
-         options.add_argument(f'--proxy-server={proxy}')
+        options.add_argument(f'--proxy-server={proxy}')
 
     browser = Chrome(user_data_dir=user_data_dir, options=options)
     if hidden_display:
