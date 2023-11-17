@@ -1,95 +1,128 @@
 from __future__ import annotations
 
-import random, json
+import time
+import random
+
+from ..typing import CreateResult, Messages
+from .base_provider import BaseProvider
+from .helper import WebDriver, format_prompt, get_browser
 from .. import debug
-from ..typing       import AsyncResult, Messages
-from ..requests     import StreamSession
-from .base_provider import AsyncGeneratorProvider, format_prompt, get_cookies
 
-domains = {
-    "gpt-3.5-turbo": "aitianhu.space",
-    "gpt-4": "aitianhu.website",
-}
-
-class AItianhuSpace(AsyncGeneratorProvider):
+class AItianhuSpace(BaseProvider):
     url = "https://chat3.aiyunos.top/"
     working = True
     supports_gpt_35_turbo = True
+    _domains = ["aitianhu.com", "aitianhu1.top"]
 
     @classmethod
-    async def create_async_generator(cls,
-                                     model: str,
-                                     messages: Messages,
-                                     proxy: str = None,
-                                     domain: str = None,
-                                     cookies: dict = None,
-                                     timeout: int = 10, **kwargs) -> AsyncResult:
-        
+    def create_completion(
+        cls,
+        model: str,
+        messages: Messages,
+        stream: bool,
+        domain: str = None,
+        proxy: str = None,
+        timeout: int = 120,
+        browser: WebDriver = None,
+        hidden_display: bool = True,
+        **kwargs
+    ) -> CreateResult:
         if not model:
             model = "gpt-3.5-turbo"
-
-        elif model not in domains:
-            raise ValueError(f"Model are not supported: {model}")
-
         if not domain:
             chars = 'abcdefghijklmnopqrstuvwxyz0123456789'
             rand = ''.join(random.choice(chars) for _ in range(6))
-            domain = f"{rand}.{domains[model]}"
-
+            domain = random.choice(cls._domains)
+            domain = f"{rand}.{domain}"
         if debug.logging:
             print(f"AItianhuSpace | using domain: {domain}")
+        url = f"https://{domain}"
+        prompt = format_prompt(messages)
+        if browser:
+            driver = browser
+        else:
+            if hidden_display:
+                driver, display = get_browser("", True, proxy)
+            else:
+                driver = get_browser("", False, proxy)
 
-        if not cookies:
-            cookies = get_cookies('.aitianhu.space')
-        if not cookies:
-            raise RuntimeError(f"g4f.provider.{cls.__name__} requires cookies [refresh https://{domain} on chrome]")
+        from selenium.webdriver.common.by import By
+        from selenium.webdriver.support.ui import WebDriverWait
+        from selenium.webdriver.support import expected_conditions as EC
 
-        url = f'https://{domain}'
-        async with StreamSession(proxies={"https": proxy},
-                cookies=cookies, timeout=timeout, impersonate="chrome110", verify=False) as session:
-            
-            data = {
-                "prompt": format_prompt(messages),
-                "options": {},
-                "systemMessage": "You are ChatGPT, a large language model trained by OpenAI. Follow the user's instructions carefully.",
-                "temperature": 0.8,
-                "top_p": 1,
-                **kwargs
-            }
-            headers = {
-                "Authority": url,
-                "Accept": "application/json, text/plain, */*",
-                "Origin": url,
-                "Referer": f"{url}/"
-            }
-            async with session.post(f"{url}/api/chat-process", json=data, headers=headers) as response:
-                response.raise_for_status()
-                async for line in response.iter_lines():
-                    if line == b"<script>":
-                        raise RuntimeError("Solve challenge and pass cookies and a fixed domain")
-                    if b"platform's risk control" in line:
-                        raise RuntimeError("Platform's Risk Control")
-                    line = json.loads(line)
-                    if "detail" in line:
-                        if content := line["detail"]["choices"][0]["delta"].get(
-                            "content"
-                        ):
-                            yield content
-                    elif "message" in line and "AI-4接口非常昂贵" in line["message"]:
-                        raise RuntimeError("Rate limit for GPT 4 reached")
-                    else:
-                        raise RuntimeError(f"Response: {line}")
-        
+        wait = WebDriverWait(driver, timeout)
 
-    @classmethod
-    @property
-    def params(cls):
-        params = [
-            ("model", "str"),
-            ("messages", "list[dict[str, str]]"),
-            ("stream", "bool"),
-            ("temperature", "float"),
-            ("top_p", "int"),
-        ]
-        param = ", ".join([": ".join(p) for p in params])
-        return f"g4f.provider.{cls.__name__} supports: ({param})"
+        # Bypass devtools detection
+        driver.get("https://blank.page/")
+        wait.until(EC.visibility_of_element_located((By.ID, "sheet")))
+        driver.execute_script(f"""
+document.getElementById('sheet').addEventListener('click', () => {{
+    window.open('{url}', '_blank');
+}});
+""")
+        driver.find_element(By.ID, "sheet").click()
+        time.sleep(10)
+
+        original_window = driver.current_window_handle
+        for window_handle in driver.window_handles:
+            if window_handle != original_window:
+                driver.switch_to.window(window_handle)
+                break
+
+        wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, "textarea.n-input__textarea-el")))
+
+        try:
+            # Add hook in XMLHttpRequest
+            script = """
+const _http_request_open = XMLHttpRequest.prototype.open;
+window._last_message = window._message = "";
+window._loadend = false;
+XMLHttpRequest.prototype.open = function(method, url) {
+    if (url == "/api/chat-process") {
+        this.addEventListener("progress", (event) => {
+            const lines = this.responseText.split("\\n");
+            try {
+                window._message = JSON.parse(lines[lines.length-1])["text"];
+            } catch(e) { }
+        });
+        this.addEventListener("loadend", (event) => {
+            window._loadend = true;
+        });
+    }
+    return _http_request_open.call(this, method, url);
+}
+"""
+            driver.execute_script(script)
+
+            # Input and submit prompt
+            driver.find_element(By.CSS_SELECTOR, "textarea.n-input__textarea-el").send_keys(prompt)
+            driver.find_element(By.CSS_SELECTOR, "button.n-button.n-button--primary-type.n-button--medium-type").click()
+
+            # Yield response
+            while True:
+                chunk = driver.execute_script("""
+if (window._message && window._message != window._last_message) {
+    try {
+        return window._message.substring(window._last_message.length);
+    } finally {
+        window._last_message = window._message;
+    }
+}
+if (window._loadend) {
+    return null;
+}
+return "";
+""")
+                if chunk:
+                    yield chunk
+                elif chunk != "":
+                    break
+                else:
+                    time.sleep(0.1)
+        finally:
+            driver.close()
+            if not browser:
+                time.sleep(0.1)
+                driver.quit()
+            if hidden_display:
+                display.stop()
