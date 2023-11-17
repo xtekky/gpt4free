@@ -22,24 +22,24 @@ class PerplexityAi(BaseProvider):
         timeout: int = 120,
         browser: WebDriver = None,
         copilot: bool = False,
-        headless: bool = True,
         **kwargs
     ) -> CreateResult:
-        driver = browser if browser else get_browser("", headless, proxy)
+        driver = browser if browser else get_browser("", False, proxy)
 
         from selenium.webdriver.common.by import By
         from selenium.webdriver.support.ui import WebDriverWait
         from selenium.webdriver.support import expected_conditions as EC
+        from selenium.webdriver.common.keys import Keys
 
         prompt = format_prompt(messages)
 
         driver.get(f"{cls.url}/")
         wait = WebDriverWait(driver, timeout)
 
-        # Page loaded?
+        # Is page loaded?
         wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, "textarea[placeholder='Ask anything...']")))
 
-        # Add WebSocket hook
+        # Register WebSocket hook
         script = """
 window._message = window._last_message = "";
 window._message_finished = false;
@@ -57,8 +57,9 @@ WebSocket.prototype.send = function(...args) {
                         content = JSON.parse(content);
                     }
                     window._message = content["answer"];
-                    window._message_finished = data[0] == "query_answered";
-                    window._web_results = content["web_results"];
+                    if (!window._message_finished) {
+                        window._message_finished = data[0] == "query_answered";
+                    }
                 }
             }
         });
@@ -70,20 +71,19 @@ WebSocket.prototype.send = function(...args) {
 
         if copilot:
             try:
-               # Check account
+               # Check for account
                 driver.find_element(By.CSS_SELECTOR, "img[alt='User avatar']")
                # Enable copilot
                 driver.find_element(By.CSS_SELECTOR, "button[data-testid='copilot-toggle']").click()
             except:
-                raise RuntimeError("For copilot you needs a account")
+                raise RuntimeError("You need a account for copilot")
 
-        # Enter question
+        # Submit prompt
         driver.find_element(By.CSS_SELECTOR, "textarea[placeholder='Ask anything...']").send_keys(prompt)
-        # Submit question
-        driver.find_element(By.CSS_SELECTOR, "button.bg-super svg[data-icon='arrow-right']").click()
+        driver.find_element(By.CSS_SELECTOR, "textarea[placeholder='Ask anything...']").send_keys(Keys.ENTER)
 
         try:
-            # Yield response
+            # Stream response
             script = """
 if(window._message && window._message != window._last_message) {
     try {
