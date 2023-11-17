@@ -19,17 +19,12 @@ class Bard(BaseProvider):
         stream: bool,
         proxy: str = None,
         browser: WebDriver = None,
-        hidden_display: bool = True,
+        user_data_dir: str = None,
+        headless: bool = True,
         **kwargs
     ) -> CreateResult:
         prompt = format_prompt(messages)
-        if browser:
-            driver = browser
-        else:
-            if hidden_display:
-                driver, display = get_browser(None, True, proxy)
-            else:
-                driver = get_browser(None, False, proxy)
+        driver = browser if browser else get_browser(user_data_dir, headless, proxy)
 
         from selenium.webdriver.common.by import By
         from selenium.webdriver.support.ui import WebDriverWait
@@ -43,9 +38,6 @@ class Bard(BaseProvider):
             # Reopen browser for login
             if not browser:
                 driver.quit()
-                # New browser should be visible
-                if hidden_display:
-                    display.stop()
                 driver = get_browser(None, False, proxy)
                 driver.get(f"{cls.url}/chat")
                 wait = WebDriverWait(driver, 240)
@@ -83,9 +75,7 @@ XMLHttpRequest.prototype.open = function(method, url) {
                 else:
                     time.sleep(0.1)
         finally:
-            driver.close()
             if not browser:
+                driver.close()
                 time.sleep(0.1)
                 driver.quit()
-            if hidden_display:
-                display.stop()

@@ -31,14 +31,6 @@ except ImportError:
     class ChromeOptions():
         def add_argument():
             pass
-try:
-    from pyvirtualdisplay import Display
-except ImportError:
-    class Display():
-        def start():
-            pass
-        def stop():
-            pass
 
 from ..typing import Dict, Messages, Union, Tuple
 from .. import debug
@@ -139,24 +131,16 @@ def format_prompt(messages: Messages, add_special_tokens=False) -> str:
 
 def get_browser(
     user_data_dir: str = None,
-    hidden_display: bool = False,
+    headless: bool = False,
     proxy: str = None,
     options: ChromeOptions = None
-) -> Union[Chrome, Tuple[Chrome, Display]] :
+) -> Chrome:
     if user_data_dir == None:
         user_data_dir = user_config_dir("g4f")
-
-    if hidden_display:
-        display = Display(visible=0, size=(1920, 1080))
-        display.start()
 
     if proxy:
         if not options:
             options = ChromeOptions()
         options.add_argument(f'--proxy-server={proxy}')
 
-    browser = Chrome(user_data_dir=user_data_dir, options=options)
-    if hidden_display:
-        return browser, display
-
-    return browser
+    return Chrome(user_data_dir=user_data_dir, options=options, headless=headless)

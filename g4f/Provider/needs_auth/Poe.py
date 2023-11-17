@@ -22,6 +22,7 @@ models = {
 class Poe(BaseProvider):
     url = "https://poe.com"
     working = True
+    needs_auth = True
     supports_gpt_35_turbo = True
     supports_stream = True
 
@@ -33,7 +34,8 @@ class Poe(BaseProvider):
         stream: bool,
         proxy: str = None,
         browser: WebDriver = None,
-        hidden_display: bool = True,
+        user_data_dir: str = None,
+        headless: bool = True,
         **kwargs
     ) -> CreateResult:
         if not model:
@@ -41,13 +43,7 @@ class Poe(BaseProvider):
         elif model not in models:
             raise ValueError(f"Model are not supported: {model}")
         prompt = format_prompt(messages)
-        if browser:
-            driver = browser
-        else:
-            if hidden_display:
-                driver, display = get_browser(None, True, proxy)
-            else:
-                driver = get_browser(None, False, proxy)
+        driver = browser if browser else get_browser(user_data_dir, headless, proxy)
 
         script = """
 window._message = window._last_message = "";
@@ -80,14 +76,12 @@ window.WebSocket = ProxiedWebSocket;
 
         try:
             driver.get(f"{cls.url}/{models[model]['name']}")
-            wait = WebDriverWait(driver, 10 if hidden_display else 240)
+            wait = WebDriverWait(driver, 10 if headless else 240)
             wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, "textarea[class^='GrowingTextArea']")))
         except:
             # Reopen browser for login
             if not browser:
                 driver.quit()
-                if hidden_display:
-                    display.stop()
                 driver = get_browser(None, False, proxy)
                 driver.get(f"{cls.url}/{models[model]['name']}")
                 wait = WebDriverWait(driver, 240)
@@ -121,9 +115,7 @@ if(window._message && window._message != window._last_message) {
                 else:
                     time.sleep(0.1)
         finally:
-            driver.close()
             if not browser:
+                driver.close()
                 time.sleep(0.1)
                 driver.quit()
-            if hidden_display:
-                display.stop()

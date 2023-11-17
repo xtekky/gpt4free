@@ -23,16 +23,10 @@ class Phind(BaseProvider):
         timeout: int = 120,
         browser: WebDriver = None,
         creative_mode: bool = None,
-        hidden_display: bool = True,
+        headless: bool = True,
         **kwargs
     ) -> CreateResult:
-        if browser:
-            driver = browser
-        else:
-            if hidden_display:
-                driver, display = get_browser("", True, proxy)
-            else:
-                driver = get_browser("", False, proxy)
+        driver = browser if browser else get_browser("", headless, proxy)
 
         from selenium.webdriver.common.by import By
         from selenium.webdriver.support.ui import WebDriverWait
@@ -111,9 +105,7 @@ if(window.reader) {
                 else:
                     time.sleep(0.1)
         finally:
-            driver.close()
             if not browser:
+                driver.close()
                 time.sleep(0.1)
                 driver.quit()
-            if hidden_display:
-                display.stop()

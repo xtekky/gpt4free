@@ -24,7 +24,7 @@ class AItianhuSpace(BaseProvider):
         proxy: str = None,
         timeout: int = 120,
         browser: WebDriver = None,
-        hidden_display: bool = True,
+        headless: bool = True,
         **kwargs
     ) -> CreateResult:
         if not model:
@@ -38,13 +38,7 @@ class AItianhuSpace(BaseProvider):
             print(f"AItianhuSpace | using domain: {domain}")
         url = f"https://{domain}"
         prompt = format_prompt(messages)
-        if browser:
-            driver = browser
-        else:
-            if hidden_display:
-                driver, display = get_browser("", True, proxy)
-            else:
-                driver = get_browser("", False, proxy)
+        driver = browser if browser else get_browser("", headless, proxy)
 
         from selenium.webdriver.common.by import By
         from selenium.webdriver.support.ui import WebDriverWait
@@ -66,6 +60,7 @@ document.getElementById('sheet').addEventListener('click', () => {{
         original_window = driver.current_window_handle
         for window_handle in driver.window_handles:
             if window_handle != original_window:
+                driver.close()
                 driver.switch_to.window(window_handle)
                 break
 
@@ -120,9 +115,7 @@ return "";
                 else:
                     time.sleep(0.1)
         finally:
-            driver.close()
             if not browser:
+                driver.close()
                 time.sleep(0.1)
                 driver.quit()
-            if hidden_display:
-                display.stop()
