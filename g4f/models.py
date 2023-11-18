@@ -4,12 +4,16 @@ from .typing     import Union
 from .Provider   import BaseProvider, RetryProvider
 from .Provider   import (
     Chatgpt4Online,
+    ChatgptDemoAi,
     ChatAnywhere,
+    ChatgptNext,
     GptForLove,
     ChatgptAi,
     DeepInfra,
+    OnlineGpt,
     ChatgptX,
     ChatBase,
+    Liaobots,
     GeekGpt,
     FakeGpt,
     FreeGpt,
@@ -57,6 +61,9 @@ gpt_35_long = Model(
         Berlin, Koala,
         Chatgpt4Online,
         ChatAnywhere,
+        ChatgptDemoAi,
+        OnlineGpt,
+        ChatgptNext,
     ])
 )
 
@@ -76,7 +83,7 @@ gpt_4 = Model(
     name          = 'gpt-4',
     base_provider = 'openai',
     best_provider = RetryProvider([
-        Bing, Phind
+        Bing, Phind, Liaobots
     ])
 )
 

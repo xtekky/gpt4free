@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from .AiAsk           import AiAsk
 from .Aichat          import Aichat
+from .AiChatOnline    import AiChatOnline
 from .AItianhu        import AItianhu
 from .AItianhuSpace   import AItianhuSpace
 from .Berlin          import Berlin
@@ -12,8 +13,10 @@ from .ChatForAi       import ChatForAi
 from .Chatgpt4Online  import Chatgpt4Online
 from .ChatgptAi       import ChatgptAi
 from .ChatgptDemo     import ChatgptDemo
+from .ChatgptDemoAi   import ChatgptDemoAi
 from .ChatgptFree     import ChatgptFree
 from .ChatgptLogin    import ChatgptLogin
+from .ChatgptNext     import ChatgptNext
 from .ChatgptX        import ChatgptX
 from .DeepInfra       import DeepInfra
 from .FakeGpt         import FakeGpt
@@ -29,9 +32,11 @@ from .Liaobots        import Liaobots
 from .Llama2          import Llama2
 from .MyShell         import MyShell
 from .NoowAi          import NoowAi
+from .OnlineGpt       import OnlineGpt
 from .Opchatgpts      import Opchatgpts
 from .PerplexityAi    import PerplexityAi
 from .Phind           import Phind
+from .TalkAi          import TalkAi
 from .Vercel          import Vercel
 from .Ylokh           import Ylokh
 from .You             import You

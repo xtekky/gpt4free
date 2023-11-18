@@ -21,10 +21,9 @@ class MyShell(BaseProvider):
         proxy: str = None,
         timeout: int = 120,
         browser: WebDriver = None,
-        headless: bool = True,
         **kwargs
     ) -> CreateResult:
-        driver = browser if browser else get_browser("", headless, proxy)
+        driver = browser if browser else get_browser("", False, proxy)
 
         from selenium.webdriver.common.by import By
         from selenium.webdriver.support.ui import WebDriverWait
@@ -80,6 +79,8 @@ return content;
                     yield chunk
                 elif chunk != "":
                     break
+                else:
+                    time.sleep(0.1)
         finally:
             if not browser:
                 driver.close()

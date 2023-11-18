@@ -23,49 +23,31 @@ class Phind(BaseProvider):
         timeout: int = 120,
         browser: WebDriver = None,
         creative_mode: bool = None,
-        headless: bool = True,
         **kwargs
     ) -> CreateResult:
-        driver = browser if browser else get_browser("", headless, proxy)
-
-        from selenium.webdriver.common.by import By
-        from selenium.webdriver.support.ui import WebDriverWait
-        from selenium.webdriver.support import expected_conditions as EC
-
-        prompt = quote(format_prompt(messages))
-        driver.get(f"{cls.url}/search?q={prompt}&source=searchbox")
-
-        # Need to change settinge
-        if model.startswith("gpt-4") or creative_mode:
-            wait = WebDriverWait(driver, timeout)
-            # Open settings dropdown
-            wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, "button.text-dark.dropdown-toggle")))
-            driver.find_element(By.CSS_SELECTOR, "button.text-dark.dropdown-toggle").click()
-            # Wait for dropdown toggle
-            wait.until(EC.visibility_of_element_located((By.XPATH, "//button[text()='GPT-4']")))
-            # Enable GPT-4
-            if model.startswith("gpt-4"):
-                driver.find_element(By.XPATH, "//button[text()='GPT-4']").click()
-            # Enable creative mode
-            if creative_mode or creative_mode == None:
-                driver.find_element(By.ID, "Creative Mode").click()
-            # Submit changes
-            driver.find_element(By.CSS_SELECTOR, ".search-bar-input-group button[type='submit']").click()
-           # Wait for page reload
-            wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, ".search-container")))
-
         try:
-            # Add fetch hook
-            script = """
+            driver = browser if browser else get_browser("", False, proxy)
+
+            from selenium.webdriver.common.by import By
+            from selenium.webdriver.support.ui import WebDriverWait
+            from selenium.webdriver.support import expected_conditions as EC
+
+            prompt = quote(format_prompt(messages))
+            driver.get(f"{cls.url}/search?q={prompt}&source=searchbox")
+
+            # Register fetch hook
+            driver.execute_script("""
 window._fetch = window.fetch;
 window.fetch = (url, options) => {
     // Call parent fetch method
     const result = window._fetch(url, options);
-    if (url != "/api/infer/answer") return result;
+    if (url != "/api/infer/answer") {
+        return result;
+    }
     // Load response reader
     result.then((response) => {
         if (!response.body.locked) {
-            window.reader = response.body.getReader();
+            window._reader = response.body.getReader();
         }
     });
     // Return dummy response
@@ -73,12 +55,31 @@ window.fetch = (url, options) => {
         resolve(new Response(new ReadableStream()))
     });
 }
-"""
-            # Read response from reader
-            driver.execute_script(script)
-            script = """
-if(window.reader) {
-    chunk = await window.reader.read();
+""")
+
+            # Need to change settings
+            if model.startswith("gpt-4") or creative_mode:
+                wait = WebDriverWait(driver, timeout)
+                # Open settings dropdown
+                wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, "button.text-dark.dropdown-toggle")))
+                driver.find_element(By.CSS_SELECTOR, "button.text-dark.dropdown-toggle").click()
+                # Wait for dropdown toggle
+                wait.until(EC.visibility_of_element_located((By.XPATH, "//button[text()='GPT-4']")))
+                # Enable GPT-4
+                if model.startswith("gpt-4"):
+                    driver.find_element(By.XPATH, "//button[text()='GPT-4']").click()
+                # Enable creative mode
+                if creative_mode or creative_mode == None:
+                    driver.find_element(By.ID, "Creative Mode").click()
+                # Submit changes
+                driver.find_element(By.CSS_SELECTOR, ".search-bar-input-group button[type='submit']").click()
+                # Wait for page reload
+                wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, ".search-container")))
+
+            while True:
+                chunk = driver.execute_script("""
+if(window._reader) {
+    chunk = await window._reader.read();
     if (chunk['done']) return null;
     text = (new TextDecoder()).decode(chunk['value']);
     content = '';
@@ -95,9 +96,7 @@ if(window.reader) {
 } else {
     return ''
 }
-"""
-            while True:
-                chunk = driver.execute_script(script)
+""")
                 if chunk:
                     yield chunk
                 elif chunk != "":

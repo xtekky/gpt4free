@@ -3,6 +3,9 @@ from __future__ import annotations
 import sys
 import asyncio
 import webbrowser
+import random
+import string
+import secrets
 from os              import path
 from asyncio         import AbstractEventLoop
 from platformdirs    import user_config_dir
@@ -120,12 +123,10 @@ def get_cookies(domain_name=''):
 def format_prompt(messages: Messages, add_special_tokens=False) -> str:
     if not add_special_tokens and len(messages) <= 1:
         return messages[0]["content"]
-    formatted = "\n".join(
-        [
-            f'{message["role"].capitalize()}: {message["content"]}'
-            for message in messages
-        ]
-    )
+    formatted = "\n".join([
+        f'{message["role"].capitalize()}: {message["content"]}'
+        for message in messages
+    ])
     return f"{formatted}\nAssistant:"
 
 
@@ -137,10 +138,19 @@ def get_browser(
 ) -> Chrome:
     if user_data_dir == None:
         user_data_dir = user_config_dir("g4f")
-
     if proxy:
         if not options:
             options = ChromeOptions()
         options.add_argument(f'--proxy-server={proxy}')
+    return Chrome(options=options, user_data_dir=user_data_dir, headless=headless)
 
-    return Chrome(user_data_dir=user_data_dir, options=options, headless=headless)
+
+def get_random_string(length: int = 10) -> str:
+    return ''.join(
+        random.choice(string.ascii_lowercase + string.digits)
+        for _ in range(length)
+    )
+
+
+def get_random_hex() -> str:
+    return secrets.token_hex(16).zfill(32)

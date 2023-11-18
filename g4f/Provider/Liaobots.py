@@ -14,6 +14,12 @@ models = {
         "maxLength": 24000,
         "tokenLimit": 8000,
     },
+    "gpt-4-0613": {
+        "id": "gpt-4-0613",
+        "name": "GPT-4",
+        "maxLength": 32000,
+        "tokenLimit": 8000,
+    },
     "gpt-3.5-turbo": {
         "id": "gpt-3.5-turbo",
         "name": "GPT-3.5",

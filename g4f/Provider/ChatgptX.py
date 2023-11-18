@@ -79,7 +79,6 @@ class ChatgptX(AsyncGeneratorProvider):
             data = {
                 "user_id": user_id,
                 "chats_id": chat_id,
-                "prompt": format_prompt(messages),
                 "current_model": "gpt3",
                 "conversions_id": chat["conversions_id"],
                 "ass_conversions_id": chat["ass_conversions_id"],

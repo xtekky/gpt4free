@@ -5,7 +5,7 @@ from aiohttp import ClientSession
 
 from ..typing import Messages, AsyncResult
 from .base_provider import AsyncGeneratorProvider
-
+from .helper import get_random_string
 
 class Opchatgpts(AsyncGeneratorProvider):
     url = "https://opchatgpts.net"
@@ -36,7 +36,7 @@ class Opchatgpts(AsyncGeneratorProvider):
         ) as session:
             data = {
                 "botId": "default",
-                "chatId": random_string(),
+                "chatId": get_random_string(),
                 "contextId": 28,
                 "customId": None,
                 "messages": messages,
@@ -69,6 +69,3 @@ class Opchatgpts(AsyncGeneratorProvider):
         ]
         param = ", ".join([": ".join(p) for p in params])
         return f"g4f.provider.{cls.__name__} supports: ({param})"
-
-def random_string(length: int = 10):
-    return ''.join(random.choice(string.ascii_lowercase + string.digits) for _ in range(length))

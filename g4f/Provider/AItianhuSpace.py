@@ -5,7 +5,7 @@ import random
 
 from ..typing import CreateResult, Messages
 from .base_provider import BaseProvider
-from .helper import WebDriver, format_prompt, get_browser
+from .helper import WebDriver, format_prompt, get_browser, get_random_string
 from .. import debug
 
 class AItianhuSpace(BaseProvider):
@@ -31,8 +31,7 @@ class AItianhuSpace(BaseProvider):
         if not model:
             model = "gpt-3.5-turbo"
         if not domain:
-            chars = 'abcdefghijklmnopqrstuvwxyz0123456789'
-            rand = ''.join(random.choice(chars) for _ in range(6))
+            rand = get_random_string(6)
             domain = random.choice(cls._domains)
             domain = f"{rand}.{domain}"
         if debug.logging:
@@ -65,10 +64,11 @@ document.getElementById('sheet').addEventListener('click', () => {{
                 driver.switch_to.window(window_handle)
                 break
 
+        # Wait for page load
         wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, "textarea.n-input__textarea-el")))
 
         try:
-            # Add hook in XMLHttpRequest
+            # Register hook in XMLHttpRequest
             script = """
 const _http_request_open = XMLHttpRequest.prototype.open;
 window._last_message = window._message = "";
@@ -90,11 +90,11 @@ XMLHttpRequest.prototype.open = function(method, url) {
 """
             driver.execute_script(script)
 
-            # Input and submit prompt
+            # Submit prompt
             driver.find_element(By.CSS_SELECTOR, "textarea.n-input__textarea-el").send_keys(prompt)
             driver.find_element(By.CSS_SELECTOR, "button.n-button.n-button--primary-type.n-button--medium-type").click()
 
-            # Yield response
+            # Read response
             while True:
                 chunk = driver.execute_script("""
 if (window._message && window._message != window._last_message) {

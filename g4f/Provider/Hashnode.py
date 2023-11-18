@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-import secrets
 from aiohttp import ClientSession
 
 from ..typing import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider
+from .helper import get_random_hex
 
 class SearchTypes():
     quick = "quick"
@@ -55,7 +55,7 @@ class Hashnode(AsyncGeneratorProvider):
                     response.raise_for_status()
                     cls._sources = (await response.json())["result"]
             data = {
-                "chatId": secrets.token_hex(16).zfill(32),
+                "chatId": get_random_hex(),
                 "history": messages,
                 "prompt": prompt,
                 "searchType": search_type,

@@ -5,13 +5,13 @@ from aiohttp import ClientSession
 
 from ..typing import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider
-from .helper import get_random_string
+from .helper import format_prompt
 
-class Koala(AsyncGeneratorProvider):
-    url = "https://koala.sh"
-    supports_gpt_35_turbo = True
-    supports_message_history = True
+
+class ChatgptNext(AsyncGeneratorProvider):
+    url = "https://www.chatgpt-free.cc"
     working = True
+    supports_gpt_35_turbo = True
 
     @classmethod
     async def create_async_generator(
@@ -28,37 +28,34 @@ class Koala(AsyncGeneratorProvider):
             "Accept": "text/event-stream",
             "Accept-Language": "de,en-US;q=0.7,en;q=0.3",
             "Accept-Encoding": "gzip, deflate, br",
-            "Referer": f"{cls.url}/chat",
             "Content-Type": "application/json",
-            "Flag-Real-Time-Data": "false",
-            "Visitor-ID": get_random_string(20),
-            "Origin": cls.url,
-            "Alt-Used": "koala.sh",
-            "Connection": "keep-alive",
+            "Referer": "https://chat.fstha.com/",
+            "x-requested-with": "XMLHttpRequest",
+            "Origin": "https://chat.fstha.com",
             "Sec-Fetch-Dest": "empty",
             "Sec-Fetch-Mode": "cors",
             "Sec-Fetch-Site": "same-origin",
-            "Pragma": "no-cache",
-            "Cache-Control": "no-cache",
-            "TE": "trailers",
+            "Authorization": "Bearer ak-chatgpt-nice",
+            "Connection": "keep-alive",
+            "Alt-Used": "chat.fstha.com",
         }
         async with ClientSession(headers=headers) as session:
             data = {
-                "input": messages[-1]["content"],
-                "inputHistory": [
-                    message["content"]
-                    for message in messages
-                    if message["role"] == "user"
-                ],
-                "outputHistory": [
-                    message["content"]
-                    for message in messages
-                    if message["role"] == "assistant"
-                ],
+                "messages": messages,
+                "stream": True,
                 "model": model,
+                "temperature": 0.5,
+                "presence_penalty": 0,
+                "frequency_penalty": 0,
+                "top_p": 1,
+                **kwargs
             }
-            async with session.post(f"{cls.url}/api/gpt/", json=data, proxy=proxy) as response:
+            async with session.post(f"https://chat.fstha.com/api/openai/v1/chat/completions", json=data, proxy=proxy) as response:
                 response.raise_for_status()
                 async for chunk in response.content:
+                    if chunk.startswith(b"data: [DONE]"):
+                        break
                     if chunk.startswith(b"data: "):
-                        yield json.loads(chunk[6:])
+                        content = json.loads(chunk[6:])["choices"][0]["delta"].get("content")
+                        if content:
+                            yield content
