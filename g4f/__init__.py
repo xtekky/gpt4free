@@ -5,7 +5,7 @@ from .Provider  import BaseProvider, RetryProvider
 from .typing    import Messages, CreateResult, Union, List
 from .          import debug
 
-version       = '0.1.8.4'
+version       = '0.1.8.5'
 version_check = True
 
 def check_pypi_version() -> None:
@@ -52,7 +52,6 @@ def get_model_and_provider(model    : Union[Model, str],
         print(f'Using {provider.__name__} provider')
 
     return model, provider
-
 
 class ChatCompletion:
     @staticmethod
