@@ -11,6 +11,7 @@ from .. import debug
 class AItianhuSpace(BaseProvider):
     url = "https://chat3.aiyunos.top/"
     working = True
+    supports_stream = True
     supports_gpt_35_turbo = True
     _domains = ["aitianhu.com", "aitianhu1.top"]
 

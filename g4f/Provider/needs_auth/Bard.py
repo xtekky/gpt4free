@@ -32,7 +32,7 @@ class Bard(BaseProvider):
 
         try:
             driver.get(f"{cls.url}/chat")
-            wait = WebDriverWait(driver, 10)
+            wait = WebDriverWait(driver, 10 if headless else 240)
             wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, "div.ql-editor.textarea")))
         except:
             # Reopen browser for login
@@ -61,14 +61,13 @@ XMLHttpRequest.prototype.open = function(method, url) {
 """
             driver.execute_script(script)
 
-            # Input and submit prompt
+            # Submit prompt
             driver.find_element(By.CSS_SELECTOR, "div.ql-editor.ql-blank.textarea").send_keys(prompt)
             driver.find_element(By.CSS_SELECTOR, "button.send-button").click()
 
             # Yield response
-            script = "return window._message;"
             while True:
-                chunk = driver.execute_script(script)
+                chunk = driver.execute_script("return window._message;")
                 if chunk:
                     yield chunk
                     return
