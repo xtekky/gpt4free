@@ -3,13 +3,36 @@ from __future__ import annotations
 import sys
 import asyncio
 import webbrowser
-
 from os              import path
 from asyncio         import AbstractEventLoop
 from platformdirs    import user_config_dir
+from browser_cookie3 import (
+    chrome,
+    chromium,
+    opera,
+    opera_gx,
+    brave,
+    edge,
+    vivaldi,
+    firefox,
+    BrowserCookieError
+)
+try: 
+    from selenium.webdriver.remote.webdriver import WebDriver 
+except ImportError: 
+    class WebDriver(): 
+        pass
+try:
+    from undetected_chromedriver import Chrome, ChromeOptions
+except ImportError:
+    class Chrome():
+        def __init__():
+            raise RuntimeError('Please install the "undetected_chromedriver" package')
+    class ChromeOptions():
+        def add_argument():
+            pass
 
-from ..typing        import Dict, Messages
-from browser_cookie3 import chrome, chromium, opera, opera_gx, brave, edge, vivaldi, firefox, BrowserCookieError
+from ..typing import Dict, Messages, Union, Tuple
 from .. import debug
 
 # Change event loop policy on windows
@@ -106,10 +129,18 @@ def format_prompt(messages: Messages, add_special_tokens=False) -> str:
     return f"{formatted}\nAssistant:"
 
 
-def get_browser(user_data_dir: str = None):
-    from undetected_chromedriver import Chrome
-
-    if not user_data_dir:
+def get_browser(
+    user_data_dir: str = None,
+    headless: bool = False,
+    proxy: str = None,
+    options: ChromeOptions = None
+) -> Chrome:
+    if user_data_dir == None:
         user_data_dir = user_config_dir("g4f")
 
-    return Chrome(user_data_dir=user_data_dir)
+    if proxy:
+        if not options:
+            options = ChromeOptions()
+        options.add_argument(f'--proxy-server={proxy}')
+
+    return Chrome(user_data_dir=user_data_dir, options=options, headless=headless)

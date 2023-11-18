@@ -11,7 +11,7 @@ with codecs.open(os.path.join(here, 'README.md'), encoding='utf-8') as fh:
 with open('requirements.txt') as f:
     required = f.read().splitlines()
 
-VERSION = '0.1.8.2'
+VERSION = '0.1.8.4'
 DESCRIPTION = (
     'The official gpt4free repository | various collection of powerful language models'
 )

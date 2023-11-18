@@ -7,7 +7,7 @@
 > By using this repository or any code related to it, you agree to the [legal notice](LEGAL_NOTICE.md). The author is not responsible for any copies, forks, re-uploads made by other users, or anything else related to GPT4Free. This is the author's only account and repository. To prevent impersonation or irresponsible actions, please comply with the GNU GPL license this Repository uses.
 
 > [!Note]
-> Latest pypi version: [`0.1.8.2`](https://pypi.org/project/g4f/0.1.8.2)
+> Latest pypi version: [`0.1.8.4`](https://pypi.org/project/g4f/0.1.8.4)
 ```sh
 pip install -U g4f
 ```
@@ -243,6 +243,41 @@ for message in response:
     print(message)
 ```
 
+##### Using Browser
+
+Some providers using a browser to bypass the bot protection.
+They using the selenium webdriver to control the browser.
+The browser settings and the login data are saved in a custom directory.
+If the headless mode is enabled, the browser windows are loaded invisibly.
+For performance reasons, it is recommended to reuse the browser instances
+and close them yourself at the end:
+
+```python
+import g4f
+from undetected_chromedriver import Chrome, ChromeOptions
+from g4f.Provider import (
+    Bard,
+    Poe,
+    AItianhuSpace,
+    MyShell,
+    Phind,
+    PerplexityAi,
+)
+
+options = ChromeOptions()
+options.add_argument("--incognito");
+browser = Chrome(options=options, headless=True)
+for idx in range(10):
+    response = g4f.ChatCompletion.create(
+        model=g4f.models.default,
+        provider=g4f.Provider.Phind,
+        messages=[{"role": "user", "content": "Suggest me a name."}],
+        browser=browser
+    )
+    print(f"{idx}:", response)
+browser.quit()
+```
+
 ##### Cookies Required
 
 Cookies are essential for the proper functioning of some service providers. It is imperative to maintain an active session, typically achieved by logging into your account.
@@ -253,18 +288,16 @@ When running the g4f package locally, the package automatically retrieves cookie
 import g4f
 
 from g4f.Provider import (
-    Bard,
     Bing,
     HuggingChat,
     OpenAssistant,
-    OpenaiChat,
 )
 
 # Usage
 response = g4f.ChatCompletion.create(
     model=g4f.models.default,
     messages=[{"role": "user", "content": "Hello"}],
-    provider=Bard,
+    provider=Bing,
     #cookies=g4f.get_cookies(".google.com"),
     cookies={"cookie_name": "value", "cookie_name2": "value2"},
     auth=True
