@@ -38,9 +38,9 @@ from .helper import format_prompt
 
 
 class ChatGpt(AsyncGeneratorProvider):
-    url                   = "https://chat-gpt.com"
+    url = "https://chat-gpt.com"
+    working = True
     supports_gpt_35_turbo = True
-    working               = True
 
     @classmethod
     async def create_async_generator(

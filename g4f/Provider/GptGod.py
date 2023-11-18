@@ -1,6 +1,9 @@
 from __future__ import annotations
-import secrets, json
+
+import secrets
+import json
 from aiohttp import ClientSession
+
 from ..typing import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider
 from .helper import format_prompt

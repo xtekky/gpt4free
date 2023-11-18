@@ -1,17 +1,17 @@
 from __future__ import annotations
 
-import random, string, json
+import json
 from aiohttp import ClientSession
 
 from ..typing import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider
-
+from .helper import get_random_string
 
 class NoowAi(AsyncGeneratorProvider):
     url = "https://noowai.com"
     supports_message_history = True
     supports_gpt_35_turbo = True
-    working = True
+    working = False
 
     @classmethod
     async def create_async_generator(
@@ -43,7 +43,7 @@ class NoowAi(AsyncGeneratorProvider):
                 "botId": "default",
                 "customId": "d49bc3670c3d858458576d75c8ea0f5d",
                 "session": "N/A",
-                "chatId": random_string(),
+                "chatId": get_random_string(),
                 "contextId": 25,
                 "messages": messages,
                 "newMessage": messages[-1]["content"],
@@ -64,6 +64,3 @@ class NoowAi(AsyncGeneratorProvider):
                             break
                         elif line["type"] == "error":
                             raise RuntimeError(line["data"])
-                
-def random_string(length: int = 10):
-    return ''.join(random.choice(string.ascii_lowercase + string.digits) for _ in range(length))

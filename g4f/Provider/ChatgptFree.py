@@ -1,9 +1,6 @@
-#cloudflare block
-
 from __future__ import annotations
 
 import re
-from aiohttp import ClientSession
 
 from ..requests import StreamSession
 from ..typing import Messages

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import browser_cookie3
 
 from ..typing import AsyncResult, Messages
 from ..requests import StreamSession
@@ -10,7 +9,7 @@ from .base_provider import AsyncGeneratorProvider, format_prompt, get_cookies
 
 class AItianhu(AsyncGeneratorProvider):
     url = "https://www.aitianhu.com"
-    working = True
+    working = False
     supports_gpt_35_turbo = True
 
     @classmethod
