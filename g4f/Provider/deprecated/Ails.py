@@ -69,7 +69,9 @@ class Ails(AsyncGeneratorProvider):
                     if line.startswith(start) and line != "data: [DONE]":
                         line = line[len(start):-1]
                         line = json.loads(line)
-                        if token := line["choices"][0]["delta"].get("content"):
+                        token = line["choices"][0]["delta"].get("content")
+                        
+                        if token:
                             if "ai.ls" in token or "ai.ci" in token:
                                 raise Exception(f"Response Error: {token}")
                             yield token
