@@ -13,7 +13,6 @@ nest_asyncio
 waitress
 werkzeug
 loguru
-tiktoken
 pillow
 platformdirs
 numpy
