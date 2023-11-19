@@ -24,3 +24,5 @@ py-arkose-generator
 asyncstdlib
 async-property
 selenium
+asyncstdlib
+async_property
