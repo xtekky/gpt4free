@@ -24,3 +24,4 @@ flask
 py-arkose-generator
 asyncstdlib
 async-property
+selenium
