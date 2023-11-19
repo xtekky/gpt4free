@@ -4,7 +4,7 @@ import logging
 from fastapi            import FastAPI, Response, Request
 from fastapi.responses import StreamingResponse
 from typing             import List, Union, Any, Dict, AnyStr
-from ._tokenizer        import tokenize
+#from ._tokenizer        import tokenize
 from ..                 import BaseProvider
 
 import time
@@ -95,8 +95,8 @@ class Api:
             completion_timestamp = int(time.time())
 
             if not stream:
-                prompt_tokens, _ = tokenize(''.join([message['content'] for message in messages]))
-                completion_tokens, _ = tokenize(response)
+                #prompt_tokens, _ = tokenize(''.join([message['content'] for message in messages]))
+                #completion_tokens, _ = tokenize(response)
 
                 json_data = {
                     'id': f'chatcmpl-{completion_id}',
@@ -114,9 +114,9 @@ class Api:
                         }
                     ],
                     'usage': {
-                        'prompt_tokens': prompt_tokens,
-                        'completion_tokens': completion_tokens,
-                        'total_tokens': prompt_tokens + completion_tokens,
+                        'prompt_tokens': 0, #prompt_tokens,
+                        'completion_tokens': 0, #completion_tokens,
+                        'total_tokens': 0, #prompt_tokens + completion_tokens,
                     },
                 }
 
