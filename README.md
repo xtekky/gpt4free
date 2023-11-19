@@ -382,7 +382,7 @@ g4f api
 or
 
 ```sh
-python -m g4f.api
+python -m g4f.api.run
 ```
 
 ```python
