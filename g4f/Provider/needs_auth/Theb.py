@@ -4,7 +4,7 @@ import time
 
 from ...typing import CreateResult, Messages
 from ..base_provider import BaseProvider
-from ..helper import WebDriver, format_prompt, get_browser
+from ..helper import WebDriver, WebDriverSession, format_prompt
 
 models = {
     "theb-ai": "TheB.AI",
@@ -44,48 +44,19 @@ class Theb(BaseProvider):
         messages: Messages,
         stream: bool,
         proxy: str = None,
-        browser: WebDriver = None,
-        headless: bool = True,
+        web_driver: WebDriver = None,
+        virtual_display: bool = True,
         **kwargs
     ) -> CreateResult:
         if model in models:
             model = models[model]
         prompt = format_prompt(messages)
-        driver = browser if browser else get_browser(None, headless, proxy)
-
-        from selenium.webdriver.common.by import By
-        from selenium.webdriver.support.ui import WebDriverWait
-        from selenium.webdriver.support import expected_conditions as EC
-        from selenium.webdriver.common.keys import Keys
-
-        
-        try:
-            driver.get(f"{cls.url}/home")
-            wait = WebDriverWait(driver, 10 if headless else 240)
-            wait.until(EC.visibility_of_element_located((By.TAG_NAME, "body")))
-            time.sleep(0.1)
-            try:
-                driver.find_element(By.CSS_SELECTOR, ".driver-overlay").click()
-                driver.find_element(By.CSS_SELECTOR, ".driver-overlay").click()
-            except:
-                pass
-            if model:
-                # Load model panel
-                wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, "#SelectModel svg")))
-                time.sleep(0.1)
-                driver.find_element(By.CSS_SELECTOR, "#SelectModel svg").click()
-                try:
-                    driver.find_element(By.CSS_SELECTOR, ".driver-overlay").click()
-                    driver.find_element(By.CSS_SELECTOR, ".driver-overlay").click()
-                except:
-                    pass
-                # Select model
-                selector = f"div.flex-col div.items-center span[title='{model}']"
-                wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, selector)))
-                span = driver.find_element(By.CSS_SELECTOR, selector)
-                container = span.find_element(By.XPATH, "//div/../..")
-                button = container.find_element(By.CSS_SELECTOR, "button.btn-blue.btn-small.border")
-                button.click()
+        web_session = WebDriverSession(web_driver, virtual_display=virtual_display, proxy=proxy)
+        with web_session as driver:
+            from selenium.webdriver.common.by import By
+            from selenium.webdriver.support.ui import WebDriverWait
+            from selenium.webdriver.support import expected_conditions as EC
+            from selenium.webdriver.common.keys import Keys
 
             # Register fetch hook
             script = """
@@ -109,7 +80,47 @@ window.fetch = (url, options) => {
 }
 window._last_message = "";
 """
-            driver.execute_script(script)
+            driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
+                "source": script
+            })
+
+            try:
+                driver.get(f"{cls.url}/home")
+                wait = WebDriverWait(driver, 5)
+                wait.until(EC.visibility_of_element_located((By.ID, "textareaAutosize")))
+            except:
+                driver = web_session.reopen()
+                driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
+                    "source": script
+                })
+                driver.get(f"{cls.url}/home")
+                wait = WebDriverWait(driver, 240)
+                wait.until(EC.visibility_of_element_located((By.ID, "textareaAutosize")))
+
+            time.sleep(200)
+            try:
+                driver.find_element(By.CSS_SELECTOR, ".driver-overlay").click()
+                driver.find_element(By.CSS_SELECTOR, ".driver-overlay").click()
+            except:
+                pass
+            if model:
+                # Load model panel
+                wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, "#SelectModel svg")))
+                time.sleep(0.1)
+                driver.find_element(By.CSS_SELECTOR, "#SelectModel svg").click()
+                try:
+                    driver.find_element(By.CSS_SELECTOR, ".driver-overlay").click()
+                    driver.find_element(By.CSS_SELECTOR, ".driver-overlay").click()
+                except:
+                    pass
+                # Select model
+                selector = f"div.flex-col div.items-center span[title='{model}']"
+                wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, selector)))
+                span = driver.find_element(By.CSS_SELECTOR, selector)
+                container = span.find_element(By.XPATH, "//div/../..")
+                button = container.find_element(By.CSS_SELECTOR, "button.btn-blue.btn-small.border")
+                button.click()
+
 
             # Submit prompt
             wait.until(EC.visibility_of_element_located((By.ID, "textareaAutosize")))
@@ -151,8 +162,3 @@ return '';
                     break
                 else:
                     time.sleep(0.1)
-        finally:
-            if not browser:
-                driver.close()
-                time.sleep(0.1)
-                driver.quit()
