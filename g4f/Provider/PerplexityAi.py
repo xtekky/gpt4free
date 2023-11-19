@@ -4,7 +4,7 @@ import time
 
 from ..typing import CreateResult, Messages
 from .base_provider import BaseProvider
-from .helper import WebDriver, format_prompt, get_browser
+from .helper import WebDriver, WebDriverSession, format_prompt
 
 class PerplexityAi(BaseProvider):
     url = "https://www.perplexity.ai"
@@ -20,27 +20,27 @@ class PerplexityAi(BaseProvider):
         stream: bool,
         proxy: str = None,
         timeout: int = 120,
-        browser: WebDriver = None,
+        web_driver: WebDriver = None,
+        virtual_display: bool = True,
         copilot: bool = False,
         **kwargs
     ) -> CreateResult:
-        driver = browser if browser else get_browser("", False, proxy)
+        with WebDriverSession(web_driver, "", virtual_display=virtual_display, proxy=proxy) as driver:
+            from selenium.webdriver.common.by import By
+            from selenium.webdriver.support.ui import WebDriverWait
+            from selenium.webdriver.support import expected_conditions as EC
+            from selenium.webdriver.common.keys import Keys
 
-        from selenium.webdriver.common.by import By
-        from selenium.webdriver.support.ui import WebDriverWait
-        from selenium.webdriver.support import expected_conditions as EC
-        from selenium.webdriver.common.keys import Keys
+            prompt = format_prompt(messages)
 
-        prompt = format_prompt(messages)
+            driver.get(f"{cls.url}/")
+            wait = WebDriverWait(driver, timeout)
 
-        driver.get(f"{cls.url}/")
-        wait = WebDriverWait(driver, timeout)
+            # Is page loaded?
+            wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, "textarea[placeholder='Ask anything...']")))
 
-        # Is page loaded?
-        wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, "textarea[placeholder='Ask anything...']")))
-
-        # Register WebSocket hook
-        script = """
+            # Register WebSocket hook
+            script = """
 window._message = window._last_message = "";
 window._message_finished = false;
 const _socket_send = WebSocket.prototype.send;
@@ -67,22 +67,21 @@ WebSocket.prototype.send = function(...args) {
     return _socket_send.call(this, ...args);
 };
 """
-        driver.execute_script(script)
+            driver.execute_script(script)
 
-        if copilot:
-            try:
-               # Check for account
-                driver.find_element(By.CSS_SELECTOR, "img[alt='User avatar']")
-               # Enable copilot
-                driver.find_element(By.CSS_SELECTOR, "button[data-testid='copilot-toggle']").click()
-            except:
-                raise RuntimeError("You need a account for copilot")
+            if copilot:
+                try:
+                # Check for account
+                    driver.find_element(By.CSS_SELECTOR, "img[alt='User avatar']")
+                # Enable copilot
+                    driver.find_element(By.CSS_SELECTOR, "button[data-testid='copilot-toggle']").click()
+                except:
+                    raise RuntimeError("You need a account for copilot")
 
-        # Submit prompt
-        driver.find_element(By.CSS_SELECTOR, "textarea[placeholder='Ask anything...']").send_keys(prompt)
-        driver.find_element(By.CSS_SELECTOR, "textarea[placeholder='Ask anything...']").send_keys(Keys.ENTER)
+            # Submit prompt
+            driver.find_element(By.CSS_SELECTOR, "textarea[placeholder='Ask anything...']").send_keys(prompt)
+            driver.find_element(By.CSS_SELECTOR, "textarea[placeholder='Ask anything...']").send_keys(Keys.ENTER)
 
-        try:
             # Stream response
             script = """
 if(window._message && window._message != window._last_message) {
@@ -105,8 +104,3 @@ if(window._message && window._message != window._last_message) {
                     break
                 else:
                     time.sleep(0.1)
-        finally:
-            if not browser:
-                driver.close()
-                time.sleep(0.1)
-                driver.quit()

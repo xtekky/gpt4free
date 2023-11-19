@@ -4,7 +4,7 @@ import time
 
 from ...typing import CreateResult, Messages
 from ..base_provider import BaseProvider
-from ..helper import WebDriver, format_prompt, get_browser
+from ..helper import WebDriver, WebDriverSession, format_prompt
 
 class Bard(BaseProvider):
     url = "https://bard.google.com"
@@ -18,34 +18,32 @@ class Bard(BaseProvider):
         messages: Messages,
         stream: bool,
         proxy: str = None,
-        browser: WebDriver = None,
+        web_driver: WebDriver = None,
         user_data_dir: str = None,
         headless: bool = True,
         **kwargs
     ) -> CreateResult:
         prompt = format_prompt(messages)
-        driver = browser if browser else get_browser(user_data_dir, headless, proxy)
+        session = WebDriverSession(web_driver, user_data_dir, headless, proxy=proxy)
+        with session as driver:
+            from selenium.webdriver.common.by import By
+            from selenium.webdriver.support.ui import WebDriverWait
+            from selenium.webdriver.support import expected_conditions as EC
 
-        from selenium.webdriver.common.by import By
-        from selenium.webdriver.support.ui import WebDriverWait
-        from selenium.webdriver.support import expected_conditions as EC
-
-        try:
-            driver.get(f"{cls.url}/chat")
-            wait = WebDriverWait(driver, 10 if headless else 240)
-            wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, "div.ql-editor.textarea")))
-        except:
-            # Reopen browser for login
-            if not browser:
-                driver.quit()
-                driver = get_browser(None, False, proxy)
+            try:
                 driver.get(f"{cls.url}/chat")
-                wait = WebDriverWait(driver, 240)
+                wait = WebDriverWait(driver, 10 if headless else 240)
                 wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, "div.ql-editor.textarea")))
-            else:
-                raise RuntimeError("Prompt textarea not found. You may not be logged in.")
+            except:
+                # Reopen browser for login
+                if not web_driver:
+                    driver = session.reopen(headless=False)
+                    driver.get(f"{cls.url}/chat")
+                    wait = WebDriverWait(driver, 240)
+                    wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, "div.ql-editor.textarea")))
+                else:
+                    raise RuntimeError("Prompt textarea not found. You may not be logged in.")
 
-        try:
             # Add hook in XMLHttpRequest
             script = """
 const _http_request_open = XMLHttpRequest.prototype.open;
@@ -73,8 +71,3 @@ XMLHttpRequest.prototype.open = function(method, url) {
                     return
                 else:
                     time.sleep(0.1)
-        finally:
-            if not browser:
-                driver.close()
-                time.sleep(0.1)
-                driver.quit()

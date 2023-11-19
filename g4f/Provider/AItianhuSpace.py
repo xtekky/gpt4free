@@ -5,7 +5,7 @@ import random
 
 from ..typing import CreateResult, Messages
 from .base_provider import BaseProvider
-from .helper import WebDriver, format_prompt, get_browser, get_random_string
+from .helper import WebDriver, WebDriverSession, format_prompt, get_random_string
 from .. import debug
 
 class AItianhuSpace(BaseProvider):
@@ -24,7 +24,7 @@ class AItianhuSpace(BaseProvider):
         domain: str = None,
         proxy: str = None,
         timeout: int = 120,
-        browser: WebDriver = None,
+        web_driver: WebDriver = None,
         headless: bool = True,
         **kwargs
     ) -> CreateResult:
@@ -38,36 +38,35 @@ class AItianhuSpace(BaseProvider):
             print(f"AItianhuSpace | using domain: {domain}")
         url = f"https://{domain}"
         prompt = format_prompt(messages)
-        driver = browser if browser else get_browser("", headless, proxy)
 
-        from selenium.webdriver.common.by import By
-        from selenium.webdriver.support.ui import WebDriverWait
-        from selenium.webdriver.support import expected_conditions as EC
+        with WebDriverSession(web_driver, "", headless=headless, proxy=proxy) as driver:
+            from selenium.webdriver.common.by import By
+            from selenium.webdriver.support.ui import WebDriverWait
+            from selenium.webdriver.support import expected_conditions as EC
 
-        wait = WebDriverWait(driver, timeout)
+            wait = WebDriverWait(driver, timeout)
 
-        # Bypass devtools detection
-        driver.get("https://blank.page/")
-        wait.until(EC.visibility_of_element_located((By.ID, "sheet")))
-        driver.execute_script(f"""
-document.getElementById('sheet').addEventListener('click', () => {{
-    window.open('{url}', '_blank');
-}});
-""")
-        driver.find_element(By.ID, "sheet").click()
-        time.sleep(10)
+            # Bypass devtools detection
+            driver.get("https://blank.page/")
+            wait.until(EC.visibility_of_element_located((By.ID, "sheet")))
+            driver.execute_script(f"""
+    document.getElementById('sheet').addEventListener('click', () => {{
+        window.open('{url}', '_blank');
+    }});
+    """)
+            driver.find_element(By.ID, "sheet").click()
+            time.sleep(10)
 
-        original_window = driver.current_window_handle
-        for window_handle in driver.window_handles:
-            if window_handle != original_window:
-                driver.close()
-                driver.switch_to.window(window_handle)
-                break
+            original_window = driver.current_window_handle
+            for window_handle in driver.window_handles:
+                if window_handle != original_window:
+                    driver.close()
+                    driver.switch_to.window(window_handle)
+                    break
 
-        # Wait for page load
-        wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, "textarea.n-input__textarea-el")))
+            # Wait for page load
+            wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, "textarea.n-input__textarea-el")))
 
-        try:
             # Register hook in XMLHttpRequest
             script = """
 const _http_request_open = XMLHttpRequest.prototype.open;
@@ -115,8 +114,3 @@ return "";
                     break
                 else:
                     time.sleep(0.1)
-        finally:
-            if not browser:
-                driver.close()
-                time.sleep(0.1)
-                driver.quit()

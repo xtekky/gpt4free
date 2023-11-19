@@ -5,7 +5,7 @@ from urllib.parse import quote
 
 from ..typing import CreateResult, Messages
 from .base_provider import BaseProvider
-from .helper import WebDriver, format_prompt, get_browser
+from .helper import WebDriver, WebDriverSession, format_prompt
 
 class Phind(BaseProvider):
     url = "https://www.phind.com"
@@ -21,13 +21,11 @@ class Phind(BaseProvider):
         stream: bool,
         proxy: str = None,
         timeout: int = 120,
-        browser: WebDriver = None,
+        web_driver: WebDriver = None,
         creative_mode: bool = None,
         **kwargs
     ) -> CreateResult:
-        try:
-            driver = browser if browser else get_browser("", False, proxy)
-
+        with WebDriverSession(web_driver, "", proxy=proxy) as driver:
             from selenium.webdriver.common.by import By
             from selenium.webdriver.support.ui import WebDriverWait
             from selenium.webdriver.support import expected_conditions as EC
@@ -103,8 +101,3 @@ if(window._reader) {
                     break
                 else:
                     time.sleep(0.1)
-        finally:
-            if not browser:
-                driver.close()
-                time.sleep(0.1)
-                driver.quit()

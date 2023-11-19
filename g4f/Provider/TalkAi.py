@@ -4,7 +4,7 @@ import time, json, time
 
 from ..typing import CreateResult, Messages
 from .base_provider import BaseProvider
-from .helper import WebDriver, get_browser
+from .helper import WebDriver, WebDriverSession
 
 class TalkAi(BaseProvider):
     url = "https://talkai.info"
@@ -19,16 +19,14 @@ class TalkAi(BaseProvider):
         messages: Messages,
         stream: bool,
         proxy: str = None,
-        browser: WebDriver = None,
+        web_driver: WebDriver = None,
         **kwargs
     ) -> CreateResult:
-        driver = browser if browser else get_browser("", False, proxy)
+        with WebDriverSession(web_driver, "", virtual_display=True, proxy=proxy) as driver:
+            from selenium.webdriver.common.by import By
+            from selenium.webdriver.support.ui import WebDriverWait
+            from selenium.webdriver.support import expected_conditions as EC
 
-        from selenium.webdriver.common.by import By
-        from selenium.webdriver.support.ui import WebDriverWait
-        from selenium.webdriver.support import expected_conditions as EC
-
-        try:
             driver.get(f"{cls.url}/chat/")
     
             # Wait for page load
@@ -87,8 +85,3 @@ return content;
                     break
                 else:
                     time.sleep(0.1)
-        finally:
-            if not browser:
-                driver.close()
-                time.sleep(0.1)
-                driver.quit()

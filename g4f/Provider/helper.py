@@ -6,6 +6,7 @@ import webbrowser
 import random
 import string
 import secrets
+import time
 from os              import path
 from asyncio         import AbstractEventLoop
 from platformdirs    import user_config_dir
@@ -34,6 +35,10 @@ except ImportError:
     class ChromeOptions():
         def add_argument():
             pass
+try:
+    from pyvirtualdisplay import Display
+except ImportError:
+    pass
 
 from ..typing import Dict, Messages, Union, Tuple
 from .. import debug
@@ -144,6 +149,53 @@ def get_browser(
         options.add_argument(f'--proxy-server={proxy}')
     return Chrome(options=options, user_data_dir=user_data_dir, headless=headless)
 
+class WebDriverSession():
+    def __init__(
+        self,
+        web_driver: WebDriver = None,
+        user_data_dir: str = None,
+        headless: bool = False,
+        virtual_display: bool = False,
+        proxy: str = None,
+        options: ChromeOptions = None
+    ):
+        self.web_driver = web_driver
+        self.user_data_dir = user_data_dir
+        self.headless = headless
+        self.virtual_display = virtual_display
+        self.proxy = proxy
+        self.options = options
+    
+    def reopen(
+        self,
+        user_data_dir: str = None,
+        headless: bool = False,
+        virtual_display: bool = False
+    ) -> WebDriver:
+        if user_data_dir == None:
+            user_data_dir = self.user_data_dir
+        self.default_driver.quit()
+        if not virtual_display and self.virtual_display:
+            self.virtual_display.stop()
+        self.default_driver = get_browser(user_data_dir, headless, self.proxy)
+        return self.default_driver
+
+    def __enter__(self) -> WebDriver:
+        if self.web_driver:
+            return self.web_driver
+        if self.virtual_display == True:
+            self.virtual_display = Display(size=(1920,1080))
+            self.virtual_display.start()
+        self.default_driver = get_browser(self.user_data_dir, self.headless, self.proxy, self.options)
+        return self.default_driver
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if self.default_driver:
+            self.default_driver.close()
+            time.sleep(0.1)
+            self.default_driver.quit()
+        if self.virtual_display:
+            self.virtual_display.stop()
 
 def get_random_string(length: int = 10) -> str:
     return ''.join(
