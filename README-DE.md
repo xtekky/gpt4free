@@ -1,114 +1,114 @@
-<a href="./README-DE.md">
-    <img src="https://img.shields.io/badge/öffnen in-🇩🇪 deutsch-bleu.svg" alt="Öffnen en DE">
+<a href="./README.md">
+    <img src="https://img.shields.io/badge/open in-🇬🇧 english-blue.svg" alt="Open in EN">
 </a>
 
 ![248433934-7886223b-c1d1-4260-82aa-da5741f303bb](https://github.com/xtekky/gpt4free/assets/98614666/ea012c87-76e0-496a-8ac4-e2de090cc6c9)
 
-<a href='https://ko-fi.com/xtekky' target='_blank'><img height='35' style='border:0px;height:46px;' src='https://az743702.vo.msecnd.net/cdn/kofi3.png?v=0' border='0' alt='Buy Me a Coffee at ko-fi.com' />
+<a href='https://ko-fi.com/xtekky' target='_blank'><img height='35' style='border:0px;height:46px;' src='https://az743702.vo.msecnd.net/cdn/kofi3.png?v=0' border='0' alt='Kauf mir einen Kaffee auf ko-fi.com' />
 
 <div id="top"></div>
 
-> By using this repository or any code related to it, you agree to the [legal notice](LEGAL_NOTICE.md). The author is not responsible for any copies, forks, re-uploads made by other users, or anything else related to GPT4Free. This is the author's only account and repository. To prevent impersonation or irresponsible actions, please comply with the GNU GPL license this Repository uses.
+> Durch die Nutzung dieses Repositories oder jeglichen damit verbundenen Code stimmen Sie dem [Rechtshinweis](LEGAL_NOTICE.md) zu. Der Autor ist nicht verantwortlich für Kopien, Forks, erneute Uploads durch andere Benutzer oder sonstige mit GPT4Free verbundene Aktivitäten. Dies ist das einzige Konto und Repository des Autors. Um Identitätsdiebstahl oder unverantwortliche Handlungen zu verhindern, halten Sie sich bitte an die GNU GPL-Lizenz, die dieses Repository verwendet.
 
-> [!Note]
-> Latest pypi version: [`0.1.8.7`](https://pypi.org/project/g4f/0.1.8.7)
 ```sh
 pip install -U g4f
 ```
 
-## 🆕 What's New
 
-- Join our Telegram Channel: [t.me/g4f_channel](https://telegram.me/g4f_channel)
-- Join our Discord Group: [discord.gg/XfybzPXPH5](https://discord.gg/XfybzPXPH5)
-- Explore the g4f Documentation (unfinished): [g4f.mintlify.app](https://g4f.mintlify.app) | Contribute to the docs via: [github.com/xtekky/gpt4free-docs](https://github.com/xtekky/gpt4free-docs)
+## 🆕 Was gibt es Neues
 
-## 📚 Table of Contents
+- Tritt unserem Telegram-Kanal bei: [t.me/g4f_channel](https://telegram.me/g4f_channel)
+- Tritt unserer Discord-Gruppe bei: [discord.gg/XfybzPXPH5](https://discord.gg/XfybzPXPH5)
+- Erkunde die g4f-Dokumentation (unvollständig): [g4f.mintlify.app](https://g4f.mintlify.app) | Trage zur Dokumentation bei: [github.com/xtekky/gpt4free-docs](https://github.com/xtekky/gpt4free-docs)
 
-- [🆕 What's New](#-whats-new)
-- [📚 Table of Contents](#-table-of-contents)
-- [🛠️ Getting Started](#️-getting-started)
-    - [Prerequisites:](#prerequisites)
-    - [Setting up the project:](#setting-up-the-project)
-      - [Install using pypi](#install-using-pypi)
-      - [or](#or)
-      - [Setting up with Docker:](#setting-up-with-docker)
-- [💡 Usage](#-usage)
-  - [The `g4f` Package](#the-g4f-package)
+
+## 📚 Inhaltsverzeichnis
+
+- [🆕 Was ist neu](#-was-ist-neu)
+- [📚 Inhaltsverzeichnis](#-inhaltsverzeichnis)
+- [🛠️ Erste Schritte](#️-erste-schritte)
+    - [Voraussetzungen:](#voraussetzungen)
+    - [Projekt einrichten:](#projekt-einrichten)
+      - [Installation über PyPi](#installation-über-pypi)
+      - [oder](#oder)
+      - [Einrichten mit Docker:](#einrichten-mit-docker)
+- [💡 Verwendung](#-verwendung)
+  - [Das `g4f` Paket](#das-g4f-paket)
     - [ChatCompletion](#chatcompletion)
-      - [Completion](#completion)
-      - [Providers](#providers)
-      - [Cookies Required](#cookies-required)
-      - [Async Support](#async-support)
-      - [Proxy and Timeout Support](#proxy-and-timeout-support)
-  - [Interference openai-proxy API (Use with openai python package)](#interference-openai-proxy-api-use-with-openai-python-package)
-    - [Run interference API from PyPi package](#run-interference-api-from-pypi-package)
-    - [Run interference API from repo](#run-interference-api-from-repo)
-- [🚀 Providers and Models](#-providers-and-models)
+      - [Vervollständigung](#vervollständigung)
+      - [Anbieter](#anbieter)
+      - [Cookies erforderlich](#cookies-erforderlich)
+      - [Async-Unterstützung](#async-unterstützung)
+      - [Proxy- und Timeout-Unterstützung](#proxy-und-timeout-unterstützung)
+  - [Interference openai-proxy API (Verwendung mit openai Python-Paket)](#interference-openai-proxy-api-verwendung-mit-openai-python-paket)
+    - [API von PyPi-Paket ausführen](#api-von-pypi-paket-ausführen)
+    - [API von Repository ausführen](#api-von-repository-ausführen)
+- [🚀 Anbieter und Modelle](#-anbieter-und-modelle)
   - [GPT-4](#gpt-4)
   - [GPT-3.5](#gpt-35)
-  - [Other](#other)
-  - [Models](#models)
-- [🔗 Related GPT4Free Projects](#-related-gpt4free-projects)
-- [🤝 Contribute](#-contribute)
-    - [Create Provider with AI Tool](#create-provider-with-ai-tool)
-    - [Create Provider](#create-provider)
-- [🙌 Contributors](#-contributors)
-- [©️ Copyright](#️-copyright)
-- [⭐ Star History](#-star-history)
-- [📄 License](#-license)
+  - [Andere](#andere)
+  - [Modelle](#modelle)
+- [🔗 Verwandte GPT4Free-Projekte](#-verwandte-gpt4free-projekte)
+- [🤝 Mitwirken](#-mitwirken)
+    - [Anbieter mit KI-Tool erstellen](#anbieter-mit-ki-tool-erstellen)
+    - [Anbieter erstellen](#anbieter-erstellen)
+- [🙌 Mitwirkende](#-mitwirkende)
+- [©️ Urheberrecht](#️-urheberrecht)
+- [⭐ Sternenhistorie](#-sternenhistorie)
+- [📄 Lizenz](#-lizenz)
 
-## 🛠️ Getting Started
 
-#### Prerequisites:
+## 🛠️ Erste Schritte
 
-1. [Download and install Python](https://www.python.org/downloads/) (Version 3.10+ is recommended).
+#### Voraussetzungen:
 
-#### Setting up the project:
+1. [Python herunterladen und installieren](https://www.python.org/downloads/) (Version 3.10+ wird empfohlen).
 
-##### Install using pypi
+#### Projekt einrichten:
+
+##### Installation über pypi
 
 ```
 pip install -U g4f
 ```
 
-##### or
+##### oder
 
-1. Clone the GitHub repository:
+1. Klonen Sie das GitHub-Repository:
 
 ```
 git clone https://github.com/xtekky/gpt4free.git
 ```
 
-2. Navigate to the project directory:
+2. Navigieren Sie zum Projektverzeichnis:
 
 ```
 cd gpt4free
 ```
 
-3. (Recommended) Create a Python virtual environment:
-You can follow the [Python official documentation](https://docs.python.org/3/tutorial/venv.html) for virtual environments.
-
+3. (Empfohlen) Erstellen Sie eine Python-Virtual-Umgebung:
+Sie können der [Python-Offiziellen Dokumentation](https://docs.python.org/3/tutorial/venv.html) für virtuelle Umgebungen folgen.
 
 ```
 python3 -m venv venv
 ```
 
-4. Activate the virtual environment:
-   - On Windows:
+4. Aktivieren Sie die virtuelle Umgebung:
+   - Unter Windows:
    ```
    .\venv\Scripts\activate
    ```
-   - On macOS and Linux:
+   - Unter macOS und Linux:
    ```
    source venv/bin/activate
    ```
-5. Install the required Python packages from `requirements.txt`:
+5. Installieren Sie die erforderlichen Python-Pakete aus `requirements.txt`:
 
 ```
 pip install -r requirements.txt
 ```
 
-6. Create a `test.py` file in the root folder and start using the repo, further Instructions are below
+6. Erstellen Sie eine Datei `test.py` im Stammverzeichnis und beginnen Sie mit der Verwendung des Repositories. Weitere Anweisungen finden Sie unten
 
 ```py
 import g4f
@@ -116,91 +116,92 @@ import g4f
 ...
 ```
 
-##### Setting up with Docker:
+##### Einrichten mit Docker:
 
-If you have Docker installed, you can easily set up and run the project without manually installing dependencies.
+Wenn Docker installiert ist, können Sie das Projekt ohne manuelle Installation von Abhängigkeiten einfach einrichten und ausführen.
 
-1. First, ensure you have both Docker and Docker Compose installed.
+1. Stellen Sie zunächst sicher, dass sowohl Docker als auch Docker Compose installiert sind.
 
-   - [Install Docker](https://docs.docker.com/get-docker/)
-   - [Install Docker Compose](https://docs.docker.com/compose/install/)
+   - [Docker installieren](https://docs.docker.com/get-docker/)
+   - [Docker Compose installieren](https://docs.docker.com/compose/install/)
 
-2. Clone the GitHub repo:
+2. Klonen Sie das GitHub-Repo:
 
 ```bash
 git clone https://github.com/xtekky/gpt4free.git
 ```
 
-3. Navigate to the project directory:
+3. Navigieren Sie zum Projektverzeichnis:
 
 ```bash
 cd gpt4free
 ```
 
-4. Build the Docker image:
+4. Erstellen Sie das Docker-Image:
 
 ```bash
 docker-compose build
 ```
 
-5. Start the service using Docker Compose:
+5. Starten Sie den Dienst mit Docker Compose:
 
 ```bash
 docker-compose up
 ```
 
-Your server will now be running at `http://localhost:1337`. You can interact with the API or run your tests as you would normally.
+Ihr Server wird jetzt unter `http://localhost:1337` ausgeführt. Sie können mit der API interagieren oder Ihre Tests wie gewohnt ausführen.
 
-To stop the Docker containers, simply run:
+Um die Docker-Container zu stoppen, führen Sie einfach aus:
 
 ```bash
 docker-compose down
 ```
 
 > [!Note]
-> When using Docker, any changes you make to your local files will be reflected in the Docker container thanks to the volume mapping in the `docker-compose.yml` file. If you add or remove dependencies, however, you'll need to rebuild the Docker image using `docker-compose build`.
+> Wenn Sie Docker verwenden, werden alle Änderungen, die Sie an Ihren lokalen Dateien vornehmen, im Docker-Container durch die Volumenabbildung in der `docker-compose.yml`-Datei widergespiegelt. Wenn Sie jedoch Abhängigkeiten hinzufügen oder entfernen, müssen Sie das Docker-Image mit `docker-compose build` neu erstellen.
 
-## 💡 Usage
 
-### The `g4f` Package
+## 💡 Verwendung
+
+### Das `g4f` Paket
 
 #### ChatCompletion
 
 ```python
 import g4f
 
-g4f.debug.logging = True  # Enable logging
-g4f.check_version = False  # Disable automatic version checking
-print(g4f.version)  # Check version
-print(g4f.Provider.Ails.params)  # Supported args
+g4f.debug.logging = True  # Aktiviere das Protokollieren
+g4f.check_version = False  # Deaktiviere die automatische Versionsüberprüfung
+print(g4f.version)  # Überprüfe die Version
+print(g4f.Provider.Ails.params)  # Unterstützte Argumente
 
-# Automatic selection of provider
+# Automatische Auswahl des Anbieters
 
-# Streamed completion
+# Gestreamte Vervollständigung
 response = g4f.ChatCompletion.create(
     model="gpt-3.5-turbo",
-    messages=[{"role": "user", "content": "Hello"}],
+    messages=[{"role": "user", "content": "Hallo"}],
     stream=True,
 )
 
 for message in response:
     print(message, flush=True, end='')
 
-# Normal response
+# Normale Antwort
 response = g4f.ChatCompletion.create(
     model=g4f.models.gpt_4,
-    messages=[{"role": "user", "content": "Hello"}],
-)  # Alternative model setting
+    messages=[{"role": "user", "content": "Hallo"}],
+)  # Alternative Modellkonfiguration
 
 print(response)
 ```
 
-##### Completion
+##### Vervollständigung
 
 ```python
 import g4f
 
-allowed_models = [
+erlaubte_modelle = [
     'code-davinci-002',
     'text-ada-001',
     'text-babbage-001',
@@ -211,13 +212,13 @@ allowed_models = [
 
 response = g4f.Completion.create(
     model='text-davinci-003',
-    prompt='say this is a test'
+    prompt='sage, dass dies ein Test ist'
 )
 
 print(response)
 ```
 
-##### Providers
+##### Anbieter
 
 ```python
 import g4f
@@ -235,11 +236,11 @@ from g4f.Provider import (
     Yqcloud,
 )
 
-# Set with provider
+# Festlegen des Anbieters
 response = g4f.ChatCompletion.create(
     model="gpt-3.5-turbo",
     provider=g4f.Provider.Aichat,
-    messages=[{"role": "user", "content": "Hello"}],
+    messages=[{"role": "user", "content": "Hallo"}],
     stream=True,
 )
 
@@ -247,9 +248,14 @@ for message in response:
     print(message)
 ```
 
-##### Using Browser
+##### Verwendung des Browsers
 
-Some providers using a a browser to bypass the bot protection. They using the selenium webdriver to control the browser. The browser settings and the login data are saved in a custom directory. If the headless mode is enabled, the browser windows are loaded invisibly. For performance reasons, it is recommended to reuse the browser instances and close them yourself at the end:
+Einige Anbieter verwenden einen Browser, um den Bot-Schutz zu umgehen.
+Sie verwenden den Selenium-Webtreiber, um den Browser zu steuern.
+Die Browsereinstellungen und die Anmeldedaten werden in einem benutzerdefinierten Verzeichnis gespeichert.
+Wenn der Headless-Modus aktiviert ist, werden die Browserfenster unsichtbar geladen.
+Aus Leistungsgründen wird empfohlen, die Browserinstanzen wiederzuverwenden
+und sie am Ende selbst zu schließen:
 
 ```python
 import g4f
@@ -264,24 +270,24 @@ from g4f.Provider import (
 )
 
 options = ChromeOptions()
-options.add_argument("--incognito");
-webdriver = Chrome(options=options, headless=True)
+options.add_argument("--incognito")
+browser = Chrome(options=options, headless=True)
 for idx in range(10):
     response = g4f.ChatCompletion.create(
         model=g4f.models.default,
         provider=g4f.Provider.Phind,
-        messages=[{"role": "user", "content": "Suggest me a name."}],
-        webdriver=webdriver
+        messages=[{"role": "user", "content": "Schlage mir einen Namen vor."}],
+        browser=browser
     )
     print(f"{idx}:", response)
-webdriver.quit()
+browser.quit()
 ```
 
-##### Cookies Required
+##### Erforderliche Cookies
 
-Cookies are essential for the proper functioning of some service providers. It is imperative to maintain an active session, typically achieved by logging into your account.
+Cookies sind für die ordnungsgemäße Funktion einiger Dienstanbieter unerlässlich. Es ist unerlässlich, eine aktive Sitzung aufrechtzuerhalten, die in der Regel durch das Anmelden in Ihrem Konto erreicht wird.
 
-When running the g4f package locally, the package automatically retrieves cookies from your web browser using the `get_cookies` function. However, if you're not running it locally, you'll need to provide the cookies manually by passing them as parameters using the `cookies` parameter.
+Wenn Sie das g4f-Paket lokal ausführen, ruft das Paket automatisch Cookies aus Ihrem Webbrowser ab, indem es die `get_cookies`-Funktion verwendet. Wenn Sie es jedoch nicht lokal ausführen, müssen Sie die Cookies manuell bereitstellen, indem Sie sie als Parameter unter Verwendung des `cookies`-Parameters übergeben.
 
 ```python
 import g4f
@@ -292,10 +298,10 @@ from g4f.Provider import (
     OpenAssistant,
 )
 
-# Usage
+# Verwendung
 response = g4f.ChatCompletion.create(
     model=g4f.models.default,
-    messages=[{"role": "user", "content": "Hello"}],
+    messages=[{"role": "user", "content": "Hallo"}],
     provider=Bing,
     #cookies=g4f.get_cookies(".google.com"),
     cookies={"cookie_name": "value", "cookie_name2": "value2"},
@@ -303,9 +309,9 @@ response = g4f.ChatCompletion.create(
 )
 ```
 
-##### Async Support
+##### Unterstützung für asynchrone Ausführung
 
-To enhance speed and overall performance, execute providers asynchronously. The total execution time will be determined by the duration of the slowest provider's execution.
+Um die Geschwindigkeit und Gesamtleistung zu verbessern, führen Sie Anbieter asynchron aus. Die Gesamtausführungszeit wird durch die Dauer der langsamsten Anbieterausführung bestimmt.
 
 ```python
 import g4f
@@ -324,7 +330,7 @@ async def run_provider(provider: g4f.Provider.BaseProvider):
     try:
         response = await g4f.ChatCompletion.create_async(
             model=g4f.models.default,
-            messages=[{"role": "user", "content": "Hello"}],
+            messages=[{"role": "user", "content": "Hallo"}],
             provider=provider,
         )
         print(f"{provider.__name__}:", response)
@@ -340,27 +346,27 @@ async def run_all():
 asyncio.run(run_all())
 ```
 
-##### Proxy and Timeout Support
+##### Unterstützung für Proxy und Timeout
 
-All providers support specifying a proxy and increasing timeout in the create functions.
+Alle Anbieter unterstützen das Angeben eines Proxy und das Erhöhen des Timeouts in den Erstellungsfunktionen.
 
 ```python
 import g4f
 
 response = g4f.ChatCompletion.create(
     model=g4f.models.default,
-    messages=[{"role": "user", "content": "Hello"}],
+    messages=[{"role": "user", "content": "Hallo"}],
     proxy="http://host:port",
-    # or socks5://user:pass@host:port
-    timeout=120,  # in secs
+    # oder socks5://user:pass@host:port
+    timeout=120,  # in Sekunden
 )
 
-print(f"Result:", response)
+print(f"Ergebnis:", response)
 ```
 
-### Interference openai-proxy API (Use with openai python package)
+### Interference openai-proxy API (Verwendung mit dem openai Python-Paket)
 
-#### Run interference API from PyPi package
+#### Führen Sie die Interference API aus dem PyPi-Paket aus
 
 ```python
 from g4f.api import run_api
@@ -368,44 +374,44 @@ from g4f.api import run_api
 run_api()
 ```
 
-#### Run interference API from repo
+#### Führen Sie die Interference API aus dem Repository aus
 
-If you want to use the embedding function, you need to get a Hugging Face token. You can get one at [Hugging Face Tokens](https://huggingface.co/settings/tokens). Make sure your role is set to write. If you have your token, just use it instead of the OpenAI api-key.
+Wenn Sie die Einbettungsfunktion verwenden möchten, benötigen Sie einen Hugging Face-Token. Sie können einen unter [Hugging Face Tokens](https://huggingface.co/settings/tokens) erhalten. Stellen Sie sicher, dass Ihre Rolle auf Schreiben eingestellt ist. Wenn Sie Ihren Token haben, verwenden Sie ihn einfach anstelle des OpenAI-API-Schlüssels.
 
-Run server:
+Server ausführen:
 
 ```sh
 g4f api
 ```
 
-or
+oder
 
 ```sh
-python -m g4f.api.run
+python -m g4f.api
 ```
 
 ```python
 import openai
 
-# Set your Hugging Face token as the API key if you use embeddings
-# If you don't use embeddings, leave it empty
-openai.api_key = "YOUR_HUGGING_FACE_TOKEN"  # Replace with your actual token
+# Setzen Sie Ihren Hugging Face-Token als API-Schlüssel, wenn Sie Einbettungen verwenden
+# Wenn Sie keine Einbettungen verwenden, lassen Sie es leer
+openai.api_key = "IHR_HUGGING_FACE_TOKEN"  # Ersetzen Sie dies durch Ihren tatsächlichen Token
 
-# Set the API base URL if needed, e.g., for a local development environment
+# Setzen Sie die API-Basis-URL, falls erforderlich, z.B. für eine lokale Entwicklungsumgebung
 openai.api_base = "http://localhost:1337/v1"
 
 def main():
     chat_completion = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
-        messages=[{"role": "user", "content": "write a poem about a tree"}],
+        messages=[{"role": "user", "content": "schreibe ein Gedicht über einen Baum"}],
         stream=True,
     )
 
     if isinstance(chat_completion, dict):
-        # Not streaming
+        # Nicht gestreamt
         print(chat_completion.choices[0].message.content)
     else:
-        # Streaming
+        # Gestreamt
         for token in chat_completion:
             content = token["choices"][0]["delta"].get("content")
             if content is not None:
@@ -415,7 +421,7 @@ if __name__ == "__main__":
     main()
 ```
 
-## 🚀 Providers and Models
+## 🚀 Anbieter und Modelle
 
 ### GPT-4
 
@@ -466,7 +472,7 @@ if __name__ == "__main__":
 | [opchatgpts.net](https://opchatgpts.net) | `g4f.Provider.Opchatgpts` | ✔️ | ❌ | ✔️ | ![Inactive](https://img.shields.io/badge/Inactive-red) | ❌ |
 | [chat.ylokh.xyz](https://chat.ylokh.xyz) | `g4f.Provider.Ylokh` | ✔️ | ❌ | ✔️ | ![Inactive](https://img.shields.io/badge/Inactive-red) | ❌ |
 
-### Other
+### Andere
 
 | Website | Provider | GPT-3.5 | GPT-4 | Stream | Status | Auth |
 | ------  | -------  | ------- | ----- | ------ | ------ | ---- |
@@ -476,7 +482,7 @@ if __name__ == "__main__":
 | [www.llama2.ai](https://www.llama2.ai) | `g4f.Provider.Llama2` | ❌ | ❌ | ✔️ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ❌ |
 | [open-assistant.io](https://open-assistant.io/chat) | `g4f.Provider.OpenAssistant` | ❌ | ❌ | ✔️ | ![Inactive](https://img.shields.io/badge/Inactive-red) | ✔️ |
 
-### Models
+### Modelle
 
 | Model                                   | Base Provider | Provider            | Website                                     |
 | --------------------------------------- | ------------- | ------------------- | ------------------------------------------- |
@@ -507,7 +513,8 @@ if __name__ == "__main__":
 | llama13b-v2-chat                        | Replicate     | g4f.Provider.Vercel | [sdk.vercel.ai](https://sdk.vercel.ai/)     |
 | llama7b-v2-chat                         | Replicate     | g4f.Provider.Vercel | [sdk.vercel.ai](https://sdk.vercel.ai/)     |
 
-## 🔗 Related GPT4Free Projects
+
+## 🔗 Verwandte GPT4Free-Projekte
 
 <table>
   <thead align="center">
@@ -600,24 +607,26 @@ if __name__ == "__main__":
   </tbody>
 </table>
 
-## 🤝 Contribute
 
-#### Create Provider with AI Tool
 
-Call in your terminal the `create_provider.py` script:
+## 🤝 Mitwirken
+
+#### Erstellen Sie einen Anbieter mit AI-Tool
+
+Rufen Sie im Terminal das Skript `create_provider.py` auf:
 ```bash
 python etc/tool/create_provider.py
 ```
-1. Enter your name for the new provider.
-2. Copy and paste the `cURL` command from your browser developer tools.
-3. Let the AI ​​create the provider for you.
-4. Customize the provider according to your needs.
+1. Geben Sie Ihren Namen für den neuen Anbieter ein.
+2. Kopieren Sie den `cURL`-Befehl aus den Entwicklertools Ihres Browsers und fügen Sie ihn ein.
+3. Lassen Sie die KI den Anbieter für Sie erstellen.
+4. Passen Sie den Anbieter nach Ihren Bedürfnissen an.
 
-#### Create Provider
+#### Anbieter erstellen
 
-1. Check out the current [list of potential providers](https://github.com/zukixa/cool-ai-stuff#ai-chat-websites), or find your own provider source!
-2. Create a new file in [g4f/Provider](./g4f/Provider) with the name of the Provider
-3. Implement a class that extends [BaseProvider](./g4f/Provider/base_provider.py).
+1. Überprüfen Sie die aktuelle [Liste potenzieller Anbieter](https://github.com/zukixa/cool-ai-stuff#ai-chat-websites) oder finden Sie Ihre eigene Anbieterquelle!
+2. Erstellen Sie eine neue Datei in [g4f/Provider](./g4f/Provider) mit dem Namen des Anbieters.
+3. Implementieren Sie eine Klasse, die von [BaseProvider](./g4f/Provider/base_provider.py) erbt.
 
 ```py
 from __future__ import annotations
@@ -627,8 +636,8 @@ from .base_provider import AsyncGeneratorProvider
 
 class HogeService(AsyncGeneratorProvider):
     url                   = "https://chat-gpt.com"
-    working               = True
     supports_gpt_35_turbo = True
+    working               = True
 
     @classmethod
     async def create_async_generator(
@@ -641,9 +650,9 @@ class HogeService(AsyncGeneratorProvider):
         yield ""
 ```
 
-4. Here, you can adjust the settings, for example, if the website does support streaming, set `supports_stream` to `True`...
-5. Write code to request the provider in `create_async_generator` and `yield` the response, _even if_ it's a one-time response, do not hesitate to look at other providers for inspiration
-6. Add the Provider Name in [`g4f/Provider/__init__.py`](./g4f/Provider/__init__.py)
+4. Hier können Sie die Einstellungen anpassen, zum Beispiel, wenn die Website Streaming unterstützt, setzen Sie `supports_stream` auf `True`...
+5. Schreiben Sie Code, um den Anbieter in `create_async_generator` anzufordern und die Antwort mit `yield` zurückzugeben, selbst wenn es sich um eine einmalige Antwort handelt. Zögern Sie nicht, sich bei anderen Anbietern inspirieren zu lassen.
+6. Fügen Sie den Namen des Anbieters in [`g4f/Provider/__init__.py`](./g4f/Provider/__init__.py) hinzu.
 
 ```py
 from .HogeService import HogeService
@@ -653,7 +662,7 @@ __all__ = [
 ]
 ```
 
-7. You are done !, test the provider by calling it:
+7. Sie sind fertig! Testen Sie den Anbieter, indem Sie ihn aufrufen:
 
 ```py
 import g4f
@@ -665,13 +674,14 @@ for message in response:
     print(message, flush=True, end='')
 ```
 
-## 🙌 Contributors
 
-A list of the contributors is available [here](https://github.com/xtekky/gpt4free/graphs/contributors)   
-The [`Vercel.py`](https://github.com/xtekky/gpt4free/blob/main/g4f/Provider/Vercel.py) file contains code from [vercel-llm-api](https://github.com/ading2210/vercel-llm-api) by [@ading2210](https://github.com/ading2210), which is licensed under the [GNU GPL v3](https://www.gnu.org/licenses/gpl-3.0.txt)   
-Top 1 Contributor: [@hlohaus](https://github.com/hlohaus)
+## 🙌 Mitwirkende
 
-## ©️ Copyright
+Eine Liste der Mitwirkenden ist [hier](https://github.com/xtekky/gpt4free/graphs/contributors) verfügbar.
+Die Datei [`Vercel.py`](https://github.com/xtekky/gpt4free/blob/main/g4f/Provider/Vercel.py) enthält Code von [vercel-llm-api](https://github.com/ading2210/vercel-llm-api) von [@ading2210](https://github.com/ading2210), der unter der [GNU GPL v3](https://www.gnu.org/licenses/gpl-3.0.txt) lizenziert ist.
+Top 1 Mitwirkender: [@hlohaus](https://github.com/hlohaus)
+
+## ©️ Urheberrecht
 
 This program is licensed under the [GNU GPL v3](https://www.gnu.org/licenses/gpl-3.0.txt)
 
@@ -692,24 +702,25 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ```
 
-## ⭐ Star History
+## ⭐ Sternenverlauf
 
 <a href="https://github.com/xtekky/gpt4free/stargazers">
         <img width="500" alt="Star History Chart" src="https://api.star-history.com/svg?repos=xtekky/gpt4free&type=Date">
 </a>
 
-## 📄 License
+
+## 📄 Lizenz
 
 <table>
   <tr>
-     <td>
-       <p align="center"> <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/9/93/GPLv3_Logo.svg/1200px-GPLv3_Logo.svg.png" width="80%"></img>
+    <td>
+      <p align="center"> <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/9/93/GPLv3_Logo.svg/1200px-GPLv3_Logo.svg.png" width="80%"></img>
     </td>
-    <td> 
-      <img src="https://img.shields.io/badge/License-GNU_GPL_v3.0-red.svg"/> <br> 
-This project is licensed under <a href="./LICENSE">GNU_GPL_v3.0</a>.
+    <td>
+      <img src="https://img.shields.io/badge/Lizenz-GNU_GPL_v3.0-rot.svg"/> <br>
+      Dieses Projekt steht unter der <a href="./LICENSE">GNU_GPL_v3.0-Lizenz</a>.
     </td>
   </tr>
 </table>
 
-<p align="right">(<a href="#top">🔼 Back to top</a>)</p>
+<p align="right">(<a href="#top">🔼 Zurück nach oben</a>)</p>
