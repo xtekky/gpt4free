@@ -39,18 +39,6 @@ class Aibn(AsyncGeneratorProvider):
                 response.raise_for_status()
                 async for chunk in response.iter_content():
                     yield chunk.decode()
-
-    @classmethod
-    @property
-    def params(cls):
-        params = [
-            ("model", "str"),
-            ("messages", "list[dict[str, str]]"),
-            ("stream", "bool"),
-            ("temperature", "float"),
-        ]
-        param = ", ".join([": ".join(p) for p in params])
-        return f"g4f.provider.{cls.__name__} supports: ({param})"
     
 
 def generate_signature(timestamp: int, message: str, secret: str = "undefined"):

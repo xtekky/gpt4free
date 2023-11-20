@@ -77,19 +77,6 @@ class Ails(AsyncGeneratorProvider):
                             yield token
 
 
-    @classmethod
-    @property
-    def params(cls):
-        params = [
-            ("model", "str"),
-            ("messages", "list[dict[str, str]]"),
-            ("stream", "bool"),
-            ("temperature", "float"),
-        ]
-        param = ", ".join([": ".join(p) for p in params])
-        return f"g4f.provider.{cls.__name__} supports: ({param})"
-
-
 def _hash(json_data: dict[str, str]) -> SHA256:
     base_string: str = f'{json_data["t"]}:{json_data["m"]}:WI,2rU#_r:r~aF4aJ36[.Z(/8Rv93Rf:{len(json_data["m"])}'
 

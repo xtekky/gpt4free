@@ -87,21 +87,3 @@ class H2o(AsyncGeneratorProvider):
                 proxy=proxy,
             ) as response:
                 response.raise_for_status()
-
-
-    @classmethod
-    @property
-    def params(cls):
-        params = [
-            ("model", "str"),
-            ("messages", "list[dict[str, str]]"),
-            ("stream", "bool"),
-            ("temperature", "float"),
-            ("truncate", "int"),
-            ("max_new_tokens", "int"),
-            ("do_sample", "bool"),
-            ("repetition_penalty", "float"),
-            ("return_full_text", "bool"),
-        ]
-        param = ", ".join([": ".join(p) for p in params])
-        return f"g4f.provider.{cls.__name__} supports: ({param})"

@@ -59,16 +59,3 @@ class V50(BaseProvider):
 
         if "https://fk1.v50.ltd" not in response.text:
             yield response.text
-
-    @classmethod
-    @property
-    def params(cls):
-        params = [
-            ("model", "str"),
-            ("messages", "list[dict[str, str]]"),
-            ("stream", "bool"),
-            ("temperature", "float"),
-            ("top_p", "int"),
-        ]
-        param = ", ".join([": ".join(p) for p in params])
-        return f"g4f.provider.{cls.__name__} supports: ({param})"

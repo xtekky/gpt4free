@@ -57,16 +57,6 @@ class ChatForAi(AsyncGeneratorProvider):
                         raise RuntimeError(f"Response: {chunk.decode()}")
                     yield chunk.decode()
 
-    @classmethod
-    @property
-    def params(cls):
-        params = [
-            ("model", "str"),
-            ("messages", "list[dict[str, str]]"),
-            ("stream", "bool"),
-        ]
-        param = ", ".join([": ".join(p) for p in params])
-        return f"g4f.provider.{cls.__name__} supports: ({param})"
     
 def generate_signature(timestamp: int, message: str, id: str):
     buffer = f"{timestamp}:{id}:{message}:7YN8z6d6"
