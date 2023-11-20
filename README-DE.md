@@ -157,7 +157,7 @@ Um die Docker-Container zu stoppen, führen Sie einfach aus:
 docker-compose down
 ```
 
-> [!Note]
+> [!Hinweis]
 > Wenn Sie Docker verwenden, werden alle Änderungen, die Sie an Ihren lokalen Dateien vornehmen, im Docker-Container durch die Volumenabbildung in der `docker-compose.yml`-Datei widergespiegelt. Wenn Sie jedoch Abhängigkeiten hinzufügen oder entfernen, müssen Sie das Docker-Image mit `docker-compose build` neu erstellen.
 
 
@@ -196,7 +196,7 @@ response = g4f.ChatCompletion.create(
 print(response)
 ```
 
-##### Vervollständigung
+##### Completion
 
 ```python
 import g4f
