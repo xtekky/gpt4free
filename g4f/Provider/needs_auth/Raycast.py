@@ -60,18 +60,3 @@ class Raycast(BaseProvider):
             token = completion_chunk['text']
             if token != None:
                 yield token
-
-    @classmethod
-    @property
-    def params(cls):
-        params = [
-            ("model", "str"),
-            ("messages", "list[dict[str, str]]"),
-            ("stream", "bool"),
-            ("temperature", "float"),
-            ("top_p", "int"),
-            ("model", "str"),
-            ("auth", "str"),
-        ]
-        param = ", ".join([": ".join(p) for p in params])
-        return f"g4f.provider.{cls.__name__} supports: ({param})"

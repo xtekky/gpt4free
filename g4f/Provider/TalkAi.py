@@ -4,7 +4,7 @@ import time, json, time
 
 from ..typing import CreateResult, Messages
 from .base_provider import BaseProvider
-from .helper import WebDriver, WebDriverSession
+from .webdriver import WebDriver, WebDriverSession
 
 class TalkAi(BaseProvider):
     url = "https://talkai.info"
@@ -19,10 +19,10 @@ class TalkAi(BaseProvider):
         messages: Messages,
         stream: bool,
         proxy: str = None,
-        web_driver: WebDriver = None,
+        webdriver: WebDriver = None,
         **kwargs
     ) -> CreateResult:
-        with WebDriverSession(web_driver, "", virtual_display=True, proxy=proxy) as driver:
+        with WebDriverSession(webdriver, "", virtual_display=True, proxy=proxy) as driver:
             from selenium.webdriver.common.by import By
             from selenium.webdriver.support.ui import WebDriverWait
             from selenium.webdriver.support import expected_conditions as EC

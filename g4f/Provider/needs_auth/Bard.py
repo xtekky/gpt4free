@@ -4,7 +4,8 @@ import time
 
 from ...typing import CreateResult, Messages
 from ..base_provider import BaseProvider
-from ..helper import WebDriver, WebDriverSession, format_prompt
+from ..helper import format_prompt
+from ..webdriver import WebDriver, WebDriverSession
 
 class Bard(BaseProvider):
     url = "https://bard.google.com"
@@ -18,13 +19,13 @@ class Bard(BaseProvider):
         messages: Messages,
         stream: bool,
         proxy: str = None,
-        web_driver: WebDriver = None,
+        webdriver: WebDriver = None,
         user_data_dir: str = None,
         headless: bool = True,
         **kwargs
     ) -> CreateResult:
         prompt = format_prompt(messages)
-        session = WebDriverSession(web_driver, user_data_dir, headless, proxy=proxy)
+        session = WebDriverSession(webdriver, user_data_dir, headless, proxy=proxy)
         with session as driver:
             from selenium.webdriver.common.by import By
             from selenium.webdriver.support.ui import WebDriverWait
@@ -36,8 +37,8 @@ class Bard(BaseProvider):
                 wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, "div.ql-editor.textarea")))
             except:
                 # Reopen browser for login
-                if not web_driver:
-                    driver = session.reopen(headless=False)
+                if not webdriver:
+                    driver = session.reopen()
                     driver.get(f"{cls.url}/chat")
                     wait = WebDriverWait(driver, 240)
                     wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, "div.ql-editor.textarea")))

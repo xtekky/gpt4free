@@ -49,15 +49,3 @@ class Lockchat(BaseProvider):
                 token = json.loads(token.decode("utf-8").split("data: ")[1])
                 if token := token["choices"][0]["delta"].get("content"):
                     yield (token)
-
-    @classmethod
-    @property
-    def params(cls):
-        params = [
-            ("model", "str"),
-            ("messages", "list[dict[str, str]]"),
-            ("stream", "bool"),
-            ("temperature", "float"),
-        ]
-        param = ", ".join([": ".join(p) for p in params])
-        return f"g4f.provider.{cls.__name__} supports: ({param})"

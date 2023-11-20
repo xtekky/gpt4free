@@ -71,21 +71,9 @@ class AItianhu(AsyncGeneratorProvider):
 
                     if "detail" not in line:
                         raise RuntimeError(f"Response: {line}")
-                    
-                    content = line["detail"]["choices"][0]["delta"].get("content")
+
+                    content = line["detail"]["choices"][0]["delta"].get(
+                        "content"
+                    )
                     if content:
                         yield content
-
-    @classmethod
-    @property
-    def params(cls):
-        params = [
-            ("model", "str"),
-            ("messages", "list[dict[str, str]]"),
-            ("stream", "bool"),
-            ("proxy", "str"),
-            ("temperature", "float"),
-            ("top_p", "int"),
-        ]
-        param = ", ".join([": ".join(p) for p in params])
-        return f"g4f.provider.{cls.__name__} supports: ({param})"

@@ -97,17 +97,3 @@ class Liaobots(AsyncGeneratorProvider):
                 async for stream in response.content.iter_any():
                     if stream:
                         yield stream.decode()
-
-
-    @classmethod
-    @property
-    def params(cls):
-        params = [
-            ("model", "str"),
-            ("messages", "list[dict[str, str]]"),
-            ("stream", "bool"),
-            ("proxy", "str"),
-            ("auth", "str"),
-        ]
-        param = ", ".join([": ".join(p) for p in params])
-        return f"g4f.provider.{cls.__name__} supports: ({param})"

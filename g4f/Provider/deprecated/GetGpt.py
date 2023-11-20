@@ -55,22 +55,6 @@ class GetGpt(BaseProvider):
                 line_json = json.loads(line.decode('utf-8').split('data: ')[1])
                 yield (line_json['choices'][0]['delta']['content'])
 
-    @classmethod
-    @property
-    def params(cls):
-        params = [
-            ('model', 'str'),
-            ('messages', 'list[dict[str, str]]'),
-            ('stream', 'bool'),
-            ('temperature', 'float'),
-            ('presence_penalty', 'int'),
-            ('frequency_penalty', 'int'),
-            ('top_p', 'int'),
-            ('max_tokens', 'int'),
-        ]
-        param = ', '.join([': '.join(p) for p in params])
-        return f'g4f.provider.{cls.__name__} supports: ({param})'
-
 
 def _encrypt(e: str):
     t = os.urandom(8).hex().encode('utf-8')
