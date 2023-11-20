@@ -5,7 +5,8 @@ from urllib.parse import quote
 
 from ..typing import CreateResult, Messages
 from .base_provider import BaseProvider
-from .helper import WebDriver, WebDriverSession, format_prompt
+from .helper import format_prompt
+from .webdriver import WebDriver, WebDriverSession
 
 class Phind(BaseProvider):
     url = "https://www.phind.com"
@@ -21,11 +22,11 @@ class Phind(BaseProvider):
         stream: bool,
         proxy: str = None,
         timeout: int = 120,
-        web_driver: WebDriver = None,
+        webdriver: WebDriver = None,
         creative_mode: bool = None,
         **kwargs
     ) -> CreateResult:
-        with WebDriverSession(web_driver, "", proxy=proxy) as driver:
+        with WebDriverSession(webdriver, "", proxy=proxy) as driver:
             from selenium.webdriver.common.by import By
             from selenium.webdriver.support.ui import WebDriverWait
             from selenium.webdriver.support import expected_conditions as EC
@@ -34,40 +35,38 @@ class Phind(BaseProvider):
             driver.get(f"{cls.url}/search?q={prompt}&source=searchbox")
 
             # Register fetch hook
-            driver.execute_script("""
+            source = """
 window._fetch = window.fetch;
-window.fetch = (url, options) => {
-    // Call parent fetch method
-    const result = window._fetch(url, options);
+window.fetch = async (url, options) => {
+    const response = await window._fetch(url, options);
     if (url != "/api/infer/answer") {
-        return result;
+        return response;
     }
-    // Load response reader
-    result.then((response) => {
-        if (!response.body.locked) {
-            window._reader = response.body.getReader();
-        }
-    });
-    // Return dummy response
-    return new Promise((resolve, reject) => {
-        resolve(new Response(new ReadableStream()))
-    });
+    copy = response.clone();
+    window._reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
+    return copy;
 }
-""")
+"""
+            driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
+                "source": source
+            })
 
             # Need to change settings
-            if model.startswith("gpt-4") or creative_mode:
-                wait = WebDriverWait(driver, timeout)
+            wait = WebDriverWait(driver, timeout)
+            def open_dropdown():
                 # Open settings dropdown
                 wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, "button.text-dark.dropdown-toggle")))
                 driver.find_element(By.CSS_SELECTOR, "button.text-dark.dropdown-toggle").click()
                 # Wait for dropdown toggle
                 wait.until(EC.visibility_of_element_located((By.XPATH, "//button[text()='GPT-4']")))
-                # Enable GPT-4
+            if model.startswith("gpt-4") or creative_mode:
+               # Enable GPT-4
                 if model.startswith("gpt-4"):
+                    open_dropdown()
                     driver.find_element(By.XPATH, "//button[text()='GPT-4']").click()
                 # Enable creative mode
                 if creative_mode or creative_mode == None:
+                    open_dropdown()
                     driver.find_element(By.ID, "Creative Mode").click()
                 # Submit changes
                 driver.find_element(By.CSS_SELECTOR, ".search-bar-input-group button[type='submit']").click()
@@ -78,10 +77,11 @@ window.fetch = (url, options) => {
                 chunk = driver.execute_script("""
 if(window._reader) {
     chunk = await window._reader.read();
-    if (chunk['done']) return null;
-    text = (new TextDecoder()).decode(chunk['value']);
+    if (chunk['done']) {
+        return null;
+    }
     content = '';
-    text.split('\\r\\n').forEach((line, index) => {
+    chunk['value'].split('\\r\\n').forEach((line, index) => {
         if (line.startsWith('data: ')) {
             line = line.substring('data: '.length);
             if (!line.startsWith('<PHIND_METADATA>')) {

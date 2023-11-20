@@ -87,15 +87,3 @@ class OpenAssistant(AsyncGeneratorProvider):
             }
             async with session.delete("https://open-assistant.io/api/chat", proxy=proxy, params=params) as response:
                 response.raise_for_status()
-
-    @classmethod
-    @property
-    def params(cls):
-        params = [
-            ("model", "str"),
-            ("messages", "list[dict[str, str]]"),
-            ("stream", "bool"),
-            ("proxy", "str"),
-        ]
-        param = ", ".join([": ".join(p) for p in params])
-        return f"g4f.provider.{cls.__name__} supports: ({param})"

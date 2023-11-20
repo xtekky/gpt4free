@@ -5,7 +5,8 @@ import random
 
 from ..typing import CreateResult, Messages
 from .base_provider import BaseProvider
-from .helper import WebDriver, WebDriverSession, format_prompt, get_random_string
+from .helper import format_prompt, get_random_string
+from .webdriver import WebDriver, WebDriverSession
 from .. import debug
 
 class AItianhuSpace(BaseProvider):
@@ -24,7 +25,7 @@ class AItianhuSpace(BaseProvider):
         domain: str = None,
         proxy: str = None,
         timeout: int = 120,
-        web_driver: WebDriver = None,
+        webdriver: WebDriver = None,
         headless: bool = True,
         **kwargs
     ) -> CreateResult:
@@ -39,7 +40,7 @@ class AItianhuSpace(BaseProvider):
         url = f"https://{domain}"
         prompt = format_prompt(messages)
 
-        with WebDriverSession(web_driver, "", headless=headless, proxy=proxy) as driver:
+        with WebDriverSession(webdriver, "", headless=headless, proxy=proxy) as driver:
             from selenium.webdriver.common.by import By
             from selenium.webdriver.support.ui import WebDriverWait
             from selenium.webdriver.support import expected_conditions as EC

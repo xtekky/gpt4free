@@ -4,7 +4,8 @@ import time
 
 from ...typing import CreateResult, Messages
 from ..base_provider import BaseProvider
-from ..helper import WebDriver, WebDriverSession, format_prompt
+from ..helper import format_prompt
+from ..webdriver import WebDriver, WebDriverSession
 
 models = {
     "meta-llama/Llama-2-7b-chat-hf": {"name": "Llama-2-7b"},
@@ -33,7 +34,7 @@ class Poe(BaseProvider):
         messages: Messages,
         stream: bool,
         proxy: str = None,
-        web_driver: WebDriver = None,
+        webdriver: WebDriver = None,
         user_data_dir: str = None,
         headless: bool = True,
         **kwargs
@@ -44,7 +45,7 @@ class Poe(BaseProvider):
             raise ValueError(f"Model are not supported: {model}")
         prompt = format_prompt(messages)
 
-        session = WebDriverSession(web_driver, user_data_dir, headless, proxy=proxy)
+        session = WebDriverSession(webdriver, user_data_dir, headless, proxy=proxy)
         with session as driver:
             from selenium.webdriver.common.by import By
             from selenium.webdriver.support.ui import WebDriverWait
@@ -80,8 +81,8 @@ class Poe(BaseProvider):
                 wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, "textarea[class^='GrowingTextArea']")))
             except:
                 # Reopen browser for login
-                if not web_driver:
-                    driver = session.reopen(headless=False)
+                if not webdriver:
+                    driver = session.reopen()
                     driver.get(f"{cls.url}/{models[model]['name']}")
                     wait = WebDriverWait(driver, 240)
                     wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, "textarea[class^='GrowingTextArea']")))

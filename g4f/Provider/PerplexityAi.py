@@ -4,7 +4,8 @@ import time
 
 from ..typing import CreateResult, Messages
 from .base_provider import BaseProvider
-from .helper import WebDriver, WebDriverSession, format_prompt
+from .helper import format_prompt
+from .webdriver import WebDriver, WebDriverSession
 
 class PerplexityAi(BaseProvider):
     url = "https://www.perplexity.ai"
@@ -20,12 +21,12 @@ class PerplexityAi(BaseProvider):
         stream: bool,
         proxy: str = None,
         timeout: int = 120,
-        web_driver: WebDriver = None,
+        webdriver: WebDriver = None,
         virtual_display: bool = True,
         copilot: bool = False,
         **kwargs
     ) -> CreateResult:
-        with WebDriverSession(web_driver, "", virtual_display=virtual_display, proxy=proxy) as driver:
+        with WebDriverSession(webdriver, "", virtual_display=virtual_display, proxy=proxy) as driver:
             from selenium.webdriver.common.by import By
             from selenium.webdriver.support.ui import WebDriverWait
             from selenium.webdriver.support import expected_conditions as EC

@@ -4,7 +4,8 @@ import time, json
 
 from ..typing import CreateResult, Messages
 from .base_provider import BaseProvider
-from .helper import WebDriver, WebDriverSession, format_prompt
+from .helper import format_prompt
+from .webdriver import WebDriver, WebDriverSession
 
 class MyShell(BaseProvider):
     url = "https://app.myshell.ai/chat"
@@ -20,10 +21,10 @@ class MyShell(BaseProvider):
         stream: bool,
         proxy: str = None,
         timeout: int = 120,
-        web_driver: WebDriver = None,
+        webdriver: WebDriver = None,
         **kwargs
     ) -> CreateResult:
-        with WebDriverSession(web_driver, "", proxy=proxy) as driver:
+        with WebDriverSession(webdriver, "", proxy=proxy) as driver:
             from selenium.webdriver.common.by import By
             from selenium.webdriver.support.ui import WebDriverWait
             from selenium.webdriver.support import expected_conditions as EC
@@ -52,15 +53,16 @@ response = await fetch("https://api.myshell.ai/v1/bot/chat/send_message", {
     "body": '{body}',
     "method": "POST"
 })
-window.reader = response.body.getReader();
+window._reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
 """
             driver.execute_script(script.replace("{body}", json.dumps(data)))
             script = """
-chunk = await window.reader.read();
-if (chunk['done']) return null;
-text = (new TextDecoder()).decode(chunk['value']);
+chunk = await window._reader.read();
+if (chunk['done']) {
+    return null;
+}
 content = '';
-text.split('\\n').forEach((line, index) => {
+chunk['value'].split('\\n').forEach((line, index) => {
     if (line.startsWith('data: ')) {
         try {
             const data = JSON.parse(line.substring('data: '.length));
