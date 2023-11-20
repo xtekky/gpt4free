@@ -1,14 +1,18 @@
 from __future__ import annotations
 
-from asyncio import AbstractEventLoop
+import sys
+from asyncio            import AbstractEventLoop
 from concurrent.futures import ThreadPoolExecutor
-from abc import ABC, abstractmethod
-from inspect import signature, Parameter
-from types import NoneType
+from abc                import ABC, abstractmethod
+from inspect            import signature, Parameter
+from .helper            import get_event_loop, get_cookies, format_prompt
+from ..typing           import CreateResult, AsyncResult, Messages
 
-from .helper import get_event_loop, get_cookies, format_prompt
-from ..typing import CreateResult, AsyncResult, Messages
 
+if sys.version_info < (3, 10):
+    NoneType = type(None)
+else:
+    from types import NoneType
 
 class BaseProvider(ABC):
     url: str
