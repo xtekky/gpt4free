@@ -72,7 +72,8 @@ class AItianhu(AsyncGeneratorProvider):
                     if "detail" not in line:
                         raise RuntimeError(f"Response: {line}")
 
-                    if content := line["detail"]["choices"][0]["delta"].get(
+                    content = line["detail"]["choices"][0]["delta"].get(
                         "content"
-                    ):
+                    )
+                    if content:
                         yield content
