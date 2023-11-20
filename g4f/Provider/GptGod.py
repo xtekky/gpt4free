@@ -47,12 +47,15 @@ class GptGod(AsyncGeneratorProvider):
                 response.raise_for_status()
                 event = None
                 async for line in response.content:
-                    print(line)
+                   # print(line)
 
                     if line.startswith(b'event: '):
                         event = line[7:-1]
+                    
                     elif event == b"data" and line.startswith(b"data: "):
-                        if data := json.loads(line[6:-1]):
+                        data = json.loads(line[6:-1])
+                        if data:
                             yield data
+                    
                     elif event == b"done":
                         break

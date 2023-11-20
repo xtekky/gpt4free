@@ -35,15 +35,21 @@ class ChatgptX(AsyncGeneratorProvider):
         async with ClientSession(headers=headers) as session:
             async with session.get(f"{cls.url}/", proxy=proxy) as response:
                 response = await response.text()
-                if result := re.search(
+
+                result = re.search(
                     r'<meta name="csrf-token" content="(.*?)"', response
-                ):
+                )
+                if result:
                     csrf_token = result.group(1)
-                if result := re.search(r"openconversions\('(.*?)'\)", response):
+
+                result = re.search(r"openconversions\('(.*?)'\)", response)
+                if result:
                     chat_id = result.group(1)
-                if result := re.search(
+
+                result = re.search(
                     r'<input type="hidden" id="user_id" value="(.*?)"', response
-                ):
+                )
+                if result:
                     user_id = result.group(1)
 
             if not csrf_token or not chat_id or not user_id:

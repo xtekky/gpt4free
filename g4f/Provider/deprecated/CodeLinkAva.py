@@ -46,5 +46,7 @@ class CodeLinkAva(AsyncGeneratorProvider):
                         if line.startswith("data: [DONE]"):
                             break
                         line = json.loads(line[6:-1])
-                        if content := line["choices"][0]["delta"].get("content"):
+
+                        content = line["choices"][0]["delta"].get("content")
+                        if content:
                             yield content

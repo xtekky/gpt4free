@@ -43,9 +43,12 @@ class ChatAiGpt(AsyncGeneratorProvider):
                 async with session.get(f"{cls.url}/", proxy=proxy) as response:
                     response.raise_for_status()
                     response = await response.text()
-                    if result := re.search(
+
+                    result = re.search(
                         r'data-nonce=(.*?) data-post-id=([0-9]+)', response
-                    ):
+                    )
+
+                    if result:
                         cls._nonce, cls._post_id = result.group(1), result.group(2)
                     else:
                         raise RuntimeError("No nonce found")

@@ -38,6 +38,7 @@ class Lockchat(BaseProvider):
         for token in response.iter_lines():
             if b"The model: `gpt-4` does not exist" in token:
                 print("error, retrying...")
+                
                 Lockchat.create_completion(
                     model       = model,
                     messages    = messages,
@@ -47,5 +48,7 @@ class Lockchat(BaseProvider):
 
             if b"content" in token:
                 token = json.loads(token.decode("utf-8").split("data: ")[1])
-                if token := token["choices"][0]["delta"].get("content"):
+                token = token["choices"][0]["delta"].get("content")
+
+                if token:
                     yield (token)

@@ -24,7 +24,9 @@ def get_model_info() -> dict[str, Any]:
 
     models_regex = r'let .="\\n\\nHuman:\",r=(.+?),.='
     for script in scripts:
-        if matches := re.findall(models_regex, script):
+
+        matches = re.findall(models_regex, script)
+        if matches:
             models_str = matches[0]
             stop_sequences_regex = r"(?<=stopSequences:{value:\[)\D(?<!\])"
             models_str = re.sub(

@@ -65,7 +65,8 @@ class ChatgptFree(AsyncProvider):
                         raise RuntimeError("No post id found")
                     cls._post_id = result.group(1)
 
-                    if result := re.search(r'data-nonce="(.*?)"', response):
+                    result = re.search(r'data-nonce="(.*?)"', response)
+                    if result:
                         cls._nonce = result.group(1)
 
                     else:

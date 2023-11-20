@@ -45,10 +45,12 @@ class ChatgptLogin(AsyncGeneratorProvider):
                 async with session.get(f"{cls.url}/chat/", proxy=proxy) as response:
                     response.raise_for_status()
                     response = await response.text()
-                if result := re.search(
+                result = re.search(
                     r'<div id="USERID" style="display: none">(.*?)<\/div>',
                     response,
-                ):
+                )
+
+                if result:
                     cls._user_id = result.group(1)
                 else:
                     raise RuntimeError("No user id found")
@@ -67,9 +69,10 @@ class ChatgptLogin(AsyncGeneratorProvider):
                 response.raise_for_status()
                 async for line in response.content:
                     if line.startswith(b"data: "):
-                        if content := json.loads(line[6:])["choices"][0][
-                            "delta"
-                        ].get("content"):
+                        
+                        content = json.loads(line[6:])["choices"][0]["delta"].get("content")
+                        if content:
                             yield content
+                        
             async with session.post(f"{cls.url}/chat/delete_chat", json={"chat_id": chat_id}, proxy=proxy) as response:
                 response.raise_for_status()

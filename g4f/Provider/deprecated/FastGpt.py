@@ -69,9 +69,11 @@ class FastGpt(BaseProvider):
                 try:
                     if b'content' in line:
                         line_json = json.loads(line.decode('utf-8').split('data: ')[1])
-                        if token := line_json['choices'][0]['delta'].get(
+                        token = line_json['choices'][0]['delta'].get(
                             'content'
-                        ):
+                        )
+                        
+                        if token:
                             yield token
                 except:
                     continue

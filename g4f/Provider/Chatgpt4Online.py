@@ -27,7 +27,9 @@ class Chatgpt4Online(AsyncProvider):
                 async with session.get(f"{cls.url}/", proxy=proxy) as response:
                     response.raise_for_status()
                     response = await response.text()
-                    if result := re.search(r'data-nonce="(.*?)"', response):
+                    result = re.search(r'data-nonce="(.*?)"', response)
+
+                    if result:
                         cls._wpnonce = result.group(1)
                     else:
                         raise RuntimeError("No nonce found")

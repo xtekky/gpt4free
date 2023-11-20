@@ -6,10 +6,9 @@ from ..typing       import Messages, TypedDict, CreateResult, Any
 from .base_provider import BaseProvider
 from ..debug        import logging
 
-
 class Vercel(BaseProvider):
     url = 'https://sdk.vercel.ai'
-    working = True
+    working = False
     supports_message_history = True 
     supports_gpt_35_turbo = True
     supports_stream = True
