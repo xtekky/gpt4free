@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from aiohttp import ClientSession
+from aiohttp import ClientSession, ClientTimeout
 
 from ..typing import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider
@@ -10,7 +10,7 @@ class ChatAnywhere(AsyncGeneratorProvider):
     url = "https://chatanywhere.cn"
     supports_gpt_35_turbo = True
     supports_message_history = True
-    working = True
+    working = False
 
     @classmethod
     async def create_async_generator(
@@ -18,6 +18,7 @@ class ChatAnywhere(AsyncGeneratorProvider):
         model: str,
         messages: Messages,
         proxy: str = None,
+        timeout: int = 120,
         temperature: float = 0.5,
         **kwargs
     ) -> AsyncResult:
@@ -36,7 +37,7 @@ class ChatAnywhere(AsyncGeneratorProvider):
             "Connection": "keep-alive",
             "TE": "trailers"
         }
-        async with ClientSession(headers=headers) as session:
+        async with ClientSession(headers=headers, timeout=ClientTimeout(timeout)) as session:
             data = {
                 "list": messages,
                 "id": "s1_qYuOLXjI3rEpc7WHfQ",
