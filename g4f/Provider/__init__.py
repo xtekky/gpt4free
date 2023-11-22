@@ -33,6 +33,7 @@ from .GptChatly       import GptChatly
 from .GptForLove      import GptForLove
 from .GptGo           import GptGo
 from .GptGod          import GptGod
+from .GptTalkRu       import GptTalkRu
 from .Hashnode        import Hashnode
 from .Koala           import Koala
 from .Liaobots        import Liaobots
