@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from aiohttp import ClientSession
 import json
+import base64
 
 from ..typing       import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider, format_prompt
@@ -23,9 +24,12 @@ class GptGo(AsyncGeneratorProvider):
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36",
             "Accept": "*/*",
-            "Accept-language": "en,fr-FR;q=0.9,fr;q=0.8,es-ES;q=0.7,es;q=0.6,en-US;q=0.5,am;q=0.4,de;q=0.3",
+            "Accept-language": "en-US",
             "Origin": cls.url,
             "Referer": f"{cls.url}/",
+            "sec-ch-ua": '"Google Chrome";v="116", "Chromium";v="116", "Not?A_Brand";v="24"',
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": '"Windows"',
             "Sec-Fetch-Dest": "empty",
             "Sec-Fetch-Mode": "cors",
             "Sec-Fetch-Site": "same-origin",
@@ -33,50 +37,26 @@ class GptGo(AsyncGeneratorProvider):
         async with ClientSession(
                 headers=headers
             ) as session:
-            async with session.get(
-                "https://gptgo.ai/action_get_token.php",
-                params={
-                    "q": format_prompt(messages),
-                    "hlgpt": "default",
-                    "hl": "en"
-                },
+            async with session.post(
+                "https://gptgo.ai/get_token.php",
+                data={"ask": format_prompt(messages)},
                 proxy=proxy
             ) as response:
                 response.raise_for_status()
-                token = (await response.json(content_type=None))["token"]
+                token = await response.text();
+                token = base64.b64decode(token[10:-20]).decode()
 
             async with session.get(
-                        "https://gptgo.ai/action_ai_gpt.php",
-                        params={
-                            "token": token,
-                        },
-                        proxy=proxy
-                    ) as response:
+                "https://api.gptgo.ai/web.php",
+                params={"array_chat": token},
+                proxy=proxy
+            ) as response:
                 response.raise_for_status()
-                start = "data: "
                 async for line in response.content:
-                    line = line.decode()
-                    if line.startswith("data: "):
-                        if line.startswith("data: [DONE]"):
-                            break
-                        line = json.loads(line[len(start):-1])
-                        if line["choices"][0]["finish_reason"] == "stop":
-                            break
-                        
+                    if line.startswith(b"data: [DONE]"):
+                        break
+                    if line.startswith(b"data: "):
+                        line = json.loads(line[6:])
                         content = line["choices"][0]["delta"].get("content")
-                        if content:
+                        if content and content != "\n#GPTGO ":
                             yield content
-
-
-    @classmethod
-    @property
-    def params(cls):
-        params = [
-            ("model", "str"),
-            ("messages", "list[dict[str, str]]"),
-            ("stream", "bool"),
-            ("proxy", "str"),
-            ("temperature", "float"),
-        ]
-        param = ", ".join([": ".join(p) for p in params])
-        return f"g4f.provider.{cls.__name__} supports: ({param})"
