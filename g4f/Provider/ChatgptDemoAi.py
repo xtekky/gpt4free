@@ -9,7 +9,7 @@ from .helper import get_random_string
 
 class ChatgptDemoAi(AsyncGeneratorProvider):
     url = "https://chat.chatgptdemo.ai"
-    working = True
+    working = False
     supports_gpt_35_turbo = True
     supports_message_history = True
 

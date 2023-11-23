@@ -1,5 +1,12 @@
 from __future__ import annotations
 
+from .base_provider  import BaseProvider, AsyncProvider, AsyncGeneratorProvider
+from .retry_provider import RetryProvider
+from .deprecated     import *
+from .needs_auth     import *
+from .unfinished     import *
+from .selenium       import *
+
 from .AiAsk           import AiAsk
 from .Aichat          import Aichat
 from .AiChatOnline    import AiChatOnline
@@ -26,6 +33,7 @@ from .GptChatly       import GptChatly
 from .GptForLove      import GptForLove
 from .GptGo           import GptGo
 from .GptGod          import GptGod
+from .GptTalkRu       import GptTalkRu
 from .Hashnode        import Hashnode
 from .Koala           import Koala
 from .Liaobots        import Liaobots
@@ -42,12 +50,6 @@ from .Ylokh           import Ylokh
 from .You             import You
 from .Yqcloud         import Yqcloud
 from .GeekGpt         import GeekGpt
-
-from .base_provider  import BaseProvider, AsyncProvider, AsyncGeneratorProvider
-from .retry_provider import RetryProvider
-from .deprecated     import *
-from .needs_auth     import *
-from .unfinished     import *
 
 import sys
 

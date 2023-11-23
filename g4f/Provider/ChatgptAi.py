@@ -65,7 +65,8 @@ class ChatgptAi(AsyncGeneratorProvider):
             async with session.post(
                f"{cls.url}/wp-json/mwai-ui/v1/chats/submit",
                 proxy=proxy,
-                json=data
+                json=data,
+                headers={"X-Wp-Nonce": cls._system["restNonce"]}
             ) as response:
                 response.raise_for_status()
                 async for line in response.content:
