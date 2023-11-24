@@ -72,7 +72,7 @@ gpt_35_turbo = Model(
     name          = 'gpt-3.5-turbo',
     base_provider = 'openai',
     best_provider=RetryProvider([
-        ChatgptX, GptGo, You, 
+        GptGo, You, 
         GptForLove, ChatBase,
         Chatgpt4Online,
         ChatAnywhere,

@@ -12,7 +12,7 @@ from .helper import format_prompt
 class ChatgptX(AsyncGeneratorProvider):
     url = "https://chatgptx.de"
     supports_gpt_35_turbo = True
-    working               = True
+    working               = False
 
     @classmethod
     async def create_async_generator(
