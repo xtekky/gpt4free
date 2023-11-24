@@ -8,7 +8,6 @@ from inspect            import signature, Parameter
 from .helper            import get_event_loop, get_cookies, format_prompt
 from ..typing           import CreateResult, AsyncResult, Messages
 
-
 if sys.version_info < (3, 10):
     NoneType = type(None)
 else:
@@ -76,7 +75,7 @@ class BaseProvider(ABC):
                 annotation = "None"
             return str(annotation)
         
-        args = "";
+        args = ""
         for name, param in sig.parameters.items():
             if name in ("self", "kwargs"):
                 continue
