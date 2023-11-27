@@ -107,4 +107,5 @@ def Ask_PI(message,sid,cookies):
             result.append(json.loads(line.split('data: ')[1].encode('utf-8')))
         if line.startswith('data: {"title":'):
             result.append(json.loads(line.split('data: ')[1].encode('utf-8')))
+            
     return result
