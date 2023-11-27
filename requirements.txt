@@ -26,4 +26,3 @@ async-property
 undetected-chromedriver
 asyncstdlib
 async_property
-cloudscraper
