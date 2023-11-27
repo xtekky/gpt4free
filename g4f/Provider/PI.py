@@ -26,6 +26,7 @@ class PI(AsyncGeneratorProvider):
             UserPrompt = messages[-2]['content']
         if Conversation == None:
             Conversation = PI.Start_Conversation()
+            print(Conversation)
         Answer = Ask_PI(UserPrompt,Conversation['sid'],Conversation['cookies'])
 
         yield Answer[0]['text']
