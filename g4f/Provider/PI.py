@@ -38,10 +38,14 @@ class PI(AsyncGeneratorProvider):
             'sid': response.json()['conversations'][0]['sid'],
             'cookies': cookies
         }
+        
     def GetConversationTitle(Conversation):
         response = scraper.post('https://pi.ai/api/chat/start', data="{}",headers={'x-api-version': '3'}, cookies=Conversation['cookies'])
         
-        return {'title': response.json()['conversations'][0]['title']}
+        return {
+            'title': response.json()['conversations'][0]['title']
+        }
+        
     def GetChatHistory(Conversation):
         params = {
             'conversation': Conversation['sid'],
