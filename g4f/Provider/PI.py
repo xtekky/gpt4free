@@ -52,7 +52,7 @@ class PI(AsyncGeneratorProvider):
         }
         response = scraper.get('https://pi.ai/api/chat/history', params=params, cookies=Conversation['cookies'])
 
-        return response.text
+        return response.json()
 
 scraper = cloudscraper.create_scraper(
     browser={
