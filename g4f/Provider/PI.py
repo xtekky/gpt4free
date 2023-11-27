@@ -72,7 +72,6 @@ def Ask_PI(message,sid,cookies):
     
     result = []
     for line in response.iter_lines(chunk_size=1024, decode_unicode=True):
-        print(line)
         if line.startswith('data: {"text":'):
             result.append(json.loads(line.split('data: ')[1].encode('utf-8')))
         if line.startswith('data: {"title":'):
