@@ -26,16 +26,14 @@ class PI(AsyncGeneratorProvider):
             UserPrompt = messages[-2]['content']
         if Conversation == None:
             Conversation = PI.Start_Conversation()
-            print(Conversation)
         Answer = Ask_PI(UserPrompt,Conversation['sid'],Conversation['cookies'])
 
         yield Answer[0]['text']
 
     def Start_Conversation():
-        print("Creating a conversation")
         response = scraper.post('https://pi.ai/api/chat/start', data="{}",headers={'x-api-version': '3'})
         cookies = response.cookies
-        print(response)
+        print(response.text)
         return {
             'sid': response.json()['conversations'][0]['sid'],
             'cookies': cookies
