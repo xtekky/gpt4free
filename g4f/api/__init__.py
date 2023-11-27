@@ -44,7 +44,7 @@ class Api:
             for model in g4f.Model.__all__():
                 model_info = (g4f.ModelUtils.convert[model])
                 model_list.append({
-                'id': model_info.name,
+                'id': model,
                 'object': 'model',
                 'created': 0,
                 'owned_by': model_info.base_provider}
