@@ -32,9 +32,10 @@ class PI(AsyncGeneratorProvider):
         yield Answer[0]['text']
 
     def Start_Conversation():
+        print("Creating a conversation")
         response = scraper.post('https://pi.ai/api/chat/start', data="{}",headers={'x-api-version': '3'})
         cookies = response.cookies
-
+        print(response)
         return {
             'sid': response.json()['conversations'][0]['sid'],
             'cookies': cookies
