@@ -31,11 +31,6 @@ class PI(AsyncGeneratorProvider):
         yield Answer[0]['text']
 
     def Start_Conversation():
-        print(scraper.headers)
-        print(scraper.cookies)
-        scraper.headers = {
-            'accept-type': 'application/json'
-        }
         response = scraper.post('https://pi.ai/api/chat/start', data="{}",headers={'x-api-version': '3'})
         cookies = response.cookies
 
@@ -66,6 +61,10 @@ scraper = cloudscraper.create_scraper(
         'desktop': True
     }
 )
+
+scraper.headers = {
+    'x-api-version': '3'
+}
 
 def Ask_PI(message,sid,cookies):
     json_data = {
