@@ -54,12 +54,15 @@ class PI(AsyncGeneratorProvider):
 
         return response.json()
 
+session = cloudscraper.session()
+
 scraper = cloudscraper.create_scraper(
     browser={
         'browser': 'chrome',
-        'platform': 'windows',
-        'desktop': True
-    }
+        'platform': 'android',
+        'desktop': False
+    },
+    sess=session
 )
 
 scraper.headers = {
