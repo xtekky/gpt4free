@@ -40,12 +40,15 @@ class Api:
 
         @self.app.get("/v1/models")
         async def models():
-            model_list = [{
-                'id': model,
+            model_list = []
+            for model in g4f.Model.__all__():
+                model_info = (g4f.ModelUtils.convert[model])
+                model_list.append({
+                'id': model_info.name,
                 'object': 'model',
                 'created': 0,
-                'owned_by': 'g4f'} for model in g4f.Model.__all__()]
-
+                'owned_by': model_info.base_provider}
+                )
             return Response(content=json.dumps({
                 'object': 'list',
                 'data': model_list}, indent=4), media_type="application/json")
