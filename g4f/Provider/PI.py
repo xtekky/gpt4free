@@ -76,11 +76,16 @@ session = cloudscraper.session()
 scraper = cloudscraper.create_scraper(
     browser={
         'browser': 'chrome',
-        'platform': 'android',
-        'desktop': False
+        'platform': 'windows',
+        'desktop': True
     },
     sess=session
 )
+
+scraper.headers = {
+    'Accept': '*/*',
+    'Accept-Encoding': 'deflate,gzip,br',
+}
 
 def Ask_PI(message,sid,cookies):
     json_data = {
