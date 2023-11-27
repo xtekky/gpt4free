@@ -83,7 +83,7 @@ class Api:
             model = item_data.get('model')
             stream = True if item_data.get("stream") == "True" else False
             messages = item_data.get('messages')
-            conversation = item_data.get('conversation')
+            conversation = item_data.get('conversation') if item_data.get('conversation') != None else None
 
             try:
                 if model == 'pi':
@@ -102,7 +102,7 @@ class Api:
             except Exception as e:
                 logging.exception(e)
                 return Response(content=json.dumps({"error": "An error occurred while generating the response."}, indent=4), media_type="application/json")
-
+            print(response)
             completion_id = ''.join(random.choices(string.ascii_letters + string.digits, k=28))
             completion_timestamp = int(time.time())
 
