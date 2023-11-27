@@ -59,15 +59,12 @@ class PI(AsyncGeneratorProvider):
 
         return response.json()
 
-session = cloudscraper.session()
-
 scraper = cloudscraper.create_scraper(
     browser={
         'browser': 'chrome',
-        'platform': 'android',
-        'desktop': False
-    },
-    sess=session
+        'platform': 'windows',
+        'desktop': True
+    }
 )
 
 def Ask_PI(message,sid,cookies):
