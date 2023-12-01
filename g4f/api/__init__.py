@@ -40,12 +40,15 @@ class Api:
 
         @self.app.get("/v1/models")
         async def models():
-            model_list = [{
+            model_list = []
+            for model in g4f.Model.__all__():
+                model_info = (g4f.ModelUtils.convert[model])
+                model_list.append({
                 'id': model,
                 'object': 'model',
                 'created': 0,
-                'owned_by': 'g4f'} for model in g4f.Model.__all__()]
-
+                'owned_by': model_info.base_provider}
+                )
             return Response(content=json.dumps({
                 'object': 'list',
                 'data': model_list}, indent=4), media_type="application/json")
@@ -80,17 +83,25 @@ class Api:
             model = item_data.get('model')
             stream = True if item_data.get("stream") == "True" else False
             messages = item_data.get('messages')
+            conversation = item_data.get('conversation') if item_data.get('conversation') != None else None
 
             try:
-                response = g4f.ChatCompletion.create(
-                    model=model,
-                    stream=stream,
-                    messages=messages,
-                    ignored=self.list_ignored_providers)
+                if model == 'pi':
+                    response = g4f.ChatCompletion.create(
+                        model=model,
+                        stream=stream,
+                        messages=messages,
+                        conversation=conversation,
+                        ignored=self.list_ignored_providers)
+                else:
+                    response = g4f.ChatCompletion.create(
+                        model=model,
+                        stream=stream,
+                        messages=messages,
+                        ignored=self.list_ignored_providers)
             except Exception as e:
                 logging.exception(e)
                 return Response(content=json.dumps({"error": "An error occurred while generating the response."}, indent=4), media_type="application/json")
-
             completion_id = ''.join(random.choices(string.ascii_letters + string.digits, k=28))
             completion_timestamp = int(time.time())
 
@@ -134,6 +145,7 @@ class Api:
                                 {
                                     'index': 0,
                                     'delta': {
+                                        'role': 'assistant',
                                         'content': chunk,
                                     },
                                     'finish_reason': None,

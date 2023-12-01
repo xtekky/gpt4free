@@ -71,3 +71,4 @@ __map__: dict[str, BaseProvider] = dict([
 
 class ProviderUtils:
     convert: dict[str, BaseProvider] = __map__
+from .PI import PI
