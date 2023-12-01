@@ -44,6 +44,7 @@ from .OnlineGpt       import OnlineGpt
 from .Opchatgpts      import Opchatgpts
 from .PerplexityAi    import PerplexityAi
 from .Phind           import Phind
+from .Pi              import Pi
 from .TalkAi          import TalkAi
 from .Vercel          import Vercel
 from .Ylokh           import Ylokh
@@ -65,10 +66,9 @@ __providers__: list[type[BaseProvider]] = [
 __all__: list[str] = [
     provider.__name__ for provider in __providers__
 ]
-__map__: dict[str, BaseProvider] = dict([
+__map__: dict[str, type[BaseProvider]] = dict([
     (provider.__name__, provider) for provider in __providers__
 ])
 
 class ProviderUtils:
-    convert: dict[str, BaseProvider] = __map__
-from .PI import PI
+    convert: dict[str, type[BaseProvider]] = __map__
