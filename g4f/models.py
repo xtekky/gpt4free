@@ -11,7 +11,6 @@ from .Provider   import (
     ChatgptAi,
     DeepInfra,
     OnlineGpt,
-    ChatgptX,
     ChatBase,
     Liaobots,
     GeekGpt,
@@ -27,7 +26,7 @@ from .Provider   import (
     Bing,
     You,
     H2o,
-    PI,
+    Pi,
 )
 
 @dataclass(unsafe_hash=True)
@@ -264,7 +263,7 @@ llama70b_v2_chat = Model(
 pi = Model(
     name = 'pi',
     base_provider = 'inflection',
-    best_provider=PI
+    best_provider=Pi
 )
 
 class ModelUtils:
