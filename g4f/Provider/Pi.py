@@ -23,32 +23,30 @@ class Pi(BaseProvider):
         **kwargs
     ) -> CreateResult:
         if not scraper:
-            scraper = cls.get_scraper()
+            scraper = cls.get_scraper(proxy)
         if not conversation:
             conversation = cls.start_conversation(scraper)
         answer = cls.ask(scraper, messages, conversation)
-
-        last_answer = 0
         for line in answer:
             if "text" in line:
-                yield line["text"][last_answer:]
-                last_answer = len(line["text"])
-        
-    def get_scraper():
-        scraper = create_scraper(
+                yield line["text"]
+                        
+    def get_scraper(proxy: str):
+        return create_scraper(
             browser={
                 'browser': 'chrome',
                 'platform': 'windows',
                 'desktop': True
             },
-            sess=session()
+            headers={
+                'Accept': '*/*',
+                'Accept-Encoding': 'deflate,gzip,br',
+            },
+            proxies={
+                "https": proxy
+            }
         )
-        scraper.headers = {
-            'Accept': '*/*',
-            'Accept-Encoding': 'deflate,gzip,br',
-        }
-        return scraper
-
+        
     def start_conversation(scraper: CloudScraper):
         response = scraper.post('https://pi.ai/api/chat/start', data="{}", headers={
             'accept': 'application/json',
