@@ -2,20 +2,9 @@ from __future__ import annotations
 
 import time
 from platformdirs import user_config_dir
-try: 
-    from selenium.webdriver.remote.webdriver import WebDriver 
-except ImportError: 
-    class WebDriver(): 
-        pass
-try:
-    from undetected_chromedriver import Chrome, ChromeOptions
-except ImportError:
-    class Chrome():
-        def __init__():
-            raise RuntimeError('Please install the "undetected_chromedriver" package')
-    class ChromeOptions():
-        def add_argument():
-            pass
+from selenium.webdriver.remote.webdriver import WebDriver 
+from undetected_chromedriver import Chrome, ChromeOptions
+
 try:
     from pyvirtualdisplay import Display
     has_pyvirtualdisplay = True
@@ -27,12 +16,13 @@ def get_browser(
     headless: bool = False,
     proxy: str = None,
     options: ChromeOptions = None
-) -> Chrome:
+) -> WebDriver:
     if user_data_dir == None:
         user_data_dir = user_config_dir("g4f")
+    if not options:
+        options = ChromeOptions()
+    options.add_argument("window-size=1920,1080");
     if proxy:
-        if not options:
-            options = ChromeOptions()
         options.add_argument(f'--proxy-server={proxy}')
     return Chrome(options=options, user_data_dir=user_data_dir, headless=headless)
 

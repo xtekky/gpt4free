@@ -5,7 +5,7 @@ import time
 from ...typing import CreateResult, Messages
 from ..base_provider import BaseProvider
 from ..helper import format_prompt
-from ..webdriver import WebDriver, WebDriverSession
+from ...webdriver import WebDriver, WebDriverSession
 
 models = {
     "meta-llama/Llama-2-7b-chat-hf": {"name": "Llama-2-7b"},

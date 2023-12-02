@@ -7,7 +7,7 @@ from async_property import async_cached_property
 
 from ..base_provider import AsyncGeneratorProvider
 from ..helper import get_event_loop
-from ..webdriver import get_browser
+from ...webdriver import get_browser
 from ...typing import AsyncResult, Messages
 from ...requests import StreamSession
 
