@@ -3,6 +3,9 @@ from __future__ import annotations
 import sys
 import asyncio
 import webbrowser
+import random
+import string
+import secrets
 from os              import path
 from asyncio         import AbstractEventLoop
 from platformdirs    import user_config_dir
@@ -17,22 +20,8 @@ from browser_cookie3 import (
     firefox,
     BrowserCookieError
 )
-try: 
-    from selenium.webdriver.remote.webdriver import WebDriver 
-except ImportError: 
-    class WebDriver(): 
-        pass
-try:
-    from undetected_chromedriver import Chrome, ChromeOptions
-except ImportError:
-    class Chrome():
-        def __init__():
-            raise RuntimeError('Please install the "undetected_chromedriver" package')
-    class ChromeOptions():
-        def add_argument():
-            pass
 
-from ..typing import Dict, Messages, Union, Tuple
+from ..typing import Dict, Messages
 from .. import debug
 
 # Change event loop policy on windows
@@ -120,27 +109,18 @@ def get_cookies(domain_name=''):
 def format_prompt(messages: Messages, add_special_tokens=False) -> str:
     if not add_special_tokens and len(messages) <= 1:
         return messages[0]["content"]
-    formatted = "\n".join(
-        [
-            f'{message["role"].capitalize()}: {message["content"]}'
-            for message in messages
-        ]
-    )
+    formatted = "\n".join([
+        f'{message["role"].capitalize()}: {message["content"]}'
+        for message in messages
+    ])
     return f"{formatted}\nAssistant:"
 
 
-def get_browser(
-    user_data_dir: str = None,
-    headless: bool = False,
-    proxy: str = None,
-    options: ChromeOptions = None
-) -> Chrome:
-    if user_data_dir == None:
-        user_data_dir = user_config_dir("g4f")
+def get_random_string(length: int = 10) -> str:
+    return ''.join(
+        random.choice(string.ascii_lowercase + string.digits)
+        for _ in range(length)
+    )
 
-    if proxy:
-        if not options:
-            options = ChromeOptions()
-        options.add_argument(f'--proxy-server={proxy}')
-
-    return Chrome(user_data_dir=user_data_dir, options=options, headless=headless)
+def get_random_hex() -> str:
+    return secrets.token_hex(16).zfill(32)

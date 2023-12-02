@@ -46,18 +46,7 @@ class CodeLinkAva(AsyncGeneratorProvider):
                         if line.startswith("data: [DONE]"):
                             break
                         line = json.loads(line[6:-1])
-                        if content := line["choices"][0]["delta"].get("content"):
+
+                        content = line["choices"][0]["delta"].get("content")
+                        if content:
                             yield content
-
-
-    @classmethod
-    @property
-    def params(cls):
-        params = [
-            ("model", "str"),
-            ("messages", "list[dict[str, str]]"),
-            ("stream", "bool"),
-            ("temperature", "float"),
-        ]
-        param = ", ".join([": ".join(p) for p in params])
-        return f"g4f.provider.{cls.__name__} supports: ({param})"

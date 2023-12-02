@@ -12,7 +12,7 @@ from .helper import format_prompt
 class ChatgptX(AsyncGeneratorProvider):
     url = "https://chatgptx.de"
     supports_gpt_35_turbo = True
-    working               = True
+    working               = False
 
     @classmethod
     async def create_async_generator(
@@ -35,15 +35,21 @@ class ChatgptX(AsyncGeneratorProvider):
         async with ClientSession(headers=headers) as session:
             async with session.get(f"{cls.url}/", proxy=proxy) as response:
                 response = await response.text()
-                if result := re.search(
+
+                result = re.search(
                     r'<meta name="csrf-token" content="(.*?)"', response
-                ):
+                )
+                if result:
                     csrf_token = result.group(1)
-                if result := re.search(r"openconversions\('(.*?)'\)", response):
+
+                result = re.search(r"openconversions\('(.*?)'\)", response)
+                if result:
                     chat_id = result.group(1)
-                if result := re.search(
+
+                result = re.search(
                     r'<input type="hidden" id="user_id" value="(.*?)"', response
-                ):
+                )
+                if result:
                     user_id = result.group(1)
 
             if not csrf_token or not chat_id or not user_id:
@@ -79,7 +85,6 @@ class ChatgptX(AsyncGeneratorProvider):
             data = {
                 "user_id": user_id,
                 "chats_id": chat_id,
-                "prompt": format_prompt(messages),
                 "current_model": "gpt3",
                 "conversions_id": chat["conversions_id"],
                 "ass_conversions_id": chat["ass_conversions_id"],

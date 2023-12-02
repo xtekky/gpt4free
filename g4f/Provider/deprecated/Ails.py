@@ -69,23 +69,12 @@ class Ails(AsyncGeneratorProvider):
                     if line.startswith(start) and line != "data: [DONE]":
                         line = line[len(start):-1]
                         line = json.loads(line)
-                        if token := line["choices"][0]["delta"].get("content"):
+                        token = line["choices"][0]["delta"].get("content")
+                        
+                        if token:
                             if "ai.ls" in token or "ai.ci" in token:
                                 raise Exception(f"Response Error: {token}")
                             yield token
-
-
-    @classmethod
-    @property
-    def params(cls):
-        params = [
-            ("model", "str"),
-            ("messages", "list[dict[str, str]]"),
-            ("stream", "bool"),
-            ("temperature", "float"),
-        ]
-        param = ", ".join([": ".join(p) for p in params])
-        return f"g4f.provider.{cls.__name__} supports: ({param})"
 
 
 def _hash(json_data: dict[str, str]) -> SHA256:

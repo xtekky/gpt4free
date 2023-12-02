@@ -1,5 +1,3 @@
-# cloudflare block
-
 from __future__ import annotations
 
 from ..requests     import StreamSession

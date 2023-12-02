@@ -4,12 +4,15 @@ from .typing     import Union
 from .Provider   import BaseProvider, RetryProvider
 from .Provider   import (
     Chatgpt4Online,
+    ChatgptDemoAi,
     ChatAnywhere,
+    ChatgptNext,
     GptForLove,
     ChatgptAi,
     DeepInfra,
-    ChatgptX,
+    OnlineGpt,
     ChatBase,
+    Liaobots,
     GeekGpt,
     FakeGpt,
     FreeGpt,
@@ -23,6 +26,7 @@ from .Provider   import (
     Bing,
     You,
     H2o,
+    Pi,
 )
 
 @dataclass(unsafe_hash=True)
@@ -57,6 +61,9 @@ gpt_35_long = Model(
         Berlin, Koala,
         Chatgpt4Online,
         ChatAnywhere,
+        ChatgptDemoAi,
+        OnlineGpt,
+        ChatgptNext,
     ])
 )
 
@@ -65,7 +72,7 @@ gpt_35_turbo = Model(
     name          = 'gpt-3.5-turbo',
     base_provider = 'openai',
     best_provider=RetryProvider([
-        ChatgptX, GptGo, You, 
+        GptGo, You, 
         GptForLove, ChatBase,
         Chatgpt4Online,
         ChatAnywhere,
@@ -76,7 +83,7 @@ gpt_4 = Model(
     name          = 'gpt-4',
     base_provider = 'openai',
     best_provider = RetryProvider([
-        Bing, Phind
+        Bing, Phind, Liaobots
     ])
 )
 
@@ -253,6 +260,11 @@ llama70b_v2_chat = Model(
     base_provider = 'replicate',
     best_provider = Vercel)
 
+pi = Model(
+    name = 'pi',
+    base_provider = 'inflection',
+    best_provider=Pi
+)
 
 class ModelUtils:
     convert: dict[str, Model] = {
@@ -308,6 +320,8 @@ class ModelUtils:
         'oasst-sft-1-pythia-12b'           : oasst_sft_1_pythia_12b,
         'oasst-sft-4-pythia-12b-epoch-3.5' : oasst_sft_4_pythia_12b_epoch_35,
         'command-light-nightly'            : command_light_nightly,
+
+        'pi': pi
     }
 
 _all_models = list(ModelUtils.convert.keys())

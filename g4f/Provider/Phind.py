@@ -1,111 +1,74 @@
 from __future__ import annotations
 
-import time
-from urllib.parse import quote
+from datetime import datetime
 
-from ..typing import CreateResult, Messages
-from .base_provider import BaseProvider
-from .helper import WebDriver, format_prompt, get_browser
+from ..typing import AsyncResult, Messages
+from .base_provider import AsyncGeneratorProvider
+from ..requests import StreamSession
 
-class Phind(BaseProvider):
+class Phind(AsyncGeneratorProvider):
     url = "https://www.phind.com"
     working = True
     supports_gpt_4 = True
     supports_stream = True
+    supports_message_history = True
 
     @classmethod
-    def create_completion(
+    async def create_async_generator(
         cls,
         model: str,
         messages: Messages,
-        stream: bool,
         proxy: str = None,
         timeout: int = 120,
-        browser: WebDriver = None,
-        creative_mode: bool = None,
-        headless: bool = True,
+        creative_mode: bool = False,
         **kwargs
-    ) -> CreateResult:
-        driver = browser if browser else get_browser("", headless, proxy)
-
-        from selenium.webdriver.common.by import By
-        from selenium.webdriver.support.ui import WebDriverWait
-        from selenium.webdriver.support import expected_conditions as EC
-
-        prompt = quote(format_prompt(messages))
-        driver.get(f"{cls.url}/search?q={prompt}&source=searchbox")
-
-        # Need to change settinge
-        if model.startswith("gpt-4") or creative_mode:
-            wait = WebDriverWait(driver, timeout)
-            # Open settings dropdown
-            wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, "button.text-dark.dropdown-toggle")))
-            driver.find_element(By.CSS_SELECTOR, "button.text-dark.dropdown-toggle").click()
-            # Wait for dropdown toggle
-            wait.until(EC.visibility_of_element_located((By.XPATH, "//button[text()='GPT-4']")))
-            # Enable GPT-4
-            if model.startswith("gpt-4"):
-                driver.find_element(By.XPATH, "//button[text()='GPT-4']").click()
-            # Enable creative mode
-            if creative_mode or creative_mode == None:
-                driver.find_element(By.ID, "Creative Mode").click()
-            # Submit changes
-            driver.find_element(By.CSS_SELECTOR, ".search-bar-input-group button[type='submit']").click()
-           # Wait for page reload
-            wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, ".search-container")))
-
-        try:
-            # Add fetch hook
-            script = """
-window._fetch = window.fetch;
-window.fetch = (url, options) => {
-    // Call parent fetch method
-    const result = window._fetch(url, options);
-    if (url != "/api/infer/answer") return result;
-    // Load response reader
-    result.then((response) => {
-        if (!response.body.locked) {
-            window.reader = response.body.getReader();
+    ) -> AsyncResult:
+        headers = {
+            "Accept": "*/*",
+            "Origin": cls.url,
+            "Referer": f"{cls.url}/search",
+            "Sec-Fetch-Dest": "empty", 
+            "Sec-Fetch-Mode": "cors", 
+            "Sec-Fetch-Site": "same-origin",
         }
-    });
-    // Return dummy response
-    return new Promise((resolve, reject) => {
-        resolve(new Response(new ReadableStream()))
-    });
-}
-"""
-            # Read response from reader
-            driver.execute_script(script)
-            script = """
-if(window.reader) {
-    chunk = await window.reader.read();
-    if (chunk['done']) return null;
-    text = (new TextDecoder()).decode(chunk['value']);
-    content = '';
-    text.split('\\r\\n').forEach((line, index) => {
-        if (line.startsWith('data: ')) {
-            line = line.substring('data: '.length);
-            if (!line.startsWith('<PHIND_METADATA>')) {
-                if (line) content += line;
-                else content += '\\n';
+        async with StreamSession(
+            impersonate="chrome110",
+            proxies={"https": proxy},
+            timeout=timeout
+        ) as session:
+            prompt = messages[-1]["content"]
+            data = {
+                "question": prompt,
+                "questionHistory": [
+                    message["content"] for message in messages[:-1] if message["role"] == "user"
+                ],
+                "answerHistory": [
+                    message["content"] for message in messages if message["role"] == "assistant"
+                ],
+                "webResults": [],
+                "options": {
+                    "date": datetime.now().strftime("%d.%m.%Y"),
+                    "language": "en-US",
+                    "detailed": True,
+                    "anonUserId": "",
+                    "answerModel": "GPT-4" if model.startswith("gpt-4") else "Phind Model",
+                    "creativeMode": creative_mode,
+                    "customLinks": []
+                },
+                "context": "",
+                "rewrittenQuestion": prompt
             }
-        }
-    });
-    return content.replace('\\n\\n', '\\n');
-} else {
-    return ''
-}
-"""
-            while True:
-                chunk = driver.execute_script(script)
-                if chunk:
-                    yield chunk
-                elif chunk != "":
-                    break
-                else:
-                    time.sleep(0.1)
-        finally:
-            if not browser:
-                driver.close()
-                time.sleep(0.1)
-                driver.quit()
+            async with session.post(f"{cls.url}/api/infer/followup/answer", headers=headers, json=data) as response:
+                new_line = False
+                async for line in response.iter_lines():
+                    if line.startswith(b"data: "):
+                        chunk = line[6:]
+                        if chunk.startswith(b"<PHIND_METADATA>"):
+                            pass
+                        elif chunk:
+                            yield chunk.decode()
+                        elif new_line:
+                            yield "\n"
+                            new_line = False
+                        else:
+                            new_line = True

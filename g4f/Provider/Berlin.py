@@ -12,7 +12,7 @@ from .helper import format_prompt
 
 class Berlin(AsyncGeneratorProvider):
     url = "https://ai.berlin4h.top"
-    working = True
+    working = False
     supports_gpt_35_turbo = True
     _token = None
 

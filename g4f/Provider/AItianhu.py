@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import browser_cookie3
 
 from ..typing import AsyncResult, Messages
 from ..requests import StreamSession
@@ -10,7 +9,7 @@ from .base_provider import AsyncGeneratorProvider, format_prompt, get_cookies
 
 class AItianhu(AsyncGeneratorProvider):
     url = "https://www.aitianhu.com"
-    working = True
+    working = False
     supports_gpt_35_turbo = True
 
     @classmethod
@@ -72,22 +71,9 @@ class AItianhu(AsyncGeneratorProvider):
 
                     if "detail" not in line:
                         raise RuntimeError(f"Response: {line}")
-                    if content := line["detail"]["choices"][0]["delta"].get(
+
+                    content = line["detail"]["choices"][0]["delta"].get(
                         "content"
-                    ):
+                    )
+                    if content:
                         yield content
-
-
-    @classmethod
-    @property
-    def params(cls):
-        params = [
-            ("model", "str"),
-            ("messages", "list[dict[str, str]]"),
-            ("stream", "bool"),
-            ("proxy", "str"),
-            ("temperature", "float"),
-            ("top_p", "int"),
-        ]
-        param = ", ".join([": ".join(p) for p in params])
-        return f"g4f.provider.{cls.__name__} supports: ({param})"

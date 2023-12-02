@@ -4,7 +4,8 @@ import time, json
 
 from ..typing import CreateResult, Messages
 from .base_provider import BaseProvider
-from .helper import WebDriver, format_prompt, get_browser
+from .helper import format_prompt
+from .webdriver import WebDriver, WebDriverSession
 
 class MyShell(BaseProvider):
     url = "https://app.myshell.ai/chat"
@@ -20,23 +21,27 @@ class MyShell(BaseProvider):
         stream: bool,
         proxy: str = None,
         timeout: int = 120,
-        browser: WebDriver = None,
-        headless: bool = True,
+        webdriver: WebDriver = None,
         **kwargs
     ) -> CreateResult:
-        driver = browser if browser else get_browser("", headless, proxy)
+        with WebDriverSession(webdriver, "", proxy=proxy) as driver:
+            from selenium.webdriver.common.by import By
+            from selenium.webdriver.support.ui import WebDriverWait
+            from selenium.webdriver.support import expected_conditions as EC
 
-        from selenium.webdriver.common.by import By
-        from selenium.webdriver.support.ui import WebDriverWait
-        from selenium.webdriver.support import expected_conditions as EC
+            driver.get(cls.url)
 
-        driver.get(cls.url)
-        try:
             # Wait for page load and cloudflare validation
             WebDriverWait(driver, timeout).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, "body:not(.no-js)"))
             )
             # Send request with message
+            data = {
+                "botId": "4738",
+                "conversation_scenario": 3,
+                "message": format_prompt(messages),
+                "messageType": 1
+            }
             script = """
 response = await fetch("https://api.myshell.ai/v1/bot/chat/send_message", {
     "headers": {
@@ -48,21 +53,16 @@ response = await fetch("https://api.myshell.ai/v1/bot/chat/send_message", {
     "body": '{body}',
     "method": "POST"
 })
-window.reader = response.body.getReader();
+window._reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
 """
-            data = {
-                "botId": "4738",
-                "conversation_scenario": 3,
-                "message": format_prompt(messages),
-                "messageType": 1
-            }
             driver.execute_script(script.replace("{body}", json.dumps(data)))
             script = """
-chunk = await window.reader.read();
-if (chunk['done']) return null;
-text = (new TextDecoder()).decode(chunk['value']);
+chunk = await window._reader.read();
+if (chunk['done']) {
+    return null;
+}
 content = '';
-text.split('\\n').forEach((line, index) => {
+chunk['value'].split('\\n').forEach((line, index) => {
     if (line.startsWith('data: ')) {
         try {
             const data = JSON.parse(line.substring('data: '.length));
@@ -80,8 +80,5 @@ return content;
                     yield chunk
                 elif chunk != "":
                     break
-        finally:
-            if not browser:
-                driver.close()
-                time.sleep(0.1)
-                driver.quit()
+                else:
+                    time.sleep(0.1)

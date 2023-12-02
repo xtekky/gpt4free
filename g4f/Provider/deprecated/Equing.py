@@ -65,16 +65,7 @@ class Equing(BaseProvider):
             if line:
                 if b'content' in line:
                     line_json = json.loads(line.decode('utf-8').split('data: ')[1])
-                    if token := line_json['choices'][0]['delta'].get('content'):
-                        yield token
 
-    @classmethod
-    @property
-    def params(cls):
-        params = [
-            ("model", "str"),
-            ("messages", "list[dict[str, str]]"),
-            ("stream", "bool"),
-        ]
-        param = ", ".join([": ".join(p) for p in params])
-        return f"g4f.provider.{cls.__name__} supports: ({param})"
+                    token = line_json['choices'][0]['delta'].get('content')
+                    if token:
+                        yield token

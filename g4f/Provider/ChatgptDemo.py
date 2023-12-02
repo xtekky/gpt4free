@@ -37,10 +37,13 @@ class ChatgptDemo(AsyncGeneratorProvider):
             async with session.get(f"{cls.url}/", proxy=proxy) as response:
                 response.raise_for_status()
                 response = await response.text()
-                if result := re.search(
+
+                result = re.search(
                     r'<div id="USERID" style="display: none">(.*?)<\/div>',
                     response,
-                ):
+                )
+
+                if result:
                     user_id = result.group(1)
                 else:
                     raise RuntimeError("No user id found")
@@ -59,5 +62,7 @@ class ChatgptDemo(AsyncGeneratorProvider):
                 async for line in response.content:
                     if line.startswith(b"data: "):
                         line = json.loads(line[6:-1])
-                        if chunk := line["choices"][0]["delta"].get("content"):
+
+                        chunk = line["choices"][0]["delta"].get("content")
+                        if chunk:
                             yield chunk

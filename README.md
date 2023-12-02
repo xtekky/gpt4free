@@ -1,19 +1,18 @@
 ![248433934-7886223b-c1d1-4260-82aa-da5741f303bb](https://github.com/xtekky/gpt4free/assets/98614666/ea012c87-76e0-496a-8ac4-e2de090cc6c9)
 
 <a href='https://ko-fi.com/xtekky' target='_blank'><img height='35' style='border:0px;height:46px;' src='https://az743702.vo.msecnd.net/cdn/kofi3.png?v=0' border='0' alt='Buy Me a Coffee at ko-fi.com' />
-
 <div id="top"></div>
 
 > By using this repository or any code related to it, you agree to the [legal notice](LEGAL_NOTICE.md). The author is not responsible for any copies, forks, re-uploads made by other users, or anything else related to GPT4Free. This is the author's only account and repository. To prevent impersonation or irresponsible actions, please comply with the GNU GPL license this Repository uses.
 
 > [!Note]
-> Latest pypi version: [`0.1.8.4`](https://pypi.org/project/g4f/0.1.8.4)
+> Latest pypi version: [`0.1.9.0`](https://pypi.org/project/g4f/0.1.9.0)
 ```sh
 pip install -U g4f
 ```
 
 ## 🆕 What's New
-
+- <a href="./README-DE.md"><img src="https://img.shields.io/badge/öffnen in-🇩🇪 deutsch-bleu.svg" alt="Öffnen en DE"></a>
 - Join our Telegram Channel: [t.me/g4f_channel](https://telegram.me/g4f_channel)
 - Join our Discord Group: [discord.gg/XfybzPXPH5](https://discord.gg/XfybzPXPH5)
 - Explore the g4f Documentation (unfinished): [g4f.mintlify.app](https://g4f.mintlify.app) | Contribute to the docs via: [github.com/xtekky/gpt4free-docs](https://github.com/xtekky/gpt4free-docs)
@@ -245,12 +244,7 @@ for message in response:
 
 ##### Using Browser
 
-Some providers using a browser to bypass the bot protection.
-They using the selenium webdriver to control the browser.
-The browser settings and the login data are saved in a custom directory.
-If the headless mode is enabled, the browser windows are loaded invisibly.
-For performance reasons, it is recommended to reuse the browser instances
-and close them yourself at the end:
+Some providers using a a browser to bypass the bot protection. They using the selenium webdriver to control the browser. The browser settings and the login data are saved in a custom directory. If the headless mode is enabled, the browser windows are loaded invisibly. For performance reasons, it is recommended to reuse the browser instances and close them yourself at the end:
 
 ```python
 import g4f
@@ -266,16 +260,16 @@ from g4f.Provider import (
 
 options = ChromeOptions()
 options.add_argument("--incognito");
-browser = Chrome(options=options, headless=True)
+webdriver = Chrome(options=options, headless=True)
 for idx in range(10):
     response = g4f.ChatCompletion.create(
         model=g4f.models.default,
         provider=g4f.Provider.Phind,
         messages=[{"role": "user", "content": "Suggest me a name."}],
-        browser=browser
+        webdriver=webdriver
     )
     print(f"{idx}:", response)
-browser.quit()
+webdriver.quit()
 ```
 
 ##### Cookies Required
@@ -382,7 +376,7 @@ g4f api
 or
 
 ```sh
-python -m g4f.api
+python -m g4f.api.run
 ```
 
 ```python
@@ -605,7 +599,7 @@ if __name__ == "__main__":
 
 #### Create Provider with AI Tool
 
-Call in your terminal the "create_provider" script:
+Call in your terminal the `create_provider.py` script:
 ```bash
 python etc/tool/create_provider.py
 ```
@@ -628,8 +622,8 @@ from .base_provider import AsyncGeneratorProvider
 
 class HogeService(AsyncGeneratorProvider):
     url                   = "https://chat-gpt.com"
-    supports_gpt_35_turbo = True
     working               = True
+    supports_gpt_35_turbo = True
 
     @classmethod
     async def create_async_generator(
@@ -644,7 +638,7 @@ class HogeService(AsyncGeneratorProvider):
 
 4. Here, you can adjust the settings, for example, if the website does support streaming, set `supports_stream` to `True`...
 5. Write code to request the provider in `create_async_generator` and `yield` the response, _even if_ it's a one-time response, do not hesitate to look at other providers for inspiration
-6. Add the Provider Name in [g4f/Provider/**init**.py](./g4f/Provider/__init__.py)
+6. Add the Provider Name in [`g4f/Provider/__init__.py`](./g4f/Provider/__init__.py)
 
 ```py
 from .HogeService import HogeService
@@ -708,7 +702,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     </td>
     <td> 
       <img src="https://img.shields.io/badge/License-GNU_GPL_v3.0-red.svg"/> <br> 
-This project is licensed under <a href="./LICENSE">GNU_GPL_v3.0</a>. <img width=2300/>
+This project is licensed under <a href="./LICENSE">GNU_GPL_v3.0</a>.
     </td>
   </tr>
 </table>

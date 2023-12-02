@@ -14,6 +14,12 @@ models = {
         "maxLength": 24000,
         "tokenLimit": 8000,
     },
+    "gpt-4-0613": {
+        "id": "gpt-4-0613",
+        "name": "GPT-4",
+        "maxLength": 32000,
+        "tokenLimit": 8000,
+    },
     "gpt-3.5-turbo": {
         "id": "gpt-3.5-turbo",
         "name": "GPT-3.5",
@@ -91,17 +97,3 @@ class Liaobots(AsyncGeneratorProvider):
                 async for stream in response.content.iter_any():
                     if stream:
                         yield stream.decode()
-
-
-    @classmethod
-    @property
-    def params(cls):
-        params = [
-            ("model", "str"),
-            ("messages", "list[dict[str, str]]"),
-            ("stream", "bool"),
-            ("proxy", "str"),
-            ("auth", "str"),
-        ]
-        param = ", ".join([": ".join(p) for p in params])
-        return f"g4f.provider.{cls.__name__} supports: ({param})"

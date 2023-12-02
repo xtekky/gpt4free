@@ -1,6 +1,6 @@
 requests
 pycryptodome
-curl_cffi
+curl_cffi>=0.5.10b4
 aiohttp
 certifi
 browser_cookie3
@@ -13,7 +13,6 @@ nest_asyncio
 waitress
 werkzeug
 loguru
-tiktoken
 pillow
 platformdirs
 numpy
@@ -22,3 +21,9 @@ fastapi
 uvicorn
 flask
 py-arkose-generator
+asyncstdlib
+async-property
+undetected-chromedriver
+asyncstdlib
+async_property
+cloudscraper

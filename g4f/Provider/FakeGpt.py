@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-import uuid, time, random, string, json
+import uuid, time, random, json
 from aiohttp import ClientSession
 
 from ..typing import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider
-from .helper import format_prompt
+from .helper import format_prompt, get_random_string
 
 
 class FakeGpt(AsyncGeneratorProvider):
@@ -39,7 +39,7 @@ class FakeGpt(AsyncGeneratorProvider):
                     token_ids = [t["token_id"] for t in list if t["count"] == 0]
                 data = {
                     "token_key": random.choice(token_ids),
-                    "session_password": random_string()
+                    "session_password": get_random_string()
                 }
                 async with session.post(f"{cls.url}/auth/login", data=data, proxy=proxy) as response:
                     response.raise_for_status()
@@ -89,6 +89,3 @@ class FakeGpt(AsyncGeneratorProvider):
                             continue
             if not last_message:
                 raise RuntimeError("No valid response")
-
-def random_string(length: int = 10):
-    return ''.join(random.choice(string.ascii_lowercase + string.digits) for _ in range(length))

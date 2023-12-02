@@ -1,6 +1,12 @@
-# crypto-js [![Build Status](https://travis-ci.org/brix/crypto-js.svg?branch=develop)](https://travis-ci.org/brix/crypto-js)
+# crypto-js
 
 JavaScript library of crypto standards.
+
+## Discontinued
+
+Active development of CryptoJS has been discontinued. This library is no longer maintained.
+
+Nowadays, NodeJS and modern browsers have a native `Crypto` module. The latest version of CryptoJS already uses the native Crypto module for random number generation, since `Math.random()` is not crypto-safe. Further development of CryptoJS would result in it only being a wrapper of native Crypto. Therefore, development and maintenance has been discontinued, it is time to go for the native `crypto` module.
 
 ## Node.js (Install)
 
@@ -211,6 +217,14 @@ console.log(decryptedData); // [{id: 1}, {id: 2}]
 
 
 ## Release notes
+
+### 4.2.0
+
+Change default hash algorithm and iteration's for PBKDF2 to prevent weak security by using the default configuration.
+
+Custom KDF Hasher
+
+Blowfish support
 
 ### 4.1.1
 

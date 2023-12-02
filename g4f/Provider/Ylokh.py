@@ -50,27 +50,9 @@ class Ylokh(AsyncGeneratorProvider):
                             if line.startswith("data: [DONE]"):
                                 break
                             line = json.loads(line[6:])
-                            if content := line["choices"][0]["delta"].get(
-                                "content"
-                            ):
+                            content = line["choices"][0]["delta"].get("content")
+                            if content:
                                 yield content
                 else:
                     chat = await response.json()
                     yield chat["choices"][0]["message"].get("content")
-
-
-
-    @classmethod
-    @property
-    def params(cls):
-        params = [
-            ("model", "str"),
-            ("messages", "list[dict[str, str]]"),
-            ("stream", "bool"),
-            ("proxy", "str"),
-            ("timeout", "int"),
-            ("temperature", "float"),
-            ("top_p", "float"),
-        ]
-        param = ", ".join([": ".join(p) for p in params])
-        return f"g4f.provider.{cls.__name__} supports: ({param})"

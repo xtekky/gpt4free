@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-import random
-import string
 import json
 from aiohttp import ClientSession
 
 from ..typing import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider
+from .helper import get_random_string
 
 class Koala(AsyncGeneratorProvider):
     url = "https://koala.sh"
@@ -32,7 +31,7 @@ class Koala(AsyncGeneratorProvider):
             "Referer": f"{cls.url}/chat",
             "Content-Type": "application/json",
             "Flag-Real-Time-Data": "false",
-            "Visitor-ID": random_string(),
+            "Visitor-ID": get_random_string(20),
             "Origin": cls.url,
             "Alt-Used": "koala.sh",
             "Connection": "keep-alive",
@@ -63,9 +62,3 @@ class Koala(AsyncGeneratorProvider):
                 async for chunk in response.content:
                     if chunk.startswith(b"data: "):
                         yield json.loads(chunk[6:])
-
-
-def random_string(length: int = 20):
-    return ''.join(random.choice(
-        string.ascii_letters + string.digits
-    ) for _ in range(length))
