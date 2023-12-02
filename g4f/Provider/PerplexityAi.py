@@ -5,7 +5,7 @@ import time
 from ..typing import CreateResult, Messages
 from .base_provider import BaseProvider
 from .helper import format_prompt
-from .webdriver import WebDriver, WebDriverSession
+from ..webdriver import WebDriver, WebDriverSession
 
 class PerplexityAi(BaseProvider):
     url = "https://www.perplexity.ai"

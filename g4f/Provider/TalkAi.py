@@ -4,7 +4,7 @@ import time, json, time
 
 from ..typing import CreateResult, Messages
 from .base_provider import BaseProvider
-from .webdriver import WebDriver, WebDriverSession
+from ..webdriver import WebDriver, WebDriverSession
 
 class TalkAi(BaseProvider):
     url = "https://talkai.info"

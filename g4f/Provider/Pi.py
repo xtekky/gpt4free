@@ -4,10 +4,10 @@ from ..typing import CreateResult, Messages
 from .base_provider import BaseProvider, format_prompt
 
 import json
-from cloudscraper import CloudScraper, session, create_scraper
+from ..requests import Session, get_session_from_browser
 
 class Pi(BaseProvider):
-    url             = "https://chat-gpt.com"
+    url             = "https://pi.ai/talk"
     working         = True
     supports_stream = True
 
@@ -17,75 +17,52 @@ class Pi(BaseProvider):
         model: str,
         messages: Messages,
         stream: bool,
+        session: Session = None,
         proxy: str = None,
-        scraper: CloudScraper = None,
-        conversation: dict = None,
+        timeout: int = 180,
+        conversation_id: str = None,
         **kwargs
     ) -> CreateResult:
-        if not scraper:
-            scraper = cls.get_scraper(proxy)
-        if not conversation:
-            conversation = cls.start_conversation(scraper)
-        answer = cls.ask(scraper, messages, conversation)
+        if not session:
+            session = get_session_from_browser(url=cls.url, proxy=proxy, timeout=timeout)
+        if not conversation_id:
+            conversation_id = cls.start_conversation(session)
+        answer = cls.ask(session, messages, conversation_id)
         for line in answer:
             if "text" in line:
                 yield line["text"]
-                        
-    def get_scraper(proxy: str):
-        return create_scraper(
-            browser={
-                'browser': 'chrome',
-                'platform': 'windows',
-                'desktop': True
-            },
-            headers={
-                'Accept': '*/*',
-                'Accept-Encoding': 'deflate,gzip,br',
-            },
-            proxies={
-                "https": proxy
-            }
-        )
-        
-    def start_conversation(scraper: CloudScraper):
-        response = scraper.post('https://pi.ai/api/chat/start', data="{}", headers={
+    
+    @classmethod
+    def start_conversation(cls, session: Session) -> str:
+        response = session.post('https://pi.ai/api/chat/start', data="{}", headers={
             'accept': 'application/json',
             'x-api-version': '3'
         })
         if 'Just a moment' in response.text:
             raise RuntimeError('Error: Cloudflare detected')
-        return Conversation(
-            response.json()['conversations'][0]['sid'],
-            response.cookies
-        )
+        return response.json()['conversations'][0]['sid']
         
-    def get_chat_history(scraper: CloudScraper, conversation: Conversation):
+    def get_chat_history(session: Session, conversation_id: str):
         params = {
-            'conversation': conversation.sid,
+            'conversation': conversation_id,
         }
-        response = scraper.get('https://pi.ai/api/chat/history', params=params, cookies=conversation.cookies)
+        response = session.get('https://pi.ai/api/chat/history', params=params)
         if 'Just a moment' in response.text:
             raise RuntimeError('Error: Cloudflare detected')
         return response.json()
 
-    def ask(scraper: CloudScraper, messages: Messages, conversation: Conversation):
+    def ask(session: Session, messages: Messages, conversation_id: str):
         json_data = {
             'text': format_prompt(messages),
-            'conversation': conversation.sid,
+            'conversation': conversation_id,
             'mode': 'BASE',
         }
-        response = scraper.post('https://pi.ai/api/chat', json=json_data, cookies=conversation.cookies, stream=True)
-        
-        for line in response.iter_lines(chunk_size=1024, decode_unicode=True):
-            if 'Just a moment' in line:
+        response = session.post('https://pi.ai/api/chat', json=json_data, stream=True)
+        for line in response.iter_lines():
+            if b'Just a moment' in line:
                 raise RuntimeError('Error: Cloudflare detected')
-            if line.startswith('data: {"text":'):
-               yield json.loads(line.split('data: ')[1])
-            if line.startswith('data: {"title":'):
-               yield json.loads(line.split('data: ')[1])
-                
-class Conversation():
-    def __init__(self, sid: str, cookies):
-        self.sid = sid
-        self.cookies = cookies
+            if line.startswith(b'data: {"text":'):
+               yield json.loads(line.split(b'data: ')[1])
+            elif line.startswith(b'data: {"title":'):
+               yield json.loads(line.split(b'data: ')[1])
         
