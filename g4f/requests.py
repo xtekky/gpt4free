@@ -6,10 +6,7 @@ from functools import partialmethod
 from typing import AsyncGenerator
 from urllib.parse import urlparse
 from curl_cffi.requests import AsyncSession, Session, Response
-from .webdriver import WebDriver, WebDriverSession
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
+from .webdriver import WebDriver, WebDriverSession, bypass_cloudflare
 
 class StreamResponse:
     def __init__(self, inner: Response) -> None:
@@ -58,28 +55,7 @@ class StreamSession(AsyncSession):
     
 def get_session_from_browser(url: str, webdriver: WebDriver = None, proxy: str = None, timeout: int = 120):
     with WebDriverSession(webdriver, "", proxy=proxy, virtual_display=True) as driver:
-        driver.get(url)
-        
-        # Is cloudflare protection
-        if driver.find_element(By.TAG_NAME, "body").get_attribute("class") == "no-js":
-            try:
-                # Click button in iframe
-                WebDriverWait(driver, 5).until(
-                    EC.presence_of_element_located((By.CSS_SELECTOR, "#turnstile-wrapper iframe"))
-                )
-                driver.switch_to.frame(driver.find_element(By.CSS_SELECTOR, "#turnstile-wrapper iframe"))
-                WebDriverWait(driver, 5).until(
-                    EC.presence_of_element_located((By.CSS_SELECTOR, "#challenge-stage input"))
-                )
-                driver.find_element(By.CSS_SELECTOR, "#challenge-stage input").click()
-            except:
-                pass
-            finally:
-                driver.switch_to.default_content()
-        # No cloudflare protection
-        WebDriverWait(driver, timeout).until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, "body:not(.no-js)"))
-        )
+        bypass_cloudflare(driver, url, timeout)
 
         cookies = dict([(cookie["name"], cookie["value"]) for cookie in driver.get_cookies()])
         user_agent = driver.execute_script("return navigator.userAgent")

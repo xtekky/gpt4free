@@ -5,7 +5,7 @@ import time, json
 from ..typing import CreateResult, Messages
 from .base_provider import BaseProvider
 from .helper import format_prompt
-from ..webdriver import WebDriver, WebDriverSession
+from ..webdriver import WebDriver, WebDriverSession, bypass_cloudflare
 
 class MyShell(BaseProvider):
     url = "https://app.myshell.ai/chat"
@@ -25,16 +25,8 @@ class MyShell(BaseProvider):
         **kwargs
     ) -> CreateResult:
         with WebDriverSession(webdriver, "", proxy=proxy) as driver:
-            from selenium.webdriver.common.by import By
-            from selenium.webdriver.support.ui import WebDriverWait
-            from selenium.webdriver.support import expected_conditions as EC
-
-            driver.get(cls.url)
-
-            # Wait for page load and cloudflare validation
-            WebDriverWait(driver, timeout).until(
-                EC.presence_of_element_located((By.CSS_SELECTOR, "body:not(.no-js)"))
-            )
+            bypass_cloudflare(driver, cls.url, timeout)
+            
             # Send request with message
             data = {
                 "botId": "4738",
@@ -58,11 +50,11 @@ window._reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
             driver.execute_script(script.replace("{body}", json.dumps(data)))
             script = """
 chunk = await window._reader.read();
-if (chunk['done']) {
+if (chunk.done) {
     return null;
 }
 content = '';
-chunk['value'].split('\\n').forEach((line, index) => {
+chunk.value.split('\\n').forEach((line, index) => {
     if (line.startsWith('data: ')) {
         try {
             const data = JSON.parse(line.substring('data: '.length));

@@ -4,16 +4,14 @@ from .models    import Model, ModelUtils, _all_models
 from .Provider  import BaseProvider, AsyncGeneratorProvider, RetryProvider
 from .typing    import Messages, CreateResult, AsyncResult, Union, List
 from .          import debug
-
-version       = '0.1.9.2'
-version_check = True
+from importlib.metadata import version
 
 def check_pypi_version() -> None:
     try:
         response = get("https://pypi.org/pypi/g4f/json").json()
         latest_version = response["info"]["version"]
 
-        if version != latest_version:
+        if version('g4f') != latest_version:
             print(f'New pypi version: {latest_version} (current: {version}) | pip install -U g4f')
             return False
         return True
@@ -27,6 +25,9 @@ def get_model_and_provider(model    : Union[Model, str],
                            ignored  : List[str] = None,
                            ignore_working: bool = False,
                            ignore_stream: bool = False) -> tuple[Model, type[BaseProvider]]:
+    if debug.version_check:
+        if check_pypi_version():
+            debug.version_check = False
     
     if isinstance(model, str):
         if model in ModelUtils.convert:
@@ -119,6 +120,3 @@ class Completion:
         result = provider.create_completion(model.name, [{"role": "user", "content": prompt}], stream, **kwargs)
 
         return result if stream else ''.join(result)
-    
-if version_check:
-    check_pypi_version()

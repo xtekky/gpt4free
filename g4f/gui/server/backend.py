@@ -1,8 +1,7 @@
 import g4f
 
 from flask      import request
-from .internet  import search
-from .config    import special_instructions
+from .internet  import get_search_message
 
 g4f.debug.logging = True
 
@@ -53,10 +52,12 @@ class Backend_Api:
     
     def _conversation(self):
         try:
-            #jailbreak       = request.json['jailbreak']
-            #internet_access = request.json['meta']['content']['internet_access']
-            #conversation    = request.json['meta']['content']['conversation']
+            #jailbreak = request.json['jailbreak']
+            web_search = request.json['meta']['content']['internet_access']
             messages = request.json['meta']['content']['parts']
+            if web_search:
+                messages[-1]["content"] = get_search_message(messages[-1]["content"])
+                print(messages[-1]["content"])
             model = request.json.get('model')
             model = model if model else g4f.models.default
             provider = request.json.get('provider', 'Auto').replace('g4f.Provider.', '')
