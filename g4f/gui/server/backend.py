@@ -57,11 +57,10 @@ class Backend_Api:
             messages = request.json['meta']['content']['parts']
             if web_search:
                 messages[-1]["content"] = get_search_message(messages[-1]["content"])
-                print(messages[-1]["content"])
             model = request.json.get('model')
             model = model if model else g4f.models.default
-            provider = request.json.get('provider', 'Auto').replace('g4f.Provider.', '')
-            provider = provider if provider != "Auto" else None
+            provider = request.json.get('provider').replace('g4f.Provider.', '')
+            provider = provider if Provider and provider != "Auto" else None
             if provider != None:
                 provider = g4f.Provider.ProviderUtils.convert.get(provider)
 
