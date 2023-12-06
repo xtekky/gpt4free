@@ -7,6 +7,7 @@ from .Provider   import (
     ChatgptDemoAi,
     ChatAnywhere,
     ChatgptNext,
+    HuggingChat,
     GptForLove,
     ChatgptAi,
     DeepInfra,
@@ -100,7 +101,7 @@ llama2_13b = Model(
 llama2_70b = Model(
     name          = "meta-llama/Llama-2-70b-chat-hf",
     base_provider = "huggingface",
-    best_provider = RetryProvider([Llama2, DeepInfra]))
+    best_provider = RetryProvider([Llama2, DeepInfra, HuggingChat]))
 
 # Bard
 palm = Model(

@@ -25,7 +25,8 @@ def get_model_and_provider(model    : Union[Model, str],
                            provider : Union[type[BaseProvider], None], 
                            stream   : bool,
                            ignored  : List[str] = None,
-                           ignore_working: bool = False) -> tuple[Model, type[BaseProvider]]:
+                           ignore_working: bool = False,
+                           ignore_stream: bool = False) -> tuple[Model, type[BaseProvider]]:
     
     if isinstance(model, str):
         if model in ModelUtils.convert:
@@ -45,7 +46,7 @@ def get_model_and_provider(model    : Union[Model, str],
     if not provider.working and not ignore_working:
         raise RuntimeError(f'{provider.__name__} is not working')
 
-    if not provider.supports_stream and stream:
+    if not ignore_stream and not provider.supports_stream and stream:
         raise ValueError(f'{provider.__name__} does not support "stream" argument')
 
     if debug.logging:
@@ -61,15 +62,17 @@ class ChatCompletion:
                stream   : bool = False,
                auth     : Union[str, None] = None,
                ignored  : List[str] = None, 
-               ignore_working: bool = False, **kwargs) -> Union[CreateResult, str]:
+               ignore_working: bool = False,
+               ignore_stream_and_auth: bool = False,
+               **kwargs) -> Union[CreateResult, str]:
 
-        model, provider = get_model_and_provider(model, provider, stream, ignored, ignore_working)
+        model, provider = get_model_and_provider(model, provider, stream, ignored, ignore_working, ignore_stream_and_auth)
 
-        if provider.needs_auth and not auth:
+        if not ignore_stream_and_auth and provider.needs_auth and not auth:
             raise ValueError(
                 f'{provider.__name__} requires authentication (use auth=\'cookie or token or jwt ...\' param)')
 
-        if provider.needs_auth:
+        if auth:
             kwargs['auth'] = auth
 
         result = provider.create_completion(model.name, messages, stream, **kwargs)

@@ -4,6 +4,8 @@ import time
 from platformdirs import user_config_dir
 from selenium.webdriver.remote.webdriver import WebDriver 
 from undetected_chromedriver import Chrome, ChromeOptions
+import os.path
+from . import debug
 
 try:
     from pyvirtualdisplay import Display
@@ -19,12 +21,16 @@ def get_browser(
 ) -> WebDriver:
     if user_data_dir == None:
         user_data_dir = user_config_dir("g4f")
+        if debug.logging:
+            print("Open browser with config dir:", user_data_dir)
     if not options:
         options = ChromeOptions()
-    options.add_argument("window-size=1920,1080");
     if proxy:
         options.add_argument(f'--proxy-server={proxy}')
-    return Chrome(options=options, user_data_dir=user_data_dir, headless=headless)
+    driver = '/usr/bin/chromedriver'
+    if not os.path.isfile(driver):
+        driver = None
+    return Chrome(options=options, user_data_dir=user_data_dir, driver_executable_path=driver, headless=headless)
 
 class WebDriverSession():
     def __init__(

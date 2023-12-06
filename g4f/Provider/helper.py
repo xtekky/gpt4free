@@ -6,6 +6,7 @@ import webbrowser
 import random
 import string
 import secrets
+import os
 from os              import path
 from asyncio         import AbstractEventLoop
 from platformdirs    import user_config_dir
@@ -18,7 +19,7 @@ from browser_cookie3 import (
     edge,
     vivaldi,
     firefox,
-    BrowserCookieError
+    _LinuxPasswordManager
 )
 
 from ..typing import Dict, Messages
@@ -81,6 +82,10 @@ def init_cookies():
         except webbrowser.Error:
             continue
 
+# Check for broken dbus address in docker image   
+if os.environ.get('DBUS_SESSION_BUS_ADDRESS') == "/dev/null":
+    _LinuxPasswordManager.get_password = lambda a, b: b"secret"
+    
 # Load cookies for a domain from all supported browsers.
 # Cache the results in the "_cookies" variable.
 def get_cookies(domain_name=''):
@@ -100,7 +105,7 @@ def get_cookies(domain_name=''):
             for cookie in cookie_jar:
                 if cookie.name not in cookies:
                     cookies[cookie.name] = cookie.value
-        except BrowserCookieError as e:
+        except:
             pass
     _cookies[domain_name] = cookies
     return _cookies[domain_name]
