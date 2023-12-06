@@ -3,9 +3,8 @@ import g4f
 from flask      import request
 from .internet  import search
 from .config    import special_instructions
-from .provider  import get_provider
 
-g4f.logging = True
+g4f.debug.logging = True
 
 class Backend_Api:
     def __init__(self, app) -> None:
@@ -13,6 +12,10 @@ class Backend_Api:
         self.routes = {
             '/backend-api/v2/models': {
                 'function': self.models,
+                'methods' : ['GET']
+            },
+            '/backend-api/v2/providers': {
+                'function': self.providers,
                 'methods' : ['GET']
             },
             '/backend-api/v2/conversation': {
@@ -37,6 +40,12 @@ class Backend_Api:
     def models(self):
         return g4f._all_models
     
+    def providers(self):
+        return [
+            provider.__name__ for provider in g4f.Provider.__providers__
+            if provider.working and provider is not g4f.Provider.RetryProvider
+        ]
+    
     def _gen_title(self):
         return {
             'title': ''
@@ -47,26 +56,26 @@ class Backend_Api:
             #jailbreak       = request.json['jailbreak']
             #internet_access = request.json['meta']['content']['internet_access']
             #conversation    = request.json['meta']['content']['conversation']
-            prompt          = request.json['meta']['content']['parts']
-            model           = request.json['model']
-            provider        = request.json.get('provider').split('g4f.Provider.')[1]
+            messages = request.json['meta']['content']['parts']
+            model = request.json.get('model')
+            model = model if model else g4f.models.default
+            provider = request.json.get('provider', 'Auto').replace('g4f.Provider.', '')
+            provider = provider if provider != "Auto" else None
+            if provider != None:
+                provider = g4f.Provider.ProviderUtils.convert.get(provider)
 
-            messages = prompt
-            print(messages)
+            response = g4f.ChatCompletion.create(
+                model=model,
+                provider=provider,
+                messages=messages,
+                stream=True,
+                ignore_stream_and_auth=True
+            )
 
-            def stream():
-                yield from g4f.ChatCompletion.create(
-                    model=model,
-                    provider=get_provider(provider),
-                    messages=messages,
-                    stream=True,
-                ) if provider else g4f.ChatCompletion.create(
-                    model=model, messages=messages, stream=True
-                )
+            return self.app.response_class(response, mimetype='text/event-stream')
 
-            return self.app.response_class(stream(), mimetype='text/event-stream')
-
-        except Exception as e:    
+        except Exception as e:
+            print(e)
             return {
                 'code'   : 'G4F_ERROR',
                 '_action': '_ask',

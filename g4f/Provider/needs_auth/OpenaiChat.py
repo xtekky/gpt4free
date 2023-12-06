@@ -1,12 +1,15 @@
 from __future__ import annotations
 
-import uuid, json, asyncio
+import uuid, json, asyncio, os
 from py_arkose_generator.arkose import get_values_for_request
 from asyncstdlib.itertools import tee
 from async_property import async_cached_property
-
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+                
 from ..base_provider import AsyncGeneratorProvider
-from ..helper import get_event_loop
+from ..helper import get_event_loop, format_prompt
 from ...webdriver import get_browser
 from ...typing import AsyncResult, Messages
 from ...requests import StreamSession
@@ -84,7 +87,12 @@ class OpenaiChat(AsyncGeneratorProvider):
         if not parent_id:
             parent_id = str(uuid.uuid4())
         if not access_token:
-            access_token = await cls.get_access_token(proxy)
+            access_token = cls._access_token
+        if not access_token:
+            login_url = os.environ.get("G4F_LOGIN_URL")
+            if login_url:
+                yield f"Please login: [ChatGPT]({login_url})\n\n"
+            access_token = cls._access_token = await cls.browse_access_token(proxy)
         headers = {
             "Accept": "text/event-stream",
             "Authorization": f"Bearer {access_token}",
@@ -106,10 +114,11 @@ class OpenaiChat(AsyncGeneratorProvider):
                     "history_and_training_disabled": history_disabled and not auto_continue,
                 }
                 if action != "continue":
+                    prompt = format_prompt(messages) if not conversation_id else messages[-1]["content"]
                     data["messages"] = [{
                         "id": str(uuid.uuid4()),
                         "author": {"role": "user"},
-                        "content": {"content_type": "text", "parts": [messages[-1]["content"]]},
+                        "content": {"content_type": "text", "parts": [prompt]},
                     }]
                 async with session.post(f"{cls.url}/backend-api/conversation", json=data) as response:
                     try:
@@ -155,14 +164,7 @@ class OpenaiChat(AsyncGeneratorProvider):
     @classmethod
     async def browse_access_token(cls, proxy: str = None) -> str:
         def browse() -> str:
-            try:
-                from selenium.webdriver.common.by import By
-                from selenium.webdriver.support.ui import WebDriverWait
-                from selenium.webdriver.support import expected_conditions as EC
-
-                driver = get_browser(proxy=proxy)
-            except ImportError:
-                return
+            driver = get_browser(proxy=proxy)
             try:
                 driver.get(f"{cls.url}/")
                 WebDriverWait(driver, 1200).until(
@@ -177,15 +179,6 @@ class OpenaiChat(AsyncGeneratorProvider):
             None,
             browse
         )
-
-    @classmethod
-    async def get_access_token(cls, proxy: str = None) -> str:
-        if not cls._access_token:
-            cls._access_token = await cls.browse_access_token(proxy)
-        if not cls._access_token:
-            raise RuntimeError("Read access token failed")
-        return cls._access_token
-
     
 async def get_arkose_token(proxy: str = None, timeout: int = None) -> str:
     config = {

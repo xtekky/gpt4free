@@ -1,6 +1,11 @@
 from __future__ import annotations
 
 import time
+import os
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.keys import Keys
 
 from ...typing import CreateResult, Messages
 from ..base_provider import BaseProvider
@@ -27,10 +32,6 @@ class Bard(BaseProvider):
         prompt = format_prompt(messages)
         session = WebDriverSession(webdriver, user_data_dir, headless, proxy=proxy)
         with session as driver:
-            from selenium.webdriver.common.by import By
-            from selenium.webdriver.support.ui import WebDriverWait
-            from selenium.webdriver.support import expected_conditions as EC
-
             try:
                 driver.get(f"{cls.url}/chat")
                 wait = WebDriverWait(driver, 10 if headless else 240)
@@ -40,6 +41,9 @@ class Bard(BaseProvider):
                 if not webdriver:
                     driver = session.reopen()
                     driver.get(f"{cls.url}/chat")
+                    login_url = os.environ.get("G4F_LOGIN_URL")
+                    if login_url:
+                        yield f"Please login: [Google Bard]({login_url})\n\n"
                     wait = WebDriverWait(driver, 240)
                     wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, "div.ql-editor.textarea")))
                 else:
@@ -61,8 +65,8 @@ XMLHttpRequest.prototype.open = function(method, url) {
             driver.execute_script(script)
 
             # Submit prompt
-            driver.find_element(By.CSS_SELECTOR, "div.ql-editor.ql-blank.textarea").send_keys(prompt)
-            driver.find_element(By.CSS_SELECTOR, "button.send-button").click()
+            driver.find_element(By.CSS_SELECTOR, "div.ql-editor.textarea").send_keys(prompt)
+            driver.find_element(By.CSS_SELECTOR, "div.ql-editor.textarea").send_keys(Keys.ENTER)
 
             # Yield response
             while True:
