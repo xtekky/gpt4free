@@ -7,7 +7,7 @@
 
 > [!Note]
 Current version:
-[![PyPI version](https://badge.fury.io/py/g4f.svg)](https://pypi.org/project/g4f)
+>> [![PyPI version](https://badge.fury.io/py/g4f.svg)](https://pypi.org/project/g4f)
 ```sh
 pip install -U g4f
 ```
