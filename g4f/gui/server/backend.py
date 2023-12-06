@@ -41,7 +41,10 @@ class Backend_Api:
         return g4f._all_models
     
     def providers(self):
-        return [provider.__name__ for provider in g4f.Provider.__providers__ if provider.working]
+        return [
+            provider.__name__ for provider in g4f.Provider.__providers__
+            if provider.working and provider is not g4f.Provider.RetryProvider
+        ]
     
     def _gen_title(self):
         return {

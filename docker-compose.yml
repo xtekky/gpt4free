@@ -2,13 +2,11 @@ version: '3'
 
 services:
   gpt4free:
-    image: gpt4free:latest
+    image: ghcr.io/xtekky/gpt4free:latest
     shm_size: 2gb
     build:
       context: .
       dockerfile: docker/Dockerfile
-      cache_from:
-        - gpt4free:latest
     volumes:
       - .:/app
     ports:

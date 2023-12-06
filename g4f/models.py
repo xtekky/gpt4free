@@ -275,6 +275,8 @@ class ModelUtils:
         'gpt-3.5-turbo-16k'      : gpt_35_turbo_16k,
         'gpt-3.5-turbo-16k-0613' : gpt_35_turbo_16k_0613,
         
+        'gpt-3.5-long': gpt_35_long,
+        
         # gpt-4
         'gpt-4'          : gpt_4,
         'gpt-4-0613'     : gpt_4_0613,

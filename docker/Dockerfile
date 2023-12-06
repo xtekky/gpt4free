@@ -2,6 +2,7 @@ FROM selenium/node-chrome
 
 ENV SE_SCREEN_WIDTH 1920
 ENV G4F_LOGIN_URL http://localhost:7900/?autoconnect=1&resize=scale&password=secret
+ENV PYTHONUNBUFFERED 1
 
 USER root
 
@@ -18,7 +19,7 @@ RUN rm -rf /var/lib/apt/lists/* /var/cache/apt/* \
   && apt-get -qyy clean
 
 # Update entrypoint
-COPY docker/start-selenium-node.sh /opt/bin/
+COPY docker/supervisor.conf /etc/supervisor/conf.d/selenium.conf
 
 # Change background image
 COPY g4f.png /usr/share/images/fluxbox/ubuntu-light.png

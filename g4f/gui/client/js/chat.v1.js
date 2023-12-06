@@ -601,7 +601,7 @@ observer.observe(message_input, { attributes: true });
 
     let auto = document.createElement('option');
     auto.value = '';
-    auto.text = 'Default Model';
+    auto.text = 'Model: Default';
     select.appendChild(auto);
 
     for (model of models) {
