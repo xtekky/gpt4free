@@ -1,6 +1,6 @@
 FROM selenium/node-chrome
 
-ENV SE_SCREEN_WIDTH 1920
+ENV SE_SCREEN_WIDTH 1850
 ENV G4F_LOGIN_URL http://localhost:7900/?autoconnect=1&resize=scale&password=secret
 ENV PYTHONUNBUFFERED 1
 
