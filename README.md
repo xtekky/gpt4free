@@ -1,4 +1,4 @@
-![g4f](g4f.png)
+![248433934-7886223b-c1d1-4260-82aa-da5741f303bb](https://github.com/xtekky/gpt4free/assets/98614666/ea012c87-76e0-496a-8ac4-e2de090cc6c9)
 
 <a href='https://ko-fi.com/xtekky' target='_blank'><img height='35' style='border:0px;height:46px;' src='https://az743702.vo.msecnd.net/cdn/kofi3.png?v=0' border='0' alt='Buy Me a Coffee at ko-fi.com' />
 <div id="top"></div>
@@ -165,8 +165,7 @@ docker-compose down
 import g4f
 
 g4f.debug.logging = True  # Enable logging
-g4f.check_version = False  # Disable automatic version checking
-print(g4f.version)  # Check version
+g4f.debug.check_version = False  # Disable automatic version checking
 print(g4f.Provider.Ails.params)  # Supported args
 
 # Automatic selection of provider
