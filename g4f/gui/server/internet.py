@@ -5,10 +5,6 @@ from aiohttp import ClientSession, ClientTimeout
 from duckduckgo_search import DDGS
 import asyncio
 
-import pandas as pd
-
-print(pd.__version__)
-
 class SearchResults():
     def __init__(self, results: list):
         self.results = results
