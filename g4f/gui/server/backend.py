@@ -70,7 +70,7 @@ class Backend_Api:
             model = request.json.get('model')
             model = model if model else g4f.models.default
             provider = request.json.get('provider').replace('g4f.Provider.', '')
-            provider = provider if Provider and provider != "Auto" else None
+            provider = provider if provider and provider != "Auto" else None
             if provider != None:
                 provider = g4f.Provider.ProviderUtils.convert.get(provider)
 
