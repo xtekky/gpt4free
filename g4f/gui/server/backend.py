@@ -1,8 +1,7 @@
 import g4f
 
 from flask      import request
-from .internet  import search
-from .config    import special_instructions
+from .internet  import get_search_message
 
 g4f.debug.logging = True
 
@@ -16,6 +15,10 @@ class Backend_Api:
             },
             '/backend-api/v2/providers': {
                 'function': self.providers,
+                'methods' : ['GET']
+            },
+            '/backend-api/v2/version': {
+                'function': self.version,
                 'methods' : ['GET']
             },
             '/backend-api/v2/conversation': {
@@ -45,6 +48,12 @@ class Backend_Api:
             provider.__name__ for provider in g4f.Provider.__providers__
             if provider.working and provider is not g4f.Provider.RetryProvider
         ]
+        
+    def version(self):
+        return {
+            "version": g4f.get_version(),
+            "lastet_version": g4f.get_lastet_version(),
+        }
     
     def _gen_title(self):
         return {
@@ -53,14 +62,15 @@ class Backend_Api:
     
     def _conversation(self):
         try:
-            #jailbreak       = request.json['jailbreak']
-            #internet_access = request.json['meta']['content']['internet_access']
-            #conversation    = request.json['meta']['content']['conversation']
+            #jailbreak = request.json['jailbreak']
+            web_search = request.json['meta']['content']['internet_access']
             messages = request.json['meta']['content']['parts']
+            if web_search:
+                messages[-1]["content"] = get_search_message(messages[-1]["content"])
             model = request.json.get('model')
             model = model if model else g4f.models.default
-            provider = request.json.get('provider', 'Auto').replace('g4f.Provider.', '')
-            provider = provider if provider != "Auto" else None
+            provider = request.json.get('provider').replace('g4f.Provider.', '')
+            provider = provider if provider and provider != "Auto" else None
             if provider != None:
                 provider = g4f.Provider.ProviderUtils.convert.get(provider)
 

@@ -3,6 +3,8 @@ FROM selenium/node-chrome
 ENV SE_SCREEN_WIDTH 1850
 ENV G4F_LOGIN_URL http://localhost:7900/?autoconnect=1&resize=scale&password=secret
 ENV PYTHONUNBUFFERED 1
+ARG G4F_VERSION
+ENV G4F_VERSION ${G4F_VERSION}
 
 USER root
 
@@ -22,7 +24,7 @@ RUN rm -rf /var/lib/apt/lists/* /var/cache/apt/* \
 COPY docker/supervisor.conf /etc/supervisor/conf.d/selenium.conf
 
 # Change background image
-COPY g4f.png /usr/share/images/fluxbox/ubuntu-light.png
+COPY docker/background.png /usr/share/images/fluxbox/ubuntu-light.png
 
 # Switch user
 USER 1200

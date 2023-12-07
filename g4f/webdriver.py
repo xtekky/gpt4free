@@ -1,10 +1,12 @@
 from __future__ import annotations
 
-import time
 from platformdirs import user_config_dir
 from selenium.webdriver.remote.webdriver import WebDriver 
 from undetected_chromedriver import Chrome, ChromeOptions
-import os.path
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from os import path
 from . import debug
 
 try:
@@ -21,16 +23,47 @@ def get_browser(
 ) -> WebDriver:
     if user_data_dir == None:
         user_data_dir = user_config_dir("g4f")
-        if debug.logging:
-            print("Open browser with config dir:", user_data_dir)
+    if user_data_dir and debug.logging:
+        print("Open browser with config dir:", user_data_dir)
     if not options:
         options = ChromeOptions()
     if proxy:
         options.add_argument(f'--proxy-server={proxy}')
     driver = '/usr/bin/chromedriver'
-    if not os.path.isfile(driver):
+    if not path.isfile(driver):
         driver = None
-    return Chrome(options=options, user_data_dir=user_data_dir, driver_executable_path=driver, headless=headless)
+    return Chrome(
+        options=options,
+        user_data_dir=user_data_dir,
+        driver_executable_path=driver,
+        headless=headless
+    )
+
+def bypass_cloudflare(driver: WebDriver, url: str, timeout: int) -> None:
+    # Open website
+    driver.get(url)
+    # Is cloudflare protection
+    if driver.find_element(By.TAG_NAME, "body").get_attribute("class") == "no-js":
+        if debug.logging:
+            print("Cloudflare protection detected:", url)
+        try:
+            # Click button in iframe
+            WebDriverWait(driver, 5).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, "#turnstile-wrapper iframe"))
+            )
+            driver.switch_to.frame(driver.find_element(By.CSS_SELECTOR, "#turnstile-wrapper iframe"))
+            WebDriverWait(driver, 5).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, "#challenge-stage input"))
+            )
+            driver.find_element(By.CSS_SELECTOR, "#challenge-stage input").click()
+        except:
+            pass
+        finally:
+            driver.switch_to.default_content()
+    # No cloudflare protection
+    WebDriverWait(driver, timeout).until(
+        EC.presence_of_element_located((By.CSS_SELECTOR, "body:not(.no-js)"))
+    )
 
 class WebDriverSession():
     def __init__(
@@ -47,7 +80,7 @@ class WebDriverSession():
         self.headless = headless
         self.virtual_display = None
         if has_pyvirtualdisplay and virtual_display:
-            self.virtual_display = Display(size=(1920,1080))
+            self.virtual_display = Display(size=(1920, 1080))
         self.proxy = proxy
         self.options = options
         self.default_driver = None
@@ -82,7 +115,6 @@ class WebDriverSession():
                 self.default_driver.close()
             except:
                 pass
-            time.sleep(0.1)
             self.default_driver.quit()
         if self.virtual_display:
             self.virtual_display.stop()
