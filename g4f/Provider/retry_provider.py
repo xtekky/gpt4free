@@ -10,7 +10,6 @@ from .. import debug
 
 class RetryProvider(AsyncProvider):
     __name__: str = "RetryProvider"
-    working: bool = True
     supports_stream: bool = True
 
     def __init__(
@@ -20,6 +19,7 @@ class RetryProvider(AsyncProvider):
     ) -> None:
         self.providers: List[Type[BaseProvider]] = providers
         self.shuffle: bool = shuffle
+        self.working = True
 
     def create_completion(
         self,
