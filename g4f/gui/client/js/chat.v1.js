@@ -629,3 +629,16 @@ observer.observe(message_input, { attributes: true });
         select.appendChild(option);
     }
 })();
+
+(async () => {
+    response = await fetch('/backend-api/v2/version')
+    versions = await response.json()
+    
+    document.title = 'g4f - gui - ' + versions["version"];
+    text = "version ~ " + versions["version"]
+    if (versions["version"] != versions["lastet_version"]) {
+        release_url = 'https://github.com/xtekky/gpt4free/releases/tag/' + versions["lastet_version"];
+        text += ' <a href="' + release_url +'" target="_blank" title="New version: ' + versions["lastet_version"] +'">🆕</a>';
+    }
+    document.getElementById("version_text").innerHTML = text
+})();

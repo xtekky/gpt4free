@@ -17,6 +17,10 @@ class Backend_Api:
                 'function': self.providers,
                 'methods' : ['GET']
             },
+            '/backend-api/v2/version': {
+                'function': self.version,
+                'methods' : ['GET']
+            },
             '/backend-api/v2/conversation': {
                 'function': self._conversation,
                 'methods': ['POST']
@@ -44,6 +48,12 @@ class Backend_Api:
             provider.__name__ for provider in g4f.Provider.__providers__
             if provider.working and provider is not g4f.Provider.RetryProvider
         ]
+        
+    def version(self):
+        return {
+            "version": g4f.get_version(),
+            "lastet_version": g4f.get_lastet_version(),
+        }
     
     def _gen_title(self):
         return {
