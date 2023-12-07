@@ -6,10 +6,12 @@
 > By using this repository or any code related to it, you agree to the [legal notice](LEGAL_NOTICE.md). The author is not responsible for any copies, forks, re-uploads made by other users, or anything else related to GPT4Free. This is the author's only account and repository. To prevent impersonation or irresponsible actions, please comply with the GNU GPL license this Repository uses.
 
 > [!Note]
-Lastet version:
->> [![PyPI version](https://badge.fury.io/py/g4f.svg)](https://pypi.org/project/g4f)
+<sup><strong>Lastet version:</strong></sup> [![PyPI version](https://img.shields.io/pypi/v/g4f?color=blue)](https://pypi.org/project/g4f) [![Docker version](https://img.shields.io/docker/v/hlohaus789/g4f?label=docker&color=blue)](https://hub.docker.com/r/hlohaus789/g4f)
 ```sh
 pip install -U g4f
+```
+```sh
+docker pull hlohaus789/g4f:latest
 ```
 
 ## 🆕 What's New
@@ -55,19 +57,35 @@ pip install -U g4f
 
 ## 🛠️ Getting Started
 
-#### Prerequisites:
+#### Docker container
+
+##### Quick start:
+
+1. [Download and install Docker](https://docs.docker.com/get-docker/)
+2. Pull lastet image and run the container:
+
+```sh
+docker pull hlohaus789/g4f:latest
+docker run -p 8080:80 -p 1337:1337 -p 7900:7900 --shm-size="2g" hlohaus789/g4f:latest
+```
+5. Open the included gui on: [http://localhost:8080/chat/](http://localhost:8080/chat/)
+or set the api base in your client to: [http://localhost:1337/v1](http://localhost:1337/v1)
+6. (Optional) If you need to log in to your provider, you can open the desktop in the container here: http://localhost:7900/?autoconnect=1&resize=scale&password=secret.
+
+#### Use python package
+
+##### Prerequisites:
 
 1. [Download and install Python](https://www.python.org/downloads/) (Version 3.10+ is recommended).
+2. [Install Google Chrome](https://www.google.com/chrome/) for providers with webdriver
 
-#### Setting up the project:
-
-##### Install using pypi
+##### Install using pypi:
 
 ```
 pip install -U g4f
 ```
 
-##### or
+##### or:
 
 1. Clone the GitHub repository:
 
@@ -108,11 +126,10 @@ pip install -r requirements.txt
 
 ```py
 import g4f
-
 ...
 ```
 
-##### Setting up with Docker:
+#### Docker for Developers
 
 If you have Docker installed, you can easily set up and run the project without manually installing dependencies.
 
@@ -165,23 +182,21 @@ docker-compose down
 ```python
 import g4f
 
-g4f.debug.logging = True  # Enable logging
+g4f.debug.logging = True  # Enable debug logging
 g4f.debug.check_version = False  # Disable automatic version checking
-print(g4f.Provider.Ails.params)  # Supported args
+print(g4f.Provider.Bing.params)  # Print supported args for Bing
 
-# Automatic selection of provider
-
-# Streamed completion
+# Using automatic a provider for the given model
+## Streamed completion
 response = g4f.ChatCompletion.create(
     model="gpt-3.5-turbo",
     messages=[{"role": "user", "content": "Hello"}],
     stream=True,
 )
-
 for message in response:
     print(message, flush=True, end='')
 
-# Normal response
+## Normal response
 response = g4f.ChatCompletion.create(
     model=g4f.models.gpt_4,
     messages=[{"role": "user", "content": "Hello"}],
@@ -217,27 +232,20 @@ print(response)
 ```python
 import g4f
 
-from g4f.Provider import (
-    AItianhu,
-    Aichat,
-    Bard,
-    Bing,
-    ChatBase,
-    ChatgptAi,
-    OpenaiChat,
-    Vercel,
-    You,
-    Yqcloud,
-)
+# Print all available providers
+print([
+    provider.__name__
+    for provider in g4f.Provider.__providers__
+    if provider.working
+])
 
-# Set with provider
+# Execute with a specific provider
 response = g4f.ChatCompletion.create(
     model="gpt-3.5-turbo",
     provider=g4f.Provider.Aichat,
     messages=[{"role": "user", "content": "Hello"}],
     stream=True,
 )
-
 for message in response:
     print(message)
 ```
@@ -254,7 +262,6 @@ from g4f.Provider import (
     Poe,
     AItianhuSpace,
     MyShell,
-    Phind,
     PerplexityAi,
 )
 
@@ -264,38 +271,12 @@ webdriver = Chrome(options=options, headless=True)
 for idx in range(10):
     response = g4f.ChatCompletion.create(
         model=g4f.models.default,
-        provider=g4f.Provider.Phind,
+        provider=g4f.Provider.MyShell,
         messages=[{"role": "user", "content": "Suggest me a name."}],
         webdriver=webdriver
     )
     print(f"{idx}:", response)
 webdriver.quit()
-```
-
-##### Cookies Required
-
-Cookies are essential for the proper functioning of some service providers. It is imperative to maintain an active session, typically achieved by logging into your account.
-
-When running the g4f package locally, the package automatically retrieves cookies from your web browser using the `get_cookies` function. However, if you're not running it locally, you'll need to provide the cookies manually by passing them as parameters using the `cookies` parameter.
-
-```python
-import g4f
-
-from g4f.Provider import (
-    Bing,
-    HuggingChat,
-    OpenAssistant,
-)
-
-# Usage
-response = g4f.ChatCompletion.create(
-    model=g4f.models.default,
-    messages=[{"role": "user", "content": "Hello"}],
-    provider=Bing,
-    #cookies=g4f.get_cookies(".google.com"),
-    cookies={"cookie_name": "value", "cookie_name2": "value2"},
-    auth=True
-)
 ```
 
 ##### Async Support

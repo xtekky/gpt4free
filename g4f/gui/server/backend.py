@@ -1,4 +1,5 @@
 import g4f
+from g4f.Provider import __providers__
 
 from flask      import request
 from .internet  import get_search_message
@@ -45,8 +46,7 @@ class Backend_Api:
     
     def providers(self):
         return [
-            provider.__name__ for provider in g4f.Provider.__providers__
-            if provider.working and provider is not g4f.Provider.RetryProvider
+            provider.__name__ for provider in __providers__ if provider.working
         ]
         
     def version(self):
