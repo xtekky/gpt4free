@@ -11,7 +11,7 @@
 pip install -U g4f
 ```
 ```sh
-docker pull hlohaus789/g4f:latest
+docker pull hlohaus789/g4f
 ```
 
 ## 🆕 What's New
@@ -65,12 +65,12 @@ docker pull hlohaus789/g4f:latest
 2. Pull lastet image and run the container:
 
 ```sh
-docker pull hlohaus789/g4f:latest
+docker pull hlohaus789/g4f
 docker run -p 8080:80 -p 1337:1337 -p 7900:7900 --shm-size="2g" hlohaus789/g4f:latest
 ```
-5. Open the included gui on: [http://localhost:8080/chat/](http://localhost:8080/chat/)
+5. Open the included client on: [http://localhost:8080/chat/](http://localhost:8080/chat/)
 or set the api base in your client to: [http://localhost:1337/v1](http://localhost:1337/v1)
-6. (Optional) If you need to log in to your provider, you can open the desktop in the container here: http://localhost:7900/?autoconnect=1&resize=scale&password=secret.
+6. (Optional) If you need to log in to a provider, you can open the desktop in the container here: http://localhost:7900/?autoconnect=1&resize=scale&password=secret.
 
 #### Use python package
 
