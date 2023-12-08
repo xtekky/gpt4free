@@ -1,31 +1,54 @@
 from __future__ import annotations
-from requests   import get
-from .models    import Model, ModelUtils, _all_models
-from .Provider  import BaseProvider, AsyncGeneratorProvider, RetryProvider
-from .typing    import Messages, CreateResult, AsyncResult, Union, List
-from .          import debug
 
-version       = '0.1.9.0'
-version_check = True
+import os
+from requests import get
+from importlib.metadata import version as get_package_version, PackageNotFoundError
+from subprocess import check_output, CalledProcessError, PIPE
+
+from .models   import Model, ModelUtils, _all_models
+from .Provider import BaseProvider, AsyncGeneratorProvider, RetryProvider
+from .typing   import Messages, CreateResult, AsyncResult, Union, List
+from .         import debug
+
+def get_version() -> str:
+    # Read from package manager
+    try:
+        return get_package_version("g4f")
+    except PackageNotFoundError:
+        pass
+    # Read from docker environment
+    current_version = os.environ.get("G4F_VERSION")
+    if current_version:
+        return current_version
+    # Read from git repository
+    try:
+        command = ["git", "describe", "--tags", "--abbrev=0"]
+        return check_output(command, text=True, stderr=PIPE).strip()
+    except CalledProcessError:
+        pass
+    
+def get_lastet_version() -> str:
+    response = get("https://pypi.org/pypi/g4f/json").json()
+    return response["info"]["version"]
 
 def check_pypi_version() -> None:
     try:
-        response = get("https://pypi.org/pypi/g4f/json").json()
-        latest_version = response["info"]["version"]
-
-        if version != latest_version:
-            print(f'New pypi version: {latest_version} (current: {version}) | pip install -U g4f')
-            return False
-        return True
-
+        version = get_version()
+        latest_version = get_lastet_version()
     except Exception as e:
         print(f'Failed to check g4f pypi version: {e}')
+    if version != latest_version:
+        print(f'New pypi version: {latest_version} (current: {version}) | pip install -U g4f')
 
 def get_model_and_provider(model    : Union[Model, str], 
                            provider : Union[type[BaseProvider], None], 
                            stream   : bool,
                            ignored  : List[str] = None,
-                           ignore_working: bool = False) -> tuple[Model, type[BaseProvider]]:
+                           ignore_working: bool = False,
+                           ignore_stream: bool = False) -> tuple[Model, type[BaseProvider]]:
+    if debug.version_check:
+        check_pypi_version()
+        debug.version_check = False
     
     if isinstance(model, str):
         if model in ModelUtils.convert:
@@ -45,7 +68,7 @@ def get_model_and_provider(model    : Union[Model, str],
     if not provider.working and not ignore_working:
         raise RuntimeError(f'{provider.__name__} is not working')
 
-    if not provider.supports_stream and stream:
+    if not ignore_stream and not provider.supports_stream and stream:
         raise ValueError(f'{provider.__name__} does not support "stream" argument')
 
     if debug.logging:
@@ -61,15 +84,17 @@ class ChatCompletion:
                stream   : bool = False,
                auth     : Union[str, None] = None,
                ignored  : List[str] = None, 
-               ignore_working: bool = False, **kwargs) -> Union[CreateResult, str]:
+               ignore_working: bool = False,
+               ignore_stream_and_auth: bool = False,
+               **kwargs) -> Union[CreateResult, str]:
 
-        model, provider = get_model_and_provider(model, provider, stream, ignored, ignore_working)
+        model, provider = get_model_and_provider(model, provider, stream, ignored, ignore_working, ignore_stream_and_auth)
 
-        if provider.needs_auth and not auth:
+        if not ignore_stream_and_auth and provider.needs_auth and not auth:
             raise ValueError(
                 f'{provider.__name__} requires authentication (use auth=\'cookie or token or jwt ...\' param)')
 
-        if provider.needs_auth:
+        if auth:
             kwargs['auth'] = auth
 
         result = provider.create_completion(model.name, messages, stream, **kwargs)
@@ -116,6 +141,3 @@ class Completion:
         result = provider.create_completion(model.name, [{"role": "user", "content": prompt}], stream, **kwargs)
 
         return result if stream else ''.join(result)
-    
-if version_check:
-    check_pypi_version()

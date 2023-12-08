@@ -1,18 +1,15 @@
 version: '3'
 
 services:
-  gpt4free-api: &gpt4free
-    image: gpt4free:latest
+  gpt4free:
+    image: hlohaus789/g4f:latest
+    shm_size: 2gb
     build:
       context: .
-      dockerfile: Dockerfile
-      cache_from:
-        - gpt4free:latest
-    ports:
-      - '1337:1337'
-    command: api
-  gpt4free-gui:
-    <<: *gpt4free
+      dockerfile: docker/Dockerfile
+#    volumes:
+#      - .:/app
     ports:
       - '8080:80'
-    command: gui
+      - '1337:1337'
+      - '7900:7900'

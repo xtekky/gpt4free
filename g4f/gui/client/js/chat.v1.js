@@ -161,7 +161,7 @@ const ask_gpt = async (txtMsgs) => {
 
             text += chunk;
 
-            document.getElementById(`gpt_${window.token}`).innerHTML = markdown.render(text);
+            document.getElementById(`gpt_${window.token}`).innerHTML = markdown.render(text).replace("<a href=", '<a target="_blank" href=');
             document.querySelectorAll(`code`).forEach((el) => {
                 hljs.highlightElement(el);
             });
@@ -308,7 +308,7 @@ const load_conversation = async (conversation_id) => {
                 </div>
                 <div class="content">
                     ${item.role == "assistant"
-                        ? markdown.render(item.content)
+                        ? markdown.render(item.content).replace("<a href=", '<a target="_blank" href=')
                         : item.content
                     }
                 </div>
@@ -529,7 +529,7 @@ window.onload = async () => {
     load_settings_localstorage();
     setTheme();
 
-    conversations = 0;
+    let conversations = 0;
     for (let i = 0; i < localStorage.length; i++) {
         if (localStorage.key(i).startsWith("conversation:")) {
             conversations += 1;
@@ -548,7 +548,6 @@ window.onload = async () => {
         }
     }
     
-    // await load_models();
     await say_hello()
     
     message_input.addEventListener(`keydown`, async (evt) => {
@@ -593,64 +592,55 @@ const observer = new MutationObserver((mutationsList) => {
 
 observer.observe(message_input, { attributes: true });
 
-
-const load_models = async () => {
-    // models = localStorage.getItem('_models')
-
-    // if (models === null) {
-    //     response = await fetch('/backend-api/v2/models')
-    //     models = await response.json()
-    //     localStorage.setItem('_models', JSON.stringify(models))
+(async () => {
+    response = await fetch('/backend-api/v2/models')
+    models = await response.json()
     
-    // } else {
-    //     models = JSON.parse(models)
-    // }
+    let select = document.getElementById('model');
+    select.textContent = '';
 
-    models = [
-        "gpt-3.5-turbo",
-        "gpt-3.5-turbo-0613",
-        "gpt-3.5-turbo-16k",
-        "gpt-3.5-turbo-16k-0613",
-        "gpt-4",
-        "gpt-4-0613",
-        "gpt-4-32k",
-        "gpt-4-32k-0613",
-        "palm2",
-        "palm",
-        "google",
-        "google-bard",
-        "google-palm",
-        "bard",
-        "falcon-40b",
-        "falcon-7b",
-        "llama-13b",
-        "command-nightly",
-        "gpt-neox-20b",
-        "santacoder",
-        "bloom",
-        "flan-t5-xxl",
-        "code-davinci-002",
-        "text-ada-001",
-        "text-babbage-001",
-        "text-curie-001",
-        "text-davinci-002",
-        "text-davinci-003",
-        "llama70b-v2-chat",
-        "llama13b-v2-chat",
-        "llama7b-v2-chat",
-        "oasst-sft-1-pythia-12b",
-        "oasst-sft-4-pythia-12b-epoch-3.5",
-        "command-light-nightly"
-    ]
-    
-    let MODELS_SELECT = document.getElementById('model');
-    
+    let auto = document.createElement('option');
+    auto.value = '';
+    auto.text = 'Model: Default';
+    select.appendChild(auto);
 
     for (model of models) {
-        let model_info = document.createElement('option');
-        model_info.value = model
-        model_info.text = model
-
-        MODELS_SELECT.appendChild(model_info);
+        let option = document.createElement('option');
+        option.value = option.text = model;
+        select.appendChild(option);
     }
-}
+})();
+
+(async () => {
+    response = await fetch('/backend-api/v2/providers')
+    providers = await response.json()
+    
+    let select = document.getElementById('provider');
+    select.textContent = '';
+
+    let auto = document.createElement('option');
+    auto.value = '';
+    auto.text = 'Provider: Auto';
+    select.appendChild(auto);
+
+    for (provider of providers) {
+        let option = document.createElement('option');
+        option.value = option.text = provider;
+        select.appendChild(option);
+    }
+})();
+
+(async () => {
+    response = await fetch('/backend-api/v2/version')
+    versions = await response.json()
+    
+    document.title = 'g4f - gui - ' + versions["version"];
+    text = "version ~ "
+    if (versions["version"] != versions["lastet_version"]) {
+        release_url = 'https://github.com/xtekky/gpt4free/releases/tag/' + versions["lastet_version"];
+        text += '<a href="' + release_url +'" target="_blank" title="New version: ' + versions["lastet_version"] +'">' + versions["version"] + ' 🆕</a>';
+    } else {
+        text += versions["version"];
+    }
+    document.getElementById("version_text").innerHTML = text
+})();

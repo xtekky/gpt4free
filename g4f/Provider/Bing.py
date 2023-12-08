@@ -156,8 +156,11 @@ async def delete_conversation(session: ClientSession, conversation: Conversation
         "optionsSets": ["autosave"]
     }
     async with session.post(url, json=json, proxy=proxy) as response:
-        response = await response.json()
-        return response["result"]["value"] == "Success"
+        try:
+            response = await response.json()
+            return response["result"]["value"] == "Success"
+        except:
+            return False
 
 class Defaults:
     delimiter = "\x1e"

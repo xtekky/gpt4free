@@ -1,11 +1,15 @@
 from __future__ import annotations
 
 import time
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.keys import Keys
 
 from ..typing import CreateResult, Messages
 from .base_provider import BaseProvider
 from .helper import format_prompt
-from .webdriver import WebDriver, WebDriverSession
+from ..webdriver import WebDriver, WebDriverSession
 
 class PerplexityAi(BaseProvider):
     url = "https://www.perplexity.ai"
@@ -27,11 +31,6 @@ class PerplexityAi(BaseProvider):
         **kwargs
     ) -> CreateResult:
         with WebDriverSession(webdriver, "", virtual_display=virtual_display, proxy=proxy) as driver:
-            from selenium.webdriver.common.by import By
-            from selenium.webdriver.support.ui import WebDriverWait
-            from selenium.webdriver.support import expected_conditions as EC
-            from selenium.webdriver.common.keys import Keys
-
             prompt = format_prompt(messages)
 
             driver.get(f"{cls.url}/")

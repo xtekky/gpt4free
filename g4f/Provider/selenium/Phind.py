@@ -6,7 +6,7 @@ from urllib.parse import quote
 from ...typing import CreateResult, Messages
 from ..base_provider import BaseProvider
 from ..helper import format_prompt
-from ..webdriver import WebDriver, WebDriverSession
+from ...webdriver import WebDriver, WebDriverSession
 
 class Phind(BaseProvider):
     url = "https://www.phind.com"
@@ -26,7 +26,6 @@ class Phind(BaseProvider):
         creative_mode: bool = None,
         **kwargs
     ) -> CreateResult:
-        driver.start_session
         with WebDriverSession(webdriver, "", proxy=proxy) as driver:
             from selenium.webdriver.common.by import By
             from selenium.webdriver.support.ui import WebDriverWait
