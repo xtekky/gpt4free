@@ -34,7 +34,7 @@ class VoiGpt(BaseProvider):
     _access_token: str = None
 
     @classmethod
-    def create(
+    def create_completion(
         cls,
         model: str,
         messages: Messages,
