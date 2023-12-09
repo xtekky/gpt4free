@@ -9,6 +9,22 @@ from ..helper import get_cookies
 
 
 class VoiGpt(BaseProvider):
+    """
+    VoiGpt - A provider for VoiGpt.com
+
+    **Note** : to use this provider you have to get your csrf token/cookie from the voigpt.com website
+
+    Args:
+        model: The model to use
+        messages: The messages to send
+        stream: Whether to stream the response
+        proxy: The proxy to use
+        access_token: The access token to use
+        **kwargs: Additional keyword arguments
+
+    Returns:
+        A CreateResult object
+    """
     url = "https://voigpt.com"
     working = True
     supports_gpt_35_turbo = True
