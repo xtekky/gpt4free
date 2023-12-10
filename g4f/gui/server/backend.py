@@ -74,14 +74,14 @@ class Backend_Api:
             provider = g4f.Provider.ProviderUtils.convert.get(provider)
             
         def try_response():
-            response = g4f.ChatCompletion.create(
-                model=model,
-                provider=provider,
-                messages=messages,
-                stream=True,
-                ignore_stream_and_auth=True
-            )
             try:
+                response = g4f.ChatCompletion.create(
+                    model=model,
+                    provider=provider,
+                    messages=messages,
+                    stream=True,
+                    ignore_stream_and_auth=True
+                )
                 yield from response
             except Exception as e:
                 print(e)

@@ -65,39 +65,37 @@ const remove_cancel_button = async () => {
 const ask_gpt = async () => {
     regenerate.classList.add(`regenerate-hidden`);
     messages = await get_messages(window.conversation_id);
-    try {
-        window.scrollTo(0, 0);
-        window.controller = new AbortController();
 
-        jailbreak    = document.getElementById("jailbreak");
-        provider     = document.getElementById("provider");
-        model        = document.getElementById("model");
-        prompt_lock  = true;
-        window.text  = ``;
+    window.scrollTo(0, 0);
+    window.controller = new AbortController();
 
-        stop_generating.classList.remove(`stop_generating-hidden`);
+    jailbreak    = document.getElementById("jailbreak");
+    provider     = document.getElementById("provider");
+    model        = document.getElementById("model");
+    prompt_lock  = true;
+    window.text  = ``;
 
-        message_box.scrollTop = message_box.scrollHeight;
-        window.scrollTo(0, 0);
-        await new Promise((r) => setTimeout(r, 500));
-        window.scrollTo(0, 0);
+    stop_generating.classList.remove(`stop_generating-hidden`);
 
-        message_box.innerHTML += `
-            <div class="message">
-                <div class="assistant">
-                    ${gpt_image} <i class="fa-regular fa-phone-arrow-down-left"></i>
-                </div>
-                <div class="content" id="gpt_${window.token}">
-                    <div id="cursor"></div>
-                </div>
+    message_box.scrollTop = message_box.scrollHeight;
+    window.scrollTo(0, 0);
+    await new Promise((r) => setTimeout(r, 500));
+    window.scrollTo(0, 0);
+
+    message_box.innerHTML += `
+        <div class="message">
+            <div class="assistant">
+                ${gpt_image} <i class="fa-regular fa-phone-arrow-down-left"></i>
             </div>
-        `;
+            <div class="content" id="gpt_${window.token}">
+                <div id="cursor"></div>
+            </div>
+        </div>
+    `;
 
-        message_box.scrollTop = message_box.scrollHeight;
-        window.scrollTo(0, 0);
-        await new Promise((r) => setTimeout(r, 1000));
-        window.scrollTo(0, 0);
-
+    message_box.scrollTop = message_box.scrollHeight;
+    window.scrollTo(0, 0);
+    try {
         const response = await fetch(`/backend-api/v2/conversation`, {
             method: `POST`,
             signal: window.controller.signal,
@@ -122,8 +120,10 @@ const ask_gpt = async () => {
             }),
         });
 
-        const reader = response.body.getReader();
+        await new Promise((r) => setTimeout(r, 1000));
+        window.scrollTo(0, 0);
 
+        const reader = response.body.getReader();
         while (true) {
             const { value, done } = await reader.read();
             if (done) break;
@@ -142,43 +142,29 @@ const ask_gpt = async () => {
         }
 
         if (text.includes(`G4F_ERROR`)) {
+            console.log("response", text);
             document.getElementById(`gpt_${window.token}`).innerHTML = "An error occured, please try again, if the problem persists, please use a other model or provider";
         }
-
-        add_message(window.conversation_id, "assistant", text);
-
-        message_box.scrollTop = message_box.scrollHeight;
-        await remove_cancel_button();
-        prompt_lock = false;
-
-        await load_conversations(20, 0);
-        window.scrollTo(0, 0);
-    
     } catch (e) {
-
-        message_box.scrollTop = message_box.scrollHeight;
-        await remove_cancel_button();
-        prompt_lock = false;
-
-        await load_conversations(20, 0);
-
         console.log(e);
 
         let cursorDiv = document.getElementById(`cursor`);
         if (cursorDiv) cursorDiv.parentNode.removeChild(cursorDiv);
 
         if (e.name != `AbortError`) {
-            let error_message = `oops ! something went wrong, please try again / reload. [stacktrace in console]`;
-
-            document.getElementById(`gpt_${window.token}`).innerHTML = error_message;
-            add_message(window.conversation_id, "assistant", error_message);
+            text = `oops ! something went wrong, please try again / reload. [stacktrace in console]`;
+            document.getElementById(`gpt_${window.token}`).innerHTML = text;
         } else {
             document.getElementById(`gpt_${window.token}`).innerHTML += ` [aborted]`;
-            add_message(window.conversation_id, "assistant", text + ` [aborted]`);
+            text += ` [aborted]`
         }
-
-        window.scrollTo(0, 0);
     }
+    add_message(window.conversation_id, "assistant", text);
+    message_box.scrollTop = message_box.scrollHeight;
+    await remove_cancel_button();
+    prompt_lock = false;
+    window.scrollTo(0, 0);
+    await load_conversations(20, 0);
     regenerate.classList.remove(`regenerate-hidden`);
 };
 
