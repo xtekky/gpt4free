@@ -96,6 +96,10 @@ class ChatCompletion:
 
         if auth:
             kwargs['auth'] = auth
+            
+        proxy = os.environ.get("G4F_PROXY")
+        if proxy and "proxy" not in kwargs:
+            kwargs['proxy'] = proxy
 
         result = provider.create_completion(model.name, messages, stream, **kwargs)
         return result if stream else ''.join(result)
@@ -112,7 +116,7 @@ class ChatCompletion:
         if stream:
             if isinstance(provider, type) and issubclass(provider, AsyncGeneratorProvider):
                 return await provider.create_async_generator(model.name, messages, **kwargs)
-            raise ValueError(f'{provider.__name__} does not support "stream" argument')
+            raise ValueError(f'{provider.__name__} does not support "stream" argument in "create_async"')
 
         return await provider.create_async(model.name, messages, **kwargs)
 

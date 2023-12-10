@@ -301,6 +301,9 @@ body {
     font-size: 15px;
     line-height: 1.3;
 }
+.message .content pre {
+    white-space: pre-wrap;
+}
 
 .message .user i {
     position: absolute;
@@ -338,19 +341,15 @@ body {
     font-size: 14px;
 }
 
-
-.stop_generating {
+.stop_generating, .regenerate {
     position: absolute;
-    bottom: 118px;
-    /* left: 10px;
-    bottom: 125px;
-    right: 8px; */
+    bottom: 158px;
     left: 50%;
     transform: translateX(-50%);
     z-index: 1000000;
 }
 
-.stop_generating button {
+.stop_generating button, .regenerate button{
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     background-color: var(--blur-bg);
@@ -380,11 +379,8 @@ body {
     }
 }
 
-.stop_generating-hiding button {
+.stop_generating-hidden #cancelButton, .regenerate-hidden #regenerateButton {
     animation: hide_popup 0.4s;
-}
-
-.stop_generating-hidden button {
     display: none;
 }
 
