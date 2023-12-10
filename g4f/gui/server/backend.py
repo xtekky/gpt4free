@@ -4,8 +4,9 @@ from g4f.Provider import __providers__
 import json
 from flask      import request, Flask
 from .internet  import get_search_message
+from g4f import debug
 
-g4f.debug.logging = True
+debug.logging = True
 
 class Backend_Api:
     def __init__(self, app: Flask) -> None:
@@ -52,8 +53,8 @@ class Backend_Api:
         
     def version(self):
         return {
-            "version": g4f.get_version(),
-            "lastet_version": g4f.get_lastet_version(),
+            "version": debug.get_version(),
+            "lastet_version": debug.get_lastet_version(),
         }
     
     def _gen_title(self):
@@ -68,28 +69,25 @@ class Backend_Api:
             messages[-1]["content"] = get_search_message(messages[-1]["content"])
         model = request.json.get('model')
         model = model if model else g4f.models.default
-        provider = request.json.get('provider').replace('g4f.Provider.', '')
+        provider = request.json.get('provider', '').replace('g4f.Provider.', '')
         provider = provider if provider and provider != "Auto" else None
-        if provider != None:
-            provider = g4f.Provider.ProviderUtils.convert.get(provider)
             
         def try_response():
             try:
-                response = g4f.ChatCompletion.create(
+                yield from g4f.ChatCompletion.create(
                     model=model,
                     provider=provider,
                     messages=messages,
                     stream=True,
                     ignore_stream_and_auth=True
                 )
-                yield from response
             except Exception as e:
                 print(e)
                 yield json.dumps({
                     'code'   : 'G4F_ERROR',
                     '_action': '_ask',
                     'success': False,
-                    'error'  : f'an error occurred {str(e)}'
-                })      
+                    'error'  : f'{e.__class__.__name__}: {e}'
+                })
 
         return self.app.response_class(try_response(), mimetype='text/event-stream')
