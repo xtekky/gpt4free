@@ -47,6 +47,7 @@ from .Phind           import Phind
 from .Pi              import Pi
 from .TalkAi          import TalkAi
 from .Vercel          import Vercel
+from .VoiGpt          import VoiGpt
 from .Ylokh           import Ylokh
 from .You             import You
 from .Yqcloud         import Yqcloud
