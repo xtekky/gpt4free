@@ -1,6 +1,6 @@
 from os import environ
 from requests import get
-from importlib.metadata import version, PackageNotFoundError
+from importlib.metadata import version as get_package_version, PackageNotFoundError
 from subprocess import check_output, CalledProcessError, PIPE
 from .errors import VersionNotFoundError
 
@@ -10,7 +10,7 @@ version_check = True
 def get_version() -> str:
     # Read from package manager
     try:
-        return version("g4f")
+        return get_package_version("g4f")
     except PackageNotFoundError:
         pass
     # Read from docker environment
@@ -33,7 +33,7 @@ def check_pypi_version() -> None:
     try:
         version = get_version()
         latest_version = get_lastet_version()
+        if version != latest_version:
+            print(f'New pypi version: {latest_version} (current: {version}) | pip install -U g4f')
     except Exception as e:
         print(f'Failed to check g4f pypi version: {e}')
-    if version != latest_version:
-        print(f'New pypi version: {latest_version} (current: {version}) | pip install -U g4f')
