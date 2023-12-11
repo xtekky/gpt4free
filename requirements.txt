@@ -28,3 +28,4 @@ asyncstdlib
 async_property
 bs4
 selenium
+undetected_chromedriver
