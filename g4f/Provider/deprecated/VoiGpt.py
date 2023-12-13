@@ -26,7 +26,7 @@ class VoiGpt(BaseProvider):
         A CreateResult object
     """
     url = "https://voigpt.com"
-    working = True
+    working = False
     supports_gpt_35_turbo = True
     supports_message_history = True
     supports_stream = False
