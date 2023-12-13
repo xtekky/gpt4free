@@ -15,7 +15,7 @@ def main():
     parser = argparse.ArgumentParser(description="Run gpt4free")
     subparsers = parser.add_subparsers(dest="mode", help="Mode to run the g4f in.")
     api_parser=subparsers.add_parser("api")
-    api_parser.add_argument("--bind", default="127.0.0.1:1337", help="The bind string.")
+    api_parser.add_argument("--bind", default="0.0.0.0:1337", help="The bind string.")
     api_parser.add_argument("--debug", type=bool, default=False, help="Enable verbose logging")
     api_parser.add_argument("--ignored-providers", nargs="+", choices=[provider.name for provider in IgnoredProviders],
                             default=[], help="List of providers to ignore when processing request.")

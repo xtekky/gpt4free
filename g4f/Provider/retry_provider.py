@@ -6,6 +6,7 @@ from typing import List, Type, Dict
 from ..typing import CreateResult, Messages
 from .base_provider import BaseProvider, AsyncProvider
 from .. import debug
+from ..errors import RetryProviderError, RetryNoProviderError
 
 
 class RetryProvider(AsyncProvider):
@@ -84,8 +85,8 @@ class RetryProvider(AsyncProvider):
     
     def raise_exceptions(self) -> None:
         if self.exceptions:
-            raise RuntimeError("\n".join(["RetryProvider failed:"] + [
-                f"{p}: {self.exceptions[p].__class__.__name__}: {self.exceptions[p]}" for p in self.exceptions
+            raise RetryProviderError("RetryProvider failed:\n" + "\n".join([
+                f"{p}: {exception.__class__.__name__}: {exception}" for p, exception in self.exceptions.items()
             ]))
         
-        raise RuntimeError("RetryProvider: No provider found")
+        raise RetryNoProviderError("No provider found")

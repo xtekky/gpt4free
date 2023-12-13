@@ -5,14 +5,11 @@ const message_input     = document.getElementById(`message-input`);
 const box_conversations = document.querySelector(`.top`);
 const spinner           = box_conversations.querySelector(".spinner");
 const stop_generating   = document.querySelector(`.stop_generating`);
+const regenerate        = document.querySelector(`.regenerate`);
 const send_button       = document.querySelector(`#send-button`);
 let   prompt_lock       = false;
 
 hljs.addPlugin(new CopyButtonPlugin());
-
-const format = (text) => {
-    return text.replace(/(?:\r\n|\r|\n)/g, "<br>");
-};
 
 message_input.addEventListener("blur", () => {
     window.scrollTo(0, 0);
@@ -22,6 +19,10 @@ message_input.addEventListener("focus", () => {
     document.documentElement.scrollTop = document.documentElement.scrollHeight;
 });
 
+const markdown_render = (content) => {
+    return markdown.render(content).replace("<a href=", '<a target="_blank" href=').replace('<code>', '<code class="language-plaintext">')
+}
+
 const delete_conversations = async () => {
     localStorage.clear();
     await new_conversation();
@@ -30,38 +31,25 @@ const delete_conversations = async () => {
 const handle_ask = async () => {
     message_input.style.height = `80px`;
     message_input.focus();
-
-    let txtMsgs = [];
-    const divTags = document.getElementsByClassName("message");
-    for(let i=0;i<divTags.length;i++){
-        if(!divTags[i].children[1].classList.contains("welcome-message")){
-            if(divTags[i].children[0].className == "assistant"){
-                const msg = {
-                    role: "assistant",
-                    content: divTags[i].children[1].textContent+" "
-                };
-                txtMsgs.push(msg);
-            }else{
-                const msg = {
-                    role: "user",
-                    content: divTags[i].children[1].textContent+" "
-                };
-                txtMsgs.push(msg);
-            }
-        }
-    }
-
     window.scrollTo(0, 0);
-    let message = message_input.value;
-    const msg = {
-        role: "user",
-        content: message
-    };
-    txtMsgs.push(msg);
-
+    message = message_input.value
     if (message.length > 0) {
-        message_input.value = ``;
-        await ask_gpt(txtMsgs);
+        message_input.value = '';
+        await add_conversation(window.conversation_id, message);
+        await add_message(window.conversation_id, "user", message);
+        window.token = message_id();
+        message_box.innerHTML += `
+            <div class="message">
+                <div class="user">
+                    ${user_image}
+                    <i class="fa-regular fa-phone-arrow-up-right"></i>
+                </div>
+                <div class="content" id="user_${token}"> 
+                    ${markdown_render(message)}
+                </div>
+            </div>
+        `;
+        await ask_gpt();
     }
 };
 
@@ -74,58 +62,40 @@ const remove_cancel_button = async () => {
     }, 300);
 };
 
-const ask_gpt = async (txtMsgs) => {
+const ask_gpt = async () => {
+    regenerate.classList.add(`regenerate-hidden`);
+    messages = await get_messages(window.conversation_id);
+
+    window.scrollTo(0, 0);
+    window.controller = new AbortController();
+
+    jailbreak    = document.getElementById("jailbreak");
+    provider     = document.getElementById("provider");
+    model        = document.getElementById("model");
+    prompt_lock  = true;
+    window.text  = ``;
+
+    stop_generating.classList.remove(`stop_generating-hidden`);
+
+    message_box.scrollTop = message_box.scrollHeight;
+    window.scrollTo(0, 0);
+    await new Promise((r) => setTimeout(r, 500));
+    window.scrollTo(0, 0);
+
+    message_box.innerHTML += `
+        <div class="message">
+            <div class="assistant">
+                ${gpt_image} <i class="fa-regular fa-phone-arrow-down-left"></i>
+            </div>
+            <div class="content" id="gpt_${window.token}">
+                <div id="cursor"></div>
+            </div>
+        </div>
+    `;
+
+    message_box.scrollTop = message_box.scrollHeight;
+    window.scrollTo(0, 0);
     try {
-        message_input.value     = ``;
-        message_input.innerHTML = ``;
-        message_input.innerText = ``;
-
-        add_conversation(window.conversation_id, txtMsgs[0].content);
-        window.scrollTo(0, 0);
-        window.controller = new AbortController();
-
-        jailbreak    = document.getElementById("jailbreak");
-        provider     = document.getElementById("provider");
-        model        = document.getElementById("model");
-        prompt_lock  = true;
-        window.text  = ``;
-        window.token = message_id();
-
-        stop_generating.classList.remove(`stop_generating-hidden`);
-
-        message_box.innerHTML += `
-            <div class="message">
-                <div class="user">
-                    ${user_image}
-                    <i class="fa-regular fa-phone-arrow-up-right"></i>
-                </div>
-                <div class="content" id="user_${token}"> 
-                    ${format(txtMsgs[txtMsgs.length-1].content)}
-                </div>
-            </div>
-        `;
-
-        message_box.scrollTop = message_box.scrollHeight;
-        window.scrollTo(0, 0);
-        await new Promise((r) => setTimeout(r, 500));
-        window.scrollTo(0, 0);
-
-        message_box.innerHTML += `
-            <div class="message">
-                <div class="assistant">
-                    ${gpt_image} <i class="fa-regular fa-phone-arrow-down-left"></i>
-                </div>
-                <div class="content" id="gpt_${window.token}">
-                    <div id="cursor"></div>
-                </div>
-            </div>
-        `;
-
-        message_box.scrollTop = message_box.scrollHeight;
-        window.scrollTo(0, 0);
-        await new Promise((r) => setTimeout(r, 1000));
-        window.scrollTo(0, 0);
-
         const response = await fetch(`/backend-api/v2/conversation`, {
             method: `POST`,
             signal: window.controller.signal,
@@ -138,21 +108,22 @@ const ask_gpt = async (txtMsgs) => {
                 action: `_ask`,
                 model: model.options[model.selectedIndex].value,
                 jailbreak: jailbreak.options[jailbreak.selectedIndex].value,
+                internet_access: document.getElementById(`switch`).checked,
                 provider: provider.options[provider.selectedIndex].value,
                 meta: {
                     id: window.token,
                     content: {
-                        conversation: await get_conversation(window.conversation_id),
-                        internet_access: document.getElementById(`switch`).checked,
                         content_type: `text`,
-                        parts: txtMsgs,
+                        parts: messages,
                     },
                 },
             }),
         });
 
-        const reader = response.body.getReader();
+        await new Promise((r) => setTimeout(r, 1000));
+        window.scrollTo(0, 0);
 
+        const reader = response.body.getReader();
         while (true) {
             const { value, done } = await reader.read();
             if (done) break;
@@ -161,7 +132,7 @@ const ask_gpt = async (txtMsgs) => {
 
             text += chunk;
 
-            document.getElementById(`gpt_${window.token}`).innerHTML = markdown.render(text).replace("<a href=", '<a target="_blank" href=');
+            document.getElementById(`gpt_${window.token}`).innerHTML = markdown_render(text);
             document.querySelectorAll(`code`).forEach((el) => {
                 hljs.highlightElement(el);
             });
@@ -171,45 +142,30 @@ const ask_gpt = async (txtMsgs) => {
         }
 
         if (text.includes(`G4F_ERROR`)) {
-            document.getElementById(`gpt_${window.token}`).innerHTML = "An error occured, please try again, if the problem persists, please reload / refresh cache or use a differnet browser";
+            console.log("response", text);
+            document.getElementById(`gpt_${window.token}`).innerHTML = "An error occured, please try again, if the problem persists, please use a other model or provider";
         }
-
-        add_message(window.conversation_id, "user", txtMsgs[txtMsgs.length-1].content);
-        add_message(window.conversation_id, "assistant", text);
-
-        message_box.scrollTop = message_box.scrollHeight;
-        await remove_cancel_button();
-        prompt_lock = false;
-
-        await load_conversations(20, 0);
-        window.scrollTo(0, 0);
-    
     } catch (e) {
-        add_message(window.conversation_id, "user", txtMsgs[txtMsgs.length-1].content);
-
-        message_box.scrollTop = message_box.scrollHeight;
-        await remove_cancel_button();
-        prompt_lock = false;
-
-        await load_conversations(20, 0);
-
         console.log(e);
 
         let cursorDiv = document.getElementById(`cursor`);
         if (cursorDiv) cursorDiv.parentNode.removeChild(cursorDiv);
 
         if (e.name != `AbortError`) {
-            let error_message = `oops ! something went wrong, please try again / reload. [stacktrace in console]`;
-
-            document.getElementById(`gpt_${window.token}`).innerHTML = error_message;
-            add_message(window.conversation_id, "assistant", error_message);
+            text = `oops ! something went wrong, please try again / reload. [stacktrace in console]`;
+            document.getElementById(`gpt_${window.token}`).innerHTML = text;
         } else {
             document.getElementById(`gpt_${window.token}`).innerHTML += ` [aborted]`;
-            add_message(window.conversation_id, "assistant", text + ` [aborted]`);
+            text += ` [aborted]`
         }
-
-        window.scrollTo(0, 0);
     }
+    add_message(window.conversation_id, "assistant", text);
+    message_box.scrollTop = message_box.scrollHeight;
+    await remove_cancel_button();
+    prompt_lock = false;
+    window.scrollTo(0, 0);
+    await load_conversations(20, 0);
+    regenerate.classList.remove(`regenerate-hidden`);
 };
 
 const clear_conversations = async () => {
@@ -280,7 +236,6 @@ const set_conversation = async (conversation_id) => {
 };
 
 const new_conversation = async () => {
-
     history.pushState({}, null, `/chat/`);
     window.conversation_id = uuid();
 
@@ -291,12 +246,9 @@ const new_conversation = async () => {
 };
 
 const load_conversation = async (conversation_id) => {
-    let conversation = await JSON.parse(
-        localStorage.getItem(`conversation:${conversation_id}`)
-    );
-    console.log(conversation, conversation_id);
+    let messages = await get_messages(conversation_id);
 
-    for (item of conversation.items) {
+    for (item of messages) {
         message_box.innerHTML += `
             <div class="message">
                 <div class=${item.role == "assistant" ? "assistant" : "user"}>
@@ -308,7 +260,7 @@ const load_conversation = async (conversation_id) => {
                 </div>
                 <div class="content">
                     ${item.role == "assistant"
-                        ? markdown.render(item.content).replace("<a href=", '<a target="_blank" href=')
+                        ? markdown_render(item.content)
                         : item.content
                     }
                 </div>
@@ -331,6 +283,11 @@ const get_conversation = async (conversation_id) => {
     let conversation = await JSON.parse(
         localStorage.getItem(`conversation:${conversation_id}`)
     );
+    return conversation;
+};
+
+const get_messages = async (conversation_id) => {
+    let conversation = await get_conversation(conversation_id);
     return conversation.items;
 };
 
@@ -351,21 +308,32 @@ const add_conversation = async (conversation_id, content) => {
             })
         );
     }
+
+    history.pushState({}, null, `/chat/${conversation_id}`);
+};
+
+const remove_last_message = async (conversation_id) => {
+    const conversation = await get_conversation(conversation_id)
+
+    conversation.items.pop();
+
+    localStorage.setItem(
+        `conversation:${conversation_id}`,
+        JSON.stringify(conversation)
+    );
 };
 
 const add_message = async (conversation_id, role, content) => {
-    before_adding = JSON.parse(
-        localStorage.getItem(`conversation:${conversation_id}`)
-    );
+    const conversation = await get_conversation(conversation_id);
 
-    before_adding.items.push({
+    conversation.items.push({
         role: role,
         content: content,
     });
 
     localStorage.setItem(
         `conversation:${conversation_id}`,
-        JSON.stringify(before_adding)
+        JSON.stringify(conversation)
     );
 };
 
@@ -402,6 +370,12 @@ const load_conversations = async (limit, offset, loader) => {
 document.getElementById(`cancelButton`).addEventListener(`click`, async () => {
     window.controller.abort();
     console.log(`aborted ${window.conversation_id}`);
+});
+
+document.getElementById(`regenerateButton`).addEventListener(`click`, async () => {
+    await remove_last_message(window.conversation_id);
+    window.token = message_id();
+    await ask_gpt();
 });
 
 const uuid = () => {
@@ -485,17 +459,16 @@ const say_hello = async () => {
                 ${gpt_image}
                 <i class="fa-regular fa-phone-arrow-down-left"></i>
             </div>
-            <div class="content welcome-message">
+            <div class="content">
+                <p class=" welcome-message"></p>
             </div>
         </div>
     `;
 
-    content = ``
     to_modify = document.querySelector(`.welcome-message`);
     for (token of tokens) {
         await new Promise(resolve => setTimeout(resolve, (Math.random() * (100 - 200) + 100)))
-        content += token;
-        to_modify.innerHTML = markdown.render(content);
+        to_modify.textContent += token;
     }
 }
 
@@ -542,14 +515,12 @@ window.onload = async () => {
         load_conversations(20, 0);
     }, 1);
 
-    if (!window.location.href.endsWith(`#`)) {
-        if (/\/chat\/.+/.test(window.location.href)) {
-            await load_conversation(window.conversation_id);
-        }
+    if (/\/chat\/.+/.test(window.location.href)) {
+        await load_conversation(window.conversation_id);
+    } else {
+        await say_hello()
     }
-    
-    await say_hello()
-    
+        
     message_input.addEventListener(`keydown`, async (evt) => {
         if (prompt_lock) return;
         if (evt.keyCode === 13 && !evt.shiftKey) {
