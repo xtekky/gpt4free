@@ -6,13 +6,8 @@ ENV G4F_DIR /app
 ENV G4F_LOGIN_URL http://localhost:7900/?autoconnect=1&resize=scale&password=secret
 ARG G4F_VERSION
 ENV G4F_VERSION ${G4F_VERSION}
-ARG G4F_USER
-ENV G4F_USER ${G4F_USER:-g4f}
-ARG G4F_USER_ID
-ENV G4F_USER_ID ${G4F_USER_ID:-1000}
 ARG G4F_NO_GUI
 ENV G4F_NO_GUI ${G4F_NO_GUI}
-ENV HOME /home/$G4F_USER
 
 USER root
 
@@ -47,9 +42,7 @@ RUN if [ "$G4F_NO_GUI" ] ; then \
 COPY docker/background.png /usr/share/images/fluxbox/ubuntu-light.png
 
 # Switch user
-RUN groupadd -g $G4F_USER_ID $G4F_USER
-RUN useradd -rm -G sudo -u $G4F_USER_ID -g $G4F_USER_ID $G4F_USER
-USER $G4F_USER_ID
+USER $SEL_USER
 
 # Set the working directory in the container.
 WORKDIR $G4F_DIR
@@ -61,7 +54,7 @@ COPY requirements.txt $G4F_DIR
 RUN pip install --upgrade pip && pip install -r requirements.txt
 
 # Copy the entire package into the container.
-ADD --chown=$G4F_USER g4f $G4F_DIR/
+ADD --chown=$SEL_USER:$SEL_GROUP g4f $G4F_DIR/
 
 # Expose ports
 EXPOSE 8080 1337
