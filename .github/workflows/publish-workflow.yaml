@@ -43,3 +43,7 @@ jobs:
           labels: ${{ steps.metadata.outputs.labels }}
           build-args: |
             G4F_VERSION=${{ github.ref_name }}
+            SEL_USER=g4f
+            SEL_UID=1000
+            SEL_GID=1000
+    
