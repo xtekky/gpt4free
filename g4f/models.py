@@ -28,7 +28,6 @@ from .Provider   import (
     You,
     H2o,
     Pi,
-    VoiGpt,
 )
 
 @dataclass(unsafe_hash=True)
@@ -49,8 +48,7 @@ default = Model(
         ChatgptAi, GptGo, GeekGpt,
         You,
         Chatgpt4Online,
-        ChatAnywhere,
-        VoiGpt
+        ChatAnywhere
     ])
 )
 
@@ -67,7 +65,6 @@ gpt_35_long = Model(
         ChatgptDemoAi,
         OnlineGpt,
         ChatgptNext,
-        VoiGpt
     ])
 )
 
@@ -80,7 +77,6 @@ gpt_35_turbo = Model(
         GptForLove, ChatBase,
         Chatgpt4Online,
         ChatAnywhere,
-        VoiGpt,
     ])
 )
 
