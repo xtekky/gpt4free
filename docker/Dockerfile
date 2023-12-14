@@ -54,7 +54,7 @@ COPY requirements.txt $G4F_DIR
 RUN pip install --upgrade pip && pip install -r requirements.txt
 
 # Copy the entire package into the container.
-ADD --chown=$SEL_USER:$SEL_GROUP g4f $G4F_DIR/
+ADD --chown=$SEL_USER:$SEL_USER g4f $G4F_DIR/
 
 # Expose ports
 EXPOSE 8080 1337
