@@ -47,12 +47,17 @@ class HuggingChat(AsyncGeneratorProvider):
                 "web_search": web_search
             }
             async with session.post(f"{cls.url}/conversation/{conversation_id}", json=send, proxy=proxy) as response:
+                first_token = True
                 async for line in response.content:
                     line = json.loads(line[:-1])
                     if "type" not in line:
                         raise RuntimeError(f"Response: {line}")
                     elif line["type"] == "stream":
-                        yield line["token"]
+                        token = line["token"]
+                        if first_token:
+                            token = token.lstrip()
+                            first_token = False
+                        yield token
                     elif line["type"] == "finalAnswer":
                         break
                 
