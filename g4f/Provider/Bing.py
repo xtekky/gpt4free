@@ -439,8 +439,7 @@ async def stream_generate(
     ):
     async with ClientSession(
             timeout=ClientTimeout(total=900),
-            cookies=cookies,
-            headers=Defaults.headers,
+            headers=Defaults.headers if not cookies else {**Defaults.headers, "Cookie": "; ".join(f"{k}={v}" for k, v in cookies.items())},
         ) as session:
         conversation = await create_conversation(session, tone, image, proxy)
         try:
