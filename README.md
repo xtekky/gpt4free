@@ -155,6 +155,7 @@ cd gpt4free
 4. Build the Docker image:
 
 ```bash
+docker pull selenium/node-chrome
 docker-compose build
 ```
 
