@@ -11,8 +11,12 @@ ENV G4F_USER ${G4F_USER:-g4f}
 ARG G4F_USER_ID
 ENV G4F_USER_ID ${G4F_USER_ID:-1000}
 ARG G4F_NO_GUI
-ENV G4F_NO_GUI ${G4F_NO_GUI}
+ENV G4F_NO_GUI $G4F_NO_GUI
 ENV HOME /home/$G4F_USER
+ENV SE_DOWNLOAD_DIR $HOME/Downloads
+ENV SEL_USER $G4F_USER
+ENV SEL_UID $G4F_USER_ID
+ENV SEL_GID $G4F_USER_ID
 
 USER root
 
@@ -46,9 +50,15 @@ RUN if [ "$G4F_NO_GUI" ] ; then \
 # Change background image
 COPY docker/background.png /usr/share/images/fluxbox/ubuntu-light.png
 
-# Switch user
+# Add user
 RUN groupadd -g $G4F_USER_ID $G4F_USER
 RUN useradd -rm -G sudo -u $G4F_USER_ID -g $G4F_USER_ID $G4F_USER
+
+# Fix permissions
+RUN mkdir "${SE_DOWNLOAD_DIR}"
+RUN chown "${G4F_USER_ID}:${G4F_USER_ID}" $SE_DOWNLOAD_DIR /var/run/supervisor /var/log/supervisor
+
+# Switch user
 USER $G4F_USER_ID
 
 # Set the working directory in the container.
@@ -61,7 +71,7 @@ COPY requirements.txt $G4F_DIR
 RUN pip install --upgrade pip && pip install -r requirements.txt
 
 # Copy the entire package into the container.
-ADD --chown=$G4F_USER g4f $G4F_DIR/
+ADD --chown=$G4F_USER:$G4F_USER g4f $G4F_DIR/
 
 # Expose ports
 EXPOSE 8080 1337
