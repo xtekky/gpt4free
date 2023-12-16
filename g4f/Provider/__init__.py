@@ -39,7 +39,6 @@ from .Koala           import Koala
 from .Liaobots        import Liaobots
 from .Llama2          import Llama2
 from .MyShell         import MyShell
-from .NoowAi          import NoowAi
 from .OnlineGpt       import OnlineGpt
 from .Opchatgpts      import Opchatgpts
 from .PerplexityAi    import PerplexityAi
