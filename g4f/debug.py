@@ -25,14 +25,14 @@ def get_version() -> str:
         pass
     raise VersionNotFoundError("Version not found")
     
-def get_lastet_version() -> str:
+def get_latest_version() -> str:
     response = get("https://pypi.org/pypi/g4f/json").json()
     return response["info"]["version"]
 
 def check_pypi_version() -> None:
     try:
         version = get_version()
-        latest_version = get_lastet_version()
+        latest_version = get_latest_version()
         if version != latest_version:
             print(f'New pypi version: {latest_version} (current: {version}) | pip install -U g4f')
     except Exception as e:
