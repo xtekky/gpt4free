@@ -10,6 +10,7 @@ import base64
 import numpy as np
 import uuid
 import urllib.parse
+import time
 from PIL import Image
 from aiohttp        import ClientSession, ClientTimeout
 from ..typing       import AsyncResult, Messages
@@ -26,7 +27,7 @@ default_cookies = {
     'KievRPSSecAuth': '',
     'SUID'          : '',
     'SRCHUSR'       : '',
-    'SRCHHPGUSR'    : '',
+    'SRCHHPGUSR'    : f'HV={int(time.time())}',
 }
 
 class Bing(AsyncGeneratorProvider):
@@ -52,8 +53,12 @@ class Bing(AsyncGeneratorProvider):
             prompt = messages[-1]["content"]
             context = create_context(messages[:-1])
         
-        if not cookies or "SRCHD" not in cookies:
+        if not cookies:
             cookies = default_cookies
+        else:
+            for key, value in default_cookies.items():
+                if key not in cookies:
+                    cookies[key] = value
         return stream_generate(prompt, tone, image, context, proxy, cookies)
 
 def create_context(messages: Messages):
