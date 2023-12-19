@@ -54,7 +54,7 @@ class Backend_Api:
     def version(self):
         return {
             "version": debug.get_version(),
-            "lastet_version": debug.get_lastet_version(),
+            "lastet_version": debug.get_latest_version(),
         }
     
     def _gen_title(self):
