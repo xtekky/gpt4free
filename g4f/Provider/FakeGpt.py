@@ -36,7 +36,7 @@ class FakeGpt(AsyncGeneratorProvider):
                 async with session.get(f"{cls.url}/api/loads", params={"t": int(time.time())}, proxy=proxy) as response:
                     response.raise_for_status()
                     list = (await response.json())["loads"]
-                    token_ids = [t["token_id"] for t in list if t["count"] == 0]
+                    token_ids = [t["token_id"] for t in list]
                 data = {
                     "token_key": random.choice(token_ids),
                     "session_password": get_random_string()
