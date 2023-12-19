@@ -44,6 +44,7 @@ class Bing(AsyncGeneratorProvider):
         cookies: dict = None,
         tone: str = Tones.creative,
         image: str = None,
+        web_search: bool = False,
         **kwargs
     ) -> AsyncResult:
         if len(messages) < 2:
@@ -59,7 +60,7 @@ class Bing(AsyncGeneratorProvider):
             for key, value in default_cookies.items():
                 if key not in cookies:
                     cookies[key] = value
-        return stream_generate(prompt, tone, image, context, proxy, cookies)
+        return stream_generate(prompt, tone, image, context, proxy, cookies, web_search)
 
 def create_context(messages: Messages):
     return "".join(
@@ -376,7 +377,7 @@ def compress_image_to_base64(img, compression_rate) -> str:
     except Exception as e:
         raise e
 
-def create_message(conversation: Conversation, prompt: str, tone: str, context: str=None) -> str:
+def create_message(conversation: Conversation, prompt: str, tone: str, context: str = None, web_search: bool = False) -> str:
     options_sets = Defaults.optionsSets
     if tone == Tones.creative:
         options_sets.append("h3imaginative")
@@ -386,6 +387,8 @@ def create_message(conversation: Conversation, prompt: str, tone: str, context: 
         options_sets.append("galileo")
     else:
         options_sets.append("harmonyv3")
+    if not web_search:
+        options_sets.append("nosearchall")
     
     request_id = str(uuid.uuid4())
     struct = {
@@ -440,7 +443,8 @@ async def stream_generate(
         image: str = None,
         context: str = None,
         proxy: str = None,
-        cookies: dict = None
+        cookies: dict = None,
+        web_search: bool = False
     ):
     async with ClientSession(
             timeout=ClientTimeout(total=900),
@@ -452,7 +456,7 @@ async def stream_generate(
 
                 await wss.send_str(format_message({'protocol': 'json', 'version': 1}))
                 await wss.receive(timeout=900)
-                await wss.send_str(create_message(conversation, prompt, tone, context))
+                await wss.send_str(create_message(conversation, prompt, tone, context, web_search))
 
                 response_txt = ''
                 returned_text = ''
