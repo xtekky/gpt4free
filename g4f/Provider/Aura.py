@@ -35,10 +35,11 @@ class Aura(AsyncGeneratorProvider):
             system_prompt=""
             system_message=[]
             for message in messages:
-                if message["role"]=="System":
+                if message["role"]=="system":
                     system_prompt +=message["content"]
                 else:
                     system_message.append(message)
+           
             data = {
                 "model": {
                     "id": "openchat_v3.2_mistral",
@@ -46,7 +47,7 @@ class Aura(AsyncGeneratorProvider):
                     "maxLength": 24576,
                     "tokenLimit": 8192
                     },
-                "messages": f"{system_message}",
+                "messages": system_message,
                 "key": "",
                 "prompt": f"{system_prompt}",
                 "temperature": 0.5
