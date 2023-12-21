@@ -46,7 +46,7 @@ class Aura(AsyncGeneratorProvider):
                     "maxLength": 24576,
                     "tokenLimit": 8192
                     },
-                "messages": system_message,
+                "messages": f"{system_message}",
                 "key": "",
                 "prompt": f"{system_prompt}",
                 "temperature": 0.5
