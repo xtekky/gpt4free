@@ -88,6 +88,12 @@ gpt_4 = Model(
     ])
 )
 
+gpt_4_turbo = Model(
+    name          = 'gpt-4-turbo',
+    base_provider = 'openai',
+    best_provider = Bing
+)
+
 llama2_7b = Model(
     name          = "meta-llama/Llama-2-7b-chat-hf",
     base_provider = 'huggingface',
@@ -293,6 +299,7 @@ class ModelUtils:
         'gpt-4-0613'     : gpt_4_0613,
         'gpt-4-32k'      : gpt_4_32k,
         'gpt-4-32k-0613' : gpt_4_32k_0613,
+        'gpt-4-turbo'    : gpt_4_turbo,
 
         # Llama 2
         'llama2-7b' : llama2_7b,
