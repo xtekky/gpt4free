@@ -52,4 +52,5 @@ class Aura(AsyncGeneratorProvider):
                 "temperature": 0.5
             }
             async with session.post(f"{cls.url}/api/chat", json=data, proxy=proxy) as response:
-                return response.content.iter_any()
+                async for chunk in response.content.iter_any():
+                    yield chunk.decode()
