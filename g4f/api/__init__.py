@@ -84,6 +84,10 @@ class Api:
             stream = True if item_data.get("stream") == "True" else False
             messages = item_data.get('messages')
             conversation = item_data.get('conversation') if item_data.get('conversation') != None else None
+            provider = item_data.get('provider').replace('g4f.Provider.', '')
+            provider = provider if provider and provider != "Auto" else None
+            if provider != None:
+                provider = g4f.Provider.ProviderUtils.convert.get(provider)
 
             try:
                 if model == 'pi':
@@ -92,12 +96,14 @@ class Api:
                         stream=stream,
                         messages=messages,
                         conversation=conversation,
+                        provider = provider,
                         ignored=self.list_ignored_providers)
                 else:
                     response = g4f.ChatCompletion.create(
                         model=model,
                         stream=stream,
                         messages=messages,
+                        provider = provider,
                         ignored=self.list_ignored_providers)
             except Exception as e:
                 logging.exception(e)

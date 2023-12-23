@@ -1,6 +1,6 @@
 requests
 pycryptodome
-curl_cffi>=0.5.10b4
+curl_cffi>=0.5.10
 aiohttp
 certifi
 browser_cookie3

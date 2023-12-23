@@ -10,6 +10,7 @@ import base64
 import numpy as np
 import uuid
 import urllib.parse
+import time
 from PIL import Image
 from aiohttp        import ClientSession, ClientTimeout
 from ..typing       import AsyncResult, Messages
@@ -26,7 +27,7 @@ default_cookies = {
     'KievRPSSecAuth': '',
     'SUID'          : '',
     'SRCHUSR'       : '',
-    'SRCHHPGUSR'    : '',
+    'SRCHHPGUSR'    : f'HV={int(time.time())}',
 }
 
 class Bing(AsyncGeneratorProvider):
@@ -43,6 +44,7 @@ class Bing(AsyncGeneratorProvider):
         cookies: dict = None,
         tone: str = Tones.creative,
         image: str = None,
+        web_search: bool = False,
         **kwargs
     ) -> AsyncResult:
         if len(messages) < 2:
@@ -52,9 +54,16 @@ class Bing(AsyncGeneratorProvider):
             prompt = messages[-1]["content"]
             context = create_context(messages[:-1])
         
-        if not cookies or "SRCHD" not in cookies:
+        if not cookies:
             cookies = default_cookies
-        return stream_generate(prompt, tone, image, context, proxy, cookies)
+        else:
+            for key, value in default_cookies.items():
+                if key not in cookies:
+                    cookies[key] = value
+
+        gpt4_turbo = True if model.startswith("gpt-4-turbo") else False
+
+        return stream_generate(prompt, tone, image, context, proxy, cookies, web_search, gpt4_turbo)
 
 def create_context(messages: Messages):
     return "".join(
@@ -371,7 +380,7 @@ def compress_image_to_base64(img, compression_rate) -> str:
     except Exception as e:
         raise e
 
-def create_message(conversation: Conversation, prompt: str, tone: str, context: str=None) -> str:
+def create_message(conversation: Conversation, prompt: str, tone: str, context: str = None, web_search: bool = False, gpt4_turbo: bool = False) -> str:
     options_sets = Defaults.optionsSets
     if tone == Tones.creative:
         options_sets.append("h3imaginative")
@@ -381,6 +390,12 @@ def create_message(conversation: Conversation, prompt: str, tone: str, context: 
         options_sets.append("galileo")
     else:
         options_sets.append("harmonyv3")
+        
+    if not web_search:
+        options_sets.append("nosearchall")
+
+    if gpt4_turbo:
+        options_sets.append("dlgpt4t")
     
     request_id = str(uuid.uuid4())
     struct = {
@@ -435,12 +450,13 @@ async def stream_generate(
         image: str = None,
         context: str = None,
         proxy: str = None,
-        cookies: dict = None
+        cookies: dict = None,
+        web_search: bool = False,
+        gpt4_turbo: bool = False
     ):
     async with ClientSession(
             timeout=ClientTimeout(total=900),
-            cookies=cookies,
-            headers=Defaults.headers,
+            headers=Defaults.headers if not cookies else {**Defaults.headers, "Cookie": "; ".join(f"{k}={v}" for k, v in cookies.items())},
         ) as session:
         conversation = await create_conversation(session, tone, image, proxy)
         try:
@@ -448,7 +464,7 @@ async def stream_generate(
 
                 await wss.send_str(format_message({'protocol': 'json', 'version': 1}))
                 await wss.receive(timeout=900)
-                await wss.send_str(create_message(conversation, prompt, tone, context))
+                await wss.send_str(create_message(conversation, prompt, tone, context, web_search, gpt4_turbo))
 
                 response_txt = ''
                 returned_text = ''
