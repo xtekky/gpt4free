@@ -32,25 +32,24 @@ class Aura(AsyncGeneratorProvider):
             "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
         }
         async with ClientSession(headers=headers) as session:
-            system_prompt=""
-            system_message=[]
+            new_messages = []
+            system_message = []
             for message in messages:
-                if message["role"]=="system":
-                    system_prompt +=message["content"]
+                if message["role"] == "system":
+                    system_message.append(message["content"])
                 else:
-                    system_message.append(message)
-           
+                    new_messages.append(message)
             data = {
                 "model": {
                     "id": "openchat_v3.2_mistral",
                     "name": "OpenChat Aura",
                     "maxLength": 24576,
                     "tokenLimit": 8192
-                    },
-                "messages": system_message,
+                },
+                "messages": new_messages,
                 "key": "",
-                "prompt": f"{system_prompt}",
+                "prompt": "\n".join(system_message),
                 "temperature": 0.5
-                }
-            async with session.post(f"{cls.url}/api/chat",json=data,proxy=proxy) as response:
-                yield await response.text()
+            }
+            async with session.post(f"{cls.url}/api/chat", json=data, proxy=proxy) as response:
+                return response.content.iter_any()
