@@ -6,7 +6,7 @@ from .deprecated     import *
 from .needs_auth     import *
 from .unfinished     import *
 from .selenium       import *
-
+from .Aura            import Aura
 from .AiAsk           import AiAsk
 from .Aichat          import Aichat
 from .AiChatOnline    import AiChatOnline
