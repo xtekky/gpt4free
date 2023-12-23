@@ -83,28 +83,17 @@ class Api:
             model = item_data.get('model')
             stream = True if item_data.get("stream") == "True" else False
             messages = item_data.get('messages')
-            conversation = item_data.get('conversation') if item_data.get('conversation') != None else None
-            provider = item_data.get('provider').replace('g4f.Provider.', '')
+            provider = item_data.get('provider', '').replace('g4f.Provider.', '')
             provider = provider if provider and provider != "Auto" else None
-            if provider != None:
-                provider = g4f.Provider.ProviderUtils.convert.get(provider)
 
             try:
-                if model == 'pi':
-                    response = g4f.ChatCompletion.create(
-                        model=model,
-                        stream=stream,
-                        messages=messages,
-                        conversation=conversation,
-                        provider = provider,
-                        ignored=self.list_ignored_providers)
-                else:
-                    response = g4f.ChatCompletion.create(
-                        model=model,
-                        stream=stream,
-                        messages=messages,
-                        provider = provider,
-                        ignored=self.list_ignored_providers)
+                response = g4f.ChatCompletion.create(
+                    model=model,
+                    stream=stream,
+                    messages=messages,
+                    provider = provider,
+                    ignored=self.list_ignored_providers
+                )
             except Exception as e:
                 logging.exception(e)
                 return Response(content=json.dumps({"error": "An error occurred while generating the response."}, indent=4), media_type="application/json")
@@ -179,9 +168,12 @@ class Api:
 
                     content = json.dumps(end_completion_data, separators=(',', ':'))
                     yield f'data: {content}\n\n'
-
                 except GeneratorExit:
                     pass
+                except Exception as e:
+                    logging.exception(e)
+                    content=json.dumps({"error": "An error occurred while generating the response."}, indent=4)
+                    yield f'data: {content}\n\n'
 
             return StreamingResponse(streaming(), media_type="text/event-stream")
 
