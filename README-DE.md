@@ -171,9 +171,9 @@ docker-compose down
 import g4f
 
 g4f.debug.logging = True  # Aktiviere das Protokollieren
-g4f.check_version = False  # Deaktiviere die automatische Versionsüberprüfung
-print(g4f.version)  # Überprüfe die Version
-print(g4f.Provider.Ails.params)  # Unterstützte Argumente
+g4f.debug.check_version = False  # Deaktiviere die automatische Versionsüberprüfung
+print(g4f.debug.get_version())  # Überprüfe die Version
+print(g4f.Provider.Bing.params)  # Unterstützte Argumente
 
 # Automatische Auswahl des Anbieters
 
