@@ -1,5 +1,5 @@
 from os import environ
-from requests import get
+import requests
 from importlib.metadata import version as get_package_version, PackageNotFoundError
 from subprocess import check_output, CalledProcessError, PIPE
 from .errors import VersionNotFoundError
@@ -26,7 +26,13 @@ def get_version() -> str:
     raise VersionNotFoundError("Version not found")
     
 def get_latest_version() -> str:
-    response = get("https://pypi.org/pypi/g4f/json").json()
+    if environ.get("G4F_VERSION"):
+        url = "https://registry.hub.docker.com/v2/repositories/"
+        url += "hlohaus789/g4f"
+        url += "/tags?page_size=2&ordering=last_updated"
+        response = requests.get(url).json()
+        return response["results"][1]["name"]
+    response = requests.get("https://pypi.org/pypi/g4f/json").json()
     return response["info"]["version"]
 
 def check_pypi_version() -> None:
