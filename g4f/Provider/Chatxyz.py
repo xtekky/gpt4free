@@ -3,8 +3,8 @@ from aiohttp import ClientSession
 from ..typing import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider
 import json
-class HogeService(AsyncGeneratorProvider):
-    url                   = "https://chat.3211000.xyz/api/openai/v1/chat/completions"
+class Chatxyz(AsyncGeneratorProvider):
+    url                   = "https://chat.3211000.xyz"
     working               = True
     supports_gpt_35_turbo = True
 
@@ -35,8 +35,20 @@ class HogeService(AsyncGeneratorProvider):
             'x-requested-with': 'XMLHttpRequest'
         }   
         async with ClientSession(headers=headers) as session:
+            
+            system_message = ""
+            user_messages=[]
+            for message in messages:
+                if message["role"] == "system":
+                    system_message+=f'{message["content"]}\n'
+                else:
+                    user_messages.append(message)
+            new_message = [{'role':'system','content':system_message}]
+            for i in user_messages:
+                 new_message.append(i)
+
             data = {
-                "messages": messages,
+                "messages": new_message,
                 "stream": True,
                 "model": "gpt-3.5-turbo",
                 "temperature": 0.5,
@@ -44,8 +56,8 @@ class HogeService(AsyncGeneratorProvider):
                 "frequency_penalty": 0,
                 "top_p": 1
             }    
-
-            async with session.post(cls.url,json=data) as response:
+            async with session.post(f'{cls.url}/api/openai/v1/chat/completions',json=data) as response:
+                response.raise_for_status()
                 async for chunk in response.content:
                     line = chunk.decode() 
                     if line.startswith("data: [DONE]"):
