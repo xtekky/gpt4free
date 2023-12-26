@@ -56,14 +56,15 @@ class Phind(AsyncGeneratorProvider):
                     "customLinks": []
                 },
                 "context": "",
-                "rewrittenQuestion": prompt
+                "rewrittenQuestion": prompt,
+                "challenge": 0.21132115912208504
             }
             async with session.post(f"{cls.url}/api/infer/followup/answer", headers=headers, json=data) as response:
                 new_line = False
                 async for line in response.iter_lines():
                     if line.startswith(b"data: "):
                         chunk = line[6:]
-                        if chunk.startswith(b"<PHIND_METADATA>"):
+                        if chunk.startswith(b"<PHIND_METADATA>") or chunk.startswith(b"<PHIND_INDICATOR>"):
                             pass
                         elif chunk:
                             yield chunk.decode()
