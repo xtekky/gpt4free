@@ -29,6 +29,7 @@ from .Chatxyz         import Chatxyz
 from .DeepInfra       import DeepInfra
 from .FakeGpt         import FakeGpt
 from .FreeGpt         import FreeGpt
+from .Gpt6            import Gpt6
 from .GPTalk          import GPTalk
 from .GptChatly       import GptChatly
 from .GptForLove      import GptForLove

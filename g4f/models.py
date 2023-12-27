@@ -8,6 +8,7 @@ from .Provider   import (
     ChatAnywhere,
     ChatgptNext,
     HuggingChat,
+    ChatgptDemo,
     GptForLove,
     ChatgptAi,
     DeepInfra,
@@ -23,6 +24,7 @@ from .Provider   import (
     Phind,
     Koala,
     GptGo,
+    Gpt6,
     Bard, 
     Bing,
     You,
@@ -65,6 +67,8 @@ gpt_35_long = Model(
         ChatgptDemoAi,
         OnlineGpt,
         ChatgptNext,
+        ChatgptDemo,
+        Gpt6,
     ])
 )
 
