@@ -25,6 +25,7 @@ from .ChatgptFree     import ChatgptFree
 from .ChatgptLogin    import ChatgptLogin
 from .ChatgptNext     import ChatgptNext
 from .ChatgptX        import ChatgptX
+from .Chatxyz         import Chatxyz
 from .DeepInfra       import DeepInfra
 from .FakeGpt         import FakeGpt
 from .FreeGpt         import FreeGpt
