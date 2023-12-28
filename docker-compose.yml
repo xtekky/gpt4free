@@ -7,4 +7,4 @@ services:
     restart: always
     shm_size: 2gb
     ports:
-      - 80
+      - 8080:80
