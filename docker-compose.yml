@@ -2,14 +2,9 @@ version: '3'
 
 services:
   gpt4free:
-    image: hlohaus789/g4f:latest
+    container_name: gpt4free
+    image: mouxan/g4f:latest
+    restart: always
     shm_size: 2gb
-    build:
-      context: .
-      dockerfile: docker/Dockerfile
-    volumes:
-      - .:/app
     ports:
-      - '8080:8080'
-      - '1337:1337'
-      - '7900:7900'
+      - 80
