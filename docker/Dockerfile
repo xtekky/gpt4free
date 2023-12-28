@@ -10,8 +10,6 @@ ARG G4F_USER
 ENV G4F_USER ${G4F_USER:-g4f}
 ARG G4F_USER_ID
 ENV G4F_USER_ID ${G4F_USER_ID:-1000}
-ARG G4F_NO_GUI
-ENV G4F_NO_GUI $G4F_NO_GUI
 ENV HOME /home/$G4F_USER
 ENV SE_DOWNLOAD_DIR $HOME/Downloads
 ENV SEL_USER $G4F_USER
@@ -40,12 +38,6 @@ RUN rm -rf /var/lib/apt/lists/* /var/cache/apt/* \
 
 # Update entrypoint
 COPY docker/supervisor.conf /etc/supervisor/conf.d/selenium.conf
-COPY docker/supervisor-gui.conf /etc/supervisor/conf.d/gui.conf
-
-# If no gui
-RUN if [ "$G4F_NO_GUI" ] ; then \
-  rm /etc/supervisor/conf.d/gui.conf \
-  ; fi
 
 # Change background image
 COPY docker/background.png /usr/share/images/fluxbox/ubuntu-light.png
@@ -74,4 +66,4 @@ RUN pip install --upgrade pip && pip install -r requirements.txt
 ADD --chown=$G4F_USER:$G4F_USER g4f $G4F_DIR/g4f
 
 # Expose ports
-EXPOSE 8080 1337
+EXPOSE 80

@@ -181,6 +181,8 @@ class Api:
         async def completions():
             return Response(content=json.dumps({'info': 'Not working yet.'}, indent=4), media_type="application/json")
 
-    def run(self, ip):
-        split_ip = ip.split(":")
-        uvicorn.run(app=self.app, host=split_ip[0], port=int(split_ip[1]), use_colors=False)
+    def run(self,
+            host: str = '0.0.0.0',
+            port: int = 80
+            ):
+        uvicorn.run(app=self.app, host=host, port=port, use_colors=False)
