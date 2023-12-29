@@ -408,14 +408,14 @@ def create_message(conversation: Conversation, prompt: str, tone: str, context: 
                 'traceId': os.urandom(16).hex(),
                 'isStartOfSession': True,
                 'requestId': request_id,
-                'message': Defaults.location | {
+                'message': {**Defaults.location, **{
                     'author': 'user',
                     'inputMethod': 'Keyboard',
                     'text': prompt,
                     'messageType': 'Chat',
                     'requestId': request_id,
                     'messageId': request_id,
-                },
+                }},
                 "scenario": "SERP",
                 'tone': tone,
                 'spokenTextMode': 'None',
