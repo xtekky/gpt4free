@@ -78,6 +78,7 @@ class Liaobots(AsyncGeneratorProvider):
     supports_gpt_35_turbo = True
     supports_gpt_4 = True
     _auth_code = None
+    _cookie_jar = None
 
     @classmethod
     async def create_async_generator(
@@ -97,7 +98,8 @@ class Liaobots(AsyncGeneratorProvider):
             "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36",
         }
         async with ClientSession(
-            headers=headers
+            headers=headers,
+            cookie_jar=cls._cookie_jar
         ) as session:
             cls._auth_code = auth if isinstance(auth, str) else cls._auth_code
             if not cls._auth_code:
@@ -116,6 +118,8 @@ class Liaobots(AsyncGeneratorProvider):
                 ) as response:
                     response.raise_for_status()
                     cls._auth_code = (await response.json(content_type=None))["authCode"]
+                    cls._cookie_jar = session.cookie_jar
+                    
             data = {
                 "conversationId": str(uuid.uuid4()),
                 "model": models[model],
@@ -131,6 +135,8 @@ class Liaobots(AsyncGeneratorProvider):
                 verify_ssl=False
             ) as response:
                 response.raise_for_status()
-                async for stream in response.content.iter_any():
-                    if stream:
-                        yield stream.decode()
+                async for chunk in response.content.iter_any():
+                    if b"<html coupert-item=" in chunk:
+                        raise RuntimeError("Invalid session")
+                    if chunk:
+                        yield chunk.decode()
