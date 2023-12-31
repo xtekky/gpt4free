@@ -22,9 +22,10 @@ models = {
     },
     "gpt-3.5-turbo": {
         "id": "gpt-3.5-turbo",
-        "name": "GPT-3.5",
-        "maxLength": 12000,
-        "tokenLimit": 4000,
+        "name": "GPT-3.5-Turbo",
+        "maxLength": 48000,
+        "tokenLimit": 14000,
+        "context": "16K",
     },
     "gpt-3.5-turbo-16k": {
         "id": "gpt-3.5-turbo-16k",
@@ -32,7 +33,43 @@ models = {
         "maxLength": 48000,
         "tokenLimit": 16000,
     },
+    "gpt-4-1106-preview": {
+        "id": "gpt-4-1106-preview",
+        "name": "GPT-4-Turbo",
+        "maxLength": 260000,
+        "tokenLimit": 126000,
+        "context": "128K",
+    },
+    "gpt-4-plus": {
+        "id": "gpt-4-plus",
+        "name": "GPT-4-Plus",
+        "maxLength": 130000,
+        "tokenLimit": 31000,
+        "context": "32K",
+    },
+    "gemini-pro": {
+        "id": "gemini-pro",
+        "name": "Gemini-Pro",
+        "maxLength": 120000,
+        "tokenLimit": 30000,
+        "context": "32K",
+    },
+    "claude-2": {
+        "id": "claude-2",
+        "name": "Claude-2-200k",
+        "maxLength": 800000,
+        "tokenLimit": 200000,
+        "context": "200K",
+    },
+    "claude-instant-1": {
+        "id": "claude-instant-1",
+        "name": "Claude-instant-1",
+        "maxLength": 400000,
+        "tokenLimit": 100000,
+        "context": "100K",
+    }
 }
+
 
 class Liaobots(AsyncGeneratorProvider):
     url = "https://liaobots.site"
