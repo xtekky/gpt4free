@@ -13,6 +13,13 @@ if sys.version_info < (3, 10):
 else:
     from types import NoneType
 
+# Change event loop policy on windows for curl_cffi
+if sys.platform == 'win32':
+    if isinstance(
+        asyncio.get_event_loop_policy(), asyncio.WindowsProactorEventLoopPolicy
+    ):
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
 class BaseProvider(ABC):
     url: str
     working: bool = False
