@@ -5,10 +5,10 @@ import random
 import requests
 
 from ...typing import Any, CreateResult
-from ..base_provider import BaseProvider, format_prompt
+from ..base_provider import AbstractProvider, format_prompt
 
 
-class Wuguokai(BaseProvider):
+class Wuguokai(AbstractProvider):
     url = 'https://chat.wuguokai.xyz'
     supports_gpt_35_turbo = True
     working = False

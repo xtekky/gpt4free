@@ -3,10 +3,10 @@ from __future__ import annotations
 import time, json, time
 
 from ..typing import CreateResult, Messages
-from .base_provider import BaseProvider
+from .base_provider import AbstractProvider
 from ..webdriver import WebDriver, WebDriverSession
 
-class TalkAi(BaseProvider):
+class TalkAi(AbstractProvider):
     url = "https://talkai.info"
     working = True
     supports_gpt_35_turbo = True

@@ -5,10 +5,10 @@ import json
 import requests
 
 from ...typing import CreateResult, Messages
-from ..base_provider import BaseProvider
+from ..base_provider import AbstractProvider
 
 
-class Raycast(BaseProvider):
+class Raycast(AbstractProvider):
     url                     = "https://raycast.com"
     supports_gpt_35_turbo   = True
     supports_gpt_4          = True

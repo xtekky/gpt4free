@@ -1,5 +1,5 @@
 import sys
-from typing import Any, AsyncGenerator, Generator, NewType, Tuple, Union, List, Dict
+from typing import Any, AsyncGenerator, Generator, NewType, Tuple, Union, List, Dict, Type
 
 if sys.version_info >= (3, 8):
     from typing import TypedDict

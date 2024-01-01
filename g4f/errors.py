@@ -13,7 +13,7 @@ class AuthenticationRequiredError(Exception):
 class ModelNotFoundError(Exception):
     pass
 
-class ModelNotAllowed(Exception):
+class ModelNotAllowedError(Exception):
     pass
 
 class RetryProviderError(Exception):

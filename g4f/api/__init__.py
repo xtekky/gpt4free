@@ -1,23 +1,25 @@
 import ast
 import logging
-
-from fastapi            import FastAPI, Response, Request
-from fastapi.responses import StreamingResponse
-from typing             import List, Union, Any, Dict, AnyStr
-#from ._tokenizer        import tokenize
-from ..                 import BaseProvider
-
 import time
 import json
 import random
 import string
 import uvicorn
 import nest_asyncio
+
+from fastapi           import FastAPI, Response, Request
+from fastapi.responses import StreamingResponse
+from typing            import List, Union, Any, Dict, AnyStr
+#from ._tokenizer       import tokenize
+
 import g4f
+from .. import debug
+
+debug.logging = True
 
 class Api:
     def __init__(self, engine: g4f, debug: bool = True, sentry: bool = False,
-                 list_ignored_providers: List[Union[str, BaseProvider]] = None) -> None:
+                 list_ignored_providers: List[str] = None) -> None:
         self.engine = engine
         self.debug = debug
         self.sentry = sentry
@@ -75,7 +77,10 @@ class Api:
             }
 
             # item contains byte keys, and dict.get suppresses error
-            item_data.update({key.decode('utf-8') if isinstance(key, bytes) else key: str(value) for key, value in (item or {}).items()})
+            item_data.update({
+                key.decode('utf-8') if isinstance(key, bytes) else key: str(value)
+                for key, value in (item or {}).items()
+            })
             # messages is str, need dict
             if isinstance(item_data.get('messages'), str):
                 item_data['messages'] = ast.literal_eval(item_data.get('messages'))
@@ -96,7 +101,12 @@ class Api:
                 )
             except Exception as e:
                 logging.exception(e)
-                return Response(content=json.dumps({"error": "An error occurred while generating the response."}, indent=4), media_type="application/json")
+                content = json.dumps({
+                    "error": {"message": f"An error occurred while generating the response:\n{e}"},
+                    "model": model,
+                    "provider": g4f.get_last_provider(True)
+                })
+                return Response(content=content, status_code=500, media_type="application/json")
             completion_id = ''.join(random.choices(string.ascii_letters + string.digits, k=28))
             completion_timestamp = int(time.time())
 
@@ -109,6 +119,7 @@ class Api:
                     'object': 'chat.completion',
                     'created': completion_timestamp,
                     'model': model,
+                    'provider': g4f.get_last_provider(True),
                     'choices': [
                         {
                             'index': 0,
@@ -136,6 +147,7 @@ class Api:
                             'object': 'chat.completion.chunk',
                             'created': completion_timestamp,
                             'model': model,
+                            'provider': g4f.get_last_provider(True),
                             'choices': [
                                 {
                                     'index': 0,
@@ -147,16 +159,14 @@ class Api:
                                 }
                             ],
                         }
-
-                        content = json.dumps(completion_data, separators=(',', ':'))
-                        yield f'data: {content}\n\n'
+                        yield f'data: {json.dumps(completion_data)}\n\n'
                         time.sleep(0.03)
-
                     end_completion_data = {
                         'id': f'chatcmpl-{completion_id}',
                         'object': 'chat.completion.chunk',
                         'created': completion_timestamp,
                         'model': model,
+                        'provider': g4f.get_last_provider(True),
                         'choices': [
                             {
                                 'index': 0,
@@ -165,15 +175,17 @@ class Api:
                             }
                         ],
                     }
-
-                    content = json.dumps(end_completion_data, separators=(',', ':'))
-                    yield f'data: {content}\n\n'
+                    yield f'data: {json.dumps(end_completion_data)}\n\n'
                 except GeneratorExit:
                     pass
                 except Exception as e:
                     logging.exception(e)
-                    content=json.dumps({"error": "An error occurred while generating the response."}, indent=4)
-                    yield f'data: {content}\n\n'
+                    content = json.dumps({
+                        "error": {"message": f"An error occurred while generating the response:\n{e}"},
+                        "model": model,
+                        "provider": g4f.get_last_provider(True),
+                    })
+                    yield f'data: {content}'
 
             return StreamingResponse(streaming(), media_type="text/event-stream")
 

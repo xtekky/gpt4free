@@ -3,7 +3,7 @@ from __future__ import annotations
 import time
 
 from ...typing import CreateResult, Messages
-from ..base_provider import BaseProvider
+from ..base_provider import AbstractProvider
 from ..helper import format_prompt
 from ...webdriver import WebDriver, WebDriverSession
 
@@ -31,7 +31,7 @@ models = {
     "qwen-7b-chat": "Qwen 7B"
 }
 
-class Theb(BaseProvider):
+class Theb(AbstractProvider):
     url = "https://beta.theb.ai"
     working = True
     supports_gpt_35_turbo = True

@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from ..typing import CreateResult, Messages
-from .base_provider import BaseProvider, format_prompt
-
 import json
+
+from ..typing import CreateResult, Messages
+from .base_provider import AbstractProvider, format_prompt
 from ..requests import Session, get_session_from_browser
 
-class Pi(BaseProvider):
+class Pi(AbstractProvider):
     url             = "https://pi.ai/talk"
     working         = True
     supports_stream = True

@@ -2,14 +2,13 @@ from __future__ import annotations
 
 import json
 import random
-
 import requests
 
 from ...typing import Any, CreateResult
-from ..base_provider import BaseProvider
+from ..base_provider import AbstractProvider
 
 
-class EasyChat(BaseProvider):
+class EasyChat(AbstractProvider):
     url: str              = "https://free.easychat.work"
     supports_stream       = True
     supports_gpt_35_turbo = True

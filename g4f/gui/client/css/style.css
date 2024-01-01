@@ -295,11 +295,12 @@ body {
     gap: 18px;
 }
 
-.message .content p,
-.message .content li,
-.message .content code {
+.message .content,
+.message .content a:link,
+.message .content a:visited{
     font-size: 15px;
     line-height: 1.3;
+    color: var(--colour-3);
 }
 .message .content pre {
     white-space: pre-wrap;

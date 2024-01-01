@@ -3,10 +3,10 @@ from __future__ import annotations
 import requests
 
 from ...typing import Any, CreateResult, Messages
-from ..base_provider import BaseProvider
+from ..base_provider import AbstractProvider
 
 
-class AiService(BaseProvider):
+class AiService(AbstractProvider):
     url = "https://aiservice.vercel.app/"
     working = False
     supports_gpt_35_turbo = True

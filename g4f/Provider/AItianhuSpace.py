@@ -4,12 +4,12 @@ import time
 import random
 
 from ..typing import CreateResult, Messages
-from .base_provider import BaseProvider
+from .base_provider import AbstractProvider
 from .helper import format_prompt, get_random_string
 from ..webdriver import WebDriver, WebDriverSession
 from .. import debug
 
-class AItianhuSpace(BaseProvider):
+class AItianhuSpace(AbstractProvider):
     url = "https://chat3.aiyunos.top/"
     working = True
     supports_stream = True

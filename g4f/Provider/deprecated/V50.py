@@ -5,10 +5,10 @@ import uuid
 import requests
 
 from ...typing import Any, CreateResult
-from ..base_provider import BaseProvider
+from ..base_provider import AbstractProvider
 
 
-class V50(BaseProvider):
+class V50(AbstractProvider):
     url                     = 'https://p5.v50.ltd'
     supports_gpt_35_turbo   = True
     supports_stream         = False

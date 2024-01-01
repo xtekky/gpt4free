@@ -2,26 +2,13 @@ from __future__ import annotations
 
 import asyncio
 import random
-from typing import List, Type, Dict
 from ..typing import CreateResult, Messages
-from .base_provider import BaseProvider, AsyncProvider
+from ..base_provider import BaseRetryProvider
 from .. import debug
 from ..errors import RetryProviderError, RetryNoProviderError
 
 
-class RetryProvider(AsyncProvider):
-    __name__: str = "RetryProvider"
-    supports_stream: bool = True
-
-    def __init__(
-        self,
-        providers: List[Type[BaseProvider]],
-        shuffle: bool = True
-    ) -> None:
-        self.providers: List[Type[BaseProvider]] = providers
-        self.shuffle: bool = shuffle
-        self.working = True
-
+class RetryProvider(BaseRetryProvider):
     def create_completion(
         self,
         model: str,
@@ -36,20 +23,18 @@ class RetryProvider(AsyncProvider):
         if self.shuffle:
             random.shuffle(providers)
 
-        self.exceptions: Dict[str, Exception] = {}
+        self.exceptions = {}
         started: bool = False
         for provider in providers:
+            self.last_provider = provider
             try:
                 if debug.logging:
                     print(f"Using {provider.__name__} provider")
-                
                 for token in provider.create_completion(model, messages, stream, **kwargs):
                     yield token
                     started = True
-                
                 if started:
                     return
-                
             except Exception as e:
                 self.exceptions[provider.__name__] = e
                 if debug.logging:
@@ -69,8 +54,9 @@ class RetryProvider(AsyncProvider):
         if self.shuffle:
             random.shuffle(providers)
         
-        self.exceptions: Dict[str, Exception] = {}
+        self.exceptions = {}
         for provider in providers:
+            self.last_provider = provider
             try:
                 return await asyncio.wait_for(
                     provider.create_async(model, messages, **kwargs),

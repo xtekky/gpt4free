@@ -7,11 +7,11 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.keys import Keys
 
 from ..typing import CreateResult, Messages
-from .base_provider import BaseProvider
+from .base_provider import AbstractProvider
 from .helper import format_prompt
 from ..webdriver import WebDriver, WebDriverSession
 
-class PerplexityAi(BaseProvider):
+class PerplexityAi(AbstractProvider):
     url = "https://www.perplexity.ai"
     working = True
     supports_gpt_35_turbo = True

@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import requests, json
 from ..typing           import CreateResult, Messages
-from .base_provider     import BaseProvider
+from .base_provider     import AbstractProvider
 
-class DeepInfra(BaseProvider):
+class DeepInfra(AbstractProvider):
     url: str = "https://deepinfra.com"
     working: bool = True
     supports_stream: bool = True
@@ -14,8 +14,10 @@ class DeepInfra(BaseProvider):
     def create_completion(model: str,
                           messages: Messages,
                           stream: bool,
+                          auth: str = None,
                           **kwargs) -> CreateResult:
-        
+        if not model:
+            model = 'meta-llama/Llama-2-70b-chat-hf'
         headers = {
             'Accept-Language': 'en,fr-FR;q=0.9,fr;q=0.8,es-ES;q=0.7,es;q=0.6,en-US;q=0.5,am;q=0.4,de;q=0.3',
             'Cache-Control': 'no-cache',
@@ -34,9 +36,11 @@ class DeepInfra(BaseProvider):
             'sec-ch-ua-mobile': '?0',
             'sec-ch-ua-platform': '"macOS"',
         }
+        if auth:
+            headers['Authorization'] = f"bearer {auth}" 
 
         json_data = json.dumps({
-            'model'   : 'meta-llama/Llama-2-70b-chat-hf',
+            'model'   : model,
             'messages': messages,
             'stream'  : True}, separators=(',', ':'))
 
@@ -45,18 +49,17 @@ class DeepInfra(BaseProvider):
 
         response.raise_for_status()
         first = True
-
-        for line in response.iter_content(chunk_size=1024):
+        for line in response.content:
             if line.startswith(b"data: [DONE]"):
                 break
-            
             elif line.startswith(b"data: "):
-                chunk = json.loads(line[6:])["choices"][0]["delta"].get("content")
-                
+                try:
+                    chunk = json.loads(line[6:])["choices"][0]["delta"].get("content")
+                except Exception:
+                    raise RuntimeError(f"Response: {line}")
                 if chunk:
                     if first:
                         chunk = chunk.lstrip()
                         if chunk:
                             first = False
-                    
-                    yield (chunk) 
+                    yield chunk
