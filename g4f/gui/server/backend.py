@@ -1,3 +1,4 @@
+import logging
 import g4f
 from g4f.Provider import __providers__
 
@@ -94,10 +95,10 @@ class Backend_Api:
                     }) + "\n"
                 
             except Exception as e:
+                logging.exception(e)
                 yield json.dumps({
                     'type' : 'error',
                     'error': f'{e.__class__.__name__}: {e}'
                 })
-                raise e
 
         return self.app.response_class(try_response(), mimetype='text/event-stream')

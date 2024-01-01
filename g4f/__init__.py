@@ -128,7 +128,7 @@ class Completion:
 
         return result if stream else ''.join(result)
     
-def get_last_provider(as_dict: bool = False) -> ProviderType:
+def get_last_provider(as_dict: bool = False) -> Union[ProviderType, dict[str, str]]:
     last = debug.last_provider
     if isinstance(last, BaseRetryProvider):
         last = last.last_provider
