@@ -31,6 +31,8 @@ from .Chatxyz         import Chatxyz
 from .DeepInfra       import DeepInfra
 from .FakeGpt         import FakeGpt
 from .FreeGpt         import FreeGpt
+from .GeekGpt         import GeekGpt
+from .GeminiProChat   import GeminiProChat
 from .Gpt6            import Gpt6
 from .GPTalk          import GPTalk
 from .GptChatly       import GptChatly
@@ -53,7 +55,6 @@ from .Vercel          import Vercel
 from .Ylokh           import Ylokh
 from .You             import You
 from .Yqcloud         import Yqcloud
-from .GeekGpt         import GeekGpt
 from .Bestim          import Bestim
 
 import sys

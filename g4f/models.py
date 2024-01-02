@@ -4,7 +4,6 @@ from .Provider   import RetryProvider, ProviderType
 from .Provider   import (
     Chatgpt4Online,
     ChatgptDemoAi,
-    ChatAnywhere,
     ChatgptNext,
     HuggingChat,
     ChatgptDemo,
@@ -48,8 +47,7 @@ default = Model(
         Bing,
         ChatgptAi, GptGo, GeekGpt,
         You,
-        Chatgpt4Online,
-        ChatAnywhere
+        Chatgpt4Online
     ])
 )
 
@@ -62,7 +60,6 @@ gpt_35_long = Model(
         GeekGpt, FakeGpt,
         Berlin, Koala,
         Chatgpt4Online,
-        ChatAnywhere,
         ChatgptDemoAi,
         OnlineGpt,
         ChatgptNext,
@@ -79,7 +76,6 @@ gpt_35_turbo = Model(
         GptGo, You, 
         GptForLove, ChatBase,
         Chatgpt4Online,
-        ChatAnywhere,
     ])
 )
 
