@@ -55,6 +55,7 @@ from .Vercel          import Vercel
 from .Ylokh           import Ylokh
 from .You             import You
 from .Yqcloud         import Yqcloud
+from .Bestim          import Bestim
 
 import sys
 
