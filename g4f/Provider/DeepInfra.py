@@ -1,28 +1,34 @@
 from __future__ import annotations
 
-import requests, json
-from ..typing           import CreateResult, Messages
-from .base_provider     import BaseProvider
+import json
+from ..typing           import AsyncResult, Messages
+from .base_provider     import AsyncGeneratorProvider
+from ..requests         import StreamSession
 
-class DeepInfra(BaseProvider):
-    url: str = "https://deepinfra.com"
-    working: bool = True
-    supports_stream: bool = True
-    supports_message_history: bool = True
+class DeepInfra(AsyncGeneratorProvider):
+    url = "https://deepinfra.com"
+    working = True
+    supports_stream = True
+    supports_message_history = True
 
     @staticmethod
-    def create_completion(model: str,
-                          messages: Messages,
-                          stream: bool,
-                          **kwargs) -> CreateResult:
-        
+    async def create_async_generator(
+        model: str,
+        messages: Messages,
+        stream: bool,
+        proxy: str = None,
+        timeout: int = 120,
+        auth: str = None,
+        **kwargs
+    ) -> AsyncResult:
+        if not model:
+            model = 'meta-llama/Llama-2-70b-chat-hf'
         headers = {
-            'Accept-Language': 'en,fr-FR;q=0.9,fr;q=0.8,es-ES;q=0.7,es;q=0.6,en-US;q=0.5,am;q=0.4,de;q=0.3',
-            'Cache-Control': 'no-cache',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Accept-Language': 'en-US',
             'Connection': 'keep-alive',
             'Content-Type': 'application/json',
             'Origin': 'https://deepinfra.com',
-            'Pragma': 'no-cache',
             'Referer': 'https://deepinfra.com/',
             'Sec-Fetch-Dest': 'empty',
             'Sec-Fetch-Mode': 'cors',
@@ -34,29 +40,34 @@ class DeepInfra(BaseProvider):
             'sec-ch-ua-mobile': '?0',
             'sec-ch-ua-platform': '"macOS"',
         }
-
-        json_data = json.dumps({
-            'model'   : 'meta-llama/Llama-2-70b-chat-hf',
-            'messages': messages,
-            'stream'  : True}, separators=(',', ':'))
-
-        response = requests.post('https://api.deepinfra.com/v1/openai/chat/completions', 
-                                headers=headers, data=json_data, stream=True)
-
-        response.raise_for_status()
-        first = True
-
-        for line in response.iter_content(chunk_size=1024):
-            if line.startswith(b"data: [DONE]"):
-                break
+        if auth:
+            headers['Authorization'] = f"bearer {auth}" 
             
-            elif line.startswith(b"data: "):
-                chunk = json.loads(line[6:])["choices"][0]["delta"].get("content")
-                
-                if chunk:
-                    if first:
-                        chunk = chunk.lstrip()
+        async with StreamSession(headers=headers,
+            timeout=timeout,
+            proxies={"https": proxy},
+            impersonate="chrome110"
+        ) as session:
+            json_data = {
+                'model'   : model,
+                'messages': messages,
+                'stream'  : True
+            }
+            async with session.post('https://api.deepinfra.com/v1/openai/chat/completions',
+                                    json=json_data) as response:
+                response.raise_for_status()
+                first = True
+                async for line in response.iter_lines():
+                    try:
+                        if line.startswith(b"data: [DONE]"):
+                            break
+                        elif line.startswith(b"data: "):
+                            chunk = json.loads(line[6:])["choices"][0]["delta"].get("content")
                         if chunk:
-                            first = False
-                    
-                    yield (chunk) 
+                            if first:
+                                chunk = chunk.lstrip()
+                                if chunk:
+                                    first = False
+                            yield chunk
+                    except Exception:
+                        raise RuntimeError(f"Response: {line}")

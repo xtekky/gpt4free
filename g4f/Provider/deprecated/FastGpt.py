@@ -2,15 +2,13 @@ from __future__ import annotations
 
 import json
 import random
-from abc import ABC, abstractmethod
-
 import requests
 
 from ...typing import Any, CreateResult
-from ..base_provider import BaseProvider
+from ..base_provider import AbstractProvider
 
 
-class FastGpt(BaseProvider):
+class FastGpt(AbstractProvider):
     url: str                = 'https://chat9.fastgpt.me/'
     working                 = False
     needs_auth              = False
@@ -19,7 +17,6 @@ class FastGpt(BaseProvider):
     supports_gpt_4          = False
 
     @staticmethod
-    @abstractmethod
     def create_completion(
         model: str,
         messages: list[dict[str, str]],

@@ -5,10 +5,10 @@ import json
 import requests
 
 from ...typing import Any, CreateResult
-from ..base_provider import BaseProvider
+from ..base_provider import AbstractProvider
 
 
-class Lockchat(BaseProvider):
+class Lockchat(AbstractProvider):
     url: str              = "http://supertest.lockchat.app"
     supports_stream       = True
     supports_gpt_35_turbo = True

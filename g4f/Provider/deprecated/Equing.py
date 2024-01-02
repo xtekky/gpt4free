@@ -6,10 +6,10 @@ from abc import ABC, abstractmethod
 import requests
 
 from ...typing import Any, CreateResult
-from ..base_provider import BaseProvider
+from ..base_provider import AbstractProvider
 
 
-class Equing(BaseProvider):
+class Equing(AbstractProvider):
     url: str              = 'https://next.eqing.tech/'
     working               = False
     supports_stream       = True

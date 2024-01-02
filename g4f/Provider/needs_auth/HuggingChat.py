@@ -8,6 +8,9 @@ from ...typing import AsyncResult, Messages
 from ..base_provider import AsyncGeneratorProvider
 from ..helper import format_prompt, get_cookies
 
+map = {
+    "openchat/openchat_3.5": "openchat/openchat-3.5-1210",
+}
 
 class HuggingChat(AsyncGeneratorProvider):
     url = "https://huggingface.co/chat"
@@ -25,7 +28,10 @@ class HuggingChat(AsyncGeneratorProvider):
         cookies: dict = None,
         **kwargs
     ) -> AsyncResult:
-        model = model if model else cls.model
+        if not model:
+            model = cls.model
+        elif model in map:
+            model = map[model]
         if not cookies:
             cookies = get_cookies(".huggingface.co")
 

@@ -8,11 +8,11 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.keys import Keys
 
 from ...typing import CreateResult, Messages
-from ..base_provider import BaseProvider
+from ..base_provider import AbstractProvider
 from ..helper import format_prompt
 from ...webdriver import WebDriver, WebDriverSession
 
-class Bard(BaseProvider):
+class Bard(AbstractProvider):
     url = "https://bard.google.com"
     working = True
     needs_auth = True

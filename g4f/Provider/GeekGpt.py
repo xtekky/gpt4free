@@ -1,12 +1,12 @@
 from __future__ import annotations
 import requests, json
 
-from .base_provider import BaseProvider
+from .base_provider import AbstractProvider
 from ..typing       import CreateResult, Messages
 from json           import dumps
 
 
-class GeekGpt(BaseProvider):
+class GeekGpt(AbstractProvider):
     url = 'https://chat.geekgpt.org'
     working = True
     supports_message_history = True

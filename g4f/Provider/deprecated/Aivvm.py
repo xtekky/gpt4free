@@ -1,9 +1,10 @@
 from __future__ import annotations
-import requests
 
-from ..base_provider import BaseProvider
+import requests
+import json
+
+from ..base_provider import AbstractProvider
 from ...typing import CreateResult, Messages
-from json import dumps
 
 # to recreate this easily, send a post request to https://chat.aivvm.com/api/models
 models = {
@@ -17,7 +18,7 @@ models = {
     'gpt-4-32k-0613': {'id': 'gpt-4-32k-0613', 'name': 'GPT-4-32K-0613'},
 }
 
-class Aivvm(BaseProvider):
+class Aivvm(AbstractProvider):
     url                   = 'https://chat.aivvm.com'
     supports_stream       = True
     working               = False
@@ -44,7 +45,7 @@ class Aivvm(BaseProvider):
             "temperature" : kwargs.get("temperature", 0.7)
         }
 
-        data = dumps(json_data)
+        data = json.dumps(json_data)
 
         headers = {
             "accept"            : "text/event-stream",

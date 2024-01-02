@@ -3,10 +3,10 @@ from __future__ import annotations
 import json, base64, requests, execjs, random, uuid
 
 from ..typing       import Messages, TypedDict, CreateResult, Any
-from .base_provider import BaseProvider
+from .base_provider import AbstractProvider
 from ..debug        import logging
 
-class Vercel(BaseProvider):
+class Vercel(AbstractProvider):
     url = 'https://sdk.vercel.ai'
     working = False
     supports_message_history = True 

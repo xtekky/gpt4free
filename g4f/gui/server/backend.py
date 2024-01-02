@@ -1,10 +1,11 @@
+import logging
 import g4f
 from g4f.Provider import __providers__
 
 import json
 from flask      import request, Flask
 from .internet  import get_search_message
-from g4f import debug
+from g4f import debug, version
 
 debug.logging = True
 
@@ -53,8 +54,8 @@ class Backend_Api:
         
     def version(self):
         return {
-            "version": debug.get_version(),
-            "lastet_version": debug.get_latest_version(),
+            "version": version.utils.current_version,
+            "lastet_version": version.utils.latest_version,
         }
     
     def _gen_title(self):
@@ -65,7 +66,7 @@ class Backend_Api:
     def _conversation(self):
         #jailbreak = request.json['jailbreak']
         messages = request.json['meta']['content']['parts']
-        if request.json['internet_access']:
+        if request.json.get('internet_access'):
             messages[-1]["content"] = get_search_message(messages[-1]["content"])
         model = request.json.get('model')
         model = model if model else g4f.models.default
@@ -74,20 +75,30 @@ class Backend_Api:
             
         def try_response():
             try:
-                yield from g4f.ChatCompletion.create(
+                first = True
+                for chunk in g4f.ChatCompletion.create(
                     model=model,
                     provider=provider,
                     messages=messages,
                     stream=True,
                     ignore_stream_and_auth=True
-                )
+                ):
+                    if first:
+                        first = False
+                        yield json.dumps({
+                            'type'    : 'provider',
+                            'provider': g4f.get_last_provider(True)
+                        }) + "\n"
+                    yield json.dumps({
+                        'type'   : 'content',
+                        'content': chunk,
+                    }) + "\n"
+                
             except Exception as e:
-                print(e)
+                logging.exception(e)
                 yield json.dumps({
-                    'code'   : 'G4F_ERROR',
-                    '_action': '_ask',
-                    'success': False,
-                    'error'  : f'{e.__class__.__name__}: {e}'
+                    'type' : 'error',
+                    'error': f'{e.__class__.__name__}: {e}'
                 })
 
         return self.app.response_class(try_response(), mimetype='text/event-stream')

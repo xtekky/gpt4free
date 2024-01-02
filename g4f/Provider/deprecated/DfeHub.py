@@ -7,10 +7,10 @@ import time
 import requests
 
 from ...typing import Any, CreateResult
-from ..base_provider import BaseProvider
+from ..base_provider import AbstractProvider
 
 
-class DfeHub(BaseProvider):
+class DfeHub(AbstractProvider):
     url                   = "https://chat.dfehub.com/"
     supports_stream       = True
     supports_gpt_35_turbo = True

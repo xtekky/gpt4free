@@ -20,7 +20,9 @@ message_input.addEventListener("focus", () => {
 });
 
 const markdown_render = (content) => {
-    return markdown.render(content).replace("<a href=", '<a target="_blank" href=').replace('<code>', '<code class="language-plaintext">')
+    return markdown.render(content)
+        .replaceAll("<a href=", '<a target="_blank" href=')
+        .replaceAll('<code>', '<code class="language-plaintext">')
 }
 
 const delete_conversations = async () => {
@@ -73,7 +75,7 @@ const ask_gpt = async () => {
     provider     = document.getElementById("provider");
     model        = document.getElementById("model");
     prompt_lock  = true;
-    window.text  = ``;
+    window.text  = '';
 
     stop_generating.classList.remove(`stop_generating-hidden`);
 
@@ -88,10 +90,13 @@ const ask_gpt = async () => {
                 ${gpt_image} <i class="fa-regular fa-phone-arrow-down-left"></i>
             </div>
             <div class="content" id="gpt_${window.token}">
-                <div id="cursor"></div>
+                <div class="provider"></div>
+                <div class="content_inner"><div id="cursor"></div></div>
             </div>
         </div>
     `;
+    content = document.getElementById(`gpt_${window.token}`);
+    content_inner = content.querySelector('.content_inner');
 
     message_box.scrollTop = message_box.scrollHeight;
     window.scrollTo(0, 0);
@@ -123,27 +128,37 @@ const ask_gpt = async () => {
         await new Promise((r) => setTimeout(r, 1000));
         window.scrollTo(0, 0);
 
-        const reader = response.body.getReader();
+        const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
+
+        error = provider = null;
         while (true) {
             const { value, done } = await reader.read();
             if (done) break;
-
-            chunk = new TextDecoder().decode(value);
-
-            text += chunk;
-
-            document.getElementById(`gpt_${window.token}`).innerHTML = markdown_render(text);
-            document.querySelectorAll(`code`).forEach((el) => {
-                hljs.highlightElement(el);
-            });
+            for (const line of value.split("\n")) {
+                if (!line) continue;
+                const message = JSON.parse(line);
+                if (message["type"] == "content") {
+                    text += message["content"];
+                } else if (message["type"] == "provider") {
+                    provider = message["provider"];
+                    content.querySelector('.provider').innerHTML =
+                        '<a href="' + provider.url + '" target="_blank">' + provider.name + "</a>"
+                } else if (message["type"] == "error") {
+                    error = message["error"];
+                }
+            }
+            if (error) {
+                console.error(error);
+                content_inner.innerHTML = "An error occured, please try again, if the problem persists, please use a other model or provider";
+            } else {
+                content_inner.innerHTML = markdown_render(text);
+                document.querySelectorAll('code').forEach((el) => {
+                    hljs.highlightElement(el);
+                });
+            }
 
             window.scrollTo(0, 0);
             message_box.scrollTo({ top: message_box.scrollHeight, behavior: "auto" });
-        }
-
-        if (text.includes(`G4F_ERROR`)) {
-            console.log("response", text);
-            document.getElementById(`gpt_${window.token}`).innerHTML = "An error occured, please try again, if the problem persists, please use a other model or provider";
         }
     } catch (e) {
         console.log(e);
@@ -153,13 +168,13 @@ const ask_gpt = async () => {
 
         if (e.name != `AbortError`) {
             text = `oops ! something went wrong, please try again / reload. [stacktrace in console]`;
-            document.getElementById(`gpt_${window.token}`).innerHTML = text;
+            content_inner.innerHTML = text;
         } else {
-            document.getElementById(`gpt_${window.token}`).innerHTML += ` [aborted]`;
+            content_inner.innerHTML += ` [aborted]`;
             text += ` [aborted]`
         }
     }
-    add_message(window.conversation_id, "assistant", text);
+    add_message(window.conversation_id, "assistant", text, provider);
     message_box.scrollTop = message_box.scrollHeight;
     await remove_cancel_button();
     prompt_lock = false;
@@ -259,10 +274,11 @@ const load_conversation = async (conversation_id) => {
                     }
                 </div>
                 <div class="content">
-                    ${item.role == "assistant"
-                        ? markdown_render(item.content)
-                        : item.content
+                    ${item.provider
+                        ? '<div class="provider"><a href="' + item.provider.url + '" target="_blank">' + item.provider.name + '</a></div>'
+                        : ''
                     }
+                    <div class="content_inner">${markdown_render(item.content)}</div>
                 </div>
             </div>
         `;
@@ -323,12 +339,13 @@ const remove_last_message = async (conversation_id) => {
     );
 };
 
-const add_message = async (conversation_id, role, content) => {
+const add_message = async (conversation_id, role, content, provider) => {
     const conversation = await get_conversation(conversation_id);
 
     conversation.items.push({
         role: role,
         content: content,
+        provider: provider
     });
 
     localStorage.setItem(

@@ -3,7 +3,7 @@ from __future__ import annotations
 import requests
 
 from ...typing import Any, CreateResult, Messages
-from ..base_provider import BaseProvider
+from ..base_provider import AbstractProvider
 
 models = {
     "theb-ai": "TheB.AI",
@@ -29,7 +29,7 @@ models = {
     "qwen-7b-chat": "Qwen 7B"
 }
 
-class ThebApi(BaseProvider):
+class ThebApi(AbstractProvider):
     url = "https://theb.ai"
     working = True
     needs_auth = True

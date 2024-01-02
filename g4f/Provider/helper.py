@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import sys
 import asyncio
 import webbrowser
 import random
@@ -8,7 +7,7 @@ import string
 import secrets
 import os
 from os import path
-from asyncio import AbstractEventLoop
+from asyncio import AbstractEventLoop, BaseEventLoop
 from platformdirs import user_config_dir
 from browser_cookie3 import (
     chrome,
@@ -34,7 +33,8 @@ _cookies: Dict[str, Dict[str, str]] = {}
 def get_event_loop() -> AbstractEventLoop:
     try:
         loop = asyncio.get_event_loop()
-        loop._check_closed()
+        if isinstance(loop, BaseEventLoop):
+            loop._check_closed()
     except RuntimeError:
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
