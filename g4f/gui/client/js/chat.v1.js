@@ -20,7 +20,9 @@ message_input.addEventListener("focus", () => {
 });
 
 const markdown_render = (content) => {
-    return markdown.render(content).replace("<a href=", '<a target="_blank" href=').replace('<code>', '<code class="language-plaintext">')
+    return markdown.render(content)
+        .replaceAll("<a href=", '<a target="_blank" href=')
+        .replaceAll('<code>', '<code class="language-plaintext">')
 }
 
 const delete_conversations = async () => {
