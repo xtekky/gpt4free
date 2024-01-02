@@ -54,6 +54,7 @@ from .Ylokh           import Ylokh
 from .You             import You
 from .Yqcloud         import Yqcloud
 from .GeekGpt         import GeekGpt
+from .Bestim          import Bestim
 
 import sys
 
