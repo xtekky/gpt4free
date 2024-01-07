@@ -26,4 +26,4 @@ async-property
 undetected-chromedriver
 asyncstdlib
 async_property
-bs4
+beautifulsoup4
