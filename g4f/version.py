@@ -40,7 +40,7 @@ class VersionUtils():
     def check_pypi_version(self) -> None:
         try:
             if self.current_version != self.latest_version:
-                print(f'New pypi version: {self.latest_version} (current: {self.version}) | pip install -U g4f')
+                print(f'New pypi version: {self.latest_version} (current: {self.current_version}) | pip install -U g4f')
         except Exception as e:
             print(f'Failed to check g4f pypi version: {e}')
          

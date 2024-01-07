@@ -27,3 +27,4 @@ undetected-chromedriver
 asyncstdlib
 async_property
 bs4
+brotli

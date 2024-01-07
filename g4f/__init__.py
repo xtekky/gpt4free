@@ -68,6 +68,7 @@ class ChatCompletion:
                ignored  : list[str] = None, 
                ignore_working: bool = False,
                ignore_stream_and_auth: bool = False,
+               patch_provider: callable = None,
                **kwargs) -> Union[CreateResult, str]:
 
         model, provider = get_model_and_provider(model, provider, stream, ignored, ignore_working, ignore_stream_and_auth)
@@ -83,6 +84,9 @@ class ChatCompletion:
             if proxy:
                 kwargs['proxy'] = proxy
 
+        if patch_provider:
+            provider = patch_provider(provider)
+
         result = provider.create_completion(model, messages, stream, **kwargs)
         return result if stream else ''.join(result)
 
@@ -92,6 +96,7 @@ class ChatCompletion:
                      provider : Union[ProviderType, str, None] = None,
                      stream   : bool = False,
                      ignored  : list[str] = None,
+                     patch_provider: callable = None,
                      **kwargs) -> Union[AsyncResult, str]:
 
         model, provider = get_model_and_provider(model, provider, False, ignored)
@@ -100,6 +105,9 @@ class ChatCompletion:
             if isinstance(provider, type) and issubclass(provider, AsyncGeneratorProvider):
                 return provider.create_async_generator(model, messages, **kwargs)
             raise StreamNotSupportedError(f'{provider.__name__} does not support "stream" argument in "create_async"')
+
+        if patch_provider:
+            provider = patch_provider(provider)
 
         return provider.create_async(model, messages, **kwargs)
 
