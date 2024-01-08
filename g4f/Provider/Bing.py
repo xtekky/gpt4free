@@ -62,8 +62,9 @@ class Bing(AsyncGeneratorProvider):
                     cookies[key] = value
 
         gpt4_turbo = True if model.startswith("gpt-4-turbo") else False
+        timeout = kwargs.get("timeout", 900)
 
-        return stream_generate(prompt, tone, image, context, proxy, cookies, web_search, gpt4_turbo)
+        return stream_generate(prompt, tone, image, context, proxy, cookies, web_search, gpt4_turbo, timeout)
 
 def create_context(messages: Messages):
     return "".join(
@@ -452,10 +453,11 @@ async def stream_generate(
         proxy: str = None,
         cookies: dict = None,
         web_search: bool = False,
-        gpt4_turbo: bool = False
+        gpt4_turbo: bool = False,
+        timeout = int = 900
     ):
     async with ClientSession(
-            timeout=ClientTimeout(total=900),
+            timeout=ClientTimeout(total=timeout),
             headers=Defaults.headers if not cookies else {**Defaults.headers, "Cookie": "; ".join(f"{k}={v}" for k, v in cookies.items())},
         ) as session:
         conversation = await create_conversation(session, tone, image, proxy)
@@ -463,14 +465,14 @@ async def stream_generate(
             async with session.ws_connect('wss://sydney.bing.com/sydney/ChatHub', autoping=False, params={'sec_access_token': conversation.conversationSignature}, proxy=proxy) as wss:
 
                 await wss.send_str(format_message({'protocol': 'json', 'version': 1}))
-                await wss.receive(timeout=900)
+                await wss.receive(timeout=timeout)
                 await wss.send_str(create_message(conversation, prompt, tone, context, web_search, gpt4_turbo))
 
                 response_txt = ''
                 returned_text = ''
                 final = False
                 while not final:
-                    msg = await wss.receive(timeout=900)
+                    msg = await wss.receive(timeout=timeout)
                     objects = msg.data.split(Defaults.delimiter)
                     for obj in objects:
                         if obj is None or not obj:
