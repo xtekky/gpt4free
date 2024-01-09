@@ -63,7 +63,7 @@ docker pull hlohaus789/g4f
 ##### Quick start:
 
 1. [Download and install Docker](https://docs.docker.com/get-docker/)
-2. Pull lastet image and run the container:
+2. Pull latest image and run the container:
 
 ```sh
 docker pull hlohaus789/g4f
