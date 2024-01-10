@@ -31,6 +31,7 @@ class Bing(AsyncGeneratorProvider):
         model: str,
         messages: Messages,
         proxy: str = None,
+        timeout: int = 900,
         cookies: dict = None,
         tone: str = Tones.creative,
         image: str = None,
@@ -53,7 +54,7 @@ class Bing(AsyncGeneratorProvider):
 
         gpt4_turbo = True if model.startswith("gpt-4-turbo") else False
 
-        return stream_generate(prompt, tone, image, context, proxy, cookies, web_search, gpt4_turbo)
+        return stream_generate(prompt, tone, image, context, proxy, cookies, web_search, gpt4_turbo, timeout)
 
 def create_context(messages: Messages):
     return "".join(
@@ -247,13 +248,14 @@ async def stream_generate(
         proxy: str = None,
         cookies: dict = None,
         web_search: bool = False,
-        gpt4_turbo: bool = False
+        gpt4_turbo: bool = False,
+        timeout = int = 900
     ):
     headers = Defaults.headers
     if cookies:
         headers["Cookie"] = "; ".join(f"{k}={v}" for k, v in cookies.items())
     async with ClientSession(
-        timeout=ClientTimeout(total=900),
+        timeout=ClientTimeout(total=timeout),
         headers=headers
     ) as session:
         conversation = await create_conversation(session, proxy)
@@ -268,14 +270,14 @@ async def stream_generate(
                 proxy=proxy
             ) as wss:
                 await wss.send_str(format_message({'protocol': 'json', 'version': 1}))
-                await wss.receive(timeout=900)
+                await wss.receive(timeout=timeout)
                 await wss.send_str(create_message(conversation, prompt, tone, context, image_info, web_search, gpt4_turbo))
 
                 response_txt = ''
                 returned_text = ''
                 final = False
                 while not final:
-                    msg = await wss.receive(timeout=900)
+                    msg = await wss.receive(timeout=timeout)
                     if not msg.data:
                         continue
                     objects = msg.data.split(Defaults.delimiter)
@@ -311,12 +313,11 @@ async def stream_generate(
                                 if result["value"] == "CaptchaChallenge":
                                     driver = get_browser(proxy=proxy)
                                     try:
-                                        for chunk in wait_for_login(driver):
-                                            yield chunk
+                                        wait_for_login(driver)
                                         cookies = get_driver_cookies(driver)
                                     finally:
                                         driver.quit()
-                                    async for chunk in stream_generate(prompt, tone, image, context, proxy, cookies, web_search, gpt4_turbo):
+                                    async for chunk in stream_generate(prompt, tone, image, context, proxy, cookies, web_search, gpt4_turbo, timeout):
                                         yield chunk
                                 else:
                                     raise Exception(f"{result['value']}: {result['message']}")
