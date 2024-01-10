@@ -249,7 +249,7 @@ async def stream_generate(
         cookies: dict = None,
         web_search: bool = False,
         gpt4_turbo: bool = False,
-        timeout = int = 900
+        timeout: int = 900
     ):
     headers = Defaults.headers
     if cookies:
