@@ -145,5 +145,5 @@ User request:
 """
         return message
     except Exception as e:
-        print("Couldn't search DuckDuckGo:", e)
+        print("Couldn't do web search:", e)
         return prompt

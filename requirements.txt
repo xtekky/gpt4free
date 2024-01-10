@@ -26,4 +26,5 @@ async-property
 undetected-chromedriver
 asyncstdlib
 async_property
+brotli
 beautifulsoup4
