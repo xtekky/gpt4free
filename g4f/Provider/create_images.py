@@ -71,14 +71,17 @@ class CreateImagesProvider(BaseProvider):
     ) -> str:
         messages.insert(0, {"role": "system", "content": self.system_message})
         response = await self.provider.create_async(model, messages, **kwargs)
-        matches = re.findall(r'(<img data-prompt="(.*?)">)', result)
+        matches = re.findall(r'(<img data-prompt="(.*?)">)', response)
         results = []
-        for _, prompt in matches:
-            results.append(self.create_images_async(prompt))
+        placeholders = []
+        for placeholder, prompt in matches:
+            if placeholder not in placeholders:
+                results.append(self.create_images_async(prompt))
+                placeholders.append(placeholder)
         results = await asyncio.gather(*results)
         for idx, result in enumerate(results):
-            placeholder = matches[idx][0]
+            placeholder = placeholder[idx]
             if self.include_placeholder:
                 result = placeholder + result
             response = response.replace(placeholder, result)
-        return result
+        return response
