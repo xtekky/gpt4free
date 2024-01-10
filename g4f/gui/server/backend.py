@@ -1,11 +1,11 @@
 import logging
-import g4f
-from g4f.Provider import __providers__
-
 import json
-from flask      import request, Flask
-from .internet  import get_search_message
-from g4f import debug, version
+from flask import request, Flask
+from g4f import debug, version, models
+from g4f import _all_models, get_last_provider, ChatCompletion
+from g4f.Provider import __providers__
+from g4f.Provider.bing.create_images import patch_provider
+from .internet import get_search_message
 
 debug.logging = True
 
@@ -45,7 +45,7 @@ class Backend_Api:
         return 'ok', 200
     
     def models(self):
-        return g4f._all_models
+        return _all_models
     
     def providers(self):
         return [
@@ -69,25 +69,27 @@ class Backend_Api:
         if request.json.get('internet_access'):
             messages[-1]["content"] = get_search_message(messages[-1]["content"])
         model = request.json.get('model')
-        model = model if model else g4f.models.default
+        model = model if model else models.default
         provider = request.json.get('provider', '').replace('g4f.Provider.', '')
         provider = provider if provider and provider != "Auto" else None
-            
+        patch = patch_provider if request.json.get('patch_provider') else None
+
         def try_response():
             try:
                 first = True
-                for chunk in g4f.ChatCompletion.create(
+                for chunk in ChatCompletion.create(
                     model=model,
                     provider=provider,
                     messages=messages,
                     stream=True,
-                    ignore_stream_and_auth=True
+                    ignore_stream_and_auth=True,
+                    patch_provider=patch
                 ):
                     if first:
                         first = False
                         yield json.dumps({
                             'type'    : 'provider',
-                            'provider': g4f.get_last_provider(True)
+                            'provider': get_last_provider(True)
                         }) + "\n"
                     yield json.dumps({
                         'type'   : 'content',

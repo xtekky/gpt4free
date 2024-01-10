@@ -64,11 +64,14 @@ XMLHttpRequest.prototype.open = function(method, url) {
 """
             driver.execute_script(script)
 
-            # Submit prompt
-            driver.find_element(By.CSS_SELECTOR, "div.ql-editor.textarea").send_keys(prompt)
-            driver.find_element(By.CSS_SELECTOR, "div.ql-editor.textarea").send_keys(Keys.ENTER)
-
-            # Yield response
+            textarea = driver.find_element(By.CSS_SELECTOR, "div.ql-editor.textarea")
+            lines = prompt.splitlines()
+            for idx, line in enumerate(lines):
+                textarea.send_keys(line)
+                if (len(lines) - 1 != idx):
+                    textarea.send_keys(Keys.SHIFT + "\n")
+            textarea.send_keys(Keys.ENTER)
+            
             while True:
                 chunk = driver.execute_script("return window._message;")
                 if chunk:

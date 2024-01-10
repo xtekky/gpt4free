@@ -3,6 +3,7 @@ from __future__ import annotations
 from ..base_provider  import BaseProvider, ProviderType
 from .retry_provider  import RetryProvider
 from .base_provider   import AsyncProvider, AsyncGeneratorProvider
+from .create_images   import CreateImagesProvider
 from .deprecated      import *
 from .needs_auth      import *
 from .unfinished      import *
@@ -30,6 +31,7 @@ from .ChatgptX        import ChatgptX
 from .Chatxyz         import Chatxyz
 from .DeepInfra       import DeepInfra
 from .FakeGpt         import FakeGpt
+from .FreeChatgpt     import FreeChatgpt
 from .FreeGpt         import FreeGpt
 from .GeekGpt         import GeekGpt
 from .GeminiProChat   import GeminiProChat

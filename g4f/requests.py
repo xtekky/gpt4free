@@ -6,7 +6,7 @@ from functools import partialmethod
 from typing import AsyncGenerator
 from urllib.parse import urlparse
 from curl_cffi.requests import AsyncSession, Session, Response
-from .webdriver import WebDriver, WebDriverSession, bypass_cloudflare
+from .webdriver import WebDriver, WebDriverSession, bypass_cloudflare, get_driver_cookies
 
 class StreamResponse:
     def __init__(self, inner: Response) -> None:
@@ -56,8 +56,7 @@ class StreamSession(AsyncSession):
 def get_session_from_browser(url: str, webdriver: WebDriver = None, proxy: str = None, timeout: int = 120):
     with WebDriverSession(webdriver, "", proxy=proxy, virtual_display=True) as driver:
         bypass_cloudflare(driver, url, timeout)
-
-        cookies = dict([(cookie["name"], cookie["value"]) for cookie in driver.get_cookies()])
+        cookies = get_driver_cookies(driver)
         user_agent = driver.execute_script("return navigator.userAgent")
 
     parse = urlparse(url)
