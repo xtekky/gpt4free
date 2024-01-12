@@ -245,6 +245,13 @@ gpt_4_32k_0613 = Model(
     best_provider = gpt_4.best_provider
 )
 
+#Gemini
+gemini_pro = Model(
+    name          = 'gemini-pro',
+    base_provider = 'google',
+    best_provider = FreeChatgpt
+)
+
 text_ada_001 = Model(
     name          = 'text-ada-001',
     base_provider = 'openai',
@@ -318,6 +325,8 @@ class ModelUtils:
         'mistral-7b': mistral_7b,
         'openchat_3.5': openchat_35,
         
+        # Gemini Pro
+        'gemini-pro': gemini_pro,
         # Bard
         'palm2'       : palm,
         'palm'        : palm,
