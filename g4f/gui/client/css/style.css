@@ -485,6 +485,7 @@ select {
     padding: 8px 16px;
 
     appearance: none;
+    width: 250px;
 }
 
 .input-box {

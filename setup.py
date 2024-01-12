@@ -8,10 +8,39 @@ here = os.path.abspath(os.path.dirname(__file__))
 with codecs.open(os.path.join(here, 'README.md'), encoding='utf-8') as fh:
     long_description = '\n' + fh.read()
 
-with open('requirements.txt') as f:
-    required = f.read().splitlines()
+install_requires = [
+    "requests",
+    "pycryptodome",
+    "curl_cffi>=0.5.10",
+    "aiohttp",
+    "certifi",
+    "browser_cookie3",
+    "websockets",
+    "js2py",
+    "typing-extensions",
+    "PyExecJS",
+    "duckduckgo-search",
+    "nest_asyncio",
+    "waitress",
+    "werkzeug",
+    "loguru",
+    "pillow",
+    "platformdirs",
+    "numpy",
+    "asgiref",
+    "fastapi",
+    "uvicorn",
+    "flask",
+    "py-arkose-generator",
+    "asyncstdlib",
+    "async-property",
+    "undetected-chromedriver",
+    "asyncstdlib",
+    "async_property",
+    "brotli",
+    "beautifulsoup4",
+]
 
-VERSION = '0.2.0.1'
 DESCRIPTION = (
     'The official gpt4free repository | various collection of powerful language models'
 )
@@ -19,7 +48,7 @@ DESCRIPTION = (
 # Setting up
 setup(
     name='g4f',
-    version=VERSION,
+    version=os.environ.get("G4F_VERSION"),
     author='Tekky',
     author_email='<support@g4f.ai>',
     description=DESCRIPTION,
@@ -30,7 +59,7 @@ setup(
         'g4f': ['g4f/interference/*', 'g4f/gui/client/*', 'g4f/gui/server/*', 'g4f/Provider/npm/*']
     },
     include_package_data=True,
-    install_requires=required,
+    install_requires=install_requires,
     entry_points={
         'console_scripts': ['g4f=g4f.cli:main'],
     },

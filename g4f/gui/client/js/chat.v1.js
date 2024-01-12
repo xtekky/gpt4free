@@ -73,8 +73,8 @@ const ask_gpt = async () => {
 
     // Remove generated images from history
     for (i in messages) {
-        messages[i]["content"] = messages[i]["content"].replace(
-            /<!-- generated images start -->[\s\S]+<!-- generated images end -->/m,
+        messages[i]["content"] = messages[i]["content"].replaceAll(
+            /<!-- generated images start -->[\s\S]+<!-- generated images end -->/gm,
             ""
         )
         delete messages[i]["provider"];
@@ -318,7 +318,7 @@ const get_conversation = async (conversation_id) => {
 
 const get_messages = async (conversation_id) => {
     let conversation = await get_conversation(conversation_id);
-    return conversation.items;
+    return conversation?.items || [];
 };
 
 const add_conversation = async (conversation_id, content) => {
@@ -463,9 +463,8 @@ const register_settings_localstorage = async () => {
 };
 
 const load_settings_localstorage = async () => {
-    settings_ids = ["switch", "model", "jailbreak", "patch", "provider"];
-    settings_elements = settings_ids.map((id) => document.getElementById(id));
-    settings_elements.map((element) => {
+    for (id of ["switch", "model", "jailbreak", "patch", "provider"]) {
+        element = document.getElementById(id);
         if (localStorage.getItem(element.id)) {
             switch (element.type) {
                 case "checkbox":
@@ -478,8 +477,8 @@ const load_settings_localstorage = async () => {
                     console.warn("Unresolved element type");
             }
         }
-    });
-};
+    }
+}
 
 const say_hello = async () => {
     tokens = [`Hello`, `!`, ` How`,` can`, ` I`,` assist`,` you`,` today`,`?`]
