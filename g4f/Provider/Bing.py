@@ -33,7 +33,7 @@ class Bing(AsyncGeneratorProvider):
         proxy: str = None,
         timeout: int = 900,
         cookies: dict = None,
-        tone: str = Tones.creative,
+        tone: str = Tones.balanced,
         image: str = None,
         web_search: bool = False,
         **kwargs
@@ -212,7 +212,11 @@ def create_message(
                     'requestId': request_id,
                     'messageId': request_id,
                 }},
+                "verbosity": "verbose",
                 "scenario": "SERP",
+                "plugins":[
+                    {"id":"c310c353-b9f0-4d76-ab0d-1dd5e979cf68", "category": 1}
+                ] if web_search else [],
                 'tone': tone,
                 'spokenTextMode': 'None',
                 'conversationId': conversation.conversationId,
