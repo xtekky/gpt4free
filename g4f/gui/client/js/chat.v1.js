@@ -7,6 +7,7 @@ const spinner           = box_conversations.querySelector(".spinner");
 const stop_generating   = document.querySelector(`.stop_generating`);
 const regenerate        = document.querySelector(`.regenerate`);
 const send_button       = document.querySelector(`#send-button`);
+const imageInput        = document.querySelector('#image') ;
 let   prompt_lock       = false;
 
 hljs.addPlugin(new CopyButtonPlugin());
@@ -34,7 +35,7 @@ const delete_conversations = async () => {
 };
 
 const handle_ask = async () => {
-    message_input.style.height = `80px`;
+    message_input.style.height = `82px`;
     message_input.focus();
     window.scrollTo(0, 0);
     message = message_input.value
@@ -103,8 +104,7 @@ const ask_gpt = async () => {
             </div>
             <div class="content" id="gpt_${window.token}">
                 <div class="provider"></div>
-                <div class="content_inner"></div>
-                <div id="cursor"></div>
+                <div class="content_inner"><div id="cursor"></div></div>
             </div>
         </div>
     `;
@@ -114,29 +114,32 @@ const ask_gpt = async () => {
     message_box.scrollTop = message_box.scrollHeight;
     window.scrollTo(0, 0);
     try {
+        let body = JSON.stringify({
+            id: window.token,
+            conversation_id: window.conversation_id,
+            model: model.options[model.selectedIndex].value,
+            jailbreak: jailbreak.options[jailbreak.selectedIndex].value,
+            web_search: document.getElementById(`switch`).checked,
+            provider: provider.options[provider.selectedIndex].value,
+            patch_provider: document.getElementById('patch').checked,
+            messages: messages
+        });
+        const headers = {
+            accept: 'text/event-stream'
+        }
+        if (imageInput && imageInput.files.length > 0) {
+            const formData = new FormData();
+            formData.append('image', imageInput.files[0]);
+            formData.append('json', body);
+            body = formData;
+        } else {
+            headers['content-type'] = 'application/json';
+        }
         const response = await fetch(`/backend-api/v2/conversation`, {
-            method: `POST`,
+            method: 'POST',
             signal: window.controller.signal,
-            headers: {
-                'content-type': `application/json`,
-                accept: `text/event-stream`,
-            },
-            body: JSON.stringify({
-                conversation_id: window.conversation_id,
-                action: `_ask`,
-                model: model.options[model.selectedIndex].value,
-                jailbreak: jailbreak.options[jailbreak.selectedIndex].value,
-                internet_access: document.getElementById(`switch`).checked,
-                provider: provider.options[provider.selectedIndex].value,
-                patch_provider: document.getElementById('patch').checked,
-                meta: {
-                    id: window.token,
-                    content: {
-                        content_type: `text`,
-                        parts: messages,
-                    },
-                },
-            }),
+            headers: headers,
+            body: body
         });
 
         await new Promise((r) => setTimeout(r, 1000));
@@ -159,13 +162,17 @@ const ask_gpt = async () => {
                         '<a href="' + provider.url + '" target="_blank">' + provider.name + "</a>"
                 } else if (message["type"] == "error") {
                     error = message["error"];
+                } else if (message["type"] == "message") {
+                    console.error(message["message"])
                 }
             }
             if (error) {
                 console.error(error);
                 content_inner.innerHTML = "An error occured, please try again, if the problem persists, please use a other model or provider";
             } else {
-                content_inner.innerHTML = markdown_render(text);
+                html = markdown_render(text);
+                html = html.substring(0, html.lastIndexOf('</p>')) + '<span id="cursor"></span></p>';
+                content_inner.innerHTML = html;
                 document.querySelectorAll('code').forEach((el) => {
                     hljs.highlightElement(el);
                 });
@@ -174,9 +181,9 @@ const ask_gpt = async () => {
             window.scrollTo(0, 0);
             message_box.scrollTo({ top: message_box.scrollHeight, behavior: "auto" });
         }
+        if (!error && imageInput) imageInput.value = "";
     } catch (e) {
-        console.log(e);
-
+        console.error(e);
 
         if (e.name != `AbortError`) {
             text = `oops ! something went wrong, please try again / reload. [stacktrace in console]`;
@@ -444,34 +451,34 @@ document.querySelector(".mobile-sidebar").addEventListener("click", (event) => {
 });
 
 const register_settings_localstorage = async () => {
-    settings_ids = ["switch", "model", "jailbreak", "patch", "provider"];
-    settings_elements = settings_ids.map((id) => document.getElementById(id));
-    settings_elements.map((element) =>
-        element.addEventListener(`change`, async (event) => {
+    for (id of ["switch", "model", "jailbreak", "patch", "provider"]) {
+        element = document.getElementById(id);
+        element.addEventListener('change', async (event) => {
             switch (event.target.type) {
                 case "checkbox":
-                    localStorage.setItem(event.target.id, event.target.checked);
+                    localStorage.setItem(id, event.target.checked);
                     break;
                 case "select-one":
-                    localStorage.setItem(event.target.id, event.target.selectedIndex);
+                    localStorage.setItem(id, event.target.selectedIndex);
                     break;
                 default:
                     console.warn("Unresolved element type");
             }
-        })
-    );
-};
+        });
+    }
+}
 
 const load_settings_localstorage = async () => {
     for (id of ["switch", "model", "jailbreak", "patch", "provider"]) {
         element = document.getElementById(id);
-        if (localStorage.getItem(element.id)) {
+        value = localStorage.getItem(element.id);
+        if (value) {
             switch (element.type) {
                 case "checkbox":
-                    element.checked = localStorage.getItem(element.id) === "true";
+                    element.checked = value === "true";
                     break;
                 case "select-one":
-                    element.selectedIndex = parseInt(localStorage.getItem(element.id));
+                    element.selectedIndex = parseInt(value);
                     break;
                 default:
                     console.warn("Unresolved element type");
@@ -529,7 +536,6 @@ colorThemes.forEach((themeOption) => {
 
 
 window.onload = async () => {
-    load_settings_localstorage();
     setTheme();
 
     let conversations = 0;
@@ -610,16 +616,14 @@ observer.observe(message_input, { attributes: true });
         option.value = option.text = model;
         select.appendChild(option);
     }
-})();
 
-(async () => {
     response = await fetch('/backend-api/v2/providers')
     providers = await response.json()
     
-    let select = document.getElementById('provider');
+    select = document.getElementById('provider');
     select.textContent = '';
 
-    let auto = document.createElement('option');
+    auto = document.createElement('option');
     auto.value = '';
     auto.text = 'Provider: Auto';
     select.appendChild(auto);
@@ -629,6 +633,8 @@ observer.observe(message_input, { attributes: true });
         option.value = option.text = provider;
         select.appendChild(option);
     }
+
+    await load_settings_localstorage()
 })();
 
 (async () => {
@@ -644,4 +650,4 @@ observer.observe(message_input, { attributes: true });
         text += versions["version"];
     }
     document.getElementById("version_text").innerHTML = text
-})();
+})()

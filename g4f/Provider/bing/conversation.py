@@ -10,7 +10,10 @@ class Conversation():
 async def create_conversation(session: ClientSession, proxy: str = None) -> Conversation:
     url = 'https://www.bing.com/turing/conversation/create?bundleVersion=1.1199.4'
     async with session.get(url, proxy=proxy) as response:
-        data = await response.json()
+        try:
+            data = await response.json()
+        except:
+            raise RuntimeError(f"Response: {await response.text()}")
 
         conversationId = data.get('conversationId')
         clientId = data.get('clientId')
@@ -26,7 +29,7 @@ async def list_conversations(session: ClientSession) -> list:
         response = await response.json()
         return response["chats"]
         
-async def delete_conversation(session: ClientSession, conversation: Conversation, proxy: str = None) -> list:
+async def delete_conversation(session: ClientSession, conversation: Conversation, proxy: str = None) -> bool:
     url = "https://sydney.bing.com/sydney/DeleteSingleConversation"
     json = {
         "conversationId": conversation.conversationId,

@@ -9,6 +9,7 @@ from ..create_images import CreateImagesProvider
 from ..helper import get_cookies, get_event_loop
 from ...webdriver import WebDriver, get_driver_cookies, get_browser
 from ...base_provider import ProviderType
+from ...image import format_images_markdown
 
 BING_URL = "https://www.bing.com"
 
@@ -23,6 +24,7 @@ def wait_for_login(driver: WebDriver, timeout: int = 1200) -> None:
             raise RuntimeError("Timeout error")
         value = driver.get_cookie("_U")
         if value:
+            time.sleep(1)
             return
         time.sleep(0.5)
 
@@ -62,7 +64,8 @@ async def create_images(session: ClientSession, prompt: str, proxy: str = None, 
         errors = [
             "this prompt is being reviewed",
             "this prompt has been blocked",
-            "we're working hard to offer image creator in more languages"
+            "we're working hard to offer image creator in more languages",
+            "we can't create your images right now"
         ]
         text = (await response.text()).lower()
         for error in errors:
@@ -72,7 +75,7 @@ async def create_images(session: ClientSession, prompt: str, proxy: str = None, 
         url = f"{BING_URL}/images/create?q={url_encoded_prompt}&rt=3&FORM=GENCRE"
         async with session.post(url, allow_redirects=False, proxy=proxy, timeout=timeout) as response:
             if response.status != 302:
-                raise RuntimeError(f"Create images failed. Status Code: {response.status}")
+                raise RuntimeError(f"Create images failed. Code: {response.status}")
 
     redirect_url = response.headers["Location"].replace("&nfy=1", "")
     redirect_url = f"{BING_URL}{redirect_url}"
@@ -84,10 +87,10 @@ async def create_images(session: ClientSession, prompt: str, proxy: str = None, 
     start_time = time.time()
     while True:
         if time.time() - start_time > timeout:
-            raise RuntimeError(f"Timeout error after {timeout} seconds")
+            raise RuntimeError(f"Timeout error after {timeout} sec")
         async with session.get(polling_url) as response:
             if response.status != 200:
-                raise RuntimeError(f"Polling images faild. Status Code: {response.status}")
+                raise RuntimeError(f"Polling images faild. Code: {response.status}")
             text = await response.text()
             if not text:
                 await asyncio.sleep(1)
@@ -118,13 +121,6 @@ def read_images(text: str) -> list:
     if not images:
         raise RuntimeError("No images found")
     return images
-
-def format_images_markdown(images: list, prompt: str) -> str:
-    images = [f"[![#{idx+1} {prompt}]({image}?w=200&h=200)]({image})" for idx, image in enumerate(images)]
-    images = "\n".join(images)
-    start_flag = "<!-- generated images start -->\n"
-    end_flag = "<!-- generated images end -->\n"
-    return f"\n{start_flag}{images}\n{end_flag}\n"
 
 async def create_images_markdown(cookies: dict, prompt: str, proxy: str = None) -> str:
     session = create_session(cookies)
