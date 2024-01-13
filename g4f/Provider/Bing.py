@@ -9,9 +9,10 @@ from urllib import parse
 from aiohttp import ClientSession, ClientTimeout
 
 from ..typing import AsyncResult, Messages, ImageType
+from ..image import ImageResponse
 from .base_provider import AsyncGeneratorProvider
 from .bing.upload_image import upload_image
-from .bing.create_images import create_images, format_images_markdown
+from .bing.create_images import create_images
 from .bing.conversation import Conversation, create_conversation, delete_conversation
 
 class Tones():
@@ -172,7 +173,7 @@ def create_message(
     prompt: str,
     tone: str,
     context: str = None,
-    image_info: dict = None,
+    image_response: ImageResponse = None,
     web_search: bool = False,
     gpt4_turbo: bool = False
 ) -> str:
@@ -228,9 +229,9 @@ def create_message(
         'target': 'chat',
         'type': 4
     }
-    if image_info and "imageUrl" in image_info and "originalImageUrl" in image_info:
-        struct['arguments'][0]['message']['originalImageUrl'] = image_info['originalImageUrl']
-        struct['arguments'][0]['message']['imageUrl'] = image_info['imageUrl']
+    if image_response.get('imageUrl') and image_response.get('originalImageUrl'):
+        struct['arguments'][0]['message']['originalImageUrl'] = image_response.get('originalImageUrl')
+        struct['arguments'][0]['message']['imageUrl'] = image_response.get('imageUrl')
         struct['arguments'][0]['experienceType'] = None
         struct['arguments'][0]['attachedFileInfo'] = {"fileName": None, "fileType": None}
     if context:
@@ -262,9 +263,9 @@ async def stream_generate(
         headers=headers
     ) as session:
         conversation = await create_conversation(session, proxy)
-        image_info = None
-        if image:
-            image_info = await upload_image(session, image, tone, proxy)
+        image_response = await upload_image(session, image, tone, proxy) if image else None
+        if image_response:
+            yield image_response
         try:
             async with session.ws_connect(
                 'wss://sydney.bing.com/sydney/ChatHub',
@@ -274,7 +275,7 @@ async def stream_generate(
             ) as wss:
                 await wss.send_str(format_message({'protocol': 'json', 'version': 1}))
                 await wss.receive(timeout=timeout)
-                await wss.send_str(create_message(conversation, prompt, tone, context, image_info, web_search, gpt4_turbo))
+                await wss.send_str(create_message(conversation, prompt, tone, context, image_response, web_search, gpt4_turbo))
 
                 response_txt = ''
                 returned_text = ''
@@ -290,6 +291,7 @@ async def stream_generate(
                         response = json.loads(obj)
                         if response.get('type') == 1 and response['arguments'][0].get('messages'):
                             message = response['arguments'][0]['messages'][0]
+                            image_response = None
                             if (message['contentOrigin'] != 'Apology'):
                                 if 'adaptiveCards' in message:
                                     card = message['adaptiveCards'][0]['body'][0]
@@ -301,7 +303,7 @@ async def stream_generate(
                                 elif message.get('contentType') == "IMAGE":
                                     prompt = message.get('text')
                                     try:
-                                        response_txt += format_images_markdown(await create_images(session, prompt, proxy), prompt)
+                                        image_response = ImageResponse(await create_images(session, prompt, proxy), prompt)
                                     except:
                                         response_txt += f"\nhttps://www.bing.com/images/create?q={parse.quote(prompt)}"
                                     final = True
@@ -310,6 +312,8 @@ async def stream_generate(
                                 if new != "\n":
                                     yield new
                                     returned_text = response_txt
+                            if image_response:
+                                yield image_response
                         elif response.get('type') == 2:
                             result = response['item']['result']
                             if result.get('error'):

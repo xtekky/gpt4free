@@ -6,7 +6,7 @@ import json
 import math
 from ...typing import ImageType
 from aiohttp import ClientSession
-from ...image import to_image, process_image, to_base64
+from ...image import to_image, process_image, to_base64, ImageResponse
 
 image_config = {
     "maxImagePixels": 360000,
@@ -19,7 +19,7 @@ async def upload_image(
     image: ImageType,
     tone: str,
     proxy: str = None
-) -> dict:
+) -> ImageResponse:
     image = to_image(image)
     width, height = image.size
     max_image_pixels = image_config['maxImagePixels']
@@ -55,7 +55,7 @@ async def upload_image(
             else "https://www.bing.com/images/blob?bcid="
             + result['bcid']
         )
-        return result    
+        return ImageResponse(result["imageUrl"], "", result)    
 
 def build_image_upload_api_payload(image_bin: str, tone: str):
     payload = {

@@ -64,7 +64,6 @@ def get_orientation(image: Image.Image) -> int:
 
 def process_image(img: Image.Image, new_width: int, new_height: int) -> Image.Image:
     orientation = get_orientation(img)
-    new_img = Image.new("RGB", (new_width, new_height), color="#FFFFFF")
     if orientation:
         if orientation > 4:
             img = img.transpose(Image.FLIP_LEFT_RIGHT)
@@ -74,8 +73,8 @@ def process_image(img: Image.Image, new_width: int, new_height: int) -> Image.Im
             img = img.transpose(Image.ROTATE_270)
         if orientation in [7, 8]:
             img = img.transpose(Image.ROTATE_90)
-    new_img.paste(img, (0, 0))
-    return new_img
+    img.thumbnail((new_width, new_height))
+    return img
     
 def to_base64(image: Image.Image, compression_rate: float) -> str:
     output_buffer = BytesIO()

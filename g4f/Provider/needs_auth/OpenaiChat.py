@@ -13,7 +13,6 @@ from ...webdriver import get_browser, get_driver_cookies
 from ...typing import AsyncResult, Messages
 from ...requests import StreamSession
 from ...image import to_image, to_bytes, ImageType, ImageResponse
-from ... import debug
 
 models = {
     "gpt-3.5":       "text-davinci-002-render-sha",
@@ -242,9 +241,7 @@ class OpenaiChat(AsyncGeneratorProvider):
                     json=data,
                     headers={"Accept": "text/event-stream", **headers}
                 ) as response:
-                    try:
-                        response.raise_for_status()
-                    except:
+                    if not response.ok:
                         raise RuntimeError(f"Response {response.status_code}: {await response.text()}")
                     try:
                         last_message: int = 0
