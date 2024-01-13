@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 import asyncio
+from .. import debug
 from ..typing import CreateResult, Messages
 from ..base_provider import BaseProvider, ProviderType
 
@@ -26,12 +27,11 @@ class CreateImagesProvider(BaseProvider):
         self.create_images = create_images
         self.create_images_async = create_async
         self.system_message = system_message
+        self.include_placeholder = include_placeholder
         self.__name__ = provider.__name__
+        self.url = provider.url
         self.working = provider.working
         self.supports_stream = provider.supports_stream
-        self.include_placeholder = include_placeholder
-        if hasattr(provider, "url"):
-            self.url = provider.url
 
     def create_completion(
         self,
@@ -54,6 +54,8 @@ class CreateImagesProvider(BaseProvider):
                             yield start
                         if self.include_placeholder:
                             yield placeholder
+                        if debug.logging:
+                            print(f"Create images with prompt: {prompt}")
                         yield from self.create_images(prompt)
                         if append:
                             yield append
@@ -76,6 +78,8 @@ class CreateImagesProvider(BaseProvider):
         placeholders = []
         for placeholder, prompt in matches:
             if placeholder not in placeholders:
+                if debug.logging:
+                    print(f"Create images with prompt: {prompt}")
                 results.append(self.create_images_async(prompt))
                 placeholders.append(placeholder)
         results = await asyncio.gather(*results)

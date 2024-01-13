@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from .typing import Messages, CreateResult, Union
     
 class BaseProvider(ABC):
-    url: str
+    url: str = None
     working: bool = False
     needs_auth: bool = False
     supports_stream: bool = False
