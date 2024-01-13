@@ -110,7 +110,8 @@ class Backend_Api:
                             'provider': get_last_provider(True)
                         }) + "\n"
                     if isinstance(chunk, Exception):
-                         yield json.dumps({
+                        logging.exception(chunk)
+                        yield json.dumps({
                             'type'   : 'message',
                             'message': get_error_message(chunk),
                         }) + "\n"
