@@ -4,6 +4,7 @@ from .Provider   import RetryProvider, ProviderType
 from .Provider   import (
     Chatgpt4Online,
     ChatgptDemoAi,
+    GeminiProChat,
     ChatgptNext,
     HuggingChat,
     ChatgptDemo,
@@ -61,7 +62,6 @@ gpt_35_long = Model(
         ChatgptNext,
         ChatgptDemo,
         Gpt6,
-        FreeChatgpt,
     ])
 )
 
@@ -70,7 +70,6 @@ gpt_35_turbo = Model(
     name          = 'gpt-3.5-turbo',
     base_provider = 'openai',
     best_provider=RetryProvider([ 
-        FreeChatgpt,
         GptGo, You,
         GptForLove, ChatBase,
         Chatgpt4Online,
@@ -81,7 +80,7 @@ gpt_4 = Model(
     name          = 'gpt-4',
     base_provider = 'openai',
     best_provider = RetryProvider([
-        Bing, FreeChatgpt, Phind, Liaobots, 
+        Bing, Phind, Liaobots, 
     ])
 )
 
@@ -159,12 +158,12 @@ claude_instant_v1 = Model(
 claude_v1 = Model(
     name          = 'claude-v1',
     base_provider = 'anthropic',
-    best_provider = RetryProvider([FreeChatgpt,Vercel]))
+    best_provider = Vercel)
 
 claude_v2 = Model(
     name          = 'claude-v2',
     base_provider = 'anthropic',
-    best_provider = RetryProvider([FreeChatgpt,Vercel]))
+    best_provider = RetryProvider([FreeChatgpt, Vercel]))
 
 command_light_nightly = Model(
     name          = 'command-light-nightly',
@@ -246,11 +245,10 @@ gpt_4_32k_0613 = Model(
     best_provider = gpt_4.best_provider
 )
 
-#Gemini
 gemini_pro = Model(
     name          = 'gemini-pro',
     base_provider = 'google',
-    best_provider = FreeChatgpt
+    best_provider = RetryProvider([FreeChatgpt, GeminiProChat])
 )
 
 text_ada_001 = Model(
