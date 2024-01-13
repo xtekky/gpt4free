@@ -7,6 +7,15 @@ from ..typing import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider
 
 
+
+models = {
+     "claude-v1":"claude-2.1",
+     "claude-v2":"claude-2.0",
+     "gpt_35_turbo":"gpt-3.5-turbo-1106",
+     "gpt-4":"gpt-4",
+     "gemini-pro":"google-gemini-pro"
+}
+
 class FreeChatgpt(AsyncGeneratorProvider):
     url = "https://free.chatgpt.org.uk"
     working = True
@@ -22,47 +31,31 @@ class FreeChatgpt(AsyncGeneratorProvider):
         proxy: str = None,
         **kwargs
     ) -> AsyncResult:
-        if not model:
-            model = "gpt-3.5-turbo"
+        model = models[model] if model in models else "gpt-3.5-turbo-1106"
         headers = {
-            "User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/119.0",
-            "Accept": "application/json, text/event-stream",
-            "Accept-Language": "de,en-US;q=0.7,en;q=0.3",
-            "Accept-Encoding": "gzip, deflate, br",
-            "Content-Type": "application/json",
-            "Referer": "https://free.chatgpt.org.uk/",
-            "x-requested-with": "XMLHttpRequest",
-            "Origin": "https://free.chatgpt.org.uk",
-            "Sec-Fetch-Dest": "empty",
-            "Sec-Fetch-Mode": "cors",
-            "Sec-Fetch-Site": "same-origin",
-            "Connection": "keep-alive",
-            "Alt-Used": "free.chatgpt.org.uk",
-            "Pragma": "no-cache",
-            "Cache-Control": "no-cache",
-            "TE": "trailers",
-        }
+    "Accept": "application/json, text/event-stream",
+    "Content-Type":"application/json",
+    "Accept-Encoding": "gzip, deflate, br",
+    "Accept-Language": "en-US,en;q=0.5",
+    "Host":"free.chatgpt.org.uk",
+    "Referer":f"{cls.url}/",
+    "Origin":f"{cls.url}",
+    "Sec-Fetch-Dest": "empty",
+    "Sec-Fetch-Mode": "cors",
+    "Sec-Fetch-Site": "same-origin",
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36", 
+}
         async with ClientSession(headers=headers) as session:
-            data = {
-                "messages": messages,
-                "isAzure": False,
-                "azureApiVersion": "2023-08-01-preview",
-                "stream": True,
-                "model": model,
-                "temperature": 0.5,
-                "presence_penalty": 0,
-                "frequency_penalty": 0,
-                "top_p": 1,
-                "baseUrl": "/api/openai",
-                "maxIterations": 10,
-                "returnIntermediateSteps": True,
-                "useTools": ["web-search", "calculator", "web-browser"],
-                **kwargs
-            }
-            async with session.post(f"{cls.url}/api/langchain/tool/agent/nodejs", json=data, proxy=proxy) as response:
-                response.raise_for_status()
-                async for line in response.content:
-                    if line.startswith(b"data: "):
-                        data = json.loads(line[6:])
-                        if data["isSuccess"] and not data["isToolMessage"]:
-                            yield data["message"]
+            data = {"messages":messages,"stream":True,"model":model,"temperature":0.5,"presence_penalty":0,"frequency_penalty":0,"top_p":1}
+            async with session.post(f'{cls.url}/api/openai/v1/chat/completions',json=data) as result:
+                async for chunk in result.content:
+                    
+                    line = chunk.decode()
+                    if line.startswith("data: [DONE]"):
+                            break
+                    elif line.startswith("data: "):
+                         line = json.loads(line[6:])
+                         if(line["choices"]==[]):
+                              continue
+                         if(line["choices"][0]["delta"].get("content") and line["choices"][0]["delta"]["content"]!=None):
+                              yield line["choices"][0]["delta"]["content"]
