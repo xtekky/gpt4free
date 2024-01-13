@@ -17,7 +17,7 @@ def get_model_and_provider(model    : Union[Model, str],
                            ignore_stream: bool = False) -> tuple[str, ProviderType]:
     if debug.version_check:
         debug.version_check = False
-        version.utils.check_pypi_version()
+        version.utils.check_version()
        
     if isinstance(provider, str):
         if provider in ProviderUtils.convert:

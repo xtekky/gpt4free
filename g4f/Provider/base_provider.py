@@ -7,7 +7,7 @@ from concurrent.futures import ThreadPoolExecutor
 from abc                import abstractmethod
 from inspect            import signature, Parameter
 from .helper            import get_event_loop, get_cookies, format_prompt
-from ..typing           import CreateResult, AsyncResult, Messages, Union
+from ..typing           import CreateResult, AsyncResult, Messages
 from ..base_provider    import BaseProvider
 
 if sys.version_info < (3, 10):
@@ -77,8 +77,7 @@ class AbstractProvider(BaseProvider):
                 continue
             if args:
                 args += ", "
-            args += "\n"
-            args += "    " + name
+            args += "\n    " + name
             if name != "model" and param.annotation is not Parameter.empty:
                 args += f": {get_type_name(param.annotation)}"
             if param.default == "":
@@ -156,7 +155,7 @@ class AsyncGeneratorProvider(AsyncProvider):
                 messages,
                 stream=False,
                 **kwargs
-            )
+            ) if not isinstance(chunk, Exception)
         ])
 
     @staticmethod

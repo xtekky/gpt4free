@@ -19,6 +19,7 @@ install_requires = [
     "PyExecJS",
     "duckduckgo-search",
     "nest_asyncio",
+    "werkzeug",
     "loguru",
     "pillow",
     "platformdirs",

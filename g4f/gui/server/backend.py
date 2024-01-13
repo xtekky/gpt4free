@@ -3,6 +3,7 @@ import json
 from flask import request, Flask
 from g4f import debug, version, models
 from g4f import _all_models, get_last_provider, ChatCompletion
+from g4f.image import is_allowed_extension, to_image
 from g4f.Provider import __providers__
 from g4f.Provider.bing.create_images import patch_provider
 from .internet import get_search_message
@@ -55,7 +56,7 @@ class Backend_Api:
     def version(self):
         return {
             "version": version.utils.current_version,
-            "lastet_version": version.utils.latest_version,
+            "lastet_version": version.get_latest_version(),
         }
     
     def _gen_title(self):
@@ -64,15 +65,31 @@ class Backend_Api:
         }
     
     def _conversation(self):
-        #jailbreak = request.json['jailbreak']
-        messages = request.json['meta']['content']['parts']
-        if request.json.get('internet_access'):
-            messages[-1]["content"] = get_search_message(messages[-1]["content"])
-        model = request.json.get('model')
-        model = model if model else models.default
-        provider = request.json.get('provider', '').replace('g4f.Provider.', '')
+        kwargs = {}
+        if 'image' in request.files:
+            file = request.files['image']
+            if file.filename != '' and is_allowed_extension(file.filename):
+                kwargs['image'] = to_image(file.stream)
+        if 'json' in request.form:
+            json_data = json.loads(request.form['json'])
+        else:
+            json_data = request.json
+            
+        provider = json_data.get('provider', '').replace('g4f.Provider.', '')
         provider = provider if provider and provider != "Auto" else None
-        patch = patch_provider if request.json.get('patch_provider') else None
+        if provider == 'OpenaiChat':
+            kwargs['auto_continue'] = True
+        messages = json_data['messages']
+        if json_data.get('web_search'):
+            if provider == "Bing":
+                kwargs['web_search'] = True
+            else:
+                messages[-1]["content"] = get_search_message(messages[-1]["content"])
+        model = json_data.get('model')
+        model = model if model else models.default
+        provider = json_data.get('provider', '').replace('g4f.Provider.', '')
+        provider = provider if provider and provider != "Auto" else None
+        patch = patch_provider if json_data.get('patch_provider') else None
 
         def try_response():
             try:
@@ -83,7 +100,8 @@ class Backend_Api:
                     messages=messages,
                     stream=True,
                     ignore_stream_and_auth=True,
-                    patch_provider=patch
+                    patch_provider=patch,
+                    **kwargs
                 ):
                     if first:
                         first = False
@@ -91,16 +109,24 @@ class Backend_Api:
                             'type'    : 'provider',
                             'provider': get_last_provider(True)
                         }) + "\n"
-                    yield json.dumps({
-                        'type'   : 'content',
-                        'content': chunk,
-                    }) + "\n"
-                
+                    if isinstance(chunk, Exception):
+                         yield json.dumps({
+                            'type'   : 'message',
+                            'message': get_error_message(chunk),
+                        }) + "\n"
+                    else:
+                        yield json.dumps({
+                            'type'   : 'content',
+                            'content': str(chunk),
+                        }) + "\n"
             except Exception as e:
                 logging.exception(e)
                 yield json.dumps({
                     'type' : 'error',
-                    'error': f'{e.__class__.__name__}: {e}'
+                    'error': get_error_message(e)
                 })
 
         return self.app.response_class(try_response(), mimetype='text/event-stream')
+    
+def get_error_message(exception: Exception) -> str:
+    return f"{get_last_provider().__name__}: {type(exception).__name__}: {exception}"

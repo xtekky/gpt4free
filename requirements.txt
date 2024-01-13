@@ -8,6 +8,7 @@ typing-extensions
 PyExecJS
 duckduckgo-search
 nest_asyncio
+werkzeug
 loguru
 pillow
 platformdirs

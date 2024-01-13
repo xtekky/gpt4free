@@ -5,6 +5,15 @@ from importlib.metadata import version as get_package_version, PackageNotFoundEr
 from subprocess import check_output, CalledProcessError, PIPE
 from .errors import VersionNotFoundError
 
+def get_latest_version() -> str:
+    try:
+        get_package_version("g4f")
+        response = requests.get("https://pypi.org/pypi/g4f/json").json()
+        return response["info"]["version"]
+    except PackageNotFoundError:
+        url = "https://api.github.com/repos/xtekky/gpt4free/releases/latest"
+        response = requests.get(url).json()
+        return response["tag_name"]
 
 class VersionUtils():
     @cached_property
@@ -28,20 +37,13 @@ class VersionUtils():
     
     @cached_property
     def latest_version(self) -> str:
-        try:
-            get_package_version("g4f")
-            response = requests.get("https://pypi.org/pypi/g4f/json").json()
-            return response["info"]["version"]
-        except PackageNotFoundError:
-            url = "https://api.github.com/repos/xtekky/gpt4free/releases/latest"
-            response = requests.get(url).json()
-            return response["tag_name"]
-
-    def check_pypi_version(self) -> None:
+        return get_latest_version()
+    
+    def check_version(self) -> None:
         try:
             if self.current_version != self.latest_version:
-                print(f'New pypi version: {self.latest_version} (current: {self.current_version}) | pip install -U g4f')
+                print(f'New g4f version: {self.latest_version} (current: {self.current_version}) | pip install -U g4f')
         except Exception as e:
-            print(f'Failed to check g4f pypi version: {e}')
+            print(f'Failed to check g4f version: {e}')
          
 utils = VersionUtils()
