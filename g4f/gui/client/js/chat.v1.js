@@ -104,7 +104,7 @@ const ask_gpt = async () => {
             </div>
             <div class="content" id="gpt_${window.token}">
                 <div class="provider"></div>
-                <div class="content_inner"><div id="cursor"></div></div>
+                <div class="content_inner"><span id="cursor"></span></div>
             </div>
         </div>
     `;
@@ -168,7 +168,7 @@ const ask_gpt = async () => {
             }
             if (error) {
                 console.error(error);
-                content_inner.innerHTML = "An error occured, please try again, if the problem persists, please use a other model or provider";
+                content_inner.innerHTML += "<p>An error occured, please try again, if the problem persists, please use a other model or provider.</p>";
             } else {
                 html = markdown_render(text);
                 html = html.substring(0, html.lastIndexOf('</p>')) + '<span id="cursor"></span></p>';

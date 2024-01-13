@@ -566,6 +566,7 @@ select {
     animation: blink 0.8s infinite;
     width: 7px;
     height: 15px;
+    display: inline-block;
 }
 
 @keyframes blink {
