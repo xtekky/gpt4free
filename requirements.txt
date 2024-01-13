@@ -4,7 +4,6 @@ curl_cffi>=0.5.10
 aiohttp
 certifi
 browser_cookie3
-websockets
 typing-extensions
 PyExecJS
 duckduckgo-search
@@ -13,8 +12,6 @@ werkzeug
 loguru
 pillow
 platformdirs
-numpy
-asgiref
 fastapi
 uvicorn
 flask

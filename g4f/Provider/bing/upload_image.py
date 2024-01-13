@@ -3,14 +3,17 @@ from __future__ import annotations
 import string
 import random
 import json
-import numpy as np
+import io
+import base64
+import math
+from PIL import Image
 from ...typing import ImageType
 from aiohttp import ClientSession
 from ...image import to_image, process_image, to_base64
 
 image_config = {
     "maxImagePixels": 360000,
-    "imageCompressionRate": 0.7,
+    "imageComp.ssionRate": 0.7,
     "enableFaceBlurDebug": 0,
 }
 
@@ -24,8 +27,8 @@ async def upload_image(
     width, height = image.size
     max_image_pixels = image_config['maxImagePixels']
     if max_image_pixels / (width * height) < 1:
-        new_width = int(width * np.sqrt(max_image_pixels / (width * height)))
-        new_height = int(height * np.sqrt(max_image_pixels / (width * height)))
+        new_width = int(width * math.sqrt(max_image_pixels / (width * height)))
+        new_height = int(height * math.sqrt(max_image_pixels / (width * height)))
     else:
         new_width = width
         new_height = height
@@ -55,8 +58,7 @@ async def upload_image(
             else "https://www.bing.com/images/blob?bcid="
             + result['bcid']
         )
-        return result
-    
+        return result    
 
 def build_image_upload_api_payload(image_bin: str, tone: str):
     payload = {

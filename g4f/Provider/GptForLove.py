@@ -1,7 +1,13 @@
 from __future__ import annotations
 
 from aiohttp import ClientSession
-import execjs, os, json
+import json
+from Crypto.Cipher import AES
+from Crypto.Util import Padding
+import base64
+import hashlib
+import time
+import math
 
 from ..typing import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider
@@ -65,18 +71,13 @@ class GptForLove(AsyncGeneratorProvider):
 
 
 def get_secret() -> str:
-    dir = os.path.dirname(__file__)
-    include = f'{dir}/npm/node_modules/crypto-js/crypto-js'
-    source = """
-CryptoJS = require({include})
-var k = '14487141bvirvvG'
-    , e = Math.floor(new Date().getTime() / 1e3);
-var t = CryptoJS.enc.Utf8.parse(e)
-    , o = CryptoJS.AES.encrypt(t, k, {
-    mode: CryptoJS.mode.ECB,
-    padding: CryptoJS.pad.Pkcs7
-});
-return o.toString()
-"""
-    source = source.replace('{include}', json.dumps(include))
-    return execjs.compile(source).call('')
+    k = '14487141bvirvvG'
+    e = math.floor(time.time())
+
+    plaintext = str(e).encode('utf-8')
+    key = hashlib.md5(k.encode('utf-8')).digest()
+    
+    cipher = AES.new(key, AES.MODE_ECB)
+    ciphertext = cipher.encrypt(Padding.pad(plaintext, AES.block_size, style='pkcs7'))
+
+    return base64.b64encode(ciphertext).decode()
