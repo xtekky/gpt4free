@@ -6,7 +6,7 @@ import json
 import re
 import io
 import base64
-import numpy as np
+import math
 from PIL import Image
 from aiohttp import ClientSession
 
@@ -29,8 +29,8 @@ async def upload_image(
         width, height = img.size
         max_image_pixels = image_config['maxImagePixels']
         if max_image_pixels / (width * height) < 1:
-            new_width = int(width * np.sqrt(max_image_pixels / (width * height)))
-            new_height = int(height * np.sqrt(max_image_pixels / (width * height)))
+            new_width = int(width * math.sqrt(max_image_pixels / (width * height)))
+            new_height = int(height * math.sqrt(max_image_pixels / (width * height)))
         else:
             new_width = width
             new_height = height
