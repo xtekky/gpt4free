@@ -3,11 +3,11 @@ from __future__ import annotations
 from urllib.parse import unquote
 
 from ...typing import AsyncResult, Messages
-from ..base_provider import BaseProvider
+from ..base_provider import AbstractProvider
 from ...webdriver import WebDriver
 from ...requests import Session, get_session_from_browser
 
-class AiChatting(BaseProvider):
+class AiChatting(AbstractProvider):
     url = "https://www.aichatting.net"
     supports_gpt_35_turbo = True
     _session: Session = None

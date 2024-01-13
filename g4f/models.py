@@ -1,28 +1,24 @@
 from __future__  import annotations
 from dataclasses import dataclass
-from .typing     import Union
-from .Provider   import BaseProvider, RetryProvider
+from .Provider   import RetryProvider, ProviderType
 from .Provider   import (
     Chatgpt4Online,
     ChatgptDemoAi,
-    ChatAnywhere,
     ChatgptNext,
     HuggingChat,
     ChatgptDemo,
+    FreeChatgpt,
     GptForLove,
     ChatgptAi,
     DeepInfra,
-    OnlineGpt,
     ChatBase,
     Liaobots,
     GeekGpt,
     FakeGpt,
     FreeGpt,
-    Berlin,
     Llama2,
     Vercel, 
     Phind,
-    Koala,
     GptGo,
     Gpt6,
     Bard, 
@@ -36,7 +32,7 @@ from .Provider   import (
 class Model:
     name: str
     base_provider: str
-    best_provider: Union[type[BaseProvider], RetryProvider] = None
+    best_provider: ProviderType = None
     
     @staticmethod
     def __all__() -> list[str]:
@@ -49,8 +45,7 @@ default = Model(
         Bing,
         ChatgptAi, GptGo, GeekGpt,
         You,
-        Chatgpt4Online,
-        ChatAnywhere
+        Chatgpt4Online
     ])
 )
 
@@ -61,14 +56,12 @@ gpt_35_long = Model(
     best_provider = RetryProvider([
         FreeGpt, You,
         GeekGpt, FakeGpt,
-        Berlin, Koala,
         Chatgpt4Online,
-        ChatAnywhere,
         ChatgptDemoAi,
-        OnlineGpt,
         ChatgptNext,
         ChatgptDemo,
         Gpt6,
+        FreeChatgpt,
     ])
 )
 
@@ -80,7 +73,6 @@ gpt_35_turbo = Model(
         GptGo, You, 
         GptForLove, ChatBase,
         Chatgpt4Online,
-        ChatAnywhere,
     ])
 )
 
@@ -101,28 +93,39 @@ gpt_4_turbo = Model(
 llama2_7b = Model(
     name          = "meta-llama/Llama-2-7b-chat-hf",
     base_provider = 'huggingface',
-    best_provider = RetryProvider([Llama2, DeepInfra]))
+    best_provider = RetryProvider([Llama2, DeepInfra])
+)
 
 llama2_13b = Model(
     name          = "meta-llama/Llama-2-13b-chat-hf",
     base_provider = 'huggingface',
-    best_provider = RetryProvider([Llama2, DeepInfra]))
+    best_provider = RetryProvider([Llama2, DeepInfra])
+)
 
 llama2_70b = Model(
     name          = "meta-llama/Llama-2-70b-chat-hf",
     base_provider = "huggingface",
-    best_provider = RetryProvider([Llama2, DeepInfra, HuggingChat]))
+    best_provider = RetryProvider([Llama2, DeepInfra, HuggingChat])
+)
 
 # Mistal
 mixtral_8x7b = Model(
     name          = "mistralai/Mixtral-8x7B-Instruct-v0.1",
     base_provider = "huggingface",
-    best_provider = HuggingChat)
+    best_provider = RetryProvider([DeepInfra, HuggingChat])
+)
 
 mistral_7b = Model(
     name          = "mistralai/Mistral-7B-Instruct-v0.1",
     base_provider = "huggingface",
-    best_provider = HuggingChat)
+    best_provider = RetryProvider([DeepInfra, HuggingChat])
+)
+
+openchat_35 = Model(
+    name          = "openchat/openchat_3.5",
+    base_provider = "huggingface",
+    best_provider = RetryProvider([DeepInfra, HuggingChat])
+)
 
 # Bard
 palm = Model(
@@ -313,6 +316,7 @@ class ModelUtils:
         # Mistral
         'mixtral-8x7b': mixtral_8x7b,
         'mistral-7b': mistral_7b,
+        'openchat_3.5': openchat_35,
         
         # Bard
         'palm2'       : palm,

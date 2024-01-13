@@ -4,11 +4,11 @@ import time
 from urllib.parse import quote
 
 from ...typing import CreateResult, Messages
-from ..base_provider import BaseProvider
+from ..base_provider import AbstractProvider
 from ..helper import format_prompt
 from ...webdriver import WebDriver, WebDriverSession
 
-class Phind(BaseProvider):
+class Phind(AbstractProvider):
     url = "https://www.phind.com"
     working = True
     supports_gpt_4 = True

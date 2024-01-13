@@ -1,34 +1,24 @@
 from __future__ import annotations
 
-import string
 import random
 import json
 import os
-import re
-import io
-import base64
-import numpy as np
 import uuid
-import urllib.parse
 import time
-from PIL import Image
-from aiohttp        import ClientSession, ClientTimeout
-from ..typing       import AsyncResult, Messages
+from urllib import parse
+from aiohttp import ClientSession, ClientTimeout
+
+from ..typing import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider
+from ..webdriver import get_browser, get_driver_cookies
+from .bing.upload_image import upload_image
+from .bing.create_images import create_images, format_images_markdown, wait_for_login
+from .bing.conversation import Conversation, create_conversation, delete_conversation
 
 class Tones():
     creative = "Creative"
     balanced = "Balanced"
     precise = "Precise"
-
-default_cookies = {
-    'SRCHD'         : 'AF=NOFORM',
-    'PPLState'      : '1',
-    'KievRPSSecAuth': '',
-    'SUID'          : '',
-    'SRCHUSR'       : '',
-    'SRCHHPGUSR'    : f'HV={int(time.time())}',
-}
 
 class Bing(AsyncGeneratorProvider):
     url = "https://bing.com/chat"
@@ -41,8 +31,9 @@ class Bing(AsyncGeneratorProvider):
         model: str,
         messages: Messages,
         proxy: str = None,
+        timeout: int = 900,
         cookies: dict = None,
-        tone: str = Tones.creative,
+        tone: str = Tones.balanced,
         image: str = None,
         web_search: bool = False,
         **kwargs
@@ -55,121 +46,21 @@ class Bing(AsyncGeneratorProvider):
             context = create_context(messages[:-1])
         
         if not cookies:
-            cookies = default_cookies
+            cookies = Defaults.cookies
         else:
-            for key, value in default_cookies.items():
+            for key, value in Defaults.cookies.items():
                 if key not in cookies:
                     cookies[key] = value
 
         gpt4_turbo = True if model.startswith("gpt-4-turbo") else False
 
-        return stream_generate(prompt, tone, image, context, proxy, cookies, web_search, gpt4_turbo)
+        return stream_generate(prompt, tone, image, context, proxy, cookies, web_search, gpt4_turbo, timeout)
 
 def create_context(messages: Messages):
     return "".join(
         f"[{message['role']}]" + ("(#message)" if message['role']!="system" else "(#additional_instructions)") + f"\n{message['content']}\n\n"
         for message in messages
     )
-
-class Conversation():
-    def __init__(self, conversationId: str, clientId: str, conversationSignature: str, imageInfo: dict=None) -> None:
-        self.conversationId = conversationId
-        self.clientId = clientId
-        self.conversationSignature = conversationSignature
-        self.imageInfo = imageInfo
-
-async def create_conversation(session: ClientSession, tone: str, image: str = None, proxy: str = None) -> Conversation:
-    url = 'https://www.bing.com/turing/conversation/create?bundleVersion=1.1199.4'
-    async with session.get(url, proxy=proxy) as response:
-        data = await response.json()
-
-        conversationId = data.get('conversationId')
-        clientId = data.get('clientId')
-        conversationSignature = response.headers.get('X-Sydney-Encryptedconversationsignature')
-
-        if not conversationId or not clientId or not conversationSignature:
-            raise Exception('Failed to create conversation.')
-        conversation = Conversation(conversationId, clientId, conversationSignature, None)
-        if isinstance(image,str):
-            try:
-                config = {
-                    "visualSearch": {
-                        "maxImagePixels": 360000,
-                        "imageCompressionRate": 0.7,
-                        "enableFaceBlurDebug": 0,
-                    }
-                }
-                is_data_uri_an_image(image)
-                img_binary_data = extract_data_uri(image)
-                is_accepted_format(img_binary_data)
-                img = Image.open(io.BytesIO(img_binary_data))
-                width, height = img.size
-                max_image_pixels = config['visualSearch']['maxImagePixels']
-                compression_rate = config['visualSearch']['imageCompressionRate']
-
-                if max_image_pixels / (width * height) < 1:
-                    new_width = int(width * np.sqrt(max_image_pixels / (width * height)))
-                    new_height = int(height * np.sqrt(max_image_pixels / (width * height)))
-                else:
-                    new_width = width
-                    new_height = height
-                try:
-                    orientation = get_orientation(img)
-                except Exception:
-                    orientation = None
-                new_img = process_image(orientation, img, new_width, new_height)
-                new_img_binary_data = compress_image_to_base64(new_img, compression_rate)
-                data, boundary = build_image_upload_api_payload(new_img_binary_data, conversation, tone)
-                headers = session.headers.copy()
-                headers["content-type"] = f'multipart/form-data; boundary={boundary}'
-                headers["referer"] = 'https://www.bing.com/search?q=Bing+AI&showconv=1&FORM=hpcodx'
-                headers["origin"] = 'https://www.bing.com'
-                async with session.post("https://www.bing.com/images/kblob", data=data, headers=headers, proxy=proxy) as image_upload_response:
-                    if image_upload_response.status != 200:
-                        raise Exception("Failed to upload image.")
-
-                    image_info = await image_upload_response.json()
-                    if not image_info.get('blobId'):
-                        raise Exception("Failed to parse image info.")
-                    result = {'bcid': image_info.get('blobId', "")}
-                    result['blurredBcid'] = image_info.get('processedBlobId', "")
-                    if result['blurredBcid'] != "":
-                        result["imageUrl"] = "https://www.bing.com/images/blob?bcid=" + result['blurredBcid']
-                    elif result['bcid'] != "":
-                        result["imageUrl"] = "https://www.bing.com/images/blob?bcid=" + result['bcid']
-                    result['originalImageUrl'] = (
-                        "https://www.bing.com/images/blob?bcid="
-                        + result['blurredBcid']
-                        if config['visualSearch']["enableFaceBlurDebug"]
-                        else "https://www.bing.com/images/blob?bcid="
-                        + result['bcid']
-                    )
-                    conversation.imageInfo = result
-            except Exception as e:
-                print(f"An error happened while trying to send image: {str(e)}")
-        return conversation
-
-async def list_conversations(session: ClientSession) -> list:
-    url = "https://www.bing.com/turing/conversation/chats"
-    async with session.get(url) as response:
-        response = await response.json()
-        return response["chats"]
-        
-async def delete_conversation(session: ClientSession, conversation: Conversation, proxy: str = None) -> list:
-    url = "https://sydney.bing.com/sydney/DeleteSingleConversation"
-    json = {
-        "conversationId": conversation.conversationId,
-        "conversationSignature": conversation.conversationSignature,
-        "participant": {"id": conversation.clientId},
-        "source": "cib",
-        "optionsSets": ["autosave"]
-    }
-    async with session.post(url, json=json, proxy=proxy) as response:
-        try:
-            response = await response.json()
-            return response["result"]["value"] == "Success"
-        except:
-            return False
 
 class Defaults:
     delimiter = "\x1e"
@@ -264,123 +155,28 @@ class Defaults:
         'eredirecturl',
         'nojbfedge'
     ]
+    
+    cookies = {
+        'SRCHD'         : 'AF=NOFORM',
+        'PPLState'      : '1',
+        'KievRPSSecAuth': '',
+        'SUID'          : '',
+        'SRCHUSR'       : '',
+        'SRCHHPGUSR'    : f'HV={int(time.time())}',
+    }
 
 def format_message(msg: dict) -> str:
     return json.dumps(msg, ensure_ascii=False) + Defaults.delimiter
 
-def build_image_upload_api_payload(image_bin: str, conversation: Conversation, tone: str):
-    payload = {
-        'invokedSkills': ["ImageById"],
-        'subscriptionId': "Bing.Chat.Multimodal",
-        'invokedSkillsRequestData': {
-            'enableFaceBlur': True
-        },
-        'convoData': {
-            'convoid': "",
-            'convotone': tone
-        }
-    }
-    knowledge_request = {
-        'imageInfo': {},
-        'knowledgeRequest': payload
-    }
-    boundary="----WebKitFormBoundary" + ''.join(random.choices(string.ascii_letters + string.digits, k=16))
-    data = (
-        f'--{boundary}'
-        + '\r\nContent-Disposition: form-data; name="knowledgeRequest"\r\n\r\n'
-        + json.dumps(knowledge_request, ensure_ascii=False)
-        + "\r\n--"
-        + boundary
-        + '\r\nContent-Disposition: form-data; name="imageBase64"\r\n\r\n'
-        + image_bin
-        + "\r\n--"
-        + boundary
-        + "--\r\n"
-    )
-    return data, boundary
-
-def is_data_uri_an_image(data_uri: str):
-    try:
-        # Check if the data URI starts with 'data:image' and contains an image format (e.g., jpeg, png, gif)
-        if not re.match(r'data:image/(\w+);base64,', data_uri):
-            raise ValueError("Invalid data URI image.")
-            # Extract the image format from the data URI
-        image_format = re.match(r'data:image/(\w+);base64,', data_uri).group(1)
-        # Check if the image format is one of the allowed formats (jpg, jpeg, png, gif)
-        if image_format.lower() not in ['jpeg', 'jpg', 'png', 'gif']:
-            raise ValueError("Invalid image format (from mime file type).")
-    except Exception as e:
-        raise e
-
-def is_accepted_format(binary_data: bytes) -> bool:
-        try:
-            check = False
-            if binary_data.startswith(b'\xFF\xD8\xFF'):
-                check = True  # It's a JPEG image
-            elif binary_data.startswith(b'\x89PNG\r\n\x1a\n'):
-                check = True  # It's a PNG image
-            elif binary_data.startswith(b'GIF87a') or binary_data.startswith(b'GIF89a'):
-                check = True  # It's a GIF image
-            elif binary_data.startswith(b'\x89JFIF') or binary_data.startswith(b'JFIF\x00'):
-                check = True  # It's a JPEG image
-            elif binary_data.startswith(b'\xFF\xD8'):
-                check = True  # It's a JPEG image
-            elif binary_data.startswith(b'RIFF') and binary_data[8:12] == b'WEBP':
-                check = True  # It's a WebP image
-            # else we raise ValueError
-            if not check:
-                raise ValueError("Invalid image format (from magic code).")
-        except Exception as e:
-            raise e
-    
-def extract_data_uri(data_uri: str) -> bytes:
-    try:
-        data = data_uri.split(",")[1]
-        data = base64.b64decode(data)
-        return data
-    except Exception as e:
-        raise e
-
-def get_orientation(data: bytes) -> int:
-    try:
-        if data[:2] != b'\xFF\xD8':
-            raise Exception('NotJpeg')
-        with Image.open(data) as img:
-            exif_data = img._getexif()
-            if exif_data is not None:
-                orientation = exif_data.get(274)  # 274 corresponds to the orientation tag in EXIF
-                if orientation is not None:
-                    return orientation
-    except Exception:
-        pass
-
-def process_image(orientation: int, img: Image.Image, new_width: int, new_height: int) -> Image.Image:
-    try:
-        # Initialize the canvas
-        new_img = Image.new("RGB", (new_width, new_height), color="#FFFFFF")
-        if orientation:
-            if orientation > 4:
-                img = img.transpose(Image.FLIP_LEFT_RIGHT)
-            if orientation in [3, 4]:
-                img = img.transpose(Image.ROTATE_180)
-            if orientation in [5, 6]:
-                img = img.transpose(Image.ROTATE_270)
-            if orientation in [7, 8]:
-                img = img.transpose(Image.ROTATE_90)
-        new_img.paste(img, (0, 0))
-        return new_img
-    except Exception as e:
-        raise e
-    
-def compress_image_to_base64(img, compression_rate) -> str:
-    try:
-        output_buffer = io.BytesIO()
-        img.save(output_buffer, format="JPEG", quality=int(compression_rate * 100))
-        return base64.b64encode(output_buffer.getvalue()).decode('utf-8')
-    except Exception as e:
-        raise e
-
-def create_message(conversation: Conversation, prompt: str, tone: str, context: str = None, web_search: bool = False, gpt4_turbo: bool = False) -> str:
+def create_message(
+    conversation: Conversation,
+    prompt: str,
+    tone: str,
+    context: str = None,
+    image_info: dict = None,
+    web_search: bool = False,
+    gpt4_turbo: bool = False
+) -> str:
     options_sets = Defaults.optionsSets
     if tone == Tones.creative:
         options_sets.append("h3imaginative")
@@ -416,7 +212,11 @@ def create_message(conversation: Conversation, prompt: str, tone: str, context: 
                     'requestId': request_id,
                     'messageId': request_id,
                 }},
+                "verbosity": "verbose",
                 "scenario": "SERP",
+                "plugins":[
+                    {"id":"c310c353-b9f0-4d76-ab0d-1dd5e979cf68", "category": 1}
+                ] if web_search else [],
                 'tone': tone,
                 'spokenTextMode': 'None',
                 'conversationId': conversation.conversationId,
@@ -429,9 +229,9 @@ def create_message(conversation: Conversation, prompt: str, tone: str, context: 
         'target': 'chat',
         'type': 4
     }
-    if conversation.imageInfo != None and "imageUrl" in conversation.imageInfo and "originalImageUrl" in conversation.imageInfo:
-        struct['arguments'][0]['message']['originalImageUrl'] = conversation.imageInfo['originalImageUrl']
-        struct['arguments'][0]['message']['imageUrl'] = conversation.imageInfo['imageUrl']
+    if image_info and "imageUrl" in image_info and "originalImageUrl" in image_info:
+        struct['arguments'][0]['message']['originalImageUrl'] = image_info['originalImageUrl']
+        struct['arguments'][0]['message']['imageUrl'] = image_info['imageUrl']
         struct['arguments'][0]['experienceType'] = None
         struct['arguments'][0]['attachedFileInfo'] = {"fileName": None, "fileType": None}
     if context:
@@ -452,30 +252,42 @@ async def stream_generate(
         proxy: str = None,
         cookies: dict = None,
         web_search: bool = False,
-        gpt4_turbo: bool = False
+        gpt4_turbo: bool = False,
+        timeout: int = 900
     ):
+    headers = Defaults.headers
+    if cookies:
+        headers["Cookie"] = "; ".join(f"{k}={v}" for k, v in cookies.items())
     async with ClientSession(
-            timeout=ClientTimeout(total=900),
-            headers=Defaults.headers if not cookies else {**Defaults.headers, "Cookie": "; ".join(f"{k}={v}" for k, v in cookies.items())},
-        ) as session:
-        conversation = await create_conversation(session, tone, image, proxy)
+        timeout=ClientTimeout(total=timeout),
+        headers=headers
+    ) as session:
+        conversation = await create_conversation(session, proxy)
+        image_info = None
+        if image:
+            image_info = await upload_image(session, image, tone, proxy)
         try:
-            async with session.ws_connect('wss://sydney.bing.com/sydney/ChatHub', autoping=False, params={'sec_access_token': conversation.conversationSignature}, proxy=proxy) as wss:
-
+            async with session.ws_connect(
+                'wss://sydney.bing.com/sydney/ChatHub',
+                autoping=False,
+                params={'sec_access_token': conversation.conversationSignature},
+                proxy=proxy
+            ) as wss:
                 await wss.send_str(format_message({'protocol': 'json', 'version': 1}))
-                await wss.receive(timeout=900)
-                await wss.send_str(create_message(conversation, prompt, tone, context, web_search, gpt4_turbo))
+                await wss.receive(timeout=timeout)
+                await wss.send_str(create_message(conversation, prompt, tone, context, image_info, web_search, gpt4_turbo))
 
                 response_txt = ''
                 returned_text = ''
                 final = False
                 while not final:
-                    msg = await wss.receive(timeout=900)
+                    msg = await wss.receive(timeout=timeout)
+                    if not msg.data:
+                        continue
                     objects = msg.data.split(Defaults.delimiter)
                     for obj in objects:
                         if obj is None or not obj:
                             continue
-
                         response = json.loads(obj)
                         if response.get('type') == 1 and response['arguments'][0].get('messages'):
                             message = response['arguments'][0]['messages'][0]
@@ -488,9 +300,11 @@ async def stream_generate(
                                         inline_txt = card['inlines'][0].get('text')
                                         response_txt += inline_txt + '\n'
                                 elif message.get('contentType') == "IMAGE":
-                                    query = urllib.parse.quote(message.get('text'))
-                                    url = f"\nhttps://www.bing.com/images/create?q={query}"
-                                    response_txt += url
+                                    prompt = message.get('text')
+                                    try:
+                                        response_txt += format_images_markdown(await create_images(session, prompt, proxy), prompt)
+                                    except:
+                                        response_txt += f"\nhttps://www.bing.com/images/create?q={parse.quote(prompt)}"
                                     final = True
                             if response_txt.startswith(returned_text):
                                 new = response_txt[len(returned_text):]
@@ -500,7 +314,17 @@ async def stream_generate(
                         elif response.get('type') == 2:
                             result = response['item']['result']
                             if result.get('error'):
-                                raise Exception(f"{result['value']}: {result['message']}")
+                                if result["value"] == "CaptchaChallenge":
+                                    driver = get_browser(proxy=proxy)
+                                    try:
+                                        wait_for_login(driver)
+                                        cookies = get_driver_cookies(driver)
+                                    finally:
+                                        driver.quit()
+                                    async for chunk in stream_generate(prompt, tone, image, context, proxy, cookies, web_search, gpt4_turbo, timeout):
+                                        yield chunk
+                                else:
+                                    raise Exception(f"{result['value']}: {result['message']}")
                             return
         finally:
             await delete_conversation(session, conversation, proxy)

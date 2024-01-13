@@ -2,13 +2,11 @@ from __future__ import annotations
 
 import json
 import requests
-from .base_provider import BaseProvider
-from ..typing import Messages, CreateResult
-from .helper import get_cookies
+from ..base_provider import AbstractProvider
+from ...typing import Messages, CreateResult
 
 
-
-class VoiGpt(BaseProvider):
+class VoiGpt(AbstractProvider):
     """
     VoiGpt - A provider for VoiGpt.com
 

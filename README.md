@@ -1,13 +1,14 @@
 ![248433934-7886223b-c1d1-4260-82aa-da5741f303bb](https://github.com/xtekky/gpt4free/assets/98614666/ea012c87-76e0-496a-8ac4-e2de090cc6c9)
 Written by [@xtekky](https://github.com/hlohaus) & maintained by [@hlohaus](https://github.com/hlohaus)
 
-<a href='https://ko-fi.com/xtekky' target='_blank'><img height='35' style='border:0px;height:46px;' src='https://az743702.vo.msecnd.net/cdn/kofi3.png?v=0' border='0' alt='Buy Me a Coffee at ko-fi.com' />
 <div id="top"></div>
 
 > By using this repository or any code related to it, you agree to the [legal notice](LEGAL_NOTICE.md). The author is not responsible for any copies, forks, re-uploads made by other users, or anything else related to GPT4Free. This is the author's only account and repository. To prevent impersonation or irresponsible actions, please comply with the GNU GPL license this Repository uses.
 
 > [!Note]
-<sup><strong>Lastet version:</strong></sup> [![PyPI version](https://img.shields.io/pypi/v/g4f?color=blue)](https://pypi.org/project/g4f) [![Docker version](https://img.shields.io/docker/v/hlohaus789/g4f?label=docker&color=blue)](https://hub.docker.com/r/hlohaus789/g4f)
+<sup><strong>Lastet version:</strong></sup> [![PyPI version](https://img.shields.io/pypi/v/g4f?color=blue)](https://pypi.org/project/g4f) [![Docker version](https://img.shields.io/docker/v/hlohaus789/g4f?label=docker&color=blue)](https://hub.docker.com/r/hlohaus789/g4f)  
+> <sup><strong>Stats:</strong></sup>  [![Downloads](https://static.pepy.tech/badge/g4f)](https://pepy.tech/project/g4f) [![Downloads](https://static.pepy.tech/badge/g4f/month)](https://pepy.tech/project/g4f)
+
 ```sh
 pip install -U g4f
 ```
@@ -64,7 +65,7 @@ docker pull hlohaus789/g4f
 ##### Quick start:
 
 1. [Download and install Docker](https://docs.docker.com/get-docker/)
-2. Pull lastet image and run the container:
+2. Pull latest image and run the container:
 
 ```sh
 docker pull hlohaus789/g4f
@@ -186,7 +187,7 @@ docker-compose down
 import g4f
 
 g4f.debug.logging = True  # Enable debug logging
-g4f.debug.check_version = False  # Disable automatic version checking
+g4f.debug.version_check = False  # Disable automatic version checking
 print(g4f.Provider.Bing.params)  # Print supported args for Bing
 
 # Using automatic a provider for the given model
@@ -370,17 +371,19 @@ python -m g4f.api.run
 ```
 
 ```python
-import openai
+from openai import OpenAI
 
-# Set your Hugging Face token as the API key if you use embeddings
-# If you don't use embeddings, leave it empty
-openai.api_key = "YOUR_HUGGING_FACE_TOKEN"  # Replace with your actual token
+client = OpenAI(
+    # Set your Hugging Face token as the API key if you use embeddings
+    api_key="YOUR_HUGGING_FACE_TOKEN",
 
-# Set the API base URL if needed, e.g., for a local development environment
-openai.api_base = "http://localhost:1337/v1"
+    # Set the API base URL if needed, e.g., for a local development environment
+    base_url="http://localhost:1337/v1"
+)
+
 
 def main():
-    chat_completion = openai.ChatCompletion.create(
+    chat_completion = client.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=[{"role": "user", "content": "write a poem about a tree"}],
         stream=True,
@@ -392,9 +395,10 @@ def main():
     else:
         # Streaming
         for token in chat_completion:
-            content = token["choices"][0]["delta"].get("content")
+            content = token.choices[0].delta.content
             if content is not None:
                 print(content, end="", flush=True)
+
 
 if __name__ == "__main__":
     main()

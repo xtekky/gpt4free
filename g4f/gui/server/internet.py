@@ -112,7 +112,7 @@ async def search(query: str, n_results: int = 5, max_words: int = 2500, add_text
                 texts = await asyncio.gather(*requests)
 
         formatted_results = []
-        left_words = max_words;
+        left_words = max_words
         for i, entry in enumerate(results):
             if add_text:
                 entry.text = texts[i]
@@ -145,5 +145,5 @@ User request:
 """
         return message
     except Exception as e:
-        print("Couldn't search DuckDuckGo:", e)
+        print("Couldn't do web search:", e)
         return prompt

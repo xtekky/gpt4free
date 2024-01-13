@@ -11,10 +11,10 @@ except ImportError:
     from Cryptodome.Cipher import AES
 
 from ...typing import Any, CreateResult
-from ..base_provider import BaseProvider
+from ..base_provider import AbstractProvider
 
 
-class GetGpt(BaseProvider):
+class GetGpt(AbstractProvider):
     url                   = 'https://chat.getgpt.world/'
     supports_stream       = True
     working               = False

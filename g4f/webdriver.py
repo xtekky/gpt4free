@@ -39,6 +39,9 @@ def get_browser(
         headless=headless
     )
 
+def get_driver_cookies(driver: WebDriver):
+    return dict([(cookie["name"], cookie["value"]) for cookie in driver.get_cookies()])
+
 def bypass_cloudflare(driver: WebDriver, url: str, timeout: int) -> None:
     # Open website
     driver.get(url)

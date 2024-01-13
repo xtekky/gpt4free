@@ -1,15 +1,14 @@
 from __future__ import annotations
 
-import sys
 import asyncio
 import webbrowser
 import random
 import string
 import secrets
 import os
-from os              import path
-from asyncio         import AbstractEventLoop
-from platformdirs    import user_config_dir
+from os import path
+from asyncio import AbstractEventLoop, BaseEventLoop
+from platformdirs import user_config_dir
 from browser_cookie3 import (
     chrome,
     chromium,
@@ -25,37 +24,34 @@ from browser_cookie3 import (
 from ..typing import Dict, Messages
 from .. import debug
 
-# Change event loop policy on windows
-if sys.platform == 'win32':
-    if isinstance(
-        asyncio.get_event_loop_policy(), asyncio.WindowsProactorEventLoopPolicy
-    ):
-        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-
 # Local Cookie Storage
 _cookies: Dict[str, Dict[str, str]] = {}
 
-# If event loop is already running, handle nested event loops
+# If loop closed or not set, create new event loop.
+# If event loop is already running, handle nested event loops.
 # If "nest_asyncio" is installed, patch the event loop.
 def get_event_loop() -> AbstractEventLoop:
     try:
-        asyncio.get_running_loop()
+        loop = asyncio.get_event_loop()
+        if isinstance(loop, BaseEventLoop):
+            loop._check_closed()
     except RuntimeError:
-        try:
-            return asyncio.get_event_loop()
-        except RuntimeError:
-            asyncio.set_event_loop(asyncio.new_event_loop())
-            return asyncio.get_event_loop()
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
     try:
-        event_loop = asyncio.get_event_loop()
-        if not hasattr(event_loop.__class__, "_nest_patched"):
+        # Is running event loop
+        asyncio.get_running_loop()
+        if not hasattr(loop.__class__, "_nest_patched"):
             import nest_asyncio
-            nest_asyncio.apply(event_loop)
-        return event_loop
+            nest_asyncio.apply(loop)
+    except RuntimeError:
+        # No running event loop
+        pass
     except ImportError:
         raise RuntimeError(
             'Use "create_async" instead of "create" function in a running event loop. Or install the "nest_asyncio" package.'
         )
+    return loop
 
 def init_cookies():
     urls = [

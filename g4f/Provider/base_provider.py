@@ -1,37 +1,28 @@
 from __future__ import annotations
 
 import sys
+import asyncio
 from asyncio            import AbstractEventLoop
 from concurrent.futures import ThreadPoolExecutor
-from abc                import ABC, abstractmethod
+from abc                import abstractmethod
 from inspect            import signature, Parameter
 from .helper            import get_event_loop, get_cookies, format_prompt
-from ..typing           import CreateResult, AsyncResult, Messages
+from ..typing           import CreateResult, AsyncResult, Messages, Union
+from ..base_provider    import BaseProvider
 
 if sys.version_info < (3, 10):
     NoneType = type(None)
 else:
     from types import NoneType
 
-class BaseProvider(ABC):
-    url: str
-    working: bool = False
-    needs_auth: bool = False
-    supports_stream: bool = False
-    supports_gpt_35_turbo: bool = False
-    supports_gpt_4: bool = False
-    supports_message_history: bool = False
+# Change event loop policy on windows for curl_cffi
+if sys.platform == 'win32':
+    if isinstance(
+        asyncio.get_event_loop_policy(), asyncio.WindowsProactorEventLoopPolicy
+    ):
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
-    @staticmethod
-    @abstractmethod
-    def create_completion(
-        model: str,
-        messages: Messages,
-        stream: bool,
-        **kwargs
-    ) -> CreateResult:
-        raise NotImplementedError()
-
+class AbstractProvider(BaseProvider):
     @classmethod
     async def create_async(
         cls,
@@ -53,9 +44,12 @@ class BaseProvider(ABC):
                 **kwargs
             ))
 
-        return await loop.run_in_executor(
-            executor,
-            create_func
+        return await asyncio.wait_for(
+            loop.run_in_executor(
+                executor,
+                create_func
+            ),
+            timeout=kwargs.get("timeout", 0)
         )
     
     @classmethod
@@ -95,16 +89,19 @@ class BaseProvider(ABC):
         return f"g4f.Provider.{cls.__name__} supports: ({args}\n)"
 
 
-class AsyncProvider(BaseProvider):
+class AsyncProvider(AbstractProvider):
     @classmethod
     def create_completion(
         cls,
         model: str,
         messages: Messages,
         stream: bool = False,
+        *,
+        loop: AbstractEventLoop = None,
         **kwargs
     ) -> CreateResult:
-        loop = get_event_loop()
+        if not loop:
+            loop = get_event_loop()
         coro = cls.create_async(model, messages, **kwargs)
         yield loop.run_until_complete(coro)
 
@@ -127,9 +124,12 @@ class AsyncGeneratorProvider(AsyncProvider):
         model: str,
         messages: Messages,
         stream: bool = True,
+        *,
+        loop: AbstractEventLoop = None,
         **kwargs
     ) -> CreateResult:
-        loop = get_event_loop()
+        if not loop:
+            loop = get_event_loop()
         generator = cls.create_async_generator(
             model,
             messages,
@@ -164,6 +164,7 @@ class AsyncGeneratorProvider(AsyncProvider):
     def create_async_generator(
         model: str,
         messages: Messages,
+        stream: bool = True,
         **kwargs
     ) -> AsyncResult:
         raise NotImplementedError()

@@ -3,7 +3,7 @@ from __future__ import annotations
 import time
 
 from ...typing import CreateResult, Messages
-from ..base_provider import BaseProvider
+from ..base_provider import AbstractProvider
 from ..helper import format_prompt
 from ...webdriver import WebDriver, WebDriverSession
 
@@ -20,7 +20,7 @@ models = {
     "palm": {"name": "Google-PaLM"},
 }
 
-class Poe(BaseProvider):
+class Poe(AbstractProvider):
     url = "https://poe.com"
     working = True
     needs_auth = True
