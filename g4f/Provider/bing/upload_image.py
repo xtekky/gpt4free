@@ -3,17 +3,14 @@ from __future__ import annotations
 import string
 import random
 import json
-import io
-import base64
 import math
-from PIL import Image
 from ...typing import ImageType
 from aiohttp import ClientSession
 from ...image import to_image, process_image, to_base64
 
 image_config = {
     "maxImagePixels": 360000,
-    "imageComp.ssionRate": 0.7,
+    "imageCompressionRate": 0.7,
     "enableFaceBlurDebug": 0,
 }
 
