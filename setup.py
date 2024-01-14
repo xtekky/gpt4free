@@ -32,6 +32,7 @@ install_requires = [
     "undetected-chromedriver",
     "brotli",
     "beautifulsoup4",
+    "setuptools",
 ]
 
 DESCRIPTION = (
