@@ -1,16 +1,20 @@
 from __future__ import annotations
 
-import json
+import json, random
 from aiohttp import ClientSession
 
 from ..typing import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider
 
-
 models = {
-     "claude-v2": "claude-2.0",
-     "gemini-pro": "google-gemini-pro"
+    "claude-v2": "claude-2.0",
+    "claude-v2.1":"claude-2.1",
+    "gemini-pro": "google-gemini-pro"
 }
+urls = [
+    "https://free.chatgpt.org.uk",
+    "https://ai.chatgpt.org.uk"
+]
 
 class FreeChatgpt(AsyncGeneratorProvider):
     url = "https://free.chatgpt.org.uk"
@@ -31,6 +35,7 @@ class FreeChatgpt(AsyncGeneratorProvider):
             model = models[model]
         elif not model:
             model = "gpt-3.5-turbo"
+        url = random.choice(urls)
         headers = {
             "Accept": "application/json, text/event-stream",
             "Content-Type":"application/json",
@@ -55,7 +60,7 @@ class FreeChatgpt(AsyncGeneratorProvider):
                 "top_p":1,
                 **kwargs
             }
-            async with session.post(f'{cls.url}/api/openai/v1/chat/completions', json=data, proxy=proxy) as response:
+            async with session.post(f'{url}/api/openai/v1/chat/completions', json=data, proxy=proxy) as response:
                 response.raise_for_status()
                 started = False
                 async for line in response.content:

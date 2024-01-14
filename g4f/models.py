@@ -31,12 +31,21 @@ from .Provider   import (
 
 @dataclass(unsafe_hash=True)
 class Model:
+    """
+    Represents a machine learning model configuration.
+
+    Attributes:
+        name (str): Name of the model.
+        base_provider (str): Default provider for the model.
+        best_provider (ProviderType): The preferred provider for the model, typically with retry logic.
+    """
     name: str
     base_provider: str
     best_provider: ProviderType = None
     
     @staticmethod
     def __all__() -> list[str]:
+        """Returns a list of all model names."""
         return _all_models
 
 default = Model(
@@ -298,6 +307,12 @@ pi = Model(
 )
 
 class ModelUtils:
+    """
+    Utility class for mapping string identifiers to Model instances.
+
+    Attributes:
+        convert (dict[str, Model]): Dictionary mapping model string identifiers to Model instances.
+    """
     convert: dict[str, Model] = {
         # gpt-3.5
         'gpt-3.5-turbo'          : gpt_35_turbo,
