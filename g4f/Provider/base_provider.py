@@ -36,6 +36,17 @@ class AbstractProvider(BaseProvider):
     ) -> str:
         """
         Asynchronously creates a result based on the given model and messages.
+
+        Args:
+            cls (type): The class on which this method is called.
+            model (str): The model to use for creation.
+            messages (Messages): The messages to process.
+            loop (AbstractEventLoop, optional): The event loop to use. Defaults to None.
+            executor (ThreadPoolExecutor, optional): The executor for running async tasks. Defaults to None.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            str: The created result as a string.
         """
         loop = loop or get_event_loop()
 
@@ -52,6 +63,12 @@ class AbstractProvider(BaseProvider):
     def params(cls) -> str:
         """
         Returns the parameters supported by the provider.
+
+        Args:
+            cls (type): The class on which this property is called.
+
+        Returns:
+            str: A string listing the supported parameters.
         """
         sig = signature(
             cls.create_async_generator if issubclass(cls, AsyncGeneratorProvider) else
@@ -90,6 +107,17 @@ class AsyncProvider(AbstractProvider):
     ) -> CreateResult:
         """
         Creates a completion result synchronously.
+
+        Args:
+            cls (type): The class on which this method is called.
+            model (str): The model to use for creation.
+            messages (Messages): The messages to process.
+            stream (bool): Indicates whether to stream the results. Defaults to False.
+            loop (AbstractEventLoop, optional): The event loop to use. Defaults to None.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            CreateResult: The result of the completion creation.
         """
         loop = loop or get_event_loop()
         coro = cls.create_async(model, messages, **kwargs)
@@ -104,6 +132,17 @@ class AsyncProvider(AbstractProvider):
     ) -> str:
         """
         Abstract method for creating asynchronous results.
+
+        Args:
+            model (str): The model to use for creation.
+            messages (Messages): The messages to process.
+            **kwargs: Additional keyword arguments.
+
+        Raises:
+            NotImplementedError: If this method is not overridden in derived classes.
+
+        Returns:
+            str: The created result as a string.
         """
         raise NotImplementedError()
 
@@ -126,6 +165,17 @@ class AsyncGeneratorProvider(AsyncProvider):
     ) -> CreateResult:
         """
         Creates a streaming completion result synchronously.
+
+        Args:
+            cls (type): The class on which this method is called.
+            model (str): The model to use for creation.
+            messages (Messages): The messages to process.
+            stream (bool): Indicates whether to stream the results. Defaults to True.
+            loop (AbstractEventLoop, optional): The event loop to use. Defaults to None.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            CreateResult: The result of the streaming completion creation.
         """
         loop = loop or get_event_loop()
         generator = cls.create_async_generator(model, messages, stream=stream, **kwargs)
@@ -146,6 +196,15 @@ class AsyncGeneratorProvider(AsyncProvider):
     ) -> str:
         """
         Asynchronously creates a result from a generator.
+
+        Args:
+            cls (type): The class on which this method is called.
+            model (str): The model to use for creation.
+            messages (Messages): The messages to process.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            str: The created result as a string.
         """
         return "".join([
             chunk async for chunk in cls.create_async_generator(model, messages, stream=False, **kwargs) 
@@ -162,5 +221,17 @@ class AsyncGeneratorProvider(AsyncProvider):
     ) -> AsyncResult:
         """
         Abstract method for creating an asynchronous generator.
+
+        Args:
+            model (str): The model to use for creation.
+            messages (Messages): The messages to process.
+            stream (bool): Indicates whether to stream the results. Defaults to True.
+            **kwargs: Additional keyword arguments.
+
+        Raises:
+            NotImplementedError: If this method is not overridden in derived classes.
+
+        Returns:
+            AsyncResult: An asynchronous generator yielding results.
         """
         raise NotImplementedError()

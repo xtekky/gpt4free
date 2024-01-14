@@ -198,7 +198,7 @@ class CreateImagesBing:
     _cookies: Dict[str, str] = {}
     
     @classmethod
-    def create_completion(cls, prompt: str, cookies: Dict[str, str] = None, proxy: str = None) -> Generator[str]:
+    def create_completion(cls, prompt: str, cookies: Dict[str, str] = None, proxy: str = None) -> Generator[str, None, None]:
         """
         Generator for creating imagecompletion based on a prompt.
 

@@ -7,10 +7,16 @@ from .errors import VersionNotFoundError
 
 def get_pypi_version(package_name: str) -> str:
     """
-    Get the latest version of a package from PyPI.
+    Retrieves the latest version of a package from PyPI.
 
-    :param package_name: The name of the package.
-    :return: The latest version of the package as a string.
+    Args:
+        package_name (str): The name of the package for which to retrieve the version.
+
+    Returns:
+        str: The latest version of the specified package from PyPI.
+
+    Raises:
+        VersionNotFoundError: If there is an error in fetching the version from PyPI.
     """
     try:
         response = requests.get(f"https://pypi.org/pypi/{package_name}/json").json()
@@ -20,10 +26,16 @@ def get_pypi_version(package_name: str) -> str:
 
 def get_github_version(repo: str) -> str:
     """
-    Get the latest release version from a GitHub repository.
+    Retrieves the latest release version from a GitHub repository.
 
-    :param repo: The name of the GitHub repository.
-    :return: The latest release version as a string.
+    Args:
+        repo (str): The name of the GitHub repository.
+
+    Returns:
+        str: The latest release version from the specified GitHub repository.
+
+    Raises:
+        VersionNotFoundError: If there is an error in fetching the version from GitHub.
     """
     try:
         response = requests.get(f"https://api.github.com/repos/{repo}/releases/latest").json()
@@ -31,11 +43,16 @@ def get_github_version(repo: str) -> str:
     except requests.RequestException as e:
         raise VersionNotFoundError(f"Failed to get GitHub release version: {e}")
 
-def get_latest_version():
+def get_latest_version() -> str:
     """
-    Get the latest release version from PyPI or the GitHub repository.
+    Retrieves the latest release version of the 'g4f' package from PyPI or GitHub.
 
-    :return: The latest release version as a string.
+    Returns:
+        str: The latest release version of 'g4f'.
+
+    Note:
+        The function first tries to fetch the version from PyPI. If the package is not found, 
+        it retrieves the version from the GitHub repository.
     """
     try:
         # Is installed via package manager?
@@ -47,14 +64,19 @@ def get_latest_version():
 
 class VersionUtils:
     """
-    Utility class for managing and comparing package versions.
+    Utility class for managing and comparing package versions of 'g4f'.
     """
     @cached_property
     def current_version(self) -> str:
         """
-        Get the current version of the g4f package.
+        Retrieves the current version of the 'g4f' package.
 
-        :return: The current version as a string.
+        Returns:
+            str: The current version of 'g4f'.
+
+        Raises:
+            VersionNotFoundError: If the version cannot be determined from the package manager, 
+                                  Docker environment, or git repository.
         """
         # Read from package manager
         try:
@@ -79,15 +101,19 @@ class VersionUtils:
     @cached_property
     def latest_version(self) -> str:
         """
-        Get the latest version of the g4f package.
+        Retrieves the latest version of the 'g4f' package.
 
-        :return: The latest version as a string.
+        Returns:
+            str: The latest version of 'g4f'.
         """
         return get_latest_version()
 
     def check_version(self) -> None:
         """
-        Check if the current version is up to date with the latest version.
+        Checks if the current version of 'g4f' is up to date with the latest version.
+
+        Note:
+            If a newer version is available, it prints a message with the new version and update instructions.
         """
         try:
             if self.current_version != self.latest_version:

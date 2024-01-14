@@ -21,13 +21,16 @@ def get_browser(
     options: ChromeOptions = None
 ) -> WebDriver:
     """
-    Creates and returns a Chrome WebDriver with the specified options.
+    Creates and returns a Chrome WebDriver with specified options.
 
-    :param user_data_dir: Directory for user data. If None, uses default directory.
-    :param headless: Boolean indicating whether to run the browser in headless mode.
-    :param proxy: Proxy settings for the browser.
-    :param options: ChromeOptions object with specific browser options.
-    :return: An instance of WebDriver.
+    Args:
+        user_data_dir (str, optional): Directory for user data. If None, uses default directory.
+        headless (bool, optional): Whether to run the browser in headless mode. Defaults to False.
+        proxy (str, optional): Proxy settings for the browser. Defaults to None.
+        options (ChromeOptions, optional): ChromeOptions object with specific browser options. Defaults to None.
+
+    Returns:
+        WebDriver: An instance of WebDriver configured with the specified options.
     """
     if user_data_dir is None:
         user_data_dir = user_config_dir("g4f")
@@ -49,10 +52,13 @@ def get_browser(
 
 def get_driver_cookies(driver: WebDriver) -> dict:
     """
-    Retrieves cookies from the given WebDriver.
+    Retrieves cookies from the specified WebDriver.
 
-    :param driver: WebDriver from which to retrieve cookies.
-    :return: A dictionary of cookies.
+    Args:
+        driver (WebDriver): The WebDriver instance from which to retrieve cookies.
+
+    Returns:
+        dict: A dictionary containing cookies with their names as keys and values as cookie values.
     """
     return {cookie["name"]: cookie["value"] for cookie in driver.get_cookies()}
 
@@ -60,9 +66,13 @@ def bypass_cloudflare(driver: WebDriver, url: str, timeout: int) -> None:
     """
     Attempts to bypass Cloudflare protection when accessing a URL using the provided WebDriver.
 
-    :param driver: The WebDriver to use.
-    :param url: URL to access.
-    :param timeout: Time in seconds to wait for the page to load.
+    Args:
+        driver (WebDriver): The WebDriver to use for accessing the URL.
+        url (str): The URL to access.
+        timeout (int): Time in seconds to wait for the page to load.
+
+    Raises:
+        Exception: If there is an error while bypassing Cloudflare or loading the page.
     """
     driver.get(url)
     if driver.find_element(By.TAG_NAME, "body").get_attribute("class") == "no-js":
@@ -86,6 +96,7 @@ class WebDriverSession:
     """
     Manages a Selenium WebDriver session, including handling of virtual displays and proxies.
     """
+
     def __init__(
         self,
         webdriver: WebDriver = None,
@@ -95,6 +106,17 @@ class WebDriverSession:
         proxy: str = None,
         options: ChromeOptions = None
     ):
+        """
+        Initializes a new instance of the WebDriverSession.
+
+        Args:
+            webdriver (WebDriver, optional): A WebDriver instance for the session. Defaults to None.
+            user_data_dir (str, optional): Directory for user data. Defaults to None.
+            headless (bool, optional): Whether to run the browser in headless mode. Defaults to False.
+            virtual_display (bool, optional): Whether to use a virtual display. Defaults to False.
+            proxy (str, optional): Proxy settings for the browser. Defaults to None.
+            options (ChromeOptions, optional): ChromeOptions for the browser. Defaults to None.
+        """
         self.webdriver = webdriver
         self.user_data_dir = user_data_dir
         self.headless = headless
@@ -110,14 +132,17 @@ class WebDriverSession:
         virtual_display: bool = False
     ) -> WebDriver:
         """
-        Reopens the WebDriver session with the specified parameters.
+        Reopens the WebDriver session with new settings.
 
-        :param user_data_dir: Directory for user data.
-        :param headless: Boolean indicating whether to run the browser in headless mode.
-        :param virtual_display: Boolean indicating whether to use a virtual display.
-        :return: An instance of WebDriver.
+        Args:
+            user_data_dir (str, optional): Directory for user data. Defaults to current value.
+            headless (bool, optional): Whether to run the browser in headless mode. Defaults to current value.
+            virtual_display (bool, optional): Whether to use a virtual display. Defaults to current value.
+
+        Returns:
+            WebDriver: The reopened WebDriver instance.
         """
-        user_data_dir = user_data_dir or self.user_data_dir
+        user_data_dir = user_data_data_dir or self.user_data_dir
         if self.default_driver:
             self.default_driver.quit()
         if not virtual_display and self.virtual_display:
@@ -128,8 +153,10 @@ class WebDriverSession:
 
     def __enter__(self) -> WebDriver:
         """
-        Context management method for entering a session.
-        :return: An instance of WebDriver.
+        Context management method for entering a session. Initializes and returns a WebDriver instance.
+
+        Returns:
+            WebDriver: An instance of WebDriver for this session.
         """
         if self.webdriver:
             return self.webdriver
@@ -141,6 +168,14 @@ class WebDriverSession:
     def __exit__(self, exc_type, exc_val, exc_tb):
         """
         Context management method for exiting a session. Closes and quits the WebDriver.
+
+        Args:
+            exc_type: Exception type.
+            exc_val: Exception value.
+            exc_tb: Exception traceback.
+
+        Note:
+            Closes the WebDriver and stops the virtual display if used.
         """
         if self.default_driver:
             try:
