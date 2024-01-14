@@ -11,6 +11,7 @@ from g4f.gui.server.backend import Backend_Api, get_error_message
 from g4f.base_provider import BaseProvider
 
 g4f.debug.logging = False
+g4f.debug.version_check = False
 
 class MockProvider(BaseProvider):
     working = True

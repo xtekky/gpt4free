@@ -5,6 +5,7 @@ from typing import Generator
 from g4f import debug, version, models
 from g4f import _all_models, get_last_provider, ChatCompletion
 from g4f.image import is_allowed_extension, to_image
+from g4f.errors import VersionNotFoundError
 from g4f.Provider import __providers__
 from g4f.Provider.bing.create_images import patch_provider
 from .internet import get_search_message
@@ -91,8 +92,12 @@ class Backend_Api:
         Returns:
             dict: A dictionary containing the current and latest version.
         """
+        try:
+            current_version = version.utils.current_version
+        except VersionNotFoundError:
+            current_version = None
         return {
-            "version": version.utils.current_version,
+            "version": current_version,
             "latest_version": version.get_latest_version(),
         }
     

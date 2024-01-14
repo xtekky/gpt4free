@@ -5,7 +5,7 @@ import os
 import random
 import secrets
 import string
-from asyncio import AbstractEventLoop, BaseEventLoop
+from asyncio import AbstractEventLoop
 from platformdirs import user_config_dir
 from browser_cookie3 import (
     chrome, chromium, opera, opera_gx,
@@ -27,19 +27,13 @@ def get_event_loop() -> AbstractEventLoop:
         AbstractEventLoop: The current or new event loop.
     """
     try:
-        loop = asyncio.get_event_loop()
-        if isinstance(loop, BaseEventLoop):
-            loop._check_closed()
-    except RuntimeError:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-    try:
-        asyncio.get_running_loop()
+        loop = asyncio.get_running_loop()
         if not hasattr(loop.__class__, "_nest_patched"):
             import nest_asyncio
             nest_asyncio.apply(loop)
     except RuntimeError:
-        pass
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
     except ImportError:
         raise RuntimeError(
             'Use "create_async" instead of "create" function in a running event loop. Or install "nest_asyncio" package.'

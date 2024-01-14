@@ -21,3 +21,4 @@ async-property
 undetected-chromedriver
 brotli
 beautifulsoup4
+setuptools
