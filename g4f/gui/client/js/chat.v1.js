@@ -7,7 +7,9 @@ const spinner           = box_conversations.querySelector(".spinner");
 const stop_generating   = document.querySelector(`.stop_generating`);
 const regenerate        = document.querySelector(`.regenerate`);
 const send_button       = document.querySelector(`#send-button`);
-const imageInput        = document.querySelector('#image') ;
+const imageInput        = document.querySelector('#image');
+const fileInput         = document.querySelector('#file');
+
 let   prompt_lock       = false;
 
 hljs.addPlugin(new CopyButtonPlugin());
@@ -42,6 +44,11 @@ const handle_ask = async () => {
     if (message.length > 0) {
         message_input.value = '';
         await add_conversation(window.conversation_id, message);
+        if ("text" in fileInput.dataset) {
+            message += '\n```' + fileInput.dataset.type + '\n'; 
+            message += fileInput.dataset.text;
+            message += '\n```'
+        }
         await add_message(window.conversation_id, "user", message);
         window.token = message_id();
         message_box.innerHTML += `
@@ -55,6 +62,9 @@ const handle_ask = async () => {
                 </div>
             </div>
         `;
+        document.querySelectorAll('code:not(.hljs').forEach((el) => {
+            hljs.highlightElement(el);
+        });
         await ask_gpt();
     }
 };
@@ -171,17 +181,30 @@ const ask_gpt = async () => {
                 content_inner.innerHTML += "<p>An error occured, please try again, if the problem persists, please use a other model or provider.</p>";
             } else {
                 html = markdown_render(text);
-                html = html.substring(0, html.lastIndexOf('</p>')) + '<span id="cursor"></span></p>';
+                let lastElement, lastIndex = null;
+                for (element of ['</p>', '</code></pre>', '</li>\n</ol>']) {
+                    const index = html.lastIndexOf(element)
+                    if (index > lastIndex) {
+                        lastElement = element;
+                        lastIndex = index;
+                    }
+                }
+                if (lastIndex) {
+                    html = html.substring(0, lastIndex) + '<span id="cursor"></span>' + lastElement;
+                }
                 content_inner.innerHTML = html;
-                document.querySelectorAll('code').forEach((el) => {
+                document.querySelectorAll('code:not(.hljs').forEach((el) => {
                     hljs.highlightElement(el);
                 });
             }
 
             window.scrollTo(0, 0);
-            message_box.scrollTo({ top: message_box.scrollHeight, behavior: "auto" });
+            if (message_box.scrollTop >= message_box.scrollHeight - message_box.clientHeight - 100) {
+                message_box.scrollTo({ top: message_box.scrollHeight, behavior: "auto" });
+            }
         }
         if (!error && imageInput) imageInput.value = "";
+        if (!error && fileInput) fileInput.value = "";
     } catch (e) {
         console.error(e);
 
@@ -305,7 +328,7 @@ const load_conversation = async (conversation_id) => {
         `;
     }
 
-    document.querySelectorAll(`code`).forEach((el) => {
+    document.querySelectorAll('code:not(.hljs').forEach((el) => {
         hljs.highlightElement(el);
     });
 
@@ -400,7 +423,7 @@ const load_conversations = async (limit, offset, loader) => {
         `;
     }
 
-    document.querySelectorAll(`code`).forEach((el) => {
+    document.querySelectorAll('code:not(.hljs').forEach((el) => {
         hljs.highlightElement(el);
     });
 };
@@ -602,14 +625,7 @@ observer.observe(message_input, { attributes: true });
 (async () => {
     response = await fetch('/backend-api/v2/models')
     models = await response.json()
-    
     let select = document.getElementById('model');
-    select.textContent = '';
-
-    let auto = document.createElement('option');
-    auto.value = '';
-    auto.text = 'Model: Default';
-    select.appendChild(auto);
 
     for (model of models) {
         let option = document.createElement('option');
@@ -619,14 +635,7 @@ observer.observe(message_input, { attributes: true });
 
     response = await fetch('/backend-api/v2/providers')
     providers = await response.json()
-    
     select = document.getElementById('provider');
-    select.textContent = '';
-
-    auto = document.createElement('option');
-    auto.value = '';
-    auto.text = 'Provider: Auto';
-    select.appendChild(auto);
 
     for (provider of providers) {
         let option = document.createElement('option');
@@ -651,3 +660,26 @@ observer.observe(message_input, { attributes: true });
     }
     document.getElementById("version_text").innerHTML = text
 })()
+
+fileInput.addEventListener('change', async (event) => {
+    if (fileInput.files.length) {
+        type = fileInput.files[0].type;
+        if (type && type.indexOf('/')) {
+            type = type.split('/').pop().replace('x-', '')
+            type = type.replace('plain', 'plaintext')
+                       .replace('shellscript', 'sh')
+                       .replace('svg+xml', 'svg')
+                       .replace('vnd.trolltech.linguist', 'ts')
+        } else {
+            type = fileInput.files[0].name.split('.').pop()
+        }
+        fileInput.dataset.type = type
+        const reader = new FileReader();
+        reader.addEventListener('load', (event) => {
+            fileInput.dataset.text = event.target.result;
+        });
+        reader.readAsText(fileInput.files[0]);
+    } else {
+        delete fileInput.dataset.text;
+    }
+});

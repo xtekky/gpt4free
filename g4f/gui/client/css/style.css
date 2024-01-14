@@ -404,7 +404,7 @@ body {
     display: none;
 }
 
-#image {
+#image, #file {
     display: none;
 }
 
@@ -412,10 +412,19 @@ label[for="image"]:has(> input:valid){
     color: var(--accent);
 }
 
-label[for="image"] {
+label[for="file"]:has(> input:valid){
+    color: var(--accent);
+}
+
+label[for="image"], label[for="file"] {
     cursor: pointer;
     position: absolute;
     top: 10px;
+    left: 10px;
+}
+
+label[for="file"] {
+    top: 32px;
     left: 10px;
 }
 

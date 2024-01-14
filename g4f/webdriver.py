@@ -1,5 +1,4 @@
 from __future__ import annotations
-
 from platformdirs import user_config_dir
 from selenium.webdriver.remote.webdriver import WebDriver 
 from undetected_chromedriver import Chrome, ChromeOptions
@@ -21,7 +20,16 @@ def get_browser(
     proxy: str = None,
     options: ChromeOptions = None
 ) -> WebDriver:
-    if user_data_dir == None:
+    """
+    Creates and returns a Chrome WebDriver with the specified options.
+
+    :param user_data_dir: Directory for user data. If None, uses default directory.
+    :param headless: Boolean indicating whether to run the browser in headless mode.
+    :param proxy: Proxy settings for the browser.
+    :param options: ChromeOptions object with specific browser options.
+    :return: An instance of WebDriver.
+    """
+    if user_data_dir is None:
         user_data_dir = user_config_dir("g4f")
     if user_data_dir and debug.logging:
         print("Open browser with config dir:", user_data_dir)
@@ -39,36 +47,45 @@ def get_browser(
         headless=headless
     )
 
-def get_driver_cookies(driver: WebDriver):
-    return dict([(cookie["name"], cookie["value"]) for cookie in driver.get_cookies()])
+def get_driver_cookies(driver: WebDriver) -> dict:
+    """
+    Retrieves cookies from the given WebDriver.
+
+    :param driver: WebDriver from which to retrieve cookies.
+    :return: A dictionary of cookies.
+    """
+    return {cookie["name"]: cookie["value"] for cookie in driver.get_cookies()}
 
 def bypass_cloudflare(driver: WebDriver, url: str, timeout: int) -> None:
-    # Open website
+    """
+    Attempts to bypass Cloudflare protection when accessing a URL using the provided WebDriver.
+
+    :param driver: The WebDriver to use.
+    :param url: URL to access.
+    :param timeout: Time in seconds to wait for the page to load.
+    """
     driver.get(url)
-    # Is cloudflare protection
     if driver.find_element(By.TAG_NAME, "body").get_attribute("class") == "no-js":
         if debug.logging:
             print("Cloudflare protection detected:", url)
         try:
-            # Click button in iframe
-            WebDriverWait(driver, 5).until(
-                EC.presence_of_element_located((By.CSS_SELECTOR, "#turnstile-wrapper iframe"))
-            )
             driver.switch_to.frame(driver.find_element(By.CSS_SELECTOR, "#turnstile-wrapper iframe"))
             WebDriverWait(driver, 5).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, "#challenge-stage input"))
-            )
-            driver.find_element(By.CSS_SELECTOR, "#challenge-stage input").click()
-        except:
-            pass
+            ).click()
+        except Exception as e:
+            if debug.logging:
+                print(f"Error bypassing Cloudflare: {e}")
         finally:
             driver.switch_to.default_content()
-    # No cloudflare protection
     WebDriverWait(driver, timeout).until(
         EC.presence_of_element_located((By.CSS_SELECTOR, "body:not(.no-js)"))
     )
 
-class WebDriverSession():
+class WebDriverSession:
+    """
+    Manages a Selenium WebDriver session, including handling of virtual displays and proxies.
+    """
     def __init__(
         self,
         webdriver: WebDriver = None,
@@ -81,9 +98,7 @@ class WebDriverSession():
         self.webdriver = webdriver
         self.user_data_dir = user_data_dir
         self.headless = headless
-        self.virtual_display = None
-        if has_pyvirtualdisplay and virtual_display:
-            self.virtual_display = Display(size=(1920, 1080))
+        self.virtual_display = Display(size=(1920, 1080)) if has_pyvirtualdisplay and virtual_display else None
         self.proxy = proxy
         self.options = options
         self.default_driver = None
@@ -94,8 +109,15 @@ class WebDriverSession():
         headless: bool = False,
         virtual_display: bool = False
     ) -> WebDriver:
-        if user_data_dir == None:
-            user_data_dir = self.user_data_dir
+        """
+        Reopens the WebDriver session with the specified parameters.
+
+        :param user_data_dir: Directory for user data.
+        :param headless: Boolean indicating whether to run the browser in headless mode.
+        :param virtual_display: Boolean indicating whether to use a virtual display.
+        :return: An instance of WebDriver.
+        """
+        user_data_dir = user_data_dir or self.user_data_dir
         if self.default_driver:
             self.default_driver.quit()
         if not virtual_display and self.virtual_display:
@@ -105,6 +127,10 @@ class WebDriverSession():
         return self.default_driver
 
     def __enter__(self) -> WebDriver:
+        """
+        Context management method for entering a session.
+        :return: An instance of WebDriver.
+        """
         if self.webdriver:
             return self.webdriver
         if self.virtual_display:
@@ -113,11 +139,15 @@ class WebDriverSession():
         return self.default_driver
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        """
+        Context management method for exiting a session. Closes and quits the WebDriver.
+        """
         if self.default_driver:
             try:
                 self.default_driver.close()
-            except:
-                pass
+            except Exception as e:
+                if debug.logging:
+                    print(f"Error closing WebDriver: {e}")
             self.default_driver.quit()
         if self.virtual_display:
             self.virtual_display.stop()
