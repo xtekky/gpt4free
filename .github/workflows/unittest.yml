@@ -14,6 +14,6 @@ jobs:
         python-version: "3.x"
         cache: 'pip'
     - name: Install requirements
-    - run: pip install -r requirements.txt
+      run: pip install -r requirements.txt
     - name: Run tests
-    - run: python -m etc.unittest.main
+      run: python -m etc.unittest.main
