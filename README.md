@@ -1,3 +1,6 @@
+Please provide feedback so this project can be improved, it would be much appreciated  
+form: https://forms.gle/FeWV9RLEedfdkmFN6
+
 ![248433934-7886223b-c1d1-4260-82aa-da5741f303bb](https://github.com/xtekky/gpt4free/assets/98614666/ea012c87-76e0-496a-8ac4-e2de090cc6c9)
 Written by [@xtekky](https://github.com/hlohaus) & maintained by [@hlohaus](https://github.com/hlohaus)
 
