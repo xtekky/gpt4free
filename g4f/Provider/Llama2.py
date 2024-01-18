@@ -62,7 +62,7 @@ class Llama2(AsyncGeneratorProvider):
                     if not started:
                         chunk = chunk.lstrip()
                         started = True
-                    yield chunk.decode()
+                    yield chunk.decode(errors="ignore")
             
 def format_prompt(messages: Messages):
     messages = [
