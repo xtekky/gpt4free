@@ -108,8 +108,8 @@ def analyze_code(pull: PullRequest, diff: str)-> list:
             if match:
                 offset_line = int(match.group(1))
         elif current_file_path:
-            if line.startswith('\\') or line.startswith('diff'):
-                prompt = create_prompt(changed_lines, pull, current_file_path, offset_line)
+            if line.startswith('\\') or line.startswith('diff') and changed_lines:
+                prompt = create_prompt(changed_lines, pull, current_file_path)
                 response = get_ai_response(prompt)
                 for review in response.get('reviews', []):
                     review['path'] = current_file_path
@@ -117,11 +117,12 @@ def analyze_code(pull: PullRequest, diff: str)-> list:
                 changed_lines = []
                 current_file_path = None
             elif not line.startswith('-'):
-                changed_lines.append(line)
+                changed_lines.append(f"{offset_line}:{line}")
+                offset_line += 1
         
     return comments
 
-def create_prompt(changed_lines: list, pull: PullRequest, file_path: str, offset_line: int):
+def create_prompt(changed_lines: list, pull: PullRequest, file_path: str):
     """
     Creates a prompt for the g4f model.
 
@@ -132,8 +133,7 @@ def create_prompt(changed_lines: list, pull: PullRequest, file_path: str, offset
     Returns:
         str: The generated prompt.
     """
-    code = "\n".join([f"{offset_line+idx}:{line}" for idx, line in enumerate(changed_lines)])
-    print("Code:", code)
+    code = "\n".join(changed_lines)
     example = '{"reviews": [{"line": <line_number>, "body": "<review comment>"}]}'
     return f"""Your task is to review pull requests. Instructions:
 - Provide the response in following JSON format: {example}
