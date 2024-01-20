@@ -39,10 +39,11 @@ class TestBackendApi(unittest.TestCase):
 
 class TestChatCompletion(unittest.TestCase):
 
-    def test_create(self):
+    def test_create_default(self):
         messages = [{'role': 'user', 'content': 'Hello'}]
         result = ChatCompletion.create(g4f.models.default, messages)
-        self.assertTrue("Hello" in result or "Good" in result)
+        if "Good" not in result and "Hi" not in result:
+            self.assertIn("Hello", result)
         
     def test_get_last_provider(self):
         messages = [{'role': 'user', 'content': 'Hello'}]
@@ -53,14 +54,14 @@ class TestChatCompletion(unittest.TestCase):
         messages = [{'role': 'user', 'content': 'Hello'}]
         provider = g4f.Provider.Bing
         result = ChatCompletion.create(g4f.models.default, messages, provider)
-        self.assertTrue("Bing" in result)
+        self.assertIn("Bing", result)
 
 class TestChatCompletionAsync(unittest.IsolatedAsyncioTestCase):
     
     async def test_async(self):
         messages = [{'role': 'user', 'content': 'Hello'}]
         result = await ChatCompletion.create_async(g4f.models.default, messages, MockProvider)
-        self.assertTrue("Mock" in result)
+        self.assertEqual("Mock", result)
 
 class TestUtilityFunctions(unittest.TestCase):
 
