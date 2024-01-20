@@ -202,7 +202,7 @@ def create_message(
     if not web_search:
         options_sets.append("nosearchall")
     if gpt4_turbo:
-        options_sets.append("dlgpt4t")
+        options_sets.extend(["dlgpt4t", "gpt4tmnc"])
 
     request_id = str(uuid.uuid4())
     struct = {
