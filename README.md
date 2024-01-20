@@ -37,6 +37,7 @@ docker pull hlohaus789/g4f
       - [Install using pypi](#install-using-pypi)
     + [Docker for Developers](#docker-for-developers)
 - [💡 Usage](#-usage)
+  * [The Web UI](#the-web-ui)
   * [The `g4f` Package](#the-g4f-package)
     + [ChatCompletion](#chatcompletion)
       - [Completion](#completion)
@@ -181,6 +182,14 @@ docker-compose down
 > When using Docker, any changes you make to your local files will be reflected in the Docker container thanks to the volume mapping in the `docker-compose.yml` file. If you add or remove dependencies, however, you'll need to rebuild the Docker image using `docker-compose build`.
 
 ## 💡 Usage
+
+### The Web UI
+
+To use it in the web interface, type the following codes in the command line.
+```python3
+from g4f.gui import run_gui
+run_gui()
+```
 
 ### The `g4f` Package
 
