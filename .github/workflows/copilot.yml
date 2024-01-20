@@ -4,13 +4,12 @@ on:
   pull_request:
     types:
       - opened
+      - synchronize
 
 env:
     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-permissions:
-  contents: read
-  pull-requests: write
+permissions: write-all
 
 jobs:
   review:
