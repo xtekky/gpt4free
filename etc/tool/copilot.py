@@ -30,7 +30,6 @@ def get_pr_details(github: Github) -> PullRequest:
     Returns:
         PullRequest: An object representing the pull request.
     """
-    './pr_number'
     with open('./pr_number', 'r') as file:
         pr_number = int(file.read())
     if not pr_number:
@@ -132,8 +131,8 @@ def analyze_code(pull: PullRequest, diff: str)-> list[dict]:
             if match:
                 offset_line = int(match.group(1))
         elif current_file_path:
-            if line.startswith('\\') or line.startswith('diff') and changed_lines:
-                prompt = create_prompt(changed_lines, pull, current_file_path)
+            if (line.startswith('\\') or line.startswith('diff')) and changed_lines:
+                prompt = create_analyze_prompt(changed_lines, pull, current_file_path)
                 response = get_ai_response(prompt)
                 for review in response.get('reviews', []):
                     review['path'] = current_file_path
@@ -146,7 +145,7 @@ def analyze_code(pull: PullRequest, diff: str)-> list[dict]:
         
     return comments
 
-def create_prompt(changed_lines: list[str], pull: PullRequest, file_path: str):
+def create_analyze_prompt(changed_lines: list[str], pull: PullRequest, file_path: str):
     """
     Creates a prompt for the g4f model.
 
@@ -194,10 +193,9 @@ def create_review_prompt(pull: PullRequest, diff: str):
         str: The generated prompt for review.
     """
     return f"""Your task is to review a pull request. Instructions:
-- Write in name of you "g4f-copilot".
+- Write in name of g4f copilot. Don't use placeholder.
 - Write the review in GitHub Markdown format.
 - Thank the author for contributing to the project.
-- Point out that you might leave a few comments on the files.
 
 Pull request author: {pull.user.name}
 Pull request title: {pull.title}
@@ -219,6 +217,9 @@ def main():
         if not pull:
             print(f"No PR number found")
             exit()
+        if pull.get_reviews().totalCount > 0 or pull.get_comments().totalCount > 0:
+            print(f"Has already a review")
+            exit()
         diff = get_diff(pull.diff_url)
     except Exception as e:
         print(f"Error get details: {e.__class__.__name__}: {e}")
@@ -235,7 +236,7 @@ def main():
         exit(1)
     print("Comments:", comments)
     try:
-        if not comments:
+        if comments:
             pull.create_review(body=review, comments=comments)
         else:
             pull.create_comment(body=review)
