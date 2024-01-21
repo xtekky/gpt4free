@@ -28,4 +28,4 @@ jobs:
       - name: AI Code Review
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: env
+        run: python -m etc.tool.copilot
