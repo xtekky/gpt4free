@@ -1,15 +1,17 @@
 name: AI Code Reviewer
 
 on:
-  pull_request:
+  workflow_run:
+    workflows: ["Unittest"]
     types:
-      - opened
-      - synchronize
+      - completed
 
 jobs:
   review:
     runs-on: ubuntu-latest
-    permissions: write-all
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v3
@@ -25,5 +27,5 @@ jobs:
         run: pip install PyGithub
       - name: AI Code Review
         env:
-          GITHUB_TOKEN: ${{ secrets.COPILOT_TOKEN }}
-        run: python -m etc.tool.copilot
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: env
