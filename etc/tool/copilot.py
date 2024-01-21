@@ -32,7 +32,7 @@ def get_pr_details(github: Github) -> PullRequest:
     """
     './pr_number'
     with open('./pr_number', 'r') as file:
-        pr_number = file.read()
+        pr_number = int(file.read())
     if not pr_number:
         return
 
