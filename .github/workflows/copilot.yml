@@ -6,14 +6,10 @@ on:
       - opened
       - synchronize
 
-env:
-    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-permissions: write-all
-
 jobs:
   review:
     runs-on: ubuntu-latest
+    permissions: write-all
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v3
@@ -28,4 +24,6 @@ jobs:
       - name: Install PyGithub
         run: pip install PyGithub
       - name: AI Code Review
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: python -m etc.tool.copilot

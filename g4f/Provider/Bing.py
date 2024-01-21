@@ -64,12 +64,7 @@ class Bing(AsyncGeneratorProvider):
             prompt = messages[-1]["content"]
             context = create_context(messages[:-1])
         
-        if not cookies:
-            cookies = Defaults.cookies
-        else:
-            for key, value in Defaults.cookies.items():
-                if key not in cookies:
-                    cookies[key] = value
+        cookies = {**Defaults.cookies, **cookies} if cookies else Defaults.cookies
 
         gpt4_turbo = True if model.startswith("gpt-4-turbo") else False
 
@@ -207,10 +202,12 @@ def create_message(
     request_id = str(uuid.uuid4())
     struct = {
         'arguments': [{
-            'source': 'cib', 'optionsSets': options_sets,
+            'source': 'cib',
+            'optionsSets': options_sets,
             'allowedMessageTypes': Defaults.allowedMessageTypes,
             'sliceIds': Defaults.sliceIds,
-            'traceId': os.urandom(16).hex(), 'isStartOfSession': True,
+            'traceId': os.urandom(16).hex(),
+            'isStartOfSession': True,
             'requestId': request_id,
             'message': {
                 **Defaults.location,

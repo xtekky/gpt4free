@@ -112,7 +112,7 @@ def get_orientation(image: Image.Image) -> int:
     """
     exif_data = image.getexif() if hasattr(image, 'getexif') else image._getexif()
     if exif_data is not None:
-        orientation = exif_data.get(274)  # 274 corresponds to the orientation tag in EXIF
+        orientation = exif_data.get(274) # 274 corresponds to the orientation tag in EXIF
         if orientation is not None:
             return orientation
 
@@ -156,23 +156,23 @@ def to_base64(image: Image.Image, compression_rate: float) -> str:
     image.save(output_buffer, format="JPEG", quality=int(compression_rate * 100))
     return base64.b64encode(output_buffer.getvalue()).decode()
 
-def format_images_markdown(images, prompt: str, preview: str="{image}?w=200&h=200") -> str:
+def format_images_markdown(images, alt: str, preview: str="{image}?w=200&h=200") -> str:
     """
     Formats the given images as a markdown string.
 
     Args:
         images: The images to format.
-        prompt (str): The prompt for the images.
+        alt (str): The alt for the images.
         preview (str, optional): The preview URL format. Defaults to "{image}?w=200&h=200".
 
     Returns:
         str: The formatted markdown string.
     """
-    if isinstance(images, list):
-        images = [f"[![#{idx+1} {prompt}]({preview.replace('{image}', image)})]({image})" for idx, image in enumerate(images)]
-        images = "\n".join(images)
+    if isinstance(images, str):
+        images = f"[![{alt}]({preview.replace('{image}', images)})]({images})"
     else:
-        images = f"[![{prompt}]({images})]({images})"
+        images = [f"[![#{idx+1} {alt}]({preview.replace('{image}', image)})]({image})" for idx, image in enumerate(images)]
+        images = "\n".join(images)
     start_flag = "<!-- generated images start -->\n"
     end_flag = "<!-- generated images end -->\n"
     return f"\n{start_flag}{images}\n{end_flag}\n"
