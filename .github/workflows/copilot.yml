@@ -1,0 +1,29 @@
+name: AI Code Reviewer
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    permissions: write-all
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+            python-version: "3.x"
+            cache: 'pip'
+      - name: Install Requirements
+        run: pip install -r requirements.txt
+      - name: Install PyGithub
+        run: pip install PyGithub
+      - name: AI Code Review
+        env:
+          GITHUB_TOKEN: ${{ secrets.COPILOT_TOKEN }}
+        run: python -m etc.tool.copilot
