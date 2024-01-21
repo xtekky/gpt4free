@@ -25,5 +25,5 @@ jobs:
         run: pip install PyGithub
       - name: AI Code Review
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.COPILOT_TOKEN }}
         run: python -m etc.tool.copilot
