@@ -18,7 +18,14 @@ __all__ = [
     'AsyncGenerator',
     'Generator',
     'Tuple',
+    'Union',
+    'List',
+    'Dict',
+    'Type',
     'TypedDict',
     'SHA256',
     'CreateResult',
+    'AsyncResult',
+    'Messages',
+    'ImageType'
 ]

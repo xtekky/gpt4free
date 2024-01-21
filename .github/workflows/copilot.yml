@@ -9,7 +9,9 @@ on:
 env:
     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-permissions: write-all
+permissions:
+  contents: read
+  pull-requests: write
 
 jobs:
   review:
