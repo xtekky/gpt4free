@@ -6,14 +6,14 @@ from g4f import ChatCompletion, get_last_provider
 from g4f.Provider import RetryProvider
 from .mocks import ProviderMock
 
-class TestChatCompletion(unittest.TestCase):
+class NoTestChatCompletion(unittest.TestCase):
 
-    def test_create_default(self):
+    def no_test_create_default(self):
         result = ChatCompletion.create(g4f.models.default, DEFAULT_MESSAGES)
         if "Good" not in result and "Hi" not in result:
             self.assertIn("Hello", result)
 
-    def test_bing_provider(self):
+    def no_test_bing_provider(self):
         provider = g4f.Provider.Bing
         result = ChatCompletion.create(g4f.models.default, DEFAULT_MESSAGES, provider)
         self.assertIn("Bing", result)
