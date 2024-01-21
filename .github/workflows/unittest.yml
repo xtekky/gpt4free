@@ -1,6 +1,13 @@
 name: Unittest
 
-on: [push]
+on: 
+  pull_request:
+    types:
+      - opened
+      - synchronize
+  push:
+    branches:
+      - 'main'
 
 jobs:
   build:
