@@ -16,6 +16,7 @@ g4f.debug.logging = True
 g4f.debug.version_check = False
 
 GITHUB_TOKEN = os.getenv('GITHUB_TOKEN')
+GITHUB_REPOSITORY = os.getenv('GITHUB_REPOSITORY')
 G4F_PROVIDER = os.getenv('G4F_PROVIDER')
 G4F_MODEL = os.getenv('G4F_MODEL') or g4f.models.gpt_4
 
@@ -29,11 +30,12 @@ def get_pr_details(github: Github) -> PullRequest:
     Returns:
         PullRequest: An object representing the pull request.
     """
-    with open(os.getenv('GITHUB_EVENT_PATH', ''), 'r') as file:
-        data = json.load(file)
+    './pr_number'
+    with open('./pr_number', 'r') as file:
+        pr_number = file.read()
 
-    repo = github.get_repo(f"{data['repository']['owner']['login']}/{data['repository']['name']}")
-    pull = repo.get_pull(data['number'])
+    repo = github.get_repo(GITHUB_REPOSITORY)
+    pull = repo.get_pull(pr_number)
 
     return pull
 
