@@ -2,7 +2,7 @@ name: AI Code Reviewer
 
 on:
   workflow_run:
-    workflows: ["build"]
+    workflows: ["Unittest"]
     types:
       - completed
 
