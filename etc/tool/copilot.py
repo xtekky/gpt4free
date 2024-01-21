@@ -31,7 +31,7 @@ def get_pr_details(github: Github) -> PullRequest:
         PullRequest: An object representing the pull request.
     """
     with open('./pr_number', 'r') as file:
-        pr_number = int(file.read())
+        pr_number = int(file.read().strip())
     if not pr_number:
         return
 
