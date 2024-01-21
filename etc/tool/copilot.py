@@ -32,7 +32,9 @@ def get_pr_details(github: Github) -> PullRequest:
     """
     './pr_number'
     with open('./pr_number', 'r') as file:
-        pr_number = file.read()
+        pr_number = int(file.read())
+    if not pr_number:
+        return
 
     repo = github.get_repo(GITHUB_REPOSITORY)
     pull = repo.get_pull(pr_number)
@@ -214,6 +216,9 @@ def main():
     try:
         github = Github(GITHUB_TOKEN)
         pull = get_pr_details(github)
+        if not pull:
+            print(f"No PR number found")
+            exit()
         diff = get_diff(pull.diff_url)
     except Exception as e:
         print(f"Error get details: {e.__class__.__name__}: {e}")
