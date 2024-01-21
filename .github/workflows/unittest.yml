@@ -1,0 +1,19 @@
+name: Unittest
+
+on: [push]
+
+jobs:
+  build:
+    name: Build unittest
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.x"
+        cache: 'pip'
+    - name: Install requirements
+      run: pip install -r requirements.txt
+    - name: Run tests
+      run: python -m etc.unittest.main

@@ -24,3 +24,6 @@ class RetryNoProviderError(Exception):
 
 class VersionNotFoundError(Exception):
     pass
+
+class NestAsyncioError(Exception):
+    pass

@@ -1,11 +1,20 @@
 from __future__ import annotations
 
-import json
+import json, random
 from aiohttp import ClientSession
 
 from ..typing import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider
 
+models = {
+    "claude-v2": "claude-2.0",
+    "claude-v2.1":"claude-2.1",
+    "gemini-pro": "google-gemini-pro"
+}
+urls = [
+    "https://free.chatgpt.org.uk",
+    "https://ai.chatgpt.org.uk"
+]
 
 class FreeChatgpt(AsyncGeneratorProvider):
     url = "https://free.chatgpt.org.uk"
@@ -22,47 +31,48 @@ class FreeChatgpt(AsyncGeneratorProvider):
         proxy: str = None,
         **kwargs
     ) -> AsyncResult:
-        if not model:
+        if model in models:
+            model = models[model]
+        elif not model:
             model = "gpt-3.5-turbo"
+        url = random.choice(urls)
         headers = {
-            "User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/119.0",
             "Accept": "application/json, text/event-stream",
-            "Accept-Language": "de,en-US;q=0.7,en;q=0.3",
+            "Content-Type":"application/json",
             "Accept-Encoding": "gzip, deflate, br",
-            "Content-Type": "application/json",
-            "Referer": "https://free.chatgpt.org.uk/",
-            "x-requested-with": "XMLHttpRequest",
-            "Origin": "https://free.chatgpt.org.uk",
+            "Accept-Language": "en-US,en;q=0.5",
+            "Host":"free.chatgpt.org.uk",
+            "Referer":f"{cls.url}/",
+            "Origin":f"{cls.url}",
             "Sec-Fetch-Dest": "empty",
             "Sec-Fetch-Mode": "cors",
             "Sec-Fetch-Site": "same-origin",
-            "Connection": "keep-alive",
-            "Alt-Used": "free.chatgpt.org.uk",
-            "Pragma": "no-cache",
-            "Cache-Control": "no-cache",
-            "TE": "trailers",
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36", 
         }
         async with ClientSession(headers=headers) as session:
             data = {
-                "messages": messages,
-                "isAzure": False,
-                "azureApiVersion": "2023-08-01-preview",
-                "stream": True,
-                "model": model,
-                "temperature": 0.5,
-                "presence_penalty": 0,
-                "frequency_penalty": 0,
-                "top_p": 1,
-                "baseUrl": "/api/openai",
-                "maxIterations": 10,
-                "returnIntermediateSteps": True,
-                "useTools": ["web-search", "calculator", "web-browser"],
+                "messages":messages,
+                "stream":True,
+                "model":model,
+                "temperature":0.5,
+                "presence_penalty":0,
+                "frequency_penalty":0,
+                "top_p":1,
                 **kwargs
             }
-            async with session.post(f"{cls.url}/api/langchain/tool/agent/nodejs", json=data, proxy=proxy) as response:
+            async with session.post(f'{url}/api/openai/v1/chat/completions', json=data, proxy=proxy) as response:
                 response.raise_for_status()
+                started = False
                 async for line in response.content:
-                    if line.startswith(b"data: "):
-                        data = json.loads(line[6:])
-                        if data["isSuccess"] and not data["isToolMessage"]:
-                            yield data["message"]
+                    if line.startswith(b"data: [DONE]"):
+                        break
+                    elif line.startswith(b"data: "):
+                        line = json.loads(line[6:])
+                        if(line["choices"]==[]):
+                            continue
+                        chunk = line["choices"][0]["delta"].get("content")
+                        if chunk:
+                            started = True
+                            yield chunk
+                if not started:
+                    raise RuntimeError("Empty response")

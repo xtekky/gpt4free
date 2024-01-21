@@ -15,9 +15,29 @@ def get_model_and_provider(model    : Union[Model, str],
                            ignored  : list[str] = None,
                            ignore_working: bool = False,
                            ignore_stream: bool = False) -> tuple[str, ProviderType]:
+    """
+    Retrieves the model and provider based on input parameters.
+
+    Args:
+        model (Union[Model, str]): The model to use, either as an object or a string identifier.
+        provider (Union[ProviderType, str, None]): The provider to use, either as an object, a string identifier, or None.
+        stream (bool): Indicates if the operation should be performed as a stream.
+        ignored (list[str], optional): List of provider names to be ignored.
+        ignore_working (bool, optional): If True, ignores the working status of the provider.
+        ignore_stream (bool, optional): If True, ignores the streaming capability of the provider.
+
+    Returns:
+        tuple[str, ProviderType]: A tuple containing the model name and the provider type.
+
+    Raises:
+        ProviderNotFoundError: If the provider is not found.
+        ModelNotFoundError: If the model is not found.
+        ProviderNotWorkingError: If the provider is not working.
+        StreamNotSupportedError: If streaming is not supported by the provider.
+    """
     if debug.version_check:
         debug.version_check = False
-        version.utils.check_pypi_version()
+        version.utils.check_version()
        
     if isinstance(provider, str):
         if provider in ProviderUtils.convert:
@@ -70,7 +90,30 @@ class ChatCompletion:
                ignore_stream_and_auth: bool = False,
                patch_provider: callable = None,
                **kwargs) -> Union[CreateResult, str]:
+        """
+        Creates a chat completion using the specified model, provider, and messages.
 
+        Args:
+            model (Union[Model, str]): The model to use, either as an object or a string identifier.
+            messages (Messages): The messages for which the completion is to be created.
+            provider (Union[ProviderType, str, None], optional): The provider to use, either as an object, a string identifier, or None.
+            stream (bool, optional): Indicates if the operation should be performed as a stream.
+            auth (Union[str, None], optional): Authentication token or credentials, if required.
+            ignored (list[str], optional): List of provider names to be ignored.
+            ignore_working (bool, optional): If True, ignores the working status of the provider.
+            ignore_stream_and_auth (bool, optional): If True, ignores the stream and authentication requirement checks.
+            patch_provider (callable, optional): Function to modify the provider.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            Union[CreateResult, str]: The result of the chat completion operation.
+
+        Raises:
+            AuthenticationRequiredError: If authentication is required but not provided.
+            ProviderNotFoundError, ModelNotFoundError: If the specified provider or model is not found.
+            ProviderNotWorkingError: If the provider is not operational.
+            StreamNotSupportedError: If streaming is requested but not supported by the provider.
+        """
         model, provider = get_model_and_provider(model, provider, stream, ignored, ignore_working, ignore_stream_and_auth)
 
         if not ignore_stream_and_auth and provider.needs_auth and not auth:
@@ -98,7 +141,24 @@ class ChatCompletion:
                      ignored  : list[str] = None,
                      patch_provider: callable = None,
                      **kwargs) -> Union[AsyncResult, str]:
+        """
+        Asynchronously creates a completion using the specified model and provider.
 
+        Args:
+            model (Union[Model, str]): The model to use, either as an object or a string identifier.
+            messages (Messages): Messages to be processed.
+            provider (Union[ProviderType, str, None]): The provider to use, either as an object, a string identifier, or None.
+            stream (bool): Indicates if the operation should be performed as a stream.
+            ignored (list[str], optional): List of provider names to be ignored.
+            patch_provider (callable, optional): Function to modify the provider.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            Union[AsyncResult, str]: The result of the asynchronous chat completion operation.
+
+        Raises:
+            StreamNotSupportedError: If streaming is requested but not supported by the provider.
+        """
         model, provider = get_model_and_provider(model, provider, False, ignored)
 
         if stream:
@@ -118,7 +178,23 @@ class Completion:
                provider : Union[ProviderType, None] = None,
                stream   : bool = False,
                ignored  : list[str] = None, **kwargs) -> Union[CreateResult, str]:
+        """
+        Creates a completion based on the provided model, prompt, and provider.
 
+        Args:
+            model (Union[Model, str]): The model to use, either as an object or a string identifier.
+            prompt (str): The prompt text for which the completion is to be created.
+            provider (Union[ProviderType, None], optional): The provider to use, either as an object or None.
+            stream (bool, optional): Indicates if the operation should be performed as a stream.
+            ignored (list[str], optional): List of provider names to be ignored.
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            Union[CreateResult, str]: The result of the completion operation.
+
+        Raises:
+            ModelNotAllowedError: If the specified model is not allowed for use with this method.
+        """
         allowed_models = [
             'code-davinci-002',
             'text-ada-001',
@@ -137,6 +213,15 @@ class Completion:
         return result if stream else ''.join(result)
     
 def get_last_provider(as_dict: bool = False) -> Union[ProviderType, dict[str, str]]:
+    """
+    Retrieves the last used provider.
+
+    Args:
+        as_dict (bool, optional): If True, returns the provider information as a dictionary.
+
+    Returns:
+        Union[ProviderType, dict[str, str]]: The last used provider, either as an object or a dictionary.
+    """
     last = debug.last_provider
     if isinstance(last, BaseRetryProvider):
         last = last.last_provider

@@ -217,7 +217,6 @@ body {
 }
 
 .message {
-
     width: 100%;
     overflow-wrap: break-word;
     display: flex;
@@ -302,8 +301,12 @@ body {
     line-height: 1.3;
     color: var(--colour-3);
 }
-.message .content pre {
+.message .content pre{
     white-space: pre-wrap;
+}
+
+.message .content img{
+    max-width: 400px;
 }
 
 .message .user i {
@@ -401,13 +404,37 @@ body {
     display: none;
 }
 
-input[type="checkbox"] {
+#image, #file {
+    display: none;
+}
+
+label[for="image"]:has(> input:valid){
+    color: var(--accent);
+}
+
+label[for="file"]:has(> input:valid){
+    color: var(--accent);
+}
+
+label[for="image"], label[for="file"] {
+    cursor: pointer;
+    position: absolute;
+    top: 10px;
+    left: 10px;
+}
+
+label[for="file"] {
+    top: 32px;
+    left: 10px;
+}
+
+.buttons input[type="checkbox"] {
     height: 0;
     width: 0;
     display: none;
 }
 
-label {
+.buttons label {
     cursor: pointer;
     text-indent: -9999px;
     width: 50px;
@@ -424,7 +451,7 @@ label {
     transition: 0.33s;
 }
 
-label:after {
+.buttons label:after {
     content: "";
     position: absolute;
     top: 50%;
@@ -437,11 +464,11 @@ label:after {
     transition: 0.33s;
 }
 
-input:checked+label {
-    background: var(--blur-border);
+.buttons input:checked+label {
+    background: var(--accent);
 }
 
-input:checked+label:after {
+.buttons input:checked+label:after {
     left: calc(100% - 5px - 20px);
 }
 
@@ -548,6 +575,7 @@ select {
     animation: blink 0.8s infinite;
     width: 7px;
     height: 15px;
+    display: inline-block;
 }
 
 @keyframes blink {

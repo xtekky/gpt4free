@@ -4,6 +4,7 @@ from .Provider   import RetryProvider, ProviderType
 from .Provider   import (
     Chatgpt4Online,
     ChatgptDemoAi,
+    GeminiProChat,
     ChatgptNext,
     HuggingChat,
     ChatgptDemo,
@@ -30,12 +31,21 @@ from .Provider   import (
 
 @dataclass(unsafe_hash=True)
 class Model:
+    """
+    Represents a machine learning model configuration.
+
+    Attributes:
+        name (str): Name of the model.
+        base_provider (str): Default provider for the model.
+        best_provider (ProviderType): The preferred provider for the model, typically with retry logic.
+    """
     name: str
     base_provider: str
     best_provider: ProviderType = None
     
     @staticmethod
     def __all__() -> list[str]:
+        """Returns a list of all model names."""
         return _all_models
 
 default = Model(
@@ -61,7 +71,6 @@ gpt_35_long = Model(
         ChatgptNext,
         ChatgptDemo,
         Gpt6,
-        FreeChatgpt,
     ])
 )
 
@@ -69,8 +78,8 @@ gpt_35_long = Model(
 gpt_35_turbo = Model(
     name          = 'gpt-3.5-turbo',
     base_provider = 'openai',
-    best_provider=RetryProvider([
-        GptGo, You, 
+    best_provider=RetryProvider([ 
+        GptGo, You,
         GptForLove, ChatBase,
         Chatgpt4Online,
     ])
@@ -80,7 +89,7 @@ gpt_4 = Model(
     name          = 'gpt-4',
     base_provider = 'openai',
     best_provider = RetryProvider([
-        Bing, Phind, Liaobots
+        Bing, Phind, Liaobots, 
     ])
 )
 
@@ -163,7 +172,7 @@ claude_v1 = Model(
 claude_v2 = Model(
     name          = 'claude-v2',
     base_provider = 'anthropic',
-    best_provider = Vercel)
+    best_provider = RetryProvider([FreeChatgpt, Vercel]))
 
 command_light_nightly = Model(
     name          = 'command-light-nightly',
@@ -245,6 +254,12 @@ gpt_4_32k_0613 = Model(
     best_provider = gpt_4.best_provider
 )
 
+gemini_pro = Model(
+    name          = 'gemini-pro',
+    base_provider = 'google',
+    best_provider = RetryProvider([FreeChatgpt, GeminiProChat])
+)
+
 text_ada_001 = Model(
     name          = 'text-ada-001',
     base_provider = 'openai',
@@ -292,6 +307,12 @@ pi = Model(
 )
 
 class ModelUtils:
+    """
+    Utility class for mapping string identifiers to Model instances.
+
+    Attributes:
+        convert (dict[str, Model]): Dictionary mapping model string identifiers to Model instances.
+    """
     convert: dict[str, Model] = {
         # gpt-3.5
         'gpt-3.5-turbo'          : gpt_35_turbo,
@@ -318,6 +339,8 @@ class ModelUtils:
         'mistral-7b': mistral_7b,
         'openchat_3.5': openchat_35,
         
+        # Gemini Pro
+        'gemini-pro': gemini_pro,
         # Bard
         'palm2'       : palm,
         'palm'        : palm,

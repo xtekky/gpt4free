@@ -7,6 +7,9 @@ const spinner           = box_conversations.querySelector(".spinner");
 const stop_generating   = document.querySelector(`.stop_generating`);
 const regenerate        = document.querySelector(`.regenerate`);
 const send_button       = document.querySelector(`#send-button`);
+const imageInput        = document.querySelector('#image');
+const fileInput         = document.querySelector('#file');
+
 let   prompt_lock       = false;
 
 hljs.addPlugin(new CopyButtonPlugin());
@@ -34,13 +37,18 @@ const delete_conversations = async () => {
 };
 
 const handle_ask = async () => {
-    message_input.style.height = `80px`;
+    message_input.style.height = `82px`;
     message_input.focus();
     window.scrollTo(0, 0);
     message = message_input.value
     if (message.length > 0) {
         message_input.value = '';
         await add_conversation(window.conversation_id, message);
+        if ("text" in fileInput.dataset) {
+            message += '\n```' + fileInput.dataset.type + '\n'; 
+            message += fileInput.dataset.text;
+            message += '\n```'
+        }
         await add_message(window.conversation_id, "user", message);
         window.token = message_id();
         message_box.innerHTML += `
@@ -54,6 +62,9 @@ const handle_ask = async () => {
                 </div>
             </div>
         `;
+        document.querySelectorAll('code:not(.hljs').forEach((el) => {
+            hljs.highlightElement(el);
+        });
         await ask_gpt();
     }
 };
@@ -103,8 +114,7 @@ const ask_gpt = async () => {
             </div>
             <div class="content" id="gpt_${window.token}">
                 <div class="provider"></div>
-                <div class="content_inner"></div>
-                <div id="cursor"></div>
+                <div class="content_inner"><span id="cursor"></span></div>
             </div>
         </div>
     `;
@@ -114,29 +124,32 @@ const ask_gpt = async () => {
     message_box.scrollTop = message_box.scrollHeight;
     window.scrollTo(0, 0);
     try {
+        let body = JSON.stringify({
+            id: window.token,
+            conversation_id: window.conversation_id,
+            model: model.options[model.selectedIndex].value,
+            jailbreak: jailbreak.options[jailbreak.selectedIndex].value,
+            web_search: document.getElementById(`switch`).checked,
+            provider: provider.options[provider.selectedIndex].value,
+            patch_provider: document.getElementById('patch').checked,
+            messages: messages
+        });
+        const headers = {
+            accept: 'text/event-stream'
+        }
+        if (imageInput && imageInput.files.length > 0) {
+            const formData = new FormData();
+            formData.append('image', imageInput.files[0]);
+            formData.append('json', body);
+            body = formData;
+        } else {
+            headers['content-type'] = 'application/json';
+        }
         const response = await fetch(`/backend-api/v2/conversation`, {
-            method: `POST`,
+            method: 'POST',
             signal: window.controller.signal,
-            headers: {
-                'content-type': `application/json`,
-                accept: `text/event-stream`,
-            },
-            body: JSON.stringify({
-                conversation_id: window.conversation_id,
-                action: `_ask`,
-                model: model.options[model.selectedIndex].value,
-                jailbreak: jailbreak.options[jailbreak.selectedIndex].value,
-                internet_access: document.getElementById(`switch`).checked,
-                provider: provider.options[provider.selectedIndex].value,
-                patch_provider: document.getElementById('patch').checked,
-                meta: {
-                    id: window.token,
-                    content: {
-                        content_type: `text`,
-                        parts: messages,
-                    },
-                },
-            }),
+            headers: headers,
+            body: body
         });
 
         await new Promise((r) => setTimeout(r, 1000));
@@ -159,24 +172,41 @@ const ask_gpt = async () => {
                         '<a href="' + provider.url + '" target="_blank">' + provider.name + "</a>"
                 } else if (message["type"] == "error") {
                     error = message["error"];
+                } else if (message["type"] == "message") {
+                    console.error(message["message"])
                 }
             }
             if (error) {
                 console.error(error);
-                content_inner.innerHTML = "An error occured, please try again, if the problem persists, please use a other model or provider";
+                content_inner.innerHTML += "<p>An error occured, please try again, if the problem persists, please use a other model or provider.</p>";
             } else {
-                content_inner.innerHTML = markdown_render(text);
-                document.querySelectorAll('code').forEach((el) => {
+                html = markdown_render(text);
+                let lastElement, lastIndex = null;
+                for (element of ['</p>', '</code></pre>', '</li>\n</ol>']) {
+                    const index = html.lastIndexOf(element)
+                    if (index > lastIndex) {
+                        lastElement = element;
+                        lastIndex = index;
+                    }
+                }
+                if (lastIndex) {
+                    html = html.substring(0, lastIndex) + '<span id="cursor"></span>' + lastElement;
+                }
+                content_inner.innerHTML = html;
+                document.querySelectorAll('code:not(.hljs').forEach((el) => {
                     hljs.highlightElement(el);
                 });
             }
 
             window.scrollTo(0, 0);
-            message_box.scrollTo({ top: message_box.scrollHeight, behavior: "auto" });
+            if (message_box.scrollTop >= message_box.scrollHeight - message_box.clientHeight - 100) {
+                message_box.scrollTo({ top: message_box.scrollHeight, behavior: "auto" });
+            }
         }
+        if (!error && imageInput) imageInput.value = "";
+        if (!error && fileInput) fileInput.value = "";
     } catch (e) {
-        console.log(e);
-
+        console.error(e);
 
         if (e.name != `AbortError`) {
             text = `oops ! something went wrong, please try again / reload. [stacktrace in console]`;
@@ -298,7 +328,7 @@ const load_conversation = async (conversation_id) => {
         `;
     }
 
-    document.querySelectorAll(`code`).forEach((el) => {
+    document.querySelectorAll('code:not(.hljs').forEach((el) => {
         hljs.highlightElement(el);
     });
 
@@ -393,7 +423,7 @@ const load_conversations = async (limit, offset, loader) => {
         `;
     }
 
-    document.querySelectorAll(`code`).forEach((el) => {
+    document.querySelectorAll('code:not(.hljs').forEach((el) => {
         hljs.highlightElement(el);
     });
 };
@@ -444,34 +474,34 @@ document.querySelector(".mobile-sidebar").addEventListener("click", (event) => {
 });
 
 const register_settings_localstorage = async () => {
-    settings_ids = ["switch", "model", "jailbreak", "patch", "provider"];
-    settings_elements = settings_ids.map((id) => document.getElementById(id));
-    settings_elements.map((element) =>
-        element.addEventListener(`change`, async (event) => {
+    for (id of ["switch", "model", "jailbreak", "patch", "provider"]) {
+        element = document.getElementById(id);
+        element.addEventListener('change', async (event) => {
             switch (event.target.type) {
                 case "checkbox":
-                    localStorage.setItem(event.target.id, event.target.checked);
+                    localStorage.setItem(id, event.target.checked);
                     break;
                 case "select-one":
-                    localStorage.setItem(event.target.id, event.target.selectedIndex);
+                    localStorage.setItem(id, event.target.selectedIndex);
                     break;
                 default:
                     console.warn("Unresolved element type");
             }
-        })
-    );
-};
+        });
+    }
+}
 
 const load_settings_localstorage = async () => {
     for (id of ["switch", "model", "jailbreak", "patch", "provider"]) {
         element = document.getElementById(id);
-        if (localStorage.getItem(element.id)) {
+        value = localStorage.getItem(element.id);
+        if (value) {
             switch (element.type) {
                 case "checkbox":
-                    element.checked = localStorage.getItem(element.id) === "true";
+                    element.checked = value === "true";
                     break;
                 case "select-one":
-                    element.selectedIndex = parseInt(localStorage.getItem(element.id));
+                    element.selectedIndex = parseInt(value);
                     break;
                 default:
                     console.warn("Unresolved element type");
@@ -529,7 +559,6 @@ colorThemes.forEach((themeOption) => {
 
 
 window.onload = async () => {
-    load_settings_localstorage();
     setTheme();
 
     let conversations = 0;
@@ -596,39 +625,25 @@ observer.observe(message_input, { attributes: true });
 (async () => {
     response = await fetch('/backend-api/v2/models')
     models = await response.json()
-    
     let select = document.getElementById('model');
-    select.textContent = '';
-
-    let auto = document.createElement('option');
-    auto.value = '';
-    auto.text = 'Model: Default';
-    select.appendChild(auto);
 
     for (model of models) {
         let option = document.createElement('option');
         option.value = option.text = model;
         select.appendChild(option);
     }
-})();
 
-(async () => {
     response = await fetch('/backend-api/v2/providers')
     providers = await response.json()
-    
-    let select = document.getElementById('provider');
-    select.textContent = '';
-
-    let auto = document.createElement('option');
-    auto.value = '';
-    auto.text = 'Provider: Auto';
-    select.appendChild(auto);
+    select = document.getElementById('provider');
 
     for (provider of providers) {
         let option = document.createElement('option');
         option.value = option.text = provider;
         select.appendChild(option);
     }
+
+    await load_settings_localstorage()
 })();
 
 (async () => {
@@ -637,11 +652,34 @@ observer.observe(message_input, { attributes: true });
     
     document.title = 'g4f - gui - ' + versions["version"];
     text = "version ~ "
-    if (versions["version"] != versions["lastet_version"]) {
-        release_url = 'https://github.com/xtekky/gpt4free/releases/tag/' + versions["lastet_version"];
-        text += '<a href="' + release_url +'" target="_blank" title="New version: ' + versions["lastet_version"] +'">' + versions["version"] + ' 🆕</a>';
+    if (versions["version"] != versions["latest_version"]) {
+        release_url = 'https://github.com/xtekky/gpt4free/releases/tag/' + versions["latest_version"];
+        text += '<a href="' + release_url +'" target="_blank" title="New version: ' + versions["latest_version"] +'">' + versions["version"] + ' 🆕</a>';
     } else {
         text += versions["version"];
     }
     document.getElementById("version_text").innerHTML = text
-})();
+})()
+
+fileInput.addEventListener('change', async (event) => {
+    if (fileInput.files.length) {
+        type = fileInput.files[0].type;
+        if (type && type.indexOf('/')) {
+            type = type.split('/').pop().replace('x-', '')
+            type = type.replace('plain', 'plaintext')
+                       .replace('shellscript', 'sh')
+                       .replace('svg+xml', 'svg')
+                       .replace('vnd.trolltech.linguist', 'ts')
+        } else {
+            type = fileInput.files[0].name.split('.').pop()
+        }
+        fileInput.dataset.type = type
+        const reader = new FileReader();
+        reader.addEventListener('load', (event) => {
+            fileInput.dataset.text = event.target.result;
+        });
+        reader.readAsText(fileInput.files[0]);
+    } else {
+        delete fileInput.dataset.text;
+    }
+});
