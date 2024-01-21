@@ -58,16 +58,23 @@ class DeepInfra(AsyncGeneratorProvider):
                 response.raise_for_status()
                 first = True
                 async for line in response.iter_lines():
+                    if not line.startswith(b"data: "):
+                        continue
+
                     try:
-                        if line.startswith(b"data: [DONE]"):
+                        decoded_line = line.decode().lstrip("data: ")
+                        json_line = json.loads(decoded_line)
+
+                        choices = json_line.get("choices", [{}])
+                        finish_reason = choices[0].get("finish_reason", "")
+                        if finish_reason:
                             break
-                        elif line.startswith(b"data: "):
-                            chunk = json.loads(line[6:])["choices"][0]["delta"].get("content")
-                        if chunk:
+                        token = choices[0].get("delta", {}).get("content", "")
+
+                        if token:
                             if first:
-                                chunk = chunk.lstrip()
-                                if chunk:
-                                    first = False
-                            yield chunk
+                                token = token.lstrip()
+                                first = False
+                            yield token
                     except Exception:
                         raise RuntimeError(f"Response: {line}")
