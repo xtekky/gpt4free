@@ -55,7 +55,7 @@ class Phind(AsyncGeneratorProvider):
                     "creativeMode": creative_mode,
                     "customLinks": []
                 },
-                "context": ([message["content"] for message in messages if message["role"] == "system"])[0] if ([message["content"] for message in messages if message["role"] == "system"]) else "",
+                "context": "\n".join([message["content"] for message in messages if message["role"] == "system"]),
                 "rewrittenQuestion": prompt,
                 "challenge": 0.21132115912208504
             }
