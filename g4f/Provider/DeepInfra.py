@@ -60,17 +60,13 @@ class DeepInfra(AsyncGeneratorProvider):
                 async for line in response.iter_lines():
                     if not line.startswith(b"data: "):
                         continue
-
                     try:
-                        decoded_line = line.decode().lstrip("data: ")
-                        json_line = json.loads(decoded_line)
-
+                        json_line = json.loads(line[6:])
                         choices = json_line.get("choices", [{}])
-                        finish_reason = choices[0].get("finish_reason", "")
+                        finish_reason = choices[0].get("finish_reason")
                         if finish_reason:
                             break
-                        token = choices[0].get("delta", {}).get("content", "")
-
+                        token = choices[0].get("delta", {}).get("content")
                         if token:
                             if first:
                                 token = token.lstrip()
