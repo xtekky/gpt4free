@@ -18,6 +18,17 @@ pip install -U g4f
 ```sh
 docker pull hlohaus789/g4f
 ```
+# To do
+As per the survey, here is a list of improvements to come
+- [ ] Improve Documentation (on g4f.mintlify.app) & Do video tutorials
+- [ ] Improve the provider status list & updates
+- [ ] Tutorials on how to reverse sites to write your own wrapper (PoC only ofc)
+- [ ] Improve the Bing wrapper. (might write a new wrapper in golang as it is very fast)
+- [ ] Write a standard provider performance test to improve the stability
+- [ ] update the repository to include the new openai library syntax (ex: `Openai()` class)
+- [ ] Potential support and development of local models
+- [ ] improve compability and error handling
+
 
 ## 🆕 What's New
 - <a href="./README-DE.md"><img src="https://img.shields.io/badge/öffnen in-🇩🇪 deutsch-bleu.svg" alt="Öffnen en DE"></a>
