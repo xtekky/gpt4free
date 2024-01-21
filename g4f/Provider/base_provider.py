@@ -8,6 +8,7 @@ from inspect import signature, Parameter
 from .helper import get_event_loop, get_cookies, format_prompt
 from ..typing import CreateResult, AsyncResult, Messages
 from ..base_provider import BaseProvider
+from ..errors import NestAsyncioError
 
 if sys.version_info < (3, 10):
     NoneType = type(None)
@@ -48,7 +49,7 @@ class AbstractProvider(BaseProvider):
         Returns:
             str: The created result as a string.
         """
-        loop = loop or get_event_loop()
+        loop = loop or asyncio.get_running_loop()
 
         def create_func() -> str:
             return "".join(cls.create_completion(model, messages, False, **kwargs))
@@ -101,8 +102,6 @@ class AsyncProvider(AbstractProvider):
         model: str,
         messages: Messages,
         stream: bool = False,
-        *,
-        loop: AbstractEventLoop = None,
         **kwargs
     ) -> CreateResult:
         """
@@ -119,9 +118,15 @@ class AsyncProvider(AbstractProvider):
         Returns:
             CreateResult: The result of the completion creation.
         """
-        loop = loop or get_event_loop()
-        coro = cls.create_async(model, messages, **kwargs)
-        yield loop.run_until_complete(coro)
+        try:
+            loop = asyncio.get_running_loop()
+            if not hasattr(loop.__class__, "_nest_patched"):
+                raise NestAsyncioError(
+                    'Use "create_async" instead of "create" function in a running event loop. Or use "nest_asyncio" package.'
+                )
+        except RuntimeError:
+            pass
+        yield asyncio.run(cls.create_async(model, messages, **kwargs))
 
     @staticmethod
     @abstractmethod
@@ -159,8 +164,6 @@ class AsyncGeneratorProvider(AsyncProvider):
         model: str,
         messages: Messages,
         stream: bool = True,
-        *,
-        loop: AbstractEventLoop = None,
         **kwargs
     ) -> CreateResult:
         """
@@ -177,7 +180,16 @@ class AsyncGeneratorProvider(AsyncProvider):
         Returns:
             CreateResult: The result of the streaming completion creation.
         """
-        loop = loop or get_event_loop()
+        try:
+            loop = asyncio.get_running_loop()
+            if not hasattr(loop.__class__, "_nest_patched"):
+                raise NestAsyncioError(
+                    'Use "create_async" instead of "create" function in a running event loop. Or use "nest_asyncio" package.'
+                )
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+
         generator = cls.create_async_generator(model, messages, stream=stream, **kwargs)
         gen = generator.__aiter__()
 
