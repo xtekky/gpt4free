@@ -130,6 +130,14 @@ mistral_7b = Model(
     best_provider = RetryProvider([DeepInfra, HuggingChat])
 )
 
+# Dolphin
+dolphin_mixtral_8x7b = Model(
+    name          = "cognitivecomputations/dolphin-2.6-mixtral-8x7b",
+    base_provider = "huggingface",
+    best_provider = DeepInfra
+)
+
+# OpenChat
 openchat_35 = Model(
     name          = "openchat/openchat_3.5",
     base_provider = "huggingface",
@@ -337,6 +345,11 @@ class ModelUtils:
         # Mistral
         'mixtral-8x7b': mixtral_8x7b,
         'mistral-7b': mistral_7b,
+        
+        # Dolphin
+        'dolphin-mixtral-8x7b': dolphin_mixtral_8x7b,
+
+        # OpenChat
         'openchat_3.5': openchat_35,
         
         # Gemini Pro
