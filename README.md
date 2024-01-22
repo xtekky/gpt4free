@@ -427,6 +427,26 @@ if __name__ == "__main__":
     main()
 ```
 
+##  API usage (POST)
+#### Chat completions
+Send the POST request to /v1/chat/completions with body containing the `model` method. This example uses python with requests library:
+```python
+import requests
+url = "http://localhost:1337/v1/chat/completions"
+body = {
+    "model": "gpt-3.5-turbo-16k",
+    "stream": False,
+    "messages": [
+        {"role": "assistant", "content": "What can you do?"}
+    ]
+}
+json_response = requests.post(url, json=body).json().get('choices', [])
+
+for choice in json_response:
+    print(choice.get('message', {}).get('content', ''))
+```
+
+
 ## 🚀 Providers and Models
 
 ### GPT-4
