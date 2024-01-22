@@ -13,10 +13,10 @@ from urllib.parse import quote
 from typing import Generator, List, Dict
 
 from ..create_images import CreateImagesProvider
-from ..helper import get_cookies, get_event_loop
+from ..helper import get_cookies
 from ...webdriver import WebDriver, get_driver_cookies, get_browser
 from ...base_provider import ProviderType
-from ...image import format_images_markdown
+from ...image import ImageResponse
 
 BING_URL = "https://www.bing.com"
 TIMEOUT_LOGIN = 1200
@@ -161,23 +161,7 @@ def read_images(html_content: str) -> List[str]:
         raise RuntimeError("No images found")
     return images
 
-async def create_images_markdown(cookies: Dict[str, str], prompt: str, proxy: str = None) -> str:
-    """
-    Creates markdown formatted string with images based on the prompt.
-
-    Args:
-        cookies (Dict[str, str]): Cookies to be used for the session.
-        prompt (str): Prompt to generate images.
-        proxy (str, optional): Proxy configuration.
-
-    Returns:
-        str: Markdown formatted string with images.
-    """
-    async with create_session(cookies) as session:
-        images = await create_images(session, prompt, proxy)
-        return format_images_markdown(images, prompt)
-
-def get_cookies_from_browser(proxy: str = None) -> Dict[str, str]:
+def get_cookies_from_browser(proxy: str = None) -> dict[str, str]:
     """
     Retrieves cookies from the browser using webdriver.
 
@@ -185,7 +169,7 @@ def get_cookies_from_browser(proxy: str = None) -> Dict[str, str]:
         proxy (str, optional): Proxy configuration.
 
     Returns:
-        Dict[str, str]: Retrieved cookies.
+        dict[str, str]: Retrieved cookies.
     """
     with get_browser(proxy=proxy) as driver:
         wait_for_login(driver)
@@ -194,48 +178,47 @@ def get_cookies_from_browser(proxy: str = None) -> Dict[str, str]:
 
 class CreateImagesBing:
     """A class for creating images using Bing."""
-
-    _cookies: Dict[str, str] = {}
     
-    @classmethod
-    def create_completion(cls, prompt: str, cookies: Dict[str, str] = None, proxy: str = None) -> Generator[str, None, None]:
+    def __init__(self, cookies: dict[str, str] = {}, proxy: str = None) -> None:
+        self.cookies = cookies
+        self.proxy = proxy
+    
+    def create_completion(self, prompt: str) -> Generator[ImageResponse, None, None]:
         """
         Generator for creating imagecompletion based on a prompt.
 
         Args:
             prompt (str): Prompt to generate images.
-            cookies (Dict[str, str], optional): Cookies for the session. If None, cookies are retrieved automatically.
-            proxy (str, optional): Proxy configuration.
 
         Yields:
             Generator[str, None, None]: The final output as markdown formatted string with images.
         """
-        loop = get_event_loop()
-        cookies = cookies or cls._cookies or get_cookies(".bing.com")
+        cookies = self.cookies or get_cookies(".bing.com")
         if "_U" not in cookies:
             login_url = os.environ.get("G4F_LOGIN_URL")
             if login_url:
                 yield f"Please login: [Bing]({login_url})\n\n"
-            cls._cookies = cookies = get_cookies_from_browser(proxy)
-        yield loop.run_until_complete(create_images_markdown(cookies, prompt, proxy))
+            self.cookies = get_cookies_from_browser(self.proxy)
+        yield asyncio.run(self.create_async(prompt))
 
-    @classmethod
-    async def create_async(cls, prompt: str, cookies: Dict[str, str] = None, proxy: str = None) -> str:
+    async def create_async(self, prompt: str) -> ImageResponse:
         """
         Asynchronously creates a markdown formatted string with images based on the prompt.
 
         Args:
             prompt (str): Prompt to generate images.
-            cookies (Dict[str, str], optional): Cookies for the session. If None, cookies are retrieved automatically.
-            proxy (str, optional): Proxy configuration.
 
         Returns:
             str: Markdown formatted string with images.
         """
-        cookies = cookies or cls._cookies or get_cookies(".bing.com")
+        cookies = self.cookies or get_cookies(".bing.com")
         if "_U" not in cookies:
-            cls._cookies = cookies = get_cookies_from_browser(proxy)
-        return await create_images_markdown(cookies, prompt, proxy)
+            raise RuntimeError('"_U" cookie is missing')
+        async with create_session(cookies) as session:
+            images = await create_images(session, prompt, self.proxy)
+            return ImageResponse(images, prompt)
+    
+service = CreateImagesBing()
 
 def patch_provider(provider: ProviderType) -> CreateImagesProvider:
     """
@@ -247,4 +230,8 @@ def patch_provider(provider: ProviderType) -> CreateImagesProvider:
     Returns:
         CreateImagesProvider: The patched provider with image creation capabilities.
     """
-    return CreateImagesProvider(provider, CreateImagesBing.create_completion, CreateImagesBing.create_async)
+    return CreateImagesProvider(
+        provider,
+        service.create_completion,
+        service.create_async
+    )

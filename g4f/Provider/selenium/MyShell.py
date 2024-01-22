@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import time, json
 
-from ..typing import CreateResult, Messages
-from .base_provider import AbstractProvider
-from .helper import format_prompt
-from ..webdriver import WebDriver, WebDriverSession, bypass_cloudflare
+from ...typing import CreateResult, Messages
+from ..base_provider import AbstractProvider
+from ..helper import format_prompt
+from ...webdriver import WebDriver, WebDriverSession, bypass_cloudflare
 
 class MyShell(AbstractProvider):
     url = "https://app.myshell.ai/chat"

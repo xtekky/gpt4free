@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import time, json, time
 
-from ..typing import CreateResult, Messages
-from .base_provider import AbstractProvider
-from ..webdriver import WebDriver, WebDriverSession
+from ...typing import CreateResult, Messages
+from ..base_provider import AbstractProvider
+from ...webdriver import WebDriver, WebDriverSession
 
 class TalkAi(AbstractProvider):
     url = "https://talkai.info"

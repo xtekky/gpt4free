@@ -11,11 +11,8 @@ from .selenium        import *
 
 from .Aura            import Aura
 from .AiAsk           import AiAsk
-from .Aichat          import Aichat
 from .AiChatOnline    import AiChatOnline
 from .AItianhu        import AItianhu
-from .AItianhuSpace   import AItianhuSpace
-from .Berlin          import Berlin
 from .Bing            import Bing
 from .ChatAnywhere    import ChatAnywhere
 from .ChatBase        import ChatBase
@@ -43,20 +40,16 @@ from .GptGo           import GptGo
 from .GptGod          import GptGod
 from .GptTalkRu       import GptTalkRu
 from .Hashnode        import Hashnode
+from .HuggingChat     import HuggingChat
 from .Koala           import Koala
 from .Liaobots        import Liaobots
 from .Llama2          import Llama2
-from .MyShell         import MyShell
 from .OnlineGpt       import OnlineGpt
-from .Opchatgpts      import Opchatgpts
-from .PerplexityAi    import PerplexityAi
 from .Phind           import Phind
 from .Pi              import Pi
-from .TalkAi          import TalkAi
 from .Vercel          import Vercel
 from .Ylokh           import Ylokh
 from .You             import You
-from .Yqcloud         import Yqcloud
 from .Bestim          import Bestim
 
 import sys

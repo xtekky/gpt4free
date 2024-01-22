@@ -19,3 +19,7 @@ from .Aibn          import Aibn
 from .Ails          import Ails 
 from .ChatgptDuo    import ChatgptDuo
 from .Cromicle      import Cromicle
+from .Opchatgpts    import Opchatgpts
+from .Yqcloud       import Yqcloud
+from .Aichat        import Aichat
+from .Berlin        import Berlin
