@@ -27,7 +27,7 @@ As per the survey, here is a list of improvements to come
 - [ ] Write a standard provider performance test to improve the stability
 - [ ] update the repository to include the new openai library syntax (ex: `Openai()` class)
 - [ ] Potential support and development of local models
-- [ ] improve compability and error handling
+- [ ] improve compatibility and error handling
 
 
 ## 🆕 What's New
