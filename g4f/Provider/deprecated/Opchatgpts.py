@@ -3,9 +3,9 @@ from __future__ import annotations
 import random, string, json
 from aiohttp import ClientSession
 
-from ..typing import Messages, AsyncResult
-from .base_provider import AsyncGeneratorProvider
-from .helper import get_random_string
+from ...typing import Messages, AsyncResult
+from ..base_provider import AsyncGeneratorProvider
+from ..helper import get_random_string
 
 class Opchatgpts(AsyncGeneratorProvider):
     url = "https://opchatgpts.net"

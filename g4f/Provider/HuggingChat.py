@@ -4,9 +4,9 @@ import json, uuid
 
 from aiohttp import ClientSession
 
-from ...typing import AsyncResult, Messages
-from ..base_provider import AsyncGeneratorProvider
-from ..helper import format_prompt, get_cookies
+from ..typing import AsyncResult, Messages
+from .base_provider import AsyncGeneratorProvider
+from .helper import format_prompt, get_cookies
 
 map = {
     "openchat/openchat_3.5": "openchat/openchat-3.5-1210",
