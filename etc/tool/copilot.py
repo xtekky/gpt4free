@@ -217,7 +217,7 @@ def main():
         if not pull:
             print(f"No PR number found")
             exit()
-        if pull.get_reviews().totalCount > 0 or pull.get_comments().totalCount > 0:
+        if pull.get_reviews().totalCount > 0 or pull.get_issue_comments().totalCount > 0:
             print(f"Has already a review")
             exit()
         diff = get_diff(pull.diff_url)
