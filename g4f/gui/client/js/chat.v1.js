@@ -660,7 +660,13 @@ observer.observe(message_input, { attributes: true });
     }
     document.getElementById("version_text").innerHTML = text
 })()
-
+imageInput.addEventListener('click', async (event) => {
+    imageInput.value = '';
+});
+fileInput.addEventListener('click', async (event) => {
+    fileInput.value = '';
+    delete fileInput.dataset.text;
+});
 fileInput.addEventListener('change', async (event) => {
     if (fileInput.files.length) {
         type = fileInput.files[0].type;

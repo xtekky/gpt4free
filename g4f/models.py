@@ -5,6 +5,7 @@ from .Provider   import (
     Chatgpt4Online,
     ChatgptDemoAi,
     GeminiProChat,
+    PerplexityAi,
     ChatgptNext,
     HuggingChat,
     ChatgptDemo,
@@ -78,7 +79,7 @@ gpt_35_long = Model(
 gpt_35_turbo = Model(
     name          = 'gpt-3.5-turbo',
     base_provider = 'openai',
-    best_provider=RetryProvider([ 
+    best_provider = RetryProvider([ 
         GptGo, You,
         GptForLove, ChatBase,
         Chatgpt4Online,
@@ -114,20 +115,20 @@ llama2_13b = Model(
 llama2_70b = Model(
     name          = "meta-llama/Llama-2-70b-chat-hf",
     base_provider = "huggingface",
-    best_provider = RetryProvider([Llama2, DeepInfra, HuggingChat])
+    best_provider = RetryProvider([Llama2, DeepInfra, HuggingChat, PerplexityAi])
 )
 
 # Mistal
 mixtral_8x7b = Model(
     name          = "mistralai/Mixtral-8x7B-Instruct-v0.1",
     base_provider = "huggingface",
-    best_provider = RetryProvider([DeepInfra, HuggingChat])
+    best_provider = RetryProvider([DeepInfra, HuggingChat, PerplexityAi])
 )
 
 mistral_7b = Model(
     name          = "mistralai/Mistral-7B-Instruct-v0.1",
     base_provider = "huggingface",
-    best_provider = RetryProvider([DeepInfra, HuggingChat])
+    best_provider = RetryProvider([DeepInfra, HuggingChat, PerplexityAi])
 )
 
 # Dolphin
@@ -311,7 +312,7 @@ llama70b_v2_chat = Model(
 pi = Model(
     name = 'pi',
     base_provider = 'inflection',
-    best_provider=Pi
+    best_provider = Pi
 )
 
 class ModelUtils:
