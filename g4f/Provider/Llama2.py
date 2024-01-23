@@ -3,18 +3,24 @@ from __future__ import annotations
 from aiohttp import ClientSession
 
 from ..typing import AsyncResult, Messages
-from .base_provider import AsyncGeneratorProvider
+from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 
-models = {
-    "meta-llama/Llama-2-7b-chat-hf": "meta/llama-2-7b-chat",
-    "meta-llama/Llama-2-13b-chat-hf": "meta/llama-2-13b-chat",
-    "meta-llama/Llama-2-70b-chat-hf": "meta/llama-2-70b-chat",
-}
 
-class Llama2(AsyncGeneratorProvider):
+class Llama2(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://www.llama2.ai"
     working = True
     supports_message_history = True
+    default_model = "meta/llama-2-70b-chat"
+    models = [
+        "meta/llama-2-7b-chat",
+        "meta/llama-2-13b-chat",
+        "meta/llama-2-70b-chat",
+    ]
+    model_aliases = {
+        "meta-llama/Llama-2-7b-chat-hf": "meta/llama-2-7b-chat",
+        "meta-llama/Llama-2-13b-chat-hf": "meta/llama-2-13b-chat",
+        "meta-llama/Llama-2-70b-chat-hf": "meta/llama-2-70b-chat",
+    }
 
     @classmethod
     async def create_async_generator(
@@ -24,10 +30,6 @@ class Llama2(AsyncGeneratorProvider):
         proxy: str = None,
         **kwargs
     ) -> AsyncResult:
-        if not model:
-            model = "meta/llama-2-70b-chat"
-        elif model in models:
-            model = models[model]
         headers = {
             "User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/118.0",
             "Accept": "*/*",
@@ -48,7 +50,7 @@ class Llama2(AsyncGeneratorProvider):
             prompt = format_prompt(messages)
             data = {
                 "prompt": prompt,
-                "model": model,
+                "model": cls.get_model(model),
                 "systemPrompt": kwargs.get("system_message", "You are a helpful assistant."),
                 "temperature": kwargs.get("temperature", 0.75),
                 "topP": kwargs.get("top_p", 0.9),
