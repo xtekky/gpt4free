@@ -16,7 +16,7 @@ Under no circumstances shall the author of this repository be liable for any dir
 The repository is provided on an "as is" and "as available" basis without any warranties of any kind, either express or implied, including but not limited to, implied warranties of merchantability, fitness for a particular purpose, or non-infringement.
 
 ### **User Responsibility**
-Users assume all risk for their use of this repository and are solely responsible for any damage to their computer system or loss of data that results from the use of the repository and its contents.
+Users assume all risk for their use of this repository and are solely responsible for any damage or loss, including but not limited to financial loss, of any kind, to any party, that results from the use or misuse of the repository and its contents.
 
 ### **Legal Compliance**
 Users are responsible for ensuring their use of the repository and its contents complies with all local, state, national, and international laws and regulations.
