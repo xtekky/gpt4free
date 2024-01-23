@@ -239,7 +239,7 @@ def main():
         if comments:
             pull.create_review(body=review, comments=comments)
         else:
-            pull.create_comment(body=review)
+            pull.create_issue_comment(body=review)
     except Exception as e:
         print(f"Error posting review: {e}")
         exit(1)

@@ -82,13 +82,16 @@ def build_image_upload_payload(image_bin: str, tone: str) -> Tuple[str, str]:
         Tuple[str, str]: The data and boundary for the payload.
     """
     boundary = "----WebKitFormBoundary" + ''.join(random.choices(string.ascii_letters + string.digits, k=16))
-    data = f"--{boundary}\r\n" \
-           f"Content-Disposition: form-data; name=\"knowledgeRequest\"\r\n\r\n" \
-           f"{json.dumps(build_knowledge_request(tone), ensure_ascii=False)}\r\n" \
-           f"--{boundary}\r\n" \
-           f"Content-Disposition: form-data; name=\"imageBase64\"\r\n\r\n" \
-           f"{image_bin}\r\n" \
-           f"--{boundary}--\r\n"
+    data = f"""--{boundary}
+Content-Disposition: form-data; name="knowledgeRequest"
+
+{json.dumps(build_knowledge_request(tone), ensure_ascii=False)}
+--{boundary}
+Content-Disposition: form-data; name="imageBase64"
+
+{image_bin}
+--{boundary}--
+"""
     return data, boundary
 
 def build_knowledge_request(tone: str) -> dict:
@@ -102,14 +105,17 @@ def build_knowledge_request(tone: str) -> dict:
         dict: The knowledge request payload.
     """
     return {
-        'invokedSkills': ["ImageById"],
-        'subscriptionId': "Bing.Chat.Multimodal",
-        'invokedSkillsRequestData': {
-            'enableFaceBlur': True
-        },
-        'convoData': {
-            'convoid': "",
-            'convotone': tone
+        "imageInfo": {},
+        "knowledgeRequest": {
+            'invokedSkills': ["ImageById"],
+            'subscriptionId': "Bing.Chat.Multimodal",
+            'invokedSkillsRequestData': {
+                'enableFaceBlur': True
+            },
+            'convoData': {
+                'convoid': "",
+                'convotone': tone
+            }
         }
     }
 

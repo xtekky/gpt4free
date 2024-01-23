@@ -9,10 +9,11 @@ from .needs_auth      import *
 from .unfinished      import *
 from .selenium        import *
 
-from .Aura            import Aura
 from .AiAsk           import AiAsk
 from .AiChatOnline    import AiChatOnline
 from .AItianhu        import AItianhu
+from .Aura            import Aura
+from .Bestim          import Bestim
 from .Bing            import Bing
 from .ChatAnywhere    import ChatAnywhere
 from .ChatBase        import ChatBase
@@ -45,12 +46,12 @@ from .Koala           import Koala
 from .Liaobots        import Liaobots
 from .Llama2          import Llama2
 from .OnlineGpt       import OnlineGpt
+from .PerplexityLabs  import PerplexityLabs
 from .Phind           import Phind
 from .Pi              import Pi
 from .Vercel          import Vercel
 from .Ylokh           import Ylokh
 from .You             import You
-from .Bestim          import Bestim
 
 import sys
 
