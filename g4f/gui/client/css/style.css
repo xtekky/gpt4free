@@ -502,7 +502,7 @@ select {
     backdrop-filter: blur(20px);
 
     cursor: pointer;
-    background-color: var(--blur-bg);
+    background-color: var(--colour-1);
     border: 1px solid var(--blur-border);
     color: var(--colour-3);
     display: block;
