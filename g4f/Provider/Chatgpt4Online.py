@@ -12,7 +12,7 @@ class Chatgpt4Online(AsyncGeneratorProvider):
     url = "https://chatgpt4online.org"
     supports_message_history = True
     supports_gpt_35_turbo = True
-    working = True
+    working = False # cloudfare block !
     _wpnonce = None
 
     @classmethod
