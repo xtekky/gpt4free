@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json, uuid
 
-from aiohttp import ClientSession
+from aiohttp import ClientSession, BaseConnector
 
 from ..typing import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
@@ -33,6 +33,7 @@ class HuggingChat(AsyncGeneratorProvider, ProviderModelMixin):
         messages: Messages,
         stream: bool = True,
         proxy: str = None,
+        connector: BaseConnector = None,
         web_search: bool = False,
         cookies: dict = None,
         **kwargs
@@ -43,9 +44,16 @@ class HuggingChat(AsyncGeneratorProvider, ProviderModelMixin):
         headers = {
             'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36',
         }
+        if proxy and not connector:
+            try:
+                from aiohttp_socks import ProxyConnector
+                connector = ProxyConnector.from_url(proxy)
+            except ImportError:
+                raise RuntimeError('Install "aiohttp_socks" package for proxy support')
         async with ClientSession(
             cookies=cookies,
-            headers=headers
+            headers=headers,
+            connector=connector
         ) as session:
             async with session.post(f"{cls.url}/conversation", json={"model": cls.get_model(model)}, proxy=proxy) as response:
                 conversation_id = (await response.json())["conversationId"]

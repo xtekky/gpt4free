@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import random
 import json
-from aiohttp import ClientSession
+from aiohttp import ClientSession, BaseConnector
 
 from ..typing import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
@@ -32,6 +32,7 @@ class PerplexityLabs(AsyncGeneratorProvider, ProviderModelMixin):
         model: str,
         messages: Messages,
         proxy: str = None,
+        connector: BaseConnector = None,
         **kwargs
     ) -> AsyncResult:
         headers = {
@@ -47,7 +48,13 @@ class PerplexityLabs(AsyncGeneratorProvider, ProviderModelMixin):
             "Sec-Fetch-Site": "same-site",
             "TE": "trailers",
         }
-        async with ClientSession(headers=headers) as session:
+        if proxy and not connector:
+            try:
+                from aiohttp_socks import ProxyConnector
+                connector = ProxyConnector.from_url(proxy)
+            except ImportError:
+                raise RuntimeError('Install "aiohttp_socks" package for proxy support')
+        async with ClientSession(headers=headers, connector=connector) as session:
             t = format(random.getrandbits(32), '08x')
             async with session.get(
                 f"{API_URL}?EIO=4&transport=polling&t={t}",
