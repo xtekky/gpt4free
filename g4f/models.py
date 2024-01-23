@@ -120,10 +120,10 @@ llama2_70b = Model(
 codellama_34b_instruct = Model(
     name          = "codellama/CodeLlama-34b-Instruct-hf",
     base_provider = "huggingface",
-    best_provider = RetryProvider([HuggingChat, PerplexityLabs])
+    best_provider = RetryProvider([HuggingChat, PerplexityLabs, DeepInfra])
 )
 
-# Mistal
+# Mistral
 mixtral_8x7b = Model(
     name          = "mistralai/Mixtral-8x7B-Instruct-v0.1",
     base_provider = "huggingface",
@@ -136,14 +136,31 @@ mistral_7b = Model(
     best_provider = RetryProvider([DeepInfra, HuggingChat, PerplexityLabs])
 )
 
-# Dolphin
+# Misc models
 dolphin_mixtral_8x7b = Model(
     name          = "cognitivecomputations/dolphin-2.6-mixtral-8x7b",
     base_provider = "huggingface",
     best_provider = DeepInfra
 )
 
-# OpenChat
+lzlv_70b = Model(
+    name          = "lizpreciatior/lzlv_70b_fp16_hf",
+    base_provider = "huggingface",
+    best_provider = DeepInfra
+)
+
+airoboros_70b = Model(
+    name          = "deepinfra/airoboros-70b",
+    base_provider = "huggingface",
+    best_provider = DeepInfra
+)
+
+airoboros_l2_70b = Model(
+    name          = "jondurbin/airoboros-l2-70b-gpt4-1.4.1",
+    base_provider = "huggingface",
+    best_provider = DeepInfra
+)
+
 openchat_35 = Model(
     name          = "openchat/openchat_3.5",
     base_provider = "huggingface",
@@ -243,6 +260,9 @@ class ModelUtils:
         'mixtral-8x7b': mixtral_8x7b,
         'mistral-7b': mistral_7b,
         'dolphin-mixtral-8x7b': dolphin_mixtral_8x7b,
+        'lzlv-70b': lzlv_70b,
+        'airoboros-70b': airoboros_70b,
+        'airoboros-l2-70b': airoboros_l2_70b,
         'openchat_3.5': openchat_35,
         'gemini-pro': gemini_pro,
         'bard': bard,
