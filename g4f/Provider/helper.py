@@ -6,13 +6,15 @@ import random
 import secrets
 import string
 from asyncio import AbstractEventLoop, BaseEventLoop
+from aiohttp import BaseConnector
 from platformdirs import user_config_dir
 from browser_cookie3 import (
     chrome, chromium, opera, opera_gx,
     brave, edge, vivaldi, firefox,
     _LinuxPasswordManager, BrowserCookieError
 )
-from ..typing import Dict, Messages
+from ..typing import Dict, Messages, Optional
+from ..errors import AiohttpSocksError
 from .. import debug
 
 # Global variable to store cookies
@@ -148,3 +150,12 @@ def get_random_hex() -> str:
         str: A random hexadecimal string of 32 characters (16 bytes).
     """
     return secrets.token_hex(16).zfill(32)
+
+def get_connector(connector: BaseConnector = None, proxy: str = None) -> Optional[BaseConnector]:
+    if proxy and not connector:
+        try:
+            from aiohttp_socks import ProxyConnector
+            connector = ProxyConnector.from_url(proxy)
+        except ImportError:
+            raise AiohttpSocksError('Install "aiohttp_socks" package for proxy support')
+    return connector

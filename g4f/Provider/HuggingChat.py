@@ -6,7 +6,7 @@ from aiohttp import ClientSession, BaseConnector
 
 from ..typing import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from .helper import format_prompt, get_cookies
+from .helper import format_prompt, get_cookies, get_connector
 
 
 class HuggingChat(AsyncGeneratorProvider, ProviderModelMixin):
@@ -44,16 +44,10 @@ class HuggingChat(AsyncGeneratorProvider, ProviderModelMixin):
         headers = {
             'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36',
         }
-        if proxy and not connector:
-            try:
-                from aiohttp_socks import ProxyConnector
-                connector = ProxyConnector.from_url(proxy)
-            except ImportError:
-                raise RuntimeError('Install "aiohttp_socks" package for proxy support')
         async with ClientSession(
             cookies=cookies,
             headers=headers,
-            connector=connector
+            connector=get_connector(connector, proxy)
         ) as session:
             async with session.post(f"{cls.url}/conversation", json={"model": cls.get_model(model)}, proxy=proxy) as response:
                 conversation_id = (await response.json())["conversationId"]

@@ -13,7 +13,7 @@ from urllib.parse import quote
 from typing import Generator, List, Dict
 
 from ..create_images import CreateImagesProvider
-from ..helper import get_cookies
+from ..helper import get_cookies, get_connector
 from ...webdriver import WebDriver, get_driver_cookies, get_browser
 from ...base_provider import ProviderType
 from ...image import ImageResponse
@@ -79,13 +79,7 @@ def create_session(cookies: Dict[str, str], proxy: str = None, connector: BaseCo
     }
     if cookies:
         headers["Cookie"] = "; ".join(f"{k}={v}" for k, v in cookies.items())
-    if proxy and not connector:
-        try:
-            from aiohttp_socks import ProxyConnector
-            connector = ProxyConnector.from_url(proxy)
-        except ImportError:
-            raise RuntimeError('Install "aiohttp_socks" package for proxy support')
-    return ClientSession(headers=headers, connector=connector)
+    return ClientSession(headers=headers, connector=get_connector(connector, proxy))
 
 async def create_images(session: ClientSession, prompt: str, proxy: str = None, timeout: int = TIMEOUT_IMAGE_CREATION) -> List[str]:
     """

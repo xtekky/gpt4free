@@ -6,6 +6,7 @@ from aiohttp import ClientSession, BaseConnector
 
 from ..typing import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from .helper import get_connector
 
 models = {
     "gpt-4": {
@@ -101,16 +102,10 @@ class Liaobots(AsyncGeneratorProvider, ProviderModelMixin):
             "referer": f"{cls.url}/",
             "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36",
         }
-        if proxy and not connector:
-            try:
-                from aiohttp_socks import ProxyConnector
-                connector = ProxyConnector.from_url(proxy)
-            except ImportError:
-                raise RuntimeError('Install "aiohttp_socks" package for proxy support')
         async with ClientSession(
             headers=headers,
             cookie_jar=cls._cookie_jar,
-            connector=connector
+            connector=get_connector(connector, proxy)
         ) as session:
             cls._auth_code = auth if isinstance(auth, str) else cls._auth_code
             if not cls._auth_code:

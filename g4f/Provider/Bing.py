@@ -11,6 +11,7 @@ from aiohttp import ClientSession, ClientTimeout, BaseConnector
 from ..typing import AsyncResult, Messages, ImageType
 from ..image import ImageResponse
 from .base_provider import AsyncGeneratorProvider
+from .helper import get_connector
 from .bing.upload_image import upload_image
 from .bing.create_images import create_images
 from .bing.conversation import Conversation, create_conversation, delete_conversation
@@ -68,15 +69,8 @@ class Bing(AsyncGeneratorProvider):
         cookies = {**Defaults.cookies, **cookies} if cookies else Defaults.cookies
 
         gpt4_turbo = True if model.startswith("gpt-4-turbo") else False
-        
-        if proxy and not connector:
-            try:
-                from aiohttp_socks import ProxyConnector
-                connector = ProxyConnector.from_url(proxy)
-            except ImportError:
-                raise RuntimeError('Install "aiohttp_socks" package for proxy support')
 
-        return stream_generate(prompt, tone, image, context, cookies, connector, web_search, gpt4_turbo, timeout)
+        return stream_generate(prompt, tone, image, context, cookies, get_connector(connector, proxy), web_search, gpt4_turbo, timeout)
 
 def create_context(messages: Messages) -> str:
     """
