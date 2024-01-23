@@ -5,20 +5,21 @@ import json
 from aiohttp import ClientSession
 
 from ..typing import AsyncResult, Messages
-from .base_provider import AsyncGeneratorProvider
+from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 
 API_URL = "https://labs-api.perplexity.ai/socket.io/"
 WS_URL = "wss://labs-api.perplexity.ai/socket.io/"
 
-class PerplexityLabs(AsyncGeneratorProvider):
+class PerplexityLabs(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://labs.perplexity.ai"    
     working = True
-    supports_gpt_35_turbo = True
-    models = ['pplx-7b-online', 'pplx-70b-online', 'pplx-7b-chat', 'pplx-70b-chat', 'mistral-7b-instruct', 
+    models = [
+        'pplx-7b-online', 'pplx-70b-online', 'pplx-7b-chat', 'pplx-70b-chat', 'mistral-7b-instruct', 
         'codellama-34b-instruct', 'llama-2-70b-chat', 'llava-7b-chat', 'mixtral-8x7b-instruct', 
-        'mistral-medium', 'related']
+        'mistral-medium', 'related'
+    ]
     default_model = 'pplx-70b-online'
-    model_map = {
+    model_aliases = {
         "mistralai/Mistral-7B-Instruct-v0.1": "mistral-7b-instruct", 
         "meta-llama/Llama-2-70b-chat-hf": "llama-2-70b-chat",
         "mistralai/Mixtral-8x7B-Instruct-v0.1": "mixtral-8x7b-instruct",
@@ -33,12 +34,6 @@ class PerplexityLabs(AsyncGeneratorProvider):
         proxy: str = None,
         **kwargs
     ) -> AsyncResult:
-        if not model:
-            model = cls.default_model
-        elif model in cls.model_map:
-            model = cls.model_map[model]
-        elif model not in cls.models:
-            raise ValueError(f"Model is not supported: {model}")
         headers = {
             "User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:121.0) Gecko/20100101 Firefox/121.0",
             "Accept": "*/*",
@@ -78,7 +73,7 @@ class PerplexityLabs(AsyncGeneratorProvider):
                 message_data = {
                     'version': '2.2',
                     'source': 'default',
-                    'model': model,
+                    'model': cls.get_model(model),
                     'messages': messages
                 }
                 await ws.send_str('42' + json.dumps(['perplexity_playground', message_data]))

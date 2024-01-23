@@ -5,11 +5,11 @@ import json, uuid
 from aiohttp import ClientSession
 
 from ..typing import AsyncResult, Messages
-from .base_provider import AsyncGeneratorProvider
+from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from .helper import format_prompt, get_cookies
 
 
-class HuggingChat(AsyncGeneratorProvider):
+class HuggingChat(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://huggingface.co/chat"
     working = True
     default_model = "meta-llama/Llama-2-70b-chat-hf"
@@ -21,7 +21,7 @@ class HuggingChat(AsyncGeneratorProvider):
         "mistralai/Mistral-7B-Instruct-v0.2",
         "openchat/openchat-3.5-0106"
     ]
-    model_map = {
+    model_aliases = {
         "openchat/openchat_3.5": "openchat/openchat-3.5-1210",
         "mistralai/Mixtral-8x7B-Instruct-v0.1": "mistralai/Mistral-7B-Instruct-v0.2"
     }
@@ -37,12 +37,6 @@ class HuggingChat(AsyncGeneratorProvider):
         cookies: dict = None,
         **kwargs
     ) -> AsyncResult:
-        if not model:
-            model = cls.default_model
-        elif model in cls.model_map:
-            model = cls.model_map[model]
-        elif model not in cls.models:
-            raise ValueError(f"Model is not supported: {model}")
         if not cookies:
             cookies = get_cookies(".huggingface.co")
 
@@ -53,7 +47,7 @@ class HuggingChat(AsyncGeneratorProvider):
             cookies=cookies,
             headers=headers
         ) as session:
-            async with session.post(f"{cls.url}/conversation", json={"model": model}, proxy=proxy) as response:
+            async with session.post(f"{cls.url}/conversation", json={"model": cls.get_model(model)}, proxy=proxy) as response:
                 conversation_id = (await response.json())["conversationId"]
 
             send = {

@@ -27,3 +27,6 @@ class VersionNotFoundError(Exception):
 
 class NestAsyncioError(Exception):
     pass
+
+class ModelNotSupportedError(Exception):
+    pass
