@@ -10,7 +10,7 @@ Please note the following:
 This repository is not associated with or endorsed by the providers of the APIs contained in this repository. The project is intended for educational purposes only. The APIs, services, trademarks, and other intellectual property mentioned in this repository are the property of their respective owners, with no claim of ownership or affiliation by this project.
 
 ### **Liability Limitation**
-Under no circumstances shall the author of this repository be liable for any indirect, incidental, special, consequential, or punitive damages, including but not limited to, loss of profits, data, or use, arising out of or in connection with the repository, regardless of whether such damages were foreseeable and whether the author was advised of the possibility of such damages.
+Under no circumstances shall the author of this repository be liable for any direct, indirect, incidental, special, consequential, or punitive damages, including but not limited to, loss of profits, data, or use, arising out of or in connection with the repository, regardless of whether such damages were foreseeable and whether the author was advised of the possibility of such damages.
 
 ### **No Warranties**
 The repository is provided on an "as is" and "as available" basis without any warranties of any kind, either express or implied, including but not limited to, implied warranties of merchantability, fitness for a particular purpose, or non-infringement.
