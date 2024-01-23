@@ -23,3 +23,11 @@ class AsyncGeneratorProviderMock(AsyncGeneratorProvider):
         model, messages, stream, **kwargs
     ):
         yield "Mock"
+        
+class ModelProviderMock(AbstractProvider):
+    working = True
+
+    def create_completion(
+        model, messages, stream, **kwargs
+    ):
+        yield model
