@@ -2,27 +2,28 @@ from __future__ import annotations
 
 import random
 import json
-from aiohttp import ClientSession, WSMsgType
+from aiohttp import ClientSession
 
 from ..typing import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider
 
 API_URL = "https://labs-api.perplexity.ai/socket.io/"
 WS_URL = "wss://labs-api.perplexity.ai/socket.io/"
-MODELS = ['pplx-7b-online', 'pplx-70b-online', 'pplx-7b-chat', 'pplx-70b-chat', 'mistral-7b-instruct', 
-    'codellama-34b-instruct', 'llama-2-70b-chat', 'llava-7b-chat', 'mixtral-8x7b-instruct', 
-    'mistral-medium', 'related']
-DEFAULT_MODEL = MODELS[1]
-MODEL_MAP = {
-    "mistralai/Mistral-7B-Instruct-v0.1": "mistral-7b-instruct", 
-    "meta-llama/Llama-2-70b-chat-hf": "llama-2-70b-chat",
-    "mistralai/Mixtral-8x7B-Instruct-v0.1": "mixtral-8x7b-instruct",
-}
 
 class PerplexityLabs(AsyncGeneratorProvider):
     url = "https://labs.perplexity.ai"    
     working = True
     supports_gpt_35_turbo = True
+    models = ['pplx-7b-online', 'pplx-70b-online', 'pplx-7b-chat', 'pplx-70b-chat', 'mistral-7b-instruct', 
+        'codellama-34b-instruct', 'llama-2-70b-chat', 'llava-7b-chat', 'mixtral-8x7b-instruct', 
+        'mistral-medium', 'related']
+    default_model = 'pplx-70b-online'
+    model_map = {
+        "mistralai/Mistral-7B-Instruct-v0.1": "mistral-7b-instruct", 
+        "meta-llama/Llama-2-70b-chat-hf": "llama-2-70b-chat",
+        "mistralai/Mixtral-8x7B-Instruct-v0.1": "mixtral-8x7b-instruct",
+        "codellama/CodeLlama-34b-Instruct-hf": "codellama-34b-instruct"
+    }
 
     @classmethod
     async def create_async_generator(
@@ -33,10 +34,10 @@ class PerplexityLabs(AsyncGeneratorProvider):
         **kwargs
     ) -> AsyncResult:
         if not model:
-            model = DEFAULT_MODEL
-        elif model in MODEL_MAP:
-            model = MODEL_MAP[model]
-        elif model not in MODELS:
+            model = cls.default_model
+        elif model in cls.model_map:
+            model = cls.model_map[model]
+        elif model not in cls.models:
             raise ValueError(f"Model is not supported: {model}")
         headers = {
             "User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:121.0) Gecko/20100101 Firefox/121.0",

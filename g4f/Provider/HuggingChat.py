@@ -8,14 +8,23 @@ from ..typing import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider
 from .helper import format_prompt, get_cookies
 
-map = {
-    "openchat/openchat_3.5": "openchat/openchat-3.5-1210",
-}
 
 class HuggingChat(AsyncGeneratorProvider):
     url = "https://huggingface.co/chat"
     working = True
-    model = "meta-llama/Llama-2-70b-chat-hf"
+    default_model = "meta-llama/Llama-2-70b-chat-hf"
+    models = [
+        "mistralai/Mixtral-8x7B-Instruct-v0.1",
+        "meta-llama/Llama-2-70b-chat-hf",
+        "NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO",
+        "codellama/CodeLlama-34b-Instruct-hf",
+        "mistralai/Mistral-7B-Instruct-v0.2",
+        "openchat/openchat-3.5-0106"
+    ]
+    model_map = {
+        "openchat/openchat_3.5": "openchat/openchat-3.5-1210",
+        "mistralai/Mixtral-8x7B-Instruct-v0.1": "mistralai/Mistral-7B-Instruct-v0.2"
+    }
 
     @classmethod
     async def create_async_generator(
@@ -29,9 +38,11 @@ class HuggingChat(AsyncGeneratorProvider):
         **kwargs
     ) -> AsyncResult:
         if not model:
-            model = cls.model
-        elif model in map:
-            model = map[model]
+            model = cls.default_model
+        elif model in cls.model_map:
+            model = cls.model_map[model]
+        elif model not in cls.models:
+            raise ValueError(f"Model is not supported: {model}")
         if not cookies:
             cookies = get_cookies(".huggingface.co")
 
