@@ -45,12 +45,13 @@ def get_model_and_provider(model    : Union[Model, str],
         else:
             raise ProviderNotFoundError(f'Provider not found: {provider}')
 
+    if isinstance(model, str):
+        if model in ModelUtils.convert:
+            model = ModelUtils.convert[model]
+
     if not provider:
         if isinstance(model, str):
-            if model in ModelUtils.convert:
-                model = ModelUtils.convert[model]
-            else:
-                raise ModelNotFoundError(f'Model not found: {model}')
+            raise ModelNotFoundError(f'Model not found: {model}')
         provider = model.best_provider
 
     if not provider:

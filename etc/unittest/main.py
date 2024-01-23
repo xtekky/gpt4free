@@ -1,10 +1,11 @@
-from .include import DEFAULT_MESSAGES
 import unittest
 import asyncio
 import g4f
 from g4f import ChatCompletion, get_last_provider
 from g4f.Provider import RetryProvider
 from .mocks import ProviderMock
+
+DEFAULT_MESSAGES = [{'role': 'user', 'content': 'Hello'}]
 
 class NoTestChatCompletion(unittest.TestCase):
 
@@ -32,6 +33,3 @@ class TestGetLastProvider(unittest.TestCase):
         coroutine = ChatCompletion.create_async(g4f.models.default, DEFAULT_MESSAGES, ProviderMock)
         asyncio.run(coroutine)
         self.assertEqual(get_last_provider(), ProviderMock)
-
-if __name__ == '__main__':
-    unittest.main()
