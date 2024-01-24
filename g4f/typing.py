@@ -1,5 +1,5 @@
 import sys
-from typing import Any, AsyncGenerator, Generator, NewType, Tuple, Union, List, Dict, Type, IO
+from typing import Any, AsyncGenerator, Generator, NewType, Tuple, Union, List, Dict, Type, IO, Optional
 from PIL.Image import Image
 
 if sys.version_info >= (3, 8):
@@ -22,6 +22,8 @@ __all__ = [
     'List',
     'Dict',
     'Type',
+    'IO',
+    'Optional',
     'TypedDict',
     'SHA256',
     'CreateResult',

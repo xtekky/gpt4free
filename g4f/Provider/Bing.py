@@ -6,11 +6,12 @@ import os
 import uuid
 import time
 from urllib import parse
-from aiohttp import ClientSession, ClientTimeout
+from aiohttp import ClientSession, ClientTimeout, BaseConnector
 
 from ..typing import AsyncResult, Messages, ImageType
 from ..image import ImageResponse
 from .base_provider import AsyncGeneratorProvider
+from .helper import get_connector
 from .bing.upload_image import upload_image
 from .bing.create_images import create_images
 from .bing.conversation import Conversation, create_conversation, delete_conversation
@@ -39,6 +40,7 @@ class Bing(AsyncGeneratorProvider):
         proxy: str = None,
         timeout: int = 900,
         cookies: dict = None,
+        connector: BaseConnector = None,
         tone: str = Tones.balanced,
         image: ImageType = None,
         web_search: bool = False,
@@ -68,7 +70,7 @@ class Bing(AsyncGeneratorProvider):
 
         gpt4_turbo = True if model.startswith("gpt-4-turbo") else False
 
-        return stream_generate(prompt, tone, image, context, proxy, cookies, web_search, gpt4_turbo, timeout)
+        return stream_generate(prompt, tone, image, context, cookies, get_connector(connector, proxy), web_search, gpt4_turbo, timeout)
 
 def create_context(messages: Messages) -> str:
     """
@@ -253,8 +255,8 @@ async def stream_generate(
     tone: str,
     image: ImageType = None,
     context: str = None,
-    proxy: str = None,
     cookies: dict = None,
+    connector: BaseConnector = None,
     web_search: bool = False,
     gpt4_turbo: bool = False,
     timeout: int = 900
@@ -266,7 +268,6 @@ async def stream_generate(
     :param tone: The desired tone for the response.
     :param image: The image type involved in the response.
     :param context: Additional context for the prompt.
-    :param proxy: Proxy settings for the request.
     :param cookies: Cookies for the session.
     :param web_search: Flag to enable web search.
     :param gpt4_turbo: Flag to enable GPT-4 Turbo.
@@ -278,10 +279,10 @@ async def stream_generate(
         headers["Cookie"] = "; ".join(f"{k}={v}" for k, v in cookies.items())
 
     async with ClientSession(
-        timeout=ClientTimeout(total=timeout), headers=headers
+        timeout=ClientTimeout(total=timeout), headers=headers, connector=connector
     ) as session:
-        conversation = await create_conversation(session, proxy)
-        image_response = await upload_image(session, image, tone, proxy) if image else None
+        conversation = await create_conversation(session)
+        image_response = await upload_image(session, image, tone) if image else None
         if image_response:
             yield image_response
 
@@ -289,8 +290,7 @@ async def stream_generate(
             async with session.ws_connect(
                 'wss://sydney.bing.com/sydney/ChatHub',
                 autoping=False,
-                params={'sec_access_token': conversation.conversationSignature},
-                proxy=proxy
+                params={'sec_access_token': conversation.conversationSignature}
             ) as wss:
                 await wss.send_str(format_message({'protocol': 'json', 'version': 1}))
                 await wss.receive(timeout=timeout)
@@ -322,7 +322,7 @@ async def stream_generate(
                                 elif message.get('contentType') == "IMAGE":
                                     prompt = message.get('text')
                                     try:
-                                        image_response = ImageResponse(await create_images(session, prompt, proxy), prompt)
+                                        image_response = ImageResponse(await create_images(session, prompt), prompt)
                                     except:
                                         response_txt += f"\nhttps://www.bing.com/images/create?q={parse.quote(prompt)}"
                                     final = True
@@ -342,4 +342,4 @@ async def stream_generate(
                                     raise Exception(f"{result['value']}: {result['message']}")
                             return
         finally:
-            await delete_conversation(session, conversation, proxy)
+            await delete_conversation(session, conversation)

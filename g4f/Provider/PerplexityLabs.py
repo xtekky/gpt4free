@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import random
 import json
-from aiohttp import ClientSession
+from aiohttp import ClientSession, BaseConnector
 
 from ..typing import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from .helper import get_connector
 
 API_URL = "https://labs-api.perplexity.ai/socket.io/"
 WS_URL = "wss://labs-api.perplexity.ai/socket.io/"
@@ -32,6 +33,7 @@ class PerplexityLabs(AsyncGeneratorProvider, ProviderModelMixin):
         model: str,
         messages: Messages,
         proxy: str = None,
+        connector: BaseConnector = None,
         **kwargs
     ) -> AsyncResult:
         headers = {
@@ -47,7 +49,7 @@ class PerplexityLabs(AsyncGeneratorProvider, ProviderModelMixin):
             "Sec-Fetch-Site": "same-site",
             "TE": "trailers",
         }
-        async with ClientSession(headers=headers) as session:
+        async with ClientSession(headers=headers, connector=get_connector(connector, proxy)) as session:
             t = format(random.getrandbits(32), '08x')
             async with session.get(
                 f"{API_URL}?EIO=4&transport=polling&t={t}",

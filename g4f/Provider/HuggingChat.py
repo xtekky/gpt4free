@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import json, uuid
 
-from aiohttp import ClientSession
+from aiohttp import ClientSession, BaseConnector
 
 from ..typing import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from .helper import format_prompt, get_cookies
+from .helper import format_prompt, get_cookies, get_connector
 
 
 class HuggingChat(AsyncGeneratorProvider, ProviderModelMixin):
@@ -33,6 +33,7 @@ class HuggingChat(AsyncGeneratorProvider, ProviderModelMixin):
         messages: Messages,
         stream: bool = True,
         proxy: str = None,
+        connector: BaseConnector = None,
         web_search: bool = False,
         cookies: dict = None,
         **kwargs
@@ -45,7 +46,8 @@ class HuggingChat(AsyncGeneratorProvider, ProviderModelMixin):
         }
         async with ClientSession(
             cookies=cookies,
-            headers=headers
+            headers=headers,
+            connector=get_connector(connector, proxy)
         ) as session:
             async with session.post(f"{cls.url}/conversation", json={"model": cls.get_model(model)}, proxy=proxy) as response:
                 conversation_id = (await response.json())["conversationId"]

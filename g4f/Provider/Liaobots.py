@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import uuid
 
-from aiohttp import ClientSession
+from aiohttp import ClientSession, BaseConnector
 
 from ..typing import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from .helper import get_connector
 
 models = {
     "gpt-4": {
@@ -91,6 +92,7 @@ class Liaobots(AsyncGeneratorProvider, ProviderModelMixin):
         messages: Messages,
         auth: str = None,
         proxy: str = None,
+        connector: BaseConnector = None,
         **kwargs
     ) -> AsyncResult:
         headers = {
@@ -102,7 +104,8 @@ class Liaobots(AsyncGeneratorProvider, ProviderModelMixin):
         }
         async with ClientSession(
             headers=headers,
-            cookie_jar=cls._cookie_jar
+            cookie_jar=cls._cookie_jar,
+            connector=get_connector(connector, proxy)
         ) as session:
             cls._auth_code = auth if isinstance(auth, str) else cls._auth_code
             if not cls._auth_code:

@@ -7,13 +7,13 @@ import asyncio
 import time
 import json
 import os
-from aiohttp import ClientSession
+from aiohttp import ClientSession, BaseConnector
 from bs4 import BeautifulSoup
 from urllib.parse import quote
 from typing import Generator, List, Dict
 
 from ..create_images import CreateImagesProvider
-from ..helper import get_cookies
+from ..helper import get_cookies, get_connector
 from ...webdriver import WebDriver, get_driver_cookies, get_browser
 from ...base_provider import ProviderType
 from ...image import ImageResponse
@@ -50,7 +50,7 @@ def wait_for_login(driver: WebDriver, timeout: int = TIMEOUT_LOGIN) -> None:
             raise RuntimeError("Timeout error")
         time.sleep(0.5)
 
-def create_session(cookies: Dict[str, str]) -> ClientSession:
+def create_session(cookies: Dict[str, str], proxy: str = None, connector: BaseConnector = None) -> ClientSession:
     """
     Creates a new client session with specified cookies and headers.
 
@@ -79,7 +79,7 @@ def create_session(cookies: Dict[str, str]) -> ClientSession:
     }
     if cookies:
         headers["Cookie"] = "; ".join(f"{k}={v}" for k, v in cookies.items())
-    return ClientSession(headers=headers)
+    return ClientSession(headers=headers, connector=get_connector(connector, proxy))
 
 async def create_images(session: ClientSession, prompt: str, proxy: str = None, timeout: int = TIMEOUT_IMAGE_CREATION) -> List[str]:
     """
@@ -214,7 +214,8 @@ class CreateImagesBing:
         cookies = self.cookies or get_cookies(".bing.com")
         if "_U" not in cookies:
             raise RuntimeError('"_U" cookie is missing')
-        async with create_session(cookies) as session:
+        proxy = os.environ.get("G4F_PROXY")
+        async with create_session(cookies, proxy) as session:
             images = await create_images(session, prompt, self.proxy)
             return ImageResponse(images, prompt)
     

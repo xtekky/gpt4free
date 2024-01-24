@@ -126,6 +126,7 @@ def analyze_code(pull: PullRequest, diff: str)-> list[dict]:
     for line in diff.split('\n'):
         if line.startswith('+++ b/'):
             current_file_path = line[6:]
+            changed_lines = []
         elif line.startswith('@@'):
             match = re.search(r'\+([0-9]+?),', line)
             if match:
@@ -137,9 +138,10 @@ def analyze_code(pull: PullRequest, diff: str)-> list[dict]:
                 for review in response.get('reviews', []):
                     review['path'] = current_file_path
                     comments.append(review)
-                changed_lines = []
                 current_file_path = None
-            elif not line.startswith('-'):
+            elif line.startswith('-'):
+                changed_lines.append(line)
+            else:
                 changed_lines.append(f"{offset_line}:{line}")
                 offset_line += 1
         
