@@ -709,8 +709,8 @@ a:-webkit-any-link {
     color: var(--colour-3);
 
     resize: vertical;
-    max-height: 150px;
-    min-height: 80px;
+    max-height: 85px;   /* Old_code max-height:150px */
+    min-height: 85px;     /* Old_code min-height:80px */
 }
 
 /* style for hljs copy */
