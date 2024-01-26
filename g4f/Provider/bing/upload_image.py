@@ -1,7 +1,6 @@
 """
 Module to handle image uploading and processing for Bing AI integrations.
 """
-
 from __future__ import annotations
 
 import json

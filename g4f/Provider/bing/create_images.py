@@ -2,6 +2,7 @@
 This module provides functionalities for creating and managing images using Bing's service.
 It includes functions for user login, session creation, image creation, and processing.
 """
+from __future__ import annotations
 
 import asyncio
 import time
