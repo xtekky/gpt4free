@@ -3,13 +3,15 @@ from __future__ import annotations
 try:
     from platformdirs import user_config_dir
     from selenium.webdriver.remote.webdriver import WebDriver 
+    from selenium.webdriver.remote.webelement import WebElement 
     from undetected_chromedriver import Chrome, ChromeOptions
     from selenium.webdriver.common.by import By
     from selenium.webdriver.support.ui import WebDriverWait
     from selenium.webdriver.support import expected_conditions as EC
+    from selenium.webdriver.common.keys import Keys
     has_requirements = True
 except ImportError:
-    WebDriver = type
+    from typing import Type as WebDriver
     has_requirements = False
     
 from os import path
@@ -197,4 +199,9 @@ class WebDriverSession:
                     print(f"Error closing WebDriver: {e}")
             self.default_driver.quit()
         if self.virtual_display:
-            self.virtual_display.stop()
+            self.virtual_display.stop()  
+  
+def element_send_text(element: WebElement, text: str) -> None:
+    script = "arguments[0].innerText = arguments[1]"
+    element.parent.execute_script(script, element, text)
+    element.send_keys(Keys.ENTER)

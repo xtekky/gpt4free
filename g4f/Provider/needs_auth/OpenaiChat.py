@@ -16,9 +16,8 @@ try:
     from selenium.webdriver.common.by import By
     from selenium.webdriver.support.ui import WebDriverWait
     from selenium.webdriver.support import expected_conditions as EC
-    has_webdriver = True
 except ImportError:
-    has_webdriver = False
+    pass
 
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..helper import format_prompt, get_cookies
@@ -332,13 +331,14 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
             cookies = cls._cookies or get_cookies("chat.openai.com", False)
         if not access_token and "access_token" in cookies:
             access_token = cookies["access_token"]
-        if not access_token and not has_webdriver:
-            raise MissingAccessToken(f'Missing "access_token"')
         if not access_token:
             login_url = os.environ.get("G4F_LOGIN_URL")
             if login_url:
                 yield f"Please login: [ChatGPT]({login_url})\n\n"
-            access_token, cookies = cls.browse_access_token(proxy)
+            try:
+                access_token, cookies = cls.browse_access_token(proxy)
+            except MissingRequirementsError:
+                raise MissingAccessToken(f'Missing "access_token"')
             cls._cookies = cookies
 
         headers = {"Authorization": f"Bearer {access_token}"}

@@ -6,7 +6,7 @@ import random
 from ...typing import CreateResult, Messages
 from ..base_provider import AbstractProvider
 from ..helper import format_prompt, get_random_string
-from ...webdriver import WebDriver, WebDriverSession
+from ...webdriver import WebDriver, WebDriverSession, element_send_text
 from ... import debug
 
 class AItianhuSpace(AbstractProvider):
@@ -91,8 +91,7 @@ XMLHttpRequest.prototype.open = function(method, url) {
             driver.execute_script(script)
 
             # Submit prompt
-            driver.find_element(By.CSS_SELECTOR, "textarea.n-input__textarea-el").send_keys(prompt)
-            driver.find_element(By.CSS_SELECTOR, "button.n-button.n-button--primary-type.n-button--medium-type").click()
+            element_send_text(driver.find_element(By.CSS_SELECTOR, "textarea.n-input__textarea-el"), prompt)
 
             # Read response
             while True:

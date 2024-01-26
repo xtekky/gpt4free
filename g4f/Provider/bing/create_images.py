@@ -202,16 +202,15 @@ class CreateImagesBing:
         Yields:
             Generator[str, None, None]: The final output as markdown formatted string with images.
         """
-        try:
-            cookies = self.cookies or get_cookies(".bing.com")
-        except MissingRequirementsError as e:
-            raise MissingAccessToken(f'Missing "_U" cookie. {e}')
-            
+        cookies = self.cookies or get_cookies(".bing.com", False)
         if "_U" not in cookies:
             login_url = os.environ.get("G4F_LOGIN_URL")
             if login_url:
                 yield f"Please login: [Bing]({login_url})\n\n"
-            self.cookies = get_cookies_from_browser(self.proxy)
+            try:
+                self.cookies = get_cookies_from_browser(self.proxy)
+            except MissingRequirementsError as e:
+                raise MissingAccessToken(f'Missing "_U" cookie. {e}')
         yield asyncio.run(self.create_async(prompt))
 
     async def create_async(self, prompt: str) -> ImageResponse:
@@ -224,10 +223,7 @@ class CreateImagesBing:
         Returns:
             str: Markdown formatted string with images.
         """
-        try:
-            cookies = self.cookies or get_cookies(".bing.com")
-        except MissingRequirementsError as e:
-            raise MissingAccessToken(f'Missing "_U" cookie. {e}')
+        cookies = self.cookies or get_cookies(".bing.com", False)
         if "_U" not in cookies:
             raise MissingAccessToken('Missing "_U" cookie')
         proxy = os.environ.get("G4F_PROXY")

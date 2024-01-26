@@ -21,7 +21,7 @@ try:
 except ImportError:
     has_browser_cookie3 = False
 
-from ..typing import Dict, Messages, Optional
+from ..typing import Dict, Messages, Cookies, Optional
 from ..errors import AiohttpSocksError, MissingRequirementsError
 from .. import debug
 
@@ -47,6 +47,12 @@ def get_cookies(domain_name: str = '', raise_requirements_error: bool = True) ->
     cookies = load_cookies_from_browsers(domain_name, raise_requirements_error)
     _cookies[domain_name] = cookies
     return cookies
+
+def set_cookies(domain_name: str, cookies: Cookies = None) -> None:
+    if cookies:
+        _cookies[domain_name] = cookies
+    else:
+        _cookies.pop(domain_name)
 
 def load_cookies_from_browsers(domain_name: str, raise_requirements_error: bool = True) -> Dict[str, str]:
     """

@@ -3,7 +3,7 @@ import json
 from flask import request, Flask
 from typing import Generator
 from g4f import version, models
-from g4f import _all_models, get_last_provider, ChatCompletion
+from g4f import get_last_provider, ChatCompletion
 from g4f.image import is_allowed_extension, to_image
 from g4f.errors import VersionNotFoundError
 from g4f.Provider import __providers__
@@ -76,7 +76,7 @@ class Backend_Api:
         Returns:
             List[str]: A list of model names.
         """
-        return _all_models
+        return models._all_models
     
     def get_providers(self):
         """
