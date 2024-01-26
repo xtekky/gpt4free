@@ -8,6 +8,7 @@ try:
     from PIL.Image import FLIP_LEFT_RIGHT, ROTATE_180, ROTATE_270, ROTATE_90
     has_requirements = True
 except ImportError:
+    Image = type
     has_requirements = False
     
 from .errors import MissingRequirementsError
