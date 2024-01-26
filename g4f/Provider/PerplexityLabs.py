@@ -14,12 +14,12 @@ WS_URL = "wss://labs-api.perplexity.ai/socket.io/"
 class PerplexityLabs(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://labs.perplexity.ai"    
     working = True
+    default_model = 'pplx-70b-online'
     models = [
         'pplx-7b-online', 'pplx-70b-online', 'pplx-7b-chat', 'pplx-70b-chat', 'mistral-7b-instruct', 
         'codellama-34b-instruct', 'llama-2-70b-chat', 'llava-7b-chat', 'mixtral-8x7b-instruct', 
         'mistral-medium', 'related'
     ]
-    default_model = 'pplx-70b-online'
     model_aliases = {
         "mistralai/Mistral-7B-Instruct-v0.1": "mistral-7b-instruct", 
         "meta-llama/Llama-2-70b-chat-hf": "llama-2-70b-chat",
@@ -52,8 +52,7 @@ class PerplexityLabs(AsyncGeneratorProvider, ProviderModelMixin):
         async with ClientSession(headers=headers, connector=get_connector(connector, proxy)) as session:
             t = format(random.getrandbits(32), '08x')
             async with session.get(
-                f"{API_URL}?EIO=4&transport=polling&t={t}",
-                proxy=proxy
+                f"{API_URL}?EIO=4&transport=polling&t={t}"
             ) as response:
                 text = await response.text()
 
@@ -61,8 +60,7 @@ class PerplexityLabs(AsyncGeneratorProvider, ProviderModelMixin):
             post_data = '40{"jwt":"anonymous-ask-user"}'
             async with session.post(
                 f'{API_URL}?EIO=4&transport=polling&t={t}&sid={sid}',
-                data=post_data,
-                proxy=proxy
+                data=post_data
             ) as response:
                 assert await response.text() == 'OK'
                 

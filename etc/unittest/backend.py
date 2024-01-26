@@ -3,11 +3,17 @@ import unittest
 from unittest.mock import MagicMock
 from .mocks import ProviderMock
 import g4f
-from g4f.gui.server.backend import Backend_Api, get_error_message
+try:
+    from g4f.gui.server.backend import Backend_Api, get_error_message
+    has_requirements = True
+except:
+    has_requirements = False
         
 class TestBackendApi(unittest.TestCase):
 
     def setUp(self):
+        if not has_requirements:
+            self.skipTest('"flask" not installed')
         self.app = MagicMock()
         self.api = Backend_Api(self.app)
 
@@ -27,6 +33,10 @@ class TestBackendApi(unittest.TestCase):
         self.assertTrue(len(response) > 0)
         
 class TestUtilityFunctions(unittest.TestCase):
+
+    def setUp(self):
+        if not has_requirements:
+            self.skipTest('"flask" not installed')
 
     def test_get_error_message(self):
         g4f.debug.last_provider = ProviderMock

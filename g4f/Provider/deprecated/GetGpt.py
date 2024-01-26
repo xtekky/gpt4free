@@ -5,10 +5,10 @@ import os
 import uuid
 
 import requests
-try:
-    from Crypto.Cipher import AES
-except ImportError:
-    from Cryptodome.Cipher import AES
+# try:
+#     from Crypto.Cipher import AES
+# except ImportError:
+#     from Cryptodome.Cipher import AES
 
 from ...typing import Any, CreateResult
 from ..base_provider import AbstractProvider
@@ -57,19 +57,21 @@ class GetGpt(AbstractProvider):
 
 
 def _encrypt(e: str):
-    t = os.urandom(8).hex().encode('utf-8')
-    n = os.urandom(8).hex().encode('utf-8')
-    r = e.encode('utf-8')
+    # t = os.urandom(8).hex().encode('utf-8')
+    # n = os.urandom(8).hex().encode('utf-8')
+    # r = e.encode('utf-8')
     
-    cipher     = AES.new(t, AES.MODE_CBC, n)
-    ciphertext = cipher.encrypt(_pad_data(r))
+    # cipher     = AES.new(t, AES.MODE_CBC, n)
+    # ciphertext = cipher.encrypt(_pad_data(r))
     
-    return ciphertext.hex() + t.decode('utf-8') + n.decode('utf-8')
+    # return ciphertext.hex() + t.decode('utf-8') + n.decode('utf-8')
+    return
 
 
 def _pad_data(data: bytes) -> bytes:
-    block_size   = AES.block_size
-    padding_size = block_size - len(data) % block_size
-    padding      = bytes([padding_size] * padding_size)
+    # block_size   = AES.block_size
+    # padding_size = block_size - len(data) % block_size
+    # padding      = bytes([padding_size] * padding_size)
     
-    return data + padding
+    # return data + padding
+    return

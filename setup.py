@@ -8,32 +8,58 @@ here = os.path.abspath(os.path.dirname(__file__))
 with codecs.open(os.path.join(here, 'README.md'), encoding='utf-8') as fh:
     long_description = '\n' + fh.read()
 
-install_requires = [
+INSTALL_REQUIRE = [
     "requests",
-    "pycryptodome",
-    "curl_cffi>=0.5.10",
     "aiohttp",
-    "certifi",
-    "browser_cookie3",
-    "typing-extensions",
-    "PyExecJS",
-    "duckduckgo-search",
-    "nest_asyncio",
-    "werkzeug",
-    "loguru",
-    "pillow",
-    "platformdirs",
-    "fastapi",
-    "uvicorn",
-    "flask",
-    "py-arkose-generator",
-    "asyncstdlib",
-    "async-property",
-    "undetected-chromedriver",
-    "brotli",
-    "beautifulsoup4",
-    "setuptools",
 ]
+
+EXTRA_REQUIRE = {
+    'all': [
+        "curl_cffi>=0.5.10",
+        "certifi",
+        "async-property",          # openai
+        "py-arkose-generator",     # openai
+        "browser_cookie3",         # get_cookies
+        "PyExecJS",                # GptForLove
+        "duckduckgo-search",       # internet.search
+        "beautifulsoup4",          # internet.search and bing.create_images
+        "brotli",                  # openai
+        "platformdirs",            # webdriver
+        "undetected-chromedriver", # webdriver
+        "setuptools",              # webdriver
+        "aiohttp_socks"            # proxy
+        "pillow",                  # image
+        "cairosvg",                # svg image
+        "werkzeug", "flask",       # gui
+        "loguru", "fastapi",
+        "uvicorn", "nest_asyncio", # api
+    ],
+    "image": [
+        "pillow",
+        "cairosvg",
+        "beautifulsoup4"
+    ],
+    "webdriver": [
+        "platformdirs",
+        "undetected-chromedriver",
+        "setuptools"
+    ],
+    "openai": [
+        "async-property",
+        "py-arkose-generator",
+        "brotli"
+    ],
+    "api": [
+        "loguru", "fastapi",
+        "uvicorn", "nest_asyncio"
+    ],
+    "gui": [
+        "werkzeug", "flask",
+        "beautifulsoup4", "pillow",
+        "duckduckgo-search",
+        "browser_cookie3"
+    ]
+}
 
 DESCRIPTION = (
     'The official gpt4free repository | various collection of powerful language models'
@@ -53,7 +79,8 @@ setup(
         'g4f': ['g4f/interference/*', 'g4f/gui/client/*', 'g4f/gui/server/*', 'g4f/Provider/npm/*']
     },
     include_package_data=True,
-    install_requires=install_requires,
+    install_requires=INSTALL_REQUIRE,
+    extras_require=EXTRA_REQUIRE,
     entry_points={
         'console_scripts': ['g4f=g4f.cli:main'],
     },

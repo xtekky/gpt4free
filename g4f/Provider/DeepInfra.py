@@ -13,11 +13,12 @@ class DeepInfra(AsyncGeneratorProvider, ProviderModelMixin):
     supports_message_history = True
     default_model = 'meta-llama/Llama-2-70b-chat-hf'
     
-    @staticmethod
-    def get_models():
-        url = 'https://api.deepinfra.com/models/featured'
-        models = requests.get(url).json()
-        return [model['model_name'] for model in models]
+    @classmethod
+    def get_models(cls):
+        if not cls.models:
+            url = 'https://api.deepinfra.com/models/featured'
+            cls.models = requests.get(url).json()
+        return cls.models
 
     @classmethod
     async def create_async_generator(

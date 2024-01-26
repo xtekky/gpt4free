@@ -4,7 +4,6 @@ curl_cffi>=0.5.10
 aiohttp
 certifi
 browser_cookie3
-typing-extensions
 PyExecJS
 duckduckgo-search
 nest_asyncio
@@ -16,7 +15,6 @@ fastapi
 uvicorn
 flask
 py-arkose-generator
-asyncstdlib
 async-property
 undetected-chromedriver
 brotli

@@ -1,12 +1,20 @@
 from __future__ import annotations
-from platformdirs import user_config_dir
-from selenium.webdriver.remote.webdriver import WebDriver 
-from undetected_chromedriver import Chrome, ChromeOptions
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
+
+try:
+    from platformdirs import user_config_dir
+    from selenium.webdriver.remote.webdriver import WebDriver 
+    from undetected_chromedriver import Chrome, ChromeOptions
+    from selenium.webdriver.common.by import By
+    from selenium.webdriver.support.ui import WebDriverWait
+    from selenium.webdriver.support import expected_conditions as EC
+    has_requirements = True
+except ImportError:
+    WebDriver = type
+    has_requirements = False
+    
 from os import path
 from os import access, R_OK
+from .errors import MissingRequirementsError
 from . import debug
 
 try:
@@ -33,6 +41,8 @@ def get_browser(
     Returns:
         WebDriver: An instance of WebDriver configured with the specified options.
     """
+    if not has_requirements:
+        raise MissingRequirementsError('Install "undetected_chromedriver" and "platformdirs" package')
     if user_data_dir is None:
         user_data_dir = user_config_dir("g4f")
     if user_data_dir and debug.logging:
@@ -144,7 +154,7 @@ class WebDriverSession:
         Returns:
             WebDriver: The reopened WebDriver instance.
         """
-        user_data_dir = user_data_data_dir or self.user_data_dir
+        user_data_dir = user_data_dir or self.user_data_dir
         if self.default_driver:
             self.default_driver.quit()
         if not virtual_display and self.virtual_display:

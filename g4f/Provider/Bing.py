@@ -9,7 +9,7 @@ from urllib import parse
 from aiohttp import ClientSession, ClientTimeout, BaseConnector
 
 from ..typing import AsyncResult, Messages, ImageType
-from ..image import ImageResponse
+from ..image import ImageResponse, ImageRequest
 from .base_provider import AsyncGeneratorProvider
 from .helper import get_connector
 from .bing.upload_image import upload_image
@@ -154,6 +154,11 @@ class Defaults:
         'SRCHHPGUSR'    : f'HV={int(time.time())}',
     }
 
+class ConversationStyleOptionSets():
+    CREATIVE = ["h3imaginative", "clgalileo", "gencontentv3"]
+    BALANCED = ["galileo"]
+    PRECISE = ["h3precise", "clgalileo"]
+
 def format_message(msg: dict) -> str:
     """
     Formats a message dictionary into a JSON string with a delimiter.
@@ -168,7 +173,7 @@ def create_message(
     prompt: str,
     tone: str,
     context: str = None,
-    image_response: ImageResponse = None,
+    image_request: ImageRequest = None,
     web_search: bool = False,
     gpt4_turbo: bool = False
 ) -> str:
@@ -179,7 +184,7 @@ def create_message(
     :param prompt: The user's input prompt.
     :param tone: The desired tone for the response.
     :param context: Additional context for the prompt.
-    :param image_response: The response if an image is involved.
+    :param image_request: The image request with the url.
     :param web_search: Flag to enable web search.
     :param gpt4_turbo: Flag to enable GPT-4 Turbo.
     :return: A formatted string message for the Bing API.
@@ -187,11 +192,11 @@ def create_message(
     options_sets = Defaults.optionsSets
     # Append tone-specific options
     if tone == Tones.creative:
-        options_sets.append("h3imaginative")
+        options_sets.extend(ConversationStyleOptionSets.CREATIVE)
     elif tone == Tones.precise:
-        options_sets.append("h3precise")
+        options_sets.extend(ConversationStyleOptionSets.PRECISE)
     elif tone == Tones.balanced:
-        options_sets.append("galileo")
+        options_sets.extend(ConversationStyleOptionSets.BALANCED)
     else:
         options_sets.append("harmonyv3")
 
@@ -233,9 +238,9 @@ def create_message(
         'type': 4
     }
 
-    if image_response and image_response.get('imageUrl') and image_response.get('originalImageUrl'):
-        struct['arguments'][0]['message']['originalImageUrl'] = image_response.get('originalImageUrl')
-        struct['arguments'][0]['message']['imageUrl'] = image_response.get('imageUrl')
+    if image_request and image_request.get('imageUrl') and image_request.get('originalImageUrl'):
+        struct['arguments'][0]['message']['originalImageUrl'] = image_request.get('originalImageUrl')
+        struct['arguments'][0]['message']['imageUrl'] = image_request.get('imageUrl')
         struct['arguments'][0]['experienceType'] = None
         struct['arguments'][0]['attachedFileInfo'] = {"fileName": None, "fileType": None}
 
@@ -282,9 +287,9 @@ async def stream_generate(
         timeout=ClientTimeout(total=timeout), headers=headers, connector=connector
     ) as session:
         conversation = await create_conversation(session)
-        image_response = await upload_image(session, image, tone) if image else None
-        if image_response:
-            yield image_response
+        image_request = await upload_image(session, image, tone) if image else None
+        if image_request:
+            yield image_request
 
         try:
             async with session.ws_connect(
@@ -294,7 +299,7 @@ async def stream_generate(
             ) as wss:
                 await wss.send_str(format_message({'protocol': 'json', 'version': 1}))
                 await wss.receive(timeout=timeout)
-                await wss.send_str(create_message(conversation, prompt, tone, context, image_response, web_search, gpt4_turbo))
+                await wss.send_str(create_message(conversation, prompt, tone, context, image_request, web_search, gpt4_turbo))
 
                 response_txt = ''
                 returned_text = ''

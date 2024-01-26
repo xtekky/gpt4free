@@ -2,21 +2,28 @@
 This module provides functionalities for creating and managing images using Bing's service.
 It includes functions for user login, session creation, image creation, and processing.
 """
+from __future__ import annotations
 
 import asyncio
 import time
 import json
 import os
 from aiohttp import ClientSession, BaseConnector
-from bs4 import BeautifulSoup
 from urllib.parse import quote
 from typing import Generator, List, Dict
+
+try:
+    from bs4 import BeautifulSoup
+    has_requirements = True
+except ImportError:
+    has_requirements = False
 
 from ..create_images import CreateImagesProvider
 from ..helper import get_cookies, get_connector
 from ...webdriver import WebDriver, get_driver_cookies, get_browser
 from ...base_provider import ProviderType
 from ...image import ImageResponse
+from ...errors import MissingRequirementsError, MissingAccessToken
 
 BING_URL = "https://www.bing.com"
 TIMEOUT_LOGIN = 1200
@@ -97,6 +104,8 @@ async def create_images(session: ClientSession, prompt: str, proxy: str = None, 
     Raises:
         RuntimeError: If image creation fails or times out.
     """
+    if not has_requirements:
+        raise MissingRequirementsError('Install "beautifulsoup4" package')
     url_encoded_prompt = quote(prompt)
     payload = f"q={url_encoded_prompt}&rt=4&FORM=GENCRE"
     url = f"{BING_URL}/images/create?q={url_encoded_prompt}&rt=4&FORM=GENCRE"
@@ -193,7 +202,11 @@ class CreateImagesBing:
         Yields:
             Generator[str, None, None]: The final output as markdown formatted string with images.
         """
-        cookies = self.cookies or get_cookies(".bing.com")
+        try:
+            cookies = self.cookies or get_cookies(".bing.com")
+        except MissingRequirementsError as e:
+            raise MissingAccessToken(f'Missing "_U" cookie. {e}')
+            
         if "_U" not in cookies:
             login_url = os.environ.get("G4F_LOGIN_URL")
             if login_url:
@@ -211,9 +224,12 @@ class CreateImagesBing:
         Returns:
             str: Markdown formatted string with images.
         """
-        cookies = self.cookies or get_cookies(".bing.com")
+        try:
+            cookies = self.cookies or get_cookies(".bing.com")
+        except MissingRequirementsError as e:
+            raise MissingAccessToken(f'Missing "_U" cookie. {e}')
         if "_U" not in cookies:
-            raise RuntimeError('"_U" cookie is missing')
+            raise MissingAccessToken('Missing "_U" cookie')
         proxy = os.environ.get("G4F_PROXY")
         async with create_session(cookies, proxy) as session:
             images = await create_images(session, prompt, self.proxy)

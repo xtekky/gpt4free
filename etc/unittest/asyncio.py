@@ -1,6 +1,10 @@
 from .include import DEFAULT_MESSAGES
 import asyncio
-import nest_asyncio
+try:
+    import nest_asyncio
+    has_nest_asyncio = True
+except:
+    has_nest_asyncio = False 
 import unittest
 import g4f
 from g4f import ChatCompletion
@@ -39,6 +43,8 @@ class TestChatCompletionAsync(unittest.IsolatedAsyncioTestCase):
 class TestChatCompletionNestAsync(unittest.IsolatedAsyncioTestCase):
         
     def setUp(self) -> None:
+        if not has_nest_asyncio:
+            self.skipTest('"nest_asyncio" not installed')
         nest_asyncio.apply()
         
     async def test_create(self):

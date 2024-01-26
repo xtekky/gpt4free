@@ -2,10 +2,14 @@ from __future__ import annotations
 
 import time
 import os
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.common.keys import Keys
+
+try:
+    from selenium.webdriver.common.by import By
+    from selenium.webdriver.support.ui import WebDriverWait
+    from selenium.webdriver.support import expected_conditions as EC
+    from selenium.webdriver.common.keys import Keys
+except ImportError:
+    pass
 
 from ...typing import CreateResult, Messages
 from ..base_provider import AbstractProvider
