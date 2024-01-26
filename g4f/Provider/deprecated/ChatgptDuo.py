@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from ...typing import Messages
-from curl_cffi.requests import AsyncSession
+from ...requests import StreamSession
 from ..base_provider import AsyncProvider, format_prompt
 
 
@@ -19,7 +19,7 @@ class ChatgptDuo(AsyncProvider):
         timeout: int = 120,
         **kwargs
     ) -> str:
-        async with AsyncSession(
+        async with StreamSession(
             impersonate="chrome107",
             proxies={"https": proxy},
             timeout=timeout

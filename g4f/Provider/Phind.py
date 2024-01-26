@@ -9,7 +9,6 @@ from ..requests import StreamSession
 class Phind(AsyncGeneratorProvider):
     url = "https://www.phind.com"
     working = True
-    supports_gpt_4 = True
     supports_stream = True
     supports_message_history = True
 

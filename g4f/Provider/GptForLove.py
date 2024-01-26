@@ -1,11 +1,18 @@
 from __future__ import annotations
 
 from aiohttp import ClientSession
-import execjs, os, json
+import os
+import json
+try:
+    import execjs
+    has_requirements = True
+except ImportError:
+    has_requirements = False
 
 from ..typing import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider
 from .helper import format_prompt
+from ..errors import MissingRequirementsError
 
 class GptForLove(AsyncGeneratorProvider):
     url = "https://ai18.gptforlove.com"
@@ -20,6 +27,8 @@ class GptForLove(AsyncGeneratorProvider):
         proxy: str = None,
         **kwargs
     ) -> AsyncResult:
+        if not has_requirements:
+            raise MissingRequirementsError('Install "PyExecJS" package')
         if not model:
             model = "gpt-3.5-turbo"
         headers = {

@@ -7,11 +7,11 @@ import string
 import random
 import json
 import math
-from aiohttp import ClientSession
+from aiohttp import ClientSession, FormData
 from PIL import Image
 
 from ...typing import ImageType, Tuple
-from ...image import to_image, process_image, to_base64, ImageResponse
+from ...image import to_image, process_image, to_base64_jpg, ImageRequest
 
 IMAGE_CONFIG = {
     "maxImagePixels": 360000,
@@ -24,7 +24,7 @@ async def upload_image(
     image_data: ImageType, 
     tone: str, 
     proxy: str = None
-) -> ImageResponse:
+) -> ImageRequest:
     """
     Uploads an image to Bing's AI service and returns the image response.
 
@@ -38,15 +38,15 @@ async def upload_image(
         RuntimeError: If the image upload fails.
 
     Returns:
-        ImageResponse: The response from the image upload.
+        ImageRequest: The response from the image upload.
     """
     image = to_image(image_data)
     new_width, new_height = calculate_new_dimensions(image)
-    processed_img = process_image(image, new_width, new_height)
-    img_binary_data = to_base64(processed_img, IMAGE_CONFIG['imageCompressionRate'])
+    image = process_image(image, new_width, new_height)
+    img_binary_data = to_base64_jpg(image, IMAGE_CONFIG['imageCompressionRate'])
 
-    data, boundary = build_image_upload_payload(img_binary_data, tone)
-    headers = prepare_headers(session, boundary)
+    data = build_image_upload_payload(img_binary_data, tone)
+    headers = prepare_headers(session)
 
     async with session.post("https://www.bing.com/images/kblob", data=data, headers=headers, proxy=proxy) as response:
         if response.status != 200:
@@ -70,7 +70,7 @@ def calculate_new_dimensions(image: Image.Image) -> Tuple[int, int]:
         return int(width * scale_factor), int(height * scale_factor)
     return width, height
 
-def build_image_upload_payload(image_bin: str, tone: str) -> Tuple[str, str]:
+def build_image_upload_payload(image_bin: str, tone: str) -> FormData:
     """
     Builds the payload for image uploading.
 
@@ -81,18 +81,11 @@ def build_image_upload_payload(image_bin: str, tone: str) -> Tuple[str, str]:
     Returns:
         Tuple[str, str]: The data and boundary for the payload.
     """
-    boundary = "----WebKitFormBoundary" + ''.join(random.choices(string.ascii_letters + string.digits, k=16))
-    data = f"""--{boundary}
-Content-Disposition: form-data; name="knowledgeRequest"
-
-{json.dumps(build_knowledge_request(tone), ensure_ascii=False)}
---{boundary}
-Content-Disposition: form-data; name="imageBase64"
-
-{image_bin}
---{boundary}--
-"""
-    return data, boundary
+    data = FormData()
+    knowledge_request = json.dumps(build_knowledge_request(tone), ensure_ascii=False)
+    data.add_field('knowledgeRequest', knowledge_request, content_type="application/json")
+    data.add_field('imageBase64', image_bin)
+    return data
 
 def build_knowledge_request(tone: str) -> dict:
     """
@@ -119,7 +112,7 @@ def build_knowledge_request(tone: str) -> dict:
         }
     }
 
-def prepare_headers(session: ClientSession, boundary: str) -> dict:
+def prepare_headers(session: ClientSession) -> dict:
     """
     Prepares the headers for the image upload request.
 
@@ -131,12 +124,11 @@ def prepare_headers(session: ClientSession, boundary: str) -> dict:
         dict: The headers for the request.
     """
     headers = session.headers.copy()
-    headers["Content-Type"] = f'multipart/form-data; boundary={boundary}'
     headers["Referer"] = 'https://www.bing.com/search?q=Bing+AI&showconv=1&FORM=hpcodx'
     headers["Origin"] = 'https://www.bing.com'
     return headers
 
-def parse_image_response(response: dict) -> ImageResponse:
+def parse_image_response(response: dict) -> ImageRequest:
     """
     Parses the response from the image upload.
 
@@ -147,7 +139,7 @@ def parse_image_response(response: dict) -> ImageResponse:
         RuntimeError: If parsing the image info fails.
 
     Returns:
-        ImageResponse: The parsed image response.
+        ImageRequest: The parsed image response.
     """
     if not response.get('blobId'):
         raise RuntimeError("Failed to parse image info.")
@@ -160,4 +152,4 @@ def parse_image_response(response: dict) -> ImageResponse:
         if IMAGE_CONFIG["enableFaceBlurDebug"] else
         f"https://www.bing.com/images/blob?bcid={result['bcid']}"
     )
-    return ImageResponse(result["imageUrl"], "", result)
+    return ImageRequest(result["imageUrl"], "", result)
