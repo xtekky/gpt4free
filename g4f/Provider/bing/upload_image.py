@@ -3,15 +3,13 @@ Module to handle image uploading and processing for Bing AI integrations.
 """
 
 from __future__ import annotations
-import string
-import random
+
 import json
 import math
 from aiohttp import ClientSession, FormData
-from PIL import Image
 
 from ...typing import ImageType, Tuple
-from ...image import to_image, process_image, to_base64_jpg, ImageRequest
+from ...image import to_image, process_image, to_base64_jpg, ImageRequest, Image
 
 IMAGE_CONFIG = {
     "maxImagePixels": 360000,
@@ -53,7 +51,7 @@ async def upload_image(
             raise RuntimeError("Failed to upload image.")
         return parse_image_response(await response.json())
 
-def calculate_new_dimensions(image: Image.Image) -> Tuple[int, int]:
+def calculate_new_dimensions(image: Image) -> Tuple[int, int]:
     """
     Calculates the new dimensions for the image based on the maximum allowed pixels.
 
