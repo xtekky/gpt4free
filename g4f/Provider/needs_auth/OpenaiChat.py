@@ -10,8 +10,7 @@ try:
     from async_property import async_cached_property
     has_requirements = True
 except ImportError:
-    def async_cached_property():
-        pass
+    async_cached_property = property
     has_requirements = False
 try:
     from selenium.webdriver.common.by import By
