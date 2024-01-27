@@ -31,10 +31,10 @@ class NestAsyncioError(Exception):
 class ModelNotSupportedError(Exception):
     pass
 
-class MissingRequirementsError(ImportError):
+class MissingRequirementsError(Exception):
     pass
 
-class AiohttpSocksError(MissingRequirementsError):
+class MissingAiohttpSocksError(MissingRequirementsError):
     pass
 
 class MissingAccessToken(Exception):

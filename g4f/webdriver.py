@@ -13,7 +13,8 @@ try:
 except ImportError:
     from typing import Type as WebDriver
     has_requirements = False
-    
+
+import time  
 from os import path
 from os import access, R_OK
 from .errors import MissingRequirementsError
@@ -92,7 +93,27 @@ def bypass_cloudflare(driver: WebDriver, url: str, timeout: int) -> None:
     if driver.find_element(By.TAG_NAME, "body").get_attribute("class") == "no-js":
         if debug.logging:
             print("Cloudflare protection detected:", url)
+
+        # Open website in a new tab
+        element = driver.find_element(By.ID, "challenge-body-text")
+        driver.execute_script(f"""
+            arguments[0].addEventListener('click', () => {{
+                window.open(arguments[1]);
+            }});
+        """, element, url)
+        element.click()
+        time.sleep(3)
+
+        # Switch to the new tab and close the old tab
+        original_window = driver.current_window_handle
+        for window_handle in driver.window_handles:
+            if window_handle != original_window:
+                driver.close()
+                driver.switch_to.window(window_handle)
+                break
+
         try:
+            # Click on the challenge button in the iframe
             driver.switch_to.frame(driver.find_element(By.CSS_SELECTOR, "#turnstile-wrapper iframe"))
             WebDriverWait(driver, 5).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, "#challenge-stage input"))

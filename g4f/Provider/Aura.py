@@ -1,5 +1,7 @@
 from __future__ import annotations
+
 from aiohttp import ClientSession
+
 from ..typing import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider
 
@@ -23,7 +25,7 @@ class Aura(AsyncGeneratorProvider):
             "Content-Type": "application/json",
             "Origin": f"{cls.url}",
             "Referer": f"{cls.url}/",
-            "Sec-Ch-Ua": '"Not_A Brand";v="8", "Chromium";v="120", "Google      Chrome";v="120"',
+            "Sec-Ch-Ua": '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
             "Sec-Ch-Ua-Mobile": "?0",
             "Sec-Ch-Ua-Platform": '"Linux"',
             "Sec-Fetch-Dest": "empty",
@@ -52,5 +54,6 @@ class Aura(AsyncGeneratorProvider):
                 "temperature": 0.5
             }
             async with session.post(f"{cls.url}/api/chat", json=data, proxy=proxy) as response:
+                response.raise_for_status()
                 async for chunk in response.content.iter_any():
                     yield chunk.decode()

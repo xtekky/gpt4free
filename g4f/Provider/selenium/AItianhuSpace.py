@@ -52,9 +52,9 @@ class AItianhuSpace(AbstractProvider):
             wait.until(EC.visibility_of_element_located((By.ID, "sheet")))
             driver.execute_script(f"""
     document.getElementById('sheet').addEventListener('click', () => {{
-        window.open('{url}', '_blank');
+        window.open(arguments[0]);
     }});
-    """)
+            """, url)
             driver.find_element(By.ID, "sheet").click()
             time.sleep(10)
 

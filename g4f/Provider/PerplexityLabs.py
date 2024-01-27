@@ -76,7 +76,7 @@ class PerplexityLabs(AsyncGeneratorProvider, ProviderModelMixin):
                     'model': cls.get_model(model),
                     'messages': messages
                 }
-                await ws.send_str('42' + json.dumps(['perplexity_playground', message_data]))
+                await ws.send_str('42' + json.dumps(['perplexity_labs', message_data]))
                 last_message = 0
                 while True:
                     message = await ws.receive_str()
