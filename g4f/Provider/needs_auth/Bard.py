@@ -7,14 +7,14 @@ try:
     from selenium.webdriver.common.by import By
     from selenium.webdriver.support.ui import WebDriverWait
     from selenium.webdriver.support import expected_conditions as EC
-    from selenium.webdriver.common.keys import Keys
 except ImportError:
     pass
 
 from ...typing import CreateResult, Messages
 from ..base_provider import AbstractProvider
 from ..helper import format_prompt
-from ...webdriver import WebDriver, WebDriverSession
+from ...webdriver import WebDriver, WebDriverSession, element_send_text
+
 
 class Bard(AbstractProvider):
     url = "https://bard.google.com"
@@ -68,13 +68,7 @@ XMLHttpRequest.prototype.open = function(method, url) {
 """
             driver.execute_script(script)
 
-            textarea = driver.find_element(By.CSS_SELECTOR, "div.ql-editor.textarea")
-            lines = prompt.splitlines()
-            for idx, line in enumerate(lines):
-                textarea.send_keys(line)
-                if (len(lines) - 1 != idx):
-                    textarea.send_keys(Keys.SHIFT + "\n")
-            textarea.send_keys(Keys.ENTER)
+            element_send_text(driver.find_element(By.CSS_SELECTOR, "div.ql-editor.textarea"), prompt)
             
             while True:
                 chunk = driver.execute_script("return window._message;")

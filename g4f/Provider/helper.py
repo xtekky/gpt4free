@@ -21,12 +21,12 @@ try:
 except ImportError:
     has_browser_cookie3 = False
 
-from ..typing import Dict, Messages, Optional
-from ..errors import AiohttpSocksError, MissingRequirementsError
+from ..typing import Dict, Messages, Cookies, Optional
+from ..errors import MissingAiohttpSocksError, MissingRequirementsError
 from .. import debug
 
 # Global variable to store cookies
-_cookies: Dict[str, Dict[str, str]] = {}
+_cookies: Dict[str, Cookies] = {}
 
 if has_browser_cookie3 and os.environ.get('DBUS_SESSION_BUS_ADDRESS') == "/dev/null":
     _LinuxPasswordManager.get_password = lambda a, b: b"secret"
@@ -48,7 +48,13 @@ def get_cookies(domain_name: str = '', raise_requirements_error: bool = True) ->
     _cookies[domain_name] = cookies
     return cookies
 
-def load_cookies_from_browsers(domain_name: str, raise_requirements_error: bool = True) -> Dict[str, str]:
+def set_cookies(domain_name: str, cookies: Cookies = None) -> None:
+    if cookies:
+        _cookies[domain_name] = cookies
+    else:
+        _cookies.pop(domain_name)
+
+def load_cookies_from_browsers(domain_name: str, raise_requirements_error: bool = True) -> Cookies:
     """
     Helper function to load cookies from various browsers.
 
@@ -143,5 +149,5 @@ def get_connector(connector: BaseConnector = None, proxy: str = None) -> Optiona
             from aiohttp_socks import ProxyConnector
             connector = ProxyConnector.from_url(proxy)
         except ImportError:
-            raise AiohttpSocksError('Install "aiohttp_socks" package for proxy support')
+            raise MissingAiohttpSocksError('Install "aiohttp_socks" package for proxy support')
     return connector

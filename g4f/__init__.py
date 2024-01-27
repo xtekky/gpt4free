@@ -3,11 +3,13 @@ from __future__ import annotations
 import os
 
 from .errors   import *
-from .models   import Model, ModelUtils, _all_models
+from .models   import Model, ModelUtils
 from .Provider import AsyncGeneratorProvider, ProviderUtils
 from .typing   import Messages, CreateResult, AsyncResult, Union
 from .         import debug, version
 from .base_provider import BaseRetryProvider, ProviderType
+from .Provider.helper import get_cookies, set_cookies
+from .Provider.base_provider import ProviderModelMixin
 
 def get_model_and_provider(model    : Union[Model, str], 
                            provider : Union[ProviderType, str, None], 
@@ -76,6 +78,7 @@ def get_model_and_provider(model    : Union[Model, str],
             print(f'Using {provider.__name__} provider')
 
     debug.last_provider = provider
+    debug.last_model = model
 
     return model, provider
 
@@ -227,5 +230,10 @@ def get_last_provider(as_dict: bool = False) -> Union[ProviderType, dict[str, st
     if isinstance(last, BaseRetryProvider):
         last = last.last_provider
     if last and as_dict:
-        return {"name": last.__name__, "url": last.url}
+        return {
+            "name": last.__name__,
+            "url": last.url,
+            "model": debug.last_model,
+            "models": last.models if isinstance(last, ProviderModelMixin) else []
+        }
     return last

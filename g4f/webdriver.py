@@ -3,15 +3,18 @@ from __future__ import annotations
 try:
     from platformdirs import user_config_dir
     from selenium.webdriver.remote.webdriver import WebDriver 
+    from selenium.webdriver.remote.webelement import WebElement 
     from undetected_chromedriver import Chrome, ChromeOptions
     from selenium.webdriver.common.by import By
     from selenium.webdriver.support.ui import WebDriverWait
     from selenium.webdriver.support import expected_conditions as EC
+    from selenium.webdriver.common.keys import Keys
     has_requirements = True
 except ImportError:
-    WebDriver = type
+    from typing import Type as WebDriver
     has_requirements = False
-    
+
+import time  
 from os import path
 from os import access, R_OK
 from .errors import MissingRequirementsError
@@ -90,7 +93,27 @@ def bypass_cloudflare(driver: WebDriver, url: str, timeout: int) -> None:
     if driver.find_element(By.TAG_NAME, "body").get_attribute("class") == "no-js":
         if debug.logging:
             print("Cloudflare protection detected:", url)
+
+        # Open website in a new tab
+        element = driver.find_element(By.ID, "challenge-body-text")
+        driver.execute_script(f"""
+            arguments[0].addEventListener('click', () => {{
+                window.open(arguments[1]);
+            }});
+        """, element, url)
+        element.click()
+        time.sleep(3)
+
+        # Switch to the new tab and close the old tab
+        original_window = driver.current_window_handle
+        for window_handle in driver.window_handles:
+            if window_handle != original_window:
+                driver.close()
+                driver.switch_to.window(window_handle)
+                break
+
         try:
+            # Click on the challenge button in the iframe
             driver.switch_to.frame(driver.find_element(By.CSS_SELECTOR, "#turnstile-wrapper iframe"))
             WebDriverWait(driver, 5).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, "#challenge-stage input"))
@@ -197,4 +220,9 @@ class WebDriverSession:
                     print(f"Error closing WebDriver: {e}")
             self.default_driver.quit()
         if self.virtual_display:
-            self.virtual_display.stop()
+            self.virtual_display.stop()  
+  
+def element_send_text(element: WebElement, text: str) -> None:
+    script = "arguments[0].innerText = arguments[1]"
+    element.parent.execute_script(script, element, text)
+    element.send_keys(Keys.ENTER)

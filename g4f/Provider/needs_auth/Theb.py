@@ -5,7 +5,7 @@ import time
 from ...typing import CreateResult, Messages
 from ..base_provider import AbstractProvider
 from ..helper import format_prompt
-from ...webdriver import WebDriver, WebDriverSession
+from ...webdriver import WebDriver, WebDriverSession, element_send_text
 
 models = {
     "theb-ai": "TheB.AI",
@@ -118,8 +118,7 @@ window._last_message = "";
 
             # Submit prompt
             wait.until(EC.visibility_of_element_located((By.ID, "textareaAutosize")))
-            driver.find_element(By.ID, "textareaAutosize").send_keys(prompt)
-            driver.find_element(By.ID, "textareaAutosize").send_keys(Keys.ENTER)
+            element_send_text(driver.find_element(By.ID, "textareaAutosize"), prompt)
 
             # Read response with reader
             script = """

@@ -10,6 +10,7 @@ from .helper import get_cookies, format_prompt
 from ..typing import CreateResult, AsyncResult, Messages, Union
 from ..base_provider import BaseProvider
 from ..errors import NestAsyncioError, ModelNotSupportedError
+from .. import debug
 
 if sys.version_info < (3, 10):
     NoneType = type(None)
@@ -266,9 +267,10 @@ class ProviderModelMixin:
     @classmethod
     def get_model(cls, model: str) -> str:
         if not model:
-            return cls.default_model
+            model = cls.default_model
         elif model in cls.model_aliases:
-            return cls.model_aliases[model]
+            model = cls.model_aliases[model]
         elif model not in cls.get_models():
             raise ModelNotSupportedError(f"Model is not supported: {model} in: {cls.__name__}")
+        debug.last_model = model
         return model
