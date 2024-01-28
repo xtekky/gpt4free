@@ -15,6 +15,7 @@ except ImportError:
     has_requirements = False
 
 import time  
+from shutil import which
 from os import path
 from os import access, R_OK
 from .errors import MissingRequirementsError
@@ -55,7 +56,9 @@ def get_browser(
     if proxy:
         options.add_argument(f'--proxy-server={proxy}')
     # Check for system driver in docker
-    driver = '/usr/bin/chromedriver'
+    driver = which('chromedriver')
+    if not driver:
+        driver = '/usr/bin/chromedriver'
     if not path.isfile(driver) or not access(driver, R_OK):
         driver = None
     return Chrome(
@@ -218,7 +221,8 @@ class WebDriverSession:
             except Exception as e:
                 if debug.logging:
                     print(f"Error closing WebDriver: {e}")
-            self.default_driver.quit()
+            finally:
+                self.default_driver.quit()
         if self.virtual_display:
             self.virtual_display.stop()  
   
