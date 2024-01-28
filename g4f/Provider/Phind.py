@@ -69,6 +69,8 @@ class Phind(AsyncGeneratorProvider):
                             pass
                         elif chunk.startswith(b"<PHIND_METADATA>") or chunk.startswith(b"<PHIND_INDICATOR>"):
                             pass
+                        elif chunk.startswith(b"<PHIND_SPAN_BEGIN>") or chunk.startswith(b"<PHIND_SPAN_END>"):
+                            pass
                         elif chunk:
                             yield chunk.decode()
                         elif new_line:
