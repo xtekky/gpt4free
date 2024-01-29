@@ -103,25 +103,29 @@ Install all supported tools / all used packages:
 ```
 pip install -U g4f[all]
 ```
-Install packages for uploading / generating images:
-```
-pip install -U g4f[image]
-```
-Install the packages required for providers with webdriver:
-```
-pip install -U g4f[webdriver]
-```
-Install the packages required for the OpenaiChat provider:
+Install required packages for the OpenaiChat provider:
 ```
 pip install -U g4f[openai]
 ```
-Install the packages required for the interference api:
+Install required packages for the interference api:
 ```
 pip install -U g4f[api]
 ```
-Install the packages required for the web gui:
+Install required packages for the web interface:
 ```
 pip install -U g4f[gui]
+```
+Install required packages for uploading / generating images:
+```
+pip install -U g4f[image]
+```
+Install required packages for providers with webdriver:
+```
+pip install -U g4f[webdriver]
+```
+Install required packages for proxy support:
+```
+pip install -U aiohttp_socks
 ```
 
 ##### or:
