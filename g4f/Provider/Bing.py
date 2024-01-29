@@ -288,8 +288,6 @@ async def stream_generate(
     ) as session:
         conversation = await create_conversation(session)
         image_request = await upload_image(session, image, tone) if image else None
-        if image_request:
-            yield image_request
 
         try:
             async with session.ws_connect(
@@ -327,7 +325,7 @@ async def stream_generate(
                                 elif message.get('contentType') == "IMAGE":
                                     prompt = message.get('text')
                                     try:
-                                        image_response = ImageResponse(await create_images(session, prompt), prompt)
+                                        image_response = ImageResponse(await create_images(session, prompt), prompt, {"preview": "{image}?w=200&h=200"})
                                     except:
                                         response_txt += f"\nhttps://www.bing.com/images/create?q={parse.quote(prompt)}"
                                     final = True

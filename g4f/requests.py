@@ -7,13 +7,13 @@ try:
     from .requests_curl_cffi import StreamResponse, StreamSession
     has_curl_cffi = True
 except ImportError:
-    Session = type
+    from typing import Type as Session
     from .requests_aiohttp import StreamResponse, StreamSession
     has_curl_cffi = False
 
 from .webdriver import WebDriver, WebDriverSession, bypass_cloudflare, get_driver_cookies
 from .errors import MissingRequirementsError
-
+from .defaults import DEFAULT_HEADERS
 
 def get_args_from_browser(url: str, webdriver: WebDriver = None, proxy: str = None, timeout: int = 120) -> dict:
     """
@@ -36,22 +36,14 @@ def get_args_from_browser(url: str, webdriver: WebDriver = None, proxy: str = No
     return {
         'cookies': cookies,
         'headers': {
-            'accept': '*/*',
-            "accept-language": "en-US",
-            "accept-encoding": "gzip, deflate, br",
-            'authority': parse.netloc,
-            'origin': f'{parse.scheme}://{parse.netloc}',
-            'referer': url,
-            "sec-ch-ua": "\"Google Chrome\";v=\"121\", \"Not;A=Brand\";v=\"8\", \"Chromium\";v=\"121\"",
-            "sec-ch-ua-mobile": "?0",
-            "sec-ch-ua-platform": "Windows",
-            'sec-fetch-dest': 'empty',
-            'sec-fetch-mode': 'cors',
-            'sec-fetch-site': 'same-origin',
-            'user-agent': user_agent,
+            **DEFAULT_HEADERS,
+            'Authority': parse.netloc,
+            'Origin': f'{parse.scheme}://{parse.netloc}',
+            'Referer': url,
+            'User-Agent': user_agent,
         },
     }
-    
+
 def get_session_from_browser(url: str, webdriver: WebDriver = None, proxy: str = None, timeout: int = 120) -> Session:
     if not has_curl_cffi:
         raise MissingRequirementsError('Install "curl_cffi" package')

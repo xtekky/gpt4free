@@ -150,8 +150,8 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
             headers=headers
         ) as response:
             response.raise_for_status()
-            download_url = (await response.json())["download_url"]
-        return ImageRequest(download_url, image_data["file_name"], image_data)
+            image_data["download_url"] = (await response.json())["download_url"]
+        return ImageRequest(image_data)
     
     @classmethod
     async def get_default_model(cls, session: StreamSession, headers: dict):
@@ -175,7 +175,7 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
         return cls.default_model
     
     @classmethod
-    def create_messages(cls, prompt: str, image_response: ImageRequest = None):
+    def create_messages(cls, prompt: str, image_request: ImageRequest = None):
         """
         Create a list of messages for the user input
         
@@ -187,7 +187,7 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
             A list of messages with the user input and the image, if any
         """
         # Check if there is an image response
-        if not image_response:
+        if not image_request:
             # Create a content object with the text type and the prompt
             content = {"content_type": "text", "parts": [prompt]}
         else:
@@ -195,10 +195,10 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
             content = {
                 "content_type": "multimodal_text",
                 "parts": [{
-                    "asset_pointer": f"file-service://{image_response.get('file_id')}",
-                    "height": image_response.get("height"),
-                    "size_bytes": image_response.get("file_size"),
-                    "width": image_response.get("width"),
+                    "asset_pointer": f"file-service://{image_request.get('file_id')}",
+                    "height": image_request.get("height"),
+                    "size_bytes": image_request.get("file_size"),
+                    "width": image_request.get("width"),
                 }, prompt]
             }
         # Create a message object with the user role and the content
@@ -208,16 +208,16 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
             "content": content,
         }]
         # Check if there is an image response
-        if image_response:
+        if image_request:
             # Add the metadata object with the attachments
             messages[0]["metadata"] = {
                 "attachments": [{
-                    "height": image_response.get("height"),
-                    "id": image_response.get("file_id"),
-                    "mimeType": image_response.get("mime_type"),
-                    "name": image_response.get("file_name"),
-                    "size": image_response.get("file_size"),
-                    "width": image_response.get("width"),
+                    "height": image_request.get("height"),
+                    "id": image_request.get("file_id"),
+                    "mimeType": image_request.get("mime_type"),
+                    "name": image_request.get("file_name"),
+                    "size": image_request.get("file_size"),
+                    "width": image_request.get("width"),
                 }]
             }
         return messages
@@ -352,7 +352,6 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
                 image_response = None
                 if image:
                     image_response = await cls.upload_image(session, headers, image)
-                    yield image_response
             except Exception as e:
                 yield e
             end_turn = EndTurn()

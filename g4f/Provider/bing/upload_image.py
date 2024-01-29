@@ -149,4 +149,4 @@ def parse_image_response(response: dict) -> ImageRequest:
         if IMAGE_CONFIG["enableFaceBlurDebug"] else
         f"https://www.bing.com/images/blob?bcid={result['bcid']}"
     )
-    return ImageRequest(result["imageUrl"], "", result)
+    return ImageRequest(result)
