@@ -187,11 +187,11 @@ def get_cookies_from_browser(proxy: str = None) -> dict[str, str]:
 
 class CreateImagesBing:
     """A class for creating images using Bing."""
-    
+
     def __init__(self, cookies: dict[str, str] = {}, proxy: str = None) -> None:
         self.cookies = cookies
         self.proxy = proxy
-    
+
     def create_completion(self, prompt: str) -> Generator[ImageResponse, None, None]:
         """
         Generator for creating imagecompletion based on a prompt.
@@ -229,9 +229,7 @@ class CreateImagesBing:
         proxy = os.environ.get("G4F_PROXY")
         async with create_session(cookies, proxy) as session:
             images = await create_images(session, prompt, self.proxy)
-            return ImageResponse(images, prompt)
-    
-service = CreateImagesBing()
+            return ImageResponse(images, prompt, {"preview": "{image}?w=200&h=200"})
 
 def patch_provider(provider: ProviderType) -> CreateImagesProvider:
     """
@@ -243,6 +241,7 @@ def patch_provider(provider: ProviderType) -> CreateImagesProvider:
     Returns:
         CreateImagesProvider: The patched provider with image creation capabilities.
     """
+    service = CreateImagesBing()
     return CreateImagesProvider(
         provider,
         service.create_completion,

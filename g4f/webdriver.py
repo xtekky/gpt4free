@@ -18,6 +18,7 @@ import time
 from shutil import which
 from os import path
 from os import access, R_OK
+from .typing import Cookies
 from .errors import MissingRequirementsError
 from . import debug
 
@@ -56,9 +57,7 @@ def get_browser(
     if proxy:
         options.add_argument(f'--proxy-server={proxy}')
     # Check for system driver in docker
-    driver = which('chromedriver')
-    if not driver:
-        driver = '/usr/bin/chromedriver'
+    driver = which('chromedriver') or '/usr/bin/chromedriver'
     if not path.isfile(driver) or not access(driver, R_OK):
         driver = None
     return Chrome(
@@ -68,7 +67,7 @@ def get_browser(
         headless=headless
     )
 
-def get_driver_cookies(driver: WebDriver) -> dict:
+def get_driver_cookies(driver: WebDriver) -> Cookies:
     """
     Retrieves cookies from the specified WebDriver.
 
@@ -115,8 +114,8 @@ def bypass_cloudflare(driver: WebDriver, url: str, timeout: int) -> None:
                 driver.switch_to.window(window_handle)
                 break
 
+        # Click on the challenge button in the iframe
         try:
-            # Click on the challenge button in the iframe
             driver.switch_to.frame(driver.find_element(By.CSS_SELECTOR, "#turnstile-wrapper iframe"))
             WebDriverWait(driver, 5).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, "#challenge-stage input"))

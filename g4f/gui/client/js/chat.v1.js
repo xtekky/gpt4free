@@ -59,6 +59,10 @@ const handle_ask = async () => {
                 </div>
                 <div class="content" id="user_${token}"> 
                     ${markdown_render(message)}
+                    ${imageInput.dataset.src
+                        ? '<img src="' + imageInput.dataset.src + '" alt="Image upload">'
+                        : ''
+                    }
                 </div>
             </div>
         `;
@@ -666,6 +670,18 @@ observer.observe(message_input, { attributes: true });
 })()
 imageInput.addEventListener('click', async (event) => {
     imageInput.value = '';
+    delete imageInput.dataset.src;
+});
+imageInput.addEventListener('change', async (event) => {
+    if (imageInput.files.length) {
+        const reader = new FileReader();
+        reader.addEventListener('load', (event) => {
+            imageInput.dataset.src = event.target.result;
+        });
+        reader.readAsDataURL(imageInput.files[0]);
+    } else {
+        delete imageInput.dataset.src;
+    }
 });
 fileInput.addEventListener('click', async (event) => {
     fileInput.value = '';
