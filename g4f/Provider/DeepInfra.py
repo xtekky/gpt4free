@@ -17,7 +17,8 @@ class DeepInfra(AsyncGeneratorProvider, ProviderModelMixin):
     def get_models(cls):
         if not cls.models:
             url = 'https://api.deepinfra.com/models/featured'
-            cls.models = requests.get(url).json()
+            models = requests.get(url).json()
+            cls.models = [model['model_name'] for model in models]
         return cls.models
 
     @classmethod
