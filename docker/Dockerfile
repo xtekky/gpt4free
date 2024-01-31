@@ -81,7 +81,7 @@ WORKDIR $G4F_DIR
 COPY requirements.txt $G4F_DIR
 
 # Upgrade pip for the latest features and install the project's Python dependencies.
-RUN pip install --upgrade pip && pip install -r requirements.txt
+RUN pip install --upgrade pip && pip install -r requirements.txt && pip install -U aiohttp_socks
 
 # Copy the entire package into the container.
 ADD --chown=$G4F_USER:$G4F_USER g4f $G4F_DIR/g4f
