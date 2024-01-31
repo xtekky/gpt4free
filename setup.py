@@ -27,7 +27,7 @@ EXTRA_REQUIRE = {
         "platformdirs",            # webdriver
         "undetected-chromedriver", # webdriver
         "setuptools",              # webdriver
-        "aiohttp_socks"            # proxy
+        "aiohttp_socks",           # proxy
         "pillow",                  # image
         "cairosvg",                # svg image
         "werkzeug", "flask",       # gui
