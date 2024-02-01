@@ -51,7 +51,7 @@ def get_cookies(domain_name: str = '', raise_requirements_error: bool = True) ->
 def set_cookies(domain_name: str, cookies: Cookies = None) -> None:
     if cookies:
         _cookies[domain_name] = cookies
-    else:
+    elif domain_name in _cookies:
         _cookies.pop(domain_name)
 
 def load_cookies_from_browsers(domain_name: str, raise_requirements_error: bool = True) -> Cookies:
