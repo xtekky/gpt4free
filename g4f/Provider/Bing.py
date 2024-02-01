@@ -189,7 +189,7 @@ def create_message(
     :param gpt4_turbo: Flag to enable GPT-4 Turbo.
     :return: A formatted string message for the Bing API.
     """
-    options_sets = Defaults.optionsSets
+    options_sets = Defaults.optionsSets.copy()
     # Append tone-specific options
     if tone == Tones.creative:
         options_sets.extend(ConversationStyleOptionSets.CREATIVE)
