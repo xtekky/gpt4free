@@ -11,7 +11,7 @@ from .helper import format_prompt, get_random_string
 class FakeGpt(AsyncGeneratorProvider):
     url                   = "https://chat-shared2.zhile.io"
     supports_gpt_35_turbo = True
-    working               = True
+    working               = False
     _access_token         = None
     _cookie_jar           = None
 

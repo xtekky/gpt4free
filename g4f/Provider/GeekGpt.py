@@ -8,7 +8,7 @@ from json           import dumps
 
 class GeekGpt(AbstractProvider):
     url = 'https://chat.geekgpt.org'
-    working = True
+    working = False
     supports_message_history = True
     supports_stream = True
     supports_gpt_35_turbo = True
