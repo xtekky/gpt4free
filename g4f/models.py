@@ -123,6 +123,12 @@ codellama_34b_instruct = Model(
     best_provider = RetryProvider([HuggingChat, PerplexityLabs, DeepInfra])
 )
 
+codellama_70b_instruct = Model(
+    name          = "codellama/CodeLlama-70b-Instruct-hf",
+    base_provider = "huggingface",
+    best_provider = DeepInfra
+)
+
 # Mistral
 mixtral_8x7b = Model(
     name          = "mistralai/Mixtral-8x7B-Instruct-v0.1",
@@ -256,6 +262,7 @@ class ModelUtils:
         'llama2-13b': llama2_13b,
         'llama2-70b': llama2_70b,
         'codellama-34b-instruct': codellama_34b_instruct,
+        'codellama-70b-instruct': codellama_70b_instruct,
         
         'mixtral-8x7b': mixtral_8x7b,
         'mistral-7b': mistral_7b,
