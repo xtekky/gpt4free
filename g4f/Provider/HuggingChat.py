@@ -19,7 +19,8 @@ class HuggingChat(AsyncGeneratorProvider, ProviderModelMixin):
         "NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO",
         "codellama/CodeLlama-34b-Instruct-hf",
         "mistralai/Mistral-7B-Instruct-v0.2",
-        "openchat/openchat-3.5-0106"
+        "openchat/openchat-3.5-0106",
+        "codellama/CodeLlama-70b-Instruct-hf"
     ]
     model_aliases = {
         "openchat/openchat_3.5": "openchat/openchat-3.5-1210",
