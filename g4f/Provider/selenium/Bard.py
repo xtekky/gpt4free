@@ -20,6 +20,7 @@ class Bard(AbstractProvider):
     url = "https://bard.google.com"
     working = True
     needs_auth = True
+    webdriver = True
 
     @classmethod
     def create_completion(

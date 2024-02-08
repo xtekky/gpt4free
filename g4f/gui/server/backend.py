@@ -162,7 +162,7 @@ class Backend_Api:
             "provider": provider,
             "messages": messages,
             "stream": True,
-            "ignore_stream_and_auth": True,
+            "ignore_stream": True,
             "patch_provider": patch,
             **kwargs
         }
