@@ -65,25 +65,28 @@ class Gemini(AsyncGeneratorProvider):
     ) -> AsyncResult:
         prompt = format_prompt(messages)
 
-        try:
-            driver = get_browser(proxy=proxy)
+        if not cookies:
+            driver = None
             try:
-                driver.get(f"{cls.url}/app")
-                WebDriverWait(driver, 5).until(
-                    EC.visibility_of_element_located((By.CSS_SELECTOR, "div.ql-editor.textarea"))
-                )
-            except:
-                login_url = os.environ.get("G4F_LOGIN_URL")
-                if login_url:
-                    yield f"Please login: [Google Gemini]({login_url})\n\n"
-                WebDriverWait(driver, 240).until(
-                    EC.visibility_of_element_located((By.CSS_SELECTOR, "div.ql-editor.textarea"))
-                )
-            cookies = get_driver_cookies(driver)
-        except MissingRequirementsError:
-            pass
-        finally:
-            driver.close()
+                driver = get_browser(proxy=proxy)
+                try:
+                    driver.get(f"{cls.url}/app")
+                    WebDriverWait(driver, 5).until(
+                        EC.visibility_of_element_located((By.CSS_SELECTOR, "div.ql-editor.textarea"))
+                    )
+                except:
+                    login_url = os.environ.get("G4F_LOGIN_URL")
+                    if login_url:
+                        yield f"Please login: [Google Gemini]({login_url})\n\n"
+                    WebDriverWait(driver, 240).until(
+                        EC.visibility_of_element_located((By.CSS_SELECTOR, "div.ql-editor.textarea"))
+                    )
+                cookies = get_driver_cookies(driver)
+            except MissingRequirementsError:
+                pass
+            finally:
+                if driver:
+                    driver.close()
 
         if not cookies:
             cookies = get_cookies(".google.com", False)

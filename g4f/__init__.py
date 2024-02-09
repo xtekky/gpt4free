@@ -136,7 +136,7 @@ class ChatCompletion:
             provider = patch_provider(provider)
 
         result = provider.create_completion(model, messages, stream, **kwargs)
-        return result if stream else ''.join(result)
+        return result if stream else ''.join([str(chunk) for chunk in result])
 
     @staticmethod
     def create_async(model    : Union[Model, str],
