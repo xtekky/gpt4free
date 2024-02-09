@@ -43,7 +43,7 @@ class ThebApi(AbstractProvider, ProviderModelMixin):
         model: str,
         messages: Messages,
         stream: bool,
-        auth: str,
+        auth: str = None,
         proxy: str = None,
         **kwargs
     ) -> CreateResult:

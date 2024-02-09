@@ -13,7 +13,7 @@ class SearchTypes():
 
 class Hashnode(AsyncGeneratorProvider):
     url = "https://hashnode.com"
-    working = True
+    working = False
     supports_message_history = True
     supports_gpt_35_turbo = True
     _sources = []

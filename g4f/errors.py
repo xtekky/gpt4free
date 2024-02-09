@@ -31,8 +31,5 @@ class ModelNotSupportedError(Exception):
 class MissingRequirementsError(Exception):
     pass
 
-class MissingAiohttpSocksError(MissingRequirementsError):
-    pass
-
 class MissingAuthError(Exception):
     pass

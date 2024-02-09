@@ -6,9 +6,9 @@ from .errors   import *
 from .models   import Model, ModelUtils
 from .Provider import AsyncGeneratorProvider, ProviderUtils
 from .typing   import Messages, CreateResult, AsyncResult, Union
+from .cookies  import get_cookies, set_cookies
 from .         import debug, version
 from .base_provider import BaseRetryProvider, ProviderType
-from .Provider.helper import get_cookies, set_cookies
 from .Provider.base_provider import ProviderModelMixin
 
 def get_model_and_provider(model    : Union[Model, str], 
