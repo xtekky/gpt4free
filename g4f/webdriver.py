@@ -9,6 +9,7 @@ try:
     from selenium.webdriver.support.ui import WebDriverWait
     from selenium.webdriver.support import expected_conditions as EC
     from selenium.webdriver.common.keys import Keys
+    from selenium.common.exceptions import NoSuchElementException
     has_requirements = True
 except ImportError:
     from typing import Type as WebDriver
@@ -120,6 +121,8 @@ def bypass_cloudflare(driver: WebDriver, url: str, timeout: int) -> None:
             WebDriverWait(driver, 5).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, "#challenge-stage input"))
             ).click()
+        except NoSuchElementException:
+            ...
         except Exception as e:
             if debug.logging:
                 print(f"Error bypassing Cloudflare: {e}")

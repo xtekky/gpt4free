@@ -67,7 +67,7 @@ class Phind(AsyncGeneratorProvider):
                         if chunk.startswith(b'<PHIND_DONE/>'):
                             break
                         if chunk.startswith(b'<PHIND_BACKEND_ERROR>'):
-                            raise RuntimeError(f"Response: {chunk}")
+                            raise RuntimeError(f"Response: {chunk.decode()}")
                         if chunk.startswith(b'<PHIND_WEBRESULTS>') or chunk.startswith(b'<PHIND_FOLLOWUP>'):
                             pass
                         elif chunk.startswith(b"<PHIND_METADATA>") or chunk.startswith(b"<PHIND_INDICATOR>"):
