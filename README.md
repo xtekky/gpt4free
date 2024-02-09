@@ -316,7 +316,7 @@ For generating images with Bing and for the OpenAi Chat  you need cookies or a t
 ```python
 from g4f import set_cookies
 
-set_cookies(".bing", {
+set_cookies(".bing.com", {
   "_U": "cookie value"
 })
 set_cookies("chat.openai.com", {
@@ -334,6 +334,30 @@ If you use the pip package, you have to install “browser_cookie3” or "webdri
 ```bash
 pip install browser_cookie3
 pip install g4f[webdriver]
+```
+
+##### Image Upload & Generation
+
+Image upload and generation are supported by three main providers:
+
+- **Bing & Other GPT-4 Providers:** Utilizes Microsoft's Image Creator.
+- **Google Gemini:** Available for free accounts with IP addresses outside Europe.
+- **OpenaiChat with GPT-4:** Accessible for users with a Plus subscription.
+
+```python
+import g4f
+
+# Setting up the request for image creation
+response = g4f.ChatCompletion.create(
+    model=g4f.models.default, # Using the default model
+    provider=g4f.Provider.Gemini, # Specifying the provider as Gemini
+    messages=[{"role": "user", "content": "Create an image like this"}],
+    image=open("images/g4f.png", "rb"), # Image input can be a data URI, bytes, PIL Image, or IO object
+    image_name="g4f.png" # Optional: specifying the filename
+)
+
+# Displaying the response
+print(response)
 ```
 
 ##### Using Browser

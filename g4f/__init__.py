@@ -91,7 +91,7 @@ class ChatCompletion:
                auth     : Union[str, None] = None,
                ignored  : list[str] = None, 
                ignore_working: bool = False,
-               ignore_stream_and_auth: bool = False,
+               ignore_stream: bool = False,
                patch_provider: callable = None,
                **kwargs) -> Union[CreateResult, str]:
         """
@@ -105,7 +105,7 @@ class ChatCompletion:
             auth (Union[str, None], optional): Authentication token or credentials, if required.
             ignored (list[str], optional): List of provider names to be ignored.
             ignore_working (bool, optional): If True, ignores the working status of the provider.
-            ignore_stream_and_auth (bool, optional): If True, ignores the stream and authentication requirement checks.
+            ignore_stream (bool, optional): If True, ignores the stream and authentication requirement checks.
             patch_provider (callable, optional): Function to modify the provider.
             **kwargs: Additional keyword arguments.
 
@@ -118,10 +118,11 @@ class ChatCompletion:
             ProviderNotWorkingError: If the provider is not operational.
             StreamNotSupportedError: If streaming is requested but not supported by the provider.
         """
-        model, provider = get_model_and_provider(model, provider, stream, ignored, ignore_working, ignore_stream_and_auth)
-
-        if not ignore_stream_and_auth and provider.needs_auth and not auth:
-            raise AuthenticationRequiredError(f'{provider.__name__} requires authentication (use auth=\'cookie or token or jwt ...\' param)')
+        model, provider = get_model_and_provider(
+            model, provider, stream,
+            ignored, ignore_working,
+            ignore_stream or kwargs.get("ignore_stream_and_auth")
+        )
 
         if auth:
             kwargs['auth'] = auth
@@ -135,7 +136,7 @@ class ChatCompletion:
             provider = patch_provider(provider)
 
         result = provider.create_completion(model, messages, stream, **kwargs)
-        return result if stream else ''.join(result)
+        return result if stream else ''.join([str(chunk) for chunk in result])
 
     @staticmethod
     def create_async(model    : Union[Model, str],

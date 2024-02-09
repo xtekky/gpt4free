@@ -7,9 +7,6 @@ class ProviderNotWorkingError(Exception):
 class StreamNotSupportedError(Exception):
     pass
 
-class AuthenticationRequiredError(Exception):
-    pass
-
 class ModelNotFoundError(Exception):
     pass
 
@@ -37,5 +34,5 @@ class MissingRequirementsError(Exception):
 class MissingAiohttpSocksError(MissingRequirementsError):
     pass
 
-class MissingAccessToken(Exception):
+class MissingAuthError(Exception):
     pass

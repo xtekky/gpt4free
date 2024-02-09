@@ -1,4 +1,4 @@
-from .Bard          import Bard
+from .Gemini        import Gemini
 from .Raycast       import Raycast
 from .Theb          import Theb
 from .ThebApi       import ThebApi

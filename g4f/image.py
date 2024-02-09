@@ -46,9 +46,8 @@ def to_image(image: ImageType, is_svg: bool = False) -> Image:
         return open_image(BytesIO(image))
     elif not isinstance(image, Image):
         image = open_image(image)
-        copy = image.copy()
-        copy.format = image.format
-        return copy
+        image.load()
+        return image
     return image
 
 def is_allowed_extension(filename: str) -> bool:
@@ -210,20 +209,28 @@ def format_images_markdown(images, alt: str, preview: str = None) -> str:
     end_flag = "<!-- generated images end -->\n"
     return f"\n{start_flag}{images}\n{end_flag}\n"
 
-def to_bytes(image: Image) -> bytes:
+def to_bytes(image: ImageType) -> bytes:
     """
     Converts the given image to bytes.
 
     Args:
-        image (Image.Image): The image to convert.
+        image (ImageType): The image to convert.
 
     Returns:
         bytes: The image as bytes.
     """
-    bytes_io = BytesIO()
-    image.save(bytes_io, image.format)
-    image.seek(0)
-    return bytes_io.getvalue()
+    if isinstance(image, bytes):
+        return image
+    elif isinstance(image, str):
+        is_data_uri_an_image(image)
+        return extract_data_uri(image)
+    elif isinstance(image, Image):
+        bytes_io = BytesIO()
+        image.save(bytes_io, image.format)
+        image.seek(0)
+        return bytes_io.getvalue()
+    else:
+        return image.read()
 
 class ImageResponse:
     def __init__(

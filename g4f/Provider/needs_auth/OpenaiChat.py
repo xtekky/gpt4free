@@ -25,7 +25,7 @@ from ...webdriver import get_browser, get_driver_cookies
 from ...typing import AsyncResult, Messages, Cookies, ImageType
 from ...requests import StreamSession
 from ...image import to_image, to_bytes, ImageResponse, ImageRequest
-from ...errors import MissingRequirementsError, MissingAccessToken
+from ...errors import MissingRequirementsError, MissingAuthError
 
 
 class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
@@ -99,7 +99,8 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
         cls,
         session: StreamSession,
         headers: dict,
-        image: ImageType
+        image: ImageType,
+        image_name: str = None
     ) -> ImageRequest:
         """
         Upload an image to the service and get the download URL
@@ -118,7 +119,7 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
         # Convert the image to a bytes object and get the size
         data_bytes = to_bytes(image)
         data = {
-            "file_name": f"{image.width}x{image.height}.{extension}",
+            "file_name": image_name if image_name else f"{image.width}x{image.height}.{extension}",
             "file_size": len(data_bytes),
             "use_case":	"multimodal"
         }
@@ -338,7 +339,7 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
             try:
                 access_token, cookies = cls.browse_access_token(proxy)
             except MissingRequirementsError:
-                raise MissingAccessToken(f'Missing "access_token"')
+                raise MissingAuthError(f'Missing "access_token"')
             cls._cookies = cookies
 
         headers = {"Authorization": f"Bearer {access_token}"}
@@ -351,7 +352,7 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
             try:
                 image_response = None
                 if image:
-                    image_response = await cls.upload_image(session, headers, image)
+                    image_response = await cls.upload_image(session, headers, image, kwargs.get("image_name"))
             except Exception as e:
                 yield e
             end_turn = EndTurn()
@@ -438,21 +439,18 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
         Returns:
             tuple[str, dict]: A tuple containing the access token and cookies.
         """
-        driver = get_browser(proxy=proxy)
-        try:
+        with get_browser(proxy=proxy) as driver:
             driver.get(f"{cls.url}/")
             WebDriverWait(driver, timeout).until(EC.presence_of_element_located((By.ID, "prompt-textarea")))
             access_token = driver.execute_script(
                 "let session = await fetch('/api/auth/session');"
                 "let data = await session.json();"
                 "let accessToken = data['accessToken'];"
-                "let expires = new Date(); expires.setTime(expires.getTime() + 60 * 60 * 24 * 7);"
+                "let expires = new Date(); expires.setTime(expires.getTime() + 60 * 60 * 4);"
                 "document.cookie = 'access_token=' + accessToken + ';expires=' + expires.toUTCString() + ';path=/';"
                 "return accessToken;"
             )
             return access_token, get_driver_cookies(driver)
-        finally:
-            driver.quit()
 
     @classmethod
     async def get_arkose_token(cls, session: StreamSession) -> str:

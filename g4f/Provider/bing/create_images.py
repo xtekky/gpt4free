@@ -23,7 +23,7 @@ from ..helper import get_cookies, get_connector
 from ...webdriver import WebDriver, get_driver_cookies, get_browser
 from ...base_provider import ProviderType
 from ...image import ImageResponse
-from ...errors import MissingRequirementsError, MissingAccessToken
+from ...errors import MissingRequirementsError, MissingAuthError
 
 BING_URL = "https://www.bing.com"
 TIMEOUT_LOGIN = 1200
@@ -210,7 +210,7 @@ class CreateImagesBing:
             try:
                 self.cookies = get_cookies_from_browser(self.proxy)
             except MissingRequirementsError as e:
-                raise MissingAccessToken(f'Missing "_U" cookie. {e}')
+                raise MissingAuthError(f'Missing "_U" cookie. {e}')
         yield asyncio.run(self.create_async(prompt))
 
     async def create_async(self, prompt: str) -> ImageResponse:
@@ -225,7 +225,7 @@ class CreateImagesBing:
         """
         cookies = self.cookies or get_cookies(".bing.com", False)
         if "_U" not in cookies:
-            raise MissingAccessToken('Missing "_U" cookie')
+            raise MissingAuthError('Missing "_U" cookie')
         proxy = os.environ.get("G4F_PROXY")
         async with create_session(cookies, proxy) as session:
             images = await create_images(session, prompt, self.proxy)
