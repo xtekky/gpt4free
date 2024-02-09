@@ -66,6 +66,8 @@ class Gemini(AsyncGeneratorProvider):
         prompt = format_prompt(messages)
 
         if not cookies:
+            cookies = get_cookies(".google.com", False, True)
+        if "__Secure-1PSID" not in cookies or "__Secure-1PSIDCC" not in cookies:
             driver = None
             try:
                 driver = get_browser(proxy=proxy)
@@ -88,8 +90,6 @@ class Gemini(AsyncGeneratorProvider):
                 if driver:
                     driver.close()
 
-        if not cookies:
-            cookies = get_cookies(".google.com", False)
         if "__Secure-1PSID" not in cookies:
             raise MissingAuthError('Missing "__Secure-1PSID" cookie')
 

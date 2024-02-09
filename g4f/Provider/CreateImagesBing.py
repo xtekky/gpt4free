@@ -88,7 +88,7 @@ class CreateImagesBing:
         cookies = self.cookies or get_cookies(".bing.com", False)
         if "_U" not in cookies:
             raise MissingAuthError('Missing "_U" cookie')
-        proxy = os.environ.get("G4F_PROXY")
+        proxy = self.proxy or os.environ.get("G4F_PROXY")
         async with create_session(cookies, proxy) as session:
-            images = await create_images(session, prompt, self.proxy)
+            images = await create_images(session, prompt, proxy)
             return ImageResponse(images, prompt, {"preview": "{image}?w=200&h=200"})

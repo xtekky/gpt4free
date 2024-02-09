@@ -27,7 +27,7 @@ _cookies: Dict[str, Cookies] = {}
 if has_browser_cookie3 and os.environ.get('DBUS_SESSION_BUS_ADDRESS') == "/dev/null":
     _LinuxPasswordManager.get_password = lambda a, b: b"secret"
 
-def get_cookies(domain_name: str = '', raise_requirements_error: bool = True) -> Dict[str, str]:
+def get_cookies(domain_name: str = '', raise_requirements_error: bool = True, single_browser: bool = False) -> Dict[str, str]:
     """
     Load cookies for a given domain from all supported browsers and cache the results.
 
@@ -40,7 +40,7 @@ def get_cookies(domain_name: str = '', raise_requirements_error: bool = True) ->
     if domain_name in _cookies:
         return _cookies[domain_name]
     
-    cookies = load_cookies_from_browsers(domain_name, raise_requirements_error)
+    cookies = load_cookies_from_browsers(domain_name, raise_requirements_error, single_browser)
     _cookies[domain_name] = cookies
     return cookies
 
@@ -50,7 +50,7 @@ def set_cookies(domain_name: str, cookies: Cookies = None) -> None:
     elif domain_name in _cookies:
         _cookies.pop(domain_name)
 
-def load_cookies_from_browsers(domain_name: str, raise_requirements_error: bool = True) -> Cookies:
+def load_cookies_from_browsers(domain_name: str, raise_requirements_error: bool = True, single_browser: bool = False) -> Cookies:
     """
     Helper function to load cookies from various browsers.
 
@@ -73,6 +73,8 @@ def load_cookies_from_browsers(domain_name: str, raise_requirements_error: bool 
             for cookie in cookie_jar:
                 if cookie.name not in cookies:
                     cookies[cookie.name] = cookie.value
+            if single_browser and len(cookie_jar):
+                break
         except BrowserCookieError:
             pass
         except Exception as e:

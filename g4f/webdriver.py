@@ -65,7 +65,8 @@ def get_browser(
         options=options,
         user_data_dir=user_data_dir,
         driver_executable_path=driver,
-        headless=headless
+        headless=headless,
+        patcher_force_close=True
     )
 
 def get_driver_cookies(driver: WebDriver) -> Cookies:
