@@ -1,6 +1,3 @@
-Please provide feedback so this project can be improved, it would be much appreciated  
-form: https://forms.gle/FeWV9RLEedfdkmFN6
-
 ![248433934-7886223b-c1d1-4260-82aa-da5741f303bb](https://github.com/xtekky/gpt4free/assets/98614666/ea012c87-76e0-496a-8ac4-e2de090cc6c9)
 Written by [@xtekky](https://github.com/hlohaus) & maintained by [@hlohaus](https://github.com/hlohaus)
 
@@ -18,8 +15,18 @@ pip install -U g4f
 ```sh
 docker pull hlohaus789/g4f
 ```
+
+## 🆕 What's New
+- Join our Telegram Channel: [t.me/g4f_channel](https://telegram.me/g4f_channel)
+- Join our Discord Group: [discord.gg/XfybzPXPH5](https://discord.gg/XfybzPXPH5)
+- Explore the g4f Documentation (unfinished): [g4f.mintlify.app](https://g4f.mintlify.app) | Contribute to the docs via: [github.com/xtekky/gpt4free-docs](https://github.com/xtekky/gpt4free-docs)
+
+# Feedback
+You can always leave some feedback here: https://forms.gle/FeWV9RLEedfdkmFN6
+
 # To do
 As per the survey, here is a list of improvements to come
+- [ ] golang implementation
 - [ ] Improve Documentation (on g4f.mintlify.app) & Do video tutorials
 - [ ] Improve the provider status list & updates
 - [ ] Tutorials on how to reverse sites to write your own wrapper (PoC only ofc)
@@ -29,12 +36,6 @@ As per the survey, here is a list of improvements to come
 - [ ] Potential support and development of local models
 - [ ] improve compatibility and error handling
 
-
-## 🆕 What's New
-- <a href="./README-DE.md"><img src="https://img.shields.io/badge/öffnen in-🇩🇪 deutsch-bleu.svg" alt="Öffnen en DE"></a>
-- Join our Telegram Channel: [t.me/g4f_channel](https://telegram.me/g4f_channel)
-- Join our Discord Group: [discord.gg/XfybzPXPH5](https://discord.gg/XfybzPXPH5)
-- Explore the g4f Documentation (unfinished): [g4f.mintlify.app](https://g4f.mintlify.app) | Contribute to the docs via: [github.com/xtekky/gpt4free-docs](https://github.com/xtekky/gpt4free-docs)
 
 ## 📚 Table of Contents
 
