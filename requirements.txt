@@ -9,7 +9,7 @@ duckduckgo-search
 nest_asyncio
 werkzeug
 loguru
-pillow
+pillow==10.2.0
 platformdirs
 fastapi
 uvicorn
