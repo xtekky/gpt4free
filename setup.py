@@ -15,7 +15,7 @@ INSTALL_REQUIRE = [
 
 EXTRA_REQUIRE = {
     'all': [
-        "curl_cffi>=0.5.10",
+        "curl_cffi>=0.6.0b9",
         "certifi",
         "async-property",          # openai
         "py-arkose-generator",     # openai

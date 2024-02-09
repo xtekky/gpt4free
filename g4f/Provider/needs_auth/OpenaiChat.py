@@ -342,26 +342,30 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
                 raise MissingAuthError(f'Missing "access_token"')
             cls._cookies = cookies
 
-        headers = {"Authorization": f"Bearer {access_token}"}
+        auth_headers = {"Authorization": f"Bearer {access_token}"}
         async with StreamSession(
             proxies={"https": proxy},
             impersonate="chrome110",
             timeout=timeout,
-            cookies=dict([(name, value) for name, value in cookies.items() if name == "_puid"])
+            headers={"Cookie": "; ".join(f"{k}={v}" for k, v in cookies.items())}
         ) as session:
             try:
                 image_response = None
                 if image:
-                    image_response = await cls.upload_image(session, headers, image, kwargs.get("image_name"))
+                    image_response = await cls.upload_image(session, auth_headers, image, kwargs.get("image_name"))
             except Exception as e:
                 yield e
             end_turn = EndTurn()
-            model = cls.get_model(model or await cls.get_default_model(session, headers))
+            model = cls.get_model(model or await cls.get_default_model(session, auth_headers))
             model = "text-davinci-002-render-sha" if model == "gpt-3.5-turbo" else model
             while not end_turn.is_end:
+                arkose_token = await cls.get_arkose_token(session)
                 data = {
                     "action": action,
-                    "arkose_token": await cls.get_arkose_token(session),
+                    "arkose_token": arkose_token,
+                    "conversation_mode": {"kind": "primary_assistant"},
+                    "force_paragen": False,
+                    "force_rate_limit": False,
                     "conversation_id": conversation_id,
                     "parent_message_id": parent_id,
                     "model": model,
@@ -373,7 +377,11 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
                 async with session.post(
                     f"{cls.url}/backend-api/conversation",
                     json=data,
-                    headers={"Accept": "text/event-stream", **headers}
+                    headers={
+                        "Accept": "text/event-stream",
+                        "OpenAI-Sentinel-Arkose-Token": arkose_token,
+                        **auth_headers
+                    }
                 ) as response:
                     if not response.ok:
                         raise RuntimeError(f"Response {response.status_code}: {await response.text()}")
@@ -439,7 +447,8 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
         Returns:
             tuple[str, dict]: A tuple containing the access token and cookies.
         """
-        with get_browser(proxy=proxy) as driver:
+        driver = get_browser(proxy=proxy)
+        try:
             driver.get(f"{cls.url}/")
             WebDriverWait(driver, timeout).until(EC.presence_of_element_located((By.ID, "prompt-textarea")))
             access_token = driver.execute_script(
@@ -451,6 +460,8 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
                 "return accessToken;"
             )
             return access_token, get_driver_cookies(driver)
+        finally:
+            driver.close() 
 
     @classmethod
     async def get_arkose_token(cls, session: StreamSession) -> str:
