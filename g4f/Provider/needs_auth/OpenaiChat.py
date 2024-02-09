@@ -38,6 +38,7 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
     supports_gpt_4 = True
     default_model = None
     models = ["gpt-3.5-turbo", "gpt-4", "gpt-4-gizmo"]
+    model_aliases = {"text-davinci-002-render-sha": "gpt-3.5-turbo"}
     _cookies: dict = {}
 
     @classmethod
@@ -403,7 +404,7 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
                             if "message_type" not in line["message"]["metadata"]:
                                 continue
                             try:
-                                image_response = await cls.get_generated_image(session, headers, line)
+                                image_response = await cls.get_generated_image(session, auth_headers, line)
                                 if image_response:
                                     yield image_response
                             except Exception as e:
