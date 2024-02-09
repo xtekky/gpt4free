@@ -101,7 +101,6 @@ class Gemini(AsyncGeneratorProvider):
         ) as session:
             async with session.get(cls.url, proxy=proxy) as response:
                 text = await response.text()
-            open("test.html", "w").write(text)
             match = re.search(r'SNlM0e\":\"(.*?)\"', text)
             if match:
                 snlm0e = match.group(1)
