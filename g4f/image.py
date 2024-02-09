@@ -46,9 +46,8 @@ def to_image(image: ImageType, is_svg: bool = False) -> Image:
         return open_image(BytesIO(image))
     elif not isinstance(image, Image):
         image = open_image(image)
-        copy = image.copy()
-        copy.format = image.format
-        return copy
+        image.load()
+        return image
     return image
 
 def is_allowed_extension(filename: str) -> bool:

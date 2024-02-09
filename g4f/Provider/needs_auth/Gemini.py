@@ -1,16 +1,25 @@
 from __future__ import annotations
 
+import os
 import json
 import random
 import re
 
 from aiohttp import ClientSession
 
+try:
+    from selenium.webdriver.common.by import By
+    from selenium.webdriver.support.ui import WebDriverWait
+    from selenium.webdriver.support import expected_conditions as EC
+except ImportError:
+    pass
+
 from ...typing import Messages, Cookies, ImageType, AsyncResult
 from ..base_provider import AsyncGeneratorProvider
 from ..helper import format_prompt, get_cookies
-from ...errors import MissingAuthError
+from ...errors import MissingAuthError, MissingRequirementsError
 from ...image import to_bytes, ImageResponse
+from ...webdriver import get_browser, get_driver_cookies
 
 REQUEST_HEADERS = {
     "authority": "gemini.google.com",
@@ -55,6 +64,27 @@ class Gemini(AsyncGeneratorProvider):
         **kwargs
     ) -> AsyncResult:
         prompt = format_prompt(messages)
+
+        try:
+            driver = get_browser(proxy=proxy)
+            try:
+                driver.get(f"{cls.url}/app")
+                WebDriverWait(driver, 5).until(
+                    EC.visibility_of_element_located((By.CSS_SELECTOR, "div.ql-editor.textarea"))
+                )
+            except:
+                login_url = os.environ.get("G4F_LOGIN_URL")
+                if login_url:
+                    yield f"Please login: [Google Gemini]({login_url})\n\n"
+                WebDriverWait(driver, 240).until(
+                    EC.visibility_of_element_located((By.CSS_SELECTOR, "div.ql-editor.textarea"))
+                )
+            cookies = get_driver_cookies(driver)
+        except MissingRequirementsError:
+            pass
+        finally:
+            driver.close()
+
         if not cookies:
             cookies = get_cookies(".google.com", False)
         if "__Secure-1PSID" not in cookies:
@@ -108,7 +138,14 @@ class Gemini(AsyncGeneratorProvider):
                 yield content
                 if image_prompt:
                     images = [image[0][3][3] for image in response_part[4][0][12][7][0]]
-                    yield ImageResponse(images, image_prompt)
+                    resolved_images = []
+                    for image in images:
+                        async with session.get(image, allow_redirects=False) as fetch:
+                            image = fetch.headers["location"]
+                        async with session.get(image, allow_redirects=False) as fetch:
+                            image = fetch.headers["location"]
+                        resolved_images.append(image)
+                    yield ImageResponse(resolved_images, image_prompt, {"orginal_links": images})
 
     def build_request(
         prompt: str,
