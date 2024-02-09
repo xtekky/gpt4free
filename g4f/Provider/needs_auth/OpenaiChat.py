@@ -434,7 +434,7 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
                 action = "continue"
                 await asyncio.sleep(5)
             if history_disabled and auto_continue:
-                await cls.delete_conversation(session, headers, conversation_id)
+                await cls.delete_conversation(session, auth_headers, conversation_id)
 
     @classmethod
     def browse_access_token(cls, proxy: str = None, timeout: int = 1200) -> tuple[str, dict]:
