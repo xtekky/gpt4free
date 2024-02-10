@@ -163,10 +163,10 @@ def process_image(img: Image, new_width: int, new_height: int) -> Image:
     # Resize image
     img.thumbnail((new_width, new_height))
     # Remove transparency
-    if img.mode != "RGB":
+    if img.mode == "RGBA":
         img.load()
         white = new_image('RGB', img.size, (255, 255, 255))
-        white.paste(img, mask=img.convert('RGBA').split()[-1])
+        white.paste(img, mask=img.split()[-1])
         return white
     return img
 
