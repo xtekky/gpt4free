@@ -166,7 +166,7 @@ def process_image(img: Image, new_width: int, new_height: int) -> Image:
     if img.mode != "RGB":
         img.load()
         white = new_image('RGB', img.size, (255, 255, 255))
-        white.paste(img, mask=img.split()[3]) 
+        white.paste(img, mask=img.convert('RGBA').split()[-1])
         return white
     return img
 
