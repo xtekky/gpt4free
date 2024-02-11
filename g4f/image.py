@@ -187,7 +187,7 @@ def to_base64_jpg(image: Image, compression_rate: float) -> str:
     image.save(output_buffer, format="JPEG", quality=int(compression_rate * 100))
     return base64.b64encode(output_buffer.getvalue()).decode()
 
-def format_images_markdown(images, alt: str, preview: str = None) -> str:
+def format_images_markdown(images: Union[str, list], alt: str, preview: Union[str, list] = None) -> str:
     """
     Formats the given images as a markdown string.
 
@@ -202,9 +202,10 @@ def format_images_markdown(images, alt: str, preview: str = None) -> str:
     if isinstance(images, str):
         images = f"[![{alt}]({preview.replace('{image}', images) if preview else images})]({images})"
     else:
+        if not isinstance(preview, list):
+            preview = [preview.replace('{image}', image) if preview else image for image in images]
         images = [
-            f"[![#{idx+1} {alt}]({preview.replace('{image}', image) if preview else image})]({image})"
-            for idx, image in enumerate(images)
+            f"[![#{idx+1} {alt}]({preview[idx]})]({image})" for idx, image in enumerate(images)
         ]
         images = "\n".join(images)
     start_flag = "<!-- generated images start -->\n"
