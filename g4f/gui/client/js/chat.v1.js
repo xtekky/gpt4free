@@ -100,6 +100,11 @@ const ask_gpt = async () => {
         delete messages[i]["provider"];
     }
 
+    // Remove history, if it is selected
+    if (document.getElementById('history')?.checked) {
+        messages = [messages[messages.length-1]]
+    }
+
     window.scrollTo(0, 0);
     window.controller = new AbortController();
 
@@ -491,7 +496,7 @@ document.querySelector(".mobile-sidebar").addEventListener("click", (event) => {
 });
 
 const register_settings_localstorage = async () => {
-    for (id of ["switch", "model", "jailbreak", "patch", "provider"]) {
+    for (id of ["switch", "model", "jailbreak", "patch", "provider", "history"]) {
         element = document.getElementById(id);
         element.addEventListener('change', async (event) => {
             switch (event.target.type) {
@@ -509,7 +514,7 @@ const register_settings_localstorage = async () => {
 }
 
 const load_settings_localstorage = async () => {
-    for (id of ["switch", "model", "jailbreak", "patch", "provider"]) {
+    for (id of ["switch", "model", "jailbreak", "patch", "provider", "history"]) {
         element = document.getElementById(id);
         value = localStorage.getItem(element.id);
         if (value) {
