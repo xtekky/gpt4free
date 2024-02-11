@@ -87,7 +87,7 @@ class CreateImagesProvider(BaseProvider):
         messages.insert(0, {"role": "system", "content": self.system_message})
         buffer = ""
         for chunk in self.provider.create_completion(model, messages, stream, **kwargs):
-            if buffer or "<" in chunk:
+            if isinstance(chunk, str) and buffer or "<" in chunk:
                 buffer += chunk
                 if ">" in buffer:
                     match = re.search(r'<img data-prompt="(.*?)">', buffer)

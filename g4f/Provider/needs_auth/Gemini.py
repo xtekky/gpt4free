@@ -142,13 +142,15 @@ class Gemini(AsyncGeneratorProvider):
                 if image_prompt:
                     images = [image[0][3][3] for image in response_part[4][0][12][7][0]]
                     resolved_images = []
+                    preview = []
                     for image in images:
                         async with session.get(image, allow_redirects=False) as fetch:
                             image = fetch.headers["location"]
                         async with session.get(image, allow_redirects=False) as fetch:
                             image = fetch.headers["location"]
                         resolved_images.append(image)
-                    yield ImageResponse(resolved_images, image_prompt, {"orginal_links": images})
+                        preview.append(image.replace('=s512', '=s200'))
+                    yield ImageResponse(resolved_images, image_prompt, {"orginal_links": images, "preview": preview})
 
     def build_request(
         prompt: str,
