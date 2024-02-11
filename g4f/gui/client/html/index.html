@@ -114,9 +114,13 @@
                 <div class="box input-box">
                     <textarea id="message-input" placeholder="Ask a question" cols="30" rows="10"
                         style="white-space: pre-wrap;resize: none;"></textarea>
-                    <label for="image" title="Works only with Bing and OpenaiChat">
-                        <input type="file" id="image" name="image" accept="image/png, image/gif, image/jpeg, image/svg+xml" required/>
+                    <label for="image" title="Works with Bing, Gemini, OpenaiChat and You">
+                        <input type="file" id="image" name="image" accept="image/*" required/>
                         <i class="fa-regular fa-image"></i>
+                    </label>
+                    <label for="camera">
+                        <input type="file" id="camera" name="camera" accept="image/*" capture="camera" required/>
+                        <i class="fa-solid fa-camera"></i>
                     </label>
                     <label for="file">
                         <input type="file" id="file" name="file" accept="text/plain, text/html, text/xml, application/json, text/javascript, .sh, .py, .php, .css, .yaml, .sql, .log, .csv, .twig, .md" required/>
@@ -157,19 +161,25 @@
                             <option value="Gemini">Gemini</option>
                             <option value="Liaobots">Liaobots</option>
                             <option value="Phind">Phind</option>
+                            <option value="You">You</option>
                             <option value="">----</option>
                         </select>
                     </div>
                 </div>
                 <div class="field">
                     <input type="checkbox" id="switch" />
-                    <label for="switch"></label>
+                    <label for="switch" title="Add the pages of the first 5 search results to the query."></label>
                     <span class="about">Web Access</span>
                 </div>
                 <div class="field">
                     <input type="checkbox" id="patch" />
-                    <label for="patch" title="Works only with Bing and some other providers"></label>
+                    <label for="patch" title="Enable create images with Bing."></label>
                     <span class="about">Image Generator</span>
+                </div>
+                <div class="field">
+                    <input type="checkbox" id="history" />
+                    <label for="history" title="To improve the reaction time or if you have trouble with large conversations."></label>
+                    <span class="about">Disable History</span>
                 </div>
             </div>
         </div>

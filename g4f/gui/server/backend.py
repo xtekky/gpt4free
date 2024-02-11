@@ -134,25 +134,31 @@ class Backend_Api:
             dict: Arguments prepared for chat completion.
         """
         kwargs = {}
-        if 'image' in request.files:
+        if "image" in request.files:
             file = request.files['image']
             if file.filename != '' and is_allowed_extension(file.filename):
                 kwargs['image'] = to_image(file.stream, file.filename.endswith('.svg'))
-        if 'json' in request.form:
+                kwargs['image_name'] = file.filename
+        if "json" in request.form:
             json_data = json.loads(request.form['json'])
         else:
             json_data = request.json
             
         provider = json_data.get('provider', '').replace('g4f.Provider.', '')
         provider = provider if provider and provider != "Auto" else None
+
+        if "image" in kwargs and not provider:
+            provider = "Bing"
         if provider == 'OpenaiChat':
             kwargs['auto_continue'] = True
+
         messages = json_data['messages']
         if json_data.get('web_search'):
             if provider == "Bing":
                 kwargs['web_search'] = True
             else:
                 messages[-1]["content"] = get_search_message(messages[-1]["content"])
+
         model = json_data.get('model')
         model = model if model else models.default
         patch = patch_provider if json_data.get('patch_provider') else None

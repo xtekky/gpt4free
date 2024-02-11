@@ -27,7 +27,7 @@ jobs:
     - name: Set up Python 3.11
       uses: actions/setup-python@v4
       with:
-        python-version: "3.11"
+        python-version: "3.12"
         cache: 'pip'
     - name: Install requirements
       run: pip install -r requirements.txt
