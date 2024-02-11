@@ -137,12 +137,12 @@ def get_orientation(image: Image) -> int:
         if orientation is not None:
             return orientation
 
-def process_image(img: Image, new_width: int, new_height: int) -> Image:
+def process_image(image: Image, new_width: int, new_height: int) -> Image:
     """
     Processes the given image by adjusting its orientation and resizing it.
 
     Args:
-        img (Image): The image to process.
+        image (Image): The image to process.
         new_width (int): The new width of the image.
         new_height (int): The new height of the image.
 
@@ -150,25 +150,27 @@ def process_image(img: Image, new_width: int, new_height: int) -> Image:
         Image: The processed image.
     """
     # Fix orientation
-    orientation = get_orientation(img)
+    orientation = get_orientation(image)
     if orientation:
         if orientation > 4:
-            img = img.transpose(FLIP_LEFT_RIGHT)
+            image = image.transpose(FLIP_LEFT_RIGHT)
         if orientation in [3, 4]:
-            img = img.transpose(ROTATE_180)
+            image = image.transpose(ROTATE_180)
         if orientation in [5, 6]:
-            img = img.transpose(ROTATE_270)
+            image = image.transpose(ROTATE_270)
         if orientation in [7, 8]:
-            img = img.transpose(ROTATE_90)
+            image = image.transpose(ROTATE_90)
     # Resize image
-    img.thumbnail((new_width, new_height))
+    image.thumbnail((new_width, new_height))
     # Remove transparency
-    if img.mode == "RGBA":
-        img.load()
-        white = new_image('RGB', img.size, (255, 255, 255))
-        white.paste(img, mask=img.split()[-1])
+    if image.mode == "RGBA":
+        image.load()
+        white = new_image('RGB', image.size, (255, 255, 255))
+        white.paste(image, mask=image.split()[-1])
         return white
-    return img
+    elif image.mode != "RGB":
+        image = image.convert("RGB")
+    return image
 
 def to_base64_jpg(image: Image, compression_rate: float) -> str:
     """

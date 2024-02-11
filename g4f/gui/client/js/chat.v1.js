@@ -677,7 +677,7 @@ observer.observe(message_input, { attributes: true });
     }
     document.getElementById("version_text").innerHTML = text
 })()
-for (el of [imageInput, cameraInput]) {
+for (const el of [imageInput, cameraInput]) {
     console.log(el.files);
     el.addEventListener('click', async () => {
         el.value = '';
@@ -690,7 +690,6 @@ for (el of [imageInput, cameraInput]) {
             const reader = new FileReader();
             reader.addEventListener('load', (event) => {
                 el.dataset.src = event.target.result;
-                console.log(el.dataset.src);
             });
             reader.readAsDataURL(el.files[0]);
         }
