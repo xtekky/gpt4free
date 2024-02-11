@@ -53,12 +53,12 @@ class You(AsyncGeneratorProvider):
             }
             data = {
                 "userFiles": upload,
-                "selectedChatMode": chat_mode,
                 "q": format_prompt(messages),
                 "domain": "youchat",
+                "selectedChatMode": chat_mode,
                 #"chat": json.dumps(chat),
             }
-            async with client.post(
+            async with (client.post if chat_mode == "default" else client.get)(
                 f"{cls.url}/api/streamingSearch",
                 data=data,
                 headers=headers,
@@ -126,7 +126,7 @@ class You(AsyncGeneratorProvider):
         auth_uuid = "507a52ad-7e69-496b-aee0-1c9863c7c8"
         auth_token = f"public-token-live-{auth_uuid}bb:public-token-live-{auth_uuid}19"
         auth = base64.standard_b64encode(auth_token.encode()).decode()
-        return f"Basic {auth}",
+        return f"Basic {auth}"
 
     @classmethod
     async def create_cookies(cls, client: ClientSession) -> Cookies:
