@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import time
 
 try:
     from platformdirs import user_config_dir
@@ -72,7 +73,8 @@ def load_cookies_from_browsers(domain_name: str, raise_requirements_error: bool 
                 print(f"Read cookies from {cookie_fn.__name__} for {domain_name}")
             for cookie in cookie_jar:
                 if cookie.name not in cookies:
-                    cookies[cookie.name] = cookie.value
+                    if not cookie.expires or cookie.expires > time.time():
+                        cookies[cookie.name] = cookie.value
             if single_browser and len(cookie_jar):
                 break
         except BrowserCookieError:

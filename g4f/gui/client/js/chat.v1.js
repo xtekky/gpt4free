@@ -8,6 +8,7 @@ const stop_generating   = document.querySelector(`.stop_generating`);
 const regenerate        = document.querySelector(`.regenerate`);
 const send_button       = document.querySelector(`#send-button`);
 const imageInput        = document.querySelector('#image');
+const cameraInput       = document.querySelector('#camera');
 const fileInput         = document.querySelector('#file');
 
 let   prompt_lock       = false;
@@ -61,6 +62,10 @@ const handle_ask = async () => {
                     ${markdown_render(message)}
                     ${imageInput.dataset.src
                         ? '<img src="' + imageInput.dataset.src + '" alt="Image upload">'
+                        : ''
+                    }
+                    ${cameraInput.dataset.src
+                        ? '<img src="' + cameraInput.dataset.src + '" alt="Image capture">'
                         : ''
                     }
                 </div>
@@ -141,9 +146,10 @@ const ask_gpt = async () => {
         const headers = {
             accept: 'text/event-stream'
         }
-        if (imageInput && imageInput.files.length > 0) {
+        const input = imageInput && imageInput.files.length > 0 ? imageInput : cameraInput
+        if (input && input.files.length > 0) {
             const formData = new FormData();
-            formData.append('image', imageInput.files[0]);
+            formData.append('image', input.files[0]);
             formData.append('json', body);
             body = formData;
         } else {
@@ -211,8 +217,11 @@ const ask_gpt = async () => {
                 message_box.scrollTo({ top: message_box.scrollHeight, behavior: "auto" });
             }
         }
-        if (!error && imageInput) imageInput.value = "";
-        if (!error && fileInput) fileInput.value = "";
+        if (!error) {
+            if (imageInput) imageInput.value = "";
+            if (cameraInput) cameraInput.value = "";
+            if (fileInput) fileInput.value = "";
+        }
     } catch (e) {
         console.error(e);
 
@@ -668,21 +677,27 @@ observer.observe(message_input, { attributes: true });
     }
     document.getElementById("version_text").innerHTML = text
 })()
-imageInput.addEventListener('click', async (event) => {
-    imageInput.value = '';
-    delete imageInput.dataset.src;
-});
-imageInput.addEventListener('change', async (event) => {
-    if (imageInput.files.length) {
-        const reader = new FileReader();
-        reader.addEventListener('load', (event) => {
-            imageInput.dataset.src = event.target.result;
-        });
-        reader.readAsDataURL(imageInput.files[0]);
-    } else {
-        delete imageInput.dataset.src;
+for (el of [imageInput, cameraInput]) {
+    console.log(el.files);
+    el.addEventListener('click', async () => {
+        el.value = '';
+        delete el.dataset.src;
+    });
+    do_load = async () => {
+        if (el.files.length) {
+            delete imageInput.dataset.src;
+            delete cameraInput.dataset.src;
+            const reader = new FileReader();
+            reader.addEventListener('load', (event) => {
+                el.dataset.src = event.target.result;
+                console.log(el.dataset.src);
+            });
+            reader.readAsDataURL(el.files[0]);
+        }
     }
-});
+    do_load()
+    el.addEventListener('change', do_load);
+}
 fileInput.addEventListener('click', async (event) => {
     fileInput.value = '';
     delete fileInput.dataset.text;

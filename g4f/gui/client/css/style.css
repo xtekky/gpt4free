@@ -404,7 +404,7 @@ body {
     display: none;
 }
 
-#image, #file {
+#image, #file, #camera {
     display: none;
 }
 
@@ -412,20 +412,37 @@ label[for="image"]:has(> input:valid){
     color: var(--accent);
 }
 
+label[for="camera"]:has(> input:valid){
+    color: var(--accent);
+}
+
 label[for="file"]:has(> input:valid){
     color: var(--accent);
 }
 
-label[for="image"], label[for="file"] {
+label[for="image"], label[for="file"], label[for="camera"] {
     cursor: pointer;
     position: absolute;
     top: 10px;
     left: 10px;
 }
 
-label[for="file"] {
+label[for="image"] {
     top: 32px;
-    left: 10px;
+}
+
+label[for="camera"] {
+    top: 54px;
+}
+
+label[for="camera"] {
+    display: none;
+}
+
+@media (pointer:none), (pointer:coarse) {
+    label[for="camera"] {
+        display: block;
+    }
 }
 
 .buttons input[type="checkbox"] {
