@@ -60,7 +60,7 @@ image_url = response.data[0].url
 Also this works with the client:
 ```python
 response = client.images.create_variation(
-  image=open('cat.jpg')
+  image=open("cat.jpg", "rb")
   model="bing",
   ...
 )
