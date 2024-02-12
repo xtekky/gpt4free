@@ -242,6 +242,7 @@ response = client.images.generate(
 image_url = response.data[0].url
 ```
 Result:
+
 [![Image with cat](/docs/cat.jpeg)](/docs/client.md)
 
 [to the client API](/docs/client.md)
