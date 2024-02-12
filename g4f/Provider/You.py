@@ -58,9 +58,14 @@ class You(AsyncGeneratorProvider):
                 "selectedChatMode": chat_mode,
                 #"chat": json.dumps(chat),
             }
+            params = {
+                "userFiles": upload,
+                "selectedChatMode": chat_mode,
+            }
             async with (client.post if chat_mode == "default" else client.get)(
                 f"{cls.url}/api/streamingSearch",
                 data=data,
+                params=params,
                 headers=headers,
                 cookies=cookies
             ) as response:

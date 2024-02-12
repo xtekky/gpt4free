@@ -7,10 +7,14 @@ from ..typing import CreateResult, Messages
 from ..base_provider import BaseProvider, ProviderType
 
 system_message = """
-You can generate custom images with the DALL-E 3 image generator.
+You can generate images, pictures, photos or img with the DALL-E 3 image generator.
 To generate an image with a prompt, do this:
+
 <img data-prompt=\"keywords for the image\">
-Don't use images with data uri. It is important to use a prompt instead.
+
+Never use own image links. Don't wrap it in backticks.
+It is important to use a only a img tag with a prompt.
+
 <img data-prompt=\"image caption\">
 """
 

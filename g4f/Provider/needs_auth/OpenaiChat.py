@@ -386,50 +386,47 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
                 ) as response:
                     if not response.ok:
                         raise RuntimeError(f"Response {response.status_code}: {await response.text()}")
-                    try:
-                        last_message: int = 0
-                        async for line in response.iter_lines():
-                            if not line.startswith(b"data: "):
-                                continue
-                            elif line.startswith(b"data: [DONE]"):
-                                break
-                            try:
-                                line = json.loads(line[6:])
-                            except:
-                                continue
-                            if "message" not in line:
-                                continue
-                            if "error" in line and line["error"]:
-                                raise RuntimeError(line["error"])
-                            if "message_type" not in line["message"]["metadata"]:
-                                continue
-                            try:
-                                image_response = await cls.get_generated_image(session, auth_headers, line)
-                                if image_response:
-                                    yield image_response
-                            except Exception as e:
-                                yield e
-                            if line["message"]["author"]["role"] != "assistant":
-                                continue
-                            if line["message"]["content"]["content_type"] != "text":
-                                continue
-                            if line["message"]["metadata"]["message_type"] not in ("next", "continue", "variant"):
-                                continue
-                            conversation_id = line["conversation_id"]
-                            parent_id = line["message"]["id"]
-                            if response_fields:
-                                response_fields = False
-                                yield ResponseFields(conversation_id, parent_id, end_turn)
-                            if "parts" in line["message"]["content"]:
-                                new_message = line["message"]["content"]["parts"][0]
-                                if len(new_message) > last_message:
-                                    yield new_message[last_message:]
-                                last_message = len(new_message)
-                            if "finish_details" in line["message"]["metadata"]:
-                                if line["message"]["metadata"]["finish_details"]["type"] == "stop":
-                                    end_turn.end()
-                    except Exception as e:
-                        raise e
+                    last_message: int = 0
+                    async for line in response.iter_lines():
+                        if not line.startswith(b"data: "):
+                            continue
+                        elif line.startswith(b"data: [DONE]"):
+                            break
+                        try:
+                            line = json.loads(line[6:])
+                        except:
+                            continue
+                        if "message" not in line:
+                            continue
+                        if "error" in line and line["error"]:
+                            raise RuntimeError(line["error"])
+                        if "message_type" not in line["message"]["metadata"]:
+                            continue
+                        try:
+                            image_response = await cls.get_generated_image(session, auth_headers, line)
+                            if image_response:
+                                yield image_response
+                        except Exception as e:
+                            yield e
+                        if line["message"]["author"]["role"] != "assistant":
+                            continue
+                        if line["message"]["content"]["content_type"] != "text":
+                            continue
+                        if line["message"]["metadata"]["message_type"] not in ("next", "continue", "variant"):
+                            continue
+                        conversation_id = line["conversation_id"]
+                        parent_id = line["message"]["id"]
+                        if response_fields:
+                            response_fields = False
+                            yield ResponseFields(conversation_id, parent_id, end_turn)
+                        if "parts" in line["message"]["content"]:
+                            new_message = line["message"]["content"]["parts"][0]
+                            if len(new_message) > last_message:
+                                yield new_message[last_message:]
+                            last_message = len(new_message)
+                        if "finish_details" in line["message"]["metadata"]:
+                            if line["message"]["metadata"]["finish_details"]["type"] == "stop":
+                                end_turn.end()
                 if not auto_continue:
                     break
                 action = "continue"

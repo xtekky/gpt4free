@@ -21,8 +21,10 @@ from ..create_images import CreateImagesProvider
 from ..helper import get_connector
 from ...base_provider import ProviderType
 from ...errors import MissingRequirementsError
+from ...webdriver import WebDriver, get_driver_cookies, get_browser
 
 BING_URL = "https://www.bing.com"
+TIMEOUT_LOGIN = 1200
 TIMEOUT_IMAGE_CREATION = 300
 ERRORS = [
     "this prompt is being reviewed",
@@ -34,6 +36,39 @@ BAD_IMAGES = [
     "https://r.bing.com/rp/in-2zU3AJUdkgFe7ZKv19yPBHVs.png",
     "https://r.bing.com/rp/TX9QuO3WzcCJz1uaaSwQAz39Kb0.jpg",
 ]
+
+def wait_for_login(driver: WebDriver, timeout: int = TIMEOUT_LOGIN) -> None:
+    """
+    Waits for the user to log in within a given timeout period.
+
+    Args:
+        driver (WebDriver): Webdriver for browser automation.
+        timeout (int): Maximum waiting time in seconds.
+
+    Raises:
+        RuntimeError: If the login process exceeds the timeout.
+    """
+    driver.get(f"{BING_URL}/")
+    start_time = time.time()
+    while not driver.get_cookie("_U"):
+        if time.time() - start_time > timeout:
+            raise RuntimeError("Timeout error")
+        time.sleep(0.5)
+
+def get_cookies_from_browser(proxy: str = None) -> dict[str, str]:
+    """
+    Retrieves cookies from the browser using webdriver.
+
+    Args:
+        proxy (str, optional): Proxy configuration.
+
+    Returns:
+        dict[str, str]: Retrieved cookies.
+    """
+    with get_browser(proxy=proxy) as driver:
+        wait_for_login(driver)
+        time.sleep(1)
+        return get_driver_cookies(driver)
 
 def create_session(cookies: Dict[str, str], proxy: str = None, connector: BaseConnector = None) -> ClientSession:
     """
@@ -141,6 +176,8 @@ def read_images(html_content: str) -> List[str]:
     """
     soup = BeautifulSoup(html_content, "html.parser")
     tags = soup.find_all("img", class_="mimg")
+    if not tags:
+        tags = soup.find_all("img", class_="gir_mmimg")
     images = [img["src"].split("?w=")[0] for img in tags]
     if any(im in BAD_IMAGES for im in images):
         raise RuntimeError("Bad images found")
@@ -158,10 +195,10 @@ def patch_provider(provider: ProviderType) -> CreateImagesProvider:
     Returns:
         CreateImagesProvider: The patched provider with image creation capabilities.
     """
-    from ..CreateImagesBing import CreateImagesBing
-    service = CreateImagesBing()
+    from ..BingCreateImages import BingCreateImages
+    service = BingCreateImages()
     return CreateImagesProvider(
         provider,
-        service.create_completion,
+        service.create,
         service.create_async
     )
