@@ -53,7 +53,7 @@ from .Vercel          import Vercel
 from .Ylokh           import Ylokh
 from .You             import You
 
-from .CreateImagesBing import CreateImagesBing
+from .BingCreateImages import BingCreateImages
 
 import sys
 

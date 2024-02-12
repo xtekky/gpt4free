@@ -24,7 +24,7 @@ jobs:
       run: pip install -r requirements-min.txt
     - name: Run tests
       run: python -m etc.unittest
-    - name: Set up Python 3.11
+    - name: Set up Python 3.12
       uses: actions/setup-python@v4
       with:
         python-version: "3.12"

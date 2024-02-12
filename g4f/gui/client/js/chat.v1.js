@@ -52,6 +52,12 @@ const handle_ask = async () => {
         }
         await add_message(window.conversation_id, "user", message);
         window.token = message_id();
+
+        if (imageInput.dataset.src) URL.revokeObjectURL(imageInput.dataset.src);
+        const input = imageInput && imageInput.files.length > 0 ? imageInput : cameraInput
+        if (input.files.length > 0) imageInput.dataset.src = URL.createObjectURL(input.files[0]);
+        else delete imageInput.dataset.src
+
         message_box.innerHTML += `
             <div class="message">
                 <div class="user">
@@ -62,10 +68,6 @@ const handle_ask = async () => {
                     ${markdown_render(message)}
                     ${imageInput.dataset.src
                         ? '<img src="' + imageInput.dataset.src + '" alt="Image upload">'
-                        : ''
-                    }
-                    ${cameraInput.dataset.src
-                        ? '<img src="' + cameraInput.dataset.src + '" alt="Image capture">'
                         : ''
                     }
                 </div>
@@ -683,24 +685,13 @@ observer.observe(message_input, { attributes: true });
     document.getElementById("version_text").innerHTML = text
 })()
 for (const el of [imageInput, cameraInput]) {
-    console.log(el.files);
     el.addEventListener('click', async () => {
         el.value = '';
-        delete el.dataset.src;
-    });
-    do_load = async () => {
-        if (el.files.length) {
-            delete imageInput.dataset.src;
-            delete cameraInput.dataset.src;
-            const reader = new FileReader();
-            reader.addEventListener('load', (event) => {
-                el.dataset.src = event.target.result;
-            });
-            reader.readAsDataURL(el.files[0]);
+        if (imageInput.dataset.src) {
+            URL.revokeObjectURL(imageInput.dataset.src);
+            delete imageInput.dataset.src
         }
-    }
-    do_load()
-    el.addEventListener('change', do_load);
+    });
 }
 fileInput.addEventListener('click', async (event) => {
     fileInput.value = '';

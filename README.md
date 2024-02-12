@@ -226,6 +226,23 @@ docker-compose down
 
 ## 💡 Usage
 
+### New Client with Image Generation
+```python
+from g4f.client import Client
+
+client = Client()
+response = client.images.generate(
+  model="gemini",
+  prompt="a white siamese cat",
+  ...
+)
+image_url = response.data[0].url
+```
+Result:
+[![Image with cat](/docs/cat.jpeg)](/docs/client.md)
+
+[to the client API](/docs/client.md)
+
 ### The Web UI
 
 To start the web interface, type the following codes in the command line.

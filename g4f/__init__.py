@@ -16,7 +16,8 @@ def get_model_and_provider(model    : Union[Model, str],
                            stream   : bool,
                            ignored  : list[str] = None,
                            ignore_working: bool = False,
-                           ignore_stream: bool = False) -> tuple[str, ProviderType]:
+                           ignore_stream: bool = False,
+                           **kwargs) -> tuple[str, ProviderType]:
     """
     Retrieves the model and provider based on input parameters.
 
