@@ -68,4 +68,10 @@ response = client.images.create_variation(
 image_url = response.data[0].url
 ```
 
+Orginal:
+[![Image with cat](/docs/cat.jpeg)](/docs/client.md)
+
+Variant:
+[![Image with cat](/docs/cat.webp)](/docs/client.md)
+
 [to Home](/docs/client.md)

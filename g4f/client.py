@@ -241,7 +241,8 @@ class Images():
                 "",
                 [{"role": "user", "content": prompt}],
                 True,
-                proxy=self.client.get_proxy()
+                proxy=self.client.get_proxy(),
+                **kwargs
             )
         else:
             response = provider.create(prompt)
@@ -253,15 +254,20 @@ class Images():
 
     def create_variation(self, image: ImageType, model: str = None, **kwargs):
         provider = self.models.get(model) if model else self.provider
-        if isinstance(provider, BaseProvider):
+        result = None
+        if isinstance(provider, type) and issubclass(provider, BaseProvider):
             response = provider.create_completion(
                 "",
                 [{"role": "user", "content": "create a image like this"}],
                 True,
                 image=image,
-                proxy=self.client.get_proxy()
+                proxy=self.client.get_proxy(),
+                **kwargs
             )
             for chunk in response:
                 if isinstance(chunk, ImageProviderResponse):
-                    return ImagesResponse([Image(image)for image in list(chunk.images)])
-        raise NoImageResponseError()
+                    result = ([chunk.images] if isinstance(chunk.images, str) else chunk.images)
+                    result = ImagesResponse([Image(image)for image in result])
+        if result is None:
+            raise NoImageResponseError()
+        return result

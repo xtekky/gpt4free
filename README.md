@@ -227,6 +227,9 @@ docker-compose down
 ## 💡 Usage
 
 ### New Client with Image Generation
+
+#### not jet released
+
 ```python
 from g4f.client import Client
 
