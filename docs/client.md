@@ -1,39 +1,48 @@
-### Client API
-##### from g4f (beta)
-
-#### Start
-This new client could:
-
-```python
-from g4f.client import Client
 ```
-replaces this:
+### G4F Client API Documentation (Beta Version)
 
+#### Introduction
+
+The G4F Client API introduces a new way to integrate advanced AI functionalities into your Python applications. This guide will help you transition from using the OpenAI client to the new G4F Client, offering compatibility with the existing OpenAI API alongside additional features.
+
+#### Getting Started
+
+**Switching to G4F Client:**
+
+Replace the OpenAI client import statement in your Python code as follows:
+
+Old Import:
 ```python
 from openai import OpenAI
 ```
-in your Python Code.
 
-New client have the same API as OpenAI.
+New Import:
+```python
+from g4f.client import Client
+```
 
-#### Client
+The G4F Client maintains the same API interface as OpenAI, ensuring a seamless transition.
 
-Create the client with custom providers:
+#### Initializing the Client
+
+To use the G4F Client, create an instance with customized providers:
 
 ```python
 from g4f.client import Client
-from g4f.Provider import BingCreateImages, OpenaiChat, Gemini
+from g4f.providers import BingCreateImages, OpenaiChat, Gemini
 
 client = Client(
-    provider=OpenaiChat,
+    text_provider=OpenaiChat,
     image_provider=Gemini,
     proxies=None
 )
 ```
 
-#### Examples
+#### Usage Examples
 
-Use the ChatCompletions:
+**Text Completions:**
+
+You can use the `ChatCompletions` endpoint to generate text completions as follows:
 
 ```python
 stream = client.chat.completions.create(
@@ -42,35 +51,44 @@ stream = client.chat.completions.create(
     stream=True,
 )
 for chunk in stream:
-    if chunk.choices[0].delta.content is not None:
+    if chunk.choices[0].delta.content:
         print(chunk.choices[0].delta.content, end="")
 ```
 
-Or use it for creating a image:
+**Image Generation:**
+
+Generate images using a specified prompt:
+
 ```python
 response = client.images.generate(
-  model="dall-e-3",
-  prompt="a white siamese cat",
-  ...
+    model="dall-e-3",
+    prompt="a white siamese cat",
+    ...
 )
 
 image_url = response.data[0].url
 ```
 
-Also this works with the client:
+**Creating Image Variations:**
+
+Create variations of an existing image:
+
 ```python
 response = client.images.create_variation(
-  image=open("cat.jpg", "rb")
-  model="bing",
-  ...
+    image=open("cat.jpg", "rb"),
+    model="bing",
+    ...
 )
 
 image_url = response.data[0].url
 ```
 
-Orginal / Variant:
+#### Visual Examples
 
-[![Image with cat](/docs/cat.jpeg)](/docs/client.md)
-[![Image with cat](/docs/cat.webp)](/docs/client.md)
+Original / Variant:
 
-[to Home](/docs/client.md)
+[![Original Image](/docs/cat.jpeg)](/docs/client.md)
+[![Variant Image](/docs/cat.webp)](/docs/client.md)
+
+[Return to Documentation Home](/)
+```
