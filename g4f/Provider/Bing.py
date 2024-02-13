@@ -141,7 +141,9 @@ class Defaults:
         'nlu_direct_response_filter', 'deepleo', 'disable_emoji_spoken_text',
         'responsible_ai_policy_235', 'enablemm', 'iyxapbing', 'iycapbing',
         'gencontentv3', 'fluxsrtrunc', 'fluxtrunc', 'fluxv1', 'rai278',
-        'replaceurl', 'eredirecturl', 'nojbfedge'
+        'replaceurl', 'eredirecturl', 'nojbfedge', "fluxcopilot", "nojbf",
+        "dgencontentv3", "nointernalsugg", "disable_telemetry", "machine_affinity",
+        "streamf", "codeint", "langdtwb", "fdwtlst", "fluxprod", "deuct3"
     ]
     
     # Default cookies
@@ -156,7 +158,7 @@ class Defaults:
 
 class ConversationStyleOptionSets():
     CREATIVE = ["h3imaginative", "clgalileo", "gencontentv3"]
-    BALANCED = ["galileo"]
+    BALANCED = ["galileo", "gldcl1p"]
     PRECISE = ["h3precise", "clgalileo"]
 
 def format_message(msg: dict) -> str:
