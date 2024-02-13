@@ -1,4 +1,3 @@
-```
 ### G4F Client API Documentation (Beta Version)
 
 #### Introduction
