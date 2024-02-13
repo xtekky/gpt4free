@@ -17,7 +17,7 @@ from openai import OpenAI
 
 New Import:
 ```python
-from g4f.client import Client
+from g4f.client import Client as OpenAI
 ```
 
 The G4F Client maintains the same API interface as OpenAI, ensuring a seamless transition.
@@ -28,7 +28,7 @@ To use the G4F Client, create an instance with customized providers:
 
 ```python
 from g4f.client import Client
-from g4f.providers import BingCreateImages, OpenaiChat, Gemini
+from g4f.Provider import BingCreateImages, OpenaiChat, Gemini
 
 client = Client(
     text_provider=OpenaiChat,
