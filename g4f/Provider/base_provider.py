@@ -196,15 +196,20 @@ class AsyncGeneratorProvider(AsyncProvider):
         generator = cls.create_async_generator(model, messages, stream=stream, **kwargs)
         gen = generator.__aiter__()
 
-        while True:
-            try:
-                yield loop.run_until_complete(gen.__anext__())
-            except StopAsyncIteration:
-                break
+        # Fix for RuntimeError: async generator ignored GeneratorExit
+        async def await_callback(callback):
+            return await callback()
 
-        if new_loop:
-            loop.close()
-            asyncio.set_event_loop(None)
+        try:
+            while True:
+                yield loop.run_until_complete(await_callback(gen.__anext__))
+        except StopAsyncIteration:
+            ...
+        # Fix for: ResourceWarning: unclosed event loop
+        finally:
+            if new_loop:
+                loop.close()
+                asyncio.set_event_loop(None)
 
     @classmethod
     async def create_async(

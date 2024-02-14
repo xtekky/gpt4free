@@ -8,6 +8,7 @@ import unittest
 
 import g4f
 from g4f import ChatCompletion
+from g4f.client import Client
 from .mocks import ProviderMock, AsyncProviderMock, AsyncGeneratorProviderMock
 
 DEFAULT_MESSAGES = [{'role': 'user', 'content': 'Hello'}]
@@ -24,11 +25,16 @@ class TestChatCompletion(unittest.TestCase):
 
     def test_create(self):
         result = ChatCompletion.create(g4f.models.default, DEFAULT_MESSAGES, AsyncProviderMock)
-        self.assertEqual("Mock",result)
+        self.assertEqual("Mock", result)
 
     def test_create_generator(self):
         result = ChatCompletion.create(g4f.models.default, DEFAULT_MESSAGES, AsyncGeneratorProviderMock)
-        self.assertEqual("Mock",result)
+        self.assertEqual("Mock", result)
+        
+    def test_await_callback(self):
+        client = Client(provider=AsyncGeneratorProviderMock)
+        response = client.chat.completions.create(DEFAULT_MESSAGES, "", max_tokens=0)
+        self.assertEqual("Mock", response.choices[0].message.content)
 
 class TestChatCompletionAsync(unittest.IsolatedAsyncioTestCase):
 
