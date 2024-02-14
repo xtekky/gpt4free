@@ -90,12 +90,14 @@ class Api:
             messages = item_data.get('messages')
             provider = item_data.get('provider', '').replace('g4f.Provider.', '')
             provider = provider if provider and provider != "Auto" else None
+            temperature = item_data.get('temperature')
 
             try:
                 response = g4f.ChatCompletion.create(
                     model=model,
                     stream=stream,
                     messages=messages,
+                    temperature = temperature,
                     provider = provider,
                     ignored=self.list_ignored_providers
                 )
