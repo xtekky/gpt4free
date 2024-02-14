@@ -60,6 +60,7 @@ class DeepInfra(AsyncGeneratorProvider, ProviderModelMixin):
             json_data = {
                 'model'   : cls.get_model(model),
                 'messages': messages,
+                'temperature': kwargs.get("temperature", 0.7),
                 'stream'  : True
             }
             async with session.post('https://api.deepinfra.com/v1/openai/chat/completions',

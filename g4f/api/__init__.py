@@ -90,6 +90,7 @@ class Api:
             messages = item_data.get('messages')
             provider = item_data.get('provider', '').replace('g4f.Provider.', '')
             provider = provider if provider and provider != "Auto" else None
+            temperature = item_data.get('temperature')
 
             try:
                 response = g4f.ChatCompletion.create(
@@ -97,6 +98,7 @@ class Api:
                     stream=stream,
                     messages=messages,
                     provider = provider,
+                    temperature = temperature,
                     ignored=self.list_ignored_providers
                 )
             except Exception as e:
