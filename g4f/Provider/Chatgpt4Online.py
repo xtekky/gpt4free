@@ -5,6 +5,7 @@ import json
 from aiohttp import ClientSession
 
 from ..typing import Messages, AsyncResult
+from ..requests import get_args_from_browser
 from .base_provider import AsyncGeneratorProvider
 from .helper import get_random_string
 
@@ -12,8 +13,9 @@ class Chatgpt4Online(AsyncGeneratorProvider):
     url = "https://chatgpt4online.org"
     supports_message_history = True
     supports_gpt_35_turbo = True
-    working = True
+    working = False 
     _wpnonce = None
+    _context_id = None
 
     @classmethod
     async def create_async_generator(
@@ -23,23 +25,10 @@ class Chatgpt4Online(AsyncGeneratorProvider):
         proxy: str = None,
         **kwargs
     ) -> AsyncResult:
-        headers = {
-            "accept": "*/*",
-            "accept-language": "en-US",
-            "content-type": "application/json",
-            "sec-ch-ua": "\"Not_A Brand\";v=\"8\", \"Chromium\";v=\"120\", \"Google Chrome\";v=\"120\"",
-            "sec-ch-ua-mobile": "?0",
-            "sec-ch-ua-platform": "\"Windows\"",
-            "sec-fetch-dest": "empty",
-            "sec-fetch-mode": "cors",
-            "sec-fetch-site": "same-origin",
-            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "referer": "https://chatgpt4online.org/",
-            "referrer-policy": "strict-origin-when-cross-origin"
-        }
-        async with ClientSession(headers=headers) as session:
+        args = get_args_from_browser(f"{cls.url}/chat/", proxy=proxy)
+        async with ClientSession(**args) as session:
             if not cls._wpnonce:
-                async with session.get(f"{cls.url}/", proxy=proxy) as response:
+                async with session.get(f"{cls.url}/chat/", proxy=proxy) as response:
                     response.raise_for_status()
                     response = await response.text()
                     result = re.search(r'restNonce&quot;:&quot;(.*?)&quot;', response)
@@ -47,12 +36,17 @@ class Chatgpt4Online(AsyncGeneratorProvider):
                         cls._wpnonce = result.group(1)
                     else:
                         raise RuntimeError("No nonce found")
+                    result = re.search(r'contextId&quot;:(.*?),', response)
+                    if result:
+                        cls._context_id = result.group(1)
+                    else:
+                        raise RuntimeError("No contextId found")
             data = {
                 "botId":"default",
                 "customId":None,
                 "session":"N/A",
                 "chatId":get_random_string(11),
-                "contextId":58,
+                "contextId":cls._context_id,
                 "messages":messages[:-1],
                 "newMessage":messages[-1]["content"],
                 "newImageId":None,

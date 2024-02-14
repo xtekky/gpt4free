@@ -1,31 +1,34 @@
 from __future__ import annotations
+
 import asyncio
 import uuid
 import json
 import os
 
-from py_arkose_generator.arkose import get_values_for_request
-from async_property import async_cached_property
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
+try:
+    from py_arkose_generator.arkose import get_values_for_request
+    from async_property import async_cached_property
+    has_requirements = True
+except ImportError:
+    async_cached_property = property
+    has_requirements = False
+try:
+    from selenium.webdriver.common.by import By
+    from selenium.webdriver.support.ui import WebDriverWait
+    from selenium.webdriver.support import expected_conditions as EC
+except ImportError:
+    pass
 
-from ..base_provider import AsyncGeneratorProvider
+from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..helper import format_prompt, get_cookies
 from ...webdriver import get_browser, get_driver_cookies
-from ...typing import AsyncResult, Messages
+from ...typing import AsyncResult, Messages, Cookies, ImageType
 from ...requests import StreamSession
-from ...image import to_image, to_bytes, ImageType, ImageResponse
+from ...image import to_image, to_bytes, ImageResponse, ImageRequest
+from ...errors import MissingRequirementsError, MissingAuthError
 
-# Aliases for model names
-MODELS = {
-    "gpt-3.5":       "text-davinci-002-render-sha",
-    "gpt-3.5-turbo": "text-davinci-002-render-sha",
-    "gpt-4":         "gpt-4",
-    "gpt-4-gizmo":   "gpt-4-gizmo"
-}
 
-class OpenaiChat(AsyncGeneratorProvider):
+class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
     """A class for creating and managing conversations with OpenAI chat service"""
     
     url = "https://chat.openai.com"
@@ -33,8 +36,10 @@ class OpenaiChat(AsyncGeneratorProvider):
     needs_auth = True
     supports_gpt_35_turbo = True
     supports_gpt_4 = True
+    default_model = None
+    models = ["gpt-3.5-turbo", "gpt-4", "gpt-4-gizmo"]
+    model_aliases = {"text-davinci-002-render-sha": "gpt-3.5-turbo"}
     _cookies: dict = {}
-    _default_model: str = None
 
     @classmethod
     async def create(
@@ -91,12 +96,13 @@ class OpenaiChat(AsyncGeneratorProvider):
         )
     
     @classmethod
-    async def _upload_image(
+    async def upload_image(
         cls,
         session: StreamSession,
         headers: dict,
-        image: ImageType
-    ) -> ImageResponse:
+        image: ImageType,
+        image_name: str = None
+    ) -> ImageRequest:
         """
         Upload an image to the service and get the download URL
         
@@ -106,7 +112,7 @@ class OpenaiChat(AsyncGeneratorProvider):
             image: The image to upload, either a PIL Image object or a bytes object
         
         Returns:
-            An ImageResponse object that contains the download URL, file name, and other data
+            An ImageRequest object that contains the download URL, file name, and other data
         """
         # Convert the image to a PIL Image object and get the extension
         image = to_image(image)
@@ -114,7 +120,7 @@ class OpenaiChat(AsyncGeneratorProvider):
         # Convert the image to a bytes object and get the size
         data_bytes = to_bytes(image)
         data = {
-            "file_name": f"{image.width}x{image.height}.{extension}",
+            "file_name": image_name if image_name else f"{image.width}x{image.height}.{extension}",
             "file_size": len(data_bytes),
             "use_case":	"multimodal"
         }
@@ -146,11 +152,11 @@ class OpenaiChat(AsyncGeneratorProvider):
             headers=headers
         ) as response:
             response.raise_for_status()
-            download_url = (await response.json())["download_url"]
-        return ImageResponse(download_url, image_data["file_name"], image_data)
+            image_data["download_url"] = (await response.json())["download_url"]
+        return ImageRequest(image_data)
     
     @classmethod
-    async def _get_default_model(cls, session: StreamSession, headers: dict):
+    async def get_default_model(cls, session: StreamSession, headers: dict):
         """
         Get the default model name from the service
         
@@ -161,20 +167,17 @@ class OpenaiChat(AsyncGeneratorProvider):
         Returns:
             The default model name as a string
         """
-        # Check the cache for the default model
-        if cls._default_model:
-            return cls._default_model
-        # Get the models data from the service
-        async with session.get(f"{cls.url}/backend-api/models", headers=headers) as response:
-            data = await response.json()
-            if "categories" in data:
-                cls._default_model = data["categories"][-1]["default_model"]
-            else:
-                raise RuntimeError(f"Response: {data}")
-        return cls._default_model
+        if not cls.default_model:
+            async with session.get(f"{cls.url}/backend-api/models", headers=headers) as response:
+                data = await response.json()
+                if "categories" in data:
+                    cls.default_model = data["categories"][-1]["default_model"]
+                else:
+                    raise RuntimeError(f"Response: {data}")
+        return cls.default_model
     
     @classmethod
-    def _create_messages(cls, prompt: str, image_response: ImageResponse = None):
+    def create_messages(cls, prompt: str, image_request: ImageRequest = None):
         """
         Create a list of messages for the user input
         
@@ -186,7 +189,7 @@ class OpenaiChat(AsyncGeneratorProvider):
             A list of messages with the user input and the image, if any
         """
         # Check if there is an image response
-        if not image_response:
+        if not image_request:
             # Create a content object with the text type and the prompt
             content = {"content_type": "text", "parts": [prompt]}
         else:
@@ -194,10 +197,10 @@ class OpenaiChat(AsyncGeneratorProvider):
             content = {
                 "content_type": "multimodal_text",
                 "parts": [{
-                    "asset_pointer": f"file-service://{image_response.get('file_id')}",
-                    "height": image_response.get("height"),
-                    "size_bytes": image_response.get("file_size"),
-                    "width": image_response.get("width"),
+                    "asset_pointer": f"file-service://{image_request.get('file_id')}",
+                    "height": image_request.get("height"),
+                    "size_bytes": image_request.get("file_size"),
+                    "width": image_request.get("width"),
                 }, prompt]
             }
         # Create a message object with the user role and the content
@@ -207,22 +210,22 @@ class OpenaiChat(AsyncGeneratorProvider):
             "content": content,
         }]
         # Check if there is an image response
-        if image_response:
+        if image_request:
             # Add the metadata object with the attachments
             messages[0]["metadata"] = {
                 "attachments": [{
-                    "height": image_response.get("height"),
-                    "id": image_response.get("file_id"),
-                    "mimeType": image_response.get("mime_type"),
-                    "name": image_response.get("file_name"),
-                    "size": image_response.get("file_size"),
-                    "width": image_response.get("width"),
+                    "height": image_request.get("height"),
+                    "id": image_request.get("file_id"),
+                    "mimeType": image_request.get("mime_type"),
+                    "name": image_request.get("file_name"),
+                    "size": image_request.get("file_size"),
+                    "width": image_request.get("width"),
                 }]
             }
         return messages
     
     @classmethod
-    async def _get_generated_image(cls, session: StreamSession, headers: dict, line: dict) -> ImageResponse:
+    async def get_generated_image(cls, session: StreamSession, headers: dict, line: dict) -> ImageResponse:
         """
         Retrieves the image response based on the message content.
 
@@ -257,7 +260,7 @@ class OpenaiChat(AsyncGeneratorProvider):
             raise RuntimeError(f"Error in downloading image: {e}")
 
     @classmethod
-    async def _delete_conversation(cls, session: StreamSession, headers: dict, conversation_id: str):
+    async def delete_conversation(cls, session: StreamSession, headers: dict, conversation_id: str):
         """
         Deletes a conversation by setting its visibility to False.
 
@@ -287,7 +290,7 @@ class OpenaiChat(AsyncGeneratorProvider):
         proxy: str = None,
         timeout: int = 120,
         access_token: str = None,
-        cookies: dict = None,
+        cookies: Cookies = None,
         auto_continue: bool = False,
         history_disabled: bool = True,
         action: str = "next",
@@ -322,42 +325,48 @@ class OpenaiChat(AsyncGeneratorProvider):
         Raises:
             RuntimeError: If an error occurs during processing.
         """
-        model = MODELS.get(model, model)
+        if not has_requirements:
+            raise MissingRequirementsError('Install "py-arkose-generator" and "async_property" package')
         if not parent_id:
             parent_id = str(uuid.uuid4())
         if not cookies:
-            cookies = cls._cookies or get_cookies("chat.openai.com")
+            cookies = cls._cookies or get_cookies("chat.openai.com", False)
         if not access_token and "access_token" in cookies:
             access_token = cookies["access_token"]
         if not access_token:
             login_url = os.environ.get("G4F_LOGIN_URL")
             if login_url:
                 yield f"Please login: [ChatGPT]({login_url})\n\n"
-            access_token, cookies = cls._browse_access_token(proxy)
+            try:
+                access_token, cookies = cls.browse_access_token(proxy)
+            except MissingRequirementsError:
+                raise MissingAuthError(f'Missing "access_token"')
             cls._cookies = cookies
 
-        headers = {"Authorization": f"Bearer {access_token}"}
-
+        auth_headers = {"Authorization": f"Bearer {access_token}"}
         async with StreamSession(
             proxies={"https": proxy},
             impersonate="chrome110",
             timeout=timeout,
-            cookies=dict([(name, value) for name, value in cookies.items() if name == "_puid"])
+            headers={"Cookie": "; ".join(f"{k}={v}" for k, v in cookies.items())}
         ) as session:
-            if not model:
-                model = await cls._get_default_model(session, headers)
             try:
                 image_response = None
                 if image:
-                    image_response = await cls._upload_image(session, headers, image)
-                    yield image_response
+                    image_response = await cls.upload_image(session, auth_headers, image, kwargs.get("image_name"))
             except Exception as e:
                 yield e
             end_turn = EndTurn()
+            model = cls.get_model(model or await cls.get_default_model(session, auth_headers))
+            model = "text-davinci-002-render-sha" if model == "gpt-3.5-turbo" else model
             while not end_turn.is_end:
+                arkose_token = await cls.get_arkose_token(session)
                 data = {
                     "action": action,
-                    "arkose_token": await cls._get_arkose_token(session),
+                    "arkose_token": arkose_token,
+                    "conversation_mode": {"kind": "primary_assistant"},
+                    "force_paragen": False,
+                    "force_rate_limit": False,
                     "conversation_id": conversation_id,
                     "parent_message_id": parent_id,
                     "model": model,
@@ -365,67 +374,68 @@ class OpenaiChat(AsyncGeneratorProvider):
                 }
                 if action != "continue":
                     prompt = format_prompt(messages) if not conversation_id else messages[-1]["content"]
-                    data["messages"] = cls._create_messages(prompt, image_response)
+                    data["messages"] = cls.create_messages(prompt, image_response)
                 async with session.post(
                     f"{cls.url}/backend-api/conversation",
                     json=data,
-                    headers={"Accept": "text/event-stream", **headers}
+                    headers={
+                        "Accept": "text/event-stream",
+                        "OpenAI-Sentinel-Arkose-Token": arkose_token,
+                        **auth_headers
+                    }
                 ) as response:
                     if not response.ok:
                         raise RuntimeError(f"Response {response.status_code}: {await response.text()}")
-                    try:
-                        last_message: int = 0
-                        async for line in response.iter_lines():
-                            if not line.startswith(b"data: "):
-                                continue
-                            elif line.startswith(b"data: [DONE]"):
-                                break
-                            try:
-                                line = json.loads(line[6:])
-                            except:
-                                continue
-                            if "message" not in line:
-                                continue
-                            if "error" in line and line["error"]:
-                                raise RuntimeError(line["error"])
-                            if "message_type" not in line["message"]["metadata"]:
-                                continue
-                            try:
-                                image_response = await cls._get_generated_image(session, headers, line)
-                                if image_response:
-                                    yield image_response
-                            except Exception as e:
-                                yield e
-                            if line["message"]["author"]["role"] != "assistant":
-                                continue
-                            if line["message"]["content"]["content_type"] != "text":
-                                continue
-                            if line["message"]["metadata"]["message_type"] not in ("next", "continue", "variant"):
-                                continue
-                            conversation_id = line["conversation_id"]
-                            parent_id = line["message"]["id"]
-                            if response_fields:
-                                response_fields = False
-                                yield ResponseFields(conversation_id, parent_id, end_turn)
-                            if "parts" in line["message"]["content"]:
-                                new_message = line["message"]["content"]["parts"][0]
-                                if len(new_message) > last_message:
-                                    yield new_message[last_message:]
-                                last_message = len(new_message)
-                            if "finish_details" in line["message"]["metadata"]:
-                                if line["message"]["metadata"]["finish_details"]["type"] == "stop":
-                                    end_turn.end()
-                    except Exception as e:
-                        raise e
+                    last_message: int = 0
+                    async for line in response.iter_lines():
+                        if not line.startswith(b"data: "):
+                            continue
+                        elif line.startswith(b"data: [DONE]"):
+                            break
+                        try:
+                            line = json.loads(line[6:])
+                        except:
+                            continue
+                        if "message" not in line:
+                            continue
+                        if "error" in line and line["error"]:
+                            raise RuntimeError(line["error"])
+                        if "message_type" not in line["message"]["metadata"]:
+                            continue
+                        try:
+                            image_response = await cls.get_generated_image(session, auth_headers, line)
+                            if image_response:
+                                yield image_response
+                        except Exception as e:
+                            yield e
+                        if line["message"]["author"]["role"] != "assistant":
+                            continue
+                        if line["message"]["content"]["content_type"] != "text":
+                            continue
+                        if line["message"]["metadata"]["message_type"] not in ("next", "continue", "variant"):
+                            continue
+                        conversation_id = line["conversation_id"]
+                        parent_id = line["message"]["id"]
+                        if response_fields:
+                            response_fields = False
+                            yield ResponseFields(conversation_id, parent_id, end_turn)
+                        if "parts" in line["message"]["content"]:
+                            new_message = line["message"]["content"]["parts"][0]
+                            if len(new_message) > last_message:
+                                yield new_message[last_message:]
+                            last_message = len(new_message)
+                        if "finish_details" in line["message"]["metadata"]:
+                            if line["message"]["metadata"]["finish_details"]["type"] == "stop":
+                                end_turn.end()
                 if not auto_continue:
                     break
                 action = "continue"
                 await asyncio.sleep(5)
             if history_disabled and auto_continue:
-                await cls._delete_conversation(session, headers, conversation_id)
+                await cls.delete_conversation(session, auth_headers, conversation_id)
 
     @classmethod
-    def _browse_access_token(cls, proxy: str = None, timeout: int = 1200) -> tuple[str, dict]:
+    def browse_access_token(cls, proxy: str = None, timeout: int = 1200) -> tuple[str, dict]:
         """
         Browse to obtain an access token.
 
@@ -443,16 +453,16 @@ class OpenaiChat(AsyncGeneratorProvider):
                 "let session = await fetch('/api/auth/session');"
                 "let data = await session.json();"
                 "let accessToken = data['accessToken'];"
-                "let expires = new Date(); expires.setTime(expires.getTime() + 60 * 60 * 24 * 7);"
+                "let expires = new Date(); expires.setTime(expires.getTime() + 60 * 60 * 4);"
                 "document.cookie = 'access_token=' + accessToken + ';expires=' + expires.toUTCString() + ';path=/';"
                 "return accessToken;"
             )
             return access_token, get_driver_cookies(driver)
         finally:
-            driver.quit()
+            driver.close() 
 
     @classmethod
-    async def _get_arkose_token(cls, session: StreamSession) -> str:
+    async def get_arkose_token(cls, session: StreamSession) -> str:
         """
         Obtain an Arkose token for the session.
 

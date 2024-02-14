@@ -1,10 +1,16 @@
 from __future__ import annotations
 
-import json, base64, requests, execjs, random, uuid
+import json, base64, requests, random, uuid
+
+try:
+    import execjs
+    has_requirements = True
+except ImportError:
+    has_requirements = False
 
 from ..typing       import Messages, TypedDict, CreateResult, Any
 from .base_provider import AbstractProvider
-from ..debug        import logging
+from ..errors       import MissingRequirementsError
 
 class Vercel(AbstractProvider):
     url = 'https://sdk.vercel.ai'
@@ -21,10 +27,11 @@ class Vercel(AbstractProvider):
         proxy: str = None,
         **kwargs
     ) -> CreateResult:
-        
+        if not has_requirements:
+            raise MissingRequirementsError('Install "PyExecJS" package')
+
         if not model:
             model = "gpt-3.5-turbo"
-
         elif model not in model_info:
             raise ValueError(f"Vercel does not support {model}")
 

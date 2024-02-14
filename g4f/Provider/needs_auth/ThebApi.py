@@ -3,7 +3,8 @@ from __future__ import annotations
 import requests
 
 from ...typing import Any, CreateResult, Messages
-from ..base_provider import AbstractProvider
+from ..base_provider import AbstractProvider, ProviderModelMixin
+from ...errors import MissingAuthError
 
 models = {
     "theb-ai": "TheB.AI",
@@ -29,22 +30,25 @@ models = {
     "qwen-7b-chat": "Qwen 7B"
 }
 
-class ThebApi(AbstractProvider):
+class ThebApi(AbstractProvider, ProviderModelMixin):
     url = "https://theb.ai"
     working = True
     needs_auth = True
+    default_model = "gpt-3.5-turbo"
+    models = list(models)
 
-    @staticmethod
+    @classmethod
     def create_completion(
+        cls,
         model: str,
         messages: Messages,
         stream: bool,
-        auth: str,
+        auth: str = None,
         proxy: str = None,
         **kwargs
     ) -> CreateResult:
-        if model and model not in models:
-            raise ValueError(f"Model are not supported: {model}")
+        if not auth:
+            raise MissingAuthError("Missing auth")
         headers = {
             'accept': 'application/json',
             'authorization': f'Bearer {auth}',
@@ -54,7 +58,7 @@ class ThebApi(AbstractProvider):
         # models = dict([(m["id"], m["name"]) for m in response])
         # print(json.dumps(models, indent=4))
         data: dict[str, Any] = {
-            "model": model if model else "gpt-3.5-turbo",
+            "model": cls.get_model(model),
             "messages": messages,
             "stream": False,
             "model_params": {

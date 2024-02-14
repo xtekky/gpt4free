@@ -1,12 +1,26 @@
 from __future__ import annotations
-from platformdirs import user_config_dir
-from selenium.webdriver.remote.webdriver import WebDriver 
-from undetected_chromedriver import Chrome, ChromeOptions
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
+
+try:
+    from platformdirs import user_config_dir
+    from selenium.webdriver.remote.webdriver import WebDriver 
+    from selenium.webdriver.remote.webelement import WebElement 
+    from undetected_chromedriver import Chrome, ChromeOptions
+    from selenium.webdriver.common.by import By
+    from selenium.webdriver.support.ui import WebDriverWait
+    from selenium.webdriver.support import expected_conditions as EC
+    from selenium.webdriver.common.keys import Keys
+    from selenium.common.exceptions import NoSuchElementException
+    has_requirements = True
+except ImportError:
+    from typing import Type as WebDriver
+    has_requirements = False
+
+import time  
+from shutil import which
 from os import path
 from os import access, R_OK
+from .typing import Cookies
+from .errors import MissingRequirementsError
 from . import debug
 
 try:
@@ -33,6 +47,8 @@ def get_browser(
     Returns:
         WebDriver: An instance of WebDriver configured with the specified options.
     """
+    if not has_requirements:
+        raise MissingRequirementsError('Install "undetected_chromedriver" and "platformdirs" package')
     if user_data_dir is None:
         user_data_dir = user_config_dir("g4f")
     if user_data_dir and debug.logging:
@@ -42,17 +58,18 @@ def get_browser(
     if proxy:
         options.add_argument(f'--proxy-server={proxy}')
     # Check for system driver in docker
-    driver = '/usr/bin/chromedriver'
+    driver = which('chromedriver') or '/usr/bin/chromedriver'
     if not path.isfile(driver) or not access(driver, R_OK):
         driver = None
     return Chrome(
         options=options,
         user_data_dir=user_data_dir,
         driver_executable_path=driver,
-        headless=headless
+        headless=headless,
+        patcher_force_close=True
     )
 
-def get_driver_cookies(driver: WebDriver) -> dict:
+def get_driver_cookies(driver: WebDriver) -> Cookies:
     """
     Retrieves cookies from the specified WebDriver.
 
@@ -80,11 +97,33 @@ def bypass_cloudflare(driver: WebDriver, url: str, timeout: int) -> None:
     if driver.find_element(By.TAG_NAME, "body").get_attribute("class") == "no-js":
         if debug.logging:
             print("Cloudflare protection detected:", url)
+
+        # Open website in a new tab
+        element = driver.find_element(By.ID, "challenge-body-text")
+        driver.execute_script(f"""
+            arguments[0].addEventListener('click', () => {{
+                window.open(arguments[1]);
+            }});
+        """, element, url)
+        element.click()
+        time.sleep(3)
+
+        # Switch to the new tab and close the old tab
+        original_window = driver.current_window_handle
+        for window_handle in driver.window_handles:
+            if window_handle != original_window:
+                driver.close()
+                driver.switch_to.window(window_handle)
+                break
+
+        # Click on the challenge button in the iframe
         try:
             driver.switch_to.frame(driver.find_element(By.CSS_SELECTOR, "#turnstile-wrapper iframe"))
             WebDriverWait(driver, 5).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, "#challenge-stage input"))
             ).click()
+        except NoSuchElementException:
+            ...
         except Exception as e:
             if debug.logging:
                 print(f"Error bypassing Cloudflare: {e}")
@@ -144,7 +183,7 @@ class WebDriverSession:
         Returns:
             WebDriver: The reopened WebDriver instance.
         """
-        user_data_dir = user_data_data_dir or self.user_data_dir
+        user_data_dir = user_data_dir or self.user_data_dir
         if self.default_driver:
             self.default_driver.quit()
         if not virtual_display and self.virtual_display:
@@ -185,6 +224,12 @@ class WebDriverSession:
             except Exception as e:
                 if debug.logging:
                     print(f"Error closing WebDriver: {e}")
-            self.default_driver.quit()
+            finally:
+                self.default_driver.quit()
         if self.virtual_display:
-            self.virtual_display.stop()
+            self.virtual_display.stop()  
+  
+def element_send_text(element: WebElement, text: str) -> None:
+    script = "arguments[0].innerText = arguments[1]"
+    element.parent.execute_script(script, element, text)
+    element.send_keys(Keys.ENTER)

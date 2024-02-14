@@ -1,15 +1,18 @@
 from __future__ import annotations
 
 import time
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.common.keys import Keys
 
-from ..typing import CreateResult, Messages
-from .base_provider import AbstractProvider
-from .helper import format_prompt
-from ..webdriver import WebDriver, WebDriverSession
+try:
+    from selenium.webdriver.common.by import By
+    from selenium.webdriver.support.ui import WebDriverWait
+    from selenium.webdriver.support import expected_conditions as EC
+except ImportError:
+    pass
+
+from ...typing import CreateResult, Messages
+from ..base_provider import AbstractProvider
+from ..helper import format_prompt
+from ...webdriver import WebDriver, WebDriverSession, element_send_text
 
 class PerplexityAi(AbstractProvider):
     url = "https://www.perplexity.ai"
@@ -79,8 +82,7 @@ WebSocket.prototype.send = function(...args) {
                     raise RuntimeError("You need a account for copilot")
 
             # Submit prompt
-            driver.find_element(By.CSS_SELECTOR, "textarea[placeholder='Ask anything...']").send_keys(prompt)
-            driver.find_element(By.CSS_SELECTOR, "textarea[placeholder='Ask anything...']").send_keys(Keys.ENTER)
+            element_send_text(driver.find_element(By.CSS_SELECTOR, "textarea[placeholder='Ask anything...']"), prompt)
 
             # Stream response
             script = """

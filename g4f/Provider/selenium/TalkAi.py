@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import time, json, time
 
-from ..typing import CreateResult, Messages
-from .base_provider import AbstractProvider
-from ..webdriver import WebDriver, WebDriverSession
+from ...typing import CreateResult, Messages
+from ..base_provider import AbstractProvider
+from ...webdriver import WebDriver, WebDriverSession
 
 class TalkAi(AbstractProvider):
     url = "https://talkai.info"
@@ -42,7 +42,7 @@ class TalkAi(AbstractProvider):
                     "content": message["content"]
                 } for message in messages],
                 "model": model if model else "gpt-3.5-turbo",
-                "max_tokens": 256,
+                "max_tokens": 2048,
                 "temperature": 1,
                 "top_p": 1,
                 "presence_penalty":	0,
@@ -67,16 +67,15 @@ window._reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
             while True:
                 chunk = driver.execute_script("""
 chunk = await window._reader.read();
-if (chunk["done"]) {
+if (chunk.done) {
     return null;
 }
 content = "";
-lines = chunk["value"].split("\\n")
-lines.forEach((line, index) => {
+for (line of chunk.value.split("\\n")) {
     if (line.startsWith('data: ')) {
         content += line.substring('data: '.length);
     }
-});
+}
 return content;
 """)
                 if chunk:

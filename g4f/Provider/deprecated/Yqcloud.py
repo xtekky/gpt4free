@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import random
-from ..requests import StreamSession
+from ...requests import StreamSession
 
-from ..typing import AsyncResult, Messages
-from .base_provider import AsyncGeneratorProvider, format_prompt
+from ...typing import AsyncResult, Messages
+from ..base_provider import AsyncGeneratorProvider, format_prompt
 
 
 class Yqcloud(AsyncGeneratorProvider):

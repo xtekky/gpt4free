@@ -2,15 +2,14 @@ import logging
 import json
 from flask import request, Flask
 from typing import Generator
-from g4f import debug, version, models
-from g4f import _all_models, get_last_provider, ChatCompletion
+from g4f import version, models
+from g4f import get_last_provider, ChatCompletion
 from g4f.image import is_allowed_extension, to_image
 from g4f.errors import VersionNotFoundError
 from g4f.Provider import __providers__
 from g4f.Provider.bing.create_images import patch_provider
 from .internet import get_search_message
 
-debug.logging = True
 
 class Backend_Api:
     """
@@ -77,7 +76,7 @@ class Backend_Api:
         Returns:
             List[str]: A list of model names.
         """
-        return _all_models
+        return models._all_models
     
     def get_providers(self):
         """
@@ -135,25 +134,31 @@ class Backend_Api:
             dict: Arguments prepared for chat completion.
         """
         kwargs = {}
-        if 'image' in request.files:
+        if "image" in request.files:
             file = request.files['image']
             if file.filename != '' and is_allowed_extension(file.filename):
-                kwargs['image'] = to_image(file.stream)
-        if 'json' in request.form:
+                kwargs['image'] = to_image(file.stream, file.filename.endswith('.svg'))
+                kwargs['image_name'] = file.filename
+        if "json" in request.form:
             json_data = json.loads(request.form['json'])
         else:
             json_data = request.json
             
         provider = json_data.get('provider', '').replace('g4f.Provider.', '')
         provider = provider if provider and provider != "Auto" else None
+
+        if "image" in kwargs and not provider:
+            provider = "Bing"
         if provider == 'OpenaiChat':
             kwargs['auto_continue'] = True
+
         messages = json_data['messages']
         if json_data.get('web_search'):
             if provider == "Bing":
                 kwargs['web_search'] = True
             else:
                 messages[-1]["content"] = get_search_message(messages[-1]["content"])
+
         model = json_data.get('model')
         model = model if model else models.default
         patch = patch_provider if json_data.get('patch_provider') else None
@@ -163,7 +168,7 @@ class Backend_Api:
             "provider": provider,
             "messages": messages,
             "stream": True,
-            "ignore_stream_and_auth": True,
+            "ignore_stream": True,
             "patch_provider": patch,
             **kwargs
         }

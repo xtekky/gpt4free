@@ -3,11 +3,11 @@ from __future__ import annotations
 import time
 import random
 
-from ..typing import CreateResult, Messages
-from .base_provider import AbstractProvider
-from .helper import format_prompt, get_random_string
-from ..webdriver import WebDriver, WebDriverSession
-from .. import debug
+from ...typing import CreateResult, Messages
+from ..base_provider import AbstractProvider
+from ..helper import format_prompt, get_random_string
+from ...webdriver import WebDriver, WebDriverSession, element_send_text
+from ... import debug
 
 class AItianhuSpace(AbstractProvider):
     url = "https://chat3.aiyunos.top/"
@@ -52,9 +52,9 @@ class AItianhuSpace(AbstractProvider):
             wait.until(EC.visibility_of_element_located((By.ID, "sheet")))
             driver.execute_script(f"""
     document.getElementById('sheet').addEventListener('click', () => {{
-        window.open('{url}', '_blank');
+        window.open(arguments[0]);
     }});
-    """)
+            """, url)
             driver.find_element(By.ID, "sheet").click()
             time.sleep(10)
 
@@ -91,8 +91,7 @@ XMLHttpRequest.prototype.open = function(method, url) {
             driver.execute_script(script)
 
             # Submit prompt
-            driver.find_element(By.CSS_SELECTOR, "textarea.n-input__textarea-el").send_keys(prompt)
-            driver.find_element(By.CSS_SELECTOR, "button.n-button.n-button--primary-type.n-button--medium-type").click()
+            element_send_text(driver.find_element(By.CSS_SELECTOR, "textarea.n-input__textarea-el"), prompt)
 
             # Read response
             while True:

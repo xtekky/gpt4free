@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from .Provider   import RetryProvider, ProviderType
 from .Provider   import (
     Chatgpt4Online,
+    PerplexityLabs,
     ChatgptDemoAi,
     GeminiProChat,
     ChatgptNext,
@@ -14,18 +15,14 @@ from .Provider   import (
     DeepInfra,
     ChatBase,
     Liaobots,
-    GeekGpt,
-    FakeGpt,
     FreeGpt,
     Llama2,
-    Vercel, 
-    Phind,
+    Vercel,
+    Gemini,
     GptGo,
     Gpt6,
-    Bard, 
     Bing,
     You,
-    H2o,
     Pi,
 )
 
@@ -53,7 +50,7 @@ default = Model(
     base_provider = "",
     best_provider = RetryProvider([
         Bing,
-        ChatgptAi, GptGo, GeekGpt,
+        ChatgptAi, GptGo,
         You,
         Chatgpt4Online
     ])
@@ -65,7 +62,6 @@ gpt_35_long = Model(
     base_provider = 'openai',
     best_provider = RetryProvider([
         FreeGpt, You,
-        GeekGpt, FakeGpt,
         Chatgpt4Online,
         ChatgptDemoAi,
         ChatgptNext,
@@ -78,7 +74,7 @@ gpt_35_long = Model(
 gpt_35_turbo = Model(
     name          = 'gpt-3.5-turbo',
     base_provider = 'openai',
-    best_provider=RetryProvider([ 
+    best_provider = RetryProvider([ 
         GptGo, You,
         GptForLove, ChatBase,
         Chatgpt4Online,
@@ -89,7 +85,7 @@ gpt_4 = Model(
     name          = 'gpt-4',
     base_provider = 'openai',
     best_provider = RetryProvider([
-        Bing, Phind, Liaobots, 
+        Bing, Liaobots, 
     ])
 )
 
@@ -114,20 +110,57 @@ llama2_13b = Model(
 llama2_70b = Model(
     name          = "meta-llama/Llama-2-70b-chat-hf",
     base_provider = "huggingface",
-    best_provider = RetryProvider([Llama2, DeepInfra, HuggingChat])
+    best_provider = RetryProvider([Llama2, DeepInfra, HuggingChat, PerplexityLabs])
 )
 
-# Mistal
+codellama_34b_instruct = Model(
+    name          = "codellama/CodeLlama-34b-Instruct-hf",
+    base_provider = "huggingface",
+    best_provider = RetryProvider([HuggingChat, PerplexityLabs, DeepInfra])
+)
+
+codellama_70b_instruct = Model(
+    name          = "codellama/CodeLlama-70b-Instruct-hf",
+    base_provider = "huggingface",
+    best_provider = DeepInfra
+)
+
+# Mistral
 mixtral_8x7b = Model(
     name          = "mistralai/Mixtral-8x7B-Instruct-v0.1",
     base_provider = "huggingface",
-    best_provider = RetryProvider([DeepInfra, HuggingChat])
+    best_provider = RetryProvider([DeepInfra, HuggingChat, PerplexityLabs])
 )
 
 mistral_7b = Model(
     name          = "mistralai/Mistral-7B-Instruct-v0.1",
     base_provider = "huggingface",
-    best_provider = RetryProvider([DeepInfra, HuggingChat])
+    best_provider = RetryProvider([DeepInfra, HuggingChat, PerplexityLabs])
+)
+
+# Misc models
+dolphin_mixtral_8x7b = Model(
+    name          = "cognitivecomputations/dolphin-2.6-mixtral-8x7b",
+    base_provider = "huggingface",
+    best_provider = DeepInfra
+)
+
+lzlv_70b = Model(
+    name          = "lizpreciatior/lzlv_70b_fp16_hf",
+    base_provider = "huggingface",
+    best_provider = DeepInfra
+)
+
+airoboros_70b = Model(
+    name          = "deepinfra/airoboros-70b",
+    base_provider = "huggingface",
+    best_provider = DeepInfra
+)
+
+airoboros_l2_70b = Model(
+    name          = "jondurbin/airoboros-l2-70b-gpt4-1.4.1",
+    base_provider = "huggingface",
+    best_provider = DeepInfra
 )
 
 openchat_35 = Model(
@@ -137,92 +170,23 @@ openchat_35 = Model(
 )
 
 # Bard
-palm = Model(
-    name          = 'palm',
+gemini = bard = palm = Model(
+    name          = 'gemini',
     base_provider = 'google',
-    best_provider = Bard)
-
-# H2o
-falcon_7b = Model(
-    name          = 'h2oai/h2ogpt-gm-oasst1-en-2048-falcon-7b-v3',
-    base_provider = 'huggingface',
-    best_provider = H2o)
-
-falcon_40b = Model(
-    name          = 'h2oai/h2ogpt-gm-oasst1-en-2048-falcon-40b-v1',
-    base_provider = 'huggingface',
-    best_provider = H2o)
-
-llama_13b = Model(
-    name          = 'h2oai/h2ogpt-gm-oasst1-en-2048-open-llama-13b',
-    base_provider = 'huggingface',
-    best_provider = H2o)
-
-# Vercel
-claude_instant_v1 = Model(
-    name          = 'claude-instant-v1',
-    base_provider = 'anthropic',
-    best_provider = Vercel)
-
-claude_v1 = Model(
-    name          = 'claude-v1',
-    base_provider = 'anthropic',
-    best_provider = Vercel)
+    best_provider = Gemini
+)
 
 claude_v2 = Model(
     name          = 'claude-v2',
     base_provider = 'anthropic',
-    best_provider = RetryProvider([FreeChatgpt, Vercel]))
-
-command_light_nightly = Model(
-    name          = 'command-light-nightly',
-    base_provider = 'cohere',
-    best_provider = Vercel)
-
-command_nightly = Model(
-    name          = 'command-nightly',
-    base_provider = 'cohere',
-    best_provider = Vercel)
-
-gpt_neox_20b = Model(
-    name          = 'EleutherAI/gpt-neox-20b',
-    base_provider = 'huggingface',
-    best_provider = Vercel)
-
-oasst_sft_1_pythia_12b = Model(
-    name          = 'OpenAssistant/oasst-sft-1-pythia-12b',
-    base_provider = 'huggingface',
-    best_provider = Vercel)
-
-oasst_sft_4_pythia_12b_epoch_35 = Model(
-    name          = 'OpenAssistant/oasst-sft-4-pythia-12b-epoch-3.5',
-    base_provider = 'huggingface',
-    best_provider = Vercel)
-
-santacoder = Model(
-    name          = 'bigcode/santacoder',
-    base_provider = 'huggingface',
-    best_provider = Vercel)
-
-bloom = Model(
-    name          = 'bigscience/bloom',
-    base_provider = 'huggingface',
-    best_provider = Vercel)
-
-flan_t5_xxl = Model(
-    name          = 'google/flan-t5-xxl',
-    base_provider = 'huggingface',
-    best_provider = Vercel)
-
-code_davinci_002 = Model(
-    name          = 'code-davinci-002',
-    base_provider = 'openai',
-    best_provider = Vercel)
+    best_provider = RetryProvider([FreeChatgpt, Vercel])
+)
 
 gpt_35_turbo_16k = Model(
     name          = 'gpt-3.5-turbo-16k',
     base_provider = 'openai',
-    best_provider = gpt_35_long.best_provider)
+    best_provider = gpt_35_long.best_provider
+)
 
 gpt_35_turbo_16k_0613 = Model(
     name          = 'gpt-3.5-turbo-16k-0613',
@@ -260,50 +224,10 @@ gemini_pro = Model(
     best_provider = RetryProvider([FreeChatgpt, GeminiProChat])
 )
 
-text_ada_001 = Model(
-    name          = 'text-ada-001',
-    base_provider = 'openai',
-    best_provider = Vercel)
-
-text_babbage_001 = Model(
-    name          = 'text-babbage-001',
-    base_provider = 'openai',
-    best_provider = Vercel)
-
-text_curie_001 = Model(
-    name          = 'text-curie-001',
-    base_provider = 'openai',
-    best_provider = Vercel)
-
-text_davinci_002 = Model(
-    name          = 'text-davinci-002',
-    base_provider = 'openai',
-    best_provider = Vercel)
-
-text_davinci_003 = Model(
-    name          = 'text-davinci-003',
-    base_provider = 'openai',
-    best_provider = Vercel)
-
-llama13b_v2_chat = Model(
-    name          = 'replicate:a16z-infra/llama13b-v2-chat',
-    base_provider = 'replicate',
-    best_provider = Vercel)
-
-llama7b_v2_chat = Model(
-    name          = 'replicate:a16z-infra/llama7b-v2-chat',
-    base_provider = 'replicate',
-    best_provider = Vercel)
-
-llama70b_v2_chat = Model(
-    name          = 'replicate/llama70b-v2-chat',
-    base_provider = 'replicate',
-    best_provider = Vercel)
-
 pi = Model(
     name = 'pi',
     base_provider = 'inflection',
-    best_provider=Pi
+    best_provider = Pi
 )
 
 class ModelUtils:
@@ -333,50 +257,19 @@ class ModelUtils:
         'llama2-7b' : llama2_7b,
         'llama2-13b': llama2_13b,
         'llama2-70b': llama2_70b,
+        'codellama-34b-instruct': codellama_34b_instruct,
+        'codellama-70b-instruct': codellama_70b_instruct,
         
-        # Mistral
         'mixtral-8x7b': mixtral_8x7b,
         'mistral-7b': mistral_7b,
+        'dolphin-mixtral-8x7b': dolphin_mixtral_8x7b,
+        'lzlv-70b': lzlv_70b,
+        'airoboros-70b': airoboros_70b,
+        'airoboros-l2-70b': airoboros_l2_70b,
         'openchat_3.5': openchat_35,
-        
-        # Gemini Pro
+        'gemini': gemini,
         'gemini-pro': gemini_pro,
-        # Bard
-        'palm2'       : palm,
-        'palm'        : palm,
-        'google'      : palm,
-        'google-bard' : palm,
-        'google-palm' : palm,
-        'bard'        : palm,
-        
-        # H2o
-        'falcon-40b' : falcon_40b,
-        'falcon-7b'  : falcon_7b,
-        'llama-13b'  : llama_13b,
-        
-        # Vercel
-        #'claude-instant-v1' : claude_instant_v1,
-        #'claude-v1'         : claude_v1,
-        #'claude-v2'         : claude_v2,
-        'command-nightly'   : command_nightly,
-        'gpt-neox-20b'      : gpt_neox_20b,
-        'santacoder'        : santacoder,
-        'bloom'             : bloom,
-        'flan-t5-xxl'       : flan_t5_xxl,
-        'code-davinci-002'  : code_davinci_002,
-        'text-ada-001'      : text_ada_001,
-        'text-babbage-001'  : text_babbage_001,
-        'text-curie-001'    : text_curie_001,
-        'text-davinci-002'  : text_davinci_002,
-        'text-davinci-003'  : text_davinci_003,
-        'llama70b-v2-chat'  : llama70b_v2_chat,
-        'llama13b-v2-chat'  : llama13b_v2_chat,
-        'llama7b-v2-chat'   : llama7b_v2_chat,
-        
-        'oasst-sft-1-pythia-12b'           : oasst_sft_1_pythia_12b,
-        'oasst-sft-4-pythia-12b-epoch-3.5' : oasst_sft_4_pythia_12b_epoch_35,
-        'command-light-nightly'            : command_light_nightly,
-
+        'claude-v2': claude_v2,
         'pi': pi
     }
 

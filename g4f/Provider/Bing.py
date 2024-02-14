@@ -6,11 +6,12 @@ import os
 import uuid
 import time
 from urllib import parse
-from aiohttp import ClientSession, ClientTimeout
+from aiohttp import ClientSession, ClientTimeout, BaseConnector
 
 from ..typing import AsyncResult, Messages, ImageType
-from ..image import ImageResponse
+from ..image import ImageResponse, ImageRequest
 from .base_provider import AsyncGeneratorProvider
+from .helper import get_connector
 from .bing.upload_image import upload_image
 from .bing.create_images import create_images
 from .bing.conversation import Conversation, create_conversation, delete_conversation
@@ -39,6 +40,7 @@ class Bing(AsyncGeneratorProvider):
         proxy: str = None,
         timeout: int = 900,
         cookies: dict = None,
+        connector: BaseConnector = None,
         tone: str = Tones.balanced,
         image: ImageType = None,
         web_search: bool = False,
@@ -64,16 +66,11 @@ class Bing(AsyncGeneratorProvider):
             prompt = messages[-1]["content"]
             context = create_context(messages[:-1])
         
-        if not cookies:
-            cookies = Defaults.cookies
-        else:
-            for key, value in Defaults.cookies.items():
-                if key not in cookies:
-                    cookies[key] = value
+        cookies = {**Defaults.cookies, **cookies} if cookies else Defaults.cookies
 
         gpt4_turbo = True if model.startswith("gpt-4-turbo") else False
 
-        return stream_generate(prompt, tone, image, context, proxy, cookies, web_search, gpt4_turbo, timeout)
+        return stream_generate(prompt, tone, image, context, cookies, get_connector(connector, proxy), web_search, gpt4_turbo, timeout)
 
 def create_context(messages: Messages) -> str:
     """
@@ -144,7 +141,9 @@ class Defaults:
         'nlu_direct_response_filter', 'deepleo', 'disable_emoji_spoken_text',
         'responsible_ai_policy_235', 'enablemm', 'iyxapbing', 'iycapbing',
         'gencontentv3', 'fluxsrtrunc', 'fluxtrunc', 'fluxv1', 'rai278',
-        'replaceurl', 'eredirecturl', 'nojbfedge'
+        'replaceurl', 'eredirecturl', 'nojbfedge', "fluxcopilot", "nojbf",
+        "dgencontentv3", "nointernalsugg", "disable_telemetry", "machine_affinity",
+        "streamf", "codeint", "langdtwb", "fdwtlst", "fluxprod", "deuct3"
     ]
     
     # Default cookies
@@ -156,6 +155,11 @@ class Defaults:
         'SRCHUSR'       : '',
         'SRCHHPGUSR'    : f'HV={int(time.time())}',
     }
+
+class ConversationStyleOptionSets():
+    CREATIVE = ["h3imaginative", "clgalileo", "gencontentv3"]
+    BALANCED = ["galileo", "gldcl1p"]
+    PRECISE = ["h3precise", "clgalileo"]
 
 def format_message(msg: dict) -> str:
     """
@@ -171,7 +175,7 @@ def create_message(
     prompt: str,
     tone: str,
     context: str = None,
-    image_response: ImageResponse = None,
+    image_request: ImageRequest = None,
     web_search: bool = False,
     gpt4_turbo: bool = False
 ) -> str:
@@ -182,19 +186,19 @@ def create_message(
     :param prompt: The user's input prompt.
     :param tone: The desired tone for the response.
     :param context: Additional context for the prompt.
-    :param image_response: The response if an image is involved.
+    :param image_request: The image request with the url.
     :param web_search: Flag to enable web search.
     :param gpt4_turbo: Flag to enable GPT-4 Turbo.
     :return: A formatted string message for the Bing API.
     """
-    options_sets = Defaults.optionsSets
+    options_sets = Defaults.optionsSets.copy()
     # Append tone-specific options
     if tone == Tones.creative:
-        options_sets.append("h3imaginative")
+        options_sets.extend(ConversationStyleOptionSets.CREATIVE)
     elif tone == Tones.precise:
-        options_sets.append("h3precise")
+        options_sets.extend(ConversationStyleOptionSets.PRECISE)
     elif tone == Tones.balanced:
-        options_sets.append("galileo")
+        options_sets.extend(ConversationStyleOptionSets.BALANCED)
     else:
         options_sets.append("harmonyv3")
 
@@ -207,10 +211,12 @@ def create_message(
     request_id = str(uuid.uuid4())
     struct = {
         'arguments': [{
-            'source': 'cib', 'optionsSets': options_sets,
+            'source': 'cib',
+            'optionsSets': options_sets,
             'allowedMessageTypes': Defaults.allowedMessageTypes,
             'sliceIds': Defaults.sliceIds,
-            'traceId': os.urandom(16).hex(), 'isStartOfSession': True,
+            'traceId': os.urandom(16).hex(),
+            'isStartOfSession': True,
             'requestId': request_id,
             'message': {
                 **Defaults.location,
@@ -234,9 +240,9 @@ def create_message(
         'type': 4
     }
 
-    if image_response and image_response.get('imageUrl') and image_response.get('originalImageUrl'):
-        struct['arguments'][0]['message']['originalImageUrl'] = image_response.get('originalImageUrl')
-        struct['arguments'][0]['message']['imageUrl'] = image_response.get('imageUrl')
+    if image_request and image_request.get('imageUrl') and image_request.get('originalImageUrl'):
+        struct['arguments'][0]['message']['originalImageUrl'] = image_request.get('originalImageUrl')
+        struct['arguments'][0]['message']['imageUrl'] = image_request.get('imageUrl')
         struct['arguments'][0]['experienceType'] = None
         struct['arguments'][0]['attachedFileInfo'] = {"fileName": None, "fileType": None}
 
@@ -256,8 +262,8 @@ async def stream_generate(
     tone: str,
     image: ImageType = None,
     context: str = None,
-    proxy: str = None,
     cookies: dict = None,
+    connector: BaseConnector = None,
     web_search: bool = False,
     gpt4_turbo: bool = False,
     timeout: int = 900
@@ -269,7 +275,6 @@ async def stream_generate(
     :param tone: The desired tone for the response.
     :param image: The image type involved in the response.
     :param context: Additional context for the prompt.
-    :param proxy: Proxy settings for the request.
     :param cookies: Cookies for the session.
     :param web_search: Flag to enable web search.
     :param gpt4_turbo: Flag to enable GPT-4 Turbo.
@@ -281,23 +286,20 @@ async def stream_generate(
         headers["Cookie"] = "; ".join(f"{k}={v}" for k, v in cookies.items())
 
     async with ClientSession(
-        timeout=ClientTimeout(total=timeout), headers=headers
+        timeout=ClientTimeout(total=timeout), headers=headers, connector=connector
     ) as session:
-        conversation = await create_conversation(session, proxy)
-        image_response = await upload_image(session, image, tone, proxy) if image else None
-        if image_response:
-            yield image_response
+        conversation = await create_conversation(session)
+        image_request = await upload_image(session, image, tone) if image else None
 
         try:
             async with session.ws_connect(
                 'wss://sydney.bing.com/sydney/ChatHub',
                 autoping=False,
-                params={'sec_access_token': conversation.conversationSignature},
-                proxy=proxy
+                params={'sec_access_token': conversation.conversationSignature}
             ) as wss:
                 await wss.send_str(format_message({'protocol': 'json', 'version': 1}))
                 await wss.receive(timeout=timeout)
-                await wss.send_str(create_message(conversation, prompt, tone, context, image_response, web_search, gpt4_turbo))
+                await wss.send_str(create_message(conversation, prompt, tone, context, image_request, web_search, gpt4_turbo))
 
                 response_txt = ''
                 returned_text = ''
@@ -325,7 +327,7 @@ async def stream_generate(
                                 elif message.get('contentType') == "IMAGE":
                                     prompt = message.get('text')
                                     try:
-                                        image_response = ImageResponse(await create_images(session, prompt, proxy), prompt)
+                                        image_response = ImageResponse(await create_images(session, prompt), prompt, {"preview": "{image}?w=200&h=200"})
                                     except:
                                         response_txt += f"\nhttps://www.bing.com/images/create?q={parse.quote(prompt)}"
                                     final = True
@@ -345,4 +347,4 @@ async def stream_generate(
                                     raise Exception(f"{result['value']}: {result['message']}")
                             return
         finally:
-            await delete_conversation(session, conversation, proxy)
+            await delete_conversation(session, conversation)

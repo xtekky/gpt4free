@@ -8,6 +8,7 @@ const stop_generating   = document.querySelector(`.stop_generating`);
 const regenerate        = document.querySelector(`.regenerate`);
 const send_button       = document.querySelector(`#send-button`);
 const imageInput        = document.querySelector('#image');
+const cameraInput       = document.querySelector('#camera');
 const fileInput         = document.querySelector('#file');
 
 let   prompt_lock       = false;
@@ -51,6 +52,12 @@ const handle_ask = async () => {
         }
         await add_message(window.conversation_id, "user", message);
         window.token = message_id();
+
+        if (imageInput.dataset.src) URL.revokeObjectURL(imageInput.dataset.src);
+        const input = imageInput && imageInput.files.length > 0 ? imageInput : cameraInput
+        if (input.files.length > 0) imageInput.dataset.src = URL.createObjectURL(input.files[0]);
+        else delete imageInput.dataset.src
+
         message_box.innerHTML += `
             <div class="message">
                 <div class="user">
@@ -59,6 +66,10 @@ const handle_ask = async () => {
                 </div>
                 <div class="content" id="user_${token}"> 
                     ${markdown_render(message)}
+                    ${imageInput.dataset.src
+                        ? '<img src="' + imageInput.dataset.src + '" alt="Image upload">'
+                        : ''
+                    }
                 </div>
             </div>
         `;
@@ -89,6 +100,11 @@ const ask_gpt = async () => {
             ""
         )
         delete messages[i]["provider"];
+    }
+
+    // Remove history, if it is selected
+    if (document.getElementById('history')?.checked) {
+        messages = [messages[messages.length-1]]
     }
 
     window.scrollTo(0, 0);
@@ -137,9 +153,10 @@ const ask_gpt = async () => {
         const headers = {
             accept: 'text/event-stream'
         }
-        if (imageInput && imageInput.files.length > 0) {
+        const input = imageInput && imageInput.files.length > 0 ? imageInput : cameraInput
+        if (input && input.files.length > 0) {
             const formData = new FormData();
-            formData.append('image', imageInput.files[0]);
+            formData.append('image', input.files[0]);
             formData.append('json', body);
             body = formData;
         } else {
@@ -164,12 +181,16 @@ const ask_gpt = async () => {
             for (const line of value.split("\n")) {
                 if (!line) continue;
                 const message = JSON.parse(line);
-                if (message["type"] == "content") {
-                    text += message["content"];
+                if (message.type == "content") {
+                    text += message.content;
                 } else if (message["type"] == "provider") {
-                    provider = message["provider"];
-                    content.querySelector('.provider').innerHTML =
-                        '<a href="' + provider.url + '" target="_blank">' + provider.name + "</a>"
+                    provider = message.provider
+                    content.querySelector('.provider').innerHTML = `
+                        <a href="${provider.url}" target="_blank">
+                            ${provider.name}
+                        </a>
+                        ${provider.model ? ' with ' + provider.model : ''}
+                    `
                 } else if (message["type"] == "error") {
                     error = message["error"];
                 } else if (message["type"] == "message") {
@@ -203,8 +224,11 @@ const ask_gpt = async () => {
                 message_box.scrollTo({ top: message_box.scrollHeight, behavior: "auto" });
             }
         }
-        if (!error && imageInput) imageInput.value = "";
-        if (!error && fileInput) fileInput.value = "";
+        if (!error) {
+            if (imageInput) imageInput.value = "";
+            if (cameraInput) cameraInput.value = "";
+            if (fileInput) fileInput.value = "";
+        }
     } catch (e) {
         console.error(e);
 
@@ -474,7 +498,7 @@ document.querySelector(".mobile-sidebar").addEventListener("click", (event) => {
 });
 
 const register_settings_localstorage = async () => {
-    for (id of ["switch", "model", "jailbreak", "patch", "provider"]) {
+    for (id of ["switch", "model", "jailbreak", "patch", "provider", "history"]) {
         element = document.getElementById(id);
         element.addEventListener('change', async (event) => {
             switch (event.target.type) {
@@ -492,7 +516,7 @@ const register_settings_localstorage = async () => {
 }
 
 const load_settings_localstorage = async () => {
-    for (id of ["switch", "model", "jailbreak", "patch", "provider"]) {
+    for (id of ["switch", "model", "jailbreak", "patch", "provider", "history"]) {
         element = document.getElementById(id);
         value = localStorage.getItem(element.id);
         if (value) {
@@ -660,7 +684,19 @@ observer.observe(message_input, { attributes: true });
     }
     document.getElementById("version_text").innerHTML = text
 })()
-
+for (const el of [imageInput, cameraInput]) {
+    el.addEventListener('click', async () => {
+        el.value = '';
+        if (imageInput.dataset.src) {
+            URL.revokeObjectURL(imageInput.dataset.src);
+            delete imageInput.dataset.src
+        }
+    });
+}
+fileInput.addEventListener('click', async (event) => {
+    fileInput.value = '';
+    delete fileInput.dataset.text;
+});
 fileInput.addEventListener('change', async (event) => {
     if (fileInput.files.length) {
         type = fileInput.files[0].type;

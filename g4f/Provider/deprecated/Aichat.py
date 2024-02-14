@@ -1,11 +1,9 @@
 from __future__ import annotations
 
-from aiohttp import ClientSession
-
-from ..typing import Messages
-from .base_provider import AsyncProvider, format_prompt
-from .helper import get_cookies
-from ..requests import StreamSession
+from ...typing import Messages
+from ..base_provider import AsyncProvider, format_prompt
+from ..helper import get_cookies
+from ...requests import StreamSession
 
 class Aichat(AsyncProvider):
     url = "https://chat-gpt.org/chat"

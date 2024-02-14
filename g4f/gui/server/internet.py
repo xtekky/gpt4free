@@ -1,8 +1,14 @@
 from __future__ import annotations
 
-from bs4 import BeautifulSoup
 from aiohttp import ClientSession, ClientTimeout
-from duckduckgo_search import DDGS
+try:
+    from duckduckgo_search import DDGS
+    from bs4 import BeautifulSoup
+    has_requirements = True
+except ImportError:
+    has_requirements = False
+from ...errors import MissingRequirementsError
+    
 import asyncio
 
 class SearchResults():
@@ -88,6 +94,8 @@ async def fetch_and_scrape(session: ClientSession, url: str, max_words: int = No
         return
 
 async def search(query: str, n_results: int = 5, max_words: int = 2500, add_text: bool = True) -> SearchResults:
+    if not has_requirements:
+        raise MissingRequirementsError('Install "duckduckgo-search" and "beautifulsoup4" package')
     with DDGS() as ddgs:
         results = []
         for result in ddgs.text(

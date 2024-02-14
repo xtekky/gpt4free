@@ -1,18 +1,29 @@
 from __future__ import annotations
 
 import json
-from ..typing           import AsyncResult, Messages
-from .base_provider     import AsyncGeneratorProvider
-from ..requests         import StreamSession
+import requests
+from ..typing       import AsyncResult, Messages
+from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from ..requests     import StreamSession
 
-class DeepInfra(AsyncGeneratorProvider):
+class DeepInfra(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://deepinfra.com"
     working = True
     supports_stream = True
     supports_message_history = True
+    default_model = 'meta-llama/Llama-2-70b-chat-hf'
+    
+    @classmethod
+    def get_models(cls):
+        if not cls.models:
+            url = 'https://api.deepinfra.com/models/featured'
+            models = requests.get(url).json()
+            cls.models = [model['model_name'] for model in models]
+        return cls.models
 
-    @staticmethod
+    @classmethod
     async def create_async_generator(
+        cls,
         model: str,
         messages: Messages,
         stream: bool,
@@ -21,8 +32,6 @@ class DeepInfra(AsyncGeneratorProvider):
         auth: str = None,
         **kwargs
     ) -> AsyncResult:
-        if not model:
-            model = 'meta-llama/Llama-2-70b-chat-hf'
         headers = {
             'Accept-Encoding': 'gzip, deflate, br',
             'Accept-Language': 'en-US',
@@ -49,7 +58,7 @@ class DeepInfra(AsyncGeneratorProvider):
             impersonate="chrome110"
         ) as session:
             json_data = {
-                'model'   : model,
+                'model'   : cls.get_model(model),
                 'messages': messages,
                 'stream'  : True
             }
@@ -58,16 +67,20 @@ class DeepInfra(AsyncGeneratorProvider):
                 response.raise_for_status()
                 first = True
                 async for line in response.iter_lines():
+                    if not line.startswith(b"data: "):
+                        continue
                     try:
-                        if line.startswith(b"data: [DONE]"):
+                        json_line = json.loads(line[6:])
+                        choices = json_line.get("choices", [{}])
+                        finish_reason = choices[0].get("finish_reason")
+                        if finish_reason:
                             break
-                        elif line.startswith(b"data: "):
-                            chunk = json.loads(line[6:])["choices"][0]["delta"].get("content")
-                        if chunk:
+                        token = choices[0].get("delta", {}).get("content")
+                        if token:
                             if first:
-                                chunk = chunk.lstrip()
-                                if chunk:
-                                    first = False
-                            yield chunk
+                                token = token.lstrip()
+                            if token:
+                                first = False
+                                yield token
                     except Exception:
                         raise RuntimeError(f"Response: {line}")

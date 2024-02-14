@@ -2,20 +2,30 @@ from __future__ import annotations
 
 import json, uuid
 
-from aiohttp import ClientSession
+from aiohttp import ClientSession, BaseConnector
 
-from ...typing import AsyncResult, Messages
-from ..base_provider import AsyncGeneratorProvider
-from ..helper import format_prompt, get_cookies
+from ..typing import AsyncResult, Messages
+from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from .helper import format_prompt, get_cookies, get_connector
 
-map = {
-    "openchat/openchat_3.5": "openchat/openchat-3.5-1210",
-}
 
-class HuggingChat(AsyncGeneratorProvider):
+class HuggingChat(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://huggingface.co/chat"
     working = True
-    model = "meta-llama/Llama-2-70b-chat-hf"
+    default_model = "meta-llama/Llama-2-70b-chat-hf"
+    models = [
+        "mistralai/Mixtral-8x7B-Instruct-v0.1",
+        "meta-llama/Llama-2-70b-chat-hf",
+        "NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO",
+        "codellama/CodeLlama-34b-Instruct-hf",
+        "mistralai/Mistral-7B-Instruct-v0.2",
+        "openchat/openchat-3.5-0106",
+        "codellama/CodeLlama-70b-Instruct-hf"
+    ]
+    model_aliases = {
+        "openchat/openchat_3.5": "openchat/openchat-3.5-1210",
+        "mistralai/Mixtral-8x7B-Instruct-v0.1": "mistralai/Mistral-7B-Instruct-v0.2"
+    }
 
     @classmethod
     async def create_async_generator(
@@ -24,25 +34,23 @@ class HuggingChat(AsyncGeneratorProvider):
         messages: Messages,
         stream: bool = True,
         proxy: str = None,
+        connector: BaseConnector = None,
         web_search: bool = False,
         cookies: dict = None,
         **kwargs
     ) -> AsyncResult:
-        if not model:
-            model = cls.model
-        elif model in map:
-            model = map[model]
         if not cookies:
-            cookies = get_cookies(".huggingface.co")
+            cookies = get_cookies(".huggingface.co", False)
 
         headers = {
             'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36',
         }
         async with ClientSession(
             cookies=cookies,
-            headers=headers
+            headers=headers,
+            connector=get_connector(connector, proxy)
         ) as session:
-            async with session.post(f"{cls.url}/conversation", json={"model": model}, proxy=proxy) as response:
+            async with session.post(f"{cls.url}/conversation", json={"model": cls.get_model(model)}, proxy=proxy) as response:
                 conversation_id = (await response.json())["conversationId"]
 
             send = {

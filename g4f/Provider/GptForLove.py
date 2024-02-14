@@ -1,17 +1,18 @@
 from __future__ import annotations
 
 from aiohttp import ClientSession
+import os
 import json
-from Crypto.Cipher import AES
-from Crypto.Util import Padding
-import base64
-import hashlib
-import time
-import math
+try:
+    import execjs
+    has_requirements = True
+except ImportError:
+    has_requirements = False
 
 from ..typing import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider
 from .helper import format_prompt
+from ..errors import MissingRequirementsError
 
 class GptForLove(AsyncGeneratorProvider):
     url = "https://ai18.gptforlove.com"
@@ -26,6 +27,8 @@ class GptForLove(AsyncGeneratorProvider):
         proxy: str = None,
         **kwargs
     ) -> AsyncResult:
+        if not has_requirements:
+            raise MissingRequirementsError('Install "PyExecJS" package')
         if not model:
             model = "gpt-3.5-turbo"
         headers = {
@@ -71,13 +74,18 @@ class GptForLove(AsyncGeneratorProvider):
 
 
 def get_secret() -> str:
-    k = '14487141bvirvvG'
-    e = math.floor(time.time())
-
-    plaintext = str(e).encode('utf-8')
-    key = hashlib.md5(k.encode('utf-8')).digest()
-    
-    cipher = AES.new(key, AES.MODE_ECB)
-    ciphertext = cipher.encrypt(Padding.pad(plaintext, AES.block_size, style='pkcs7'))
-
-    return base64.b64encode(ciphertext).decode()
+    dir = os.path.dirname(__file__)
+    include = f'{dir}/npm/node_modules/crypto-js/crypto-js'
+    source = """
+CryptoJS = require({include})
+var k = 'fjfsdwiuhfwf'
+    , e = Math.floor(new Date().getTime() / 1e3);
+var t = CryptoJS.enc.Utf8.parse(e)
+    , o = CryptoJS.AES.encrypt(t, k, {
+    mode: CryptoJS.mode.ECB,
+    padding: CryptoJS.pad.Pkcs7
+});
+return o.toString()
+"""
+    source = source.replace('{include}', json.dumps(include))
+    return execjs.compile(source).call('')

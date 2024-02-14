@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import uuid
 
-from aiohttp import ClientSession
+from aiohttp import ClientSession, BaseConnector
 
 from ..typing import AsyncResult, Messages
-from .base_provider import AsyncGeneratorProvider
+from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from .helper import get_connector
 
 models = {
     "gpt-4": {
@@ -70,13 +71,17 @@ models = {
     }
 }
 
-
-class Liaobots(AsyncGeneratorProvider):
+class Liaobots(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://liaobots.site"
     working = True
     supports_message_history = True
     supports_gpt_35_turbo = True
     supports_gpt_4 = True
+    default_model = "gpt-3.5-turbo"
+    models = [m for m in models]
+    model_aliases = {
+        "claude-v2": "claude-2"
+    }
     _auth_code = None
     _cookie_jar = None
 
@@ -87,9 +92,9 @@ class Liaobots(AsyncGeneratorProvider):
         messages: Messages,
         auth: str = None,
         proxy: str = None,
+        connector: BaseConnector = None,
         **kwargs
     ) -> AsyncResult:
-        model = model if model in models else "gpt-3.5-turbo"
         headers = {
             "authority": "liaobots.com",
             "content-type": "application/json",
@@ -99,7 +104,8 @@ class Liaobots(AsyncGeneratorProvider):
         }
         async with ClientSession(
             headers=headers,
-            cookie_jar=cls._cookie_jar
+            cookie_jar=cls._cookie_jar,
+            connector=get_connector(connector, proxy)
         ) as session:
             cls._auth_code = auth if isinstance(auth, str) else cls._auth_code
             if not cls._auth_code:
@@ -122,7 +128,7 @@ class Liaobots(AsyncGeneratorProvider):
                     
             data = {
                 "conversationId": str(uuid.uuid4()),
-                "model": models[model],
+                "model": models[cls.get_model(model)],
                 "messages": messages,
                 "key": "",
                 "prompt": kwargs.get("system_message", "You are ChatGPT, a large language model trained by OpenAI. Follow the user's instructions carefully."),

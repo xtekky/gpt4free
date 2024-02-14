@@ -3,18 +3,21 @@ from __future__ import annotations
 import os
 
 from .errors   import *
-from .models   import Model, ModelUtils, _all_models
+from .models   import Model, ModelUtils
 from .Provider import AsyncGeneratorProvider, ProviderUtils
 from .typing   import Messages, CreateResult, AsyncResult, Union
+from .cookies  import get_cookies, set_cookies
 from .         import debug, version
 from .base_provider import BaseRetryProvider, ProviderType
+from .Provider.base_provider import ProviderModelMixin
 
 def get_model_and_provider(model    : Union[Model, str], 
                            provider : Union[ProviderType, str, None], 
                            stream   : bool,
                            ignored  : list[str] = None,
                            ignore_working: bool = False,
-                           ignore_stream: bool = False) -> tuple[str, ProviderType]:
+                           ignore_stream: bool = False,
+                           **kwargs) -> tuple[str, ProviderType]:
     """
     Retrieves the model and provider based on input parameters.
 
@@ -45,12 +48,13 @@ def get_model_and_provider(model    : Union[Model, str],
         else:
             raise ProviderNotFoundError(f'Provider not found: {provider}')
 
+    if isinstance(model, str):
+        if model in ModelUtils.convert:
+            model = ModelUtils.convert[model]
+
     if not provider:
         if isinstance(model, str):
-            if model in ModelUtils.convert:
-                model = ModelUtils.convert[model]
-            else:
-                raise ModelNotFoundError(f'Model not found: {model}')
+            raise ModelNotFoundError(f'Model not found: {model}')
         provider = model.best_provider
 
     if not provider:
@@ -75,6 +79,7 @@ def get_model_and_provider(model    : Union[Model, str],
             print(f'Using {provider.__name__} provider')
 
     debug.last_provider = provider
+    debug.last_model = model
 
     return model, provider
 
@@ -87,7 +92,7 @@ class ChatCompletion:
                auth     : Union[str, None] = None,
                ignored  : list[str] = None, 
                ignore_working: bool = False,
-               ignore_stream_and_auth: bool = False,
+               ignore_stream: bool = False,
                patch_provider: callable = None,
                **kwargs) -> Union[CreateResult, str]:
         """
@@ -101,7 +106,7 @@ class ChatCompletion:
             auth (Union[str, None], optional): Authentication token or credentials, if required.
             ignored (list[str], optional): List of provider names to be ignored.
             ignore_working (bool, optional): If True, ignores the working status of the provider.
-            ignore_stream_and_auth (bool, optional): If True, ignores the stream and authentication requirement checks.
+            ignore_stream (bool, optional): If True, ignores the stream and authentication requirement checks.
             patch_provider (callable, optional): Function to modify the provider.
             **kwargs: Additional keyword arguments.
 
@@ -114,10 +119,11 @@ class ChatCompletion:
             ProviderNotWorkingError: If the provider is not operational.
             StreamNotSupportedError: If streaming is requested but not supported by the provider.
         """
-        model, provider = get_model_and_provider(model, provider, stream, ignored, ignore_working, ignore_stream_and_auth)
-
-        if not ignore_stream_and_auth and provider.needs_auth and not auth:
-            raise AuthenticationRequiredError(f'{provider.__name__} requires authentication (use auth=\'cookie or token or jwt ...\' param)')
+        model, provider = get_model_and_provider(
+            model, provider, stream,
+            ignored, ignore_working,
+            ignore_stream or kwargs.get("ignore_stream_and_auth")
+        )
 
         if auth:
             kwargs['auth'] = auth
@@ -131,7 +137,7 @@ class ChatCompletion:
             provider = patch_provider(provider)
 
         result = provider.create_completion(model, messages, stream, **kwargs)
-        return result if stream else ''.join(result)
+        return result if stream else ''.join([str(chunk) for chunk in result])
 
     @staticmethod
     def create_async(model    : Union[Model, str],
@@ -226,5 +232,10 @@ def get_last_provider(as_dict: bool = False) -> Union[ProviderType, dict[str, st
     if isinstance(last, BaseRetryProvider):
         last = last.last_provider
     if last and as_dict:
-        return {"name": last.__name__, "url": last.url}
+        return {
+            "name": last.__name__,
+            "url": last.url,
+            "model": debug.last_model,
+            "models": last.models if isinstance(last, ProviderModelMixin) else []
+        }
     return last
