@@ -385,7 +385,7 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
                     }
                 ) as response:
                     if not response.ok:
-                        raise RuntimeError(f"Response {response.status_code}: {await response.text()}")
+                        raise RuntimeError(f"Response {response.status}: {await response.text()}")
                     last_message: int = 0
                     async for line in response.iter_lines():
                         if not line.startswith(b"data: "):
