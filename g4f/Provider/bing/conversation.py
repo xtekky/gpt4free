@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import uuid
 from aiohttp import ClientSession
 
 class Conversation:
@@ -30,8 +31,20 @@ async def create_conversation(session: ClientSession, proxy: str = None) -> Conv
     Returns:
     Conversation: An instance representing the created conversation.
     """
-    url = 'https://www.bing.com/turing/conversation/create?bundleVersion=1.1199.4'
+    url = 'https://www.bing.com/search?toncp=0&FORM=hpcodx&q=Bing+AI&showconv=1&cc=en'
     async with session.get(url, proxy=proxy) as response:
+        response.raise_for_status()
+    headers = {
+        "accept": "application/json",
+        "sec-fetch-dest": "empty",
+        "sec-fetch-mode": "cors",
+        "sec-fetch-site": "same-origin",
+        "x-ms-client-request-id": str(uuid.uuid4()),
+        "x-ms-useragent": "azsdk-js-api-client-factory/1.0.0-beta.1 core-rest-pipeline/1.12.3 OS/Windows",
+        "referer": url
+    }
+    url = 'https://www.bing.com/turing/conversation/create?bundleVersion=1.1579.2'
+    async with session.get(url, headers=headers, proxy=proxy) as response:
         try:
             data = await response.json()
         except:
