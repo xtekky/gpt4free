@@ -41,8 +41,11 @@ async def create_conversation(session: ClientSession, proxy: str = None) -> Conv
         "sec-fetch-site": "same-origin",
         "x-ms-client-request-id": str(uuid.uuid4()),
         "x-ms-useragent": "azsdk-js-api-client-factory/1.0.0-beta.1 core-rest-pipeline/1.12.3 OS/Windows",
-        "referer": url
+        "referer": url,
+        "Cookie": "; ".join(f"{c.key}={c.value}" for c in session.cookie_jar)
     }
+    for k, v in headers.items():
+        session.headers[k] = v
     url = 'https://www.bing.com/turing/conversation/create?bundleVersion=1.1579.2'
     async with session.get(url, headers=headers, proxy=proxy) as response:
         try:
