@@ -8,8 +8,8 @@ from ..typing import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider
 
 
-class GeminiProChat(AsyncGeneratorProvider):
-    url = "https://geminiprochat.com"
+class GeminiChatbotSigma(AsyncGeneratorProvider):
+    url = "https://gemini-chatbot-sigma.vercel.app"
     working = True
     supports_gpt_35_turbo = True
 
