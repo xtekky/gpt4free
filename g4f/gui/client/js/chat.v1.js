@@ -32,6 +32,20 @@ const markdown_render = (content) => {
         .replaceAll('<code>', '<code class="language-plaintext">')
 }
 
+let typesetPromise = Promise.resolve();
+const highlight = (container) => {
+    container.querySelectorAll('code:not(.hljs').forEach((el) => {
+        if (el.className != "hljs") {
+            hljs.highlightElement(el);
+        }
+    });
+    typesetPromise = typesetPromise.then(
+        () => MathJax.typesetPromise([container])
+    ).catch(
+        (err) => console.log('Typeset failed: ' + err.message)
+    );
+}
+
 const delete_conversations = async () => {
     localStorage.clear();
     await new_conversation();
@@ -73,9 +87,7 @@ const handle_ask = async () => {
                 </div>
             </div>
         `;
-        document.querySelectorAll('code:not(.hljs').forEach((el) => {
-            hljs.highlightElement(el);
-        });
+        highlight(message_box);
         await ask_gpt();
     }
 };
@@ -214,9 +226,7 @@ const ask_gpt = async () => {
                     html = html.substring(0, lastIndex) + '<span id="cursor"></span>' + lastElement;
                 }
                 content_inner.innerHTML = html;
-                document.querySelectorAll('code:not(.hljs').forEach((el) => {
-                    hljs.highlightElement(el);
-                });
+                highlight(content_inner);
             }
 
             window.scrollTo(0, 0);
@@ -331,8 +341,15 @@ const new_conversation = async () => {
 const load_conversation = async (conversation_id) => {
     let messages = await get_messages(conversation_id);
 
+    let elements = "";
     for (item of messages) {
-        message_box.innerHTML += `
+        let provider = item.provider ? `
+            <div class="provider">
+            <a href="${item.provider.url}" target="_blank">${item.provider.name}</a>
+            ${item.provider.model ? ' with ' + item.provider.model : ''}
+            </div>
+        ` : "";
+        elements += `
             <div class="message">
                 <div class=${item.role == "assistant" ? "assistant" : "user"}>
                     ${item.role == "assistant" ? gpt_image : user_image}
@@ -342,19 +359,15 @@ const load_conversation = async (conversation_id) => {
                     }
                 </div>
                 <div class="content">
-                    ${item.provider
-                        ? '<div class="provider"><a href="' + item.provider.url + '" target="_blank">' + item.provider.name + '</a></div>'
-                        : ''
-                    }
+                    ${provider}
                     <div class="content_inner">${markdown_render(item.content)}</div>
                 </div>
             </div>
         `;
     }
+    message_box.innerHTML = elements;
 
-    document.querySelectorAll('code:not(.hljs').forEach((el) => {
-        hljs.highlightElement(el);
-    });
+    highlight(message_box);
 
     message_box.scrollTo({ top: message_box.scrollHeight, behavior: "smooth" });
 
@@ -447,9 +460,6 @@ const load_conversations = async (limit, offset, loader) => {
         `;
     }
 
-    document.querySelectorAll('code:not(.hljs').forEach((el) => {
-        hljs.highlightElement(el);
-    });
 };
 
 document.getElementById(`cancelButton`).addEventListener(`click`, async () => {
