@@ -1,4 +1,4 @@
-### G4F Client API Documentation (Beta Version)
+### G4F - Client API (Beta Version)
 
 #### Introduction
 
@@ -31,7 +31,7 @@ from g4f.client import Client
 from g4f.Provider import BingCreateImages, OpenaiChat, Gemini
 
 client = Client(
-    text_provider=OpenaiChat,
+    provider=OpenaiChat,
     image_provider=Gemini,
     proxies=None
 )
@@ -89,5 +89,4 @@ Original / Variant:
 [![Original Image](/docs/cat.jpeg)](/docs/client.md)
 [![Variant Image](/docs/cat.webp)](/docs/client.md)
 
-[Return to Documentation Home](/)
-```
+[Return to Home](/)
