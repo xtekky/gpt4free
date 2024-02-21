@@ -100,72 +100,43 @@ or set the api base in your client to: [http://localhost:1337/v1](http://localho
 
 ##### Install using pypi:
 
-Install all supported tools / all used packages:
 ```
 pip install -U g4f[all]
 ```
 
-Or use: [Partially Requirements](/docs/requirements.md)
+Or use partial requirements.
 
+See: [/docs/requirements](/docs/requirements.md)
 
 ##### Install from source:
 
-1. Clone the GitHub repository:
+See: [/docs/git](/docs/git.md)
 
-```
-git clone https://github.com/xtekky/gpt4free.git
-```
-
-2. Navigate to the project directory:
-
-```
-cd gpt4free
-```
-
-3. (Recommended) Create a Python virtual environment:
-You can follow the [Python official documentation](https://docs.python.org/3/tutorial/venv.html) for virtual environments.
-
-
-```
-python3 -m venv venv
-```
-
-4. Activate the virtual environment:
-   - On Windows:
-   ```
-   .\venv\Scripts\activate
-   ```
-   - On macOS and Linux:
-   ```
-   source venv/bin/activate
-   ```
-5. Install minimum requirements:
-
-```
-pip install -r requirements-min.txt
-```
-
-6. Or install all used Python packages from `requirements.txt`:
-
-```
-pip install -r requirements.txt
-```
-
-7. Create a `test.py` file in the root folder and start using the repo, further Instructions are below
-
-```py
-import g4f
-...
-```
 
 ##### Install using Docker
 
- Or use: [Build Docker](/docs/docker.md)
+ See: [/docs/docker](/docs/docker.md)
 
 
 ## 💡 Usage
 
+#### Text Generation
+**with Python**
+
+```python
+from g4f.client import Client
+
+client = Client()
+response = client.chat.completions.create(
+    model="gpt-3.5-turbo",
+    messages=[{"role": "user", "content": "Say this is a test"}],
+    ...
+)
+print(response.choices[0].message.content)
+```
+
 #### Image Generation
+**with Python**
 
 ```python
 from g4f.client import Client
@@ -182,9 +153,7 @@ Result:
 
 [![Image with cat](/docs/cat.jpeg)](/docs/client.md)
 
-#### Text Generation
-
-and more:
+**See also for Python:**
 
 - [Documentation for new Client](/docs/client.md)
 - [Documentation for leagcy API](/docs/leagcy.md)
@@ -192,19 +161,31 @@ and more:
 
 #### Web UI
 
-To start the web interface, type the following codes in the command line.
+To start the web interface, type the following codes in python:
 
 ```python
 from g4f.gui import run_gui
 run_gui()
 ```
+or type in command line:
+```bash
+python -m g4f.cli gui -port 8080 -debug
+```
+
+### Interference API
+
+You can use the Interference API to serve other OpenAI integrations with G4F.
+
+See: [/docs/interference](/docs/interference.md)
+
+### Configuration
 
 ##### Cookies / Access Token
 
-For generating images with Bing and for the OpenAi Chat  you need cookies or a token from your browser session. From Bing you need the "_U" cookie and from OpenAI you need the "access_token". You can pass the cookies / the  access token in the create function or you use the `set_cookies` setter:
+For generating images with Bing and for the OpenAi Chat  you need cookies or a token from your browser session. From Bing you need the "_U" cookie and from OpenAI you need the "access_token". You can pass the cookies / the  access token in the create function or you use the `set_cookies` setter before you run G4F:
 
 ```python
-from g4f import set_cookies
+from g4f.cookies import set_cookies
 
 set_cookies(".bing.com", {
   "_U": "cookie value"
@@ -212,123 +193,29 @@ set_cookies(".bing.com", {
 set_cookies("chat.openai.com", {
   "access_token": "token value"
 })
+set_cookies(".google.com", {
+  "__Secure-1PSID": "cookie value"
+})
 
-from g4f.gui import run_gui
-run_gui()
+...
 ```
 
-Alternatively, g4f reads the cookies with “browser_cookie3” from your browser
-or it starts a browser instance with selenium "webdriver" for logging in.
-If you use the pip package, you have to install “browser_cookie3” or "webdriver" by yourself.
+Alternatively, G4F reads the cookies with `browser_cookie3` from your browser
+or it starts a browser instance with selenium `webdriver` for logging in.
 
+##### Using Proxy
+
+If you want to hide or change your IP address for the providers, you can set a proxy globally via an environment variable:
+
+- On macOS and Linux:
 ```bash
-pip install browser_cookie3
-pip install g4f[webdriver]
-```
-
-##### Proxy and Timeout Support
-
-All providers support specifying a proxy and increasing timeout in the create functions.
-
-```python
-import g4f
-
-response = g4f.ChatCompletion.create(
-    model=g4f.models.default,
-    messages=[{"role": "user", "content": "Hello"}],
-    proxy="http://host:port",
-    # or socks5://user:pass@host:port
-    timeout=120,  # in secs
-)
-
-print(f"Result:", response)
-```
-
-You can also set a proxy globally via an environment variable:
-
-```sh
 export G4F_PROXY="http://host:port"
 ```
 
-### Interference openai-proxy API (Use with openai python package)
-
-#### Run interference API from PyPi package
-
-```python
-from g4f.api import run_api
-
-run_api()
+- On Windows:
+```bash
+set G4F_PROXY=http://host:port
 ```
-
-#### Run interference API from repo
-
-If you want to use the embedding function, you need to get a Hugging Face token. You can get one at [Hugging Face Tokens](https://huggingface.co/settings/tokens). Make sure your role is set to write. If you have your token, just use it instead of the OpenAI api-key.
-
-Run server:
-
-```sh
-g4f api
-```
-
-or
-
-```sh
-python -m g4f.api.run
-```
-
-```python
-from openai import OpenAI
-
-client = OpenAI(
-    # Set your Hugging Face token as the API key if you use embeddings
-    api_key="YOUR_HUGGING_FACE_TOKEN",
-
-    # Set the API base URL if needed, e.g., for a local development environment
-    base_url="http://localhost:1337/v1"
-)
-
-
-def main():
-    chat_completion = client.chat.completions.create(
-        model="gpt-3.5-turbo",
-        messages=[{"role": "user", "content": "write a poem about a tree"}],
-        stream=True,
-    )
-
-    if isinstance(chat_completion, dict):
-        # Not streaming
-        print(chat_completion.choices[0].message.content)
-    else:
-        # Streaming
-        for token in chat_completion:
-            content = token.choices[0].delta.content
-            if content is not None:
-                print(content, end="", flush=True)
-
-
-if __name__ == "__main__":
-    main()
-```
-
-##  API usage (POST)
-#### Chat completions
-Send the POST request to /v1/chat/completions with body containing the `model` method. This example uses python with requests library:
-```python
-import requests
-url = "http://localhost:1337/v1/chat/completions"
-body = {
-    "model": "gpt-3.5-turbo-16k",
-    "stream": False,
-    "messages": [
-        {"role": "assistant", "content": "What can you do?"}
-    ]
-}
-json_response = requests.post(url, json=body).json().get('choices', [])
-
-for choice in json_response:
-    print(choice.get('message', {}).get('content', ''))
-```
-
 
 ## 🚀 Providers and Models
 

@@ -44,10 +44,22 @@ client = Client(
 You can use the `ChatCompletions` endpoint to generate text completions as follows:
 
 ```python
+response = client.chat.completions.create(
+    model="gpt-3.5-turbo",
+    messages=[{"role": "user", "content": "Say this is a test"}],
+    ...
+)
+print(response.choices[0].message.content)
+```
+
+Also streaming are supported:
+
+```python
 stream = client.chat.completions.create(
     model="gpt-4",
     messages=[{"role": "user", "content": "Say this is a test"}],
     stream=True,
+    ...
 )
 for chunk in stream:
     if chunk.choices[0].delta.content:

@@ -6,15 +6,19 @@ You can install requirements partially or completely. So G4F can be used as you 
 
 #### Options
 
-Install required packages for the OpenaiChat provider:
+Install g4f with all possible dependencies:
+```
+pip install -U g4f[all]
+```
+Or install only g4f and the required packages for the OpenaiChat provider:
 ```
 pip install -U g4f[openai]
 ```
-Install required packages for the interference api:
+Install required packages for the Interference API:
 ```
 pip install -U g4f[api]
 ```
-Install required packages for the web interface:
+Install required packages for the Web UI:
 ```
 pip install -U g4f[gui]
 ```
