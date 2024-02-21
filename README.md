@@ -21,10 +21,13 @@ docker pull hlohaus789/g4f
 - Join our Discord Group: [discord.gg/XfybzPXPH5](https://discord.gg/XfybzPXPH5)
 - Explore the g4f Documentation (unfinished): [g4f.mintlify.app](https://g4f.mintlify.app) | Contribute to the docs via: [github.com/xtekky/gpt4free-docs](https://github.com/xtekky/gpt4free-docs)
 
-# Feedback
+## Site Takedown
+Is your site on this repository and you want to take it down ? email takedown@g4f.ai with proof it is yours and it will be removed as fast as possible. - to prevent reproduction please secure your api ; )
+
+## Feedback
 You can always leave some feedback here: https://forms.gle/FeWV9RLEedfdkmFN6
 
-# To do
+## To do
 As per the survey, here is a list of improvements to come
 - [ ] golang implementation
 - [ ] Improve Documentation (on g4f.mintlify.app) & Do video tutorials
