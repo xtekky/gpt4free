@@ -97,7 +97,7 @@ class Backend_Api:
             current_version = None
         return {
             "version": current_version,
-            "latest_version": version.get_latest_version(),
+            "latest_version": version.utils.latest_version,
         }
     
     def generate_title(self):

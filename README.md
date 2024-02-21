@@ -167,7 +167,7 @@ To start the web interface, type the following codes in python:
 from g4f.gui import run_gui
 run_gui()
 ```
-or type in command line:
+or execute the following command:
 ```bash
 python -m g4f.cli gui -port 8080 -debug
 ```
@@ -182,7 +182,7 @@ See: [/docs/interference](/docs/interference.md)
 
 ##### Cookies / Access Token
 
-For generating images with Bing and for the OpenAi Chat  you need cookies or a token from your browser session. From Bing you need the "_U" cookie and from OpenAI you need the "access_token". You can pass the cookies / the  access token in the create function or you use the `set_cookies` setter before you run G4F:
+For generating images with Bing and for the OpenAi Chat  you need cookies or a token from your browser session. From Bing you need the "_U" cookie and from OpenAI you need the "access_token". You can pass the cookies / the access token in the create function or you use the `set_cookies` setter before you run G4F:
 
 ```python
 from g4f.cookies import set_cookies

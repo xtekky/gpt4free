@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import re
 import asyncio
+
 from .. import debug
 from ..typing import CreateResult, Messages
-from ..base_provider import BaseProvider, ProviderType
+from .types import BaseProvider, ProviderType
 
 system_message = """
 You can generate images, pictures, photos or img with the DALL-E 3 image generator.

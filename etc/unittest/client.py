@@ -43,7 +43,7 @@ class TestPassModel(unittest.TestCase):
         for chunk in response:
             self.assertEqual(chunk.choices[0].delta.content, "You ")
 
-    def no_test_stop(self):
+    def test_stop(self):
         client = Client(provider=YieldProviderMock)
         messages = [{'role': 'user', 'content': chunk} for chunk in ["How ", "are ", "you", "?"]]
         response = client.chat.completions.create(messages, "Hello", stop=["and"])

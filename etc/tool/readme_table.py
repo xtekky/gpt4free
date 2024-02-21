@@ -3,7 +3,7 @@ from urllib.parse import urlparse
 import asyncio
 
 from g4f import models, ChatCompletion
-from g4f.base_provider import BaseProvider, BaseRetryProvider, ProviderType
+from g4f.providers.types import BaseRetryProvider, ProviderType
 from etc.testing._providers import get_providers
 from g4f import debug
 

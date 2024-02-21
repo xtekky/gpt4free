@@ -7,6 +7,9 @@ from importlib.metadata import version as get_package_version, PackageNotFoundEr
 from subprocess import check_output, CalledProcessError, PIPE
 from .errors import VersionNotFoundError
 
+PACKAGE_NAME = "g4f"
+GITHUB_REPOSITORY = "xtekky/gpt4free"
+
 def get_pypi_version(package_name: str) -> str:
     """
     Retrieves the latest version of a package from PyPI.
@@ -45,25 +48,6 @@ def get_github_version(repo: str) -> str:
     except requests.RequestException as e:
         raise VersionNotFoundError(f"Failed to get GitHub release version: {e}")
 
-def get_latest_version() -> str:
-    """
-    Retrieves the latest release version of the 'g4f' package from PyPI or GitHub.
-
-    Returns:
-        str: The latest release version of 'g4f'.
-
-    Note:
-        The function first tries to fetch the version from PyPI. If the package is not found, 
-        it retrieves the version from the GitHub repository.
-    """
-    try:
-        # Is installed via package manager?
-        get_package_version("g4f")
-        return get_pypi_version("g4f")
-    except PackageNotFoundError:
-        # Else use Github version:
-        return get_github_version("xtekky/gpt4free")
-
 class VersionUtils:
     """
     Utility class for managing and comparing package versions of 'g4f'.
@@ -82,7 +66,7 @@ class VersionUtils:
         """
         # Read from package manager
         try:
-            return get_package_version("g4f")
+            return get_package_version(PACKAGE_NAME)
         except PackageNotFoundError:
             pass
 
@@ -108,7 +92,12 @@ class VersionUtils:
         Returns:
             str: The latest version of 'g4f'.
         """
-        return get_latest_version()
+        # Is installed via package manager?
+        try:
+            get_package_version(PACKAGE_NAME)
+        except PackageNotFoundError:
+            return get_github_version(GITHUB_REPOSITORY)
+        return get_pypi_version(PACKAGE_NAME)
 
     def check_version(self) -> None:
         """

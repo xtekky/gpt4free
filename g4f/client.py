@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import re
+import os
 
 from .stubs import ChatCompletion, ChatCompletionChunk, Image, ImagesResponse
 from .typing import Union, Generator, Messages, ImageType
-from .base_provider import BaseProvider, ProviderType
+from .providers.types import BaseProvider, ProviderType
 from .image import ImageResponse as ImageProviderResponse
-from .Provider import BingCreateImages, Gemini, OpenaiChat
+from .Provider.BingCreateImages import BingCreateImages
+from .Provider.needs_auth import Gemini, OpenaiChat
 from .errors import NoImageResponseError
 from . import get_model_and_provider
 
@@ -43,7 +45,7 @@ def iter_response(
             yield ChatCompletionChunk(last_chunk, finish_reason)
         content += str(chunk)
         if max_tokens is not None and idx + 1 >= max_tokens:
-            finish_reason = "max_tokens"
+            finish_reason = "length"
         first = -1
         word = None
         if stop is not None:
@@ -69,7 +71,7 @@ def iter_response(
     if not stream:
         if response_format is not None and "type" in response_format:
             if response_format["type"] == "json_object":
-                response = read_json(response)
+                content = read_json(content)
         yield ChatCompletion(content, finish_reason)
 
 class Client():
@@ -89,13 +91,14 @@ class Client():
         self.proxies: Proxies = proxies
 
     def get_proxy(self) -> Union[str, None]:
-        if isinstance(self.proxies, str) or self.proxies is None:
+        if isinstance(self.proxies, str):
             return self.proxies
+        elif self.proxies is None:
+            return os.environ.get("G4F_PROXY")
         elif "all" in self.proxies:
             return self.proxies["all"]
         elif "https" in self.proxies:
             return self.proxies["https"]
-        return None
 
 class Completions():
     def __init__(self, client: Client, provider: ProviderType = None):
@@ -123,7 +126,7 @@ class Completions():
             stream,
             **kwargs
         )
-        response = provider.create_completion(model, messages, stream=stream, **kwargs)
+        response = provider.create_completion(model, messages, stream=stream, proxy=self.client.get_proxy(), **kwargs)
         stop = [stop] if isinstance(stop, str) else stop
         response = iter_response(response, stream, response_format, max_tokens, stop)
         return response if stream else next(response)

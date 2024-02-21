@@ -1,4 +1,4 @@
-from g4f.Provider.base_provider import AbstractProvider, AsyncProvider, AsyncGeneratorProvider
+from g4f.providers.base_provider import AbstractProvider, AsyncProvider, AsyncGeneratorProvider
 
 class ProviderMock(AbstractProvider):
     working = True
