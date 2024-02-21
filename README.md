@@ -32,16 +32,15 @@ You can always leave some feedback here: https://forms.gle/FeWV9RLEedfdkmFN6
 
 ## To do
 As per the survey, here is a list of improvements to come
+- [x] update the repository to include the new openai library syntax (ex: `Openai()` class) | completed, use `g4f.client.Client`
 - [ ] golang implementation
 - [ ] Improve Documentation (on g4f.mintlify.app) & Do video tutorials
 - [ ] Improve the provider status list & updates
 - [ ] Tutorials on how to reverse sites to write your own wrapper (PoC only ofc)
 - [ ] Improve the Bing wrapper. (might write a new wrapper in golang as it is very fast)
 - [ ] Write a standard provider performance test to improve the stability
-- [ ] update the repository to include the new openai library syntax (ex: `Openai()` class)
 - [ ] Potential support and development of local models
 - [ ] improve compatibility and error handling
-
 
 ## 📚 Table of Contents
 
