@@ -2,13 +2,13 @@
 
 #### Introduction
 
-The G4F Client API introduces a new way to integrate advanced AI functionalities into your Python applications. This guide will help you transition from using the OpenAI client to the new G4F Client, offering compatibility with the existing OpenAI API alongside additional features.
+Welcome to the G4F Client API, a cutting-edge tool for seamlessly integrating advanced AI capabilities into your Python applications. This guide is designed to facilitate your transition from using the OpenAI client to the G4F Client, offering enhanced features while maintaining compatibility with the existing OpenAI API.
 
 #### Getting Started
 
 **Switching to G4F Client:**
 
-Replace the OpenAI client import statement in your Python code as follows:
+To begin using the G4F Client, simply update your import statement in your Python code:
 
 Old Import:
 ```python
@@ -20,11 +20,11 @@ New Import:
 from g4f.client import Client as OpenAI
 ```
 
-The G4F Client maintains the same API interface as OpenAI, ensuring a seamless transition.
+The G4F Client preserves the same familiar API interface as OpenAI, ensuring a smooth transition process.
 
-#### Initializing the Client
+### Initializing the Client
 
-To use the G4F Client, create an instance with customized providers:
+To utilize the G4F Client, create an new instance. Below is an example showcasing custom providers:
 
 ```python
 from g4f.client import Client
@@ -33,7 +33,18 @@ from g4f.Provider import BingCreateImages, OpenaiChat, Gemini
 client = Client(
     provider=OpenaiChat,
     image_provider=Gemini,
-    proxies=None
+    ...
+)
+```
+
+You also have the option to define a proxy in the client for all outgoing requests:
+
+```python
+from g4f.client import Client
+
+client = Client(
+    proxies="http://user:pass@host",
+    ...
 )
 ```
 
