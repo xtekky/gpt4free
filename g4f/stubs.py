@@ -1,6 +1,8 @@
 
 from __future__ import annotations
 
+from typing import Union
+
 class Model():
     ...
 
@@ -52,7 +54,7 @@ class ChatCompletionChunk(Model):
         }
 
 class ChatCompletionMessage(Model):
-    def __init__(self, content: str | None):
+    def __init__(self, content: Union[str, None]):
         self.role = "assistant"
         self.content = content
 
@@ -72,7 +74,9 @@ class ChatCompletionChoice(Model):
         }
 
 class ChatCompletionDelta(Model):
-    def __init__(self, content: str | None):
+    content: Union[str, None] = None
+
+    def __init__(self, content: Union[str, None]):
         if content is not None:
             self.content = content
 
@@ -80,7 +84,7 @@ class ChatCompletionDelta(Model):
         return self.__dict__
 
 class ChatCompletionDeltaChoice(Model):
-    def __init__(self, delta: ChatCompletionDelta, finish_reason: str | None):
+    def __init__(self, delta: ChatCompletionDelta, finish_reason: Union[str, None]):
         self.delta = delta
         self.finish_reason = finish_reason
 

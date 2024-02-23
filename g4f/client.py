@@ -17,7 +17,7 @@ from . import get_model_and_provider, get_last_provider
 
 ImageProvider = Union[BaseProvider, object]
 Proxies = Union[dict, str]
-IterResponse = Generator[ChatCompletion | ChatCompletionChunk, None, None]
+IterResponse = Generator[Union[ChatCompletion, ChatCompletionChunk], None, None]
 
 def read_json(text: str) -> dict:
     """
@@ -124,7 +124,7 @@ class Completions():
         stream: bool = False,
         response_format: dict = None,
         max_tokens: int = None,
-        stop: list[str] | str = None,
+        stop: Union[list[str], str] = None,
         **kwargs
     ) -> Union[ChatCompletion, Generator[ChatCompletionChunk]]:
         if max_tokens is not None:

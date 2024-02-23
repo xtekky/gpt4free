@@ -6,7 +6,7 @@ import nest_asyncio
 from fastapi           import FastAPI, Response, Request
 from fastapi.responses import StreamingResponse, RedirectResponse, HTMLResponse, JSONResponse
 from pydantic          import BaseModel
-from typing            import List
+from typing            import List, Union
 
 import g4f
 import g4f.debug
@@ -16,12 +16,12 @@ from g4f.typing import Messages
 class ChatCompletionsConfig(BaseModel):
     messages: Messages
     model: str
-    provider: str | None 
+    provider: Union[str, None] 
     stream: bool = False
-    temperature: float | None 
+    temperature: Union[float, None] 
     max_tokens: int = None
-    stop: list[str] | str | None
-    access_token: str | None
+    stop: Union[list[str], str, None]
+    access_token: Union[str, None]
 
 class Api:
     def __init__(self, engine: g4f, debug: bool = True, sentry: bool = False,
