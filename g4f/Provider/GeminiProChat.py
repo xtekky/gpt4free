@@ -11,7 +11,6 @@ from .base_provider import AsyncGeneratorProvider
 class GeminiProChat(AsyncGeneratorProvider):
     url = "https://gemini-chatbot-sigma.vercel.app"
     working = True
-    supports_gpt_35_turbo = True
 
     @classmethod
     async def create_async_generator(
