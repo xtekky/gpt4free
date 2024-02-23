@@ -86,20 +86,19 @@ def iter_append_model_and_provider(response: IterResponse) -> IterResponse:
         yield chunk
 
 class Client():
-    proxies: Proxies = None
-    chat: Chat
-    images: Images
 
     def __init__(
         self,
+        api_key: str = None,
+        proxies: Proxies = None,
         provider: ProviderType = None,
         image_provider: ImageProvider = None,
-        proxies: Proxies = None,
         **kwargs
     ) -> None:
-        self.chat = Chat(self, provider)
-        self.images = Images(self, image_provider)
+        self.api_key: str = api_key
         self.proxies: Proxies = proxies
+        self.chat: Chat = Chat(self, provider)
+        self.images: Images = Images(self, image_provider)
 
     def get_proxy(self) -> Union[str, None]:
         if isinstance(self.proxies, str):
@@ -125,6 +124,7 @@ class Completions():
         response_format: dict = None,
         max_tokens: int = None,
         stop: Union[list[str], str] = None,
+        api_key: str = None,
         **kwargs
     ) -> Union[ChatCompletion, Generator[ChatCompletionChunk]]:
         if max_tokens is not None:
@@ -137,9 +137,16 @@ class Completions():
             stream,
             **kwargs
         )
-        response = provider.create_completion(model, messages, stream=stream, proxy=self.client.get_proxy(), **kwargs)
         stop = [stop] if isinstance(stop, str) else stop
-        response = iter_append_model_and_provider(iter_response(response, stream, response_format, max_tokens, stop))
+        response = provider.create_completion(
+            model, messages, stream,
+            proxy=self.client.get_proxy(),
+            stop=stop,
+            api_key=self.client.api_key if api_key is None else api_key,
+            **kwargs
+        )
+        response = iter_response(response, stream, response_format, max_tokens, stop)
+        response = iter_append_model_and_provider(response)
         return response if stream else next(response)
 
 class Chat():

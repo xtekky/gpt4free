@@ -103,7 +103,7 @@ or set the api base in your client to: [http://localhost:1337/v1](http://localho
 1. [Download and install Python](https://www.python.org/downloads/) (Version 3.10+ is recommended).
 2. [Install Google Chrome](https://www.google.com/chrome/) for providers with webdriver
 
-##### Install using pypi:
+##### Install using PyPI package:
 
 ```
 pip install -U g4f[all]
@@ -113,12 +113,12 @@ Or use partial requirements.
 
 See: [/docs/requirements](/docs/requirements.md)
 
-##### Install from source:
+##### Install from source using git:
 
 See: [/docs/git](/docs/git.md)
 
 
-##### Install using Docker
+##### Install using Docker for Developers:
 
  See: [/docs/docker](/docs/docker.md)
 
@@ -126,7 +126,6 @@ See: [/docs/git](/docs/git.md)
 ## 💡 Usage
 
 #### Text Generation
-**with Python**
 
 ```python
 from g4f.client import Client
@@ -134,14 +133,13 @@ from g4f.client import Client
 client = Client()
 response = client.chat.completions.create(
     model="gpt-3.5-turbo",
-    messages=[{"role": "user", "content": "Say this is a test"}],
+    messages=[{"role": "user", "content": "Hello"}],
     ...
 )
 print(response.choices[0].message.content)
 ```
 
 #### Image Generation
-**with Python**
 
 ```python
 from g4f.client import Client
@@ -154,14 +152,15 @@ response = client.images.generate(
 )
 image_url = response.data[0].url
 ```
-Result:
+
+**Result:**
 
 [![Image with cat](/docs/cat.jpeg)](/docs/client.md)
 
-**See also for Python:**
+**See also:**
 
-- [Documentation for new Client](/docs/client.md)
-- [Documentation for leagcy API](/docs/leagcy.md)
+- Documentation for the new Client: [/docs/client](/docs/client.md)
+- Documentation for the leagcy API: [docs/leagcy](/docs/leagcy.md)
 
 
 #### Web UI

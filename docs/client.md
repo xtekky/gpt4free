@@ -37,12 +37,16 @@ client = Client(
 )
 ```
 
-You also have the option to define a proxy in the client for all outgoing requests:
+## Configuration
+
+You can set an "api_key" for your provider in client.
+And you also have the option to define a proxy for all outgoing requests:
 
 ```python
 from g4f.client import Client
 
 client = Client(
+    api_key="...",
     proxies="http://user:pass@host",
     ...
 )
@@ -74,7 +78,7 @@ stream = client.chat.completions.create(
 )
 for chunk in stream:
     if chunk.choices[0].delta.content:
-        print(chunk.choices[0].delta.content, end="")
+        print(chunk.choices[0].delta.content or "", end="")
 ```
 
 **Image Generation:**
@@ -109,7 +113,28 @@ image_url = response.data[0].url
 
 Original / Variant:
 
-[![Original Image](/docs/cat.jpeg)](/docs/client.md)
-[![Variant Image](/docs/cat.webp)](/docs/client.md)
+[![Original Image](/docs/cat.jpeg)](/docs/client.md) [![Variant Image](/docs/cat.webp)](/docs/client.md)
+
+#### Advanced example using GeminiProVision
+
+```python
+from g4f.client import Client
+from g4f.Provider.GeminiPro import GeminiPro
+
+client = Client(
+    api_key="...",
+    provider=GeminiPro
+)
+response = client.chat.completions.create(
+    model="gemini-pro-vision",
+    messages=[{"role": "user", "content": "What are on this image?"}],
+    image=open("docs/cat.jpeg", "rb")
+)
+print(response.choices[0].message.content)
+```
+**Question:** What are on this image?
+```
+ A cat is sitting on a window sill looking at a bird outside the window.
+```
 
 [Return to Home](/)

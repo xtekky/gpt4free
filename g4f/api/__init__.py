@@ -21,7 +21,7 @@ class ChatCompletionsConfig(BaseModel):
     temperature: Union[float, None] 
     max_tokens: int = None
     stop: Union[list[str], str, None]
-    access_token: Union[str, None]
+    api_key: Union[str, None]
 
 class Api:
     def __init__(self, engine: g4f, debug: bool = True, sentry: bool = False,
@@ -82,10 +82,10 @@ class Api:
         async def chat_completions(config: ChatCompletionsConfig = None, request: Request = None, provider: str = None):
             try:
                 config.provider = provider if config.provider is None else config.provider
-                if config.access_token is None and request is not None:
+                if config.api_key is None and request is not None:
                     auth_header = request.headers.get("Authorization")
                     if auth_header is not None:
-                        config.access_token = auth_header.split(None, 1)[-1]
+                        config.api_key = auth_header.split(None, 1)[-1]
 
                 response = self.client.chat.completions.create(
                     **dict(config),
@@ -125,3 +125,8 @@ def format_exception(e: Exception, config: ChatCompletionsConfig) -> str:
         "model": last_provider.get("model") if last_provider else config.model,
         "provider": last_provider.get("name") if last_provider else config.provider
     })
+
+def run_api(host: str = '0.0.0.0', port: int = 1337, debug: bool = False, use_colors=True) -> None:
+    print(f'Starting server... [g4f v-{g4f.version.utils.current_version}]')
+    app = Api(engine=g4f, debug=debug)
+    uvicorn.run(app=app, host=host, port=port, use_colors=use_colors)

@@ -34,6 +34,7 @@ from .FakeGpt         import FakeGpt
 from .FreeChatgpt     import FreeChatgpt
 from .FreeGpt         import FreeGpt
 from .GeekGpt         import GeekGpt
+from .GeminiPro       import GeminiPro
 from .GeminiProChat   import GeminiProChat
 from .Gpt6            import Gpt6
 from .GPTalk          import GPTalk

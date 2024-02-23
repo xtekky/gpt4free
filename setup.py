@@ -25,7 +25,7 @@ EXTRA_REQUIRE = {
         "beautifulsoup4",          # internet.search and bing.create_images
         "brotli",                  # openai
         "platformdirs",            # webdriver
-        "undetected-chromedriver", # webdriver
+        "undetected-chromedriver>=3.5.5", # webdriver
         "setuptools",              # webdriver
         "aiohttp_socks",           # proxy
         "pillow",                  # image

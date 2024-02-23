@@ -97,17 +97,17 @@ def is_accepted_format(binary_data: bytes) -> bool:
         ValueError: If the image format is not allowed.
     """
     if binary_data.startswith(b'\xFF\xD8\xFF'):
-        pass # It's a JPEG image
+        return "image/jpeg"
     elif binary_data.startswith(b'\x89PNG\r\n\x1a\n'):
-        pass # It's a PNG image
+        return "image/png"
     elif binary_data.startswith(b'GIF87a') or binary_data.startswith(b'GIF89a'):
-        pass # It's a GIF image
+        return "image/gif"
     elif binary_data.startswith(b'\x89JFIF') or binary_data.startswith(b'JFIF\x00'):
-        pass # It's a JPEG image
+        return "image/jpeg"
     elif binary_data.startswith(b'\xFF\xD8'):
-        pass # It's a JPEG image
+        return "image/jpeg"
     elif binary_data.startswith(b'RIFF') and binary_data[8:12] == b'WEBP':
-        pass # It's a WebP image
+        return "image/webp"
     else:
         raise ValueError("Invalid image format (from magic code).")
 
