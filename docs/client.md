@@ -1,4 +1,4 @@
-### G4F - Client API (Beta Version)
+### G4F - Client API
 
 #### Introduction
 
@@ -39,7 +39,7 @@ client = Client(
 
 ## Configuration
 
-You can set an "api_key" for your provider in client.
+You can set an "api_key" for your provider in the client.
 And you also have the option to define a proxy for all outgoing requests:
 
 ```python
@@ -108,12 +108,34 @@ response = client.images.create_variation(
 
 image_url = response.data[0].url
 ```
-
-#### Visual Examples
-
 Original / Variant:
 
 [![Original Image](/docs/cat.jpeg)](/docs/client.md) [![Variant Image](/docs/cat.webp)](/docs/client.md)
+
+#### Use a list of providers with RetryProvider
+
+```python
+from g4f.client import Client
+from g4f.Provider import RetryProvider, Phind, FreeChatgpt, Liaobots
+
+import g4f.debug
+g4f.debug.logging = True
+
+client = Client(
+    provider=RetryProvider([Phind, FreeChatgpt, Liaobots], shuffle=False)
+)
+response = client.chat.completions.create(
+    model="",
+    messages=[{"role": "user", "content": "Hello"}],
+)
+print(response.choices[0].message.content)
+```
+
+```
+Using RetryProvider provider
+Using Phind provider
+How can I assist you today?
+```
 
 #### Advanced example using GeminiProVision
 
@@ -128,13 +150,16 @@ client = Client(
 response = client.chat.completions.create(
     model="gemini-pro-vision",
     messages=[{"role": "user", "content": "What are on this image?"}],
-    image=open("docs/cat.jpeg", "rb")
+    image=open("docs/waterfall.jpeg", "rb")
 )
 print(response.choices[0].message.content)
 ```
-**Question:** What are on this image?
+![Waterfall](/docs/waterfall.jpeg)
 ```
- A cat is sitting on a window sill looking at a bird outside the window.
+User: What are on this image?
+```
+```
+Bot: There is a waterfall in the middle of a jungle. There is a rainbow over...
 ```
 
 [Return to Home](/)

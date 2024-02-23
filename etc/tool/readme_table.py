@@ -87,7 +87,8 @@ def print_models():
         "openai": "OpenAI",
         "huggingface": "Huggingface",
         "anthropic": "Anthropic",
-        "inflection": "Inflection"
+        "inflection": "Inflection",
+        "meta": "Meta"
     }
     provider_urls = {
         "google": "https://gemini.google.com/",
@@ -95,6 +96,7 @@ def print_models():
         "huggingface": "https://huggingface.co/",
         "anthropic": "https://www.anthropic.com/",
         "inflection": "https://inflection.ai/",
+        "meta": "https://llama.meta.com/"
     }
 
     lines = [
@@ -120,6 +122,6 @@ def print_models():
     print("\n".join(lines))
 
 if __name__ == "__main__":
-    #print_providers()
-    #print("\n", "-" * 50, "\n")
+    print_providers()
+    print("\n", "-" * 50, "\n")
     print_models()
