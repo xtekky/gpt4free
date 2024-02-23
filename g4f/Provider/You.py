@@ -7,9 +7,9 @@ from aiohttp import ClientSession, FormData
 
 from ..typing import AsyncGenerator, Messages, ImageType, Cookies
 from .base_provider import AsyncGeneratorProvider
-from .helper import get_connector, format_prompt
+from ..providers.helper import get_connector, format_prompt
 from ..image import to_bytes
-from ..defaults import DEFAULT_HEADERS
+from ..requests.defaults import DEFAULT_HEADERS
 
 class You(AsyncGeneratorProvider):
     url = "https://you.com"

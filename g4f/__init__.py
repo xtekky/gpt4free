@@ -8,8 +8,8 @@ from .Provider import AsyncGeneratorProvider, ProviderUtils
 from .typing   import Messages, CreateResult, AsyncResult, Union
 from .cookies  import get_cookies, set_cookies
 from .         import debug, version
-from .base_provider import BaseRetryProvider, ProviderType
-from .Provider.base_provider import ProviderModelMixin
+from .providers.types import BaseRetryProvider, ProviderType
+from .providers.base_provider import ProviderModelMixin
 
 def get_model_and_provider(model    : Union[Model, str], 
                            provider : Union[ProviderType, str, None], 

@@ -4,15 +4,15 @@ from urllib.parse import urlparse
 
 try:
     from curl_cffi.requests import Session
-    from .requests_curl_cffi import StreamResponse, StreamSession
+    from .curl_cffi import StreamResponse, StreamSession
     has_curl_cffi = True
 except ImportError:
     from typing import Type as Session
-    from .requests_aiohttp import StreamResponse, StreamSession
+    from .aiohttp import StreamResponse, StreamSession
     has_curl_cffi = False
 
-from .webdriver import WebDriver, WebDriverSession, bypass_cloudflare, get_driver_cookies
-from .errors import MissingRequirementsError
+from ..webdriver import WebDriver, WebDriverSession, bypass_cloudflare, get_driver_cookies
+from ..errors import MissingRequirementsError
 from .defaults import DEFAULT_HEADERS
 
 def get_args_from_browser(url: str, webdriver: WebDriver = None, proxy: str = None, timeout: int = 120) -> dict:

@@ -3,7 +3,7 @@ from __future__ import annotations
 from aiohttp import ClientSession, ClientResponse, ClientTimeout
 from typing import AsyncGenerator, Any
 
-from .Provider.helper import get_connector
+from ..providers.helper import get_connector
 from .defaults import DEFAULT_HEADERS
 
 class StreamResponse(ClientResponse):

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from typing import Union, List, Dict, Type
-from .typing import Messages, CreateResult
+from ..typing import Messages, CreateResult
 
 class BaseProvider(ABC):
     """
@@ -81,7 +81,7 @@ class BaseProvider(ABC):
             Dict[str, str]: A dictionary with provider's details.
         """
         return {'name': cls.__name__, 'url': cls.url} 
-    
+
 class BaseRetryProvider(BaseProvider):
     """
     Base class for a provider that implements retry logic.
@@ -113,5 +113,5 @@ class BaseRetryProvider(BaseProvider):
         self.working = True
         self.exceptions: Dict[str, Exception] = {}
         self.last_provider: Type[BaseProvider] = None
-        
+
 ProviderType = Union[Type[BaseProvider], BaseRetryProvider]

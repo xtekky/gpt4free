@@ -1,4 +1,4 @@
-from .base_provider import ProviderType
+from .providers.types import ProviderType
 
 logging: bool = False
 version_check: bool = True

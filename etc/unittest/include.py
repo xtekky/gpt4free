@@ -1,11 +1,15 @@
-import sys
-import pathlib
+import unittest
 
-sys.path.append(str(pathlib.Path(__file__).parent.parent.parent))
+class TestImport(unittest.TestCase):
 
-import g4f
+    def test_get_cookies(self):
+        from g4f import get_cookies as get_cookies_alias
+        from g4f.cookies import get_cookies
+        self.assertEqual(get_cookies_alias, get_cookies)
 
-g4f.debug.logging = False
-g4f.debug.version_check = False
+    def test_requests(self):
+        from g4f.requests import StreamSession
+        self.assertIsInstance(StreamSession, type)
 
-DEFAULT_MESSAGES = [{'role': 'user', 'content': 'Hello'}]
+if __name__ == '__main__':
+    unittest.main()

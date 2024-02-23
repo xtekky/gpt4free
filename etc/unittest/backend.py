@@ -1,13 +1,15 @@
 import unittest
+import asyncio
 from unittest.mock import MagicMock
 from .mocks import ProviderMock
 import g4f
+
 try:
     from g4f.gui.server.backend import Backend_Api, get_error_message
     has_requirements = True
 except:
     has_requirements = False
-        
+
 class TestBackendApi(unittest.TestCase):
 
     def setUp(self):
@@ -20,17 +22,23 @@ class TestBackendApi(unittest.TestCase):
         response = self.api.get_version()
         self.assertIn("version", response)
         self.assertIn("latest_version", response)
-        
+
     def test_get_models(self):
         response = self.api.get_models()
         self.assertIsInstance(response, list)
         self.assertTrue(len(response) > 0)
-        
+
     def test_get_providers(self):
         response = self.api.get_providers()
         self.assertIsInstance(response, list)
         self.assertTrue(len(response) > 0)
-        
+
+    def test_search(self):
+        # Task was destroyed but it is pending!
+        from g4f.gui.server.internet import search
+        result = asyncio.run(search("Hello"))
+        self.assertEqual(5, len(result))
+
 class TestUtilityFunctions(unittest.TestCase):
 
     def setUp(self):
@@ -42,6 +50,6 @@ class TestUtilityFunctions(unittest.TestCase):
         exception = Exception("Message")
         result = get_error_message(exception)
         self.assertEqual("ProviderMock: Exception: Message", result)
-        
+
 if __name__ == '__main__':
     unittest.main()
