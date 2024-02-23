@@ -127,10 +127,6 @@ class Completions():
         api_key: str = None,
         **kwargs
     ) -> Union[ChatCompletion, Generator[ChatCompletionChunk]]:
-        if max_tokens is not None:
-            kwargs["max_tokens"] = max_tokens
-        if stop:
-            kwargs["stop"] = stop
         model, provider = get_model_and_provider(
             model,
             self.provider if provider is None else provider,
@@ -141,6 +137,7 @@ class Completions():
         response = provider.create_completion(
             model, messages, stream,
             proxy=self.client.get_proxy(),
+            max_tokens=max_tokens,
             stop=stop,
             api_key=self.client.api_key if api_key is None else api_key,
             **kwargs
