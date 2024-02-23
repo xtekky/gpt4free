@@ -16,12 +16,12 @@ from g4f.typing import Messages
 class ChatCompletionsConfig(BaseModel):
     messages: Messages
     model: str
-    provider: Union[str, None] 
+    provider: Union[str, None] = None
     stream: bool = False
-    temperature: Union[float, None] 
-    max_tokens: int = None
-    stop: Union[list[str], str, None]
-    api_key: Union[str, None]
+    temperature: Union[float, None] = None
+    max_tokens: Union[int, None] = None
+    stop: Union[list[str], str, None] = None
+    api_key: Union[str, None] = None
 
 class Api:
     def __init__(self, engine: g4f, debug: bool = True, sentry: bool = False,
