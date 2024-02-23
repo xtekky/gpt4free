@@ -3,7 +3,7 @@ Written by [@xtekky](https://github.com/hlohaus) & maintained by [@hlohaus](http
 
 <div id="top"></div>
 
-> By using this repository or any code related to it, you agree to the [legal notice](LEGAL_NOTICE.md). The author is **not responsible for the usage of this repository nor endorses it**, nor is the author responsible for any any copies, forks, re-uploads made by other users, or anything else related to GPT4Free. This is the author's only account and repository. To prevent impersonation or irresponsible actions, please comply with the GNU GPL license this Repository uses.  
+> By using this repository or any code related to it, you agree to the [legal notice](LEGAL_NOTICE.md). The author is **not responsible for the usage of this repository nor endorses it**, nor is the author responsible for any copies, forks, re-uploads made by other users, or anything else related to GPT4Free. This is the author's only account and repository. To prevent impersonation or irresponsible actions, please comply with the GNU GPL license this Repository uses.  
 
 > [!Warning]
 *"gpt4free"* serves as a **PoC** (proof of concept), demonstrating the development of a an api package with multi-provider requests, with features like timeouts, load balance and flow control.
