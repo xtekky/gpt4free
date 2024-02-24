@@ -19,18 +19,20 @@ pip install -U g4f
 docker pull hlohaus789/g4f
 ```
 
-## 🆕 What's New 🚀
-- How do I use my smartphone📱 to run g4f? [/docs/guides/phone](/docs/guides/phone.md)
+## 🆕 What's New
+- Guide: How do I use my smartphone📱to run g4f?
+  - [/docs/guides/phone](/docs/guides/phone.md)
+- New: How can AI help me 💁with writing code?
+  - [/docs/guides/help_me](/docs/guides/help_me.md)
 - Join our Telegram Channel: [t.me/g4f_channel](https://telegram.me/g4f_channel)
 - Join our Discord Group: [discord.gg/XfybzPXPH5](https://discord.gg/XfybzPXPH5)
 
-## Site Takedown
+##🔻 Site Takedown
 Is your site on this repository and you want to take it down ? email takedown@g4f.ai with proof it is yours and it will be removed as fast as possible. - to prevent reproduction please secure your api ; )
 
-## Feedback
+##🚀  Feedback and Todo
 You can always leave some feedback here: https://forms.gle/FeWV9RLEedfdkmFN6
 
-## To do
 As per the survey, here is a list of improvements to come
 - [x] update the repository to include the new openai library syntax (ex: `Openai()` class) | completed, use `g4f.client.Client`
 - [ ] golang implementation
@@ -51,13 +53,13 @@ As per the survey, here is a list of improvements to come
       - [Quick start](#quick-start)
     + [Use python](#use-python)
       - [Prerequisites](#prerequisites)
-      - [Install using PyPI package:](#install-using-pypi-package-)
-      - [Install from source:](#install-from-source-)
-      - [Install using Docker:](#install-using-docker-)
+      - [Install using PyPI package:](#install-using-pypi-package)
+      - [Install from source:](#install-from-source)
+      - [Install using Docker:](#install-using-docker)
 - [💡 Usage](#-usage)
-  * [The Web UI](#the-web-ui)
   * [Text Generation](#text-generation)
   * [Image Generation](#text-generation)
+  * [Web UI](#web-ui)
   * [Interference API](#interference-api)
   * [Configuration](#configuration)
 - [🚀 Providers and Models](#-providers-and-models)
@@ -67,8 +69,8 @@ As per the survey, here is a list of improvements to come
   * [Models](#models)
 - [🔗 Related GPT4Free Projects](#-related-gpt4free-projects)
 - [🤝 Contribute](#-contribute)
-    + [Create Provider with AI Tool](#create-provider-with-ai-tool)
-    + [Create Provider](#create-provider)
+    + [How do i create a new Provider?](#guide-how-do-i-create-a-new-provider)
+    + [How can AI help me with writing code?](#guide-how-can-ai-help-me-with-writing-code)
 - [🙌 Contributors](#-contributors)
 - [©️ Copyright](#-copyright)
 - [⭐ Star History](#-star-history)
@@ -158,15 +160,13 @@ response = client.images.generate(
 image_url = response.data[0].url
 ```
 
-**Result:**
 
 [![Image with cat](/docs/cat.jpeg)](/docs/client.md)
 
-**See also:**
+**Full Documentation for Python API**
 
-- Documentation for the new Client API: [/docs/client](/docs/client.md)
-- Documentation for the leagcy API: [/docs/leagcy](/docs/leagcy.md)
-
+- New Client API like the OpenAI Python library: [/docs/client](/docs/client.md)
+- Leagcy API with python modules: [/docs/leagcy](/docs/leagcy.md)
 
 #### Web UI
 
@@ -425,72 +425,19 @@ set G4F_PROXY=http://host:port
 
 ## 🤝 Contribute
 
-#### Create Provider with AI Tool
+We welcome contributions from the community. Whether you're adding new providers or features, or simply fixing typos and making small improvements, your input is valued. Creating a pull request is all it takes – our co-pilot will handle the code review process. Once all changes have been addressed, we'll merge the pull request into the main branch and release the updates at a later time.
 
-Call in your terminal the `create_provider.py` script:
-```bash
-python etc/tool/create_provider.py
-```
-1. Enter your name for the new provider.
-2. Copy and paste the `cURL` command from your browser developer tools.
-3. Let the AI ​​create the provider for you.
-4. Customize the provider according to your needs.
+###### Guide: How do i create a new Provider?
 
-#### Create Provider
+ - Read: [/docs/guides/create_provider](/docs/guides/create_provider.md)
 
-1. Check out the current [list of potential providers](https://github.com/zukixa/cool-ai-stuff#ai-chat-websites), or find your own provider source!
-2. Create a new file in [g4f/Provider](./g4f/Provider) with the name of the Provider
-3. Implement a class that extends [BaseProvider](./g4f/Provider/base_provider.py).
+###### Guide: How can AI help me with writing code?
 
-```py
-from __future__ import annotations
-
-from ..typing import AsyncResult, Messages
-from .base_provider import AsyncGeneratorProvider
-
-class HogeService(AsyncGeneratorProvider):
-    url                   = "https://chat-gpt.com"
-    working               = True
-    supports_gpt_35_turbo = True
-
-    @classmethod
-    async def create_async_generator(
-        cls,
-        model: str,
-        messages: Messages,
-        proxy: str = None,
-        **kwargs
-    ) -> AsyncResult:
-        yield ""
-```
-
-4. Here, you can adjust the settings, for example, if the website does support streaming, set `supports_stream` to `True`...
-5. Write code to request the provider in `create_async_generator` and `yield` the response, _even if_ it's a one-time response, do not hesitate to look at other providers for inspiration
-6. Add the Provider Name in [`g4f/Provider/__init__.py`](./g4f/Provider/__init__.py)
-
-```py
-from .HogeService import HogeService
-
-__all__ = [
-  HogeService,
-]
-```
-
-7. You are done !, test the provider by calling it:
-
-```py
-import g4f
-
-response = g4f.ChatCompletion.create(model='gpt-3.5-turbo', provider=g4f.Provider.PROVIDERNAME,
-                                    messages=[{"role": "user", "content": "test"}], stream=g4f.Provider.PROVIDERNAME.supports_stream)
-
-for message in response:
-    print(message, flush=True, end='')
-```
+ - Read: [/docs/guides/help_me](/docs/guides/help_me.md)
 
 ## 🙌 Contributors
 
-A list of the contributors is available [here](https://github.com/xtekky/gpt4free/graphs/contributors)   
+A list of all contributors is available [here](https://github.com/xtekky/gpt4free/graphs/contributors)   
 The [`Vercel.py`](https://github.com/xtekky/gpt4free/blob/main/g4f/Provider/Vercel.py) file contains code from [vercel-llm-api](https://github.com/ading2210/vercel-llm-api) by [@ading2210](https://github.com/ading2210), which is licensed under the [GNU GPL v3](https://www.gnu.org/licenses/gpl-3.0.txt)   
 Top 1 Contributor: [@hlohaus](https://github.com/hlohaus)
 

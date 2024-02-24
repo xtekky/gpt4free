@@ -42,7 +42,7 @@ def get_model_and_provider(model    : Union[Model, str],
     if debug.version_check:
         debug.version_check = False
         version.utils.check_version()
-       
+
     if isinstance(provider, str):
         if " " in provider:
             provider_list = [ProviderUtils.convert[p] for p in provider.split() if p in ProviderUtils.convert]
