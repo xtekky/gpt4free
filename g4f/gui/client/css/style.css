@@ -316,11 +316,31 @@ body {
     z-index: 1000;
 }
 
-.message .assistant i {
+.message .assistant .fa-phone-arrow-up-right,
+.message .assistant .fa-phone-arrow-down-left {
     position: absolute;
     bottom: -6px;
     right: -6px;
     z-index: 1000;
+}
+
+.message .assistant .fa-xmark,
+.message .user .fa-xmark {
+    position: absolute;
+    top: -2px;
+    left: 0px;
+    z-index: 1000;
+    display: none;
+    cursor: pointer;
+}
+
+.message .user .fa-xmark {
+    color: var(--colour-1);
+}
+
+.message .assistant:hover .fa-xmark,
+.message .user:hover .fa-xmark {
+    display: block;
 }
 
 .new_convo {
