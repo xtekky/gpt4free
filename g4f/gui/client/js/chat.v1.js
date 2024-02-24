@@ -46,6 +46,22 @@ const highlight = (container) => {
     );
 }
 
+const register_remove_message = async () => {
+    document.querySelectorAll(".message .fa-xmark").forEach(async (el) => {
+        if (!("click" in el.dataset)) {
+            el.dataset.click = "true";
+            el.addEventListener("click", async () => {
+                if (prompt_lock) {
+                    return;
+                }
+                const message_el = el.parentElement.parentElement;
+                await remove_message(window.conversation_id, message_el.dataset.index);
+                await load_conversation(window.conversation_id);
+            })
+        }
+    });
+}
+
 const delete_conversations = async () => {
     localStorage.clear();
     await new_conversation();
@@ -58,13 +74,14 @@ const handle_ask = async () => {
     message = message_input.value
     if (message.length > 0) {
         message_input.value = '';
+        prompt_lock = true;
         await add_conversation(window.conversation_id, message);
         if ("text" in fileInput.dataset) {
             message += '\n```' + fileInput.dataset.type + '\n'; 
             message += fileInput.dataset.text;
             message += '\n```'
         }
-        await add_message(window.conversation_id, "user", message);
+        let message_index = await add_message(window.conversation_id, "user", message);
         window.token = message_id();
 
         if (imageInput.dataset.src) URL.revokeObjectURL(imageInput.dataset.src);
@@ -73,9 +90,10 @@ const handle_ask = async () => {
         else delete imageInput.dataset.src
 
         message_box.innerHTML += `
-            <div class="message">
+            <div class="message" data-index="${message_index}">
                 <div class="user">
                     ${user_image}
+                    <i class="fa-solid fa-xmark"></i>
                     <i class="fa-regular fa-phone-arrow-up-right"></i>
                 </div>
                 <div class="content" id="user_${token}"> 
@@ -87,6 +105,7 @@ const handle_ask = async () => {
                 </div>
             </div>
         `;
+        await register_remove_message();
         highlight(message_box);
         await ask_gpt();
     }
@@ -105,18 +124,24 @@ const ask_gpt = async () => {
     regenerate.classList.add(`regenerate-hidden`);
     messages = await get_messages(window.conversation_id);
 
-    // Remove generated images from history
-    for (i in messages) {
-        messages[i]["content"] = messages[i]["content"].replaceAll(
-            /<!-- generated images start -->[\s\S]+<!-- generated images end -->/gm,
-            ""
-        )
-        delete messages[i]["provider"];
-    }
-
     // Remove history, if it is selected
     if (document.getElementById('history')?.checked) {
         messages = [messages[messages.length-1]]
+    }
+
+    new_messages = [];
+    for (i in messages) {
+        new_message = messages[i];
+        // Remove generated images from history
+        new_message["content"] = new_message["content"].replaceAll(
+            /<!-- generated images start -->[\s\S]+<!-- generated images end -->/gm,
+            ""
+        )
+        delete new_message["provider"];
+        // Remove regenerated messages
+        if (!new_message.regenerate) {
+            new_messages.push(new_message)
+        }
     }
 
     window.scrollTo(0, 0);
@@ -125,7 +150,6 @@ const ask_gpt = async () => {
     jailbreak    = document.getElementById("jailbreak");
     provider     = document.getElementById("provider");
     model        = document.getElementById("model");
-    prompt_lock  = true;
     window.text  = '';
 
     stop_generating.classList.remove(`stop_generating-hidden`);
@@ -136,9 +160,11 @@ const ask_gpt = async () => {
     window.scrollTo(0, 0);
 
     message_box.innerHTML += `
-        <div class="message">
+        <div class="message" data-index="${new_messages.length}">
             <div class="assistant">
-                ${gpt_image} <i class="fa-regular fa-phone-arrow-down-left"></i>
+                ${gpt_image}
+                <i class="fa-solid fa-xmark"></i>
+                <i class="fa-regular fa-phone-arrow-down-left"></i>
             </div>
             <div class="content" id="gpt_${window.token}">
                 <div class="provider"></div>
@@ -160,7 +186,7 @@ const ask_gpt = async () => {
             web_search: document.getElementById(`switch`).checked,
             provider: provider.options[provider.selectedIndex].value,
             patch_provider: document.getElementById('patch').checked,
-            messages: messages
+            messages: new_messages
         });
         const headers = {
             accept: 'text/event-stream'
@@ -185,7 +211,6 @@ const ask_gpt = async () => {
         window.scrollTo(0, 0);
 
         const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
-
         error = provider = null;
         while (true) {
             const { value, done } = await reader.read();
@@ -252,9 +277,12 @@ const ask_gpt = async () => {
     }
     let cursorDiv = document.getElementById(`cursor`);
     if (cursorDiv) cursorDiv.parentNode.removeChild(cursorDiv);
-    add_message(window.conversation_id, "assistant", text, provider);
+    if (text) {
+        add_message(window.conversation_id, "assistant", text, provider);
+    }
     message_box.scrollTop = message_box.scrollHeight;
     await remove_cancel_button();
+    await register_remove_message();
     prompt_lock = false;
     window.scrollTo(0, 0);
     await load_conversations(20, 0);
@@ -342,7 +370,8 @@ const load_conversation = async (conversation_id) => {
     let messages = await get_messages(conversation_id);
 
     let elements = "";
-    for (item of messages) {
+    for (i in messages) {
+        let item = messages[i];
         let provider = item.provider ? `
             <div class="provider">
             <a href="${item.provider.url}" target="_blank">${item.provider.name}</a>
@@ -350,9 +379,10 @@ const load_conversation = async (conversation_id) => {
             </div>
         ` : "";
         elements += `
-            <div class="message">
+            <div class="message" data-index="${i}">
                 <div class=${item.role == "assistant" ? "assistant" : "user"}>
                     ${item.role == "assistant" ? gpt_image : user_image}
+                    <i class="fa-solid fa-xmark"></i>
                     ${item.role == "assistant"
                         ? `<i class="fa-regular fa-phone-arrow-down-left"></i>`
                         : `<i class="fa-regular fa-phone-arrow-up-right"></i>`
@@ -367,6 +397,7 @@ const load_conversation = async (conversation_id) => {
     }
     message_box.innerHTML = elements;
 
+    await register_remove_message();
     highlight(message_box);
 
     message_box.scrollTo({ top: message_box.scrollHeight, behavior: "smooth" });
@@ -409,11 +440,30 @@ const add_conversation = async (conversation_id, content) => {
     history.pushState({}, null, `/chat/${conversation_id}`);
 };
 
-const remove_last_message = async (conversation_id) => {
+const hide_last_message = async (conversation_id) => {
     const conversation = await get_conversation(conversation_id)
+    const last_message = conversation.items.pop();
+    last_message["regenerate"] = true;
+    conversation.items.push(last_message);
 
-    conversation.items.pop();
+    localStorage.setItem(
+        `conversation:${conversation_id}`,
+        JSON.stringify(conversation)
+    );
+};
 
+const remove_message = async (conversation_id, index) => {
+    const conversation = await get_conversation(conversation_id);
+    let new_items = [];
+    for (i in conversation.items) {
+        if (i == index - 1) {
+            delete conversation.items[i]["regenerate"];
+        }
+        if (i != index) {
+            new_items.push(conversation.items[i])
+        }
+    }
+    conversation.items = new_items;
     localStorage.setItem(
         `conversation:${conversation_id}`,
         JSON.stringify(conversation)
@@ -433,6 +483,8 @@ const add_message = async (conversation_id, role, content, provider) => {
         `conversation:${conversation_id}`,
         JSON.stringify(conversation)
     );
+
+    return conversation.items.length - 1;
 };
 
 const load_conversations = async (limit, offset, loader) => {
@@ -468,7 +520,8 @@ document.getElementById(`cancelButton`).addEventListener(`click`, async () => {
 });
 
 document.getElementById(`regenerateButton`).addEventListener(`click`, async () => {
-    await remove_last_message(window.conversation_id);
+    prompt_lock = true;
+    await hide_last_message(window.conversation_id);
     window.token = message_id();
     await ask_gpt();
 });
@@ -590,7 +643,6 @@ colorThemes.forEach((themeOption) => {
         document.documentElement.className = themeOption.id;
     });
 });
-
 
 window.onload = async () => {
     setTheme();
