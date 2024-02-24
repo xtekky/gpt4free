@@ -154,10 +154,11 @@ response = client.chat.completions.create(
 )
 print(response.choices[0].message.content)
 ```
-![Waterfall](/docs/waterfall.jpeg)
 ```
 User: What are on this image?
 ```
+![Waterfall](/docs/waterfall.jpeg)
+
 ```
 Bot: There is a waterfall in the middle of a jungle. There is a rainbow over...
 ```
