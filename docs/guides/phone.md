@@ -21,7 +21,7 @@ Running Python applications on your smartphone is possible with specialized apps
    - In the app settings for Pydroid, disable power-saving mode and ensure that the option to pause when not in use is also disabled. This ensures uninterrupted operation of your Python scripts.
 
 4. **Install Required Packages:**
-   - Open Pip within the Pydroid app and install this necessary packages:
+   - Open Pip within the Pydroid app and install these necessary packages:
      ```
       g4f flask pillow beautifulsoup4
      ```

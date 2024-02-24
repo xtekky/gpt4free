@@ -27,10 +27,10 @@ docker pull hlohaus789/g4f
 - Join our Telegram Channel: [t.me/g4f_channel](https://telegram.me/g4f_channel)
 - Join our Discord Group: [discord.gg/XfybzPXPH5](https://discord.gg/XfybzPXPH5)
 
-##🔻 Site Takedown
+## 🔻 Site Takedown
 Is your site on this repository and you want to take it down ? email takedown@g4f.ai with proof it is yours and it will be removed as fast as possible. - to prevent reproduction please secure your api ; )
 
-##🚀  Feedback and Todo
+## 🚀  Feedback and Todo
 You can always leave some feedback here: https://forms.gle/FeWV9RLEedfdkmFN6
 
 As per the survey, here is a list of improvements to come
@@ -58,7 +58,7 @@ As per the survey, here is a list of improvements to come
       - [Install using Docker:](#install-using-docker)
 - [💡 Usage](#-usage)
   * [Text Generation](#text-generation)
-  * [Image Generation](#text-generation)
+  * [Image Generation](#image-generation)
   * [Web UI](#web-ui)
   * [Interference API](#interference-api)
   * [Configuration](#configuration)
@@ -166,7 +166,7 @@ image_url = response.data[0].url
 **Full Documentation for Python API**
 
 - New Client API like the OpenAI Python library: [/docs/client](/docs/client.md)
-- Leagcy API with python modules: [/docs/leagcy](/docs/leagcy.md)
+- Legacy API with python modules: [/docs/legacy](/docs/legacy.md)
 
 #### Web UI
 

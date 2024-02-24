@@ -1,4 +1,4 @@
-### G4F - Leagcy API
+### G4F - Legacy API
 
 #### ChatCompletion
 
