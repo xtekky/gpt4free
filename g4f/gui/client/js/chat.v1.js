@@ -11,7 +11,7 @@ const imageInput        = document.querySelector('#image');
 const cameraInput       = document.querySelector('#camera');
 const fileInput         = document.querySelector('#file');
 
-let   prompt_lock       = false;
+let prompt_lock = false;
 
 hljs.addPlugin(new CopyButtonPlugin());
 

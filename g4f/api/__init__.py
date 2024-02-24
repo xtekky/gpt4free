@@ -86,9 +86,8 @@ class Api:
                     auth_header = request.headers.get("Authorization")
                     if auth_header is not None:
                         config.api_key = auth_header.split(None, 1)[-1]
-
                 response = self.client.chat.completions.create(
-                    **dict(config),
+                    **config.dict(exclude_none=True),
                     ignored=self.list_ignored_providers
                 )
             except Exception as e:
@@ -121,7 +120,7 @@ class Api:
 def format_exception(e: Exception, config: ChatCompletionsConfig) -> str:
     last_provider = g4f.get_last_provider(True)
     return json.dumps({
-        "error": {"message": f"ChatCompletionsError: {e.__class__.__name__}: {e}"},
+        "error": {"message": f"{e.__class__.__name__}: {e}"},
         "model": last_provider.get("model") if last_provider else config.model,
         "provider": last_provider.get("name") if last_provider else config.provider
     })
