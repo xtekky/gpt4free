@@ -129,7 +129,7 @@ body {
     flex-direction: column;
     overflow: auto;
     overflow-wrap: break-word;
-    padding-bottom: 50px;
+    padding-bottom: 20px;
 }
 
 .conversation .user-input {
@@ -291,7 +291,7 @@ body {
 .message .content {
     display: flex;
     flex-direction: column;
-    gap: 18px;
+    gap: 10px;
 }
 
 .message .content,
@@ -343,6 +343,26 @@ body {
     display: block;
 }
 
+.message .content .provider a,
+.message .content .provider {
+    font-size: 12px;
+    text-decoration: none;
+}
+
+.message .content .provider a {
+    font-weight: bold;
+}
+
+.message .content .count {
+    font-size: 12px;
+}
+
+.count_total {
+    font-size: 12px;
+    padding-left: 100px;
+    padding-top: 10px;
+}
+
 .new_convo {
     padding: 8px 12px;
     display: flex;
@@ -367,7 +387,7 @@ body {
 
 .stop_generating, .regenerate {
     position: absolute;
-    bottom: 158px;
+    bottom: 122px;
     left: 50%;
     transform: translateX(-50%);
     z-index: 1000000;
