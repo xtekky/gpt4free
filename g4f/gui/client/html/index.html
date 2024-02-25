@@ -29,10 +29,17 @@
             }
         };
     </script>
-    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
+    <script type="module" src="https://cdn.jsdelivr.net/npm/mistral-tokenizer-js" async>
+        import mistralTokenizer from 'mistral-tokenizer-js'
+    </script>
+    <script type="module" src="https://belladoreai.github.io/llama-tokenizer-js/llama-tokenizer.js" async>
+        import llamaTokenizer from 'llama-tokenizer-js'
+    </script>
+    <script src="https://unpkg.com/gpt-tokenizer/dist/cl100k_base.js" async></script>
     <script>
-        const user_image = `<img src="/assets/img/user.png" alt="your avatar">`;
-        const gpt_image = `<img src="/assets/img/gpt.png" alt="your avatar">`;
+        const user_image = '<img src="/assets/img/user.png" alt="your avatar">';
+        const gpt_image = '<img src="/assets/img/gpt.png" alt="your avatar">';
     </script>
     <style>
         .hljs {

@@ -31,6 +31,7 @@ from .ChatgptX        import ChatgptX
 from .Chatxyz         import Chatxyz
 from .DeepInfra       import DeepInfra
 from .FakeGpt         import FakeGpt
+from .FlowGpt         import FlowGpt
 from .FreeChatgpt     import FreeChatgpt
 from .FreeGpt         import FreeGpt
 from .GeekGpt         import GeekGpt

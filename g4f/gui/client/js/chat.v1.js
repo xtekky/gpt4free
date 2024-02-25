@@ -11,7 +11,7 @@ const imageInput        = document.querySelector('#image');
 const cameraInput       = document.querySelector('#camera');
 const fileInput         = document.querySelector('#file');
 
-let   prompt_lock       = false;
+let prompt_lock = false;
 
 hljs.addPlugin(new CopyButtonPlugin());
 
@@ -120,16 +120,8 @@ const remove_cancel_button = async () => {
     }, 300);
 };
 
-const ask_gpt = async () => {
-    regenerate.classList.add(`regenerate-hidden`);
-    messages = await get_messages(window.conversation_id);
-
-    // Remove history, if it is selected
-    if (document.getElementById('history')?.checked) {
-        messages = [messages[messages.length-1]]
-    }
-
-    new_messages = [];
+const filter_messages = (messages) => {
+    let new_messages = [];
     for (i in messages) {
         new_message = messages[i];
         // Remove generated images from history
@@ -143,6 +135,19 @@ const ask_gpt = async () => {
             new_messages.push(new_message)
         }
     }
+    return new_messages;
+}
+
+const ask_gpt = async () => {
+    regenerate.classList.add(`regenerate-hidden`);
+    messages = await get_messages(window.conversation_id);
+    total_messages = messages.length;
+
+    // Remove history, if it is selected
+    if (document.getElementById('history')?.checked) {
+        messages = [messages[messages.length-1]];
+    }
+    messages = filter_messages(messages);
 
     window.scrollTo(0, 0);
     window.controller = new AbortController();
@@ -159,8 +164,11 @@ const ask_gpt = async () => {
     await new Promise((r) => setTimeout(r, 500));
     window.scrollTo(0, 0);
 
+    el = message_box.querySelector('.count_total');
+    el ? el.parentElement.removeChild(el) : null;
+
     message_box.innerHTML += `
-        <div class="message" data-index="${new_messages.length}">
+        <div class="message" data-index="${total_messages}">
             <div class="assistant">
                 ${gpt_image}
                 <i class="fa-solid fa-xmark"></i>
@@ -186,7 +194,7 @@ const ask_gpt = async () => {
             web_search: document.getElementById(`switch`).checked,
             provider: provider.options[provider.selectedIndex].value,
             patch_provider: document.getElementById('patch').checked,
-            messages: new_messages
+            messages: messages
         });
         const headers = {
             accept: 'text/event-stream'
@@ -240,7 +248,7 @@ const ask_gpt = async () => {
             } else {
                 html = markdown_render(text);
                 let lastElement, lastIndex = null;
-                for (element of ['</p>', '</code></pre>', '</li>\n</ol>']) {
+                for (element of ['</p>', '</code></pre>', '</li>\n</ol>', '</li>\n</ul>']) {
                     const index = html.lastIndexOf(element)
                     if (index > lastIndex) {
                         lastElement = element;
@@ -278,8 +286,9 @@ const ask_gpt = async () => {
     let cursorDiv = document.getElementById(`cursor`);
     if (cursorDiv) cursorDiv.parentNode.removeChild(cursorDiv);
     if (text) {
-        add_message(window.conversation_id, "assistant", text, provider);
+        await add_message(window.conversation_id, "assistant", text, provider);
     }
+    await load_conversation(window.conversation_id);
     message_box.scrollTop = message_box.scrollHeight;
     await remove_cancel_button();
     await register_remove_message();
@@ -372,10 +381,16 @@ const load_conversation = async (conversation_id) => {
     let elements = "";
     for (i in messages) {
         let item = messages[i];
-        let provider = item.provider ? `
+        let next_i = parseInt(i) + 1;
+        let next_provider = item.provider ? item.provider : (messages.length > next_i ? messages[next_i].provider : null);
+        let tokens_count = next_provider?.model ? count_tokens(next_provider.model, item.content) : "";
+        let append_count = tokens_count ? `, ${tokens_count} tokens` : "";
+        let words_count = `(${count_words(item.content)} words${append_count})`
+        let provider_link = item?.provider?.name ? `<a href="${item?.provider?.url}" target="_blank">${item.provider.name}</a>` : "";
+        let provider = provider_link ? `
             <div class="provider">
-            <a href="${item.provider.url}" target="_blank">${item.provider.name}</a>
-            ${item.provider.model ? ' with ' + item.provider.model : ''}
+                ${provider_link}
+                ${item.provider.model ? ' with ' + item.provider.model : ''}
             </div>
         ` : "";
         elements += `
@@ -391,10 +406,17 @@ const load_conversation = async (conversation_id) => {
                 <div class="content">
                     ${provider}
                     <div class="content_inner">${markdown_render(item.content)}</div>
+                    <div class="count">${words_count}</div>
                 </div>
             </div>
         `;
     }
+
+    let count_total = GPTTokenizer_cl100k_base?.encodeChat(filter_messages(messages), "gpt-3.5-turbo").length
+    if (count_total > 0) {
+        elements += `<div class="count_total">(${count_total} tokens used)</div>`;
+    }
+
     message_box.innerHTML = elements;
 
     await register_remove_message();
@@ -406,6 +428,23 @@ const load_conversation = async (conversation_id) => {
         message_box.scrollTop = message_box.scrollHeight;
     }, 500);
 };
+
+function count_words(text) {
+    var matches = text.match(/[\w\d\’\'-]+/gi);
+    return matches ? matches.length : 0;
+}
+
+function count_tokens(model, text) {
+    if (model.startsWith("gpt-3") || model.startsWith("gpt-4")) {
+        return GPTTokenizer_cl100k_base?.encode(text).length
+    }
+    if (model.startsWith("llama2") || model.startsWith("codellama")) {
+        return llamaTokenizer?.encode(text).length
+    }
+    if (model.startsWith("mistral") || model.startsWith("mixtral")) {
+        return mistralTokenizer?.encode(text).length
+    }
+}
 
 const get_conversation = async (conversation_id) => {
     let conversation = await JSON.parse(
