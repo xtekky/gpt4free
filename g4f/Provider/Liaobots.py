@@ -78,7 +78,7 @@ class Liaobots(AsyncGeneratorProvider, ProviderModelMixin):
     supports_gpt_35_turbo = True
     supports_gpt_4 = True
     default_model = "gpt-3.5-turbo"
-    models = [m for m in models]
+    models = list(models)
     model_aliases = {
         "claude-v2": "claude-2"
     }
