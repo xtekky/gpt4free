@@ -336,7 +336,7 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
         if cls._args is None and cookies is None:
             cookies = get_cookies("chat.openai.com", False)
         api_key = kwargs["access_token"] if "access_token" in kwargs else api_key
-        if api_key is None:
+        if api_key is None and cookies is not None:
             api_key = cookies["access_token"] if "access_token" in cookies else api_key
         if cls._args is None:
             cls._args = {
