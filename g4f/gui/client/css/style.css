@@ -541,7 +541,6 @@ label[for="camera"] {
     display: flex;
     align-items: center;
     gap: 16px;
-    padding-right: 15px
 }
 
 .field .about {
@@ -569,7 +568,16 @@ select {
     padding: 8px 16px;
 
     appearance: none;
-    width: 250px;
+    width: 160px;
+}
+
+@media only screen and (min-width: 40em) {
+    select {
+        width: 200px;
+    }
+    .field {
+        padding-right: 15px
+    }
 }
 
 .input-box {

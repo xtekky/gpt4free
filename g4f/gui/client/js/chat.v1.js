@@ -3,7 +3,6 @@ const markdown          = window.markdownit();
 const message_box       = document.getElementById(`messages`);
 const message_input     = document.getElementById(`message-input`);
 const box_conversations = document.querySelector(`.top`);
-const spinner           = box_conversations.querySelector(".spinner");
 const stop_generating   = document.querySelector(`.stop_generating`);
 const regenerate        = document.querySelector(`.regenerate`);
 const send_button       = document.querySelector(`#send-button`);
@@ -71,6 +70,7 @@ const handle_ask = async () => {
     message_input.style.height = `82px`;
     message_input.focus();
     window.scrollTo(0, 0);
+
     message = message_input.value
     if (message.length > 0) {
         message_input.value = '';
@@ -268,6 +268,11 @@ const ask_gpt = async () => {
             }
         }
         if (!error) {
+            // Remove cursor
+            html = markdown_render(text);
+            content_inner.innerHTML = html;
+            highlight(content_inner);
+
             if (imageInput) imageInput.value = "";
             if (cameraInput) cameraInput.value = "";
             if (fileInput) fileInput.value = "";
@@ -275,26 +280,28 @@ const ask_gpt = async () => {
     } catch (e) {
         console.error(e);
 
-        if (e.name != `AbortError`) {
-            text = `oops ! something went wrong, please try again / reload. [stacktrace in console]`;
+        if (e.name != "AbortError") {
+            error = true;
+            text = "oops ! something went wrong, please try again / reload. [stacktrace in console]";
             content_inner.innerHTML = text;
         } else {
             content_inner.innerHTML += ` [aborted]`;
             text += ` [aborted]`
         }
     }
-    let cursorDiv = document.getElementById(`cursor`);
-    if (cursorDiv) cursorDiv.parentNode.removeChild(cursorDiv);
-    if (text) {
+    if (!error) {
         await add_message(window.conversation_id, "assistant", text, provider);
+        await load_conversation(window.conversation_id);
+    } else {
+        let cursorDiv = document.getElementById(`cursor`);
+        if (cursorDiv) cursorDiv.parentNode.removeChild(cursorDiv);
     }
-    await load_conversation(window.conversation_id);
     message_box.scrollTop = message_box.scrollHeight;
     await remove_cancel_button();
     await register_remove_message();
     prompt_lock = false;
     window.scrollTo(0, 0);
-    await load_conversations(20, 0);
+    await load_conversations();
     regenerate.classList.remove(`regenerate-hidden`);
 };
 
@@ -353,7 +360,7 @@ const delete_conversation = async (conversation_id) => {
         await new_conversation();
     }
 
-    await load_conversations(20, 0, true);
+    await load_conversations();
 };
 
 const set_conversation = async (conversation_id) => {
@@ -362,7 +369,7 @@ const set_conversation = async (conversation_id) => {
 
     await clear_conversation();
     await load_conversation(conversation_id);
-    await load_conversations(20, 0, true);
+    await load_conversations();
 };
 
 const new_conversation = async () => {
@@ -370,7 +377,7 @@ const new_conversation = async () => {
     window.conversation_id = uuid();
 
     await clear_conversation();
-    await load_conversations(20, 0, true);
+    await load_conversations();
 
     await say_hello()
 };
@@ -435,14 +442,14 @@ function count_words(text) {
 }
 
 function count_tokens(model, text) {
-    if (model.startsWith("gpt-3") || model.startsWith("gpt-4")) {
-        return GPTTokenizer_cl100k_base?.encode(text).length
+    if (model.startsWith("gpt-3") || model.startsWith("gpt-4") || model.startsWith("text-davinci")) {
+        return GPTTokenizer_cl100k_base?.encode(text).length;
     }
     if (model.startsWith("llama2") || model.startsWith("codellama")) {
-        return llamaTokenizer?.encode(text).length
+        return llamaTokenizer?.encode(text).length;
     }
     if (model.startsWith("mistral") || model.startsWith("mixtral")) {
-        return mistralTokenizer?.encode(text).length
+        return mistralTokenizer?.encode(text).length;
     }
 }
 
@@ -526,7 +533,7 @@ const add_message = async (conversation_id, role, content, provider) => {
     return conversation.items.length - 1;
 };
 
-const load_conversations = async (limit, offset, loader) => {
+const load_conversations = async () => {
     let conversations = [];
     for (let i = 0; i < localStorage.length; i++) {
         if (localStorage.key(i).startsWith("conversation:")) {
@@ -550,7 +557,6 @@ const load_conversations = async (limit, offset, loader) => {
             </div>
         `;
     }
-
 };
 
 document.getElementById(`cancelButton`).addEventListener(`click`, async () => {
@@ -693,10 +699,8 @@ window.onload = async () => {
         }
     }
 
-    if (conversations == 0) localStorage.clear();
-
     await setTimeout(() => {
-        load_conversations(20, 0);
+        load_conversations();
     }, 1);
 
     if (/\/chat\/.+/.test(window.location.href)) {
@@ -776,15 +780,17 @@ observer.observe(message_input, { attributes: true });
     versions = await response.json()
     
     document.title = 'g4f - gui - ' + versions["version"];
-    text = "version ~ "
+    let text = "version ~ "
     if (versions["version"] != versions["latest_version"]) {
-        release_url = 'https://github.com/xtekky/gpt4free/releases/tag/' + versions["latest_version"];
-        text += '<a href="' + release_url +'" target="_blank" title="New version: ' + versions["latest_version"] +'">' + versions["version"] + ' 🆕</a>';
+        let release_url = 'https://github.com/xtekky/gpt4free/releases/tag/' + versions["latest_version"];
+        let title = `New version: ${versions["latest_version"]}`;
+        text += `<a href="${release_url}" target="_blank" title="${title}">${versions["version"]} 🆕</a>`;
     } else {
         text += versions["version"];
     }
     document.getElementById("version_text").innerHTML = text
 })()
+
 for (const el of [imageInput, cameraInput]) {
     el.addEventListener('click', async () => {
         el.value = '';
@@ -794,6 +800,7 @@ for (const el of [imageInput, cameraInput]) {
         }
     });
 }
+
 fileInput.addEventListener('click', async (event) => {
     fileInput.value = '';
     delete fileInput.dataset.text;
