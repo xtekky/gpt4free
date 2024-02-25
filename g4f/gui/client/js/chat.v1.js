@@ -268,6 +268,11 @@ const ask_gpt = async () => {
             }
         }
         if (!error) {
+            // Remove cursor
+            html = markdown_render(text);
+            content_inner.innerHTML = html;
+            highlight(content_inner);
+
             if (imageInput) imageInput.value = "";
             if (cameraInput) cameraInput.value = "";
             if (fileInput) fileInput.value = "";
@@ -275,20 +280,19 @@ const ask_gpt = async () => {
     } catch (e) {
         console.error(e);
 
-        if (e.name != `AbortError`) {
-            text = `oops ! something went wrong, please try again / reload. [stacktrace in console]`;
+        if (e.name != "AbortError") {
+            error = true;
+            text = "oops ! something went wrong, please try again / reload. [stacktrace in console]";
             content_inner.innerHTML = text;
         } else {
             content_inner.innerHTML += ` [aborted]`;
             text += ` [aborted]`
         }
     }
-    let cursorDiv = document.getElementById(`cursor`);
-    if (cursorDiv) cursorDiv.parentNode.removeChild(cursorDiv);
-    if (text) {
+    if (!error) {
         await add_message(window.conversation_id, "assistant", text, provider);
+        await load_conversation(window.conversation_id);
     }
-    await load_conversation(window.conversation_id);
     message_box.scrollTop = message_box.scrollHeight;
     await remove_cancel_button();
     await register_remove_message();
