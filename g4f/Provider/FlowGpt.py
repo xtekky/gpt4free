@@ -56,7 +56,7 @@ class FlowGpt(AsyncGeneratorProvider, ProviderModelMixin):
                 "nsfw": False,
                 "question": messages[-1]["content"],
                 "history": [{"role": "assistant", "content": "Hello, how can I help you today?"}, *messages[:-1]],
-                "system": "You are helpful assitant. Follow the user's instructions carefully. Respond using markdown",
+                "system": kwargs.get("system_message", "You are helpful assistant. Follow the user's instructions carefully."),
                 "temperature": kwargs.get("temperature", 0.7),
                 "promptId": f"model-{model}",
                 "documentIds": [],
