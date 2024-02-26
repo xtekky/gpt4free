@@ -123,9 +123,9 @@ const remove_cancel_button = async () => {
 const filter_messages = (messages) => {
     // Removes none user messages at end
     let last_message;
-    while (last_message = new_messages.pop()) {
+    while (last_message = messages.pop()) {
         if (last_message["role"] == "user") {
-            new_messages.push(last_message);
+            messages.push(last_message);
             break;
         }
     }
@@ -430,9 +430,12 @@ const load_conversation = async (conversation_id) => {
         `;
     }
 
-    let count_total = GPTTokenizer_cl100k_base?.encodeChat(filter_messages(messages), "gpt-3.5-turbo").length
-    if (count_total > 0) {
-        elements += `<div class="count_total">(${count_total} tokens used)</div>`;
+    const filtered = filter_messages(messages);
+    if (filtered.length > 0) {
+        let count_total = GPTTokenizer_cl100k_base?.encodeChat(filtered, "gpt-3.5-turbo").length
+        if (count_total > 0) {
+            elements += `<div class="count_total">(${count_total} tokens used)</div>`;
+        }
     }
 
     message_box.innerHTML = elements;
