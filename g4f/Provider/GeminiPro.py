@@ -34,17 +34,18 @@ class GeminiPro(AsyncGeneratorProvider, ProviderModelMixin):
 
         if not api_key:
             raise MissingAuthError('Missing "api_key"')
+
+        headers = params = None
+        if api_base:
+            headers = {"Authorization": f"Bearer {api_key}"}
+        else:
+            params = {"key": api_key}
+
         if not api_base:
             api_base = f"https://generativelanguage.googleapis.com/v1beta"
 
         method = "streamGenerateContent" if stream else "generateContent"
         url = f"{api_base.rstrip('/')}/models/{model}:{method}"
-        headers = None
-        if api_base:
-            headers = {f"Authorization": "Bearer {api_key}"}
-        else:
-            url += f"?key={api_key}"
-
         async with ClientSession(headers=headers) as session:
             contents = [
                 {
@@ -71,10 +72,11 @@ class GeminiPro(AsyncGeneratorProvider, ProviderModelMixin):
                     "topK": kwargs.get("top_k"),
                 }
             }
-            async with session.post(url, json=data, proxy=proxy) as response:
+            async with session.post(url, params=params, json=data, proxy=proxy) as response:
                 if not response.ok:
                     data = await response.json()
-                    raise RuntimeError(data[0]["error"]["message"])
+                    data = data[0] if isinstance(data, list) else data
+                    raise RuntimeError(data["error"]["message"])
                 if stream:
                     lines = []
                     async for chunk in response.content:
