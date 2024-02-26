@@ -105,7 +105,7 @@ class Liaobots(AsyncGeneratorProvider, ProviderModelMixin):
         async with ClientSession(
             headers=headers,
             cookie_jar=cls._cookie_jar,
-            connector=get_connector(connector, proxy)
+            connector=get_connector(connector, proxy, True)
         ) as session:
             cls._auth_code = auth if isinstance(auth, str) else cls._auth_code
             if not cls._auth_code:
