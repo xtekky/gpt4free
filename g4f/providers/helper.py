@@ -55,7 +55,11 @@ def get_connector(connector: BaseConnector = None, proxy: str = None) -> Optiona
     if proxy and not connector:
         try:
             from aiohttp_socks import ProxyConnector
-            connector = ProxyConnector.from_url(proxy)
+            rdns = False
+            if proxy.startswith("socks5h://"):
+                proxy = proxy.replace("socks5h://", "socks5://")
+                rdns = True
+            connector = ProxyConnector.from_url(proxy, rdns=rdns)
         except ImportError:
             raise MissingRequirementsError('Install "aiohttp_socks" package for proxy support')
     return connector
