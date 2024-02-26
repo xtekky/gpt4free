@@ -18,12 +18,12 @@ Don't translate or change inline code examples.
 ```md
 """
 keep_note = "Keep this: [!Note] as [!Note].\n"
-blacklist = [
+blocklist = [
     '## ©️ Copyright',
     '## 🚀 Providers and Models',
     '## 🔗 Related GPT4Free Projects'
 ]
-whitelist = [
+allowlist = [
     "### Other",
     "### Models"
 ]
@@ -52,15 +52,15 @@ async def translate(text):
     return result
 
 async def translate_part(part, i):
-    blacklisted = False
-    for headline in blacklist:
+    blocklisted = False
+    for headline in blocklist:
         if headline in part:
-            blacklisted = True
-    if blacklisted:
+            blocklisted = True
+    if blocklisted:
         lines = part.split('\n')
         lines[0] = await translate(lines[0])
         part = '\n'.join(lines)
-        for trans in whitelist:
+        for trans in allowlist:
             if trans in part:
                 part = part.replace(trans, await translate(trans))
     else:
