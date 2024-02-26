@@ -2,12 +2,13 @@ from __future__ import annotations
 
 import base64
 import json
-from aiohttp import ClientSession
+from aiohttp import ClientSession, BaseConnector
 
 from ..typing import AsyncResult, Messages, ImageType
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..image import to_bytes, is_accepted_format
 from ..errors import MissingAuthError
+from .helper import get_connector
 
 class GeminiPro(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://ai.google.dev"
@@ -27,6 +28,7 @@ class GeminiPro(AsyncGeneratorProvider, ProviderModelMixin):
         api_key: str = None,
         api_base: str = None,
         image: ImageType = None,
+        connector: BaseConnector = None,
         **kwargs
     ) -> AsyncResult:
         model = "gemini-pro-vision" if not model and image else model
@@ -46,7 +48,7 @@ class GeminiPro(AsyncGeneratorProvider, ProviderModelMixin):
 
         method = "streamGenerateContent" if stream else "generateContent"
         url = f"{api_base.rstrip('/')}/models/{model}:{method}"
-        async with ClientSession(headers=headers) as session:
+        async with ClientSession(headers=headers, connector=get_connector(connector, proxy)) as session:
             contents = [
                 {
                     "role": "model" if message["role"] == "assistant" else message["role"],
@@ -72,7 +74,7 @@ class GeminiPro(AsyncGeneratorProvider, ProviderModelMixin):
                     "topK": kwargs.get("top_k"),
                 }
             }
-            async with session.post(url, params=params, json=data, proxy=proxy) as response:
+            async with session.post(url, params=params, json=data) as response:
                 if not response.ok:
                     data = await response.json()
                     data = data[0] if isinstance(data, list) else data
