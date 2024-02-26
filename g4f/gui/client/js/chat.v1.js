@@ -121,6 +121,20 @@ const remove_cancel_button = async () => {
 };
 
 const filter_messages = (messages) => {
+    // Removes none user messages at end
+    let last_message;
+    while (last_message = new_messages.pop()) {
+        if (last_message["role"] == "user") {
+            new_messages.push(last_message);
+            break;
+        }
+    }
+
+    // Remove history, if it is selected
+    if (document.getElementById('history')?.checked) {
+        messages = [messages[messages.length-1]];
+    }
+
     let new_messages = [];
     for (i in messages) {
         new_message = messages[i];
@@ -135,6 +149,7 @@ const filter_messages = (messages) => {
             new_messages.push(new_message)
         }
     }
+
     return new_messages;
 }
 
@@ -143,10 +158,6 @@ const ask_gpt = async () => {
     messages = await get_messages(window.conversation_id);
     total_messages = messages.length;
 
-    // Remove history, if it is selected
-    if (document.getElementById('history')?.checked) {
-        messages = [messages[messages.length-1]];
-    }
     messages = filter_messages(messages);
 
     window.scrollTo(0, 0);

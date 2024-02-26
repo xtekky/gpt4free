@@ -70,7 +70,7 @@ class Bing(AsyncGeneratorProvider):
 
         gpt4_turbo = True if model.startswith("gpt-4-turbo") else False
 
-        return stream_generate(prompt, tone, image, context, cookies, get_connector(connector, proxy), web_search, gpt4_turbo, timeout)
+        return stream_generate(prompt, tone, image, context, cookies, get_connector(connector, proxy, True), web_search, gpt4_turbo, timeout)
 
 def create_context(messages: Messages) -> str:
     """
