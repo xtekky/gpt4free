@@ -126,7 +126,7 @@ class Completions():
         stop: Union[list[str], str] = None,
         api_key: str = None,
         **kwargs
-    ) -> Union[ChatCompletion, Generator[ChatCompletionChunk]]:
+    ) -> Union[ChatCompletion, Generator[ChatCompletionChunk, None, None]]:
         model, provider = get_model_and_provider(
             model,
             self.provider if provider is None else provider,

@@ -27,6 +27,7 @@ class GeminiPro(AsyncGeneratorProvider, ProviderModelMixin):
         proxy: str = None,
         api_key: str = None,
         api_base: str = None,
+        use_auth_header: bool = True,
         image: ImageType = None,
         connector: BaseConnector = None,
         **kwargs
@@ -38,7 +39,7 @@ class GeminiPro(AsyncGeneratorProvider, ProviderModelMixin):
             raise MissingAuthError('Missing "api_key"')
 
         headers = params = None
-        if api_base:
+        if api_base and use_auth_header:
             headers = {"Authorization": f"Bearer {api_key}"}
         else:
             params = {"key": api_key}
