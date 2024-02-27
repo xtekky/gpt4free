@@ -6,9 +6,8 @@ from ..typing import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider
 
 class Aura(AsyncGeneratorProvider):
-    url                   = "https://openchat.team"
-    working               = True
-    supports_gpt_35_turbo = True
+    url = "https://openchat.team"
+    working = True
 
     @classmethod
     async def create_async_generator(

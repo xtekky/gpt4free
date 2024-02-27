@@ -4,8 +4,7 @@ import json
 from aiohttp import ClientSession
 
 from ..typing import AsyncResult, Messages
-from .base_provider import AsyncGeneratorProvider
-from .helper import format_prompt
+from ..providers.base_provider import AsyncGeneratorProvider
 
 
 class ChatgptNext(AsyncGeneratorProvider):
@@ -24,7 +23,7 @@ class ChatgptNext(AsyncGeneratorProvider):
         if not model:
             model = "gpt-3.5-turbo"
         headers = {
-            "User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/119.0",
+            "User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:122.0) Gecko/20100101 Firefox/122.0",
             "Accept": "text/event-stream",
             "Accept-Language": "de,en-US;q=0.7,en;q=0.3",
             "Accept-Encoding": "gzip, deflate, br",

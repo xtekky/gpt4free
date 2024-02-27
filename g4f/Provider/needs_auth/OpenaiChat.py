@@ -334,39 +334,49 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
 
         # Read api_key from args
         api_key = kwargs["access_token"] if "access_token" in kwargs else api_key
+        # If no cached args
         if cls._args is None:
             if api_key is None:
                 # Read api_key from cookies
                 cookies = get_cookies("chat.openai.com", False) if cookies is None else cookies
                 api_key = cookies["access_token"] if "access_token" in cookies else api_key
             cls._args = cls._create_request_args(cookies)
- 
+        else:
+            # Read api_key from cache
+            api_key = cls._args["headers"]["Authorization"] if "Authorization" in cls._args["headers"] else None
+
         async with StreamSession(
             proxies={"https": proxy},
             impersonate="chrome",
             timeout=timeout
         ) as session:
+            # Read api_key from session cookies
             if api_key is None and cookies:
-                # Read api_key from session
                 api_key = await cls.fetch_access_token(session, cls._args["headers"])
-
-            if api_key is not None:
-                cls._args["headers"]["Authorization"] = f"Bearer {api_key}"
+            # Load default model
+            if cls.default_model is None:
                 try:
-                    cls.default_model = await cls.get_default_model(session, cls._args["headers"])
+                    if cookies and not model and api_key is not None:
+                        cls._args["headers"]["Authorization"] = api_key
+                        cls.default_model = cls.get_model(await cls.get_default_model(session, cls._args["headers"]))
+                    elif api_key:
+                        cls.default_model = cls.get_model(model or "gpt-3.5-turbo")
                 except Exception as e:
                     if debug.logging:
+                        print("OpenaiChat: Load default_model failed")
                         print(f"{e.__class__.__name__}: {e}")
-
-            if cls.default_model is None:
+            # Browse api_key and update default model
+            if api_key is None or cls.default_model is None:
                 login_url = os.environ.get("G4F_LOGIN_URL")
                 if login_url:
                     yield f"Please login: [ChatGPT]({login_url})\n\n"
                 try:
                     cls._args = cls.browse_access_token(proxy)
                 except MissingRequirementsError:
-                    raise MissingAuthError(f'Missing or invalid "access_token". Add a new "api_key" please')
-                cls.default_model = await cls.get_default_model(session, cls._args["headers"])
+                    raise MissingAuthError(f'Missing "access_token". Add a "api_key" please')
+                cls.default_model = cls.get_model(await cls.get_default_model(session, cls._args["headers"]))
+            else:
+                cls._args["headers"]["Authorization"] = api_key
 
             try:
                 image_response = await cls.upload_image(
@@ -409,7 +419,8 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
                 ) as response:
                     cls._update_request_args(session)
                     if not response.ok:
-                        raise RuntimeError(f"Response {response.status}: {await response.text()}")
+                        message = f"{await response.text()} headers:\n{json.dumps(cls._args['headers'], indent=4)}"
+                        raise RuntimeError(f"Response {response.status}: {message}")
                     last_message: int = 0
                     async for line in response.iter_lines():
                         if not line.startswith(b"data: "):
