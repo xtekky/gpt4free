@@ -8,7 +8,7 @@ from .base_provider import AsyncGeneratorProvider
 
 class Chatxyz(AsyncGeneratorProvider):
     url = "https://chat.3211000.xyz"
-    working = True
+    working = False
     supports_gpt_35_turbo = True
     supports_message_history = True
 

@@ -9,7 +9,7 @@ from .helper import get_random_string
 
 class AiChatOnline(AsyncGeneratorProvider):
     url = "https://aichatonline.org"
-    working = True
+    working = False
     supports_gpt_35_turbo = True
     supports_message_history = False
 

@@ -270,7 +270,7 @@ class ProviderModelMixin:
     
     @classmethod
     def get_model(cls, model: str) -> str:
-        if not model:
+        if not model and cls.default_model is not None:
             model = cls.default_model
         elif model in cls.model_aliases:
             model = cls.model_aliases[model]

@@ -51,12 +51,16 @@ class FlowGpt(AsyncGeneratorProvider, ProviderModelMixin):
             "TE": "trailers"
         }
         async with ClientSession(headers=headers) as session:
+            history = [message for message in messages[:-1] if message["role"] != "system"]
+            system_message = "\n".join([message["content"] for message in messages if message["role"] == "system"])
+            if not system_message:
+                system_message = "You are helpful assistant. Follow the user's instructions carefully."
             data = {
                 "model": model,
                 "nsfw": False,
                 "question": messages[-1]["content"],
-                "history": [{"role": "assistant", "content": "Hello, how can I help you today?"}, *messages[:-1]],
-                "system": kwargs.get("system_message", "You are helpful assistant. Follow the user's instructions carefully."),
+                "history": [{"role": "assistant", "content": "Hello, how can I help you today?"}, *history],
+                "system": system_message,
                 "temperature": kwargs.get("temperature", 0.7),
                 "promptId": f"model-{model}",
                 "documentIds": [],

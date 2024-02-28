@@ -3,9 +3,9 @@ from __future__ import annotations
 import json
 import base64
 import uuid
-from aiohttp import ClientSession, FormData
+from aiohttp import ClientSession, FormData, BaseConnector
 
-from ..typing import AsyncGenerator, Messages, ImageType, Cookies
+from ..typing import AsyncResult, Messages, ImageType, Cookies
 from .base_provider import AsyncGeneratorProvider
 from ..providers.helper import get_connector, format_prompt
 from ..image import to_bytes
@@ -26,12 +26,13 @@ class You(AsyncGeneratorProvider):
         messages: Messages,
         image: ImageType = None,
         image_name: str = None,
+        connector: BaseConnector = None,
         proxy: str = None,
         chat_mode: str = "default",
         **kwargs,
-    ) -> AsyncGenerator:
+    ) -> AsyncResult:
         async with ClientSession(
-            connector=get_connector(kwargs.get("connector"), proxy),
+            connector=get_connector(connector, proxy),
             headers=DEFAULT_HEADERS
         ) as client:
             if image:
@@ -72,13 +73,13 @@ class You(AsyncGeneratorProvider):
                 response.raise_for_status()
                 async for line in response.content:
                     if line.startswith(b'event: '):
-                        event = line[7:-1]
+                        event = line[7:-1].decode()
                     elif line.startswith(b'data: '):
-                        if event == b"youChatUpdate" or event == b"youChatToken":
+                        if event in ["youChatUpdate", "youChatToken"]:
                             data = json.loads(line[6:-1])
-                        if event == b"youChatToken" and "youChatToken" in data:
-                            yield data["youChatToken"]
-                        elif event == b"youChatUpdate" and "t" in data:
+                        if event == "youChatToken" and event in data:
+                            yield data[event]
+                        elif event == "youChatUpdate" and "t" in data:
                             yield data["t"]                         
 
     @classmethod

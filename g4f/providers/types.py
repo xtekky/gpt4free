@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Union, List, Dict, Type
+from typing import Union, Dict, Type
 from ..typing import Messages, CreateResult
 
 class BaseProvider(ABC):
@@ -26,6 +26,7 @@ class BaseProvider(ABC):
     supports_gpt_35_turbo: bool = False
     supports_gpt_4: bool = False
     supports_message_history: bool = False
+    supports_system_message: bool = False
     params: str
 
     @classmethod
@@ -95,23 +96,5 @@ class BaseRetryProvider(BaseProvider):
 
     __name__: str = "RetryProvider"
     supports_stream: bool = True
-
-    def __init__(
-        self,
-        providers: List[Type[BaseProvider]],
-        shuffle: bool = True
-    ) -> None:
-        """
-        Initialize the BaseRetryProvider.
-
-        Args:
-            providers (List[Type[BaseProvider]]): List of providers to use.
-            shuffle (bool): Whether to shuffle the providers list.
-        """
-        self.providers = providers
-        self.shuffle = shuffle
-        self.working = True
-        self.exceptions: Dict[str, Exception] = {}
-        self.last_provider: Type[BaseProvider] = None
 
 ProviderType = Union[Type[BaseProvider], BaseRetryProvider]
