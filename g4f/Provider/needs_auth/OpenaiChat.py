@@ -434,7 +434,7 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
                 action = "continue"
                 await asyncio.sleep(5)
             if history_disabled and auto_continue:
-                await cls.delete_conversation(session, cls._headers, conversation_id)
+                await cls.delete_conversation(session, cls._headers, fields.conversation_id)
 
     @staticmethod
     async def iter_messages_ws(ws: ClientWebSocketResponse) -> AsyncIterator:
