@@ -26,6 +26,7 @@ class BaseProvider(ABC):
     supports_gpt_35_turbo: bool = False
     supports_gpt_4: bool = False
     supports_message_history: bool = False
+    supports_system_message: bool = False
     params: str
 
     @classmethod
