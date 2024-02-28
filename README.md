@@ -6,7 +6,7 @@ Written by [@xtekky](https://github.com/hlohaus) & maintained by [@hlohaus](http
 > By using this repository or any code related to it, you agree to the [legal notice](LEGAL_NOTICE.md). The author is **not responsible for the usage of this repository nor endorses it**, nor is the author responsible for any copies, forks, re-uploads made by other users, or anything else related to GPT4Free. This is the author's only account and repository. To prevent impersonation or irresponsible actions, please comply with the GNU GPL license this Repository uses.  
 
 > [!Warning]
-*"gpt4free"* serves as a **PoC** (proof of concept), demonstrating the development of a an api package with multi-provider requests, with features like timeouts, load balance and flow control.
+*"gpt4free"* serves as a **PoC** (proof of concept), demonstrating the development of an API package with multi-provider requests, with features like timeouts, load balance and flow control.
 
 > [!Note]
 <sup><strong>Lastet version:</strong></sup> [![PyPI version](https://img.shields.io/pypi/v/g4f?color=blue)](https://pypi.org/project/g4f) [![Docker version](https://img.shields.io/docker/v/hlohaus789/g4f?label=docker&color=blue)](https://hub.docker.com/r/hlohaus789/g4f)  
@@ -28,21 +28,21 @@ docker pull hlohaus789/g4f
 - Join our Discord Group: [discord.gg/XfybzPXPH5](https://discord.gg/XfybzPXPH5)
 
 ## 🔻 Site Takedown
-Is your site on this repository and you want to take it down ? email takedown@g4f.ai with proof it is yours and it will be removed as fast as possible. - to prevent reproduction please secure your api ; )
+Is your site on this repository and you want to take it down? Send an email to takedown@g4f.ai with proof it is yours and it will be removed as fast as possible. To prevent reproduction please secure your API ;)
 
 ## 🚀  Feedback and Todo
 You can always leave some feedback here: https://forms.gle/FeWV9RLEedfdkmFN6
 
 As per the survey, here is a list of improvements to come
-- [x] update the repository to include the new openai library syntax (ex: `Openai()` class) | completed, use `g4f.client.Client`
-- [ ] golang implementation
-- [ ] 🚧 Improve Documentation (in /docs & Guides, Howtos, & Do video tutorials
+- [x] Update the repository to include the new openai library syntax (ex: `Openai()` class) | completed, use `g4f.client.Client`
+- [ ] Golang implementation
+- [ ] 🚧 Improve Documentation (in /docs & Guides, Howtos, & Do video tutorials)
 - [x] Improve the provider status list & updates
 - [ ] Tutorials on how to reverse sites to write your own wrapper (PoC only ofc)
 - [ ] Improve the Bing wrapper. (might write a new wrapper in golang as it is very fast)
 - [ ] Write a standard provider performance test to improve the stability
 - [ ] Potential support and development of local models
-- [ ] 🚧 improve compatibility and error handling
+- [ ] 🚧 Improve compatibility and error handling
 
 ## 📚 Table of Contents
 
@@ -90,7 +90,7 @@ docker pull hlohaus789/g4f
 docker run -p 8080:8080 -p 1337:1337 -p 7900:7900 --shm-size="2g" hlohaus789/g4f:latest
 ```
 3. Open the included client on: [http://localhost:8080/chat/](http://localhost:8080/chat/)
-or set the api base in your client to: [http://localhost:1337/v1](http://localhost:1337/v1)
+or set the API base in your client to: [http://localhost:1337/v1](http://localhost:1337/v1)
 4. (Optional) If you need to log in to a provider, you can view the desktop from the container here: http://localhost:7900/?autoconnect=1&resize=scale&password=secret.
 
 ##### Use your smartphone:
@@ -191,7 +191,7 @@ See: [/docs/interference](/docs/interference.md)
 
 ##### Cookies / Access Token
 
-For generating images with Bing and for the OpenAi Chat  you need cookies or a token from your browser session. From Bing you need the "_U" cookie and from OpenAI you need the "access_token". You can pass the cookies / the access token in the create function or you use the `set_cookies` setter before you run G4F:
+For generating images with Bing and for the OpenAI Chat  you need cookies or a token from your browser session. From Bing you need the "_U" cookie and from OpenAI you need the "access_token". You can pass the cookies / the access token in the create function or you use the `set_cookies` setter before you run G4F:
 
 ```python
 from g4f.cookies import set_cookies
