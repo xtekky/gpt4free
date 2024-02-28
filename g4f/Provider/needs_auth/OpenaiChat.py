@@ -288,7 +288,7 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
             json={"is_visible": False},
             headers=headers
         ) as response:
-            response.raise_for_status()
+            ...
 
     @classmethod
     async def create_async_generator(
