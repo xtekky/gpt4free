@@ -85,7 +85,9 @@ class Api:
                 if config.api_key is None and request is not None:
                     auth_header = request.headers.get("Authorization")
                     if auth_header is not None:
-                        config.api_key = auth_header.split(None, 1)[-1]
+                        auth_header = auth_header.split(None, 1)[-1]
+                        if auth_header and auth_header != "Bearer":
+                            config.api_key = auth_header
                 response = self.client.chat.completions.create(
                     **config.dict(exclude_none=True),
                     ignored=self.list_ignored_providers
