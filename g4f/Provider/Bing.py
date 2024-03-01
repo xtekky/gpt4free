@@ -66,11 +66,11 @@ class Bing(AsyncGeneratorProvider):
             prompt = messages[-1]["content"]
             context = create_context(messages[:-1])
         
-        cookies = {**Defaults.cookies, **cookies} if cookies else Defaults.cookies
+        cookies = {**get_default_cookies(), **cookies} if cookies else get_default_cookies()
 
         gpt4_turbo = True if model.startswith("gpt-4-turbo") else False
 
-        return stream_generate(prompt, tone, image, context, cookies, get_connector(connector, proxy), web_search, gpt4_turbo, timeout)
+        return stream_generate(prompt, tone, image, context, cookies, get_connector(connector, proxy, True), web_search, gpt4_turbo, timeout)
 
 def create_context(messages: Messages) -> str:
     """
@@ -146,8 +146,8 @@ class Defaults:
         "streamf", "codeint", "langdtwb", "fdwtlst", "fluxprod", "deuct3"
     ]
     
-    # Default cookies
-    cookies = {
+def get_default_cookies():
+    return {
         'SRCHD'         : 'AF=NOFORM',
         'PPLState'      : '1',
         'KievRPSSecAuth': '',

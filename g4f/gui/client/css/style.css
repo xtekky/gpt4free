@@ -119,7 +119,7 @@ body {
     width: 100%;
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: 5px;
 }
 
 .conversation #messages {
@@ -129,11 +129,12 @@ body {
     flex-direction: column;
     overflow: auto;
     overflow-wrap: break-word;
-    padding-bottom: 50px;
+    padding-bottom: 10px;
 }
 
 .conversation .user-input {
     max-height: 200px;
+    margin-bottom: 10px;
 }
 
 .conversation .user-input input {
@@ -291,7 +292,7 @@ body {
 .message .content {
     display: flex;
     flex-direction: column;
-    gap: 18px;
+    gap: 10px;
 }
 
 .message .content,
@@ -316,11 +317,51 @@ body {
     z-index: 1000;
 }
 
-.message .assistant i {
+.message .assistant .fa-phone-arrow-up-right,
+.message .assistant .fa-phone-arrow-down-left {
     position: absolute;
     bottom: -6px;
     right: -6px;
     z-index: 1000;
+}
+
+.message .assistant .fa-xmark,
+.message .user .fa-xmark {
+    position: absolute;
+    top: -2px;
+    left: 0px;
+    z-index: 1000;
+    display: none;
+    cursor: pointer;
+}
+
+.message .user .fa-xmark {
+    color: var(--colour-1);
+}
+
+.message .assistant:hover .fa-xmark,
+.message .user:hover .fa-xmark {
+    display: block;
+}
+
+.message .content .provider a,
+.message .content .provider {
+    font-size: 12px;
+    text-decoration: none;
+}
+
+.message .content .provider a {
+    font-weight: bold;
+}
+
+.message .content .count {
+    font-size: 12px;
+}
+
+.count_total {
+    font-size: 12px;
+    padding-left: 100px;
+    padding-top: 10px;
 }
 
 .new_convo {
@@ -345,12 +386,29 @@ body {
     font-size: 14px;
 }
 
+.toolbar {
+    position: relative;
+}
+
+#input-count {
+    width: fit-content;
+    font-size: 12px;
+    padding: 6px 15px;
+}
+
 .stop_generating, .regenerate {
     position: absolute;
-    bottom: 158px;
-    left: 50%;
-    transform: translateX(-50%);
     z-index: 1000000;
+    top: 0;
+    right: 0;
+}
+
+@media only screen and (min-width: 40em) {
+    .stop_generating, .regenerate {
+        left: 50%;
+        transform: translateX(-50%);
+        right: auto;
+    }
 }
 
 .stop_generating button, .regenerate button{
@@ -359,7 +417,7 @@ body {
     background-color: var(--blur-bg);
     border-radius: var(--border-radius-1);
     border: 1px solid var(--blur-border);
-    padding: 10px 15px;
+    padding: 5px 15px;
     color: var(--colour-3);
     display: flex;
     justify-content: center;
@@ -501,7 +559,6 @@ label[for="camera"] {
     display: flex;
     align-items: center;
     gap: 16px;
-    padding-right: 15px
 }
 
 .field .about {
@@ -529,7 +586,16 @@ select {
     padding: 8px 16px;
 
     appearance: none;
-    width: 250px;
+    width: 160px;
+}
+
+@media only screen and (min-width: 40em) {
+    select {
+        width: 200px;
+    }
+    .field {
+        padding-right: 15px
+    }
 }
 
 .input-box {

@@ -17,9 +17,9 @@ try:
 except ImportError:
     has_requirements = False
 
-from ..create_images import CreateImagesProvider
+from ...providers.create_images import CreateImagesProvider
 from ..helper import get_connector
-from ...base_provider import ProviderType
+from ...providers.types import ProviderType
 from ...errors import MissingRequirementsError
 from ...webdriver import WebDriver, get_driver_cookies, get_browser
 

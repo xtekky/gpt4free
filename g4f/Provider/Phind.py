@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+import json
 from urllib import parse
 from datetime import datetime
 
@@ -32,10 +34,18 @@ class Phind(AsyncGeneratorProvider):
             "Sec-Fetch-Site": "same-origin",
         }
         async with StreamSession(
-            impersonate="chrome110",
+            headers=headers,
+            impersonate="chrome",
             proxies={"https": proxy},
             timeout=timeout
         ) as session:
+            url = "https://www.phind.com/search?home=true"
+            async with session.get(url) as response:
+                text = await response.text()
+                match = re.search(r'<script id="__NEXT_DATA__" type="application/json">(?P<json>[\S\s]+?)</script>', text)
+                data = json.loads(match.group("json"))
+                challenge_seeds = data["props"]["pageProps"]["challengeSeeds"]
+                
             prompt = messages[-1]["content"]
             data = {
                 "question": prompt,
@@ -51,14 +61,13 @@ class Phind(AsyncGeneratorProvider):
                     "language": "en-US",
                     "detailed": True,
                     "anonUserId": "",
-                    "answerModel": "GPT-4" if model.startswith("gpt-4") else "Phind Model",
+                    "answerModel": "GPT-4" if model.startswith("gpt-4") else "Phind-34B",
                     "creativeMode": creative_mode,
                     "customLinks": []
                 },
                 "context": "\n".join([message["content"] for message in messages if message["role"] == "system"]),
             }
-            data["challenge"] = generate_challenge(data)
-            
+            data["challenge"] = generate_challenge(data, **challenge_seeds)
             async with session.post(f"https://https.api.phind.com/infer/", headers=headers, json=data) as response:
                 new_line = False
                 async for line in response.iter_lines():
@@ -101,6 +110,18 @@ def deterministic_stringify(obj):
     items = sorted(obj.items(), key=lambda x: x[0])
     return ','.join([f'{k}:{handle_value(v)}' for k, v in items if handle_value(v) is not None])
 
+def prng_general(seed, multiplier, addend, modulus):
+    a = seed * multiplier + addend
+    if a < 0:
+        return ((a%modulus)-modulus)/modulus
+    else:
+        return a%modulus/modulus
+
+def generate_challenge_seed(l):
+    I = deterministic_stringify(l)
+    d = parse.quote(I, safe='')
+    return simple_hash(d)
+
 def simple_hash(s):
     d = 0
     for char in s:
@@ -111,16 +132,8 @@ def simple_hash(s):
             d -= 0x100000000 # Subtract 2**32
     return d
 
-def generate_challenge(obj):
-    deterministic_str = deterministic_stringify(obj)
-    encoded_str = parse.quote(deterministic_str, safe='')
-
-    c = simple_hash(encoded_str)
-    a = (9301 * c + 49297)
-    b = 233280
-
-    # If negativ, we need a special logic
-    if a < 0:
-        return ((a%b)-b)/b
-    else:
-        return a%b/b
+def generate_challenge(obj, **kwargs):
+    return prng_general(
+        seed=generate_challenge_seed(obj),
+        **kwargs
+    )

@@ -22,8 +22,24 @@
     <link rel="stylesheet"
         href="//cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.7.0/build/styles/base16/dracula.min.css">
     <script>
-        const user_image = `<img src="/assets/img/user.png" alt="your avatar">`;
-        const gpt_image = `<img src="/assets/img/gpt.png" alt="your avatar">`;
+        MathJax = {
+            chtml: {
+                scale: 1,
+                displayAlign: 'left'
+            }
+        };
+    </script>
+    <script id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
+    <script type="module" src="https://cdn.jsdelivr.net/npm/mistral-tokenizer-js" async>
+        import mistralTokenizer from 'mistral-tokenizer-js'
+    </script>
+    <script type="module" src="https://belladoreai.github.io/llama-tokenizer-js/llama-tokenizer.js" async>
+        import llamaTokenizer from 'llama-tokenizer-js'
+    </script>
+    <script src="https://unpkg.com/gpt-tokenizer/dist/cl100k_base.js" async></script>
+    <script>
+        const user_image = '<img src="/assets/img/user.png" alt="your avatar">';
+        const gpt_image = '<img src="/assets/img/gpt.png" alt="your avatar">';
     </script>
     <style>
         .hljs {
@@ -96,19 +112,23 @@
             </div>
         </div>
         <div class="conversation">
-            <div class="stop_generating stop_generating-hidden">
-                <button id="cancelButton">
-                    <span>Stop Generating</span>
-                    <i class="fa-regular fa-stop"></i>
-                </button>
-            </div>
-            <div class="regenerate regenerate-hidden">
-                <button id="regenerateButton">
-                    <span>Regenerate</span>
-                    <i class="fa-solid fa-rotate"></i>
-                </button>
-            </div>
-            <div class="box" id="messages">
+            <div id="messages" class="box"></div>
+            <div class="toolbar">
+                <div id="input-count" class="">
+                    &nbsp;
+                </div>
+                <div class="stop_generating stop_generating-hidden">
+                    <button id="cancelButton">
+                        <span>Stop Generating</span>
+                        <i class="fa-regular fa-stop"></i>
+                    </button>
+                </div>
+                <div class="regenerate regenerate-hidden">
+                    <button id="regenerateButton">
+                        <span>Regenerate</span>
+                        <i class="fa-solid fa-rotate"></i>
+                    </button>
+                </div>
             </div>
             <div class="user-input">
                 <div class="box input-box">
@@ -157,7 +177,6 @@
                             <option value="">Provider: Auto</option>
                             <option value="Bing">Bing</option>
                             <option value="OpenaiChat">OpenaiChat</option>
-                            <option value="HuggingChat">HuggingChat</option>
                             <option value="Gemini">Gemini</option>
                             <option value="Liaobots">Liaobots</option>
                             <option value="Phind">Phind</option>

@@ -9,7 +9,7 @@ from .base_provider import AsyncGeneratorProvider
 
 class ChatgptAi(AsyncGeneratorProvider):
     url = "https://chatgpt.ai"
-    working = True
+    working = False
     supports_message_history = True
     supports_gpt_35_turbo  = True
     _system = None

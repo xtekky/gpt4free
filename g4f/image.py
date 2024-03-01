@@ -11,7 +11,7 @@ try:
     has_requirements = True
 except ImportError:
     has_requirements = False
-    
+
 from .errors import MissingRequirementsError
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'}
@@ -28,9 +28,11 @@ def to_image(image: ImageType, is_svg: bool = False) -> Image:
     """
     if not has_requirements:
         raise MissingRequirementsError('Install "pillow" package for images')
+
     if isinstance(image, str):
         is_data_uri_an_image(image)
         image = extract_data_uri(image)
+
     if is_svg:
         try:
             import cairosvg
@@ -41,6 +43,7 @@ def to_image(image: ImageType, is_svg: bool = False) -> Image:
         buffer = BytesIO()
         cairosvg.svg2png(image, write_to=buffer)
         return open_image(buffer)
+
     if isinstance(image, bytes):
         is_accepted_format(image)
         return open_image(BytesIO(image))
@@ -48,6 +51,7 @@ def to_image(image: ImageType, is_svg: bool = False) -> Image:
         image = open_image(image)
         image.load()
         return image
+
     return image
 
 def is_allowed_extension(filename: str) -> bool:
@@ -93,17 +97,17 @@ def is_accepted_format(binary_data: bytes) -> bool:
         ValueError: If the image format is not allowed.
     """
     if binary_data.startswith(b'\xFF\xD8\xFF'):
-        pass # It's a JPEG image
+        return "image/jpeg"
     elif binary_data.startswith(b'\x89PNG\r\n\x1a\n'):
-        pass # It's a PNG image
+        return "image/png"
     elif binary_data.startswith(b'GIF87a') or binary_data.startswith(b'GIF89a'):
-        pass # It's a GIF image
+        return "image/gif"
     elif binary_data.startswith(b'\x89JFIF') or binary_data.startswith(b'JFIF\x00'):
-        pass # It's a JPEG image
+        return "image/jpeg"
     elif binary_data.startswith(b'\xFF\xD8'):
-        pass # It's a JPEG image
+        return "image/jpeg"
     elif binary_data.startswith(b'RIFF') and binary_data[8:12] == b'WEBP':
-        pass # It's a WebP image
+        return "image/webp"
     else:
         raise ValueError("Invalid image format (from magic code).")
 
@@ -200,17 +204,16 @@ def format_images_markdown(images: Union[str, list], alt: str, preview: Union[st
         str: The formatted markdown string.
     """
     if isinstance(images, str):
-        images = f"[![{alt}]({preview.replace('{image}', images) if preview else images})]({images})"
+        result = f"[![{alt}]({preview.replace('{image}', images) if preview else images})]({images})"
     else:
         if not isinstance(preview, list):
             preview = [preview.replace('{image}', image) if preview else image for image in images]
-        images = [
+        result = "\n".join(
             f"[![#{idx+1} {alt}]({preview[idx]})]({image})" for idx, image in enumerate(images)
-        ]
-        images = "\n".join(images)
+        )
     start_flag = "<!-- generated images start -->\n"
     end_flag = "<!-- generated images end -->\n"
-    return f"\n{start_flag}{images}\n{end_flag}\n"
+    return f"\n{start_flag}{result}\n{end_flag}\n"
 
 def to_bytes(image: ImageType) -> bytes:
     """
@@ -245,19 +248,19 @@ class ImageResponse:
         self.images = images
         self.alt = alt
         self.options = options
-        
+
     def __str__(self) -> str:
         return format_images_markdown(self.images, self.alt, self.get("preview"))
-    
+
     def get(self, key: str):
         return self.options.get(key)
-    
+
 class ImageRequest:
     def __init__(
         self,
         options: dict = {}
     ):
         self.options = options
-    
+
     def get(self, key: str):
         return self.options.get(key)

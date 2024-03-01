@@ -21,11 +21,11 @@ EXTRA_REQUIRE = {
         "py-arkose-generator",     # openai
         "browser_cookie3",         # get_cookies
         "PyExecJS",                # GptForLove
-        "duckduckgo-search",       # internet.search
+        "duckduckgo-search>=4.4.3",# internet.search
         "beautifulsoup4",          # internet.search and bing.create_images
         "brotli",                  # openai
         "platformdirs",            # webdriver
-        "undetected-chromedriver", # webdriver
+        "undetected-chromedriver>=3.5.5", # webdriver
         "setuptools",              # webdriver
         "aiohttp_socks",           # proxy
         "pillow",                  # image
@@ -56,7 +56,7 @@ EXTRA_REQUIRE = {
     "gui": [
         "werkzeug", "flask",
         "beautifulsoup4", "pillow",
-        "duckduckgo-search",
+        "duckduckgo-search>=4.4.3",
         "browser_cookie3"
     ]
 }

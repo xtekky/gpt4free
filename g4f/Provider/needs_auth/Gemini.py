@@ -50,7 +50,6 @@ class Gemini(AsyncGeneratorProvider):
     url = "https://gemini.google.com"
     needs_auth = True
     working = True
-    supports_stream = False
 
     @classmethod
     async def create_async_generator(
@@ -64,10 +63,9 @@ class Gemini(AsyncGeneratorProvider):
         **kwargs
     ) -> AsyncResult:
         prompt = format_prompt(messages)
-
-        if not cookies:
-            cookies = get_cookies(".google.com", False, True)
-        if "__Secure-1PSID" not in cookies or "__Secure-1PSIDCC" not in cookies:
+        cookies = cookies if cookies else get_cookies(".google.com", False, True)
+        snlm0e  = await cls.fetch_snlm0e(cookies, proxy) if cookies else None
+        if not snlm0e:
             driver = None
             try:
                 driver = get_browser(proxy=proxy)
@@ -90,8 +88,12 @@ class Gemini(AsyncGeneratorProvider):
                 if driver:
                     driver.close()
 
-        if "__Secure-1PSID" not in cookies:
-            raise MissingAuthError('Missing "__Secure-1PSID" cookie')
+        if not snlm0e:
+            if "__Secure-1PSID" not in cookies:
+                raise MissingAuthError('Missing "__Secure-1PSID" cookie')
+            snlm0e = await cls.fetch_snlm0e(cookies, proxy)
+        if not snlm0e:
+            raise RuntimeError("Invalid auth. SNlM0e not found")
 
         image_url = await cls.upload_image(to_bytes(image), image_name, proxy) if image else None
 
@@ -99,14 +101,6 @@ class Gemini(AsyncGeneratorProvider):
             cookies=cookies,
             headers=REQUEST_HEADERS
         ) as session:
-            async with session.get(cls.url, proxy=proxy) as response:
-                text = await response.text()
-            match = re.search(r'SNlM0e\":\"(.*?)\"', text)
-            if match:
-                snlm0e = match.group(1)
-            else:
-                raise RuntimeError("SNlM0e not found")
-
             params = {
                 'bl': REQUEST_BL_PARAM,
                 '_reqid': random.randint(1111, 9999),
@@ -205,3 +199,15 @@ class Gemini(AsyncGeneratorProvider):
             ) as response:
                 response.raise_for_status()
                 return await response.text()
+
+    @classmethod
+    async def fetch_snlm0e(cls, cookies: Cookies, proxy: str = None):
+        async with ClientSession(
+            cookies=cookies,
+            headers=REQUEST_HEADERS
+        ) as session:
+            async with session.get(cls.url, proxy=proxy) as response:
+                text = await response.text()
+            match = re.search(r'SNlM0e\":\"(.*?)\"', text)
+            if match:
+                return match.group(1)

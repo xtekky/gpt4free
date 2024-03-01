@@ -44,7 +44,7 @@ class StreamResponse:
         inner: Response = await self.inner
         self.inner = inner
         self.request = inner.request
-        self.status_code: int = inner.status_code
+        self.status: int = inner.status_code
         self.reason: str = inner.reason
         self.ok: bool = inner.ok
         self.headers = inner.headers

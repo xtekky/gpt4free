@@ -1,11 +1,11 @@
 requests
 pycryptodome
-curl_cffi>=0.5.10
+curl_cffi>=0.6.0b9
 aiohttp
 certifi
 browser_cookie3
 PyExecJS
-duckduckgo-search
+duckduckgo-search>=4.4.3
 nest_asyncio
 werkzeug
 loguru
@@ -16,7 +16,7 @@ uvicorn
 flask
 py-arkose-generator
 async-property
-undetected-chromedriver
+undetected-chromedriver>=3.5.5
 brotli
 beautifulsoup4
 setuptools

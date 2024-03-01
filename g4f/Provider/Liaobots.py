@@ -78,7 +78,7 @@ class Liaobots(AsyncGeneratorProvider, ProviderModelMixin):
     supports_gpt_35_turbo = True
     supports_gpt_4 = True
     default_model = "gpt-3.5-turbo"
-    models = [m for m in models]
+    models = list(models)
     model_aliases = {
         "claude-v2": "claude-2"
     }
@@ -105,7 +105,7 @@ class Liaobots(AsyncGeneratorProvider, ProviderModelMixin):
         async with ClientSession(
             headers=headers,
             cookie_jar=cls._cookie_jar,
-            connector=get_connector(connector, proxy)
+            connector=get_connector(connector, proxy, True)
         ) as session:
             cls._auth_code = auth if isinstance(auth, str) else cls._auth_code
             if not cls._auth_code:

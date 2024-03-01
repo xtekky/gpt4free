@@ -8,8 +8,6 @@ from g4f.image import is_allowed_extension, to_image
 from g4f.errors import VersionNotFoundError
 from g4f.Provider import __providers__
 from g4f.Provider.bing.create_images import patch_provider
-from .internet import get_search_message
-
 
 class Backend_Api:
     """
@@ -97,7 +95,7 @@ class Backend_Api:
             current_version = None
         return {
             "version": current_version,
-            "latest_version": version.get_latest_version(),
+            "latest_version": version.utils.latest_version,
         }
     
     def generate_title(self):
@@ -157,6 +155,8 @@ class Backend_Api:
             if provider == "Bing":
                 kwargs['web_search'] = True
             else:
+                # ResourceWarning: unclosed event loop
+                from .internet import get_search_message
                 messages[-1]["content"] = get_search_message(messages[-1]["content"])
 
         model = json_data.get('model')

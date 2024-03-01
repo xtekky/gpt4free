@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from ..base_provider  import BaseProvider, ProviderType
-from .retry_provider  import RetryProvider
-from .base_provider   import AsyncProvider, AsyncGeneratorProvider
-from .create_images   import CreateImagesProvider
+from ..providers.types          import BaseProvider, ProviderType
+from ..providers.retry_provider import RetryProvider, IterProvider
+from ..providers.base_provider  import AsyncProvider, AsyncGeneratorProvider
+from ..providers.create_images  import CreateImagesProvider
+
 from .deprecated      import *
 from .selenium        import *
 from .needs_auth      import *
@@ -15,6 +16,7 @@ from .AItianhu        import AItianhu
 from .Aura            import Aura
 from .Bestim          import Bestim
 from .Bing            import Bing
+from .BingCreateImages import BingCreateImages
 from .ChatAnywhere    import ChatAnywhere
 from .ChatBase        import ChatBase
 from .ChatForAi       import ChatForAi
@@ -29,9 +31,11 @@ from .ChatgptX        import ChatgptX
 from .Chatxyz         import Chatxyz
 from .DeepInfra       import DeepInfra
 from .FakeGpt         import FakeGpt
+from .FlowGpt         import FlowGpt
 from .FreeChatgpt     import FreeChatgpt
 from .FreeGpt         import FreeGpt
 from .GeekGpt         import GeekGpt
+from .GeminiPro       import GeminiPro
 from .GeminiProChat   import GeminiProChat
 from .Gpt6            import Gpt6
 from .GPTalk          import GPTalk
@@ -52,8 +56,6 @@ from .Pi              import Pi
 from .Vercel          import Vercel
 from .Ylokh           import Ylokh
 from .You             import You
-
-from .BingCreateImages import BingCreateImages
 
 import sys
 

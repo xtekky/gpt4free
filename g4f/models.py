@@ -1,5 +1,7 @@
 from __future__  import annotations
+
 from dataclasses import dataclass
+
 from .Provider   import RetryProvider, ProviderType
 from .Provider   import (
     Chatgpt4Online,
@@ -97,31 +99,31 @@ gpt_4_turbo = Model(
 
 llama2_7b = Model(
     name          = "meta-llama/Llama-2-7b-chat-hf",
-    base_provider = 'huggingface',
+    base_provider = 'meta',
     best_provider = RetryProvider([Llama2, DeepInfra])
 )
 
 llama2_13b = Model(
     name          = "meta-llama/Llama-2-13b-chat-hf",
-    base_provider = 'huggingface',
+    base_provider = 'meta',
     best_provider = RetryProvider([Llama2, DeepInfra])
 )
 
 llama2_70b = Model(
     name          = "meta-llama/Llama-2-70b-chat-hf",
-    base_provider = "huggingface",
+    base_provider = "meta",
     best_provider = RetryProvider([Llama2, DeepInfra, HuggingChat, PerplexityLabs])
 )
 
 codellama_34b_instruct = Model(
     name          = "codellama/CodeLlama-34b-Instruct-hf",
-    base_provider = "huggingface",
+    base_provider = "meta",
     best_provider = RetryProvider([HuggingChat, PerplexityLabs, DeepInfra])
 )
 
 codellama_70b_instruct = Model(
     name          = "codellama/CodeLlama-70b-Instruct-hf",
-    base_provider = "huggingface",
+    base_provider = "meta",
     best_provider = DeepInfra
 )
 

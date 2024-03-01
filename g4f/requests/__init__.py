@@ -4,18 +4,24 @@ from urllib.parse import urlparse
 
 try:
     from curl_cffi.requests import Session
-    from .requests_curl_cffi import StreamResponse, StreamSession
+    from .curl_cffi import StreamResponse, StreamSession
     has_curl_cffi = True
 except ImportError:
     from typing import Type as Session
-    from .requests_aiohttp import StreamResponse, StreamSession
+    from .aiohttp import StreamResponse, StreamSession
     has_curl_cffi = False
 
-from .webdriver import WebDriver, WebDriverSession, bypass_cloudflare, get_driver_cookies
-from .errors import MissingRequirementsError
+from ..webdriver import WebDriver, WebDriverSession, bypass_cloudflare, get_driver_cookies
+from ..errors import MissingRequirementsError
 from .defaults import DEFAULT_HEADERS
 
-def get_args_from_browser(url: str, webdriver: WebDriver = None, proxy: str = None, timeout: int = 120) -> dict:
+def get_args_from_browser(
+    url: str,
+    webdriver: WebDriver = None,
+    proxy: str = None,
+    timeout: int = 120,
+    do_bypass_cloudflare: bool = True
+) -> dict:
     """
     Create a Session object using a WebDriver to handle cookies and headers.
 
@@ -29,7 +35,8 @@ def get_args_from_browser(url: str, webdriver: WebDriver = None, proxy: str = No
         Session: A Session object configured with cookies and headers from the WebDriver.
     """
     with WebDriverSession(webdriver, "", proxy=proxy, virtual_display=False) as driver:
-        bypass_cloudflare(driver, url, timeout)
+        if do_bypass_cloudflare:
+            bypass_cloudflare(driver, url, timeout)
         cookies = get_driver_cookies(driver)
         user_agent = driver.execute_script("return navigator.userAgent")
     parse = urlparse(url)

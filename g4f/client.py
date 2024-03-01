@@ -1,17 +1,23 @@
 from __future__ import annotations
 
 import re
+import os
+import time
+import random
+import string
 
-from .typing import Union, Generator, AsyncGenerator, Messages, ImageType
-from .base_provider import BaseProvider, ProviderType
-from .Provider.base_provider import AsyncGeneratorProvider
+from .stubs import ChatCompletion, ChatCompletionChunk, Image, ImagesResponse
+from .typing import Union, Iterator, Messages, ImageType
+from .providers.types import BaseProvider, ProviderType
 from .image import ImageResponse as ImageProviderResponse
-from .Provider import BingCreateImages, Gemini, OpenaiChat
+from .Provider.BingCreateImages import BingCreateImages
+from .Provider.needs_auth import Gemini, OpenaiChat
 from .errors import NoImageResponseError
-from . import get_model_and_provider
+from . import get_model_and_provider, get_last_provider
 
 ImageProvider = Union[BaseProvider, object]
 Proxies = Union[dict, str]
+IterResponse = Iterator[Union[ChatCompletion, ChatCompletionChunk]]
 
 def read_json(text: str) -> dict:
     """
@@ -29,21 +35,19 @@ def read_json(text: str) -> dict:
     return text
 
 def iter_response(
-    response: iter,
+    response: iter[str],
     stream: bool,
     response_format: dict = None,
     max_tokens: int = None,
     stop: list = None
-) -> Generator:
+) -> IterResponse:
     content = ""
-    idx = 1
-    chunk = None
-    finish_reason = "stop"
+    finish_reason = None
+    completion_id = ''.join(random.choices(string.ascii_letters + string.digits, k=28))
     for idx, chunk in enumerate(response):
         content += str(chunk)
-        if max_tokens is not None and idx > max_tokens:
-            finish_reason = "max_tokens"
-            break
+        if max_tokens is not None and idx + 1 >= max_tokens:
+            finish_reason = "length"
         first = -1
         word = None
         if stop is not None:
@@ -52,118 +56,65 @@ def iter_response(
                 if first != -1:
                     content = content[:first]
                     break
-            if stream:
+            if stream and first != -1:
+                first = chunk.find(word)
                 if first != -1:
-                    first = chunk.find(word)
-                    if first != -1:
-                        chunk = chunk[:first]
-                    else:
-                        first = 0
-            yield ChatCompletionChunk([ChatCompletionDeltaChoice(ChatCompletionDelta(chunk))])
+                    chunk = chunk[:first]
+                else:
+                    first = 0
         if first != -1:
+            finish_reason = "stop"
+        if stream:
+            yield ChatCompletionChunk(chunk, None, completion_id, int(time.time()))
+        if finish_reason is not None:
             break
-    if not stream:
+    finish_reason = "stop" if finish_reason is None else finish_reason
+    if stream:
+        yield ChatCompletionChunk(None, finish_reason, completion_id, int(time.time()))
+    else:
         if response_format is not None and "type" in response_format:
             if response_format["type"] == "json_object":
-                response = read_json(response)
-        yield ChatCompletion([ChatCompletionChoice(ChatCompletionMessage(response, finish_reason))])
+                content = read_json(content)
+        yield ChatCompletion(content, finish_reason, completion_id, int(time.time()))
 
-async def aiter_response(
-    response: aiter,
-    stream: bool,
-    response_format: dict = None,
-    max_tokens: int = None,
-    stop: list = None
-) -> AsyncGenerator:
-    content = ""
-    try:
-        idx = 0
-        chunk = None
-        async for chunk in response:
-            content += str(chunk)
-            if max_tokens is not None and idx > max_tokens:
-                break
-            first = -1
-            word = None
-            if stop is not None:
-                for word in list(stop):
-                    first = content.find(word)
-                    if first != -1:
-                        content = content[:first]
-                        break
-            if stream:
-                if first != -1:
-                    first = chunk.find(word)
-                    if first != -1:
-                        chunk = chunk[:first]
-                    else:
-                        first = 0
-                yield ChatCompletionChunk([ChatCompletionDeltaChoice(ChatCompletionDelta(chunk))])
-            if first != -1:
-                break
-            idx += 1
-    except:
-        ...
-    if not stream:
-        if response_format is not None and "type" in response_format:
-            if response_format["type"] == "json_object":
-                response = read_json(response)
-        yield ChatCompletion([ChatCompletionChoice(ChatCompletionMessage(response))])
-
-class Model():
-    def __getitem__(self, item):
-        return getattr(self, item)
-
-class ChatCompletion(Model):
-    def __init__(self, choices: list):
-        self.choices = choices
-        
-class ChatCompletionChunk(Model):
-    def __init__(self, choices: list):
-        self.choices = choices
-
-class ChatCompletionChoice(Model):
-    def __init__(self, message: ChatCompletionMessage):
-        self.message = message
-        
-class ChatCompletionMessage(Model):
-    def __init__(self, content: str, finish_reason: str):
-        self.content = content
-        self.finish_reason = finish_reason
-        self.index = 0
-        self.logprobs = None
-        
-class ChatCompletionDelta(Model):
-    def __init__(self, content: str):
-        self.content = content
-        
-class ChatCompletionDeltaChoice(Model):
-    def __init__(self, delta: ChatCompletionDelta):
-        self.delta = delta
+def iter_append_model_and_provider(response: IterResponse) -> IterResponse:
+    last_provider = None
+    for chunk in response:
+        last_provider = get_last_provider(True) if last_provider is None else last_provider
+        chunk.model = last_provider.get("model")
+        chunk.provider =  last_provider.get("name")
+        yield chunk
 
 class Client():
-    proxies: Proxies = None
-    chat: Chat
 
     def __init__(
         self,
+        api_key: str = None,
+        proxies: Proxies = None,
         provider: ProviderType = None,
         image_provider: ImageProvider = None,
-        proxies: Proxies = None,
         **kwargs
     ) -> None:
+        self.api_key: str = api_key
         self.proxies: Proxies = proxies
-        self.images = Images(self, image_provider)
-        self.chat = Chat(self, provider)
+        self.chat: Chat = Chat(self, provider)
+        self.images: Images = Images(self, image_provider)
 
     def get_proxy(self) -> Union[str, None]:
-        if isinstance(self.proxies, str) or self.proxies is None:
+        if isinstance(self.proxies, str):
             return self.proxies
+        elif self.proxies is None:
+            return os.environ.get("G4F_PROXY")
         elif "all" in self.proxies:
             return self.proxies["all"]
         elif "https" in self.proxies:
             return self.proxies["https"]
-        return None
+
+def filter_none(**kwargs):
+    for key in list(kwargs.keys()):
+        if kwargs[key] is None:
+            del kwargs[key]
+    return kwargs
 
 class Completions():
     def __init__(self, client: Client, provider: ProviderType = None):
@@ -178,24 +129,29 @@ class Completions():
         stream: bool = False,
         response_format: dict = None,
         max_tokens: int = None,
-        stop: list = None,
+        stop: Union[list[str], str] = None,
+        api_key: str = None,
         **kwargs
-    ) -> Union[dict, Generator]:
-        if max_tokens is not None:
-            kwargs["max_tokens"] = max_tokens
-        if stop:
-            kwargs["stop"] = list(stop)
+    ) -> Union[ChatCompletion, Iterator[ChatCompletionChunk]]:
         model, provider = get_model_and_provider(
             model,
             self.provider if provider is None else provider,
             stream,
             **kwargs
         )
-        response = provider.create_completion(model, messages, stream=stream, **kwargs)
-        if isinstance(provider, type) and issubclass(provider, AsyncGeneratorProvider):
-            response = iter_response(response, stream, response_format) # max_tokens, stop
-        else:
-            response = iter_response(response, stream, response_format, max_tokens, stop)
+        stop = [stop] if isinstance(stop, str) else stop
+        response = provider.create_completion(
+            model, messages, stream,            
+            **filter_none(
+                proxy=self.client.get_proxy(),
+                max_tokens=max_tokens,
+                stop=stop,
+                api_key=self.client.api_key if api_key is None else api_key
+            ),
+            **kwargs
+        )
+        response = iter_response(response, stream, response_format, max_tokens, stop)
+        response = iter_append_model_and_provider(response)
         return response if stream else next(response)
 
 class Chat():
@@ -203,7 +159,7 @@ class Chat():
 
     def __init__(self, client: Client, provider: ProviderType = None):
         self.completions = Completions(client, provider)
-        
+
 class ImageModels():
     gemini = Gemini
     openai = OpenaiChat
@@ -212,21 +168,9 @@ class ImageModels():
         self.client = client
         self.default = BingCreateImages(proxy=self.client.get_proxy())
 
-    def get(self, name: str) -> ImageProvider:
-        return getattr(self, name) if hasattr(self, name) else self.default
+    def get(self, name: str, default: ImageProvider = None) -> ImageProvider:
+        return getattr(self, name) if hasattr(self, name) else default or self.default
 
-class ImagesResponse(Model):
-    data: list[Image]
-
-    def __init__(self, data: list) -> None:
-        self.data = data
-    
-class Image(Model):
-    url: str
-
-    def __init__(self, url: str) -> None:
-        self.url = url
-    
 class Images():
     def __init__(self, client: Client, provider: ImageProvider = None):
         self.client: Client = client
@@ -234,7 +178,7 @@ class Images():
         self.models: ImageModels = ImageModels(client)
 
     def generate(self, prompt, model: str = None, **kwargs):
-        provider = self.models.get(model) if model else self.provider or self.models.get(model)
+        provider = self.models.get(model, self.provider)
         if isinstance(provider, BaseProvider) or isinstance(provider, type) and issubclass(provider, BaseProvider):
             prompt = f"create a image: {prompt}"
             response = provider.create_completion(
@@ -246,14 +190,15 @@ class Images():
             )
         else:
             response = provider.create(prompt)
-            
+
         for chunk in response:
             if isinstance(chunk, ImageProviderResponse):
-                return ImagesResponse([Image(image)for image in list(chunk.images)])
+                images = [chunk.images] if isinstance(chunk.images, str) else chunk.images
+                return ImagesResponse([Image(image) for image in images])
         raise NoImageResponseError()
 
     def create_variation(self, image: ImageType, model: str = None, **kwargs):
-        provider = self.models.get(model) if model else self.provider
+        provider = self.models.get(model, self.provider)
         result = None
         if isinstance(provider, type) and issubclass(provider, BaseProvider):
             response = provider.create_completion(
