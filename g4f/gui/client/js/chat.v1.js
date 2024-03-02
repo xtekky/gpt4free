@@ -466,13 +466,14 @@ const load_conversation = async (conversation_id) => {
     }, 500);
 };
 
-function count_words(text) {
-    var matches = text.match(/[\w\d\’\'-]+/gi);
+// https://stackoverflow.com/questions/20396456/how-to-do-word-counts-for-a-mixture-of-english-and-chinese-in-javascript
+function count_words(str) {
+    var matches = str.match(/[\u00ff-\uffff]|\S+/g);
     return matches ? matches.length : 0;
 }
 
 function count_tokens(model, text) {
-    if (model.startsWith("gpt-3") || model.startsWith("gpt-4") || model.startsWith("text-davinci")) {
+    if (model.startsWith("gpt-3") || model.startsWith("gpt-4")) {
         return GPTTokenizer_cl100k_base?.encode(text).length;
     }
     if (model.startsWith("llama2") || model.startsWith("codellama")) {
@@ -524,7 +525,9 @@ const add_conversation = async (conversation_id, content) => {
 const hide_last_message = async (conversation_id) => {
     const conversation = await get_conversation(conversation_id)
     const last_message = conversation.items.pop();
-    last_message["regenerate"] = true;
+    if (last_message["role"] == "assistant") {
+        last_message["regenerate"] = true;
+    }
     conversation.items.push(last_message);
 
     localStorage.setItem(
