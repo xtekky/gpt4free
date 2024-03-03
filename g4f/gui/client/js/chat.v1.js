@@ -5,6 +5,8 @@ const message_input     = document.getElementById(`message-input`);
 const box_conversations = document.querySelector(`.top`);
 const stop_generating   = document.querySelector(`.stop_generating`);
 const regenerate        = document.querySelector(`.regenerate`);
+const sidebar           = document.querySelector(".conversations");
+const sidebar_button    = document.querySelector(".mobile-sidebar");
 const send_button       = document.getElementById("send-button");
 const imageInput        = document.getElementById("image");
 const cameraInput       = document.getElementById("camera");
@@ -65,6 +67,13 @@ const register_remove_message = async () => {
 
 const delete_conversations = async () => {
     localStorage.clear();
+    for (let i = 0; i < localStorage.length; i++){
+        let key = localStorage.key(i);
+        if (key.startsWith("conversation:")) {
+            localStorage.removeItem(key);
+        }
+    }
+    hide_sidebar();
     await new_conversation();
 };
 
@@ -395,7 +404,8 @@ const set_conversation = async (conversation_id) => {
 
     await clear_conversation();
     await load_conversation(conversation_id);
-    await load_conversations();
+    load_conversations();
+    hide_sidebar();
 };
 
 const new_conversation = async () => {
@@ -403,9 +413,9 @@ const new_conversation = async () => {
     window.conversation_id = uuid();
 
     await clear_conversation();
-    await load_conversations();
-
-    await say_hello()
+    load_conversations();
+    hide_sidebar();
+    say_hello();
 };
 
 const load_conversation = async (conversation_id) => {
@@ -419,7 +429,7 @@ const load_conversation = async (conversation_id) => {
         let next_i = parseInt(i) + 1;
         let next_provider = item.provider ? item.provider : (messages.length > next_i ? messages[next_i].provider : null);
 
-        let provider_link = item?.provider?.name ? `<a href="${item?.provider?.url}" target="_blank">${item.provider.name}</a>` : "";
+        let provider_link = item.provider?.name ? `<a href="${item.provider?.url}" target="_blank">${item.provider.name}</a>` : "";
         let provider = provider_link ? `
             <div class="provider">
                 ${provider_link}
@@ -428,7 +438,7 @@ const load_conversation = async (conversation_id) => {
         ` : "";
         elements += `
             <div class="message" data-index="${i}">
-                <div class=${item.role == "assistant" ? "assistant" : "user"}>
+                <div class="${item.role}">
                     ${item.role == "assistant" ? gpt_image : user_image}
                     <i class="fa-solid fa-xmark"></i>
                     ${item.role == "assistant"
@@ -450,13 +460,13 @@ const load_conversation = async (conversation_id) => {
         last_model = last_model?.startsWith("gpt-4") ? "gpt-4" : "gpt-3.5-turbo"
         let count_total = GPTTokenizer_cl100k_base?.encodeChat(filtered, last_model).length
         if (count_total > 0) {
-            elements += `<div class="count_total">(${count_total} tokens total)</div>`;
+            elements += `<div class="count_total">(${count_total} tokens used)</div>`;
         }
     }
 
     message_box.innerHTML = elements;
 
-    await register_remove_message();
+    register_remove_message();
     highlight(message_box);
 
     message_box.scrollTo({ top: message_box.scrollHeight, behavior: "smooth" });
@@ -466,13 +476,14 @@ const load_conversation = async (conversation_id) => {
     }, 500);
 };
 
-function count_words(text) {
-    var matches = text.match(/[\w\d\’\'-]+/gi);
+// https://stackoverflow.com/questions/20396456/how-to-do-word-counts-for-a-mixture-of-english-and-chinese-in-javascript
+function count_words(str) {
+    var matches = str.match(/[\u00ff-\uffff]|\S+/g);
     return matches ? matches.length : 0;
 }
 
 function count_tokens(model, text) {
-    if (model.startsWith("gpt-3") || model.startsWith("gpt-4") || model.startsWith("text-davinci")) {
+    if (model.startsWith("gpt-3") || model.startsWith("gpt-4")) {
         return GPTTokenizer_cl100k_base?.encode(text).length;
     }
     if (model.startsWith("llama2") || model.startsWith("codellama")) {
@@ -484,8 +495,9 @@ function count_tokens(model, text) {
 }
 
 function count_words_and_tokens(text, model) {
-    const tokens_count = model ? `, ${count_tokens(model, text)} tokens` : "";
-    return `(${count_words(text)} words${tokens_count})`
+    const tokens_count = model ? count_tokens(model, text) : null;
+    const tokens_append = tokens_count ? `, ${tokens_count} tokens` : "";
+    return `(${count_words(text)} words${tokens_append})`
 }
 
 const get_conversation = async (conversation_id) => {
@@ -524,7 +536,9 @@ const add_conversation = async (conversation_id, content) => {
 const hide_last_message = async (conversation_id) => {
     const conversation = await get_conversation(conversation_id)
     const last_message = conversation.items.pop();
-    last_message["regenerate"] = true;
+    if (last_message["role"] == "assistant") {
+        last_message["regenerate"] = true;
+    }
     conversation.items.push(last_message);
 
     localStorage.setItem(
@@ -626,15 +640,17 @@ const message_id = () => {
     return BigInt(`0b${unix}${random_bytes}`).toString();
 };
 
-document.querySelector(".mobile-sidebar").addEventListener("click", (event) => {
-    const sidebar = document.querySelector(".conversations");
+async function hide_sidebar() {
+    sidebar.classList.remove("shown");
+    sidebar_button.classList.remove("rotated");
+}
 
+sidebar_button.addEventListener("click", (event) => {
     if (sidebar.classList.contains("shown")) {
-        sidebar.classList.remove("shown");
-        event.target.classList.remove("rotated");
+        hide_sidebar();
     } else {
         sidebar.classList.add("shown");
-        event.target.classList.add("rotated");
+        sidebar_button.classList.add("rotated");
     }
 
     window.scrollTo(0, 0);
@@ -736,13 +752,6 @@ message_input.addEventListener("keyup", count_input);
 
 window.onload = async () => {
     setTheme();
-
-    let conversations = 0;
-    for (let i = 0; i < localStorage.length; i++) {
-        if (localStorage.key(i).startsWith("conversation:")) {
-            conversations += 1;
-        }
-    }
 
     count_input();
 
