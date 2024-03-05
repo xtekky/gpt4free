@@ -5,10 +5,14 @@ const message_input     = document.getElementById(`message-input`);
 const box_conversations = document.querySelector(`.top`);
 const stop_generating   = document.querySelector(`.stop_generating`);
 const regenerate        = document.querySelector(`.regenerate`);
-const send_button       = document.querySelector(`#send-button`);
-const imageInput        = document.querySelector('#image');
-const cameraInput       = document.querySelector('#camera');
-const fileInput         = document.querySelector('#file');
+const sidebar           = document.querySelector(".conversations");
+const sidebar_button    = document.querySelector(".mobile-sidebar");
+const send_button       = document.getElementById("send-button");
+const imageInput        = document.getElementById("image");
+const cameraInput       = document.getElementById("camera");
+const fileInput         = document.getElementById("file");
+const inputCount        = document.getElementById("input-count")
+const modelSelect       = document.getElementById("model");
 
 let prompt_lock = false;
 
@@ -63,6 +67,13 @@ const register_remove_message = async () => {
 
 const delete_conversations = async () => {
     localStorage.clear();
+    for (let i = 0; i < localStorage.length; i++){
+        let key = localStorage.key(i);
+        if (key.startsWith("conversation:")) {
+            localStorage.removeItem(key);
+        }
+    }
+    hide_sidebar();
     await new_conversation();
 };
 
@@ -75,6 +86,7 @@ const handle_ask = async () => {
     if (message.length > 0) {
         message_input.value = '';
         prompt_lock = true;
+        count_input()
         await add_conversation(window.conversation_id, message);
         if ("text" in fileInput.dataset) {
             message += '\n```' + fileInput.dataset.type + '\n'; 
@@ -89,6 +101,7 @@ const handle_ask = async () => {
         if (input.files.length > 0) imageInput.dataset.src = URL.createObjectURL(input.files[0]);
         else delete imageInput.dataset.src
 
+        model = modelSelect.options[modelSelect.selectedIndex].value
         message_box.innerHTML += `
             <div class="message" data-index="${message_index}">
                 <div class="user">
@@ -97,11 +110,14 @@ const handle_ask = async () => {
                     <i class="fa-regular fa-phone-arrow-up-right"></i>
                 </div>
                 <div class="content" id="user_${token}"> 
+                    <div class="content_inner">
                     ${markdown_render(message)}
                     ${imageInput.dataset.src
                         ? '<img src="' + imageInput.dataset.src + '" alt="Image upload">'
                         : ''
                     }
+                    </div>
+                    <div class="count">${count_words_and_tokens(message, model)}</div>
                 </div>
             </div>
         `;
@@ -120,19 +136,25 @@ const remove_cancel_button = async () => {
     }, 300);
 };
 
-const filter_messages = (messages) => {
+const filter_messages = (messages, filter_last_message = true) => {
     // Removes none user messages at end
-    let last_message;
-    while (last_message = messages.pop()) {
-        if (last_message["role"] == "user") {
-            messages.push(last_message);
-            break;
+    if (filter_last_message) {
+        let last_message;
+        while (last_message = messages.pop()) {
+            if (last_message["role"] == "user") {
+                messages.push(last_message);
+                break;
+            }
         }
     }
 
     // Remove history, if it is selected
     if (document.getElementById('history')?.checked) {
-        messages = [messages[messages.length-1]];
+        if (filter_last_message) {
+            messages = [messages.pop()];
+        } else {
+            messages = [messages.pop(), messages.pop()];
+        }
     }
 
     let new_messages = [];
@@ -165,7 +187,6 @@ const ask_gpt = async () => {
 
     jailbreak    = document.getElementById("jailbreak");
     provider     = document.getElementById("provider");
-    model        = document.getElementById("model");
     window.text  = '';
 
     stop_generating.classList.remove(`stop_generating-hidden`);
@@ -188,11 +209,13 @@ const ask_gpt = async () => {
             <div class="content" id="gpt_${window.token}">
                 <div class="provider"></div>
                 <div class="content_inner"><span id="cursor"></span></div>
+                <div class="count"></div>
             </div>
         </div>
     `;
     content = document.getElementById(`gpt_${window.token}`);
     content_inner = content.querySelector('.content_inner');
+    content_count = content.querySelector('.count');
 
     message_box.scrollTop = message_box.scrollHeight;
     window.scrollTo(0, 0);
@@ -200,7 +223,7 @@ const ask_gpt = async () => {
         let body = JSON.stringify({
             id: window.token,
             conversation_id: window.conversation_id,
-            model: model.options[model.selectedIndex].value,
+            model: modelSelect.options[modelSelect.selectedIndex].value,
             jailbreak: jailbreak.options[jailbreak.selectedIndex].value,
             web_search: document.getElementById(`switch`).checked,
             provider: provider.options[provider.selectedIndex].value,
@@ -270,6 +293,7 @@ const ask_gpt = async () => {
                     html = html.substring(0, lastIndex) + '<span id="cursor"></span>' + lastElement;
                 }
                 content_inner.innerHTML = html;
+                content_count.innerText = count_words_and_tokens(text, provider?.model);
                 highlight(content_inner);
             }
 
@@ -380,7 +404,8 @@ const set_conversation = async (conversation_id) => {
 
     await clear_conversation();
     await load_conversation(conversation_id);
-    await load_conversations();
+    load_conversations();
+    hide_sidebar();
 };
 
 const new_conversation = async () => {
@@ -388,23 +413,23 @@ const new_conversation = async () => {
     window.conversation_id = uuid();
 
     await clear_conversation();
-    await load_conversations();
-
-    await say_hello()
+    load_conversations();
+    hide_sidebar();
+    say_hello();
 };
 
 const load_conversation = async (conversation_id) => {
     let messages = await get_messages(conversation_id);
 
     let elements = "";
+    let last_model = null;
     for (i in messages) {
         let item = messages[i];
+        last_model = item?.provider?.model;
         let next_i = parseInt(i) + 1;
         let next_provider = item.provider ? item.provider : (messages.length > next_i ? messages[next_i].provider : null);
-        let tokens_count = next_provider?.model ? count_tokens(next_provider.model, item.content) : "";
-        let append_count = tokens_count ? `, ${tokens_count} tokens` : "";
-        let words_count = `(${count_words(item.content)} words${append_count})`
-        let provider_link = item?.provider?.name ? `<a href="${item?.provider?.url}" target="_blank">${item.provider.name}</a>` : "";
+
+        let provider_link = item.provider?.name ? `<a href="${item.provider?.url}" target="_blank">${item.provider.name}</a>` : "";
         let provider = provider_link ? `
             <div class="provider">
                 ${provider_link}
@@ -413,7 +438,7 @@ const load_conversation = async (conversation_id) => {
         ` : "";
         elements += `
             <div class="message" data-index="${i}">
-                <div class=${item.role == "assistant" ? "assistant" : "user"}>
+                <div class="${item.role}">
                     ${item.role == "assistant" ? gpt_image : user_image}
                     <i class="fa-solid fa-xmark"></i>
                     ${item.role == "assistant"
@@ -424,15 +449,16 @@ const load_conversation = async (conversation_id) => {
                 <div class="content">
                     ${provider}
                     <div class="content_inner">${markdown_render(item.content)}</div>
-                    <div class="count">${words_count}</div>
+                    <div class="count">${count_words_and_tokens(item.content, next_provider?.model)}</div>
                 </div>
             </div>
         `;
     }
 
-    const filtered = filter_messages(messages);
+    const filtered = filter_messages(messages, false);
     if (filtered.length > 0) {
-        let count_total = GPTTokenizer_cl100k_base?.encodeChat(filtered, "gpt-3.5-turbo").length
+        last_model = last_model?.startsWith("gpt-4") ? "gpt-4" : "gpt-3.5-turbo"
+        let count_total = GPTTokenizer_cl100k_base?.encodeChat(filtered, last_model).length
         if (count_total > 0) {
             elements += `<div class="count_total">(${count_total} tokens used)</div>`;
         }
@@ -440,7 +466,7 @@ const load_conversation = async (conversation_id) => {
 
     message_box.innerHTML = elements;
 
-    await register_remove_message();
+    register_remove_message();
     highlight(message_box);
 
     message_box.scrollTo({ top: message_box.scrollHeight, behavior: "smooth" });
@@ -450,13 +476,14 @@ const load_conversation = async (conversation_id) => {
     }, 500);
 };
 
-function count_words(text) {
-    var matches = text.match(/[\w\d\’\'-]+/gi);
+// https://stackoverflow.com/questions/20396456/how-to-do-word-counts-for-a-mixture-of-english-and-chinese-in-javascript
+function count_words(str) {
+    var matches = str.match(/[\u00ff-\uffff]|\S+/g);
     return matches ? matches.length : 0;
 }
 
 function count_tokens(model, text) {
-    if (model.startsWith("gpt-3") || model.startsWith("gpt-4") || model.startsWith("text-davinci")) {
+    if (model.startsWith("gpt-3") || model.startsWith("gpt-4")) {
         return GPTTokenizer_cl100k_base?.encode(text).length;
     }
     if (model.startsWith("llama2") || model.startsWith("codellama")) {
@@ -465,6 +492,12 @@ function count_tokens(model, text) {
     if (model.startsWith("mistral") || model.startsWith("mixtral")) {
         return mistralTokenizer?.encode(text).length;
     }
+}
+
+function count_words_and_tokens(text, model) {
+    const tokens_count = model ? count_tokens(model, text) : null;
+    const tokens_append = tokens_count ? `, ${tokens_count} tokens` : "";
+    return `(${count_words(text)} words${tokens_append})`
 }
 
 const get_conversation = async (conversation_id) => {
@@ -503,7 +536,9 @@ const add_conversation = async (conversation_id, content) => {
 const hide_last_message = async (conversation_id) => {
     const conversation = await get_conversation(conversation_id)
     const last_message = conversation.items.pop();
-    last_message["regenerate"] = true;
+    if (last_message["role"] == "assistant") {
+        last_message["regenerate"] = true;
+    }
     conversation.items.push(last_message);
 
     localStorage.setItem(
@@ -605,15 +640,17 @@ const message_id = () => {
     return BigInt(`0b${unix}${random_bytes}`).toString();
 };
 
-document.querySelector(".mobile-sidebar").addEventListener("click", (event) => {
-    const sidebar = document.querySelector(".conversations");
+async function hide_sidebar() {
+    sidebar.classList.remove("shown");
+    sidebar_button.classList.remove("rotated");
+}
 
+sidebar_button.addEventListener("click", (event) => {
     if (sidebar.classList.contains("shown")) {
-        sidebar.classList.remove("shown");
-        event.target.classList.remove("rotated");
+        hide_sidebar();
     } else {
         sidebar.classList.add("shown");
-        event.target.classList.add("rotated");
+        sidebar_button.classList.add("rotated");
     }
 
     window.scrollTo(0, 0);
@@ -703,28 +740,34 @@ colorThemes.forEach((themeOption) => {
     });
 });
 
+const count_input = async () => {
+    if (message_input.value) {
+        model = modelSelect.options[modelSelect.selectedIndex].value;
+        inputCount.innerText = count_words_and_tokens(message_input.value, model);
+    } else {
+        inputCount.innerHTML = "&nbsp;"
+    }
+};
+message_input.addEventListener("keyup", count_input);
+
 window.onload = async () => {
     setTheme();
 
-    let conversations = 0;
-    for (let i = 0; i < localStorage.length; i++) {
-        if (localStorage.key(i).startsWith("conversation:")) {
-            conversations += 1;
-        }
+    count_input();
+
+    if (/\/chat\/.+/.test(window.location.href)) {
+        load_conversation(window.conversation_id);
+    } else {
+        say_hello()
     }
 
-    await setTimeout(() => {
+    setTimeout(() => {
         load_conversations();
     }, 1);
 
-    if (/\/chat\/.+/.test(window.location.href)) {
-        await load_conversation(window.conversation_id);
-    } else {
-        await say_hello()
-    }
-        
-    message_input.addEventListener(`keydown`, async (evt) => {
+    message_input.addEventListener("keydown", async (evt) => {
         if (prompt_lock) return;
+
         if (evt.keyCode === 13 && !evt.shiftKey) {
             evt.preventDefault();
             console.log("pressed enter");
@@ -768,12 +811,11 @@ observer.observe(message_input, { attributes: true });
 (async () => {
     response = await fetch('/backend-api/v2/models')
     models = await response.json()
-    let select = document.getElementById('model');
 
     for (model of models) {
         let option = document.createElement('option');
         option.value = option.text = model;
-        select.appendChild(option);
+        modelSelect.appendChild(option);
     }
 
     response = await fetch('/backend-api/v2/providers')

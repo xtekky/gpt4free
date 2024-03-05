@@ -26,6 +26,7 @@ docker pull hlohaus789/g4f
   - [/docs/guides/help_me](/docs/guides/help_me.md)
 - Join our Telegram Channel: [t.me/g4f_channel](https://telegram.me/g4f_channel)
 - Join our Discord Group: [discord.gg/XfybzPXPH5](https://discord.gg/XfybzPXPH5)
+- Check out [G4F, but 100% local](https://github.com/gpt4free/g4f-local)
 
 ## 🔻 Site Takedown
 Is your site on this repository and you want to take it down? Send an email to takedown@g4f.ai with proof it is yours and it will be removed as fast as possible. To prevent reproduction please secure your API ;)

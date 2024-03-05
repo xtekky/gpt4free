@@ -119,7 +119,7 @@ body {
     width: 100%;
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: 5px;
 }
 
 .conversation #messages {
@@ -129,11 +129,12 @@ body {
     flex-direction: column;
     overflow: auto;
     overflow-wrap: break-word;
-    padding-bottom: 20px;
+    padding-bottom: 10px;
 }
 
 .conversation .user-input {
     max-height: 200px;
+    margin-bottom: 10px;
 }
 
 .conversation .user-input input {
@@ -385,12 +386,29 @@ body {
     font-size: 14px;
 }
 
+.toolbar {
+    position: relative;
+}
+
+#input-count {
+    width: fit-content;
+    font-size: 12px;
+    padding: 6px 15px;
+}
+
 .stop_generating, .regenerate {
     position: absolute;
-    bottom: 122px;
-    left: 50%;
-    transform: translateX(-50%);
     z-index: 1000000;
+    top: 0;
+    right: 0;
+}
+
+@media only screen and (min-width: 40em) {
+    .stop_generating, .regenerate {
+        left: 50%;
+        transform: translateX(-50%);
+        right: auto;
+    }
 }
 
 .stop_generating button, .regenerate button{
@@ -399,7 +417,7 @@ body {
     background-color: var(--blur-bg);
     border-radius: var(--border-radius-1);
     border: 1px solid var(--blur-border);
-    padding: 10px 15px;
+    padding: 5px 15px;
     color: var(--colour-3);
     display: flex;
     justify-content: center;
