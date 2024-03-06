@@ -1,11 +1,11 @@
 requests
 pycryptodome
-curl_cffi>=0.6.0b9
+curl_cffi>=0.6.2
 aiohttp
 certifi
 browser_cookie3
 PyExecJS
-duckduckgo-search>=4.4.3
+duckduckgo-search>=5.0
 nest_asyncio
 werkzeug
 loguru

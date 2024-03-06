@@ -101,7 +101,7 @@ async def search(query: str, n_results: int = 5, max_words: int = 2500, add_text
         raise MissingRequirementsError('Install "duckduckgo-search" and "beautifulsoup4" package')
     async with AsyncDDGS() as ddgs:
         results = []
-        async for result in ddgs.text(
+        for result in await ddgs.text(
                 query,
                 region="wt-wt",
                 safesearch="moderate",
