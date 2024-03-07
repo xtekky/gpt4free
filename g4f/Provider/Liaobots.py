@@ -73,7 +73,7 @@ models = {
 
 class Liaobots(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://liaobots.site"
-    working = True
+    working = False
     supports_message_history = True
     supports_gpt_35_turbo = True
     supports_gpt_4 = True
