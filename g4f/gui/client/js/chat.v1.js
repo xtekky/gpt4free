@@ -66,7 +66,6 @@ const register_remove_message = async () => {
 }
 
 const delete_conversations = async () => {
-    localStorage.clear();
     for (let i = 0; i < localStorage.length; i++){
         let key = localStorage.key(i);
         if (key.startsWith("conversation:")) {
@@ -476,12 +475,6 @@ const load_conversation = async (conversation_id) => {
     }, 500);
 };
 
-// https://stackoverflow.com/questions/20396456/how-to-do-word-counts-for-a-mixture-of-english-and-chinese-in-javascript
-function count_words(str) {
-    var matches = str.match(/[\u00ff-\uffff]|\S+/g);
-    return matches ? matches.length : 0;
-}
-
 function count_tokens(model, text) {
     if (model.startsWith("gpt-3") || model.startsWith("gpt-4")) {
         return GPTTokenizer_cl100k_base?.encode(text).length;
@@ -497,7 +490,7 @@ function count_tokens(model, text) {
 function count_words_and_tokens(text, model) {
     const tokens_count = model ? count_tokens(model, text) : null;
     const tokens_append = tokens_count ? `, ${tokens_count} tokens` : "";
-    return `(${count_words(text)} words${tokens_append})`
+    return countWords ? `(${countWords(text)} words${tokens_append})` : "";
 }
 
 const get_conversation = async (conversation_id) => {

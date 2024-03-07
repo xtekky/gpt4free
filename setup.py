@@ -15,13 +15,13 @@ INSTALL_REQUIRE = [
 
 EXTRA_REQUIRE = {
     'all': [
-        "curl_cffi>=0.6.0b9",
+        "curl_cffi>=0.6.2",
         "certifi",
         "async-property",          # openai
         "py-arkose-generator",     # openai
         "browser_cookie3",         # get_cookies
         "PyExecJS",                # GptForLove
-        "duckduckgo-search>=4.4.3",# internet.search
+        "duckduckgo-search>=5.0"  ,# internet.search
         "beautifulsoup4",          # internet.search and bing.create_images
         "brotli",                  # openai
         "platformdirs",            # webdriver
@@ -56,7 +56,7 @@ EXTRA_REQUIRE = {
     "gui": [
         "werkzeug", "flask",
         "beautifulsoup4", "pillow",
-        "duckduckgo-search>=4.4.3",
+        "duckduckgo-search>=5.0",
         "browser_cookie3"
     ]
 }
