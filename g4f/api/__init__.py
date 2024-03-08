@@ -115,9 +115,9 @@ class Api:
         async def completions():
             return Response(content=json.dumps({'info': 'Not working yet.'}, indent=4), media_type="application/json")
 
-    def run(self, ip):
+    def run(self, ip, use_colors : bool = False):
         split_ip = ip.split(":")
-        uvicorn.run(app=self.app, host=split_ip[0], port=int(split_ip[1]), use_colors=False)
+        uvicorn.run(app=self.app, host=split_ip[0], port=int(split_ip[1]), use_colors=use_colors)
 
 def format_exception(e: Exception, config: ChatCompletionsConfig) -> str:
     last_provider = g4f.get_last_provider(True)
@@ -130,4 +130,4 @@ def format_exception(e: Exception, config: ChatCompletionsConfig) -> str:
 def run_api(host: str = '0.0.0.0', port: int = 1337, debug: bool = False, use_colors=True) -> None:
     print(f'Starting server... [g4f v-{g4f.version.utils.current_version}]')
     app = Api(engine=g4f, debug=debug)
-    uvicorn.run(app=app, host=host, port=port, use_colors=use_colors)
+    app.run(f"{host}:{port}", use_colors=use_colors)
