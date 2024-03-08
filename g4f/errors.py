@@ -36,3 +36,6 @@ class MissingAuthError(Exception):
 
 class NoImageResponseError(Exception):
     ...
+
+class RateLimitError(Exception):
+    ...

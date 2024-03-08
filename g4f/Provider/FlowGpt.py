@@ -10,11 +10,9 @@ class FlowGpt(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://flowgpt.com/chat"
     working = True
     supports_gpt_35_turbo = True
-    supports_gpt_4 = True
     supports_message_history = True
     default_model = "gpt-3.5-turbo"
     models = [
-        "gpt-4",
         "gpt-3.5-turbo",
         "gpt-3.5-long",
         "google-gemini",

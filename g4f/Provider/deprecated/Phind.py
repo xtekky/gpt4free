@@ -5,13 +5,14 @@ import json
 from urllib import parse
 from datetime import datetime
 
-from ..typing import AsyncResult, Messages
-from .base_provider import AsyncGeneratorProvider
-from ..requests import StreamSession
+from ...typing import AsyncResult, Messages
+from ..base_provider import AsyncGeneratorProvider
+from ...requests import StreamSession
 
 class Phind(AsyncGeneratorProvider):
     url = "https://www.phind.com"
-    working = True
+    working = False
+    lockdown = True
     supports_stream = True
     supports_message_history = True
 
