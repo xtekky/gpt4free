@@ -7,6 +7,7 @@ from aiohttp import ClientSession, BaseConnector
 from ..typing import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from .helper import get_connector
+from ..errors import RateLimitError
 
 models = {
     "gpt-4": {
@@ -73,7 +74,7 @@ models = {
 
 class Liaobots(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://liaobots.site"
-    working = False
+    working = True
     supports_message_history = True
     supports_gpt_35_turbo = True
     supports_gpt_4 = True
@@ -122,6 +123,8 @@ class Liaobots(AsyncGeneratorProvider, ProviderModelMixin):
                     json={"authcode": ""},
                     verify_ssl=False
                 ) as response:
+                    if response.status == 401:
+                        raise RateLimitError("Rate limit reached. Use a other provider or ip address")
                     response.raise_for_status()
                     cls._auth_code = (await response.json(content_type=None))["authCode"]
                     cls._cookie_jar = session.cookie_jar
