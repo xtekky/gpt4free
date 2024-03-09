@@ -1013,7 +1013,7 @@ a:-webkit-any-link {
     font-size: 15px;
     width: 100%;
     color: var(--colour-3);
-    height: 50px;
+    height: 59px;
     outline: none;
     padding: var(--inner-gap) var(--section-gap);
     resize: vertical;
