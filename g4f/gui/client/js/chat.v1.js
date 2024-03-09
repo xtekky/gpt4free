@@ -1,28 +1,29 @@
 const colorThemes       = document.querySelectorAll('[name="theme"]');
 const markdown          = window.markdownit();
 const message_box       = document.getElementById(`messages`);
-const message_input     = document.getElementById(`message-input`);
+const messageInput      = document.getElementById(`message-input`);
 const box_conversations = document.querySelector(`.top`);
 const stop_generating   = document.querySelector(`.stop_generating`);
 const regenerate        = document.querySelector(`.regenerate`);
 const sidebar           = document.querySelector(".conversations");
 const sidebar_button    = document.querySelector(".mobile-sidebar");
-const send_button       = document.getElementById("send-button");
+const sendButton        = document.getElementById("send-button");
 const imageInput        = document.getElementById("image");
 const cameraInput       = document.getElementById("camera");
 const fileInput         = document.getElementById("file");
 const inputCount        = document.getElementById("input-count")
 const modelSelect       = document.getElementById("model");
+const systemPrompt      = document.getElementById("systemPrompt")
 
 let prompt_lock = false;
 
 hljs.addPlugin(new CopyButtonPlugin());
 
-message_input.addEventListener("blur", () => {
+messageInput.addEventListener("blur", () => {
     window.scrollTo(0, 0);
 });
 
-message_input.addEventListener("focus", () => {
+messageInput.addEventListener("focus", () => {
     document.documentElement.scrollTop = document.documentElement.scrollHeight;
 });
 
@@ -59,7 +60,7 @@ const register_remove_message = async () => {
                 }
                 const message_el = el.parentElement.parentElement;
                 await remove_message(window.conversation_id, message_el.dataset.index);
-                await load_conversation(window.conversation_id);
+                await load_conversation(window.conversation_id, false);
             })
         }
     });
@@ -77,13 +78,13 @@ const delete_conversations = async () => {
 };
 
 const handle_ask = async () => {
-    message_input.style.height = `82px`;
-    message_input.focus();
+    messageInput.style.height = "82px";
+    messageInput.focus();
     window.scrollTo(0, 0);
 
-    message = message_input.value
+    message = messageInput.value
     if (message.length > 0) {
-        message_input.value = '';
+        messageInput.value = "";
         prompt_lock = true;
         count_input()
         await add_conversation(window.conversation_id, message);
@@ -135,7 +136,7 @@ const remove_cancel_button = async () => {
     }, 300);
 };
 
-const filter_messages = (messages, filter_last_message = true) => {
+const prepare_messages = (messages, filter_last_message = true) => {
     // Removes none user messages at end
     if (filter_last_message) {
         let last_message;
@@ -147,7 +148,7 @@ const filter_messages = (messages, filter_last_message = true) => {
         }
     }
 
-    // Remove history, if it is selected
+    // Remove history, if it's selected
     if (document.getElementById('history')?.checked) {
         if (filter_last_message) {
             messages = [messages.pop()];
@@ -157,18 +158,29 @@ const filter_messages = (messages, filter_last_message = true) => {
     }
 
     let new_messages = [];
-    for (i in messages) {
-        new_message = messages[i];
-        // Remove generated images from history
-        new_message["content"] = new_message["content"].replaceAll(
-            /<!-- generated images start -->[\s\S]+<!-- generated images end -->/gm,
-            ""
-        )
-        delete new_message["provider"];
-        // Remove regenerated messages
-        if (!new_message.regenerate) {
-            new_messages.push(new_message)
+    if (messages) {
+        for (i in messages) {
+            new_message = messages[i];
+            // Remove generated images from history
+            new_message.content = new_message.content.replaceAll(
+                /<!-- generated images start -->[\s\S]+<!-- generated images end -->/gm,
+                ""
+            )
+            delete new_message["provider"];
+            // Remove regenerated messages
+            if (!new_message.regenerate) {
+                new_messages.push(new_message)
+            }
         }
+    }
+
+    // Add system message
+    system_content = systemPrompt?.value;
+    if (system_content) {
+        new_messages.unshift({
+            "role": "system",
+            "content": system_content
+        });
     }
 
     return new_messages;
@@ -179,7 +191,7 @@ const ask_gpt = async () => {
     messages = await get_messages(window.conversation_id);
     total_messages = messages.length;
 
-    messages = filter_messages(messages);
+    messages = prepare_messages(messages);
 
     window.scrollTo(0, 0);
     window.controller = new AbortController();
@@ -191,8 +203,6 @@ const ask_gpt = async () => {
     stop_generating.classList.remove(`stop_generating-hidden`);
 
     message_box.scrollTop = message_box.scrollHeight;
-    window.scrollTo(0, 0);
-    await new Promise((r) => setTimeout(r, 500));
     window.scrollTo(0, 0);
 
     el = message_box.querySelector('.count_total');
@@ -218,6 +228,8 @@ const ask_gpt = async () => {
 
     message_box.scrollTop = message_box.scrollHeight;
     window.scrollTo(0, 0);
+
+    error = provider_result = null;
     try {
         let body = JSON.stringify({
             id: window.token,
@@ -241,49 +253,47 @@ const ask_gpt = async () => {
         } else {
             headers['content-type'] = 'application/json';
         }
+
         const response = await fetch(`/backend-api/v2/conversation`, {
             method: 'POST',
             signal: window.controller.signal,
             headers: headers,
             body: body
         });
-
-        await new Promise((r) => setTimeout(r, 1000));
-        window.scrollTo(0, 0);
-
         const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
-        error = provider = null;
         while (true) {
             const { value, done } = await reader.read();
             if (done) break;
             for (const line of value.split("\n")) {
-                if (!line) continue;
+                if (!line) {
+                    continue;
+                }
                 const message = JSON.parse(line);
                 if (message.type == "content") {
                     text += message.content;
-                } else if (message["type"] == "provider") {
-                    provider = message.provider
+                } else if (message.type == "provider") {
+                    provider_result = message.provider
                     content.querySelector('.provider').innerHTML = `
-                        <a href="${provider.url}" target="_blank">
-                            ${provider.name}
+                        <a href="${provider_result.url}" target="_blank">
+                            ${provider_result.name}
                         </a>
-                        ${provider.model ? ' with ' + provider.model : ''}
+                        ${provider_result.model ? ' with ' + provider_result.model : ''}
                     `
-                } else if (message["type"] == "error") {
-                    error = message["error"];
-                } else if (message["type"] == "message") {
-                    console.error(message["message"])
+                } else if (message.type == "error") {
+                    error = message.error;
+                } else if (messag.type == "message") {
+                    console.error(messag.message)
                 }
             }
             if (error) {
                 console.error(error);
-                content_inner.innerHTML += "<p>An error occured, please try again, if the problem persists, please use a other model or provider.</p>";
+                content_inner.innerHTML += `<p><strong>An error occured:</strong> ${error}</p>`;
             } else {
                 html = markdown_render(text);
                 let lastElement, lastIndex = null;
-                for (element of ['</p>', '</code></pre>', '</li>\n</ol>', '</li>\n</ul>']) {
+                for (element of ['</p>', '</code></pre>', '</p>\n</li>\n</ol>', '</li>\n</ol>', '</li>\n</ul>']) {
                     const index = html.lastIndexOf(element)
-                    if (index > lastIndex) {
+                    if (index - element.length > lastIndex) {
                         lastElement = element;
                         lastIndex = index;
                     }
@@ -292,7 +302,7 @@ const ask_gpt = async () => {
                     html = html.substring(0, lastIndex) + '<span id="cursor"></span>' + lastElement;
                 }
                 content_inner.innerHTML = html;
-                content_count.innerText = count_words_and_tokens(text, provider?.model);
+                content_count.innerText = count_words_and_tokens(text, provider_result?.model);
                 highlight(content_inner);
             }
 
@@ -302,7 +312,6 @@ const ask_gpt = async () => {
             }
         }
         if (!error) {
-            // Remove cursor
             html = markdown_render(text);
             content_inner.innerHTML = html;
             highlight(content_inner);
@@ -313,30 +322,29 @@ const ask_gpt = async () => {
         }
     } catch (e) {
         console.error(e);
-
         if (e.name != "AbortError") {
             error = true;
             text = "oops ! something went wrong, please try again / reload. [stacktrace in console]";
             content_inner.innerHTML = text;
         } else {
-            content_inner.innerHTML += ` [aborted]`;
-            text += ` [aborted]`
+            content_inner.innerHTML += " [aborted]";
+            if (text) text += " [aborted]";
         }
     }
-    if (!error) {
-        await add_message(window.conversation_id, "assistant", text, provider);
+    if (!error && text) {
+        await add_message(window.conversation_id, "assistant", text, provider_result);
         await load_conversation(window.conversation_id);
     } else {
         let cursorDiv = document.getElementById(`cursor`);
         if (cursorDiv) cursorDiv.parentNode.removeChild(cursorDiv);
     }
+    window.scrollTo(0, 0);
     message_box.scrollTop = message_box.scrollHeight;
     await remove_cancel_button();
     await register_remove_message();
     prompt_lock = false;
-    window.scrollTo(0, 0);
     await load_conversations();
-    regenerate.classList.remove(`regenerate-hidden`);
+    regenerate.classList.remove("regenerate-hidden");
 };
 
 const clear_conversations = async () => {
@@ -366,22 +374,18 @@ const clear_conversation = async () => {
 
 const show_option = async (conversation_id) => {
     const conv = document.getElementById(`conv-${conversation_id}`);
-    const yes = document.getElementById(`yes-${conversation_id}`);
-    const not = document.getElementById(`not-${conversation_id}`);
+    const choi = document.getElementById(`cho-${conversation_id}`);
 
-    conv.style.display = `none`;
-    yes.style.display  = `block`;
-    not.style.display  = `block`;
+    conv.style.display = "none";
+    choi.style.display  = "block";
 };
 
 const hide_option = async (conversation_id) => {
     const conv = document.getElementById(`conv-${conversation_id}`);
-    const yes  = document.getElementById(`yes-${conversation_id}`);
-    const not  = document.getElementById(`not-${conversation_id}`);
+    const choi  = document.getElementById(`cho-${conversation_id}`);
 
-    conv.style.display = `block`;
-    yes.style.display  = `none`;
-    not.style.display  = `none`;
+    conv.style.display = "block";
+    choi.style.display  = "none";
 };
 
 const delete_conversation = async (conversation_id) => {
@@ -412,23 +416,31 @@ const new_conversation = async () => {
     window.conversation_id = uuid();
 
     await clear_conversation();
+    if (systemPrompt) {
+        systemPrompt.value = "";
+    }
     load_conversations();
     hide_sidebar();
     say_hello();
 };
 
-const load_conversation = async (conversation_id) => {
-    let messages = await get_messages(conversation_id);
+const load_conversation = async (conversation_id, scroll = true) => {
+    let conversation = await get_conversation(conversation_id);
+    let messages = conversation?.items || [];
+
+    if (systemPrompt) {
+        systemPrompt.value = conversation.system || "";
+    }
 
     let elements = "";
     let last_model = null;
     for (i in messages) {
         let item = messages[i];
-        last_model = item?.provider?.model;
+        last_model = item.provider?.model;
         let next_i = parseInt(i) + 1;
         let next_provider = item.provider ? item.provider : (messages.length > next_i ? messages[next_i].provider : null);
 
-        let provider_link = item.provider?.name ? `<a href="${item.provider?.url}" target="_blank">${item.provider.name}</a>` : "";
+        let provider_link = item.provider?.name ? `<a href="${item.provider.url}" target="_blank">${item.provider.name}</a>` : "";
         let provider = provider_link ? `
             <div class="provider">
                 ${provider_link}
@@ -436,7 +448,7 @@ const load_conversation = async (conversation_id) => {
             </div>
         ` : "";
         elements += `
-            <div class="message" data-index="${i}">
+            <div class="message${item.regenerate ? " regenerate": ""}" data-index="${i}">
                 <div class="${item.role}">
                     ${item.role == "assistant" ? gpt_image : user_image}
                     <i class="fa-solid fa-xmark"></i>
@@ -454,7 +466,7 @@ const load_conversation = async (conversation_id) => {
         `;
     }
 
-    const filtered = filter_messages(messages, false);
+    const filtered = prepare_messages(messages, false);
     if (filtered.length > 0) {
         last_model = last_model?.startsWith("gpt-4") ? "gpt-4" : "gpt-3.5-turbo"
         let count_total = GPTTokenizer_cl100k_base?.encodeChat(filtered, last_model).length
@@ -468,44 +480,35 @@ const load_conversation = async (conversation_id) => {
     register_remove_message();
     highlight(message_box);
 
-    message_box.scrollTo({ top: message_box.scrollHeight, behavior: "smooth" });
+    if (scroll) {
+        message_box.scrollTo({ top: message_box.scrollHeight, behavior: "smooth" });
 
-    setTimeout(() => {
-        message_box.scrollTop = message_box.scrollHeight;
-    }, 500);
+        setTimeout(() => {
+            message_box.scrollTop = message_box.scrollHeight;
+        }, 500);
+    }
 };
 
-function count_tokens(model, text) {
-    if (model.startsWith("gpt-3") || model.startsWith("gpt-4")) {
-        return GPTTokenizer_cl100k_base?.encode(text).length;
-    }
-    if (model.startsWith("llama2") || model.startsWith("codellama")) {
-        return llamaTokenizer?.encode(text).length;
-    }
-    if (model.startsWith("mistral") || model.startsWith("mixtral")) {
-        return mistralTokenizer?.encode(text).length;
-    }
-}
-
-function count_words_and_tokens(text, model) {
-    const tokens_count = model ? count_tokens(model, text) : null;
-    const tokens_append = tokens_count ? `, ${tokens_count} tokens` : "";
-    return countWords ? `(${countWords(text)} words${tokens_append})` : "";
-}
-
-const get_conversation = async (conversation_id) => {
+async function get_conversation(conversation_id) {
     let conversation = await JSON.parse(
         localStorage.getItem(`conversation:${conversation_id}`)
     );
     return conversation;
-};
+}
 
-const get_messages = async (conversation_id) => {
+async function save_conversation(conversation_id, conversation) {
+    localStorage.setItem(
+        `conversation:${conversation_id}`,
+        JSON.stringify(conversation)
+    );
+}
+
+async function get_messages(conversation_id) {
     let conversation = await get_conversation(conversation_id);
     return conversation?.items || [];
-};
+}
 
-const add_conversation = async (conversation_id, content) => {
+async function add_conversation(conversation_id, content) {
     if (content.length > 17) {
         title = content.substring(0, 17) + '...'
     } else {
@@ -513,31 +516,34 @@ const add_conversation = async (conversation_id, content) => {
     }
 
     if (localStorage.getItem(`conversation:${conversation_id}`) == null) {
-        localStorage.setItem(
-            `conversation:${conversation_id}`,
-            JSON.stringify({
-                id: conversation_id,
-                title: title,
-                items: [],
-            })
-        );
+        await save_conversation(conversation_id, {
+            id: conversation_id,
+            title: title,
+            system: systemPrompt?.value,
+            items: [],
+        });
     }
 
     history.pushState({}, null, `/chat/${conversation_id}`);
-};
+}
+
+async function save_system_message() {
+    if (!window.conversation_id) return;
+    const conversation = await get_conversation(window.conversation_id);
+    conversation.system = systemPrompt?.value;
+    await save_conversation(window.conversation_id, conversation);
+}
 
 const hide_last_message = async (conversation_id) => {
     const conversation = await get_conversation(conversation_id)
     const last_message = conversation.items.pop();
-    if (last_message["role"] == "assistant") {
-        last_message["regenerate"] = true;
+    if (last_message !== null) {
+        if (last_message["role"] == "assistant") {
+            last_message["regenerate"] = true;
+        }
+        conversation.items.push(last_message);
     }
-    conversation.items.push(last_message);
-
-    localStorage.setItem(
-        `conversation:${conversation_id}`,
-        JSON.stringify(conversation)
-    );
+    await save_conversation(conversation_id, conversation);
 };
 
 const remove_message = async (conversation_id, index) => {
@@ -545,17 +551,16 @@ const remove_message = async (conversation_id, index) => {
     let new_items = [];
     for (i in conversation.items) {
         if (i == index - 1) {
-            delete conversation.items[i]["regenerate"];
+            if (!conversation.items[index]?.regenerate) {
+                delete conversation.items[i]["regenerate"];
+            }
         }
         if (i != index) {
             new_items.push(conversation.items[i])
         }
     }
     conversation.items = new_items;
-    localStorage.setItem(
-        `conversation:${conversation_id}`,
-        JSON.stringify(conversation)
-    );
+    await save_conversation(conversation_id, conversation);
 };
 
 const add_message = async (conversation_id, role, content, provider) => {
@@ -566,12 +571,7 @@ const add_message = async (conversation_id, role, content, provider) => {
         content: content,
         provider: provider
     });
-
-    localStorage.setItem(
-        `conversation:${conversation_id}`,
-        JSON.stringify(conversation)
-    );
-
+    await save_conversation(conversation_id, conversation);
     return conversation.items.length - 1;
 };
 
@@ -594,8 +594,10 @@ const load_conversations = async () => {
                     <span class="convo-title">${conversation.title}</span>
                 </div>
                 <i onclick="show_option('${conversation.id}')" class="fa-regular fa-trash" id="conv-${conversation.id}"></i>
-                <i onclick="delete_conversation('${conversation.id}')" class="fa-regular fa-check" id="yes-${conversation.id}" style="display:none;"></i>
-                <i onclick="hide_option('${conversation.id}')" class="fa-regular fa-x" id="not-${conversation.id}" style="display:none;"></i>
+                <div id="cho-${conversation.id}" class="choise" style="display:none;">
+                    <i onclick="delete_conversation('${conversation.id}')" class="fa-regular fa-check"></i>
+                    <i onclick="hide_option('${conversation.id}')" class="fa-regular fa-x"></i>
+                </div>
             </div>
         `;
     }
@@ -733,15 +735,45 @@ colorThemes.forEach((themeOption) => {
     });
 });
 
+function count_tokens(model, text) {
+    if (model) {
+        if (model.startsWith("llama2") || model.startsWith("codellama")) {
+            return llamaTokenizer?.encode(text).length;
+        }
+        if (model.startsWith("mistral") || model.startsWith("mixtral")) {
+            return mistralTokenizer?.encode(text).length;
+        }
+    }
+    return GPTTokenizer_cl100k_base?.encode(text).length;
+}
+
+function count_words(text) {
+    return text.trim().match(/[\w\u4E00-\u9FA5]+/gu)?.length || 0;
+}
+
+function count_words_and_tokens(text, model) {
+    return `(${count_words(text)} words, ${count_tokens(model, text)} tokens)`;
+}
+
+let countFocus = messageInput;
 const count_input = async () => {
-    if (message_input.value) {
+    if (countFocus.value) {
         model = modelSelect.options[modelSelect.selectedIndex].value;
-        inputCount.innerText = count_words_and_tokens(message_input.value, model);
+        inputCount.innerText = count_words_and_tokens(countFocus.value, model);
     } else {
         inputCount.innerHTML = "&nbsp;"
     }
 };
-message_input.addEventListener("keyup", count_input);
+messageInput.addEventListener("keyup", count_input);
+systemPrompt.addEventListener("keyup", count_input);
+systemPrompt.addEventListener("focus", function() {
+    countFocus = systemPrompt;
+    count_input();
+});
+systemPrompt.addEventListener("blur", function() {
+    countFocus = messageInput;
+    count_input();
+});
 
 window.onload = async () => {
     setTheme();
@@ -754,11 +786,9 @@ window.onload = async () => {
         say_hello()
     }
 
-    setTimeout(() => {
-        load_conversations();
-    }, 1);
+    load_conversations();
 
-    message_input.addEventListener("keydown", async (evt) => {
+    messageInput.addEventListener("keydown", async (evt) => {
         if (prompt_lock) return;
 
         if (evt.keyCode === 13 && !evt.shiftKey) {
@@ -766,40 +796,21 @@ window.onload = async () => {
             console.log("pressed enter");
             await handle_ask();
         } else {
-            message_input.style.removeProperty("height");
-            message_input.style.height = message_input.scrollHeight  + "px";
+            messageInput.style.removeProperty("height");
+            messageInput.style.height = messageInput.scrollHeight  + "px";
         }
     });
     
-    send_button.addEventListener(`click`, async () => {
+    sendButton.addEventListener(`click`, async () => {
         console.log("clicked send");
         if (prompt_lock) return;
         await handle_ask();
     });
 
+    messageInput.focus();
+
     register_settings_localstorage();
 };
-
-const observer = new MutationObserver((mutationsList) => {
-    for (const mutation of mutationsList) {
-        if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
-            const height = message_input.offsetHeight;
-            
-            let heightValues = {
-                81: "20px",
-                82: "20px",
-                100: "30px",
-                119: "39px",
-                138: "49px",
-                150: "55px"
-            }
-            
-            send_button.style.top = heightValues[height] || '';
-        }
-    }
-});
-
-observer.observe(message_input, { attributes: true });
 
 (async () => {
     response = await fetch('/backend-api/v2/models')
@@ -875,4 +886,8 @@ fileInput.addEventListener('change', async (event) => {
     } else {
         delete fileInput.dataset.text;
     }
+});
+
+systemPrompt?.addEventListener("blur", async () => {
+    await save_system_message();
 });

@@ -46,7 +46,7 @@ async def create_conversation(session: ClientSession, proxy: str = None) -> Conv
     }
     for k, v in headers.items():
         session.headers[k] = v
-    url = 'https://www.bing.com/turing/conversation/create?bundleVersion=1.1579.2'
+    url = 'https://www.bing.com/turing/conversation/create?bundleVersion=1.1626.1'
     async with session.get(url, headers=headers, proxy=proxy) as response:
         try:
             data = await response.json()

@@ -37,10 +37,6 @@
         import llamaTokenizer from "llama-tokenizer-js"
     </script>
     <script src="https://unpkg.com/gpt-tokenizer/dist/cl100k_base.js" async></script>
-    <script type="module" async>
-        import { countWords } from 'https://esm.run/alfaaz';
-        window.countWords = countWords;
-    </script>
     <script>
         const user_image = '<img src="/assets/img/user.png" alt="your avatar">';
         const gpt_image = '<img src="/assets/img/gpt.png" alt="your avatar">';
@@ -55,7 +51,6 @@
         }
 
         #message-input {
-            margin-right: 30px;
             height: 82px;
             margin-left: 20px;
         }
@@ -116,6 +111,7 @@
             </div>
         </div>
         <div class="conversation">
+            <textarea id="systemPrompt" class="box" placeholder="System prompt"></textarea>    
             <div id="messages" class="box"></div>
             <div class="toolbar">
                 <div id="input-count" class="">

@@ -65,6 +65,7 @@
 :root {
     --font-1: "Inter", sans-serif;
     --section-gap: 25px;
+    --inner-gap: 15px;
     --border-radius-1: 8px;
 }
 
@@ -204,6 +205,12 @@ body {
     gap: 10px;
 }
 
+.conversations .convo .choise {
+    position: absolute;
+    right: 8px;
+    background-color: var(--blur-bg);
+}
+
 .conversations i {
     color: var(--conversations);
     cursor: pointer;
@@ -222,8 +229,12 @@ body {
     overflow-wrap: break-word;
     display: flex;
     gap: var(--section-gap);
-    padding: var(--section-gap);
+    padding: var(--inner-gap) var(--section-gap);
     padding-bottom: 0;
+}
+
+.message.regenerate {
+    opacity: 0.75;
 }
 
 .message:last-child {
@@ -393,10 +404,10 @@ body {
 #input-count {
     width: fit-content;
     font-size: 12px;
-    padding: 6px 15px;
+    padding: 6px var(--inner-gap);
 }
 
-.stop_generating, .regenerate {
+.stop_generating, .toolbar .regenerate {
     position: absolute;
     z-index: 1000000;
     top: 0;
@@ -404,20 +415,20 @@ body {
 }
 
 @media only screen and (min-width: 40em) {
-    .stop_generating, .regenerate {
+    .stop_generating, .toolbar .regenerate {
         left: 50%;
         transform: translateX(-50%);
         right: auto;
     }
 }
 
-.stop_generating button, .regenerate button{
+.stop_generating button, .toolbar .regenerate button{
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     background-color: var(--blur-bg);
     border-radius: var(--border-radius-1);
     border: 1px solid var(--blur-border);
-    padding: 5px 15px;
+    padding: 5px var(--inner-gap);
     color: var(--colour-3);
     display: flex;
     justify-content: center;
@@ -601,7 +612,6 @@ select {
 .input-box {
     display: flex;
     align-items: center;
-    padding-right: 15px;
     cursor: pointer;
 }
 
@@ -785,7 +795,7 @@ a:-webkit-any-link {
     font-size: 15px;
     width: 100%;
     height: 100%;
-    padding: 12px 15px;
+    padding: 12px var(--inner-gap);
     background: none;
     border: none;
     outline: none;
@@ -990,10 +1000,21 @@ a:-webkit-any-link {
     padding-right: 5px;
     padding-top: 2px;
     padding-bottom: 2px;
-    top: 20px;
-    left: 8px;
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
 }
 
 #send-button:hover {
     border: 1px solid #e4d4ffc9;
+}
+
+#systemPrompt {
+    font-size: 15px;
+    width: 100%;
+    color: var(--colour-3);
+    height: 50px;
+    outline: none;
+    padding: var(--inner-gap) var(--section-gap);
+    resize: vertical;
 }
