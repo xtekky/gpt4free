@@ -65,6 +65,7 @@
 :root {
     --font-1: "Inter", sans-serif;
     --section-gap: 25px;
+    --inner-gap: 15px;
     --border-radius-1: 8px;
 }
 
@@ -222,7 +223,7 @@ body {
     overflow-wrap: break-word;
     display: flex;
     gap: var(--section-gap);
-    padding: var(--section-gap);
+    padding: var(--inner-gap) var(--section-gap);
     padding-bottom: 0;
 }
 
@@ -393,7 +394,7 @@ body {
 #input-count {
     width: fit-content;
     font-size: 12px;
-    padding: 6px 15px;
+    padding: 6px var(--inner-gap);
 }
 
 .stop_generating, .regenerate {
@@ -417,7 +418,7 @@ body {
     background-color: var(--blur-bg);
     border-radius: var(--border-radius-1);
     border: 1px solid var(--blur-border);
-    padding: 5px 15px;
+    padding: 5px var(--inner-gap);
     color: var(--colour-3);
     display: flex;
     justify-content: center;
@@ -601,7 +602,7 @@ select {
 .input-box {
     display: flex;
     align-items: center;
-    padding-right: 15px;
+    padding-right: var(--inner-gap);
     cursor: pointer;
 }
 
@@ -785,7 +786,7 @@ a:-webkit-any-link {
     font-size: 15px;
     width: 100%;
     height: 100%;
-    padding: 12px 15px;
+    padding: 12px var(--inner-gap);
     background: none;
     border: none;
     outline: none;
@@ -996,4 +997,14 @@ a:-webkit-any-link {
 
 #send-button:hover {
     border: 1px solid #e4d4ffc9;
+}
+
+#systemPrompt {
+    font-size: 15px;
+    width: 100%;
+    color: var(--colour-3);
+    height: 50px;
+    outline: none;
+    padding: var(--inner-gap) var(--section-gap);
+    resize: vertical;
 }

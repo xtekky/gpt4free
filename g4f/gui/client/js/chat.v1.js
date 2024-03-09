@@ -13,6 +13,7 @@ const cameraInput       = document.getElementById("camera");
 const fileInput         = document.getElementById("file");
 const inputCount        = document.getElementById("input-count")
 const modelSelect       = document.getElementById("model");
+const systemPrompt      = document.getElementById("systemPrompt")
 
 let prompt_lock = false;
 
@@ -135,7 +136,7 @@ const remove_cancel_button = async () => {
     }, 300);
 };
 
-const filter_messages = (messages, filter_last_message = true) => {
+const prepare_messages = (messages, filter_last_message = true) => {
     // Removes none user messages at end
     if (filter_last_message) {
         let last_message;
@@ -147,7 +148,7 @@ const filter_messages = (messages, filter_last_message = true) => {
         }
     }
 
-    // Remove history, if it is selected
+    // Remove history, if it's selected
     if (document.getElementById('history')?.checked) {
         if (filter_last_message) {
             messages = [messages.pop()];
@@ -160,7 +161,7 @@ const filter_messages = (messages, filter_last_message = true) => {
     for (i in messages) {
         new_message = messages[i];
         // Remove generated images from history
-        new_message["content"] = new_message["content"].replaceAll(
+        new_message.content = new_message.content.replaceAll(
             /<!-- generated images start -->[\s\S]+<!-- generated images end -->/gm,
             ""
         )
@@ -171,6 +172,15 @@ const filter_messages = (messages, filter_last_message = true) => {
         }
     }
 
+    // Add system message
+    system_content = systemPrompt?.value;
+    if (system_content) {
+        new_messages.unshift({
+            "role": "system",
+            "content": system_content
+        });
+    }
+
     return new_messages;
 }
 
@@ -179,7 +189,7 @@ const ask_gpt = async () => {
     messages = await get_messages(window.conversation_id);
     total_messages = messages.length;
 
-    messages = filter_messages(messages);
+    messages = prepare_messages(messages);
 
     window.scrollTo(0, 0);
     window.controller = new AbortController();
@@ -191,8 +201,6 @@ const ask_gpt = async () => {
     stop_generating.classList.remove(`stop_generating-hidden`);
 
     message_box.scrollTop = message_box.scrollHeight;
-    window.scrollTo(0, 0);
-    await new Promise((r) => setTimeout(r, 500));
     window.scrollTo(0, 0);
 
     el = message_box.querySelector('.count_total');
@@ -218,6 +226,8 @@ const ask_gpt = async () => {
 
     message_box.scrollTop = message_box.scrollHeight;
     window.scrollTo(0, 0);
+
+    error = provider_result = null;
     try {
         let body = JSON.stringify({
             id: window.token,
@@ -241,18 +251,14 @@ const ask_gpt = async () => {
         } else {
             headers['content-type'] = 'application/json';
         }
+
         const response = await fetch(`/backend-api/v2/conversation`, {
             method: 'POST',
             signal: window.controller.signal,
             headers: headers,
             body: body
         });
-
-        await new Promise((r) => setTimeout(r, 1000));
-        window.scrollTo(0, 0);
-
         const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
-        error = provider = null;
         while (true) {
             const { value, done } = await reader.read();
             if (done) break;
@@ -262,12 +268,12 @@ const ask_gpt = async () => {
                 if (message.type == "content") {
                     text += message.content;
                 } else if (message["type"] == "provider") {
-                    provider = message.provider
+                    provider_result = message.provider
                     content.querySelector('.provider').innerHTML = `
-                        <a href="${provider.url}" target="_blank">
-                            ${provider.name}
+                        <a href="${provider_result.url}" target="_blank">
+                            ${provider_result.name}
                         </a>
-                        ${provider.model ? ' with ' + provider.model : ''}
+                        ${provider_result.model ? ' with ' + provider_result.model : ''}
                     `
                 } else if (message["type"] == "error") {
                     error = message["error"];
@@ -292,7 +298,7 @@ const ask_gpt = async () => {
                     html = html.substring(0, lastIndex) + '<span id="cursor"></span>' + lastElement;
                 }
                 content_inner.innerHTML = html;
-                content_count.innerText = count_words_and_tokens(text, provider?.model);
+                content_count.innerText = count_words_and_tokens(text, provider_result?.model);
                 highlight(content_inner);
             }
 
@@ -324,19 +330,19 @@ const ask_gpt = async () => {
         }
     }
     if (!error) {
-        await add_message(window.conversation_id, "assistant", text, provider);
+        await add_message(window.conversation_id, "assistant", text, provider_result);
         await load_conversation(window.conversation_id);
     } else {
         let cursorDiv = document.getElementById(`cursor`);
         if (cursorDiv) cursorDiv.parentNode.removeChild(cursorDiv);
     }
+    window.scrollTo(0, 0);
     message_box.scrollTop = message_box.scrollHeight;
     await remove_cancel_button();
     await register_remove_message();
     prompt_lock = false;
-    window.scrollTo(0, 0);
     await load_conversations();
-    regenerate.classList.remove(`regenerate-hidden`);
+    regenerate.classList.remove("regenerate-hidden");
 };
 
 const clear_conversations = async () => {
@@ -361,6 +367,10 @@ const clear_conversation = async () => {
 
     while (messages.length > 0) {
         message_box.removeChild(messages[0]);
+    }
+
+    if (systemPrompt) {
+        systemPrompt.value = "";
     }
 };
 
@@ -418,17 +428,22 @@ const new_conversation = async () => {
 };
 
 const load_conversation = async (conversation_id) => {
-    let messages = await get_messages(conversation_id);
+    let conversation = await get_conversation(conversation_id);
+    let messages = conversation?.items || [];
+
+    if (systemPrompt) {
+        systemPrompt.value = conversation.system || "";
+    }
 
     let elements = "";
     let last_model = null;
     for (i in messages) {
         let item = messages[i];
-        last_model = item?.provider?.model;
+        last_model = item.provider?.model;
         let next_i = parseInt(i) + 1;
         let next_provider = item.provider ? item.provider : (messages.length > next_i ? messages[next_i].provider : null);
 
-        let provider_link = item.provider?.name ? `<a href="${item.provider?.url}" target="_blank">${item.provider.name}</a>` : "";
+        let provider_link = item.provider?.name ? `<a href="${item.provider.url}" target="_blank">${item.provider.name}</a>` : "";
         let provider = provider_link ? `
             <div class="provider">
                 ${provider_link}
@@ -454,7 +469,7 @@ const load_conversation = async (conversation_id) => {
         `;
     }
 
-    const filtered = filter_messages(messages, false);
+    const filtered = prepare_messages(messages, false);
     if (filtered.length > 0) {
         last_model = last_model?.startsWith("gpt-4") ? "gpt-4" : "gpt-3.5-turbo"
         let count_total = GPTTokenizer_cl100k_base?.encodeChat(filtered, last_model).length
@@ -493,19 +508,26 @@ function count_words_and_tokens(text, model) {
     return countWords ? `(${countWords(text)} words${tokens_append})` : "";
 }
 
-const get_conversation = async (conversation_id) => {
+async function get_conversation(conversation_id) {
     let conversation = await JSON.parse(
         localStorage.getItem(`conversation:${conversation_id}`)
     );
     return conversation;
-};
+}
 
-const get_messages = async (conversation_id) => {
+async function save_conversation(conversation_id, conversation) {
+    localStorage.setItem(
+        `conversation:${conversation_id}`,
+        JSON.stringify(conversation)
+    );
+}
+
+async function get_messages(conversation_id) {
     let conversation = await get_conversation(conversation_id);
     return conversation?.items || [];
-};
+}
 
-const add_conversation = async (conversation_id, content) => {
+async function add_conversation(conversation_id, content) {
     if (content.length > 17) {
         title = content.substring(0, 17) + '...'
     } else {
@@ -513,18 +535,23 @@ const add_conversation = async (conversation_id, content) => {
     }
 
     if (localStorage.getItem(`conversation:${conversation_id}`) == null) {
-        localStorage.setItem(
-            `conversation:${conversation_id}`,
-            JSON.stringify({
-                id: conversation_id,
-                title: title,
-                items: [],
-            })
-        );
+        await save_conversation(conversation_id, {
+            id: conversation_id,
+            title: title,
+            system: systemPrompt?.value,
+            items: [],
+        });
     }
 
     history.pushState({}, null, `/chat/${conversation_id}`);
-};
+}
+
+async function save_system_message() {
+    if (!window.conversation_id) return;
+    const conversation = await get_conversation(window.conversation_id);
+    conversation.system = systemPrompt?.value;
+    await save_conversation(window.conversation_id, conversation);
+}
 
 const hide_last_message = async (conversation_id) => {
     const conversation = await get_conversation(conversation_id)
@@ -533,11 +560,7 @@ const hide_last_message = async (conversation_id) => {
         last_message["regenerate"] = true;
     }
     conversation.items.push(last_message);
-
-    localStorage.setItem(
-        `conversation:${conversation_id}`,
-        JSON.stringify(conversation)
-    );
+    await save_conversation(conversation_id, conversation);
 };
 
 const remove_message = async (conversation_id, index) => {
@@ -552,10 +575,7 @@ const remove_message = async (conversation_id, index) => {
         }
     }
     conversation.items = new_items;
-    localStorage.setItem(
-        `conversation:${conversation_id}`,
-        JSON.stringify(conversation)
-    );
+    await save_conversation(conversation_id, conversation);
 };
 
 const add_message = async (conversation_id, role, content, provider) => {
@@ -566,12 +586,7 @@ const add_message = async (conversation_id, role, content, provider) => {
         content: content,
         provider: provider
     });
-
-    localStorage.setItem(
-        `conversation:${conversation_id}`,
-        JSON.stringify(conversation)
-    );
-
+    await save_conversation(conversation_id, conversation);
     return conversation.items.length - 1;
 };
 
@@ -754,9 +769,7 @@ window.onload = async () => {
         say_hello()
     }
 
-    setTimeout(() => {
-        load_conversations();
-    }, 1);
+    load_conversations();
 
     message_input.addEventListener("keydown", async (evt) => {
         if (prompt_lock) return;
@@ -875,4 +888,8 @@ fileInput.addEventListener('change', async (event) => {
     } else {
         delete fileInput.dataset.text;
     }
+});
+
+systemPrompt?.addEventListener("blur", async () => {
+    await save_system_message();
 });
