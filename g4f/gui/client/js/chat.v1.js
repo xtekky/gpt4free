@@ -1,13 +1,13 @@
 const colorThemes       = document.querySelectorAll('[name="theme"]');
 const markdown          = window.markdownit();
 const message_box       = document.getElementById(`messages`);
-const message_input     = document.getElementById(`message-input`);
+const messageInput      = document.getElementById(`message-input`);
 const box_conversations = document.querySelector(`.top`);
 const stop_generating   = document.querySelector(`.stop_generating`);
 const regenerate        = document.querySelector(`.regenerate`);
 const sidebar           = document.querySelector(".conversations");
 const sidebar_button    = document.querySelector(".mobile-sidebar");
-const send_button       = document.getElementById("send-button");
+const sendButton        = document.getElementById("send-button");
 const imageInput        = document.getElementById("image");
 const cameraInput       = document.getElementById("camera");
 const fileInput         = document.getElementById("file");
@@ -19,11 +19,11 @@ let prompt_lock = false;
 
 hljs.addPlugin(new CopyButtonPlugin());
 
-message_input.addEventListener("blur", () => {
+messageInput.addEventListener("blur", () => {
     window.scrollTo(0, 0);
 });
 
-message_input.addEventListener("focus", () => {
+messageInput.addEventListener("focus", () => {
     document.documentElement.scrollTop = document.documentElement.scrollHeight;
 });
 
@@ -60,7 +60,7 @@ const register_remove_message = async () => {
                 }
                 const message_el = el.parentElement.parentElement;
                 await remove_message(window.conversation_id, message_el.dataset.index);
-                await load_conversation(window.conversation_id);
+                await load_conversation(window.conversation_id, false);
             })
         }
     });
@@ -78,13 +78,13 @@ const delete_conversations = async () => {
 };
 
 const handle_ask = async () => {
-    message_input.style.height = `82px`;
-    message_input.focus();
+    messageInput.style.height = "82px";
+    messageInput.focus();
     window.scrollTo(0, 0);
 
-    message = message_input.value
+    message = messageInput.value
     if (message.length > 0) {
-        message_input.value = '';
+        messageInput.value = "";
         prompt_lock = true;
         count_input()
         await add_conversation(window.conversation_id, message);
@@ -158,17 +158,19 @@ const prepare_messages = (messages, filter_last_message = true) => {
     }
 
     let new_messages = [];
-    for (i in messages) {
-        new_message = messages[i];
-        // Remove generated images from history
-        new_message.content = new_message.content.replaceAll(
-            /<!-- generated images start -->[\s\S]+<!-- generated images end -->/gm,
-            ""
-        )
-        delete new_message["provider"];
-        // Remove regenerated messages
-        if (!new_message.regenerate) {
-            new_messages.push(new_message)
+    if (messages) {
+        for (i in messages) {
+            new_message = messages[i];
+            // Remove generated images from history
+            new_message.content = new_message.content.replaceAll(
+                /<!-- generated images start -->[\s\S]+<!-- generated images end -->/gm,
+                ""
+            )
+            delete new_message["provider"];
+            // Remove regenerated messages
+            if (!new_message.regenerate) {
+                new_messages.push(new_message)
+            }
         }
     }
 
@@ -263,11 +265,13 @@ const ask_gpt = async () => {
             const { value, done } = await reader.read();
             if (done) break;
             for (const line of value.split("\n")) {
-                if (!line) continue;
+                if (!line) {
+                    continue;
+                }
                 const message = JSON.parse(line);
                 if (message.type == "content") {
                     text += message.content;
-                } else if (message["type"] == "provider") {
+                } else if (message.type == "provider") {
                     provider_result = message.provider
                     content.querySelector('.provider').innerHTML = `
                         <a href="${provider_result.url}" target="_blank">
@@ -275,21 +279,21 @@ const ask_gpt = async () => {
                         </a>
                         ${provider_result.model ? ' with ' + provider_result.model : ''}
                     `
-                } else if (message["type"] == "error") {
-                    error = message["error"];
-                } else if (message["type"] == "message") {
-                    console.error(message["message"])
+                } else if (message.type == "error") {
+                    error = message.error;
+                } else if (messag.type == "message") {
+                    console.error(messag.message)
                 }
             }
             if (error) {
                 console.error(error);
-                content_inner.innerHTML += "<p>An error occured, please try again, if the problem persists, please use a other model or provider.</p>";
+                content_inner.innerHTML += `<p><strong>An error occured:</strong> ${error}</p>`;
             } else {
                 html = markdown_render(text);
                 let lastElement, lastIndex = null;
-                for (element of ['</p>', '</code></pre>', '</li>\n</ol>', '</li>\n</ul>']) {
+                for (element of ['</p>', '</code></pre>', '</p>\n</li>\n</ol>', '</li>\n</ol>', '</li>\n</ul>']) {
                     const index = html.lastIndexOf(element)
-                    if (index > lastIndex) {
+                    if (index - element.length > lastIndex) {
                         lastElement = element;
                         lastIndex = index;
                     }
@@ -308,7 +312,6 @@ const ask_gpt = async () => {
             }
         }
         if (!error) {
-            // Remove cursor
             html = markdown_render(text);
             content_inner.innerHTML = html;
             highlight(content_inner);
@@ -319,17 +322,16 @@ const ask_gpt = async () => {
         }
     } catch (e) {
         console.error(e);
-
         if (e.name != "AbortError") {
             error = true;
             text = "oops ! something went wrong, please try again / reload. [stacktrace in console]";
             content_inner.innerHTML = text;
         } else {
-            content_inner.innerHTML += ` [aborted]`;
-            text += ` [aborted]`
+            content_inner.innerHTML += " [aborted]";
+            if (text) text += " [aborted]";
         }
     }
-    if (!error) {
+    if (!error && text) {
         await add_message(window.conversation_id, "assistant", text, provider_result);
         await load_conversation(window.conversation_id);
     } else {
@@ -368,30 +370,22 @@ const clear_conversation = async () => {
     while (messages.length > 0) {
         message_box.removeChild(messages[0]);
     }
-
-    if (systemPrompt) {
-        systemPrompt.value = "";
-    }
 };
 
 const show_option = async (conversation_id) => {
     const conv = document.getElementById(`conv-${conversation_id}`);
-    const yes = document.getElementById(`yes-${conversation_id}`);
-    const not = document.getElementById(`not-${conversation_id}`);
+    const choi = document.getElementById(`cho-${conversation_id}`);
 
-    conv.style.display = `none`;
-    yes.style.display  = `block`;
-    not.style.display  = `block`;
+    conv.style.display = "none";
+    choi.style.display  = "block";
 };
 
 const hide_option = async (conversation_id) => {
     const conv = document.getElementById(`conv-${conversation_id}`);
-    const yes  = document.getElementById(`yes-${conversation_id}`);
-    const not  = document.getElementById(`not-${conversation_id}`);
+    const choi  = document.getElementById(`cho-${conversation_id}`);
 
-    conv.style.display = `block`;
-    yes.style.display  = `none`;
-    not.style.display  = `none`;
+    conv.style.display = "block";
+    choi.style.display  = "none";
 };
 
 const delete_conversation = async (conversation_id) => {
@@ -422,12 +416,15 @@ const new_conversation = async () => {
     window.conversation_id = uuid();
 
     await clear_conversation();
+    if (systemPrompt) {
+        systemPrompt.value = "";
+    }
     load_conversations();
     hide_sidebar();
     say_hello();
 };
 
-const load_conversation = async (conversation_id) => {
+const load_conversation = async (conversation_id, scroll = true) => {
     let conversation = await get_conversation(conversation_id);
     let messages = conversation?.items || [];
 
@@ -451,7 +448,7 @@ const load_conversation = async (conversation_id) => {
             </div>
         ` : "";
         elements += `
-            <div class="message" data-index="${i}">
+            <div class="message${item.regenerate ? " regenerate": ""}" data-index="${i}">
                 <div class="${item.role}">
                     ${item.role == "assistant" ? gpt_image : user_image}
                     <i class="fa-solid fa-xmark"></i>
@@ -483,30 +480,14 @@ const load_conversation = async (conversation_id) => {
     register_remove_message();
     highlight(message_box);
 
-    message_box.scrollTo({ top: message_box.scrollHeight, behavior: "smooth" });
+    if (scroll) {
+        message_box.scrollTo({ top: message_box.scrollHeight, behavior: "smooth" });
 
-    setTimeout(() => {
-        message_box.scrollTop = message_box.scrollHeight;
-    }, 500);
+        setTimeout(() => {
+            message_box.scrollTop = message_box.scrollHeight;
+        }, 500);
+    }
 };
-
-function count_tokens(model, text) {
-    if (model.startsWith("gpt-3") || model.startsWith("gpt-4")) {
-        return GPTTokenizer_cl100k_base?.encode(text).length;
-    }
-    if (model.startsWith("llama2") || model.startsWith("codellama")) {
-        return llamaTokenizer?.encode(text).length;
-    }
-    if (model.startsWith("mistral") || model.startsWith("mixtral")) {
-        return mistralTokenizer?.encode(text).length;
-    }
-}
-
-function count_words_and_tokens(text, model) {
-    const tokens_count = model ? count_tokens(model, text) : null;
-    const tokens_append = tokens_count ? `, ${tokens_count} tokens` : "";
-    return countWords ? `(${countWords(text)} words${tokens_append})` : "";
-}
 
 async function get_conversation(conversation_id) {
     let conversation = await JSON.parse(
@@ -556,10 +537,12 @@ async function save_system_message() {
 const hide_last_message = async (conversation_id) => {
     const conversation = await get_conversation(conversation_id)
     const last_message = conversation.items.pop();
-    if (last_message["role"] == "assistant") {
-        last_message["regenerate"] = true;
+    if (last_message !== null) {
+        if (last_message["role"] == "assistant") {
+            last_message["regenerate"] = true;
+        }
+        conversation.items.push(last_message);
     }
-    conversation.items.push(last_message);
     await save_conversation(conversation_id, conversation);
 };
 
@@ -568,7 +551,9 @@ const remove_message = async (conversation_id, index) => {
     let new_items = [];
     for (i in conversation.items) {
         if (i == index - 1) {
-            delete conversation.items[i]["regenerate"];
+            if (!conversation.items[index]?.regenerate) {
+                delete conversation.items[i]["regenerate"];
+            }
         }
         if (i != index) {
             new_items.push(conversation.items[i])
@@ -609,8 +594,10 @@ const load_conversations = async () => {
                     <span class="convo-title">${conversation.title}</span>
                 </div>
                 <i onclick="show_option('${conversation.id}')" class="fa-regular fa-trash" id="conv-${conversation.id}"></i>
-                <i onclick="delete_conversation('${conversation.id}')" class="fa-regular fa-check" id="yes-${conversation.id}" style="display:none;"></i>
-                <i onclick="hide_option('${conversation.id}')" class="fa-regular fa-x" id="not-${conversation.id}" style="display:none;"></i>
+                <div id="cho-${conversation.id}" class="choise" style="display:none;">
+                    <i onclick="delete_conversation('${conversation.id}')" class="fa-regular fa-check"></i>
+                    <i onclick="hide_option('${conversation.id}')" class="fa-regular fa-x"></i>
+                </div>
             </div>
         `;
     }
@@ -748,15 +735,45 @@ colorThemes.forEach((themeOption) => {
     });
 });
 
+function count_tokens(model, text) {
+    if (model) {
+        if (model.startsWith("llama2") || model.startsWith("codellama")) {
+            return llamaTokenizer?.encode(text).length;
+        }
+        if (model.startsWith("mistral") || model.startsWith("mixtral")) {
+            return mistralTokenizer?.encode(text).length;
+        }
+    }
+    return GPTTokenizer_cl100k_base?.encode(text).length;
+}
+
+function count_words(text) {
+    return text.trim().match(/[\w\u4E00-\u9FA5]+/gu)?.length || 0;
+}
+
+function count_words_and_tokens(text, model) {
+    return `(${count_words(text)} words, ${count_tokens(model, text)} tokens)`;
+}
+
+let countFocus = messageInput;
 const count_input = async () => {
-    if (message_input.value) {
+    if (countFocus.value) {
         model = modelSelect.options[modelSelect.selectedIndex].value;
-        inputCount.innerText = count_words_and_tokens(message_input.value, model);
+        inputCount.innerText = count_words_and_tokens(countFocus.value, model);
     } else {
         inputCount.innerHTML = "&nbsp;"
     }
 };
-message_input.addEventListener("keyup", count_input);
+messageInput.addEventListener("keyup", count_input);
+systemPrompt.addEventListener("keyup", count_input);
+systemPrompt.addEventListener("focus", function() {
+    countFocus = systemPrompt;
+    count_input();
+});
+systemPrompt.addEventListener("blur", function() {
+    countFocus = messageInput;
+    count_input();
+});
 
 window.onload = async () => {
     setTheme();
@@ -771,7 +788,7 @@ window.onload = async () => {
 
     load_conversations();
 
-    message_input.addEventListener("keydown", async (evt) => {
+    messageInput.addEventListener("keydown", async (evt) => {
         if (prompt_lock) return;
 
         if (evt.keyCode === 13 && !evt.shiftKey) {
@@ -779,40 +796,21 @@ window.onload = async () => {
             console.log("pressed enter");
             await handle_ask();
         } else {
-            message_input.style.removeProperty("height");
-            message_input.style.height = message_input.scrollHeight  + "px";
+            messageInput.style.removeProperty("height");
+            messageInput.style.height = messageInput.scrollHeight  + "px";
         }
     });
     
-    send_button.addEventListener(`click`, async () => {
+    sendButton.addEventListener(`click`, async () => {
         console.log("clicked send");
         if (prompt_lock) return;
         await handle_ask();
     });
 
+    messageInput.focus();
+
     register_settings_localstorage();
 };
-
-const observer = new MutationObserver((mutationsList) => {
-    for (const mutation of mutationsList) {
-        if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
-            const height = message_input.offsetHeight;
-            
-            let heightValues = {
-                81: "20px",
-                82: "20px",
-                100: "30px",
-                119: "39px",
-                138: "49px",
-                150: "55px"
-            }
-            
-            send_button.style.top = heightValues[height] || '';
-        }
-    }
-});
-
-observer.observe(message_input, { attributes: true });
 
 (async () => {
     response = await fetch('/backend-api/v2/models')

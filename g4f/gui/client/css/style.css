@@ -205,6 +205,12 @@ body {
     gap: 10px;
 }
 
+.conversations .convo .choise {
+    position: absolute;
+    right: 8px;
+    background-color: var(--blur-bg);
+}
+
 .conversations i {
     color: var(--conversations);
     cursor: pointer;
@@ -225,6 +231,10 @@ body {
     gap: var(--section-gap);
     padding: var(--inner-gap) var(--section-gap);
     padding-bottom: 0;
+}
+
+.message.regenerate {
+    opacity: 0.75;
 }
 
 .message:last-child {
@@ -397,7 +407,7 @@ body {
     padding: 6px var(--inner-gap);
 }
 
-.stop_generating, .regenerate {
+.stop_generating, .toolbar .regenerate {
     position: absolute;
     z-index: 1000000;
     top: 0;
@@ -405,14 +415,14 @@ body {
 }
 
 @media only screen and (min-width: 40em) {
-    .stop_generating, .regenerate {
+    .stop_generating, .toolbar .regenerate {
         left: 50%;
         transform: translateX(-50%);
         right: auto;
     }
 }
 
-.stop_generating button, .regenerate button{
+.stop_generating button, .toolbar .regenerate button{
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     background-color: var(--blur-bg);
@@ -602,7 +612,6 @@ select {
 .input-box {
     display: flex;
     align-items: center;
-    padding-right: var(--inner-gap);
     cursor: pointer;
 }
 
@@ -991,8 +1000,9 @@ a:-webkit-any-link {
     padding-right: 5px;
     padding-top: 2px;
     padding-bottom: 2px;
-    top: 20px;
-    left: 8px;
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
 }
 
 #send-button:hover {

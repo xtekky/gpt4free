@@ -32,7 +32,7 @@ class GeminiPro(AsyncGeneratorProvider, ProviderModelMixin):
         connector: BaseConnector = None,
         **kwargs
     ) -> AsyncResult:
-        model = "gemini-pro-vision" if model is None and image is not None else model
+        model = "gemini-pro-vision" if not model and image is not None else model
         model = cls.get_model(model)
 
         if not api_key:
