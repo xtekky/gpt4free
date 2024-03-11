@@ -10,6 +10,7 @@ from .Provider   import (
     GeminiProChat,
     ChatgptNext,
     HuggingChat,
+    HuggingFace,
     ChatgptDemo,
     FreeChatgpt,
     GptForLove,
@@ -112,32 +113,32 @@ llama2_13b = Model(
 llama2_70b = Model(
     name          = "meta-llama/Llama-2-70b-chat-hf",
     base_provider = "meta",
-    best_provider = RetryProvider([Llama2, DeepInfra, HuggingChat, PerplexityLabs])
+    best_provider = RetryProvider([Llama2, DeepInfra, HuggingChat])
 )
 
 codellama_34b_instruct = Model(
     name          = "codellama/CodeLlama-34b-Instruct-hf",
     base_provider = "meta",
-    best_provider = RetryProvider([HuggingChat, PerplexityLabs, DeepInfra])
+    best_provider = RetryProvider([HuggingChat, DeepInfra])
 )
 
 codellama_70b_instruct = Model(
     name          = "codellama/CodeLlama-70b-Instruct-hf",
     base_provider = "meta",
-    best_provider = DeepInfra
+    best_provider = RetryProvider([DeepInfra, PerplexityLabs])
 )
 
 # Mistral
 mixtral_8x7b = Model(
     name          = "mistralai/Mixtral-8x7B-Instruct-v0.1",
     base_provider = "huggingface",
-    best_provider = RetryProvider([DeepInfra, HuggingChat, PerplexityLabs])
+    best_provider = RetryProvider([DeepInfra, HuggingChat, HuggingFace, PerplexityLabs])
 )
 
 mistral_7b = Model(
     name          = "mistralai/Mistral-7B-Instruct-v0.1",
     base_provider = "huggingface",
-    best_provider = RetryProvider([DeepInfra, HuggingChat, PerplexityLabs])
+    best_provider = RetryProvider([DeepInfra, HuggingChat, HuggingFace, PerplexityLabs])
 )
 
 # Misc models
@@ -184,6 +185,18 @@ claude_v2 = Model(
     best_provider = RetryProvider([FreeChatgpt, Vercel])
 )
 
+claude_3_opus = Model(
+    name          = 'claude-3-opus',
+    base_provider = 'anthropic',
+    best_provider = You
+)
+
+claude_3_sonnet = Model(
+    name          = 'claude-3-sonnet',
+    base_provider = 'anthropic',
+    best_provider = You
+)
+
 gpt_35_turbo_16k = Model(
     name          = 'gpt-3.5-turbo-16k',
     base_provider = 'openai',
@@ -223,7 +236,7 @@ gpt_4_32k_0613 = Model(
 gemini_pro = Model(
     name          = 'gemini-pro',
     base_provider = 'google',
-    best_provider = RetryProvider([FreeChatgpt, GeminiProChat])
+    best_provider = RetryProvider([FreeChatgpt, GeminiProChat, You])
 )
 
 pi = Model(
@@ -272,6 +285,8 @@ class ModelUtils:
         'gemini': gemini,
         'gemini-pro': gemini_pro,
         'claude-v2': claude_v2,
+        'claude-3-opus': claude_3_opus,
+        'claude-3-sonnet': claude_3_sonnet,
         'pi': pi
     }
 

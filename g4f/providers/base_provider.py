@@ -274,7 +274,7 @@ class ProviderModelMixin:
             model = cls.default_model
         elif model in cls.model_aliases:
             model = cls.model_aliases[model]
-        elif model not in cls.get_models():
+        elif model not in cls.get_models() and cls.models:
             raise ModelNotSupportedError(f"Model is not supported: {model} in: {cls.__name__}")
         debug.last_model = model
         return model

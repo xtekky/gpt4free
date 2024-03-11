@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import os
-from typing import Generator
+from typing import Iterator, Union
 
 from ..cookies import get_cookies
 from ..image import ImageResponse
@@ -16,7 +16,7 @@ class BingCreateImages:
         self.cookies = cookies
         self.proxy = proxy
 
-    def create(self, prompt: str) -> Generator[ImageResponse, None, None]:
+    def create(self, prompt: str) -> Iterator[Union[ImageResponse, str]]:
         """
         Generator for creating imagecompletion based on a prompt.
 
