@@ -15,72 +15,73 @@ models = {
         "name": "GPT-3.5-Turbo",
         "maxLength": 48000,
         "tokenLimit": 14000,
-        "context": "16K",
+        "context": "16K"
     },
     "gpt-4-turbo-preview": {
         "id": "gpt-4-turbo-preview",
         "name": "GPT-4-Turbo",
         "maxLength": 260000,
         "tokenLimit": 126000,
-        "context": "128K",
+        "context": "128K"
     },
     "gpt-4-plus": {
         "id": "gpt-4-plus",
         "name": "GPT-4-Plus",
         "maxLength": 130000,
         "tokenLimit": 31000,
-        "context": "32K",
+        "context": "32K"
     },
     "gpt-4-0613": {
         "id": "gpt-4-0613",
         "name": "GPT-4-0613",
         "maxLength": 60000,
         "tokenLimit": 15000,
-        "context": "16K",
+        "context": "16K"
     },
     "gemini-pro": {
         "id": "gemini-pro",
         "name": "Gemini-Pro",
         "maxLength": 120000,
         "tokenLimit": 30000,
-        "context": "32K",
+        "context": "32K"
     },
     "claude-3-opus-20240229": {
         "id": "claude-3-opus-20240229",
         "name": "Claude-3-Opus",
         "maxLength": 800000,
         "tokenLimit": 200000,
-        "context": "200K",
+        "context": "200K"
     },
     "claude-3-sonnet-20240229": {
         "id": "claude-3-sonnet-20240229",
         "name": "Claude-3-Sonnet",
         "maxLength": 800000,
         "tokenLimit": 200000,
-        "context": "200K",
+        "context": "200K"
     },
     "claude-2.1": {
         "id": "claude-2.1",
         "name": "Claude-2.1-200k",
         "maxLength": 800000,
         "tokenLimit": 200000,
-        "context": "200K",
+        "context": "200K"
     },
     "claude-2.0": {
         "id": "claude-2.0",
         "name": "Claude-2.0-100k",
         "maxLength": 400000,
         "tokenLimit": 100000,
-        "context": "100K",
+        "context": "100K"
     },
     "claude-instant-1": {
         "id": "claude-instant-1",
         "name": "Claude-instant-1",
         "maxLength": 400000,
         "tokenLimit": 100000,
-        "context": "100K",
+        "context": "100K"
     }
 }
+
 
 class Liaobots(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://liaobots.site"
