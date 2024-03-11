@@ -1,21 +1,37 @@
 from __future__ import annotations
 
+import re
 import json
 import base64
 import uuid
 from aiohttp import ClientSession, FormData, BaseConnector
 
 from ..typing import AsyncResult, Messages, ImageType, Cookies
-from .base_provider import AsyncGeneratorProvider
+from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..providers.helper import get_connector, format_prompt
-from ..image import to_bytes
+from ..image import to_bytes, ImageResponse
 from ..requests.defaults import DEFAULT_HEADERS
 
-class You(AsyncGeneratorProvider):
+class You(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://you.com"
     working = True
     supports_gpt_35_turbo = True
     supports_gpt_4 = True
+    default_model = "gpt-3.5-turbo"
+    models = [
+        "gpt-3.5-turbo",
+        "gpt-4",
+        "gpt-4-turbo",
+        "claude-instant",
+        "claude-2",
+        "claude-3-opus",
+        "claude-3-sonnet",
+        "gemini-pro",
+        "zephyr"
+    ]
+    model_aliases = {
+        "claude-v2": "claude-2"
+    }
     _cookies = None
     _cookies_used = 0
 
@@ -35,10 +51,15 @@ class You(AsyncGeneratorProvider):
             connector=get_connector(connector, proxy),
             headers=DEFAULT_HEADERS
         ) as client:
-            if image:
+            if image is not None:
                 chat_mode = "agent"
-            elif model == "gpt-4":
-                chat_mode = model
+            elif not model or model == cls.default_model:
+                chat_mode = "default"
+            elif model.startswith("dall-e"):
+                chat_mode = "create"
+            else:
+                chat_mode = "custom"
+                model = cls.get_model(model)
             cookies = await cls.get_cookies(client) if chat_mode != "default" else None
             upload = json.dumps([await cls.upload_file(client, cookies, to_bytes(image), image_name)]) if image else ""
             #questions = [message["content"] for message in messages if message["role"] == "user"]
@@ -63,6 +84,8 @@ class You(AsyncGeneratorProvider):
                 "userFiles": upload,
                 "selectedChatMode": chat_mode,
             }
+            if chat_mode == "custom":
+                params["selectedAIModel"] = model.replace("-", "_")
             async with (client.post if chat_mode == "default" else client.get)(
                 f"{cls.url}/api/streamingSearch",
                 data=data,
@@ -80,7 +103,11 @@ class You(AsyncGeneratorProvider):
                         if event == "youChatToken" and event in data:
                             yield data[event]
                         elif event == "youChatUpdate" and "t" in data:
-                            yield data["t"]                         
+                            match = re.search(r"!\[fig\]\((.+?)\)", data["t"])
+                            if match:
+                                yield ImageResponse(match.group(1), messages[-1]["content"])
+                            else:
+                                yield data["t"]                         
 
     @classmethod
     async def upload_file(cls, client: ClientSession, cookies: Cookies, file: bytes, filename: str = None) -> dict:

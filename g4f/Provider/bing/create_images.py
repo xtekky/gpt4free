@@ -20,7 +20,7 @@ except ImportError:
 from ...providers.create_images import CreateImagesProvider
 from ..helper import get_connector
 from ...providers.types import ProviderType
-from ...errors import MissingRequirementsError
+from ...errors import MissingRequirementsError, RateLimitError
 from ...webdriver import WebDriver, get_driver_cookies, get_browser
 
 BING_URL = "https://www.bing.com"
@@ -125,6 +125,8 @@ async def create_images(session: ClientSession, prompt: str, proxy: str = None, 
     async with session.post(url, allow_redirects=False, data=payload, timeout=timeout) as response:
         response.raise_for_status()
         text = (await response.text()).lower()
+        if "0 coins available" in text:
+            raise RateLimitError("No coins left. Log in with a different account or wait a while")
         for error in ERRORS:
             if error in text:
                 raise RuntimeError(f"Create images failed: {error}")
