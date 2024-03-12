@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import json
 
-from ..typing import AsyncResult, Messages
-from ..requests import StreamSession
-from .base_provider import AsyncGeneratorProvider, format_prompt, get_cookies
+from ...typing import AsyncResult, Messages
+from ...requests import StreamSession
+from ..base_provider import AsyncGeneratorProvider, format_prompt, get_cookies
 
 
 class AItianhu(AsyncGeneratorProvider):

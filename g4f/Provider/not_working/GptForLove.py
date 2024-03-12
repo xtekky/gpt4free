@@ -9,14 +9,14 @@ try:
 except ImportError:
     has_requirements = False
 
-from ..typing import AsyncResult, Messages
-from .base_provider import AsyncGeneratorProvider
-from .helper import format_prompt
-from ..errors import MissingRequirementsError
+from ...typing import AsyncResult, Messages
+from ..base_provider import AsyncGeneratorProvider
+from ..helper import format_prompt
+from ...errors import MissingRequirementsError
 
 class GptForLove(AsyncGeneratorProvider):
     url = "https://ai18.gptforlove.com"
-    working = True
+    working = False
     supports_gpt_35_turbo = True
 
     @classmethod

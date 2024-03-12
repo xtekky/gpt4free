@@ -8,17 +8,18 @@ try:
 except ImportError:
     has_requirements = False
 
-from ..typing       import Messages, TypedDict, CreateResult, Any
+from ..typing       import Messages, CreateResult
 from .base_provider import AbstractProvider
-from ..errors       import MissingRequirementsError
+from ..requests     import raise_for_status
+from ..errors       import MissingRequirementsError, RateLimitError, ResponseStatusError
 
 class Vercel(AbstractProvider):
     url = 'https://chat.vercel.ai'
     working = True
-    supports_message_history = True 
+    supports_message_history = True
+    supports_system_message  = True
     supports_gpt_35_turbo    = True
     supports_stream          = True
-    supports_gpt_4           = False
     
     @staticmethod
     def create_completion(
@@ -26,6 +27,7 @@ class Vercel(AbstractProvider):
         messages: Messages,
         stream: bool,
         proxy: str = None,
+        max_retries: int = 6,
         **kwargs
     ) -> CreateResult:
         if not has_requirements:
@@ -54,19 +56,17 @@ class Vercel(AbstractProvider):
             'messages': messages,
             'id'      : f'{os.urandom(3).hex()}a',
         }
-        
-        max_retries  = kwargs.get('max_retries', 6)
+        response = None
         for _ in range(max_retries):
             response = requests.post('https://chat.vercel.ai/api/chat', 
                                     headers=headers, json=json_data, stream=True, proxies={"https": proxy})
-            try:
-                response.raise_for_status()
-            except:
+            if not response.ok:
                 continue
             for token in response.iter_content(chunk_size=None):
                 yield token.decode()
             break
-        
+        raise_for_status(response)
+
 def get_anti_bot_token() -> str:
     headers = {
         'authority': 'sdk.vercel.ai',
@@ -92,7 +92,7 @@ def get_anti_bot_token() -> str:
 
     js_script = '''const globalThis={marker:"mark"};String.prototype.fontcolor=function(){return `<font>${this}</font>`};
         return (%s)(%s)''' % (raw_data['c'], raw_data['a'])
-        
+
     sec_list = [execjs.compile(js_script).call('')[0], [], "sentinel"]
 
     raw_token = json.dumps({'r': sec_list, 't': raw_data['t']}, 

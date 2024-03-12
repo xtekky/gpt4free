@@ -5,8 +5,7 @@ import re
 from ..requests import StreamSession
 from ..typing import Messages
 from .base_provider import AsyncProvider
-from .helper import format_prompt, get_cookies
-
+from .helper import format_prompt
 
 class ChatgptFree(AsyncProvider):
     url                   = "https://chatgptfree.ai"
@@ -25,12 +24,6 @@ class ChatgptFree(AsyncProvider):
         cookies: dict = None,
         **kwargs
     ) -> str:
-        
-        if not cookies:
-            cookies = get_cookies('chatgptfree.ai')
-        if not cookies:
-            raise RuntimeError(f"g4f.provider.{cls.__name__} requires cookies [refresh https://chatgptfree.ai on chrome]")
-
         headers = {
             'authority': 'chatgptfree.ai',
             'accept': '*/*',
@@ -82,6 +75,5 @@ class ChatgptFree(AsyncProvider):
                 "bot_id": "0"
             }
             async with session.post(f"{cls.url}/wp-admin/admin-ajax.php", data=data, cookies=cookies) as response:
-
                 response.raise_for_status()
                 return (await response.json())["data"]

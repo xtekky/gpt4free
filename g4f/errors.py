@@ -39,3 +39,6 @@ class NoImageResponseError(Exception):
 
 class RateLimitError(Exception):
     ...
+
+class ResponseStatusError(Exception):
+    ...

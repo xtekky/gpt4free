@@ -6,13 +6,11 @@ from .Provider   import RetryProvider, ProviderType
 from .Provider   import (
     Chatgpt4Online,
     PerplexityLabs,
-    ChatgptDemoAi,
     GeminiProChat,
     ChatgptNext,
     HuggingChat,
     HuggingFace,
     ChatgptDemo,
-    FreeChatgpt,
     GptForLove,
     ChatgptAi,
     DeepInfra,
@@ -66,7 +64,6 @@ gpt_35_long = Model(
     best_provider = RetryProvider([
         FreeGpt, You,
         Chatgpt4Online,
-        ChatgptDemoAi,
         ChatgptNext,
         ChatgptDemo,
         Gpt6,
@@ -182,7 +179,7 @@ gemini = bard = palm = Model(
 claude_v2 = Model(
     name          = 'claude-v2',
     base_provider = 'anthropic',
-    best_provider = RetryProvider([FreeChatgpt, Vercel])
+    best_provider = RetryProvider([Vercel])
 )
 
 claude_3_opus = Model(
@@ -236,7 +233,7 @@ gpt_4_32k_0613 = Model(
 gemini_pro = Model(
     name          = 'gemini-pro',
     base_provider = 'google',
-    best_provider = RetryProvider([FreeChatgpt, GeminiProChat, You])
+    best_provider = RetryProvider([GeminiProChat, You])
 )
 
 pi = Model(

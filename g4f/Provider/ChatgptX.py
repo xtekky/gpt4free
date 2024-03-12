@@ -7,12 +7,12 @@ from aiohttp import ClientSession
 from ..typing import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider
 from .helper import format_prompt
-
+from ..errors import RateLimitError
 
 class ChatgptX(AsyncGeneratorProvider):
     url = "https://chatgptx.de"
     supports_gpt_35_turbo = True
-    working               = False
+    working               = True
 
     @classmethod
     async def create_async_generator(
@@ -73,6 +73,8 @@ class ChatgptX(AsyncGeneratorProvider):
             async with session.post(f'{cls.url}/sendchat', data=data, headers=headers, proxy=proxy) as response:
                 response.raise_for_status()
                 chat = await response.json()
+                if "messages" in  chat and "Anfragelimit" in chat["messages"]:
+                    raise RateLimitError("Rate limit reached")
                 if "response" not in chat or not chat["response"]:
                     raise RuntimeError(f'Response: {chat}')
             headers = {

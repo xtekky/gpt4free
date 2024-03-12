@@ -5,15 +5,18 @@ import time, hashlib, random
 from ..typing import AsyncResult, Messages
 from ..requests import StreamSession
 from .base_provider import AsyncGeneratorProvider
+from ..errors import RateLimitError
 
 domains = [
-    'https://s.aifree.site'
+    "https://s.aifree.site",
+    "https://v.aifree.site/"
 ]
 
 class FreeGpt(AsyncGeneratorProvider):
-    url = "https://freegpts1.aifree.site/"
-    working = False
+    url = "https://freegptsnav.aifree.site"
+    working = True
     supports_message_history = True
+    supports_system_message = True
     supports_gpt_35_turbo = True
 
     @classmethod
@@ -38,15 +41,14 @@ class FreeGpt(AsyncGeneratorProvider):
                 "pass": None,
                 "sign": generate_signature(timestamp, prompt)
             }
-            url = random.choice(domains)
-            async with session.post(f"{url}/api/generate", json=data) as response:
+            domain = random.choice(domains)
+            async with session.post(f"{domain}/api/generate", json=data) as response:
                 response.raise_for_status()
                 async for chunk in response.iter_content():
                     chunk = chunk.decode()
                     if chunk == "当前地区当日额度已消耗完":
-                        raise RuntimeError("Rate limit reached")
+                        raise RateLimitError("Rate limit reached")
                     yield chunk
-
     
 def generate_signature(timestamp: int, message: str, secret: str = ""):
     data = f"{timestamp}:{message}:{secret}"

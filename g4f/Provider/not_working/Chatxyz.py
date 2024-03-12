@@ -3,8 +3,8 @@ from __future__ import annotations
 import json
 from aiohttp import ClientSession
 
-from ..typing import AsyncResult, Messages
-from .base_provider import AsyncGeneratorProvider
+from ...typing import AsyncResult, Messages
+from ..base_provider import AsyncGeneratorProvider
 
 class Chatxyz(AsyncGeneratorProvider):
     url = "https://chat.3211000.xyz"

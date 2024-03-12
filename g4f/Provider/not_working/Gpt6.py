@@ -3,14 +3,12 @@ from __future__ import annotations
 import json
 from aiohttp import ClientSession
 
-from ..typing import AsyncResult, Messages
-from .base_provider import AsyncGeneratorProvider
-from .helper import format_prompt
-
+from ...typing import AsyncResult, Messages
+from ..base_provider import AsyncGeneratorProvider
 
 class Gpt6(AsyncGeneratorProvider):
     url = "https://gpt6.ai"
-    working = True
+    working = False
     supports_gpt_35_turbo = True
 
     @classmethod
@@ -45,6 +43,7 @@ class Gpt6(AsyncGeneratorProvider):
             async with session.post(f"https://seahorse-app-d29hu.ondigitalocean.app/api/v1/query", json=data, proxy=proxy) as response:
                 response.raise_for_status()
                 async for line in response.content:
+                    print(line)
                     if line.startswith(b"data: [DONE]"):
                         break
                     elif line.startswith(b"data: "):

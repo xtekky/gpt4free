@@ -3,10 +3,8 @@ from __future__ import annotations
 import random
 import secrets
 import string
-from aiohttp import BaseConnector
 
-from ..typing import Messages, Optional
-from ..errors import MissingRequirementsError
+from ..typing import Messages
 
 def format_prompt(messages: Messages, add_special_tokens=False) -> str:
     """
@@ -50,15 +48,3 @@ def get_random_hex() -> str:
         str: A random hexadecimal string of 32 characters (16 bytes).
     """
     return secrets.token_hex(16).zfill(32)
-
-def get_connector(connector: BaseConnector = None, proxy: str = None, rdns: bool = False) -> Optional[BaseConnector]:
-    if proxy and not connector:
-        try:
-            from aiohttp_socks import ProxyConnector
-            if proxy.startswith("socks5h://"):
-                proxy = proxy.replace("socks5h://", "socks5://")
-                rdns = True
-            connector = ProxyConnector.from_url(proxy, rdns=rdns)
-        except ImportError:
-            raise MissingRequirementsError('Install "aiohttp_socks" package for proxy support')
-    return connector

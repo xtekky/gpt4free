@@ -2,15 +2,15 @@ from __future__ import annotations
 
 from aiohttp import ClientSession
 
-from ..typing       import AsyncResult, Messages
-from .base_provider import AsyncGeneratorProvider
+from ...typing       import AsyncResult, Messages
+from ..base_provider import AsyncGeneratorProvider
 
 
 class ChatBase(AsyncGeneratorProvider):
     url = "https://www.chatbase.co"
+    working = False
     supports_gpt_35_turbo = True
     supports_message_history = True
-    working = True
     jailbreak = True
     list_incorrect_responses = ["support@chatbase",
                                 "about Chatbase"]

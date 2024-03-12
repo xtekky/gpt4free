@@ -14,7 +14,7 @@ WS_URL = "wss://labs-api.perplexity.ai/socket.io/"
 class PerplexityLabs(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://labs.perplexity.ai"    
     working = True
-    default_model = "sonar-medium-online"
+    default_model = "mixtral-8x7b-instruct"
     models = [
         "sonar-small-online", "sonar-medium-online", "sonar-small-chat", "sonar-medium-chat", "mistral-7b-instruct", 
         "codellama-70b-instruct", "llava-v1.5-7b-wrapper", "llava-v1.6-34b", "mixtral-8x7b-instruct",

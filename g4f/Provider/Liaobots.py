@@ -7,7 +7,7 @@ from aiohttp import ClientSession, BaseConnector
 from ..typing import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from .helper import get_connector
-from ..errors import RateLimitError
+from ..requests import raise_for_status
 
 models = {
     "gpt-4": {
@@ -76,6 +76,7 @@ class Liaobots(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://liaobots.site"
     working = True
     supports_message_history = True
+    supports_system_message = True
     supports_gpt_35_turbo = True
     supports_gpt_4 = True
     default_model = "gpt-3.5-turbo"
@@ -116,19 +117,17 @@ class Liaobots(AsyncGeneratorProvider, ProviderModelMixin):
                     data={"token": "abcdefghijklmnopqrst"},
                     verify_ssl=False
                 ) as response:
-                    response.raise_for_status()
+                    await raise_for_status(response)
                 async with session.post(
                     "https://liaobots.work/api/user",
                     proxy=proxy,
                     json={"authcode": ""},
                     verify_ssl=False
                 ) as response:
-                    if response.status == 401:
-                        raise RateLimitError("Rate limit reached. Use a other provider or ip address")
-                    response.raise_for_status()
+                    await raise_for_status(response)
                     cls._auth_code = (await response.json(content_type=None))["authCode"]
                     cls._cookie_jar = session.cookie_jar
-                    
+
             data = {
                 "conversationId": str(uuid.uuid4()),
                 "model": models[cls.get_model(model)],
@@ -143,7 +142,7 @@ class Liaobots(AsyncGeneratorProvider, ProviderModelMixin):
                 headers={"x-auth-code": cls._auth_code},
                 verify_ssl=False
             ) as response:
-                response.raise_for_status()
+                await raise_for_status(response)
                 async for chunk in response.content.iter_any():
                     if b"<html coupert-item=" in chunk:
                         raise RuntimeError("Invalid session")

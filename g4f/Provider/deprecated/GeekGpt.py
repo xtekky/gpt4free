@@ -1,8 +1,8 @@
 from __future__ import annotations
 import requests, json
 
-from .base_provider import AbstractProvider
-from ..typing       import CreateResult, Messages
+from ..base_provider import AbstractProvider
+from ...typing       import CreateResult, Messages
 from json           import dumps
 
 

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import uuid
 from aiohttp import ClientSession
+from ...errors import ResponseStatusError
+from ...requests import raise_for_status
 
 class Conversation:
     """
@@ -32,8 +34,11 @@ async def create_conversation(session: ClientSession, proxy: str = None) -> Conv
     Conversation: An instance representing the created conversation.
     """
     url = 'https://www.bing.com/search?toncp=0&FORM=hpcodx&q=Bing+AI&showconv=1&cc=en'
-    async with session.get(url, proxy=proxy) as response:
-        response.raise_for_status()
+    headers = {
+        "cookie": "; ".join(f"{c.key}={c.value}" for c in session.cookie_jar)
+    }
+    async with session.get(url, headers=headers) as response:
+        await raise_for_status(response)
     headers = {
         "accept": "application/json",
         "sec-fetch-dest": "empty",
@@ -41,25 +46,21 @@ async def create_conversation(session: ClientSession, proxy: str = None) -> Conv
         "sec-fetch-site": "same-origin",
         "x-ms-client-request-id": str(uuid.uuid4()),
         "x-ms-useragent": "azsdk-js-api-client-factory/1.0.0-beta.1 core-rest-pipeline/1.12.3 OS/Windows",
-        "referer": url,
-        "Cookie": "; ".join(f"{c.key}={c.value}" for c in session.cookie_jar)
+        "referer": "https://www.bing.com/search?toncp=0&FORM=hpcodx&q=Bing+AI&showconv=1&cc=en",
+        "cookie": "; ".join(f"{c.key}={c.value}" for c in session.cookie_jar)
     }
-    for k, v in headers.items():
-        session.headers[k] = v
-    url = 'https://www.bing.com/turing/conversation/create?bundleVersion=1.1626.1'
+    url = "https://www.bing.com/turing/conversation/create?bundleVersion=1.1634.0-service-contracts"
     async with session.get(url, headers=headers, proxy=proxy) as response:
-        try:
-            data = await response.json()
-        except:
-            raise RuntimeError(f"Response: {await response.text()}")
-
-        conversationId = data.get('conversationId')
-        clientId = data.get('clientId')
-        conversationSignature = response.headers.get('X-Sydney-Encryptedconversationsignature')
-
-        if not conversationId or not clientId or not conversationSignature:
-            raise Exception('Failed to create conversation.')
-        return Conversation(conversationId, clientId, conversationSignature)
+        if response.status == 404:
+            raise ResponseStatusError(f"Response {response.status}: Can't create a new chat")
+        await raise_for_status(response)
+        data = await response.json()
+    conversationId = data.get('conversationId')
+    clientId = data.get('clientId')
+    conversationSignature = response.headers.get('X-Sydney-Encryptedconversationsignature')
+    if not conversationId or not clientId or not conversationSignature:
+        raise Exception('Failed to create conversation.')
+    return Conversation(conversationId, clientId, conversationSignature)
         
 async def list_conversations(session: ClientSession) -> list:
     """

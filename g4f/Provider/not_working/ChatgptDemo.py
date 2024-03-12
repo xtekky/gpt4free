@@ -1,16 +1,17 @@
 from __future__ import annotations
 
-import time, json, re
+import time, json, re, asyncio
 from aiohttp import ClientSession
 
-from ..typing import AsyncResult, Messages
-from .base_provider import AsyncGeneratorProvider
-from .helper import format_prompt
+from ...typing import AsyncResult, Messages
+from ...errors import RateLimitError
+from ..base_provider import AsyncGeneratorProvider
+from ..helper import format_prompt
 
 class ChatgptDemo(AsyncGeneratorProvider):
-    url = "https://chat.chatgptdemo.net"
-    supports_gpt_35_turbo = True
+    url = "https://chatgptdemo.info/chat"
     working = False
+    supports_gpt_35_turbo = True
 
     @classmethod
     async def create_async_generator(
@@ -21,10 +22,10 @@ class ChatgptDemo(AsyncGeneratorProvider):
         **kwargs
     ) -> AsyncResult:
         headers = {
-            "authority": "chat.chatgptdemo.net",
-            "accept-language": "de-DE,de;q=0.9,en-DE;q=0.8,en;q=0.7,en-US",
-            "origin": "https://chat.chatgptdemo.net",
-            "referer": "https://chat.chatgptdemo.net/",
+            "authority": "chatgptdemo.info",
+            "accept-language": "en-US",
+            "origin": "https://chatgptdemo.info",
+            "referer": "https://chatgptdemo.info/chat/",
             "sec-ch-ua": '"Google Chrome";v="117", "Not;A=Brand";v="8", "Chromium";v="117"',
             "sec-ch-ua-mobile": "?0",
             "sec-ch-ua-platform": '"Linux"',
@@ -36,28 +37,29 @@ class ChatgptDemo(AsyncGeneratorProvider):
         async with ClientSession(headers=headers) as session:
             async with session.get(f"{cls.url}/", proxy=proxy) as response:
                 response.raise_for_status()
-                response = await response.text()
-
-                result = re.search(
-                    r'<div id="USERID" style="display: none">(.*?)<\/div>',
-                    response,
-                )
-
-                if result:
-                    user_id = result.group(1)
-                else:
-                    raise RuntimeError("No user id found")
-            async with session.post(f"{cls.url}/new_chat", json={"user_id": user_id}, proxy=proxy) as response:
+                text = await response.text()
+            result = re.search(
+                r'<div id="USERID" style="display: none">(.*?)<\/div>',
+                text,
+            )
+            if result:
+                user_id = result.group(1)
+            else:
+                raise RuntimeError("No user id found")
+            async with session.post(f"https://chatgptdemo.info/chat/new_chat", json={"user_id": user_id}, proxy=proxy) as response:
                 response.raise_for_status()
                 chat_id = (await response.json())["id_"]
             if not chat_id:
                 raise RuntimeError("Could not create new chat")
+            await asyncio.sleep(10)
             data = {
                 "question": format_prompt(messages),
                 "chat_id": chat_id,
-                "timestamp": int(time.time()*1000),
+                "timestamp": int((time.time())*1e3),
             }
-            async with session.post(f"{cls.url}/chat_api_stream", json=data, proxy=proxy) as response:
+            async with session.post(f"https://chatgptdemo.info/chat/chat_api_stream", json=data, proxy=proxy) as response:
+                if response.status == 429:
+                    raise RateLimitError("Rate limit reached")
                 response.raise_for_status()
                 async for line in response.content:
                     if line.startswith(b"data: "):

@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import json
 
-from ..requests import StreamSession
-from .base_provider import AsyncGeneratorProvider
-from ..typing import AsyncResult, Messages
+from ...requests import StreamSession
+from ..base_provider import AsyncGeneratorProvider
+from ...typing import AsyncResult, Messages
 
 class Ylokh(AsyncGeneratorProvider):
     url = "https://chat.ylokh.xyz"
