@@ -3,9 +3,9 @@ from __future__ import annotations
 import uuid, time, random, json
 from aiohttp import ClientSession
 
-from ..typing import AsyncResult, Messages
-from .base_provider import AsyncGeneratorProvider
-from .helper import format_prompt, get_random_string
+from ...typing import AsyncResult, Messages
+from ..base_provider import AsyncGeneratorProvider
+from ..helper import format_prompt, get_random_string
 
 
 class FakeGpt(AsyncGeneratorProvider):

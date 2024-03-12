@@ -4,14 +4,14 @@ from aiohttp import ClientSession
 import json
 import base64
 
-from ..typing       import AsyncResult, Messages
-from .base_provider import AsyncGeneratorProvider, format_prompt
+from ...typing       import AsyncResult, Messages
+from ..base_provider import AsyncGeneratorProvider, format_prompt
 
 
 class GptGo(AsyncGeneratorProvider):
     url                   = "https://gptgo.ai"
+    working               = False
     supports_gpt_35_turbo = True
-    working               = True
 
     @classmethod
     async def create_async_generator(
@@ -44,6 +44,8 @@ class GptGo(AsyncGeneratorProvider):
             ) as response:
                 response.raise_for_status()
                 token = await response.text();
+                if token == "error token":
+                    raise RuntimeError(f"Response: {token}")
                 token = base64.b64decode(token[10:-20]).decode()
 
             async with session.get(
@@ -57,6 +59,8 @@ class GptGo(AsyncGeneratorProvider):
                         break
                     if line.startswith(b"data: "):
                         line = json.loads(line[6:])
+                        if "choices" not in line:
+                            raise RuntimeError(f"Response: {line}")
                         content = line["choices"][0]["delta"].get("content")
                         if content and content != "\n#GPTGO ":
                             yield content

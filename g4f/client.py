@@ -133,12 +133,18 @@ class Completions():
         max_tokens: int = None,
         stop: Union[list[str], str] = None,
         api_key: str = None,
+        ignored  : list[str] = None,
+        ignore_working: bool = False,
+        ignore_stream: bool = False,
         **kwargs
     ) -> Union[ChatCompletion, Iterator[ChatCompletionChunk]]:
         model, provider = get_model_and_provider(
             model,
             self.provider if provider is None else provider,
             stream,
+            ignored,
+            ignore_working,
+            ignore_stream,
             **kwargs
         )
         stop = [stop] if isinstance(stop, str) else stop

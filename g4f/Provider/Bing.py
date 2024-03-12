@@ -2,13 +2,12 @@ from __future__ import annotations
 
 import random
 import json
-import os
 import uuid
 import time
 from urllib import parse
 from aiohttp import ClientSession, ClientTimeout, BaseConnector
 
-from ..typing import AsyncResult, Messages, ImageType
+from ..typing import AsyncResult, Messages, ImageType, Cookies
 from ..image import ImageResponse, ImageRequest
 from .base_provider import AsyncGeneratorProvider
 from .helper import get_connector
@@ -39,7 +38,7 @@ class Bing(AsyncGeneratorProvider):
         messages: Messages,
         proxy: str = None,
         timeout: int = 900,
-        cookies: dict = None,
+        cookies: Cookies = None,
         connector: BaseConnector = None,
         tone: str = Tones.balanced,
         image: ImageType = None,
@@ -65,7 +64,7 @@ class Bing(AsyncGeneratorProvider):
         else:
             prompt = messages[-1]["content"]
             context = create_context(messages[:-1])
-        
+
         cookies = {**get_default_cookies(), **cookies} if cookies else get_default_cookies()
 
         gpt4_turbo = True if model.startswith("gpt-4-turbo") else False
@@ -79,32 +78,88 @@ def create_context(messages: Messages) -> str:
     :param messages: A list of message dictionaries.
     :return: A string representing the context created from the messages.
     """
-    return "".join(
-        f"[{message['role']}]" + ("(#message)" if message['role'] != "system" else "(#additional_instructions)") + f"\n{message['content']}\n\n"
+    return "\n\n".join(
+        f"[{message['role']}]" + ("(#message)" if message['role'] != "system" else "(#additional_instructions)") + f"\n{message['content']}"
         for message in messages
     )
+
+def get_ip_address() -> str:
+    return f"13.{random.randint(104, 107)}.{random.randint(0, 255)}.{random.randint(0, 255)}"
 
 class Defaults:
     """
     Default settings and configurations for the Bing provider.
     """
     delimiter = "\x1e"
-    ip_address = f"13.{random.randint(104, 107)}.{random.randint(0, 255)}.{random.randint(0, 255)}"
 
     # List of allowed message types for Bing responses
     allowedMessageTypes = [
-        "ActionRequest", "Chat", "Context", "Progress", "SemanticSerp",
-        "GenerateContentQuery", "SearchQuery", "RenderCardRequest"
+        "ActionRequest","Chat",
+        "ConfirmationCard", "Context",
+        "InternalSearchQuery", #"InternalSearchResult",
+        "Disengaged", #"InternalLoaderMessage",
+        "Progress", "RenderCardRequest",
+        "RenderContentRequest", "AdsQuery",
+        "SemanticSerp", "GenerateContentQuery",
+        "SearchQuery", "GeneratedCode",
+        "InternalTasksMessage"
     ]
 
-    sliceIds = [
-        'abv2', 'srdicton', 'convcssclick', 'stylewv2', 'contctxp2tf',
-        '802fluxv1pc_a', '806log2sphs0', '727savemem', '277teditgnds0', '207hlthgrds0'
-    ]
+    sliceIds = {
+        "Balanced": [
+            "supllmnfe","archnewtf",
+            "stpstream", "stpsig", "vnextvoicecf", "scmcbase", "cmcpupsalltf", "sydtransctrl",
+            "thdnsrch", "220dcl1s0", "0215wcrwips0", "0305hrthrots0", "0130gpt4t",
+            "bingfc", "0225unsticky1", "0228scss0",
+            "defquerycf", "defcontrol", "3022tphpv"
+        ],
+        "Creative": [
+            "bgstream", "fltltst2c",
+            "stpstream", "stpsig", "vnextvoicecf", "cmcpupsalltf", "sydtransctrl",
+            "0301techgnd", "220dcl1bt15", "0215wcrwip", "0305hrthrot", "0130gpt4t",
+            "bingfccf", "0225unsticky1", "0228scss0",
+            "3022tpvs0"
+        ],
+        "Precise": [
+            "bgstream", "fltltst2c",
+            "stpstream", "stpsig", "vnextvoicecf", "cmcpupsalltf", "sydtransctrl",
+            "0301techgnd", "220dcl1bt15", "0215wcrwip", "0305hrthrot", "0130gpt4t",
+            "bingfccf", "0225unsticky1", "0228scss0",
+            "defquerycf", "3022tpvs0"
+        ],
+    }
+
+    optionsSets = {
+        "Balanced": [
+             "nlu_direct_response_filter", "deepleo",
+            "disable_emoji_spoken_text", "responsible_ai_policy_235",
+            "enablemm", "dv3sugg", "autosave",
+            "iyxapbing", "iycapbing",
+            "galileo", "saharagenconv5", "gldcl1p",
+            "gpt4tmncnp"
+        ],
+        "Creative": [
+            "nlu_direct_response_filter", "deepleo",
+            "disable_emoji_spoken_text", "responsible_ai_policy_235",
+            "enablemm", "dv3sugg",
+            "iyxapbing", "iycapbing",
+            "h3imaginative", "techinstgnd", "hourthrot", "clgalileo", "gencontentv3",
+            "gpt4tmncnp"
+        ],
+        "Precise": [
+            "nlu_direct_response_filter", "deepleo",
+            "disable_emoji_spoken_text", "responsible_ai_policy_235",
+            "enablemm", "dv3sugg",
+            "iyxapbing", "iycapbing",
+            "h3precise", "techinstgnd", "hourthrot", "techinstgnd", "hourthrot",
+            "clgalileo", "gencontentv3"
+        ],
+    }
 
     # Default location settings
     location = {
         "locale": "en-US", "market": "en-US", "region": "US",
+        "location":"lat:34.0536909;long:-118.242766;re=1000m;",
         "locationHints": [{
             "country": "United States", "state": "California", "city": "Los Angeles",
             "timezoneoffset": 8, "countryConfidence": 8,
@@ -134,17 +189,8 @@ class Defaults:
         'upgrade-insecure-requests': '1',
         'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36 Edg/110.0.1587.69',
         'x-edge-shopping-flag': '1',
-        'x-forwarded-for': ip_address,
+        'x-forwarded-for': get_ip_address(),
     }
-
-    optionsSets = [
-        'nlu_direct_response_filter', 'deepleo', 'disable_emoji_spoken_text',
-        'responsible_ai_policy_235', 'enablemm', 'iyxapbing', 'iycapbing',
-        'gencontentv3', 'fluxsrtrunc', 'fluxtrunc', 'fluxv1', 'rai278',
-        'replaceurl', 'eredirecturl', 'nojbfedge', "fluxcopilot", "nojbf",
-        "dgencontentv3", "nointernalsugg", "disable_telemetry", "machine_affinity",
-        "streamf", "codeint", "langdtwb", "fdwtlst", "fluxprod", "deuct3"
-    ]
     
 def get_default_cookies():
     return {
@@ -155,11 +201,6 @@ def get_default_cookies():
         'SRCHUSR'       : '',
         'SRCHHPGUSR'    : f'HV={int(time.time())}',
     }
-
-class ConversationStyleOptionSets():
-    CREATIVE = ["h3imaginative", "clgalileo", "gencontentv3"]
-    BALANCED = ["galileo", "gldcl1p"]
-    PRECISE = ["h3precise", "clgalileo"]
 
 def format_message(msg: dict) -> str:
     """
@@ -191,18 +232,8 @@ def create_message(
     :param gpt4_turbo: Flag to enable GPT-4 Turbo.
     :return: A formatted string message for the Bing API.
     """
-    options_sets = Defaults.optionsSets.copy()
-    # Append tone-specific options
-    if tone == Tones.creative:
-        options_sets.extend(ConversationStyleOptionSets.CREATIVE)
-    elif tone == Tones.precise:
-        options_sets.extend(ConversationStyleOptionSets.PRECISE)
-    elif tone == Tones.balanced:
-        options_sets.extend(ConversationStyleOptionSets.BALANCED)
-    else:
-        options_sets.append("harmonyv3")
 
-    # Additional configurations based on parameters
+    options_sets = []
     if not web_search:
         options_sets.append("nosearchall")
     if gpt4_turbo:
@@ -210,34 +241,38 @@ def create_message(
 
     request_id = str(uuid.uuid4())
     struct = {
-        'arguments': [{
-            'source': 'cib',
-            'optionsSets': options_sets,
-            'allowedMessageTypes': Defaults.allowedMessageTypes,
-            'sliceIds': Defaults.sliceIds,
-            'traceId': os.urandom(16).hex(),
-            'isStartOfSession': True,
-            'requestId': request_id,
-            'message': {
-                **Defaults.location,
-                'author': 'user',
-                'inputMethod': 'Keyboard',
-                'text': prompt,
-                'messageType': 'Chat',
-                'requestId': request_id,
-                'messageId': request_id
-            },
+        "arguments":[{
+            "source": "cib",
+            "optionsSets": [*Defaults.optionsSets[tone], *options_sets],
+            "allowedMessageTypes": Defaults.allowedMessageTypes,
+            "sliceIds": Defaults.sliceIds[tone],
             "verbosity": "verbose",
             "scenario": "SERP",
             "plugins": [{"id": "c310c353-b9f0-4d76-ab0d-1dd5e979cf68", "category": 1}] if web_search else [],
-            'tone': tone,
-            'spokenTextMode': 'None',
-            'conversationId': conversation.conversationId,
-            'participant': {'id': conversation.clientId},
+            "traceId": str(uuid.uuid4()),
+            "conversationHistoryOptionsSets": ["autosave","savemem","uprofupd","uprofgen"],
+            "gptId": "copilot",
+            "isStartOfSession": True,
+            "requestId": request_id,
+            "message":{
+                **Defaults.location,
+                "userIpAddress": get_ip_address(),
+                "timestamp": "2024-03-11T22:40:36+01:00",
+                "author": "user",
+                "inputMethod": "Keyboard",
+                "text": prompt,
+                "messageType": "Chat",
+                "requestId": request_id,
+                "messageId": request_id
+            },
+            "tone": tone,
+            "spokenTextMode": "None",
+            "conversationId": conversation.conversationId,
+            "participant": {"id": conversation.clientId}
         }],
-        'invocationId': '1',
-        'target': 'chat',
-        'type': 4
+        "invocationId": "0",
+        "target": "chat",
+        "type": 4
     }
 
     if image_request and image_request.get('imageUrl') and image_request.get('originalImageUrl'):
@@ -283,14 +318,13 @@ async def stream_generate(
     """
     headers = Defaults.headers
     if cookies:
-        headers["Cookie"] = "; ".join(f"{k}={v}" for k, v in cookies.items())
-
+        headers["cookie"] = "; ".join(f"{k}={v}" for k, v in cookies.items())
     async with ClientSession(
-        timeout=ClientTimeout(total=timeout), headers=headers, connector=connector
+        headers=headers, cookies=cookies,
+        timeout=ClientTimeout(total=timeout), connector=connector
     ) as session:
         conversation = await create_conversation(session)
         image_request = await upload_image(session, image, tone) if image else None
-
         try:
             async with session.ws_connect(
                 'wss://sydney.bing.com/sydney/ChatHub',
@@ -298,12 +332,13 @@ async def stream_generate(
                 params={'sec_access_token': conversation.conversationSignature}
             ) as wss:
                 await wss.send_str(format_message({'protocol': 'json', 'version': 1}))
+                await wss.send_str(format_message({"type": 6}))
                 await wss.receive(timeout=timeout)
                 await wss.send_str(create_message(conversation, prompt, tone, context, image_request, web_search, gpt4_turbo))
-
                 response_txt = ''
                 returned_text = ''
                 final = False
+                message_id = None
                 while not final:
                     msg = await wss.receive(timeout=timeout)
                     if not msg.data:
@@ -315,13 +350,17 @@ async def stream_generate(
                         response = json.loads(obj)
                         if response and response.get('type') == 1 and response['arguments'][0].get('messages'):
                             message = response['arguments'][0]['messages'][0]
+                            # Reset memory, if we have a new message
+                            if message_id is not None and message_id != message["messageId"]:
+                                returned_text = ''
+                            message_id = message["messageId"]
                             image_response = None
                             if (message['contentOrigin'] != 'Apology'):
                                 if 'adaptiveCards' in message:
                                     card = message['adaptiveCards'][0]['body'][0]
                                     if "text" in card:
                                         response_txt = card.get('text')
-                                    if message.get('messageType'):
+                                    if message.get('messageType') and "inlines" in card:
                                         inline_txt = card['inlines'][0].get('text')
                                         response_txt += inline_txt + '\n'
                                 elif message.get('contentType') == "IMAGE":

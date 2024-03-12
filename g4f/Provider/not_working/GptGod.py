@@ -4,14 +4,14 @@ import secrets
 import json
 from aiohttp import ClientSession
 
-from ..typing import AsyncResult, Messages
-from .base_provider import AsyncGeneratorProvider
-from .helper import format_prompt
+from ...typing import AsyncResult, Messages
+from ..base_provider import AsyncGeneratorProvider
+from ..helper import format_prompt
 
 class GptGod(AsyncGeneratorProvider):
     url = "https://gptgod.site"
-    supports_gpt_35_turbo = True
     working = False
+    supports_gpt_35_turbo = True
 
     @classmethod
     async def create_async_generator(

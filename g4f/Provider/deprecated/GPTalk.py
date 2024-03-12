@@ -3,14 +3,14 @@ from __future__ import annotations
 import secrets, time, json
 from aiohttp import ClientSession
 
-from ..typing import AsyncResult, Messages
-from .base_provider import AsyncGeneratorProvider
-from .helper import format_prompt
+from ...typing import AsyncResult, Messages
+from ..base_provider import AsyncGeneratorProvider
+from ..helper import format_prompt
 
 
 class GPTalk(AsyncGeneratorProvider):
     url = "https://gptalk.net"
-    working = True
+    working = False
     supports_gpt_35_turbo = True
     _auth = None
     used_times = 0

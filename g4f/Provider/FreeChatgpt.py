@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import json, random
-from aiohttp import ClientSession
+import json
+from aiohttp import ClientSession, ClientTimeout
 
 from ..typing import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
@@ -18,6 +18,7 @@ class FreeChatgpt(AsyncGeneratorProvider, ProviderModelMixin):
         model: str,
         messages: Messages,
         proxy: str = None,
+        timeout: int = 120,
         **kwargs
     ) -> AsyncResult:
         headers = {
@@ -33,7 +34,7 @@ class FreeChatgpt(AsyncGeneratorProvider, ProviderModelMixin):
             "Sec-Fetch-Site": "same-origin",
             "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36", 
         }
-        async with ClientSession(headers=headers) as session:
+        async with ClientSession(headers=headers, timeout=ClientTimeout(timeout)) as session:
             data = {
                 "messages": messages,
                 "stream": True,

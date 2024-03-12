@@ -2,9 +2,9 @@ from __future__ import annotations
 
 try:
     from platformdirs import user_config_dir
+    from undetected_chromedriver import Chrome, ChromeOptions
     from selenium.webdriver.remote.webdriver import WebDriver 
     from selenium.webdriver.remote.webelement import WebElement 
-    from undetected_chromedriver import Chrome, ChromeOptions
     from selenium.webdriver.common.by import By
     from selenium.webdriver.support.ui import WebDriverWait
     from selenium.webdriver.support import expected_conditions as EC
@@ -12,10 +12,10 @@ try:
     from selenium.common.exceptions import NoSuchElementException
     has_requirements = True
 except ImportError:
-    from typing import Type as WebDriver
+    from typing import Type as WebDriver, Callable as user_config_dir
     has_requirements = False
 
-import time  
+import time
 from shutil import which
 from os import path
 from os import access, R_OK
@@ -28,6 +28,24 @@ try:
     has_pyvirtualdisplay = True
 except ImportError:
     has_pyvirtualdisplay = False
+
+try:
+    from undetected_chromedriver import Chrome as _Chrome, ChromeOptions
+    from seleniumwire.webdriver import InspectRequestsMixin, DriverCommonMixin
+
+    class Chrome(InspectRequestsMixin, DriverCommonMixin, _Chrome):
+        def __init__(self, *args, options=None, seleniumwire_options={}, **kwargs):
+            if options is None:
+                options = ChromeOptions()
+            options.add_argument('--proxy-bypass-list=<-loopback>')
+            config = self._setup_backend(seleniumwire_options)
+            options.add_argument(f"--proxy-server={config['proxy']['httpProxy']}")
+            options.add_argument("--ignore-certificate-errors")
+            super().__init__(*args, options=options, **kwargs)
+    has_seleniumwire = True
+except:
+    from undetected_chromedriver import Chrome, ChromeOptions
+    has_seleniumwire = False
 
 def get_browser(
     user_data_dir: str = None,
@@ -106,7 +124,7 @@ def bypass_cloudflare(driver: WebDriver, url: str, timeout: int) -> None:
             }});
         """, element, url)
         element.click()
-        time.sleep(3)
+        time.sleep(5)
 
         # Switch to the new tab and close the old tab
         original_window = driver.current_window_handle
@@ -126,9 +144,10 @@ def bypass_cloudflare(driver: WebDriver, url: str, timeout: int) -> None:
             ...
         except Exception as e:
             if debug.logging:
-                print(f"Error bypassing Cloudflare: {e}")
-        finally:
-            driver.switch_to.default_content()
+                print(f"Error bypassing Cloudflare: {str(e).splitlines()[0]}")
+        #driver.switch_to.default_content()
+        driver.switch_to.window(window_handle)
+        driver.execute_script("document.href = document.href;")
     WebDriverWait(driver, timeout).until(
         EC.presence_of_element_located((By.CSS_SELECTOR, "body:not(.no-js)"))
     )
@@ -223,13 +242,13 @@ class WebDriverSession:
                 self.default_driver.close()
             except Exception as e:
                 if debug.logging:
-                    print(f"Error closing WebDriver: {e}")
+                    print(f"Error closing WebDriver: {str(e).splitlines()[0]}")
             finally:
                 self.default_driver.quit()
         if self.virtual_display:
             self.virtual_display.stop()  
   
 def element_send_text(element: WebElement, text: str) -> None:
-    script = "arguments[0].innerText = arguments[1]"
+    script = "arguments[0].innerText = arguments[1];"
     element.parent.execute_script(script, element, text)
     element.send_keys(Keys.ENTER)

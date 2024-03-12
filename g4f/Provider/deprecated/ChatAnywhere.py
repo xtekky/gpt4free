@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from aiohttp import ClientSession, ClientTimeout
 
-from ..typing import AsyncResult, Messages
-from .base_provider import AsyncGeneratorProvider
+from ...typing import AsyncResult, Messages
+from ..base_provider import AsyncGeneratorProvider
 
 
 class ChatAnywhere(AsyncGeneratorProvider):

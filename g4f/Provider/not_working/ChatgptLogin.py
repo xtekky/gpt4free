@@ -5,15 +5,15 @@ import time
 import json
 from aiohttp import ClientSession
 
-from ..typing import AsyncResult, Messages
-from .base_provider import AsyncGeneratorProvider
-from .helper import format_prompt
+from ...typing import AsyncResult, Messages
+from ..base_provider import AsyncGeneratorProvider
+from ..helper import format_prompt
 
 
 class ChatgptLogin(AsyncGeneratorProvider):
     url                   = "https://chatgptlogin.ai"
-    supports_gpt_35_turbo = True
     working               = False
+    supports_gpt_35_turbo = True
     _user_id              = None
 
     @classmethod

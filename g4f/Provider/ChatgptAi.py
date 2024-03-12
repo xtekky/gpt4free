@@ -4,14 +4,16 @@ import re, html, json, string, random
 from aiohttp import ClientSession
 
 from ..typing import Messages, AsyncResult
+from ..errors import RateLimitError
 from .base_provider import AsyncGeneratorProvider
-
+from .helper import get_random_string
 
 class ChatgptAi(AsyncGeneratorProvider):
     url = "https://chatgpt.ai"
-    working = False
+    working = True
     supports_message_history = True
-    supports_gpt_35_turbo  = True
+    supports_system_message = True,
+    supports_gpt_4 = True,
     _system = None
 
     @classmethod
@@ -45,7 +47,6 @@ class ChatgptAi(AsyncGeneratorProvider):
                 async with session.get(cls.url, proxy=proxy) as response:
                     response.raise_for_status()
                     text = await response.text()
-
                 result = re.search(r"data-system='(.*?)'", text)
                 if result :
                     cls._system = json.loads(html.unescape(result.group(1)))
@@ -56,14 +57,15 @@ class ChatgptAi(AsyncGeneratorProvider):
                 "botId": cls._system["botId"],
                 "customId": cls._system["customId"],
                 "session": cls._system["sessionId"],
-                "chatId": "".join(random.choices(f"{string.ascii_lowercase}{string.digits}", k=11)),
+                "chatId": get_random_string(),
                 "contextId": cls._system["contextId"],
-                "messages": messages,
+                "messages": messages[:-1],
                 "newMessage": messages[-1]["content"],
-                "stream": True
+                "newFileId": None,
+                "stream":True
             }
             async with session.post(
-               f"{cls.url}/wp-json/mwai-ui/v1/chats/submit",
+               "https://chatgate.ai/wp-json/mwai-ui/v1/chats/submit",
                 proxy=proxy,
                 json=data,
                 headers={"X-Wp-Nonce": cls._system["restNonce"]}
@@ -76,6 +78,10 @@ class ChatgptAi(AsyncGeneratorProvider):
                             assert "type" in line
                         except:
                             raise RuntimeError(f"Broken line: {line.decode()}")
+                        if line["type"] == "error":
+                            if "https://chatgate.ai/login" in line["data"]:
+                                raise RateLimitError("Rate limit reached")
+                            raise RuntimeError(line["data"])
                         if line["type"] == "live":
                             yield line["data"]
                         elif line["type"] == "end":

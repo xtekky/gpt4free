@@ -33,6 +33,7 @@ EXTRA_REQUIRE = {
         "werkzeug", "flask",       # gui
         "loguru", "fastapi",
         "uvicorn", "nest_asyncio", # api
+        "selenium-wire"
     ],
     "image": [
         "pillow",
@@ -42,7 +43,8 @@ EXTRA_REQUIRE = {
     "webdriver": [
         "platformdirs",
         "undetected-chromedriver",
-        "setuptools"
+        "setuptools",
+        "selenium-wire"
     ],
     "openai": [
         "async-property",

@@ -3,12 +3,12 @@ from __future__ import annotations
 import json
 from aiohttp import ClientSession
 
-from ..typing import AsyncResult, Messages
-from .base_provider import AsyncGeneratorProvider
-from .helper import get_random_string
+from ...typing import AsyncResult, Messages
+from ..base_provider import AsyncGeneratorProvider
+from ..helper import get_random_string
 
-class AiChatOnline(AsyncGeneratorProvider):
-    url = "https://aichatonline.org"
+class OnlineGpt(AsyncGeneratorProvider):
+    url = "https://onlinegpt.org"
     working = False
     supports_gpt_35_turbo = True
     supports_message_history = False
@@ -26,10 +26,10 @@ class AiChatOnline(AsyncGeneratorProvider):
             "Accept": "text/event-stream",
             "Accept-Language": "de,en-US;q=0.7,en;q=0.3",
             "Accept-Encoding": "gzip, deflate, br",
-            "Referer": f"{cls.url}/chatgpt/chat/",
+            "Referer": f"{cls.url}/chat/",
             "Content-Type": "application/json",
             "Origin": cls.url,
-            "Alt-Used": "aichatonline.org",
+            "Alt-Used": "onlinegpt.org",
             "Connection": "keep-alive",
             "Sec-Fetch-Dest": "empty",
             "Sec-Fetch-Mode": "cors",
@@ -40,9 +40,9 @@ class AiChatOnline(AsyncGeneratorProvider):
             data = {
                 "botId": "default",
                 "customId": None,
-                "session": get_random_string(16),
+                "session": get_random_string(12),
                 "chatId": get_random_string(),
-                "contextId": 7,
+                "contextId": 9,
                 "messages": messages,
                 "newMessage": messages[-1]["content"],
                 "newImageId": None,
@@ -55,5 +55,3 @@ class AiChatOnline(AsyncGeneratorProvider):
                         data = json.loads(chunk[6:])
                         if data["type"] == "live":
                             yield data["data"]
-                        elif data["type"] == "end":
-                            break

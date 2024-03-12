@@ -5,12 +5,14 @@ from aiohttp import ClientSession
 
 from ..typing import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from ..errors import RateLimitError
 
 class FlowGpt(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://flowgpt.com/chat"
     working = True
     supports_gpt_35_turbo = True
     supports_message_history = True
+    supports_system_message = True
     default_model = "gpt-3.5-turbo"
     models = [
         "gpt-3.5-turbo",
@@ -30,6 +32,7 @@ class FlowGpt(AsyncGeneratorProvider, ProviderModelMixin):
         model: str,
         messages: Messages,
         proxy: str = None,
+        temperature: float = 0.7,
         **kwargs
     ) -> AsyncResult:
         model = cls.get_model(model)
@@ -59,7 +62,7 @@ class FlowGpt(AsyncGeneratorProvider, ProviderModelMixin):
                 "question": messages[-1]["content"],
                 "history": [{"role": "assistant", "content": "Hello, how can I help you today?"}, *history],
                 "system": system_message,
-                "temperature": kwargs.get("temperature", 0.7),
+                "temperature": temperature,
                 "promptId": f"model-{model}",
                 "documentIds": [],
                 "chatFileDocumentIds": [],
@@ -67,6 +70,8 @@ class FlowGpt(AsyncGeneratorProvider, ProviderModelMixin):
                 "generateAudio": False
             }
             async with session.post("https://backend-k8s.flowgpt.com/v2/chat-anonymous", json=data, proxy=proxy) as response:
+                if response.status == 429:
+                    raise RateLimitError("Rate limit reached")
                 response.raise_for_status()
                 async for chunk in response.content:
                     if chunk.strip():

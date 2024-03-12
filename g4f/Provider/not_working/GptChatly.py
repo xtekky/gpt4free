@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-from ..requests import Session, get_session_from_browser
-from ..typing       import Messages
-from .base_provider import AsyncProvider
+from ...requests import Session, get_session_from_browser
+from ...typing       import Messages
+from ..base_provider import AsyncProvider
 
 
 class GptChatly(AsyncProvider):
     url = "https://gptchatly.com"
-    working = True
+    working = False
     supports_message_history = True
     supports_gpt_35_turbo = True
 

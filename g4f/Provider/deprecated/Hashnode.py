@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from aiohttp import ClientSession
 
-from ..typing import AsyncResult, Messages
-from .base_provider import AsyncGeneratorProvider
-from .helper import get_random_hex
+from ...typing import AsyncResult, Messages
+from ..base_provider import AsyncGeneratorProvider
+from ..helper import get_random_hex
 
 class SearchTypes():
     quick = "quick"
