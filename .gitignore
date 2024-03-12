@@ -50,3 +50,6 @@ prv.py
 x.js
 x.py
 info.txt
+local.py
+*.gguf
+image.py
