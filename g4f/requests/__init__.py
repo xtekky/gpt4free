@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from urllib.parse import urlparse
 from typing import Union
 from aiohttp import ClientResponse
 from requests import Response as RequestsResponse
@@ -15,7 +14,7 @@ except ImportError:
     has_curl_cffi = False
 
 from ..webdriver import WebDriver, WebDriverSession
-from ..webdriver import user_config_dir, bypass_cloudflare, get_driver_cookies
+from ..webdriver import bypass_cloudflare, get_driver_cookies
 from ..errors import MissingRequirementsError, RateLimitError, ResponseStatusError
 from .defaults import DEFAULT_HEADERS
 
@@ -39,17 +38,16 @@ def get_args_from_browser(
     Returns:
         Session: A Session object configured with cookies and headers from the WebDriver.
     """
-    user_data_dir = "" #user_config_dir(f"g4f-{urlparse(url).hostname}")
-    with WebDriverSession(webdriver, user_data_dir, proxy=proxy, virtual_display=virtual_display) as driver:
+    with WebDriverSession(webdriver, "", proxy=proxy, virtual_display=virtual_display) as driver:
         if do_bypass_cloudflare:
             bypass_cloudflare(driver, url, timeout)
-        user_agent = driver.execute_script("return navigator.userAgent")
         headers = {
             **DEFAULT_HEADERS,
             'referer': url,
-            'user-agent': user_agent,
         }
-        if hasattr(driver, "requests"):
+        if not hasattr(driver, "requests"):
+            headers["user-agent"] = driver.execute_script("return navigator.userAgent")
+        else:
             for request in driver.requests:
                 if request.url.startswith(url):
                     for key, value in request.headers.items():
@@ -83,22 +81,22 @@ def get_session_from_browser(url: str, webdriver: WebDriver = None, proxy: str =
         impersonate="chrome"
     )
 
-async def raise_for_status_async(response: Union[StreamResponse, ClientResponse]):
+async def raise_for_status_async(response: Union[StreamResponse, ClientResponse], message: str = None):
     if response.status in (429, 402):
         raise RateLimitError(f"Response {response.status}: Rate limit reached")
-    text = await response.text() if not response.ok else None
-    if response.status == 403 and "<title>Just a moment...</title>" in text:
+    message = await response.text() if not response.ok and message is None else message
+    if response.status == 403 and "<title>Just a moment...</title>" in message:
         raise ResponseStatusError(f"Response {response.status}: Cloudflare detected")
     elif not response.ok:
-        raise ResponseStatusError(f"Response {response.status}: {text}")
+        raise ResponseStatusError(f"Response {response.status}: {message}")
 
-def raise_for_status(response: Union[StreamResponse, ClientResponse, Response, RequestsResponse]):
+def raise_for_status(response: Union[StreamResponse, ClientResponse, Response, RequestsResponse], message: str = None):
     if isinstance(response, StreamSession) or isinstance(response, ClientResponse):
-        return raise_for_status_async(response)
+        return raise_for_status_async(response, message)
 
     if response.status_code in (429, 402):
         raise RateLimitError(f"Response {response.status_code}: Rate limit reached")
     elif response.status_code == 403 and "<title>Just a moment...</title>" in response.text:
         raise ResponseStatusError(f"Response {response.status_code}: Cloudflare detected")
     elif not response.ok:
-        raise ResponseStatusError(f"Response {response.status_code}: {response.text}")
+        raise ResponseStatusError(f"Response {response.status_code}: {response.text if message is None else message}")

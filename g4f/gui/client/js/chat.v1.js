@@ -751,8 +751,12 @@ function count_words(text) {
     return text.trim().match(/[\w\u4E00-\u9FA5]+/gu)?.length || 0;
 }
 
+function count_chars(text) {
+    return text.match(/[^\s\p{P}]/gu)?.length || 0;
+}
+
 function count_words_and_tokens(text, model) {
-    return `(${count_words(text)} words, ${count_tokens(model, text)} tokens)`;
+    return `(${count_words(text)} words, ${count_chars(text)} chars, ${count_tokens(model, text)} tokens)`;
 }
 
 let countFocus = messageInput;

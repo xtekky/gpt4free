@@ -9,6 +9,7 @@ from aiohttp import ClientSession, FormData
 
 from ...typing import ImageType, Tuple
 from ...image import to_image, process_image, to_base64_jpg, ImageRequest, Image
+from ...requests import raise_for_status
 
 IMAGE_CONFIG = {
     "maxImagePixels": 360000,
@@ -20,7 +21,7 @@ async def upload_image(
     session: ClientSession, 
     image_data: ImageType, 
     tone: str, 
-    proxy: str = None
+    headers: dict
 ) -> ImageRequest:
     """
     Uploads an image to Bing's AI service and returns the image response.
@@ -43,11 +44,9 @@ async def upload_image(
     img_binary_data = to_base64_jpg(image, IMAGE_CONFIG['imageCompressionRate'])
 
     data = build_image_upload_payload(img_binary_data, tone)
-    headers = prepare_headers(session)
 
-    async with session.post("https://www.bing.com/images/kblob", data=data, headers=headers, proxy=proxy) as response:
-        if response.status != 200:
-            raise RuntimeError("Failed to upload image.")
+    async with session.post("https://www.bing.com/images/kblob", data=data, headers=prepare_headers(headers)) as response:
+        await raise_for_status(response, "Failed to upload image")
         return parse_image_response(await response.json())
 
 def calculate_new_dimensions(image: Image) -> Tuple[int, int]:
@@ -109,7 +108,7 @@ def build_knowledge_request(tone: str) -> dict:
         }
     }
 
-def prepare_headers(session: ClientSession) -> dict:
+def prepare_headers(headers: dict) -> dict:
     """
     Prepares the headers for the image upload request.
 
@@ -120,7 +119,6 @@ def prepare_headers(session: ClientSession) -> dict:
     Returns:
         dict: The headers for the request.
     """
-    headers = session.headers.copy()
     headers["Referer"] = 'https://www.bing.com/search?q=Bing+AI&showconv=1&FORM=hpcodx'
     headers["Origin"] = 'https://www.bing.com'
     return headers

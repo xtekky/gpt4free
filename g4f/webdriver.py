@@ -10,10 +10,9 @@ try:
     from selenium.webdriver.support import expected_conditions as EC
     from selenium.webdriver.common.keys import Keys
     from selenium.common.exceptions import NoSuchElementException
-    from undetected_chromedriver import Chrome, ChromeOptions
     has_requirements = True
 except ImportError:
-    from typing import Type as WebDriver, Callable as user_config_dir
+    from typing import Type as WebDriver
     has_requirements = False
 
 import time
@@ -38,9 +37,9 @@ try:
         def __init__(self, *args, options=None, seleniumwire_options={}, **kwargs):
             if options is None:
                 options = ChromeOptions()
-            options.add_argument('--proxy-bypass-list=<-loopback>')
             config = self._setup_backend(seleniumwire_options)
             options.add_argument(f"--proxy-server={config['proxy']['httpProxy']}")
+            options.add_argument('--proxy-bypass-list=<-loopback>')
             options.add_argument("--ignore-certificate-errors")
             super().__init__(*args, options=options, **kwargs)
     has_seleniumwire = True
