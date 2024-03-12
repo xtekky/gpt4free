@@ -10,6 +10,7 @@ try:
     from selenium.webdriver.support import expected_conditions as EC
     from selenium.webdriver.common.keys import Keys
     from selenium.common.exceptions import NoSuchElementException
+    from undetected_chromedriver import Chrome, ChromeOptions
     has_requirements = True
 except ImportError:
     from typing import Type as WebDriver, Callable as user_config_dir
@@ -44,7 +45,6 @@ try:
             super().__init__(*args, options=options, **kwargs)
     has_seleniumwire = True
 except:
-    from undetected_chromedriver import Chrome, ChromeOptions
     has_seleniumwire = False
 
 def get_browser(
