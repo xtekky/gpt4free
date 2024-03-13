@@ -71,7 +71,12 @@ class Bing(AsyncGeneratorProvider):
 
         gpt4_turbo = True if model.startswith("gpt-4-turbo") else False
 
-        return stream_generate(prompt, tone, image, context, cookies, get_connector(connector, proxy, True), proxy, web_search, gpt4_turbo, timeout)
+        return stream_generate(
+            prompt, tone, image, context, cookies,
+            get_connector(connector, proxy, True),
+            proxy, web_search, gpt4_turbo, timeout,
+            **kwargs
+        )
 
 def create_context(messages: Messages) -> str:
     """
@@ -80,10 +85,10 @@ def create_context(messages: Messages) -> str:
     :param messages: A list of message dictionaries.
     :return: A string representing the context created from the messages.
     """
-    return "\n\n".join(
+    return "".join(
         f"[{message['role']}]" + ("(#message)" if message['role'] != "system" else "(#additional_instructions)") + f"\n{message['content']}"
         for message in messages
-    )
+    ) + "\n\n"
 
 def get_ip_address() -> str:
     return f"13.{random.randint(104, 107)}.{random.randint(0, 255)}.{random.randint(0, 255)}"
@@ -312,8 +317,10 @@ async def stream_generate(
     gpt4_turbo: bool = False,
     timeout: int = 900,
     conversation: Conversation = None,
+    raise_apology: bool = False,
     max_retries: int = 5,
-    sleep_retry: int = 15
+    sleep_retry: int = 15,
+    **kwargs
 ):
     """
     Asynchronously streams generated responses from the Bing API.
@@ -373,26 +380,28 @@ async def stream_generate(
                         response = json.loads(obj)
                         if response and response.get('type') == 1 and response['arguments'][0].get('messages'):
                             message = response['arguments'][0]['messages'][0]
+                            print(message)
                             if message_id is not None and message_id != message["messageId"]:
                                 returned_text = ''
                             message_id = message["messageId"]
                             image_response = None
-                            if (message['contentOrigin'] != 'Apology'):
-                                if 'adaptiveCards' in message:
-                                    card = message['adaptiveCards'][0]['body'][0]
-                                    if "text" in card:
-                                        response_txt = card.get('text')
-                                    if message.get('messageType') and "inlines" in card:
-                                        inline_txt = card['inlines'][0].get('text')
-                                        response_txt += inline_txt + '\n'
-                                elif message.get('contentType') == "IMAGE":
-                                    prompt = message.get('text')
-                                    try:
-                                        image_client = BingCreateImages(cookies, proxy)
-                                        image_response = await image_client.create_async(prompt)
-                                    except Exception as e:
-                                        response_txt += f"\nhttps://www.bing.com/images/create?q={parse.quote(prompt)}"
-                                    do_read = False
+                            if (raise_apology and message['contentOrigin'] == 'Apology'):
+                                raise RuntimeError("Apology Response Error")
+                            if 'adaptiveCards' in message:
+                                card = message['adaptiveCards'][0]['body'][0]
+                                if "text" in card:
+                                    response_txt = card.get('text')
+                                if message.get('messageType') and "inlines" in card:
+                                    inline_txt = card['inlines'][0].get('text')
+                                    response_txt += inline_txt + '\n'
+                            elif message.get('contentType') == "IMAGE":
+                                prompt = message.get('text')
+                                try:
+                                    image_client = BingCreateImages(cookies, proxy)
+                                    image_response = await image_client.create_async(prompt)
+                                except Exception as e:
+                                    response_txt += f"\nhttps://www.bing.com/images/create?q={parse.quote(prompt)}"
+                                do_read = False
                             if response_txt.startswith(returned_text):
                                 new = response_txt[len(returned_text):]
                                 if new != "\n":
