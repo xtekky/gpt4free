@@ -245,7 +245,7 @@ const ask_gpt = async () => {
             jailbreak: jailbreak.options[jailbreak.selectedIndex].value,
             web_search: document.getElementById(`switch`).checked,
             provider: provider.options[provider.selectedIndex].value,
-            patch_provider: document.getElementById('patch').checked,
+            patch_provider: document.getElementById('patch')?.checked,
             messages: messages
         });
         const headers = {
@@ -669,6 +669,9 @@ sidebar_button.addEventListener("click", (event) => {
 const register_settings_localstorage = async () => {
     for (id of ["switch", "model", "jailbreak", "patch", "provider", "history"]) {
         element = document.getElementById(id);
+        if (!element) {
+            continue;
+        }
         element.addEventListener('change', async (event) => {
             switch (event.target.type) {
                 case "checkbox":
@@ -687,7 +690,9 @@ const register_settings_localstorage = async () => {
 const load_settings_localstorage = async () => {
     for (id of ["switch", "model", "jailbreak", "patch", "provider", "history"]) {
         element = document.getElementById(id);
-        value = appStorage.getItem(element.id);
+        if (!element || !(value = appStorage.getItem(element.id))) {
+            continue;
+        }
         if (value) {
             switch (element.type) {
                 case "checkbox":
