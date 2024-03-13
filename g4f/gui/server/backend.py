@@ -6,10 +6,11 @@ from g4f import version, models
 from g4f import get_last_provider, ChatCompletion
 from g4f.image import is_allowed_extension, to_image
 from g4f.errors import VersionNotFoundError
-from g4f.Provider import __providers__
+from g4f.Provider import ProviderType, __providers__, __map__
+from g4f.providers.base_provider import ProviderModelMixin
 from g4f.Provider.bing.create_images import patch_provider
 
-class Backend_Api:
+class Backend_Api:    
     """
     Handles various endpoints in a Flask application for backend operations.
 
@@ -31,6 +32,10 @@ class Backend_Api:
         self.routes = {
             '/backend-api/v2/models': {
                 'function': self.get_models,
+                'methods': ['GET']
+            },
+            '/backend-api/v2/models/<provider>': {
+                'function': self.get_provider_models,
                 'methods': ['GET']
             },
             '/backend-api/v2/providers': {
@@ -75,7 +80,21 @@ class Backend_Api:
             List[str]: A list of model names.
         """
         return models._all_models
-    
+
+    def get_provider_models(self, provider: str):
+        if provider in __map__:
+            provider: ProviderType = __map__[provider]
+            if issubclass(provider, ProviderModelMixin):
+                return [{"model": model, "default": model == provider.default_model} for model in provider.get_models()]
+            elif provider.supports_gpt_35_turbo or provider.supports_gpt_4:
+                return [
+                    *([{"model": "gpt-3.5-turbo", "default": not provider.supports_gpt_4}] if provider.supports_gpt_35_turbo else []),
+                    *([{"model": "gpt-4", "default": not provider.supports_gpt_4}] if provider.supports_gpt_4 else [])
+                ]
+            else:
+                return [];
+        return 404, "Provider not found"
+
     def get_providers(self):
         """
         Return a list of all working providers.

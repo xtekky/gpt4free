@@ -12,7 +12,7 @@ from aiohttp import ClientSession, ClientTimeout, BaseConnector, WSMsgType
 from ..typing import AsyncResult, Messages, ImageType, Cookies
 from ..image import ImageRequest
 from ..errors import ResponseStatusError
-from .base_provider import AsyncGeneratorProvider
+from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from .helper import get_connector, get_random_hex
 from .bing.upload_image import upload_image
 from .bing.conversation import Conversation, create_conversation, delete_conversation
@@ -27,7 +27,7 @@ class Tones:
     balanced = "Balanced"
     precise = "Precise"
 
-class Bing(AsyncGeneratorProvider):
+class Bing(AsyncGeneratorProvider, ProviderModelMixin):
     """
     Bing provider for generating responses using the Bing API.
     """
@@ -35,16 +35,21 @@ class Bing(AsyncGeneratorProvider):
     working = True
     supports_message_history = True
     supports_gpt_4 = True
+    default_model = Tones.balanced
+    models = [
+        getattr(Tones, key) for key in dir(Tones) if not key.startswith("__")
+    ]
         
-    @staticmethod
+    @classmethod
     def create_async_generator(
+        cls,
         model: str,
         messages: Messages,
         proxy: str = None,
         timeout: int = 900,
         cookies: Cookies = None,
         connector: BaseConnector = None,
-        tone: str = Tones.balanced,
+        tone: str = None,
         image: ImageType = None,
         web_search: bool = False,
         **kwargs
@@ -62,13 +67,11 @@ class Bing(AsyncGeneratorProvider):
         :param web_search: Flag to enable or disable web search.
         :return: An asynchronous result object.
         """
-        if len(messages) < 2:
-            prompt = messages[0]["content"]
-            context = None
-        else:
-            prompt = messages[-1]["content"]
-            context = create_context(messages[:-1])
-
+        prompt = messages[-1]["content"]
+        context = create_context(messages[:-1]) if len(messages) > 1 else None
+        if tone is None:
+            tone = tone if model.startswith("gpt-4") else model
+        tone = cls.get_model(tone)
         gpt4_turbo = True if model.startswith("gpt-4-turbo") else False
 
         return stream_generate(
@@ -86,7 +89,9 @@ def create_context(messages: Messages) -> str:
     :return: A string representing the context created from the messages.
     """
     return "".join(
-        f"[{message['role']}]" + ("(#message)" if message['role'] != "system" else "(#additional_instructions)") + f"\n{message['content']}"
+        f"[{message['role']}]" + ("(#message)"
+        if message['role'] != "system"
+        else "(#additional_instructions)") + f"\n{message['content']}"
         for message in messages
     ) + "\n\n"
 
@@ -403,7 +408,7 @@ async def stream_generate(
                                 do_read = False
                             if response_txt.startswith(returned_text):
                                 new = response_txt[len(returned_text):]
-                                if new != "\n":
+                                if new not in ("", "\n"):
                                     yield new
                                     returned_text = response_txt
                             if image_response:

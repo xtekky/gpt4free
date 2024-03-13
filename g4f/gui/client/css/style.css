@@ -106,6 +106,10 @@ body {
     border: 1px solid var(--blur-border);
 }
 
+.hidden {
+    display: none;
+}
+
 .conversations {
     max-width: 260px;
     padding: var(--section-gap);

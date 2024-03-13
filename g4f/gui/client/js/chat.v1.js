@@ -12,7 +12,9 @@ const imageInput        = document.getElementById("image");
 const cameraInput       = document.getElementById("camera");
 const fileInput         = document.getElementById("file");
 const inputCount        = document.getElementById("input-count")
+const providerSelect    = document.getElementById("provider");
 const modelSelect       = document.getElementById("model");
+const modelProvider     = document.getElementById("model2");
 const systemPrompt      = document.getElementById("systemPrompt")
 
 let prompt_lock = false;
@@ -44,17 +46,21 @@ const markdown_render = (content) => {
 }
 
 let typesetPromise = Promise.resolve();
+let timeoutHighlightId;
 const highlight = (container) => {
-    container.querySelectorAll('code:not(.hljs').forEach((el) => {
-        if (el.className != "hljs") {
-            hljs.highlightElement(el);
-        }
-    });
-    typesetPromise = typesetPromise.then(
-        () => MathJax.typesetPromise([container])
-    ).catch(
-        (err) => console.log('Typeset failed: ' + err.message)
-    );
+    if (timeoutHighlightId) clearTimeout(timeoutHighlightId);
+    timeoutHighlightId = setTimeout(() => {
+        container.querySelectorAll('code:not(.hljs').forEach((el) => {
+            if (el.className != "hljs") {
+                hljs.highlightElement(el);
+            }
+        });
+        typesetPromise = typesetPromise.then(
+            () => MathJax.typesetPromise([container])
+        ).catch(
+            (err) => console.log('Typeset failed: ' + err.message)
+        );
+    }, 100);
 }
 
 const register_remove_message = async () => {
@@ -108,7 +114,6 @@ const handle_ask = async () => {
         if (input.files.length > 0) imageInput.dataset.src = URL.createObjectURL(input.files[0]);
         else delete imageInput.dataset.src
 
-        model = modelSelect.options[modelSelect.selectedIndex].value
         message_box.innerHTML += `
             <div class="message" data-index="${message_index}">
                 <div class="user">
@@ -124,7 +129,7 @@ const handle_ask = async () => {
                         : ''
                     }
                     </div>
-                    <div class="count">${count_words_and_tokens(message, model)}</div>
+                    <div class="count">${count_words_and_tokens(message, get_selected_model())}</div>
                 </div>
             </div>
         `;
@@ -204,7 +209,6 @@ const ask_gpt = async () => {
     window.controller = new AbortController();
 
     jailbreak    = document.getElementById("jailbreak");
-    provider     = document.getElementById("provider");
     window.text  = '';
 
     stop_generating.classList.remove(`stop_generating-hidden`);
@@ -241,10 +245,10 @@ const ask_gpt = async () => {
         let body = JSON.stringify({
             id: window.token,
             conversation_id: window.conversation_id,
-            model: modelSelect.options[modelSelect.selectedIndex].value,
+            model: get_selected_model(),
             jailbreak: jailbreak.options[jailbreak.selectedIndex].value,
             web_search: document.getElementById(`switch`).checked,
-            provider: provider.options[provider.selectedIndex].value,
+            provider: providerSelect.options[providerSelect.selectedIndex].value,
             patch_provider: document.getElementById('patch')?.checked,
             messages: messages
         });
@@ -666,11 +670,13 @@ sidebar_button.addEventListener("click", (event) => {
     window.scrollTo(0, 0);
 });
 
+const options = ["switch", "model", "model2", "jailbreak", "patch", "provider", "history"];
+
 const register_settings_localstorage = async () => {
-    for (id of ["switch", "model", "jailbreak", "patch", "provider", "history"]) {
+    options.forEach((id) => {
         element = document.getElementById(id);
         if (!element) {
-            continue;
+            return;
         }
         element.addEventListener('change', async (event) => {
             switch (event.target.type) {
@@ -684,14 +690,14 @@ const register_settings_localstorage = async () => {
                     console.warn("Unresolved element type");
             }
         });
-    }
+    });
 }
 
 const load_settings_localstorage = async () => {
-    for (id of ["switch", "model", "jailbreak", "patch", "provider", "history"]) {
+    options.forEach((id) => {
         element = document.getElementById(id);
         if (!element || !(value = appStorage.getItem(element.id))) {
-            continue;
+            return;
         }
         if (value) {
             switch (element.type) {
@@ -705,7 +711,7 @@ const load_settings_localstorage = async () => {
                     console.warn("Unresolved element type");
             }
         }
-    }
+    });
 }
 
 const say_hello = async () => {
@@ -780,13 +786,16 @@ function count_words_and_tokens(text, model) {
 }
 
 let countFocus = messageInput;
+let timeoutId;
 const count_input = async () => {
-    if (countFocus.value) {
-        model = modelSelect.options[modelSelect.selectedIndex].value;
-        inputCount.innerText = count_words_and_tokens(countFocus.value, model);
-    } else {
-        inputCount.innerHTML = "&nbsp;"
-    }
+    if (timeoutId) clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => {
+        if (countFocus.value) {
+            inputCount.innerText = count_words_and_tokens(countFocus.value, get_selected_model());
+        } else {
+            inputCount.innerHTML = "&nbsp;"
+        }
+    }, 100);
 };
 messageInput.addEventListener("keyup", count_input);
 systemPrompt.addEventListener("keyup", count_input);
@@ -850,11 +859,13 @@ window.onload = async () => {
     providers = await response.json()
     select = document.getElementById('provider');
 
-    for (provider of providers) {
+    providers.forEach((provider) => {
         let option = document.createElement('option');
         option.value = option.text = provider;
         select.appendChild(option);
-    }
+    })
+
+    await load_provider_models();
 
     await load_settings_localstorage()
 })();
@@ -915,3 +926,32 @@ fileInput.addEventListener('change', async (event) => {
 systemPrompt?.addEventListener("blur", async () => {
     await save_system_message();
 });
+
+function get_selected_model() {
+    if (modelProvider.selectedIndex >= 0) {
+        return modelProvider.options[modelProvider.selectedIndex].value;
+    } else if (modelSelect.selectedIndex >= 0) {
+        return modelSelect.options[modelSelect.selectedIndex].value;
+    }
+}
+
+async function load_provider_models() {
+    provider = providerSelect.options[providerSelect.selectedIndex].value;
+    response = await fetch('/backend-api/v2/models/' + provider);
+    models = await response.json();
+    if (models.length > 0) {
+        modelSelect.classList.add("hidden");
+        modelProvider.classList.remove("hidden");
+        modelProvider.innerHTML = '';
+        models.forEach((model) => {
+            let option = document.createElement('option');
+            option.value = option.text = model.model;
+            option.selected = model.default;
+            modelProvider.appendChild(option);
+        });
+    } else {
+        modelProvider.classList.add("hidden");
+        modelSelect.classList.remove("hidden");
+    }
+};
+providerSelect.addEventListener("change", load_provider_models)
