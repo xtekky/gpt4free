@@ -27,6 +27,13 @@ messageInput.addEventListener("focus", () => {
     document.documentElement.scrollTop = document.documentElement.scrollHeight;
 });
 
+appStorage = window.localStorage || {
+    setItem: (key, value) => self[key] = value,
+    getItem: (key) => self[key],
+    removeItem: (key) => delete self[key],
+    length: 0
+}
+
 const markdown_render = (content) => {
     return markdown.render(content
         .replaceAll(/<!--.+-->/gm, "")
@@ -67,10 +74,10 @@ const register_remove_message = async () => {
 }
 
 const delete_conversations = async () => {
-    for (let i = 0; i < localStorage.length; i++){
-        let key = localStorage.key(i);
+    for (let i = 0; i < appStorage.length; i++){
+        let key = appStorage.key(i);
         if (key.startsWith("conversation:")) {
-            localStorage.removeItem(key);
+            appStorage.removeItem(key);
         }
     }
     hide_sidebar();
@@ -238,7 +245,7 @@ const ask_gpt = async () => {
             jailbreak: jailbreak.options[jailbreak.selectedIndex].value,
             web_search: document.getElementById(`switch`).checked,
             provider: provider.options[provider.selectedIndex].value,
-            patch_provider: document.getElementById('patch').checked,
+            patch_provider: document.getElementById('patch')?.checked,
             messages: messages
         });
         const headers = {
@@ -261,6 +268,7 @@ const ask_gpt = async () => {
             body: body
         });
         const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
+        let buffer = ""
         while (true) {
             const { value, done } = await reader.read();
             if (done) break;
@@ -268,7 +276,14 @@ const ask_gpt = async () => {
                 if (!line) {
                     continue;
                 }
-                const message = JSON.parse(line);
+                let message;
+                try {
+                    message = JSON.parse(buffer + line);
+                    buffer = "";
+                } catch {
+                    buffer += line
+                    continue;
+                }
                 if (message.type == "content") {
                     text += message.content;
                 } else if (message.type == "provider") {
@@ -389,7 +404,7 @@ const hide_option = async (conversation_id) => {
 };
 
 const delete_conversation = async (conversation_id) => {
-    localStorage.removeItem(`conversation:${conversation_id}`);
+    appStorage.removeItem(`conversation:${conversation_id}`);
 
     const conversation = document.getElementById(`convo-${conversation_id}`);
     conversation.remove();
@@ -491,13 +506,13 @@ const load_conversation = async (conversation_id, scroll = true) => {
 
 async function get_conversation(conversation_id) {
     let conversation = await JSON.parse(
-        localStorage.getItem(`conversation:${conversation_id}`)
+        appStorage.getItem(`conversation:${conversation_id}`)
     );
     return conversation;
 }
 
 async function save_conversation(conversation_id, conversation) {
-    localStorage.setItem(
+    appStorage.setItem(
         `conversation:${conversation_id}`,
         JSON.stringify(conversation)
     );
@@ -515,7 +530,7 @@ async function add_conversation(conversation_id, content) {
         title = content + '&nbsp;'.repeat(19 - content.length)
     }
 
-    if (localStorage.getItem(`conversation:${conversation_id}`) == null) {
+    if (appStorage.getItem(`conversation:${conversation_id}`) == null) {
         await save_conversation(conversation_id, {
             id: conversation_id,
             title: title,
@@ -577,9 +592,9 @@ const add_message = async (conversation_id, role, content, provider) => {
 
 const load_conversations = async () => {
     let conversations = [];
-    for (let i = 0; i < localStorage.length; i++) {
-        if (localStorage.key(i).startsWith("conversation:")) {
-            let conversation = localStorage.getItem(localStorage.key(i));
+    for (let i = 0; i < appStorage.length; i++) {
+        if (appStorage.key(i).startsWith("conversation:")) {
+            let conversation = appStorage.getItem(appStorage.key(i));
             conversations.push(JSON.parse(conversation));
         }
     }
@@ -654,13 +669,16 @@ sidebar_button.addEventListener("click", (event) => {
 const register_settings_localstorage = async () => {
     for (id of ["switch", "model", "jailbreak", "patch", "provider", "history"]) {
         element = document.getElementById(id);
+        if (!element) {
+            continue;
+        }
         element.addEventListener('change', async (event) => {
             switch (event.target.type) {
                 case "checkbox":
-                    localStorage.setItem(id, event.target.checked);
+                    appStorage.setItem(id, event.target.checked);
                     break;
                 case "select-one":
-                    localStorage.setItem(id, event.target.selectedIndex);
+                    appStorage.setItem(id, event.target.selectedIndex);
                     break;
                 default:
                     console.warn("Unresolved element type");
@@ -672,7 +690,9 @@ const register_settings_localstorage = async () => {
 const load_settings_localstorage = async () => {
     for (id of ["switch", "model", "jailbreak", "patch", "provider", "history"]) {
         element = document.getElementById(id);
-        value = localStorage.getItem(element.id);
+        if (!element || !(value = appStorage.getItem(element.id))) {
+            continue;
+        }
         if (value) {
             switch (element.type) {
                 case "checkbox":
@@ -712,12 +732,12 @@ const say_hello = async () => {
 
 // Theme storage for recurring viewers
 const storeTheme = function (theme) {
-    localStorage.setItem("theme", theme);
+    appStorage.setItem("theme", theme);
 };
 
 // set theme when visitor returns
 const setTheme = function () {
-    const activeTheme = localStorage.getItem("theme");
+    const activeTheme = appStorage.getItem("theme");
     colorThemes.forEach((themeOption) => {
         if (themeOption.id === activeTheme) {
             themeOption.checked = true;
@@ -751,8 +771,12 @@ function count_words(text) {
     return text.trim().match(/[\w\u4E00-\u9FA5]+/gu)?.length || 0;
 }
 
+function count_chars(text) {
+    return text.match(/[^\s\p{P}]/gu)?.length || 0;
+}
+
 function count_words_and_tokens(text, model) {
-    return `(${count_words(text)} words, ${count_tokens(model, text)} tokens)`;
+    return `(${count_words(text)} words, ${count_chars(text)} chars, ${count_tokens(model, text)} tokens)`;
 }
 
 let countFocus = messageInput;

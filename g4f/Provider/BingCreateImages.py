@@ -7,14 +7,15 @@ from typing import Iterator, Union
 from ..cookies import get_cookies
 from ..image import ImageResponse
 from ..errors import MissingRequirementsError, MissingAuthError
+from ..typing import Cookies
 from .bing.create_images import create_images, create_session, get_cookies_from_browser
 
 class BingCreateImages:
     """A class for creating images using Bing."""
 
-    def __init__(self, cookies: dict[str, str] = {}, proxy: str = None) -> None:
-        self.cookies = cookies
-        self.proxy = proxy
+    def __init__(self, cookies: Cookies = None, proxy: str = None) -> None:
+        self.cookies: Cookies = cookies
+        self.proxy: str = proxy
 
     def create(self, prompt: str) -> Iterator[Union[ImageResponse, str]]:
         """

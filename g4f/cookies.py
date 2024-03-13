@@ -40,7 +40,7 @@ def get_cookies(domain_name: str = '', raise_requirements_error: bool = True, si
     """
     if domain_name in _cookies:
         return _cookies[domain_name]
-    
+
     cookies = load_cookies_from_browsers(domain_name, raise_requirements_error, single_browser)
     _cookies[domain_name] = cookies
     return cookies

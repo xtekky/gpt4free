@@ -4,16 +4,20 @@ import random
 import json
 import uuid
 import time
+import asyncio
 from urllib import parse
-from aiohttp import ClientSession, ClientTimeout, BaseConnector
+from datetime import datetime
+from aiohttp import ClientSession, ClientTimeout, BaseConnector, WSMsgType
 
 from ..typing import AsyncResult, Messages, ImageType, Cookies
-from ..image import ImageResponse, ImageRequest
+from ..image import ImageRequest
+from ..errors import ResponseStatusError
 from .base_provider import AsyncGeneratorProvider
-from .helper import get_connector
+from .helper import get_connector, get_random_hex
 from .bing.upload_image import upload_image
-from .bing.create_images import create_images
 from .bing.conversation import Conversation, create_conversation, delete_conversation
+from .BingCreateImages import BingCreateImages
+from .. import debug
 
 class Tones:
     """
@@ -65,11 +69,14 @@ class Bing(AsyncGeneratorProvider):
             prompt = messages[-1]["content"]
             context = create_context(messages[:-1])
 
-        cookies = {**get_default_cookies(), **cookies} if cookies else get_default_cookies()
-
         gpt4_turbo = True if model.startswith("gpt-4-turbo") else False
 
-        return stream_generate(prompt, tone, image, context, cookies, get_connector(connector, proxy, True), web_search, gpt4_turbo, timeout)
+        return stream_generate(
+            prompt, tone, image, context, cookies,
+            get_connector(connector, proxy, True),
+            proxy, web_search, gpt4_turbo, timeout,
+            **kwargs
+        )
 
 def create_context(messages: Messages) -> str:
     """
@@ -78,13 +85,31 @@ def create_context(messages: Messages) -> str:
     :param messages: A list of message dictionaries.
     :return: A string representing the context created from the messages.
     """
-    return "\n\n".join(
+    return "".join(
         f"[{message['role']}]" + ("(#message)" if message['role'] != "system" else "(#additional_instructions)") + f"\n{message['content']}"
         for message in messages
-    )
+    ) + "\n\n"
 
 def get_ip_address() -> str:
     return f"13.{random.randint(104, 107)}.{random.randint(0, 255)}.{random.randint(0, 255)}"
+
+def get_default_cookies():
+    return {
+        'SRCHD'         : 'AF=NOFORM',
+        'PPLState'      : '1',
+        'KievRPSSecAuth': '',
+        'SUID'          : '',
+        'SRCHUSR'       : '',
+        'SRCHHPGUSR'    : f'HV={int(time.time())}',
+    }
+
+def create_headers(cookies: Cookies = None) -> dict:
+    if cookies is None:
+        cookies = get_default_cookies()
+    headers = Defaults.headers.copy()
+    headers["cookie"] = "; ".join(f"{k}={v}" for k, v in cookies.items())
+    headers["x-forwarded-for"] = get_ip_address()
+    return headers
 
 class Defaults:
     """
@@ -169,37 +194,26 @@ class Defaults:
     }
 
     # Default headers for requests
+    home = 'https://www.bing.com/chat?q=Bing+AI&FORM=hpcodx'
     headers = {
-        'accept': '*/*',
-        'accept-language': 'en-US,en;q=0.9',
-        'cache-control': 'max-age=0',
-        'sec-ch-ua': '"Chromium";v="110", "Not A(Brand";v="24", "Microsoft Edge";v="110"',
-        'sec-ch-ua-arch': '"x86"',
-        'sec-ch-ua-bitness': '"64"',
-        'sec-ch-ua-full-version': '"110.0.1587.69"',
-        'sec-ch-ua-full-version-list': '"Chromium";v="110.0.5481.192", "Not A(Brand";v="24.0.0.0", "Microsoft Edge";v="110.0.1587.69"',
+        'sec-ch-ua': '"Chromium";v="122", "Not(A:Brand";v="24", "Google Chrome";v="122"',
         'sec-ch-ua-mobile': '?0',
+        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'sec-ch-ua-arch': '"x86"',
+        'sec-ch-ua-full-version': '"122.0.6261.69"',
+        'accept': 'application/json',
+        'sec-ch-ua-platform-version': '"15.0.0"',
+        "x-ms-client-request-id": str(uuid.uuid4()),
+        'sec-ch-ua-full-version-list': '"Chromium";v="122.0.6261.69", "Not(A:Brand";v="24.0.0.0", "Google Chrome";v="122.0.6261.69"',
+        'x-ms-useragent': 'azsdk-js-api-client-factory/1.0.0-beta.1 core-rest-pipeline/1.12.3 OS/Windows',
         'sec-ch-ua-model': '""',
         'sec-ch-ua-platform': '"Windows"',
-        'sec-ch-ua-platform-version': '"15.0.0"',
-        'sec-fetch-dest': 'document',
-        'sec-fetch-mode': 'navigate',
-        'sec-fetch-site': 'none',
-        'sec-fetch-user': '?1',
-        'upgrade-insecure-requests': '1',
-        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36 Edg/110.0.1587.69',
-        'x-edge-shopping-flag': '1',
-        'x-forwarded-for': get_ip_address(),
-    }
-    
-def get_default_cookies():
-    return {
-        'SRCHD'         : 'AF=NOFORM',
-        'PPLState'      : '1',
-        'KievRPSSecAuth': '',
-        'SUID'          : '',
-        'SRCHUSR'       : '',
-        'SRCHHPGUSR'    : f'HV={int(time.time())}',
+        'sec-fetch-site': 'same-origin',
+        'sec-fetch-mode': 'cors',
+        'sec-fetch-dest': 'empty',
+        'referer': home,
+        'accept-encoding': 'gzip, deflate, br',
+        'accept-language': 'en-US,en;q=0.9',
     }
 
 def format_message(msg: dict) -> str:
@@ -234,8 +248,6 @@ def create_message(
     """
 
     options_sets = []
-    if not web_search:
-        options_sets.append("nosearchall")
     if gpt4_turbo:
         options_sets.append("dlgpt4t")
 
@@ -249,7 +261,7 @@ def create_message(
             "verbosity": "verbose",
             "scenario": "SERP",
             "plugins": [{"id": "c310c353-b9f0-4d76-ab0d-1dd5e979cf68", "category": 1}] if web_search else [],
-            "traceId": str(uuid.uuid4()),
+            "traceId": get_random_hex(40),
             "conversationHistoryOptionsSets": ["autosave","savemem","uprofupd","uprofgen"],
             "gptId": "copilot",
             "isStartOfSession": True,
@@ -257,7 +269,7 @@ def create_message(
             "message":{
                 **Defaults.location,
                 "userIpAddress": get_ip_address(),
-                "timestamp": "2024-03-11T22:40:36+01:00",
+                "timestamp": datetime.now().isoformat(),
                 "author": "user",
                 "inputMethod": "Keyboard",
                 "text": prompt,
@@ -266,6 +278,7 @@ def create_message(
                 "messageId": request_id
             },
             "tone": tone,
+            "extraExtensionParameters": {"gpt-creator-persona": {"personaId": "copilot"}},
             "spokenTextMode": "None",
             "conversationId": conversation.conversationId,
             "participant": {"id": conversation.clientId}
@@ -299,9 +312,15 @@ async def stream_generate(
     context: str = None,
     cookies: dict = None,
     connector: BaseConnector = None,
+    proxy: str = None,
     web_search: bool = False,
     gpt4_turbo: bool = False,
-    timeout: int = 900
+    timeout: int = 900,
+    conversation: Conversation = None,
+    raise_apology: bool = False,
+    max_retries: int = 5,
+    sleep_retry: int = 15,
+    **kwargs
 ):
     """
     Asynchronously streams generated responses from the Bing API.
@@ -316,20 +335,30 @@ async def stream_generate(
     :param timeout: Timeout for the request.
     :return: An asynchronous generator yielding responses.
     """
-    headers = Defaults.headers
-    if cookies:
-        headers["cookie"] = "; ".join(f"{k}={v}" for k, v in cookies.items())
+    headers = create_headers(cookies)
     async with ClientSession(
-        headers=headers, cookies=cookies,
         timeout=ClientTimeout(total=timeout), connector=connector
     ) as session:
-        conversation = await create_conversation(session)
-        image_request = await upload_image(session, image, tone) if image else None
-        try:
+        while conversation is None:
+            do_read = True
+            try:
+                conversation = await create_conversation(session, headers)
+            except ResponseStatusError as e:
+                max_retries -= 1
+                if max_retries < 1:
+                    raise e
+                if debug.logging:
+                    print(f"Bing: Retry: {e}")
+                headers = create_headers()
+                await asyncio.sleep(sleep_retry)
+                continue
+
+            image_request = await upload_image(session, image, tone, headers) if image else None
             async with session.ws_connect(
                 'wss://sydney.bing.com/sydney/ChatHub',
                 autoping=False,
-                params={'sec_access_token': conversation.conversationSignature}
+                params={'sec_access_token': conversation.conversationSignature},
+                headers=headers
             ) as wss:
                 await wss.send_str(format_message({'protocol': 'json', 'version': 1}))
                 await wss.send_str(format_message({"type": 6}))
@@ -337,11 +366,12 @@ async def stream_generate(
                 await wss.send_str(create_message(conversation, prompt, tone, context, image_request, web_search, gpt4_turbo))
                 response_txt = ''
                 returned_text = ''
-                final = False
                 message_id = None
-                while not final:
+                while do_read:
                     msg = await wss.receive(timeout=timeout)
-                    if not msg.data:
+                    if msg.type == WSMsgType.CLOSED:
+                        break
+                    if msg.type != WSMsgType.TEXT or not msg.data:
                         continue
                     objects = msg.data.split(Defaults.delimiter)
                     for obj in objects:
@@ -350,26 +380,27 @@ async def stream_generate(
                         response = json.loads(obj)
                         if response and response.get('type') == 1 and response['arguments'][0].get('messages'):
                             message = response['arguments'][0]['messages'][0]
-                            # Reset memory, if we have a new message
                             if message_id is not None and message_id != message["messageId"]:
                                 returned_text = ''
                             message_id = message["messageId"]
                             image_response = None
-                            if (message['contentOrigin'] != 'Apology'):
-                                if 'adaptiveCards' in message:
-                                    card = message['adaptiveCards'][0]['body'][0]
-                                    if "text" in card:
-                                        response_txt = card.get('text')
-                                    if message.get('messageType') and "inlines" in card:
-                                        inline_txt = card['inlines'][0].get('text')
-                                        response_txt += inline_txt + '\n'
-                                elif message.get('contentType') == "IMAGE":
-                                    prompt = message.get('text')
-                                    try:
-                                        image_response = ImageResponse(await create_images(session, prompt), prompt, {"preview": "{image}?w=200&h=200"})
-                                    except:
-                                        response_txt += f"\nhttps://www.bing.com/images/create?q={parse.quote(prompt)}"
-                                    final = True
+                            if (raise_apology and message['contentOrigin'] == 'Apology'):
+                                raise RuntimeError("Apology Response Error")
+                            if 'adaptiveCards' in message:
+                                card = message['adaptiveCards'][0]['body'][0]
+                                if "text" in card:
+                                    response_txt = card.get('text')
+                                if message.get('messageType') and "inlines" in card:
+                                    inline_txt = card['inlines'][0].get('text')
+                                    response_txt += inline_txt + '\n'
+                            elif message.get('contentType') == "IMAGE":
+                                prompt = message.get('text')
+                                try:
+                                    image_client = BingCreateImages(cookies, proxy)
+                                    image_response = await image_client.create_async(prompt)
+                                except Exception as e:
+                                    response_txt += f"\nhttps://www.bing.com/images/create?q={parse.quote(prompt)}"
+                                do_read = False
                             if response_txt.startswith(returned_text):
                                 new = response_txt[len(returned_text):]
                                 if new != "\n":
@@ -380,10 +411,18 @@ async def stream_generate(
                         elif response.get('type') == 2:
                             result = response['item']['result']
                             if result.get('error'):
-                                if result["value"] == "CaptchaChallenge":
-                                    raise Exception(f"{result['value']}: Use other cookies or/and ip address")
-                                else:
-                                    raise Exception(f"{result['value']}: {result['message']}")
+                                max_retries -= 1
+                                if max_retries < 1:
+                                    if result["value"] == "CaptchaChallenge":
+                                        raise RuntimeError(f"{result['value']}: Use other cookies or/and ip address")
+                                    else:
+                                        raise RuntimeError(f"{result['value']}: {result['message']}")
+                                if debug.logging:
+                                    print(f"Bing: Retry: {result['value']}: {result['message']}")
+                                headers = create_headers()
+                                do_read = False
+                                conversation = None
+                                await asyncio.sleep(sleep_retry)
+                                break
                             return
-        finally:
-            await delete_conversation(session, conversation)
+        await delete_conversation(session, conversation, headers)
