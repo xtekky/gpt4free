@@ -10,13 +10,13 @@ from datetime import datetime
 from aiohttp import ClientSession, ClientTimeout, BaseConnector, WSMsgType
 
 from ..typing import AsyncResult, Messages, ImageType, Cookies
-from ..image import ImageResponse, ImageRequest
+from ..image import ImageRequest
 from ..errors import ResponseStatusError
 from .base_provider import AsyncGeneratorProvider
 from .helper import get_connector, get_random_hex
 from .bing.upload_image import upload_image
-from .bing.create_images import create_images
 from .bing.conversation import Conversation, create_conversation, delete_conversation
+from .BingCreateImages import BingCreateImages
 from .. import debug
 
 class Tones:
@@ -71,7 +71,7 @@ class Bing(AsyncGeneratorProvider):
 
         gpt4_turbo = True if model.startswith("gpt-4-turbo") else False
 
-        return stream_generate(prompt, tone, image, context, cookies, get_connector(connector, proxy, True), web_search, gpt4_turbo, timeout)
+        return stream_generate(prompt, tone, image, context, cookies, get_connector(connector, proxy, True), proxy, web_search, gpt4_turbo, timeout)
 
 def create_context(messages: Messages) -> str:
     """
@@ -307,6 +307,7 @@ async def stream_generate(
     context: str = None,
     cookies: dict = None,
     connector: BaseConnector = None,
+    proxy: str = None,
     web_search: bool = False,
     gpt4_turbo: bool = False,
     timeout: int = 900,
@@ -387,8 +388,9 @@ async def stream_generate(
                                 elif message.get('contentType') == "IMAGE":
                                     prompt = message.get('text')
                                     try:
-                                        image_response = ImageResponse(await create_images(session, prompt), prompt, {"preview": "{image}?w=200&h=200"})
-                                    except:
+                                        image_client = BingCreateImages(cookies, proxy)
+                                        image_response = await image_client.create_async(prompt)
+                                    except Exception as e:
                                         response_txt += f"\nhttps://www.bing.com/images/create?q={parse.quote(prompt)}"
                                     do_read = False
                             if response_txt.startswith(returned_text):
@@ -415,4 +417,4 @@ async def stream_generate(
                                 await asyncio.sleep(sleep_retry)
                                 break
                             return
-        await delete_conversation(session, headers, conversation)
+        await delete_conversation(session, conversation, headers)
