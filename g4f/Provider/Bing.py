@@ -380,7 +380,6 @@ async def stream_generate(
                         response = json.loads(obj)
                         if response and response.get('type') == 1 and response['arguments'][0].get('messages'):
                             message = response['arguments'][0]['messages'][0]
-                            print(message)
                             if message_id is not None and message_id != message["messageId"]:
                                 returned_text = ''
                             message_id = message["messageId"]
