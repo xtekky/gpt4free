@@ -2,7 +2,7 @@ from __future__  import annotations
 
 from dataclasses import dataclass
 
-from .Provider   import RetryProvider, ProviderType
+from .Provider import RetryProvider, ProviderType
 from .Provider   import (
     Chatgpt4Online,
     PerplexityLabs,
@@ -15,6 +15,7 @@ from .Provider   import (
     ChatgptAi,
     DeepInfra,
     ChatBase,
+    GigaChat,
     Liaobots,
     FreeGpt,
     Llama2,
@@ -93,6 +94,24 @@ gpt_4_turbo = Model(
     name          = 'gpt-4-turbo',
     base_provider = 'openai',
     best_provider = Bing
+)
+
+gigachat = Model(
+    name          = 'GigaChat:latest',
+    base_provider = 'gigachat',
+    best_provider = GigaChat
+)
+
+gigachat_plus = Model(
+    name          = 'GigaChat-Plus',
+    base_provider = 'gigachat',
+    best_provider = GigaChat
+)
+
+gigachat_pro = Model(
+    name          = 'GigaChat-Pro',
+    base_provider = 'gigachat',
+    best_provider = GigaChat
 )
 
 llama2_7b = Model(
@@ -271,7 +290,12 @@ class ModelUtils:
         'llama2-70b': llama2_70b,
         'codellama-34b-instruct': codellama_34b_instruct,
         'codellama-70b-instruct': codellama_70b_instruct,
-        
+
+        # GigaChat
+        'gigachat'     : gigachat,
+        'gigachat_plus': gigachat_plus,
+        'gigachat_pro' : gigachat_pro,
+
         'mixtral-8x7b': mixtral_8x7b,
         'mistral-7b': mistral_7b,
         'dolphin-mixtral-8x7b': dolphin_mixtral_8x7b,

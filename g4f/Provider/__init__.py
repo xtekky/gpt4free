@@ -24,6 +24,7 @@ from .DeepInfra        import DeepInfra
 from .FlowGpt          import FlowGpt
 from .FreeChatgpt      import FreeChatgpt
 from .FreeGpt          import FreeGpt
+from .GigaChat         import GigaChat
 from .GeminiPro        import GeminiPro
 from .GeminiProChat    import GeminiProChat
 from .GptTalkRu        import GptTalkRu
