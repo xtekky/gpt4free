@@ -16,8 +16,11 @@ const providerSelect    = document.getElementById("provider");
 const modelSelect       = document.getElementById("model");
 const modelProvider     = document.getElementById("model2");
 const systemPrompt      = document.getElementById("systemPrompt")
+const jailbreak         = document.getElementById("jailbreak");
 
 let prompt_lock = false;
+
+const options = ["switch", "model", "model2", "jailbreak", "patch", "provider", "history"];
 
 hljs.addPlugin(new CopyButtonPlugin());
 
@@ -207,9 +210,7 @@ const ask_gpt = async () => {
 
     window.scrollTo(0, 0);
     window.controller = new AbortController();
-
-    jailbreak    = document.getElementById("jailbreak");
-    window.text  = '';
+    window.text  = "";
 
     stop_generating.classList.remove(`stop_generating-hidden`);
 
@@ -246,7 +247,7 @@ const ask_gpt = async () => {
             id: window.token,
             conversation_id: window.conversation_id,
             model: get_selected_model(),
-            jailbreak: jailbreak.options[jailbreak.selectedIndex].value,
+            jailbreak: jailbreak?.options[jailbreak.selectedIndex].value,
             web_search: document.getElementById(`switch`).checked,
             provider: providerSelect.options[providerSelect.selectedIndex].value,
             patch_provider: document.getElementById('patch')?.checked,
@@ -669,8 +670,6 @@ sidebar_button.addEventListener("click", (event) => {
 
     window.scrollTo(0, 0);
 });
-
-const options = ["switch", "model", "model2", "jailbreak", "patch", "provider", "history"];
 
 const register_settings_localstorage = async () => {
     options.forEach((id) => {

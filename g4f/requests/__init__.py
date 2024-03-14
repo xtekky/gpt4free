@@ -81,22 +81,25 @@ def get_session_from_browser(url: str, webdriver: WebDriver = None, proxy: str =
         impersonate="chrome"
     )
 
+def is_cloudflare(text: str):
+    return '<div id="cf-please-wait">' in text or "<title>Just a moment...</title>" in text
+
 async def raise_for_status_async(response: Union[StreamResponse, ClientResponse], message: str = None):
     if response.status in (429, 402):
         raise RateLimitError(f"Response {response.status}: Rate limit reached")
     message = await response.text() if not response.ok and message is None else message
-    if response.status == 403 and "<title>Just a moment...</title>" in message:
+    if response.status == 403 and is_cloudflare(message):
         raise ResponseStatusError(f"Response {response.status}: Cloudflare detected")
     elif not response.ok:
         raise ResponseStatusError(f"Response {response.status}: {message}")
 
 def raise_for_status(response: Union[StreamResponse, ClientResponse, Response, RequestsResponse], message: str = None):
-    if isinstance(response, StreamSession) or isinstance(response, ClientResponse):
+    if hasattr(response, "status"):
         return raise_for_status_async(response, message)
 
     if response.status_code in (429, 402):
         raise RateLimitError(f"Response {response.status_code}: Rate limit reached")
-    elif response.status_code == 403 and "<title>Just a moment...</title>" in response.text:
+    elif response.status_code == 403 and is_cloudflare(response.text):
         raise ResponseStatusError(f"Response {response.status_code}: Cloudflare detected")
     elif not response.ok:
         raise ResponseStatusError(f"Response {response.status_code}: {response.text if message is None else message}")

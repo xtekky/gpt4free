@@ -303,7 +303,7 @@ def create_message(
         struct['arguments'][0]['previousMessages'] = [{
             "author": "user",
             "description": context,
-            "contextType": "WebPage",
+            "contextType": "ClientApp",
             "messageType": "Context",
             "messageId": "discover-web--page-ping-mriduna-----"
         }]
@@ -404,6 +404,8 @@ async def stream_generate(
                                     image_client = BingCreateImages(cookies, proxy)
                                     image_response = await image_client.create_async(prompt)
                                 except Exception as e:
+                                    if debug.logging:
+                                        print(f"Bing: Failed to create images: {e}")
                                     response_txt += f"\nhttps://www.bing.com/images/create?q={parse.quote(prompt)}"
                                 do_read = False
                             if response_txt.startswith(returned_text):
