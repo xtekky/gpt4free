@@ -21,6 +21,7 @@ docker pull hlohaus789/g4f
 
 ## 🆕 What's New
 
+- Check out a more in depth local inference @ https://github.com/gpt4free/gpt4local
 - Join our Telegram Channel: [t.me/g4f_channel](https://telegram.me/g4f_channel)
 - Join our Discord Group: [discord.gg/XfybzPXPH5](https://discord.gg/XfybzPXPH5)
 - `g4f` now supports 100% local inference: [local-docs](https://g4f.mintlify.app/docs/core/usage/local)
