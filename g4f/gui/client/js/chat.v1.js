@@ -913,8 +913,21 @@ fileInput.addEventListener('change', async (event) => {
         }
         fileInput.dataset.type = type
         const reader = new FileReader();
-        reader.addEventListener('load', (event) => {
+        reader.addEventListener('load', async (event) => {
             fileInput.dataset.text = event.target.result;
+            if (type == "json") {
+                const data = JSON.parse(event.target.result);
+                if ("g4f" in data.options) {
+                    Object.keys(data).forEach(key => {
+                        if (key != "options" && !localStorage.getItem(key)) {
+                            appStorage.setItem(key, JSON.stringify(data[key]));
+                        } 
+                    });
+                    fileInput.value = "";
+                    delete fileInput.dataset.text;
+                    await load_conversations();
+                }
+            }
         });
         reader.readAsText(fileInput.files[0]);
     } else {
@@ -954,3 +967,30 @@ async function load_provider_models() {
     }
 };
 providerSelect.addEventListener("change", load_provider_models)
+
+function save_storage() {
+    let filename = new Date().toLocaleString()
+    filename += ".json"
+    let data = {"options": {"g4f": ""}};
+    for (let i = 0; i < appStorage.length; i++){
+        let key = appStorage.key(i);
+        let item = appStorage.getItem(key);
+        if (key.startsWith("conversation:")) {
+            data[key] = JSON.parse(item);
+        } else {
+            data["options"][key] = item;
+        }
+    }
+    data = JSON.stringify(data, null, 4);
+    const blob = new Blob([data], {type: 'text/csv'});
+    if(window.navigator.msSaveOrOpenBlob) {
+        window.navigator.msSaveBlob(blob, filename);
+    } else{
+        const elem = window.document.createElement('a');
+        elem.href = window.URL.createObjectURL(blob);
+        elem.download = filename;        
+        document.body.appendChild(elem);
+        elem.click();        
+        document.body.removeChild(elem);
+    }
+}

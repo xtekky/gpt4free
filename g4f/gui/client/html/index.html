@@ -94,11 +94,10 @@
                     <i class="fa-regular fa-trash"></i>
                     <span>Clear Conversations</span>
                 </button>
-                <div class="info">
-                    <i class="fa-brands fa-telegram"></i>
-                    <span class="convo-title">tele ~ <a href="https://t.me/g4f_official">@g4f_official</a>
-                    </span>
-                </div>
+                <button onclick="save_storage()">
+                    <i class="fa-solid fa-download"></i>
+                    <a href="" onclick="return false;">Export Conversations</a>
+                </button>
                 <div class="info">
                     <i class="fa-brands fa-github"></i>
                     <span class="convo-title">github ~ <a href="https://github.com/xtekky/gpt4free">@gpt4free</a>
@@ -161,7 +160,7 @@
                         <option value="gemini-pro">gemini-pro</option>
                         <option value="">----</option>
                     </select>
-                    <select name="model2" id="model2" class="hidden">
+                    <select name="model2" id="model2" class="hidden"></select>
                 </div>
                 <div class="field">
                     <select name="jailbreak" id="jailbreak" style="display: none;">
