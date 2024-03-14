@@ -938,10 +938,10 @@ async function load_provider_models() {
     provider = providerSelect.options[providerSelect.selectedIndex].value;
     response = await fetch('/backend-api/v2/models/' + provider);
     models = await response.json();
+    modelProvider.innerHTML = '';
     if (models.length > 0) {
         modelSelect.classList.add("hidden");
         modelProvider.classList.remove("hidden");
-        modelProvider.innerHTML = '';
         models.forEach((model) => {
             let option = document.createElement('option');
             option.value = option.text = model.model;
