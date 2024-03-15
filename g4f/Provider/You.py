@@ -5,7 +5,7 @@ import json
 import base64
 import uuid
 try:
-    from curl_cffi import CurlMime
+    from ..requests.curl_cffi import FormData
     has_curl_cffi = True
 except ImportError:
     has_curl_cffi = False
@@ -123,13 +123,11 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
         ) as response:
             await raise_for_status(response)
             upload_nonce = await response.text()
-        #data = FormData()
-        #data.add_field('file', file, filename=filename)
-        multipart = CurlMime()
-        multipart.addpart(name="file", filename=filename, data=file)
+        data = FormData()
+        data.add_field('file', file, filename=filename)
         async with client.post(
             f"{cls.url}/api/upload",
-            multipart=multipart,
+            data=data,
             headers={
                 "X-Upload-Nonce": upload_nonce,
             },

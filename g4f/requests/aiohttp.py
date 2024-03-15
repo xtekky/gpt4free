@@ -44,7 +44,3 @@ def get_connector(connector: BaseConnector = None, proxy: str = None, rdns: bool
         except ImportError:
             raise MissingRequirementsError('Install "aiohttp_socks" package for proxy support')
     return connector
-
-class CurlMime(FormData):
-    def addpart(self, name: str, content_type: str = None, filename: str = None, data: bytes = None):
-        self.add_field(name, data, content_type=content_type, filename=filename)

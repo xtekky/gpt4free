@@ -1,16 +1,12 @@
 from __future__ import annotations
 
-from typing import Union
-from aiohttp import ClientResponse
-from requests import Response as RequestsResponse
-
 try:
     from curl_cffi.requests import Session, Response
-    from .curl_cffi import StreamResponse, StreamSession
+    from .curl_cffi import StreamResponse, StreamSession, FormData
     has_curl_cffi = True
 except ImportError:
     from typing import Type as Session, Type as Response
-    from .aiohttp import StreamResponse, StreamSession
+    from .aiohttp import StreamResponse, StreamSession, FormData
     has_curl_cffi = False
 try:
     import webview
@@ -19,12 +15,13 @@ try:
 except ImportError:
     has_webview = False
 
+from .raise_for_status import raise_for_status
 from ..webdriver import WebDriver, WebDriverSession
 from ..webdriver import bypass_cloudflare, get_driver_cookies
-from ..errors import MissingRequirementsError, RateLimitError, ResponseStatusError
+from ..errors import MissingRequirementsError
 from .defaults import DEFAULT_HEADERS, WEBVIEW_HAEDERS
 
-async def get_args_from_webview(url: str):
+async def get_args_from_webview(url: str) -> dict:
     if not has_webview:
         raise MissingRequirementsError('Install "webview" package')
     window = webview.create_window("", url, hidden=True)
@@ -109,26 +106,3 @@ def get_session_from_browser(url: str, webdriver: WebDriver = None, proxy: str =
         timeout=timeout,
         impersonate="chrome"
     )
-
-def is_cloudflare(text: str):
-    return '<div id="cf-please-wait">' in text or "<title>Just a moment...</title>" in text
-
-async def raise_for_status_async(response: Union[StreamResponse, ClientResponse], message: str = None):
-    if response.status in (429, 402):
-        raise RateLimitError(f"Response {response.status}: Rate limit reached")
-    message = await response.text() if not response.ok and message is None else message
-    if response.status == 403 and is_cloudflare(message):
-        raise ResponseStatusError(f"Response {response.status}: Cloudflare detected")
-    elif not response.ok:
-        raise ResponseStatusError(f"Response {response.status}: {message}")
-
-def raise_for_status(response: Union[StreamResponse, ClientResponse, Response, RequestsResponse], message: str = None):
-    if hasattr(response, "status"):
-        return raise_for_status_async(response, message)
-
-    if response.status_code in (429, 402):
-        raise RateLimitError(f"Response {response.status_code}: Rate limit reached")
-    elif response.status_code == 403 and is_cloudflare(response.text):
-        raise ResponseStatusError(f"Response {response.status_code}: Cloudflare detected")
-    elif not response.ok:
-        raise ResponseStatusError(f"Response {response.status_code}: {response.text if message is None else message}")
