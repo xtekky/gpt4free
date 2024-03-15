@@ -63,7 +63,10 @@ class Vercel(AbstractProvider):
             if not response.ok:
                 continue
             for token in response.iter_content(chunk_size=None):
-                yield token.decode()
+                try:
+                    yield token.decode()
+                except UnicodeDecodeError:
+                    pass
             break
         raise_for_status(response)
 
