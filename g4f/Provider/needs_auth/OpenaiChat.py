@@ -572,7 +572,7 @@ this.fetch = async (url, options) => {
         while headers is None:
             headers = window.evaluate_js("this._headers")
             await asyncio.sleep(1)
-        headers["User-Agent"] = window.evaluate_js("window.navigator.userAgent")
+        headers["User-Agent"] = window.evaluate_js("this.navigator.userAgent")
         cookies = [list(*cookie.items()) for cookie in window.get_cookies()]
         window.destroy()
         cls._cookies = dict([(name, cookie.value) for name, cookie in cookies])

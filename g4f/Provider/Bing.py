@@ -406,14 +406,13 @@ async def stream_generate(
                                 except Exception as e:
                                     if debug.logging:
                                         print(f"Bing: Failed to create images: {e}")
-                                    response_txt += f"\nhttps://www.bing.com/images/create?q={parse.quote(prompt)}"
-                                do_read = False
+                                    image_response = f"\nhttps://www.bing.com/images/create?q={parse.quote(prompt)}"
                             if response_txt.startswith(returned_text):
                                 new = response_txt[len(returned_text):]
                                 if new not in ("", "\n"):
                                     yield new
                                     returned_text = response_txt
-                            if image_response:
+                            if image_response is not None:
                                 yield image_response
                         elif response.get('type') == 2:
                             result = response['item']['result']

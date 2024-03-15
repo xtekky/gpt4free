@@ -17,3 +17,13 @@ DEFAULT_HEADERS = {
     "accept-encoding": "gzip, deflate, br",
     "accept-language": "en-US",
 }
+WEBVIEW_HAEDERS = {
+    "Accept": "*/*",
+    "Accept-Encoding": "gzip, deflate, br",
+    "Accept-Language": "",
+    "Referer": "",
+    "Sec-Fetch-Dest": "empty",
+    "Sec-Fetch-Mode": "cors",
+    "Sec-Fetch-Site": "same-origin",
+    "User-Agent": "",
+}

@@ -916,16 +916,16 @@ fileInput.addEventListener('change', async (event) => {
         reader.addEventListener('load', async (event) => {
             fileInput.dataset.text = event.target.result;
             if (type == "json") {
-                const data = JSON.parse(event.target.result);
+                const data = JSON.parse(fileInput.dataset.text);
                 if ("g4f" in data.options) {
                     Object.keys(data).forEach(key => {
                         if (key != "options" && !localStorage.getItem(key)) {
                             appStorage.setItem(key, JSON.stringify(data[key]));
                         } 
                     });
-                    fileInput.value = "";
                     delete fileInput.dataset.text;
                     await load_conversations();
+                    fileInput.value = "";
                 }
             }
         });

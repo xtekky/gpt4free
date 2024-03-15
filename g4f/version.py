@@ -6,6 +6,7 @@ from functools import cached_property
 from importlib.metadata import version as get_package_version, PackageNotFoundError
 from subprocess import check_output, CalledProcessError, PIPE
 from .errors import VersionNotFoundError
+from . import debug
 
 PACKAGE_NAME = "g4f"
 GITHUB_REPOSITORY = "xtekky/gpt4free"
@@ -64,6 +65,9 @@ class VersionUtils:
             VersionNotFoundError: If the version cannot be determined from the package manager, 
                                   Docker environment, or git repository.
         """
+        if debug.version:
+            return debug.version
+
         # Read from package manager
         try:
             return get_package_version(PACKAGE_NAME)

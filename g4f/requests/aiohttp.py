@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from aiohttp import ClientSession, ClientResponse, ClientTimeout, BaseConnector
+from aiohttp import ClientSession, ClientResponse, ClientTimeout, BaseConnector, FormData
 from typing import AsyncIterator, Any, Optional
 
 from .defaults import DEFAULT_HEADERS
@@ -44,3 +44,7 @@ def get_connector(connector: BaseConnector = None, proxy: str = None, rdns: bool
         except ImportError:
             raise MissingRequirementsError('Install "aiohttp_socks" package for proxy support')
     return connector
+
+class CurlMime(FormData):
+    def addpart(self, name: str, content_type: str = None, filename: str = None, data: bytes = None):
+        self.add_field(name, data, content_type=content_type, filename=filename)
