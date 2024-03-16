@@ -20,7 +20,7 @@ class Conversation:
         self.clientId = clientId
         self.conversationSignature = conversationSignature
 
-async def create_conversation(session: ClientSession, headers: dict) -> Conversation:
+async def create_conversation(session: ClientSession, headers: dict, tone: str) -> Conversation:
     """
     Create a new conversation asynchronously.
 
@@ -31,7 +31,10 @@ async def create_conversation(session: ClientSession, headers: dict) -> Conversa
     Returns:
     Conversation: An instance representing the created conversation.
     """
-    url = "https://www.bing.com/turing/conversation/create?bundleVersion=1.1626.1"
+    if tone == "copilot":
+        url = "https://copilot.microsoft.com/turing/conversation/create?bundleVersion=1.1634.3-nodesign2"
+    else:
+        url = "https://www.bing.com/turing/conversation/create?bundleVersion=1.1626.1"
     async with session.get(url, headers=headers) as response:
         await raise_for_status(response, "Failed to create conversation")
         data = await response.json()

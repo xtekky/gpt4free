@@ -69,11 +69,14 @@ def get_model_and_provider(model    : Union[Model, str],
     if isinstance(model, Model):
         model = model.name
 
-    if ignored and isinstance(provider, BaseRetryProvider):
-        provider.providers = [p for p in provider.providers if p.__name__ not in ignored]
-
     if not ignore_working and not provider.working:
         raise ProviderNotWorkingError(f'{provider.__name__} is not working')
+
+    if not ignore_working and isinstance(provider, BaseRetryProvider):
+        provider.providers = [p for p in provider.providers if p.working]
+
+    if ignored and isinstance(provider, BaseRetryProvider):
+        provider.providers = [p for p in provider.providers if p.__name__ not in ignored]
     
     if not ignore_stream and not provider.supports_stream and stream:
         raise StreamNotSupportedError(f'{provider.__name__} does not support "stream" argument')

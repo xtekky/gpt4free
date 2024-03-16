@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from aiohttp import ClientSession, ClientResponse, ClientTimeout, BaseConnector
+from aiohttp import ClientSession, ClientResponse, ClientTimeout, BaseConnector, FormData
 from typing import AsyncIterator, Any, Optional
 
 from .defaults import DEFAULT_HEADERS

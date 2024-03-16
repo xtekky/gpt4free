@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-framework="javascript">
 
 <head>
     <meta charset="UTF-8">
@@ -10,14 +10,14 @@
     <meta property="og:image" content="https://openai.com/content/images/2022/11/ChatGPT.jpg">
     <meta property="og:description" content="A conversational AI system that listens, learns, and challenges">
     <meta property="og:url" content="https://g4f.ai">
-    <link rel="stylesheet" href="/assets/css/style.css">
-    <link rel="apple-touch-icon" sizes="180x180" href="/assets/img/apple-touch-icon.png">
-    <link rel="icon" type="image/png" sizes="32x32" href="/assets/img/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="/assets/img/favicon-16x16.png">
-    <link rel="manifest" href="/assets/img/site.webmanifest">
-    <script src="/assets/js/icons.js"></script>
-    <script src="/assets/js/highlightjs-copy.min.js"></script>
-    <script src="/assets/js/chat.v1.js" defer></script>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/img/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16x16.png">
+    <link rel="manifest" href="/static/img/site.webmanifest">
+    <script src="/static/js/icons.js"></script>
+    <script src="/static/js/highlightjs-copy.min.js"></script>
+    <script src="/static/js/chat.v1.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/markdown-it@13.0.1/dist/markdown-it.min.js"></script>
     <link rel="stylesheet"
         href="//cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.7.0/build/styles/base16/dracula.min.css">
@@ -38,8 +38,8 @@
     </script>
     <script src="https://unpkg.com/gpt-tokenizer/dist/cl100k_base.js" async></script>
     <script>
-        const user_image = '<img src="/assets/img/user.png" alt="your avatar">';
-        const gpt_image = '<img src="/assets/img/gpt.png" alt="your avatar">';
+        const user_image = '<img src="/static/img/user.png" alt="your avatar">';
+        const gpt_image = '<img src="/static/img/gpt.png" alt="your avatar">';
     </script>
     <style>
         .hljs {
@@ -74,8 +74,8 @@
             background: #8b3dff;
         }
     </style>
-    <script src="/assets/js/highlight.min.js"></script>
-    <script>window.conversation_id = `{{chat_id}}`</script>
+    <script src="/static/js/highlight.min.js"></script>
+    <script>window.conversation_id = "{{chat_id}}"</script>
     <title>g4f - gui</title>
 </head>
 
@@ -94,11 +94,10 @@
                     <i class="fa-regular fa-trash"></i>
                     <span>Clear Conversations</span>
                 </button>
-                <div class="info">
-                    <i class="fa-brands fa-telegram"></i>
-                    <span class="convo-title">tele ~ <a href="https://t.me/g4f_official">@g4f_official</a>
-                    </span>
-                </div>
+                <button onclick="save_storage()">
+                    <i class="fa-solid fa-download"></i>
+                    <a href="" onclick="return false;">Export Conversations</a>
+                </button>
                 <div class="info">
                     <i class="fa-brands fa-github"></i>
                     <span class="convo-title">github ~ <a href="https://github.com/xtekky/gpt4free">@gpt4free</a>
@@ -161,6 +160,7 @@
                         <option value="gemini-pro">gemini-pro</option>
                         <option value="">----</option>
                     </select>
+                    <select name="model2" id="model2" class="hidden"></select>
                 </div>
                 <div class="field">
                     <select name="jailbreak" id="jailbreak" style="display: none;">

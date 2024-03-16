@@ -15,7 +15,7 @@
     margin: auto;
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: var(--inner-gap);
     max-width: 200px;
     padding: var(--section-gap);
     overflow: none;
@@ -106,6 +106,10 @@ body {
     border: 1px solid var(--blur-border);
 }
 
+.hidden {
+    display: none;
+}
+
 .conversations {
     max-width: 260px;
     padding: var(--section-gap);
@@ -179,7 +183,8 @@ body {
 .conversations {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: var(--inner-gap);
+    padding: var(--inner-gap);
 }
 
 .conversations .title {
@@ -569,7 +574,7 @@ label[for="camera"] {
     height: fit-content;
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: var(--inner-gap);
 }
 
 .field .about {
@@ -653,10 +658,15 @@ select {
     font-size: 14px;
 }
 
+.bottom_buttons button a {
+    color: var(--colour-3);
+    font-weight: 500;
+}
+
 .conversations .top {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: var(--inner-gap);
     overflow: auto;
 }
 

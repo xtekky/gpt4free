@@ -4,14 +4,18 @@ import re
 import json
 import base64
 import uuid
-from asyncio import get_running_loop
-from aiohttp import ClientSession, FormData, BaseConnector, CookieJar
+try:
+    from ..requests.curl_cffi import FormData
+    has_curl_cffi = True
+except ImportError:
+    has_curl_cffi = False
 
 from ..typing import AsyncResult, Messages, ImageType, Cookies
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from .helper import format_prompt, get_connector
+from .helper import format_prompt
 from ..image import to_bytes, ImageResponse
-from ..requests import WebDriver, raise_for_status, get_args_from_browser
+from ..requests import StreamSession, raise_for_status
+from ..errors import MissingRequirementsError
 
 class You(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://you.com"
@@ -33,8 +37,6 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
     model_aliases = {
         "claude-v2": "claude-2"
     }
-    _args: dict = None
-    _cookie_jar: CookieJar = None
     _cookies = None
     _cookies_used = 0
 
@@ -45,19 +47,12 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
         messages: Messages,
         image: ImageType = None,
         image_name: str = None,
-        connector: BaseConnector = None,
-        webdriver: WebDriver = None,
         proxy: str = None,
         chat_mode: str = "default",
         **kwargs,
     ) -> AsyncResult:
-        if cls._args is None:
-            cls._args = get_args_from_browser(cls.url, webdriver, proxy)
-            cls._cookie_jar = CookieJar(loop=get_running_loop())
-        else:
-            if "cookies" in cls._args:
-                del cls._args["cookies"]
-            cls._cookie_jar._loop = get_running_loop()
+        if not has_curl_cffi:
+            raise MissingRequirementsError('Install "curl_cffi" package')
         if image is not None:
             chat_mode = "agent"
         elif not model or model == cls.default_model:
@@ -67,10 +62,9 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
         else:
             chat_mode = "custom"
             model = cls.get_model(model)
-        async with ClientSession(
-            connector=get_connector(connector, proxy),
-            cookie_jar=cls._cookie_jar,
-            **cls._args
+        async with StreamSession(
+            proxy=proxy,
+            impersonate="chrome"
         ) as session:
             cookies = await cls.get_cookies(session) if chat_mode != "default" else None
             upload = json.dumps([await cls.upload_file(session, cookies, to_bytes(image), image_name)]) if image else ""
@@ -82,8 +76,8 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
             #     and idx < len(questions)
             # ]
             headers = {
-                "accept": "text/event-stream",
-                "referer": f"{cls.url}/search?fromSearchBar=true&tbm=youchat",
+                "Accept": "text/event-stream",
+                "Referer": f"{cls.url}/search?fromSearchBar=true&tbm=youchat",
             }
             data = {
                 "userFiles": upload,
@@ -106,12 +100,12 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
                 cookies=cookies
             ) as response:
                 await raise_for_status(response)
-                async for line in response.content:
+                async for line in response.iter_lines():
                     if line.startswith(b'event: '):
-                        event = line[7:-1].decode()
+                        event = line[7:].decode()
                     elif line.startswith(b'data: '):
                         if event in ["youChatUpdate", "youChatToken"]:
-                            data = json.loads(line[6:-1])
+                            data = json.loads(line[6:])
                         if event == "youChatToken" and event in data:
                             yield data[event]
                         elif event == "youChatUpdate" and "t" in data:
@@ -122,7 +116,7 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
                                 yield data["t"]                         
 
     @classmethod
-    async def upload_file(cls, client: ClientSession, cookies: Cookies, file: bytes, filename: str = None) -> dict:
+    async def upload_file(cls, client: StreamSession, cookies: Cookies, file: bytes, filename: str = None) -> dict:
         async with client.get(
             f"{cls.url}/api/get_nonce",
             cookies=cookies,
@@ -146,7 +140,7 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
         return result
 
     @classmethod
-    async def get_cookies(cls, client: ClientSession) -> Cookies:
+    async def get_cookies(cls, client: StreamSession) -> Cookies:
         if not cls._cookies or cls._cookies_used >= 5:
             cls._cookies = await cls.create_cookies(client)
             cls._cookies_used = 0
@@ -173,7 +167,7 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
         return f"Basic {auth}"
 
     @classmethod
-    async def create_cookies(cls, client: ClientSession) -> Cookies:
+    async def create_cookies(cls, client: StreamSession) -> Cookies:
         user_uuid = str(uuid.uuid4())
         async with client.post(
             "https://web.stytch.com/sdk/v1/passwords",

@@ -15,7 +15,6 @@ fastapi
 uvicorn
 flask
 py-arkose-generator
-async-property
 undetected-chromedriver>=3.5.5
 brotli
 beautifulsoup4
