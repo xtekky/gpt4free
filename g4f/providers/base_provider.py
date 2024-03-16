@@ -95,7 +95,7 @@ class AbstractProvider(BaseProvider):
             return annotation.__name__ if hasattr(annotation, "__name__") else str(annotation)
 
         args = ""
-        for name, param in cls.get_parameters():
+        for name, param in cls.get_parameters().items():
             if name in ("self", "kwargs") or (name == "stream" and not cls.supports_stream):
                 continue
             args += f"\n    {name}"

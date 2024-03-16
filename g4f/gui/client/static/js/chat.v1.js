@@ -819,7 +819,8 @@ async function on_api() {
     if (versions["version"] != versions["latest_version"]) {
         let release_url = 'https://github.com/xtekky/gpt4free/releases/tag/' + versions["latest_version"];
         let title = `New version: ${versions["latest_version"]}`;
-        text += `<a href="${release_url}" target="_blank" title="${title}">${versions["version"]} 🆕</a>`;
+        text += `<a href="${release_url}" target="_blank" title="${title}">${versions["version"]}</a> `;
+        text += `<i class="fa-solid fa-rotate"></i>`
     } else {
         text += versions["version"];
     }
@@ -994,8 +995,7 @@ async function load_provider_models(providerIndex=null) {
 providerSelect.addEventListener("change", () => load_provider_models());
 
 function save_storage() {
-    let filename = new Date().toLocaleString()
-    filename += ".json"
+    let filename = `chat ${new Date().toLocaleString()}.json`.replaceAll(":", "-");
     let data = {"options": {"g4f": ""}};
     for (let i = 0; i < appStorage.length; i++){
         let key = appStorage.key(i);

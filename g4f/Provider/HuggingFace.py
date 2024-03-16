@@ -7,6 +7,7 @@ from ..typing import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from .helper import get_connector
 from ..errors import RateLimitError, ModelNotFoundError
+from ..requests.raise_for_status import raise_for_status
 
 class HuggingFace(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://huggingface.co/chat"
@@ -44,12 +45,9 @@ class HuggingFace(AsyncGeneratorProvider, ProviderModelMixin):
             connector=get_connector(connector, proxy)
         ) as session:
             async with session.post(f"{api_base.rstrip('/')}/models/{model}", json=payload) as response:
-                if response.status == 429:
-                    raise RateLimitError("Rate limit reached. Set a api_key")
-                elif response.status == 404:
+                if response.status == 404:
                     raise ModelNotFoundError(f"Model is not supported: {model}")
-                elif response.status != 200:
-                    raise RuntimeError(f"Response {response.status}: {await response.text()}")
+                await raise_for_status(response)
                 if stream:
                     first = True
                     async for line in response.content:
@@ -68,7 +66,7 @@ def format_prompt(messages: Messages) -> str:
     system_messages = [message["content"] for message in messages if message["role"] == "system"]
     question = " ".join([messages[-1]["content"], *system_messages])
     history = "".join([
-        f"<s>[INST]{messages[idx-1]['content']} [/INST] {message}</s>"
+        f"<s>[INST]{messages[idx-1]['content']} [/INST] {message['content']}</s>"
         for idx, message in enumerate(messages)
         if message["role"] == "assistant"
     ])

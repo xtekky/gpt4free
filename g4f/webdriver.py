@@ -2,7 +2,7 @@ from __future__ import annotations
 
 try:
     from platformdirs import user_config_dir
-    from undetected_chromedriver import Chrome, ChromeOptions
+    from undetected_chromedriver import Chrome, ChromeOptions, find_chrome_executable
     from selenium.webdriver.remote.webdriver import WebDriver 
     from selenium.webdriver.remote.webelement import WebElement 
     from selenium.webdriver.common.by import By
@@ -39,7 +39,7 @@ try:
                 options = ChromeOptions()
             config = self._setup_backend(seleniumwire_options)
             options.add_argument(f"--proxy-server={config['proxy']['httpProxy']}")
-            options.add_argument('--proxy-bypass-list=<-loopback>')
+            options.add_argument("--proxy-bypass-list=<-loopback>")
             options.add_argument("--ignore-certificate-errors")
             super().__init__(*args, options=options, **kwargs)
     has_seleniumwire = True
@@ -66,6 +66,9 @@ def get_browser(
     """
     if not has_requirements:
         raise MissingRequirementsError('Install "undetected_chromedriver" and "platformdirs" package')
+    browser = find_chrome_executable()
+    if browser is None:
+        raise MissingRequirementsError('Install "Google Chrome" browser')
     if user_data_dir is None:
         user_data_dir = user_config_dir("g4f")
     if user_data_dir and debug.logging:
@@ -82,6 +85,7 @@ def get_browser(
         options=options,
         user_data_dir=user_data_dir,
         driver_executable_path=driver,
+        browser_executable_path=browser,
         headless=headless,
         patcher_force_close=True
     )

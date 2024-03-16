@@ -311,7 +311,7 @@ def create_message(
             "allowedMessageTypes": Defaults.allowedMessageTypes,
             "sliceIds": Defaults.sliceIds[tone],
             "verbosity": "verbose",
-            "scenario": "CopilotMicrosoftCom", # "SERP",
+            "scenario": "CopilotMicrosoftCom" if tone == "copilot" else "SERP",
             "plugins": [{"id": "c310c353-b9f0-4d76-ab0d-1dd5e979cf68", "category": 1}] if web_search else [],
             "traceId": get_random_hex(40),
             "conversationHistoryOptionsSets": ["autosave","savemem","uprofupd","uprofgen"],

@@ -653,12 +653,10 @@ select {
     width: 100%;
 }
 
-.bottom_buttons button span {
-    color: var(--colour-3);
-    font-size: 14px;
-}
-
-.bottom_buttons button a {
+.bottom_buttons button a,
+.bottom_buttons button span,
+.bottom_buttons .info a,
+.bottom_buttons .info i {
     color: var(--colour-3);
     font-weight: 500;
 }
