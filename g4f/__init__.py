@@ -51,7 +51,7 @@ def get_model_and_provider(model    : Union[Model, str],
             provider = IterProvider(provider_list)
         elif provider in ProviderUtils.convert:
             provider = ProviderUtils.convert[provider]
-        else:
+        elif provider:
             raise ProviderNotFoundError(f'Provider not found: {provider}')
 
     if isinstance(model, str):
