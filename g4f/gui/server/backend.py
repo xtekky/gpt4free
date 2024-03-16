@@ -1,16 +1,9 @@
-import logging
 import json
 from flask import request, Flask
-from typing import Generator
-from g4f import version, models
-from g4f import get_last_provider, ChatCompletion
 from g4f.image import is_allowed_extension, to_image
-from g4f.errors import VersionNotFoundError
-from g4f.Provider import ProviderType, __providers__, __map__
-from g4f.providers.base_provider import ProviderModelMixin
-from g4f.Provider.bing.create_images import patch_provider
+from .api import Api
 
-class Backend_Api:    
+class Backend_Api(Api):    
     """
     Handles various endpoints in a Flask application for backend operations.
 
@@ -59,7 +52,7 @@ class Backend_Api:
                 'methods': ['POST']
             }
         }
-    
+
     def handle_error(self):
         """
         Initialize the backend API with the given Flask application.
@@ -69,63 +62,7 @@ class Backend_Api:
         """
         print(request.json)
         return 'ok', 200
-    
-    def get_models(self):
-        """
-        Return a list of all models.
 
-        Fetches and returns a list of all available models in the system.
-
-        Returns:
-            List[str]: A list of model names.
-        """
-        return models._all_models
-
-    def get_provider_models(self, provider: str):
-        if provider in __map__:
-            provider: ProviderType = __map__[provider]
-            if issubclass(provider, ProviderModelMixin):
-                return [{"model": model, "default": model == provider.default_model} for model in provider.get_models()]
-            elif provider.supports_gpt_35_turbo or provider.supports_gpt_4:
-                return [
-                    *([{"model": "gpt-3.5-turbo", "default": not provider.supports_gpt_4}] if provider.supports_gpt_35_turbo else []),
-                    *([{"model": "gpt-4", "default": not provider.supports_gpt_4}] if provider.supports_gpt_4 else [])
-                ]
-            else:
-                return [];
-        return 404, "Provider not found"
-
-    def get_providers(self):
-        """
-        Return a list of all working providers.
-        """
-        return [provider.__name__ for provider in __providers__ if provider.working]
-        
-    def get_version(self):
-        """
-        Returns the current and latest version of the application.
-
-        Returns:
-            dict: A dictionary containing the current and latest version.
-        """
-        try:
-            current_version = version.utils.current_version
-        except VersionNotFoundError:
-            current_version = None
-        return {
-            "version": current_version,
-            "latest_version": version.utils.latest_version,
-        }
-    
-    def generate_title(self):
-        """
-        Generates and returns a title based on the request data.
-
-        Returns:
-            dict: A dictionary with the generated title.
-        """
-        return {'title': ''}
-    
     def handle_conversation(self):
         """
         Handles conversation requests and streams responses back.
@@ -133,26 +70,10 @@ class Backend_Api:
         Returns:
             Response: A Flask response object for streaming.
         """
-        kwargs = self._prepare_conversation_kwargs()
-
-        return self.app.response_class(
-            self._create_response_stream(kwargs),
-            mimetype='text/event-stream'
-        )
-    
-    def _prepare_conversation_kwargs(self):
-        """
-        Prepares arguments for chat completion based on the request data.
-
-        Reads the request and prepares the necessary arguments for handling 
-        a chat completion request.
-
-        Returns:
-            dict: Arguments prepared for chat completion.
-        """
+        
         kwargs = {}
-        if "image" in request.files:
-            file = request.files['image']
+        if "file" in request.files:
+            file = request.files['file']
             if file.filename != '' and is_allowed_extension(file.filename):
                 kwargs['image'] = to_image(file.stream, file.filename.endswith('.svg'))
                 kwargs['image_name'] = file.filename
@@ -160,66 +81,20 @@ class Backend_Api:
             json_data = json.loads(request.form['json'])
         else:
             json_data = request.json
-            
-        provider = json_data.get('provider', '').replace('g4f.Provider.', '')
-        provider = provider if provider and provider != "Auto" else None
 
-        if "image" in kwargs and not provider:
-            provider = "Bing"
-        if provider == 'OpenaiChat':
-            kwargs['auto_continue'] = True
+        kwargs = self._prepare_conversation_kwargs(json_data, kwargs)
 
-        messages = json_data['messages']
-        if json_data.get('web_search'):
-            if provider == "Bing":
-                kwargs['web_search'] = True
-            else:
-                # ResourceWarning: unclosed event loop
-                from .internet import get_search_message
-                messages[-1]["content"] = get_search_message(messages[-1]["content"])
+        return self.app.response_class(
+            self._create_response_stream(kwargs),
+            mimetype='text/event-stream'
+        )
 
-        model = json_data.get('model')
-        model = model if model else models.default
-        patch = patch_provider if json_data.get('patch_provider') else None
+    def get_provider_models(self, provider: str):
+        models = super().get_provider_models(provider)
+        if models is None:
+            return 404, "Provider not found"
+        return models
 
-        return {
-            "model": model,
-            "provider": provider,
-            "messages": messages,
-            "stream": True,
-            "ignore_stream": True,
-            "patch_provider": patch,
-            **kwargs
-        }
-
-    def _create_response_stream(self, kwargs) -> Generator[str, None, None]:
-        """
-        Creates and returns a streaming response for the conversation.
-
-        Args:
-            kwargs (dict): Arguments for creating the chat completion.
-
-        Yields:
-            str: JSON formatted response chunks for the stream.
-
-        Raises:
-            Exception: If an error occurs during the streaming process.
-        """
-        try:
-            first = True
-            for chunk in ChatCompletion.create(**kwargs):
-                if first:
-                    first = False
-                    yield self._format_json('provider', get_last_provider(True))
-                if isinstance(chunk, Exception):
-                    logging.exception(chunk)
-                    yield self._format_json('message', get_error_message(chunk))
-                else:
-                    yield self._format_json('content', str(chunk))
-        except Exception as e:
-            logging.exception(e)
-            yield self._format_json('error', get_error_message(e))
-            
     def _format_json(self, response_type: str, content) -> str:
         """
         Formats and returns a JSON response.
@@ -231,19 +106,4 @@ class Backend_Api:
         Returns:
             str: A JSON formatted string.
         """
-        return json.dumps({
-            'type': response_type,
-            response_type: content
-        }) + "\n"
-    
-def get_error_message(exception: Exception) -> str:
-    """
-    Generates a formatted error message from an exception.
-
-    Args:
-        exception (Exception): The exception to format.
-
-    Returns:
-        str: A formatted error message string.
-    """
-    return f"{get_last_provider().__name__}: {type(exception).__name__}: {exception}"
+        return json.dumps(super()._format_json(response_type, content)) + "\n"
