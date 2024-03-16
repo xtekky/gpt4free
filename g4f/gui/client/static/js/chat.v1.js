@@ -198,7 +198,9 @@ const prepare_messages = (messages, filter_last_message=true) => {
 }
 
 async function add_message_chunk(message) {
-    if (message.type == "provider") {
+    if (message.type == "conversation") {
+        console.info("Conversation used:", message.conversation)
+    } else if (message.type == "provider") {
         window.provider_result = message.provider;
         window.content.querySelector('.provider').innerHTML = `
             <a href="${message.provider.url}" target="_blank">

@@ -51,6 +51,7 @@ class Bing(AsyncGeneratorProvider, ProviderModelMixin):
         tone: str = None,
         image: ImageType = None,
         web_search: bool = False,
+        context: str = None,
         **kwargs
     ) -> AsyncResult:
         """
@@ -67,7 +68,8 @@ class Bing(AsyncGeneratorProvider, ProviderModelMixin):
         :return: An asynchronous result object.
         """
         prompt = messages[-1]["content"]
-        context = create_context(messages[:-1]) if len(messages) > 1 else None
+        if context is None:
+            context = create_context(messages[:-1]) if len(messages) > 1 else None
         if tone is None:
             tone = tone if model.startswith("gpt-4") else model
         tone = cls.get_model("" if tone is None else tone.lower())
@@ -126,7 +128,7 @@ class Defaults:
         "ActionRequest","Chat",
         "ConfirmationCard", "Context",
         "InternalSearchQuery", #"InternalSearchResult",
-        "Disengaged", #"InternalLoaderMessage",
+        #"Disengaged", "InternalLoaderMessage",
         "Progress", "RenderCardRequest",
         "RenderContentRequest", "AdsQuery",
         "SemanticSerp", "GenerateContentQuery",
@@ -160,30 +162,62 @@ class Defaults:
     }
 
     optionsSets = {
-        "balanced": [
-             "nlu_direct_response_filter", "deepleo",
-            "disable_emoji_spoken_text", "responsible_ai_policy_235",
-            "enablemm", "dv3sugg", "autosave",
-            "iyxapbing", "iycapbing",
-            "galileo", "saharagenconv5", "gldcl1p",
-            "gpt4tmncnp"
-        ],
-        "creative": [
-            "nlu_direct_response_filter", "deepleo",
-            "disable_emoji_spoken_text", "responsible_ai_policy_235",
-            "enablemm", "dv3sugg",
-            "iyxapbing", "iycapbing",
-            "h3imaginative", "techinstgnd", "hourthrot", "clgalileo", "gencontentv3",
-            "gpt4tmncnp"
-        ],
-        "precise": [
-            "nlu_direct_response_filter", "deepleo",
-            "disable_emoji_spoken_text", "responsible_ai_policy_235",
-            "enablemm", "dv3sugg",
-            "iyxapbing", "iycapbing",
-            "h3precise", "techinstgnd", "hourthrot", "techinstgnd", "hourthrot",
-            "clgalileo", "gencontentv3"
-        ],
+        "balanced": {
+            "default": [
+                "nlu_direct_response_filter", "deepleo",
+                "disable_emoji_spoken_text", "responsible_ai_policy_235",
+                "enablemm", "dv3sugg", "autosave",
+                "iyxapbing", "iycapbing",
+                "galileo", "saharagenconv5", "gldcl1p",
+                "gpt4tmncnp"
+            ],
+            "nosearch": [
+                "nlu_direct_response_filter", "deepleo",
+                "disable_emoji_spoken_text", "responsible_ai_policy_235",
+                "enablemm", "dv3sugg", "autosave",
+                "iyxapbing", "iycapbing",
+                "galileo", "sunoupsell", "base64filter", "uprv4p1upd",
+                "hourthrot", "noctprf", "gndlogcf", "nosearchall"
+            ]
+        },
+        "creative": {
+            "default": [
+                "nlu_direct_response_filter", "deepleo",
+                "disable_emoji_spoken_text", "responsible_ai_policy_235",
+                "enablemm", "dv3sugg",
+                "iyxapbing", "iycapbing",
+                "h3imaginative", "techinstgnd", "hourthrot", "clgalileo", "gencontentv3",
+                "gpt4tmncnp"
+            ],
+            "nosearch": [
+                "nlu_direct_response_filter", "deepleo",
+                "disable_emoji_spoken_text", "responsible_ai_policy_235",
+                "enablemm", "dv3sugg", "autosave",
+                "iyxapbing", "iycapbing",
+                "h3imaginative", "sunoupsell", "base64filter", "uprv4p1upd",
+                "hourthrot", "noctprf", "gndlogcf", "nosearchall",
+                "clgalileo", "nocache", "up4rp14bstcst"
+            ]
+        },
+        "precise": {
+            "default": [
+                "nlu_direct_response_filter", "deepleo",
+                "disable_emoji_spoken_text", "responsible_ai_policy_235",
+                "enablemm", "dv3sugg",
+                "iyxapbing", "iycapbing",
+                "h3precise", "techinstgnd", "hourthrot", "techinstgnd", "hourthrot",
+                "clgalileo", "gencontentv3"
+            ],
+            "nosearch": [
+                "nlu_direct_response_filter", "deepleo",
+                "disable_emoji_spoken_text", "responsible_ai_policy_235",
+                "enablemm", "dv3sugg", "autosave",
+                "iyxapbing", "iycapbing",
+                "h3precise", "sunoupsell", "base64filter", "uprv4p1upd",
+                "hourthrot", "noctprf", "gndlogcf", "nosearchall",
+                "clgalileo", "nocache", "up4rp14bstcst"
+            ]
+        },
         "copilot": [
             "nlu_direct_response_filter", "deepleo",
             "disable_emoji_spoken_text", "responsible_ai_policy_235",
@@ -244,7 +278,8 @@ def create_message(
     context: str = None,
     image_request: ImageRequest = None,
     web_search: bool = False,
-    gpt4_turbo: bool = False
+    gpt4_turbo: bool = False,
+    new_conversation: bool = True
 ) -> str:
     """
     Creates a message for the Bing API with specified parameters.
@@ -259,7 +294,12 @@ def create_message(
     :return: A formatted string message for the Bing API.
     """
 
-    options_sets = []
+    options_sets = Defaults.optionsSets[tone]
+    if not web_search and "nosearch" in options_sets:
+        options_sets = options_sets["nosearch"]
+    elif "default" in options_sets:
+        options_sets = options_sets["default"]
+    options_sets = options_sets.copy()
     if gpt4_turbo:
         options_sets.append("dlgpt4t")
 
@@ -267,7 +307,7 @@ def create_message(
     struct = {
         "arguments":[{
             "source": "cib",
-            "optionsSets": [*Defaults.optionsSets[tone], *options_sets],
+            "optionsSets": options_sets,
             "allowedMessageTypes": Defaults.allowedMessageTypes,
             "sliceIds": Defaults.sliceIds[tone],
             "verbosity": "verbose",
@@ -276,7 +316,7 @@ def create_message(
             "traceId": get_random_hex(40),
             "conversationHistoryOptionsSets": ["autosave","savemem","uprofupd","uprofgen"],
             "gptId": "copilot",
-            "isStartOfSession": True,
+            "isStartOfSession": new_conversation,
             "requestId": request_id,
             "message":{
                 **Defaults.location,
@@ -330,7 +370,7 @@ async def stream_generate(
     conversation: Conversation = None,
     return_conversation: bool = False,
     raise_apology: bool = False,
-    max_retries: int = 5,
+    max_retries: int = None,
     sleep_retry: int = 15,
     **kwargs
 ):
@@ -348,6 +388,8 @@ async def stream_generate(
     :return: An asynchronous generator yielding responses.
     """
     headers = create_headers(cookies)
+    new_conversation = conversation is None
+    max_retries = (5 if new_conversation else 0) if max_retries is None else max_retries
     async with ClientSession(
         timeout=ClientTimeout(total=timeout), connector=connector
     ) as session:
@@ -357,9 +399,9 @@ async def stream_generate(
             do_read = True
             try:
                 if conversation is None:
-                    conversation = await create_conversation(session, headers)
-                    if return_conversation:
-                        yield conversation
+                    conversation = await create_conversation(session, headers, tone)
+                if return_conversation:
+                    yield conversation
             except ResponseStatusError as e:
                 max_retries -= 1
                 if max_retries < 1:
@@ -372,6 +414,8 @@ async def stream_generate(
 
             image_request = await upload_image(session, image, getattr(Tones, tone), headers) if image else None
             async with session.ws_connect(
+                'wss://s.copilot.microsoft.com/sydney/ChatHub'
+                if tone == "copilot" else
                 'wss://sydney.bing.com/sydney/ChatHub',
                 autoping=False,
                 params={'sec_access_token': conversation.conversationSignature},
@@ -380,7 +424,12 @@ async def stream_generate(
                 await wss.send_str(format_message({'protocol': 'json', 'version': 1}))
                 await wss.send_str(format_message({"type": 6}))
                 await wss.receive(timeout=timeout)
-                await wss.send_str(create_message(conversation, prompt, tone, context, image_request, web_search, gpt4_turbo))
+                await wss.send_str(create_message(
+                    conversation, prompt, tone,
+                    context if new_conversation else None,
+                    image_request, web_search, gpt4_turbo,
+                    new_conversation
+                ))
                 response_txt = ''
                 returned_text = ''
                 message_id = None
