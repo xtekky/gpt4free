@@ -26,6 +26,7 @@ class Tones:
     creative = "Creative"
     balanced = "Balanced"
     precise = "Precise"
+    copilot = "Balanced"
 
 class Bing(AsyncGeneratorProvider, ProviderModelMixin):
     """
@@ -35,10 +36,8 @@ class Bing(AsyncGeneratorProvider, ProviderModelMixin):
     working = True
     supports_message_history = True
     supports_gpt_4 = True
-    default_model = Tones.balanced
-    models = [
-        getattr(Tones, key) for key in dir(Tones) if not key.startswith("__")
-    ]
+    default_model = "balanced"
+    models = [key for key in Tones.__dict__ if not key.startswith("__")]
         
     @classmethod
     def create_async_generator(
@@ -71,7 +70,7 @@ class Bing(AsyncGeneratorProvider, ProviderModelMixin):
         context = create_context(messages[:-1]) if len(messages) > 1 else None
         if tone is None:
             tone = tone if model.startswith("gpt-4") else model
-        tone = cls.get_model(tone)
+        tone = cls.get_model("" if tone is None else tone.lower())
         gpt4_turbo = True if model.startswith("gpt-4-turbo") else False
 
         return stream_generate(
@@ -136,31 +135,32 @@ class Defaults:
     ]
 
     sliceIds = {
-        "Balanced": [
+        "balanced": [
             "supllmnfe","archnewtf",
             "stpstream", "stpsig", "vnextvoicecf", "scmcbase", "cmcpupsalltf", "sydtransctrl",
             "thdnsrch", "220dcl1s0", "0215wcrwips0", "0305hrthrots0", "0130gpt4t",
             "bingfc", "0225unsticky1", "0228scss0",
             "defquerycf", "defcontrol", "3022tphpv"
         ],
-        "Creative": [
+        "creative": [
             "bgstream", "fltltst2c",
             "stpstream", "stpsig", "vnextvoicecf", "cmcpupsalltf", "sydtransctrl",
             "0301techgnd", "220dcl1bt15", "0215wcrwip", "0305hrthrot", "0130gpt4t",
             "bingfccf", "0225unsticky1", "0228scss0",
             "3022tpvs0"
         ],
-        "Precise": [
+        "precise": [
             "bgstream", "fltltst2c",
             "stpstream", "stpsig", "vnextvoicecf", "cmcpupsalltf", "sydtransctrl",
             "0301techgnd", "220dcl1bt15", "0215wcrwip", "0305hrthrot", "0130gpt4t",
             "bingfccf", "0225unsticky1", "0228scss0",
             "defquerycf", "3022tpvs0"
         ],
+        "copilot": []
     }
 
     optionsSets = {
-        "Balanced": [
+        "balanced": [
              "nlu_direct_response_filter", "deepleo",
             "disable_emoji_spoken_text", "responsible_ai_policy_235",
             "enablemm", "dv3sugg", "autosave",
@@ -168,7 +168,7 @@ class Defaults:
             "galileo", "saharagenconv5", "gldcl1p",
             "gpt4tmncnp"
         ],
-        "Creative": [
+        "creative": [
             "nlu_direct_response_filter", "deepleo",
             "disable_emoji_spoken_text", "responsible_ai_policy_235",
             "enablemm", "dv3sugg",
@@ -176,13 +176,20 @@ class Defaults:
             "h3imaginative", "techinstgnd", "hourthrot", "clgalileo", "gencontentv3",
             "gpt4tmncnp"
         ],
-        "Precise": [
+        "precise": [
             "nlu_direct_response_filter", "deepleo",
             "disable_emoji_spoken_text", "responsible_ai_policy_235",
             "enablemm", "dv3sugg",
             "iyxapbing", "iycapbing",
             "h3precise", "techinstgnd", "hourthrot", "techinstgnd", "hourthrot",
             "clgalileo", "gencontentv3"
+        ],
+        "copilot": [
+            "nlu_direct_response_filter", "deepleo",
+            "disable_emoji_spoken_text", "responsible_ai_policy_235",
+            "enablemm", "dv3sugg",
+            "iyxapbing", "iycapbing",
+            "h3precise", "clgalileo", "gencontentv3", "prjupy"
         ],
     }
 
@@ -264,7 +271,7 @@ def create_message(
             "allowedMessageTypes": Defaults.allowedMessageTypes,
             "sliceIds": Defaults.sliceIds[tone],
             "verbosity": "verbose",
-            "scenario": "SERP",
+            "scenario": "CopilotMicrosoftCom", # "SERP",
             "plugins": [{"id": "c310c353-b9f0-4d76-ab0d-1dd5e979cf68", "category": 1}] if web_search else [],
             "traceId": get_random_hex(40),
             "conversationHistoryOptionsSets": ["autosave","savemem","uprofupd","uprofgen"],
@@ -282,8 +289,7 @@ def create_message(
                 "requestId": request_id,
                 "messageId": request_id
             },
-            "tone": tone,
-            "extraExtensionParameters": {"gpt-creator-persona": {"personaId": "copilot"}},
+            "tone": getattr(Tones, tone),
             "spokenTextMode": "None",
             "conversationId": conversation.conversationId,
             "participant": {"id": conversation.clientId}
@@ -322,6 +328,7 @@ async def stream_generate(
     gpt4_turbo: bool = False,
     timeout: int = 900,
     conversation: Conversation = None,
+    return_conversation: bool = False,
     raise_apology: bool = False,
     max_retries: int = 5,
     sleep_retry: int = 15,
@@ -344,10 +351,15 @@ async def stream_generate(
     async with ClientSession(
         timeout=ClientTimeout(total=timeout), connector=connector
     ) as session:
-        while conversation is None:
+        first = True
+        while first or conversation is None:
+            first = False
             do_read = True
             try:
-                conversation = await create_conversation(session, headers)
+                if conversation is None:
+                    conversation = await create_conversation(session, headers)
+                    if return_conversation:
+                        yield conversation
             except ResponseStatusError as e:
                 max_retries -= 1
                 if max_retries < 1:
@@ -358,7 +370,7 @@ async def stream_generate(
                 await asyncio.sleep(sleep_retry)
                 continue
 
-            image_request = await upload_image(session, image, tone, headers) if image else None
+            image_request = await upload_image(session, image, getattr(Tones, tone), headers) if image else None
             async with session.ws_connect(
                 'wss://sydney.bing.com/sydney/ChatHub',
                 autoping=False,

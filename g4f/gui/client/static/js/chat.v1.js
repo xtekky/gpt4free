@@ -811,7 +811,7 @@ async function on_api() {
 
     register_settings_storage();
 
-    versions = await api('version')    
+    versions = await api("version");
     document.title = 'g4f - ' + versions["version"];
     let text = "version ~ "
     if (versions["version"] != versions["latest_version"]) {
@@ -825,19 +825,19 @@ async function on_api() {
 
     models = await api("models");
     models.forEach((model) => {
-        let option = document.createElement('option');
+        let option = document.createElement("option");
         option.value = option.text = model;
         modelSelect.appendChild(option);
     });
 
-    providers = await api('providers')
+    providers = await api("providers")
     providers.forEach((provider) => {
-        let option = document.createElement('option');
+        let option = document.createElement("option");
         option.value = option.text = provider;
         providerSelect.appendChild(option);
     })
 
-    load_provider_models();
+    await load_provider_models(appStorage.getItem("provider"));
     load_settings_storage()
 }
 
@@ -965,8 +965,11 @@ async function read_response(response) {
     }
 }
 
-async function load_provider_models() {
-    const provider = providerSelect.options[providerSelect.selectedIndex].value;
+async function load_provider_models(providerIndex=null) {
+    if (!providerIndex) {
+        providerIndex = providerSelect.selectedIndex;
+    }
+    const provider = providerSelect.options[providerIndex].value;
     if (!provider) {
         return;
     }
@@ -986,7 +989,7 @@ async function load_provider_models() {
         modelSelect.classList.remove("hidden");
     }
 };
-providerSelect.addEventListener("change", load_provider_models)
+providerSelect.addEventListener("change", () => load_provider_models());
 
 function save_storage() {
     let filename = new Date().toLocaleString()
