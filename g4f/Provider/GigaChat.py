@@ -35,7 +35,7 @@ class GigaChat(AsyncGeneratorProvider, ProviderModelMixin):
             stream: bool = True,
             proxy: str = None,
             api_key: str = None,
-            coonector: BaseConnector = None,
+            connector: BaseConnector = None,
             scope: str = "GIGACHAT_API_PERS",
             update_interval: float = 0,
             **kwargs
