@@ -2,15 +2,18 @@ from __future__ import annotations
 
 import time
 from hashlib import sha256
-from aiohttp import ClientSession
+from aiohttp import ClientSession, BaseConnector
 
 from ..typing import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider
-
+from ..errors import RateLimitError
+from ..requests import raise_for_status
+from ..requests.aiohttp import get_connector
 
 class GeminiProChat(AsyncGeneratorProvider):
     url = "https://gemini-chatbot-sigma.vercel.app"
     working = True
+    supports_message_history = True
 
     @classmethod
     async def create_async_generator(
@@ -18,6 +21,7 @@ class GeminiProChat(AsyncGeneratorProvider):
         model: str,
         messages: Messages,
         proxy: str = None,
+        connector: BaseConnector = None,
         **kwargs
     ) -> AsyncResult:
         headers = {
@@ -34,7 +38,7 @@ class GeminiProChat(AsyncGeneratorProvider):
             "Connection": "keep-alive",
             "TE": "trailers",
         }
-        async with ClientSession(headers=headers) as session:
+        async with ClientSession(connector=get_connector(connector, proxy), headers=headers) as session:
             timestamp = int(time.time() * 1e3)
             data = {
                 "messages":[{
@@ -46,7 +50,10 @@ class GeminiProChat(AsyncGeneratorProvider):
                 "sign": generate_signature(timestamp, messages[-1]["content"]),
             }
             async with session.post(f"{cls.url}/api/generate", json=data, proxy=proxy) as response:
-                response.raise_for_status()
+                if response.status == 500:
+                    if "Quota exceeded" in await response.text():
+                        raise RateLimitError(f"Response {response.status}: Rate limit reached")
+                await raise_for_status(response)
                 async for chunk in response.content.iter_any():
                     yield chunk.decode()
                         

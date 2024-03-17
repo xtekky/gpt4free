@@ -7,20 +7,9 @@ from aiohttp import ClientSession, BaseConnector
 from ..typing import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from .helper import get_connector
+from ..requests import raise_for_status
 
 models = {
-    "gpt-4": {
-        "id": "gpt-4",
-        "name": "GPT-4",
-        "maxLength": 24000,
-        "tokenLimit": 8000,
-    },
-    "gpt-4-0613": {
-        "id": "gpt-4-0613",
-        "name": "GPT-4",
-        "maxLength": 32000,
-        "tokenLimit": 8000,
-    },
     "gpt-3.5-turbo": {
         "id": "gpt-3.5-turbo",
         "name": "GPT-3.5-Turbo",
@@ -28,14 +17,8 @@ models = {
         "tokenLimit": 14000,
         "context": "16K",
     },
-    "gpt-3.5-turbo-16k": {
-        "id": "gpt-3.5-turbo-16k",
-        "name": "GPT-3.5-16k",
-        "maxLength": 48000,
-        "tokenLimit": 16000,
-    },
-    "gpt-4-1106-preview": {
-        "id": "gpt-4-1106-preview",
+    "gpt-4-turbo-preview": {
+        "id": "gpt-4-turbo-preview",
         "name": "GPT-4-Turbo",
         "maxLength": 260000,
         "tokenLimit": 126000,
@@ -48,6 +31,13 @@ models = {
         "tokenLimit": 31000,
         "context": "32K",
     },
+    "gpt-4-0613": {
+        "id": "gpt-4-0613",
+        "name": "GPT-4-0613",
+        "maxLength": 60000,
+        "tokenLimit": 15000,
+        "context": "16K",
+    },
     "gemini-pro": {
         "id": "gemini-pro",
         "name": "Gemini-Pro",
@@ -55,12 +45,33 @@ models = {
         "tokenLimit": 30000,
         "context": "32K",
     },
-    "claude-2": {
-        "id": "claude-2",
-        "name": "Claude-2-200k",
+    "claude-3-opus-20240229": {
+        "id": "claude-3-opus-20240229",
+        "name": "Claude-3-Opus",
         "maxLength": 800000,
         "tokenLimit": 200000,
         "context": "200K",
+    },
+    "claude-3-sonnet-20240229": {
+        "id": "claude-3-sonnet-20240229",
+        "name": "Claude-3-Sonnet",
+        "maxLength": 800000,
+        "tokenLimit": 200000,
+        "context": "200K",
+    },
+    "claude-2.1": {
+        "id": "claude-2.1",
+        "name": "Claude-2.1-200k",
+        "maxLength": 800000,
+        "tokenLimit": 200000,
+        "context": "200K",
+    },
+    "claude-2.0": {
+        "id": "claude-2.0",
+        "name": "Claude-2.0-100k",
+        "maxLength": 400000,
+        "tokenLimit": 100000,
+        "context": "100K",
     },
     "claude-instant-1": {
         "id": "claude-instant-1",
@@ -71,10 +82,12 @@ models = {
     }
 }
 
+
 class Liaobots(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://liaobots.site"
     working = True
     supports_message_history = True
+    supports_system_message = True
     supports_gpt_35_turbo = True
     supports_gpt_4 = True
     default_model = "gpt-3.5-turbo"
@@ -115,17 +128,17 @@ class Liaobots(AsyncGeneratorProvider, ProviderModelMixin):
                     data={"token": "abcdefghijklmnopqrst"},
                     verify_ssl=False
                 ) as response:
-                    response.raise_for_status()
+                    await raise_for_status(response)
                 async with session.post(
                     "https://liaobots.work/api/user",
                     proxy=proxy,
                     json={"authcode": ""},
                     verify_ssl=False
                 ) as response:
-                    response.raise_for_status()
+                    await raise_for_status(response)
                     cls._auth_code = (await response.json(content_type=None))["authCode"]
                     cls._cookie_jar = session.cookie_jar
-                    
+
             data = {
                 "conversationId": str(uuid.uuid4()),
                 "model": models[cls.get_model(model)],
@@ -140,7 +153,7 @@ class Liaobots(AsyncGeneratorProvider, ProviderModelMixin):
                 headers={"x-auth-code": cls._auth_code},
                 verify_ssl=False
             ) as response:
-                response.raise_for_status()
+                await raise_for_status(response)
                 async for chunk in response.content.iter_any():
                     if b"<html coupert-item=" in chunk:
                         raise RuntimeError("Invalid session")

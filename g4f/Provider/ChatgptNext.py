@@ -4,13 +4,14 @@ import json
 from aiohttp import ClientSession
 
 from ..typing import AsyncResult, Messages
-from ..providers.base_provider import AsyncGeneratorProvider
-
+from .base_provider import AsyncGeneratorProvider
 
 class ChatgptNext(AsyncGeneratorProvider):
     url = "https://www.chatgpt-free.cc"
     working = True
     supports_gpt_35_turbo = True
+    supports_message_history = True
+    supports_system_message = True
 
     @classmethod
     async def create_async_generator(
@@ -18,6 +19,11 @@ class ChatgptNext(AsyncGeneratorProvider):
         model: str,
         messages: Messages,
         proxy: str = None,
+        max_tokens: int = None,
+        temperature: float = 0.7,
+        top_p: float = 1,
+        presence_penalty: float = 0,
+        frequency_penalty: float = 0,
         **kwargs
     ) -> AsyncResult:
         if not model:
@@ -43,11 +49,11 @@ class ChatgptNext(AsyncGeneratorProvider):
                 "messages": messages,
                 "stream": True,
                 "model": model,
-                "temperature": 0.5,
-                "presence_penalty": 0,
-                "frequency_penalty": 0,
-                "top_p": 1,
-                **kwargs
+                "temperature": temperature,
+                "presence_penalty": presence_penalty,
+                "frequency_penalty": frequency_penalty,
+                "top_p": top_p,
+                "max_tokens": max_tokens,
             }
             async with session.post(f"https://chat.fstha.com/api/openai/v1/chat/completions", json=data, proxy=proxy) as response:
                 response.raise_for_status()

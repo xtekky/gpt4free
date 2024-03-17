@@ -172,6 +172,7 @@ def process_image(image: Image, new_width: int, new_height: int) -> Image:
         white = new_image('RGB', image.size, (255, 255, 255))
         white.paste(image, mask=image.split()[-1])
         return white
+    # Convert to RGB for jpg format
     elif image.mode != "RGB":
         image = image.convert("RGB")
     return image
@@ -254,6 +255,9 @@ class ImageResponse:
 
     def get(self, key: str):
         return self.options.get(key)
+
+    def get_list(self) -> list[str]:
+        return [self.images] if isinstance(self.images, str) else self.images
 
 class ImageRequest:
     def __init__(

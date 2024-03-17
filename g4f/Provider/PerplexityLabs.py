@@ -14,17 +14,18 @@ WS_URL = "wss://labs-api.perplexity.ai/socket.io/"
 class PerplexityLabs(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://labs.perplexity.ai"    
     working = True
-    default_model = 'pplx-70b-online'
+    default_model = "mixtral-8x7b-instruct"
     models = [
-        'pplx-7b-online', 'pplx-70b-online', 'pplx-7b-chat', 'pplx-70b-chat', 'mistral-7b-instruct', 
-        'codellama-34b-instruct', 'llama-2-70b-chat', 'llava-7b-chat', 'mixtral-8x7b-instruct', 
-        'mistral-medium', 'related'
+        "sonar-small-online", "sonar-medium-online", "sonar-small-chat", "sonar-medium-chat", "mistral-7b-instruct", 
+        "codellama-70b-instruct", "llava-v1.5-7b-wrapper", "llava-v1.6-34b", "mixtral-8x7b-instruct",
+        "gemma-2b-it", "gemma-7b-it"
+        "mistral-medium", "related"
     ]
     model_aliases = {
         "mistralai/Mistral-7B-Instruct-v0.1": "mistral-7b-instruct", 
-        "meta-llama/Llama-2-70b-chat-hf": "llama-2-70b-chat",
         "mistralai/Mixtral-8x7B-Instruct-v0.1": "mixtral-8x7b-instruct",
-        "codellama/CodeLlama-34b-Instruct-hf": "codellama-34b-instruct"
+        "codellama/CodeLlama-70b-Instruct-hf": "codellama-70b-instruct",
+        "llava-v1.5-7b": "llava-v1.5-7b-wrapper"
     }
 
     @classmethod
@@ -50,38 +51,40 @@ class PerplexityLabs(AsyncGeneratorProvider, ProviderModelMixin):
             "TE": "trailers",
         }
         async with ClientSession(headers=headers, connector=get_connector(connector, proxy)) as session:
-            t = format(random.getrandbits(32), '08x')
+            t = format(random.getrandbits(32), "08x")
             async with session.get(
                 f"{API_URL}?EIO=4&transport=polling&t={t}"
             ) as response:
                 text = await response.text()
 
-            sid = json.loads(text[1:])['sid']
+            sid = json.loads(text[1:])["sid"]
             post_data = '40{"jwt":"anonymous-ask-user"}'
             async with session.post(
-                f'{API_URL}?EIO=4&transport=polling&t={t}&sid={sid}',
+                f"{API_URL}?EIO=4&transport=polling&t={t}&sid={sid}",
                 data=post_data
             ) as response:
-                assert await response.text() == 'OK'
+                assert await response.text() == "OK"
                 
-            async with session.ws_connect(f'{WS_URL}?EIO=4&transport=websocket&sid={sid}', autoping=False) as ws:
-                await ws.send_str('2probe')
-                assert(await ws.receive_str() == '3probe')
-                await ws.send_str('5')
+            async with session.ws_connect(f"{WS_URL}?EIO=4&transport=websocket&sid={sid}", autoping=False) as ws:
+                await ws.send_str("2probe")
+                assert(await ws.receive_str() == "3probe")
+                await ws.send_str("5")
                 assert(await ws.receive_str())
-                assert(await ws.receive_str() == '6')
+                assert(await ws.receive_str() == "6")
                 message_data = {
-                    'version': '2.2',
-                    'source': 'default',
-                    'model': cls.get_model(model),
-                    'messages': messages
+                    "version": "2.5",
+                    "source": "default",
+                    "model": cls.get_model(model),
+                    "messages": messages
                 }
-                await ws.send_str('42' + json.dumps(['perplexity_labs', message_data]))
+                await ws.send_str("42" + json.dumps(["perplexity_labs", message_data]))
                 last_message = 0
                 while True:
                     message = await ws.receive_str()
-                    if message == '2':
-                        await ws.send_str('3')
+                    if message == "2":
+                        if last_message == 0:
+                            raise RuntimeError("Unknown error")
+                        await ws.send_str("3")
                         continue
                     try:
                         data = json.loads(message[2:])[1]

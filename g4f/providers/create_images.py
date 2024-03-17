@@ -6,6 +6,7 @@ import asyncio
 from .. import debug
 from ..typing import CreateResult, Messages
 from .types import BaseProvider, ProviderType
+from ..image import ImageResponse
 
 system_message = """
 You can generate images, pictures, photos or img with the DALL-E 3 image generator.
@@ -92,7 +93,9 @@ class CreateImagesProvider(BaseProvider):
         messages.insert(0, {"role": "system", "content": self.system_message})
         buffer = ""
         for chunk in self.provider.create_completion(model, messages, stream, **kwargs):
-            if isinstance(chunk, str) and buffer or "<" in chunk:
+            if isinstance(chunk, ImageResponse):
+                yield chunk
+            elif isinstance(chunk, str) and buffer or "<" in chunk:
                 buffer += chunk
                 if ">" in buffer:
                     match = re.search(r'<img data-prompt="(.*?)">', buffer)

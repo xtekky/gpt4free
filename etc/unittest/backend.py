@@ -3,6 +3,7 @@ import asyncio
 from unittest.mock import MagicMock
 from .mocks import ProviderMock
 import g4f
+from g4f.errors import MissingRequirementsError
 
 try:
     from g4f.gui.server.backend import Backend_Api, get_error_message
@@ -34,9 +35,11 @@ class TestBackendApi(unittest.TestCase):
         self.assertTrue(len(response) > 0)
 
     def test_search(self):
-        # Task was destroyed but it is pending!
         from g4f.gui.server.internet import search
-        result = asyncio.run(search("Hello"))
+        try:
+            result = asyncio.run(search("Hello"))
+        except MissingRequirementsError:
+            self.skipTest("search is not installed")
         self.assertEqual(5, len(result))
 
 class TestUtilityFunctions(unittest.TestCase):

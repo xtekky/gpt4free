@@ -70,7 +70,14 @@ class AbstractProvider(BaseProvider):
             loop.run_in_executor(executor, create_func),
             timeout=kwargs.get("timeout")
         )
-    
+
+    def get_parameters(cls) -> dict:
+        return signature(
+            cls.create_async_generator if issubclass(cls, AsyncGeneratorProvider) else
+            cls.create_async if issubclass(cls, AsyncProvider) else
+            cls.create_completion
+        ).parameters
+
     @classmethod
     @property
     def params(cls) -> str:
@@ -83,17 +90,12 @@ class AbstractProvider(BaseProvider):
         Returns:
             str: A string listing the supported parameters.
         """
-        sig = signature(
-            cls.create_async_generator if issubclass(cls, AsyncGeneratorProvider) else
-            cls.create_async if issubclass(cls, AsyncProvider) else
-            cls.create_completion
-        )
 
         def get_type_name(annotation: type) -> str:
             return annotation.__name__ if hasattr(annotation, "__name__") else str(annotation)
 
         args = ""
-        for name, param in sig.parameters.items():
+        for name, param in cls.get_parameters().items():
             if name in ("self", "kwargs") or (name == "stream" and not cls.supports_stream):
                 continue
             args += f"\n    {name}"
@@ -274,7 +276,7 @@ class ProviderModelMixin:
             model = cls.default_model
         elif model in cls.model_aliases:
             model = cls.model_aliases[model]
-        elif model not in cls.get_models():
+        elif model not in cls.get_models() and cls.models:
             raise ModelNotSupportedError(f"Model is not supported: {model} in: {cls.__name__}")
         debug.last_model = model
         return model

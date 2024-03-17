@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en" data-framework="javascript">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0 maximum-scale=1.0">
+    <meta name="description" content="A conversational AI system that listens, learns, and challenges">
+    <meta property="og:title" content="ChatGPT">
+    <meta property="og:image" content="https://openai.com/content/images/2022/11/ChatGPT.jpg">
+    <meta property="og:description" content="A conversational AI system that listens, learns, and challenges">
+    <meta property="og:url" content="https://g4f.ai">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/img/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16x16.png">
+    <link rel="manifest" href="/static/img/site.webmanifest">
+    <script src="/static/js/icons.js"></script>
+    <script src="/static/js/highlightjs-copy.min.js"></script>
+    <script src="/static/js/chat.v1.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/markdown-it@13.0.1/dist/markdown-it.min.js"></script>
+    <link rel="stylesheet"
+        href="//cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.7.0/build/styles/base16/dracula.min.css">
+    <script>
+        MathJax = {
+            chtml: {
+                scale: 1,
+                displayAlign: 'left'
+            }
+        };
+    </script>
+    <script id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
+    <script type="module" src="https://cdn.jsdelivr.net/npm/mistral-tokenizer-js" async>
+        import mistralTokenizer from "mistral-tokenizer-js"
+    </script>
+    <script type="module" src="https://belladoreai.github.io/llama-tokenizer-js/llama-tokenizer.js" async>
+        import llamaTokenizer from "llama-tokenizer-js"
+    </script>
+    <script src="https://unpkg.com/gpt-tokenizer/dist/cl100k_base.js" async></script>
+    <script>
+        const user_image = '<img src="/static/img/user.png" alt="your avatar">';
+        const gpt_image = '<img src="/static/img/gpt.png" alt="your avatar">';
+    </script>
+    <style>
+        .hljs {
+            color: #e9e9f4;
+            background: #28293629;
+            border-radius: var(--border-radius-1);
+            border: 1px solid var(--blur-border);
+            font-size: 15px;
+        }
+
+        #message-input {
+            height: 82px;
+            margin-left: 20px;
+        }
+
+        #message-input::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        /* Track */
+        #message-input::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        /* Handle */
+        #message-input::-webkit-scrollbar-thumb {
+            background: #c7a2ff;
+        }
+
+        /* Handle on hover */
+        #message-input::-webkit-scrollbar-thumb:hover {
+            background: #8b3dff;
+        }
+    </style>
+    <script src="/static/js/highlight.min.js"></script>
+    <script>window.conversation_id = "{{chat_id}}"</script>
+    <title>g4f - gui</title>
+</head>
+
+<body>
+    <div class="gradient"></div>
+    <div class="row">
+        <div class="box conversations">
+            <div class="top">
+                <button class="new_convo" onclick="new_conversation()">
+                    <i class="fa-regular fa-plus"></i>
+                    <span>New Conversation</span>
+                </button>
+            </div>
+            <div class="bottom_buttons">
+                <button onclick="delete_conversations()">
+                    <i class="fa-regular fa-trash"></i>
+                    <span>Clear Conversations</span>
+                </button>
+                <button onclick="save_storage()">
+                    <i class="fa-solid fa-download"></i>
+                    <a href="" onclick="return false;">Export Conversations</a>
+                </button>
+                <div class="info">
+                    <i class="fa-brands fa-github"></i>
+                    <span class="convo-title">github ~ <a href="https://github.com/xtekky/gpt4free">@gpt4free</a>
+                    </span>
+                </div>
+                <div class="info">
+                    <i class="fa-solid fa-star"></i>
+                    <span id="version_text" class="convo-title"></span>
+                </div>
+            </div>
+        </div>
+        <div class="conversation">
+            <textarea id="systemPrompt" class="box" placeholder="System prompt"></textarea>    
+            <div id="messages" class="box"></div>
+            <div class="toolbar">
+                <div id="input-count" class="">
+                    &nbsp;
+                </div>
+                <div class="stop_generating stop_generating-hidden">
+                    <button id="cancelButton">
+                        <span>Stop Generating</span>
+                        <i class="fa-regular fa-stop"></i>
+                    </button>
+                </div>
+                <div class="regenerate regenerate-hidden">
+                    <button id="regenerateButton">
+                        <span>Regenerate</span>
+                        <i class="fa-solid fa-rotate"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="user-input">
+                <div class="box input-box">
+                    <textarea id="message-input" placeholder="Ask a question" cols="30" rows="10"
+                        style="white-space: pre-wrap;resize: none;"></textarea>
+                    <label for="image" title="Works with Bing, Gemini, OpenaiChat and You">
+                        <input type="file" id="image" name="image" accept="image/*" required/>
+                        <i class="fa-regular fa-image"></i>
+                    </label>
+                    <label for="camera">
+                        <input type="file" id="camera" name="camera" accept="image/*" capture="camera" required/>
+                        <i class="fa-solid fa-camera"></i>
+                    </label>
+                    <label for="file">
+                        <input type="file" id="file" name="file" accept="text/plain, text/html, text/xml, application/json, text/javascript, .sh, .py, .php, .css, .yaml, .sql, .log, .csv, .twig, .md" required/>
+                        <i class="fa-solid fa-paperclip"></i>
+                    </label>
+                    <div id="send-button">
+                        <i class="fa-solid fa-paper-plane-top"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="buttons">
+                <div class="field">
+                    <select name="model" id="model">
+                        <option value="">Model: Default</option>
+                        <option value="gpt-4">gpt-4</option>
+                        <option value="gpt-3.5-turbo">gpt-3.5-turbo</option>
+                        <option value="llama2-70b">llama2-70b</option>
+                        <option value="gemini-pro">gemini-pro</option>
+                        <option value="">----</option>
+                    </select>
+                    <select name="model2" id="model2" class="hidden"></select>
+                </div>
+                <div class="field">
+                    <select name="jailbreak" id="jailbreak" style="display: none;">
+                        <option value="default" selected>Set Jailbreak</option>
+                        <option value="gpt-math-1.0">math 1.0</option>
+                        <option value="gpt-dude-1.0">dude 1.0</option>
+                        <option value="gpt-dan-1.0">dan 1.0</option>
+                        <option value="gpt-dan-2.0">dan 2.0</option>
+                        <option value="gpt-dev-2.0">dev 2.0</option>
+                        <option value="gpt-evil-1.0">evil 1.0</option>
+                    </select>
+                    <div class="field">
+                        <select name="provider" id="provider">
+                            <option value="">Provider: Auto</option>
+                            <option value="Bing">Bing</option>
+                            <option value="OpenaiChat">OpenaiChat</option>
+                            <option value="Gemini">Gemini</option>
+                            <option value="Liaobots">Liaobots</option>
+                            <option value="You">You</option>
+                            <option value="">----</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="field">
+                    <input type="checkbox" id="switch" />
+                    <label for="switch" title="Add the pages of the first 5 search results to the query."></label>
+                    <span class="about">Web Access</span>
+                </div>
+                <!--
+                <div class="field">
+                    <input type="checkbox" id="patch" />
+                    <label for="patch" title="Enable create images with Bing."></label>
+                    <span class="about">Image Generator</span>
+                </div>
+                -->
+                <div class="field">
+                    <input type="checkbox" id="history" />
+                    <label for="history" title="To improve the reaction time or if you have trouble with large conversations."></label>
+                    <span class="about">Disable History</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="mobile-sidebar">
+        <i class="fa-solid fa-bars"></i>
+    </div>
+    <script>
+    </script>
+</body>
+
+</html>

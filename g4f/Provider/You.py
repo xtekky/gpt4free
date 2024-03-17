@@ -1,21 +1,42 @@
 from __future__ import annotations
 
+import re
 import json
 import base64
 import uuid
-from aiohttp import ClientSession, FormData, BaseConnector
+try:
+    from ..requests.curl_cffi import FormData
+    has_curl_cffi = True
+except ImportError:
+    has_curl_cffi = False
 
 from ..typing import AsyncResult, Messages, ImageType, Cookies
-from .base_provider import AsyncGeneratorProvider
-from ..providers.helper import get_connector, format_prompt
-from ..image import to_bytes
-from ..requests.defaults import DEFAULT_HEADERS
+from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from .helper import format_prompt
+from ..image import to_bytes, ImageResponse
+from ..requests import StreamSession, raise_for_status
+from ..errors import MissingRequirementsError
 
-class You(AsyncGeneratorProvider):
+class You(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://you.com"
     working = True
     supports_gpt_35_turbo = True
     supports_gpt_4 = True
+    default_model = "gpt-3.5-turbo"
+    models = [
+        "gpt-3.5-turbo",
+        "gpt-4",
+        "gpt-4-turbo",
+        "claude-instant",
+        "claude-2",
+        "claude-3-opus",
+        "claude-3-sonnet",
+        "gemini-pro",
+        "zephyr"
+    ]
+    model_aliases = {
+        "claude-v2": "claude-2"
+    }
     _cookies = None
     _cookies_used = 0
 
@@ -26,21 +47,27 @@ class You(AsyncGeneratorProvider):
         messages: Messages,
         image: ImageType = None,
         image_name: str = None,
-        connector: BaseConnector = None,
         proxy: str = None,
         chat_mode: str = "default",
         **kwargs,
     ) -> AsyncResult:
-        async with ClientSession(
-            connector=get_connector(connector, proxy),
-            headers=DEFAULT_HEADERS
-        ) as client:
-            if image:
-                chat_mode = "agent"
-            elif model == "gpt-4":
-                chat_mode = model
-            cookies = await cls.get_cookies(client) if chat_mode != "default" else None
-            upload = json.dumps([await cls.upload_file(client, cookies, to_bytes(image), image_name)]) if image else ""
+        if not has_curl_cffi:
+            raise MissingRequirementsError('Install "curl_cffi" package')
+        if image is not None:
+            chat_mode = "agent"
+        elif not model or model == cls.default_model:
+            chat_mode = "default"
+        elif model.startswith("dall-e"):
+            chat_mode = "create"
+        else:
+            chat_mode = "custom"
+            model = cls.get_model(model)
+        async with StreamSession(
+            proxy=proxy,
+            impersonate="chrome"
+        ) as session:
+            cookies = await cls.get_cookies(session) if chat_mode != "default" else None
+            upload = json.dumps([await cls.upload_file(session, cookies, to_bytes(image), image_name)]) if image else ""
             #questions = [message["content"] for message in messages if message["role"] == "user"]
             # chat = [
             #     {"question": questions[idx-1], "answer": message["content"]}
@@ -63,32 +90,38 @@ class You(AsyncGeneratorProvider):
                 "userFiles": upload,
                 "selectedChatMode": chat_mode,
             }
-            async with (client.post if chat_mode == "default" else client.get)(
+            if chat_mode == "custom":
+                params["selectedAIModel"] = model.replace("-", "_")
+            async with (session.post if chat_mode == "default" else session.get)(
                 f"{cls.url}/api/streamingSearch",
                 data=data,
                 params=params,
                 headers=headers,
                 cookies=cookies
             ) as response:
-                response.raise_for_status()
-                async for line in response.content:
+                await raise_for_status(response)
+                async for line in response.iter_lines():
                     if line.startswith(b'event: '):
-                        event = line[7:-1].decode()
+                        event = line[7:].decode()
                     elif line.startswith(b'data: '):
                         if event in ["youChatUpdate", "youChatToken"]:
-                            data = json.loads(line[6:-1])
+                            data = json.loads(line[6:])
                         if event == "youChatToken" and event in data:
                             yield data[event]
                         elif event == "youChatUpdate" and "t" in data:
-                            yield data["t"]                         
+                            match = re.search(r"!\[fig\]\((.+?)\)", data["t"])
+                            if match:
+                                yield ImageResponse(match.group(1), messages[-1]["content"])
+                            else:
+                                yield data["t"]                         
 
     @classmethod
-    async def upload_file(cls, client: ClientSession, cookies: Cookies, file: bytes, filename: str = None) -> dict:
+    async def upload_file(cls, client: StreamSession, cookies: Cookies, file: bytes, filename: str = None) -> dict:
         async with client.get(
             f"{cls.url}/api/get_nonce",
             cookies=cookies,
         ) as response:
-            response.raise_for_status()
+            await raise_for_status(response)
             upload_nonce = await response.text()
         data = FormData()
         data.add_field('file', file, filename=filename)
@@ -100,15 +133,14 @@ class You(AsyncGeneratorProvider):
             },
             cookies=cookies
         ) as response:
-            if not response.ok:
-                raise RuntimeError(f"Response: {await response.text()}")
+            await raise_for_status(response)
             result = await response.json()
         result["user_filename"] = filename
         result["size"] = len(file)
         return result
 
     @classmethod
-    async def get_cookies(cls, client: ClientSession) -> Cookies:
+    async def get_cookies(cls, client: StreamSession) -> Cookies:
         if not cls._cookies or cls._cookies_used >= 5:
             cls._cookies = await cls.create_cookies(client)
             cls._cookies_used = 0
@@ -135,7 +167,7 @@ class You(AsyncGeneratorProvider):
         return f"Basic {auth}"
 
     @classmethod
-    async def create_cookies(cls, client: ClientSession) -> Cookies:
+    async def create_cookies(cls, client: StreamSession) -> Cookies:
         user_uuid = str(uuid.uuid4())
         async with client.post(
             "https://web.stytch.com/sdk/v1/passwords",
@@ -150,8 +182,7 @@ class You(AsyncGeneratorProvider):
                 "session_duration_minutes": 129600
             }
         ) as response:
-            if not response.ok:
-                raise RuntimeError(f"Response: {await response.text()}")
+            await raise_for_status(response)
             session = (await response.json())["data"]
         return {
             "stytch_session": session["session_token"],

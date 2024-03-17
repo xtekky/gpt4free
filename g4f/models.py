@@ -2,20 +2,20 @@ from __future__  import annotations
 
 from dataclasses import dataclass
 
-from .Provider   import RetryProvider, ProviderType
+from .Provider import RetryProvider, ProviderType
 from .Provider   import (
     Chatgpt4Online,
     PerplexityLabs,
-    ChatgptDemoAi,
     GeminiProChat,
     ChatgptNext,
     HuggingChat,
+    HuggingFace,
     ChatgptDemo,
-    FreeChatgpt,
     GptForLove,
     ChatgptAi,
     DeepInfra,
     ChatBase,
+    GigaChat,
     Liaobots,
     FreeGpt,
     Llama2,
@@ -65,7 +65,6 @@ gpt_35_long = Model(
     best_provider = RetryProvider([
         FreeGpt, You,
         Chatgpt4Online,
-        ChatgptDemoAi,
         ChatgptNext,
         ChatgptDemo,
         Gpt6,
@@ -97,6 +96,24 @@ gpt_4_turbo = Model(
     best_provider = Bing
 )
 
+gigachat = Model(
+    name          = 'GigaChat:latest',
+    base_provider = 'gigachat',
+    best_provider = GigaChat
+)
+
+gigachat_plus = Model(
+    name          = 'GigaChat-Plus',
+    base_provider = 'gigachat',
+    best_provider = GigaChat
+)
+
+gigachat_pro = Model(
+    name          = 'GigaChat-Pro',
+    base_provider = 'gigachat',
+    best_provider = GigaChat
+)
+
 llama2_7b = Model(
     name          = "meta-llama/Llama-2-7b-chat-hf",
     base_provider = 'meta',
@@ -112,32 +129,32 @@ llama2_13b = Model(
 llama2_70b = Model(
     name          = "meta-llama/Llama-2-70b-chat-hf",
     base_provider = "meta",
-    best_provider = RetryProvider([Llama2, DeepInfra, HuggingChat, PerplexityLabs])
+    best_provider = RetryProvider([Llama2, DeepInfra, HuggingChat])
 )
 
 codellama_34b_instruct = Model(
     name          = "codellama/CodeLlama-34b-Instruct-hf",
     base_provider = "meta",
-    best_provider = RetryProvider([HuggingChat, PerplexityLabs, DeepInfra])
+    best_provider = RetryProvider([HuggingChat, DeepInfra])
 )
 
 codellama_70b_instruct = Model(
     name          = "codellama/CodeLlama-70b-Instruct-hf",
     base_provider = "meta",
-    best_provider = DeepInfra
+    best_provider = RetryProvider([DeepInfra, PerplexityLabs])
 )
 
 # Mistral
 mixtral_8x7b = Model(
     name          = "mistralai/Mixtral-8x7B-Instruct-v0.1",
     base_provider = "huggingface",
-    best_provider = RetryProvider([DeepInfra, HuggingChat, PerplexityLabs])
+    best_provider = RetryProvider([DeepInfra, HuggingChat, HuggingFace, PerplexityLabs])
 )
 
 mistral_7b = Model(
     name          = "mistralai/Mistral-7B-Instruct-v0.1",
     base_provider = "huggingface",
-    best_provider = RetryProvider([DeepInfra, HuggingChat, PerplexityLabs])
+    best_provider = RetryProvider([DeepInfra, HuggingChat, HuggingFace, PerplexityLabs])
 )
 
 # Misc models
@@ -181,7 +198,19 @@ gemini = bard = palm = Model(
 claude_v2 = Model(
     name          = 'claude-v2',
     base_provider = 'anthropic',
-    best_provider = RetryProvider([FreeChatgpt, Vercel])
+    best_provider = RetryProvider([Vercel])
+)
+
+claude_3_opus = Model(
+    name          = 'claude-3-opus',
+    base_provider = 'anthropic',
+    best_provider = You
+)
+
+claude_3_sonnet = Model(
+    name          = 'claude-3-sonnet',
+    base_provider = 'anthropic',
+    best_provider = You
 )
 
 gpt_35_turbo_16k = Model(
@@ -223,7 +252,7 @@ gpt_4_32k_0613 = Model(
 gemini_pro = Model(
     name          = 'gemini-pro',
     base_provider = 'google',
-    best_provider = RetryProvider([FreeChatgpt, GeminiProChat])
+    best_provider = RetryProvider([GeminiProChat, You])
 )
 
 pi = Model(
@@ -261,7 +290,12 @@ class ModelUtils:
         'llama2-70b': llama2_70b,
         'codellama-34b-instruct': codellama_34b_instruct,
         'codellama-70b-instruct': codellama_70b_instruct,
-        
+
+        # GigaChat
+        'gigachat'     : gigachat,
+        'gigachat_plus': gigachat_plus,
+        'gigachat_pro' : gigachat_pro,
+
         'mixtral-8x7b': mixtral_8x7b,
         'mistral-7b': mistral_7b,
         'dolphin-mixtral-8x7b': dolphin_mixtral_8x7b,
@@ -272,6 +306,8 @@ class ModelUtils:
         'gemini': gemini,
         'gemini-pro': gemini_pro,
         'claude-v2': claude_v2,
+        'claude-3-opus': claude_3_opus,
+        'claude-3-sonnet': claude_3_sonnet,
         'pi': pi
     }
 

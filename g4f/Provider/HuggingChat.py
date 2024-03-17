@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-import json, uuid
+import json
 
 from aiohttp import ClientSession, BaseConnector
 
 from ..typing import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from .helper import format_prompt, get_cookies, get_connector
+from .helper import format_prompt, get_connector
 
 
 class HuggingChat(AsyncGeneratorProvider, ProviderModelMixin):
@@ -24,7 +24,6 @@ class HuggingChat(AsyncGeneratorProvider, ProviderModelMixin):
     ]
     model_aliases = {
         "openchat/openchat_3.5": "openchat/openchat-3.5-1210",
-        "mistralai/Mixtral-8x7B-Instruct-v0.1": "mistralai/Mistral-7B-Instruct-v0.2"
     }
 
     @classmethod
@@ -39,9 +38,11 @@ class HuggingChat(AsyncGeneratorProvider, ProviderModelMixin):
         cookies: dict = None,
         **kwargs
     ) -> AsyncResult:
-        if not cookies:
-            cookies = get_cookies(".huggingface.co", False)
-
+        options = {"model": cls.get_model(model)}
+        system_prompt = "\n".join([message["content"] for message in messages if message["role"] == "system"])
+        if system_prompt:
+            options["preprompt"] = system_prompt
+            messages = [message for message in messages if message["role"] != "system"]
         headers = {
             'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36',
         }
@@ -50,20 +51,27 @@ class HuggingChat(AsyncGeneratorProvider, ProviderModelMixin):
             headers=headers,
             connector=get_connector(connector, proxy)
         ) as session:
-            async with session.post(f"{cls.url}/conversation", json={"model": cls.get_model(model)}, proxy=proxy) as response:
+            async with session.post(f"{cls.url}/conversation", json=options, proxy=proxy) as response:
+                response.raise_for_status()
                 conversation_id = (await response.json())["conversationId"]
-
-            send = {
-                "id": str(uuid.uuid4()),
+            async with session.get(f"{cls.url}/conversation/{conversation_id}/__data.json") as response:
+                response.raise_for_status()
+                data: list = (await response.json())["nodes"][1]["data"]
+                keys: list[int] = data[data[0]["messages"]]
+                message_keys: dict = data[keys[0]]
+                message_id: str = data[message_keys["id"]]
+            options = {
+                "id": message_id,
                 "inputs": format_prompt(messages),
+                "is_continue": False,
                 "is_retry": False,
-                "response_id": str(uuid.uuid4()),
                 "web_search": web_search
             }
-            async with session.post(f"{cls.url}/conversation/{conversation_id}", json=send, proxy=proxy) as response:
+            async with session.post(f"{cls.url}/conversation/{conversation_id}", json=options) as response:
                 first_token = True
                 async for line in response.content:
-                    line = json.loads(line[:-1])
+                    response.raise_for_status()
+                    line = json.loads(line)
                     if "type" not in line:
                         raise RuntimeError(f"Response: {line}")
                     elif line["type"] == "stream":
@@ -74,6 +82,5 @@ class HuggingChat(AsyncGeneratorProvider, ProviderModelMixin):
                         yield token
                     elif line["type"] == "finalAnswer":
                         break
-                
             async with session.delete(f"{cls.url}/conversation/{conversation_id}", proxy=proxy) as response:
                 response.raise_for_status()

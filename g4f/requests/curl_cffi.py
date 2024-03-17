@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from curl_cffi.requests import AsyncSession, Response
+from curl_cffi.requests import AsyncSession, Response, CurlMime
 from typing import AsyncGenerator, Any
 from functools import partialmethod
 import json
@@ -65,6 +65,8 @@ class StreamSession(AsyncSession):
     def request(
         self, method: str, url: str, **kwargs
     ) -> StreamResponse:
+        if isinstance(kwargs.get("data"), CurlMime):
+            kwargs["multipart"] = kwargs.pop("data")
         """Create and return a StreamResponse object for the given HTTP request."""
         return StreamResponse(super().request(method, url, stream=True, **kwargs))
 
@@ -75,3 +77,7 @@ class StreamSession(AsyncSession):
     put = partialmethod(request, "PUT")
     patch = partialmethod(request, "PATCH")
     delete = partialmethod(request, "DELETE")
+
+class FormData(CurlMime):
+    def add_field(self, name, data=None, content_type: str = None, filename: str = None) -> None:
+        self.addpart(name, content_type=content_type, filename=filename, data=data)
