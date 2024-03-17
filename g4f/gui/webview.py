@@ -1,3 +1,5 @@
+import sys
+import os.path
 import webview
 try:
     from platformdirs import user_config_dir
@@ -14,9 +16,13 @@ def run_webview(
     debug: bool = False,
     storage_path: str = None
 ):
+    if getattr(sys, 'frozen', False):
+        dirname = sys._MEIPASS
+    else:
+        dirname = os.path.dirname(__file__)
     webview.create_window(
         f"g4f - {g4f.version.utils.current_version}",
-        "client/index.html",
+        os.path.join(dirname, "client/index.html"),
         text_select=True,
         js_api=Api(),
     )
