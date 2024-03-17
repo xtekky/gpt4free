@@ -18,7 +18,7 @@ from ...webdriver import WebDriver, WebDriverSession, element_send_text
 
 class Bard(AbstractProvider):
     url = "https://bard.google.com"
-    working = True
+    working = False
     needs_auth = True
     webdriver = True
 

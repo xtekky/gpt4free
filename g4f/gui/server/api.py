@@ -80,7 +80,8 @@ class Api():
             self._prepare_conversation_kwargs(options, kwargs),
             options.get("conversation_id")
         ):
-            window.evaluate_js(f"this.add_message_chunk({json.dumps(message)})")
+            if not window.evaluate_js(f"if (!this.abort) this.add_message_chunk({json.dumps(message)}); !this.abort && !this.error;"):
+                break
 
     def _prepare_conversation_kwargs(self, json_data: dict, kwargs: dict):
         """

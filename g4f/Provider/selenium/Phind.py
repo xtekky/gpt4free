@@ -10,7 +10,7 @@ from ...webdriver import WebDriver, WebDriverSession
 
 class Phind(AbstractProvider):
     url = "https://www.phind.com"
-    working = True
+    working = False
     supports_gpt_4 = True
     supports_stream = True
 

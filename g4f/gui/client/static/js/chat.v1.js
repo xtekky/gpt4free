@@ -19,6 +19,8 @@ const jailbreak         = document.getElementById("jailbreak");
 
 let prompt_lock = false;
 
+let content, content_inner, content_count = null;
+
 const options = ["switch", "model", "model2", "jailbreak", "patch", "provider", "history"];
 
 messageInput.addEventListener("blur", () => {
@@ -202,7 +204,7 @@ async function add_message_chunk(message) {
         console.info("Conversation used:", message.conversation)
     } else if (message.type == "provider") {
         window.provider_result = message.provider;
-        window.content.querySelector('.provider').innerHTML = `
+        content.querySelector('.provider').innerHTML = `
             <a href="${message.provider.url}" target="_blank">
                 ${message.provider.name}
             </a>
@@ -210,10 +212,10 @@ async function add_message_chunk(message) {
         `
     } else if (message.type == "message") {
         console.error(messag.message)
-        return;
     } else if (message.type == "error") {
+        window.error = message.error
         console.error(message.error);
-        window.content_inner.innerHTML += `<p><strong>An error occured:</strong> ${message.error}</p>`;
+        content_inner.innerHTML += `<p><strong>An error occured:</strong> ${message.error}</p>`;
     } else if (message.type == "content") {
         window.text += message.content;
         html = markdown_render(window.text);
@@ -228,11 +230,10 @@ async function add_message_chunk(message) {
         if (lastIndex) {
             html = html.substring(0, lastIndex) + '<span id="cursor"></span>' + lastElement;
         }
-        window.content_inner.innerHTML = html;
-        window.content_count.innerText = count_words_and_tokens(text, window.provider_result?.model);
-        highlight(window.content_inner);
+        content_inner.innerHTML = html;
+        content_count.innerText = count_words_and_tokens(text, window.provider_result?.model);
+        highlight(content_inner);
     }
-
     window.scrollTo(0, 0);
     if (message_box.scrollTop >= message_box.scrollHeight - message_box.clientHeight - 100) {
         message_box.scrollTo({ top: message_box.scrollHeight, behavior: "auto" });
@@ -271,11 +272,12 @@ const ask_gpt = async () => {
     window.controller = new AbortController();
     window.text  = "";
     window.error = null;
+    window.abort = false;
     window.provider_result = null;
 
-    window.content = document.getElementById(`gpt_${window.token}`);
-    window.content_inner = content.querySelector('.content_inner');
-    window.content_count = content.querySelector('.count');
+    content = document.getElementById(`gpt_${window.token}`);
+    content_inner = content.querySelector('.content_inner');
+    content_count = content.querySelector('.count');
 
     message_box.scrollTop = message_box.scrollHeight;
     window.scrollTo(0, 0);
@@ -307,9 +309,6 @@ const ask_gpt = async () => {
             error = true;
             text = "oops ! something went wrong, please try again / reload. [stacktrace in console]";
             content_inner.innerHTML = text;
-        } else {
-            content_inner.innerHTML += " [aborted]";
-            if (text) text += " [aborted]";
         }
     }
     if (!error && text) {
@@ -583,8 +582,13 @@ const load_conversations = async () => {
     }
 };
 
-document.getElementById(`cancelButton`).addEventListener(`click`, async () => {
+document.getElementById("cancelButton").addEventListener("click", async () => {
     window.controller.abort();
+    if (!window.abort) {
+        window.abort = true;
+        content_inner.innerHTML += " [aborted]";
+        if (window.text) window.text += " [aborted]";
+    }
     console.log(`aborted ${window.conversation_id}`);
 });
 
