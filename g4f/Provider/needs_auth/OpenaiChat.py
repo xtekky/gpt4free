@@ -450,7 +450,7 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
                 ) as response:
                     cls._update_request_args(session)
                     await raise_for_status(response)
-                    async for chunk in cls.iter_messages_chunk(response.iter_lines(), session, fields, websocket_request_id):
+                    async for chunk in cls.iter_messages_chunk(response.iter_lines(), session, fields):
                         if response_fields:
                             response_fields = False
                             yield fields

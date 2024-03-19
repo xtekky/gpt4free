@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from aiohttp import ClientSession
 from ...requests import raise_for_status
+from ...errors import RateLimitError
 
 class Conversation:
     """
@@ -36,6 +37,8 @@ async def create_conversation(session: ClientSession, headers: dict, tone: str) 
     else:
         url = "https://www.bing.com/turing/conversation/create?bundleVersion=1.1626.1"
     async with session.get(url, headers=headers) as response:
+        if response.status == 404:
+            raise RateLimitError("Response 404: Do less requests and reuse conversations")
         await raise_for_status(response, "Failed to create conversation")
         data = await response.json()
     conversationId = data.get('conversationId')

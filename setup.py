@@ -11,6 +11,7 @@ with codecs.open(os.path.join(here, 'README.md'), encoding='utf-8') as fh:
 INSTALL_REQUIRE = [
     "requests",
     "aiohttp",
+    "brotli"
 ]
 
 EXTRA_REQUIRE = {
