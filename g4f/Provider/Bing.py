@@ -293,7 +293,7 @@ def create_message(
     :return: A formatted string message for the Bing API.
     """
 
-    options_sets = Defaults.optionsSets[tone]
+    options_sets = Defaults.optionsSets[tone.lower()]
     if not web_search and "nosearch" in options_sets:
         options_sets = options_sets["nosearch"]
     elif "default" in options_sets:
@@ -308,7 +308,7 @@ def create_message(
             "source": "cib",
             "optionsSets": options_sets,
             "allowedMessageTypes": Defaults.allowedMessageTypes,
-            "sliceIds": Defaults.sliceIds[tone],
+            "sliceIds": Defaults.sliceIds[tone.lower()],
             "verbosity": "verbose",
             "scenario": "CopilotMicrosoftCom" if tone == Tones.copilot else "SERP",
             "plugins": [{"id": "c310c353-b9f0-4d76-ab0d-1dd5e979cf68", "category": 1}] if web_search else [],
