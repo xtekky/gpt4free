@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import sys
 import os.path
 import webview
@@ -20,6 +22,8 @@ def run_webview(
         dirname = sys._MEIPASS
     else:
         dirname = os.path.dirname(__file__)
+    webview.settings['OPEN_EXTERNAL_LINKS_IN_BROWSER'] = False
+    webview.settings['ALLOW_DOWNLOADS'] = True
     webview.create_window(
         f"g4f - {g4f.version.utils.current_version}",
         os.path.join(dirname, "client/index.html"),

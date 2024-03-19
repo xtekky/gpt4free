@@ -482,23 +482,16 @@ body {
     display: none;
 }
 
-label[for="image"]:has(> input:valid){
-    color: var(--accent);
-}
-
-label[for="camera"]:has(> input:valid){
-    color: var(--accent);
-}
-
-label[for="file"]:has(> input:valid){
-    color: var(--accent);
-}
-
-label[for="image"], label[for="file"], label[for="camera"] {
+.file-label {
     cursor: pointer;
     position: absolute;
     top: 10px;
     left: 10px;
+}
+
+.file-label:has(> input:valid),
+.file-label.selected {
+    color: var(--accent);
 }
 
 label[for="image"] {

@@ -53,3 +53,4 @@ info.txt
 local.py
 *.gguf
 image.py
+.buildozer

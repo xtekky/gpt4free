@@ -211,7 +211,7 @@ async function add_message_chunk(message) {
             ${message.provider.model ? ' with ' + message.provider.model : ''}
         `
     } else if (message.type == "message") {
-        console.error(messag.message)
+        console.error(message.message)
     } else if (message.type == "error") {
         window.error = message.error
         console.error(message.error);
@@ -239,6 +239,27 @@ async function add_message_chunk(message) {
         message_box.scrollTo({ top: message_box.scrollHeight, behavior: "auto" });
     }
 }
+
+cameraInput?.addEventListener("click", (e) => {
+    if (window?.pywebview) {
+        e.preventDefault();
+        pywebview.api.choose_file();
+    }
+})
+
+cameraInput?.addEventListener("click", (e) => {
+    if (window?.pywebview) {
+        e.preventDefault();
+        pywebview.api.take_picture();
+    }
+})
+
+imageInput?.addEventListener("click", (e) => {
+    if (window?.pywebview) {
+        e.preventDefault();
+        pywebview.api.choose_image();
+    }
+})
 
 const ask_gpt = async () => {
     regenerate.classList.add(`regenerate-hidden`);
@@ -307,8 +328,7 @@ const ask_gpt = async () => {
         console.error(e);
         if (e.name != "AbortError") {
             error = true;
-            text = "oops ! something went wrong, please try again / reload. [stacktrace in console]";
-            content_inner.innerHTML = text;
+            content_inner.innerHTML += `<p><strong>An error occured:</strong> ${e}</p>`;
         }
     }
     if (!error && text) {
@@ -592,7 +612,7 @@ document.getElementById("cancelButton").addEventListener("click", async () => {
     console.log(`aborted ${window.conversation_id}`);
 });
 
-document.getElementById(`regenerateButton`).addEventListener(`click`, async () => {
+document.getElementById("regenerateButton").addEventListener("click", async () => {
     prompt_lock = true;
     await hide_last_message(window.conversation_id);
     window.token = message_id();
@@ -622,7 +642,12 @@ const message_id = () => {
 async function hide_sidebar() {
     sidebar.classList.remove("shown");
     sidebar_button.classList.remove("rotated");
+    if (window.location.pathname == "/menu/") {
+        history.back();
+    }
 }
+
+window.addEventListener('popstate', hide_sidebar, false);
 
 sidebar_button.addEventListener("click", (event) => {
     if (sidebar.classList.contains("shown")) {
@@ -630,6 +655,7 @@ sidebar_button.addEventListener("click", (event) => {
     } else {
         sidebar.classList.add("shown");
         sidebar_button.classList.add("rotated");
+        history.pushState({}, null, "/menu/");
     }
     window.scrollTo(0, 0);
 });
@@ -817,19 +843,6 @@ async function on_api() {
 
     register_settings_storage();
 
-    versions = await api("version");
-    document.title = 'g4f - ' + versions["version"];
-    let text = "version ~ "
-    if (versions["version"] != versions["latest_version"]) {
-        let release_url = 'https://github.com/xtekky/gpt4free/releases/tag/' + versions["latest_version"];
-        let title = `New version: ${versions["latest_version"]}`;
-        text += `<a href="${release_url}" target="_blank" title="${title}">${versions["version"]}</a> `;
-        text += `<i class="fa-solid fa-rotate"></i>`
-    } else {
-        text += versions["version"];
-    }
-    document.getElementById("version_text").innerHTML = text
-
     models = await api("models");
     models.forEach((model) => {
         let option = document.createElement("option");
@@ -845,8 +858,24 @@ async function on_api() {
     })
 
     await load_provider_models(appStorage.getItem("provider"));
-    load_settings_storage()
+    await load_settings_storage()
 }
+
+async function load_version() {
+    const versions = await api("version");
+    document.title = 'g4f - ' + versions["version"];
+    let text = "version ~ "
+    if (versions["version"] != versions["latest_version"]) {
+        let release_url = 'https://github.com/xtekky/gpt4free/releases/tag/' + versions["latest_version"];
+        let title = `New version: ${versions["latest_version"]}`;
+        text += `<a href="${release_url}" target="_blank" title="${title}">${versions["version"]}</a> `;
+        text += `<i class="fa-solid fa-rotate"></i>`
+    } else {
+        text += versions["version"];
+    }
+    document.getElementById("version_text").innerHTML = text
+}
+setTimeout(load_version, 5000);
 
 for (const el of [imageInput, cameraInput]) {
     el.addEventListener('click', async () => {
@@ -913,13 +942,13 @@ function get_selected_model() {
 
 async function api(ressource, args=null, file=null) {
     if (window?.pywebview) {
-        if (args) {
+        if (args !== null) {
             if (ressource == "models") {
                 ressource = "provider_models";
             }
-            return pywebview.api["get_" + ressource](args);
+            return pywebview.api[`get_${ressource}`](args);
         }
-        return pywebview.api["get_" + ressource]();
+        return pywebview.api[`get_${ressource}`]();
     }
     if (ressource == "models" && args) {
         ressource = `${ressource}/${args}`;
@@ -930,7 +959,7 @@ async function api(ressource, args=null, file=null) {
         const headers = {
             accept: 'text/event-stream'
         }
-        if (file) {
+        if (file !== null) {
             const formData = new FormData();
             formData.append('file', file);
             formData.append('json', body);
