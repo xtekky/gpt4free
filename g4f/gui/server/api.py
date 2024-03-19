@@ -10,11 +10,9 @@ from functools import partial
 try:
     import webview
     import platformdirs
-except ImportError:
-    ...
-try:
     from plyer import camera
     from plyer import filechooser
+    app_storage_path = platformdirs.user_pictures_dir
     has_plyer = True
 except ImportError:
     has_plyer = False
@@ -28,7 +26,6 @@ try:
     has_android = True
 except ImportError:
     run_on_ui_thread = lambda a : a
-    app_storage_path = platformdirs.user_pictures_dir
     user_select_image = partial(
         filechooser.open_file,
         path=platformdirs.user_pictures_dir(),
