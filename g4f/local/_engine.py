@@ -1,7 +1,7 @@
 import os
 
-from gpt4all import GPT4All
-from .models import models
+from gpt4all  import GPT4All
+from ._models import models
 
 class LocalProvider:
     @staticmethod
