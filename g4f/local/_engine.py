@@ -1,7 +1,7 @@
 import os
 
-from gpt4all import GPT4All
-from .models import models
+from gpt4all  import GPT4All
+from ._models import models
 
 class LocalProvider:
     @staticmethod
@@ -10,7 +10,7 @@ class LocalProvider:
             raise ValueError(f"Model '{model}' not found / not yet implemented")
         
         model           = models[model]
-        model_dir       = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../models/')
+        model_dir       = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'models/')
         full_model_path = os.path.join(model_dir, model['path'])
         
         if not os.path.isfile(full_model_path):
@@ -23,7 +23,7 @@ class LocalProvider:
                 raise ValueError(f"Model '{model['path']}' not found.")
         
         model = GPT4All(model_name=model['path'],
-                               n_threads=8,
+                               #n_threads=8,
                                verbose=False,
                                allow_download=False,
                                model_path=model_dir)

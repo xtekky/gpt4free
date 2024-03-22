@@ -11,7 +11,7 @@ from aiohttp import ClientSession, ClientTimeout, BaseConnector, WSMsgType
 
 from ..typing import AsyncResult, Messages, ImageType, Cookies
 from ..image import ImageRequest
-from ..errors import ResponseStatusError
+from ..errors import ResponseStatusError, RateLimitError
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from .helper import get_connector, get_random_hex
 from .bing.upload_image import upload_image
@@ -26,7 +26,7 @@ class Tones:
     creative = "Creative"
     balanced = "Balanced"
     precise = "Precise"
-    copilot = "Balanced"
+    copilot = "Copilot"
 
 class Bing(AsyncGeneratorProvider, ProviderModelMixin):
     """
@@ -36,8 +36,8 @@ class Bing(AsyncGeneratorProvider, ProviderModelMixin):
     working = True
     supports_message_history = True
     supports_gpt_4 = True
-    default_model = "balanced"
-    models = [key for key in Tones.__dict__ if not key.startswith("__")]
+    default_model = "Balanced"
+    models = [getattr(Tones, key) for key in Tones.__dict__ if not key.startswith("__")]
         
     @classmethod
     def create_async_generator(
@@ -72,7 +72,7 @@ class Bing(AsyncGeneratorProvider, ProviderModelMixin):
             context = create_context(messages[:-1]) if len(messages) > 1 else None
         if tone is None:
             tone = tone if model.startswith("gpt-4") else model
-        tone = cls.get_model("" if tone is None else tone.lower())
+        tone = cls.get_model("" if tone is None else tone)
         gpt4_turbo = True if model.startswith("gpt-4-turbo") else False
 
         return stream_generate(
@@ -258,7 +258,6 @@ class Defaults:
         'sec-fetch-mode': 'cors',
         'sec-fetch-dest': 'empty',
         'referer': home,
-        'accept-encoding': 'gzip, deflate, br',
         'accept-language': 'en-US,en;q=0.9',
     }
 
@@ -294,7 +293,7 @@ def create_message(
     :return: A formatted string message for the Bing API.
     """
 
-    options_sets = Defaults.optionsSets[tone]
+    options_sets = Defaults.optionsSets[tone.lower()]
     if not web_search and "nosearch" in options_sets:
         options_sets = options_sets["nosearch"]
     elif "default" in options_sets:
@@ -309,9 +308,9 @@ def create_message(
             "source": "cib",
             "optionsSets": options_sets,
             "allowedMessageTypes": Defaults.allowedMessageTypes,
-            "sliceIds": Defaults.sliceIds[tone],
+            "sliceIds": Defaults.sliceIds[tone.lower()],
             "verbosity": "verbose",
-            "scenario": "CopilotMicrosoftCom" if tone == "copilot" else "SERP",
+            "scenario": "CopilotMicrosoftCom" if tone == Tones.copilot else "SERP",
             "plugins": [{"id": "c310c353-b9f0-4d76-ab0d-1dd5e979cf68", "category": 1}] if web_search else [],
             "traceId": get_random_hex(40),
             "conversationHistoryOptionsSets": ["autosave","savemem","uprofupd","uprofgen"],
@@ -329,7 +328,7 @@ def create_message(
                 "requestId": request_id,
                 "messageId": request_id
             },
-            "tone": getattr(Tones, tone),
+            "tone": "Balanced" if tone == Tones.copilot else tone,
             "spokenTextMode": "None",
             "conversationId": conversation.conversationId,
             "participant": {"id": conversation.clientId}
@@ -412,10 +411,15 @@ async def stream_generate(
                 await asyncio.sleep(sleep_retry)
                 continue
 
-            image_request = await upload_image(session, image, getattr(Tones, tone), headers) if image else None
+            image_request = await upload_image(
+                session,
+                image,
+                "Balanced" if Tones.copilot == "Copilot" else tone,
+                headers
+            ) if image else None
             async with session.ws_connect(
                 'wss://s.copilot.microsoft.com/sydney/ChatHub'
-                if tone == "copilot" else
+                if tone == "Copilot" else
                 'wss://sydney.bing.com/sydney/ChatHub',
                 autoping=False,
                 params={'sec_access_token': conversation.conversationSignature},
@@ -481,7 +485,7 @@ async def stream_generate(
                                 max_retries -= 1
                                 if max_retries < 1:
                                     if result["value"] == "CaptchaChallenge":
-                                        raise RuntimeError(f"{result['value']}: Use other cookies or/and ip address")
+                                        raise RateLimitError(f"{result['value']}: Use other cookies or/and ip address")
                                     else:
                                         raise RuntimeError(f"{result['value']}: {result['message']}")
                                 if debug.logging:

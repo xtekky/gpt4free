@@ -1,8 +1,8 @@
 from ..typing import Union, Iterator, Messages
 from ..stubs  import ChatCompletion, ChatCompletionChunk
-from .core.engine import LocalProvider
-from .core.models import models
-from ..client     import iter_response, filter_none, IterResponse
+from ._engine import LocalProvider
+from ._models import models
+from ..client import iter_response, filter_none, IterResponse
 
 class LocalClient():
     def __init__(self, **kwargs) -> None:

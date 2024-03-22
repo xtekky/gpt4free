@@ -19,6 +19,8 @@ const jailbreak         = document.getElementById("jailbreak");
 
 let prompt_lock = false;
 
+let content, content_inner, content_count = null;
+
 const options = ["switch", "model", "model2", "jailbreak", "patch", "provider", "history"];
 
 messageInput.addEventListener("blur", () => {
@@ -202,18 +204,18 @@ async function add_message_chunk(message) {
         console.info("Conversation used:", message.conversation)
     } else if (message.type == "provider") {
         window.provider_result = message.provider;
-        window.content.querySelector('.provider').innerHTML = `
+        content.querySelector('.provider').innerHTML = `
             <a href="${message.provider.url}" target="_blank">
                 ${message.provider.name}
             </a>
             ${message.provider.model ? ' with ' + message.provider.model : ''}
         `
     } else if (message.type == "message") {
-        console.error(messag.message)
-        return;
+        console.error(message.message)
     } else if (message.type == "error") {
+        window.error = message.error
         console.error(message.error);
-        window.content_inner.innerHTML += `<p><strong>An error occured:</strong> ${message.error}</p>`;
+        content_inner.innerHTML += `<p><strong>An error occured:</strong> ${message.error}</p>`;
     } else if (message.type == "content") {
         window.text += message.content;
         html = markdown_render(window.text);
@@ -228,16 +230,36 @@ async function add_message_chunk(message) {
         if (lastIndex) {
             html = html.substring(0, lastIndex) + '<span id="cursor"></span>' + lastElement;
         }
-        window.content_inner.innerHTML = html;
-        window.content_count.innerText = count_words_and_tokens(text, window.provider_result?.model);
-        highlight(window.content_inner);
+        content_inner.innerHTML = html;
+        content_count.innerText = count_words_and_tokens(text, window.provider_result?.model);
+        highlight(content_inner);
     }
-
     window.scrollTo(0, 0);
     if (message_box.scrollTop >= message_box.scrollHeight - message_box.clientHeight - 100) {
         message_box.scrollTo({ top: message_box.scrollHeight, behavior: "auto" });
     }
 }
+
+cameraInput?.addEventListener("click", (e) => {
+    if (window?.pywebview) {
+        e.preventDefault();
+        pywebview.api.choose_file();
+    }
+})
+
+cameraInput?.addEventListener("click", (e) => {
+    if (window?.pywebview) {
+        e.preventDefault();
+        pywebview.api.take_picture();
+    }
+})
+
+imageInput?.addEventListener("click", (e) => {
+    if (window?.pywebview) {
+        e.preventDefault();
+        pywebview.api.choose_image();
+    }
+})
 
 const ask_gpt = async () => {
     regenerate.classList.add(`regenerate-hidden`);
@@ -271,11 +293,12 @@ const ask_gpt = async () => {
     window.controller = new AbortController();
     window.text  = "";
     window.error = null;
+    window.abort = false;
     window.provider_result = null;
 
-    window.content = document.getElementById(`gpt_${window.token}`);
-    window.content_inner = content.querySelector('.content_inner');
-    window.content_count = content.querySelector('.count');
+    content = document.getElementById(`gpt_${window.token}`);
+    content_inner = content.querySelector('.content_inner');
+    content_count = content.querySelector('.count');
 
     message_box.scrollTop = message_box.scrollHeight;
     window.scrollTo(0, 0);
@@ -305,11 +328,7 @@ const ask_gpt = async () => {
         console.error(e);
         if (e.name != "AbortError") {
             error = true;
-            text = "oops ! something went wrong, please try again / reload. [stacktrace in console]";
-            content_inner.innerHTML = text;
-        } else {
-            content_inner.innerHTML += " [aborted]";
-            if (text) text += " [aborted]";
+            content_inner.innerHTML += `<p><strong>An error occured:</strong> ${e}</p>`;
         }
     }
     if (!error && text) {
@@ -583,12 +602,17 @@ const load_conversations = async () => {
     }
 };
 
-document.getElementById(`cancelButton`).addEventListener(`click`, async () => {
+document.getElementById("cancelButton").addEventListener("click", async () => {
     window.controller.abort();
+    if (!window.abort) {
+        window.abort = true;
+        content_inner.innerHTML += " [aborted]";
+        if (window.text) window.text += " [aborted]";
+    }
     console.log(`aborted ${window.conversation_id}`);
 });
 
-document.getElementById(`regenerateButton`).addEventListener(`click`, async () => {
+document.getElementById("regenerateButton").addEventListener("click", async () => {
     prompt_lock = true;
     await hide_last_message(window.conversation_id);
     window.token = message_id();
@@ -618,7 +642,12 @@ const message_id = () => {
 async function hide_sidebar() {
     sidebar.classList.remove("shown");
     sidebar_button.classList.remove("rotated");
+    if (window.location.pathname == "/menu/") {
+        history.back();
+    }
 }
+
+window.addEventListener('popstate', hide_sidebar, false);
 
 sidebar_button.addEventListener("click", (event) => {
     if (sidebar.classList.contains("shown")) {
@@ -626,6 +655,7 @@ sidebar_button.addEventListener("click", (event) => {
     } else {
         sidebar.classList.add("shown");
         sidebar_button.classList.add("rotated");
+        history.pushState({}, null, "/menu/");
     }
     window.scrollTo(0, 0);
 });
@@ -813,19 +843,6 @@ async function on_api() {
 
     register_settings_storage();
 
-    versions = await api("version");
-    document.title = 'g4f - ' + versions["version"];
-    let text = "version ~ "
-    if (versions["version"] != versions["latest_version"]) {
-        let release_url = 'https://github.com/xtekky/gpt4free/releases/tag/' + versions["latest_version"];
-        let title = `New version: ${versions["latest_version"]}`;
-        text += `<a href="${release_url}" target="_blank" title="${title}">${versions["version"]}</a> `;
-        text += `<i class="fa-solid fa-rotate"></i>`
-    } else {
-        text += versions["version"];
-    }
-    document.getElementById("version_text").innerHTML = text
-
     models = await api("models");
     models.forEach((model) => {
         let option = document.createElement("option");
@@ -841,8 +858,24 @@ async function on_api() {
     })
 
     await load_provider_models(appStorage.getItem("provider"));
-    load_settings_storage()
+    await load_settings_storage()
 }
+
+async function load_version() {
+    const versions = await api("version");
+    document.title = 'g4f - ' + versions["version"];
+    let text = "version ~ "
+    if (versions["version"] != versions["latest_version"]) {
+        let release_url = 'https://github.com/xtekky/gpt4free/releases/tag/' + versions["latest_version"];
+        let title = `New version: ${versions["latest_version"]}`;
+        text += `<a href="${release_url}" target="_blank" title="${title}">${versions["version"]}</a> `;
+        text += `<i class="fa-solid fa-rotate"></i>`
+    } else {
+        text += versions["version"];
+    }
+    document.getElementById("version_text").innerHTML = text
+}
+setTimeout(load_version, 5000);
 
 for (const el of [imageInput, cameraInput]) {
     el.addEventListener('click', async () => {
@@ -909,13 +942,13 @@ function get_selected_model() {
 
 async function api(ressource, args=null, file=null) {
     if (window?.pywebview) {
-        if (args) {
+        if (args !== null) {
             if (ressource == "models") {
                 ressource = "provider_models";
             }
-            return pywebview.api["get_" + ressource](args);
+            return pywebview.api[`get_${ressource}`](args);
         }
-        return pywebview.api["get_" + ressource]();
+        return pywebview.api[`get_${ressource}`]();
     }
     if (ressource == "models" && args) {
         ressource = `${ressource}/${args}`;
@@ -926,7 +959,7 @@ async function api(ressource, args=null, file=null) {
         const headers = {
             accept: 'text/event-stream'
         }
-        if (file) {
+        if (file !== null) {
             const formData = new FormData();
             formData.append('file', file);
             formData.append('json', body);
