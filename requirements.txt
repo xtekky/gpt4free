@@ -14,9 +14,9 @@ platformdirs
 fastapi
 uvicorn
 flask
-py-arkose-generator
 brotli
 beautifulsoup4
 aiohttp_socks
 gpt4all
 pywebview
+plyer
