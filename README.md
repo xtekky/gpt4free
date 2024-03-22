@@ -174,7 +174,7 @@ image_url = response.data[0].url
 
 Open the GUI in a window of your OS. Runs on a local/static/ssl server with a js api. Supports login into the OpenAI Chat, Image Upload and streamed Text Generation.
 
-Supports all platforms, but only Linux testet.
+Supports all platforms, but only Linux tested.
 
 1. Install all requirements with:
 
