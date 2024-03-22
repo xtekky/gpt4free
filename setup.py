@@ -18,23 +18,24 @@ EXTRA_REQUIRE = {
     'all': [
         "curl_cffi>=0.6.2",
         "certifi",
-        "async-property",          # openai
-        "py-arkose-generator",     # openai
+        #"py-arkose-generator",     # not working
         "browser_cookie3",         # get_cookies
         "PyExecJS",                # GptForLove
         "duckduckgo-search>=5.0"  ,# internet.search
         "beautifulsoup4",          # internet.search and bing.create_images
         "brotli",                  # openai
-        "platformdirs",            # webdriver
-        "undetected-chromedriver>=3.5.5", # webdriver
-        "setuptools",              # webdriver
+        #"undetected-chromedriver>=3.5.5", # webdriver
+        #"setuptools",              # webdriver
+        "pywebview",
+        "platformdirs",
+        "plyer",
         "aiohttp_socks",           # proxy
         "pillow",                  # image
         "cairosvg",                # svg image
         "werkzeug", "flask",       # gui
         "loguru", "fastapi",
         "uvicorn", "nest_asyncio", # api
-        "selenium-wire"
+        #"selenium-wire"
     ],
     "image": [
         "pillow",
@@ -46,6 +47,11 @@ EXTRA_REQUIRE = {
         "undetected-chromedriver",
         "setuptools",
         "selenium-wire"
+    ],
+    "webview": [
+        "webview",
+        "platformdirs",
+        "plyer"
     ],
     "openai": [
         "async-property",

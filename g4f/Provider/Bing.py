@@ -414,7 +414,7 @@ async def stream_generate(
             image_request = await upload_image(
                 session,
                 image,
-                "Balanced" if Tones.copilot == "Copilot" else tone,
+                "Balanced" if tone == Tones.copilot else tone,
                 headers
             ) if image else None
             async with session.ws_connect(

@@ -41,7 +41,7 @@ As per the survey, here is a list of improvements to come
 - [ ] 🚧 Improve Documentation (in /docs & Guides, Howtos, & Do video tutorials)
 - [x] Improve the provider status list & updates
 - [ ] Tutorials on how to reverse sites to write your own wrapper (PoC only ofc)
-- [ ] Improve the Bing wrapper. (might write a new wrapper in golang as it is very fast)
+- [x] Improve the Bing wrapper. (Wait and Retry or reuse conversation)
 - [ ] Write a standard provider performance test to improve the stability
 - [ ] Potential support and development of local models
 - [ ] 🚧 Improve compatibility and error handling
@@ -170,7 +170,33 @@ image_url = response.data[0].url
 - New Client API like the OpenAI Python library: [/docs/client](/docs/client.md)
 - Legacy API with python modules: [/docs/legacy](/docs/legacy.md)
 
-#### Web UI
+### Webview GUI
+
+Open the GUI in a window of your OS. Runs on a local/static/ssl server with a js api. Supports login into the OpenAI Chat, Image Upload and streamed Text Generation.
+
+Supports all platforms, but only Linux testet.
+
+1. Install all requirements with:
+
+```bash
+pip install g4f[webview]
+```
+
+2. Follow the OS specific steps here:
+ [pywebview installation](https://pywebview.flowrl.com/guide/installation.html#dependencies)
+
+3. Run the app with:
+
+```python
+from g4f.gui.webview import run_webview
+run_webview(debug=True)
+```
+or execute the following command:
+```bash
+python -m g4f.gui.webview -debug
+```
+
+#### Webserver
 
 To start the web interface, type the following codes in python:
 
@@ -237,7 +263,7 @@ set G4F_PROXY=http://host:port
 | [bing.com](https://bing.com/chat) | `g4f.Provider.Bing` | ❌ | ✔️ | ✔️ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ❌ |
 | [chatgpt.ai](https://chatgpt.ai) | `g4f.Provider.ChatgptAi` | ❌ | ✔️ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
 | [liaobots.site](https://liaobots.site) | `g4f.Provider.Liaobots` | ✔️ | ✔️ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
-| [chat.openai.com](https://chat.openai.com) | `g4f.Provider.OpenaiChat` | ✔️ | ✔️ | ✔️ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ✔️ |
+| [chat.openai.com](https://chat.openai.com) | `g4f.Provider.OpenaiChat` | ✔️ | ❌ | ✔️ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ✔️ |
 | [raycast.com](https://raycast.com) | `g4f.Provider.Raycast` | ✔️ | ✔️ | ✔️ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ✔️ |
 | [beta.theb.ai](https://beta.theb.ai) | `g4f.Provider.Theb` | ✔️ | ✔️ | ✔️ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ❌ |
 | [you.com](https://you.com) | `g4f.Provider.You` | ✔️ | ✔️ | ✔️ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ❌ |
