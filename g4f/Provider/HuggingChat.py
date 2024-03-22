@@ -14,6 +14,7 @@ class HuggingChat(AsyncGeneratorProvider, ProviderModelMixin):
     working = True
     default_model = "meta-llama/Llama-2-70b-chat-hf"
     models = [
+        "google/gemma-7b-it",
         "mistralai/Mixtral-8x7B-Instruct-v0.1",
         "meta-llama/Llama-2-70b-chat-hf",
         "NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO",
