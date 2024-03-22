@@ -19,12 +19,12 @@ try:
         filters=[["Image", "*.jpg", "*.jpeg", "*.png", "*.webp", "*.svg"]],
     )
     has_plyer = True
-except (ImportError, NameError):
+except ImportError:
     has_plyer = False
 try:
     from android.runnable import run_on_ui_thread
-    from android.storage import app_storage_path
-    from android.permissions import request_permissions, Permission
+    import android.permissions
+    from android.permissions import Permission
     from android.permissions import _RequestPermissionsManager
     _RequestPermissionsManager.register_callback()
     from .android_gallery import user_select_image
@@ -161,7 +161,7 @@ class Api():
 
     def request_permissions(self):
         if has_android:
-            request_permissions([
+            android.permissions.request_permissions([
                 Permission.CAMERA,
                 Permission.READ_EXTERNAL_STORAGE,
                 Permission.WRITE_EXTERNAL_STORAGE

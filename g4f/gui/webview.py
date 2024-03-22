@@ -16,6 +16,7 @@ import g4f.debug
 
 def run_webview(
     debug: bool = False,
+    ssl: bool = True,
     storage_path: str = None
 ):
     if getattr(sys, 'frozen', False):
@@ -36,7 +37,7 @@ def run_webview(
         private_mode=False,
         storage_path=storage_path,
         debug=debug,
-        ssl=True
+        ssl=ssl
     )
 
 if __name__ == "__main__":
