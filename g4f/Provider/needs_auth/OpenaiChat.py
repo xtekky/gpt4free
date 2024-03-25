@@ -9,12 +9,6 @@ import time
 from aiohttp import ClientWebSocketResponse
 
 try:
-    from py_arkose_generator.arkose import get_values_for_request
-    has_arkose_generator = True
-except ImportError:
-    has_arkose_generator = False
-
-try:
     import webview
     has_webview = True
 except ImportError:
@@ -35,6 +29,7 @@ from ...requests import get_args_from_browser, raise_for_status
 from ...requests.aiohttp import StreamSession
 from ...image import to_image, to_bytes, ImageResponse, ImageRequest
 from ...errors import MissingRequirementsError, MissingAuthError, ProviderNotWorkingError
+from ..openai.har_file import getArkoseAndAccessToken
 from ... import debug
 
 class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
@@ -353,18 +348,6 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
             timeout=timeout
         ) as session:
             api_key = kwargs["access_token"] if "access_token" in kwargs else api_key
-            if cls._headers is None or cls._expires is None or time.time() > cls._expires:
-                if cls._headers is None:
-                    cookies = get_cookies("chat.openai.com", False) if cookies is None else cookies
-                    api_key = cookies["access_token"] if "access_token" in cookies else api_key
-                if api_key is None:
-                    try:
-                        await cls.webview_access_token() if has_webview else None
-                    except Exception as e:
-                        if debug.logging:
-                            print(f"Use webview failed: {e}")
-            else:
-                api_key = cls._api_key if api_key is None else api_key
 
             if api_key is not None:
                 cls._create_request_args(cookies)
@@ -380,14 +363,12 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
                     if debug.logging:
                         print("OpenaiChat: Load default_model failed")
                         print(f"{e.__class__.__name__}: {e}")
+
+            arkose_token = None
             if cls.default_model is None:
-                login_url = os.environ.get("G4F_LOGIN_URL")
-                if login_url:
-                    yield f"Please login: [ChatGPT]({login_url})\n\n"
-                try:
-                    cls.browse_access_token(proxy)
-                except MissingRequirementsError:
-                    raise MissingAuthError(f'Missing "access_token". Add a "api_key" please')
+                arkose_token, api_key, cookies = await getArkoseAndAccessToken(proxy)
+                cls._create_request_args(cookies)
+                cls._set_api_key(api_key)
                 cls.default_model = cls.get_model(await cls.get_default_model(session, cls._headers))
 
             async with session.post(
@@ -402,9 +383,10 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
                 need_arkose = data["arkose"]["required"]
                 chat_token = data["token"]
 
-            if need_arkose and not has_arkose_generator:
-                raise ProviderNotWorkingError("OpenAI Plus Subscriber are not working")
-                raise MissingRequirementsError('Install "py-arkose-generator" package')
+            if need_arkose and arkose_token is None:
+                arkose_token, api_key, cookies = await getArkoseAndAccessToken(proxy)
+                cls._create_request_args(cookies)
+                cls._set_api_key(api_key)
 
             try:
                 image_request = await cls.upload_image(session, cls._headers, image, image_name) if image else None
@@ -439,8 +421,7 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
                     **cls._headers
                 }
                 if need_arkose:
-                    raise ProviderNotWorkingError("OpenAI Plus Subscriber are not working")
-                    headers["OpenAI-Sentinel-Arkose-Token"] = await cls.get_arkose_token(session, cls._headers, blob)
+                    headers["OpenAI-Sentinel-Arkose-Token"] = arkose_token
                     headers["OpenAI-Sentinel-Chat-Requirements-Token"] = chat_token
 
                 async with session.post(
@@ -491,7 +472,7 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
                     ):
                         yield chunk
                 finally:
-                    await ws.aclose()
+                    await ws.aclose() if hasattr(ws, "aclose") else await ws.close()
                 break
             async for chunk in cls.iter_messages_line(session, message, fields):
                 if fields.finish_reason is not None:
@@ -610,35 +591,6 @@ this.fetch = async (url, options) => {
             cls._set_api_key(access_token)
         finally:
             driver.close()
-
-    @classmethod
-    async def get_arkose_token(cls, session: StreamSession, headers: dict, blob: str) -> str:
-        """
-        Obtain an Arkose token for the session.
-
-        Args:
-            session (StreamSession): The session object.
-
-        Returns:
-            str: The Arkose token.
-
-        Raises:
-            RuntimeError: If unable to retrieve the token.
-        """
-        config = {
-            "pkey": "35536E1E-65B4-4D96-9D97-6ADB7EFF8147",
-            "surl": "https://tcr9i.chat.openai.com",
-            "headers": headers,
-            "site": cls.url,
-            "data": {"blob": blob}
-        }
-        args_for_request = get_values_for_request(config)
-        async with session.post(**args_for_request) as response:
-            await raise_for_status(response)
-            decoded_json = await response.json()
-            if "token" in decoded_json:
-                return decoded_json["token"]
-            raise RuntimeError(f"Response: {decoded_json}")
 
     @classmethod
     async def fetch_access_token(cls, session: StreamSession, headers: dict):
