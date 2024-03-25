@@ -11,14 +11,14 @@ with codecs.open(os.path.join(here, 'README.md'), encoding='utf-8') as fh:
 INSTALL_REQUIRE = [
     "requests",
     "aiohttp",
-    "brotli"
+    "brotli",
+    "pycryptodome"
 ]
 
 EXTRA_REQUIRE = {
     'all': [
         "curl_cffi>=0.6.2",
         "certifi",
-        #"py-arkose-generator",     # not working
         "browser_cookie3",         # get_cookies
         "PyExecJS",                # GptForLove
         "duckduckgo-search>=5.0"  ,# internet.search
@@ -44,7 +44,7 @@ EXTRA_REQUIRE = {
     ],
     "webdriver": [
         "platformdirs",
-        "undetected-chromedriver",
+        "undetected-chromedriver>=3.5.5",
         "setuptools",
         "selenium-wire"
     ],
@@ -53,11 +53,7 @@ EXTRA_REQUIRE = {
         "platformdirs",
         "plyer"
     ],
-    "openai": [
-        "async-property",
-        "py-arkose-generator",
-        "brotli"
-    ],
+    "openai": [],
     "api": [
         "loguru", "fastapi",
         "uvicorn", "nest_asyncio"

@@ -20,3 +20,4 @@ aiohttp_socks
 gpt4all
 pywebview
 plyer
+pycryptodome
