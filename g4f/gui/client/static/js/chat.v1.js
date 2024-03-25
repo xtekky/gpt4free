@@ -955,7 +955,7 @@ async function api(ressource, args=null, file=null) {
     }
     const url = `/backend-api/v2/${ressource}`;
     if (ressource == "conversation") {
-        const body = JSON.stringify(args);
+        let body = JSON.stringify(args);
         const headers = {
             accept: 'text/event-stream'
         }

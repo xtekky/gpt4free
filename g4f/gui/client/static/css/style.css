@@ -1020,3 +1020,17 @@ a:-webkit-any-link {
     padding: var(--inner-gap) var(--section-gap);
     resize: vertical;
 }
+
+::-webkit-scrollbar {
+    width: 10px;
+}
+::-webkit-scrollbar-track {
+    background: var(--colour-3);
+}
+::-webkit-scrollbar-thumb {
+    background: var(--blur-bg);
+    border-radius: 5px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: var(--accent)
+}

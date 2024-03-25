@@ -1,3 +1,4 @@
 requests
 aiohttp
 brotli
+pycryptodome
