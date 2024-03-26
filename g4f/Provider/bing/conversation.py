@@ -3,8 +3,9 @@ from __future__ import annotations
 from aiohttp import ClientSession
 from ...requests import raise_for_status
 from ...errors import RateLimitError
+from ...providers.conversation import BaseConversation
 
-class Conversation:
+class Conversation(BaseConversation):
     """
     Represents a conversation with specific attributes.
     """
@@ -32,7 +33,7 @@ async def create_conversation(session: ClientSession, headers: dict, tone: str) 
     Returns:
     Conversation: An instance representing the created conversation.
     """
-    if tone == "copilot":
+    if tone == "Copilot":
         url = "https://copilot.microsoft.com/turing/conversation/create?bundleVersion=1.1634.3-nodesign2"
     else:
         url = "https://www.bing.com/turing/conversation/create?bundleVersion=1.1626.1"

@@ -11,11 +11,6 @@ from copy import deepcopy
 from .crypt import decrypt, encrypt
 from ...requests import StreamSession
 
-arkPreURL = "https://tcr9i.chat.openai.com/fc/gt2/public_key/35536E1E-65B4-4D96-9D97-6ADB7EFF8147"
-sessionUrl = "https://chat.openai.com/api/auth/session"
-chatArk = None
-accessToken = None
-
 class arkReq:
     def __init__(self, arkURL, arkBx, arkHeader, arkBody, arkCookies, userAgent):
         self.arkURL = arkURL
@@ -25,21 +20,30 @@ class arkReq:
         self.arkCookies = arkCookies
         self.userAgent = userAgent
 
+arkPreURL = "https://tcr9i.chat.openai.com/fc/gt2/public_key/35536E1E-65B4-4D96-9D97-6ADB7EFF8147"
+sessionUrl = "https://chat.openai.com/api/auth/session"
+chatArk: arkReq = None
+accessToken: str = None
+cookies: dict = None
+
 def readHAR():
     dirPath = "./"
     harPath = []
     chatArks = []
     accessToken = None
+    cookies = {}
     for root, dirs, files in os.walk(dirPath):
         for file in files:
             if file.endswith(".har"):
                 harPath.append(os.path.join(root, file))
+        if harPath:
+            break
     if not harPath:
         raise RuntimeError("No .har file found")
     for path in harPath:
-        with open(path, 'r') as file:
+        with open(path, 'rb') as file:
             try:
-                harFile = json.load(file)
+                harFile = json.loads(file.read())
             except json.JSONDecodeError:
                 # Error: not a HAR file!
                 continue
@@ -48,11 +52,12 @@ def readHAR():
                     chatArks.append(parseHAREntry(v))
                 elif v['request']['url'] == sessionUrl:
                     accessToken = json.loads(v["response"]["content"]["text"]).get("accessToken")
-    if not chatArks:
-        RuntimeError("No arkose requests found in .har files")
+                    cookies = {c['name']: c['value'] for c in v['request']['cookies']}
     if not accessToken:
         RuntimeError("No accessToken found in .har files")
-    return chatArks.pop(), accessToken
+    if not chatArks:
+        return None, accessToken, cookies
+    return chatArks.pop(), accessToken, cookies
 
 def parseHAREntry(entry) -> arkReq:
     tmpArk = arkReq(
@@ -60,7 +65,7 @@ def parseHAREntry(entry) -> arkReq:
         arkBx="",
         arkHeader={h['name'].lower(): h['value'] for h in entry['request']['headers'] if h['name'].lower() not in ['content-length', 'cookie'] and not h['name'].startswith(':')},
         arkBody={p['name']: unquote(p['value']) for p in entry['request']['postData']['params'] if p['name'] not in ['rnd']},
-        arkCookies=[{'name': c['name'], 'value': c['value'], 'expires': c['expires']} for c in entry['request']['cookies']],
+        arkCookies={c['name']: c['value'] for c in entry['request']['cookies']},
         userAgent=""
     )
     tmpArk.userAgent = tmpArk.arkHeader.get('user-agent', '')
@@ -81,7 +86,6 @@ def genArkReq(chatArk: arkReq) -> arkReq:
     tmpArk.arkBody['bda'] = base64.b64encode(bda.encode()).decode()
     tmpArk.arkBody['rnd'] = str(random.random())
     tmpArk.arkHeader['x-ark-esync-value'] = bw
-    tmpArk.arkCookies = {cookie['name']: cookie['value'] for cookie in tmpArk.arkCookies}
     return tmpArk
 
 async def sendRequest(tmpArk: arkReq, proxy: str = None):
@@ -117,8 +121,10 @@ def getN() -> str:
     return base64.b64encode(timestamp.encode()).decode()
 
 async def getArkoseAndAccessToken(proxy: str):
-    global chatArk, accessToken
+    global chatArk, accessToken, cookies
     if chatArk is None or accessToken is None:
-        chatArk, accessToken = readHAR()
+        chatArk, accessToken, cookies = readHAR()
+    if chatArk is None:
+        return None, accessToken, cookies
     newReq = genArkReq(chatArk)
-    return await sendRequest(newReq, proxy), accessToken, newReq.arkCookies
+    return await sendRequest(newReq, proxy), accessToken, cookies

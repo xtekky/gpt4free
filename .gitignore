@@ -54,3 +54,4 @@ local.py
 *.gguf
 image.py
 .buildozer
+hardir

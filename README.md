@@ -89,7 +89,7 @@ As per the survey, here is a list of improvements to come
 
 ```sh
 docker pull hlohaus789/g4f
-docker run -p 8080:8080 -p 1337:1337 -p 7900:7900 --shm-size="2g" hlohaus789/g4f:latest
+docker run -p 8080:8080 -p 1337:1337 -p 7900:7900 --shm-size="2g" -v ${PWD}/hardir:/app/hardir hlohaus789/g4f:latest
 ```
 3. Open the included client on: [http://localhost:8080/chat/](http://localhost:8080/chat/)
 or set the API base in your client to: [http://localhost:1337/v1](http://localhost:1337/v1)
@@ -218,9 +218,12 @@ See: [/docs/interference](/docs/interference.md)
 
 ### Configuration
 
-##### Cookies / Access Token
+#### Cookies
 
-For generating images with Bing and for the OpenAI Chat  you need cookies or a token from your browser session. From Bing you need the "_U" cookie and from OpenAI you need the "access_token". You can pass the cookies / the access token in the create function or you use the `set_cookies` setter before you run G4F:
+You need cookies for BingCreateImages and the Gemini Provider.
+From Bing you need the "_U" cookie and from Gemini you need the "__Secure-1PSID" cookie.
+Sometimes you doesn't need the "__Secure-1PSID" cookie, but some other auth cookies.
+You can pass the cookies in the create function or you use the `set_cookies` setter before you run G4F:
 
 ```python
 from g4f.cookies import set_cookies
@@ -228,20 +231,32 @@ from g4f.cookies import set_cookies
 set_cookies(".bing.com", {
   "_U": "cookie value"
 })
-set_cookies("chat.openai.com", {
-  "access_token": "token value"
-})
 set_cookies(".google.com", {
   "__Secure-1PSID": "cookie value"
 })
-
 ...
 ```
 
-Alternatively, G4F reads the cookies with `browser_cookie3` from your browser
-or it starts a browser instance with selenium `webdriver` for logging in.
+#### .HAR File for OpenaiChat Provider
 
-##### Using Proxy
+##### Generating a .HAR File
+
+To utilize the OpenaiChat provider, a .har file is required from https://chat.openai.com/. Follow the steps below to create a valid .har file:
+
+1. Navigate to https://chat.openai.com/ using your preferred web browser and log in with your credentials.
+2. Access the Developer Tools in your browser. This can typically be done by right-clicking the page and selecting "Inspect," or by pressing F12 or Ctrl+Shift+I (Cmd+Option+I on a Mac).
+3. With the Developer Tools open, switch to the "Network" tab.
+4. Reload the website to capture the loading process within the Network tab.
+5. Initiate an action in the chat which can be capture in the .har file.
+6. Right-click any of the network activities listed and select "Save all as HAR with content" to export the .har file.
+
+##### Storing the .HAR File
+
+- Place the exported .har file in the `./hardir` directory if you are using Docker. Alternatively, you can store it in any preferred location within your current working directory.
+
+Note: Ensure that your .har file is stored securely, as it may contain sensitive information.
+
+#### Using Proxy
 
 If you want to hide or change your IP address for the providers, you can set a proxy globally via an environment variable:
 

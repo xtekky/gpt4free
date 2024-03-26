@@ -39,9 +39,9 @@ from g4f.errors import VersionNotFoundError
 from g4f.Provider import ProviderType, __providers__, __map__
 from g4f.providers.base_provider import ProviderModelMixin
 from g4f.Provider.bing.create_images import patch_provider
-from g4f.Provider.Bing import Conversation
+from g4f.providers.conversation import BaseConversation
 
-conversations: dict[str, Conversation] = {}
+conversations: dict[str, BaseConversation] = {}
 
 class Api():
 
@@ -230,14 +230,14 @@ class Api():
                 if first:
                     first = False
                     yield self._format_json("provider", get_last_provider(True))
-                if isinstance(chunk, Conversation):
+                if isinstance(chunk, BaseConversation):
                     conversations[conversation_id] = chunk
                     yield self._format_json("conversation", conversation_id)
                 elif isinstance(chunk, Exception):
                     logging.exception(chunk)
                     yield self._format_json("message", get_error_message(chunk))
                 else:
-                    yield self._format_json("content", chunk)
+                    yield self._format_json("content", str(chunk))
         except Exception as e:
             logging.exception(e)
             yield self._format_json('error', get_error_message(e))

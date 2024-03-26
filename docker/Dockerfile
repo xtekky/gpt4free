@@ -81,7 +81,14 @@ WORKDIR $G4F_DIR
 COPY requirements.txt $G4F_DIR
 
 # Upgrade pip for the latest features and install the project's Python dependencies.
-RUN pip install --break-system-packages --upgrade pip && pip install --break-system-packages -r requirements.txt
+RUN pip install --break-system-packages --upgrade pip \
+  && pip install --break-system-packages -r requirements.txt
+
+# Install selenium driver and uninstall webdriver
+RUN pip install --break-system-packages \
+    undetected-chromedriver selenium-wire \
+  && pip uninstall -y --break-system-packages \
+    webdriver plyer
 
 # Copy the entire package into the container.
 ADD --chown=$G4F_USER:$G4F_USER g4f $G4F_DIR/g4f
