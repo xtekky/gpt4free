@@ -403,7 +403,7 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
                     "conversation_id": conversation_id,
                     "parent_message_id": parent_id,
                     "model": model,
-                    "history_and_training_disabled": history_disabled and not auto_continue,
+                    "history_and_training_disabled": history_disabled and not auto_continue and not return_conversation,
                     "websocket_request_id": websocket_request_id
                 }
                 if action != "continue":

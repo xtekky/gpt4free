@@ -41,9 +41,9 @@ def readHAR():
     if not harPath:
         raise RuntimeError("No .har file found")
     for path in harPath:
-        with open(path, 'r') as file:
+        with open(path, 'rb') as file:
             try:
-                harFile = json.load(file)
+                harFile = json.loads(file.read())
             except json.JSONDecodeError:
                 # Error: not a HAR file!
                 continue
