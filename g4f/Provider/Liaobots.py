@@ -24,7 +24,7 @@ models = {
         "tokenLimit": 126000,
         "context": "128K",
     },
-    "gpt-4-plus": {
+    "gpt-4": {
         "id": "gpt-4-plus",
         "name": "GPT-4-Plus",
         "maxLength": 130000,
