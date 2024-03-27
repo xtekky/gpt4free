@@ -392,8 +392,8 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
             fields = Conversation() if conversation is None else copy(conversation)
             fields.finish_reason = None
             while fields.finish_reason is None:
-                conversation_id = conversation_id if fields.conversation_id is None else fields.conversation_id
-                parent_id = parent_id if fields.message_id is None else fields.message_id
+                conversation_id = fields.conversation_id if hasattr(fields, "conversation_id") else conversation_id
+                parent_id = fields.message_id if hasattr(fields, "message_id") else parent_id
                 websocket_request_id = str(uuid.uuid4())
                 data = {
                     "action": action,

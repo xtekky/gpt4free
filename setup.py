@@ -20,22 +20,27 @@ EXTRA_REQUIRE = {
         "curl_cffi>=0.6.2",
         "certifi",
         "browser_cookie3",         # get_cookies
-        "PyExecJS",                # GptForLove
+        "PyExecJS",                # GptForLove, Vercel
         "duckduckgo-search>=5.0"  ,# internet.search
         "beautifulsoup4",          # internet.search and bing.create_images
-        "brotli",                  # openai
-        #"undetected-chromedriver>=3.5.5", # webdriver
-        #"setuptools",              # webdriver
+        "brotli",                  # openai, bing
+        # webdriver
+        #"undetected-chromedriver>=3.5.5",
+        #"setuptools", 
+        #"selenium-wire"
+        # webview
         "pywebview",
         "platformdirs",
         "plyer",
+        "cryptography",
+        ####
         "aiohttp_socks",           # proxy
         "pillow",                  # image
         "cairosvg",                # svg image
         "werkzeug", "flask",       # gui
-        "loguru", "fastapi",
+        "loguru", "fastapi",       # api
         "uvicorn", "nest_asyncio", # api
-        #"selenium-wire"
+        "pycryptodome"             # openai
     ],
     "image": [
         "pillow",
@@ -51,9 +56,12 @@ EXTRA_REQUIRE = {
     "webview": [
         "webview",
         "platformdirs",
-        "plyer"
+        "plyer",
+        "cryptography"
     ],
-    "openai": [],
+    "openai": [
+        "pycryptodome"
+    ],
     "api": [
         "loguru", "fastapi",
         "uvicorn", "nest_asyncio"
