@@ -17,7 +17,7 @@ models = {
         "tokenLimit": 14000,
         "context": "16K",
     },
-    "gpt-4-turbo-preview": {
+    "gpt-4-turbo": {
         "id": "gpt-4-turbo-preview",
         "name": "GPT-4-Turbo",
         "maxLength": 260000,
