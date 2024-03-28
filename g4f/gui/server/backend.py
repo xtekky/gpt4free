@@ -85,7 +85,7 @@ class Backend_Api(Api):
         kwargs = self._prepare_conversation_kwargs(json_data, kwargs)
 
         return self.app.response_class(
-            self._create_response_stream(kwargs, json_data.get("conversation_id")),
+            self._create_response_stream(kwargs, json_data.get("conversation_id"), json_data.get("provider")),
             mimetype='text/event-stream'
         )
 

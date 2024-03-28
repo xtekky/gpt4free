@@ -389,19 +389,17 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
                     print(f"{e.__class__.__name__}: {e}")
 
             model = cls.get_model(model).replace("gpt-3.5-turbo", "text-davinci-002-render-sha")
-            fields = Conversation() if conversation is None else copy(conversation)
+            fields = Conversation(conversation_id, parent_id) if conversation is None else copy(conversation)
             fields.finish_reason = None
             while fields.finish_reason is None:
-                conversation_id = conversation_id if fields.conversation_id is None else fields.conversation_id
-                parent_id = parent_id if fields.message_id is None else fields.message_id
                 websocket_request_id = str(uuid.uuid4())
                 data = {
                     "action": action,
                     "conversation_mode": {"kind": "primary_assistant"},
                     "force_paragen": False,
                     "force_rate_limit": False,
-                    "conversation_id": conversation_id,
-                    "parent_message_id": parent_id,
+                    "conversation_id": fields.conversation_id,
+                    "parent_message_id": fields.message_id,
                     "model": model,
                     "history_and_training_disabled": history_disabled and not auto_continue and not return_conversation,
                     "websocket_request_id": websocket_request_id
@@ -425,6 +423,7 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
                     await raise_for_status(response)
                     async for chunk in cls.iter_messages_chunk(response.iter_lines(), session, fields):
                         if return_conversation:
+                            history_disabled = False
                             return_conversation = False
                             yield fields
                         yield chunk
@@ -432,7 +431,7 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
                     break
                 action = "continue"
                 await asyncio.sleep(5)
-            if history_disabled and auto_continue and not return_conversation:
+            if history_disabled and auto_continue:
                 await cls.delete_conversation(session, cls._headers, fields.conversation_id)
 
     @staticmethod
