@@ -138,9 +138,9 @@ class Gemini(AsyncGeneratorProvider):
                     resolved_images = []
                     preview = []
                     for image in images:
-                        async with session.get(image, allow_redirects=False) as fetch:
+                        async with session.get(image, allow_redirects=False, proxy=proxy) as fetch:
                             image = fetch.headers["location"]
-                        async with session.get(image, allow_redirects=False) as fetch:
+                        async with session.get(image, allow_redirects=False, proxy=proxy) as fetch:
                             image = fetch.headers["location"]
                         resolved_images.append(image)
                         preview.append(image.replace('=s512', '=s200'))
