@@ -5,7 +5,9 @@ import json
 import random
 import re
 
-from aiohttp import ClientSession
+from aiohttp import ClientSession, BaseConnector
+
+from ..helper import get_connector
 
 try:
     from selenium.webdriver.common.by import By
@@ -99,7 +101,8 @@ class Gemini(AsyncGeneratorProvider):
 
         async with ClientSession(
             cookies=cookies,
-            headers=REQUEST_HEADERS
+            headers=REQUEST_HEADERS,
+            connector=get_connector(proxy=proxy),
         ) as session:
             params = {
                 'bl': REQUEST_BL_PARAM,
@@ -118,7 +121,6 @@ class Gemini(AsyncGeneratorProvider):
                 REQUEST_URL,
                 data=data,
                 params=params,
-                proxy=proxy
             ) as response:
                 response = await response.text()
                 response_part = json.loads(json.loads(response.splitlines()[-5])[0][2])
@@ -138,9 +140,9 @@ class Gemini(AsyncGeneratorProvider):
                     resolved_images = []
                     preview = []
                     for image in images:
-                        async with session.get(image, allow_redirects=False, proxy=proxy) as fetch:
+                        async with session.get(image, allow_redirects=False) as fetch:
                             image = fetch.headers["location"]
-                        async with session.get(image, allow_redirects=False, proxy=proxy) as fetch:
+                        async with session.get(image, allow_redirects=False) as fetch:
                             image = fetch.headers["location"]
                         resolved_images.append(image)
                         preview.append(image.replace('=s512', '=s200'))
@@ -173,9 +175,10 @@ class Gemini(AsyncGeneratorProvider):
 
     async def upload_image(image: bytes, image_name: str = None, proxy: str = None):
         async with ClientSession(
-            headers=UPLOAD_IMAGE_HEADERS
+            headers=UPLOAD_IMAGE_HEADERS,
+            connector=get_connector(proxy=proxy)
         ) as session:
-            async with session.options(UPLOAD_IMAGE_URL, proxy=proxy) as reponse:
+            async with session.options(UPLOAD_IMAGE_URL) as reponse:
                 reponse.raise_for_status()
 
             headers = {
@@ -184,7 +187,7 @@ class Gemini(AsyncGeneratorProvider):
             }
             data = f"File name: {image_name}" if image_name else None
             async with session.post(
-                UPLOAD_IMAGE_URL, headers=headers, data=data, proxy=proxy
+                UPLOAD_IMAGE_URL, headers=headers, data=data
             ) as response:
                 response.raise_for_status()
                 upload_url = response.headers["X-Goog-Upload-Url"]
@@ -195,7 +198,7 @@ class Gemini(AsyncGeneratorProvider):
             headers["x-goog-upload-command"] = "upload, finalize"
             headers["X-Goog-Upload-Offset"] = "0"
             async with session.post(
-                upload_url, headers=headers, data=image, proxy=proxy
+                upload_url, headers=headers, data=image
             ) as response:
                 response.raise_for_status()
                 return await response.text()
@@ -204,9 +207,10 @@ class Gemini(AsyncGeneratorProvider):
     async def fetch_snlm0e(cls, cookies: Cookies, proxy: str = None):
         async with ClientSession(
             cookies=cookies,
-            headers=REQUEST_HEADERS
+            headers=REQUEST_HEADERS,
+            connector=get_connector(proxy=proxy),
         ) as session:
-            async with session.get(cls.url, proxy=proxy) as response:
+            async with session.get(cls.url) as response:
                 text = await response.text()
             match = re.search(r'SNlM0e\":\"(.*?)\"', text)
             if match:
