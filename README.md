@@ -763,6 +763,33 @@ set G4F_PROXY=http://host:port
         </a>
       </td>
     </tr>
+        <tr>
+      <td>
+        <a href="https://github.com/galaxyapi/claude-3">
+          <b>Claude-3 Proxy</b>
+        </a>
+      </td>
+      <td>
+        <a href="https://github.com/galaxyapi/claude-3/stargazers">
+          <img alt="Stars" src="https://img.shields.io/github/stars/galaxyapi/claude-3?style=flat-square&labelColor=343b41" />
+        </a>
+      </td>
+      <td>
+        <a href="https://github.com/galaxyapi/claude-3/network/members">
+          <img alt="Forks" src="https://img.shields.io/github/forks/galaxyapi/claude-3?style=flat-square&labelColor=343b41" />
+        </a>
+      </td>
+      <td>
+        <a href="https://github.com/galaxyapi/claude-3/issues">
+          <img alt="Issues" src="https://img.shields.io/github/issues/galaxyapi/claude-3?style=flat-square&labelColor=343b41" />
+        </a>
+      </td>
+      <td>
+        <a href="https://github.com/galaxyapi/claude-3/pulls">
+          <img alt="Pull Requests" src="https://img.shields.io/github/issues-pr/galaxyapi/claude-3?style=flat-square&labelColor=343b41" />
+        </a>
+      </td>
+    </tr>
   </tbody>
 </table>
 
