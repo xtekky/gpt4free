@@ -29,7 +29,7 @@ try:
     _RequestPermissionsManager.register_callback()
     from .android_gallery import user_select_image
     has_android = True
-except ImportError:
+except:
     run_on_ui_thread = lambda a : a
     has_android = False
 
