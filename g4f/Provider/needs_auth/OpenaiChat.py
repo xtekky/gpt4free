@@ -27,9 +27,9 @@ from ...typing import AsyncResult, Messages, Cookies, ImageType, Union, AsyncIte
 from ...requests import get_args_from_browser, raise_for_status
 from ...requests.aiohttp import StreamSession
 from ...image import to_image, to_bytes, ImageResponse, ImageRequest
-from ...errors import MissingAuthError
+from ...errors import MissingAuthError, ResponseError
 from ...providers.conversation import BaseConversation
-from ..openai.har_file import getArkoseAndAccessToken
+from ..openai.har_file import getArkoseAndAccessToken, NoValidHarFileError
 from ... import debug
 
 class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
@@ -37,7 +37,6 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
 
     url = "https://chat.openai.com"
     working = True
-    needs_auth = True
     supports_gpt_35_turbo = True
     supports_gpt_4 = True
     supports_message_history = True
@@ -56,6 +55,7 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
         prompt: str = None,
         model: str = "",
         messages: Messages = [],
+        action: str = "next",
         **kwargs
     ) -> Response:
         """
@@ -169,14 +169,17 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
             The default model name as a string
         """
         if not cls.default_model:
-            async with session.get(f"{cls.url}/backend-api/models", headers=headers) as response:
+            url = f"{cls.url}/backend-anon/models" if cls._api_key is None else f"{cls.url}/backend-api/models"
+            async with session.get(url, headers=headers) as response:
                 cls._update_request_args(session)
+                if response.status == 401:
+                    raise MissingAuthError('Add a "api_key" or a .har file' if cls._api_key is None else "Invalid api key")
                 await raise_for_status(response)
                 data = await response.json()
                 if "categories" in data:
                     cls.default_model = data["categories"][-1]["default_model"]
                     return cls.default_model 
-                raise RuntimeError(f"Response: {data}")
+                raise ResponseError(data)
         return cls.default_model
 
     @classmethod
@@ -330,39 +333,42 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
         Raises:
             RuntimeError: If an error occurs during processing.
         """
-        if parent_id is None:
-            parent_id = str(uuid.uuid4())
-
         async with StreamSession(
             proxies={"https": proxy},
             impersonate="chrome",
             timeout=timeout
         ) as session:
-            api_key = kwargs["access_token"] if "access_token" in kwargs else api_key
-
-            if api_key is not None:
+            if cls._headers is None or cookies is not None:
                 cls._create_request_args(cookies)
+            api_key = kwargs["access_token"] if "access_token" in kwargs else api_key
+            if api_key is not None:
                 cls._set_api_key(api_key)
 
-            if cls.default_model is None and cls._headers is not None:
+            if cls.default_model is None and cls._api_key is not None:
                 try:
                     if not model:
                         cls.default_model = cls.get_model(await cls.get_default_model(session, cls._headers))
                     else:
                         cls.default_model = cls.get_model(model)
                 except Exception as e:
+                    api_key = cls._api_key = None
+                    cls._create_request_args()
                     if debug.logging:
                         print("OpenaiChat: Load default_model failed")
                         print(f"{e.__class__.__name__}: {e}")
 
             arkose_token = None
             if cls.default_model is None:
-                arkose_token, api_key, cookies = await getArkoseAndAccessToken(proxy)
-                cls._create_request_args(cookies)
-                cls._set_api_key(api_key)
+                try:
+                    arkose_token, api_key, cookies = await getArkoseAndAccessToken(proxy)
+                    cls._create_request_args(cookies)
+                    cls._set_api_key(api_key)
+                except NoValidHarFileError:
+                    ...
                 cls.default_model = cls.get_model(await cls.get_default_model(session, cls._headers))
 
             async with session.post(
+                f"{cls.url}/backend-anon/sentinel/chat-requirements" if not cls._api_key else
                 f"{cls.url}/backend-api/sentinel/chat-requirements",
                 json={"conversation_mode_kind": "primary_assistant"},
                 headers=cls._headers
@@ -389,17 +395,22 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
                     print(f"{e.__class__.__name__}: {e}")
 
             model = cls.get_model(model).replace("gpt-3.5-turbo", "text-davinci-002-render-sha")
-            fields = Conversation(conversation_id, parent_id) if conversation is None else copy(conversation)
-            fields.finish_reason = None
-            while fields.finish_reason is None:
+            if conversation is None:
+                conversation = Conversation(conversation_id, str(uuid.uuid4()) if parent_id is None else parent_id)
+            else:
+                conversation = copy(conversation)
+            if cls._api_key is None:
+                auto_continue = False
+            conversation.finish_reason = None
+            while conversation.finish_reason is None:
                 websocket_request_id = str(uuid.uuid4())
                 data = {
                     "action": action,
                     "conversation_mode": {"kind": "primary_assistant"},
                     "force_paragen": False,
                     "force_rate_limit": False,
-                    "conversation_id": fields.conversation_id,
-                    "parent_message_id": fields.message_id,
+                    "conversation_id": conversation.conversation_id,
+                    "parent_message_id": conversation.message_id,
                     "model": model,
                     "history_and_training_disabled": history_disabled and not auto_continue and not return_conversation,
                     "websocket_request_id": websocket_request_id
@@ -415,24 +426,27 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
                 if need_arkose:
                     headers["OpenAI-Sentinel-Arkose-Token"] = arkose_token
                 async with session.post(
+                    f"{cls.url}/backend-anon/conversation" if cls._api_key is None else
                     f"{cls.url}/backend-api/conversation",
                     json=data,
                     headers=headers
                 ) as response:
                     cls._update_request_args(session)
                     await raise_for_status(response)
-                    async for chunk in cls.iter_messages_chunk(response.iter_lines(), session, fields):
+                    async for chunk in cls.iter_messages_chunk(response.iter_lines(), session, conversation):
                         if return_conversation:
                             history_disabled = False
                             return_conversation = False
-                            yield fields
+                            yield conversation
                         yield chunk
-                if not auto_continue:
+                if auto_continue and conversation.finish_reason == "max_tokens":
+                    conversation.finish_reason = None
+                    action = "continue"
+                    await asyncio.sleep(5)
+                else:
                     break
-                action = "continue"
-                await asyncio.sleep(5)
             if history_disabled and auto_continue:
-                await cls.delete_conversation(session, cls._headers, fields.conversation_id)
+                await cls.delete_conversation(session, cls._headers, conversation.conversation_id)
 
     @staticmethod
     async def iter_messages_ws(ws: ClientWebSocketResponse, conversation_id: str, is_curl: bool) -> AsyncIterator:
@@ -595,14 +609,27 @@ this.fetch = async (url, options) => {
                     return data["accessToken"]
 
     @staticmethod
+    def get_default_headers() -> dict:
+        return {
+            "accept-language": "en-US",
+            "content-type": "application/json",
+            "oai-device-id": str(uuid.uuid4()),
+            "oai-language": "en-US",
+            "sec-ch-ua": "\"Chromium\";v=\"122\", \"Not(A:Brand\";v=\"24\", \"Google Chrome\";v=\"122\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Linux\"",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "same-origin"
+        }
+
+    @staticmethod
     def _format_cookies(cookies: Cookies):
         return "; ".join(f"{k}={v}" for k, v in cookies.items() if k != "access_token")
 
     @classmethod
-    def _create_request_args(cls, cookies: Union[Cookies, None]):
-        cls._headers = {
-            "User-Agent": 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36'
-        }
+    def _create_request_args(cls, cookies: Cookies = None):
+        cls._headers = cls.get_default_headers()
         cls._cookies = {} if cookies is None else cookies
         cls._update_cookie_header()
 
