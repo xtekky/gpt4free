@@ -9,7 +9,7 @@ from inspect import signature, Parameter
 from typing import Callable, Union
 from ..typing import CreateResult, AsyncResult, Messages
 from .types import BaseProvider, FinishReason
-from ..errors import NestAsyncioError, ModelNotSupportedError, MissingRequirementsError
+from ..errors import NestAsyncioError, ModelNotSupportedError
 from .. import debug
 
 if sys.version_info < (3, 10):
@@ -30,7 +30,7 @@ def get_running_loop(check_nested: bool) -> Union[AbstractEventLoop, None]:
                 import nest_asyncio
                 nest_asyncio.apply(loop)
             except ImportError:
-                raise MissingRequirementsError('Install "nest_asyncio" package')
+                raise NestAsyncioError('Install "nest_asyncio" package')
         return loop
     except RuntimeError:
         pass
