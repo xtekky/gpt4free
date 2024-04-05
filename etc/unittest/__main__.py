@@ -5,5 +5,6 @@ from .main import *
 from .model import *
 from .client import *
 from .include import *
+from .integration import *
 
 unittest.main()

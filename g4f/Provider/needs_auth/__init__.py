@@ -5,3 +5,5 @@ from .ThebApi       import ThebApi
 from .OpenaiChat    import OpenaiChat
 from .OpenAssistant import OpenAssistant
 from .Poe           import Poe
+from .Openai        import Openai
+from .Groq          import Groq

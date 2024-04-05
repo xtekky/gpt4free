@@ -8,7 +8,7 @@ import string
 
 from .stubs import ChatCompletion, ChatCompletionChunk, Image, ImagesResponse
 from .typing import Union, Iterator, Messages, ImageType
-from .providers.types import BaseProvider, ProviderType
+from .providers.types import BaseProvider, ProviderType, FinishReason
 from .image import ImageResponse as ImageProviderResponse
 from .errors import NoImageResponseError, RateLimitError, MissingAuthError
 from . import get_model_and_provider, get_last_provider
@@ -47,6 +47,9 @@ def iter_response(
     finish_reason = None
     completion_id = ''.join(random.choices(string.ascii_letters + string.digits, k=28))
     for idx, chunk in enumerate(response):
+        if isinstance(chunk, FinishReason):
+            finish_reason = chunk.reason
+            break
         content += str(chunk)
         if max_tokens is not None and idx + 1 >= max_tokens:
             finish_reason = "length"
