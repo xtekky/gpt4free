@@ -11,6 +11,9 @@ from copy import deepcopy
 from .crypt import decrypt, encrypt
 from ...requests import StreamSession
 
+class NoValidHarFileError(Exception):
+    ...
+
 class arkReq:
     def __init__(self, arkURL, arkBx, arkHeader, arkBody, arkCookies, userAgent):
         self.arkURL = arkURL
@@ -39,7 +42,7 @@ def readHAR():
         if harPath:
             break
     if not harPath:
-        raise RuntimeError("No .har file found")
+        raise NoValidHarFileError("No .har file found")
     for path in harPath:
         with open(path, 'rb') as file:
             try:
@@ -54,7 +57,7 @@ def readHAR():
                     accessToken = json.loads(v["response"]["content"]["text"]).get("accessToken")
                     cookies = {c['name']: c['value'] for c in v['request']['cookies']}
     if not accessToken:
-        RuntimeError("No accessToken found in .har files")
+        raise NoValidHarFileError("No accessToken found in .har files")
     if not chatArks:
         return None, accessToken, cookies
     return chatArks.pop(), accessToken, cookies
@@ -75,9 +78,6 @@ def parseHAREntry(entry) -> arkReq:
     return tmpArk
 
 def genArkReq(chatArk: arkReq) -> arkReq:
-    if not chatArk:
-        raise RuntimeError("No .har file with arkose found")
-
     tmpArk: arkReq = deepcopy(chatArk)
     if tmpArk is None or not tmpArk.arkBody or not tmpArk.arkHeader:
         raise RuntimeError("The .har file is not valid")

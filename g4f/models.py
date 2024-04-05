@@ -10,19 +10,15 @@ from .Provider   import (
     ChatgptNext,
     HuggingChat,
     HuggingFace,
-    ChatgptDemo,
-    GptForLove,
+    OpenaiChat,
     ChatgptAi,
     DeepInfra,
-    ChatBase,
     GigaChat,
     Liaobots,
     FreeGpt,
     Llama2,
     Vercel,
     Gemini,
-    GptGo,
-    Gpt6,
     Bing,
     You,
     Pi,
@@ -41,7 +37,7 @@ class Model:
     name: str
     base_provider: str
     best_provider: ProviderType = None
-    
+
     @staticmethod
     def __all__() -> list[str]:
         """Returns a list of all model names."""
@@ -52,9 +48,10 @@ default = Model(
     base_provider = "",
     best_provider = RetryProvider([
         Bing,
-        ChatgptAi, GptGo,
+        ChatgptAi,
         You,
-        Chatgpt4Online
+        Chatgpt4Online,
+        OpenaiChat
     ])
 )
 
@@ -63,11 +60,10 @@ gpt_35_long = Model(
     name          = 'gpt-3.5-turbo',
     base_provider = 'openai',
     best_provider = RetryProvider([
-        FreeGpt, You,
-        Chatgpt4Online,
+        FreeGpt,
+        You,
         ChatgptNext,
-        ChatgptDemo,
-        Gpt6,
+        OpenaiChat,
     ])
 )
 
@@ -75,11 +71,7 @@ gpt_35_long = Model(
 gpt_35_turbo = Model(
     name          = 'gpt-3.5-turbo',
     base_provider = 'openai',
-    best_provider = RetryProvider([ 
-        GptGo, You,
-        GptForLove, ChatBase,
-        Chatgpt4Online,
-    ])
+    best_provider = OpenaiChat
 )
 
 gpt_4 = Model(
