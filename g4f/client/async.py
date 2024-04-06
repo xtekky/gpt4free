@@ -13,7 +13,7 @@ from ..typing import Union, Iterator, Messages, ImageType, AsyncIerator
 from ..image import ImageResponse as ImageProviderResponse
 from ..errors import NoImageResponseError, RateLimitError, MissingAuthError
 from .. import get_model_and_provider, get_last_provider
-from .helper import read_json
+from .helper import read_json, find_stop
 
 from .Provider.BingCreateImages import BingCreateImages
 from .Provider.needs_auth import Gemini, OpenaiChat
@@ -30,7 +30,7 @@ async def iter_response(
     finish_reason = None
     completion_id = ''.join(random.choices(string.ascii_letters + string.digits, k=28))
     count: int = 0
-    async for idx, chunk in response:
+    async for chunk in response:
         if isinstance(chunk, FinishReason):
             finish_reason = chunk.reason
             break
@@ -70,12 +70,6 @@ class Client(BaseClient):
         super().__init__(**kwargs)
         self.chat: Chat = Chat(self, provider)
         self.images: Images = Images(self, image_provider)
-
-def filter_none(**kwargs):
-    for key in list(kwargs.keys()):
-        if kwargs[key] is None:
-            del kwargs[key]
-    return kwargs
 
 class Completions():
     def __init__(self, client: Client, provider: ProviderType = None):
