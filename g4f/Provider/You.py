@@ -179,6 +179,7 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
             json={
                 "email": f"{user_uuid}@gmail.com",
                 "password": f"{user_uuid}#{user_uuid}",
+                "dfp_telemetry_id": f"{uuid.uuid4()}",
                 "session_duration_minutes": 129600
             }
         ) as response:
