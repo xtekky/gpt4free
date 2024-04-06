@@ -22,13 +22,13 @@ class RetryNoProviderError(Exception):
 class VersionNotFoundError(Exception):
     ...
 
-class NestAsyncioError(Exception):
-    ...
-
 class ModelNotSupportedError(Exception):
     ...
 
 class MissingRequirementsError(Exception):
+    ...
+
+class NestAsyncioError(MissingRequirementsError):
     ...
 
 class MissingAuthError(Exception):

@@ -98,3 +98,7 @@ class BaseRetryProvider(BaseProvider):
     supports_stream: bool = True
 
 ProviderType = Union[Type[BaseProvider], BaseRetryProvider]
+
+class FinishReason():
+    def __init__(self, reason: str):
+        self.reason = reason
