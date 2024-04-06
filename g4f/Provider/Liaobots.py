@@ -124,14 +124,12 @@ class Liaobots(AsyncGeneratorProvider, ProviderModelMixin):
             if not cls._auth_code:
                 async with session.post(
                     "https://liaobots.work/recaptcha/api/login",
-                    proxy=proxy,
                     data={"token": "abcdefghijklmnopqrst"},
                     verify_ssl=False
                 ) as response:
                     await raise_for_status(response)
                 async with session.post(
                     "https://liaobots.work/api/user",
-                    proxy=proxy,
                     json={"authcode": ""},
                     verify_ssl=False
                 ) as response:
@@ -148,7 +146,6 @@ class Liaobots(AsyncGeneratorProvider, ProviderModelMixin):
             }
             async with session.post(
                 "https://liaobots.work/api/chat",
-                proxy=proxy,
                 json=data,
                 headers={"x-auth-code": cls._auth_code},
                 verify_ssl=False
@@ -158,4 +155,4 @@ class Liaobots(AsyncGeneratorProvider, ProviderModelMixin):
                     if b"<html coupert-item=" in chunk:
                         raise RuntimeError("Invalid session")
                     if chunk:
-                        yield chunk.decode()
+                        yield chunk.decode(errors="ignore")
