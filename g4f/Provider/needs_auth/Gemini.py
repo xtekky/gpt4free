@@ -19,6 +19,7 @@ except ImportError:
 from ...typing import Messages, Cookies, ImageType, AsyncResult
 from ..base_provider import AsyncGeneratorProvider
 from ..helper import format_prompt, get_cookies
+from requests.raise_for_status import raise_for_status
 from ...errors import MissingAuthError, MissingRequirementsError
 from ...image import to_bytes, ImageResponse
 from ...webdriver import get_browser, get_driver_cookies
@@ -128,6 +129,7 @@ class Gemini(AsyncGeneratorProvider):
                     data=data,
                     params=params,
                 ) as response:
+                    await raise_for_status(response)
                     response = await response.text()
                     response_part = json.loads(json.loads(response.splitlines()[-5])[0][2])
                     if response_part[4] is None:
@@ -185,7 +187,7 @@ class Gemini(AsyncGeneratorProvider):
             connector=connector
         ) as session:
             async with session.options(UPLOAD_IMAGE_URL) as reponse:
-                reponse.raise_for_status()
+                await raise_for_status(response)
 
             headers = {
                 "size": str(len(image)),
@@ -195,23 +197,24 @@ class Gemini(AsyncGeneratorProvider):
             async with session.post(
                 UPLOAD_IMAGE_URL, headers=headers, data=data
             ) as response:
-                response.raise_for_status()
+                await raise_for_status(response)
                 upload_url = response.headers["X-Goog-Upload-Url"]
 
             async with session.options(upload_url, headers=headers) as response:
-                response.raise_for_status()
+                await raise_for_status(response)
 
             headers["x-goog-upload-command"] = "upload, finalize"
             headers["X-Goog-Upload-Offset"] = "0"
             async with session.post(
                 upload_url, headers=headers, data=image
             ) as response:
-                response.raise_for_status()
+                await raise_for_status(response)
                 return await response.text()
 
     @classmethod
     async def fetch_snlm0e(cls, session: ClientSession, cookies: Cookies):
         async with session.get(cls.url, cookies=cookies) as response:
+            await raise_for_status(response)
             text = await response.text()
         match = re.search(r'SNlM0e\":\"(.*?)\"', text)
         if match:
