@@ -5,7 +5,7 @@ import hashlib
 import uuid
 
 from ..typing import AsyncResult, Messages
-from ..requests import StreamSession
+from ..requests import StreamSession, raise_for_status
 from ..errors import RateLimitError
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 
@@ -54,13 +54,11 @@ class ChatForAi(AsyncGeneratorProvider, ProviderModelMixin):
                 "sign": generate_signature(timestamp, "", conversation_id)
             }
             async with session.post(f"{cls.url}/api/handle/provider-openai", json=data) as response:
-                if response.status == 429:
-                    raise RateLimitError("Rate limit reached")
-                response.raise_for_status()
+                await raise_for_status(response)
                 async for chunk in response.iter_content():
                     if b"https://chatforai.store" in chunk:
-                        raise RuntimeError(f"Response: {chunk.decode()}")
-                    yield chunk.decode()
+                        raise RuntimeError(f"Response: {chunk.decode(errors='ignore')}")
+                    yield chunk.decode(errors="ignore")
 
     
 def generate_signature(timestamp: int, message: str, id: str):
