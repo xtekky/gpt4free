@@ -24,13 +24,13 @@ docker pull hlohaus789/g4f
 
 ## 🆕 What's New
 
-- Check out a more in depth local inference @ https://github.com/gpt4free/gpt4local
-- Join our Telegram Channel: [t.me/g4f_channel](https://telegram.me/g4f_channel)
-- Join our Discord Group: [discord.gg/XfybzPXPH5](https://discord.gg/XfybzPXPH5)
-- `g4f` now supports 100% local inference: [local-docs](https://g4f.mintlify.app/docs/core/usage/local)
+- Installation Guide for Windows (.exe): 💻 [#installation-guide-for-windows](#installation-guide-for-windows-exe)
+- Join our Telegram Channel: 📨 [telegram.me/g4f_channel](https://telegram.me/g4f_channel)
+- Join our Discord Group: 💬 [discord.gg/XfybzPXPH5](https://discord.gg/XfybzPXPH5)
+- `g4f` now supports 100% local inference: 🧠 [local-docs](https://g4f.mintlify.app/docs/core/usage/local)
 
 ## 🔻 Site Takedown
-Is your site on this repository and you want to take it down? Send an email to takedown@g4f.ai with proof it is yours and it will be removed as fast as possible. To prevent reproduction please secure your API ;)
+Is your site on this repository and you want to take it down? Send an email to takedown@g4f.ai with proof it is yours and it will be removed as fast as possible. To prevent reproduction please secure your API. 😉
 
 ## 🚀  Feedback and Todo
 You can always leave some feedback here: https://forms.gle/FeWV9RLEedfdkmFN6
@@ -42,7 +42,7 @@ As per the survey, here is a list of improvements to come
 - [x] Improve the provider status list & updates
 - [ ] Tutorials on how to reverse sites to write your own wrapper (PoC only ofc)
 - [x] Improve the Bing wrapper. (Wait and Retry or reuse conversation)
-- [ ] Write a standard provider performance test to improve the stability
+- [ ] 🚧 Write a standard provider performance test to improve the stability
 - [ ] Potential support and development of local models
 - [ ] 🚧 Improve compatibility and error handling
 
@@ -51,8 +51,8 @@ As per the survey, here is a list of improvements to come
 - [🆕 What's New](#-whats-new)
 - [📚 Table of Contents](#-table-of-contents)
 - [🛠️ Getting Started](#-getting-started)
-    + [Docker container](#docker-container)
-      - [Quick start](#quick-start)
+    + [Docker Container Guide](#docker-container-guide)
+    + [Installation Guide for Windows (.exe)](#installation-guide-for-windows-exe)
     + [Use python](#use-python)
       - [Prerequisites](#prerequisites)
       - [Install using PyPI package:](#install-using-pypi-package)
@@ -80,20 +80,41 @@ As per the survey, here is a list of improvements to come
 
 ## 🛠️ Getting Started
 
-#### Docker container
+#### Docker Container Guide
 
-##### Quick start:
+##### Getting Started Quickly:
 
-1. [Download and install Docker](https://docs.docker.com/get-docker/)
-2. Pull latest image and run the container:
+1. **Install Docker:** Begin by [downloading and installing Docker](https://docs.docker.com/get-docker/).
+
+2. **Set Up the Container:**
+   Use the following commands to pull the latest image and start the container:
 
 ```sh
 docker pull hlohaus789/g4f
 docker run -p 8080:8080 -p 1337:1337 -p 7900:7900 --shm-size="2g" -v ${PWD}/hardir:/app/hardir hlohaus789/g4f:latest
 ```
-3. Open the included client on: [http://localhost:8080/chat/](http://localhost:8080/chat/)
-or set the API base in your client to: [http://localhost:1337/v1](http://localhost:1337/v1)
-4. (Optional) If you need to log in to a provider, you can view the desktop from the container here: http://localhost:7900/?autoconnect=1&resize=scale&password=secret.
+
+3. **Access the Client:** 
+   - To use the included client, navigate to: [http://localhost:8080/chat/](http://localhost:8080/chat/)
+   - Or set the API base for your client to: [http://localhost:1337/v1](http://localhost:1337/v1)
+
+4. **(Optional) Provider Login:**
+   If required, you can access the container's desktop here: http://localhost:7900/?autoconnect=1&resize=scale&password=secret for provider login purposes.
+
+#### Installation Guide for Windows (.exe)
+To ensure the seamless operation of our application, please follow the instructions below. These steps are designed to guide you through the installation process on Windows operating systems.
+##### Prerequisites
+1. **WebView2 Runtime**: Our application requires the *WebView2 Runtime* to be installed on your system. If you do not have it installed, please download and install it from the [Microsoft Developer Website](https://developer.microsoft.com/en-us/microsoft-edge/webview2/). If you already have *WebView2 Runtime* installed but are encountering issues, navigate to *Installed Windows Apps*, select *WebView2*, and opt for the repair option.
+##### Installation Steps
+2. **Download the Application**: Visit our [latest releases page](https://github.com/xtekky/gpt4free/releases/latest) and download the most recent version of the application, named `g4f.webview.*.exe`.
+3. **File Placement**: Once downloaded, transfer the `.exe` file from your downloads folder to a directory of your choice on your system, and then execute it to run the app.
+##### Post-Installation Adjustment
+4. **Firewall Configuration (Hotfix)**: Upon installation, it may be necessary to adjust your Windows Firewall settings to allow the application to operate correctly. To do this, access your Windows Firewall settings and allow the application.
+
+By following these steps, you should be able to successfully install and run the application on your Windows system. If you encounter any issues during the installation process, please refer to our Issue Tracker or try to get contact over Discord for assistance.
+
+Run the **Webview UI** on other Platfroms:
+- [/docs/guides/webview](/docs/webview.md)
 
 ##### Use your smartphone:
 
@@ -170,34 +191,7 @@ image_url = response.data[0].url
 - New Client API like the OpenAI Python library: [/docs/client](/docs/client.md)
 - Legacy API with python modules: [/docs/legacy](/docs/legacy.md)
 
-### Webview GUI
-
-Open the GUI in a window of your OS. Runs on a local/static/ssl server and use a JavaScript API.
-Supports login into the OpenAI Chat, Image Upload and streamed Text Generation.
-
-Supports all platforms, but only Linux tested.
-
-1. Install all requirements with:
-
-```bash
-pip install g4f[webview]
-```
-
-2. Follow the OS specific steps here:
- [pywebview installation](https://pywebview.flowrl.com/guide/installation.html#dependencies)
-
-3. Run the app with:
-
-```python
-from g4f.gui.webview import run_webview
-run_webview(debug=True)
-```
-or execute the following command:
-```bash
-python -m g4f.gui.webview -debug
-```
-
-#### Webserver
+#### Web UI
 
 To start the web interface, type the following codes in python:
 
@@ -210,11 +204,13 @@ or execute the following command:
 python -m g4f.cli gui -port 8080 -debug
 ```
 
-### Interference API
+#### Interference API
 
 You can use the Interference API to serve other OpenAI integrations with G4F.
 
-See: [/docs/interference](/docs/interference.md)
+See docs: [/docs/interference](/docs/interference.md)
+
+Access with: http://localhost:1337/v1
 
 ### Configuration
 
@@ -247,7 +243,7 @@ To utilize the OpenaiChat provider, a .har file is required from https://chat.op
 2. Access the Developer Tools in your browser. This can typically be done by right-clicking the page and selecting "Inspect," or by pressing F12 or Ctrl+Shift+I (Cmd+Option+I on a Mac).
 3. With the Developer Tools open, switch to the "Network" tab.
 4. Reload the website to capture the loading process within the Network tab.
-5. Initiate an action in the chat which can be capture in the .har file.
+5. Initiate an action in the chat which can be captured in the .har file.
 6. Right-click any of the network activities listed and select "Save all as HAR with content" to export the .har file.
 
 ##### Storing the .HAR File
@@ -780,9 +776,50 @@ We welcome contributions from the community. Whether you're adding new providers
 
 ## 🙌 Contributors
 
-A list of all contributors is available [here](https://github.com/xtekky/gpt4free/graphs/contributors)   
-The [`Vercel.py`](https://github.com/xtekky/gpt4free/blob/main/g4f/Provider/Vercel.py) file contains code from [vercel-llm-api](https://github.com/ading2210/vercel-llm-api) by [@ading2210](https://github.com/ading2210), which is licensed under the [GNU GPL v3](https://www.gnu.org/licenses/gpl-3.0.txt)   
-Top 1 Contributor: [@hlohaus](https://github.com/hlohaus)
+A list of all contributors is available [here](https://github.com/xtekky/gpt4free/graphs/contributors)
+
+<a href="https://github.com/xtekky" target="_blank"><img src="https://avatars.githubusercontent.com/u/98614666?v=4&s=45" width="45" title="xtekky"></a>
+<a href="https://github.com/hlohaus" target="_blank"><img src="https://avatars.githubusercontent.com/u/983577?v=4&s=45" width="45" title="hlohaus"></a>
+<a href="https://github.com/bagusindrayana" target="_blank"><img src="https://avatars.githubusercontent.com/u/36830534?v=4&s=45" width="45" title="bagusindrayana"></a>
+<a href="https://github.com/sudouser777" target="_blank"><img src="https://avatars.githubusercontent.com/u/22415463?v=4&s=45" width="45" title="sudouser777"></a>
+<a href="https://github.com/thatlukinhasguy1" target="_blank"><img src="https://avatars.githubusercontent.com/u/139662282?v=4&s=45" width="45" title="thatlukinhasguy1"></a>
+<a href="https://github.com/Commenter123321" target="_blank"><img src="https://avatars.githubusercontent.com/u/36051603?v=4&s=45" width="45" title="Commenter123321"></a>
+<a href="https://github.com/DanielShemesh" target="_blank"><img src="https://avatars.githubusercontent.com/u/20585236?v=4&s=45" width="45" title="DanielShemesh"></a>
+<a href="https://github.com/Luneye" target="_blank"><img src="https://avatars.githubusercontent.com/u/73485421?v=4&s=45" width="45" title="Luneye"></a>
+<a href="https://github.com/enganese" target="_blank"><img src="https://avatars.githubusercontent.com/u/69082498?v=4&s=45" width="45" title="enganese"></a>
+<a href="https://github.com/ezerinz" target="_blank"><img src="https://avatars.githubusercontent.com/u/100193740?v=4&s=45" width="45" title="ezerinz"></a>
+<a href="https://github.com/Lin-jun-xiang" target="_blank"><img src="https://avatars.githubusercontent.com/u/63782903?v=4&s=45" width="45" title="Lin-jun-xiang"></a>
+<a href="https://github.com/nullstreak" target="_blank"><img src="https://avatars.githubusercontent.com/u/139914347?v=4&s=45" width="45" title="nullstreak"></a>
+<a href="https://github.com/valerii-chirkov" target="_blank"><img src="https://avatars.githubusercontent.com/u/81074936?v=4&s=45" width="45" title="valerii-chirkov"></a>
+<a href="https://github.com/MIDORIBIN" target="_blank"><img src="https://avatars.githubusercontent.com/u/25425217?v=4&s=45" width="45" title="MIDORIBIN"></a>
+<a href="https://github.com/repollo" target="_blank"><img src="https://avatars.githubusercontent.com/u/2671466?v=4&s=45" width="45" title="repollo"></a>
+<a href="https://github.com/hpsj" target="_blank"><img src="https://avatars.githubusercontent.com/u/54535414?v=4&s=45" width="45" title="hpsj"></a>
+<a href="https://github.com/taiyi747" target="_blank"><img src="https://avatars.githubusercontent.com/u/63543716?v=4&s=45" width="45" title="taiyi747"></a>
+<a href="https://github.com/ostix360" target="_blank"><img src="https://avatars.githubusercontent.com/u/55257054?v=4&s=45" width="45" title="ostix360"></a>
+<a href="https://github.com/WdR-Tech" target="_blank"><img src="https://avatars.githubusercontent.com/u/143020293?v=4&s=45" width="45" title="WdR-Tech"></a>
+<a href="https://github.com/HexyeDEV" target="_blank"><img src="https://avatars.githubusercontent.com/u/65314629?v=4&s=45" width="45" title="HexyeDEV"></a>
+<a href="https://github.com/9fo" target="_blank"><img src="https://avatars.githubusercontent.com/u/71867245?v=4&s=45" width="45" title="9fo"></a>
+<a href="https://github.com/eltociear" target="_blank"><img src="https://avatars.githubusercontent.com/u/22633385?v=4&s=45" width="45" title="eltociear"></a>
+<a href="https://github.com/ramonvc" target="_blank"><img src="https://avatars.githubusercontent.com/u/13617054?v=4&s=45" width="45" title="ramonvc"></a>
+<a href="https://github.com/naa7" target="_blank"><img src="https://avatars.githubusercontent.com/u/44613678?v=4&s=45" width="45" title="naa7"></a>
+<a href="https://github.com/zeng-rr" target="_blank"><img src="https://avatars.githubusercontent.com/u/47846202?v=4&s=45" width="45" title="zeng-rr"></a>
+<a href="https://github.com/editor-syntax" target="_blank"><img src="https://avatars.githubusercontent.com/u/109844019?v=4&s=45" width="45" title="editor-syntax"></a>
+<a href="https://github.com/devAdityaa" target="_blank"><img src="https://avatars.githubusercontent.com/u/77636021?v=4&s=45" width="45" title="devAdityaa"></a>
+<a href="https://github.com/kggn" target="_blank"><img src="https://avatars.githubusercontent.com/u/95663228?v=4&s=45" width="45" title="kggn"></a>
+<a href="https://github.com/xiangsx" target="_blank"><img src="https://avatars.githubusercontent.com/u/29322721?v=4&s=45" width="45" title="xiangsx"></a>
+<a href="https://github.com/ggindinson" target="_blank"><img src="https://avatars.githubusercontent.com/u/97807772?v=4&s=45" width="45" title="ggindinson"></a>
+<span></span>
+<img src="https://avatars.githubusercontent.com/u/71154407?s=45&v=4" width="45" title="ading2210">
+<img src="https://avatars.githubusercontent.com/u/12299238?s=45&v=4" width="45" title="xqdoo00o">
+<img src="https://avatars.githubusercontent.com/u/97126670?s=45&v=4" width="45" title="nathanrchn">
+<img src="https://avatars.githubusercontent.com/u/81407603?v=4&s=45" width="45" title="dsdanielpark">
+
+- The [`Vercel.py`](g4f/Provider/Vercel.py) file contains code from [vercel-llm-api](https://github.com/ading2210/vercel-llm-api) by [@ading2210](https://github.com/ading2210)
+- The [`har_file.py`](g4f/Provider/openai/har_file.py) has input from [xqdoo00o/ChatGPT-to-API](https://github.com/xqdoo00o/ChatGPT-to-API)
+- The [`PerplexityLabs.py`](g4f/Provider/openai/har_file.py) has input from [nathanrchn/perplexityai](https://github.com/nathanrchn/perplexityai)
+- The [`Gemini.py`](g4f/Provider/needs_auth/Gemini.py) has input from [dsdanielpark/Gemini-API](https://github.com/dsdanielpark/Gemini-API)
+
+*Having input implies that the AI's code generation utilized it as one of many sources.*
 
 ## ©️ Copyright
 

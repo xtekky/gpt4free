@@ -17,13 +17,14 @@ import g4f.debug
 def run_webview(
     debug: bool = False,
     ssl: bool = True,
-    storage_path: str = None
+    storage_path: str = None,
+    gui: str = None
 ):
     if getattr(sys, 'frozen', False):
         dirname = sys._MEIPASS
     else:
         dirname = os.path.dirname(__file__)
-    webview.settings['OPEN_EXTERNAL_LINKS_IN_BROWSER'] = False
+    webview.settings['OPEN_EXTERNAL_LINKS_IN_BROWSER'] = True
     webview.settings['ALLOW_DOWNLOADS'] = True
     webview.create_window(
         f"g4f - {g4f.version.utils.current_version}",
@@ -37,7 +38,8 @@ def run_webview(
         private_mode=False,
         storage_path=storage_path,
         debug=debug,
-        ssl=ssl
+        ssl=ssl,
+        gui=gui
     )
 
 if __name__ == "__main__":

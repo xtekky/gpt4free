@@ -136,8 +136,8 @@ class Api():
         camera.take_picture(filename=filename, on_complete=self.on_camera)
 
     def on_image_selection(self, filename):
-        filename = filename[0] if isinstance(filename, list) else filename
-        if filename is not None and os.path.exists(filename):
+        filename = filename[0] if isinstance(filename, list) and filename else filename
+        if filename and os.path.exists(filename):
             self.image = filename
         else:
             self.image = None
