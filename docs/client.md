@@ -163,7 +163,7 @@ User: What are on this image?
 Bot: There is a waterfall in the middle of a jungle. There is a rainbow over...
 ```
 
-Advanced example: A command-line program
+#### Advanced example: A command-line program
 ```python
 import g4f
 from g4f.client import Client
