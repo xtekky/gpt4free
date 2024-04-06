@@ -137,7 +137,7 @@ class Api():
 
     def on_image_selection(self, filename):
         filename = filename[0] if isinstance(filename, list) and filename else filename
-        if filename is not None and os.path.exists(filename):
+        if filename and os.path.exists(filename):
             self.image = filename
         else:
             self.image = None
