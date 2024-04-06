@@ -9,7 +9,7 @@ try:
 except ImportError:
     has_platformdirs = False
 
-from g4f.gui.run import gui_parser
+from g4f.gui.gui_parser import gui_parser
 from g4f.gui.server.api import Api
 import g4f.version
 import g4f.debug
