@@ -24,7 +24,7 @@ docker pull hlohaus789/g4f
 
 ## 🆕 What's New
 
-- Webview .exe for Windows: 💻 [Installation Guide for Windows (.exe)](#installation-guide-for-windows-exe)
+- Installation Guide for Windows (.exe): 💻 [#installation-guide-for-windows](#installation-guide-for-windows-exe)
 - Join our Telegram Channel: 📨 [telegram.me/g4f_channel](https://telegram.me/g4f_channel)
 - Join our Discord Group: 💬 [discord.gg/XfybzPXPH5](https://discord.gg/XfybzPXPH5)
 - `g4f` now supports 100% local inference: 🧠 [local-docs](https://g4f.mintlify.app/docs/core/usage/local)
@@ -191,7 +191,7 @@ image_url = response.data[0].url
 - New Client API like the OpenAI Python library: [/docs/client](/docs/client.md)
 - Legacy API with python modules: [/docs/legacy](/docs/legacy.md)
 
-#### GUI Webserver
+#### Web UI
 
 To start the web interface, type the following codes in python:
 
