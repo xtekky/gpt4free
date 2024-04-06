@@ -6,49 +6,38 @@ import time
 import random
 import string
 
+from .types import BaseProvider, ProviderType, FinishReason
 from .stubs import ChatCompletion, ChatCompletionChunk, Image, ImagesResponse
-from .typing import Union, Iterator, Messages, ImageType
-from .providers.types import BaseProvider, ProviderType, FinishReason
-from .image import ImageResponse as ImageProviderResponse
-from .errors import NoImageResponseError, RateLimitError, MissingAuthError
-from . import get_model_and_provider, get_last_provider
+from ..typing import Union, Iterator, Messages, ImageType, AsyncIerator
+from ..image import ImageResponse as ImageProviderResponse
+from ..errors import NoImageResponseError, RateLimitError, MissingAuthError
+from .. import get_model_and_provider, get_last_provider
+from .helper import read_json
 
 from .Provider.BingCreateImages import BingCreateImages
 from .Provider.needs_auth import Gemini, OpenaiChat
-from .Provider.You import You
-from .helper import read_json
+from ..Provider.You import You
 
-def iter_response(
-    response: iter[str],
+async def iter_response(
+    response: AsyncIerator[str],
     stream: bool,
     response_format: dict = None,
     max_tokens: int = None,
     stop: list = None
-) -> IterResponse:
+) -> AsyncIterResponse:
     content = ""
     finish_reason = None
     completion_id = ''.join(random.choices(string.ascii_letters + string.digits, k=28))
-    for idx, chunk in enumerate(response):
+    count: int = 0
+    async for idx, chunk in response:
         if isinstance(chunk, FinishReason):
             finish_reason = chunk.reason
             break
         content += str(chunk)
-        if max_tokens is not None and idx + 1 >= max_tokens:
+        count += 1
+        if max_tokens is not None and count >= max_tokens:
             finish_reason = "length"
-        first = -1
-        word = None
-        if stop is not None:
-            for word in list(stop):
-                first = content.find(word)
-                if first != -1:
-                    content = content[:first]
-                    break
-            if stream and first != -1:
-                first = chunk.find(word)
-                if first != -1:
-                    chunk = chunk[:first]
-                else:
-                    first = 0
+        first, content, chunk = find_stop(stop, content, chunk)
         if first != -1:
             finish_reason = "stop"
         if stream:
@@ -64,16 +53,15 @@ def iter_response(
                 content = read_json(content)
         yield ChatCompletion(content, finish_reason, completion_id, int(time.time()))
 
-def iter_append_model_and_provider(response: IterResponse) -> IterResponse:
+async def iter_append_model_and_provider(response: AsyncIterResponse) -> IterResponse:
     last_provider = None
-    for chunk in response:
+    async for chunk in response:
         last_provider = get_last_provider(True) if last_provider is None else last_provider
         chunk.model = last_provider.get("model")
         chunk.provider =  last_provider.get("name")
         yield chunk
 
 class Client():
-
     def __init__(
         self,
         api_key: str = None,
