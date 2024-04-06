@@ -5,7 +5,18 @@ ImageProvider = Union[BaseProvider, object]
 Proxies = Union[dict, str]
 IterResponse = Iterator[Union[ChatCompletion, ChatCompletionChunk]]
 
-class Client():
+class ClientProxyMixin():
+    def get_proxy(self) -> Union[str, None]:
+        if isinstance(self.proxies, str):
+            return self.proxies
+        elif self.proxies is None:
+            return os.environ.get("G4F_PROXY")
+        elif "all" in self.proxies:
+            return self.proxies["all"]
+        elif "https" in self.proxies:
+            return self.proxies["https"]
+
+class Client(ClientProxyMixin):
     def __init__(
         self,
         api_key: str = None,
@@ -16,5 +27,3 @@ class Client():
     ) -> None:
         self.api_key: str = api_key
         self.proxies: Proxies = proxies
-        self.chat: Chat = Chat(self, provider)
-        self.images: Images = Images(self, image_provider)
