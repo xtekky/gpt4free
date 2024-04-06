@@ -3,7 +3,7 @@ from __future__ import annotations
 import time, hashlib, random
 
 from ..typing import AsyncResult, Messages
-from ..requests import StreamSession
+from ..requests import StreamSession, raise_for_status
 from .base_provider import AsyncGeneratorProvider
 from ..errors import RateLimitError
 
@@ -29,9 +29,9 @@ class FreeGpt(AsyncGeneratorProvider):
         **kwargs
     ) -> AsyncResult:
         async with StreamSession(
-            impersonate="chrome107",
+            impersonate="chrome",
             timeout=timeout,
-            proxies={"https": proxy}
+            proxies={"all": proxy}
         ) as session:
             prompt = messages[-1]["content"]
             timestamp = int(time.time())
@@ -43,9 +43,9 @@ class FreeGpt(AsyncGeneratorProvider):
             }
             domain = random.choice(domains)
             async with session.post(f"{domain}/api/generate", json=data) as response:
-                response.raise_for_status()
+                await raise_for_status(response)
                 async for chunk in response.iter_content():
-                    chunk = chunk.decode()
+                    chunk = chunk.decode(errors="ignore")
                     if chunk == "当前地区当日额度已消耗完":
                         raise RateLimitError("Rate limit reached")
                     yield chunk
