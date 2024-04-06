@@ -15,10 +15,6 @@ from ..errors import NoImageResponseError, RateLimitError, MissingAuthError
 from .. import get_model_and_provider, get_last_provider
 from .helper import read_json, find_stop, filter_none
 
-from .Provider.BingCreateImages import BingCreateImages
-from .Provider.needs_auth import Gemini, OpenaiChat
-from ..Provider.You import You
-
 async def iter_response(
     response: AsyncIerator[str],
     stream: bool,
