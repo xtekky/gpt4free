@@ -9,7 +9,6 @@ from g4f import get_last_provider, ChatCompletion
 from g4f.errors import VersionNotFoundError
 from g4f.Provider import ProviderType, __providers__, __map__
 from g4f.providers.base_provider import ProviderModelMixin
-from g4f.Provider.bing.create_images import patch_provider
 from g4f.providers.conversation import BaseConversation
 
 conversations: dict[dict[str, BaseConversation]] = {}
