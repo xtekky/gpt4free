@@ -5,11 +5,11 @@ block_cipher = None
 
 
 a = Analysis(
-    ['webview.py'],
+    ['main.py'],
     pathex=[],
     binaries=[],
     datas=[],
-    hiddenimports=[],
+    hiddenimports=['plyer.platforms.linux.filechooser', 'plyer.platforms.win.filechooser'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
@@ -25,11 +25,11 @@ exe = EXE(
     pyz,
     a.scripts,
     a.binaries,
-    Tree('client', prefix='client'),
+    Tree('C:/Users/Docker/AppData/Local/Packages/PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0/LocalCache/local-packages/Python311/site-packages/g4f/gui/client', prefix='client'),
     a.zipfiles,
     a.datas,
     [],
-    name='webview',
+    name='g4f',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -42,4 +42,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
+    icon='icon.ico',
 )

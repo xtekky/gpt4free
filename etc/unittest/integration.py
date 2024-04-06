@@ -4,13 +4,13 @@ import json
 try:
     import nest_asyncio
     has_nest_asyncio = True
-except:
+except ImportError:
     has_nest_asyncio = False 
 
 from g4f.client import Client, ChatCompletion
 from g4f.Provider import Bing, OpenaiChat
 
-DEFAULT_MESSAGES = [{"role": "system", "content": 'Response in json, Example: {"success: True"}'},
+DEFAULT_MESSAGES = [{"role": "system", "content": 'Response in json, Example: {"success: true"}'},
                     {"role": "user", "content": "Say success true in json"}]
 
 class TestProviderIntegration(unittest.TestCase):
