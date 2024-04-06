@@ -876,7 +876,6 @@ a:-webkit-any-link {
     width: 1px;
 }
 
-
 .color-picker>fieldset {
     border: 0;
     display: flex;
@@ -1014,8 +1013,8 @@ a:-webkit-any-link {
     font-size: 15px;
     width: 100%;
     color: var(--colour-3);
-    min-height: 59px;
-    height: 59px;
+    min-height: 50px;
+    height: 50px;
     outline: none;
     padding: var(--inner-gap) var(--section-gap);
     resize: vertical;
@@ -1033,4 +1032,21 @@ a:-webkit-any-link {
 }
 ::-webkit-scrollbar-thumb:hover {
     background: var(--accent)
+}
+
+.hljs {
+    color: #e9e9f4;
+    background: #28293629;
+    border-radius: var(--border-radius-1);
+    border: 1px solid var(--blur-border);
+    font-size: 15px;
+}
+
+#message-input {
+    height: 82px;
+    margin-left: 20px;
+}
+
+#message-input::-webkit-scrollbar {
+    width: 5px;
 }
