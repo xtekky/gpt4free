@@ -16,21 +16,7 @@ from . import get_model_and_provider, get_last_provider
 from .Provider.BingCreateImages import BingCreateImages
 from .Provider.needs_auth import Gemini, OpenaiChat
 from .Provider.You import You
-
-def read_json(text: str) -> dict:
-    """
-    Parses JSON code block from a string.
-
-    Args:
-        text (str): A string containing a JSON code block.
-
-    Returns:
-        dict: A dictionary parsed from the JSON code block.
-    """
-    match = re.search(r"```(json|)\n(?P<code>[\S\s]+?)\n```", text)
-    if match:
-        return match.group("code")
-    return text
+from .helper import read_json
 
 def iter_response(
     response: iter[str],
