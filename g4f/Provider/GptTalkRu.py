@@ -48,7 +48,7 @@ class GptTalkRu(AsyncGeneratorProvider):
             async with session.post(f"{cls.url}/gpt2", json=data, proxy=proxy) as response:
                 await raise_for_status(response)
                 async for chunk in response.content.iter_any():
-                   yield chunk.decode()
+                   yield chunk.decode(errors="ignore")
 
 def encrypt(public_key: str, value: str) -> str:
     from Crypto.Cipher import PKCS1_v1_5
