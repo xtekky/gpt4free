@@ -42,11 +42,11 @@ class ChatgptFree(AsyncProvider):
         async with StreamSession(
                 headers=headers,
                 cookies=cookies,
-                impersonate="chrome107",
-                proxies={"https": proxy},
+                impersonate="chrome",
+                proxies={"all": proxy},
                 timeout=timeout
             ) as session:
-            
+
             if not cls._nonce:
                 async with session.get(f"{cls.url}/") as response:
                     
