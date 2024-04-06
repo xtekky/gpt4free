@@ -13,7 +13,7 @@ from ..typing import Union, Iterator, Messages, ImageType, AsyncIerator
 from ..image import ImageResponse as ImageProviderResponse
 from ..errors import NoImageResponseError, RateLimitError, MissingAuthError
 from .. import get_model_and_provider, get_last_provider
-from .helper import read_json, find_stop
+from .helper import read_json, find_stop, filter_none
 
 from .Provider.BingCreateImages import BingCreateImages
 from .Provider.needs_auth import Gemini, OpenaiChat
@@ -90,7 +90,7 @@ class Completions():
         ignore_working: bool = False,
         ignore_stream: bool = False,
         **kwargs
-    ) -> Union[ChatCompletion, Iterator[ChatCompletionChunk]]:
+    ) -> Union[ChatCompletion, AsyncIterator[ChatCompletionChunk]]:
         model, provider = get_model_and_provider(
             model,
             self.provider if provider is None else provider,
@@ -101,7 +101,7 @@ class Completions():
             **kwargs
         )
         stop = [stop] if isinstance(stop, str) else stop
-        response = provider.create_completion(
+        response = provider.create_async(
             model, messages, stream,            
             **filter_none(
                 proxy=self.client.get_proxy(),
@@ -113,25 +113,13 @@ class Completions():
         )
         response = iter_response(response, stream, response_format, max_tokens, stop)
         response = iter_append_model_and_provider(response)
-        return response if stream else next(response)
+        return response if stream else anext(response)
 
 class Chat():
     completions: Completions
 
     def __init__(self, client: Client, provider: ProviderType = None):
         self.completions = Completions(client, provider)
-
-class ImageModels():
-    gemini = Gemini
-    openai = OpenaiChat
-    you = You
-
-    def __init__(self, client: Client) -> None:
-        self.client = client
-        self.default = BingCreateImages(proxy=self.client.get_proxy())
-
-    def get(self, name: str, default: ImageProvider = None) -> ImageProvider:
-        return getattr(self, name) if hasattr(self, name) else default or self.default
 
 def iter_image_response(response: Iterator) -> Union[ImagesResponse, None]:
     for chunk in list(response):
