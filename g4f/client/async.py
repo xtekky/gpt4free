@@ -6,6 +6,7 @@ import time
 import random
 import string
 
+from .types import Client as BaseClient
 from .types import BaseProvider, ProviderType, FinishReason
 from .stubs import ChatCompletion, ChatCompletionChunk, Image, ImagesResponse
 from ..typing import Union, Iterator, Messages, ImageType, AsyncIerator
@@ -61,29 +62,14 @@ async def iter_append_model_and_provider(response: AsyncIterResponse) -> IterRes
         chunk.provider =  last_provider.get("name")
         yield chunk
 
-class Client():
+class Client(BaseClient):
     def __init__(
         self,
-        api_key: str = None,
-        proxies: Proxies = None,
-        provider: ProviderType = None,
-        image_provider: ImageProvider = None,
         **kwargs
-    ) -> None:
-        self.api_key: str = api_key
-        self.proxies: Proxies = proxies
+    ):
+        super().__init__(**kwargs)
         self.chat: Chat = Chat(self, provider)
         self.images: Images = Images(self, image_provider)
-
-    def get_proxy(self) -> Union[str, None]:
-        if isinstance(self.proxies, str):
-            return self.proxies
-        elif self.proxies is None:
-            return os.environ.get("G4F_PROXY")
-        elif "all" in self.proxies:
-            return self.proxies["all"]
-        elif "https" in self.proxies:
-            return self.proxies["https"]
 
 def filter_none(**kwargs):
     for key in list(kwargs.keys()):
