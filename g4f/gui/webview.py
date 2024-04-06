@@ -16,6 +16,7 @@ import g4f.debug
 
 def run_webview(
     debug: bool = False,
+    http_port: int = None,
     ssl: bool = True,
     storage_path: str = None,
     gui: str = None
@@ -38,6 +39,7 @@ def run_webview(
         private_mode=False,
         storage_path=storage_path,
         debug=debug,
+        http_port=http_port,
         ssl=ssl,
         gui=gui
     )
