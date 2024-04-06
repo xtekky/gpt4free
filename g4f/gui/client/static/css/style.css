@@ -512,13 +512,15 @@ label[for="camera"] {
     }
 }
 
-.buttons input[type="checkbox"] {
+.buttons input[type="checkbox"],
+.settings input[type="checkbox"] {
     height: 0;
     width: 0;
     display: none;
 }
 
-.buttons label {
+.buttons label,
+.settings label {
     cursor: pointer;
     text-indent: -9999px;
     width: 50px;
@@ -535,7 +537,8 @@ label[for="camera"] {
     transition: 0.33s;
 }
 
-.buttons label:after {
+.buttons label:after,
+.settings label:after {
     content: "";
     position: absolute;
     top: 50%;
@@ -548,7 +551,8 @@ label[for="camera"] {
     transition: 0.33s;
 }
 
-.buttons input:checked+label {
+.buttons input:checked+label,
+.settings input:checked+label {
     background: var(--accent);
 }
 
@@ -556,11 +560,15 @@ label[for="camera"] {
     left: calc(100% - 5px - 20px);
 }
 
-.buttons {
+.buttons, .settings {
     display: flex;
     align-items: center;
     justify-content: left;
     width: 100%;
+}
+
+.settings textarea{
+    height: 20px;
 }
 
 .field {
