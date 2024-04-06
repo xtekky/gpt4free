@@ -49,4 +49,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
     if args.debug:
         g4f.debug.logging = True
-    run_webview(args.debug)
+    run_webview(args.debug, args.port)
