@@ -5,9 +5,9 @@ import requests
 from aiohttp import ClientSession, BaseConnector
 
 from ..typing import AsyncResult, Messages
+from ..requests.raise_for_status import raise_for_status
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from .helper import format_prompt, get_connector
-
 
 class HuggingChat(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://huggingface.co/chat"
@@ -60,11 +60,11 @@ class HuggingChat(AsyncGeneratorProvider, ProviderModelMixin):
             headers=headers,
             connector=get_connector(connector, proxy)
         ) as session:
-            async with session.post(f"{cls.url}/conversation", json=options, proxy=proxy) as response:
-                response.raise_for_status()
+            async with session.post(f"{cls.url}/conversation", json=options) as response:
+                await raise_for_status(response)
                 conversation_id = (await response.json())["conversationId"]
             async with session.get(f"{cls.url}/conversation/{conversation_id}/__data.json") as response:
-                response.raise_for_status()
+                await raise_for_status(response)
                 data: list = (await response.json())["nodes"][1]["data"]
                 keys: list[int] = data[data[0]["messages"]]
                 message_keys: dict = data[keys[0]]
@@ -79,7 +79,7 @@ class HuggingChat(AsyncGeneratorProvider, ProviderModelMixin):
             async with session.post(f"{cls.url}/conversation/{conversation_id}", json=options) as response:
                 first_token = True
                 async for line in response.content:
-                    response.raise_for_status()
+                    await raise_for_status(response)
                     line = json.loads(line)
                     if "type" not in line:
                         raise RuntimeError(f"Response: {line}")
@@ -91,5 +91,5 @@ class HuggingChat(AsyncGeneratorProvider, ProviderModelMixin):
                         yield token
                     elif line["type"] == "finalAnswer":
                         break
-            async with session.delete(f"{cls.url}/conversation/{conversation_id}", proxy=proxy) as response:
-                response.raise_for_status()
+            async with session.delete(f"{cls.url}/conversation/{conversation_id}") as response:
+                await raise_for_status(response)
