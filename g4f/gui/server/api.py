@@ -98,9 +98,7 @@ class Api():
         if conversation_id and provider in conversations and conversation_id in conversations[provider]:
             kwargs["conversation"] = conversations[provider][conversation_id]
 
-        model = json_data.get('model')
-        model = model if model else models.default
-        patch = patch_provider if json_data.get('patch_provider') else None
+        model = json_data.get('model', models.default)
 
         return {
             "model": model,
@@ -108,7 +106,6 @@ class Api():
             "messages": messages,
             "stream": True,
             "ignore_stream": True,
-            "patch_provider": patch,
             "return_conversation": True,
             **kwargs
         }
@@ -161,7 +158,7 @@ class Api():
             'type': response_type,
             response_type: content
         }
-    
+
 def get_error_message(exception: Exception) -> str:
     """
     Generates a formatted error message from an exception.
