@@ -10,7 +10,7 @@ except ImportError:
     has_platformdirs = False
 
 from g4f.gui.gui_parser import gui_parser
-from g4f.gui.server.api import Api
+from g4f.gui.server.js_api import JsApi
 import g4f.version
 import g4f.debug
 
