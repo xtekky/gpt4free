@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import json
 import requests
-from ..typing       import AsyncResult, Messages
+from ..typing import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from ..requests     import StreamSession
+from ..requests import StreamSession, raise_for_status
 
 class DeepInfra(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://deepinfra.com"
@@ -67,7 +67,7 @@ class DeepInfra(AsyncGeneratorProvider, ProviderModelMixin):
             }
             async with session.post('https://api.deepinfra.com/v1/openai/chat/completions',
                                     json=json_data) as response:
-                response.raise_for_status()
+                await raise_for_status(response)
                 first = True
                 async for line in response.iter_lines():
                     if not line.startswith(b"data: "):
