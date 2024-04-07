@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 
 from gpt4all import GPT4All
