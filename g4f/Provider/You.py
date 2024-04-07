@@ -67,7 +67,7 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
             chat_mode = "custom"
             model = cls.get_model(model)
         async with StreamSession(
-            proxy=proxy,
+            proxies={"all": proxy},
             impersonate="chrome"
         ) as session:
             cookies = await cls.get_cookies(session) if chat_mode != "default" else None
