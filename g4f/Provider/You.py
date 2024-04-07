@@ -4,18 +4,12 @@ import re
 import json
 import base64
 import uuid
-try:
-    from ..requests import FormData
-    has_curl_cffi = True
-except ImportError:
-    has_curl_cffi = False
 
 from ..typing import AsyncResult, Messages, ImageType, Cookies
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from .helper import format_prompt
 from ..image import to_bytes, ImageResponse
-from ..requests import StreamSession, raise_for_status
-from ..errors import MissingRequirementsError
+from ..requests import StreamSession, FormData, raise_for_status
 
 from .you.har_file import get_dfp_telemetry_id
 
@@ -55,8 +49,6 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
         chat_mode: str = "default",
         **kwargs,
     ) -> AsyncResult:
-        #if not has_curl_cffi:
-        #    raise MissingRequirementsError('Install or update "curl_cffi" package | pip install -U curl_cffi')
         if image is not None:
             chat_mode = "agent"
         elif not model or model == cls.default_model:
@@ -72,13 +64,6 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
         ) as session:
             cookies = await cls.get_cookies(session) if chat_mode != "default" else None
             upload = json.dumps([await cls.upload_file(session, cookies, to_bytes(image), image_name)]) if image else ""
-            #questions = [message["content"] for message in messages if message["role"] == "user"]
-            # chat = [
-            #     {"question": questions[idx-1], "answer": message["content"]}
-            #     for idx, message in enumerate(messages)
-            #     if message["role"] == "assistant"
-            #     and idx < len(questions)
-            # ]
             headers = {
                 "Accept": "text/event-stream",
                 "Referer": f"{cls.url}/search?fromSearchBar=true&tbm=youchat",
