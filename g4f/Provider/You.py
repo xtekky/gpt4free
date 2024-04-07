@@ -183,6 +183,7 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
                 "dfp_telemetry_id": await get_dfp_telemetry_id(),
                 "email": f"{user_uuid}@gmail.com",
                 "password": f"{user_uuid}#{user_uuid}",
+                "dfp_telemetry_id": f"{uuid.uuid4()}",
                 "session_duration_minutes": 129600
             }
         ) as response:
