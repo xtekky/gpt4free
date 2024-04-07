@@ -3,6 +3,7 @@ from __future__ import annotations
 from aiohttp import ClientSession
 
 from ..typing import AsyncResult, Messages
+from ..requests.raise_for_status import raise_for_status
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 
 
@@ -67,8 +68,10 @@ class Llama2(AsyncGeneratorProvider, ProviderModelMixin):
             }
             started = False
             async with session.post(f"{cls.url}/api", json=data, proxy=proxy) as response:
-                response.raise_for_status()
+                await raise_for_status(response)
                 async for chunk in response.content.iter_any():
+                    if not chunk:
+                        continue
                     if not started:
                         chunk = chunk.lstrip()
                         started = True

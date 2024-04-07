@@ -5,6 +5,7 @@ from aiohttp import ClientSession, ClientTimeout
 
 from ..typing import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from ..requests.raise_for_status import raise_for_status
 
 class FreeChatgpt(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://free.chatgpt.org.uk"
@@ -45,7 +46,7 @@ class FreeChatgpt(AsyncGeneratorProvider, ProviderModelMixin):
                 "top_p": kwargs.get("top_p", 1)
             }
             async with session.post(f'{cls.url}/api/openai/v1/chat/completions', json=data, proxy=proxy) as response:
-                response.raise_for_status()
+                await raise_for_status(response)
                 started = False
                 async for line in response.content:
                     if line.startswith(b"data: [DONE]"):

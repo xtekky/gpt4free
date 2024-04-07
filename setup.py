@@ -11,30 +11,36 @@ with codecs.open(os.path.join(here, 'README.md'), encoding='utf-8') as fh:
 INSTALL_REQUIRE = [
     "requests",
     "aiohttp",
-    "brotli"
+    "brotli",
+    "pycryptodome"
 ]
 
 EXTRA_REQUIRE = {
     'all': [
         "curl_cffi>=0.6.2",
         "certifi",
-        "async-property",          # openai
-        "py-arkose-generator",     # openai
         "browser_cookie3",         # get_cookies
-        "PyExecJS",                # GptForLove
+        "PyExecJS",                # GptForLove, Vercel
         "duckduckgo-search>=5.0"  ,# internet.search
         "beautifulsoup4",          # internet.search and bing.create_images
-        "brotli",                  # openai
-        "platformdirs",            # webdriver
-        "undetected-chromedriver>=3.5.5", # webdriver
-        "setuptools",              # webdriver
+        "brotli",                  # openai, bing
+        # webdriver
+        #"undetected-chromedriver>=3.5.5",
+        #"setuptools", 
+        #"selenium-wire"
+        # webview
+        "pywebview",
+        "platformdirs",
+        "plyer",
+        "cryptography",
+        ####
         "aiohttp_socks",           # proxy
         "pillow",                  # image
         "cairosvg",                # svg image
         "werkzeug", "flask",       # gui
-        "loguru", "fastapi",
+        "loguru", "fastapi",       # api
         "uvicorn", "nest_asyncio", # api
-        "selenium-wire"
+        "pycryptodome"             # openai
     ],
     "image": [
         "pillow",
@@ -43,14 +49,18 @@ EXTRA_REQUIRE = {
     ],
     "webdriver": [
         "platformdirs",
-        "undetected-chromedriver",
+        "undetected-chromedriver>=3.5.5",
         "setuptools",
         "selenium-wire"
     ],
+    "webview": [
+        "webview",
+        "platformdirs",
+        "plyer",
+        "cryptography"
+    ],
     "openai": [
-        "async-property",
-        "py-arkose-generator",
-        "brotli"
+        "pycryptodome"
     ],
     "api": [
         "loguru", "fastapi",

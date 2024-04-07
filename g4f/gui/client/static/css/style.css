@@ -512,13 +512,15 @@ label[for="camera"] {
     }
 }
 
-.buttons input[type="checkbox"] {
+.buttons input[type="checkbox"],
+.settings input[type="checkbox"] {
     height: 0;
     width: 0;
     display: none;
 }
 
-.buttons label {
+.buttons label,
+.settings label {
     cursor: pointer;
     text-indent: -9999px;
     width: 50px;
@@ -535,7 +537,8 @@ label[for="camera"] {
     transition: 0.33s;
 }
 
-.buttons label:after {
+.buttons label:after,
+.settings label:after {
     content: "";
     position: absolute;
     top: 50%;
@@ -548,7 +551,8 @@ label[for="camera"] {
     transition: 0.33s;
 }
 
-.buttons input:checked+label {
+.buttons input:checked+label,
+.settings input:checked+label {
     background: var(--accent);
 }
 
@@ -556,11 +560,15 @@ label[for="camera"] {
     left: calc(100% - 5px - 20px);
 }
 
-.buttons {
+.buttons, .settings {
     display: flex;
     align-items: center;
     justify-content: left;
     width: 100%;
+}
+
+.settings textarea{
+    height: 20px;
 }
 
 .field {
@@ -876,7 +884,6 @@ a:-webkit-any-link {
     width: 1px;
 }
 
-
 .color-picker>fieldset {
     border: 0;
     display: flex;
@@ -1014,9 +1021,40 @@ a:-webkit-any-link {
     font-size: 15px;
     width: 100%;
     color: var(--colour-3);
-    min-height: 59px;
-    height: 59px;
+    min-height: 50px;
+    height: 50px;
     outline: none;
     padding: var(--inner-gap) var(--section-gap);
     resize: vertical;
+}
+
+::-webkit-scrollbar {
+    width: 10px;
+}
+::-webkit-scrollbar-track {
+    background: var(--colour-3);
+}
+::-webkit-scrollbar-thumb {
+    background: var(--blur-bg);
+    border-radius: 5px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: var(--accent)
+}
+
+.hljs {
+    color: #e9e9f4;
+    background: #28293629;
+    border-radius: var(--border-radius-1);
+    border: 1px solid var(--blur-border);
+    font-size: 15px;
+}
+
+#message-input {
+    height: 82px;
+    margin-left: 20px;
+}
+
+#message-input::-webkit-scrollbar {
+    width: 5px;
 }

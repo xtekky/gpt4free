@@ -240,26 +240,26 @@ async function add_message_chunk(message) {
     }
 }
 
-cameraInput?.addEventListener("click", (e) => {
-    if (window?.pywebview) {
-        e.preventDefault();
-        pywebview.api.choose_file();
-    }
-})
+// fileInput?.addEventListener("click", (e) => {
+//     if (window?.pywebview) {
+//         e.preventDefault();
+//         pywebview.api.choose_file();
+//     }
+// });
 
 cameraInput?.addEventListener("click", (e) => {
     if (window?.pywebview) {
         e.preventDefault();
         pywebview.api.take_picture();
     }
-})
+});
 
 imageInput?.addEventListener("click", (e) => {
     if (window?.pywebview) {
         e.preventDefault();
         pywebview.api.choose_image();
     }
-})
+});
 
 const ask_gpt = async () => {
     regenerate.classList.add(`regenerate-hidden`);
@@ -955,7 +955,7 @@ async function api(ressource, args=null, file=null) {
     }
     const url = `/backend-api/v2/${ressource}`;
     if (ressource == "conversation") {
-        const body = JSON.stringify(args);
+        let body = JSON.stringify(args);
         const headers = {
             accept: 'text/event-stream'
         }

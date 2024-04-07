@@ -19,8 +19,8 @@ class TestChatCompletion(unittest.TestCase):
         return ChatCompletion.create(g4f.models.default, DEFAULT_MESSAGES, AsyncProviderMock)
 
     def test_exception(self):
-        if hasattr(asyncio, '_nest_patched'):
-            self.skipTest('asyncio is already patched')
+        if has_nest_asyncio:
+            self.skipTest('has nest_asyncio')
         self.assertRaises(g4f.errors.NestAsyncioError, asyncio.run, self.run_exception())
 
     def test_create(self):

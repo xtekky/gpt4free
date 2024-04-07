@@ -414,7 +414,7 @@ async def stream_generate(
             image_request = await upload_image(
                 session,
                 image,
-                "Balanced" if Tones.copilot == "Copilot" else tone,
+                "Balanced" if tone == Tones.copilot else tone,
                 headers
             ) if image else None
             async with session.ws_connect(
@@ -462,7 +462,7 @@ async def stream_generate(
                                     response_txt = card.get('text')
                                 if message.get('messageType') and "inlines" in card:
                                     inline_txt = card['inlines'][0].get('text')
-                                    response_txt += inline_txt + '\n'
+                                    response_txt += f"{inline_txt}\n"
                             elif message.get('contentType') == "IMAGE":
                                 prompt = message.get('text')
                                 try:

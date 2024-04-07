@@ -17,6 +17,8 @@ class Aura(AsyncGeneratorProvider):
         model: str,
         messages: Messages,
         proxy: str = None,
+        temperature: float = 0.5,
+        max_tokens: int = 8192.
         webdriver: WebDriver = None,
         **kwargs
     ) -> AsyncResult:
@@ -34,14 +36,14 @@ class Aura(AsyncGeneratorProvider):
                     "id": "openchat_v3.2_mistral",
                     "name": "OpenChat Aura",
                     "maxLength": 24576,
-                    "tokenLimit": 8192
+                    "tokenLimit": max_tokens
                 },
                 "messages": new_messages,
                 "key": "",
                 "prompt": "\n".join(system_message),
-                "temperature": 0.5
+                "temperature": temperature
             }
             async with session.post(f"{cls.url}/api/chat", json=data, proxy=proxy) as response:
                 response.raise_for_status()
                 async for chunk in response.content.iter_any():
-                    yield chunk.decode()
+                    yield chunk.decode(error="ignore")

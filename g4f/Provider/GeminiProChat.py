@@ -55,7 +55,7 @@ class GeminiProChat(AsyncGeneratorProvider):
                         raise RateLimitError(f"Response {response.status}: Rate limit reached")
                 await raise_for_status(response)
                 async for chunk in response.content.iter_any():
-                    yield chunk.decode()
+                    yield chunk.decode(errors="ignore")
                         
 def generate_signature(time: int, text: str, secret: str = ""):
     message = f'{time}:{text}:{secret}';

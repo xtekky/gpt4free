@@ -14,11 +14,10 @@ platformdirs
 fastapi
 uvicorn
 flask
-py-arkose-generator
-undetected-chromedriver>=3.5.5
 brotli
 beautifulsoup4
-setuptools
 aiohttp_socks
-selenium-wire
 gpt4all
+pywebview
+plyer
+cryptography

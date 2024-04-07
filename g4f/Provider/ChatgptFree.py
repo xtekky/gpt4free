@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 
-from ..requests import StreamSession
+from ..requests import StreamSession, raise_for_status
 from ..typing import Messages
 from .base_provider import AsyncProvider
 from .helper import format_prompt
@@ -42,15 +42,15 @@ class ChatgptFree(AsyncProvider):
         async with StreamSession(
                 headers=headers,
                 cookies=cookies,
-                impersonate="chrome107",
-                proxies={"https": proxy},
+                impersonate="chrome",
+                proxies={"all": proxy},
                 timeout=timeout
             ) as session:
-            
+
             if not cls._nonce:
                 async with session.get(f"{cls.url}/") as response:
                     
-                    response.raise_for_status()
+                    await raise_for_status(response)
                     response = await response.text()
 
                     result = re.search(r'data-post-id="([0-9]+)"', response)
@@ -75,5 +75,5 @@ class ChatgptFree(AsyncProvider):
                 "bot_id": "0"
             }
             async with session.post(f"{cls.url}/wp-admin/admin-ajax.php", data=data, cookies=cookies) as response:
-                response.raise_for_status()
+                await raise_for_status(response)
                 return (await response.json())["data"]
