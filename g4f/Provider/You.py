@@ -34,7 +34,8 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
         "claude-3-opus",
         "claude-3-sonnet",
         "gemini-pro",
-        "zephyr"
+        "zephyr",
+        "dall-e",
     ]
     model_aliases = {
         "claude-v2": "claude-2"
