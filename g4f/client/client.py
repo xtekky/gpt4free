@@ -98,7 +98,8 @@ class Completions():
         )
         stop = [stop] if isinstance(stop, str) else stop
         response = provider.create_completion(
-            model, messages, stream,            
+            model, messages,
+            stream=stream,            
             **filter_none(
                 proxy=self.client.get_proxy() if proxy is None else proxy,
                 max_tokens=max_tokens,

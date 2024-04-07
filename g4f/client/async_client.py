@@ -87,7 +87,8 @@ def create_response(
     else:
         create = provider.create_completion
     response = create(
-        model, messages, stream,            
+        model, messages,
+        stream=stream,            
         **filter_none(
             proxy=proxy,
             max_tokens=max_tokens,

@@ -338,6 +338,8 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
             impersonate="chrome",
             timeout=timeout
         ) as session:
+            if cls._expires is not None and cls._expires < time.time():
+                cls._headers = cls._api_key = None
             if cls._headers is None or cookies is not None:
                 cls._create_request_args(cookies)
             api_key = kwargs["access_token"] if "access_token" in kwargs else api_key
@@ -365,6 +367,8 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
                     cls._set_api_key(api_key)
                 except NoValidHarFileError:
                     ...
+                if cls._api_key is None:
+                    await cls.nodriver_access_token()
                 cls.default_model = cls.get_model(await cls.get_default_model(session, cls._headers))
 
             async with session.post(
@@ -565,6 +569,40 @@ this.fetch = async (url, options) => {
         cls._headers = headers
         cls._expires = int(time.time()) + 60 * 60 * 4
         cls._update_cookie_header()
+
+    @classmethod
+    async def nodriver_access_token(cls):
+        try:
+            import nodriver as uc
+        except ImportError:
+            return
+        try:
+            from platformdirs import user_config_dir
+            user_data_dir = user_config_dir("g4f-nodriver")
+        except:
+            user_data_dir = None
+        browser = await uc.start(user_data_dir=user_data_dir)
+        page = await browser.get("https://chat.openai.com/")
+        while await page.query_selector("#prompt-textarea") is None:
+            await asyncio.sleep(1)
+        api_key = await page.evaluate(
+            "(async () => {"
+            "let session = await fetch('/api/auth/session');"
+            "let data = await session.json();"
+            "let accessToken = data['accessToken'];"
+            "let expires = new Date(); expires.setTime(expires.getTime() + 60 * 60 * 4 * 1000);"
+            "document.cookie = 'access_token=' + accessToken + ';expires=' + expires.toUTCString() + ';path=/';"
+            "return accessToken;"
+            "})();",
+            await_promise=True
+        )
+        cookies = {}
+        for c in await page.browser.cookies.get_all():
+            if c.domain.endswith("chat.openai.com"):
+                cookies[c.name] = c.value
+        await page.close()
+        cls._create_request_args(cookies)
+        cls._set_api_key(api_key)
 
     @classmethod
     def browse_access_token(cls, proxy: str = None, timeout: int = 1200) -> None:
