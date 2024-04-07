@@ -76,7 +76,7 @@ class GeminiPro(AsyncGeneratorProvider, ProviderModelMixin):
                 if not response.ok:
                     data = await response.json()
                     data = data[0] if isinstance(data, list) else data
-                    raise RuntimeError(f"Response {response.status}: {data["error"]["message"]}")
+                    raise RuntimeError(f"Response {response.status}: {data['error']['message']}")
                 if stream:
                     lines = []
                     async for chunk in response.content:

@@ -19,7 +19,7 @@ except ImportError:
 from ...typing import Messages, Cookies, ImageType, AsyncResult
 from ..base_provider import AsyncGeneratorProvider
 from ..helper import format_prompt, get_cookies
-from requests.raise_for_status import raise_for_status
+from ...requests.raise_for_status import raise_for_status
 from ...errors import MissingAuthError, MissingRequirementsError
 from ...image import to_bytes, ImageResponse
 from ...webdriver import get_browser, get_driver_cookies

@@ -1,9 +1,15 @@
+from __future__ import annotations
+
+import os
+
+from .stubs import ChatCompletion, ChatCompletionChunk
 from ..providers.types import BaseProvider, ProviderType, FinishReason
-from typing import Union, Iterator
+from typing import Union, Iterator, AsyncIterator
 
 ImageProvider = Union[BaseProvider, object]
 Proxies = Union[dict, str]
 IterResponse = Iterator[Union[ChatCompletion, ChatCompletionChunk]]
+AsyncIterResponse = AsyncIterator[Union[ChatCompletion, ChatCompletionChunk]]
 
 class ClientProxyMixin():
     def get_proxy(self) -> Union[str, None]:
@@ -21,8 +27,6 @@ class Client(ClientProxyMixin):
         self,
         api_key: str = None,
         proxies: Proxies = None,
-        provider: ProviderType = None,
-        image_provider: ImageProvider = None,
         **kwargs
     ) -> None:
         self.api_key: str = api_key

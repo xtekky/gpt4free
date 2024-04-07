@@ -8,7 +8,6 @@ from ...typing import AsyncResult, Messages
 from ..base_provider import AsyncGeneratorProvider
 from ..helper import format_prompt, get_cookies
 
-
 class OpenAssistant(AsyncGeneratorProvider):
     url = "https://open-assistant.io/chat"
     needs_auth = True

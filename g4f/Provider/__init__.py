@@ -33,6 +33,7 @@ from .HuggingFace      import HuggingFace
 from .Koala            import Koala
 from .Liaobots         import Liaobots
 from .Llama2           import Llama2
+from .Local            import Local
 from .PerplexityLabs   import PerplexityLabs
 from .Pi               import Pi
 from .Vercel           import Vercel

@@ -77,17 +77,35 @@
             </div>
         </div>
         <div class="settings">
-            <textarea name="OpenaiChat[api_key]" class="box" placeholder="OpenaiChat: accessToken"></textarea>
-             <div class="field">
-                <input id="auto_continue" type="checkbox" name="OpenaiChat[auto_continue]" checked/>
-                <label for="auto_continue" title=""></label>
-                <span class="about">Auto Continue</span>
+            <div class="field box">
+                <label for="OpenaiChat-api_key" class="label" title="">OpenaiChat: access_token</label>
+                <textarea id="OpenaiChat-api_key" name="OpenaiChat[api_key]" placeholder="..."></textarea>
             </div>
-            <textarea name="Bing[api_key]" class="box" placeholder="Bing: _U cookie"></textarea>
-            <textarea name="Gemini[api_key]" class="box" placeholder="Gemini: Auth cookies"></textarea>
-           <textarea name="Openai[api_key]" class="box" placeholder="Openai: api_key></textarea>
-           <textarea name="Grok[api_key]" class="box" placeholder="Grok: api_key"></textarea>
-           <textarea name="GeminiPro[api_key]" class="box" placeholder="GeminiPro: api_key"></textarea> 
+            <div class="field">
+                <span class="label">OpenaiChat: Auto continue</span>
+                <input id="OpenaiChat-auto_continue" type="checkbox" name="OpenaiChat[auto_continue]" checked/>
+                <label for="OpenaiChat-auto_continue" class="toogle" title=""></label>
+            </div>
+            <div class="field box">
+                <label for="Bing-api_key" class="label" title="">Bing: "_U" cookie</label>
+                <textarea id="Bing-api_key" name="Bing[api_key]" placeholder="..."></textarea>
+            </div>
+            <div class="field box">
+                <label for="Gemini-api_key" class="label" title="">Gemini: Auth cookies</label>
+                <textarea id="Gemini-api_key" name="Gemini[api_key]" placeholder="..."></textarea>
+            </div>
+            <div class="field box">
+                <label for="Openai-api_key" class="label" title="">Openai: api_key</label>
+                <textarea id="Openai-api_key" name="Openai[api_key]" placeholder="..."></textarea>
+            </div>
+            <div class="field box">
+                <label for="GeminiPro-api_key" class="label" title="">GeminiPro: api_key</label>
+                <textarea id="GeminiPro-api_key" name="GeminiPro[api_key]" placeholder="..."></textarea>
+            </div>
+            <div class="field box">
+                <label for="HuggingFace-api_key" class="label" title="">HuggingFace: api_key</label>
+                <textarea id="HuggingFace-api_key" name="HuggingFace[api_key]" placeholder="..."></textarea>
+            </div>
         </div>
         <div class="conversation">
             <textarea id="systemPrompt" class="box" placeholder="System prompt"></textarea>    

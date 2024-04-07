@@ -1,8 +1,10 @@
-from .Provider.BingCreateImages import BingCreateImages
-from .Provider.needs_auth import Gemini, OpenaiChat
-from ..Provider.You import You
+from __future__ import annotations
 
-from .types import Client
+from .types import Client, ImageProvider
+
+from ..Provider.BingCreateImages import BingCreateImages
+from ..Provider.needs_auth import Gemini, OpenaiChat
+from ..Provider.You import You
 
 class ImageModels():
     gemini = Gemini
