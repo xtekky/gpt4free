@@ -17,6 +17,8 @@ from ..image import to_bytes, ImageResponse
 from ..requests import StreamSession, raise_for_status
 from ..errors import MissingRequirementsError
 
+from .you.har_file import get_dfp_telemetry_id
+
 class You(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://you.com"
     working = True
@@ -45,6 +47,7 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
         cls,
         model: str,
         messages: Messages,
+        stream: bool = True,
         image: ImageType = None,
         image_name: str = None,
         proxy: str = None,
@@ -56,7 +59,7 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
         if image is not None:
             chat_mode = "agent"
         elif not model or model == cls.default_model:
-            chat_mode = "default"
+            ...
         elif model.startswith("dall-e"):
             chat_mode = "create"
         else:
@@ -108,7 +111,7 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
                             data = json.loads(line[6:])
                         if event == "youChatToken" and event in data:
                             yield data[event]
-                        elif event == "youChatUpdate" and "t" in data:
+                        elif event == "youChatUpdate" and "t" in data and data["t"] is not None:
                             match = re.search(r"!\[fig\]\((.+?)\)", data["t"])
                             if match:
                                 yield ImageResponse(match.group(1), messages[-1]["content"])
@@ -177,6 +180,7 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
                 "X-SDK-Parent-Host": cls.url
             },
             json={
+                "dfp_telemetry_id": await get_dfp_telemetry_id(),
                 "email": f"{user_uuid}@gmail.com",
                 "password": f"{user_uuid}#{user_uuid}",
                 "session_duration_minutes": 129600

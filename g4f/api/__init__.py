@@ -3,10 +3,13 @@ import json
 import uvicorn
 import nest_asyncio
 
-from fastapi           import FastAPI, Response, Request
+from fastapi import FastAPI, Response, Request
 from fastapi.responses import StreamingResponse, RedirectResponse, HTMLResponse, JSONResponse
-from pydantic          import BaseModel
-from typing            import List, Union
+from fastapi.exceptions import RequestValidationError
+from starlette.status import HTTP_422_UNPROCESSABLE_ENTITY
+from fastapi.encoders import jsonable_encoder
+from pydantic import BaseModel
+from typing import List, Union
 
 import g4f
 import g4f.debug
@@ -39,6 +42,25 @@ class Api:
         self.app = FastAPI()
 
         self.routes()
+        self.register_validation_exception_handler()
+
+    def register_validation_exception_handler(self):
+        @self.app.exception_handler(RequestValidationError)
+        async def validation_exception_handler(request: Request, exc: RequestValidationError):
+            details = exc.errors()
+            modified_details = []
+            for error in details:
+                modified_details.append(
+                    {
+                        "loc": error["loc"],
+                        "message": error["msg"],
+                        "type": error["type"],
+                    }
+                )
+            return JSONResponse(
+                status_code=HTTP_422_UNPROCESSABLE_ENTITY,
+                content=jsonable_encoder({"detail": modified_details}),
+            )
 
     def routes(self):
         @self.app.get("/")
