@@ -5,7 +5,7 @@ import json
 import base64
 import uuid
 try:
-    from ..requests.curl_cffi import FormData
+    from ..requests import FormData
     has_curl_cffi = True
 except ImportError:
     has_curl_cffi = False
@@ -55,8 +55,8 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
         chat_mode: str = "default",
         **kwargs,
     ) -> AsyncResult:
-        if not has_curl_cffi:
-            raise MissingRequirementsError('Install or update "curl_cffi" package | pip install -U curl_cffi')
+        #if not has_curl_cffi:
+        #    raise MissingRequirementsError('Install or update "curl_cffi" package | pip install -U curl_cffi')
         if image is not None:
             chat_mode = "agent"
         elif not model or model == cls.default_model:
