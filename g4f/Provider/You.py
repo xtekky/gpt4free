@@ -55,7 +55,7 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
         **kwargs,
     ) -> AsyncResult:
         if not has_curl_cffi:
-            raise MissingRequirementsError('Install "curl_cffi" package')
+            raise MissingRequirementsError('Install or update "curl_cffi" package | pip install -U curl_cffi')
         if image is not None:
             chat_mode = "agent"
         elif not model or model == cls.default_model:
