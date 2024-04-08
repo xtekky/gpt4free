@@ -18,7 +18,7 @@ class Aura(AsyncGeneratorProvider):
         messages: Messages,
         proxy: str = None,
         temperature: float = 0.5,
-        max_tokens: int = 8192.
+        max_tokens: int = 8192,
         webdriver: WebDriver = None,
         **kwargs
     ) -> AsyncResult:

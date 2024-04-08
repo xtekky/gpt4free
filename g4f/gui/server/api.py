@@ -98,7 +98,7 @@ class Api():
         if conversation_id and provider in conversations and conversation_id in conversations[provider]:
             kwargs["conversation"] = conversations[provider][conversation_id]
 
-        model = json_data.get('model', models.default)
+        model = json_data.get('model') or models.default
 
         return {
             "model": model,
@@ -169,4 +169,8 @@ def get_error_message(exception: Exception) -> str:
     Returns:
         str: A formatted error message string.
     """
-    return f"{get_last_provider().__name__}: {type(exception).__name__}: {exception}"
+    message = f"{type(exception).__name__}: {exception}"
+    provider = get_last_provider()
+    if provider is None:
+        return message
+    return f"{provider.__name__}: {message}"

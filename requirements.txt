@@ -17,7 +17,7 @@ flask
 brotli
 beautifulsoup4
 aiohttp_socks
-gpt4all
 pywebview
 plyer
 cryptography
+nodriver

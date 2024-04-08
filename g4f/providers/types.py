@@ -96,6 +96,7 @@ class BaseRetryProvider(BaseProvider):
 
     __name__: str = "RetryProvider"
     supports_stream: bool = True
+    last_provider: Type[BaseProvider] = None
 
 ProviderType = Union[Type[BaseProvider], BaseRetryProvider]
 

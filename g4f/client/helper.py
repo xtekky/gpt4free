@@ -1,6 +1,9 @@
-import re
+from __future__ import annotations
 
-def read_json(text: str) -> dict:
+import re
+from typing import Iterable, AsyncIterator
+
+def filter_json(text: str) -> str:
     """
     Parses JSON code block from a string.
 
@@ -15,7 +18,7 @@ def read_json(text: str) -> dict:
         return match.group("code")
     return text
 
-def find_stop(stop, content: str, chunk: str):
+def find_stop(stop, content: str, chunk: str = None):
     first = -1
     word = None
     if stop is not None:
@@ -24,10 +27,21 @@ def find_stop(stop, content: str, chunk: str):
             if first != -1:
                 content = content[:first]
                 break
-        if stream and first != -1:
+        if chunk is not None and first != -1:
             first = chunk.find(word)
             if first != -1:
                 chunk = chunk[:first]
             else:
                 first = 0
     return first, content, chunk
+
+def filter_none(**kwargs) -> dict:
+    return {
+        key: value
+        for key, value in kwargs.items()
+        if value is not None
+    }
+
+async def cast_iter_async(iter: Iterable) -> AsyncIterator:
+    for chunk in iter:
+        yield chunk

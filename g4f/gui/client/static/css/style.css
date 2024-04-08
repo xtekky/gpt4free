@@ -520,7 +520,7 @@ label[for="camera"] {
 }
 
 .buttons label,
-.settings label {
+.settings label.toogle {
     cursor: pointer;
     text-indent: -9999px;
     width: 50px;
@@ -538,7 +538,7 @@ label[for="camera"] {
 }
 
 .buttons label:after,
-.settings label:after {
+.settings label.toogle:after {
     content: "";
     position: absolute;
     top: 50%;
@@ -560,15 +560,11 @@ label[for="camera"] {
     left: calc(100% - 5px - 20px);
 }
 
-.buttons, .settings {
+.buttons {
     display: flex;
     align-items: center;
     justify-content: left;
     width: 100%;
-}
-
-.settings textarea{
-    height: 20px;
 }
 
 .field {
@@ -1017,15 +1013,39 @@ a:-webkit-any-link {
     border: 1px solid #e4d4ffc9;
 }
 
-#systemPrompt {
+#systemPrompt, .settings textarea {
     font-size: 15px;
     width: 100%;
     color: var(--colour-3);
     min-height: 50px;
-    height: 50px;
+    height: 59px;
     outline: none;
     padding: var(--inner-gap) var(--section-gap);
     resize: vertical;
+}
+
+.settings {
+    width: 100%;
+    display: none;
+}
+
+.settings .field {
+    margin: var(--inner-gap) 0;
+}
+
+.settings textarea {
+    background-color: transparent;
+    border: none;
+    padding: var(--inner-gap) 0;
+}
+
+.settings .label {
+    font-size: 15px;
+    padding: var(--inner-gap) 0;
+    width: fit-content;
+    min-width: 190px;
+    margin-left: var(--section-gap);
+    white-space:nowrap;
 }
 
 ::-webkit-scrollbar {
