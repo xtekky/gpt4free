@@ -10,6 +10,7 @@ const sendButton        = document.getElementById("send-button");
 const imageInput        = document.getElementById("image");
 const cameraInput       = document.getElementById("camera");
 const fileInput         = document.getElementById("file");
+const microLabel        = document.querySelector(".micro-label")
 const inputCount        = document.getElementById("input-count")
 const providerSelect    = document.getElementById("provider");
 const modelSelect       = document.getElementById("model");
@@ -81,7 +82,7 @@ const register_message_buttons = async () => {
         if (!("click" in el.dataset)) {
             el.dataset.click = "true";
             el.addEventListener("click", async () => {
-                const message_el = el.parentElement.parentElement;
+                const message_el = el.parentElement.parentElement.parentElement;
                 const copyText = await get_message(window.conversation_id, message_el.dataset.index);
                 navigator.clipboard.writeText(copyText);
                 el.classList.add("clicked");
@@ -552,8 +553,10 @@ async function save_system_message() {
         return;
     }
     const conversation = await get_conversation(window.conversation_id);
-    conversation.system = systemPrompt?.value;
-    await save_conversation(window.conversation_id, conversation);
+    if (conversation) {
+        conversation.system = systemPrompt?.value;
+        await save_conversation(window.conversation_id, conversation);
+    }
 }
 
 const hide_last_message = async (conversation_id) => {
@@ -586,8 +589,9 @@ const remove_message = async (conversation_id, index) => {
 };
 
 const get_message = async (conversation_id, index) => {
-    const conversation = await get_conversation(conversation_id);
-    return conversation.items[index]["content"];
+    const messages = await get_messages(conversation_id);
+    if (index in messages)
+        return messages[index]["content"];
 };
 
 const add_message = async (conversation_id, role, content, provider) => {
@@ -707,18 +711,27 @@ function open_settings() {
 
 const register_settings_storage = async () => {
     optionElements.forEach((element) => {
-        element.addEventListener('change', async (event) => {
-            switch (event.target.type) {
-                case "checkbox":
-                    appStorage.setItem(element.id, event.target.checked);
-                    break;
-                case "select-one":
-                    appStorage.setItem(element.id, event.target.selectedIndex);
-                    break;
-                default:
-                    console.warn("Unresolved element type");
-            }
-        });
+        if (element.type == "textarea") {
+            element.addEventListener('input', async (event) => {
+                appStorage.setItem(element.id, element.value);
+            });
+        } else {
+            element.addEventListener('change', async (event) => {
+                switch (element.type) {
+                    case "checkbox":
+                        appStorage.setItem(element.id, element.checked);
+                        break;
+                    case "select-one":
+                        appStorage.setItem(element.id, element.selectedIndex);
+                        break;
+                    case "text":
+                        appStorage.setItem(element.id, element.value);
+                        break;
+                    default:
+                        console.warn("Unresolved element type");
+                }
+            });
+        }
     });
 }
 
@@ -734,6 +747,10 @@ const load_settings_storage = async () => {
                     break;
                 case "select-one":
                     element.selectedIndex = parseInt(value);
+                    break;
+                case "text":
+                case "textarea":
+                    element.value = value;
                     break;
                 default:
                     console.warn("Unresolved element type");
@@ -831,7 +848,7 @@ systemPrompt.addEventListener("focus", function() {
     countFocus = systemPrompt;
     count_input();
 });
-systemPrompt.addEventListener("blur", function() {
+systemPrompt.addEventListener("input", function() {
     countFocus = messageInput;
     count_input();
 });
@@ -911,6 +928,15 @@ async function on_api() {
             systemPrompt.classList.remove("hidden");
         }
     });
+    const messageInputHeight = document.getElementById("message-input-height");
+    if (messageInputHeight) {
+        if (messageInputHeight.value) {
+            messageInput.style.maxHeight = `${messageInputHeight.value}px`;
+        }
+        messageInputHeight.addEventListener('change', async () => {
+            messageInput.style.maxHeight = `${messageInputHeight.value}px`;
+        });
+    }
 }
 
 async function load_version() {
@@ -980,7 +1006,7 @@ fileInput.addEventListener('change', async (event) => {
     }
 });
 
-systemPrompt?.addEventListener("blur", async () => {
+systemPrompt?.addEventListener("input", async () => {
     await save_system_message();
 });
 
@@ -1092,7 +1118,7 @@ function save_storage() {
         }
     }
     data = JSON.stringify(data, null, 4);
-    const blob = new Blob([data], {type: 'text/csv'});
+    const blob = new Blob([data], {type: 'application/json'});
     if(window.navigator.msSaveOrOpenBlob) {
         window.navigator.msSaveBlob(blob, filename);
     } else{
@@ -1103,4 +1129,69 @@ function save_storage() {
         elem.click();        
         document.body.removeChild(elem);
     }
+}
+
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+if (SpeechRecognition) {
+    const mircoIcon = microLabel.querySelector("i");
+    mircoIcon.classList.add("fa-microphone");
+    mircoIcon.classList.remove("fa-microphone-slash");
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.maxAlternatives = 1;
+
+    function may_stop() {
+        if (microLabel.classList.contains("recognition")) {
+            recognition.stop();
+        }
+    }
+
+    let startValue;
+    let timeoutHandle;
+    recognition.onstart = function() {
+        microLabel.classList.add("recognition");
+        startValue = messageInput.value;
+        timeoutHandle = window.setTimeout(may_stop, 8000);
+    };
+    recognition.onend = function() {
+        microLabel.classList.remove("recognition");
+    };
+    recognition.onresult = function(event) {
+        if (!event.results) {
+            return;
+        }
+        window.clearTimeout(timeoutHandle);
+        let notFinal = "";
+        event.results.forEach((result) => {
+            const newText = result[0].transcript;
+            if (newText) {
+                if (result.isFinal) {
+                    messageInput.value = `${startValue ? startValue+"\n" : ""}${newText.trim()}`;
+                    startValue = messageInput.value;
+                    notFinal = "";
+                    messageInput.focus();
+                } else {
+                    notFinal += newText;
+                    messageInput.value = `${startValue ? startValue+"\n" : ""}${notFinal.trim()}`;
+                }
+                messageInput.style.height = messageInput.scrollHeight  + "px";
+                messageInput.scrollTop = messageInput.scrollHeight;
+            }
+        });
+        window.clearTimeout(timeoutHandle);
+        timeoutHandle = window.setTimeout(may_stop, notFinal ? 5000 : 8000);
+    };
+
+    microLabel.addEventListener("click", () => {
+        if (microLabel.classList.contains("recognition")) {
+            window.clearTimeout(timeoutHandle);
+            recognition.stop();
+        } else {
+            const lang = document.getElementById("recognition-language")?.value || navigator.language;
+            recognition.lang = lang;
+            recognition.start();
+        }
+    });
 }

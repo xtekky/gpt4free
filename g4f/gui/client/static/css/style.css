@@ -88,6 +88,8 @@ body {
     background: var(--colour-1);
     color: var(--colour-3);
     height: 100vh;
+    max-width: 1600px;
+    margin: auto;
 }
 
 .row {
@@ -104,10 +106,6 @@ body {
     width: 100%;
     border-radius: var(--border-radius-1);
     border: 1px solid var(--blur-border);
-}
-
-.hidden {
-    display: none;
 }
 
 .conversations {
@@ -138,8 +136,7 @@ body {
 }
 
 .conversation .user-input {
-    max-height: 200px;
-    margin-bottom: 10px;
+    margin-bottom: 4px;
 }
 
 .conversation .user-input input {
@@ -504,7 +501,8 @@ body {
     display: none;
 }
 
-.file-label {
+.file-label,
+.micro-label {
     cursor: pointer;
     position: absolute;
     top: 10px;
@@ -512,7 +510,8 @@ body {
 }
 
 .file-label:has(> input:valid),
-.file-label.selected {
+.file-label.selected,
+.micro-label.recognition {
     color: var(--accent);
 }
 
@@ -520,11 +519,12 @@ label[for="image"] {
     top: 32px;
 }
 
-label[for="camera"] {
+label[for="micro"] {
     top: 54px;
 }
 
 label[for="camera"] {
+    top: 74px;
     display: none;
 }
 
@@ -597,7 +597,7 @@ label[for="camera"] {
     align-items: center;
     justify-content: left;
     width: 100%;
-    margin-bottom: 2px;
+    margin-bottom: 4px;
 }
 
 .field {
@@ -668,7 +668,7 @@ select {
     display: flex;
     flex-direction: column;
     gap: 10px;
-    margin: 4px;
+    margin: 4px 0;
 }
 
 .bottom_buttons button {
@@ -841,7 +841,7 @@ a:-webkit-any-link {
     color: var(--colour-3);
 
     resize: vertical;
-    max-height: 150px;
+    max-height: 200px;
     min-height: 80px;
 }
 
@@ -1080,6 +1080,19 @@ a:-webkit-any-link {
     padding: var(--inner-gap) 0;
 }
 
+.settings input {
+    background-color: transparent;
+    padding: 2px;
+    border: none;
+    font-size: 15px;
+    width: 100%;
+    color: var(--colour-3);
+}
+
+.settings input:focus {
+    outline: none;
+}
+
 .settings .label {
     font-size: 15px;
     padding: var(--inner-gap) 0;
@@ -1100,7 +1113,7 @@ a:-webkit-any-link {
     border-radius: 5px;
 }
 ::-webkit-scrollbar-thumb:hover {
-    background: var(--accent)
+    background: var(--accent);
 }
 
 .hljs {
@@ -1114,8 +1127,13 @@ a:-webkit-any-link {
 #message-input {
     height: 82px;
     margin-left: 20px;
+    max-height: 200px;
 }
 
 #message-input::-webkit-scrollbar {
     width: 5px;
+}
+
+.hidden {
+    display: none;
 }
