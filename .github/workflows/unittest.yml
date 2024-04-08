@@ -32,7 +32,7 @@ jobs:
     - name: Install requirements
       run: |
         pip install -r requirements.txt
-        pip uninstall nodriver
+        pip uninstall -y nodriver
     - name: Run tests
       run: python -m etc.unittest
     - name: Save PR number
