@@ -57,13 +57,9 @@
                 </button>
             </div>
             <div class="bottom_buttons">
-                <button onclick="delete_conversations()">
-                    <i class="fa-regular fa-trash"></i>
-                    <span>Clear Conversations</span>
-                </button>
-                <button onclick="save_storage()">
-                    <i class="fa-solid fa-download"></i>
-                    <a href="" onclick="return false;">Export Conversations</a>
+                <button onclick="open_settings();">
+                    <i class="fa-solid fa-toolbox"></i>
+                    <span>Open Settings</span>
                 </button>
                 <div class="info">
                     <i class="fa-brands fa-github"></i>
@@ -76,27 +72,47 @@
                 </div>
             </div>
         </div>
-        <div class="settings">
-            <div class="field box">
-                <label for="OpenaiChat-api_key" class="label" title="">OpenaiChat: access_token</label>
-                <textarea id="OpenaiChat-api_key" name="OpenaiChat[api_key]" placeholder="..."></textarea>
+        <div class="settings hidden">
+            <div class="field">
+                <span class="label">Web Access</span>
+                <input type="checkbox" id="switch" />
+                <label for="switch" class="toogle" title="Add the pages of the first 5 search results to the query."></label>
             </div>
             <div class="field">
-                <span class="label">OpenaiChat: Auto continue</span>
-                <input id="OpenaiChat-auto_continue" type="checkbox" name="OpenaiChat[auto_continue]" checked/>
-                <label for="OpenaiChat-auto_continue" class="toogle" title=""></label>
+                <span class="label">Disable History</span>
+                <input type="checkbox" id="history" />
+                <label for="history" class="toogle" title="To improve the reaction time or if you have trouble with large conversations."></label>
+            </div>
+            <div class="field">
+                <span class="label">Hide System prompt</span>
+                <input type="checkbox" id="hide-systemPrompt" />
+                <label for="hide-systemPrompt" class="toogle" title="For more space on phones"></label>
+            </div>
+            <div class="field">
+                <span class="label">Auto continue</span>
+                <input id="auto_continue" type="checkbox" name="auto_continue" checked/>
+                <label for="auto_continue" class="toogle" title="Continue long responses in OpenaiChat"></label>
+            </div>
+            <div class="paper">
+            <div class="field box">
+                <label for="OpenaiChat-api_key" class="label" title="">OpenaiChat: api_key</label>
+                <textarea id="OpenaiChat-api_key" name="OpenaiChat[api_key]" placeholder="..."></textarea>
             </div>
             <div class="field box">
                 <label for="Bing-api_key" class="label" title="">Bing: "_U" cookie</label>
                 <textarea id="Bing-api_key" name="Bing[api_key]" placeholder="..."></textarea>
             </div>
             <div class="field box">
-                <label for="Gemini-api_key" class="label" title="">Gemini: Auth cookies</label>
+                <label for="Gemini-api_key" class="label" title="">Gemini: Cookies</label>
                 <textarea id="Gemini-api_key" name="Gemini[api_key]" placeholder="..."></textarea>
             </div>
             <div class="field box">
                 <label for="Openai-api_key" class="label" title="">Openai: api_key</label>
                 <textarea id="Openai-api_key" name="Openai[api_key]" placeholder="..."></textarea>
+            </div>
+            <div class="field box">
+                <label for="Openai-api_key" class="label" title="">Groq: api_key</label>
+                <textarea id="Openai-api_key" name="Groq[api_key]" placeholder="..."></textarea>
             </div>
             <div class="field box">
                 <label for="GeminiPro-api_key" class="label" title="">GeminiPro: api_key</label>
@@ -105,6 +121,17 @@
             <div class="field box">
                 <label for="HuggingFace-api_key" class="label" title="">HuggingFace: api_key</label>
                 <textarea id="HuggingFace-api_key" name="HuggingFace[api_key]" placeholder="..."></textarea>
+            </div>
+            </div>
+            <div class="bottom_buttons">
+                <button onclick="delete_conversations()">
+                    <i class="fa-regular fa-trash"></i>
+                    <span>Clear Conversations</span>
+                </button>
+                <button onclick="save_storage()">
+                    <i class="fa-solid fa-download"></i>
+                    <a href="" onclick="return false;">Export Conversations</a>
+                </button>
             </div>
         </div>
         <div class="conversation">
@@ -161,43 +188,15 @@
                     <select name="model2" id="model2" class="hidden"></select>
                 </div>
                 <div class="field">
-                    <select name="jailbreak" id="jailbreak" style="display: none;">
-                        <option value="default" selected>Set Jailbreak</option>
-                        <option value="gpt-math-1.0">math 1.0</option>
-                        <option value="gpt-dude-1.0">dude 1.0</option>
-                        <option value="gpt-dan-1.0">dan 1.0</option>
-                        <option value="gpt-dan-2.0">dan 2.0</option>
-                        <option value="gpt-dev-2.0">dev 2.0</option>
-                        <option value="gpt-evil-1.0">evil 1.0</option>
+                    <select name="provider" id="provider">
+                        <option value="">Provider: Auto</option>
+                        <option value="Bing">Bing</option>
+                        <option value="OpenaiChat">OpenaiChat</option>
+                        <option value="Gemini">Gemini</option>
+                        <option value="Liaobots">Liaobots</option>
+                        <option value="You">You</option>
+                        <option value="">----</option>
                     </select>
-                    <div class="field">
-                        <select name="provider" id="provider">
-                            <option value="">Provider: Auto</option>
-                            <option value="Bing">Bing</option>
-                            <option value="OpenaiChat">OpenaiChat</option>
-                            <option value="Gemini">Gemini</option>
-                            <option value="Liaobots">Liaobots</option>
-                            <option value="You">You</option>
-                            <option value="">----</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="field">
-                    <input type="checkbox" id="switch" />
-                    <label for="switch" title="Add the pages of the first 5 search results to the query."></label>
-                    <span class="about">Web Access</span>
-                </div>
-                <!--
-                <div class="field">
-                    <input type="checkbox" id="patch" />
-                    <label for="patch" title="Enable create images with Bing."></label>
-                    <span class="about">Image Generator</span>
-                </div>
-                -->
-                <div class="field">
-                    <input type="checkbox" id="history" />
-                    <label for="history" title="To improve the reaction time or if you have trouble with large conversations."></label>
-                    <span class="about">Disable History</span>
                 </div>
             </div>
         </div>

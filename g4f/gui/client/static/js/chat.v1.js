@@ -15,13 +15,13 @@ const providerSelect    = document.getElementById("provider");
 const modelSelect       = document.getElementById("model");
 const modelProvider     = document.getElementById("model2");
 const systemPrompt      = document.getElementById("systemPrompt")
-const jailbreak         = document.getElementById("jailbreak");
+const settings          = document.querySelector(".settings")
 
 let prompt_lock = false;
 
 let content, content_inner, content_count = null;
 
-const options = ["switch", "model", "model2", "jailbreak", "patch", "provider", "history"];
+const optionElements = document.querySelectorAll(".settings input, .settings textarea, #model, #model2, #provider")
 
 messageInput.addEventListener("blur", () => {
     window.scrollTo(0, 0);
@@ -63,7 +63,7 @@ const highlight = (container) => {
     );
 }
 
-const register_remove_message = async () => {
+const register_message_buttons = async () => {
     document.querySelectorAll(".message .fa-xmark").forEach(async (el) => {
         if (!("click" in el.dataset)) {
             el.dataset.click = "true";
@@ -74,6 +74,18 @@ const register_remove_message = async () => {
                 const message_el = el.parentElement.parentElement;
                 await remove_message(window.conversation_id, message_el.dataset.index);
                 await load_conversation(window.conversation_id, false);
+            })
+        }
+    });
+    document.querySelectorAll(".message .fa-clipboard").forEach(async (el) => {
+        if (!("click" in el.dataset)) {
+            el.dataset.click = "true";
+            el.addEventListener("click", async () => {
+                const message_el = el.parentElement.parentElement;
+                const copyText = await get_message(window.conversation_id, message_el.dataset.index);
+                navigator.clipboard.writeText(copyText);
+                el.classList.add("clicked");
+                setTimeout(() => el.classList.remove("clicked"), 1000);
             })
         }
     });
@@ -132,7 +144,7 @@ const handle_ask = async () => {
                     : ''
                 }
                 </div>
-                <div class="count">${count_words_and_tokens(message, get_selected_model())}</div>
+                <div class="count">${count_words_and_tokens(message, get_selected_model())} <i class="fa-regular fa-clipboard"></i></div>
             </div>
         </div>
     `;
@@ -305,15 +317,22 @@ const ask_gpt = async () => {
     try {
         const input = imageInput && imageInput.files.length > 0 ? imageInput : cameraInput;
         const file = input && input.files.length > 0 ? input.files[0] : null;
+        const provider = providerSelect.options[providerSelect.selectedIndex].value;
+        const auto_continue = document.getElementById("auto_continue")?.checked;
+        if (file && !provider)
+            provider = "Bing";
+        let api_key = null;
+        if (provider)
+            api_key = document.getElementById(`${provider}-api_key`)?.value;
         await api("conversation", {
             id: window.token,
             conversation_id: window.conversation_id,
             model: get_selected_model(),
-            jailbreak: jailbreak?.options[jailbreak.selectedIndex].value,
             web_search: document.getElementById("switch").checked,
-            provider: providerSelect.options[providerSelect.selectedIndex].value,
-            patch_provider: document.getElementById("patch")?.checked,
-            messages: messages
+            provider: provider,
+            messages: messages,
+            auto_continue: auto_continue,
+            api_key: api_key
         }, file);
         if (!error) {
             html = markdown_render(text);
@@ -341,7 +360,7 @@ const ask_gpt = async () => {
     window.scrollTo(0, 0);
     message_box.scrollTop = message_box.scrollHeight;
     await remove_cancel_button();
-    await register_remove_message();
+    await register_message_buttons();
     prompt_lock = false;
     await load_conversations();
     regenerate.classList.remove("regenerate-hidden");
@@ -459,7 +478,7 @@ const load_conversation = async (conversation_id, scroll=true) => {
                 <div class="content">
                     ${provider}
                     <div class="content_inner">${markdown_render(item.content)}</div>
-                    <div class="count">${count_words_and_tokens(item.content, next_provider?.model)}</div>
+                    <div class="count">${count_words_and_tokens(item.content, next_provider?.model)} <i class="fa-regular fa-clipboard"></i></div>
                 </div>
             </div>
         `;
@@ -475,8 +494,9 @@ const load_conversation = async (conversation_id, scroll=true) => {
     }
 
     message_box.innerHTML = elements;
-    register_remove_message();
+    register_message_buttons();
     highlight(message_box);
+    regenerate.classList.remove("regenerate-hidden");
 
     if (scroll) {
         message_box.scrollTo({ top: message_box.scrollHeight, behavior: "smooth" });
@@ -495,6 +515,7 @@ async function get_conversation(conversation_id) {
 }
 
 async function save_conversation(conversation_id, conversation) {
+    conversation.updated = Date.now();
     appStorage.setItem(
         `conversation:${conversation_id}`,
         JSON.stringify(conversation)
@@ -517,6 +538,7 @@ async function add_conversation(conversation_id, content) {
         await save_conversation(conversation_id, {
             id: conversation_id,
             title: title,
+            added: Date.now(),
             system: systemPrompt?.value,
             items: [],
         });
@@ -563,6 +585,11 @@ const remove_message = async (conversation_id, index) => {
     await save_conversation(conversation_id, conversation);
 };
 
+const get_message = async (conversation_id, index) => {
+    const conversation = await get_conversation(conversation_id);
+    return conversation.items[index]["content"];
+};
+
 const add_message = async (conversation_id, role, content, provider) => {
     const conversation = await get_conversation(conversation_id);
     conversation.items.push({
@@ -586,11 +613,17 @@ const load_conversations = async () => {
     await clear_conversations();
 
     for (conversation of conversations) {
+        let updated = "";
+        if (conversation.updated) {
+            const date = new Date(conversation.updated);
+            updated = date.toLocaleString('en-GB', {dateStyle: 'short', timeStyle: 'short', monthStyle: 'short'});
+            updated = updated.replace("/" + date.getFullYear(), "")
+        }
         box_conversations.innerHTML += `
             <div class="convo" id="convo-${conversation.id}">
                 <div class="left" onclick="set_conversation('${conversation.id}')">
                     <i class="fa-regular fa-comments"></i>
-                    <span class="convo-title">${conversation.title}</span>
+                    <span class="convo-title"><span class="datetime">${updated}</span> ${conversation.title}</span>
                 </div>
                 <i onclick="show_option('${conversation.id}')" class="fa-regular fa-trash" id="conv-${conversation.id}"></i>
                 <div id="cho-${conversation.id}" class="choise" style="display:none;">
@@ -642,7 +675,8 @@ const message_id = () => {
 async function hide_sidebar() {
     sidebar.classList.remove("shown");
     sidebar_button.classList.remove("rotated");
-    if (window.location.pathname == "/menu/") {
+    settings.classList.add("hidden");
+    if (window.location.pathname == "/menu/" || window.location.pathname == "/settings/") {
         history.back();
     }
 }
@@ -650,6 +684,7 @@ async function hide_sidebar() {
 window.addEventListener('popstate', hide_sidebar, false);
 
 sidebar_button.addEventListener("click", (event) => {
+    settings.classList.add("hidden");
     if (sidebar.classList.contains("shown")) {
         hide_sidebar();
     } else {
@@ -660,19 +695,25 @@ sidebar_button.addEventListener("click", (event) => {
     window.scrollTo(0, 0);
 });
 
+function open_settings() {
+    if (settings.classList.contains("hidden")) {
+        sidebar.classList.remove("shown");
+        settings.classList.remove("hidden");
+        history.pushState({}, null, "/settings/");
+    } else {
+        settings.classList.add("hidden");
+    }
+}
+
 const register_settings_storage = async () => {
-    options.forEach((id) => {
-        element = document.getElementById(id);
-        if (!element) {
-            return;
-        }
+    optionElements.forEach((element) => {
         element.addEventListener('change', async (event) => {
             switch (event.target.type) {
                 case "checkbox":
-                    appStorage.setItem(id, event.target.checked);
+                    appStorage.setItem(element.id, event.target.checked);
                     break;
                 case "select-one":
-                    appStorage.setItem(id, event.target.selectedIndex);
+                    appStorage.setItem(element.id, event.target.selectedIndex);
                     break;
                 default:
                     console.warn("Unresolved element type");
@@ -682,9 +723,8 @@ const register_settings_storage = async () => {
 }
 
 const load_settings_storage = async () => {
-    options.forEach((id) => {
-        element = document.getElementById(id);
-        if (!element || !(value = appStorage.getItem(id))) {
+    optionElements.forEach((element) => {
+        if (!(value = appStorage.getItem(element.id))) {
             return;
         }
         if (value) {
@@ -859,6 +899,18 @@ async function on_api() {
 
     await load_provider_models(appStorage.getItem("provider"));
     await load_settings_storage()
+
+    const hide_systemPrompt = document.getElementById("hide-systemPrompt")
+    if (hide_systemPrompt.checked) {
+        systemPrompt.classList.add("hidden");
+    }
+    hide_systemPrompt.addEventListener('change', async (event) => {
+        if (event.target.checked) {
+            systemPrompt.classList.add("hidden");
+        } else {
+            systemPrompt.classList.remove("hidden");
+        }
+    });
 }
 
 async function load_version() {
@@ -875,7 +927,7 @@ async function load_version() {
     }
     document.getElementById("version_text").innerHTML = text
 }
-setTimeout(load_version, 5000);
+setTimeout(load_version, 2000);
 
 for (const el of [imageInput, cameraInput]) {
     el.addEventListener('click', async () => {
@@ -1035,7 +1087,7 @@ function save_storage() {
         let item = appStorage.getItem(key);
         if (key.startsWith("conversation:")) {
             data[key] = JSON.parse(item);
-        } else {
+        } else if (!key.includes("api_key")) {
             data["options"][key] = item;
         }
     }

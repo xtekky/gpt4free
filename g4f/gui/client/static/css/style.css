@@ -84,7 +84,7 @@ body {
 }
 
 body {
-    padding: var(--section-gap);
+    padding: 10px;
     background: var(--colour-1);
     color: var(--colour-3);
     height: 100vh;
@@ -92,7 +92,7 @@ body {
 
 .row {
     display: flex;
-    gap: var(--section-gap);
+    gap: 10px;
     height: 100%;
 }
 
@@ -111,7 +111,7 @@ body {
 }
 
 .conversations {
-    max-width: 260px;
+    max-width: 280px;
     padding: var(--section-gap);
     overflow: auto;
     flex-shrink: 0;
@@ -183,8 +183,8 @@ body {
 .conversations {
     display: flex;
     flex-direction: column;
-    gap: var(--inner-gap);
-    padding: var(--inner-gap);
+    gap: 10px;
+    padding: 10px;
 }
 
 .conversations .title {
@@ -207,7 +207,12 @@ body {
     cursor: pointer;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 4px;
+}
+
+.conversations .convo .fa-trash {
+    position: absolute;
+    right: 8px;
 }
 
 .conversations .convo .choise {
@@ -216,7 +221,7 @@ body {
     background-color: var(--blur-bg);
 }
 
-.conversations i {
+.conversations i, .bottom_buttons i {
     color: var(--conversations);
     cursor: pointer;
 }
@@ -227,6 +232,10 @@ body {
     text-overflow: ellipsis;
     overflow: hidden; 
     white-space: nowrap;
+}
+
+.convo-title .datetime {
+    font-size: 10px;
 }
 
 .message {
@@ -351,8 +360,21 @@ body {
     cursor: pointer;
 }
 
+.message .count .fa-clipboard {
+    z-index: 1000;
+    cursor: pointer;
+}
+
 .message .user .fa-xmark {
     color: var(--colour-1);
+}
+
+.message .count .fa-clipboard {
+    color: var(--colour-3);
+}
+
+.message .count .fa-clipboard.clicked {
+    color: var(--accent);
 }
 
 .message .assistant:hover .fa-xmark,
@@ -556,6 +578,16 @@ label[for="camera"] {
     background: var(--accent);
 }
 
+.settings .bottom_buttons {
+    flex-direction: row;
+}
+
+.settings .bottom_buttons button {
+    display: inline-block;
+    max-width: 210px;
+    width: 100%;
+}
+
 .buttons input:checked+label:after {
     left: calc(100% - 5px - 20px);
 }
@@ -565,6 +597,7 @@ label[for="camera"] {
     align-items: center;
     justify-content: left;
     width: 100%;
+    margin-bottom: 2px;
 }
 
 .field {
@@ -635,6 +668,7 @@ select {
     display: flex;
     flex-direction: column;
     gap: 10px;
+    margin: 4px;
 }
 
 .bottom_buttons button {
@@ -1026,7 +1060,14 @@ a:-webkit-any-link {
 
 .settings {
     width: 100%;
-    display: none;
+    min-width: 700px;
+    display: flex;
+    flex-direction: column;
+}
+
+.settings .paper {
+    overflow: auto;
+    flex-direction: column;
 }
 
 .settings .field {
