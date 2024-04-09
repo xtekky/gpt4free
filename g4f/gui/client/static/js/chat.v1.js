@@ -96,10 +96,12 @@ const register_message_buttons = async () => {
             el.dataset.click = "true";
             el.addEventListener("click", async () => {
                 if ("active" in el.classList || window.doSpeech) {
+                    el.classList.add("blink")
                     stopped = true;
                     return;
                 }
                 if (stopped) {
+                    el.classList.remove("blink")
                     stopped = false;
                     return;
                 }
@@ -125,7 +127,7 @@ const register_message_buttons = async () => {
                         sound.controls = 'controls';
                         sound.src = url;
                         sound.type = 'audio/wav';
-                        if (ended) {
+                        if (ended && !stopped) {
                             sound.autoplay = true;
                         }
                         sound.onended = function() {
