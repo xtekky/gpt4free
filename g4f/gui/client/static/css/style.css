@@ -315,6 +315,7 @@ body {
     display: flex;
     flex-direction: column;
     gap: 10px;
+    flex-wrap: wrap;
 }
 
 .message .content,
@@ -330,6 +331,10 @@ body {
 
 .message .content img{
     max-width: 400px;
+}
+
+.message .content .audio{
+    display: flex;
 }
 
 .message .user i {
@@ -357,7 +362,8 @@ body {
     cursor: pointer;
 }
 
-.message .count .fa-clipboard {
+.message .count .fa-clipboard,
+.message .count .fa-volume-high {
     z-index: 1000;
     cursor: pointer;
 }
@@ -371,6 +377,10 @@ body {
 }
 
 .message .count .fa-clipboard.clicked {
+    color: var(--accent);
+}
+
+.message .count .fa-volume-high.active {
     color: var(--accent);
 }
 
@@ -1136,4 +1146,14 @@ a:-webkit-any-link {
 
 .hidden {
     display: none;
+}
+
+.blink {
+    animation: blinker 1s step-start infinite;
+}
+
+@keyframes blinker {
+    50% {
+        opacity: 0;
+    }
 }

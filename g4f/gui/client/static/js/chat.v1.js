@@ -64,6 +64,7 @@ const highlight = (container) => {
     );
 }
 
+let stopped = false;
 const register_message_buttons = async () => {
     document.querySelectorAll(".message .fa-xmark").forEach(async (el) => {
         if (!("click" in el.dataset)) {
@@ -88,6 +89,72 @@ const register_message_buttons = async () => {
                 el.classList.add("clicked");
                 setTimeout(() => el.classList.remove("clicked"), 1000);
             })
+        }
+    });
+    document.querySelectorAll(".message .fa-volume-high").forEach(async (el) => {
+        if (!("click" in el.dataset)) {
+            el.dataset.click = "true";
+            el.addEventListener("click", async () => {
+                if ("active" in el.classList || window.doSpeech || stopped) {
+                    stopped = true;
+                    return;
+                }
+                el.classList.add("blink")
+                el.classList.add("active")
+                const message_el = el.parentElement.parentElement.parentElement;
+                const content_el = el.parentElement.parentElement;
+                let speechText = await get_message(window.conversation_id, message_el.dataset.index);
+
+                speechText = speechText.replaceAll(/\[(.+)\]\(.+\)/gm, "($1)");
+                speechText = speechText.replaceAll(/\(http.+\)/gm, "");
+                speechText = speechText.replaceAll("`", "").replaceAll("#", "")
+                speechText = speechText.replaceAll(
+                    /<!-- generated images start -->[\s\S]+<!-- generated images end -->/gm,
+                    ""
+                )
+
+                const lines = speechText.trim().split(/\n|\.|;/);
+                let ended = true;
+                window.onSpeechResponse = (url) => {
+                    if (url) {
+                        var sound = document.createElement('audio');
+                        sound.controls = 'controls';
+                        sound.src = url;
+                        sound.type = 'audio/wav';
+                        if (ended) {
+                            sound.autoplay = true;
+                        }
+                        sound.onended = function() {
+                            ended = true;
+                        };
+                        sound.onplay = function() {
+                            ended = false;
+                        };
+                        var container = document.createElement('div');
+                        container.classList.add("audio");
+                        container.appendChild(sound);
+                        content_el.appendChild(container);
+                    }
+                    if (lines.length < 1 || stopped) {
+                        el.classList.remove("blink");
+                        el.classList.remove("active");
+                        return;
+                    }
+                    while (lines.length > 0) {
+                        let line = lines.shift();
+                        var reg = new RegExp('^[0-9]$');
+                        if (line && !reg.test(line)) {
+                            return handleGenerateSpeech(line);
+                        }
+                    }
+                    if (!line) {
+                        el.classList.remove("blink")
+                        el.classList.remove("active")
+                    }
+                }
+                let line = lines.shift();
+                return handleGenerateSpeech(line);
+            });
         }
     });
 }
@@ -145,7 +212,11 @@ const handle_ask = async () => {
                     : ''
                 }
                 </div>
-                <div class="count">${count_words_and_tokens(message, get_selected_model())} <i class="fa-regular fa-clipboard"></i></div>
+                <div class="count">
+                    ${count_words_and_tokens(message, get_selected_model())}
+                    <i class="fa-solid fa-volume-high"></i>
+                    <i class="fa-regular fa-clipboard"></i>
+                </div>
             </div>
         </div>
     `;
@@ -479,7 +550,11 @@ const load_conversation = async (conversation_id, scroll=true) => {
                 <div class="content">
                     ${provider}
                     <div class="content_inner">${markdown_render(item.content)}</div>
-                    <div class="count">${count_words_and_tokens(item.content, next_provider?.model)} <i class="fa-regular fa-clipboard"></i></div>
+                    <div class="count">
+                        ${count_words_and_tokens(item.content, next_provider?.model)}
+                        <i class="fa-solid fa-volume-high"></i>
+                        <i class="fa-regular fa-clipboard"></i>
+                    </div>
                 </div>
             </div>
         `;
@@ -1149,10 +1224,12 @@ if (SpeechRecognition) {
     }
 
     let startValue;
+    let lastValue;
     let timeoutHandle;
     recognition.onstart = function() {
         microLabel.classList.add("recognition");
         startValue = messageInput.value;
+        lastValue = "";
         timeoutHandle = window.setTimeout(may_stop, 8000);
     };
     recognition.onend = function() {
@@ -1163,25 +1240,22 @@ if (SpeechRecognition) {
             return;
         }
         window.clearTimeout(timeoutHandle);
-        let notFinal = "";
-        event.results.forEach((result) => {
-            const newText = result[0].transcript;
-            if (newText) {
+        let newText;
+        Array.from(event.results).forEach((result) => {
+            newText = result[0].transcript;
+            if (newText && newText != lastValue) {
+                messageInput.value = `${startValue ? startValue+"\n" : ""}${newText.trim()}`;
                 if (result.isFinal) {
-                    messageInput.value = `${startValue ? startValue+"\n" : ""}${newText.trim()}`;
+                    lastValue = newText;
                     startValue = messageInput.value;
-                    notFinal = "";
                     messageInput.focus();
-                } else {
-                    notFinal += newText;
-                    messageInput.value = `${startValue ? startValue+"\n" : ""}${notFinal.trim()}`;
                 }
                 messageInput.style.height = messageInput.scrollHeight  + "px";
                 messageInput.scrollTop = messageInput.scrollHeight;
             }
         });
         window.clearTimeout(timeoutHandle);
-        timeoutHandle = window.setTimeout(may_stop, notFinal ? 5000 : 8000);
+        timeoutHandle = window.setTimeout(may_stop, newText ? 8000 : 5000);
     };
 
     microLabel.addEventListener("click", () => {
@@ -1189,8 +1263,8 @@ if (SpeechRecognition) {
             window.clearTimeout(timeoutHandle);
             recognition.stop();
         } else {
-            const lang = document.getElementById("recognition-language")?.value || navigator.language;
-            recognition.lang = lang;
+            const lang = document.getElementById("recognition-language")?.value;
+            recognition.lang = lang || navigator.language;
             recognition.start();
         }
     });
