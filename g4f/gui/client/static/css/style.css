@@ -239,6 +239,7 @@ body {
     width: 100%;
     overflow-wrap: break-word;
     display: flex;
+    flex-direction: column;
     gap: var(--section-gap);
     padding: var(--inner-gap) var(--section-gap);
     padding-bottom: 0;
@@ -589,7 +590,7 @@ label[for="camera"] {
 }
 
 .settings .bottom_buttons {
-    flex-direction: row;
+    flex-direction: column;
 }
 
 .settings .bottom_buttons button {
@@ -651,6 +652,12 @@ select {
     }
     .field {
         padding-right: 15px
+    }
+    .message {
+        flex-direction: row;
+    }
+    .settings .bottom_buttons {
+        flex-direction: row;
     }
 }
 
@@ -1070,7 +1077,6 @@ a:-webkit-any-link {
 
 .settings {
     width: 100%;
-    min-width: 700px;
     display: flex;
     flex-direction: column;
 }
@@ -1078,6 +1084,7 @@ a:-webkit-any-link {
 .settings .paper {
     overflow: auto;
     flex-direction: column;
+    min-width: 400px;
 }
 
 .settings .field {
@@ -1135,7 +1142,7 @@ a:-webkit-any-link {
 }
 
 #message-input {
-    height: 82px;
+    height: 90px;
     margin-left: 20px;
     max-height: 200px;
 }
