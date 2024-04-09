@@ -95,8 +95,12 @@ const register_message_buttons = async () => {
         if (!("click" in el.dataset)) {
             el.dataset.click = "true";
             el.addEventListener("click", async () => {
-                if ("active" in el.classList || window.doSpeech || stopped) {
+                if ("active" in el.classList || window.doSpeech) {
                     stopped = true;
+                    return;
+                }
+                if (stopped) {
+                    stopped = false;
                     return;
                 }
                 el.classList.add("blink")
@@ -106,7 +110,6 @@ const register_message_buttons = async () => {
                 let speechText = await get_message(window.conversation_id, message_el.dataset.index);
 
                 speechText = speechText.replaceAll(/\[(.+)\]\(.+\)/gm, "($1)");
-                speechText = speechText.replaceAll(/\(http.+\)/gm, "");
                 speechText = speechText.replaceAll("`", "").replaceAll("#", "")
                 speechText = speechText.replaceAll(
                     /<!-- generated images start -->[\s\S]+<!-- generated images end -->/gm,
@@ -116,6 +119,7 @@ const register_message_buttons = async () => {
                 const lines = speechText.trim().split(/\n|\.|;/);
                 let ended = true;
                 window.onSpeechResponse = (url) => {
+                    el.classList.remove("blink")
                     if (url) {
                         var sound = document.createElement('audio');
                         sound.controls = 'controls';
@@ -136,7 +140,6 @@ const register_message_buttons = async () => {
                         content_el.appendChild(container);
                     }
                     if (lines.length < 1 || stopped) {
-                        el.classList.remove("blink");
                         el.classList.remove("active");
                         return;
                     }
@@ -148,7 +151,6 @@ const register_message_buttons = async () => {
                         }
                     }
                     if (!line) {
-                        el.classList.remove("blink")
                         el.classList.remove("active")
                     }
                 }
