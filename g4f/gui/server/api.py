@@ -80,13 +80,12 @@ class Api():
         Returns:
             dict: Arguments prepared for chat completion.
         """ 
-        provider = json_data.get('provider', None)
-        if "image" in kwargs and provider is None:
-            provider = "Bing"
-        if provider == 'OpenaiChat':
-            kwargs['auto_continue'] = True
-
+        model = json_data.get('model') or models.default
+        provider = json_data.get('provider')
         messages = json_data['messages']
+        api_key = json_data.get("api_key")
+        if api_key is not None:
+            kwargs["api_key"] = api_key
         if json_data.get('web_search'):
             if provider == "Bing":
                 kwargs['web_search'] = True
@@ -97,8 +96,6 @@ class Api():
         conversation_id = json_data.get("conversation_id")
         if conversation_id and provider in conversations and conversation_id in conversations[provider]:
             kwargs["conversation"] = conversations[provider][conversation_id]
-
-        model = json_data.get('model') or models.default
 
         return {
             "model": model,
