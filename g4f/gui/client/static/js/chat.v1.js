@@ -64,11 +64,13 @@ const highlight = (container) => {
             hljs.highlightElement(el);
         }
     });
-    typesetPromise = typesetPromise.then(
-        () => MathJax.typesetPromise([container])
-    ).catch(
-        (err) => console.log('Typeset failed: ' + err.message)
-    );
+    if (window.MathJax) {
+        typesetPromise = typesetPromise.then(
+            () => MathJax.typesetPromise([container])
+        ).catch(
+            (err) => console.log('Typeset failed: ' + err.message)
+        );
+    }
 }
 
 const register_message_buttons = async () => {
@@ -577,12 +579,14 @@ const load_conversation = async (conversation_id, scroll=true) => {
         `;
     }
 
-    const filtered = prepare_messages(messages, false);
-    if (filtered.length > 0) {
-        last_model = last_model?.startsWith("gpt-4") ? "gpt-4" : "gpt-3.5-turbo"
-        let count_total = GPTTokenizer_cl100k_base?.encodeChat(filtered, last_model).length
-        if (count_total > 0) {
-            elements += `<div class="count_total">(${count_total} tokens used)</div>`;
+    if (window.GPTTokenizer_cl100k_base) {
+        const filtered = prepare_messages(messages, false);
+        if (filtered.length > 0) {
+            last_model = last_model?.startsWith("gpt-4") ? "gpt-4" : "gpt-3.5-turbo"
+            let count_total = GPTTokenizer_cl100k_base?.encodeChat(filtered, last_model).length
+            if (count_total > 0) {
+                elements += `<div class="count_total">(${count_total} tokens used)</div>`;
+            }
         }
     }
 
@@ -616,20 +620,15 @@ async function save_conversation(conversation_id, conversation) {
 }
 
 async function get_messages(conversation_id) {
-    let conversation = await get_conversation(conversation_id);
+    const conversation = await get_conversation(conversation_id);
     return conversation?.items || [];
 }
 
 async function add_conversation(conversation_id, content) {
-    if (content.length > 18) {
-        title = content.substring(0, 18) + '...'
-    } else {
-        title = content + '&nbsp;'.repeat(20 - content.length)
-    }
     if (appStorage.getItem(`conversation:${conversation_id}`) == null) {
         await save_conversation(conversation_id, {
             id: conversation_id,
-            title: title,
+            title: "",
             added: Date.now(),
             system: systemPrompt?.value,
             items: [],
@@ -703,13 +702,25 @@ const load_conversations = async () => {
             conversations.push(JSON.parse(conversation));
         }
     }
+    conversations.sort((a, b) => (b.updated||0)-(a.updated||0));
 
     await clear_conversations();
 
-    conversations.sort((a, b) => (b.updated||0)-(a.updated||0));
-
     let html = "";
     conversations.forEach((conversation) => {
+        if (conversation?.items.length > 0) {
+            let old_value = conversation.title;
+            let new_value = (conversation.items[0]["content"]).trim();
+            let new_lenght = new_value.indexOf("\n");
+            new_lenght = new_lenght > 200 || new_lenght < 0 ? 200 : new_lenght;
+            conversation.title = new_value.substring(0, new_lenght);
+            if (conversation.title != old_value) {
+                appStorage.setItem(
+                    `conversation:${conversation.id}`,
+                    JSON.stringify(conversation)
+                );
+            }
+        }
         let updated = "";
         if (conversation.updated) {
             const date = new Date(conversation.updated);
@@ -915,14 +926,18 @@ colorThemes.forEach((themeOption) => {
 
 function count_tokens(model, text) {
     if (model) {
+        if (window.llamaTokenizer)
         if (model.startsWith("llama2") || model.startsWith("codellama")) {
-            return llamaTokenizer?.encode(text).length;
+            return llamaTokenizer.encode(text).length;
         }
+        if (window.mistralTokenizer)
         if (model.startsWith("mistral") || model.startsWith("mixtral")) {
-            return mistralTokenizer?.encode(text).length;
+            return mistralTokenizer.encode(text).length;
         }
     }
-    return GPTTokenizer_cl100k_base?.encode(text).length;
+    if (window.GPTTokenizer_cl100k_base) {
+        return GPTTokenizer_cl100k_base.encode(text).length;
+    }
 }
 
 function count_words(text) {

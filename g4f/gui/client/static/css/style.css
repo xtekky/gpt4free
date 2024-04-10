@@ -201,6 +201,7 @@ body {
 }
 
 .conversations .convo .left {
+    width: 100%;
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -226,9 +227,11 @@ body {
 .convo-title {
     color: var(--colour-3);
     font-size: 14px;
+    max-width: 100%;
     text-overflow: ellipsis;
     overflow: hidden; 
     white-space: nowrap;
+    margin-right: 10px;
 }
 
 .convo-title .datetime {
@@ -406,7 +409,7 @@ body {
 
 .count_total {
     font-size: 12px;
-    padding-left: 100px;
+    padding-left: 25px;
     padding-top: 10px;
 }
 
@@ -673,6 +676,9 @@ select {
     }
     .settings .bottom_buttons {
         flex-direction: row;
+    }
+    .count_total {
+        padding-left: 98px;
     }
 }
 
