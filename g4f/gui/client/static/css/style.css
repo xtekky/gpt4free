@@ -84,15 +84,17 @@ body {
 }
 
 body {
-    padding: var(--section-gap);
+    padding: 10px;
     background: var(--colour-1);
     color: var(--colour-3);
     height: 100vh;
+    max-width: 1600px;
+    margin: auto;
 }
 
 .row {
     display: flex;
-    gap: var(--section-gap);
+    gap: 10px;
     height: 100%;
 }
 
@@ -106,12 +108,8 @@ body {
     border: 1px solid var(--blur-border);
 }
 
-.hidden {
-    display: none;
-}
-
 .conversations {
-    max-width: 260px;
+    max-width: 280px;
     padding: var(--section-gap);
     overflow: auto;
     flex-shrink: 0;
@@ -138,8 +136,7 @@ body {
 }
 
 .conversation .user-input {
-    max-height: 200px;
-    margin-bottom: 10px;
+    margin-bottom: 4px;
 }
 
 .conversation .user-input input {
@@ -183,8 +180,8 @@ body {
 .conversations {
     display: flex;
     flex-direction: column;
-    gap: var(--inner-gap);
-    padding: var(--inner-gap);
+    gap: 10px;
+    padding: 10px;
 }
 
 .conversations .title {
@@ -207,7 +204,12 @@ body {
     cursor: pointer;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 4px;
+}
+
+.conversations .convo .fa-trash {
+    position: absolute;
+    right: 8px;
 }
 
 .conversations .convo .choise {
@@ -216,7 +218,7 @@ body {
     background-color: var(--blur-bg);
 }
 
-.conversations i {
+.conversations i, .bottom_buttons i {
     color: var(--conversations);
     cursor: pointer;
 }
@@ -229,10 +231,15 @@ body {
     white-space: nowrap;
 }
 
+.convo-title .datetime {
+    font-size: 10px;
+}
+
 .message {
     width: 100%;
     overflow-wrap: break-word;
     display: flex;
+    flex-direction: column;
     gap: var(--section-gap);
     padding: var(--inner-gap) var(--section-gap);
     padding-bottom: 0;
@@ -309,6 +316,7 @@ body {
     display: flex;
     flex-direction: column;
     gap: 10px;
+    flex-wrap: wrap;
 }
 
 .message .content,
@@ -324,6 +332,10 @@ body {
 
 .message .content img{
     max-width: 400px;
+}
+
+.message .content .audio{
+    display: flex;
 }
 
 .message .user i {
@@ -351,8 +363,26 @@ body {
     cursor: pointer;
 }
 
+.message .count .fa-clipboard,
+.message .count .fa-volume-high {
+    z-index: 1000;
+    cursor: pointer;
+}
+
 .message .user .fa-xmark {
     color: var(--colour-1);
+}
+
+.message .count .fa-clipboard {
+    color: var(--colour-3);
+}
+
+.message .count .fa-clipboard.clicked {
+    color: var(--accent);
+}
+
+.message .count .fa-volume-high.active {
+    color: var(--accent);
 }
 
 .message .assistant:hover .fa-xmark,
@@ -482,7 +512,8 @@ body {
     display: none;
 }
 
-.file-label {
+.file-label,
+.micro-label {
     cursor: pointer;
     position: absolute;
     top: 10px;
@@ -490,7 +521,8 @@ body {
 }
 
 .file-label:has(> input:valid),
-.file-label.selected {
+.file-label.selected,
+.micro-label.recognition {
     color: var(--accent);
 }
 
@@ -498,11 +530,12 @@ label[for="image"] {
     top: 32px;
 }
 
-label[for="camera"] {
+label[for="micro"] {
     top: 54px;
 }
 
 label[for="camera"] {
+    top: 74px;
     display: none;
 }
 
@@ -556,6 +589,16 @@ label[for="camera"] {
     background: var(--accent);
 }
 
+.settings .bottom_buttons {
+    flex-direction: column;
+}
+
+.settings .bottom_buttons button {
+    display: inline-block;
+    max-width: 210px;
+    width: 100%;
+}
+
 .buttons input:checked+label:after {
     left: calc(100% - 5px - 20px);
 }
@@ -565,6 +608,7 @@ label[for="camera"] {
     align-items: center;
     justify-content: left;
     width: 100%;
+    margin-bottom: 4px;
 }
 
 .field {
@@ -609,6 +653,12 @@ select {
     .field {
         padding-right: 15px
     }
+    .message {
+        flex-direction: row;
+    }
+    .settings .bottom_buttons {
+        flex-direction: row;
+    }
 }
 
 .input-box {
@@ -635,6 +685,7 @@ select {
     display: flex;
     flex-direction: column;
     gap: 10px;
+    margin: 4px 0;
 }
 
 .bottom_buttons button {
@@ -807,7 +858,7 @@ a:-webkit-any-link {
     color: var(--colour-3);
 
     resize: vertical;
-    max-height: 150px;
+    max-height: 200px;
     min-height: 80px;
 }
 
@@ -1026,7 +1077,14 @@ a:-webkit-any-link {
 
 .settings {
     width: 100%;
-    display: none;
+    display: flex;
+    flex-direction: column;
+}
+
+.settings .paper {
+    overflow: auto;
+    flex-direction: column;
+    min-width: 400px;
 }
 
 .settings .field {
@@ -1037,6 +1095,19 @@ a:-webkit-any-link {
     background-color: transparent;
     border: none;
     padding: var(--inner-gap) 0;
+}
+
+.settings input {
+    background-color: transparent;
+    padding: 2px;
+    border: none;
+    font-size: 15px;
+    width: 100%;
+    color: var(--colour-3);
+}
+
+.settings input:focus {
+    outline: none;
 }
 
 .settings .label {
@@ -1059,7 +1130,7 @@ a:-webkit-any-link {
     border-radius: 5px;
 }
 ::-webkit-scrollbar-thumb:hover {
-    background: var(--accent)
+    background: var(--accent);
 }
 
 .hljs {
@@ -1071,10 +1142,25 @@ a:-webkit-any-link {
 }
 
 #message-input {
-    height: 82px;
+    height: 90px;
     margin-left: 20px;
+    max-height: 200px;
 }
 
 #message-input::-webkit-scrollbar {
     width: 5px;
+}
+
+.hidden {
+    display: none;
+}
+
+.blink {
+    animation: blinker 1s step-start infinite;
+}
+
+@keyframes blinker {
+    50% {
+        opacity: 0;
+    }
 }

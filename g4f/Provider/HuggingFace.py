@@ -13,6 +13,10 @@ class HuggingFace(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://huggingface.co/chat"
     working = True
     supports_message_history = True
+    models = [
+        "mistralai/Mixtral-8x7B-Instruct-v0.1",
+        "mistralai/Mistral-7B-Instruct-v0.2"
+    ]
     default_model = "mistralai/Mixtral-8x7B-Instruct-v0.1"
 
     @classmethod
@@ -29,7 +33,7 @@ class HuggingFace(AsyncGeneratorProvider, ProviderModelMixin):
         temperature: float = 0.7,
         **kwargs
     ) -> AsyncResult:
-        model = cls.get_model(model)
+        model = cls.get_model(model) if not model else model
         headers = {}
         if api_key is not None:
             headers["Authorization"] = f"Bearer {api_key}"

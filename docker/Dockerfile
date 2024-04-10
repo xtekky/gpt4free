@@ -88,7 +88,7 @@ RUN pip install --break-system-packages --upgrade pip \
 RUN pip install --break-system-packages \
     undetected-chromedriver selenium-wire \
   && pip uninstall -y --break-system-packages \
-    webdriver plyer
+    webdriver plyer nodriver
 
 # Copy the entire package into the container.
 ADD --chown=$G4F_USER:$G4F_USER g4f $G4F_DIR/g4f

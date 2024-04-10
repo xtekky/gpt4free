@@ -4,9 +4,11 @@ from flask import render_template, redirect
 class Website:
     def __init__(self, app) -> None:
         self.app = app
+        def redirect_home():
+            return redirect('/chat')
         self.routes = {
             '/': {
-                'function': lambda: redirect('/chat'),
+                'function': redirect_home,
                 'methods': ['GET', 'POST']
             },
             '/chat/': {
@@ -15,6 +17,14 @@ class Website:
             },
             '/chat/<conversation_id>': {
                 'function': self._chat,
+                'methods': ['GET', 'POST']
+            },
+            '/menu/': {
+                'function': redirect_home,
+                'methods': ['GET', 'POST']
+            },
+            '/settings/': {
+                'function': redirect_home,
                 'methods': ['GET', 'POST']
             },
         }

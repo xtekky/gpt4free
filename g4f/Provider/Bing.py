@@ -46,6 +46,7 @@ class Bing(AsyncGeneratorProvider, ProviderModelMixin):
         messages: Messages,
         proxy: str = None,
         timeout: int = 900,
+        api_key: str = None,
         cookies: Cookies = None,
         connector: BaseConnector = None,
         tone: str = None,
@@ -68,6 +69,8 @@ class Bing(AsyncGeneratorProvider, ProviderModelMixin):
         :return: An asynchronous result object.
         """
         prompt = messages[-1]["content"]
+        if api_key is not None:
+            cookies["_U"] = api_key
         if context is None:
             context = create_context(messages[:-1]) if len(messages) > 1 else None
         if tone is None:
