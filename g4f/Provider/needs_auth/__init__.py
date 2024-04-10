@@ -6,3 +6,4 @@ from .OpenaiChat    import OpenaiChat
 from .Poe           import Poe
 from .Openai        import Openai
 from .Groq          import Groq
+from .OpenRouter    import OpenRouter

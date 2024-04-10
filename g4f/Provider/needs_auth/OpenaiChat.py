@@ -334,7 +334,7 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
             RuntimeError: If an error occurs during processing.
         """
         async with StreamSession(
-            proxies={"https": proxy},
+            proxies={"all": proxy},
             impersonate="chrome",
             timeout=timeout
         ) as session:

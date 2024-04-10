@@ -21,6 +21,7 @@ from .ChatgptFree      import ChatgptFree
 from .ChatgptNext      import ChatgptNext
 from .ChatgptX         import ChatgptX
 from .DeepInfra        import DeepInfra
+from .DeepInfraImage   import DeepInfraImage
 from .DuckDuckGo       import DuckDuckGo
 from .FlowGpt          import FlowGpt
 from .FreeChatgpt      import FreeChatgpt

@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import json
 
+from ..helper import filter_none
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin, FinishReason
 from ...typing import Union, Optional, AsyncResult, Messages
-from ...requests.raise_for_status import raise_for_status
-from ...requests import StreamSession
+from ...requests import StreamSession, raise_for_status
 from ...errors import MissingAuthError, ResponseError
 
 class Openai(AsyncGeneratorProvider, ProviderModelMixin):
@@ -99,10 +99,3 @@ class Openai(AsyncGeneratorProvider, ProviderModelMixin):
             ),
             **({} if headers is None else headers)
         }
-
-def filter_none(**kwargs) -> dict:
-    return {
-        key: value
-        for key, value in kwargs.items()
-        if value is not None
-    }

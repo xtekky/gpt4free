@@ -8,7 +8,7 @@ from g4f import version, models
 from g4f import get_last_provider, ChatCompletion
 from g4f.errors import VersionNotFoundError
 from g4f.Provider import ProviderType, __providers__, __map__
-from g4f.providers.base_provider import ProviderModelMixin
+from g4f.providers.base_provider import ProviderModelMixin, FinishReason
 from g4f.providers.conversation import BaseConversation
 
 conversations: dict[dict[str, BaseConversation]] = {}
@@ -134,7 +134,7 @@ class Api():
                 elif isinstance(chunk, Exception):
                     logging.exception(chunk)
                     yield self._format_json("message", get_error_message(chunk))
-                else:
+                elif not isinstance(chunk, FinishReason):
                     yield self._format_json("content", str(chunk))
         except Exception as e:
             logging.exception(e)

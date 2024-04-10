@@ -50,3 +50,10 @@ def get_random_hex(length: int = 32) -> str:
         random.choice("abcdef" + string.digits)
         for _ in range(length)
     )
+
+def filter_none(**kwargs) -> dict:
+    return {
+        key: value
+        for key, value in kwargs.items()
+        if value is not None
+    }
