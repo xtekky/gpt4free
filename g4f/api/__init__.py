@@ -76,7 +76,7 @@ class Api:
         @self.app.get("/v1/models")
         async def models():
             model_list = dict(
-                (model, g4f.ModelUtils.convert[model])
+                (model, g4f.models.ModelUtils.convert[model])
                 for model in g4f.Model.__all__()
             )
             model_list = [{

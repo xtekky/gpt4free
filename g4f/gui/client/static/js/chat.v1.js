@@ -42,7 +42,7 @@ appStorage = window.localStorage || {
 const markdown = window.markdownit();
 const markdown_render = (content) => {
     return markdown.render(content
-        .replaceAll(/<!-- generated images start -->[\s\S]+<!-- generated images end -->/gm, "")
+        .replaceAll(/<!-- generated images start -->|<!-- generated images end -->/gm, "")
         .replaceAll(/<img data-prompt="[^>]+">/gm, "")
     )
         .replaceAll("<a href=", '<a target="_blank" href=')
@@ -127,9 +127,6 @@ const register_message_buttons = async () => {
                         sound.controls = 'controls';
                         sound.src = url;
                         sound.type = 'audio/wav';
-                        if (ended && !stopped) {
-                            sound.autoplay = true;
-                        }
                         sound.onended = function() {
                             ended = true;
                         };
@@ -140,6 +137,9 @@ const register_message_buttons = async () => {
                         container.classList.add("audio");
                         container.appendChild(sound);
                         content_el.appendChild(container);
+                        if (ended && !stopped) {
+                            sound.play();
+                        }
                     }
                     if (lines.length < 1 || stopped) {
                         el.classList.remove("active");
@@ -608,12 +608,11 @@ async function get_messages(conversation_id) {
 }
 
 async function add_conversation(conversation_id, content) {
-    if (content.length > 17) {
-        title = content.substring(0, 17) + '...'
+    if (content.length > 18) {
+        title = content.substring(0, 18) + '...'
     } else {
-        title = content + '&nbsp;'.repeat(19 - content.length)
+        title = content + '&nbsp;'.repeat(20 - content.length)
     }
-
     if (appStorage.getItem(`conversation:${conversation_id}`) == null) {
         await save_conversation(conversation_id, {
             id: conversation_id,
@@ -623,7 +622,6 @@ async function add_conversation(conversation_id, content) {
             items: [],
         });
     }
-
     history.pushState({}, null, `/chat/${conversation_id}`);
 }
 
@@ -695,27 +693,31 @@ const load_conversations = async () => {
 
     await clear_conversations();
 
-    for (conversation of conversations) {
+    conversations.sort((a, b) => (b.updated||0)-(a.updated||0));
+
+    let html = "";
+    conversations.forEach((conversation) => {
         let updated = "";
         if (conversation.updated) {
             const date = new Date(conversation.updated);
             updated = date.toLocaleString('en-GB', {dateStyle: 'short', timeStyle: 'short', monthStyle: 'short'});
             updated = updated.replace("/" + date.getFullYear(), "")
         }
-        box_conversations.innerHTML += `
+        html += `
             <div class="convo" id="convo-${conversation.id}">
                 <div class="left" onclick="set_conversation('${conversation.id}')">
                     <i class="fa-regular fa-comments"></i>
                     <span class="convo-title"><span class="datetime">${updated}</span> ${conversation.title}</span>
                 </div>
-                <i onclick="show_option('${conversation.id}')" class="fa-regular fa-trash" id="conv-${conversation.id}"></i>
+                <i onclick="show_option('${conversation.id}')" class="fa-solid fa-ellipsis-vertical" id="conv-${conversation.id}"></i>
                 <div id="cho-${conversation.id}" class="choise" style="display:none;">
-                    <i onclick="delete_conversation('${conversation.id}')" class="fa-regular fa-check"></i>
+                    <i onclick="delete_conversation('${conversation.id}')" class="fa-regular fa-trash"></i>
                     <i onclick="hide_option('${conversation.id}')" class="fa-regular fa-x"></i>
                 </div>
             </div>
         `;
-    }
+    });
+    box_conversations.innerHTML = html;
 };
 
 document.getElementById("cancelButton").addEventListener("click", async () => {
@@ -804,6 +806,7 @@ const register_settings_storage = async () => {
                         appStorage.setItem(element.id, element.selectedIndex);
                         break;
                     case "text":
+                    case "number":
                         appStorage.setItem(element.id, element.value);
                         break;
                     default:
@@ -828,6 +831,7 @@ const load_settings_storage = async () => {
                     element.selectedIndex = parseInt(value);
                     break;
                 case "text":
+                case "number":
                 case "textarea":
                     element.value = value;
                     break;

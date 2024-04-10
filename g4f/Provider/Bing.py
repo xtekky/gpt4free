@@ -47,7 +47,7 @@ class Bing(AsyncGeneratorProvider, ProviderModelMixin):
         proxy: str = None,
         timeout: int = 900,
         api_key: str = None,
-        cookies: Cookies = None,
+        cookies: Cookies = {},
         connector: BaseConnector = None,
         tone: str = None,
         image: ImageType = None,

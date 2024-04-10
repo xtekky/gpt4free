@@ -109,7 +109,7 @@ body {
 }
 
 .conversations {
-    max-width: 280px;
+    max-width: 300px;
     padding: var(--section-gap);
     overflow: auto;
     flex-shrink: 0;
@@ -207,9 +207,9 @@ body {
     gap: 4px;
 }
 
-.conversations .convo .fa-trash {
+.conversations .convo .fa-ellipsis-vertical {
     position: absolute;
-    right: 8px;
+    right: 14px;
 }
 
 .conversations .convo .choise {
@@ -1073,6 +1073,10 @@ a:-webkit-any-link {
     outline: none;
     padding: var(--inner-gap) var(--section-gap);
     resize: vertical;
+}
+
+.settings textarea {
+    height: 51px;
 }
 
 .settings {
