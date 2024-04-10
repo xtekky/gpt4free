@@ -12,8 +12,5 @@
     "pack": "^2.2.0",
     "web": "^0.0.2",
     "webpack-cli": "^5.1.4"
-  },
-  "bundleDependencies": [
-    "@xenova/transformers"
-  ]
+  }
 }

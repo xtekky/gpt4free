@@ -55,3 +55,6 @@ local.py
 image.py
 .buildozer
 hardir
+node_modules
+models
+projects/windows/g4f

@@ -646,6 +646,21 @@ select {
     width: 160px;
 }
 
+#systemPrompt, .settings textarea {
+    font-size: 15px;
+    width: 100%;
+    color: var(--colour-3);
+    min-height: 50px;
+    height: 59px;
+    outline: none;
+    padding: var(--inner-gap) var(--section-gap);
+    resize: vertical;
+}
+
+#systemPrompt {
+    padding-left: 35px;
+}
+
 @media only screen and (min-width: 40em) {
     select {
         width: 200px;
@@ -835,6 +850,10 @@ ul {
 
     .mobile-sidebar {
         display: flex !important;
+    }
+
+    #systemPrompt {
+        padding-left: 48px;
     }
 }
 
@@ -1064,22 +1083,11 @@ a:-webkit-any-link {
     border: 1px solid #e4d4ffc9;
 }
 
-#systemPrompt, .settings textarea {
-    font-size: 15px;
-    width: 100%;
-    color: var(--colour-3);
-    min-height: 50px;
-    height: 59px;
-    outline: none;
-    padding: var(--inner-gap) var(--section-gap);
-    resize: vertical;
-}
-
 .settings textarea {
     height: 51px;
 }
 
-.settings {
+.settings, .images {
     width: 100%;
     display: flex;
     flex-direction: column;

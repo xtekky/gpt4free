@@ -33,9 +33,14 @@ class StreamSession(ClientSession):
                 **DEFAULT_HEADERS,
                 **headers
             }
+        connect = None
+        if isinstance(timeout, tuple):
+            connect, timeout = timeout;
+        if timeout is not None:
+            timeout = ClientTimeout(timeout, connect)
         super().__init__(
             **kwargs,
-            timeout=ClientTimeout(timeout) if timeout else None,
+            timeout=timeout,
             response_class=StreamResponse,
             connector=get_connector(connector, proxies.get("all", proxies.get("https"))),
             headers=headers
