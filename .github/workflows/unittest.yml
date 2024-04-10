@@ -30,7 +30,9 @@ jobs:
         python-version: "3.12"
         cache: 'pip'
     - name: Install requirements
-      run: pip install -r requirements.txt
+      run: |
+        pip install -r requirements.txt
+        pip uninstall -y nodriver
     - name: Run tests
       run: python -m etc.unittest
     - name: Save PR number

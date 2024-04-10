@@ -4,11 +4,6 @@ import re
 import json
 import base64
 import uuid
-try:
-    from ..requests.curl_cffi import FormData
-    has_curl_cffi = True
-except ImportError:
-    has_curl_cffi = False
 
 from ..typing import AsyncResult, Messages, ImageType, Cookies
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
@@ -34,7 +29,8 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
         "claude-3-opus",
         "claude-3-sonnet",
         "gemini-pro",
-        "zephyr"
+        "zephyr",
+        "dall-e",
     ]
     model_aliases = {
         "claude-v2": "claude-2"
@@ -55,8 +51,6 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
         chat_mode: str = "default",
         **kwargs,
     ) -> AsyncResult:
-        if not has_curl_cffi:
-            raise MissingRequirementsError('Install "curl_cffi" package')
         if image is not None:
             chat_mode = "agent"
         elif not model or model == cls.default_model:
@@ -74,13 +68,6 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
         ) as session:
             cookies = await cls.get_cookies(session) if chat_mode != "default" else None
             upload = json.dumps([await cls.upload_file(session, cookies, to_bytes(image), image_name)]) if image else ""
-            #questions = [message["content"] for message in messages if message["role"] == "user"]
-            # chat = [
-            #     {"question": questions[idx-1], "answer": message["content"]}
-            #     for idx, message in enumerate(messages)
-            #     if message["role"] == "assistant"
-            #     and idx < len(questions)
-            # ]
             headers = {
                 "Accept": "text/event-stream",
                 "Referer": f"{cls.url}/search?fromSearchBar=true&tbm=youchat",
@@ -185,6 +172,7 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
                 "dfp_telemetry_id": await get_dfp_telemetry_id(),
                 "email": f"{user_uuid}@gmail.com",
                 "password": f"{user_uuid}#{user_uuid}",
+                "dfp_telemetry_id": f"{uuid.uuid4()}",
                 "session_duration_minutes": 129600
             }
         ) as response:

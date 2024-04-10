@@ -54,7 +54,10 @@ def readHAR():
                 if arkPreURL in v['request']['url']:
                     chatArks.append(parseHAREntry(v))
                 elif v['request']['url'] == sessionUrl:
-                    accessToken = json.loads(v["response"]["content"]["text"]).get("accessToken")
+                    try:
+                        accessToken = json.loads(v["response"]["content"]["text"]).get("accessToken")
+                    except KeyError:
+                        continue
                     cookies = {c['name']: c['value'] for c in v['request']['cookies']}
     if not accessToken:
         raise NoValidHarFileError("No accessToken found in .har files")

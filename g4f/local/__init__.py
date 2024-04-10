@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from ..typing import Union, Messages
 from ..locals.provider import LocalProvider
 from ..locals.models import get_models
