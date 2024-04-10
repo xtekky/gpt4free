@@ -10,8 +10,6 @@ from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from .helper import format_prompt
 from ..image import ImageResponse, to_bytes, is_accepted_format
 from ..requests import StreamSession, FormData, raise_for_status
-from ..errors import MissingRequirementsError
-
 from .you.har_file import get_dfp_telemetry_id
 
 class You(AsyncGeneratorProvider, ProviderModelMixin):

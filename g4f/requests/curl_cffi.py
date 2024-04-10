@@ -1,6 +1,11 @@
 from __future__ import annotations
 
-from curl_cffi.requests import AsyncSession, Response, CurlMime
+from curl_cffi.requests import AsyncSession, Response
+try:
+    from curl_cffi.requests import CurlMime
+    has_curl_mime = True
+except ImportError:
+    has_curl_mime = False
 from typing import AsyncGenerator, Any
 from functools import partialmethod
 import json
@@ -78,6 +83,11 @@ class StreamSession(AsyncSession):
     patch = partialmethod(request, "PATCH")
     delete = partialmethod(request, "DELETE")
 
-class FormData(CurlMime):
-    def add_field(self, name, data=None, content_type: str = None, filename: str = None) -> None:
-        self.addpart(name, content_type=content_type, filename=filename, data=data)
+if has_curl_mime:
+    class FormData(CurlMime):
+        def add_field(self, name, data=None, content_type: str = None, filename: str = None) -> None:
+            self.addpart(name, content_type=content_type, filename=filename, data=data)
+else:
+    class FormData():
+        def __init__(self) -> None:
+            raise RuntimeError("CurlMimi in curl_cffi is missing | pip install -U g4f[curl_cffi]")

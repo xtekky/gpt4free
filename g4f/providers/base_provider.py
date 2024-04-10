@@ -78,6 +78,7 @@ class AbstractProvider(BaseProvider):
             timeout=kwargs.get("timeout")
         )
 
+    @classmethod
     def get_parameters(cls) -> dict:
         return signature(
             cls.create_async_generator if issubclass(cls, AsyncGeneratorProvider) else
@@ -107,7 +108,9 @@ class AbstractProvider(BaseProvider):
                 continue
             args += f"\n    {name}"
             args += f": {get_type_name(param.annotation)}" if param.annotation is not Parameter.empty else ""
-            args += f' = "{param.default}"' if param.default == "" else f" = {param.default}" if param.default is not Parameter.empty else ""
+            default_value = f'"{param.default}"' if isinstance(param.default, str) else param.default
+            args += f" = {default_value}" if param.default is not Parameter.empty else ""
+            args += ","
         
         return f"g4f.Provider.{cls.__name__} supports: ({args}\n)"
 
