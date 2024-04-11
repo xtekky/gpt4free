@@ -11,9 +11,11 @@ from .selenium        import *
 from .needs_auth      import *
 from .unfinished      import *
 
+from .Aichatos         import Aichatos
 from .Aura             import Aura
 from .Bing             import Bing
 from .BingCreateImages import BingCreateImages
+from .Blackbox         import Blackbox
 from .ChatForAi        import ChatForAi
 from .Chatgpt4Online   import Chatgpt4Online
 from .ChatgptAi        import ChatgptAi
