@@ -164,7 +164,9 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
             headers={
                 "Authorization": cls.get_auth(),
                 "X-SDK-Client": cls.get_sdk(),
-                "X-SDK-Parent-Host": cls.url
+                "X-SDK-Parent-Host": cls.url,
+                "Origin": "https://you.com",
+                "Referer": "https://you.com/"
             },
             json={
                 "dfp_telemetry_id": await get_dfp_telemetry_id(),
