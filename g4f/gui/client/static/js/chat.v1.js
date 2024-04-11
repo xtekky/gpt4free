@@ -1249,7 +1249,8 @@ function save_storage() {
     }
 }
 
-if (window.SpeechRecognition) {
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+if (SpeechRecognition) {
     const mircoIcon = microLabel.querySelector("i");
     mircoIcon.classList.add("fa-microphone");
     mircoIcon.classList.remove("fa-microphone-slash");
