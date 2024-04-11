@@ -1262,7 +1262,7 @@ if (SpeechRecognition) {
 
     function may_stop() {
         if (microLabel.classList.contains("recognition")) {
-            recognition.stop();
+            //recognition.stop();
         }
     }
 
