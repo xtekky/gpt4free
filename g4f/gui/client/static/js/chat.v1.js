@@ -179,12 +179,14 @@ const register_message_buttons = async () => {
 }
 
 const delete_conversations = async () => {
+    const remove_keys = [];
     for (let i = 0; i < appStorage.length; i++){
         let key = appStorage.key(i);
         if (key.startsWith("conversation:")) {
-            appStorage.removeItem(key);
+            remove_keys.push(key);
         }
     }
+    remove_keys.forEach((key)=>appStorage.removeItem(key));
     hide_sidebar();
     await new_conversation();
 };
@@ -274,31 +276,21 @@ const prepare_messages = (messages, filter_last_message=true) => {
     }
 
     let new_messages = [];
-    if (messages) {
-        for (i in messages) {
-            new_message = messages[i];
-            // Remove generated images from history
-            new_message.content = new_message.content.replaceAll(
-                /<!-- generated images start -->[\s\S]+<!-- generated images end -->/gm,
-                ""
-            )
-            delete new_message["provider"];
-            // Remove regenerated messages
-            if (!new_message.regenerate) {
-                new_messages.push(new_message)
-            }
-        }
-    }
-
-    // Add system message
-    system_content = systemPrompt?.value;
-    if (system_content) {
-        new_messages.unshift({
+    if (systemPrompt?.value) {
+        new_messages.push({
             "role": "system",
-            "content": system_content
+            "content": systemPrompt.value
         });
     }
-
+    messages.forEach((new_message) => {
+        // Include only not regenerated messages
+        if (!new_message.regenerate) {
+            // Remove generated images from history
+            new_message.content = filter_message(new_message.content);
+            delete new_message.provider;
+            new_messages.push(new_message)
+        }
+    });
     return new_messages;
 }
 
@@ -413,8 +405,11 @@ const ask_gpt = async () => {
         if (file && !provider)
             provider = "Bing";
         let api_key = null;
-        if (provider)
+        if (provider) {
             api_key = document.getElementById(`${provider}-api_key`)?.value || null;
+            if (api_key == null)
+                api_key = document.querySelector(`.${provider}-api_key`)?.value || null;
+        }
         await api("conversation", {
             id: window.token,
             conversation_id: window.conversation_id,
@@ -949,6 +944,7 @@ function count_chars(text) {
 }
 
 function count_words_and_tokens(text, model) {
+    text = filter_message(text);
     return `(${count_words(text)} words, ${count_chars(text)} chars, ${count_tokens(model, text)} tokens)`;
 }
 
@@ -1277,10 +1273,11 @@ if (SpeechRecognition) {
         microLabel.classList.add("recognition");
         startValue = messageInput.value;
         lastDebounceTranscript = "";
-        timeoutHandle = window.setTimeout(may_stop, 8000);
+        timeoutHandle = window.setTimeout(may_stop, 10000);
     };
     recognition.onend = function() {
         microLabel.classList.remove("recognition");
+        messageInput.focus();
     };
     recognition.onresult = function(event) {
         if (!event.results) {
@@ -1301,13 +1298,12 @@ if (SpeechRecognition) {
             messageInput.value = `${startValue ? startValue+"\n" : ""}${transcript.trim()}`;
             if (isFinal) {
                 startValue = messageInput.value;
-                messageInput.focus();
             }
             messageInput.style.height = messageInput.scrollHeight  + "px";
             messageInput.scrollTop = messageInput.scrollHeight;
         }
 
-        timeoutHandle = window.setTimeout(may_stop, transcript ? 8000 : 5000);
+        timeoutHandle = window.setTimeout(may_stop, transcript ? 10000 : 8000);
     };
 
     microLabel.addEventListener("click", () => {

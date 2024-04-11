@@ -34,9 +34,9 @@ async def create_conversation(session: ClientSession, headers: dict, tone: str) 
     Conversation: An instance representing the created conversation.
     """
     if tone == "Copilot":
-        url = "https://copilot.microsoft.com/turing/conversation/create?bundleVersion=1.1634.3-nodesign2"
+        url = "https://copilot.microsoft.com/turing/conversation/create?bundleVersion=1.1686.0"
     else:
-        url = "https://www.bing.com/turing/conversation/create?bundleVersion=1.1626.1"
+        url = "https://www.bing.com/turing/conversation/create?bundleVersion=1.1686.0"
     async with session.get(url, headers=headers) as response:
         if response.status == 404:
             raise RateLimitError("Response 404: Do less requests and reuse conversations")
