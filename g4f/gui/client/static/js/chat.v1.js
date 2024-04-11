@@ -1249,8 +1249,7 @@ function save_storage() {
     }
 }
 
-const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-if (SpeechRecognition) {
+if (window.SpeechRecognition) {
     const mircoIcon = microLabel.querySelector("i");
     mircoIcon.classList.add("fa-microphone");
     mircoIcon.classList.remove("fa-microphone-slash");
@@ -1272,12 +1271,15 @@ if (SpeechRecognition) {
     recognition.onstart = function() {
         microLabel.classList.add("recognition");
         startValue = messageInput.value;
+        messageInput.placeholder = "";
         lastDebounceTranscript = "";
         timeoutHandle = window.setTimeout(may_stop, 10000);
     };
     recognition.onend = function() {
         microLabel.classList.remove("recognition");
-        messageInput.focus();
+        messageInput.value = messageInput.placeholder;
+        messageInput.placeholder = "Ask a question";
+        //messageInput.focus();
     };
     recognition.onresult = function(event) {
         if (!event.results) {
@@ -1295,9 +1297,9 @@ if (SpeechRecognition) {
             lastDebounceTranscript = transcript;
         }
         if (transcript) {
-            messageInput.value = `${startValue ? startValue+"\n" : ""}${transcript.trim()}`;
+            messageInput.placeholder = `${startValue ? startValue+"\n" : ""}${transcript.trim()}`;
             if (isFinal) {
-                startValue = messageInput.value;
+                startValue = messageInput.placeholder;
             }
             messageInput.style.height = messageInput.scrollHeight  + "px";
             messageInput.scrollTop = messageInput.scrollHeight;
