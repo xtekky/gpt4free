@@ -151,7 +151,7 @@ async def create_images(session: ClientSession, prompt: str, proxy: str = None, 
             if response.status != 200:
                 raise RuntimeError(f"Polling images faild. Code: {response.status}")
             text = await response.text()
-            if not text:
+            if not text or "GenerativeImagesStatusPage" in text:
                 await asyncio.sleep(1)
             else:
                 break

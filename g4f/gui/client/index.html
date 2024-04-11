@@ -58,6 +58,12 @@
                 </button>
             </div>
             <div class="bottom_buttons">
+                <!--
+                <button onclick="open_album();">
+                    <i class="fa-solid fa-toolbox"></i>
+                    <span>Images Album</span>
+                </button>
+                -->
                 <button onclick="open_settings();">
                     <i class="fa-solid fa-toolbox"></i>
                     <span>Open Settings</span>
@@ -77,6 +83,9 @@
                     <span id="version_text" class="convo-title"></span>
                 </div>
             </div>
+        </div>
+        <div class="images hidden">
+            
         </div>
         <div class="settings hidden">
             <div class="paper">
@@ -101,7 +110,7 @@
                 <label for="auto_continue" class="toogle" title="Continue large responses in OpenaiChat"></label>
             </div>
             <div class="field box">
-                <label for="message-input-height" class="label" title="">Input max. grow height</label>
+                <label for="message-input-height" class="label" title="">Input max. height</label>
                 <input type="number" id="message-input-height" value="200"/>
             </div>
             <div class="field box">
@@ -109,40 +118,40 @@
                 <input type="text" id="recognition-language" value="" placeholder="navigator.language"/>
             </div>
             <div class="field box">
-                <label for="OpenaiChat-api_key" class="label" title="">OpenaiChat: api_key</label>
-                <textarea id="OpenaiChat-api_key" name="OpenaiChat[api_key]" placeholder="..."></textarea>
+                <label for="Bing-api_key" class="label" title="">Bing:</label>
+                <textarea id="Bing-api_key" name="Bing[api_key]" class="BingCreateImages-api_key" placeholder="&quot;_U&quot; cookie"></textarea>
             </div>
             <div class="field box">
-                <label for="Bing-api_key" class="label" title="">Bing: "_U" cookie</label>
-                <textarea id="Bing-api_key" name="Bing[api_key]" placeholder="..."></textarea>
+                <label for="DeepInfra-api_key" class="label" title="">DeepInfra:</label>
+                <textarea id="DeepInfra-api_key" name="DeepInfra[api_key]" class="DeepInfraImage-api_key" placeholder="api_key"></textarea>
             </div>
             <div class="field box">
-                <label for="Gemini-api_key" class="label" title="">Gemini: Cookies</label>
-                <textarea id="Gemini-api_key" name="Gemini[api_key]" placeholder="..."></textarea>
+                <label for="Gemini-api_key" class="label" title="">Gemini:</label>
+                <textarea id="Gemini-api_key" name="Gemini[api_key]" placeholder="Cookies"></textarea>
             </div>
             <div class="field box">
-                <label for="Openai-api_key" class="label" title="">Openai: api_key</label>
-                <textarea id="Openai-api_key" name="Openai[api_key]" placeholder="..."></textarea>
+                <label for="GeminiPro-api_key" class="label" title="">GeminiPro:</label>
+                <textarea id="GeminiPro-api_key" name="GeminiPro[api_key]" placeholder="api_key"></textarea>
             </div>
             <div class="field box">
-                <label for="Groq-api_key" class="label" title="">Groq: api_key</label>
-                <textarea id="Groq-api_key" name="Groq[api_key]" placeholder="..."></textarea>
+                <label for="Groq-api_key" class="label" title="">Groq:</label>
+                <textarea id="Groq-api_key" name="Groq[api_key]" placeholder="api_key"></textarea>
             </div>
             <div class="field box">
-                <label for="GeminiPro-api_key" class="label" title="">GeminiPro: api_key</label>
-                <textarea id="GeminiPro-api_key" name="GeminiPro[api_key]" placeholder="..."></textarea>
+                <label for="HuggingFace-api_key" class="label" title="">HuggingFace:</label>
+                <textarea id="HuggingFace-api_key" name="HuggingFace[api_key]" placeholder="api_key"></textarea>
             </div>
             <div class="field box">
-                <label for="OpenRouter-api_key" class="label" title="">OpenRouter: api_key</label>
-                <textarea id="OpenRouter-api_key" name="OpenRouter[api_key]" placeholder="..."></textarea>
+                <label for="Openai-api_key" class="label" title="">Openai:</label>
+                <textarea id="Openai-api_key" name="Openai[api_key]" placeholder="api_key"></textarea>
             </div>
             <div class="field box">
-                <label for="HuggingFace-api_key" class="label" title="">HuggingFace: api_key</label>
-                <textarea id="HuggingFace-api_key" name="HuggingFace[api_key]" placeholder="..."></textarea>
+                <label for="OpenaiChat-api_key" class="label" title="">OpenaiChat:</label>
+                <textarea id="OpenaiChat-api_key" name="OpenaiChat[api_key]" placeholder="api_key"></textarea>
             </div>
             <div class="field box">
-                <label for="DeepInfra-api_key" class="label" title="">DeepInfra: api_key</label>
-                <textarea id="DeepInfra-api_key" name="DeepInfra[api_key]" placeholder="..."></textarea>
+                <label for="OpenRouter-api_key" class="label" title="">OpenRouter:</label>
+                <textarea id="OpenRouter-api_key" name="OpenRouter[api_key]" placeholder="api_key"></textarea>
             </div>
             </div>
             <div class="bottom_buttons">

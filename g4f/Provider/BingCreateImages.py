@@ -7,15 +7,32 @@ from typing import Iterator, Union
 from ..cookies import get_cookies
 from ..image import ImageResponse
 from ..errors import MissingRequirementsError, MissingAuthError
-from ..typing import Cookies
+from ..typing import AsyncResult, Messages, Cookies
+from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from .bing.create_images import create_images, create_session, get_cookies_from_browser
 
-class BingCreateImages:
-    """A class for creating images using Bing."""
+class BingCreateImages(AsyncGeneratorProvider, ProviderModelMixin):
+    url = "https://www.bing.com/images/create"
+    working = True
 
     def __init__(self, cookies: Cookies = None, proxy: str = None) -> None:
         self.cookies: Cookies = cookies
         self.proxy: str = proxy
+
+    @classmethod
+    async def create_async_generator(
+        cls,
+        model: str,
+        messages: Messages,
+        api_key: str = None,
+        cookies: Cookies = None,
+        proxy: str = None,
+        **kwargs
+    ) -> AsyncResult:
+        if api_key is not None:
+            cookies = {"_U": api_key}
+        session = BingCreateImages(cookies, proxy)
+        yield await session.create_async(messages[-1]["content"])
 
     def create(self, prompt: str) -> Iterator[Union[ImageResponse, str]]:
         """

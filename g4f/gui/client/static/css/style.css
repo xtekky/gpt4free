@@ -653,7 +653,7 @@ select {
     font-size: 15px;
     width: 100%;
     color: var(--colour-3);
-    min-height: 50px;
+    min-height: 49px;
     height: 59px;
     outline: none;
     padding: var(--inner-gap) var(--section-gap);
@@ -809,7 +809,7 @@ ul {
 }
 
 .mobile-sidebar {
-    display: none !important;
+    display: none;
     position: absolute;
     z-index: 100000;
     top: 0;
@@ -850,12 +850,8 @@ ul {
         gap: 15px;
     }
 
-    .field {
-        width: fit-content;
-    }
-
     .mobile-sidebar {
-        display: flex !important;
+        display: flex;
     }
 
     #systemPrompt {
@@ -1090,7 +1086,13 @@ a:-webkit-any-link {
 }
 
 .settings textarea {
-    height: 51px;
+    height: 19px;
+    min-height: 19px;
+    padding: 0;
+}
+
+.settings .field.box {
+    padding: var(--inner-gap) var(--inner-gap) var(--inner-gap) 0;
 }
 
 .settings, .images {
@@ -1112,7 +1114,6 @@ a:-webkit-any-link {
 .settings textarea {
     background-color: transparent;
     border: none;
-    padding: var(--inner-gap) 0;
 }
 
 .settings input {
@@ -1130,10 +1131,7 @@ a:-webkit-any-link {
 
 .settings .label {
     font-size: 15px;
-    padding: var(--inner-gap) 0;
-    width: fit-content;
-    min-width: 190px;
-    margin-left: var(--section-gap);
+    margin-left: var(--inner-gap);
     white-space:nowrap;
 }
 
