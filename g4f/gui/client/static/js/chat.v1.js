@@ -1273,10 +1273,11 @@ if (SpeechRecognition) {
         microLabel.classList.add("recognition");
         startValue = messageInput.value;
         lastDebounceTranscript = "";
-        timeoutHandle = window.setTimeout(may_stop, 8000);
+        timeoutHandle = window.setTimeout(may_stop, 10000);
     };
     recognition.onend = function() {
         microLabel.classList.remove("recognition");
+        messageInput.focus();
     };
     recognition.onresult = function(event) {
         if (!event.results) {
@@ -1297,13 +1298,12 @@ if (SpeechRecognition) {
             messageInput.value = `${startValue ? startValue+"\n" : ""}${transcript.trim()}`;
             if (isFinal) {
                 startValue = messageInput.value;
-                messageInput.focus();
             }
             messageInput.style.height = messageInput.scrollHeight  + "px";
             messageInput.scrollTop = messageInput.scrollHeight;
         }
 
-        timeoutHandle = window.setTimeout(may_stop, transcript ? 8000 : 5000);
+        timeoutHandle = window.setTimeout(may_stop, transcript ? 10000 : 8000);
     };
 
     microLabel.addEventListener("click", () => {
