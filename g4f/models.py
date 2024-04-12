@@ -77,6 +77,7 @@ gpt_35_turbo = Model(
         You,
         ChatgptNext,
         Koala,
+        OpenaiChat,
     ])
 )
 
