@@ -25,7 +25,7 @@ class TestProviderIntegration(unittest.TestCase):
         self.assertIsInstance(response, ChatCompletion)
         self.assertIn("success", json.loads(response.choices[0].message.content))
 
-    def test_openai(self):
+    def test_duckduckgo(self):
         client = Client(provider=DuckDuckGo)
         response = client.chat.completions.create(DEFAULT_MESSAGES, "", response_format={"type": "json_object"})
         self.assertIsInstance(response, ChatCompletion)
