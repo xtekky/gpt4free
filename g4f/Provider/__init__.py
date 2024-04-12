@@ -22,9 +22,11 @@ from .ChatgptAi        import ChatgptAi
 from .ChatgptFree      import ChatgptFree
 from .ChatgptNext      import ChatgptNext
 from .ChatgptX         import ChatgptX
+from .Cnote            import Cnote
 from .DeepInfra        import DeepInfra
 from .DeepInfraImage   import DeepInfraImage
 from .DuckDuckGo       import DuckDuckGo
+from .Feedough         import Feedough
 from .FlowGpt          import FlowGpt
 from .FreeChatgpt      import FreeChatgpt
 from .FreeGpt          import FreeGpt
