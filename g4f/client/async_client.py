@@ -142,7 +142,7 @@ class Completions():
         )
         response = iter_response(response, stream, response_format, max_tokens, stop)
         response = iter_append_model_and_provider(response)
-        return response if stream else anext(response)
+        return response if stream else next(response)
 
 class Chat():
     completions: Completions
