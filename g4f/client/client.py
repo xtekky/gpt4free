@@ -96,6 +96,7 @@ class Completions():
             ignore_working,
             ignore_stream,
         )
+        
         stop = [stop] if isinstance(stop, str) else stop
         response = provider.create_completion(
             model, messages,
