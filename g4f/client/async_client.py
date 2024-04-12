@@ -16,6 +16,13 @@ from ..errors import NoImageResponseError
 from ..image import ImageResponse as ImageProviderResponse
 from ..providers.base_provider import AsyncGeneratorProvider
 
+try:
+    anext
+except NameError:
+    async def anext(iter):
+        async for chunk in iter:
+            return chunk
+
 async def iter_response(
     response: AsyncIterator[str],
     stream: bool,

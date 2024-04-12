@@ -34,15 +34,13 @@ class StreamResponse:
         """Asynchronously parse the JSON response content."""
         return json.loads(await self.inner.acontent(), **kwargs)
 
-    async def iter_lines(self) -> AsyncGenerator[bytes, None]:
+    def iter_lines(self) -> AsyncGenerator[bytes, None]:
         """Asynchronously iterate over the lines of the response."""
-        async for line in self.inner.aiter_lines():
-            yield line
+        return  self.inner.aiter_lines()
 
-    async def iter_content(self) -> AsyncGenerator[bytes, None]:
+    def iter_content(self) -> AsyncGenerator[bytes, None]:
         """Asynchronously iterate over the response content."""
-        async for chunk in self.inner.aiter_content():
-            yield chunk
+        return self.inner.aiter_content()
 
     async def __aenter__(self):
         """Asynchronously enter the runtime context for the response object."""

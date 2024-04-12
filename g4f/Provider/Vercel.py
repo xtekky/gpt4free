@@ -11,7 +11,7 @@ except ImportError:
 from ..typing       import Messages, CreateResult
 from .base_provider import AbstractProvider
 from ..requests     import raise_for_status
-from ..errors       import MissingRequirementsError, RateLimitError, ResponseStatusError
+from ..errors       import MissingRequirementsError
 
 class Vercel(AbstractProvider):
     url = 'https://chat.vercel.ai'
