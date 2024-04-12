@@ -16,9 +16,12 @@ from ..errors import NoImageResponseError
 from ..image import ImageResponse as ImageProviderResponse
 from ..providers.base_provider import AsyncGeneratorProvider
 
-async def _anext(iter):
-    async for chunk in iter:
-        return chunk
+try:
+    anext
+except NameError:
+    async def _anext(iter):
+        async for chunk in iter:
+            return chunk
 
 async def iter_response(
     response: AsyncIterator[str],
@@ -146,10 +149,7 @@ class Completions():
         )
         response = iter_response(response, stream, response_format, max_tokens, stop)
         response = iter_append_model_and_provider(response)
-        try:
-            return response if stream else anext(response)
-        except NameError:
-            return _anext(response)
+        return response if stream else anext(response)
 
 class Chat():
     completions: Completions
