@@ -38,6 +38,7 @@ class Blackbox(AsyncGeneratorProvider):
             prompt = format_prompt(messages)
             random_id = secrets.token_hex(16)
             random_user_id = str(uuid.uuid4())
+            system_message: str = "",
             data = {
                 "messages": [{"id": random_id, "content": prompt, "role": "user"}],
                 "id": random_id,
@@ -50,6 +51,7 @@ class Blackbox(AsyncGeneratorProvider):
                 "isChromeExt": False,
                 "playgroundMode": False,
                 "webSearchMode": False,
+                "userSystemPrompt": system_message,
                 "githubToken": None
             }
             async with session.post(f"{cls.url}/api/chat", json=data, proxy=proxy) as response:
