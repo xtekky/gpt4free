@@ -78,7 +78,7 @@ class Bing(AsyncGeneratorProvider, ProviderModelMixin):
         gpt4_turbo = True if model.startswith("gpt-4-turbo") else False
 
         return stream_generate(
-            prompt, tone, image, context, api_key, cookies,
+            prompt, tone, image, context, cookies, api_key,
             get_connector(connector, proxy, True),
             proxy, web_search, gpt4_turbo, timeout,
             **kwargs
