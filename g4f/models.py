@@ -3,7 +3,7 @@ from __future__  import annotations
 from dataclasses import dataclass
 
 from .Provider import RetryProvider, ProviderType
-from .Provider   import (
+from .Provider import (
     Chatgpt4Online,
     PerplexityLabs,
     GeminiProChat,
@@ -19,6 +19,7 @@ from .Provider   import (
     Llama2,
     Vercel,
     Gemini,
+    Koala,
     Bing,
     You,
     Pi,
@@ -71,7 +72,12 @@ gpt_35_long = Model(
 gpt_35_turbo = Model(
     name          = 'gpt-3.5-turbo',
     base_provider = 'openai',
-    best_provider = OpenaiChat
+    best_provider = RetryProvider([
+        FreeGpt,
+        You,
+        ChatgptNext,
+        Koala,
+    ])
 )
 
 gpt_4 = Model(
