@@ -4,6 +4,7 @@ from .Openai import Openai
 from ...typing import AsyncResult, Messages
 
 class Groq(Openai):
+    lebel = "Groq"
     url = "https://console.groq.com/playground"
     working = True
     default_model = "mixtral-8x7b-32768"

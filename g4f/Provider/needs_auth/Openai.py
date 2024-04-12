@@ -9,6 +9,7 @@ from ...requests import StreamSession, raise_for_status
 from ...errors import MissingAuthError, ResponseError
 
 class Openai(AsyncGeneratorProvider, ProviderModelMixin):
+    label = "OpenAI API"
     url = "https://openai.com"
     working = True
     needs_auth = True

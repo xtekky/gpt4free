@@ -5,6 +5,7 @@ from ..typing import AsyncResult, Messages
 from .needs_auth.Openai import Openai
 
 class DeepInfra(Openai):
+    label = "DeepInfra"
     url = "https://deepinfra.com"
     working = True
     needs_auth = False

@@ -12,6 +12,7 @@ from ..providers.base_provider import AbstractProvider, ProviderModelMixin
 from ..errors import MissingRequirementsError
 
 class Local(AbstractProvider, ProviderModelMixin):
+    label = "gpt4all"
     working = True
     supports_message_history = True
     supports_system_message = True

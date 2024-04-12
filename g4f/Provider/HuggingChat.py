@@ -12,7 +12,7 @@ from .helper import format_prompt, get_connector
 class HuggingChat(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://huggingface.co/chat"
     working = True
-    default_model = "meta-llama/Llama-2-70b-chat-hf"
+    default_model = "mistralai/Mixtral-8x7B-Instruct-v0.1"
     models = [
         "mistralai/Mixtral-8x7B-Instruct-v0.1",
         "google/gemma-7b-it",
