@@ -14,6 +14,7 @@ from .unfinished      import *
 from .Aura             import Aura
 from .Bing             import Bing
 from .BingCreateImages import BingCreateImages
+from .BoringMarketingChat import BoringMarketingChat
 from .ChatForAi        import ChatForAi
 from .Chatgpt4Online   import Chatgpt4Online
 from .ChatgptAi        import ChatgptAi
