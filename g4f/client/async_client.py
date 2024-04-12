@@ -19,7 +19,7 @@ from ..providers.base_provider import AsyncGeneratorProvider
 try:
     anext
 except NameError:
-    async def _anext(iter):
+    async def anext(iter):
         async for chunk in iter:
             return chunk
 
