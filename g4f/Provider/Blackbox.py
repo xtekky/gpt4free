@@ -6,8 +6,6 @@ from aiohttp import ClientSession
 
 from ..typing import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider
-from .helper import format_prompt
-
 
 class Blackbox(AsyncGeneratorProvider):
     url = "https://www.blackbox.ai"
@@ -35,14 +33,11 @@ class Blackbox(AsyncGeneratorProvider):
             "Connection": "keep-alive",
         }
         async with ClientSession(headers=headers) as session:
-            prompt = format_prompt(messages)
             random_id = secrets.token_hex(16)
             random_user_id = str(uuid.uuid4())
-            system_message: str = "",
             data = {
-                "messages": [{"id": random_id, "content": prompt, "role": "user"}],
+                "messages": messages,
                 "id": random_id,
-                "previewToken": None,
                 "userId": random_user_id,
                 "codeModelMode": True,
                 "agentMode": {},
@@ -51,7 +46,7 @@ class Blackbox(AsyncGeneratorProvider):
                 "isChromeExt": False,
                 "playgroundMode": False,
                 "webSearchMode": False,
-                "userSystemPrompt": system_message,
+                "userSystemPrompt": "",
                 "githubToken": None
             }
             async with session.post(f"{cls.url}/api/chat", json=data, proxy=proxy) as response:
