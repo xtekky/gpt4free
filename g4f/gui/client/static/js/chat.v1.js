@@ -1264,8 +1264,8 @@ if (SpeechRecognition) {
     let shouldStop = false;
     function may_stop() {
         if (microLabel.classList.contains("recognition")) {
-            recognition.stop();
             shouldStop = true
+            recognition.stop();
         }
     }
 
