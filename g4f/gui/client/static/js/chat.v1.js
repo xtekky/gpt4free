@@ -1288,7 +1288,7 @@ if (SpeechRecognition) {
     };
     recognition.onresult = function(event) {
         window.clearTimeout(timeoutHandle);
-        timeoutHandle = window.setTimeout(may_stop, transcript ? 10000 : 8000);
+        timeoutHandle = window.setTimeout(may_stop, 8000);
         if (!event.results) {
             return;
         }
