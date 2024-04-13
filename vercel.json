@@ -1,0 +1,8 @@
+{
+  "builds": [
+    {"src": "/g4f/api/run.py", "use": "@vercel/python"}
+  ],
+  "routes": [
+    {"src": "/(.*)", "dest": "g4f/api/run.py"}
+  ]
+}
