@@ -19,13 +19,14 @@ class PerplexityLabs(AsyncGeneratorProvider, ProviderModelMixin):
         "sonar-small-online", "sonar-medium-online", "sonar-small-chat", "sonar-medium-chat", "mistral-7b-instruct", 
         "codellama-70b-instruct", "llava-v1.5-7b-wrapper", "llava-v1.6-34b", "mixtral-8x7b-instruct",
         "gemma-2b-it", "gemma-7b-it"
-        "mistral-medium", "related"
+        "mistral-medium", "related", "dbrx-instruct"
     ]
     model_aliases = {
         "mistralai/Mistral-7B-Instruct-v0.1": "mistral-7b-instruct", 
         "mistralai/Mixtral-8x7B-Instruct-v0.1": "mixtral-8x7b-instruct",
         "codellama/CodeLlama-70b-Instruct-hf": "codellama-70b-instruct",
-        "llava-v1.5-7b": "llava-v1.5-7b-wrapper"
+        "llava-v1.5-7b": "llava-v1.5-7b-wrapper",
+        'databricks/dbrx-instruct': "dbrx-instruct"
     }
 
     @classmethod

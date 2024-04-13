@@ -165,7 +165,7 @@ mistral_7b_v02 = Model(
 mixtral_8x22b = Model(
     name          = "HuggingFaceH4/zephyr-orpo-141b-A35b-v0.1",
     base_provider = "huggingface",
-    best_provider = DeepInfra
+    best_provider = RetryProvider([HuggingChat, DeepInfra])
 )
 
 # Misc models
@@ -269,7 +269,13 @@ pi = Model(
 dbrx_instruct = Model(
     name = 'databricks/dbrx-instruct',
     base_provider = 'mistral',
-    best_provider = DeepInfra
+    best_provider = RetryProvider([DeepInfra, PerplexityLabs])
+)
+
+command_r_plus = Model(
+    name = 'CohereForAI/c4ai-command-r-plus',
+    base_provider = 'mistral',
+    best_provider = HuggingChat
 )
 
 class ModelUtils:
@@ -324,6 +330,7 @@ class ModelUtils:
         'claude-3-sonnet': claude_3_sonnet,
         
         # other
+        'command-r+': command_r_plus,
         'dbrx-instruct': dbrx_instruct,
         'lzlv-70b': lzlv_70b,
         'airoboros-70b': airoboros_70b,
