@@ -66,9 +66,12 @@ class LocalProvider:
             if message["role"] != "system"
         ) + "\nASSISTANT: "
 
+        def should_not_stop(token_id: int, token: str):
+            return "USER" not in token
+
         with model.chat_session(system_message, prompt_template):
             if stream:
-                for token in model.generate(conversation, streaming=True):
+                for token in model.generate(conversation, streaming=True, callback=should_not_stop):
                     yield token
             else:
-                yield model.generate(conversation)
+                yield model.generate(conversation, callback=should_not_stop)
