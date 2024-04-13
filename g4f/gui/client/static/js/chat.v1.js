@@ -1262,7 +1262,7 @@ if (SpeechRecognition) {
     recognition.maxAlternatives = 1;
 
     let startValue;
-    let shouldStop = false;
+    let shouldStop;
     let lastDebounceTranscript;
     recognition.onstart = function() {
         microLabel.classList.add("recognition");
@@ -1272,7 +1272,6 @@ if (SpeechRecognition) {
     };
     recognition.onend = function() {
         if (shouldStop) {
-            microLabel.classList.remove("recognition");
             messageInput.focus();
         } else {
             recognition.start();
@@ -1305,6 +1304,7 @@ if (SpeechRecognition) {
         if (microLabel.classList.contains("recognition")) {
             shouldStop = true;
             recognition.stop();
+            microLabel.classList.remove("recognition");
         } else {
             const lang = document.getElementById("recognition-language")?.value;
             recognition.lang = lang || navigator.language;
