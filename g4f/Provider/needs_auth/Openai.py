@@ -51,6 +51,7 @@ class Openai(AsyncGeneratorProvider, ProviderModelMixin):
                 stream=stream,
                 **extra_data
             )
+            
             async with session.post(f"{api_base.rstrip('/')}/chat/completions", json=data) as response:
                 await raise_for_status(response)
                 if not stream:

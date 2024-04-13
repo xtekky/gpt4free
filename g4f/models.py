@@ -162,11 +162,11 @@ mistral_7b_v02 = Model(
     best_provider = DeepInfra
 )
 
-# mixtral_8x22b = Model(
-#     name          = "mistralai/Mixtral-8x22B-v0.1",
-#     base_provider = "huggingface",
-#     best_provider = DeepInfra
-# )
+mixtral_8x22b = Model(
+    name          = "HuggingFaceH4/zephyr-orpo-141b-A35b-v0.1",
+    base_provider = "huggingface",
+    best_provider = DeepInfra
+)
 
 # Misc models
 dolphin_mixtral_8x7b = Model(
@@ -266,6 +266,12 @@ pi = Model(
     best_provider = Pi
 )
 
+dbrx_instruct = Model(
+    name = 'databricks/dbrx-instruct',
+    base_provider = 'mistral',
+    best_provider = DeepInfra
+)
+
 class ModelUtils:
     """
     Utility class for mapping string identifiers to Model instances.
@@ -300,20 +306,28 @@ class ModelUtils:
         'gigachat'     : gigachat,
         'gigachat_plus': gigachat_plus,
         'gigachat_pro' : gigachat_pro,
-
+        
+        # Mistral Opensource
         'mixtral-8x7b': mixtral_8x7b,
         'mistral-7b': mistral_7b,
         'mistral-7b-v02': mistral_7b_v02,
-        # 'mixtral-8x22b': mixtral_8x22b,
+        'mixtral-8x22b': mixtral_8x22b,
         'dolphin-mixtral-8x7b': dolphin_mixtral_8x7b,
-        'lzlv-70b': lzlv_70b,
-        'airoboros-70b': airoboros_70b,
-        'openchat_3.5': openchat_35,
+        
+        # google gemini
         'gemini': gemini,
         'gemini-pro': gemini_pro,
+        
+        # anthropic
         'claude-v2': claude_v2,
         'claude-3-opus': claude_3_opus,
         'claude-3-sonnet': claude_3_sonnet,
+        
+        # other
+        'dbrx-instruct': dbrx_instruct,
+        'lzlv-70b': lzlv_70b,
+        'airoboros-70b': airoboros_70b,
+        'openchat_3.5': openchat_35,
         'pi': pi
     }
 

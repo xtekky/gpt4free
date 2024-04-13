@@ -60,3 +60,6 @@ models
 projects/windows/g4f
 doc.txt
 dist.py
+x.txt
+bench.py
+to-reverse.txt
