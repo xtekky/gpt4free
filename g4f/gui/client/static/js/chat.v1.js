@@ -1261,38 +1261,27 @@ if (SpeechRecognition) {
     recognition.interimResults = true;
     recognition.maxAlternatives = 1;
 
-    let shouldStop = false;
     function may_stop() {
         if (microLabel.classList.contains("recognition")) {
-            shouldStop = true
             recognition.stop();
         }
     }
 
     let startValue;
-    let timeoutHandle;
     let lastDebounceTranscript;
     recognition.onstart = function() {
         microLabel.classList.add("recognition");
         startValue = messageInput.value;
         lastDebounceTranscript = "";
-        timeoutHandle = window.setTimeout(may_stop, 10000);
     };
     recognition.onend = function() {
-        if (shouldStop) {
-            microLabel.classList.remove("recognition");
-            messageInput.focus();
-        } else {
-            recognition.start();
-        }
+        microLabel.classList.remove("recognition");
+        messageInput.focus();
     };
     recognition.onresult = function(event) {
-        window.clearTimeout(timeoutHandle);
-        timeoutHandle = window.setTimeout(may_stop, 8000);
         if (!event.results) {
             return;
         }
-
         let result = event.results[event.resultIndex];
         let isFinal = result.isFinal && (result[0].confidence > 0);
         let transcript = result[0].transcript;
@@ -1314,13 +1303,10 @@ if (SpeechRecognition) {
 
     microLabel.addEventListener("click", () => {
         if (microLabel.classList.contains("recognition")) {
-            window.clearTimeout(timeoutHandle);
-            shouldStop = true;
             recognition.stop();
         } else {
             const lang = document.getElementById("recognition-language")?.value;
             recognition.lang = lang || navigator.language;
-            shouldStop = false;
             recognition.start();
         }
     });
