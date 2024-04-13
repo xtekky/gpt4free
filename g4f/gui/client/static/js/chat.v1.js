@@ -1287,10 +1287,11 @@ if (SpeechRecognition) {
         }
     };
     recognition.onresult = function(event) {
+        window.clearTimeout(timeoutHandle);
+        timeoutHandle = window.setTimeout(may_stop, transcript ? 10000 : 8000);
         if (!event.results) {
             return;
         }
-        window.clearTimeout(timeoutHandle);
 
         let result = event.results[event.resultIndex];
         let isFinal = result.isFinal && (result[0].confidence > 0);
@@ -1309,8 +1310,6 @@ if (SpeechRecognition) {
             messageInput.style.height = messageInput.scrollHeight  + "px";
             messageInput.scrollTop = messageInput.scrollHeight;
         }
-
-        timeoutHandle = window.setTimeout(may_stop, transcript ? 10000 : 8000);
     };
 
     microLabel.addEventListener("click", () => {
