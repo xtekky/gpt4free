@@ -5,12 +5,13 @@ from ..typing import AsyncResult, Messages
 from .needs_auth.Openai import Openai
 
 class DeepInfra(Openai):
+    label = "DeepInfra"
     url = "https://deepinfra.com"
     working = True
     needs_auth = False
     supports_stream = True
     supports_message_history = True
-    default_model = 'meta-llama/Llama-2-70b-chat-hf'
+    default_model = 'HuggingFaceH4/zephyr-orpo-141b-A35b-v0.1'
 
     @classmethod
     def get_models(cls):
@@ -31,6 +32,14 @@ class DeepInfra(Openai):
         max_tokens: int = 1028,
         **kwargs
     ) -> AsyncResult:
+        
+        if not '/' in model:
+            models = {
+                'mixtral-8x22b': 'HuggingFaceH4/zephyr-orpo-141b-A35b-v0.1',
+                'dbrx-instruct': 'databricks/dbrx-instruct',
+            }
+            model = models.get(model, model)
+        
         headers = {
             'Accept-Encoding': 'gzip, deflate, br',
             'Accept-Language': 'en-US',

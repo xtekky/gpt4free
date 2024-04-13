@@ -12,6 +12,7 @@ from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from .bing.create_images import create_images, create_session, get_cookies_from_browser
 
 class BingCreateImages(AsyncGeneratorProvider, ProviderModelMixin):
+    label = "Microsoft Designer"
     url = "https://www.bing.com/images/create"
     working = True
 

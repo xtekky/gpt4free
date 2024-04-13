@@ -43,7 +43,16 @@ class Api():
         """
         Return a list of all working providers.
         """
-        return [provider.__name__ for provider in __providers__ if provider.working]
+        return {
+            provider.__name__: (provider.label
+                if hasattr(provider, "label")
+                else provider.__name__) +
+                (" (WebDriver)"
+                if "webdriver" in provider.get_parameters()
+                else "")
+            for provider in __providers__
+            if provider.working
+        }
 
     def get_version(self):
         """

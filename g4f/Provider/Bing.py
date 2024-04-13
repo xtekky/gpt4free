@@ -6,7 +6,7 @@ import uuid
 import time
 import asyncio
 from urllib import parse
-from datetime import datetime
+from datetime import datetime, date
 from aiohttp import ClientSession, ClientTimeout, BaseConnector, WSMsgType
 
 from ..typing import AsyncResult, Messages, ImageType, Cookies
@@ -32,6 +32,7 @@ class Bing(AsyncGeneratorProvider, ProviderModelMixin):
     """
     Bing provider for generating responses using the Bing API.
     """
+    label = "Microsoft Copilot in Bing"
     url = "https://bing.com/chat"
     working = True
     supports_message_history = True
@@ -47,7 +48,7 @@ class Bing(AsyncGeneratorProvider, ProviderModelMixin):
         proxy: str = None,
         timeout: int = 900,
         api_key: str = None,
-        cookies: Cookies = {},
+        cookies: Cookies = None,
         connector: BaseConnector = None,
         tone: str = None,
         image: ImageType = None,
@@ -69,8 +70,6 @@ class Bing(AsyncGeneratorProvider, ProviderModelMixin):
         :return: An asynchronous result object.
         """
         prompt = messages[-1]["content"]
-        if api_key is not None:
-            cookies["_U"] = api_key
         if context is None:
             context = create_context(messages[:-1]) if len(messages) > 1 else None
         if tone is None:
@@ -79,7 +78,7 @@ class Bing(AsyncGeneratorProvider, ProviderModelMixin):
         gpt4_turbo = True if model.startswith("gpt-4-turbo") else False
 
         return stream_generate(
-            prompt, tone, image, context, cookies,
+            prompt, tone, image, context, cookies, api_key,
             get_connector(connector, proxy, True),
             proxy, web_search, gpt4_turbo, timeout,
             **kwargs
@@ -110,11 +109,15 @@ def get_default_cookies():
         'SUID'          : '',
         'SRCHUSR'       : '',
         'SRCHHPGUSR'    : f'HV={int(time.time())}',
+        'BCP'           : 'AD=1&AL=1&SM=1',
+        '_Rwho'         : f'u=d&ts={date.today().isoformat()}',
     }
 
-def create_headers(cookies: Cookies = None) -> dict:
+def create_headers(cookies: Cookies = None, api_key: str = None) -> dict:
     if cookies is None:
         cookies = get_default_cookies()
+    if api_key is not None:
+        cookies["_U"] = api_key
     headers = Defaults.headers.copy()
     headers["cookie"] = "; ".join(f"{k}={v}" for k, v in cookies.items())
     headers["x-forwarded-for"] = get_ip_address()
@@ -364,6 +367,7 @@ async def stream_generate(
     image: ImageType = None,
     context: str = None,
     cookies: dict = None,
+    api_key: str = None,
     connector: BaseConnector = None,
     proxy: str = None,
     web_search: bool = False,
@@ -389,7 +393,7 @@ async def stream_generate(
     :param timeout: Timeout for the request.
     :return: An asynchronous generator yielding responses.
     """
-    headers = create_headers(cookies)
+    headers = create_headers(cookies, api_key)
     new_conversation = conversation is None
     max_retries = (5 if new_conversation else 0) if max_retries is None else max_retries
     async with ClientSession(

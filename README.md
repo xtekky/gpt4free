@@ -281,6 +281,16 @@ set G4F_PROXY=http://host:port
 | [beta.theb.ai](https://beta.theb.ai) | `g4f.Provider.Theb` | ✔️ | ✔️ | ✔️ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ❌ |
 | [you.com](https://you.com) | `g4f.Provider.You` | ✔️ | ✔️ | ✔️ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ❌ |
 
+## Best OpenSource Models
+While we wait for gpt-5, here is a list of new models that are at least better than gpt-3.5-turbo. **Some are better than gpt-4**. Expect this list to grow.
+
+| Website | Provider |  parameters | better than |
+| ------  | -------  |  ------ |  ------ | 
+| [mixtral-8x22b](https://huggingface.co/mistral-community/Mixtral-8x22B-v0.1) | `g4f.Provider.DeepInfra` | 176B / 44b active | gpt-3.5-turbo |
+| [dbrx-instruct](https://www.databricks.com/blog/introducing-dbrx-new-state-art-open-llm) | `g4f.Provider.DeepInfra` | 132B / 36B active| gpt-3.5-turbo |
+| [command-r+](https://txt.cohere.com/command-r-plus-microsoft-azure/) | `g4f.Provider.HuggingChat` | 104B | gpt-4-0613 |
+
+
 ### GPT-3.5
 
 | Website | Provider | GPT-3.5 | GPT-4 | Stream | Status | Auth |

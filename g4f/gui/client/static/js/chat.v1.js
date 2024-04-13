@@ -1026,9 +1026,10 @@ async function on_api() {
     });
 
     providers = await api("providers")
-    providers.forEach((provider) => {
+    Object.entries(providers).forEach(([provider, label]) => {
         let option = document.createElement("option");
-        option.value = option.text = provider;
+        option.value = provider;
+        option.text = label;
         providerSelect.appendChild(option);
     })
 

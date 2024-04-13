@@ -12,15 +12,14 @@ from .helper import format_prompt, get_connector
 class HuggingChat(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://huggingface.co/chat"
     working = True
-    default_model = "meta-llama/Llama-2-70b-chat-hf"
+    default_model = "mistralai/Mixtral-8x7B-Instruct-v0.1"
     models = [
-        "mistralai/Mixtral-8x7B-Instruct-v0.1",
-        "google/gemma-7b-it",
-        "meta-llama/Llama-2-70b-chat-hf",
-        "NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO",
-        "codellama/CodeLlama-34b-Instruct-hf",
-        "mistralai/Mistral-7B-Instruct-v0.2",
-        "openchat/openchat-3.5-0106",
+        "HuggingFaceH4/zephyr-orpo-141b-A35b-v0.1",
+        'CohereForAI/c4ai-command-r-plus',
+        'mistralai/Mixtral-8x7B-Instruct-v0.1',
+        'google/gemma-1.1-7b-it',
+        'NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO',
+        'mistralai/Mistral-7B-Instruct-v0.2'
     ]
     model_aliases = {
         "openchat/openchat_3.5": "openchat/openchat-3.5-0106",
@@ -48,6 +47,7 @@ class HuggingChat(AsyncGeneratorProvider, ProviderModelMixin):
         **kwargs
     ) -> AsyncResult:
         options = {"model": cls.get_model(model)}
+
         system_prompt = "\n".join([message["content"] for message in messages if message["role"] == "system"])
         if system_prompt:
             options["preprompt"] = system_prompt

@@ -9,6 +9,7 @@ from ...requests import StreamSession, raise_for_status
 from ...errors import MissingAuthError, ResponseError
 
 class Openai(AsyncGeneratorProvider, ProviderModelMixin):
+    label = "OpenAI API"
     url = "https://openai.com"
     working = True
     needs_auth = True
@@ -50,6 +51,7 @@ class Openai(AsyncGeneratorProvider, ProviderModelMixin):
                 stream=stream,
                 **extra_data
             )
+            
             async with session.post(f"{api_base.rstrip('/')}/chat/completions", json=data) as response:
                 await raise_for_status(response)
                 if not stream:
