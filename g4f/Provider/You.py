@@ -65,6 +65,7 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
             timeout=(30, timeout)
         ) as session:
             cookies = await cls.get_cookies(session) if chat_mode != "default" else None
+            
             upload = json.dumps([await cls.upload_file(session, cookies, to_bytes(image), image_name)]) if image else ""
             headers = {
                 "Accept": "text/event-stream",
@@ -131,6 +132,7 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
 
     @classmethod
     async def get_cookies(cls, client: StreamSession) -> Cookies:
+
         if not cls._cookies or cls._cookies_used >= 5:
             cls._cookies = await cls.create_cookies(client)
             cls._cookies_used = 0
@@ -151,8 +153,8 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
         }}).encode()).decode()
 
     def get_auth() -> str:
-        auth_uuid = "507a52ad-7e69-496b-aee0-1c9863c7c8"
-        auth_token = f"public-token-live-{auth_uuid}bb:public-token-live-{auth_uuid}19"
+        auth_uuid = "507a52ad-7e69-496b-aee0-1c9863c7c819"
+        auth_token = f"public-token-live-{auth_uuid}:public-token-live-{auth_uuid}"
         auth = base64.standard_b64encode(auth_token.encode()).decode()
         return f"Basic {auth}"
 
@@ -172,12 +174,12 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
                 "dfp_telemetry_id": await get_dfp_telemetry_id(),
                 "email": f"{user_uuid}@gmail.com",
                 "password": f"{user_uuid}#{user_uuid}",
-                "dfp_telemetry_id": f"{uuid.uuid4()}",
                 "session_duration_minutes": 129600
             }
         ) as response:
             await raise_for_status(response)
             session = (await response.json())["data"]
+
         return {
             "stytch_session": session["session_token"],
             'stytch_session_jwt': session["session_jwt"],
