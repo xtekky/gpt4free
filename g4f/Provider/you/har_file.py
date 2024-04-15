@@ -149,4 +149,7 @@ async def telemetry_id_with_driver(proxy: str = None):
     response = requests.post('https://telemetry.stytch.com/submit', 
                             headers=headers, data=payload, proxies=proxies)
 
+    if '-' in response.text:
+        print(f'telemetry generated: {response.text}')
+    
     return (response.text)

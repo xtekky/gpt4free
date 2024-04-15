@@ -371,6 +371,8 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
                 except NoValidHarFileError:
                     ...
                 if cls._api_key is None:
+                    if debug.logging:
+                        print("Getting access token with nodriver.")
                     await cls.nodriver_access_token()
                 cls.default_model = cls.get_model(await cls.get_default_model(session, cls._headers))
 
@@ -386,6 +388,9 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
                 blob = data["arkose"]["dx"]
                 need_arkose = data["arkose"]["required"]
                 chat_token = data["token"]
+                
+                if debug.logging:
+                    print(f'Arkose: {need_arkose} Turnstile: {data["turnstile"]["required"]}')
 
             if need_arkose and arkose_token is None:
                 arkose_token, api_key, cookies = await getArkoseAndAccessToken(proxy)
