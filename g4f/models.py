@@ -20,6 +20,7 @@ from .Provider import (
     Vercel,
     Gemini,
     Koala,
+    Cohere,
     Bing,
     You,
     Pi,
@@ -275,7 +276,7 @@ dbrx_instruct = Model(
 command_r_plus = Model(
     name = 'CohereForAI/c4ai-command-r-plus',
     base_provider = 'mistral',
-    best_provider = HuggingChat
+    best_provider = RetryProvider([HuggingChat, Cohere])
 )
 
 class ModelUtils:

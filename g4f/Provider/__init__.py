@@ -46,6 +46,7 @@ from .ReplicateImage   import ReplicateImage
 from .Vercel           import Vercel
 from .WhiteRabbitNeo   import WhiteRabbitNeo
 from .You              import You
+from .Cohere           import Cohere
 
 import sys
 
