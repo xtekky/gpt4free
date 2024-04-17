@@ -602,7 +602,8 @@ label[for="camera"] {
     width: 100%;
 }
 
-.buttons input:checked+label:after {
+.buttons input:checked+label:after,
+.settings input:checked+label:after {
     left: calc(100% - 5px - 20px);
 }
 
@@ -842,6 +843,10 @@ ul {
         display: none;
         width: 100%;
         max-width: none;
+    }
+
+    .settings h3 {
+        padding-left: 50px;
     }
 
     .buttons {
@@ -1099,10 +1104,15 @@ a:-webkit-any-link {
     width: 100%;
     display: flex;
     flex-direction: column;
+    overflow: auto;
+}
+
+.settings h3 {
+    padding-left: 10px;
+    padding-top: 10px;
 }
 
 .settings .paper {
-    overflow: auto;
     flex-direction: column;
     min-width: 400px;
 }

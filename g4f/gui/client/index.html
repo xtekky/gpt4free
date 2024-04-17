@@ -38,6 +38,9 @@
     </script>
     <script src="https://unpkg.com/gpt-tokenizer/dist/cl100k_base.js" async></script>
     <script src="/static/js/text_to_speech/index.js" async></script>
+    <!--
+            <script src="/static/js/whisper-web/index.js" async></script>
+    -->
     <script>
         const user_image = '<img src="/static/img/user.png" alt="your avatar">';
         const gpt_image = '<img src="/static/img/gpt.png" alt="your avatar">';
@@ -89,6 +92,7 @@
         </div>
         <div class="settings hidden">
             <div class="paper">
+            <h3>Settings</h3>
             <div class="field">
                 <span class="label">Web Access</span>
                 <input type="checkbox" id="switch" />
@@ -127,7 +131,7 @@
             </div>
             <div class="field box">
                 <label for="Gemini-api_key" class="label" title="">Gemini:</label>
-                <textarea id="Gemini-api_key" name="Gemini[api_key]" placeholder="Cookies"></textarea>
+                <textarea id="Gemini-api_key" name="Gemini[api_key]" placeholder="&quot;__Secure-1PSID&quot; cookie"></textarea>
             </div>
             <div class="field box">
                 <label for="GeminiPro-api_key" class="label" title="">GeminiPro:</label>
