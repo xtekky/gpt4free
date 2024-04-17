@@ -17,6 +17,7 @@ const modelSelect       = document.getElementById("model");
 const modelProvider     = document.getElementById("model2");
 const systemPrompt      = document.getElementById("systemPrompt");
 const settings          = document.querySelector(".settings");
+const chat              = document.querySelector(".conversation");
 const album             = document.querySelector(".images");
 
 let prompt_lock = false;
@@ -132,7 +133,7 @@ const register_message_buttons = async () => {
                 speechText = speechText.replaceAll(/\[(.+)\]\(.+\)/gm, "($1)");
                 speechText = speechText.replaceAll(/```[a-z]+/gm, "");
                 speechText = filter_message(speechText.replaceAll("`", "").replaceAll("#", ""))
-                const lines = speechText.trim().split(/\n|;/).filter(v => v.trim());
+                const lines = speechText.trim().split(/\n|;/).filter(v => count_words(v));
 
                 window.onSpeechResponse = (url) => {
                     if (!el.dataset.stopped) {
@@ -780,6 +781,7 @@ async function hide_sidebar() {
     sidebar.classList.remove("shown");
     sidebar_button.classList.remove("rotated");
     settings.classList.add("hidden");
+    chat.classList.remove("hidden");
     if (window.location.pathname == "/menu/" || window.location.pathname == "/settings/") {
         history.back();
     }
@@ -801,11 +803,13 @@ sidebar_button.addEventListener("click", (event) => {
 
 function open_settings() {
     if (settings.classList.contains("hidden")) {
+        chat.classList.add("hidden");
         sidebar.classList.remove("shown");
         settings.classList.remove("hidden");
         history.pushState({}, null, "/settings/");
     } else {
         settings.classList.add("hidden");
+        chat.classList.remove("hidden");
     }
 }
 
@@ -1262,20 +1266,14 @@ if (SpeechRecognition) {
     recognition.maxAlternatives = 1;
 
     let startValue;
-    let shouldStop;
     let lastDebounceTranscript;
     recognition.onstart = function() {
         microLabel.classList.add("recognition");
         startValue = messageInput.value;
-        shouldStop = false;
         lastDebounceTranscript = "";
     };
     recognition.onend = function() {
-        if (shouldStop) {
-            messageInput.focus();
-        } else {
-            recognition.start();
-        }
+        messageInput.focus();
     };
     recognition.onresult = function(event) {
         if (!event.results) {
@@ -1302,7 +1300,6 @@ if (SpeechRecognition) {
 
     microLabel.addEventListener("click", () => {
         if (microLabel.classList.contains("recognition")) {
-            shouldStop = true;
             recognition.stop();
             microLabel.classList.remove("recognition");
         } else {

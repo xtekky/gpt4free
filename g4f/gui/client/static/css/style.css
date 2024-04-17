@@ -838,6 +838,11 @@ ul {
     transform: rotate(360deg);
 }
 
+.settings h3 {
+    padding-left: 10px;
+    padding-top: 10px;
+}
+
 @media screen and (max-width: 990px) {
     .conversations {
         display: none;
@@ -1105,11 +1110,6 @@ a:-webkit-any-link {
     display: flex;
     flex-direction: column;
     overflow: auto;
-}
-
-.settings h3 {
-    padding-left: 10px;
-    padding-top: 10px;
 }
 
 .settings .paper {
