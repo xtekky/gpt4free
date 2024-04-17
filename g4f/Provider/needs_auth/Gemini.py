@@ -60,6 +60,7 @@ class Gemini(AsyncGeneratorProvider):
         model: str,
         messages: Messages,
         proxy: str = None,
+        api_key: str = None,
         cookies: Cookies = None,
         connector: BaseConnector = None,
         image: ImageType = None,
@@ -67,6 +68,10 @@ class Gemini(AsyncGeneratorProvider):
         **kwargs
     ) -> AsyncResult:
         prompt = format_prompt(messages)
+        if api_key is not None:
+            if cookies is None:
+                cookies = {}
+            cookies["__Secure-1PSID"] = api_key
         cookies = cookies if cookies else get_cookies(".google.com", False, True)
         base_connector = get_connector(connector, proxy)
         async with ClientSession(

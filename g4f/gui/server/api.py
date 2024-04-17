@@ -49,6 +49,9 @@ class Api():
                 else provider.__name__) +
                 (" (WebDriver)"
                 if "webdriver" in provider.get_parameters()
+                else "") + 
+                (" (Auth)"
+                if provider.needs_auth
                 else "")
             for provider in __providers__
             if provider.working

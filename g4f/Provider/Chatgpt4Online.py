@@ -6,6 +6,7 @@ from aiohttp import ClientSession
 
 from ..typing import Messages, AsyncResult
 from ..requests import get_args_from_browser
+from ..webdriver import WebDriver
 from .base_provider import AsyncGeneratorProvider
 from .helper import get_random_string
 
@@ -23,9 +24,10 @@ class Chatgpt4Online(AsyncGeneratorProvider):
         model: str,
         messages: Messages,
         proxy: str = None,
+        webdriver: WebDriver = None,
         **kwargs
     ) -> AsyncResult:
-        args = get_args_from_browser(f"{cls.url}/chat/", proxy=proxy)
+        args = get_args_from_browser(f"{cls.url}/chat/", webdriver, proxy=proxy)
         async with ClientSession(**args) as session:
             if not cls._wpnonce:
                 async with session.get(f"{cls.url}/chat/", proxy=proxy) as response:

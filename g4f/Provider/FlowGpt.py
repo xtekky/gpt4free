@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import json
+import time
+import hashlib
 from aiohttp import ClientSession
 
 from ..typing import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from .helper import get_random_hex, get_random_string
 from ..requests.raise_for_status import raise_for_status
 
 class FlowGpt(AsyncGeneratorProvider, ProviderModelMixin):
@@ -17,9 +20,17 @@ class FlowGpt(AsyncGeneratorProvider, ProviderModelMixin):
     models = [
         "gpt-3.5-turbo",
         "gpt-3.5-long",
+        "gpt-4-turbo",
         "google-gemini",
+        "claude-instant",
+        "claude-v1",
         "claude-v2",
-        "llama2-13b"
+        "llama2-13b",
+        "mythalion-13b",
+        "pygmalion-13b",
+        "chronos-hermes-13b",
+        "Mixtral-8x7B",
+        "Dolphin-2.6-8x7B"
     ]
     model_aliases = {
         "gemini": "google-gemini",
@@ -36,6 +47,12 @@ class FlowGpt(AsyncGeneratorProvider, ProviderModelMixin):
         **kwargs
     ) -> AsyncResult:
         model = cls.get_model(model)
+        timestamp = str(int(time.time()))
+        auth = "Bearer null"
+        nonce = get_random_hex()
+        data = f"{timestamp}-{nonce}-{auth}"
+        signature = hashlib.md5(data.encode()).hexdigest()
+
         headers = {
             "User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:122.0) Gecko/20100101 Firefox/122.0",
             "Accept": "*/*",
@@ -49,7 +66,12 @@ class FlowGpt(AsyncGeneratorProvider, ProviderModelMixin):
             "Sec-Fetch-Dest": "empty",
             "Sec-Fetch-Mode": "cors",
             "Sec-Fetch-Site": "same-site",
-            "TE": "trailers"
+            "TE": "trailers",
+            "Authorization": auth,
+            "x-flow-device-id": f"f-{get_random_string(19)}",
+            "x-nonce": nonce,
+            "x-signature": signature,
+            "x-timestamp": timestamp
         }
         async with ClientSession(headers=headers) as session:
             history = [message for message in messages[:-1] if message["role"] != "system"]
@@ -69,7 +91,7 @@ class FlowGpt(AsyncGeneratorProvider, ProviderModelMixin):
                 "generateImage": False,
                 "generateAudio": False
             }
-            async with session.post("https://backend-k8s.flowgpt.com/v2/chat-anonymous", json=data, proxy=proxy) as response:
+            async with session.post("https://backend-k8s.flowgpt.com/v2/chat-anonymous-encrypted", json=data, proxy=proxy) as response:
                 await raise_for_status(response)
                 async for chunk in response.content:
                     if chunk.strip():

@@ -107,7 +107,7 @@ def get_default_cookies():
         'PPLState'      : '1',
         'KievRPSSecAuth': '',
         'SUID'          : '',
-        'SRCHUSR'       : '',
+        'SRCHUSR'       : f'DOB={date.today().strftime("%Y%m%d")}&T={int(time.time())}',
         'SRCHHPGUSR'    : f'HV={int(time.time())}',
         'BCP'           : 'AD=1&AL=1&SM=1',
         '_Rwho'         : f'u=d&ts={date.today().isoformat()}',

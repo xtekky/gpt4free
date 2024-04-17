@@ -602,7 +602,8 @@ label[for="camera"] {
     width: 100%;
 }
 
-.buttons input:checked+label:after {
+.buttons input:checked+label:after,
+.settings input:checked+label:after {
     left: calc(100% - 5px - 20px);
 }
 
@@ -844,13 +845,17 @@ ul {
         max-width: none;
     }
 
+    .settings h3 {
+        padding-left: 50px;
+    }
+
     .buttons {
         align-items: flex-start;
         flex-wrap: wrap;
         gap: 15px;
     }
 
-    .mobile-sidebar {
+    .mobile-sidebar { 0 0 0
         display: flex;
     }
 
@@ -1099,10 +1104,15 @@ a:-webkit-any-link {
     width: 100%;
     display: flex;
     flex-direction: column;
+    overflow: auto;
+}
+
+.settings h3 {
+    padding-left: 10px;
+    padding-top: 10px;
 }
 
 .settings .paper {
-    overflow: auto;
     flex-direction: column;
     min-width: 400px;
 }
