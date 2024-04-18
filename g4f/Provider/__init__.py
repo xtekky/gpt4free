@@ -23,9 +23,11 @@ from .ChatgptFree      import ChatgptFree
 from .ChatgptNext      import ChatgptNext
 from .ChatgptX         import ChatgptX
 from .Cnote            import Cnote
+from .Cohere           import Cohere
 from .DeepInfra        import DeepInfra
 from .DeepInfraImage   import DeepInfraImage
 from .DuckDuckGo       import DuckDuckGo
+from .Ecosia           import Ecosia
 from .Feedough         import Feedough
 from .FlowGpt          import FlowGpt
 from .FreeChatgpt      import FreeChatgpt
@@ -46,7 +48,6 @@ from .ReplicateImage   import ReplicateImage
 from .Vercel           import Vercel
 from .WhiteRabbitNeo   import WhiteRabbitNeo
 from .You              import You
-from .Cohere           import Cohere
 
 import sys
 

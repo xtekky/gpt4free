@@ -9,7 +9,7 @@ class OpenRouter(Openai):
     label = "OpenRouter"
     url = "https://openrouter.ai"
     working = True
-    default_model = "openrouter/auto"
+    default_model = "mistralai/mistral-7b-instruct:free"
 
     @classmethod
     def get_models(cls):
