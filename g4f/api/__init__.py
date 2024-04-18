@@ -1,7 +1,6 @@
 import logging
 import json
 import uvicorn
-import nest_asyncio
 
 from fastapi import FastAPI, Response, Request
 from fastapi.responses import StreamingResponse, RedirectResponse, HTMLResponse, JSONResponse
@@ -9,22 +8,23 @@ from fastapi.exceptions import RequestValidationError
 from starlette.status import HTTP_422_UNPROCESSABLE_ENTITY
 from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel
-from typing import List, Union
+from typing import List, Union, Optional
 
 import g4f
 import g4f.debug
-from g4f.client import Client
+from g4f.client import AsyncClient
 from g4f.typing import Messages
 
 class ChatCompletionsConfig(BaseModel):
     messages: Messages
     model: str
-    provider: Union[str, None] = None
+    provider: Optional[str] = None
     stream: bool = False
-    temperature: Union[float, None] = None
-    max_tokens: Union[int, None] = None
+    temperature: Optional[float] = None
+    max_tokens: Optional[int] = None
     stop: Union[list[str], str, None] = None
-    api_key: Union[str, None] = None
+    api_key: Optional[str] = None
+    web_search: Optional[bool] = None
 
 class Api:
     def __init__(self, engine: g4f, debug: bool = True, sentry: bool = False,
@@ -36,9 +36,7 @@ class Api:
 
         if debug:
             g4f.debug.logging = True
-        self.client = Client()
-
-        nest_asyncio.apply()
+        self.client = AsyncClient()
         self.app = FastAPI()
 
         self.routes()
@@ -90,7 +88,7 @@ class Api:
         @self.app.get("/v1/models/{model_name}")
         async def model_info(model_name: str):
             try:
-                model_info = g4f.ModelUtils.convert[model_name]
+                model_info = g4f.models.ModelUtils.convert[model_name]
                 return JSONResponse({
                     'id': model_name,
                     'object': 'model',
@@ -119,17 +117,18 @@ class Api:
                 return Response(content=format_exception(e, config), status_code=500, media_type="application/json")
 
             if not config.stream:
-                return JSONResponse(response.to_json())
+                return JSONResponse((await response).to_json())
 
-            def streaming():
+            async def streaming():
                 try:
-                    for chunk in response:
+                    async for chunk in response:
                         yield f"data: {json.dumps(chunk.to_json())}\n\n"
                 except GeneratorExit:
                     pass
                 except Exception as e:
                     logging.exception(e)
-                    yield f'data: {format_exception(e, config)}'
+                    yield f'data: {format_exception(e, config)}\n\n'
+                yield "data: [DONE]\n\n"
 
             return StreamingResponse(streaming(), media_type="text/event-stream")
 

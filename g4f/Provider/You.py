@@ -132,7 +132,6 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
 
     @classmethod
     async def get_cookies(cls, client: StreamSession) -> Cookies:
-
         if not cls._cookies or cls._cookies_used >= 5:
             cls._cookies = await cls.create_cookies(client)
             cls._cookies_used = 0
