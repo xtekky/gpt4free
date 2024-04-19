@@ -533,6 +533,8 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
             return
         if line["message"]["metadata"]["message_type"] not in ("next", "continue", "variant"):
             return
+        if line["message"]["recipient"] != "all":
+            return
         if fields.conversation_id is None:
             fields.conversation_id = line["conversation_id"]
             fields.message_id = line["message"]["id"]
