@@ -926,7 +926,7 @@ colorThemes.forEach((themeOption) => {
 function count_tokens(model, text) {
     if (model) {
         if (window.llamaTokenizer)
-        if (model.startsWith("llama2") || model.startsWith("codellama")) {
+        if (model.startsWith("llama") || model.startsWith("codellama")) {
             return llamaTokenizer.encode(text).length;
         }
         if (window.mistralTokenizer)
