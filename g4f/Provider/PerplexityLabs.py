@@ -15,10 +15,7 @@ class PerplexityLabs(AsyncGeneratorProvider, ProviderModelMixin):
     working = True
     default_model = "mixtral-8x7b-instruct"
     models = [
-        "sonar-small-online", "sonar-medium-online", "sonar-small-chat", "sonar-medium-chat", "mistral-7b-instruct", 
-        "codellama-70b-instruct", "llava-v1.5-7b-wrapper", "llava-v1.6-34b", "mixtral-8x7b-instruct",
-        "gemma-2b-it", "gemma-7b-it"
-        "mistral-medium", "related", "dbrx-instruct"
+        "sonar-small-online", "sonar-medium-online", "sonar-small-chat", "sonar-medium-chat", "dbrx-instruct", "claude-3-haiku-20240307", "llama-3-8b-instruct", "llama-3-70b-instruct", "codellama-70b-instruct", "mistral-7b-instruct", "llava-v1.5-7b-wrapper", "llava-v1.6-34b", "mixtral-8x7b-instruct", "mixtral-8x22b-instruct", "mistral-medium", "gemma-2b-it", "gemma-7b-it", "related"
     ]
     model_aliases = {
         "mistralai/Mistral-7B-Instruct-v0.1": "mistral-7b-instruct", 

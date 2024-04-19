@@ -16,12 +16,12 @@ class Llama(AsyncGeneratorProvider, ProviderModelMixin):
         "meta/llama-2-7b-chat",
         "meta/llama-2-13b-chat",
         "meta/llama-2-70b-chat",
-        "meta/llama-3-8b-chat",
-        "meta/llama-3-70b-chat",
+        "meta/meta-llama-3-8b-instruct",
+        "meta/meta-llama-3-70b-instruct",
     ]
     model_aliases = {
-        "meta-llama/Meta-Llama-3-8b": "meta/llama-3-8b-chat",
-        "meta-llama/Meta-Llama-3-70b": "meta/llama-3-70b-chat",
+        "meta-llama/Meta-Llama-3-8b-instruct": "meta/meta-llama-3-8b-instruct",
+        "meta-llama/Meta-Llama-3-70b-instruct": "meta/meta-llama-3-70b-instruct",
         "meta-llama/Llama-2-7b-chat-hf": "meta/llama-2-7b-chat",
         "meta-llama/Llama-2-13b-chat-hf": "meta/llama-2-13b-chat",
         "meta-llama/Llama-2-70b-chat-hf": "meta/llama-2-70b-chat",
