@@ -19,8 +19,13 @@ else:
 
 # Set Windows event loop policy for better compatibility with asyncio and curl_cffi
 if sys.platform == 'win32':
-    if isinstance(asyncio.get_event_loop_policy(), asyncio.WindowsProactorEventLoopPolicy):
-        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+    try:
+        from curl_cffi import aio
+        if not hasattr(aio, "_get_selector"):
+            if isinstance(asyncio.get_event_loop_policy(), asyncio.WindowsProactorEventLoopPolicy):
+                asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+    except ImportError:
+        pass
 
 def get_running_loop(check_nested: bool) -> Union[AbstractEventLoop, None]:
     try:
@@ -264,16 +269,18 @@ class AsyncGeneratorProvider(AsyncProvider):
             AsyncResult: An asynchronous generator yielding results.
         """
         raise NotImplementedError()
-    
+
 class ProviderModelMixin:
     default_model: str
     models: list[str] = []
     model_aliases: dict[str, str] = {}
-    
+
     @classmethod
     def get_models(cls) -> list[str]:
+        if not cls.models:
+            return [cls.default_model]
         return cls.models
-    
+
     @classmethod
     def get_model(cls, model: str) -> str:
         if not model and cls.default_model is not None:

@@ -17,6 +17,7 @@ const modelSelect       = document.getElementById("model");
 const modelProvider     = document.getElementById("model2");
 const systemPrompt      = document.getElementById("systemPrompt");
 const settings          = document.querySelector(".settings");
+const chat              = document.querySelector(".conversation");
 const album             = document.querySelector(".images");
 
 let prompt_lock = false;
@@ -132,7 +133,7 @@ const register_message_buttons = async () => {
                 speechText = speechText.replaceAll(/\[(.+)\]\(.+\)/gm, "($1)");
                 speechText = speechText.replaceAll(/```[a-z]+/gm, "");
                 speechText = filter_message(speechText.replaceAll("`", "").replaceAll("#", ""))
-                const lines = speechText.trim().split(/\n|;/).filter(v => v.trim());
+                const lines = speechText.trim().split(/\n|;/).filter(v => count_words(v));
 
                 window.onSpeechResponse = (url) => {
                     if (!el.dataset.stopped) {
@@ -780,6 +781,7 @@ async function hide_sidebar() {
     sidebar.classList.remove("shown");
     sidebar_button.classList.remove("rotated");
     settings.classList.add("hidden");
+    chat.classList.remove("hidden");
     if (window.location.pathname == "/menu/" || window.location.pathname == "/settings/") {
         history.back();
     }
@@ -801,11 +803,13 @@ sidebar_button.addEventListener("click", (event) => {
 
 function open_settings() {
     if (settings.classList.contains("hidden")) {
+        chat.classList.add("hidden");
         sidebar.classList.remove("shown");
         settings.classList.remove("hidden");
         history.pushState({}, null, "/settings/");
     } else {
         settings.classList.add("hidden");
+        chat.classList.remove("hidden");
     }
 }
 
@@ -922,7 +926,7 @@ colorThemes.forEach((themeOption) => {
 function count_tokens(model, text) {
     if (model) {
         if (window.llamaTokenizer)
-        if (model.startsWith("llama2") || model.startsWith("codellama")) {
+        if (model.startsWith("llama") || model.startsWith("codellama")) {
             return llamaTokenizer.encode(text).length;
         }
         if (window.mistralTokenizer)
@@ -1074,7 +1078,7 @@ async function load_version() {
 }
 setTimeout(load_version, 2000);
 
-for (const el of [imageInput, cameraInput]) {
+[imageInput, cameraInput].forEach((el) => {
     el.addEventListener('click', async () => {
         el.value = '';
         if (imageInput.dataset.src) {
@@ -1082,7 +1086,7 @@ for (const el of [imageInput, cameraInput]) {
             delete imageInput.dataset.src
         }
     });
-}
+});
 
 fileInput.addEventListener('click', async (event) => {
     fileInput.value = '';
@@ -1261,31 +1265,20 @@ if (SpeechRecognition) {
     recognition.interimResults = true;
     recognition.maxAlternatives = 1;
 
-    function may_stop() {
-        if (microLabel.classList.contains("recognition")) {
-            recognition.stop();
-        }
-    }
-
     let startValue;
-    let timeoutHandle;
     let lastDebounceTranscript;
     recognition.onstart = function() {
         microLabel.classList.add("recognition");
         startValue = messageInput.value;
         lastDebounceTranscript = "";
-        timeoutHandle = window.setTimeout(may_stop, 10000);
     };
     recognition.onend = function() {
-        microLabel.classList.remove("recognition");
         messageInput.focus();
     };
     recognition.onresult = function(event) {
         if (!event.results) {
             return;
         }
-        window.clearTimeout(timeoutHandle);
-
         let result = event.results[event.resultIndex];
         let isFinal = result.isFinal && (result[0].confidence > 0);
         let transcript = result[0].transcript;
@@ -1303,14 +1296,12 @@ if (SpeechRecognition) {
             messageInput.style.height = messageInput.scrollHeight  + "px";
             messageInput.scrollTop = messageInput.scrollHeight;
         }
-
-        timeoutHandle = window.setTimeout(may_stop, transcript ? 10000 : 8000);
     };
 
     microLabel.addEventListener("click", () => {
         if (microLabel.classList.contains("recognition")) {
-            window.clearTimeout(timeoutHandle);
             recognition.stop();
+            microLabel.classList.remove("recognition");
         } else {
             const lang = document.getElementById("recognition-language")?.value;
             recognition.lang = lang || navigator.language;
