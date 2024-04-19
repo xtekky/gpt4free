@@ -26,7 +26,6 @@ class FlowGpt(AsyncGeneratorProvider, ProviderModelMixin):
         "claude-v1",
         "claude-v2",
         "llama2-13b",
-        "llama3-70b",
         "mythalion-13b",
         "pygmalion-13b",
         "chronos-hermes-13b",
