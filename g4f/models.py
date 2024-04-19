@@ -16,7 +16,7 @@ from .Provider import (
     GigaChat,
     Liaobots,
     FreeGpt,
-    Llama2,
+    Llama,
     Vercel,
     Gemini,
     Koala,
@@ -117,19 +117,31 @@ gigachat_pro = Model(
 llama2_7b = Model(
     name          = "meta-llama/Llama-2-7b-chat-hf",
     base_provider = 'meta',
-    best_provider = RetryProvider([Llama2, DeepInfra])
+    best_provider = RetryProvider([Llama, DeepInfra])
 )
 
 llama2_13b = Model(
     name          = "meta-llama/Llama-2-13b-chat-hf",
     base_provider = 'meta',
-    best_provider = RetryProvider([Llama2, DeepInfra])
+    best_provider = RetryProvider([Llama, DeepInfra])
 )
 
 llama2_70b = Model(
     name          = "meta-llama/Llama-2-70b-chat-hf",
     base_provider = "meta",
-    best_provider = RetryProvider([Llama2, DeepInfra, HuggingChat])
+    best_provider = RetryProvider([Llama, DeepInfra, HuggingChat])
+)
+
+llama3_8b = Model(
+    name          = "meta-llama/Meta-Llama-3-8b",
+    base_provider = "meta",
+    best_provider = RetryProvider([Llama])
+)
+
+llama3_70b = Model(
+    name          = "meta-llama/Meta-Llama-3-70b",
+    base_provider = "meta",
+    best_provider = RetryProvider([Llama, HuggingChat])
 )
 
 codellama_34b_instruct = Model(
@@ -306,6 +318,8 @@ class ModelUtils:
         'llama2-7b' : llama2_7b,
         'llama2-13b': llama2_13b,
         'llama2-70b': llama2_70b,
+        'llama3-8b' : llama3_8b,
+        'llama3-70b': llama3_70b,
         'codellama-34b-instruct': codellama_34b_instruct,
         'codellama-70b-instruct': codellama_70b_instruct,
 

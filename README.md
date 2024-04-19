@@ -345,29 +345,31 @@ While we wait for gpt-5, here is a list of new models that are at least better t
 
 ### Models
 
-| Model | Base Provider | Provider | Website |
-| ----- | ------------- | -------- | ------- |
-| gpt-3.5-turbo | OpenAI | 5+ Providers | [openai.com](https://openai.com/) |
-| gpt-4 | OpenAI | 2+ Providers | [openai.com](https://openai.com/) |
-| gpt-4-turbo | OpenAI | g4f.Provider.Bing | [openai.com](https://openai.com/) |
-| Llama-2-7b-chat-hf | Meta | 2+ Providers | [llama.meta.com](https://llama.meta.com/) |
-| Llama-2-13b-chat-hf | Meta | 2+ Providers | [llama.meta.com](https://llama.meta.com/) |
-| Llama-2-70b-chat-hf | Meta | 3+ Providers | [llama.meta.com](https://llama.meta.com/) |
-| CodeLlama-34b-Instruct-hf | Meta | 2+ Providers | [llama.meta.com](https://llama.meta.com/) |
-| CodeLlama-70b-Instruct-hf | Meta | 2+ Providers | [llama.meta.com](https://llama.meta.com/) |
-| Mixtral-8x7B-Instruct-v0.1 | Huggingface | 4+ Providers | [huggingface.co](https://huggingface.co/) |
-| Mistral-7B-Instruct-v0.1 | Huggingface | 4+ Providers | [huggingface.co](https://huggingface.co/) |
-| dolphin-2.6-mixtral-8x7b | Huggingface | g4f.Provider.DeepInfra | [huggingface.co](https://huggingface.co/) |
-| lzlv_70b_fp16_hf | Huggingface | g4f.Provider.DeepInfra | [huggingface.co](https://huggingface.co/) |
-| airoboros-70b | Huggingface | g4f.Provider.DeepInfra | [huggingface.co](https://huggingface.co/) |
+| Model                       | Base Provider | Provider | Website |
+|-----------------------------| ------------- | -------- | ------- |
+| gpt-3.5-turbo               | OpenAI | 5+ Providers | [openai.com](https://openai.com/) |
+| gpt-4                       | OpenAI | 2+ Providers | [openai.com](https://openai.com/) |
+| gpt-4-turbo                 | OpenAI | g4f.Provider.Bing | [openai.com](https://openai.com/) |
+| Llama-2-7b-chat-hf          | Meta | 2+ Providers | [llama.meta.com](https://llama.meta.com/) |
+| Llama-2-13b-chat-hf         | Meta | 2+ Providers | [llama.meta.com](https://llama.meta.com/) |
+| Llama-2-70b-chat-hf         | Meta | 3+ Providers | [llama.meta.com](https://llama.meta.com/) |
+| Meta-Llama-3-8b             | Meta | 3+ Providers | [llama.meta.com](https://llama.meta.com/) |
+| Meta-Llama-3-70b            | Meta | 3+ Providers | [llama.meta.com](https://llama.meta.com/) |
+| CodeLlama-34b-Instruct-hf   | Meta | 2+ Providers | [llama.meta.com](https://llama.meta.com/) |
+| CodeLlama-70b-Instruct-hf   | Meta | 2+ Providers | [llama.meta.com](https://llama.meta.com/) |
+| Mixtral-8x7B-Instruct-v0.1  | Huggingface | 4+ Providers | [huggingface.co](https://huggingface.co/) |
+| Mistral-7B-Instruct-v0.1    | Huggingface | 4+ Providers | [huggingface.co](https://huggingface.co/) |
+| dolphin-2.6-mixtral-8x7b    | Huggingface | g4f.Provider.DeepInfra | [huggingface.co](https://huggingface.co/) |
+| lzlv_70b_fp16_hf            | Huggingface | g4f.Provider.DeepInfra | [huggingface.co](https://huggingface.co/) |
+| airoboros-70b               | Huggingface | g4f.Provider.DeepInfra | [huggingface.co](https://huggingface.co/) |
 | airoboros-l2-70b-gpt4-1.4.1 | Huggingface | g4f.Provider.DeepInfra | [huggingface.co](https://huggingface.co/) |
-| openchat_3.5 | Huggingface | 2+ Providers | [huggingface.co](https://huggingface.co/) |
-| gemini | Google | g4f.Provider.Gemini | [gemini.google.com](https://gemini.google.com/) |
-| gemini-pro | Google | 2+ Providers | [gemini.google.com](https://gemini.google.com/) |
-| claude-v2 | Anthropic | 1+ Providers | [anthropic.com](https://www.anthropic.com/) |
-| claude-3-opus | Anthropic | g4f.Provider.You | [anthropic.com](https://www.anthropic.com/) |
-| claude-3-sonnet | Anthropic | g4f.Provider.You | [anthropic.com](https://www.anthropic.com/) |
-| pi | Inflection | g4f.Provider.Pi | [inflection.ai](https://inflection.ai/) |
+| openchat_3.5                | Huggingface | 2+ Providers | [huggingface.co](https://huggingface.co/) |
+| gemini                      | Google | g4f.Provider.Gemini | [gemini.google.com](https://gemini.google.com/) |
+| gemini-pro                  | Google | 2+ Providers | [gemini.google.com](https://gemini.google.com/) |
+| claude-v2                   | Anthropic | 1+ Providers | [anthropic.com](https://www.anthropic.com/) |
+| claude-3-opus               | Anthropic | g4f.Provider.You | [anthropic.com](https://www.anthropic.com/) |
+| claude-3-sonnet             | Anthropic | g4f.Provider.You | [anthropic.com](https://www.anthropic.com/) |
+| pi                          | Inflection | g4f.Provider.Pi | [inflection.ai](https://inflection.ai/) |
 
 ## 🔗 Powered by gpt4free
 
