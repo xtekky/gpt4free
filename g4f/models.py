@@ -133,13 +133,13 @@ llama2_70b = Model(
 )
 
 llama3_8b = Model(
-    name          = "meta-llama/Meta-Llama-3-8b",
+    name          = "meta-llama/Meta-Llama-3-8b-Instruct",
     base_provider = "meta",
     best_provider = RetryProvider([Llama])
 )
 
 llama3_70b = Model(
-    name          = "meta-llama/Meta-Llama-3-70b",
+    name          = "meta-llama/Meta-Llama-3-70b-Instruct",
     base_provider = "meta",
     best_provider = RetryProvider([Llama, HuggingChat])
 )
