@@ -19,7 +19,8 @@ class HuggingChat(AsyncGeneratorProvider, ProviderModelMixin):
         'mistralai/Mixtral-8x7B-Instruct-v0.1',
         'google/gemma-1.1-7b-it',
         'NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO',
-        'mistralai/Mistral-7B-Instruct-v0.2'
+        'mistralai/Mistral-7B-Instruct-v0.2',
+        'meta-llama/Meta-Llama-3-70B-Instruct'
     ]
     model_aliases = {
         "openchat/openchat_3.5": "openchat/openchat-3.5-0106",
