@@ -15,7 +15,8 @@ class Ecosia(AsyncGeneratorProvider, ProviderModelMixin):
     working = True
     supports_gpt_35_turbo = True
     default_model = "gpt-3.5-turbo-0125"
-    model_aliases = {"gpt-3.5-turbo": "gpt-3.5-turbo-0125"}
+    models = [default_model, "green"]
+    model_aliases = {"gpt-3.5-turbo": default_model}
 
     @classmethod
     async def create_async_generator(
@@ -23,11 +24,10 @@ class Ecosia(AsyncGeneratorProvider, ProviderModelMixin):
         model: str,
         messages: Messages,
         connector: BaseConnector = None,
-        green: bool = False,
         proxy: str = None,
         **kwargs
     ) -> AsyncResult:
-        cls.get_model(model)
+        model = cls.get_model(model)
         headers = {
             "authority": "api.ecosia.org",
             "accept": "*/*",
@@ -39,7 +39,7 @@ class Ecosia(AsyncGeneratorProvider, ProviderModelMixin):
             data = {
                 "messages": base64.b64encode(json.dumps(messages).encode()).decode()
             }
-            api_url = f"https://api.ecosia.org/v2/chat/?sp={'eco' if green else 'productivity'}"
+            api_url = f"https://api.ecosia.org/v2/chat/?sp={'eco' if model == 'green' else 'productivity'}"
             async with session.post(api_url, json=data) as response:
                 await raise_for_status(response)
                 async for chunk in response.content.iter_any():

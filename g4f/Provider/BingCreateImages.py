@@ -15,6 +15,7 @@ class BingCreateImages(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Microsoft Designer"
     url = "https://www.bing.com/images/create"
     working = True
+    needs_auth = True
 
     def __init__(self, cookies: Cookies = None, proxy: str = None) -> None:
         self.cookies: Cookies = cookies
