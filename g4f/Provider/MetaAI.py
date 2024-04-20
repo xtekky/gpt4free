@@ -9,9 +9,15 @@ from aiohttp import ClientSession, BaseConnector
 
 from ..typing import AsyncResult, Messages, Cookies
 from ..requests import raise_for_status, DEFAULT_HEADERS
-from ..image import ImageResponse
 from .base_provider import AsyncGeneratorProvider
-from .helper import format_prompt, get_connector, get_cookies
+from .helper import format_prompt, get_connector
+
+class Sources():
+    def __init__(self, list: List[Dict[str, str]]) -> None:
+        self.list = list
+
+    def __str__(self) -> str:
+        return "\n\n" + ("\n".join([f"[{link['title']}]({link['link']})" for link in self.list]))
 
 class MetaAI(AsyncGeneratorProvider):
     url = "https://www.meta.ai"
@@ -19,6 +25,8 @@ class MetaAI(AsyncGeneratorProvider):
 
     def __init__(self, proxy: str = None, connector: BaseConnector = None):
         self.session = ClientSession(connector=get_connector(connector, proxy), headers=DEFAULT_HEADERS)
+        self.cookies: Cookies = None
+        self.access_token: str = None
 
     @classmethod
     async def create_async_generator(
@@ -32,11 +40,11 @@ class MetaAI(AsyncGeneratorProvider):
         async for chunk in cls(proxy).prompt(format_prompt(messages)):
             yield chunk
 
-    async def get_access_token(self, cookies: Cookies, birthday: str = "1999-01-01") -> str:
+    async def get_access_token(self, birthday: str = "1999-01-01") -> str:
         url = "https://www.meta.ai/api/graphql/"
 
         payload = {
-            "lsd": cookies["lsd"],
+            "lsd": self.lsd,
             "fb_api_caller_class": "RelayModern",
             "fb_api_req_friendly_name": "useAbraAcceptTOSForTempUserMutation",
             "variables": json.dumps({
@@ -48,29 +56,30 @@ class MetaAI(AsyncGeneratorProvider):
         }
         headers = {
             "x-fb-friendly-name": "useAbraAcceptTOSForTempUserMutation",
-            "x-fb-lsd": cookies["lsd"],
+            "x-fb-lsd": self.lsd,
             "x-asbd-id": "129477",
             "alt-used": "www.meta.ai",
             "sec-fetch-site": "same-origin"
         }
-        async with self.session.post(url, headers=headers, cookies=cookies, data=payload) as response:
+        async with self.session.post(url, headers=headers, cookies=self.cookies, data=payload) as response:
             await raise_for_status(response, "Fetch access_token failed")
             auth_json = await response.json(content_type=None)
             access_token = auth_json["data"]["xab_abra_accept_terms_of_service"]["new_temp_user_auth"]["access_token"]
             return access_token
 
     async def prompt(self, message: str, cookies: Cookies = None) -> AsyncResult:
-        access_token = None
-        if cookies is None:
-            cookies = await self.get_cookies()
-            access_token = await self.get_access_token(cookies)
-        else:
-            cookies = await self.get_cookies(cookies)
+        if cookies is not None:
+            self.cookies = cookies
+            self.access_token = None
+        if self.cookies is None:
+            self.cookies = await self.get_cookies()
+        if self.access_token is None:
+            self.access_token  = await self.get_access_token()
 
         url = "https://graph.meta.ai/graphql?locale=user"
         #url = "https://www.meta.ai/api/graphql/"
         payload = {
-            "access_token": access_token,
+            "access_token": self.access_token,
             #"lsd": cookies["lsd"],
             "fb_api_caller_class": "RelayModern",
             "fb_api_req_friendly_name": "useAbraSendMessageMutation",
@@ -95,7 +104,7 @@ class MetaAI(AsyncGeneratorProvider):
             "x-fb-friendly-name": "useAbraSendMessageMutation",
             #"x-fb-lsd": cookies["lsd"],
         }
-        async with self.session.post(url, headers=headers, cookies=cookies, data=payload) as response:
+        async with self.session.post(url, headers=headers, cookies=self.cookies, data=payload) as response:
             await raise_for_status(response, "Fetch response failed")
             last_snippet_len = 0
             fetch_id = None
@@ -106,25 +115,25 @@ class MetaAI(AsyncGeneratorProvider):
                     continue
                 bot_response_message = json_line.get("data", {}).get("node", {}).get("bot_response_message", {})
                 streaming_state = bot_response_message.get("streaming_state")
-                fetch_id = bot_response_message.get("fetch_id")
+                fetch_id = bot_response_message.get("fetch_id") or fetch_id
                 if streaming_state in ("STREAMING", "OVERALL_DONE"):
                     #imagine_card = bot_response_message["imagine_card"]
                     snippet =  bot_response_message["snippet"]
-                    yield snippet[last_snippet_len:]
-                    last_snippet_len = len(snippet)
-                elif streaming_state == "OVERALL_DONE":
-                    break
+                    new_snippet_len = len(snippet)
+                    if new_snippet_len > last_snippet_len:
+                        yield snippet[last_snippet_len:]
+                        last_snippet_len = new_snippet_len
             #if last_streamed_response is None:
             #    if attempts > 3:
             #        raise Exception("MetaAI is having issues and was not able to respond (Server Error)")
             #    access_token = await self.get_access_token()
             #    return await self.prompt(message=message, attempts=attempts + 1)
             if fetch_id is not None:
-                sources = await self.fetch_sources(fetch_id, cookies, access_token)
+                sources = await self.fetch_sources(fetch_id)
                 if sources is not None:
                     yield sources 
 
-    async def get_cookies(self, cookies: Cookies = None) -> dict:
+    async def get_cookies(self, cookies: Cookies = None) -> Cookies:
         async with self.session.get("https://www.meta.ai/", cookies=cookies) as response:
             await raise_for_status(response, "Fetch home failed")
             text = await response.text()
@@ -134,13 +143,13 @@ class MetaAI(AsyncGeneratorProvider):
                     "abra_csrf": self.extract_value(text, "abra_csrf"),
                     "datr": self.extract_value(text, "datr"),
                 }
-            cookies["lsd"] = self.extract_value(text, start_str='"LSD",[],{"token":"', end_str='"}')
+            self.lsd = self.extract_value(text, start_str='"LSD",[],{"token":"', end_str='"}')
             return cookies
 
-    async def fetch_sources(self, fetch_id: str, cookies: Cookies, access_token: str) -> List[Dict]:
+    async def fetch_sources(self, fetch_id: str) -> Sources:
         url = "https://graph.meta.ai/graphql?locale=user"
         payload = {
-            "access_token": access_token,
+            "access_token": self.access_token,
             "fb_api_caller_class": "RelayModern",
             "fb_api_req_friendly_name": "AbraSearchPluginDialogQuery",
             "variables": json.dumps({"abraMessageFetchID": fetch_id}),
@@ -151,7 +160,7 @@ class MetaAI(AsyncGeneratorProvider):
             "authority": "graph.meta.ai",
             "x-fb-friendly-name": "AbraSearchPluginDialogQuery",
         }
-        async with self.session.post(url, headers=headers, cookies=cookies, data=payload) as response:
+        async with self.session.post(url, headers=headers, cookies=self.cookies, data=payload) as response:
             await raise_for_status(response)
             response_json = await response.json()
             try:
@@ -171,7 +180,8 @@ class MetaAI(AsyncGeneratorProvider):
         if start >= 0:
             start+= len(start_str)
             end = text.find(end_str, start)
-            return text[start:end]
+            if end >= 0:
+                return text[start:end]
 
 def generate_offline_threading_id() -> str:
     """
@@ -190,10 +200,3 @@ def generate_offline_threading_id() -> str:
     threading_id = (timestamp << 22) | (random_value & ((1 << 22) - 1))
     
     return str(threading_id)
-
-class Sources():
-    def __init__(self, list: List[Dict[str, str]]) -> None:
-        self.list = list
-
-    def __str__(self) -> str:
-        return "\n\n" + ("\n".join([f"[{link['title']}]({link['link']})" for link in self.list]))

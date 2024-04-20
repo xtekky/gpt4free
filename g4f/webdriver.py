@@ -65,7 +65,7 @@ def get_browser(
         WebDriver: An instance of WebDriver configured with the specified options.
     """
     if not has_requirements:
-        raise MissingRequirementsError('Webdriver packages are not installed | pip install -U g4f[webdriver]')
+        raise MissingRequirementsError('Install Webdriver packages | pip install -U g4f[webdriver]')
     browser = find_chrome_executable()
     if browser is None:
         raise MissingRequirementsError('Install "Google Chrome" browser')
