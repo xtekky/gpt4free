@@ -18,6 +18,9 @@ class Sources():
     def __str__(self) -> str:
         return "\n\n" + ("\n".join([f"[{link['title']}]({link['link']})" for link in self.list]))
 
+class AbraGeoBlockedError(Exception):
+    pass
+
 class MetaAI(AsyncGeneratorProvider):
     url = "https://www.meta.ai"
     working = True
@@ -136,6 +139,8 @@ class MetaAI(AsyncGeneratorProvider):
         async with self.session.get("https://www.meta.ai/", cookies=cookies) as response:
             await raise_for_status(response, "Fetch home failed")
             text = await response.text()
+            if "AbraGeoBlockedError" in text:
+                raise AbraGeoBlockedError("Meta AI isn't available yet in your country")
             if cookies is None:
                 cookies = {
                     "_js_datr": self.extract_value(text, "_js_datr"),
