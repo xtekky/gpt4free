@@ -2,7 +2,6 @@ import json
 import uuid
 import random
 import time
-import uuid
 from typing import Dict, List
 
 from aiohttp import ClientSession, BaseConnector
@@ -13,8 +12,8 @@ from .base_provider import AsyncGeneratorProvider
 from .helper import format_prompt, get_connector
 
 class Sources():
-    def __init__(self, list: List[Dict[str, str]]) -> None:
-        self.list = list
+    def __init__(self, link_list: List[Dict[str, str]]) -> None:
+        self.link = link_list
 
     def __str__(self) -> str:
         return "\n\n" + ("\n".join([f"[{link['title']}]({link['link']})" for link in self.list]))
