@@ -79,10 +79,10 @@ class StreamSession(AsyncSession):
         return StreamResponse(super().request(method, url, stream=True, **kwargs))
 
     def ws_connect(self, url, *args, **kwargs):
-        return WebSocket(self, url)
+        return WebSocket(self, url, **kwargs)
 
-    def _ws_connect(self, url):
-        return super().ws_connect(url)
+    def _ws_connect(self, url, **kwargs):
+        return super().ws_connect(url, **kwargs)
 
     # Defining HTTP methods as partial methods of the request method.
     head = partialmethod(request, "HEAD")
@@ -102,20 +102,22 @@ else:
             raise RuntimeError("CurlMimi in curl_cffi is missing | pip install -U g4f[curl_cffi]")
 
 class WebSocket():
-    def __init__(self, session, url) -> None:
+    def __init__(self, session, url, **kwargs) -> None:
         if not has_curl_ws:
             raise RuntimeError("CurlWsFlag in curl_cffi is missing | pip install -U g4f[curl_cffi]")
         self.session: StreamSession = session
         self.url: str = url
+        del kwargs["autoping"]
+        self.options: dict = kwargs
 
     async def __aenter__(self):
-        self.inner = await self.session._ws_connect(self.url)
+        self.inner = await self.session._ws_connect(self.url, **self.options)
         return self
 
     async def __aexit__(self, *args):
-        self.inner.aclose()
+        await self.inner.aclose()
 
-    async def receive_str(self) -> str:
+    async def receive_str(self, **kwargs) -> str:
         bytes, _ = await self.inner.arecv()
         return bytes.decode(errors="ignore")
 
