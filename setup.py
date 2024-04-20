@@ -74,6 +74,9 @@ EXTRA_REQUIRE = {
     ],
     "local": [
         "gpt4all"
+    ],
+    "curl_cffi": [
+        "curl_cffi>=0.6.2",
     ]
 }
 

@@ -28,6 +28,7 @@ models = {
 }
 
 class ThebApi(Openai):
+    label = "TheB.AI API"
     url = "https://theb.ai"
     working = True
     needs_auth = True

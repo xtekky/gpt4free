@@ -16,6 +16,13 @@ from ..errors import NoImageResponseError
 from ..image import ImageResponse as ImageProviderResponse
 from ..providers.base_provider import AsyncGeneratorProvider
 
+try:
+    anext
+except NameError:
+    async def anext(iter):
+        async for chunk in iter:
+            return chunk
+
 async def iter_response(
     response: AsyncIterator[str],
     stream: bool,
@@ -137,7 +144,7 @@ class Completions():
             proxy=self.client.get_proxy() if proxy is None else proxy,
             max_tokens=max_tokens,
             stop=stop,
-            api_key=self.client.api_key if api_key is None else api_key
+            api_key=self.client.api_key if api_key is None else api_key,
             **kwargs
         )
         response = iter_response(response, stream, response_format, max_tokens, stop)

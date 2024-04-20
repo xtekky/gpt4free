@@ -32,6 +32,7 @@ models = {
 }
 
 class Theb(AbstractProvider):
+    label = "TheB.AI"
     url = "https://beta.theb.ai"
     working = True
     supports_gpt_35_turbo = True

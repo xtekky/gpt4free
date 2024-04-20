@@ -5,12 +5,13 @@ from ..typing import AsyncResult, Messages
 from .needs_auth.Openai import Openai
 
 class DeepInfra(Openai):
+    label = "DeepInfra"
     url = "https://deepinfra.com"
     working = True
     needs_auth = False
     supports_stream = True
     supports_message_history = True
-    default_model = 'meta-llama/Llama-2-70b-chat-hf'
+    default_model = 'HuggingFaceH4/zephyr-orpo-141b-A35b-v0.1'
 
     @classmethod
     def get_models(cls):
@@ -31,11 +32,18 @@ class DeepInfra(Openai):
         max_tokens: int = 1028,
         **kwargs
     ) -> AsyncResult:
+        
+        if not '/' in model:
+            models = {
+                'mixtral-8x22b': 'HuggingFaceH4/zephyr-orpo-141b-A35b-v0.1',
+                'dbrx-instruct': 'databricks/dbrx-instruct',
+            }
+            model = models.get(model, model)
+        
         headers = {
             'Accept-Encoding': 'gzip, deflate, br',
             'Accept-Language': 'en-US',
             'Connection': 'keep-alive',
-            'Content-Type': None,
             'Origin': 'https://deepinfra.com',
             'Referer': 'https://deepinfra.com/',
             'Sec-Fetch-Dest': 'empty',
@@ -43,7 +51,6 @@ class DeepInfra(Openai):
             'Sec-Fetch-Site': 'same-site',
             'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
             'X-Deepinfra-Source': 'web-embed',
-            'Accept': None,
             'sec-ch-ua': '"Google Chrome";v="119", "Chromium";v="119", "Not?A_Brand";v="24"',
             'sec-ch-ua-mobile': '?0',
             'sec-ch-ua-platform': '"macOS"',

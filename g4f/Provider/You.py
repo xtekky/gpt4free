@@ -8,9 +8,8 @@ import uuid
 from ..typing import AsyncResult, Messages, ImageType, Cookies
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from .helper import format_prompt
-from ..image import to_bytes, ImageResponse
+from ..image import ImageResponse, to_bytes, is_accepted_format
 from ..requests import StreamSession, FormData, raise_for_status
-
 from .you.har_file import get_dfp_telemetry_id
 
 class You(AsyncGeneratorProvider, ProviderModelMixin):
@@ -46,6 +45,7 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
         image: ImageType = None,
         image_name: str = None,
         proxy: str = None,
+        timeout: int = 240,
         chat_mode: str = "default",
         **kwargs,
     ) -> AsyncResult:
@@ -55,14 +55,17 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
             ...
         elif model.startswith("dall-e"):
             chat_mode = "create"
+            messages = [messages[-1]]
         else:
             chat_mode = "custom"
             model = cls.get_model(model)
         async with StreamSession(
             proxies={"all": proxy},
-            impersonate="chrome"
+            impersonate="chrome",
+            timeout=(30, timeout)
         ) as session:
             cookies = await cls.get_cookies(session) if chat_mode != "default" else None
+            
             upload = json.dumps([await cls.upload_file(session, cookies, to_bytes(image), image_name)]) if image else ""
             headers = {
                 "Accept": "text/event-stream",
@@ -73,7 +76,6 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
                 "q": format_prompt(messages),
                 "domain": "youchat",
                 "selectedChatMode": chat_mode,
-                #"chat": json.dumps(chat),
             }
             params = {
                 "userFiles": upload,
@@ -113,7 +115,7 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
             await raise_for_status(response)
             upload_nonce = await response.text()
         data = FormData()
-        data.add_field('file', file, filename=filename)
+        data.add_field('file', file, content_type=is_accepted_format(file), filename=filename)
         async with client.post(
             f"{cls.url}/api/upload",
             data=data,
@@ -150,8 +152,8 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
         }}).encode()).decode()
 
     def get_auth() -> str:
-        auth_uuid = "507a52ad-7e69-496b-aee0-1c9863c7c8"
-        auth_token = f"public-token-live-{auth_uuid}bb:public-token-live-{auth_uuid}19"
+        auth_uuid = "507a52ad-7e69-496b-aee0-1c9863c7c819"
+        auth_token = f"public-token-live-{auth_uuid}:public-token-live-{auth_uuid}"
         auth = base64.standard_b64encode(auth_token.encode()).decode()
         return f"Basic {auth}"
 
@@ -163,18 +165,20 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
             headers={
                 "Authorization": cls.get_auth(),
                 "X-SDK-Client": cls.get_sdk(),
-                "X-SDK-Parent-Host": cls.url
+                "X-SDK-Parent-Host": cls.url,
+                "Origin": "https://you.com",
+                "Referer": "https://you.com/"
             },
             json={
                 "dfp_telemetry_id": await get_dfp_telemetry_id(),
                 "email": f"{user_uuid}@gmail.com",
                 "password": f"{user_uuid}#{user_uuid}",
-                "dfp_telemetry_id": f"{uuid.uuid4()}",
                 "session_duration_minutes": 129600
             }
         ) as response:
             await raise_for_status(response)
             session = (await response.json())["data"]
+
         return {
             "stytch_session": session["session_token"],
             'stytch_session_jwt': session["session_jwt"],

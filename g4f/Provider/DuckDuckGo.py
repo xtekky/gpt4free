@@ -4,8 +4,10 @@ import json
 import aiohttp
 
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from .helper import get_connector
 from ..typing import AsyncResult, Messages
 from ..requests.raise_for_status import raise_for_status
+from ..providers.conversation import BaseConversation
 
 class DuckDuckGo(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://duckduckgo.com/duckchat"
@@ -42,23 +44,39 @@ class DuckDuckGo(AsyncGeneratorProvider, ProviderModelMixin):
         cls,
         model: str,
         messages: Messages,
+        proxy: str = None,
+        connector: aiohttp.BaseConnector = None,
+        conversation: Conversation = None,
+        return_conversation: bool = False,
         **kwargs
     ) -> AsyncResult:
-        async with aiohttp.ClientSession(headers=cls.headers) as session:
-            async with session.get(cls.status_url, headers={"x-vqd-accept": "1"}) as response:
-                await raise_for_status(response)
-                vqd_4 = response.headers.get("x-vqd-4")
+        async with aiohttp.ClientSession(headers=cls.headers, connector=get_connector(connector, proxy)) as session:
+            if conversation is not None and len(messages) > 1:
+                vqd_4 = conversation.vqd_4
+                messages = [*conversation.messages, messages[-2], messages[-1]]
+            else:
+                async with session.get(cls.status_url, headers={"x-vqd-accept": "1"}) as response:
+                    await raise_for_status(response)
+                    vqd_4 = response.headers.get("x-vqd-4")
+                messages = [messages[-1]]
             payload = {
                 'model': cls.get_model(model),
                 'messages': messages
             }
             async with session.post(cls.chat_url, json=payload, headers={"x-vqd-4": vqd_4}) as response:
                 await raise_for_status(response)
+                if return_conversation:
+                    yield Conversation(response.headers.get("x-vqd-4"), messages)
                 async for line in response.content:
                     if line.startswith(b"data: "):
                         chunk = line[6:]
                         if chunk.startswith(b"[DONE]"):
                             break
                         data = json.loads(chunk)
-                        if "message" in data:
+                        if "message" in data and data["message"]:
                             yield data["message"]
+
+class Conversation(BaseConversation):
+    def __init__(self, vqd_4: str, messages: Messages) -> None:
+        self.vqd_4 = vqd_4
+        self.messages = messages

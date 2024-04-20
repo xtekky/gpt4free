@@ -3,26 +3,33 @@ from __future__  import annotations
 from dataclasses import dataclass
 
 from .Provider import RetryProvider, ProviderType
-from .Provider   import (
+from .Provider import (
+    Aichatos,
+    Bing,
+    Blackbox,
     Chatgpt4Online,
-    PerplexityLabs,
-    GeminiProChat,
+    ChatgptAi,
     ChatgptNext,
+    Cohere,
+    Cnote,
+    DeepInfra,
+    Feedough,
+    FreeGpt,
+    Gemini,
+    GeminiProChat,
+    GigaChat,
     HuggingChat,
     HuggingFace,
-    OpenaiChat,
-    ChatgptAi,
-    DeepInfra,
-    GigaChat,
+    Koala,
     Liaobots,
-    FreeGpt,
-    Llama2,
-    Vercel,
-    Gemini,
-    Bing,
-    You,
+    Llama,
+    OpenaiChat,
+    PerplexityLabs,
     Pi,
+    Vercel,
+    You,
 )
+
 
 @dataclass(unsafe_hash=True)
 class Model:
@@ -71,7 +78,16 @@ gpt_35_long = Model(
 gpt_35_turbo = Model(
     name          = 'gpt-3.5-turbo',
     base_provider = 'openai',
-    best_provider = OpenaiChat
+    best_provider = RetryProvider([
+        FreeGpt,
+        You,
+        ChatgptNext,
+        Koala,
+        OpenaiChat,
+        Aichatos,
+        Cnote,
+        Feedough,
+    ])
 )
 
 gpt_4 = Model(
@@ -109,25 +125,37 @@ gigachat_pro = Model(
 llama2_7b = Model(
     name          = "meta-llama/Llama-2-7b-chat-hf",
     base_provider = 'meta',
-    best_provider = RetryProvider([Llama2, DeepInfra])
+    best_provider = RetryProvider([Llama, DeepInfra])
 )
 
 llama2_13b = Model(
     name          = "meta-llama/Llama-2-13b-chat-hf",
     base_provider = 'meta',
-    best_provider = RetryProvider([Llama2, DeepInfra])
+    best_provider = RetryProvider([Llama, DeepInfra])
 )
 
 llama2_70b = Model(
     name          = "meta-llama/Llama-2-70b-chat-hf",
     base_provider = "meta",
-    best_provider = RetryProvider([Llama2, DeepInfra, HuggingChat])
+    best_provider = RetryProvider([Llama, DeepInfra, HuggingChat])
+)
+
+llama3_8b_instruct = Model(
+    name          = "meta-llama/Meta-Llama-3-8b-instruct",
+    base_provider = "meta",
+    best_provider = RetryProvider([Llama])
+)
+
+llama3_70b_instruct = Model(
+    name          = "meta-llama/Meta-Llama-3-70b-instruct",
+    base_provider = "meta",
+    best_provider = RetryProvider([Llama, HuggingChat])
 )
 
 codellama_34b_instruct = Model(
     name          = "codellama/CodeLlama-34b-Instruct-hf",
     base_provider = "meta",
-    best_provider = RetryProvider([HuggingChat, DeepInfra])
+    best_provider = HuggingChat
 )
 
 codellama_70b_instruct = Model(
@@ -146,7 +174,19 @@ mixtral_8x7b = Model(
 mistral_7b = Model(
     name          = "mistralai/Mistral-7B-Instruct-v0.1",
     base_provider = "huggingface",
-    best_provider = RetryProvider([DeepInfra, HuggingChat, HuggingFace, PerplexityLabs])
+    best_provider = RetryProvider([HuggingChat, HuggingFace, PerplexityLabs])
+)
+
+mistral_7b_v02 = Model(
+    name          = "mistralai/Mistral-7B-Instruct-v0.2",
+    base_provider = "huggingface",
+    best_provider = DeepInfra
+)
+
+mixtral_8x22b = Model(
+    name          = "HuggingFaceH4/zephyr-orpo-141b-A35b-v0.1",
+    base_provider = "huggingface",
+    best_provider = RetryProvider([HuggingChat, DeepInfra])
 )
 
 # Misc models
@@ -164,12 +204,6 @@ lzlv_70b = Model(
 
 airoboros_70b = Model(
     name          = "deepinfra/airoboros-70b",
-    base_provider = "huggingface",
-    best_provider = DeepInfra
-)
-
-airoboros_l2_70b = Model(
-    name          = "jondurbin/airoboros-l2-70b-gpt4-1.4.1",
     base_provider = "huggingface",
     best_provider = DeepInfra
 )
@@ -253,6 +287,24 @@ pi = Model(
     best_provider = Pi
 )
 
+dbrx_instruct = Model(
+    name = 'databricks/dbrx-instruct',
+    base_provider = 'mistral',
+    best_provider = RetryProvider([DeepInfra, PerplexityLabs])
+)
+
+command_r_plus = Model(
+    name = 'CohereForAI/c4ai-command-r-plus',
+    base_provider = 'mistral',
+    best_provider = RetryProvider([HuggingChat, Cohere])
+)
+
+blackbox = Model(
+    name = 'blackbox',
+    base_provider = 'blackbox',
+    best_provider = Blackbox
+)
+
 class ModelUtils:
     """
     Utility class for mapping string identifiers to Model instances.
@@ -276,10 +328,12 @@ class ModelUtils:
         'gpt-4-32k-0613' : gpt_4_32k_0613,
         'gpt-4-turbo'    : gpt_4_turbo,
 
-        # Llama 2
+        # Llama
         'llama2-7b' : llama2_7b,
         'llama2-13b': llama2_13b,
         'llama2-70b': llama2_70b,
+        'llama3-8b-instruct' : llama3_8b_instruct,
+        'llama3-70b-instruct': llama3_70b_instruct,
         'codellama-34b-instruct': codellama_34b_instruct,
         'codellama-70b-instruct': codellama_70b_instruct,
 
@@ -287,19 +341,30 @@ class ModelUtils:
         'gigachat'     : gigachat,
         'gigachat_plus': gigachat_plus,
         'gigachat_pro' : gigachat_pro,
-
+        
+        # Mistral Opensource
         'mixtral-8x7b': mixtral_8x7b,
         'mistral-7b': mistral_7b,
+        'mistral-7b-v02': mistral_7b_v02,
+        'mixtral-8x22b': mixtral_8x22b,
         'dolphin-mixtral-8x7b': dolphin_mixtral_8x7b,
-        'lzlv-70b': lzlv_70b,
-        'airoboros-70b': airoboros_70b,
-        'airoboros-l2-70b': airoboros_l2_70b,
-        'openchat_3.5': openchat_35,
+        
+        # google gemini
         'gemini': gemini,
         'gemini-pro': gemini_pro,
+        
+        # anthropic
         'claude-v2': claude_v2,
         'claude-3-opus': claude_3_opus,
         'claude-3-sonnet': claude_3_sonnet,
+        
+        # other
+        'blackbox': blackbox,
+        'command-r+': command_r_plus,
+        'dbrx-instruct': dbrx_instruct,
+        'lzlv-70b': lzlv_70b,
+        'airoboros-70b': airoboros_70b,
+        'openchat_3.5': openchat_35,
         'pi': pi
     }
 

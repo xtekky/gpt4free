@@ -281,6 +281,16 @@ set G4F_PROXY=http://host:port
 | [beta.theb.ai](https://beta.theb.ai) | `g4f.Provider.Theb` | ✔️ | ✔️ | ✔️ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ❌ |
 | [you.com](https://you.com) | `g4f.Provider.You` | ✔️ | ✔️ | ✔️ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ❌ |
 
+## Best OpenSource Models
+While we wait for gpt-5, here is a list of new models that are at least better than gpt-3.5-turbo. **Some are better than gpt-4**. Expect this list to grow.
+
+| Website | Provider |  parameters | better than |
+| ------  | -------  |  ------ |  ------ | 
+| [mixtral-8x22b](https://huggingface.co/mistral-community/Mixtral-8x22B-v0.1) | `g4f.Provider.DeepInfra` | 176B / 44b active | gpt-3.5-turbo |
+| [dbrx-instruct](https://www.databricks.com/blog/introducing-dbrx-new-state-art-open-llm) | `g4f.Provider.DeepInfra` | 132B / 36B active| gpt-3.5-turbo |
+| [command-r+](https://txt.cohere.com/command-r-plus-microsoft-azure/) | `g4f.Provider.HuggingChat` | 104B | gpt-4-0613 |
+
+
 ### GPT-3.5
 
 | Website | Provider | GPT-3.5 | GPT-4 | Stream | Status | Auth |
@@ -335,29 +345,31 @@ set G4F_PROXY=http://host:port
 
 ### Models
 
-| Model | Base Provider | Provider | Website |
-| ----- | ------------- | -------- | ------- |
-| gpt-3.5-turbo | OpenAI | 5+ Providers | [openai.com](https://openai.com/) |
-| gpt-4 | OpenAI | 2+ Providers | [openai.com](https://openai.com/) |
-| gpt-4-turbo | OpenAI | g4f.Provider.Bing | [openai.com](https://openai.com/) |
-| Llama-2-7b-chat-hf | Meta | 2+ Providers | [llama.meta.com](https://llama.meta.com/) |
-| Llama-2-13b-chat-hf | Meta | 2+ Providers | [llama.meta.com](https://llama.meta.com/) |
-| Llama-2-70b-chat-hf | Meta | 3+ Providers | [llama.meta.com](https://llama.meta.com/) |
-| CodeLlama-34b-Instruct-hf | Meta | 2+ Providers | [llama.meta.com](https://llama.meta.com/) |
-| CodeLlama-70b-Instruct-hf | Meta | 2+ Providers | [llama.meta.com](https://llama.meta.com/) |
-| Mixtral-8x7B-Instruct-v0.1 | Huggingface | 4+ Providers | [huggingface.co](https://huggingface.co/) |
-| Mistral-7B-Instruct-v0.1 | Huggingface | 4+ Providers | [huggingface.co](https://huggingface.co/) |
-| dolphin-2.6-mixtral-8x7b | Huggingface | g4f.Provider.DeepInfra | [huggingface.co](https://huggingface.co/) |
-| lzlv_70b_fp16_hf | Huggingface | g4f.Provider.DeepInfra | [huggingface.co](https://huggingface.co/) |
-| airoboros-70b | Huggingface | g4f.Provider.DeepInfra | [huggingface.co](https://huggingface.co/) |
+| Model                       | Base Provider | Provider | Website |
+|-----------------------------| ------------- | -------- | ------- |
+| gpt-3.5-turbo               | OpenAI | 5+ Providers | [openai.com](https://openai.com/) |
+| gpt-4                       | OpenAI | 2+ Providers | [openai.com](https://openai.com/) |
+| gpt-4-turbo                 | OpenAI | g4f.Provider.Bing | [openai.com](https://openai.com/) |
+| Llama-2-7b-chat-hf          | Meta | 2+ Providers | [llama.meta.com](https://llama.meta.com/) |
+| Llama-2-13b-chat-hf         | Meta | 2+ Providers | [llama.meta.com](https://llama.meta.com/) |
+| Llama-2-70b-chat-hf         | Meta | 3+ Providers | [llama.meta.com](https://llama.meta.com/) |
+| Meta-Llama-3-8b             | Meta | 3+ Providers | [llama.meta.com](https://llama.meta.com/) |
+| Meta-Llama-3-70b            | Meta | 3+ Providers | [llama.meta.com](https://llama.meta.com/) |
+| CodeLlama-34b-Instruct-hf   | Meta | 2+ Providers | [llama.meta.com](https://llama.meta.com/) |
+| CodeLlama-70b-Instruct-hf   | Meta | 2+ Providers | [llama.meta.com](https://llama.meta.com/) |
+| Mixtral-8x7B-Instruct-v0.1  | Huggingface | 4+ Providers | [huggingface.co](https://huggingface.co/) |
+| Mistral-7B-Instruct-v0.1    | Huggingface | 4+ Providers | [huggingface.co](https://huggingface.co/) |
+| dolphin-2.6-mixtral-8x7b    | Huggingface | g4f.Provider.DeepInfra | [huggingface.co](https://huggingface.co/) |
+| lzlv_70b_fp16_hf            | Huggingface | g4f.Provider.DeepInfra | [huggingface.co](https://huggingface.co/) |
+| airoboros-70b               | Huggingface | g4f.Provider.DeepInfra | [huggingface.co](https://huggingface.co/) |
 | airoboros-l2-70b-gpt4-1.4.1 | Huggingface | g4f.Provider.DeepInfra | [huggingface.co](https://huggingface.co/) |
-| openchat_3.5 | Huggingface | 2+ Providers | [huggingface.co](https://huggingface.co/) |
-| gemini | Google | g4f.Provider.Gemini | [gemini.google.com](https://gemini.google.com/) |
-| gemini-pro | Google | 2+ Providers | [gemini.google.com](https://gemini.google.com/) |
-| claude-v2 | Anthropic | 1+ Providers | [anthropic.com](https://www.anthropic.com/) |
-| claude-3-opus | Anthropic | g4f.Provider.You | [anthropic.com](https://www.anthropic.com/) |
-| claude-3-sonnet | Anthropic | g4f.Provider.You | [anthropic.com](https://www.anthropic.com/) |
-| pi | Inflection | g4f.Provider.Pi | [inflection.ai](https://inflection.ai/) |
+| openchat_3.5                | Huggingface | 2+ Providers | [huggingface.co](https://huggingface.co/) |
+| gemini                      | Google | g4f.Provider.Gemini | [gemini.google.com](https://gemini.google.com/) |
+| gemini-pro                  | Google | 2+ Providers | [gemini.google.com](https://gemini.google.com/) |
+| claude-v2                   | Anthropic | 1+ Providers | [anthropic.com](https://www.anthropic.com/) |
+| claude-3-opus               | Anthropic | g4f.Provider.You | [anthropic.com](https://www.anthropic.com/) |
+| claude-3-sonnet             | Anthropic | g4f.Provider.You | [anthropic.com](https://www.anthropic.com/) |
+| pi                          | Inflection | g4f.Provider.Pi | [inflection.ai](https://inflection.ai/) |
 
 ## 🔗 Powered by gpt4free
 

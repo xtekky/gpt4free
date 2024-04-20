@@ -142,7 +142,7 @@ class Liaobots(AsyncGeneratorProvider, ProviderModelMixin):
                 "model": models[cls.get_model(model)],
                 "messages": messages,
                 "key": "",
-                "prompt": kwargs.get("system_message", "You are ChatGPT, a large language model trained by OpenAI. Follow the user's instructions carefully."),
+                "prompt": kwargs.get("system_message", "You are a helpful assistant."),
             }
             async with session.post(
                 "https://liaobots.work/api/chat",

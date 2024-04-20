@@ -8,7 +8,7 @@ except ImportError:
     has_nest_asyncio = False 
 
 from g4f.client import Client, ChatCompletion
-from g4f.Provider import Bing, OpenaiChat
+from g4f.Provider import Bing, OpenaiChat, DuckDuckGo
 
 DEFAULT_MESSAGES = [{"role": "system", "content": 'Response in json, Example: {"success: true"}'},
                     {"role": "user", "content": "Say success true in json"}]
@@ -24,7 +24,15 @@ class TestProviderIntegration(unittest.TestCase):
         self.assertIsInstance(response, ChatCompletion)
         self.assertIn("success", json.loads(response.choices[0].message.content))
 
+    def test_duckduckgo(self):
+        self.skipTest("Not working")
+        client = Client(provider=DuckDuckGo)
+        response = client.chat.completions.create(DEFAULT_MESSAGES, "", response_format={"type": "json_object"})
+        self.assertIsInstance(response, ChatCompletion)
+        self.assertIn("success", json.loads(response.choices[0].message.content))
+
     def test_openai(self):
+        self.skipTest("not working in this network")
         client = Client(provider=OpenaiChat)
         response = client.chat.completions.create(DEFAULT_MESSAGES, "", response_format={"type": "json_object"})
         self.assertIsInstance(response, ChatCompletion)

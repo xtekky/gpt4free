@@ -23,7 +23,7 @@ except ImportError:
 
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ...webdriver import get_browser
-from ...typing import AsyncResult, Messages, Cookies, ImageType, Union, AsyncIterator
+from ...typing import AsyncResult, Messages, Cookies, ImageType, AsyncIterator
 from ...requests import get_args_from_browser, raise_for_status
 from ...requests.aiohttp import StreamSession
 from ...image import to_image, to_bytes, ImageResponse, ImageRequest
@@ -35,6 +35,7 @@ from ... import debug
 class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
     """A class for creating and managing conversations with OpenAI chat service"""
 
+    label = "OpenAI ChatGPT"
     url = "https://chat.openai.com"
     working = True
     supports_gpt_35_turbo = True
@@ -43,7 +44,7 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
     supports_system_message = True
     default_model = None
     models = ["gpt-3.5-turbo", "gpt-4", "gpt-4-gizmo"]
-    model_aliases = {"text-davinci-002-render-sha": "gpt-3.5-turbo", "": "gpt-3.5-turbo"}
+    model_aliases = {"text-davinci-002-render-sha": "gpt-3.5-turbo", "": "gpt-3.5-turbo", "gpt-4-turbo-preview": "gpt-4"}
     _api_key: str = None
     _headers: dict = None
     _cookies: Cookies = None
@@ -294,7 +295,7 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
         model: str,
         messages: Messages,
         proxy: str = None,
-        timeout: int = 120,
+        timeout: int = 180,
         api_key: str = None,
         cookies: Cookies = None,
         auto_continue: bool = False,
@@ -333,8 +334,9 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
         Raises:
             RuntimeError: If an error occurs during processing.
         """
+
         async with StreamSession(
-            proxies={"https": proxy},
+            proxies={"all": proxy},
             impersonate="chrome",
             timeout=timeout
         ) as session:
@@ -346,7 +348,7 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
             if api_key is not None:
                 cls._set_api_key(api_key)
 
-            if cls.default_model is None and cls._api_key is not None:
+            if cls.default_model is None and (not cls.needs_auth or cls._api_key is not None):
                 try:
                     if not model:
                         cls.default_model = cls.get_model(await cls.get_default_model(session, cls._headers))
@@ -358,6 +360,7 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
                     if debug.logging:
                         print("OpenaiChat: Load default_model failed")
                         print(f"{e.__class__.__name__}: {e}")
+                        
 
             arkose_token = None
             if cls.default_model is None:
@@ -365,10 +368,12 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
                     arkose_token, api_key, cookies = await getArkoseAndAccessToken(proxy)
                     cls._create_request_args(cookies)
                     cls._set_api_key(api_key)
-                except NoValidHarFileError:
+                except NoValidHarFileError as e:
                     ...
                 if cls._api_key is None:
                     await cls.nodriver_access_token()
+                if cls._api_key is None and cls.needs_auth:
+                    raise e
                 cls.default_model = cls.get_model(await cls.get_default_model(session, cls._headers))
 
             async with session.post(
@@ -383,6 +388,9 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
                 blob = data["arkose"]["dx"]
                 need_arkose = data["arkose"]["required"]
                 chat_token = data["token"]
+                
+                if debug.logging:
+                    print(f'Arkose: {need_arkose} Turnstile: {data["turnstile"]["required"]}')
 
             if need_arkose and arkose_token is None:
                 arkose_token, api_key, cookies = await getArkoseAndAccessToken(proxy)
@@ -525,6 +533,8 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
             return
         if line["message"]["metadata"]["message_type"] not in ("next", "continue", "variant"):
             return
+        if line["message"]["recipient"] != "all":
+            return
         if fields.conversation_id is None:
             fields.conversation_id = line["conversation_id"]
             fields.message_id = line["message"]["id"]
@@ -581,9 +591,11 @@ this.fetch = async (url, options) => {
             user_data_dir = user_config_dir("g4f-nodriver")
         except:
             user_data_dir = None
+        if debug.logging:
+            print(f"Open nodriver with user_dir: {user_data_dir}")
         browser = await uc.start(user_data_dir=user_data_dir)
         page = await browser.get("https://chat.openai.com/")
-        while await page.query_selector("#prompt-textarea") is None:
+        while await page.find("[id^=headlessui-menu-button-]") is None:
             await asyncio.sleep(1)
         api_key = await page.evaluate(
             "(async () => {"
@@ -600,8 +612,9 @@ this.fetch = async (url, options) => {
         for c in await page.browser.cookies.get_all():
             if c.domain.endswith("chat.openai.com"):
                 cookies[c.name] = c.value
+        user_agent = await page.evaluate("window.navigator.userAgent")
         await page.close()
-        cls._create_request_args(cookies)
+        cls._create_request_args(cookies, user_agent)
         cls._set_api_key(api_key)
 
     @classmethod
@@ -653,7 +666,7 @@ this.fetch = async (url, options) => {
             "content-type": "application/json",
             "oai-device-id": str(uuid.uuid4()),
             "oai-language": "en-US",
-            "sec-ch-ua": "\"Chromium\";v=\"122\", \"Not(A:Brand\";v=\"24\", \"Google Chrome\";v=\"122\"",
+            "sec-ch-ua": "\"Google Chrome\";v=\"123\", \"Not:A-Brand\";v=\"8\", \"Chromium\";v=\"123\"",
             "sec-ch-ua-mobile": "?0",
             "sec-ch-ua-platform": "\"Linux\"",
             "sec-fetch-dest": "empty",
@@ -666,8 +679,10 @@ this.fetch = async (url, options) => {
         return "; ".join(f"{k}={v}" for k, v in cookies.items() if k != "access_token")
 
     @classmethod
-    def _create_request_args(cls, cookies: Cookies = None):
+    def _create_request_args(cls, cookies: Cookies = None, user_agent: str = None):
         cls._headers = cls.get_default_headers()
+        if user_agent is not None:
+            cls._headers["user-agent"] = user_agent
         cls._cookies = {} if cookies is None else cookies
         cls._update_cookie_header()
 

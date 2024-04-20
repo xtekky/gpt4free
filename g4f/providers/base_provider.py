@@ -19,8 +19,13 @@ else:
 
 # Set Windows event loop policy for better compatibility with asyncio and curl_cffi
 if sys.platform == 'win32':
-    if isinstance(asyncio.get_event_loop_policy(), asyncio.WindowsProactorEventLoopPolicy):
-        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+    try:
+        from curl_cffi import aio
+        if not hasattr(aio, "_get_selector"):
+            if isinstance(asyncio.get_event_loop_policy(), asyncio.WindowsProactorEventLoopPolicy):
+                asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+    except ImportError:
+        pass
 
 def get_running_loop(check_nested: bool) -> Union[AbstractEventLoop, None]:
     try:
@@ -78,6 +83,7 @@ class AbstractProvider(BaseProvider):
             timeout=kwargs.get("timeout")
         )
 
+    @classmethod
     def get_parameters(cls) -> dict:
         return signature(
             cls.create_async_generator if issubclass(cls, AsyncGeneratorProvider) else
@@ -107,7 +113,9 @@ class AbstractProvider(BaseProvider):
                 continue
             args += f"\n    {name}"
             args += f": {get_type_name(param.annotation)}" if param.annotation is not Parameter.empty else ""
-            args += f' = "{param.default}"' if param.default == "" else f" = {param.default}" if param.default is not Parameter.empty else ""
+            default_value = f'"{param.default}"' if isinstance(param.default, str) else param.default
+            args += f" = {default_value}" if param.default is not Parameter.empty else ""
+            args += ","
         
         return f"g4f.Provider.{cls.__name__} supports: ({args}\n)"
 
@@ -261,16 +269,18 @@ class AsyncGeneratorProvider(AsyncProvider):
             AsyncResult: An asynchronous generator yielding results.
         """
         raise NotImplementedError()
-    
+
 class ProviderModelMixin:
     default_model: str
     models: list[str] = []
     model_aliases: dict[str, str] = {}
-    
+
     @classmethod
     def get_models(cls) -> list[str]:
+        if not cls.models:
+            return [cls.default_model]
         return cls.models
-    
+
     @classmethod
     def get_model(cls, model: str) -> str:
         if not model and cls.default_model is not None:

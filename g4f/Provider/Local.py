@@ -4,7 +4,7 @@ from ..locals.models import get_models
 try:
     from ..locals.provider import LocalProvider
     has_requirements = True
-except ModuleNotFoundError:
+except ImportError:
     has_requirements = False
 
 from ..typing import Messages, CreateResult
@@ -12,6 +12,7 @@ from ..providers.base_provider import AbstractProvider, ProviderModelMixin
 from ..errors import MissingRequirementsError
 
 class Local(AbstractProvider, ProviderModelMixin):
+    label = "GPT4All"
     working = True
     supports_message_history = True
     supports_system_message = True

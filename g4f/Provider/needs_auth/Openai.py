@@ -2,13 +2,14 @@ from __future__ import annotations
 
 import json
 
+from ..helper import filter_none
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin, FinishReason
 from ...typing import Union, Optional, AsyncResult, Messages
-from ...requests.raise_for_status import raise_for_status
-from ...requests import StreamSession
+from ...requests import StreamSession, raise_for_status
 from ...errors import MissingAuthError, ResponseError
 
 class Openai(AsyncGeneratorProvider, ProviderModelMixin):
+    label = "OpenAI API"
     url = "https://openai.com"
     working = True
     needs_auth = True
@@ -50,10 +51,12 @@ class Openai(AsyncGeneratorProvider, ProviderModelMixin):
                 stream=stream,
                 **extra_data
             )
+            
             async with session.post(f"{api_base.rstrip('/')}/chat/completions", json=data) as response:
                 await raise_for_status(response)
                 if not stream:
                     data = await response.json()
+                    cls.raise_error(data)
                     choice = data["choices"][0]
                     if "content" in choice["message"]:
                         yield choice["message"]["content"].strip()
@@ -68,8 +71,7 @@ class Openai(AsyncGeneratorProvider, ProviderModelMixin):
                             if chunk == b"[DONE]":
                                 break
                             data = json.loads(chunk)
-                            if "error_message" in data:
-                                raise ResponseError(data["error_message"])
+                            cls.raise_error(data)
                             choice = data["choices"][0]
                             if "content" in choice["delta"] and choice["delta"]["content"]:
                                 delta = choice["delta"]["content"]
@@ -87,6 +89,13 @@ class Openai(AsyncGeneratorProvider, ProviderModelMixin):
         if "finish_reason" in choice and choice["finish_reason"] is not None:
             return FinishReason(choice["finish_reason"])
 
+    @staticmethod
+    def raise_error(data: dict):
+        if "error_message" in data:
+            raise ResponseError(data["error_message"])
+        elif "error" in data:
+            raise ResponseError(f'Error {data["error"]["code"]}: {data["error"]["message"]}')
+
     @classmethod
     def get_headers(cls, stream: bool, api_key: str = None, headers: dict = None) -> dict:
         return {
@@ -99,10 +108,3 @@ class Openai(AsyncGeneratorProvider, ProviderModelMixin):
             ),
             **({} if headers is None else headers)
         }
-
-def filter_none(**kwargs) -> dict:
-    return {
-        key: value
-        for key, value in kwargs.items()
-        if value is not None
-    }
