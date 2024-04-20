@@ -15,6 +15,8 @@ import g4f.debug
 from g4f.client import AsyncClient
 from g4f.typing import Messages
 
+app = FastAPI()
+
 class ChatCompletionsConfig(BaseModel):
     messages: Messages
     model: str
@@ -25,53 +27,44 @@ class ChatCompletionsConfig(BaseModel):
     stop: Union[list[str], str, None] = None
     api_key: Optional[str] = None
     web_search: Optional[bool] = None
+    proxy: Optional[str] = None
 
 class Api:
-    def __init__(self, engine: g4f, debug: bool = True, sentry: bool = False,
-                 list_ignored_providers: List[str] = None) -> None:
-        self.engine = engine
-        self.debug = debug
-        self.sentry = sentry
+    def __init__(self, list_ignored_providers: List[str] = None) -> None:
         self.list_ignored_providers = list_ignored_providers
-
-        if debug:
-            g4f.debug.logging = True
         self.client = AsyncClient()
-        self.app = FastAPI()
-
-        self.routes()
-        self.register_validation_exception_handler()
+    
+    def set_list_ignored_providers(self, list: list):
+        self.list_ignored_providers = list
 
     def register_validation_exception_handler(self):
-        @self.app.exception_handler(RequestValidationError)
+        @app.exception_handler(RequestValidationError)
         async def validation_exception_handler(request: Request, exc: RequestValidationError):
             details = exc.errors()
             modified_details = []
             for error in details:
-                modified_details.append(
-                    {
-                        "loc": error["loc"],
-                        "message": error["msg"],
-                        "type": error["type"],
-                    }
-                )
+                modified_details.append({
+                    "loc": error["loc"],
+                    "message": error["msg"],
+                    "type": error["type"],
+                })
             return JSONResponse(
                 status_code=HTTP_422_UNPROCESSABLE_ENTITY,
                 content=jsonable_encoder({"detail": modified_details}),
             )
 
-    def routes(self):
-        @self.app.get("/")
+    def register_routes(self):
+        @app.get("/")
         async def read_root():
             return RedirectResponse("/v1", 302)
 
-        @self.app.get("/v1")
+        @app.get("/v1")
         async def read_root_v1():
             return HTMLResponse('g4f API: Go to '
                                 '<a href="/v1/chat/completions">chat/completions</a> '
                                 'or <a href="/v1/models">models</a>.')
 
-        @self.app.get("/v1/models")
+        @app.get("/v1/models")
         async def models():
             model_list = dict(
                 (model, g4f.models.ModelUtils.convert[model])
@@ -85,7 +78,7 @@ class Api:
             } for model_id, model in model_list.items()]
             return JSONResponse(model_list)
 
-        @self.app.get("/v1/models/{model_name}")
+        @app.get("/v1/models/{model_name}")
         async def model_info(model_name: str):
             try:
                 model_info = g4f.models.ModelUtils.convert[model_name]
@@ -98,8 +91,8 @@ class Api:
             except:
                 return JSONResponse({"error": "The model does not exist."})
 
-        @self.app.post("/v1/chat/completions")
-        async def chat_completions(config: ChatCompletionsConfig = None, request: Request = None, provider: str = None):
+        @app.post("/v1/chat/completions")
+        async def chat_completions(config: ChatCompletionsConfig, request: Request = None, provider: str = None):
             try:
                 config.provider = provider if config.provider is None else config.provider
                 if config.api_key is None and request is not None:
@@ -132,13 +125,13 @@ class Api:
 
             return StreamingResponse(streaming(), media_type="text/event-stream")
 
-        @self.app.post("/v1/completions")
+        @app.post("/v1/completions")
         async def completions():
             return Response(content=json.dumps({'info': 'Not working yet.'}, indent=4), media_type="application/json")
 
-    def run(self, ip, use_colors : bool = False):
-        split_ip = ip.split(":")
-        uvicorn.run(app=self.app, host=split_ip[0], port=int(split_ip[1]), use_colors=use_colors)
+api = Api()
+api.register_routes()
+api.register_validation_exception_handler()
 
 def format_exception(e: Exception, config: ChatCompletionsConfig) -> str:
     last_provider = g4f.get_last_provider(True)
@@ -148,7 +141,19 @@ def format_exception(e: Exception, config: ChatCompletionsConfig) -> str:
         "provider": last_provider.get("name") if last_provider else config.provider
     })
 
-def run_api(host: str = '0.0.0.0', port: int = 1337, debug: bool = False, use_colors=True) -> None:
-    print(f'Starting server... [g4f v-{g4f.version.utils.current_version}]')
-    app = Api(engine=g4f, debug=debug)
-    app.run(f"{host}:{port}", use_colors=use_colors)
+def run_api(
+    host: str = '0.0.0.0',
+    port: int = 1337,
+    bind: str = None,
+    debug: bool = False,
+    workers: int = None,
+    use_colors: bool = None
+) -> None:
+    print(f'Starting server... [g4f v-{g4f.version.utils.current_version}]' + (" (debug)" if debug else ""))
+    if use_colors is None:
+        use_colors = debug
+    if bind is not None:
+        host, port = bind.split(":")
+    if debug:
+        g4f.debug.logging = True
+    uvicorn.run("g4f.api:app", host=host, port=int(port), workers=workers, use_colors=use_colors)#

@@ -302,7 +302,7 @@ async function add_message_chunk(message) {
         window.provider_result = message.provider;
         content.querySelector('.provider').innerHTML = `
             <a href="${message.provider.url}" target="_blank">
-                ${message.provider.name}
+                ${message.provider.label ? message.provider.label : message.provider.name}
             </a>
             ${message.provider.model ? ' with ' + message.provider.model : ''}
         `
@@ -545,7 +545,8 @@ const load_conversation = async (conversation_id, scroll=true) => {
         last_model = item.provider?.model;
         let next_i = parseInt(i) + 1;
         let next_provider = item.provider ? item.provider : (messages.length > next_i ? messages[next_i].provider : null);
-        let provider_link = item.provider?.name ? `<a href="${item.provider.url}" target="_blank">${item.provider.name}</a>` : "";
+        let provider_label = item.provider?.label ? item.provider?.label : item.provider?.name;
+        let provider_link = item.provider?.name ? `<a href="${item.provider.url}" target="_blank">${provider_label}</a>` : "";
         let provider = provider_link ? `
             <div class="provider">
                 ${provider_link}

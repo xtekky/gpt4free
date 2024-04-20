@@ -890,7 +890,7 @@ a:-webkit-any-link {
 
     resize: vertical;
     max-height: 200px;
-    min-height: 80px;
+    min-height: 100px;
 }
 
 /* style for hljs copy */

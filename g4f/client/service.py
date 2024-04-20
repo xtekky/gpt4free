@@ -111,5 +111,6 @@ def get_last_provider(as_dict: bool = False) -> Union[ProviderType, dict[str, st
             "name": last.__name__,
             "url": last.url,
             "model": debug.last_model,
+            "label": last.label if hasattr(last, "label") else None
         }
     return last

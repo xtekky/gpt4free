@@ -99,7 +99,7 @@ class Api():
         if api_key is not None:
             kwargs["api_key"] = api_key
         if json_data.get('web_search'):
-            if provider == "Bing":
+            if provider in ("Bing", "HuggingChat"):
                 kwargs['web_search'] = True
             else:
                 from .internet import get_search_message
