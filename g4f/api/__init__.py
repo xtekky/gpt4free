@@ -92,7 +92,7 @@ class Api:
                 return JSONResponse({"error": "The model does not exist."})
 
         @app.post("/v1/chat/completions")
-        async def chat_completions(config: ChatCompletionsConfig = None, request: Request = None, provider: str = None):
+        async def chat_completions(config: ChatCompletionsConfig, request: Request = None, provider: str = None):
             try:
                 config.provider = provider if config.provider is None else config.provider
                 if config.api_key is None and request is not None:
