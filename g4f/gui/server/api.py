@@ -16,7 +16,8 @@ conversations: dict[dict[str, BaseConversation]] = {}
 
 class Api():
 
-    def get_models(self) -> list[str]:
+    @staticmethod
+    def get_models() -> list[str]:
         """
         Return a list of all models.
 
@@ -27,7 +28,8 @@ class Api():
         """
         return models._all_models
 
-    def get_provider_models(self, provider: str) -> list[dict]:
+    @staticmethod
+    def get_provider_models(provider: str) -> list[dict]:
         if provider in __map__:
             provider: ProviderType = __map__[provider]
             if issubclass(provider, ProviderModelMixin):
@@ -40,7 +42,24 @@ class Api():
             else:
                 return [];
 
-    def get_providers(self) -> list[str]:
+    @staticmethod
+    def get_image_models() -> list[dict]:
+        image_models = []
+        for key, provider in __map__.items():
+            if hasattr(provider, "image_models"):
+                if hasattr(provider, "get_models"):
+                    provider.get_models()
+                for model in provider.image_models:
+                    image_models.append({
+                        "provider": key,
+                        "url": provider.url,
+                        "label": provider.label if hasattr(provider, "label") else None,
+                        "image_model": model
+                    })
+        return image_models
+
+    @staticmethod
+    def get_providers() -> list[str]:
         """
         Return a list of all working providers.
         """
@@ -58,7 +77,8 @@ class Api():
             if provider.working
         }
 
-    def get_version(self):
+    @staticmethod
+    def get_version():
         """
         Returns the current and latest version of the application.
 

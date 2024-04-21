@@ -17,6 +17,7 @@ class ReplicateImage(AsyncGeneratorProvider, ProviderModelMixin):
         "39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b",
         "2b017d9b67edd2ee1401238df49d75da53c523f36e363881e057f5dc3ed3c5b2"
     ]
+    image_models = [default_model]
 
     @classmethod
     async def create_async_generator(

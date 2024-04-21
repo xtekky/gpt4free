@@ -41,6 +41,8 @@ async def create_conversation(session: StreamSession, headers: dict, tone: str) 
             raise RateLimitError("Response 404: Do less requests and reuse conversations")
         await raise_for_status(response, "Failed to create conversation")
         data = await response.json()
+    if not data:
+        raise RuntimeError('Empty response: Failed to create conversation')
     conversationId = data.get('conversationId')
     clientId = data.get('clientId')
     conversationSignature = response.headers.get('X-Sydney-Encryptedconversationsignature')

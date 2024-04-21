@@ -11,6 +11,7 @@ class DeepInfraImage(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://deepinfra.com"
     working = True
     default_model = 'stability-ai/sdxl'
+    image_models = [default_model]
 
     @classmethod
     def get_models(cls):
@@ -18,6 +19,7 @@ class DeepInfraImage(AsyncGeneratorProvider, ProviderModelMixin):
             url = 'https://api.deepinfra.com/models/featured'
             models = requests.get(url).json()
             cls.models = [model['model_name'] for model in models if model["reported_type"] == "text-to-image"]
+            cls.image_models = cls.models
         return cls.models
 
     @classmethod

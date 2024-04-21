@@ -31,6 +31,10 @@ class Backend_Api(Api):
                 'function': self.get_provider_models,
                 'methods': ['GET']
             },
+            '/backend-api/v2/image_models': {
+                'function': self.get_image_models,
+                'methods': ['GET']
+            },
             '/backend-api/v2/providers': {
                 'function': self.get_providers,
                 'methods': ['GET']

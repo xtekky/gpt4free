@@ -53,6 +53,7 @@ class Gemini(AsyncGeneratorProvider):
     url = "https://gemini.google.com"
     needs_auth = True
     working = True
+    image_models = ["gemini"]
 
     @classmethod
     async def create_async_generator(

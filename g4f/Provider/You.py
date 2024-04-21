@@ -8,7 +8,7 @@ import uuid
 from ..typing import AsyncResult, Messages, ImageType, Cookies
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from .helper import format_prompt
-from ..image import ImageResponse, to_bytes, is_accepted_format
+from ..image import ImageResponse, ImagePreview, to_bytes, is_accepted_format
 from ..requests import StreamSession, FormData, raise_for_status
 from .you.har_file import get_telemetry_ids
 from .. import debug
@@ -34,6 +34,7 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
     model_aliases = {
         "claude-v2": "claude-2"
     }
+    image_models = ["dall-e"]
     _cookies = None
     _cookies_used = 0
     _telemetry_ids = []
@@ -67,7 +68,7 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
             timeout=(30, timeout)
         ) as session:
             cookies = await cls.get_cookies(session) if chat_mode != "default" else None
-            
+
             upload = json.dumps([await cls.upload_file(session, cookies, to_bytes(image), image_name)]) if image else ""
             headers = {
                 "Accept": "text/event-stream",
@@ -102,11 +103,17 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
                         if event == "youChatToken" and event in data:
                             yield data[event]
                         elif event == "youChatUpdate" and "t" in data and data["t"] is not None:
-                            match = re.search(r"!\[fig\]\((.+?)\)", data["t"])
-                            if match:
-                                yield ImageResponse(match.group(1), messages[-1]["content"])
+                            if chat_mode == "create":
+                                match = re.search(r"!\[(.+?)\]\((.+?)\)", data["t"])
+                                if match:
+                                    if match.group(1) == "fig":
+                                        yield ImagePreview(match.group(2), messages[-1]["content"])
+                                    else:
+                                        yield ImageResponse(match.group(2), match.group(1))
+                                else:
+                                    yield data["t"]          
                             else:
-                                yield data["t"]                         
+                                yield data["t"]               
 
     @classmethod
     async def upload_file(cls, client: StreamSession, cookies: Cookies, file: bytes, filename: str = None) -> dict:

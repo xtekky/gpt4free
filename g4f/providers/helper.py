@@ -3,7 +3,7 @@ from __future__ import annotations
 import random
 import string
 
-from ..typing import Messages
+from ..typing import Messages, Cookies
 
 def format_prompt(messages: Messages, add_special_tokens=False) -> str:
     """
@@ -57,3 +57,6 @@ def filter_none(**kwargs) -> dict:
         for key, value in kwargs.items()
         if value is not None
     }
+
+def format_cookies(cookies: Cookies) -> str:
+    return "; ".join([f"{k}={v}" for k, v in cookies.items()])

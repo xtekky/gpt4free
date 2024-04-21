@@ -4,3 +4,4 @@ from .OpenaiChat import OpenaiChat
 
 class OpenaiAccount(OpenaiChat):
     needs_auth = True
+    image_models = ["dall-e"]
