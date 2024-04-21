@@ -210,7 +210,9 @@ def format_images_markdown(images: Union[str, list], alt: str, preview: Union[st
         if not isinstance(preview, list):
             preview = [preview.replace('{image}', image) if preview else image for image in images]
         result = "\n".join(
-            f"[![#{idx+1} {alt}]({preview[idx]})]({image})" for idx, image in enumerate(images)
+            #f"[![#{idx+1} {alt}]({preview[idx]})]({image})"
+            f'[<img src="{preview[idx]}" width="200" alt="#{idx+1} {alt}">]({image})'
+            for idx, image in enumerate(images)
         )
     start_flag = "<!-- generated images start -->\n"
     end_flag = "<!-- generated images end -->\n"
@@ -258,6 +260,13 @@ class ImageResponse:
 
     def get_list(self) -> list[str]:
         return [self.images] if isinstance(self.images, str) else self.images
+
+class ImagePreview(ImageResponse):
+    def __str__(self):
+        return ""
+
+    def to_string(self):
+        return super().__str__()
 
 class ImageRequest:
     def __init__(

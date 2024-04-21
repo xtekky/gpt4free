@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from aiohttp import ClientSession
-from ...requests import raise_for_status
+from ...requests import StreamSession, raise_for_status
 from ...errors import RateLimitError
 from ...providers.conversation import BaseConversation
 
@@ -22,7 +21,7 @@ class Conversation(BaseConversation):
         self.clientId = clientId
         self.conversationSignature = conversationSignature
 
-async def create_conversation(session: ClientSession, headers: dict, tone: str) -> Conversation:
+async def create_conversation(session: StreamSession, headers: dict, tone: str) -> Conversation:
     """
     Create a new conversation asynchronously.
 
@@ -49,7 +48,7 @@ async def create_conversation(session: ClientSession, headers: dict, tone: str) 
         raise RuntimeError('Empty fields: Failed to create conversation')
     return Conversation(conversationId, clientId, conversationSignature)
         
-async def list_conversations(session: ClientSession) -> list:
+async def list_conversations(session: StreamSession) -> list:
     """
     List all conversations asynchronously.
 
@@ -64,7 +63,7 @@ async def list_conversations(session: ClientSession) -> list:
         response = await response.json()
         return response["chats"]
 
-async def delete_conversation(session: ClientSession, conversation: Conversation, headers: dict) -> bool:
+async def delete_conversation(session: StreamSession, conversation: Conversation, headers: dict) -> bool:
     """
     Delete a conversation asynchronously.
 

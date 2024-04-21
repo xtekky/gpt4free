@@ -2,3 +2,4 @@ recursive-include g4f/gui/server *
 recursive-include g4f/gui/client *
 recursive-include g4f/Provider/npm *
 recursive-include g4f/Provider/gigachat_crt *
+recursive-include g4f/Provider/you *

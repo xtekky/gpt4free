@@ -10,7 +10,8 @@ from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from .helper import format_prompt
 from ..image import ImageResponse, to_bytes, is_accepted_format
 from ..requests import StreamSession, FormData, raise_for_status
-from .you.har_file import get_dfp_telemetry_id
+from .you.har_file import get_telemetry_ids
+from .. import debug
 
 class You(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://you.com"
@@ -35,6 +36,7 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
     }
     _cookies = None
     _cookies_used = 0
+    _telemetry_ids = []
 
     @classmethod
     async def create_async_generator(
@@ -159,7 +161,12 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
 
     @classmethod
     async def create_cookies(cls, client: StreamSession) -> Cookies:
+        if not cls._telemetry_ids:
+            cls._telemetry_ids = await get_telemetry_ids()
         user_uuid = str(uuid.uuid4())
+        telemetry_id = cls._telemetry_ids.pop()
+        if debug.logging:
+            print(f"Use telemetry_id: {telemetry_id}")
         async with client.post(
             "https://web.stytch.com/sdk/v1/passwords",
             headers={
@@ -170,7 +177,7 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
                 "Referer": "https://you.com/"
             },
             json={
-                "dfp_telemetry_id": await get_dfp_telemetry_id(),
+                "dfp_telemetry_id": telemetry_id,
                 "email": f"{user_uuid}@gmail.com",
                 "password": f"{user_uuid}#{user_uuid}",
                 "session_duration_minutes": 129600

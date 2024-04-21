@@ -7,13 +7,13 @@ import time
 import asyncio
 from urllib import parse
 from datetime import datetime, date
-from aiohttp import ClientSession, ClientTimeout, BaseConnector, WSMsgType
 
 from ..typing import AsyncResult, Messages, ImageType, Cookies
 from ..image import ImageRequest
-from ..errors import ResponseStatusError, RateLimitError
+from ..errors import ResponseError, ResponseStatusError, RateLimitError
+from ..requests import StreamSession, DEFAULT_HEADERS
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from .helper import get_connector, get_random_hex
+from .helper import get_random_hex
 from .bing.upload_image import upload_image
 from .bing.conversation import Conversation, create_conversation, delete_conversation
 from .BingCreateImages import BingCreateImages
@@ -49,7 +49,6 @@ class Bing(AsyncGeneratorProvider, ProviderModelMixin):
         timeout: int = 900,
         api_key: str = None,
         cookies: Cookies = None,
-        connector: BaseConnector = None,
         tone: str = None,
         image: ImageType = None,
         web_search: bool = False,
@@ -79,7 +78,6 @@ class Bing(AsyncGeneratorProvider, ProviderModelMixin):
 
         return stream_generate(
             prompt, tone, image, context, cookies, api_key,
-            get_connector(connector, proxy, True),
             proxy, web_search, gpt4_turbo, timeout,
             **kwargs
         )
@@ -102,25 +100,53 @@ def get_ip_address() -> str:
     return f"13.{random.randint(104, 107)}.{random.randint(0, 255)}.{random.randint(0, 255)}"
 
 def get_default_cookies():
+    #muid = get_random_hex().upper()
+    sid = get_random_hex().upper()
+    guid = get_random_hex().upper()
+    isodate = date.today().isoformat()
+    timestamp = int(time.time())
+    zdate = "0001-01-01T00:00:00.0000000"
     return {
-        'SRCHD'         : 'AF=NOFORM',
-        'PPLState'      : '1',
-        'KievRPSSecAuth': '',
-        'SUID'          : '',
-        'SRCHUSR'       : f'DOB={date.today().strftime("%Y%m%d")}&T={int(time.time())}',
-        'SRCHHPGUSR'    : f'HV={int(time.time())}',
-        'BCP'           : 'AD=1&AL=1&SM=1',
-        '_Rwho'         : f'u=d&ts={date.today().isoformat()}',
+        "_C_Auth": "",
+        #"MUID": muid,
+        #"MUIDB":  muid,
+        "_EDGE_S": f"F=1&SID={sid}",
+        "_EDGE_V": "1",
+        "SRCHD": "AF=hpcodx",
+        "SRCHUID": f"V=2&GUID={guid}&dmnchg=1",
+        "_RwBf": (
+            f"r=0&ilt=1&ihpd=0&ispd=0&rc=3&rb=0&gb=0&rg=200&pc=0&mtu=0&rbb=0&g=0&cid="
+            f"&clo=0&v=1&l={isodate}&lft={zdate}&aof=0&ard={zdate}"
+            f"&rwdbt={zdate}&rwflt={zdate}&o=2&p=&c=&t=0&s={zdate}"
+            f"&ts={isodate}&rwred=0&wls=&wlb="
+            "&wle=&ccp=&cpt=&lka=0&lkt=0&aad=0&TH="
+        ),
+        '_Rwho': f'u=d&ts={isodate}',
+        "_SS": f"SID={sid}&R=3&RB=0&GB=0&RG=200&RP=0",
+        "SRCHUSR": f"DOB={date.today().strftime('%Y%m%d')}&T={timestamp}",
+        "SRCHHPGUSR": f"HV={int(time.time())}",
+        "BCP": "AD=1&AL=1&SM=1",
+        "ipv6": f"hit={timestamp}",
+        '_C_ETH' : '1',
     }
 
-def create_headers(cookies: Cookies = None, api_key: str = None) -> dict:
+async def create_headers(cookies: Cookies = None, api_key: str = None) -> dict:
     if cookies is None:
+        # import nodriver as uc
+        # browser = await uc.start(headless=False)
+        # page = await browser.get(Defaults.home)
+        # await asyncio.sleep(10)
+        # cookies = {}
+        # for c in await page.browser.cookies.get_all():
+        #     if c.domain.endswith(".bing.com"):
+        #         cookies[c.name] = c.value
+        # user_agent = await page.evaluate("window.navigator.userAgent")
+        # await page.close()
         cookies = get_default_cookies()
     if api_key is not None:
         cookies["_U"] = api_key
     headers = Defaults.headers.copy()
     headers["cookie"] = "; ".join(f"{k}={v}" for k, v in cookies.items())
-    headers["x-forwarded-for"] = get_ip_address()
     return headers
 
 class Defaults:
@@ -246,25 +272,13 @@ class Defaults:
     }
 
     # Default headers for requests
-    home = 'https://www.bing.com/chat?q=Bing+AI&FORM=hpcodx'
+    home = "https://www.bing.com/chat?q=Microsoft+Copilot&FORM=hpcodx"
     headers = {
-        'sec-ch-ua': '"Chromium";v="122", "Not(A:Brand";v="24", "Google Chrome";v="122"',
-        'sec-ch-ua-mobile': '?0',
-        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-        'sec-ch-ua-arch': '"x86"',
-        'sec-ch-ua-full-version': '"122.0.6261.69"',
-        'accept': 'application/json',
-        'sec-ch-ua-platform-version': '"15.0.0"',
+        **DEFAULT_HEADERS,
+        "accept": "application/json",
+        "referer": home,
         "x-ms-client-request-id": str(uuid.uuid4()),
-        'sec-ch-ua-full-version-list': '"Chromium";v="122.0.6261.69", "Not(A:Brand";v="24.0.0.0", "Google Chrome";v="122.0.6261.69"',
-        'x-ms-useragent': 'azsdk-js-api-client-factory/1.0.0-beta.1 core-rest-pipeline/1.12.3 OS/Windows',
-        'sec-ch-ua-model': '""',
-        'sec-ch-ua-platform': '"Windows"',
-        'sec-fetch-site': 'same-origin',
-        'sec-fetch-mode': 'cors',
-        'sec-fetch-dest': 'empty',
-        'referer': home,
-        'accept-language': 'en-US,en;q=0.9',
+        "x-ms-useragent": "azsdk-js-api-client-factory/1.0.0-beta.1 core-rest-pipeline/1.15.1 OS/Windows",
     }
 
 def format_message(msg: dict) -> str:
@@ -368,7 +382,6 @@ async def stream_generate(
     context: str = None,
     cookies: dict = None,
     api_key: str = None,
-    connector: BaseConnector = None,
     proxy: str = None,
     web_search: bool = False,
     gpt4_turbo: bool = False,
@@ -393,14 +406,12 @@ async def stream_generate(
     :param timeout: Timeout for the request.
     :return: An asynchronous generator yielding responses.
     """
-    headers = create_headers(cookies, api_key)
+    headers = await create_headers(cookies, api_key)
     new_conversation = conversation is None
     max_retries = (5 if new_conversation else 0) if max_retries is None else max_retries
-    async with ClientSession(
-        timeout=ClientTimeout(total=timeout), connector=connector
-    ) as session:
-        first = True
-        while first or conversation is None:
+    first = True
+    while first or conversation is None:
+        async with StreamSession(timeout=timeout, proxy=proxy) as session:
             first = False
             do_read = True
             try:
@@ -408,13 +419,13 @@ async def stream_generate(
                     conversation = await create_conversation(session, headers, tone)
                 if return_conversation:
                     yield conversation
-            except ResponseStatusError as e:
+            except (ResponseStatusError, RateLimitError) as e:
                 max_retries -= 1
                 if max_retries < 1:
                     raise e
                 if debug.logging:
                     print(f"Bing: Retry: {e}")
-                headers = create_headers()
+                headers = await create_headers()
                 await asyncio.sleep(sleep_retry)
                 continue
 
@@ -434,7 +445,7 @@ async def stream_generate(
             ) as wss:
                 await wss.send_str(format_message({'protocol': 'json', 'version': 1}))
                 await wss.send_str(format_message({"type": 6}))
-                await wss.receive(timeout=timeout)
+                await wss.receive_str()
                 await wss.send_str(create_message(
                     conversation, prompt, tone,
                     context if new_conversation else None,
@@ -445,16 +456,15 @@ async def stream_generate(
                 returned_text = ''
                 message_id = None
                 while do_read:
-                    msg = await wss.receive(timeout=timeout)
-                    if msg.type == WSMsgType.CLOSED:
-                        break
-                    if msg.type != WSMsgType.TEXT or not msg.data:
-                        continue
-                    objects = msg.data.split(Defaults.delimiter)
+                    msg = await wss.receive_str()
+                    objects = msg.split(Defaults.delimiter)
                     for obj in objects:
                         if obj is None or not obj:
                             continue
-                        response = json.loads(obj)
+                        try:
+                            response = json.loads(obj)
+                        except json.JSONDecodeError:
+                            continue
                         if response and response.get('type') == 1 and response['arguments'][0].get('messages'):
                             message = response['arguments'][0]['messages'][0]
                             if message_id is not None and message_id != message["messageId"]:
@@ -462,7 +472,7 @@ async def stream_generate(
                             message_id = message["messageId"]
                             image_response = None
                             if (raise_apology and message['contentOrigin'] == 'Apology'):
-                                raise RuntimeError("Apology Response Error")
+                                raise ResponseError("Apology Response Error")
                             if 'adaptiveCards' in message:
                                 card = message['adaptiveCards'][0]['body'][0]
                                 if "text" in card:
@@ -488,6 +498,7 @@ async def stream_generate(
                                 yield image_response
                         elif response.get('type') == 2:
                             result = response['item']['result']
+                            do_read = False
                             if result.get('error'):
                                 max_retries -= 1
                                 if max_retries < 1:
@@ -497,10 +508,12 @@ async def stream_generate(
                                         raise RuntimeError(f"{result['value']}: {result['message']}")
                                 if debug.logging:
                                     print(f"Bing: Retry: {result['value']}: {result['message']}")
-                                headers = create_headers()
-                                do_read = False
+                                headers = await create_headers()
                                 conversation = None
                                 await asyncio.sleep(sleep_retry)
-                                break
-                            return
-        await delete_conversation(session, conversation, headers)
+                            break
+                        elif response.get('type') == 3:
+                            do_read = False
+                            break
+            if conversation is not None:
+                await delete_conversation(session, conversation, headers)

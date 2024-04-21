@@ -2,12 +2,13 @@ from __future__ import annotations
 
 import json
 import os
+import os.path
 import random
-import uuid
-import asyncio
 import requests
 
 from ...requests import StreamSession, raise_for_status
+from ...errors import MissingRequirementsError
+from ... import debug
 
 class NoValidHarFileError(Exception):
     ...
@@ -67,60 +68,41 @@ async def sendRequest(tmpArk: arkReq, proxy: str = None):
             return await response.text()
 
 async def get_dfp_telemetry_id(proxy: str = None):
-    return await telemetry_id_with_driver(proxy)
     global chatArks
     if chatArks is None:
         chatArks = readHAR()
     return await sendRequest(random.choice(chatArks), proxy)
 
-async def telemetry_id_with_driver(proxy: str = None):
-    from ...debug import logging
-    if logging:
-        print('getting telemetry_id for you.com with nodriver')
+async def get_telemetry_ids(proxy: str = None) -> list:
+    if debug.logging:
+        print('Getting telemetry_id for you.com with nodriver')
     try:
-        import nodriver as uc
-        from nodriver import start, cdp, loop
+        from nodriver import start
     except ImportError:
-        if logging:
-            print('nodriver not found, random uuid (may fail)')
-        return str(uuid.uuid4())
-
-    CAN_EVAL = False
-    payload_received = False
-    payload = None
-
+        raise MissingRequirementsError('Install "nodriver" package | pip install -U nodriver')
     try:
         browser = await start()
         tab = browser.main_tab
-
-        async def send_handler(event: cdp.network.RequestWillBeSent):
-            nonlocal CAN_EVAL, payload_received, payload
-            if 'telemetry.js' in event.request.url:
-                CAN_EVAL = True
-            if "/submit" in event.request.url:
-                payload = event.request.post_data
-                payload_received = True
-
-        tab.add_handler(cdp.network.RequestWillBeSent, send_handler)
         await browser.get("https://you.com")
 
-        while not CAN_EVAL:
+        while not await tab.evaluate('"GetTelemetryID" in this'):
             await tab.sleep(1)
 
-        await tab.evaluate('window.GetTelemetryID("public-token-live-507a52ad-7e69-496b-aee0-1c9863c7c819", "https://telemetry.stytch.com/submit");')
+        async def get_telemetry_id():
+            public_token = "public-token-live-507a52ad-7e69-496b-aee0-1c9863c7c819"
+            telemetry_url = "https://telemetry.stytch.com/submit"
+            return await tab.evaluate(f'this.GetTelemetryID("{public_token}", "{telemetry_url}");', await_promise=True)
 
-        while not payload_received:
-            await tab.sleep(.1)
+        # for _ in range(500):
+        #     with open("hardir/you.com_telemetry_ids.txt", "a") as f:
+        #         f.write((await get_telemetry_id()) + "\n")
 
-    except Exception as e:
-        print(f"Error occurred: {str(e)}")
-
+        return [await get_telemetry_id() for _ in range(4)]
     finally:
         try:
             await tab.close()
         except Exception as e:
             print(f"Error occurred while closing tab: {str(e)}")
-
         try:
             await browser.stop()
         except Exception as e:

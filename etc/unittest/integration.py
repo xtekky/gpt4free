@@ -10,7 +10,7 @@ except ImportError:
 from g4f.client import Client, ChatCompletion
 from g4f.Provider import Bing, OpenaiChat, DuckDuckGo
 
-DEFAULT_MESSAGES = [{"role": "system", "content": 'Response in json, Example: {"success: true"}'},
+DEFAULT_MESSAGES = [{"role": "system", "content": 'Response in json, Example: {"success": false}'},
                     {"role": "user", "content": "Say success true in json"}]
 
 class TestProviderIntegration(unittest.TestCase):
