@@ -11,6 +11,7 @@ from .helper import format_prompt
 from ..image import ImageResponse, to_bytes, is_accepted_format
 from ..requests import StreamSession, FormData, raise_for_status
 from .you.har_file import get_telemetry_ids
+from .. import debug
 
 class You(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://you.com"
@@ -163,6 +164,9 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
         if not cls._telemetry_ids:
             cls._telemetry_ids = await get_telemetry_ids()
         user_uuid = str(uuid.uuid4())
+        telemetry_id = cls._telemetry_ids.pop()
+        if debug.logging:
+            print(f"Use telemetry_id: {telemetry_id}")
         async with client.post(
             "https://web.stytch.com/sdk/v1/passwords",
             headers={
@@ -173,7 +177,7 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
                 "Referer": "https://you.com/"
             },
             json={
-                "dfp_telemetry_id": cls._telemetry_ids.pop(),
+                "dfp_telemetry_id": telemetry_id,
                 "email": f"{user_uuid}@gmail.com",
                 "password": f"{user_uuid}#{user_uuid}",
                 "session_duration_minutes": 129600

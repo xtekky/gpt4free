@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import json
 import os
+import os.path
 import random
 import requests
 
 from ...requests import StreamSession, raise_for_status
+from ...errors import MissingRequirementsError
 from ... import debug
 
 class NoValidHarFileError(Exception):
@@ -71,21 +73,13 @@ async def get_dfp_telemetry_id(proxy: str = None):
         chatArks = readHAR()
     return await sendRequest(random.choice(chatArks), proxy)
 
-def read_telemetry_file() -> list:
-    with open("hardir/you.com_telemetry_ids.txt", "r") as f:
-        ids = f.readlines()
-    random.shuffle(ids)
-    return ids
-
 async def get_telemetry_ids(proxy: str = None) -> list:
     if debug.logging:
         print('Getting telemetry_id for you.com with nodriver')
     try:
         from nodriver import start
     except ImportError:
-        if debug.logging:
-            print('Install "nodriver" package | pip install -U nodriver')
-        return read_telemetry_file()
+        raise MissingRequirementsError('Install "nodriver" package | pip install -U nodriver')
     try:
         browser = await start()
         tab = browser.main_tab
@@ -103,7 +97,7 @@ async def get_telemetry_ids(proxy: str = None) -> list:
         #     with open("hardir/you.com_telemetry_ids.txt", "a") as f:
         #         f.write((await get_telemetry_id()) + "\n")
 
-        return [await get_telemetry_id() for _ in range(10)]
+        return [await get_telemetry_id() for _ in range(4)]
     finally:
         try:
             await tab.close()
