@@ -143,13 +143,13 @@ llama2_70b = Model(
 llama3_8b_instruct = Model(
     name          = "meta-llama/Meta-Llama-3-8b-instruct",
     base_provider = "meta",
-    best_provider = RetryProvider([Llama])
+    best_provider = RetryProvider([Llama, DeepInfra])
 )
 
 llama3_70b_instruct = Model(
     name          = "meta-llama/Meta-Llama-3-70b-instruct",
     base_provider = "meta",
-    best_provider = RetryProvider([Llama, HuggingChat])
+    best_provider = RetryProvider([Llama, HuggingChat, DeepInfra])
 )
 
 codellama_34b_instruct = Model(
@@ -184,7 +184,7 @@ mistral_7b_v02 = Model(
 )
 
 mixtral_8x22b = Model(
-    name          = "HuggingFaceH4/zephyr-orpo-141b-A35b-v0.1",
+    name          = "mistralai/Mixtral-8x22B-Instruct-v0.1",
     base_provider = "huggingface",
     best_provider = RetryProvider([HuggingChat, DeepInfra])
 )

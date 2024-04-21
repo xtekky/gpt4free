@@ -14,7 +14,7 @@ class HuggingChat(AsyncGeneratorProvider, ProviderModelMixin):
     working = True
     default_model = "mistralai/Mixtral-8x7B-Instruct-v0.1"
     models = [
-        "HuggingFaceH4/zephyr-orpo-141b-A35b-v0.1",
+        'mistralai/Mixtral-8x22B-Instruct-v0.1',
         'CohereForAI/c4ai-command-r-plus',
         'mistralai/Mixtral-8x7B-Instruct-v0.1',
         'google/gemma-1.1-7b-it',
@@ -24,6 +24,7 @@ class HuggingChat(AsyncGeneratorProvider, ProviderModelMixin):
     ]
     model_aliases = {
         "openchat/openchat_3.5": "openchat/openchat-3.5-0106",
+        "mistralai/Mixtral-8x22B-Instruct-v0.1": "HuggingFaceH4/zephyr-orpo-141b-A35b-v0.1",
     }
 
     @classmethod

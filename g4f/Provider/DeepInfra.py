@@ -11,7 +11,7 @@ class DeepInfra(Openai):
     needs_auth = False
     supports_stream = True
     supports_message_history = True
-    default_model = 'HuggingFaceH4/zephyr-orpo-141b-A35b-v0.1'
+    default_model = "meta-llama/Meta-Llama-3-70b-instruct"
 
     @classmethod
     def get_models(cls):
@@ -35,7 +35,6 @@ class DeepInfra(Openai):
         
         if not '/' in model:
             models = {
-                'mixtral-8x22b': 'HuggingFaceH4/zephyr-orpo-141b-A35b-v0.1',
                 'dbrx-instruct': 'databricks/dbrx-instruct',
             }
             model = models.get(model, model)
