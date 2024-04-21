@@ -14,13 +14,16 @@ from .you.har_file import get_telemetry_ids
 from .. import debug
 
 class You(AsyncGeneratorProvider, ProviderModelMixin):
+    label = "You.com"
     url = "https://you.com"
     working = True
     supports_gpt_35_turbo = True
     supports_gpt_4 = True
     default_model = "gpt-3.5-turbo"
+    default_vision_model = "agent"
+    image_models = ["dall-e"]
     models = [
-        "gpt-3.5-turbo",
+        default_model,
         "gpt-4",
         "gpt-4-turbo",
         "claude-instant",
@@ -29,12 +32,12 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
         "claude-3-sonnet",
         "gemini-pro",
         "zephyr",
-        "dall-e",
+        default_vision_model,
+        *image_models
     ]
     model_aliases = {
         "claude-v2": "claude-2"
     }
-    image_models = ["dall-e"]
     _cookies = None
     _cookies_used = 0
     _telemetry_ids = []
@@ -52,7 +55,7 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
         chat_mode: str = "default",
         **kwargs,
     ) -> AsyncResult:
-        if image is not None:
+        if image is not None or model == cls.default_vision_model:
             chat_mode = "agent"
         elif not model or model == cls.default_model:
             ...
@@ -63,13 +66,18 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
             chat_mode = "custom"
             model = cls.get_model(model)
         async with StreamSession(
-            proxies={"all": proxy},
+            proxy=proxy,
             impersonate="chrome",
             timeout=(30, timeout)
         ) as session:
             cookies = await cls.get_cookies(session) if chat_mode != "default" else None
-
-            upload = json.dumps([await cls.upload_file(session, cookies, to_bytes(image), image_name)]) if image else ""
+            upload = ""
+            if image is not None:
+                upload_file = await cls.upload_file(
+                    session, cookies,
+                    to_bytes(image), image_name
+                )
+                upload = json.dumps([upload_file])
             headers = {
                 "Accept": "text/event-stream",
                 "Referer": f"{cls.url}/search?fromSearchBar=true&tbm=youchat",

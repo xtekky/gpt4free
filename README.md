@@ -91,7 +91,7 @@ As per the survey, here is a list of improvements to come
 
 ```sh
 docker pull hlohaus789/g4f
-docker run -p 8080:8080 -p 1337:1337 -p 7900:7900 --shm-size="2g" -v ${PWD}/hardir:/app/har_and_cookies hlohaus789/g4f:latest
+docker run -p 8080:8080 -p 1337:1337 -p 7900:7900 --shm-size="2g" -v ${PWD}/har_and_cookies:/app/har_and_cookies hlohaus789/g4f:latest
 ```
 
 3. **Access the Client:** 
@@ -400,17 +400,17 @@ While we wait for gpt-5, here is a list of new models that are at least better t
 | openchat_3.5 | Huggingface | 2+ Providers | [huggingface.co](https://huggingface.co/) |
 | pi | Inflection | g4f.Provider.Pi | [inflection.ai](https://inflection.ai/) |
 
-### Image Models
+### Image and Vision Models
 
-| Label | Provider | Model | Website |
-| ----- | -------- | ----- | ------- |
-| Microsoft Designer | Bing | dall-e | [bing.com](https://www.bing.com/images/create) |
-| OpenAI ChatGPT | Openai | dall-e | [chat.openai.com](https://chat.openai.com) |
-| You.com | You | dall-e | [you.com](https://you.com) |
-| DeepInfraImage | DeepInfra | stability-ai/sdxl | [deepinfra.com](https://deepinfra.com) |
-| ReplicateImage | Replicate | stability-ai/sdxl | [replicate.com](https://replicate.com) |
-| Gemini | Gemini | gemini | [gemini.google.com](https://gemini.google.com) |
-| Meta AI | MetaAI | meta | [meta.ai](https://www.meta.ai) |
+| Label | Provider | Image Model | Vision Model | Website |
+| ----- | -------- | ----------- | ------------ | ------- |
+| Microsoft Copilot in Bing | `g4f.Provider.Bing` | dall-e| gpt-4-vision | [bing.com](https://bing.com/chat) |
+| DeepInfra | `g4f.Provider.DeepInfra` | stability-ai/sdxl| llava-1.5-7b-hf | [deepinfra.com](https://deepinfra.com) |
+| Gemini | `g4f.Provider.Gemini` | gemini| gemini | [gemini.google.com](https://gemini.google.com) |
+| Meta AI | `g4f.Provider.MetaAI` | meta| ❌ | [meta.ai](https://www.meta.ai) |
+| OpenAI ChatGPT | `g4f.Provider.OpenaiChat` | dall-e| gpt-4-vision | [chat.openai.com](https://chat.openai.com) |
+| Replicate | `g4f.Provider.Replicate` | stability-ai/sdxl| ❌ | [replicate.com](https://replicate.com) |
+| You.com | `g4f.Provider.You` | dall-e| agent | [you.com](https://you.com) |
 
 ## 🔗 Powered by gpt4free
 

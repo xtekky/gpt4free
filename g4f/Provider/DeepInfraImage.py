@@ -9,6 +9,7 @@ from ..image import ImageResponse
 
 class DeepInfraImage(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://deepinfra.com"
+    parent = "DeepInfra"
     working = True
     default_model = 'stability-ai/sdxl'
     image_models = [default_model]

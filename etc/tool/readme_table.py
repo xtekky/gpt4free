@@ -127,8 +127,8 @@ def print_models():
 
 def print_image_models():
     lines = [
-        "| Label | Provider | Model | Website |",
-        "| ----- | -------- | ----- | ------- |",
+        "| Label | Provider | Image Model | Vision Model | Website |",
+        "| ----- | -------- | ----------- | ------------ | ------- |",
     ]
     from g4f.gui.server.api import Api
     for image_model in Api.get_image_models():
@@ -136,13 +136,15 @@ def print_image_models():
         netloc = urlparse(provider_url).netloc.replace("www.", "")
         website = f"[{netloc}]({provider_url})"
         label = image_model["provider"] if image_model["label"] is None else image_model["label"]
-        lines.append(f'| {label} | {image_model["provider"]} | {image_model["image_model"]} | {website} |')
+        if image_model["vision_model"] is None:
+            image_model["vision_model"] = "❌"
+        lines.append(f'| {label} | `g4f.Provider.{image_model["provider"]}` | {image_model["image_model"]}| {image_model["vision_model"]} | {website} |')
 
     print("\n".join(lines))
 
 if __name__ == "__main__":
-    print_providers()
-    print("\n", "-" * 50, "\n")
-    print_models()
+    #print_providers()
+    #print("\n", "-" * 50, "\n")
+    #print_models()
     print("\n", "-" * 50, "\n")
     print_image_models()

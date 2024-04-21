@@ -45,16 +45,20 @@ class Api():
     @staticmethod
     def get_image_models() -> list[dict]:
         image_models = []
-        for key, provider in __map__.items():
+        for provider in __providers__:
             if hasattr(provider, "image_models"):
                 if hasattr(provider, "get_models"):
                     provider.get_models()
+                parent = provider
+                if hasattr(provider, "parent"):
+                    parent = __map__[provider.parent]
                 for model in provider.image_models:
                     image_models.append({
-                        "provider": key,
-                        "url": provider.url,
-                        "label": provider.label if hasattr(provider, "label") else None,
-                        "image_model": model
+                        "provider": parent.__name__,
+                        "url": parent.url,
+                        "label": parent.label if hasattr(parent, "label") else None,
+                        "image_model": model,
+                        "vision_model": parent.default_vision_model if hasattr(parent, "default_vision_model") else None
                     })
         return image_models
 

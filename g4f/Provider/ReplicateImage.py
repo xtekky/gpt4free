@@ -11,6 +11,7 @@ from ..errors import ResponseError
 
 class ReplicateImage(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://replicate.com"
+    parent = "Replicate"
     working = True
     default_model = 'stability-ai/sdxl'
     default_versions = [
