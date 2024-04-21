@@ -86,7 +86,7 @@ def is_data_uri_an_image(data_uri: str) -> bool:
     if image_format not in ALLOWED_EXTENSIONS and image_format != "svg+xml":
         raise ValueError("Invalid image format (from mime file type).")
 
-def is_accepted_format(binary_data: bytes) -> bool:
+def is_accepted_format(binary_data: bytes) -> str:
     """
     Checks if the given binary data represents an image with an accepted format.
 
@@ -240,6 +240,13 @@ def to_bytes(image: ImageType) -> bytes:
         return bytes_io.getvalue()
     else:
         return image.read()
+
+def to_data_uri(image: ImageType) -> str:
+    if not isinstance(image, str):
+        data = to_bytes(image)
+        data_base64 = base64.b64encode(data).decode()
+        return f"data:{is_accepted_format(data)};base64,{data_base64}"
+    return image
 
 class ImageResponse:
     def __init__(

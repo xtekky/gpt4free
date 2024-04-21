@@ -91,7 +91,7 @@ As per the survey, here is a list of improvements to come
 
 ```sh
 docker pull hlohaus789/g4f
-docker run -p 8080:8080 -p 1337:1337 -p 7900:7900 --shm-size="2g" -v ${PWD}/hardir:/app/hardir hlohaus789/g4f:latest
+docker run -p 8080:8080 -p 1337:1337 -p 7900:7900 --shm-size="2g" -v ${PWD}/har_and_cookies:/app/har_and_cookies hlohaus789/g4f:latest
 ```
 
 3. **Access the Client:** 
@@ -217,10 +217,11 @@ Access with: http://localhost:1337/v1
 
 #### Cookies
 
-You need cookies for BingCreateImages and the Gemini Provider.
-From Bing you need the "_U" cookie and from Gemini you need the "__Secure-1PSID" cookie.
-Sometimes you doesn't need the "__Secure-1PSID" cookie, but some other auth cookies.
-You can pass the cookies in the create function or you use the `set_cookies` setter before you run G4F:
+Cookies are essential for using Meta AI and Microsoft Designer to create images.
+Additionally, cookies are required for the Google Gemini and WhiteRabbitNeo Provider.
+From Bing, ensure you have the "_U" cookie, and from Google, all cookies starting with "__Secure-1PSID" are needed.
+
+You can pass these cookies directly to the create function or set them using the `set_cookies` method before running G4F:
 
 ```python
 from g4f.cookies import set_cookies
@@ -228,10 +229,25 @@ from g4f.cookies import set_cookies
 set_cookies(".bing.com", {
   "_U": "cookie value"
 })
+
 set_cookies(".google.com", {
   "__Secure-1PSID": "cookie value"
 })
-...
+```
+
+Alternatively, you can place your .har and cookie files in the `/har_and_cookies` directory. To export a cookie file, use the EditThisCookie extension available on the Chrome Web Store: [EditThisCookie Extension](https://chromewebstore.google.com/detail/editthiscookie/fngmhnnpilhplaeedifhccceomclgfbg).
+
+You can also create .har files to capture cookies. If you need further assistance, refer to the next section.
+
+```bash
+python -m g4f.cli api --debug
+```
+```
+Read .har file: ./har_and_cookies/you.com.har
+Cookies added: 10 from .you.com
+Read cookie file: ./har_and_cookies/google.json
+Cookies added: 16 from .google.com
+Starting server... [g4f v-0.0.0] (debug)
 ```
 
 #### .HAR File for OpenaiChat Provider
@@ -249,7 +265,7 @@ To utilize the OpenaiChat provider, a .har file is required from https://chat.op
 
 ##### Storing the .HAR File
 
-- Place the exported .har file in the `./hardir` directory if you are using Docker. Alternatively, you can store it in any preferred location within your current working directory.
+- Place the exported .har file in the `./har_and_cookies` directory if you are using Docker. Alternatively, you can store it in any preferred location within your current working directory.
 
 Note: Ensure that your .har file is stored securely, as it may contain sensitive information.
 
@@ -273,13 +289,13 @@ set G4F_PROXY=http://host:port
 
 | Website | Provider | GPT-3.5 | GPT-4 | Stream | Status | Auth |
 | ------  | -------  | ------- | ----- | ------ | ------ | ---- |
-| [bing.com](https://bing.com/chat) | `g4f.Provider.Bing` | ❌ | ✔️ | ✔️ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ❌ |
-| [chatgpt.ai](https://chatgpt.ai) | `g4f.Provider.ChatgptAi` | ❌ | ✔️ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
-| [liaobots.site](https://liaobots.site) | `g4f.Provider.Liaobots` | ✔️ | ✔️ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
-| [chat.openai.com](https://chat.openai.com) | `g4f.Provider.OpenaiChat` | ✔️ | ❌ | ✔️ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ✔️ |
+| [bing.com](https://bing.com/chat) | `g4f.Provider.Bing` | ❌ | ✔️ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
+| [chatgpt.ai](https://chatgpt.ai) | `g4f.Provider.ChatgptAi` | ❌ | ✔️ | ✔️ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ❌ |
+| [liaobots.site](https://liaobots.site) | `g4f.Provider.Liaobots` | ✔️ | ✔️ | ✔️ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ❌ |
+| [chat.openai.com](https://chat.openai.com) | `g4f.Provider.OpenaiChat` | ✔️ | ✔️ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌+✔️ |
 | [raycast.com](https://raycast.com) | `g4f.Provider.Raycast` | ✔️ | ✔️ | ✔️ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ✔️ |
 | [beta.theb.ai](https://beta.theb.ai) | `g4f.Provider.Theb` | ✔️ | ✔️ | ✔️ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ❌ |
-| [you.com](https://you.com) | `g4f.Provider.You` | ✔️ | ✔️ | ✔️ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ❌ |
+| [you.com](https://you.com) | `g4f.Provider.You` | ✔️ | ✔️ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
 
 ## Best OpenSource Models
 While we wait for gpt-5, here is a list of new models that are at least better than gpt-3.5-turbo. **Some are better than gpt-4**. Expect this list to grow.
@@ -296,19 +312,24 @@ While we wait for gpt-5, here is a list of new models that are at least better t
 | Website | Provider | GPT-3.5 | GPT-4 | Stream | Status | Auth |
 | ------  | -------  | ------- | ----- | ------ | ------ | ---- |
 | [chat3.aiyunos.top](https://chat3.aiyunos.top/) | `g4f.Provider.AItianhuSpace` | ✔️ | ❌ | ✔️ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ❌ |
-| [chatforai.store](https://chatforai.store) | `g4f.Provider.ChatForAi` | ✔️ | ❌ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
-| [chatgpt4online.org](https://chatgpt4online.org) | `g4f.Provider.Chatgpt4Online` | ✔️ | ❌ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
-| [chatgpt-free.cc](https://www.chatgpt-free.cc) | `g4f.Provider.ChatgptNext` | ✔️ | ❌ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
-| [chatgptx.de](https://chatgptx.de) | `g4f.Provider.ChatgptX` | ✔️ | ❌ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
-| [flowgpt.com](https://flowgpt.com/chat) | `g4f.Provider.FlowGpt` | ✔️ | ❌ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
-| [freegptsnav.aifree.site](https://freegptsnav.aifree.site) | `g4f.Provider.FreeGpt` | ✔️ | ❌ | ✔️ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ❌ |
-| [gpttalk.ru](https://gpttalk.ru) | `g4f.Provider.GptTalkRu` | ✔️ | ❌ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
-| [koala.sh](https://koala.sh) | `g4f.Provider.Koala` | ✔️ | ❌ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
+| [chat10.aichatos.xyz](https://chat10.aichatos.xyz) | `g4f.Provider.Aichatos` | ✔️ | ❌ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
+| [chatforai.store](https://chatforai.store) | `g4f.Provider.ChatForAi` | ✔️ | ❌ | ✔️ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ❌ |
+| [chatgpt4online.org](https://chatgpt4online.org) | `g4f.Provider.Chatgpt4Online` | ✔️ | ❌ | ✔️ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ❌ |
+| [chatgpt-free.cc](https://www.chatgpt-free.cc) | `g4f.Provider.ChatgptNext` | ✔️ | ❌ | ✔️ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ❌ |
+| [chatgptx.de](https://chatgptx.de) | `g4f.Provider.ChatgptX` | ✔️ | ❌ | ✔️ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ❌ |
+| [f1.cnote.top](https://f1.cnote.top) | `g4f.Provider.Cnote` | ✔️ | ❌ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
+| [duckduckgo.com](https://duckduckgo.com/duckchat) | `g4f.Provider.DuckDuckGo` | ✔️ | ❌ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
+| [ecosia.org](https://www.ecosia.org) | `g4f.Provider.Ecosia` | ✔️ | ❌ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
+| [feedough.com](https://www.feedough.com) | `g4f.Provider.Feedough` | ✔️ | ❌ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
+| [flowgpt.com](https://flowgpt.com/chat) | `g4f.Provider.FlowGpt` | ✔️ | ❌ | ✔️ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ❌ |
+| [freegptsnav.aifree.site](https://freegptsnav.aifree.site) | `g4f.Provider.FreeGpt` | ✔️ | ❌ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
+| [gpttalk.ru](https://gpttalk.ru) | `g4f.Provider.GptTalkRu` | ✔️ | ❌ | ✔️ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ❌ |
+| [koala.sh](https://koala.sh) | `g4f.Provider.Koala` | ✔️ | ❌ | ✔️ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ❌ |
 | [app.myshell.ai](https://app.myshell.ai/chat) | `g4f.Provider.MyShell` | ✔️ | ❌ | ✔️ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ❌ |
 | [perplexity.ai](https://www.perplexity.ai) | `g4f.Provider.PerplexityAi` | ✔️ | ❌ | ✔️ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ❌ |
 | [poe.com](https://poe.com) | `g4f.Provider.Poe` | ✔️ | ❌ | ✔️ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ✔️ |
 | [talkai.info](https://talkai.info) | `g4f.Provider.TalkAi` | ✔️ | ❌ | ✔️ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ❌ |
-| [chat.vercel.ai](https://chat.vercel.ai) | `g4f.Provider.Vercel` | ✔️ | ❌ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
+| [chat.vercel.ai](https://chat.vercel.ai) | `g4f.Provider.Vercel` | ✔️ | ❌ | ✔️ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ❌ |
 | [aitianhu.com](https://www.aitianhu.com) | `g4f.Provider.AItianhu` | ✔️ | ❌ | ✔️ | ![Inactive](https://img.shields.io/badge/Inactive-red) | ❌ |
 | [chatgpt.bestim.org](https://chatgpt.bestim.org) | `g4f.Provider.Bestim` | ✔️ | ❌ | ✔️ | ![Inactive](https://img.shields.io/badge/Inactive-red) | ❌ |
 | [chatbase.co](https://www.chatbase.co) | `g4f.Provider.ChatBase` | ✔️ | ❌ | ✔️ | ![Inactive](https://img.shields.io/badge/Inactive-red) | ❌ |
@@ -328,48 +349,68 @@ While we wait for gpt-5, here is a list of new models that are at least better t
 
 | Website | Provider | GPT-3.5 | GPT-4 | Stream | Status | Auth |
 | ------  | -------  | ------- | ----- | ------ | ------ | ---- |
-| [openchat.team](https://openchat.team) | `g4f.Provider.Aura` | ❌ | ❌ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
-| [bard.google.com](https://bard.google.com) | `g4f.Provider.Bard` | ❌ | ❌ | ❌ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ✔️ |
+| [openchat.team](https://openchat.team) | `g4f.Provider.Aura` | ❌ | ❌ | ✔️ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ❌ |
+| [blackbox.ai](https://www.blackbox.ai) | `g4f.Provider.Blackbox` | ❌ | ❌ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
+| [cohereforai-c4ai-command-r-plus.hf.space](https://cohereforai-c4ai-command-r-plus.hf.space) | `g4f.Provider.Cohere` | ❌ | ❌ | ✔️ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ❌ |
 | [deepinfra.com](https://deepinfra.com) | `g4f.Provider.DeepInfra` | ❌ | ❌ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
-| [free.chatgpt.org.uk](https://free.chatgpt.org.uk) | `g4f.Provider.FreeChatgpt` | ❌ | ❌ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
+| [free.chatgpt.org.uk](https://free.chatgpt.org.uk) | `g4f.Provider.FreeChatgpt` | ❌ | ❌ | ✔️ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ❌ |
 | [gemini.google.com](https://gemini.google.com) | `g4f.Provider.Gemini` | ❌ | ❌ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ✔️ |
 | [ai.google.dev](https://ai.google.dev) | `g4f.Provider.GeminiPro` | ❌ | ❌ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ✔️ |
 | [gemini-chatbot-sigma.vercel.app](https://gemini-chatbot-sigma.vercel.app) | `g4f.Provider.GeminiProChat` | ❌ | ❌ | ✔️ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ❌ |
+| [developers.sber.ru](https://developers.sber.ru/gigachat) | `g4f.Provider.GigaChat` | ❌ | ❌ | ✔️ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ✔️ |
+| [console.groq.com](https://console.groq.com/playground) | `g4f.Provider.Groq` | ❌ | ❌ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ✔️ |
 | [huggingface.co](https://huggingface.co/chat) | `g4f.Provider.HuggingChat` | ❌ | ❌ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
 | [huggingface.co](https://huggingface.co/chat) | `g4f.Provider.HuggingFace` | ❌ | ❌ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
-| [llama2.ai](https://www.llama2.ai) | `g4f.Provider.Llama2` | ❌ | ❌ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
+| [llama2.ai](https://www.llama2.ai) | `g4f.Provider.Llama` | ❌ | ❌ | ✔️ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ❌ |
+| [meta.ai](https://www.meta.ai) | `g4f.Provider.MetaAI` | ❌ | ❌ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌+✔️ |
+| [openrouter.ai](https://openrouter.ai) | `g4f.Provider.OpenRouter` | ❌ | ❌ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ✔️ |
 | [labs.perplexity.ai](https://labs.perplexity.ai) | `g4f.Provider.PerplexityLabs` | ❌ | ❌ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
-| [pi.ai](https://pi.ai/talk) | `g4f.Provider.Pi` | ❌ | ❌ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
-| [theb.ai](https://theb.ai) | `g4f.Provider.ThebApi` | ❌ | ❌ | ❌ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ✔️ |
-| [open-assistant.io](https://open-assistant.io/chat) | `g4f.Provider.OpenAssistant` | ❌ | ❌ | ✔️ | ![Inactive](https://img.shields.io/badge/Inactive-red) | ✔️ |
+| [pi.ai](https://pi.ai/talk) | `g4f.Provider.Pi` | ❌ | ❌ | ✔️ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ❌ |
+| [replicate.com](https://replicate.com) | `g4f.Provider.ReplicateImage` | ❌ | ❌ | ✔️ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ❌ |
+| [theb.ai](https://theb.ai) | `g4f.Provider.ThebApi` | ❌ | ❌ | ✔️ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ✔️ |
+| [whiterabbitneo.com](https://www.whiterabbitneo.com) | `g4f.Provider.WhiteRabbitNeo` | ❌ | ❌ | ✔️ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ✔️ |
+| [bard.google.com](https://bard.google.com) | `g4f.Provider.Bard` | ❌ | ❌ | ❌ | ![Inactive](https://img.shields.io/badge/Inactive-red) | ✔️ |
 
 ### Models
 
-| Model                       | Base Provider | Provider | Website |
-|-----------------------------| ------------- | -------- | ------- |
-| gpt-3.5-turbo               | OpenAI | 5+ Providers | [openai.com](https://openai.com/) |
-| gpt-4                       | OpenAI | 2+ Providers | [openai.com](https://openai.com/) |
-| gpt-4-turbo                 | OpenAI | g4f.Provider.Bing | [openai.com](https://openai.com/) |
-| Llama-2-7b-chat-hf          | Meta | 2+ Providers | [llama.meta.com](https://llama.meta.com/) |
-| Llama-2-13b-chat-hf         | Meta | 2+ Providers | [llama.meta.com](https://llama.meta.com/) |
-| Llama-2-70b-chat-hf         | Meta | 3+ Providers | [llama.meta.com](https://llama.meta.com/) |
-| Meta-Llama-3-8b             | Meta | 3+ Providers | [llama.meta.com](https://llama.meta.com/) |
-| Meta-Llama-3-70b            | Meta | 3+ Providers | [llama.meta.com](https://llama.meta.com/) |
-| CodeLlama-34b-Instruct-hf   | Meta | 2+ Providers | [llama.meta.com](https://llama.meta.com/) |
-| CodeLlama-70b-Instruct-hf   | Meta | 2+ Providers | [llama.meta.com](https://llama.meta.com/) |
-| Mixtral-8x7B-Instruct-v0.1  | Huggingface | 4+ Providers | [huggingface.co](https://huggingface.co/) |
-| Mistral-7B-Instruct-v0.1    | Huggingface | 4+ Providers | [huggingface.co](https://huggingface.co/) |
-| dolphin-2.6-mixtral-8x7b    | Huggingface | g4f.Provider.DeepInfra | [huggingface.co](https://huggingface.co/) |
-| lzlv_70b_fp16_hf            | Huggingface | g4f.Provider.DeepInfra | [huggingface.co](https://huggingface.co/) |
-| airoboros-70b               | Huggingface | g4f.Provider.DeepInfra | [huggingface.co](https://huggingface.co/) |
-| airoboros-l2-70b-gpt4-1.4.1 | Huggingface | g4f.Provider.DeepInfra | [huggingface.co](https://huggingface.co/) |
-| openchat_3.5                | Huggingface | 2+ Providers | [huggingface.co](https://huggingface.co/) |
-| gemini                      | Google | g4f.Provider.Gemini | [gemini.google.com](https://gemini.google.com/) |
-| gemini-pro                  | Google | 2+ Providers | [gemini.google.com](https://gemini.google.com/) |
-| claude-v2                   | Anthropic | 1+ Providers | [anthropic.com](https://www.anthropic.com/) |
-| claude-3-opus               | Anthropic | g4f.Provider.You | [anthropic.com](https://www.anthropic.com/) |
-| claude-3-sonnet             | Anthropic | g4f.Provider.You | [anthropic.com](https://www.anthropic.com/) |
-| pi                          | Inflection | g4f.Provider.Pi | [inflection.ai](https://inflection.ai/) |
+| Model | Base Provider | Provider | Website |
+| ----- | ------------- | -------- | ------- |
+| gpt-3.5-turbo | OpenAI | 8+ Providers | [openai.com](https://openai.com/) |
+| gpt-4 | OpenAI | 2+ Providers | [openai.com](https://openai.com/) |
+| gpt-4-turbo | OpenAI | g4f.Provider.Bing | [openai.com](https://openai.com/) |
+| Llama-2-7b-chat-hf | Meta | 2+ Providers | [llama.meta.com](https://llama.meta.com/) |
+| Llama-2-13b-chat-hf | Meta | 2+ Providers | [llama.meta.com](https://llama.meta.com/) |
+| Llama-2-70b-chat-hf | Meta | 3+ Providers | [llama.meta.com](https://llama.meta.com/) |
+| Meta-Llama-3-8b-instruct | Meta | 1+ Providers | [llama.meta.com](https://llama.meta.com/) |
+| Meta-Llama-3-70b-instruct | Meta | 2+ Providers | [llama.meta.com](https://llama.meta.com/) |
+| CodeLlama-34b-Instruct-hf | Meta | g4f.Provider.HuggingChat | [llama.meta.com](https://llama.meta.com/) |
+| CodeLlama-70b-Instruct-hf | Meta | 2+ Providers | [llama.meta.com](https://llama.meta.com/) |
+| Mixtral-8x7B-Instruct-v0.1 | Huggingface | 4+ Providers | [huggingface.co](https://huggingface.co/) |
+| Mistral-7B-Instruct-v0.1 | Huggingface | 3+ Providers | [huggingface.co](https://huggingface.co/) |
+| Mistral-7B-Instruct-v0.2 | Huggingface | g4f.Provider.DeepInfra | [huggingface.co](https://huggingface.co/) |
+| zephyr-orpo-141b-A35b-v0.1 | Huggingface | 2+ Providers | [huggingface.co](https://huggingface.co/) |
+| dolphin-2.6-mixtral-8x7b | Huggingface | g4f.Provider.DeepInfra | [huggingface.co](https://huggingface.co/) |
+| gemini | Google | g4f.Provider.Gemini | [gemini.google.com](https://gemini.google.com/) |
+| gemini-pro | Google | 2+ Providers | [gemini.google.com](https://gemini.google.com/) |
+| claude-v2 | Anthropic | 1+ Providers | [anthropic.com](https://www.anthropic.com/) |
+| claude-3-opus | Anthropic | g4f.Provider.You | [anthropic.com](https://www.anthropic.com/) |
+| claude-3-sonnet | Anthropic | g4f.Provider.You | [anthropic.com](https://www.anthropic.com/) |
+| lzlv_70b_fp16_hf | Huggingface | g4f.Provider.DeepInfra | [huggingface.co](https://huggingface.co/) |
+| airoboros-70b | Huggingface | g4f.Provider.DeepInfra | [huggingface.co](https://huggingface.co/) |
+| openchat_3.5 | Huggingface | 2+ Providers | [huggingface.co](https://huggingface.co/) |
+| pi | Inflection | g4f.Provider.Pi | [inflection.ai](https://inflection.ai/) |
+
+### Image and Vision Models
+
+| Label | Provider | Image Model | Vision Model | Website |
+| ----- | -------- | ----------- | ------------ | ------- |
+| Microsoft Copilot in Bing | `g4f.Provider.Bing` | dall-e| gpt-4-vision | [bing.com](https://bing.com/chat) |
+| DeepInfra | `g4f.Provider.DeepInfra` | stability-ai/sdxl| llava-1.5-7b-hf | [deepinfra.com](https://deepinfra.com) |
+| Gemini | `g4f.Provider.Gemini` | gemini| gemini | [gemini.google.com](https://gemini.google.com) |
+| Meta AI | `g4f.Provider.MetaAI` | meta| ❌ | [meta.ai](https://www.meta.ai) |
+| OpenAI ChatGPT | `g4f.Provider.OpenaiChat` | dall-e| gpt-4-vision | [chat.openai.com](https://chat.openai.com) |
+| Replicate | `g4f.Provider.Replicate` | stability-ai/sdxl| ❌ | [replicate.com](https://replicate.com) |
+| You.com | `g4f.Provider.You` | dall-e| agent | [you.com](https://you.com) |
 
 ## 🔗 Powered by gpt4free
 

@@ -6,6 +6,8 @@ from .MetaAI import MetaAI
 
 class MetaAIAccount(MetaAI):
     needs_auth = True
+    parent = "MetaAI"
+    image_models = ["meta"]
 
     @classmethod
     async def create_async_generator(

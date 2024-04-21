@@ -13,9 +13,11 @@ from .bing.create_images import create_images, create_session, get_cookies_from_
 
 class BingCreateImages(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Microsoft Designer"
+    parent = "Bing"
     url = "https://www.bing.com/images/create"
     working = True
     needs_auth = True
+    image_models = ["dall-e"]
 
     def __init__(self, cookies: Cookies = None, proxy: str = None) -> None:
         self.cookies: Cookies = cookies

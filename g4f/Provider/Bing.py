@@ -38,8 +38,9 @@ class Bing(AsyncGeneratorProvider, ProviderModelMixin):
     supports_message_history = True
     supports_gpt_4 = True
     default_model = "Balanced"
+    default_vision_model = "gpt-4-vision"
     models = [getattr(Tones, key) for key in Tones.__dict__ if not key.startswith("__")]
-        
+
     @classmethod
     def create_async_generator(
         cls,

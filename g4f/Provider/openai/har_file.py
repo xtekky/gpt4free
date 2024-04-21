@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import base64
 import json
 import os
@@ -59,17 +61,21 @@ def readHAR():
                     except KeyError:
                         continue
                     cookies = {c['name']: c['value'] for c in v['request']['cookies']}
+                    headers = get_headers(v)
     if not accessToken:
         raise NoValidHarFileError("No accessToken found in .har files")
     if not chatArks:
-        return None, accessToken, cookies
-    return chatArks.pop(), accessToken, cookies
+        return None, accessToken, cookies, headers
+    return chatArks.pop(), accessToken, cookies, headers
+
+def get_headers(entry) -> dict:
+    return {h['name'].lower(): h['value'] for h in entry['request']['headers'] if h['name'].lower() not in ['content-length', 'cookie'] and not h['name'].startswith(':')}
 
 def parseHAREntry(entry) -> arkReq:
     tmpArk = arkReq(
         arkURL=entry['request']['url'],
         arkBx="",
-        arkHeader={h['name'].lower(): h['value'] for h in entry['request']['headers'] if h['name'].lower() not in ['content-length', 'cookie'] and not h['name'].startswith(':')},
+        arkHeader=get_headers(entry),
         arkBody={p['name']: unquote(p['value']) for p in entry['request']['postData']['params'] if p['name'] not in ['rnd']},
         arkCookies={c['name']: c['value'] for c in entry['request']['cookies']},
         userAgent=""
@@ -123,11 +129,11 @@ def getN() -> str:
     timestamp = str(int(time.time()))
     return base64.b64encode(timestamp.encode()).decode()
 
-async def getArkoseAndAccessToken(proxy: str):
+async def getArkoseAndAccessToken(proxy: str) -> tuple[str, str, dict, dict]:
     global chatArk, accessToken, cookies
     if chatArk is None or accessToken is None:
-        chatArk, accessToken, cookies = readHAR()
+        chatArk, accessToken, cookies, headers = readHAR()
     if chatArk is None:
-        return None, accessToken, cookies
+        return None, accessToken, cookies, headers
     newReq = genArkReq(chatArk)
-    return await sendRequest(newReq, proxy), accessToken, cookies
+    return await sendRequest(newReq, proxy), accessToken, cookies, headers

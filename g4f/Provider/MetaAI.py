@@ -13,7 +13,7 @@ from ..requests import raise_for_status, DEFAULT_HEADERS
 from ..image import ImageResponse, ImagePreview
 from ..errors import ResponseError
 from .base_provider import AsyncGeneratorProvider
-from .helper import format_prompt, get_connector
+from .helper import format_prompt, get_connector, format_cookies
 
 class Sources():
     def __init__(self, link_list: List[Dict[str, str]]) -> None:
@@ -48,7 +48,6 @@ class MetaAI(AsyncGeneratorProvider):
 
     async def update_access_token(self, birthday: str = "1999-01-01"):
         url = "https://www.meta.ai/api/graphql/"
-
         payload = {
             "lsd": self.lsd,
             "fb_api_caller_class": "RelayModern",
@@ -90,7 +89,7 @@ class MetaAI(AsyncGeneratorProvider):
             headers = {}
         headers = {
             'content-type': 'application/x-www-form-urlencoded',
-            'cookie': "; ".join([f"{k}={v}" for k, v in cookies.items()]),
+            'cookie': format_cookies(self.cookies),
             'origin': 'https://www.meta.ai',
             'referer': 'https://www.meta.ai/',
             'x-asbd-id': '129477',
@@ -194,7 +193,7 @@ class MetaAI(AsyncGeneratorProvider):
             **headers
         }
         async with self.session.post(url, headers=headers, cookies=self.cookies, data=payload) as response:
-            await raise_for_status(response)
+            await raise_for_status(response, "Fetch sources failed")
             text = await response.text()
             if "<h1>Something Went Wrong</h1>" in text:
                 raise ResponseError("Response: Something Went Wrong")
