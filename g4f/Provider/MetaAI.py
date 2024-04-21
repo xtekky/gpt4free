@@ -89,7 +89,7 @@ class MetaAI(AsyncGeneratorProvider):
             headers = {}
         headers = {
             'content-type': 'application/x-www-form-urlencoded',
-            'cookie': format_cookies(cookies),
+            'cookie': format_cookies(self.cookies),
             'origin': 'https://www.meta.ai',
             'referer': 'https://www.meta.ai/',
             'x-asbd-id': '129477',

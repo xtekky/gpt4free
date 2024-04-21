@@ -12,9 +12,6 @@ def run_gui(host: str = '0.0.0.0', port: int = 8080, debug: bool = False) -> Non
     if import_error is not None:
         raise MissingRequirementsError(f'Install "gui" requirements | pip install -U g4f[gui]\n{import_error}')
 
-    if debug:
-        from g4f import debug
-        debug.logging = True
     config = {
         'host' : host,
         'port' : port,

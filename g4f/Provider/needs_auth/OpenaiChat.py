@@ -340,9 +340,8 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
         Raises:
             RuntimeError: If an error occurs during processing.
         """
-
         async with StreamSession(
-            proxies={"all": proxy},
+            proxy=proxy,
             impersonate="chrome",
             timeout=timeout
         ) as session:
@@ -364,26 +363,27 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
                     api_key = cls._api_key = None
                     cls._create_request_args()
                     if debug.logging:
-                        print("OpenaiChat: Load default_model failed")
+                        print("OpenaiChat: Load default model failed")
                         print(f"{e.__class__.__name__}: {e}")
 
             arkose_token = None
             if cls.default_model is None:
+                error = None
                 try:
                     arkose_token, api_key, cookies, headers = await getArkoseAndAccessToken(proxy)
                     cls._create_request_args(cookies, headers)
                     cls._set_api_key(api_key)
                 except NoValidHarFileError as e:
-                    ...
+                    error = e
                 if cls._api_key is None:
                     await cls.nodriver_access_token()
                 if cls._api_key is None and cls.needs_auth:
-                    raise e
+                    raise error
                 cls.default_model = cls.get_model(await cls.get_default_model(session, cls._headers))
 
             async with session.post(
                 f"{cls.url}/backend-anon/sentinel/chat-requirements"
-                if not cls._api_key else
+                if cls._api_key is None else
                 f"{cls.url}/backend-api/sentinel/chat-requirements",
                 json={"conversation_mode_kind": "primary_assistant"},
                 headers=cls._headers
@@ -412,7 +412,8 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
                     print("OpenaiChat: Upload image failed")
                     print(f"{e.__class__.__name__}: {e}")
 
-            model = cls.get_model(model).replace("gpt-3.5-turbo", "text-davinci-002-render-sha")
+            model = cls.get_model(model)
+            model = "text-davinci-002-render-sha" if model == "gpt-3.5-turbo" else model
             if conversation is None:
                 conversation = Conversation(conversation_id, str(uuid.uuid4()) if parent_id is None else parent_id)
             else:

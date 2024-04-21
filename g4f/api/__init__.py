@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 import json
 import uvicorn
@@ -8,14 +10,19 @@ from fastapi.exceptions import RequestValidationError
 from starlette.status import HTTP_422_UNPROCESSABLE_ENTITY
 from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel
-from typing import List, Union, Optional
+from typing import Union, Optional
 
 import g4f
 import g4f.debug
 from g4f.client import AsyncClient
 from g4f.typing import Messages
 
-app = FastAPI()
+def create_app() -> FastAPI:
+    app = FastAPI()
+    api = Api(app)
+    api.register_routes()
+    api.register_validation_exception_handler()
+    return app
 
 class ChatCompletionsConfig(BaseModel):
     messages: Messages
@@ -29,16 +36,19 @@ class ChatCompletionsConfig(BaseModel):
     web_search: Optional[bool] = None
     proxy: Optional[str] = None
 
+list_ignored_providers: list[str] = None
+
+def set_list_ignored_providers(ignored: list[str]):
+    global list_ignored_providers
+    list_ignored_providers = ignored
+
 class Api:
-    def __init__(self, list_ignored_providers: List[str] = None) -> None:
-        self.list_ignored_providers = list_ignored_providers
+    def __init__(self, app: FastAPI) -> None:
+        self.app = app
         self.client = AsyncClient()
-    
-    def set_list_ignored_providers(self, list: list):
-        self.list_ignored_providers = list
 
     def register_validation_exception_handler(self):
-        @app.exception_handler(RequestValidationError)
+        @self.app.exception_handler(RequestValidationError)
         async def validation_exception_handler(request: Request, exc: RequestValidationError):
             details = exc.errors()
             modified_details = []
@@ -54,17 +64,17 @@ class Api:
             )
 
     def register_routes(self):
-        @app.get("/")
+        @self.app.get("/")
         async def read_root():
             return RedirectResponse("/v1", 302)
 
-        @app.get("/v1")
+        @self.app.get("/v1")
         async def read_root_v1():
             return HTMLResponse('g4f API: Go to '
                                 '<a href="/v1/chat/completions">chat/completions</a> '
                                 'or <a href="/v1/models">models</a>.')
 
-        @app.get("/v1/models")
+        @self.app.get("/v1/models")
         async def models():
             model_list = dict(
                 (model, g4f.models.ModelUtils.convert[model])
@@ -78,7 +88,7 @@ class Api:
             } for model_id, model in model_list.items()]
             return JSONResponse(model_list)
 
-        @app.get("/v1/models/{model_name}")
+        @self.app.get("/v1/models/{model_name}")
         async def model_info(model_name: str):
             try:
                 model_info = g4f.models.ModelUtils.convert[model_name]
@@ -91,7 +101,7 @@ class Api:
             except:
                 return JSONResponse({"error": "The model does not exist."})
 
-        @app.post("/v1/chat/completions")
+        @self.app.post("/v1/chat/completions")
         async def chat_completions(config: ChatCompletionsConfig, request: Request = None, provider: str = None):
             try:
                 config.provider = provider if config.provider is None else config.provider
@@ -103,7 +113,7 @@ class Api:
                             config.api_key = auth_header
                 response = self.client.chat.completions.create(
                     **config.dict(exclude_none=True),
-                    ignored=self.list_ignored_providers
+                    ignored=list_ignored_providers
                 )
             except Exception as e:
                 logging.exception(e)
@@ -125,13 +135,9 @@ class Api:
 
             return StreamingResponse(streaming(), media_type="text/event-stream")
 
-        @app.post("/v1/completions")
+        @self.app.post("/v1/completions")
         async def completions():
             return Response(content=json.dumps({'info': 'Not working yet.'}, indent=4), media_type="application/json")
-
-api = Api()
-api.register_routes()
-api.register_validation_exception_handler()
 
 def format_exception(e: Exception, config: ChatCompletionsConfig) -> str:
     last_provider = g4f.get_last_provider(True)
@@ -156,4 +162,4 @@ def run_api(
         host, port = bind.split(":")
     if debug:
         g4f.debug.logging = True
-    uvicorn.run("g4f.api:app", host=host, port=int(port), workers=workers, use_colors=use_colors)#
+    uvicorn.run("g4f.api:create_app", host=host, port=int(port), workers=workers, use_colors=use_colors, factory=True)#
