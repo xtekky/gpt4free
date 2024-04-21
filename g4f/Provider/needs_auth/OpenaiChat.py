@@ -24,7 +24,7 @@ except ImportError:
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ...webdriver import get_browser
 from ...typing import AsyncResult, Messages, Cookies, ImageType, AsyncIterator
-from ...requests import get_args_from_browser, raise_for_status
+from ...requests import DEFAULT_HEADERS, get_args_from_browser, raise_for_status
 from ...requests.aiohttp import StreamSession
 from ...image import to_image, to_bytes, ImageResponse, ImageRequest
 from ...errors import MissingAuthError, ResponseError
@@ -360,7 +360,6 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
                     if debug.logging:
                         print("OpenaiChat: Load default_model failed")
                         print(f"{e.__class__.__name__}: {e}")
-                        
 
             arkose_token = None
             if cls.default_model is None:
@@ -377,7 +376,8 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
                 cls.default_model = cls.get_model(await cls.get_default_model(session, cls._headers))
 
             async with session.post(
-                f"{cls.url}/backend-anon/sentinel/chat-requirements" if not cls._api_key else
+                f"{cls.url}/backend-anon/sentinel/chat-requirements"
+                if not cls._api_key else
                 f"{cls.url}/backend-api/sentinel/chat-requirements",
                 json={"conversation_mode_kind": "primary_assistant"},
                 headers=cls._headers
@@ -388,7 +388,7 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
                 blob = data["arkose"]["dx"]
                 need_arkose = data["arkose"]["required"]
                 chat_token = data["token"]
-                
+
                 if debug.logging:
                     print(f'Arkose: {need_arkose} Turnstile: {data["turnstile"]["required"]}')
 
@@ -595,8 +595,7 @@ this.fetch = async (url, options) => {
             print(f"Open nodriver with user_dir: {user_data_dir}")
         browser = await uc.start(user_data_dir=user_data_dir)
         page = await browser.get("https://chat.openai.com/")
-        while await page.find("[id^=headlessui-menu-button-]") is None:
-            await asyncio.sleep(1)
+        await page.select("[id^=headlessui-menu-button-]", 240)
         api_key = await page.evaluate(
             "(async () => {"
             "let session = await fetch('/api/auth/session');"
@@ -662,16 +661,10 @@ this.fetch = async (url, options) => {
     @staticmethod
     def get_default_headers() -> dict:
         return {
-            "accept-language": "en-US",
+            **DEFAULT_HEADERS,
             "content-type": "application/json",
             "oai-device-id": str(uuid.uuid4()),
             "oai-language": "en-US",
-            "sec-ch-ua": "\"Google Chrome\";v=\"123\", \"Not:A-Brand\";v=\"8\", \"Chromium\";v=\"123\"",
-            "sec-ch-ua-mobile": "?0",
-            "sec-ch-ua-platform": "\"Linux\"",
-            "sec-fetch-dest": "empty",
-            "sec-fetch-mode": "cors",
-            "sec-fetch-site": "same-origin"
         }
 
     @staticmethod
@@ -696,11 +689,11 @@ this.fetch = async (url, options) => {
     def _set_api_key(cls, api_key: str):
         cls._api_key = api_key
         cls._expires = int(time.time()) + 60 * 60 * 4
-        cls._headers["Authorization"] = f"Bearer {api_key}"
+        cls._headers["authorization"] = f"Bearer {api_key}"
 
     @classmethod
     def _update_cookie_header(cls):
-        cls._headers["Cookie"] = cls._format_cookies(cls._cookies)
+        cls._headers["cookie"] = cls._format_cookies(cls._cookies)
 
 class Conversation(BaseConversation):
     """

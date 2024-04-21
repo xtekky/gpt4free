@@ -41,7 +41,9 @@ appStorage = window.localStorage || {
     length: 0
 }
 
-const markdown = window.markdownit();
+const markdown = window.markdownit({
+    html: true,
+});
 const markdown_render = (content) => {
     return markdown.render(content
         .replaceAll(/<!-- generated images start -->|<!-- generated images end -->/gm, "")
@@ -312,6 +314,8 @@ async function add_message_chunk(message) {
         window.error = message.error
         console.error(message.error);
         content_inner.innerHTML += `<p><strong>An error occured:</strong> ${message.error}</p>`;
+    } else if (message.type == "preview") {
+        content_inner.innerHTML = markdown_render(message.preview);
     } else if (message.type == "content") {
         window.text += message.content;
         html = markdown_render(window.text);
@@ -545,7 +549,7 @@ const load_conversation = async (conversation_id, scroll=true) => {
         last_model = item.provider?.model;
         let next_i = parseInt(i) + 1;
         let next_provider = item.provider ? item.provider : (messages.length > next_i ? messages[next_i].provider : null);
-        let provider_label = item.provider?.label ? item.provider?.label : item.provider?.name;
+        let provider_label = item.provider?.label ? item.provider.label : item.provider?.name;
         let provider_link = item.provider?.name ? `<a href="${item.provider.url}" target="_blank">${provider_label}</a>` : "";
         let provider = provider_link ? `
             <div class="provider">
