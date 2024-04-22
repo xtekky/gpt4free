@@ -136,6 +136,8 @@ def print_image_models():
         netloc = urlparse(provider_url).netloc.replace("www.", "")
         website = f"[{netloc}]({provider_url})"
         label = image_model["provider"] if image_model["label"] is None else image_model["label"]
+        if image_model["image_model"] is None:
+            image_model["image_model"] = "❌"
         if image_model["vision_model"] is None:
             image_model["vision_model"] = "❌"
         lines.append(f'| {label} | `g4f.Provider.{image_model["provider"]}` | {image_model["image_model"]}| {image_model["vision_model"]} | {website} |')

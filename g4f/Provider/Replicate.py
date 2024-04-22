@@ -11,6 +11,9 @@ class Replicate(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://replicate.com"
     working = True
     default_model = "meta/meta-llama-3-70b-instruct"
+    model_aliases = {
+        "meta-llama/Meta-Llama-3-70B-Instruct": default_model
+    }
 
     @classmethod
     async def create_async_generator(
