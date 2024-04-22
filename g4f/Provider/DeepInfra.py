@@ -9,13 +9,14 @@ class DeepInfra(Openai):
     label = "DeepInfra"
     url = "https://deepinfra.com"
     working = True
+    needs_auth = False
     has_auth = True
     supports_stream = True
     supports_message_history = True
     default_model = "meta-llama/Meta-Llama-3-70b-instruct"
     default_vision_model = "llava-hf/llava-1.5-7b-hf"
     model_aliases = {
-        'mixtral-8x22b': 'HuggingFaceH4/zephyr-orpo-141b-A35b-v0.1'
+        'dbrx-instruct': 'databricks/dbrx-instruct',
     }
 
     @classmethod

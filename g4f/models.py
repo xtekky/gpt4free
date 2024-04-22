@@ -25,6 +25,7 @@ from .Provider import (
     Llama,
     OpenaiChat,
     PerplexityLabs,
+    Replicate,
     Pi,
     Vercel,
     You,
@@ -137,19 +138,19 @@ llama2_13b = Model(
 llama2_70b = Model(
     name          = "meta-llama/Llama-2-70b-chat-hf",
     base_provider = "meta",
-    best_provider = RetryProvider([Llama, DeepInfra, HuggingChat])
+    best_provider = RetryProvider([Llama, DeepInfra])
 )
 
 llama3_8b_instruct = Model(
-    name          = "meta-llama/Meta-Llama-3-8b-instruct",
+    name          = "meta-llama/Meta-Llama-3-8B-Instruct",
     base_provider = "meta",
-    best_provider = RetryProvider([Llama])
+    best_provider = RetryProvider([Llama, DeepInfra, Replicate])
 )
 
 llama3_70b_instruct = Model(
-    name          = "meta-llama/Meta-Llama-3-70b-instruct",
+    name          = "meta-llama/Meta-Llama-3-70B-Instruct",
     base_provider = "meta",
-    best_provider = RetryProvider([Llama, HuggingChat])
+    best_provider = RetryProvider([Llama, DeepInfra])
 )
 
 codellama_34b_instruct = Model(
@@ -168,7 +169,7 @@ codellama_70b_instruct = Model(
 mixtral_8x7b = Model(
     name          = "mistralai/Mixtral-8x7B-Instruct-v0.1",
     base_provider = "huggingface",
-    best_provider = RetryProvider([DeepInfra, HuggingChat, HuggingFace, PerplexityLabs])
+    best_provider = RetryProvider([DeepInfra, HuggingFace, PerplexityLabs])
 )
 
 mistral_7b = Model(
@@ -186,7 +187,7 @@ mistral_7b_v02 = Model(
 mixtral_8x22b = Model(
     name          = "HuggingFaceH4/zephyr-orpo-141b-A35b-v0.1",
     base_provider = "huggingface",
-    best_provider = RetryProvider([HuggingChat, DeepInfra])
+    best_provider = DeepInfra
 )
 
 # Misc models
@@ -211,7 +212,7 @@ airoboros_70b = Model(
 openchat_35 = Model(
     name          = "openchat/openchat_3.5",
     base_provider = "huggingface",
-    best_provider = RetryProvider([DeepInfra, HuggingChat])
+    best_provider = DeepInfra
 )
 
 # Bard
