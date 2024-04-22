@@ -111,6 +111,9 @@ def read_cookie_files(dirPath: str = "./har_and_cookies"):
             for v in harFile['log']['entries']:
                 v_cookies = {}
                 for c in v['request']['cookies']:
+                    if "domain" not in c:
+                        continue
+
                     if c['domain'] not in v_cookies:
                         v_cookies[c['domain']] = {}
                     v_cookies[c['domain']][c['name']] = c['value']
