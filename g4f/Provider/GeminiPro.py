@@ -11,12 +11,14 @@ from ..errors import MissingAuthError
 from .helper import get_connector
 
 class GeminiPro(AsyncGeneratorProvider, ProviderModelMixin):
+    label = "Gemini API"
     url = "https://ai.google.dev"
     working = True
     supports_message_history = True
     needs_auth = True
-    default_model = "gemini-pro"
-    models = ["gemini-pro", "gemini-pro-vision"]
+    default_model = "gemini-1.5-pro-latest"
+    default_vision_model = default_model
+    models = [default_model, "gemini-pro", "gemini-pro-vision"]
 
     @classmethod
     async def create_async_generator(
@@ -32,11 +34,10 @@ class GeminiPro(AsyncGeneratorProvider, ProviderModelMixin):
         connector: BaseConnector = None,
         **kwargs
     ) -> AsyncResult:
-        model = "gemini-pro-vision" if not model and image is not None else model
         model = cls.get_model(model)
 
         if not api_key:
-            raise MissingAuthError('Missing "api_key"')
+            raise MissingAuthError('Add a "api_key"')
 
         headers = params = None
         if use_auth_header:

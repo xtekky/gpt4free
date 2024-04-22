@@ -404,11 +404,12 @@ While we wait for gpt-5, here is a list of new models that are at least better t
 
 | Label | Provider | Image Model | Vision Model | Website |
 | ----- | -------- | ----------- | ------------ | ------- |
-| Microsoft Copilot in Bing | `g4f.Provider.Bing` | dall-e| gpt-4-vision | [bing.com](https://bing.com/chat) |
+| Microsoft Copilot in Bing | `g4f.Provider.Bing` | dall-e-3 | gpt-4-vision | [bing.com](https://bing.com/chat) |
 | DeepInfra | `g4f.Provider.DeepInfra` | stability-ai/sdxl| llava-1.5-7b-hf | [deepinfra.com](https://deepinfra.com) |
 | Gemini | `g4f.Provider.Gemini` | gemini| gemini | [gemini.google.com](https://gemini.google.com) |
+| Gemini API | `g4f.Provider.GeminiPro` | ❌| gemini-1.5-pro-latest | [ai.google.dev](https://ai.google.dev) |
 | Meta AI | `g4f.Provider.MetaAI` | meta| ❌ | [meta.ai](https://www.meta.ai) |
-| OpenAI ChatGPT | `g4f.Provider.OpenaiChat` | dall-e| gpt-4-vision | [chat.openai.com](https://chat.openai.com) |
+| OpenAI ChatGPT | `g4f.Provider.OpenaiChat` | dall-e-3 | gpt-4-vision | [chat.openai.com](https://chat.openai.com) |
 | Replicate | `g4f.Provider.Replicate` | stability-ai/sdxl| ❌ | [replicate.com](https://replicate.com) |
 | You.com | `g4f.Provider.You` | dall-e| agent | [you.com](https://you.com) |
 
