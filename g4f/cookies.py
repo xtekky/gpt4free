@@ -26,6 +26,12 @@ from . import debug
 # Global variable to store cookies
 _cookies: Dict[str, Cookies] = {}
 
+DOMAINS = [
+    ".bing.com",
+    ".meta.ai",
+    ".google.com"
+]
+
 if has_browser_cookie3 and os.environ.get('DBUS_SESSION_BUS_ADDRESS') == "/dev/null":
     _LinuxPasswordManager.get_password = lambda a, b: b"secret"
 
@@ -88,6 +94,15 @@ def load_cookies_from_browsers(domain_name: str, raise_requirements_error: bool 
     return cookies
 
 def read_cookie_files(dirPath: str = "./har_and_cookies"):
+    def get_domain(v: dict) -> str:
+        host = [h["value"] for h in v['request']['headers'] if h["name"].lower() in ("host", ":authority")]
+        if not host:
+            return
+        host = host.pop()
+        for d in DOMAINS:
+            if d in host:
+                return d
+
     global _cookies
     harFiles = []
     cookieFiles = []
@@ -109,17 +124,15 @@ def read_cookie_files(dirPath: str = "./har_and_cookies"):
                 print("Read .har file:", path)
             new_cookies = {}
             for v in harFile['log']['entries']:
+                domain = get_domain(v)
+                if domain is None:
+                    continue
                 v_cookies = {}
                 for c in v['request']['cookies']:
-                    if "domain" not in c:
-                        continue
-
-                    if c['domain'] not in v_cookies:
-                        v_cookies[c['domain']] = {}
-                    v_cookies[c['domain']][c['name']] = c['value']
-                for domain, c in v_cookies.items():
-                    _cookies[domain] = c
-                    new_cookies[domain] = len(c)
+                    v_cookies[c['name']] = c['value']
+                if len(v_cookies) > 0:
+                    _cookies[domain] = v_cookies
+                    new_cookies[domain] = len(v_cookies)
             if debug.logging:
                 for domain, new_values in new_cookies.items():
                     print(f"Cookies added: {new_values} from {domain}")
