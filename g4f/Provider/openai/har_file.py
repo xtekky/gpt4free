@@ -30,6 +30,7 @@ sessionUrl = "https://chat.openai.com/api/auth/session"
 chatArk: arkReq = None
 accessToken: str = None
 cookies: dict = None
+headers: dict = None
 
 def readHAR():
     dirPath = "./"
@@ -130,7 +131,7 @@ def getN() -> str:
     return base64.b64encode(timestamp.encode()).decode()
 
 async def getArkoseAndAccessToken(proxy: str) -> tuple[str, str, dict, dict]:
-    global chatArk, accessToken, cookies
+    global chatArk, accessToken, cookies, headers
     if chatArk is None or accessToken is None:
         chatArk, accessToken, cookies, headers = readHAR()
     if chatArk is None:

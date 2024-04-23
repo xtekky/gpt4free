@@ -210,7 +210,9 @@ body {
 
 .conversations .convo .fa-ellipsis-vertical {
     position: absolute;
-    right: 14px;
+    right: 8px;
+    width: 14px;
+    text-align: center;
 }
 
 .conversations .convo .choise {
@@ -224,6 +226,10 @@ body {
     cursor: pointer;
 }
 
+.bottom_buttons i {
+    width: 14px;
+}
+
 .convo-title {
     color: var(--colour-3);
     font-size: 14px;
@@ -232,9 +238,17 @@ body {
     overflow: hidden; 
     white-space: nowrap;
     margin-right: 10px;
+    background-color: transparent;
+    border: 0;
+    width: 100%;
 }
 
-.convo-title .datetime {
+.convo-title:focus {
+    outline: 1px solid var(--colour-3) !important;
+}
+
+.convo .datetime {
+    white-space: nowrap;
     font-size: 10px;
 }
 
