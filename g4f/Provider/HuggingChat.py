@@ -24,6 +24,9 @@ class HuggingChat(AsyncGeneratorProvider, ProviderModelMixin):
         'mistralai/Mistral-7B-Instruct-v0.2',
         'meta-llama/Meta-Llama-3-70B-Instruct'
     ]
+    model_aliases = {
+        "mistralai/Mistral-7B-Instruct-v0.1": "mistralai/Mistral-7B-Instruct-v0.2"
+    }
 
     @classmethod
     def get_models(cls):

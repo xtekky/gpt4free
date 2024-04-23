@@ -484,7 +484,7 @@ async def stream_generate(
                             elif message.get('contentType') == "IMAGE":
                                 prompt = message.get('text')
                                 try:
-                                    image_client = BingCreateImages(cookies, proxy)
+                                    image_client = BingCreateImages(cookies, proxy, api_key)
                                     image_response = await image_client.create_async(prompt)
                                 except Exception as e:
                                     if debug.logging:

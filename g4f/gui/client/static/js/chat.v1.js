@@ -482,12 +482,35 @@ const clear_conversation = async () => {
     }
 };
 
+async function set_conversation_title(conversation_id, title) {
+    conversation = await get_conversation(conversation_id)
+    conversation.new_title = title;
+    appStorage.setItem(
+        `conversation:${conversation.id}`,
+        JSON.stringify(conversation)
+    );
+}
+
 const show_option = async (conversation_id) => {
     const conv = document.getElementById(`conv-${conversation_id}`);
     const choi = document.getElementById(`cho-${conversation_id}`);
 
     conv.style.display = "none";
     choi.style.display  = "block";
+
+    const el = document.getElementById(`convo-${conversation_id}`);
+    const trash_el = el.querySelector(".fa-trash");
+    const title_el = el.querySelector("span.convo-title");
+    if (title_el) {
+        const left_el = el.querySelector(".left");
+        const input_el = document.createElement("input");
+        input_el.value = title_el.innerText;
+        input_el.classList.add("convo-title");
+        input_el.onfocus = () => trash_el.style.display = "none";
+        input_el.onchange = () => set_conversation_title(conversation_id, input_el.value);
+        left_el.removeChild(title_el);
+        left_el.appendChild(input_el);
+    }
 };
 
 const hide_option = async (conversation_id) => {
@@ -496,6 +519,18 @@ const hide_option = async (conversation_id) => {
 
     conv.style.display = "block";
     choi.style.display  = "none";
+
+    const el = document.getElementById(`convo-${conversation_id}`);
+    el.querySelector(".fa-trash").style.display = "";
+    const input_el = el.querySelector("input.convo-title");
+    if (input_el) {
+        const left_el = el.querySelector(".left");
+        const span_el = document.createElement("span");
+        span_el.innerText = input_el.value;
+        span_el.classList.add("convo-title");
+        left_el.removeChild(input_el);
+        left_el.appendChild(span_el);
+    }
 };
 
 const delete_conversation = async (conversation_id) => {
@@ -709,18 +744,15 @@ const load_conversations = async () => {
 
     let html = "";
     conversations.forEach((conversation) => {
-        if (conversation?.items.length > 0) {
-            let old_value = conversation.title;
+        if (conversation?.items.length > 0 && !conversation.new_title) {
             let new_value = (conversation.items[0]["content"]).trim();
             let new_lenght = new_value.indexOf("\n");
             new_lenght = new_lenght > 200 || new_lenght < 0 ? 200 : new_lenght;
-            conversation.title = new_value.substring(0, new_lenght);
-            if (conversation.title != old_value) {
-                appStorage.setItem(
-                    `conversation:${conversation.id}`,
-                    JSON.stringify(conversation)
-                );
-            }
+            conversation.new_title = new_value.substring(0, new_lenght);
+            appStorage.setItem(
+                `conversation:${conversation.id}`,
+                JSON.stringify(conversation)
+            );
         }
         let updated = "";
         if (conversation.updated) {
@@ -730,9 +762,10 @@ const load_conversations = async () => {
         }
         html += `
             <div class="convo" id="convo-${conversation.id}">
-                <div class="left" onclick="set_conversation('${conversation.id}')">
+                <div class="left">
                     <i class="fa-regular fa-comments"></i>
-                    <span class="convo-title"><span class="datetime">${updated}</span> ${conversation.title}</span>
+                    <span class="datetime" onclick="set_conversation('${conversation.id}')">${updated}</span>
+                    <span class="convo-title" onclick="set_conversation('${conversation.id}')">${conversation.new_title}</span>
                 </div>
                 <i onclick="show_option('${conversation.id}')" class="fa-solid fa-ellipsis-vertical" id="conv-${conversation.id}"></i>
                 <div id="cho-${conversation.id}" class="choise" style="display:none;">
