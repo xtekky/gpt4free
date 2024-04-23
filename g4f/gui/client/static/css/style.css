@@ -222,6 +222,7 @@ body {
 .conversations i, .bottom_buttons i {
     color: var(--conversations);
     cursor: pointer;
+    width: 14px;
 }
 
 .convo-title {

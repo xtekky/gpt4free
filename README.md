@@ -347,29 +347,29 @@ While we wait for gpt-5, here is a list of new models that are at least better t
 
 ### Other
 
-| Website | Provider | GPT-3.5 | GPT-4 | Stream | Status | Auth |
-| ------  | -------  | ------- | ----- | ------ | ------ | ---- |
-| [openchat.team](https://openchat.team) | `g4f.Provider.Aura` | ❌ | ❌ | ✔️ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ❌ |
-| [blackbox.ai](https://www.blackbox.ai) | `g4f.Provider.Blackbox` | ❌ | ❌ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
-| [cohereforai-c4ai-command-r-plus.hf.space](https://cohereforai-c4ai-command-r-plus.hf.space) | `g4f.Provider.Cohere` | ❌ | ❌ | ✔️ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ❌ |
-| [deepinfra.com](https://deepinfra.com) | `g4f.Provider.DeepInfra` | ❌ | ❌ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
-| [free.chatgpt.org.uk](https://free.chatgpt.org.uk) | `g4f.Provider.FreeChatgpt` | ❌ | ❌ | ✔️ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ❌ |
-| [gemini.google.com](https://gemini.google.com) | `g4f.Provider.Gemini` | ❌ | ❌ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ✔️ |
-| [ai.google.dev](https://ai.google.dev) | `g4f.Provider.GeminiPro` | ❌ | ❌ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ✔️ |
-| [gemini-chatbot-sigma.vercel.app](https://gemini-chatbot-sigma.vercel.app) | `g4f.Provider.GeminiProChat` | ❌ | ❌ | ✔️ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ❌ |
-| [developers.sber.ru](https://developers.sber.ru/gigachat) | `g4f.Provider.GigaChat` | ❌ | ❌ | ✔️ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ✔️ |
-| [console.groq.com](https://console.groq.com/playground) | `g4f.Provider.Groq` | ❌ | ❌ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ✔️ |
-| [huggingface.co](https://huggingface.co/chat) | `g4f.Provider.HuggingChat` | ❌ | ❌ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
-| [huggingface.co](https://huggingface.co/chat) | `g4f.Provider.HuggingFace` | ❌ | ❌ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
-| [llama2.ai](https://www.llama2.ai) | `g4f.Provider.Llama` | ❌ | ❌ | ✔️ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ❌ |
-| [meta.ai](https://www.meta.ai) | `g4f.Provider.MetaAI` | ❌ | ❌ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌+✔️ |
-| [openrouter.ai](https://openrouter.ai) | `g4f.Provider.OpenRouter` | ❌ | ❌ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ✔️ |
-| [labs.perplexity.ai](https://labs.perplexity.ai) | `g4f.Provider.PerplexityLabs` | ❌ | ❌ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
-| [pi.ai](https://pi.ai/talk) | `g4f.Provider.Pi` | ❌ | ❌ | ✔️ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ❌ |
-| [replicate.com](https://replicate.com) | `g4f.Provider.ReplicateImage` | ❌ | ❌ | ✔️ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ❌ |
-| [theb.ai](https://theb.ai) | `g4f.Provider.ThebApi` | ❌ | ❌ | ✔️ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ✔️ |
-| [whiterabbitneo.com](https://www.whiterabbitneo.com) | `g4f.Provider.WhiteRabbitNeo` | ❌ | ❌ | ✔️ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ✔️ |
-| [bard.google.com](https://bard.google.com) | `g4f.Provider.Bard` | ❌ | ❌ | ❌ | ![Inactive](https://img.shields.io/badge/Inactive-red) | ✔️ |
+| Website | Provider | Stream | Status | Auth |
+| ------  | -------  | ------ | ------ | ---- |
+| [openchat.team](https://openchat.team) | `g4f.Provider.Aura`| ✔️ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ❌ |
+| [blackbox.ai](https://www.blackbox.ai) | `g4f.Provider.Blackbox`| ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
+| [cohereforai-c4ai-command-r-plus.hf.space](https://cohereforai-c4ai-command-r-plus.hf.space) | `g4f.Provider.Cohere`| ✔️ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ❌ |
+| [deepinfra.com](https://deepinfra.com) | `g4f.Provider.DeepInfra`| ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
+| [free.chatgpt.org.uk](https://free.chatgpt.org.uk) | `g4f.Provider.FreeChatgpt`| ✔️ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ❌ |
+| [gemini.google.com](https://gemini.google.com) | `g4f.Provider.Gemini`| ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ✔️ |
+| [ai.google.dev](https://ai.google.dev) | `g4f.Provider.GeminiPro`| ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ✔️ |
+| [gemini-chatbot-sigma.vercel.app](https://gemini-chatbot-sigma.vercel.app) | `g4f.Provider.GeminiProChat`| ✔️ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ❌ |
+| [developers.sber.ru](https://developers.sber.ru/gigachat) | `g4f.Provider.GigaChat`| ✔️ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ✔️ |
+| [console.groq.com](https://console.groq.com/playground) | `g4f.Provider.Groq`| ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ✔️ |
+| [huggingface.co](https://huggingface.co/chat) | `g4f.Provider.HuggingChat`| ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
+| [huggingface.co](https://huggingface.co/chat) | `g4f.Provider.HuggingFace`| ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
+| [llama2.ai](https://www.llama2.ai) | `g4f.Provider.Llama`| ✔️ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ❌ |
+| [meta.ai](https://www.meta.ai) | `g4f.Provider.MetaAI`| ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
+| [openrouter.ai](https://openrouter.ai) | `g4f.Provider.OpenRouter`| ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ✔️ |
+| [labs.perplexity.ai](https://labs.perplexity.ai) | `g4f.Provider.PerplexityLabs`| ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
+| [pi.ai](https://pi.ai/talk) | `g4f.Provider.Pi`| ✔️ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ❌ |
+| [replicate.com](https://replicate.com) | `g4f.Provider.Replicate`| ✔️ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ❌ |
+| [theb.ai](https://theb.ai) | `g4f.Provider.ThebApi`| ✔️ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ✔️ |
+| [whiterabbitneo.com](https://www.whiterabbitneo.com) | `g4f.Provider.WhiteRabbitNeo`| ✔️ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ✔️ |
+| [bard.google.com](https://bard.google.com) | `g4f.Provider.Bard`| ❌ | ![Inactive](https://img.shields.io/badge/Inactive-red) | ✔️ |
 
 ### Models
 
@@ -405,13 +405,13 @@ While we wait for gpt-5, here is a list of new models that are at least better t
 | Label | Provider | Image Model | Vision Model | Website |
 | ----- | -------- | ----------- | ------------ | ------- |
 | Microsoft Copilot in Bing | `g4f.Provider.Bing` | dall-e-3 | gpt-4-vision | [bing.com](https://bing.com/chat) |
-| DeepInfra | `g4f.Provider.DeepInfra` | stability-ai/sdxl| llava-1.5-7b-hf | [deepinfra.com](https://deepinfra.com) |
-| Gemini | `g4f.Provider.Gemini` | gemini| gemini | [gemini.google.com](https://gemini.google.com) |
-| Gemini API | `g4f.Provider.GeminiPro` | ❌| gemini-1.5-pro-latest | [ai.google.dev](https://ai.google.dev) |
-| Meta AI | `g4f.Provider.MetaAI` | meta| ❌ | [meta.ai](https://www.meta.ai) |
+| DeepInfra | `g4f.Provider.DeepInfra` | stability-ai/sdxl | llava-1.5-7b-hf | [deepinfra.com](https://deepinfra.com) |
+| Gemini | `g4f.Provider.Gemini` | ✔️ | ✔️ | [gemini.google.com](https://gemini.google.com) |
+| Gemini API | `g4f.Provider.GeminiPro` | ❌ | gemini-1.5-pro | [ai.google.dev](https://ai.google.dev) |
+| Meta AI | `g4f.Provider.MetaAI` | ✔️ | ❌ | [meta.ai](https://www.meta.ai) |
 | OpenAI ChatGPT | `g4f.Provider.OpenaiChat` | dall-e-3 | gpt-4-vision | [chat.openai.com](https://chat.openai.com) |
-| Replicate | `g4f.Provider.Replicate` | stability-ai/sdxl| ❌ | [replicate.com](https://replicate.com) |
-| You.com | `g4f.Provider.You` | dall-e| agent | [you.com](https://you.com) |
+| Replicate | `g4f.Provider.Replicate` | stability-ai/sdxl| llava-v1.6-34b | [replicate.com](https://replicate.com) |
+| You.com | `g4f.Provider.You` | dall-e-3| ✔️ | [you.com](https://you.com) |
 
 ## 🔗 Powered by gpt4free
 
@@ -874,7 +874,6 @@ A list of all contributors is available [here](https://github.com/xtekky/gpt4fre
 - The [`PerplexityLabs.py`](g4f/Provider/openai/har_file.py) has input from [nathanrchn/perplexityai](https://github.com/nathanrchn/perplexityai)
 - The [`Gemini.py`](g4f/Provider/needs_auth/Gemini.py) has input from [dsdanielpark/Gemini-API](https://github.com/dsdanielpark/Gemini-API)
 - The [`MetaAI.py`](g4f/Provider/MetaAI.py) file contains code from [meta-ai-api](https://github.com/Strvm/meta-ai-api) by [@Strvm](https://github.com/Strvm)
-
 
 *Having input implies that the AI's code generation utilized it as one of many sources.*
 
