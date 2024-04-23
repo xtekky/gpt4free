@@ -1246,6 +1246,8 @@ async function load_provider_models(providerIndex=null) {
     }
     const provider = providerSelect.options[providerIndex].value;
     if (!provider) {
+        modelProvider.classList.add("hidden");
+        modelSelect.classList.remove("hidden");
         return;
     }
     const models = await api('models', provider);

@@ -101,4 +101,4 @@ async def get_telemetry_ids(proxy: str = None) -> list:
 
         return [await get_telemetry_id() for _ in range(1)]
     finally:
-        await browser.stop()
+        await tab.close()
