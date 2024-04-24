@@ -22,7 +22,8 @@ class HuggingChat(AsyncGeneratorProvider, ProviderModelMixin):
         'google/gemma-1.1-7b-it',
         'NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO',
         'mistralai/Mistral-7B-Instruct-v0.2',
-        'meta-llama/Meta-Llama-3-70B-Instruct'
+        'meta-llama/Meta-Llama-3-70B-Instruct',
+        'microsoft/Phi-3-mini-4k-instruct'
     ]
     model_aliases = {
         "mistralai/Mistral-7B-Instruct-v0.1": "mistralai/Mistral-7B-Instruct-v0.2"
