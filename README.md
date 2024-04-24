@@ -308,7 +308,7 @@ While we wait for gpt-5, here is a list of new models that are at least better t
 | [reka-core](https://chat.reka.ai/) | `g4f.Provider.Reka` | 104B | gpt-4-vision |
 | [claude-3-opus](https://anthropic.com/) | `g4f.Provider.You` | ?B | gpt-4-0125-preview |
 | [claude-3-sonnet](https://anthropic.com/) | `g4f.Provider.You` | ?B | gpt-4-0314 |
-| [llama-3-70b](https://meta.ai/) | `g4f.Provider.Llama` or `DeepInfra` | ?B | gpt-4-0314 |
+| [llama-3-70b](https://meta.ai/) | `g4f.Provider.Llama` or `DeepInfra` | 70B | gpt-4-0314 |
 
 ### GPT-3.5
 
