@@ -302,10 +302,13 @@ While we wait for gpt-5, here is a list of new models that are at least better t
 
 | Website | Provider |  parameters | better than |
 | ------  | -------  |  ------ |  ------ | 
-| [mixtral-8x22b](https://huggingface.co/mistral-community/Mixtral-8x22B-v0.1) | `g4f.Provider.DeepInfra` | 176B / 44b active | gpt-3.5-turbo |
+| [claude-3-opus](https://anthropic.com/) | `g4f.Provider.You` | ?B | gpt-4-0125-preview |
+| [command-r+](https://txt.cohere.com/command-r-plus-microsoft-azure/) | `g4f.Provider.HuggingChat` | 104B | gpt-4-0314 |
+| [llama-3-70b](https://meta.ai/) | `g4f.Provider.Llama` or `DeepInfra` | 70B | gpt-4-0314 |
+| [claude-3-sonnet](https://anthropic.com/) | `g4f.Provider.You` | ?B | gpt-4-0314 |
+| [reka-core](https://chat.reka.ai/) | `g4f.Provider.Reka` | 21B | gpt-4-vision |
 | [dbrx-instruct](https://www.databricks.com/blog/introducing-dbrx-new-state-art-open-llm) | `g4f.Provider.DeepInfra` | 132B / 36B active| gpt-3.5-turbo |
-| [command-r+](https://txt.cohere.com/command-r-plus-microsoft-azure/) | `g4f.Provider.HuggingChat` | 104B | gpt-4-0613 |
-
+| [mixtral-8x22b](https://huggingface.co/mistral-community/Mixtral-8x22B-v0.1) | `g4f.Provider.DeepInfra` | 176B / 44b active | gpt-3.5-turbo |
 
 ### GPT-3.5
 

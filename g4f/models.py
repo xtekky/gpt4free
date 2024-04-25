@@ -29,6 +29,7 @@ from .Provider import (
     Pi,
     Vercel,
     You,
+    Reka
 )
 
 
@@ -306,6 +307,12 @@ blackbox = Model(
     best_provider = Blackbox
 )
 
+reka_core = Model(
+    name = 'reka-core',
+    base_provider = 'Reka AI',
+    best_provider = Reka
+)
+
 class ModelUtils:
     """
     Utility class for mapping string identifiers to Model instances.
@@ -333,8 +340,12 @@ class ModelUtils:
         'llama2-7b' : llama2_7b,
         'llama2-13b': llama2_13b,
         'llama2-70b': llama2_70b,
+        
+        'llama3-8b' : llama3_8b_instruct, # alias
+        'llama3-70b': llama3_70b_instruct, # alias
         'llama3-8b-instruct' : llama3_8b_instruct,
         'llama3-70b-instruct': llama3_70b_instruct,
+        
         'codellama-34b-instruct': codellama_34b_instruct,
         'codellama-70b-instruct': codellama_70b_instruct,
 
@@ -358,6 +369,11 @@ class ModelUtils:
         'claude-v2': claude_v2,
         'claude-3-opus': claude_3_opus,
         'claude-3-sonnet': claude_3_sonnet,
+        
+        # reka core
+        'reka-core': reka_core,
+        'reka': reka_core,
+        'Reka Core': reka_core,
         
         # other
         'blackbox': blackbox,
