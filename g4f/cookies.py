@@ -31,7 +31,8 @@ DOMAINS = [
     ".meta.ai",
     ".google.com",
     "www.whiterabbitneo.com",
-    "huggingface.co"
+    "huggingface.co",
+    "chat.reka.ai",
 ]
 
 if has_browser_cookie3 and os.environ.get('DBUS_SESSION_BUS_ADDRESS') == "/dev/null":
