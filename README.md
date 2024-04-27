@@ -413,8 +413,25 @@ While we wait for gpt-5, here is a list of new models that are at least better t
 | Gemini API | `g4f.Provider.GeminiPro` | ❌ | gemini-1.5-pro | [ai.google.dev](https://ai.google.dev) |
 | Meta AI | `g4f.Provider.MetaAI` | ✔️ | ❌ | [meta.ai](https://www.meta.ai) |
 | OpenAI ChatGPT | `g4f.Provider.OpenaiChat` | dall-e-3 | gpt-4-vision | [chat.openai.com](https://chat.openai.com) |
+| Reka | `g4f.Provider.Reka` | ❌ | ✔️ | [chat.reka.ai](https://chat.reka.ai/) |
 | Replicate | `g4f.Provider.Replicate` | stability-ai/sdxl| llava-v1.6-34b | [replicate.com](https://replicate.com) |
 | You.com | `g4f.Provider.You` | dall-e-3| ✔️ | [you.com](https://you.com) |
+
+```python
+from g4f.client import Client
+from g4f.Provider.GeminiPro import GeminiPro
+
+client = Client(
+    api_key="...",
+    provider=GeminiPro
+)
+response = client.chat.completions.create(
+    model="gemini-pro-vision",
+    messages=[{"role": "user", "content": "What are on this image?"}],
+    image=open("docs/waterfall.jpeg", "rb")
+)
+print(response.choices[0].message.content)
+```
 
 ## 🔗 Powered by gpt4free
 
