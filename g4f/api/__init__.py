@@ -3,11 +3,14 @@ from __future__ import annotations
 import logging
 import json
 import uvicorn
+import secrets
 
 from fastapi import FastAPI, Response, Request
 from fastapi.responses import StreamingResponse, RedirectResponse, HTMLResponse, JSONResponse
 from fastapi.exceptions import RequestValidationError
-from starlette.status import HTTP_422_UNPROCESSABLE_ENTITY
+from fastapi.security import APIKeyHeader
+from starlette.exceptions import HTTPException
+from starlette.status import HTTP_422_UNPROCESSABLE_ENTITY, HTTP_401_UNAUTHORIZED, HTTP_403_FORBIDDEN
 from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel
 from typing import Union, Optional
@@ -17,10 +20,13 @@ import g4f.debug
 from g4f.client import AsyncClient
 from g4f.typing import Messages
 
-def create_app() -> FastAPI:
+global _g4f_api_key
+
+def create_app():
     app = FastAPI()
-    api = Api(app)
+    api = Api(app, g4f_api_key=_g4f_api_key)
     api.register_routes()
+    api.register_authorization()
     api.register_validation_exception_handler()
     return app
 
@@ -43,9 +49,34 @@ def set_list_ignored_providers(ignored: list[str]):
     list_ignored_providers = ignored
 
 class Api:
-    def __init__(self, app: FastAPI) -> None:
+    def __init__(self, app: FastAPI, g4f_api_key=None) -> None:
         self.app = app
         self.client = AsyncClient()
+        self.g4f_api_key = g4f_api_key
+        print(g4f_api_key)
+        self.get_g4f_api_key = APIKeyHeader(name="g4f-api-key")
+
+    def register_authorization(self):
+        @self.app.middleware("http")
+        async def authorization(request: Request, call_next):
+            if self.g4f_api_key and request.url.path in ["/v1/chat/completions", "/v1/completions"]:
+                try:
+                    user_g4f_api_key = await self.get_g4f_api_key(request)
+                except HTTPException as e:
+                    if e.status_code == 403:
+                        print(e)
+                        return JSONResponse(
+                            status_code=HTTP_401_UNAUTHORIZED,
+                            content=jsonable_encoder({"detail": "G4F API key required"}),
+                        )
+                if not secrets.compare_digest(self.g4f_api_key, user_g4f_api_key):
+                    return JSONResponse(
+                    status_code=HTTP_403_FORBIDDEN,
+                    content=jsonable_encoder({"detail": "Invalid G4F API key"}),
+                )
+            
+            response = await call_next(request)
+            return response
 
     def register_validation_exception_handler(self):
         @self.app.exception_handler(RequestValidationError)
@@ -153,8 +184,13 @@ def run_api(
     bind: str = None,
     debug: bool = False,
     workers: int = None,
+    g4f_api_key: str = None,
     use_colors: bool = None
 ) -> None:
+
+    global _g4f_api_key
+    _g4f_api_key = g4f_api_key
+    
     print(f'Starting server... [g4f v-{g4f.version.utils.current_version}]' + (" (debug)" if debug else ""))
     if use_colors is None:
         use_colors = debug
@@ -162,4 +198,4 @@ def run_api(
         host, port = bind.split(":")
     if debug:
         g4f.debug.logging = True
-    uvicorn.run("g4f.api:create_app", host=host, port=int(port), workers=workers, use_colors=use_colors, factory=True)#
+    uvicorn.run("g4f.api:create_app", host=host, port=int(port), workers=workers, use_colors=use_colors, factory=True)
