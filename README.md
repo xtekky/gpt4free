@@ -6,7 +6,7 @@ Written by [@xtekky](https://github.com/hlohaus) & maintained by [@hlohaus](http
 
 <div id="top"></div>
 
-> By using this repository or any code related to it, you agree to the [legal notice](LEGAL_NOTICE.md). The author is **not responsible for the usage of this repository nor endorses it**, nor is the author responsible for any copies, forks, re-uploads made by other users, or anything else related to GPT4Free. This is the author's only account and repository. To prevent impersonation or irresponsible actions, please comply with the GNU GPL license this Repository uses.  
+> By using this repository or any code related to it, you agree to the [legal notice](https://github.com/xtekky/gpt4free/blob/main/LEGAL_NOTICE.md). The author is **not responsible for the usage of this repository nor endorses it**, nor is the author responsible for any copies, forks, re-uploads made by other users, or anything else related to GPT4Free. This is the author's only account and repository. To prevent impersonation or irresponsible actions, please comply with the GNU GPL license this Repository uses.  
 
 > [!Warning]
 *"gpt4free"* serves as a **PoC** (proof of concept), demonstrating the development of an API package with multi-provider requests, with features like timeouts, load balance and flow control.
@@ -114,12 +114,12 @@ To ensure the seamless operation of our application, please follow the instructi
 By following these steps, you should be able to successfully install and run the application on your Windows system. If you encounter any issues during the installation process, please refer to our Issue Tracker or try to get contact over Discord for assistance.
 
 Run the **Webview UI** on other Platfroms:
-- [/docs/guides/webview](/docs/webview.md)
+- [/docs/guides/webview](https://github.com/xtekky/gpt4free/blob/main/docs/webview.md)
 
 ##### Use your smartphone:
 
 Run the Web UI on Your Smartphone:
-- [/docs/guides/phone](/docs/guides/phone.md)
+- [/docs/guides/phone](https://github.com/xtekky/gpt4free/blob/main/docs/guides/phone.md)
 
 #### Use python
 
@@ -135,18 +135,18 @@ pip install -U g4f[all]
 ```
 
 How do I install only parts or do disable parts?
-Use partial requirements: [/docs/requirements](/docs/requirements.md)
+Use partial requirements: [/docs/requirements](https://github.com/xtekky/gpt4free/blob/main/docs/requirements.md)
 
 ##### Install from source:
 
 How do I load the project using git and installing the project requirements?
-Read this tutorial and follow it step by step: [/docs/git](/docs/git.md)
+Read this tutorial and follow it step by step: [/docs/git](https://github.com/xtekky/gpt4free/blob/main/docs/git.md)
 
 
 ##### Install using Docker:
 
 How do I build and run composer image from source?
-Use docker-compose: [/docs/docker](/docs/docker.md)
+Use docker-compose: [/docs/docker](https://github.com/xtekky/gpt4free/blob/main/docs/docker.md)
 
 
 ## 💡 Usage
@@ -184,13 +184,13 @@ image_url = response.data[0].url
 ```
 
 
-[![Image with cat](/docs/cat.jpeg)](/docs/client.md)
+[![Image with cat](/docs/cat.jpeg)](https://github.com/xtekky/gpt4free/blob/main/docs/client.md)
 
 **Full Documentation for Python API**
 
-- New AsyncClient API from G4F: [/docs/async_client](/docs/async_client.md)
-- Client API like the OpenAI Python library: [/docs/client](/docs/client.md)
-- Legacy API with python modules: [/docs/legacy](/docs/legacy.md)
+- New AsyncClient API from G4F: [/docs/async_client](https://github.com/xtekky/gpt4free/blob/main/docs/async_client.md)
+- Client API like the OpenAI Python library: [/docs/client](https://github.com/xtekky/gpt4free/blob/main/docs/client.md)
+- Legacy API with python modules: [/docs/legacy](https://github.com/xtekky/gpt4free/blob/main/docs/legacy.md)
 
 #### Web UI
 
@@ -209,7 +209,7 @@ python -m g4f.cli gui -port 8080 -debug
 
 You can use the Interference API to serve other OpenAI integrations with G4F.
 
-See docs: [/docs/interference](/docs/interference.md)
+See docs: [/docs/interference](https://github.com/xtekky/gpt4free/blob/main/docs/interference.md)
 
 Access with: http://localhost:1337/v1
 
@@ -843,11 +843,11 @@ We welcome contributions from the community. Whether you're adding new providers
 
 ###### Guide: How do i create a new Provider?
 
- - Read: [/docs/guides/create_provider](/docs/guides/create_provider.md)
+ - Read: [/docs/guides/create_provider](https://github.com/xtekky/gpt4free/blob/main/docs/guides/create_provider.md)
 
 ###### Guide: How can AI help me with writing code?
 
- - Read: [/docs/guides/help_me](/docs/guides/help_me.md)
+ - Read: [/docs/guides/help_me](https://github.com/xtekky/gpt4free/blob/main/docs/guides/help_me.md)
 
 ## 🙌 Contributors
 
@@ -889,11 +889,11 @@ A list of all contributors is available [here](https://github.com/xtekky/gpt4fre
 <img src="https://avatars.githubusercontent.com/u/97126670?s=45&v=4" width="45" title="nathanrchn">
 <img src="https://avatars.githubusercontent.com/u/81407603?v=4&s=45" width="45" title="dsdanielpark">
 
-- The [`Vercel.py`](g4f/Provider/Vercel.py) file contains code from [vercel-llm-api](https://github.com/ading2210/vercel-llm-api) by [@ading2210](https://github.com/ading2210)
-- The [`har_file.py`](g4f/Provider/openai/har_file.py) has input from [xqdoo00o/ChatGPT-to-API](https://github.com/xqdoo00o/ChatGPT-to-API)
-- The [`PerplexityLabs.py`](g4f/Provider/openai/har_file.py) has input from [nathanrchn/perplexityai](https://github.com/nathanrchn/perplexityai)
-- The [`Gemini.py`](g4f/Provider/needs_auth/Gemini.py) has input from [dsdanielpark/Gemini-API](https://github.com/dsdanielpark/Gemini-API)
-- The [`MetaAI.py`](g4f/Provider/MetaAI.py) file contains code from [meta-ai-api](https://github.com/Strvm/meta-ai-api) by [@Strvm](https://github.com/Strvm)
+- The [`Vercel.py`](https://github.com/xtekky/gpt4free/blob/main/g4f/Provider/Vercel.py) file contains code from [vercel-llm-api](https://github.com/ading2210/vercel-llm-api) by [@ading2210](https://github.com/ading2210)
+- The [`har_file.py`](https://github.com/xtekky/gpt4free/blob/main/g4f/Provider/openai/har_file.py) has input from [xqdoo00o/ChatGPT-to-API](https://github.com/xqdoo00o/ChatGPT-to-API)
+- The [`PerplexityLabs.py`](https://github.com/xtekky/gpt4free/blob/main/g4f/Provider/openai/har_file.py) has input from [nathanrchn/perplexityai](https://github.com/nathanrchn/perplexityai)
+- The [`Gemini.py`](https://github.com/xtekky/gpt4free/blob/main/g4f/Provider/needs_auth/Gemini.py) has input from [dsdanielpark/Gemini-API](https://github.com/dsdanielpark/Gemini-API)
+- The [`MetaAI.py`](https://github.com/xtekky/gpt4free/blob/main/g4f/Provider/MetaAI.py) file contains code from [meta-ai-api](https://github.com/Strvm/meta-ai-api) by [@Strvm](https://github.com/Strvm)
 
 *Having input implies that the AI's code generation utilized it as one of many sources.*
 
@@ -933,7 +933,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
     </td>
     <td> 
       <img src="https://img.shields.io/badge/License-GNU_GPL_v3.0-red.svg"/> <br> 
-This project is licensed under <a href="./LICENSE">GNU_GPL_v3.0</a>.
+This project is licensed under <a href="https://github.com/xtekky/gpt4free/blob/main/LICENSE">GNU_GPL_v3.0</a>.
     </td>
   </tr>
 </table>
