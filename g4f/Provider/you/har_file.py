@@ -85,20 +85,21 @@ async def get_telemetry_ids(proxy: str = None) -> list:
         from nodriver import start
     except ImportError:
         raise MissingRequirementsError('Add .har file from you.com or install "nodriver" package | pip install -U nodriver')
+    page = None
     try:
         browser = await start()
-        tab = browser.main_tab
-        await browser.get("https://you.com")
+        page = await browser.get("https://you.com")
 
-        while not await tab.evaluate('"GetTelemetryID" in this'):
-            await tab.sleep(1)
+        while not await page.evaluate('"GetTelemetryID" in this'):
+            await page.sleep(1)
 
         async def get_telemetry_id():
-            return await tab.evaluate(
+            return await page.evaluate(
                 f'this.GetTelemetryID("{public_token}", "{telemetry_url}");',
                 await_promise=True
             )
 
-        return [await get_telemetry_id() for _ in range(1)]
+        return [await get_telemetry_id()]
     finally:
-        await tab.close()
+        if page is not None:
+            await page.close()

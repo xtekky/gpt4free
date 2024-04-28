@@ -24,14 +24,30 @@ except ImportError:
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ...webdriver import get_browser
 from ...typing import AsyncResult, Messages, Cookies, ImageType, AsyncIterator
-from ...requests import DEFAULT_HEADERS, get_args_from_browser, raise_for_status
+from ...requests import get_args_from_browser, raise_for_status
 from ...requests.aiohttp import StreamSession
 from ...image import to_image, to_bytes, ImageResponse, ImageRequest
 from ...errors import MissingAuthError, ResponseError
 from ...providers.conversation import BaseConversation
 from ..helper import format_cookies
 from ..openai.har_file import getArkoseAndAccessToken, NoValidHarFileError
+from ..openai.proofofwork import generate_proof_token
 from ... import debug
+
+DEFAULT_HEADERS = {
+    "accept": "*/*",
+    "accept-encoding": "gzip, deflate, br, zstd",
+    "accept-language": "en-US,en;q=0.5",
+    "referer": "https://chat.openai.com/",
+    "sec-ch-ua": "\"Brave\";v=\"123\", \"Not:A-Brand\";v=\"8\", \"Chromium\";v=\"123\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"Windows\"",
+    "sec-fetch-dest": "empty",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin",
+    "sec-gpc": "1",
+    "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"
+}
 
 class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
     """A class for creating and managing conversations with OpenAI chat service"""
@@ -355,11 +371,21 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
                 cls._set_api_key(api_key)
 
             if cls.default_model is None and (not cls.needs_auth or cls._api_key is not None):
+                if cls._api_key is None:
+                    cls._create_request_args(cookies)
+                    async with session.get(
+                        f"{cls.url}/",
+                        headers=DEFAULT_HEADERS
+                    ) as response:
+                        cls._update_request_args(session)
+                        await raise_for_status(response)
                 try:
                     if not model:
                         cls.default_model = cls.get_model(await cls.get_default_model(session, cls._headers))
                     else:
                         cls.default_model = cls.get_model(model)
+                except MissingAuthError:
+                    pass
                 except Exception as e:
                     api_key = cls._api_key = None
                     cls._create_request_args()
@@ -395,9 +421,9 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
                 blob = data["arkose"]["dx"]
                 need_arkose = data["arkose"]["required"]
                 chat_token = data["token"]
-
-                if debug.logging:
-                    print(f'Arkose: {need_arkose} Turnstile: {data["turnstile"]["required"]}')
+                proofofwork = ""
+                if "proofofwork" in data:
+                    proofofwork = generate_proof_token(**data["proofofwork"], user_agent=cls._headers["user-agent"])
 
             if need_arkose and arkose_token is None:
                 arkose_token, api_key, cookies, headers = await getArkoseAndAccessToken(proxy)
@@ -405,6 +431,13 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
                 cls._set_api_key(api_key)
                 if arkose_token is None:
                     raise MissingAuthError("No arkose token found in .har file")
+                            
+            if debug.logging:
+                print(
+                    'Arkose:', False if not need_arkose else arkose_token[:12]+"...",
+                    'Turnstile:', data["turnstile"]["required"],
+                    'Proofofwork:', False if proofofwork is None else proofofwork[:12]+"...",
+                )
 
             try:
                 image_request = await cls.upload_image(session, cls._headers, image, image_name) if image else None
@@ -439,12 +472,14 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
                     messages = messages if conversation_id is None else [messages[-1]]
                     data["messages"] = cls.create_messages(messages, image_request)
                 headers = {
-                    "Accept": "text/event-stream",
-                    "OpenAI-Sentinel-Chat-Requirements-Token": chat_token,
+                    "accept": "text/event-stream",
+                    "Openai-Sentinel-Chat-Requirements-Token": chat_token,
                     **cls._headers
                 }
                 if need_arkose:
-                    headers["OpenAI-Sentinel-Arkose-Token"] = arkose_token
+                    headers["Openai-Sentinel-Arkose-Token"] = arkose_token
+                if proofofwork is not None:
+                    headers["Openai-Sentinel-Proof-Token"] = proofofwork
                 async with session.post(
                     f"{cls.url}/backend-anon/conversation" if cls._api_key is None else
                     f"{cls.url}/backend-api/conversation",
@@ -671,8 +706,6 @@ this.fetch = async (url, options) => {
         return {
             **DEFAULT_HEADERS,
             "content-type": "application/json",
-            "oai-device-id": str(uuid.uuid4()),
-            "oai-language": "en-US",
         }
 
     @classmethod
@@ -698,6 +731,8 @@ this.fetch = async (url, options) => {
     @classmethod
     def _update_cookie_header(cls):
         cls._headers["cookie"] = format_cookies(cls._cookies)
+        if "oai-did" in cls._cookies:
+            cls._headers["oai-device-id"] = cls._cookies["oai-did"]
 
 class Conversation(BaseConversation):
     """
