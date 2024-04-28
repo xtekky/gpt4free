@@ -425,10 +425,11 @@ client = Client(
     api_key="...",
     provider=GeminiPro
 )
+image = requests.get("https://example.jpg", stream=True).raw
 response = client.chat.completions.create(
     model="gemini-pro-vision",
     messages=[{"role": "user", "content": "What are on this image?"}],
-    image=open("docs/waterfall.jpeg", "rb")
+    image=image
 )
 print(response.choices[0].message.content)
 ```
