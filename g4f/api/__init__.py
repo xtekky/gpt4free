@@ -20,11 +20,9 @@ import g4f.debug
 from g4f.client import AsyncClient
 from g4f.typing import Messages
 
-global _g4f_api_key
-
-def create_app():
+def create_app(g4f_api_key:str = None):
     app = FastAPI()
-    api = Api(app, g4f_api_key=_g4f_api_key)
+    api = Api(app, g4f_api_key=g4f_api_key)
     api.register_routes()
     api.register_authorization()
     api.register_validation_exception_handler()
@@ -53,7 +51,6 @@ class Api:
         self.app = app
         self.client = AsyncClient()
         self.g4f_api_key = g4f_api_key
-        print(g4f_api_key)
         self.get_g4f_api_key = APIKeyHeader(name="g4f-api-key")
 
     def register_authorization(self):
@@ -64,7 +61,6 @@ class Api:
                     user_g4f_api_key = await self.get_g4f_api_key(request)
                 except HTTPException as e:
                     if e.status_code == 403:
-                        print(e)
                         return JSONResponse(
                             status_code=HTTP_401_UNAUTHORIZED,
                             content=jsonable_encoder({"detail": "G4F API key required"}),
@@ -184,13 +180,9 @@ def run_api(
     bind: str = None,
     debug: bool = False,
     workers: int = None,
-    g4f_api_key: str = None,
-    use_colors: bool = None
+    use_colors: bool = None,
+    g4f_api_key: str = None
 ) -> None:
-
-    global _g4f_api_key
-    _g4f_api_key = g4f_api_key
-    
     print(f'Starting server... [g4f v-{g4f.version.utils.current_version}]' + (" (debug)" if debug else ""))
     if use_colors is None:
         use_colors = debug
@@ -198,4 +190,4 @@ def run_api(
         host, port = bind.split(":")
     if debug:
         g4f.debug.logging = True
-    uvicorn.run("g4f.api:create_app", host=host, port=int(port), workers=workers, use_colors=use_colors, factory=True)
+    uvicorn.run(create_app(g4f_api_key), host=host, port=int(port), workers=workers, use_colors=use_colors)
