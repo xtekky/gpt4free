@@ -418,17 +418,14 @@ While we wait for gpt-5, here is a list of new models that are at least better t
 | You.com | `g4f.Provider.You` | dall-e-3| ✔️ | [you.com](https://you.com) |
 
 ```python
+import requests
 from g4f.client import Client
-from g4f.Provider.GeminiPro import GeminiPro
 
-client = Client(
-    api_key="...",
-    provider=GeminiPro
-)
-image = requests.get("https://example.jpg", stream=True).raw
+client = Client()
+image = requests.get("https://change_me.jpg", stream=True).raw
 response = client.chat.completions.create(
-    model="gemini-pro-vision",
-    messages=[{"role": "user", "content": "What are on this image?"}],
+    "",
+    messages=[{"role": "user", "content": "what is in this picture?"}],
     image=image
 )
 print(response.choices[0].message.content)
