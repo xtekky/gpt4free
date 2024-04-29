@@ -16,9 +16,9 @@ def main():
     api_parser.add_argument("--workers", type=int, default=None, help="Number of workers.")
     api_parser.add_argument("--disable-colors", action="store_true", help="Don't use colors.")
     api_parser.add_argument("--ignore-cookie-files", action="store_true", help="Don't read .har and cookie files.")
-    api_parser.add_argument("--g4f-api-key", type=str, default=None, help="Sets an authentication key for your API.")
-    api_parser.add_argument("--ignored-providers", nargs="+", choices=[provider for provider in Provider.__map__],
-                            default=[], help="List of providers to ignore when processing request.")
+    api_parser.add_argument("--g4f-api-key", type=str, default=None, help="Sets an authentication key for your API. (incompatible with --debug and --workers)")
+    api_parser.add_argument("--ignored-providers", nargs="+", choices=[provider.__name__ for provider in Provider.__providers__ if provider.working],
+                            default=[], help="List of providers to ignore when processing request. (incompatible with --debug and --workers)")
     subparsers.add_parser("gui", parents=[gui_parser()], add_help=False)
 
     args = parser.parse_args()
@@ -39,11 +39,13 @@ def run_api_args(args):
     g4f.api.set_list_ignored_providers(
         args.ignored_providers
     )
+    g4f.api.set_g4f_api_key(
+        args.g4f_api_key
+    )
     g4f.api.run_api(
         bind=args.bind,
         debug=args.debug,
         workers=args.workers,
-        g4f_api_key=args.g4f_api_key,
         use_colors=not args.disable_colors
     )
 

@@ -20,13 +20,17 @@ import g4f.debug
 from g4f.client import AsyncClient
 from g4f.typing import Messages
 
-def create_app(g4f_api_key:str = None):
+def create_app():
     app = FastAPI()
-    api = Api(app, g4f_api_key=g4f_api_key)
+    api = Api(app)
     api.register_routes()
     api.register_authorization()
     api.register_validation_exception_handler()
     return app
+
+def create_debug_app():
+    g4f.debug.logging = True
+    return create_app()
 
 class ChatCompletionsConfig(BaseModel):
     messages: Messages
@@ -46,17 +50,22 @@ def set_list_ignored_providers(ignored: list[str]):
     global list_ignored_providers
     list_ignored_providers = ignored
 
+g4f_api_key: str = None
+
+def set_g4f_api_key(key: str = None):
+    global g4f_api_key
+    g4f_api_key = key
+
 class Api:
-    def __init__(self, app: FastAPI, g4f_api_key=None) -> None:
+    def __init__(self, app: FastAPI) -> None:
         self.app = app
         self.client = AsyncClient()
-        self.g4f_api_key = g4f_api_key
         self.get_g4f_api_key = APIKeyHeader(name="g4f-api-key")
 
     def register_authorization(self):
         @self.app.middleware("http")
         async def authorization(request: Request, call_next):
-            if self.g4f_api_key and request.url.path in ["/v1/chat/completions", "/v1/completions"]:
+            if g4f_api_key and request.url.path in ["/v1/chat/completions", "/v1/completions"]:
                 try:
                     user_g4f_api_key = await self.get_g4f_api_key(request)
                 except HTTPException as e:
@@ -65,26 +74,22 @@ class Api:
                             status_code=HTTP_401_UNAUTHORIZED,
                             content=jsonable_encoder({"detail": "G4F API key required"}),
                         )
-                if not secrets.compare_digest(self.g4f_api_key, user_g4f_api_key):
+                if not secrets.compare_digest(g4f_api_key, user_g4f_api_key):
                     return JSONResponse(
-                    status_code=HTTP_403_FORBIDDEN,
-                    content=jsonable_encoder({"detail": "Invalid G4F API key"}),
-                )
-            
-            response = await call_next(request)
-            return response
+                        status_code=HTTP_403_FORBIDDEN,
+                        content=jsonable_encoder({"detail": "Invalid G4F API key"}),
+                    )
+            return await call_next(request)
 
     def register_validation_exception_handler(self):
         @self.app.exception_handler(RequestValidationError)
         async def validation_exception_handler(request: Request, exc: RequestValidationError):
             details = exc.errors()
-            modified_details = []
-            for error in details:
-                modified_details.append({
-                    "loc": error["loc"],
-                    "message": error["msg"],
-                    "type": error["type"],
-                })
+            modified_details = [{
+                "loc": error["loc"],
+                "message": error["msg"],
+                "type": error["type"],
+            } for error in details]
             return JSONResponse(
                 status_code=HTTP_422_UNPROCESSABLE_ENTITY,
                 content=jsonable_encoder({"detail": modified_details}),
@@ -180,14 +185,18 @@ def run_api(
     bind: str = None,
     debug: bool = False,
     workers: int = None,
-    use_colors: bool = None,
-    g4f_api_key: str = None
+    use_colors: bool = None
 ) -> None:
     print(f'Starting server... [g4f v-{g4f.version.utils.current_version}]' + (" (debug)" if debug else ""))
     if use_colors is None:
         use_colors = debug
     if bind is not None:
         host, port = bind.split(":")
-    if debug:
-        g4f.debug.logging = True
-    uvicorn.run(create_app(g4f_api_key), host=host, port=int(port), workers=workers, use_colors=use_colors)
+    uvicorn.run(
+        f"g4f.api:{'create_debug_app' if debug else 'create_app'}",
+        host=host, port=int(port),
+        workers=workers,
+        use_colors=use_colors,
+        factory=True,
+        reload=debug
+    )
