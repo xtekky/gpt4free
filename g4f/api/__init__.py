@@ -19,16 +19,23 @@ import g4f
 import g4f.debug
 from g4f.client import AsyncClient
 from g4f.typing import Messages
+from g4f.cookies import read_cookie_files
 
-def create_app(g4f_api_key:str = None):
+def create_app():
     app = FastAPI()
-    api = Api(app, g4f_api_key=g4f_api_key)
+    api = Api(app)
     api.register_routes()
     api.register_authorization()
     api.register_validation_exception_handler()
+    if not AppConfig.ignore_cookie_files:
+        read_cookie_files()
     return app
 
-class ChatCompletionsConfig(BaseModel):
+def create_app_debug():
+    g4f.debug.logging = True
+    return create_app()
+
+class ChatCompletionsForm(BaseModel):
     messages: Messages
     model: str
     provider: Optional[str] = None
@@ -40,23 +47,33 @@ class ChatCompletionsConfig(BaseModel):
     web_search: Optional[bool] = None
     proxy: Optional[str] = None
 
-list_ignored_providers: list[str] = None
+class AppConfig():
+    list_ignored_providers: Optional[list[str]] = None
+    g4f_api_key: Optional[str] = None
+    ignore_cookie_files: bool = False
 
-def set_list_ignored_providers(ignored: list[str]):
-    global list_ignored_providers
-    list_ignored_providers = ignored
+    @classmethod
+    def set_list_ignored_providers(cls, ignored: list[str]):
+        cls.list_ignored_providers = ignored
+
+    @classmethod
+    def set_g4f_api_key(cls, key: str = None):
+        cls.g4f_api_key = key
+
+    @classmethod
+    def set_ignore_cookie_files(cls, value: bool):
+        cls.ignore_cookie_files = value
 
 class Api:
-    def __init__(self, app: FastAPI, g4f_api_key=None) -> None:
+    def __init__(self, app: FastAPI) -> None:
         self.app = app
         self.client = AsyncClient()
-        self.g4f_api_key = g4f_api_key
         self.get_g4f_api_key = APIKeyHeader(name="g4f-api-key")
 
     def register_authorization(self):
         @self.app.middleware("http")
         async def authorization(request: Request, call_next):
-            if self.g4f_api_key and request.url.path in ["/v1/chat/completions", "/v1/completions"]:
+            if AppConfig.g4f_api_key and request.url.path in ["/v1/chat/completions", "/v1/completions"]:
                 try:
                     user_g4f_api_key = await self.get_g4f_api_key(request)
                 except HTTPException as e:
@@ -65,26 +82,22 @@ class Api:
                             status_code=HTTP_401_UNAUTHORIZED,
                             content=jsonable_encoder({"detail": "G4F API key required"}),
                         )
-                if not secrets.compare_digest(self.g4f_api_key, user_g4f_api_key):
+                if not secrets.compare_digest(AppConfig.g4f_api_key, user_g4f_api_key):
                     return JSONResponse(
-                    status_code=HTTP_403_FORBIDDEN,
-                    content=jsonable_encoder({"detail": "Invalid G4F API key"}),
-                )
-            
-            response = await call_next(request)
-            return response
+                        status_code=HTTP_403_FORBIDDEN,
+                        content=jsonable_encoder({"detail": "Invalid G4F API key"}),
+                    )
+            return await call_next(request)
 
     def register_validation_exception_handler(self):
         @self.app.exception_handler(RequestValidationError)
         async def validation_exception_handler(request: Request, exc: RequestValidationError):
             details = exc.errors()
-            modified_details = []
-            for error in details:
-                modified_details.append({
-                    "loc": error["loc"],
-                    "message": error["msg"],
-                    "type": error["type"],
-                })
+            modified_details = [{
+                "loc": error["loc"],
+                "message": error["msg"],
+                "type": error["type"],
+            } for error in details]
             return JSONResponse(
                 status_code=HTTP_422_UNPROCESSABLE_ENTITY,
                 content=jsonable_encoder({"detail": modified_details}),
@@ -103,10 +116,10 @@ class Api:
 
         @self.app.get("/v1/models")
         async def models():
-            model_list = dict(
-                (model, g4f.models.ModelUtils.convert[model])
+            model_list = {
+                model: g4f.models.ModelUtils.convert[model]
                 for model in g4f.Model.__all__()
-            )
+            }
             model_list = [{
                 'id': model_id,
                 'object': 'model',
@@ -129,7 +142,7 @@ class Api:
                 return JSONResponse({"error": "The model does not exist."})
 
         @self.app.post("/v1/chat/completions")
-        async def chat_completions(config: ChatCompletionsConfig, request: Request = None, provider: str = None):
+        async def chat_completions(config: ChatCompletionsForm, request: Request = None, provider: str = None):
             try:
                 config.provider = provider if config.provider is None else config.provider
                 if config.api_key is None and request is not None:
@@ -140,7 +153,7 @@ class Api:
                             config.api_key = auth_header
                 response = self.client.chat.completions.create(
                     **config.dict(exclude_none=True),
-                    ignored=list_ignored_providers
+                    ignored=AppConfig.list_ignored_providers
                 )
             except Exception as e:
                 logging.exception(e)
@@ -166,7 +179,7 @@ class Api:
         async def completions():
             return Response(content=json.dumps({'info': 'Not working yet.'}, indent=4), media_type="application/json")
 
-def format_exception(e: Exception, config: ChatCompletionsConfig) -> str:
+def format_exception(e: Exception, config: ChatCompletionsForm) -> str:
     last_provider = g4f.get_last_provider(True)
     return json.dumps({
         "error": {"message": f"{e.__class__.__name__}: {e}"},
@@ -180,14 +193,18 @@ def run_api(
     bind: str = None,
     debug: bool = False,
     workers: int = None,
-    use_colors: bool = None,
-    g4f_api_key: str = None
+    use_colors: bool = None
 ) -> None:
     print(f'Starting server... [g4f v-{g4f.version.utils.current_version}]' + (" (debug)" if debug else ""))
     if use_colors is None:
         use_colors = debug
     if bind is not None:
         host, port = bind.split(":")
-    if debug:
-        g4f.debug.logging = True
-    uvicorn.run(create_app(g4f_api_key), host=host, port=int(port), workers=workers, use_colors=use_colors)
+    uvicorn.run(
+        f"g4f.api:{'create_app_debug' if debug else 'create_app'}",
+        host=host, port=int(port),
+        workers=workers,
+        use_colors=use_colors,
+        factory=True,
+        reload=debug
+    )
