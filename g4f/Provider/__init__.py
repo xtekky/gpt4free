@@ -9,7 +9,6 @@ from .deprecated      import *
 from .not_working     import *
 from .selenium        import *
 from .needs_auth      import *
-from .unfinished      import *
 
 from .Aichatos         import Aichatos
 from .Aura             import Aura
@@ -42,12 +41,16 @@ from .Koala            import Koala
 from .Liaobots         import Liaobots
 from .Llama            import Llama
 from .Local            import Local
+from .MetaAI           import MetaAI
+from .MetaAIAccount    import MetaAIAccount
 from .PerplexityLabs   import PerplexityLabs
 from .Pi               import Pi
+from .Replicate        import Replicate
 from .ReplicateImage   import ReplicateImage
 from .Vercel           import Vercel
 from .WhiteRabbitNeo   import WhiteRabbitNeo
 from .You              import You
+from .Reka             import Reka
 
 import sys
 

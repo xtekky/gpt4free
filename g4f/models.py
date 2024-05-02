@@ -25,9 +25,11 @@ from .Provider import (
     Llama,
     OpenaiChat,
     PerplexityLabs,
+    Replicate,
     Pi,
     Vercel,
     You,
+    Reka
 )
 
 
@@ -137,19 +139,19 @@ llama2_13b = Model(
 llama2_70b = Model(
     name          = "meta-llama/Llama-2-70b-chat-hf",
     base_provider = "meta",
-    best_provider = RetryProvider([Llama, DeepInfra, HuggingChat])
+    best_provider = RetryProvider([Llama, DeepInfra])
 )
 
 llama3_8b_instruct = Model(
-    name          = "meta-llama/Meta-Llama-3-8b-instruct",
+    name          = "meta-llama/Meta-Llama-3-8B-Instruct",
     base_provider = "meta",
-    best_provider = RetryProvider([Llama])
+    best_provider = RetryProvider([Llama, DeepInfra, Replicate])
 )
 
 llama3_70b_instruct = Model(
-    name          = "meta-llama/Meta-Llama-3-70b-instruct",
+    name          = "meta-llama/Meta-Llama-3-70B-Instruct",
     base_provider = "meta",
-    best_provider = RetryProvider([Llama, HuggingChat])
+    best_provider = RetryProvider([Llama, DeepInfra])
 )
 
 codellama_34b_instruct = Model(
@@ -168,7 +170,7 @@ codellama_70b_instruct = Model(
 mixtral_8x7b = Model(
     name          = "mistralai/Mixtral-8x7B-Instruct-v0.1",
     base_provider = "huggingface",
-    best_provider = RetryProvider([DeepInfra, HuggingChat, HuggingFace, PerplexityLabs])
+    best_provider = RetryProvider([DeepInfra, HuggingFace, PerplexityLabs])
 )
 
 mistral_7b = Model(
@@ -186,7 +188,7 @@ mistral_7b_v02 = Model(
 mixtral_8x22b = Model(
     name          = "HuggingFaceH4/zephyr-orpo-141b-A35b-v0.1",
     base_provider = "huggingface",
-    best_provider = RetryProvider([HuggingChat, DeepInfra])
+    best_provider = DeepInfra
 )
 
 # Misc models
@@ -211,7 +213,7 @@ airoboros_70b = Model(
 openchat_35 = Model(
     name          = "openchat/openchat_3.5",
     base_provider = "huggingface",
-    best_provider = RetryProvider([DeepInfra, HuggingChat])
+    best_provider = DeepInfra
 )
 
 # Bard
@@ -305,6 +307,12 @@ blackbox = Model(
     best_provider = Blackbox
 )
 
+reka_core = Model(
+    name = 'reka-core',
+    base_provider = 'Reka AI',
+    best_provider = Reka
+)
+
 class ModelUtils:
     """
     Utility class for mapping string identifiers to Model instances.
@@ -332,8 +340,12 @@ class ModelUtils:
         'llama2-7b' : llama2_7b,
         'llama2-13b': llama2_13b,
         'llama2-70b': llama2_70b,
+        
+        'llama3-8b' : llama3_8b_instruct, # alias
+        'llama3-70b': llama3_70b_instruct, # alias
         'llama3-8b-instruct' : llama3_8b_instruct,
         'llama3-70b-instruct': llama3_70b_instruct,
+        
         'codellama-34b-instruct': codellama_34b_instruct,
         'codellama-70b-instruct': codellama_70b_instruct,
 
@@ -357,6 +369,11 @@ class ModelUtils:
         'claude-v2': claude_v2,
         'claude-3-opus': claude_3_opus,
         'claude-3-sonnet': claude_3_sonnet,
+        
+        # reka core
+        'reka-core': reka_core,
+        'reka': reka_core,
+        'Reka Core': reka_core,
         
         # other
         'blackbox': blackbox,

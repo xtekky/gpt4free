@@ -130,11 +130,7 @@
                 <textarea id="DeepInfra-api_key" name="DeepInfra[api_key]" class="DeepInfraImage-api_key" placeholder="api_key"></textarea>
             </div>
             <div class="field box">
-                <label for="Gemini-api_key" class="label" title="">Gemini:</label>
-                <textarea id="Gemini-api_key" name="Gemini[api_key]" placeholder="&quot;__Secure-1PSID&quot; cookie"></textarea>
-            </div>
-            <div class="field box">
-                <label for="GeminiPro-api_key" class="label" title="">GeminiPro API:</label>
+                <label for="GeminiPro-api_key" class="label" title="">Gemini API:</label>
                 <textarea id="GeminiPro-api_key" name="GeminiPro[api_key]" placeholder="api_key"></textarea>
             </div>
             <div class="field box">
@@ -151,11 +147,15 @@
             </div>
             <div class="field box">
                 <label for="OpenaiAccount-api_key" class="label" title="">OpenAI ChatGPT:</label>
-                <textarea id="OpenaiAccount-api_key" name="OpenaiAccount[api_key]" placeholder="access_key"></textarea>
+                <textarea id="OpenaiAccount-api_key" name="OpenaiAccount[api_key]" class="OpenaiChat-api_key" placeholder="access_key"></textarea>
             </div>
             <div class="field box">
                 <label for="OpenRouter-api_key" class="label" title="">OpenRouter:</label>
                 <textarea id="OpenRouter-api_key" name="OpenRouter[api_key]" placeholder="api_key"></textarea>
+            </div>
+            <div class="field box">
+                <label for="Replicate-api_key" class="label" title="">Replicate:</label>
+                <textarea id="Replicate-api_key" name="Replicate[api_key]" class="ReplicateImage-api_key" placeholder="api_key"></textarea>
             </div>
             </div>
             <div class="bottom_buttons">
@@ -230,9 +230,10 @@
                     <select name="provider" id="provider">
                         <option value="">Provider: Auto</option>
                         <option value="Bing">Bing</option>
-                        <option value="OpenaiChat">OpenaiChat</option>
+                        <option value="OpenaiChat">OpenAI ChatGPT</option>
                         <option value="Gemini">Gemini</option>
                         <option value="Liaobots">Liaobots</option>
+                        <option value="MetaAI">Meta AI</option>
                         <option value="You">You</option>
                         <option value="">----</option>
                     </select>

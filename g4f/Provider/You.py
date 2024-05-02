@@ -8,18 +8,22 @@ import uuid
 from ..typing import AsyncResult, Messages, ImageType, Cookies
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from .helper import format_prompt
-from ..image import ImageResponse, to_bytes, is_accepted_format
+from ..image import ImageResponse, ImagePreview, to_bytes, is_accepted_format
 from ..requests import StreamSession, FormData, raise_for_status
-from .you.har_file import get_dfp_telemetry_id
+from .you.har_file import get_telemetry_ids
+from .. import debug
 
 class You(AsyncGeneratorProvider, ProviderModelMixin):
+    label = "You.com"
     url = "https://you.com"
     working = True
     supports_gpt_35_turbo = True
     supports_gpt_4 = True
     default_model = "gpt-3.5-turbo"
+    default_vision_model = "agent"
+    image_models = ["dall-e"]
     models = [
-        "gpt-3.5-turbo",
+        default_model,
         "gpt-4",
         "gpt-4-turbo",
         "claude-instant",
@@ -28,13 +32,15 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
         "claude-3-sonnet",
         "gemini-pro",
         "zephyr",
-        "dall-e",
+        default_vision_model,
+        *image_models
     ]
     model_aliases = {
         "claude-v2": "claude-2"
     }
     _cookies = None
     _cookies_used = 0
+    _telemetry_ids = []
 
     @classmethod
     async def create_async_generator(
@@ -49,7 +55,7 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
         chat_mode: str = "default",
         **kwargs,
     ) -> AsyncResult:
-        if image is not None:
+        if image is not None or model == cls.default_vision_model:
             chat_mode = "agent"
         elif not model or model == cls.default_model:
             ...
@@ -60,13 +66,18 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
             chat_mode = "custom"
             model = cls.get_model(model)
         async with StreamSession(
-            proxies={"all": proxy},
+            proxy=proxy,
             impersonate="chrome",
             timeout=(30, timeout)
         ) as session:
             cookies = await cls.get_cookies(session) if chat_mode != "default" else None
-            
-            upload = json.dumps([await cls.upload_file(session, cookies, to_bytes(image), image_name)]) if image else ""
+            upload = ""
+            if image is not None:
+                upload_file = await cls.upload_file(
+                    session, cookies,
+                    to_bytes(image), image_name
+                )
+                upload = json.dumps([upload_file])
             headers = {
                 "Accept": "text/event-stream",
                 "Referer": f"{cls.url}/search?fromSearchBar=true&tbm=youchat",
@@ -100,11 +111,17 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
                         if event == "youChatToken" and event in data:
                             yield data[event]
                         elif event == "youChatUpdate" and "t" in data and data["t"] is not None:
-                            match = re.search(r"!\[fig\]\((.+?)\)", data["t"])
-                            if match:
-                                yield ImageResponse(match.group(1), messages[-1]["content"])
+                            if chat_mode == "create":
+                                match = re.search(r"!\[(.+?)\]\((.+?)\)", data["t"])
+                                if match:
+                                    if match.group(1) == "fig":
+                                        yield ImagePreview(match.group(2), messages[-1]["content"])
+                                    else:
+                                        yield ImageResponse(match.group(2), match.group(1))
+                                else:
+                                    yield data["t"]          
                             else:
-                                yield data["t"]                         
+                                yield data["t"]               
 
     @classmethod
     async def upload_file(cls, client: StreamSession, cookies: Cookies, file: bytes, filename: str = None) -> dict:
@@ -159,7 +176,12 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
 
     @classmethod
     async def create_cookies(cls, client: StreamSession) -> Cookies:
+        if not cls._telemetry_ids:
+            cls._telemetry_ids = await get_telemetry_ids()
         user_uuid = str(uuid.uuid4())
+        telemetry_id = cls._telemetry_ids.pop()
+        if debug.logging:
+            print(f"Use telemetry_id: {telemetry_id}")
         async with client.post(
             "https://web.stytch.com/sdk/v1/passwords",
             headers={
@@ -170,7 +192,7 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
                 "Referer": "https://you.com/"
             },
             json={
-                "dfp_telemetry_id": await get_dfp_telemetry_id(),
+                "dfp_telemetry_id": telemetry_id,
                 "email": f"{user_uuid}@gmail.com",
                 "password": f"{user_uuid}#{user_uuid}",
                 "session_duration_minutes": 129600

@@ -30,20 +30,13 @@ RUN if [ "$G4F_VERSION" = "" ] ; then \
   apt-get -qqy install git \
   ; fi
 
-# Python packages
+# Install Python3, pip, remove OpenJDK 11, clean up
 RUN apt-get -qqy update \
-  && apt-get -qqy install \
-    python3 \
-    python-is-python3 \
-    pip
-
-# Remove java
-RUN apt-get -qyy remove openjdk-11-jre-headless
-
-# Cleanup
-RUN rm -rf /var/lib/apt/lists/* /var/cache/apt/* \
+  && apt-get -qqy install python3 python-is-python3 pip \
+  && apt-get -qyy remove openjdk-11-jre-headless \
   && apt-get -qyy autoremove \
-  && apt-get -qyy clean
+  && apt-get -qyy clean \
+  && rm -rf /var/lib/apt/lists/* /var/cache/apt/*
 
 # Update entrypoint
 COPY docker/supervisor.conf /etc/supervisor/conf.d/selenium.conf
@@ -57,15 +50,13 @@ RUN if [ "$G4F_NO_GUI" ] ; then \
 # Change background image
 COPY docker/background.png /usr/share/images/fluxbox/ubuntu-light.png
 
-# Add user
+# Add user, fix permissions
 RUN groupadd -g $G4F_USER_ID $G4F_USER \
   && useradd -rm -G sudo -u $G4F_USER_ID -g $G4F_USER_ID $G4F_USER \
-  && echo "${G4F_USER}:${G4F_PASS}" | chpasswd
-
-# Fix permissions
-RUN mkdir "${SE_DOWNLOAD_DIR}"
-RUN chown "${G4F_USER_ID}:${G4F_USER_ID}" $SE_DOWNLOAD_DIR /var/run/supervisor /var/log/supervisor
-RUN chown "${G4F_USER_ID}:${G4F_USER_ID}" -R /opt/bin/ /usr/bin/chromedriver /opt/selenium/
+  && echo "${G4F_USER}:${G4F_PASS}" | chpasswd \
+  && mkdir "${SE_DOWNLOAD_DIR}" \
+  && chown "${G4F_USER_ID}:${G4F_USER_ID}" $SE_DOWNLOAD_DIR /var/run/supervisor /var/log/supervisor \
+  && chown "${G4F_USER_ID}:${G4F_USER_ID}" -R /opt/bin/ /usr/bin/chromedriver /opt/selenium/
 
 # Switch user
 USER $G4F_USER_ID
@@ -82,13 +73,11 @@ COPY requirements.txt $G4F_DIR
 
 # Upgrade pip for the latest features and install the project's Python dependencies.
 RUN pip install --break-system-packages --upgrade pip \
-  && pip install --break-system-packages -r requirements.txt
-
-# Install selenium driver and uninstall webdriver
-RUN pip install --break-system-packages \
+  && pip install --break-system-packages -r requirements.txt \
+  && pip install --break-system-packages \
     undetected-chromedriver selenium-wire \
   && pip uninstall -y --break-system-packages \
-    webdriver plyer nodriver
+    pywebview plyer
 
 # Copy the entire package into the container.
 ADD --chown=$G4F_USER:$G4F_USER g4f $G4F_DIR/g4f

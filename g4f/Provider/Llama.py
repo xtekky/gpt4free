@@ -11,7 +11,7 @@ class Llama(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://www.llama2.ai"
     working = True
     supports_message_history = True
-    default_model = "meta/llama-3-70b-chat"
+    default_model = "meta/meta-llama-3-70b-instruct"
     models = [
         "meta/llama-2-7b-chat",
         "meta/llama-2-13b-chat",
@@ -20,8 +20,8 @@ class Llama(AsyncGeneratorProvider, ProviderModelMixin):
         "meta/meta-llama-3-70b-instruct",
     ]
     model_aliases = {
-        "meta-llama/Meta-Llama-3-8b-instruct": "meta/meta-llama-3-8b-instruct",
-        "meta-llama/Meta-Llama-3-70b-instruct": "meta/meta-llama-3-70b-instruct",
+        "meta-llama/Meta-Llama-3-8B-Instruct": "meta/meta-llama-3-8b-instruct",
+        "meta-llama/Meta-Llama-3-70B-Instruct": "meta/meta-llama-3-70b-instruct",
         "meta-llama/Llama-2-7b-chat-hf": "meta/llama-2-7b-chat",
         "meta-llama/Llama-2-13b-chat-hf": "meta/llama-2-13b-chat",
         "meta-llama/Llama-2-70b-chat-hf": "meta/llama-2-70b-chat",

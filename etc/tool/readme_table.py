@@ -14,6 +14,8 @@ async def test_async(provider: ProviderType):
         return False
     messages = [{"role": "user", "content": "Hello Assistant!"}]
     try:
+        if "webdriver" in provider.get_parameters():
+            return False
         response = await asyncio.wait_for(ChatCompletion.create_async(
             model=models.default,
             messages=messages,
@@ -88,7 +90,7 @@ def print_models():
         "huggingface": "Huggingface",
         "anthropic": "Anthropic",
         "inflection": "Inflection",
-        "meta": "Meta"
+        "meta": "Meta",
     }
     provider_urls = {
         "google": "https://gemini.google.com/",
@@ -96,7 +98,7 @@ def print_models():
         "huggingface": "https://huggingface.co/",
         "anthropic": "https://www.anthropic.com/",
         "inflection": "https://inflection.ai/",
-        "meta": "https://llama.meta.com/"
+        "meta": "https://llama.meta.com/",
     }
 
     lines = [
@@ -108,6 +110,8 @@ def print_models():
             if name not in ("gpt-3.5-turbo", "gpt-4", "gpt-4-turbo"):
                 continue
         name = re.split(r":|/", model.name)[-1]
+        if model.base_provider not in base_provider_names:
+            continue
         base_provider = base_provider_names[model.base_provider]
         if not isinstance(model.best_provider, BaseRetryProvider):
             provider_name = f"g4f.Provider.{model.best_provider.__name__}"
@@ -121,7 +125,28 @@ def print_models():
 
     print("\n".join(lines))
 
+def print_image_models():
+    lines = [
+        "| Label | Provider | Image Model | Vision Model | Website |",
+        "| ----- | -------- | ----------- | ------------ | ------- |",
+    ]
+    from g4f.gui.server.api import Api
+    for image_model in Api.get_image_models():
+        provider_url = image_model["url"]
+        netloc = urlparse(provider_url).netloc.replace("www.", "")
+        website = f"[{netloc}]({provider_url})"
+        label = image_model["provider"] if image_model["label"] is None else image_model["label"]
+        if image_model["image_model"] is None:
+            image_model["image_model"] = "❌"
+        if image_model["vision_model"] is None:
+            image_model["vision_model"] = "❌"
+        lines.append(f'| {label} | `g4f.Provider.{image_model["provider"]}` | {image_model["image_model"]}| {image_model["vision_model"]} | {website} |')
+
+    print("\n".join(lines))
+
 if __name__ == "__main__":
-    print_providers()
+    #print_providers()
+    #print("\n", "-" * 50, "\n")
+    #print_models()
     print("\n", "-" * 50, "\n")
-    print_models()
+    print_image_models()

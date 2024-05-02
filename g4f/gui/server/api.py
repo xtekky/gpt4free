@@ -7,6 +7,7 @@ from typing import Iterator
 from g4f import version, models
 from g4f import get_last_provider, ChatCompletion
 from g4f.errors import VersionNotFoundError
+from g4f.image import ImagePreview
 from g4f.Provider import ProviderType, __providers__, __map__
 from g4f.providers.base_provider import ProviderModelMixin, FinishReason
 from g4f.providers.conversation import BaseConversation
@@ -15,7 +16,8 @@ conversations: dict[dict[str, BaseConversation]] = {}
 
 class Api():
 
-    def get_models(self) -> list[str]:
+    @staticmethod
+    def get_models() -> list[str]:
         """
         Return a list of all models.
 
@@ -26,7 +28,8 @@ class Api():
         """
         return models._all_models
 
-    def get_provider_models(self, provider: str) -> list[dict]:
+    @staticmethod
+    def get_provider_models(provider: str) -> list[dict]:
         if provider in __map__:
             provider: ProviderType = __map__[provider]
             if issubclass(provider, ProviderModelMixin):
@@ -39,7 +42,40 @@ class Api():
             else:
                 return [];
 
-    def get_providers(self) -> list[str]:
+    @staticmethod
+    def get_image_models() -> list[dict]:
+        image_models = []
+        index = []
+        for provider in __providers__:
+            if hasattr(provider, "image_models"):
+                if hasattr(provider, "get_models"):
+                    provider.get_models()
+                parent = provider
+                if hasattr(provider, "parent"):
+                    parent = __map__[provider.parent]
+                if parent.__name__ not in index:
+                    for model in provider.image_models:
+                        image_models.append({
+                            "provider": parent.__name__,
+                            "url": parent.url,
+                            "label": parent.label if hasattr(parent, "label") else None,
+                            "image_model": model,
+                            "vision_model": parent.default_vision_model if hasattr(parent, "default_vision_model") else None
+                        })
+                        index.append(parent.__name__)
+            elif hasattr(provider, "default_vision_model") and provider.__name__ not in index:
+                image_models.append({
+                    "provider": provider.__name__,
+                    "url": provider.url,
+                    "label": provider.label if hasattr(provider, "label") else None,
+                    "image_model": None,
+                    "vision_model": provider.default_vision_model
+                })
+                index.append(provider.__name__)
+        return image_models
+
+    @staticmethod
+    def get_providers() -> list[str]:
         """
         Return a list of all working providers.
         """
@@ -57,7 +93,8 @@ class Api():
             if provider.working
         }
 
-    def get_version(self):
+    @staticmethod
+    def get_version():
         """
         Returns the current and latest version of the application.
 
@@ -99,7 +136,7 @@ class Api():
         if api_key is not None:
             kwargs["api_key"] = api_key
         if json_data.get('web_search'):
-            if provider == "Bing":
+            if provider in ("Bing", "HuggingChat"):
                 kwargs['web_search'] = True
             else:
                 from .internet import get_search_message
@@ -146,6 +183,8 @@ class Api():
                 elif isinstance(chunk, Exception):
                     logging.exception(chunk)
                     yield self._format_json("message", get_error_message(chunk))
+                elif isinstance(chunk, ImagePreview):
+                    yield self._format_json("preview", chunk.to_string())
                 elif not isinstance(chunk, FinishReason):
                     yield self._format_json("content", str(chunk))
         except Exception as e:

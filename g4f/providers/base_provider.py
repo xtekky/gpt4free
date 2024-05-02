@@ -271,13 +271,13 @@ class AsyncGeneratorProvider(AsyncProvider):
         raise NotImplementedError()
 
 class ProviderModelMixin:
-    default_model: str
+    default_model: str = None
     models: list[str] = []
     model_aliases: dict[str, str] = {}
 
     @classmethod
     def get_models(cls) -> list[str]:
-        if not cls.models:
+        if not cls.models and cls.default_model is not None:
             return [cls.default_model]
         return cls.models
 

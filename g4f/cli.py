@@ -1,35 +1,51 @@
+from __future__ import annotations
+
 import argparse
-from enum import Enum
 
-import g4f
 from g4f import Provider
-
 from g4f.gui.run import gui_parser, run_gui_args
 
-def run_gui(args):
-    print("Running GUI...")
-
 def main():
-    IgnoredProviders = Enum("ignore_providers", {key: key for key in Provider.__all__})
     parser = argparse.ArgumentParser(description="Run gpt4free")
     subparsers = parser.add_subparsers(dest="mode", help="Mode to run the g4f in.")
-    api_parser=subparsers.add_parser("api")
+    api_parser = subparsers.add_parser("api")
     api_parser.add_argument("--bind", default="0.0.0.0:1337", help="The bind string.")
-    api_parser.add_argument("--debug", type=bool, default=False, help="Enable verbose logging")
-    api_parser.add_argument("--ignored-providers", nargs="+", choices=[provider.name for provider in IgnoredProviders],
-                            default=[], help="List of providers to ignore when processing request.")
+    api_parser.add_argument("--debug", action="store_true", help="Enable verbose logging.")
+    api_parser.add_argument("--workers", type=int, default=None, help="Number of workers.")
+    api_parser.add_argument("--disable-colors", action="store_true", help="Don't use colors.")
+    api_parser.add_argument("--ignore-cookie-files", action="store_true", help="Don't read .har and cookie files.")
+    api_parser.add_argument("--g4f-api-key", type=str, default=None, help="Sets an authentication key for your API. (incompatible with --debug and --workers)")
+    api_parser.add_argument("--ignored-providers", nargs="+", choices=[provider.__name__ for provider in Provider.__providers__ if provider.working],
+                            default=[], help="List of providers to ignore when processing request. (incompatible with --debug and --workers)")
     subparsers.add_parser("gui", parents=[gui_parser()], add_help=False)
 
     args = parser.parse_args()
     if args.mode == "api":
-        from g4f.api import Api
-        controller=Api(engine=g4f, debug=args.debug, list_ignored_providers=args.ignored_providers)
-        controller.run(args.bind)
+        run_api_args(args)
     elif args.mode == "gui":
         run_gui_args(args)
     else:
         parser.print_help()
         exit(1)
+
+def run_api_args(args):
+    from g4f.api import AppConfig, run_api
+
+    AppConfig.set_ignore_cookie_files(
+        args.ignore_cookie_files
+    )
+    AppConfig.set_list_ignored_providers(
+        args.ignored_providers
+    )
+    AppConfig.set_g4f_api_key(
+        args.g4f_api_key
+    )
+    run_api(
+        bind=args.bind,
+        debug=args.debug,
+        workers=args.workers,
+        use_colors=not args.disable_colors
+    )
 
 if __name__ == "__main__":
     main()
