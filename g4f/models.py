@@ -66,7 +66,7 @@ default = Model(
 )
 
 
-#Ollama models
+#Ollama models added
 phi3 = Model(
     name          = 'phi3',
     base_provider = 'openai',
