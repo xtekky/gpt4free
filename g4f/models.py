@@ -29,7 +29,8 @@ from .Provider import (
     Pi,
     Vercel,
     You,
-    Reka
+    Reka,
+    Ollama
 )
 
 
@@ -62,6 +63,34 @@ default = Model(
         Chatgpt4Online,
         OpenaiChat
     ])
+)
+
+
+#Ollama models
+phi3 = Model(
+    name          = 'phi3',
+    base_provider = 'openai',
+    best_provider = Ollama
+)
+qwen = Model(
+    name          = 'qwen',
+    base_provider = 'openai',
+    best_provider = Ollama
+)
+mistral = Model(
+    name          = 'mistral',
+    base_provider = 'openai',
+    best_provider = Ollama
+)
+gemma = Model(
+    name          = 'gemma',
+    base_provider = 'openai',
+    best_provider = Ollama
+)
+codellama = Model(
+    name          = 'codellama',
+    base_provider = 'openai',
+    best_provider = Ollama
 )
 
 # GPT-3.5 too, but all providers supports long requests and responses
@@ -321,6 +350,13 @@ class ModelUtils:
         convert (dict[str, Model]): Dictionary mapping model string identifiers to Model instances.
     """
     convert: dict[str, Model] = {
+        # Ollama
+        'gemma'          : gemma,
+        'mistral'     : mistral,
+        'qwen'      : qwen,
+        'phi3' : phi3,
+        'codellama':codellama,
+        
         # gpt-3.5
         'gpt-3.5-turbo'          : gpt_35_turbo,
         'gpt-3.5-turbo-0613'     : gpt_35_turbo_0613,
