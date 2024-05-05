@@ -188,7 +188,7 @@ def format_exception(e: Exception, config: ChatCompletionsForm) -> str:
     })
 
 def run_api(
-    host: str = '0.0.0.0',
+    host: str = 'localhost', #'0.0.0.0'
     port: int = 1337,
     bind: str = None,
     debug: bool = False,
