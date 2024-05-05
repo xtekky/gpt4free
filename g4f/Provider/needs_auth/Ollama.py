@@ -19,9 +19,9 @@ class Ollama(AsyncGeneratorProvider, ProviderModelMixin):
     @classmethod
     async def create_async_generator(
         cls,
+        model: str,
         messages: Messages,
         proxy: str = None,
-        model: str = 'phi3',
         timeout: int = 120,
         api_key: str = 'Ollama',
         api_base: str = "http://localhost:11434/v1/",
@@ -34,6 +34,8 @@ class Ollama(AsyncGeneratorProvider, ProviderModelMixin):
         extra_data: dict = {},
         **kwargs
     ) -> AsyncResult:
+        if not model:
+            model='phi3'
         if cls.needs_auth and api_key is None:
             raise MissingAuthError('Add a "api_key"')
         async with StreamSession(
