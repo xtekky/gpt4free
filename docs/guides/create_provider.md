@@ -12,7 +12,7 @@ python -m etc.tool.create_provider
 #### Create Provider
 
 1. Check out the current [list of potential providers](https://github.com/zukixa/cool-ai-stuff#ai-chat-websites), or find your own provider source!
-2. Create a new file in [g4f/Provider](/g4f/Provider) with the name of the Provider
+2. Create a new file in [g4f/Provider](/g4f/Provider) with the name of the Provider.
 3. Implement a class that extends [BaseProvider](/g4f/providers/base_provider.py).
 
 ```py
@@ -38,7 +38,7 @@ class HogeService(AsyncGeneratorProvider):
 ```
 
 4. Here, you can adjust the settings, for example, if the website does support streaming, set `supports_stream` to `True`...
-5. Write code to request the provider in `create_async_generator` and `yield` the response, _even if_ it's a one-time response, do not hesitate to look at other providers for inspiration
+5. Write code to request the provider in `create_async_generator` and `yield` the response, _even if_ it's a one-time response, do not hesitate to look at other providers for inspiration.
 6. Add the Provider Import in [`g4f/Provider/__init__.py`](./g4f/Provider/__init__.py)
 
 ```py
