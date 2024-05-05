@@ -9,7 +9,10 @@ def main():
     parser = argparse.ArgumentParser(description="Run gpt4free")
     subparsers = parser.add_subparsers(dest="mode", help="Mode to run the g4f in.")
     api_parser = subparsers.add_parser("api")
-    api_parser.add_argument("--bind", default="0.0.0.0:1337", help="The bind string.")
+    api_parser.add_argument("--bind", default="localhost:1337", help="The bind string.")
+    api_parser.add_argument("--provider", default="Bing", help="Provider used with default:Bing.")
+    api_parser.add_argument("--model", default="gpt4", help="Model used with default:gpt4.")
+    api_parser.add_argument("--proxy", default=None, help="proxy used with default:None")
     api_parser.add_argument("--debug", action="store_true", help="Enable verbose logging.")
     api_parser.add_argument("--workers", type=int, default=None, help="Number of workers.")
     api_parser.add_argument("--disable-colors", action="store_true", help="Don't use colors.")
@@ -39,6 +42,15 @@ def run_api_args(args):
     )
     AppConfig.set_g4f_api_key(
         args.g4f_api_key
+    )
+    ChatCompletionsForm.set_provider(
+        args.provider
+    )
+    ChatCompletionsForm.set_model(
+        args.model
+    )
+    ChatCompletionsForm.set_proxy(
+        args.proxy
     )
     run_api(
         bind=args.bind,
