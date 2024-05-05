@@ -11,7 +11,7 @@ def main():
     api_parser = subparsers.add_parser("api")
     api_parser.add_argument("--bind", default="localhost:1337", help="The bind string.")
     api_parser.add_argument("--provider", default="Bing", help="Provider used with default:Bing.")
-    api_parser.add_argument("--model", default="gpt4", help="Model used with default:gpt4.")
+    api_parser.add_argument("--model", default=None", help="Model used with default:gpt4.")
     api_parser.add_argument("--proxy", default=None, help="proxy used with default:None")
     api_parser.add_argument("--debug", action="store_true", help="Enable verbose logging.")
     api_parser.add_argument("--workers", type=int, default=None, help="Number of workers.")
