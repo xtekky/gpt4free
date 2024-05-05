@@ -45,7 +45,7 @@ class ChatCompletionsForm(BaseModel):
     stop: Union[list[str], str, None] = None
     api_key: Optional[str] = None
     web_search: Optional[bool] = None
-    proxy: Optional[str] = None
+    proxy: Optional[str] = "socks5://localhost:1080"
 
 class AppConfig():
     list_ignored_providers: Optional[list[str]] = None
