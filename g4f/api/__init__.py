@@ -38,15 +38,30 @@ def create_app_debug():
 class ChatCompletionsForm(BaseModel):
     messages: Messages
     model: str
-    provider: Optional[str] = 'OpenaiChat'
+    provider: Optional[str] = None
     stream: bool = False
     temperature: Optional[float] = None
     max_tokens: Optional[int] = None
     stop: Union[list[str], str, None] = None
     api_key: Optional[str] = None
     web_search: Optional[bool] = None
-    proxy: Optional[str] = "socks5://localhost:1080"
-
+    proxy: Optional[str] = None
+    def __init__(self,**kargs):
+        super().__init__(**kargs)
+        self.model=ChatCompletionsForm.model
+        self.provider=ChatCompletionsForm.provider
+        self.proxy=ChatCompletionsForm.proxy
+        
+    @classmethod
+    def set_provider(cls, provider: Optional[str] = 'Bing'):
+        cls.provider = provider
+    @classmethod
+    def set_model(cls, model: str = 'gpt4'):
+        cls.model = model
+    @classmethod
+    def set_proxy(cls, proxy: Optional[str] = None):
+        cls.proxy = proxy
+ 
 class AppConfig():
     list_ignored_providers: Optional[list[str]] = None
     g4f_api_key: Optional[str] = None
