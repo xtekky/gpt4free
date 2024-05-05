@@ -457,10 +457,13 @@ async def stream_generate(
                 returned_text = ''
                 message_id = None
                 while do_read:
-                    msg = await wss.receive_str()
+                    try:
+                        msg = await wss.receive_str()
+                    except TypeError:
+                        continue
                     objects = msg.split(Defaults.delimiter)
                     for obj in objects:
-                        if obj is None or not obj:
+                        if not obj:
                             continue
                         try:
                             response = json.loads(obj)

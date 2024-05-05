@@ -201,7 +201,7 @@ def run_api(
     if bind is not None:
         host, port = bind.split(":")
     uvicorn.run(
-        f"g4f.api:{'create_app_debug' if debug else 'create_app'}",
+        f"g4f.api:create_app{'_debug' if debug else ''}",
         host=host, port=int(port),
         workers=workers,
         use_colors=use_colors,
