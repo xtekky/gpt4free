@@ -30,7 +30,13 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
         "claude-2",
         "claude-3-opus",
         "claude-3-sonnet",
+        "claude-3-haiku",
         "gemini-pro",
+        "gemini-1-5-pro",
+        "databricks-dbrx-instruct",
+        "command-r",
+        "command-r-plus",
+        "llama3",
         "zephyr",
         default_vision_model,
         *image_models
