@@ -43,6 +43,7 @@ from .Llama            import Llama
 from .Local            import Local
 from .MetaAI           import MetaAI
 from .MetaAIAccount    import MetaAIAccount
+from .Ollama           import Ollama
 from .PerplexityLabs   import PerplexityLabs
 from .Pi               import Pi
 from .Replicate        import Replicate

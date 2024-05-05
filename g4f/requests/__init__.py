@@ -40,7 +40,7 @@ async def get_args_from_webview(url: str) -> dict:
         "Referer": window.real_url
     }
     cookies = [list(*cookie.items()) for cookie in window.get_cookies()]
-    cookies = dict([(name, cookie.value) for name, cookie in cookies])
+    cookies = {name: cookie.value for name, cookie in cookies}
     window.destroy()
     return {"headers": headers, "cookies": cookies}
 
