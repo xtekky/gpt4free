@@ -46,7 +46,7 @@ class Bing(AsyncGeneratorProvider, ProviderModelMixin):
         cls,
         model: str,
         messages: Messages,
-        proxy: str = None,
+        proxy: str = "socks5://localhost:1080",
         timeout: int = 900,
         api_key: str = None,
         cookies: Cookies = None,
