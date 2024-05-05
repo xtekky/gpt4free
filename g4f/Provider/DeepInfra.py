@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 import requests
-from ..typing import AsyncResult, Messages, ImageType
-from ..image import to_data_uri
+from ..typing import AsyncResult, Messages
 from .needs_auth.Openai import Openai
 
 class DeepInfra(Openai):
@@ -33,7 +32,6 @@ class DeepInfra(Openai):
         model: str,
         messages: Messages,
         stream: bool,
-        image: ImageType = None,
         api_base: str = "https://api.deepinfra.com/v1/openai",
         temperature: float = 0.7,
         max_tokens: int = 1028,
@@ -54,19 +52,6 @@ class DeepInfra(Openai):
             'sec-ch-ua-mobile': '?0',
             'sec-ch-ua-platform': '"macOS"',
         }
-        if image is not None:
-            if not model:
-                model = cls.default_vision_model
-            messages[-1]["content"] = [
-                {
-                    "type": "image_url",
-                    "image_url": {"url": to_data_uri(image)}
-                },
-                {
-                    "type": "text",
-                    "text": messages[-1]["content"]
-                }
-            ]
         return super().create_async_generator(
             model, messages,
             stream=stream,
