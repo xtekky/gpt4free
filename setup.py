@@ -87,7 +87,7 @@ DESCRIPTION = (
 # Setting up
 setup(
     name='g4f',
-    version="0.3.0.8.dev",
+    version="0.3.0.8.dev1",
     author='Tekky',
     author_email='<support@g4f.ai>',
     description=DESCRIPTION,
