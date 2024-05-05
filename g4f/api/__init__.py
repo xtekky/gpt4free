@@ -56,7 +56,7 @@ class ChatCompletionsForm(BaseModel):
     def set_provider(cls, provider: Optional[str] = 'Bing'):
         cls.provider = provider
     @classmethod
-    def set_model(cls, model: str = 'gpt4'):
+    def set_model(cls, model: str):
         cls.model = model
     @classmethod
     def set_proxy(cls, proxy: Optional[str] = None):
