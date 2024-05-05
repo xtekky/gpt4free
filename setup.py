@@ -87,7 +87,7 @@ DESCRIPTION = (
 # Setting up
 setup(
     name='g4f',
-    version=os.environ.get("G4F_VERSION"),
+    version="0.3.0.7dev",
     author='Tekky',
     author_email='<support@g4f.ai>',
     description=DESCRIPTION,
