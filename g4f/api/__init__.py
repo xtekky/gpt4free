@@ -38,7 +38,7 @@ def create_app_debug():
 class ChatCompletionsForm(BaseModel):
     messages: Messages
     model: str
-    provider: Optional[str] = None
+    provider: Optional[str] = 'OpenaiChat'
     stream: bool = False
     temperature: Optional[float] = None
     max_tokens: Optional[int] = None
