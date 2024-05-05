@@ -19,9 +19,9 @@ class Ollama(AsyncGeneratorProvider, ProviderModelMixin):
     @classmethod
     async def create_async_generator(
         cls,
-        model: str = 'phi3',
         messages: Messages,
-        proxy: str = None,
+        proxy: str,
+        model: str = 'phi3',
         timeout: int = 120,
         api_key: str = 'Ollama',
         api_base: str = "http://localhost:11434/v1/",
