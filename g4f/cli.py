@@ -32,7 +32,7 @@ def main():
         exit(1)
 
 def run_api_args(args):
-    from g4f.api import AppConfig, run_api
+    from g4f.api import AppConfig, run_api, ChatCompletionsForm
 
     AppConfig.set_ignore_cookie_files(
         args.ignore_cookie_files
