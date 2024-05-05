@@ -190,7 +190,7 @@ def format_exception(e: Exception, config: ChatCompletionsForm) -> str:
 def run_api(
     host: str = 'localhost', #'0.0.0.0'
     port: int = 1337,
-    bind: str = None,
+    bind: str = 'localhost:1337',
     debug: bool = False,
     workers: int = None,
     use_colors: bool = None
