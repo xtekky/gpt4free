@@ -17,8 +17,9 @@ class Ollama(Openai):
             url = 'http://127.0.0.1:11434/api/tags'
             models = requests.get(url).json()["models"]
             cls.models = [model['name'] for model in models]
-            cls.default_model = cls.models[0]
+            cls.default_model ='phi3:latest' if 'phi3:latest' in cls.models else cls.models[0]
         return cls.models
+
 
     @classmethod
     def create_async_generator(

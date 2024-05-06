@@ -10,14 +10,11 @@ def main():
     subparsers = parser.add_subparsers(dest="mode", help="Mode to run the g4f in.")
     api_parser = subparsers.add_parser("api")
     api_parser.add_argument("--bind", default="localhost:1337", help="The bind string.")
-    api_parser.add_argument("--provider", default="Bing", help="Provider used with default:Bing.")
-    api_parser.add_argument("--model", default='', help="Model used with default:''.")
-    api_parser.add_argument("--proxy", default=None, help="proxy used with default:None")
     api_parser.add_argument("--debug", action="store_true", help="Enable verbose logging.")
-    api_parser.add_argument("--model", default=None, help="Default model for chat completion. (incompatible with --debug and --workers)")
+    api_parser.add_argument("--model", default='', help="Default model for chat completion. (incompatible with --debug and --workers)")
     api_parser.add_argument("--provider", choices=[provider.__name__ for provider in Provider.__providers__ if provider.working],
-                            default=None, help="Default provider for chat completion. (incompatible with --debug and --workers)")
-    api_parser.add_argument("--proxy", default=None, help="Default used proxy.")
+                            default="Bing", help="Default provider for chat completion. (incompatible with --debug and --workers)")
+    api_parser.add_argument("--proxy", default=None, help="proxy used with default:None")
     api_parser.add_argument("--workers", type=int, default=None, help="Number of workers.")
     api_parser.add_argument("--disable-colors", action="store_true", help="Don't use colors.")
     api_parser.add_argument("--ignore-cookie-files", action="store_true", help="Don't read .har and cookie files.")
@@ -38,15 +35,14 @@ def main():
 def run_api_args(args):
     from g4f.api import AppConfig, run_api, ChatCompletionsForm
 
-    AppConfig.set_config(
-        ignore_cookie_files=args.ignore_cookie_files,
-        ignored_providers=args.ignored_providers,
-        g4f_api_key=args.g4f_api_key,
-        defaults={
-            "model": args.model,
-            "provider": args.provider,
-            "proxy": args.proxy
-        }
+    AppConfig.set_ignore_cookie_files(
+        args.ignore_cookie_files
+    )
+    AppConfig.set_list_ignored_providers(
+        args.ignored_providers
+    )
+    AppConfig.set_g4f_api_key(
+        args.g4f_api_key
     )
     ChatCompletionsForm.set_provider(
         args.provider
@@ -63,6 +59,7 @@ def run_api_args(args):
         workers=args.workers,
         use_colors=not args.disable_colors
     )
+
 
 if __name__ == "__main__":
     main()
