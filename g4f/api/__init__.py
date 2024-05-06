@@ -146,7 +146,7 @@ class Api:
                         if auth_header and auth_header != "Bearer":
                             config.api_key = auth_header
                 response = self.client.chat.completions.create(
-    {
+    **{
         **AppConfig.defaults,
         **config.dict(exclude_none=True),
     },
