@@ -53,16 +53,9 @@ class AppConfig():
     ignore_cookie_files: bool = False
 
     @classmethod
-    def set_list_ignored_providers(cls, ignored: list[str]):
-        cls.list_ignored_providers = ignored
-
-    @classmethod
-    def set_g4f_api_key(cls, key: str = None):
-        cls.g4f_api_key = key
-
-    @classmethod
-    def set_ignore_cookie_files(cls, value: bool):
-        cls.ignore_cookie_files = value
+    def set_config(cls, **data):
+        for key, value in data.items():
+            setattr(cls, key, value)
 
 class Api:
     def __init__(self, app: FastAPI) -> None:
