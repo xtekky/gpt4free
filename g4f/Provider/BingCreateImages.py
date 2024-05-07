@@ -51,7 +51,7 @@ class BingCreateImages(AsyncGeneratorProvider, ProviderModelMixin):
             Generator[str, None, None]: The final output as markdown formatted string with images.
         """
         cookies = self.cookies or get_cookies(".bing.com", False)
-        if "_U" not in cookies:
+        if cookies is None or "_U" not in cookies:
             login_url = os.environ.get("G4F_LOGIN_URL")
             if login_url:
                 yield f"Please login: [Bing]({login_url})\n\n"
@@ -72,7 +72,7 @@ class BingCreateImages(AsyncGeneratorProvider, ProviderModelMixin):
             str: Markdown formatted string with images.
         """
         cookies = self.cookies or get_cookies(".bing.com", False)
-        if "_U" not in cookies:
+        if cookies is None or "_U" not in cookies:
             raise MissingAuthError('Missing "_U" cookie')
         proxy = self.proxy or os.environ.get("G4F_PROXY")
         async with create_session(cookies, proxy) as session:
