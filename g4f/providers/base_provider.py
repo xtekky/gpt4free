@@ -286,7 +286,7 @@ class ProviderModelMixin:
         #need to run class function to initialize default setting(at least for Ollama)
         cls.get_models()
         #for example if user input phi3 then it will match as phi3:latest as listed in cls.get_models()
-        if cls.provider=='Ollama' and model and model.find(':')==-1:
+        if cls.__name__=='Ollama' and model and model.find(':')==-1:
             model=model+':latest'
         if not model and cls.default_model is not None:
             model = cls.default_model
