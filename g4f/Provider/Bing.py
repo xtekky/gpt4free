@@ -468,7 +468,7 @@ async def stream_generate(
                             continue
                         try:
                             response = json.loads(obj)
-                        except json.JSONDecodeError:
+                        except ValueError:
                             continue
                         if response and response.get('type') == 1 and response['arguments'][0].get('messages'):
                             message = response['arguments'][0]['messages'][0]
