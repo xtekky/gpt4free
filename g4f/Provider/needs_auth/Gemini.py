@@ -225,7 +225,7 @@ class Gemini(AsyncGeneratorProvider):
             headers=UPLOAD_IMAGE_HEADERS,
             connector=connector
         ) as session:
-            async with session.options(UPLOAD_IMAGE_URL) as reponse:
+            async with session.options(UPLOAD_IMAGE_URL) as response:
                 await raise_for_status(response)
 
             headers = {
