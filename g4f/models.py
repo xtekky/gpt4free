@@ -100,6 +100,14 @@ gpt_4 = Model(
     ])
 )
 
+gpt_4o = Model(
+    name          = 'gpt-4o',
+    base_provider = 'openai',
+    best_provider = RetryProvider([
+        You
+    ])
+)
+
 gpt_4_turbo = Model(
     name          = 'gpt-4-turbo',
     base_provider = 'openai',
@@ -330,6 +338,7 @@ class ModelUtils:
         'gpt-3.5-long': gpt_35_long,
         
         # gpt-4
+        'gpt-4o'         : gpt_4o,
         'gpt-4'          : gpt_4,
         'gpt-4-0613'     : gpt_4_0613,
         'gpt-4-32k'      : gpt_4_32k,

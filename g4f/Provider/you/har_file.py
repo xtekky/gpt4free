@@ -4,10 +4,13 @@ import json
 import os
 import os.path
 import random
+import logging
 
 from ...requests import StreamSession, raise_for_status
 from ...errors import MissingRequirementsError
 from ... import debug
+
+logging.basicConfig(level=logging.ERROR)
 
 class NoValidHarFileError(Exception):
     ...
@@ -62,10 +65,16 @@ def parseHAREntry(entry) -> arkReq:
     return tmpArk
 
 async def sendRequest(tmpArk: arkReq, proxy: str = None):
-    async with StreamSession(headers=tmpArk.arkHeaders, cookies=tmpArk.arkCookies, proxy=proxy) as session:
-        async with session.post(tmpArk.arkURL, data=tmpArk.arkBody) as response:
-            await raise_for_status(response)
-            return await response.text()
+    try:
+        async with StreamSession(headers=tmpArk.arkHeaders, cookies=tmpArk.arkCookies, proxy=proxy) as session:
+            async with session.post(tmpArk.arkURL, data=tmpArk.arkBody) as response:
+                await raise_for_status(response)
+                return await response.text()
+    except RuntimeError as e:
+        if str(e) == "Event loop is closed":
+            print("Event loop is closed error occurred in sendRequest.")
+        else:
+            raise
 
 async def create_telemetry_id(proxy: str = None):
     global chatArks
@@ -78,9 +87,9 @@ async def get_telemetry_ids(proxy: str = None) -> list:
         return [await create_telemetry_id(proxy)]
     except NoValidHarFileError as e:
         if debug.logging:
-            print(e)
+            logging.error(e)
     if debug.logging:
-        print('Getting telemetry_id for you.com with nodriver')
+        logging.error('Getting telemetry_id for you.com with nodriver')
     try:
         from nodriver import start
     except ImportError:
@@ -100,6 +109,15 @@ async def get_telemetry_ids(proxy: str = None) -> list:
             )
 
         return [await get_telemetry_id()]
+    
     finally:
-        if page is not None:
-            await page.close()
+        try:
+            if page is not None:
+                await page.close()
+                
+            if browser is not None:
+                await browser.close()
+        
+        except Exception as e:
+            if debug.logging:
+                logging.error(e)

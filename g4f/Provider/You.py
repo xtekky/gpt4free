@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import re
 import json
 import base64
@@ -24,6 +22,7 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
     image_models = ["dall-e"]
     models = [
         default_model,
+        "gpt-4o",
         "gpt-4",
         "gpt-4-turbo",
         "claude-instant",
@@ -42,7 +41,8 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
         *image_models
     ]
     model_aliases = {
-        "claude-v2": "claude-2"
+        "claude-v2": "claude-2",
+        "gpt-4o": "gpt-4o",
     }
     _cookies = None
     _cookies_used = 0
@@ -99,7 +99,9 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
                 "selectedChatMode": chat_mode,
             }
             if chat_mode == "custom":
+                # print(f"You model: {model}")
                 params["selectedAIModel"] = model.replace("-", "_")
+            
             async with (session.post if chat_mode == "default" else session.get)(
                 f"{cls.url}/api/streamingSearch",
                 data=data,
@@ -183,7 +185,15 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
     @classmethod
     async def create_cookies(cls, client: StreamSession) -> Cookies:
         if not cls._telemetry_ids:
-            cls._telemetry_ids = await get_telemetry_ids()
+            try:
+                cls._telemetry_ids = await get_telemetry_ids()
+            except RuntimeError as e:
+                if str(e) == "Event loop is closed":
+                    if debug.logging:
+                        print("Event loop is closed error occurred in create_cookies.")
+                else:
+                    raise
+                
         user_uuid = str(uuid.uuid4())
         telemetry_id = cls._telemetry_ids.pop()
         if debug.logging:
