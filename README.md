@@ -2,7 +2,7 @@
 
 <a href="https://trendshift.io/repositories/1692" target="_blank"><img src="https://trendshift.io/api/badge/repositories/1692" alt="xtekky%2Fgpt4free | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
 
-Written by [@xtekky](https://github.com/hlohaus) & maintained by [@hlohaus](https://github.com/hlohaus)
+Written by [@xtekky](https://github.com/xtekky) & maintained by [@hlohaus](https://github.com/hlohaus)
 
 <div id="top"></div>
 
