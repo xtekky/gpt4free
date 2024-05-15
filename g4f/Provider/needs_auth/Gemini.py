@@ -59,7 +59,7 @@ class Gemini(AsyncGeneratorProvider):
     _cookies: Cookies = None
 
     @classmethod
-    async def nodriver_login(cls) -> AsyncIterator[str]:
+    async def nodriver_login(cls, proxy: str = None) -> AsyncIterator[str]:
         try:
             import nodriver as uc
         except ImportError:
@@ -71,7 +71,10 @@ class Gemini(AsyncGeneratorProvider):
             user_data_dir = None
         if debug.logging:
             print(f"Open nodriver with user_dir: {user_data_dir}")
-        browser = await uc.start(user_data_dir=user_data_dir)
+        browser = await uc.start(
+            user_data_dir=user_data_dir,
+            browser_args=None if proxy is None else [f"--proxy-server={proxy}"],
+        )
         login_url = os.environ.get("G4F_LOGIN_URL")
         if login_url:
             yield f"Please login: [Google Gemini]({login_url})\n\n"
@@ -134,7 +137,7 @@ class Gemini(AsyncGeneratorProvider):
         ) as session:
             snlm0e  = await cls.fetch_snlm0e(session, cls._cookies) if cls._cookies else None
             if not snlm0e:
-                async for chunk in cls.nodriver_login():
+                async for chunk in cls.nodriver_login(proxy):
                     yield chunk
                 if cls._cookies is None:
                     async for chunk in cls.webdriver_login(proxy):

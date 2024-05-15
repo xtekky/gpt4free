@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import re
 import json
 import base64
@@ -42,7 +44,6 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
     ]
     model_aliases = {
         "claude-v2": "claude-2",
-        "gpt-4o": "gpt-4o",
     }
     _cookies = None
     _cookies_used = 0
@@ -185,15 +186,7 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
     @classmethod
     async def create_cookies(cls, client: StreamSession) -> Cookies:
         if not cls._telemetry_ids:
-            try:
-                cls._telemetry_ids = await get_telemetry_ids()
-            except RuntimeError as e:
-                if str(e) == "Event loop is closed":
-                    if debug.logging:
-                        print("Event loop is closed error occurred in create_cookies.")
-                else:
-                    raise
-                
+            cls._telemetry_ids = await get_telemetry_ids()
         user_uuid = str(uuid.uuid4())
         telemetry_id = cls._telemetry_ids.pop()
         if debug.logging:
