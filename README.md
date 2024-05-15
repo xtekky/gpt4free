@@ -24,7 +24,7 @@ docker pull hlohaus789/g4f
 
 ## 🆕 What's New
 
-- Added `gpt-4o`, simply use `gpt-4o` in `chat.completion.create`. !! NOT AVAILABLE ON PIP, DOWNLOAD REPOSITORY !!
+- Added `gpt-4o`, simply use `gpt-4o` in `chat.completion.create`.
 - Installation Guide for Windows (.exe): 💻 [#installation-guide-for-windows](#installation-guide-for-windows-exe)
 - Join our Telegram Channel: 📨 [telegram.me/g4f_channel](https://telegram.me/g4f_channel)
 - Join our Discord Group: 💬 [discord.gg/XfybzPXPH5](https://discord.gg/XfybzPXPH5)
