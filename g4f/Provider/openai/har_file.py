@@ -26,7 +26,7 @@ class arkReq:
         self.userAgent = userAgent
 
 arkPreURL = "https://tcr9i.chat.openai.com/fc/gt2/public_key/35536E1E-65B4-4D96-9D97-6ADB7EFF8147"
-sessionUrl = "https://chat.openai.com/api/auth/session"
+sessionUrl = "https://chatgpt.com/api/auth/session"
 chatArk: arkReq = None
 accessToken: str = None
 cookies: dict = None

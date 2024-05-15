@@ -381,7 +381,8 @@ body {
 }
 
 .message .count .fa-clipboard,
-.message .count .fa-volume-high {
+.message .count .fa-volume-high,
+.message .count .fa-rotate {
     z-index: 1000;
     cursor: pointer;
 }

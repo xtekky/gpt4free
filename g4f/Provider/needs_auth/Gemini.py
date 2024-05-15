@@ -17,12 +17,12 @@ except ImportError:
     pass
 
 from ... import debug
-from ...typing import Messages, Cookies, ImageType, AsyncResult
+from ...typing import Messages, Cookies, ImageType, AsyncResult, AsyncIterator
 from ..base_provider import AsyncGeneratorProvider
 from ..helper import format_prompt, get_cookies
 from ...requests.raise_for_status import raise_for_status
 from ...errors import MissingAuthError, MissingRequirementsError
-from ...image import to_bytes, ImageResponse
+from ...image import to_bytes, to_data_uri, ImageResponse
 from ...webdriver import get_browser, get_driver_cookies
 
 REQUEST_HEADERS = {
@@ -59,7 +59,7 @@ class Gemini(AsyncGeneratorProvider):
     _cookies: Cookies = None
 
     @classmethod
-    async def nodriver_login(cls) -> Cookies:
+    async def nodriver_login(cls) -> AsyncIterator[str]:
         try:
             import nodriver as uc
         except ImportError:
@@ -72,6 +72,9 @@ class Gemini(AsyncGeneratorProvider):
         if debug.logging:
             print(f"Open nodriver with user_dir: {user_data_dir}")
         browser = await uc.start(user_data_dir=user_data_dir)
+        login_url = os.environ.get("G4F_LOGIN_URL")
+        if login_url:
+            yield f"Please login: [Google Gemini]({login_url})\n\n"
         page = await browser.get(f"{cls.url}/app")
         await page.select("div.ql-editor.textarea", 240)
         cookies = {}
@@ -79,10 +82,10 @@ class Gemini(AsyncGeneratorProvider):
             if c.domain.endswith(".google.com"):
                 cookies[c.name] = c.value
         await page.close()
-        return cookies
+        cls._cookies = cookies
 
     @classmethod
-    async def webdriver_login(cls, proxy: str):
+    async def webdriver_login(cls, proxy: str) -> AsyncIterator[str]:
         driver = None
         try:
             driver = get_browser(proxy=proxy)
@@ -131,13 +134,14 @@ class Gemini(AsyncGeneratorProvider):
         ) as session:
             snlm0e  = await cls.fetch_snlm0e(session, cls._cookies) if cls._cookies else None
             if not snlm0e:
-                cls._cookies = await cls.nodriver_login();
+                async for chunk in cls.nodriver_login():
+                    yield chunk
                 if cls._cookies is None:
                     async for chunk in cls.webdriver_login(proxy):
                         yield chunk
 
             if not snlm0e:
-                if "__Secure-1PSID" not in cls._cookies:
+                if cls._cookies is None or "__Secure-1PSID" not in cls._cookies:
                     raise MissingAuthError('Missing "__Secure-1PSID" cookie')
                 snlm0e = await cls.fetch_snlm0e(session, cls._cookies)
             if not snlm0e:
@@ -193,6 +197,13 @@ class Gemini(AsyncGeneratorProvider):
                                 image = fetch.headers["location"]
                             resolved_images.append(image)
                             preview.append(image.replace('=s512', '=s200'))
+                            # preview_url = image.replace('=s512', '=s200')
+                            # async with client.get(preview_url) as fetch:
+                            #     preview_data = to_data_uri(await fetch.content.read())
+                            # async with client.get(image) as fetch:
+                            #     data = to_data_uri(await fetch.content.read())
+                            # preview.append(preview_data)
+                            # resolved_images.append(data)
                         yield ImageResponse(resolved_images, image_prompt, {"orginal_links": images, "preview": preview})
 
     def build_request(
