@@ -38,7 +38,7 @@ DEFAULT_HEADERS = {
     "accept": "*/*",
     "accept-encoding": "gzip, deflate, br, zstd",
     "accept-language": "en-US,en;q=0.5",
-    "referer": "https://chat.openai.com/",
+    "referer": "https://chatgpt.com/",
     "sec-ch-ua": "\"Brave\";v=\"123\", \"Not:A-Brand\";v=\"8\", \"Chromium\";v=\"123\"",
     "sec-ch-ua-mobile": "?0",
     "sec-ch-ua-platform": "\"Windows\"",
@@ -53,15 +53,15 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
     """A class for creating and managing conversations with OpenAI chat service"""
 
     label = "OpenAI ChatGPT"
-    url = "https://chat.openai.com"
+    url = "https://chatgpt.com"
     working = True
     supports_gpt_35_turbo = True
     supports_gpt_4 = True
     supports_message_history = True
     supports_system_message = True
     default_model = None
-    default_vision_model = "gpt-4-vision"
-    models = ["gpt-3.5-turbo", "gpt-4", "gpt-4-gizmo"]
+    default_vision_model = "gpt-4o"
+    models = ["gpt-3.5-turbo", "gpt-4", "gpt-4-gizmo", "gpt-4o"]
     model_aliases = {
         "text-davinci-002-render-sha": "gpt-3.5-turbo",
         "": "gpt-3.5-turbo",
@@ -442,6 +442,7 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
             try:
                 image_request = await cls.upload_image(session, cls._headers, image, image_name) if image else None
             except Exception as e:
+                image_request = None
                 if debug.logging:
                     print("OpenaiChat: Upload image failed")
                     print(f"{e.__class__.__name__}: {e}")
@@ -601,7 +602,7 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
 this._fetch = this.fetch;
 this.fetch = async (url, options) => {
     const response = await this._fetch(url, options);
-    if (url == "https://chat.openai.com/backend-api/conversation") {
+    if (url == "https://chatgpt.com/backend-api/conversation") {
         this._headers = options.headers;
         return response;
     }
@@ -637,7 +638,7 @@ this.fetch = async (url, options) => {
         if debug.logging:
             print(f"Open nodriver with user_dir: {user_data_dir}")
         browser = await uc.start(user_data_dir=user_data_dir)
-        page = await browser.get("https://chat.openai.com/")
+        page = await browser.get("https://chatgpt.com/")
         await page.select("[id^=headlessui-menu-button-]", 240)
         api_key = await page.evaluate(
             "(async () => {"
@@ -652,7 +653,7 @@ this.fetch = async (url, options) => {
         )
         cookies = {}
         for c in await page.browser.cookies.get_all():
-            if c.domain.endswith("chat.openai.com"):
+            if c.domain.endswith("chatgpt.com"):
                 cookies[c.name] = c.value
         user_agent = await page.evaluate("window.navigator.userAgent")
         await page.close()

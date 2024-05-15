@@ -16,12 +16,9 @@ def generate_proof_token(required: bool, seed: str, difficulty: str, user_agent:
 
     # Get current UTC time
     now_utc = datetime.now(timezone.utc)
-    # Convert UTC time to Eastern Time
-    now_et = now_utc.astimezone(timezone(timedelta(hours=-5)))
+    parse_time = now_utc.strftime('%a, %d %b %Y %H:%M:%S GMT')
 
-    parse_time = now_et.strftime('%a, %d %b %Y %H:%M:%S GMT')
-
-    config = [core + screen, parse_time, 4294705152, 0, user_agent]
+    config = [core + screen, parse_time, None, 0, user_agent, "https://tcr9i.chat.openai.com/v2/35536E1E-65B4-4D96-9D97-6ADB7EFF8147/api.js","dpl=53d243de46ff04dadd88d293f088c2dd728f126f","en","en-US",442,"plugins−[object PluginArray]","","alert"]
 
     diff_len = len(difficulty) // 2
 

@@ -109,8 +109,9 @@ const register_message_buttons = async () => {
                 let playlist = [];
                 function play_next() {
                     const next = playlist.shift();
-                    if (next)
+                    if (next && el.dataset.do_play) {
                         next.play();
+                    }
                 }
                 if (el.dataset.stopped) {
                     el.classList.remove("blink")
@@ -177,6 +178,20 @@ const register_message_buttons = async () => {
                 let line = lines.shift();
                 handleGenerateSpeech(line);
             });
+        }
+    });
+    document.querySelectorAll(".message .fa-rotate").forEach(async (el) => {
+        if (!("click" in el.dataset)) {
+            el.dataset.click = "true";
+            el.addEventListener("click", async () => {
+                const message_el = el.parentElement.parentElement.parentElement;
+                el.classList.add("clicked");
+                setTimeout(() => el.classList.remove("clicked"), 1000);
+                prompt_lock = true;
+                await hide_message(window.conversation_id, message_el.dataset.index);
+                window.token = message_id();
+                await ask_gpt(message_el.dataset.index);
+            })
         }
     });
 }
@@ -257,9 +272,9 @@ const remove_cancel_button = async () => {
     }, 300);
 };
 
-const prepare_messages = (messages, filter_last_message=true) => {
+const prepare_messages = (messages, message_index = -1) => {
     // Removes none user messages at end
-    if (filter_last_message) {
+    if (message_index == -1) {
         let last_message;
         while (last_message = messages.pop()) {
             if (last_message["role"] == "user") {
@@ -267,14 +282,16 @@ const prepare_messages = (messages, filter_last_message=true) => {
                 break;
             }
         }
+    } else if (message_index >= 0) {
+        messages = messages.filter((_, index) => message_index >= index);
     }
 
     // Remove history, if it's selected
     if (document.getElementById('history')?.checked) {
-        if (filter_last_message) {
-            messages = [messages.pop()];
-        } else {
+        if (message_index == null) {
             messages = [messages.pop(), messages.pop()];
+        } else {
+            messages = [messages.pop()];
         }
     }
 
@@ -361,11 +378,11 @@ imageInput?.addEventListener("click", (e) => {
     }
 });
 
-const ask_gpt = async () => {
+const ask_gpt = async (message_index = -1) => {
     regenerate.classList.add(`regenerate-hidden`);
     messages = await get_messages(window.conversation_id);
     total_messages = messages.length;
-    messages = prepare_messages(messages);
+    messages = prepare_messages(messages, message_index);
 
     stop_generating.classList.remove(`stop_generating-hidden`);
 
@@ -528,6 +545,7 @@ const hide_option = async (conversation_id) => {
         const span_el = document.createElement("span");
         span_el.innerText = input_el.value;
         span_el.classList.add("convo-title");
+        span_el.onclick = () => set_conversation(conversation_id);
         left_el.removeChild(input_el);
         left_el.appendChild(span_el);
     }
@@ -616,7 +634,7 @@ const load_conversation = async (conversation_id, scroll=true) => {
     }
 
     if (window.GPTTokenizer_cl100k_base) {
-        const filtered = prepare_messages(messages, false);
+        const filtered = prepare_messages(messages, null);
         if (filtered.length > 0) {
             last_model = last_model?.startsWith("gpt-4") ? "gpt-4" : "gpt-3.5-turbo"
             let count_total = GPTTokenizer_cl100k_base?.encodeChat(filtered, last_model).length
@@ -683,15 +701,15 @@ async function save_system_message() {
         await save_conversation(window.conversation_id, conversation);
     }
 }
-
-const hide_last_message = async (conversation_id) => {
+const hide_message = async (conversation_id, message_index =- 1) => {
     const conversation = await get_conversation(conversation_id)
-    const last_message = conversation.items.pop();
+    message_index = message_index == -1 ? conversation.items.length - 1 : message_index
+    const last_message = message_index in conversation.items ? conversation.items[message_index] : null;
     if (last_message !== null) {
         if (last_message["role"] == "assistant") {
             last_message["regenerate"] = true;
         }
-        conversation.items.push(last_message);
+        conversation.items[message_index] = last_message;
     }
     await save_conversation(conversation_id, conversation);
 };
@@ -790,7 +808,7 @@ document.getElementById("cancelButton").addEventListener("click", async () => {
 
 document.getElementById("regenerateButton").addEventListener("click", async () => {
     prompt_lock = true;
-    await hide_last_message(window.conversation_id);
+    await hide_message(window.conversation_id);
     window.token = message_id();
     await ask_gpt();
 });
