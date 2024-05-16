@@ -133,7 +133,7 @@ class NewBaseRetryProvider(BaseRetryProvider):
                 if not stream:
                     yield await provider.create_async(model, messages, **kwargs)
                 elif hasattr(provider, "create_async_generator"):
-                    async for token in provider.create_async_generator(model, messages, stream, **kwargs):
+                    async for token in provider.create_async_generator(model, messages, stream=stream, **kwargs):
                         yield token
                 else:
                     for token in provider.create_completion(model, messages, stream, **kwargs):

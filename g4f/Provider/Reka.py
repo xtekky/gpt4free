@@ -9,6 +9,7 @@ from ..image        import to_bytes
 class Reka(AbstractProvider):
     url             = "https://chat.reka.ai/"
     working         = True
+    needs_auth      = True
     supports_stream = True
     default_vision_model = "reka"
     cookies         = {}
@@ -20,13 +21,12 @@ class Reka(AbstractProvider):
         messages: Messages,
         stream: bool,
         proxy: str = None,
-        timeout: int = 180,
         api_key: str = None,
         image: ImageType = None,
         **kwargs
     ) -> CreateResult:
         cls.proxy = proxy
-        
+
         if not api_key:
             cls.cookies = get_cookies("chat.reka.ai")
             if not cls.cookies:
@@ -34,19 +34,19 @@ class Reka(AbstractProvider):
             elif "appSession" not in cls.cookies:
                 raise ValueError("No appSession found in cookies for chat.reka.ai, log in or provide bearer_auth")
             api_key = cls.get_access_token(cls)
-            
+
         conversation = []
         for message in messages:
             conversation.append({
                 "type": "human",
                 "text": message["content"],
             })
-        
+
         if image:
             image_url = cls.upload_image(cls, api_key, image)
             conversation[-1]["image_url"] = image_url
             conversation[-1]["media_type"] = "image"
-        
+
         headers = {
             'accept': '*/*',
             'accept-language': 'en,fr-FR;q=0.9,fr;q=0.8,es-ES;q=0.7,es;q=0.6,en-US;q=0.5,am;q=0.4,de;q=0.3',
@@ -64,7 +64,7 @@ class Reka(AbstractProvider):
             'sec-fetch-site': 'same-origin',
             'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
         }
-        
+
         json_data = {
             'conversation_history': conversation,
             'stream': True,
@@ -73,7 +73,7 @@ class Reka(AbstractProvider):
             'model_name': 'reka-core',
             'random_seed': int(time.time() * 1000),
         }
-        
+
         tokens = ''
 
         response = requests.post('https://chat.reka.ai/api/chat', 
@@ -82,11 +82,11 @@ class Reka(AbstractProvider):
         for completion in response.iter_lines():
             if b'data' in completion:
                 token_data = json.loads(completion.decode('utf-8')[5:])['text']
-                
+
                 yield (token_data.replace(tokens, ''))
-                
+
                 tokens = token_data
-    
+
     def upload_image(cls, access_token, image: ImageType) -> str:
         boundary_token = os.urandom(8).hex()
 
@@ -120,7 +120,7 @@ class Reka(AbstractProvider):
                                     cookies=cls.cookies, headers=headers, proxies=cls.proxy, data=data.encode('latin-1'))
 
         return response.json()['media_url']
-    
+
     def get_access_token(cls):
         headers = {
             'accept': '*/*',
@@ -141,8 +141,8 @@ class Reka(AbstractProvider):
         try:
             response = requests.get('https://chat.reka.ai/bff/auth/access_token', 
                                     cookies=cls.cookies, headers=headers, proxies=cls.proxy)
-            
+
             return response.json()['accessToken']
-        
+
         except Exception as e:
             raise ValueError(f"Failed to get access token: {e}, refresh your cookies / log in into chat.reka.ai")

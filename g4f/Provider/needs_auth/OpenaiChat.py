@@ -403,7 +403,7 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
                 except NoValidHarFileError as e:
                     error = e
                 if cls._api_key is None:
-                    await cls.nodriver_access_token()
+                    await cls.nodriver_access_token(proxy)
                 if cls._api_key is None and cls.needs_auth:
                     raise error
                 cls.default_model = cls.get_model(await cls.get_default_model(session, cls._headers))
@@ -625,7 +625,7 @@ this.fetch = async (url, options) => {
         cls._update_cookie_header()
 
     @classmethod
-    async def nodriver_access_token(cls):
+    async def nodriver_access_token(cls, proxy: str = None):
         try:
             import nodriver as uc
         except ImportError:
@@ -637,7 +637,10 @@ this.fetch = async (url, options) => {
             user_data_dir = None
         if debug.logging:
             print(f"Open nodriver with user_dir: {user_data_dir}")
-        browser = await uc.start(user_data_dir=user_data_dir)
+        browser = await uc.start(
+            user_data_dir=user_data_dir,
+            browser_args=None if proxy is None else [f"--proxy-server={proxy}"],
+        )
         page = await browser.get("https://chatgpt.com/")
         await page.select("[id^=headlessui-menu-button-]", 240)
         api_key = await page.evaluate(

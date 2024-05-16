@@ -10,6 +10,7 @@ from ..errors import ResponseError, MissingAuthError
 class Replicate(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://replicate.com"
     working = True
+    needs_auth = True
     default_model = "meta/meta-llama-3-70b-instruct"
     model_aliases = {
         "meta-llama/Meta-Llama-3-70B-Instruct": default_model
