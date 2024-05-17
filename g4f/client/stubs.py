@@ -78,12 +78,14 @@ class ChatCompletionDelta(Model):
     def __init__(self, content: Union[str, None]):
         if content is not None:
             self.content = content
+            self.role = "assistant"
 
     def to_json(self):
         return self.__dict__
 
 class ChatCompletionDeltaChoice(Model):
     def __init__(self, delta: ChatCompletionDelta, finish_reason: Union[str, None]):
+        self.index = 0
         self.delta = delta
         self.finish_reason = finish_reason
 

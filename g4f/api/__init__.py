@@ -120,7 +120,10 @@ class Api:
                 'created': 0,
                 'owned_by': model.base_provider
             } for model_id, model in model_list.items()]
-            return JSONResponse(model_list)
+            return JSONResponse({
+                "object": "list",
+                "data": model_list,
+            })
 
         @self.app.get("/v1/models/{model_name}")
         async def model_info(model_name: str):
