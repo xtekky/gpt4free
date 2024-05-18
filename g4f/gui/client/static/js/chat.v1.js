@@ -302,7 +302,7 @@ const prepare_messages = (messages, message_index = -1) => {
     }
     messages.forEach((new_message) => {
         // Include only not regenerated messages
-        if (!new_message.regenerate) {
+        if (new_message && !new_message.regenerate) {
             // Remove generated images from history
             new_message.content = filter_message(new_message.content);
             delete new_message.provider;
