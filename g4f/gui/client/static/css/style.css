@@ -457,7 +457,11 @@ body {
 #input-count {
     width: fit-content;
     font-size: 12px;
-    padding: 6px var(--inner-gap);
+    padding: 6px 6px;
+}
+
+#input-count .text {
+    padding: 0 4px;
 }
 
 .stop_generating, .toolbar .regenerate {
@@ -489,6 +493,13 @@ body {
     gap: 12px;
     cursor: pointer;
     animation: show_popup 0.4s;
+}
+
+.toolbar .hide-input {
+    background: transparent;
+    border: none;
+    color: var(--colour-3);
+    cursor: pointer;
 }
 
 @keyframes show_popup {

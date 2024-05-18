@@ -93,22 +93,22 @@
             <div class="paper">
             <h3>Settings</h3>
             <div class="field">
-                <span class="label">Web Access</span>
+                <span class="label">Web Access with DuckDuckGo</span>
                 <input type="checkbox" id="switch" />
                 <label for="switch" class="toogle" title="Add the pages of the first 5 search results to the query."></label>
             </div>
             <div class="field">
-                <span class="label">Disable History</span>
+                <span class="label">Disable Conversation History</span>
                 <input type="checkbox" id="history" />
                 <label for="history" class="toogle" title="To improve the reaction time or if you have trouble with large conversations."></label>
             </div>
             <div class="field">
-                <span class="label">Hide System prompt</span>
+                <span class="label">Hide System-prompt</span>
                 <input type="checkbox" id="hide-systemPrompt" />
                 <label for="hide-systemPrompt" class="toogle" title="For more space on phones"></label>
             </div>
             <div class="field">
-                <span class="label">Auto continue</span>
+                <span class="label">Auto continue in ChatGPT</span>
                 <input id="auto_continue" type="checkbox" name="auto_continue" checked/>
                 <label for="auto_continue" class="toogle" title="Continue large responses in OpenaiChat"></label>
             </div>
@@ -121,8 +121,8 @@
                 <input type="text" id="recognition-language" value="" placeholder="navigator.language"/>
             </div>
             <div class="field box">
-                <label for="Bing-api_key" class="label" title="">Bing:</label>
-                <textarea id="Bing-api_key" name="Bing[api_key]" class="BingCreateImages-api_key" placeholder="&quot;_U&quot; cookie"></textarea>
+                <label for="BingCreateImages-api_key" class="label" title="">Microsoft Designer in Bing:</label>
+                <textarea id="BingCreateImages-api_key" name="BingCreateImages[api_key]" placeholder="&quot;_U&quot; cookie"></textarea>
             </div>
             <div class="field box">
                 <label for="DeepInfra-api_key" class="label" title="">DeepInfra:</label>
@@ -145,12 +145,12 @@
                 <textarea id="Openai-api_key" name="Openai[api_key]" placeholder="api_key"></textarea>
             </div>
             <div class="field box">
-                <label for="OpenaiAccount-api_key" class="label" title="">OpenAI ChatGPT:</label>
-                <textarea id="OpenaiAccount-api_key" name="OpenaiAccount[api_key]" class="OpenaiChat-api_key" placeholder="access_key"></textarea>
-            </div>
-            <div class="field box">
                 <label for="OpenRouter-api_key" class="label" title="">OpenRouter:</label>
                 <textarea id="OpenRouter-api_key" name="OpenRouter[api_key]" placeholder="api_key"></textarea>
+            </div>
+            <div class="field box">
+                <label for="PerplexityApi-api_key" class="label" title="">Perplexity API:</label>
+                <textarea id="PerplexityApi-api_key" name="PerplexityApi[api_key]" placeholder="api_key"></textarea>
             </div>
             <div class="field box">
                 <label for="Replicate-api_key" class="label" title="">Replicate:</label>
@@ -173,7 +173,10 @@
             <div id="messages" class="box"></div>
             <div class="toolbar">
                 <div id="input-count" class="">
-                    &nbsp;
+                    <button class="hide-input">
+                        <i class="fa-solid fa-angles-down"></i>
+                    </button>
+                    <span class="text"></span>
                 </div>
                 <div class="stop_generating stop_generating-hidden">
                     <button id="cancelButton">

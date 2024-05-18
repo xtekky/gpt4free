@@ -1,7 +1,3 @@
-"""
-This module provides functionalities for creating and managing images using Bing's service.
-It includes functions for user login, session creation, image creation, and processing.
-"""
 from __future__ import annotations
 
 import asyncio
@@ -17,9 +13,7 @@ try:
 except ImportError:
     has_requirements = False
 
-from ...providers.create_images import CreateImagesProvider
 from ..helper import get_connector
-from ...providers.types import ProviderType
 from ...errors import MissingRequirementsError, RateLimitError
 from ...webdriver import WebDriver, get_driver_cookies, get_browser
 
@@ -101,7 +95,7 @@ def create_session(cookies: Dict[str, str], proxy: str = None, connector: BaseCo
         headers["Cookie"] = "; ".join(f"{k}={v}" for k, v in cookies.items())
     return ClientSession(headers=headers, connector=get_connector(connector, proxy))
 
-async def create_images(session: ClientSession, prompt: str, proxy: str = None, timeout: int = TIMEOUT_IMAGE_CREATION) -> List[str]:
+async def create_images(session: ClientSession, prompt: str, timeout: int = TIMEOUT_IMAGE_CREATION) -> List[str]:
     """
     Creates images based on a given prompt using Bing's service.
 
@@ -132,7 +126,7 @@ async def create_images(session: ClientSession, prompt: str, proxy: str = None, 
                 raise RuntimeError(f"Create images failed: {error}")
     if response.status != 302:
         url = f"{BING_URL}/images/create?q={url_encoded_prompt}&rt=3&FORM=GENCRE"
-        async with session.post(url, allow_redirects=False, proxy=proxy, timeout=timeout) as response:
+        async with session.post(url, allow_redirects=False, timeout=timeout) as response:
             if response.status != 302:
                 raise RuntimeError(f"Create images failed. Code: {response.status}")
 
@@ -186,21 +180,3 @@ def read_images(html_content: str) -> List[str]:
     if not images:
         raise RuntimeError("No images found")
     return images
-
-def patch_provider(provider: ProviderType) -> CreateImagesProvider:
-    """
-    Patches a provider to include image creation capabilities.
-
-    Args:
-        provider (ProviderType): The provider to be patched.
-
-    Returns:
-        CreateImagesProvider: The patched provider with image creation capabilities.
-    """
-    from ..BingCreateImages import BingCreateImages
-    service = BingCreateImages()
-    return CreateImagesProvider(
-        provider,
-        service.create,
-        service.create_async
-    )
