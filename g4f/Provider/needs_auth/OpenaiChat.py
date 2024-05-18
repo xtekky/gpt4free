@@ -61,7 +61,7 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
     supports_system_message = True
     default_model = None
     default_vision_model = "gpt-4o"
-    models = ["gpt-3.5-turbo", "gpt-4", "gpt-4-gizmo", "gpt-4o"]
+    models = ["gpt-3.5-turbo", "gpt-4", "gpt-4-gizmo", "gpt-4o", "auto"]
     model_aliases = {
         "text-davinci-002-render-sha": "gpt-3.5-turbo",
         "": "gpt-3.5-turbo",
@@ -394,10 +394,11 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
                         print(f"{e.__class__.__name__}: {e}")
 
             arkose_token = None
+            proofTokens = None
             if cls.default_model is None:
                 error = None
                 try:
-                    arkose_token, api_key, cookies, headers = await getArkoseAndAccessToken(proxy)
+                    arkose_token, api_key, cookies, headers, proofTokens = await getArkoseAndAccessToken(proxy)
                     cls._create_request_args(cookies, headers)
                     cls._set_api_key(api_key)
                 except NoValidHarFileError as e:
@@ -413,17 +414,17 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
                 if cls._api_key is None else
                 f"{cls.url}/backend-api/sentinel/chat-requirements",
                 json={"conversation_mode_kind": "primary_assistant"},
+                #json={"p": generate_proof_token(True, user_agent=cls._headers["user-agent"], proofTokens=proofTokens)},
                 headers=cls._headers
             ) as response:
                 cls._update_request_args(session)
                 await raise_for_status(response)
                 data = await response.json()
-                blob = data["arkose"]["dx"]
-                need_arkose = data["arkose"]["required"]
+                need_arkose = data.get("arkose", {}).get("required")
                 chat_token = data["token"]
                 proofofwork = ""
                 if "proofofwork" in data:
-                    proofofwork = generate_proof_token(**data["proofofwork"], user_agent=cls._headers["user-agent"])
+                    proofofwork = generate_proof_token(**data["proofofwork"], user_agent=cls._headers["user-agent"], proofTokens=proofTokens)
 
             if need_arkose and arkose_token is None:
                 arkose_token, api_key, cookies, headers = await getArkoseAndAccessToken(proxy)
@@ -435,7 +436,6 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
             if debug.logging:
                 print(
                     'Arkose:', False if not need_arkose else arkose_token[:12]+"...",
-                    'Turnstile:', data["turnstile"]["required"],
                     'Proofofwork:', False if proofofwork is None else proofofwork[:12]+"...",
                 )
 

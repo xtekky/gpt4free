@@ -275,6 +275,18 @@ class ImagePreview(ImageResponse):
     def to_string(self):
         return super().__str__()
 
+class ImageDataResponse():
+    def __init__(
+        self,
+        images: Union[str, list],
+        alt: str,
+    ):
+        self.images = images
+        self.alt = alt
+
+    def get_list(self) -> list[str]:
+        return [self.images] if isinstance(self.images, str) else self.images
+
 class ImageRequest:
     def __init__(
         self,

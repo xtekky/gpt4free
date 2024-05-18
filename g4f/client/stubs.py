@@ -96,13 +96,24 @@ class ChatCompletionDeltaChoice(Model):
         }
 
 class Image(Model):
-    url: str
+    def __init__(self, url: str = None, b64_json: str = None, revised_prompt: str = None) -> None:
+        if url is not None:
+            self.url = url
+        if b64_json is not None:
+            self.b64_json = b64_json
+        if revised_prompt is not None:
+            self.revised_prompt = revised_prompt
 
-    def __init__(self, url: str) -> None:
-        self.url = url
+    def to_json(self):
+        return self.__dict__
 
 class ImagesResponse(Model):
-    data: list[Image]
-
-    def __init__(self, data: list) -> None:
+    def __init__(self, data: list[Image], created: int = 0) -> None:
         self.data = data
+        self.created = created
+
+    def to_json(self):
+        return {
+            **self.__dict__,
+            "data": [image.to_json() for image in self.data]
+        }
