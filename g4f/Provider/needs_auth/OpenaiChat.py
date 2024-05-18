@@ -330,6 +330,7 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
         image: ImageType = None,
         image_name: str = None,
         return_conversation: bool = False,
+        max_retries: int = 3,
         **kwargs
     ) -> AsyncResult:
         """
@@ -409,36 +410,6 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
                     raise error
                 cls.default_model = cls.get_model(await cls.get_default_model(session, cls._headers))
 
-            async with session.post(
-                f"{cls.url}/backend-anon/sentinel/chat-requirements"
-                if cls._api_key is None else
-                f"{cls.url}/backend-api/sentinel/chat-requirements",
-                json={"conversation_mode_kind": "primary_assistant"},
-                #json={"p": generate_proof_token(True, user_agent=cls._headers["user-agent"], proofTokens=proofTokens)},
-                headers=cls._headers
-            ) as response:
-                cls._update_request_args(session)
-                await raise_for_status(response)
-                data = await response.json()
-                need_arkose = data.get("arkose", {}).get("required")
-                chat_token = data["token"]
-                proofofwork = ""
-                if "proofofwork" in data:
-                    proofofwork = generate_proof_token(**data["proofofwork"], user_agent=cls._headers["user-agent"], proofTokens=proofTokens)
-
-            if need_arkose and arkose_token is None:
-                arkose_token, api_key, cookies, headers = await getArkoseAndAccessToken(proxy)
-                cls._create_request_args(cookies, headers)
-                cls._set_api_key(api_key)
-                if arkose_token is None:
-                    raise MissingAuthError("No arkose token found in .har file")
-                            
-            if debug.logging:
-                print(
-                    'Arkose:', False if not need_arkose else arkose_token[:12]+"...",
-                    'Proofofwork:', False if proofofwork is None else proofofwork[:12]+"...",
-                )
-
             try:
                 image_request = await cls.upload_image(session, cls._headers, image, image_name) if image else None
             except Exception as e:
@@ -457,6 +428,43 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
                 auto_continue = False
             conversation.finish_reason = None
             while conversation.finish_reason is None:
+                async with session.post(
+                    f"{cls.url}/backend-anon/sentinel/chat-requirements"
+                    if cls._api_key is None else
+                    f"{cls.url}/backend-api/sentinel/chat-requirements",
+                    json={"p": generate_proof_token(True, user_agent=cls._headers["user-agent"], proofTokens=proofTokens)},
+                    headers=cls._headers
+                ) as response:
+                    cls._update_request_args(session)
+                    await raise_for_status(response)
+                    requirements = await response.json()
+                    need_arkose = requirements.get("arkose", {}).get("required")
+                    chat_token = requirements["token"]        
+
+                if need_arkose and arkose_token is None:
+                    arkose_token, api_key, cookies, headers, proofTokens = await getArkoseAndAccessToken(proxy)
+                    cls._create_request_args(cookies, headers)
+                    cls._set_api_key(api_key)
+                    if arkose_token is None:
+                        raise MissingAuthError("No arkose token found in .har file")
+
+                if "proofofwork" in requirements:
+                    proofofwork = generate_proof_token(
+                        **requirements["proofofwork"],
+                        user_agent=cls._headers["user-agent"],
+                        proofTokens=proofTokens
+                    )           
+                if debug.logging:
+                    print(
+                        'Arkose:', False if not need_arkose else arkose_token[:12]+"...",
+                        'Proofofwork:', False if proofofwork is None else proofofwork[:12]+"...",
+                    )
+                ws = None
+                if need_arkose:
+                    async with session.post("https://chatgpt.com/backend-api/register-websocket", headers=cls._headers) as response:
+                        wss_url = (await response.json()).get("wss_url")
+                    if wss_url:
+                        ws = await session.ws_connect(wss_url)    
                 websocket_request_id = str(uuid.uuid4())
                 data = {
                     "action": action,
@@ -488,8 +496,14 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
                     headers=headers
                 ) as response:
                     cls._update_request_args(session)
+                    if response.status == 403 and max_retries > 0:
+                        max_retries -= 1
+                        if debug.logging:
+                            print(f"Retry: Error {response.status}: {await response.text()}")
+                        await asyncio.sleep(5)
+                        continue
                     await raise_for_status(response)
-                    async for chunk in cls.iter_messages_chunk(response.iter_lines(), session, conversation):
+                    async for chunk in cls.iter_messages_chunk(response.iter_lines(), session, conversation, ws):
                         if return_conversation:
                             history_disabled = False
                             return_conversation = False
@@ -519,13 +533,14 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
         cls,
         messages: AsyncIterator,
         session: StreamSession,
-        fields: Conversation
+        fields: Conversation,
+        ws = None
     ) -> AsyncIterator:
         last_message: int = 0
         async for message in messages:
             if message.startswith(b'{"wss_url":'):
                 message = json.loads(message)
-                ws = await session.ws_connect(message["wss_url"])
+                ws = await session.ws_connect(message["wss_url"]) if ws is None else ws
                 try:
                     async for chunk in cls.iter_messages_chunk(
                         cls.iter_messages_ws(ws, message["conversation_id"], hasattr(ws, "recv")),

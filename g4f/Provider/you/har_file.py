@@ -115,7 +115,7 @@ async def get_telemetry_ids(proxy: str = None) -> list:
             if page is not None:
                 await page.close()
             if browser is not None:
-                await browser.close()
+                await browser.stop()
         except Exception as e:
             if debug.logging:
                 logging.error(e)

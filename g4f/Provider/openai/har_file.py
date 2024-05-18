@@ -35,6 +35,7 @@ headers: dict = None
 proofTokens: list = []
 
 def readHAR():
+    global proofTokens
     dirPath = "./"
     harPath = []
     chatArks = []
@@ -77,8 +78,8 @@ def readHAR():
     if not accessToken:
         raise NoValidHarFileError("No accessToken found in .har files")
     if not chatArks:
-        return None, accessToken, cookies, headers, proofTokens
-    return chatArks.pop(), accessToken, cookies, headers, proofTokens
+        return None, accessToken, cookies, headers
+    return chatArks.pop(), accessToken, cookies, headers
 
 def get_headers(entry) -> dict:
     return {h['name'].lower(): h['value'] for h in entry['request']['headers'] if h['name'].lower() not in ['content-length', 'cookie'] and not h['name'].startswith(':')}
@@ -145,7 +146,7 @@ def getN() -> str:
 async def getArkoseAndAccessToken(proxy: str) -> tuple[str, str, dict, dict]:
     global chatArk, accessToken, cookies, headers, proofTokens
     if chatArk is None or accessToken is None:
-        chatArk, accessToken, cookies, headers, proofTokens = readHAR()
+        chatArk, accessToken, cookies, headers = readHAR()
     if chatArk is None:
         return None, accessToken, cookies, headers, proofTokens
     newReq = genArkReq(chatArk)
