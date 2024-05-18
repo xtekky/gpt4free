@@ -1,6 +1,6 @@
 import json
 from flask import request, Flask
-from g4f.image import is_allowed_extension, to_image
+from g4f.image import is_allowed_extension, to_bytes
 from .api import Api
 
 class Backend_Api(Api):    
@@ -79,7 +79,7 @@ class Backend_Api(Api):
         if "file" in request.files:
             file = request.files['file']
             if file.filename != '' and is_allowed_extension(file.filename):
-                kwargs['image'] = to_image(file.stream, file.filename.endswith('.svg'))
+                kwargs['image'] = to_bytes(file.stream)
                 kwargs['image_name'] = file.filename
         if "json" in request.form:
             json_data = json.loads(request.form['json'])
