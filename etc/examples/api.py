@@ -3,7 +3,7 @@ import json
 url = "http://localhost:1337/v1/chat/completions"
 body = {
     "model": "",
-    "provider": "MetaAI",
+    "provider": "",
     "stream": True,
     "messages": [
         {"role": "assistant", "content": "What can you do? Who are you?"}

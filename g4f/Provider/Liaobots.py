@@ -10,6 +10,15 @@ from .helper import get_connector
 from ..requests import raise_for_status
 
 models = {
+    "gpt-4o": {
+        "context": "8K",
+        "id": "gpt-4o-free",
+        "maxLength": 31200,
+        "model": "ChatGPT",
+        "name": "GPT-4o-free",
+        "provider": "OpenAI",
+        "tokenLimit": 7800,
+    },
     "gpt-3.5-turbo": {
         "id": "gpt-3.5-turbo",
         "name": "GPT-3.5-Turbo",
@@ -95,7 +104,7 @@ class Liaobots(AsyncGeneratorProvider, ProviderModelMixin):
     model_aliases = {
         "claude-v2": "claude-2"
     }
-    _auth_code = None
+    _auth_code = ""
     _cookie_jar = None
 
     @classmethod
@@ -120,23 +129,6 @@ class Liaobots(AsyncGeneratorProvider, ProviderModelMixin):
             cookie_jar=cls._cookie_jar,
             connector=get_connector(connector, proxy, True)
         ) as session:
-            cls._auth_code = auth if isinstance(auth, str) else cls._auth_code
-            if not cls._auth_code:
-                async with session.post(
-                    "https://liaobots.work/recaptcha/api/login",
-                    data={"token": "abcdefghijklmnopqrst"},
-                    verify_ssl=False
-                ) as response:
-                    await raise_for_status(response)
-                async with session.post(
-                    "https://liaobots.work/api/user",
-                    json={"authcode": ""},
-                    verify_ssl=False
-                ) as response:
-                    await raise_for_status(response)
-                    cls._auth_code = (await response.json(content_type=None))["authCode"]
-                    cls._cookie_jar = session.cookie_jar
-
             data = {
                 "conversationId": str(uuid.uuid4()),
                 "model": models[cls.get_model(model)],
@@ -144,15 +136,56 @@ class Liaobots(AsyncGeneratorProvider, ProviderModelMixin):
                 "key": "",
                 "prompt": kwargs.get("system_message", "You are a helpful assistant."),
             }
-            async with session.post(
-                "https://liaobots.work/api/chat",
-                json=data,
-                headers={"x-auth-code": cls._auth_code},
-                verify_ssl=False
-            ) as response:
-                await raise_for_status(response)
-                async for chunk in response.content.iter_any():
-                    if b"<html coupert-item=" in chunk:
-                        raise RuntimeError("Invalid session")
-                    if chunk:
-                        yield chunk.decode(errors="ignore")
+            if not cls._auth_code:
+                async with session.post(
+                    "https://liaobots.work/recaptcha/api/login",
+                    data={"token": "abcdefghijklmnopqrst"},
+                    verify_ssl=False
+                ) as response:
+                    await raise_for_status(response)
+            try:
+                async with session.post(
+                    "https://liaobots.work/api/user",
+                    json={"authcode": cls._auth_code},
+                    verify_ssl=False
+                ) as response:
+                    await raise_for_status(response)
+                    cls._auth_code = (await response.json(content_type=None))["authCode"]
+                    if not cls._auth_code:
+                        raise RuntimeError("Empty auth code")
+                    cls._cookie_jar = session.cookie_jar
+                async with session.post(
+                    "https://liaobots.work/api/chat",
+                    json=data,
+                    headers={"x-auth-code": cls._auth_code},
+                    verify_ssl=False
+                ) as response:
+                    await raise_for_status(response)
+                    async for chunk in response.content.iter_any():
+                        if b"<html coupert-item=" in chunk:
+                            raise RuntimeError("Invalid session")
+                        if chunk:
+                            yield chunk.decode(errors="ignore")
+            except:
+                async with session.post(
+                    "https://liaobots.work/api/user",
+                    json={"authcode": "pTIQr4FTnVRfr"},
+                    verify_ssl=False
+                ) as response:
+                    await raise_for_status(response)
+                    cls._auth_code = (await response.json(content_type=None))["authCode"]
+                    if not cls._auth_code:
+                        raise RuntimeError("Empty auth code")
+                    cls._cookie_jar = session.cookie_jar
+                async with session.post(
+                    "https://liaobots.work/api/chat",
+                    json=data,
+                    headers={"x-auth-code": cls._auth_code},
+                    verify_ssl=False
+                ) as response:
+                    await raise_for_status(response)
+                    async for chunk in response.content.iter_any():
+                        if b"<html coupert-item=" in chunk:
+                            raise RuntimeError("Invalid session")
+                        if chunk:
+                            yield chunk.decode(errors="ignore")

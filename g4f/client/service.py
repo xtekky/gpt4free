@@ -4,7 +4,7 @@ from typing import Union
 
 from .. import debug, version
 from ..errors import ProviderNotFoundError, ModelNotFoundError, ProviderNotWorkingError, StreamNotSupportedError
-from ..models import Model, ModelUtils
+from ..models import Model, ModelUtils, default
 from ..Provider import ProviderUtils
 from ..providers.types import BaseRetryProvider, ProviderType
 from ..providers.retry_provider import IterProvider
@@ -60,7 +60,9 @@ def get_model_and_provider(model    : Union[Model, str],
             model = ModelUtils.convert[model]
     
     if not provider:
-        if isinstance(model, str):
+        if not model:
+            model = default
+        elif isinstance(model, str):
             raise ModelNotFoundError(f'Model not found: {model}')
         provider = model.best_provider
 

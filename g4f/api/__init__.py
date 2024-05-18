@@ -47,6 +47,14 @@ class ChatCompletionsForm(BaseModel):
     web_search: Optional[bool] = None
     proxy: Optional[str] = None
 
+class ImagesGenerateForm(BaseModel):
+    model: Optional[str] = None
+    provider: Optional[str] = None
+    prompt: str
+    response_format: Optional[str] = None
+    api_key: Optional[str] = None
+    proxy: Optional[str] = None
+
 class AppConfig():
     list_ignored_providers: Optional[list[str]] = None
     g4f_api_key: Optional[str] = None
@@ -149,36 +157,52 @@ class Api:
                         if auth_header and auth_header != "Bearer":
                             config.api_key = auth_header
                 response = self.client.chat.completions.create(
-    **{
-        **AppConfig.defaults,
-        **config.dict(exclude_none=True),
-    },
-                    
+                    **{
+                        **AppConfig.defaults,
+                        **config.dict(exclude_none=True),
+                    },
                     ignored=AppConfig.list_ignored_providers
                 )
+                if not config.stream:
+                    return JSONResponse((await response).to_json())
+
+                async def streaming():
+                    try:
+                        async for chunk in response:
+                            yield f"data: {json.dumps(chunk.to_json())}\n\n"
+                    except GeneratorExit:
+                        pass
+                    except Exception as e:
+                        logging.exception(e)
+                        yield f'data: {format_exception(e, config)}\n\n'
+                    yield "data: [DONE]\n\n"
+                return StreamingResponse(streaming(), media_type="text/event-stream")
+
             except Exception as e:
                 logging.exception(e)
                 return Response(content=format_exception(e, config), status_code=500, media_type="application/json")
 
-            if not config.stream:
-                return JSONResponse((await response).to_json())
-
-            async def streaming():
-                try:
-                    async for chunk in response:
-                        yield f"data: {json.dumps(chunk.to_json())}\n\n"
-                except GeneratorExit:
-                    pass
-                except Exception as e:
-                    logging.exception(e)
-                    yield f'data: {format_exception(e, config)}\n\n'
-                yield "data: [DONE]\n\n"
-
-            return StreamingResponse(streaming(), media_type="text/event-stream")
-
         @self.app.post("/v1/completions")
         async def completions():
             return Response(content=json.dumps({'info': 'Not working yet.'}, indent=4), media_type="application/json")
+
+        @self.app.post("/v1/images/generations")
+        async def images_generate(config: ImagesGenerateForm, request: Request = None, provider: str = None):
+            try:
+                config.provider = provider if config.provider is None else config.provider
+                if config.api_key is None and request is not None:
+                    auth_header = request.headers.get("Authorization")
+                    if auth_header is not None:
+                        auth_header = auth_header.split(None, 1)[-1]
+                        if auth_header and auth_header != "Bearer":
+                            config.api_key = auth_header
+                response = self.client.images.generate(
+                    **config.dict(exclude_none=True),
+                )
+                return JSONResponse((await response).to_json())
+            except Exception as e:
+                logging.exception(e)
+                return Response(content=format_exception(e, config), status_code=500, media_type="application/json")
 
 def format_exception(e: Exception, config: ChatCompletionsForm) -> str:
     last_provider = g4f.get_last_provider(True)
