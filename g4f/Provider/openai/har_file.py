@@ -12,6 +12,7 @@ from copy import deepcopy
 
 from .crypt import decrypt, encrypt
 from ...requests import StreamSession
+from ...cookies import get_cookies_dir
 from ... import debug
 
 class NoValidHarFileError(Exception):
@@ -36,17 +37,14 @@ proofTokens: list = []
 
 def readHAR():
     global proofTokens
-    dirPath = "./"
     harPath = []
     chatArks = []
     accessToken = None
     cookies = {}
-    for root, dirs, files in os.walk(dirPath):
+    for root, dirs, files in os.walk(get_cookies_dir()):
         for file in files:
             if file.endswith(".har"):
                 harPath.append(os.path.join(root, file))
-        if harPath:
-            break
     if not harPath:
         raise NoValidHarFileError("No .har file found")
     for path in harPath:

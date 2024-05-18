@@ -7,6 +7,7 @@ import random
 import logging
 
 from ...requests import StreamSession, raise_for_status
+from ...cookies import get_cookies_dir
 from ...errors import MissingRequirementsError
 from ... import debug
 
@@ -28,10 +29,9 @@ public_token = "public-token-live-507a52ad-7e69-496b-aee0-1c9863c7c819"
 chatArks: list = None
 
 def readHAR():
-    dirPath = "./"
     harPath = []
     chatArks = []
-    for root, dirs, files in os.walk(dirPath):
+    for root, dirs, files in os.walk(get_cookies_dir()):
         for file in files:
             if file.endswith(".har"):
                 harPath.append(os.path.join(root, file))
@@ -65,16 +65,10 @@ def parseHAREntry(entry) -> arkReq:
     return tmpArk
 
 async def sendRequest(tmpArk: arkReq, proxy: str = None):
-    try:
-        async with StreamSession(headers=tmpArk.arkHeaders, cookies=tmpArk.arkCookies, proxy=proxy) as session:
-            async with session.post(tmpArk.arkURL, data=tmpArk.arkBody) as response:
-                await raise_for_status(response)
-                return await response.text()
-    except RuntimeError as e:
-        if str(e) == "Event loop is closed":
-            print("Event loop is closed error occurred in sendRequest.")
-        else:
-            raise
+    async with StreamSession(headers=tmpArk.arkHeaders, cookies=tmpArk.arkCookies, proxy=proxy) as session:
+        async with session.post(tmpArk.arkURL, data=tmpArk.arkBody) as response:
+            await raise_for_status(response)
+            return await response.text()
 
 async def create_telemetry_id(proxy: str = None):
     global chatArks

@@ -236,19 +236,39 @@ set_cookies(".google.com", {
 })
 ```
 
-Alternatively, you can place your .har and cookie files in the `/har_and_cookies` directory. To export a cookie file, use the EditThisCookie extension available on the Chrome Web Store: [EditThisCookie Extension](https://chromewebstore.google.com/detail/editthiscookie/fngmhnnpilhplaeedifhccceomclgfbg).
+#### Using .har and Cookie Files
 
-You can also create .har files to capture cookies. If you need further assistance, refer to the next section.
+You can place `.har` and cookie files in the default `./har_and_cookies` directory. To export a cookie file, use the [EditThisCookie Extension](https://chromewebstore.google.com/detail/editthiscookie/fngmhnnpilhplaeedifhccceomclgfbg) available on the Chrome Web Store.
 
-```bash
-python -m g4f.cli api --debug
+#### Creating .har Files to Capture Cookies
+
+To capture cookies, you can also create `.har` files. For more details, refer to the next section.
+
+#### Changing the Cookies Directory and Loading Cookie Files in Python
+
+You can change the cookies directory and load cookie files in your Python environment. To set the cookies directory relative to your Python file, use the following code:
+
+```python
+import os.path
+from g4f.cookies import set_cookies_dir, read_cookie_files
+
+import g4f.debug
+g4f.debug.logging = True
+
+cookies_dir = os.path.join(os.path.dirname(__file__), "har_and_cookies")
+set_cookies_dir(cookies_dir)
+read_cookie_files(cookies_dir)
 ```
+
+### Debug Mode
+
+If you enable debug mode, you will see logs similar to the following:
+
 ```
 Read .har file: ./har_and_cookies/you.com.har
 Cookies added: 10 from .you.com
 Read cookie file: ./har_and_cookies/google.json
 Cookies added: 16 from .google.com
-Starting server... [g4f v-0.0.0] (debug)
 ```
 
 #### .HAR File for OpenaiChat Provider

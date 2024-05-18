@@ -4,7 +4,8 @@ import uuid
 import secrets
 from aiohttp import ClientSession
 
-from ..typing import AsyncResult, Messages
+from ..typing import AsyncResult, Messages, ImageType
+from ..image import to_data_uri
 from .base_provider import AsyncGeneratorProvider
 
 class Blackbox(AsyncGeneratorProvider):
@@ -17,8 +18,15 @@ class Blackbox(AsyncGeneratorProvider):
         model: str,
         messages: Messages,
         proxy: str = None,
+        image: ImageType = None,
+        image_name: str = None,
         **kwargs
     ) -> AsyncResult:
+        if image is not None:
+            messages[-1]["data"] = {
+                "fileText":	image_name,
+                "imageBase64": to_data_uri(image)
+            }
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
             "Accept": "*/*",

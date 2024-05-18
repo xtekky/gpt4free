@@ -11,7 +11,7 @@ const imageInput        = document.getElementById("image");
 const cameraInput       = document.getElementById("camera");
 const fileInput         = document.getElementById("file");
 const microLabel        = document.querySelector(".micro-label");
-const inputCount        = document.getElementById("input-count");
+const inputCount        = document.getElementById("input-count").querySelector(".text");
 const providerSelect    = document.getElementById("provider");
 const modelSelect       = document.getElementById("model");
 const modelProvider     = document.getElementById("model2");
@@ -41,9 +41,7 @@ appStorage = window.localStorage || {
     length: 0
 }
 
-const markdown = window.markdownit({
-    html: true,
-});
+const markdown = window.markdownit();
 const markdown_render = (content) => {
     return markdown.render(content
         .replaceAll(/<!-- generated images start -->|<!-- generated images end -->/gm, "")
@@ -813,6 +811,17 @@ document.getElementById("regenerateButton").addEventListener("click", async () =
     await ask_gpt();
 });
 
+const hide_input = document.querySelector(".toolbar .hide-input");
+hide_input.addEventListener("click", async (e) => {
+    const icon = hide_input.querySelector("i");
+    const func = icon.classList.contains("fa-angles-down") ? "add" : "remove";
+    const remv = icon.classList.contains("fa-angles-down") ? "remove" : "add";
+    icon.classList[func]("fa-angles-up");
+    icon.classList[remv]("fa-angles-down");
+    document.querySelector(".conversation .user-input").classList[func]("hidden");
+    document.querySelector(".conversation .buttons").classList[func]("hidden");
+});
+
 const uuid = () => {
     return `xxxxxxxx-xxxx-4xxx-yxxx-${Date.now().toString(16)}`.replace(
         /[xy]/g,
@@ -1016,7 +1025,7 @@ const count_input = async () => {
         if (countFocus.value) {
             inputCount.innerText = count_words_and_tokens(countFocus.value, get_selected_model());
         } else {
-            inputCount.innerHTML = "&nbsp;"
+            inputCount.innerText = "";
         }
     }, 100);
 };
@@ -1060,6 +1069,8 @@ async function on_api() {
     messageInput.addEventListener("keydown", async (evt) => {
         if (prompt_lock) return;
 
+        // If not mobile
+        if (!window.matchMedia("(pointer:coarse)").matches)
         if (evt.keyCode === 13 && !evt.shiftKey) {
             evt.preventDefault();
             console.log("pressed enter");
@@ -1262,6 +1273,7 @@ async function load_provider_models(providerIndex=null) {
     if (!providerIndex) {
         providerIndex = providerSelect.selectedIndex;
     }
+    modelProvider.innerHTML = '';
     const provider = providerSelect.options[providerIndex].value;
     if (!provider) {
         modelProvider.classList.add("hidden");
@@ -1269,7 +1281,6 @@ async function load_provider_models(providerIndex=null) {
         return;
     }
     const models = await api('models', provider);
-    modelProvider.innerHTML = '';
     if (models.length > 0) {
         modelSelect.classList.add("hidden");
         modelProvider.classList.remove("hidden");

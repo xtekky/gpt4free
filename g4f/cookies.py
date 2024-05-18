@@ -23,8 +23,9 @@ from .typing import Dict, Cookies
 from .errors import MissingRequirementsError
 from . import debug
 
-# Global variable to store cookies
-_cookies: Dict[str, Cookies] = {}
+class CookiesConfig():
+    cookies: Dict[str, Cookies] = {}
+    cookies_dir: str = "./har_and_cookies"
 
 DOMAINS = [
     ".bing.com",
@@ -48,20 +49,18 @@ def get_cookies(domain_name: str = '', raise_requirements_error: bool = True, si
     Returns:
         Dict[str, str]: A dictionary of cookie names and values.
     """
-    global _cookies
-    if domain_name in _cookies:
-        return _cookies[domain_name]
+    if domain_name in CookiesConfig.cookies:
+        return CookiesConfig.cookies[domain_name]
 
     cookies = load_cookies_from_browsers(domain_name, raise_requirements_error, single_browser)
-    _cookies[domain_name] = cookies
+    CookiesConfig.cookies[domain_name] = cookies
     return cookies
 
 def set_cookies(domain_name: str, cookies: Cookies = None) -> None:
-    global _cookies
     if cookies:
-        _cookies[domain_name] = cookies
-    elif domain_name in _cookies:
-        _cookies.pop(domain_name)
+        CookiesConfig.cookies[domain_name] = cookies
+    elif domain_name in CookiesConfig.cookies:
+        CookiesConfig.cookies.pop(domain_name)
 
 def load_cookies_from_browsers(domain_name: str, raise_requirements_error: bool = True, single_browser: bool = False) -> Cookies:
     """
@@ -96,7 +95,13 @@ def load_cookies_from_browsers(domain_name: str, raise_requirements_error: bool 
                 print(f"Error reading cookies from {cookie_fn.__name__} for {domain_name}: {e}")
     return cookies
 
-def read_cookie_files(dirPath: str = "./har_and_cookies"):
+def set_cookies_dir(dir: str) -> None:
+    CookiesConfig.cookies_dir = dir
+
+def get_cookies_dir() -> str:
+    return CookiesConfig.cookies_dir
+
+def read_cookie_files(dirPath: str = None):
     def get_domain(v: dict) -> str:
         host = [h["value"] for h in v['request']['headers'] if h["name"].lower() in ("host", ":authority")]
         if not host:
@@ -106,16 +111,16 @@ def read_cookie_files(dirPath: str = "./har_and_cookies"):
             if d in host:
                 return d
 
-    global _cookies
     harFiles = []
     cookieFiles = []
-    for root, dirs, files in os.walk(dirPath):
+    for root, dirs, files in os.walk(CookiesConfig.cookies_dir if dirPath is None else dirPath):
         for file in files:
             if file.endswith(".har"):
                 harFiles.append(os.path.join(root, file))
             elif file.endswith(".json"):
                 cookieFiles.append(os.path.join(root, file))
-    _cookies = {}
+
+    CookiesConfig.cookies = {}
     for path in harFiles:
         with open(path, 'rb') as file:
             try:
@@ -134,7 +139,7 @@ def read_cookie_files(dirPath: str = "./har_and_cookies"):
                 for c in v['request']['cookies']:
                     v_cookies[c['name']] = c['value']
                 if len(v_cookies) > 0:
-                    _cookies[domain] = v_cookies
+                    CookiesConfig.cookies[domain] = v_cookies
                     new_cookies[domain] = len(v_cookies)
             if debug.logging:
                 for domain, new_values in new_cookies.items():
@@ -159,7 +164,7 @@ def read_cookie_files(dirPath: str = "./har_and_cookies"):
             for domain, new_values in new_cookies.items():
                 if debug.logging:
                     print(f"Cookies added: {len(new_values)} from {domain}")
-                _cookies[domain] = new_values
+                CookiesConfig.cookies[domain] = new_values
 
 def _g4f(domain_name: str) -> list:
     """

@@ -210,8 +210,8 @@ def format_images_markdown(images: Union[str, list], alt: str, preview: Union[st
         if not isinstance(preview, list):
             preview = [preview.replace('{image}', image) if preview else image for image in images]
         result = "\n".join(
-            #f"[![#{idx+1} {alt}]({preview[idx]})]({image})"
-            f'[<img src="{preview[idx]}" width="200" alt="#{idx+1} {alt}">]({image})'
+            f"[![#{idx+1} {alt}]({preview[idx]})]({image})"
+            #f'[<img src="{preview[idx]}" width="200" alt="#{idx+1} {alt}">]({image})'
             for idx, image in enumerate(images)
         )
     start_flag = "<!-- generated images start -->\n"
