@@ -55,6 +55,7 @@
     --colour-6: #242424;
 
     --accent: #8b3dff;
+    --gradient: var(--accent);
     --blur-bg: #16101b66;
     --blur-border: #84719040;
     --user-input: #ac87bb;
@@ -168,7 +169,7 @@ body {
     z-index: -1;
     border-radius: calc(0.5 * var(--size));
     background-color: var(--accent);
-    background: radial-gradient(circle at center, var(--accent), var(--accent));
+    background: radial-gradient(circle at center, var(--gradient), var(--gradient));
     width: 70vw;
     height: 70vw;
     top: 50%;
@@ -378,6 +379,7 @@ body {
     z-index: 1000;
     display: none;
     cursor: pointer;
+    filter: grayscale(1) invert(1);
 }
 
 .message .count .fa-clipboard,
@@ -687,8 +689,14 @@ select {
     resize: vertical;
 }
 
-#systemPrompt {
-    padding-left: 35px;
+.slide-systemPrompt {
+    position: absolute;
+    top: 0;
+    padding: var(--inner-gap) 10px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    height: 49px;
 }
 
 @media only screen and (min-width: 40em) {
@@ -781,7 +789,7 @@ select {
     }
 
     50% {
-        background: white;
+        background: var(--colour-3);
     }
 
     100% {
@@ -988,120 +996,13 @@ a:-webkit-any-link {
     width: 1px;
 }
 
-.color-picker>fieldset {
-    border: 0;
-    display: flex;
-    width: fit-content;
-    background: var(--colour-1);
-    margin-inline: auto;
-    border-radius: 8px;
-    -webkit-backdrop-filter: blur(20px);
-    backdrop-filter: blur(20px);
-    cursor: pointer;
-    background-color: var(--blur-bg);
-    border: 1px solid var(--blur-border);
-    color: var(--colour-3);
-    display: block;
-    position: relative;
-    overflow: hidden;
-    outline: none;
-    padding: 6px 16px;
-}
-
-.color-picker input[type="radio"]:checked {
-    background-color: var(--radio-color);
-}
-
-.color-picker input[type="radio"]#light {
-    --radio-color: gray;
-}
-
-.color-picker input[type="radio"]#pink {
-    --radio-color: white;
-}
-
-.color-picker input[type="radio"]#blue {
-    --radio-color: blue;
-}
-
-.color-picker input[type="radio"]#green {
-    --radio-color: green;
-}
-
-.color-picker input[type="radio"]#dark {
-    --radio-color: #232323;
-}
-
-.pink {
+.white {
+    --blur-bg: transparent;
+    --accent: #007bff;
+    --gradient: #ccc;
+    --conversations: #0062cc;
     --colour-1: #ffffff;
-    --colour-2: #000000;
-    --colour-3: #000000;
-    --colour-4: #000000;
-    --colour-5: #000000;
-    --colour-6: #000000;
-
-    --accent: #ffffff;
-    --blur-bg: #98989866;
-    --blur-border: #00000040;
-    --user-input: #000000;
-    --conversations: #000000;
-}
-
-.blue {
-    --colour-1: hsl(209 50% 90%);
-    --clr-card-bg: hsl(209 50% 100%);
-    --colour-3: hsl(209 50% 15%);
-    --conversations: hsl(209 50% 25%);
-}
-
-.green {
-    --colour-1: hsl(109 50% 90%);
-    --clr-card-bg: hsl(109 50% 100%);
-    --colour-3: hsl(109 50% 15%);
-    --conversations: hsl(109 50% 25%);
-}
-
-.dark {
-    --colour-1: hsl(209 50% 10%);
-    --clr-card-bg: hsl(209 50% 5%);
-    --colour-3: hsl(209 50% 90%);
-    --conversations: hsl(209 50% 80%);
-}
-
-:root:has(#pink:checked) {
-    --colour-1: #ffffff;
-    --colour-2: #000000;
-    --colour-3: #000000;
-    --colour-4: #000000;
-    --colour-5: #000000;
-    --colour-6: #000000;
-
-    --accent: #ffffff;
-    --blur-bg: #98989866;
-    --blur-border: #00000040;
-    --user-input: #000000;
-    --conversations: #000000;
-}
-
-:root:has(#blue:checked) {
-    --colour-1: hsl(209 50% 90%);
-    --clr-card-bg: hsl(209 50% 100%);
-    --colour-3: hsl(209 50% 15%);
-    --conversations: hsl(209 50% 25%);
-}
-
-:root:has(#green:checked) {
-    --colour-1: hsl(109 50% 90%);
-    --clr-card-bg: hsl(109 50% 100%);
-    --colour-3: hsl(109 50% 15%);
-    --conversations: hsl(109 50% 25%);
-}
-
-:root:has(#dark:checked) {
-    --colour-1: hsl(209 50% 10%);
-    --clr-card-bg: hsl(209 50% 5%);
-    --colour-3: hsl(209 50% 90%);
-    --conversations: hsl(209 50% 80%);
+    --colour-3: #212529;
 }
 
 #send-button {

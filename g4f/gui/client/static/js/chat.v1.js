@@ -302,7 +302,7 @@ const prepare_messages = (messages, message_index = -1) => {
     }
     messages.forEach((new_message) => {
         // Include only not regenerated messages
-        if (!new_message.regenerate) {
+        if (new_message && !new_message.regenerate) {
             // Remove generated images from history
             new_message.content = filter_message(new_message.content);
             delete new_message.provider;
@@ -1108,8 +1108,11 @@ async function on_api() {
     await load_settings_storage()
 
     const hide_systemPrompt = document.getElementById("hide-systemPrompt")
+    const slide_systemPrompt_icon = document.querySelector(".slide-systemPrompt i");
     if (hide_systemPrompt.checked) {
         systemPrompt.classList.add("hidden");
+        slide_systemPrompt_icon.classList.remove("fa-angles-up");
+        slide_systemPrompt_icon.classList.add("fa-angles-down");
     }
     hide_systemPrompt.addEventListener('change', async (event) => {
         if (event.target.checked) {
@@ -1118,6 +1121,13 @@ async function on_api() {
             systemPrompt.classList.remove("hidden");
         }
     });
+    document.querySelector(".slide-systemPrompt")?.addEventListener("click", () => {
+        hide_systemPrompt.click();
+        let checked = hide_systemPrompt.checked;
+        systemPrompt.classList[checked ? "add": "remove"]("hidden");
+        slide_systemPrompt_icon.classList[checked ? "remove": "add"]("fa-angles-up");
+        slide_systemPrompt_icon.classList[checked ? "add": "remove"]("fa-angles-down");
+    });
     const messageInputHeight = document.getElementById("message-input-height");
     if (messageInputHeight) {
         if (messageInputHeight.value) {
@@ -1125,6 +1135,19 @@ async function on_api() {
         }
         messageInputHeight.addEventListener('change', async () => {
             messageInput.style.maxHeight = `${messageInputHeight.value}px`;
+        });
+    }
+    const darkMode = document.getElementById("darkMode");
+    if (darkMode) {
+        if (!darkMode.checked) {
+            document.body.classList.add("white");
+        }
+        darkMode.addEventListener('change', async (event) => {
+            if (event.target.checked) {
+                document.body.classList.remove("white");
+            } else {
+                document.body.classList.add("white");
+            }
         });
     }
 }

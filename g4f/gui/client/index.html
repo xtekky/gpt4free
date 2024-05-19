@@ -93,6 +93,11 @@
             <div class="paper">
             <h3>Settings</h3>
             <div class="field">
+                <span class="label">Enable Dark Mode</span>
+                <input type="checkbox" id="darkMode" checked />
+                <label for="darkMode" class="toogle" title=""></label>
+            </div>
+            <div class="field">
                 <span class="label">Web Access with DuckDuckGo</span>
                 <input type="checkbox" id="switch" />
                 <label for="switch" class="toogle" title="Add the pages of the first 5 search results to the query."></label>
@@ -169,8 +174,11 @@
             </div>
         </div>
         <div class="conversation">
-            <textarea id="systemPrompt" class="box" placeholder="System prompt"></textarea>    
+            <textarea id="systemPrompt" class="box" placeholder="System prompt"></textarea>
             <div id="messages" class="box"></div>
+            <button class="slide-systemPrompt">
+                <i class="fa-solid fa-angles-up"></i>
+            </button>
             <div class="toolbar">
                 <div id="input-count" class="">
                     <button class="hide-input">
