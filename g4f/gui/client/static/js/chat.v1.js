@@ -192,6 +192,26 @@ const register_message_buttons = async () => {
             })
         }
     });
+    document.querySelectorAll(".message .fa-whatsapp").forEach(async (el) => {
+        if (!el.parentElement.href) {
+            const text = el.parentElement.parentElement.parentElement.innerText;
+            el.parentElement.href = `https://wa.me/?text=${encodeURIComponent(text)}`;
+        }
+    });
+    document.querySelectorAll(".message .fa-print").forEach(async (el) => {
+        if (!("click" in el.dataset)) {
+            el.dataset.click = "true";
+            el.addEventListener("click", async () => {
+                const message_el = el.parentElement.parentElement.parentElement;
+                el.classList.add("clicked");
+                message_box.scrollTop = 0;
+                message_el.classList.add("print");
+                setTimeout(() => el.classList.remove("clicked"), 1000);
+                setTimeout(() => message_el.classList.remove("print"), 1000);
+                window.print()
+            })
+        }
+    });
 }
 
 const delete_conversations = async () => {
@@ -253,6 +273,8 @@ const handle_ask = async () => {
                     ${count_words_and_tokens(message, get_selected_model())}
                     <i class="fa-solid fa-volume-high"></i>
                     <i class="fa-regular fa-clipboard"></i>
+                    <a><i class="fa-brands fa-whatsapp"></i></a>
+                    <i class="fa-solid fa-print"></i>
                 </div>
             </div>
         </div>
@@ -625,6 +647,8 @@ const load_conversation = async (conversation_id, scroll=true) => {
                         ${count_words_and_tokens(item.content, next_provider?.model)}
                         <i class="fa-solid fa-volume-high"></i>
                         <i class="fa-regular fa-clipboard"></i>
+                        <a><i class="fa-brands fa-whatsapp"></i></a>
+                        <i class="fa-solid fa-print"></i>
                     </div>
                 </div>
             </div>

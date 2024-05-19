@@ -92,7 +92,12 @@ As per the survey, here is a list of improvements to come
 
 ```sh
 docker pull hlohaus789/g4f
-docker run -p 8080:8080 -p 1337:1337 -p 7900:7900 --shm-size="2g" -v ${PWD}/har_and_cookies:/app/har_and_cookies hlohaus789/g4f:latest
+docker run \
+  -p 8080:8080 -p 1337:1337 -p 7900:7900 \
+  --shm-size="2g" \
+  -v ${PWD}/har_and_cookies:/app/har_and_cookies \
+  -v ${PWD}/generated_images:/app/generated_images \
+  hlohaus789/g4f:latest
 ```
 
 3. **Access the Client:** 

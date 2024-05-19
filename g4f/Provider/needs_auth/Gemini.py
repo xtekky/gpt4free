@@ -4,7 +4,6 @@ import os
 import json
 import random
 import re
-import base64
 
 from aiohttp import ClientSession, BaseConnector
 
@@ -193,14 +192,10 @@ class Gemini(AsyncGeneratorProvider):
                     yield content
                     if image_prompt:
                         images = [image[0][3][3] for image in response_part[4][0][12][7][0]]
-                        resolved_images = []
                         if response_format == "b64_json":
-                            for image in images:
-                                async with client.get(image) as response:
-                                    data = base64.b64encode(await response.content.read()).decode()
-                                resolved_images.append(data)
-                            yield ImageDataResponse(resolved_images, image_prompt)
+                            yield ImageResponse(images, image_prompt, {"cookies": cls._cookies})
                         else:
+                            resolved_images = []
                             preview = []
                             for image in images:
                                 async with client.get(image, allow_redirects=False) as fetch:

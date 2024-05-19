@@ -1,18 +1,27 @@
 from __future__ import annotations
 
 import logging
-import json
-from typing import Iterator
+import os
+import os.path
+import uuid
+import asyncio
+import time
+from aiohttp import ClientSession
+from typing import Iterator, Optional
+from flask import send_from_directory
 
 from g4f import version, models
 from g4f import get_last_provider, ChatCompletion
 from g4f.errors import VersionNotFoundError
-from g4f.image import ImagePreview
+from g4f.typing import Cookies
+from g4f.image import ImagePreview, ImageResponse, is_accepted_format
+from g4f.requests.aiohttp import get_connector
 from g4f.Provider import ProviderType, __providers__, __map__
 from g4f.providers.base_provider import ProviderModelMixin, FinishReason
 from g4f.providers.conversation import BaseConversation
 
 conversations: dict[dict[str, BaseConversation]] = {}
+images_dir = "./generated_images"
 
 class Api():
 
@@ -110,14 +119,8 @@ class Api():
             "latest_version": version.utils.latest_version,
         }
 
-    def generate_title(self):
-        """
-        Generates and returns a title based on the request data.
-
-        Returns:
-            dict: A dictionary with the generated title.
-        """
-        return {'title': ''}
+    def serve_images(self, name):
+        return send_from_directory(os.path.abspath(images_dir), name)
 
     def _prepare_conversation_kwargs(self, json_data: dict, kwargs: dict):
         """
@@ -185,6 +188,27 @@ class Api():
                     yield self._format_json("message", get_error_message(chunk))
                 elif isinstance(chunk, ImagePreview):
                     yield self._format_json("preview", chunk.to_string())
+                elif isinstance(chunk, ImageResponse):
+                    async def copy_images(images: list[str], cookies: Optional[Cookies] = None):
+                        async with ClientSession(
+                            connector=get_connector(None, os.environ.get("G4F_PROXY")),
+                            cookies=cookies
+                        ) as session:
+                            async def copy_image(image):
+                                async with session.get(image) as response:
+                                    target = os.path.join(images_dir, f"{int(time.time())}_{str(uuid.uuid4())}")
+                                    with open(target, "wb") as f:
+                                        async for chunk in response.content.iter_any():
+                                            f.write(chunk)
+                                    with open(target, "rb") as f:
+                                        extension = is_accepted_format(f.read(12)).split("/")[-1]
+                                        extension = "jpg" if extension == "jpeg" else extension
+                                    new_target = f"{target}.{extension}"
+                                    os.rename(target, new_target)
+                                    return f"/images/{os.path.basename(new_target)}"
+                            return await asyncio.gather(*[copy_image(image) for image in images])                                
+                    images = asyncio.run(copy_images(chunk.get_list(), chunk.options.get("cookies")))
+                    yield self._format_json("content", str(ImageResponse(images, chunk.alt)))
                 elif not isinstance(chunk, FinishReason):
                     yield self._format_json("content", str(chunk))
         except Exception as e:
