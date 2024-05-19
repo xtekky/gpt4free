@@ -125,9 +125,12 @@ def iter_image_response(response: Iterator) -> Union[ImagesResponse, None]:
             return ImagesResponse([Image(image) for image in chunk.get_list()])
 
 def create_image(client: Client, provider: ProviderType, prompt: str, model: str = "", **kwargs) -> Iterator:
-    prompt = f"create a image with: {prompt}"
-    if provider.__name__ == "You":
+
+
+    if isinstance(provider, type) and provider.__name__ == "You":
         kwargs["chat_mode"] = "create"
+    else:
+        prompt = f"create a image with: {prompt}"
     return provider.create_completion(
         model,
         [{"role": "user", "content": prompt}],
