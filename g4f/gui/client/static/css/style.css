@@ -265,6 +265,14 @@ body {
     padding-bottom: 0;
 }
 
+.message.print {
+    height: 100%;
+    position: absolute;
+    background-color: #fff;
+    z-index: 100;
+    top: 0;
+}
+
 .message.regenerate {
     opacity: 0.75;
 }
@@ -339,14 +347,14 @@ body {
     flex-wrap: wrap;
 }
 
-.message .content,
-.message .content a:link,
-.message .content a:visited{
+.message .content_inner,
+.message .content_inner a:link,
+.message .content_inner a:visited{
     font-size: 15px;
     line-height: 1.3;
     color: var(--colour-3);
 }
-.message .content pre{
+.message .content_inner pre{
     white-space: pre-wrap;
 }
 
@@ -389,19 +397,19 @@ body {
 
 .message .count .fa-clipboard,
 .message .count .fa-volume-high,
-.message .count .fa-rotate {
+.message .count .fa-rotate,
+.message .count .fa-print {
     z-index: 1000;
     cursor: pointer;
 }
 
-.message .count .fa-clipboard {
+.message .count .fa-clipboard,
+.message .count .fa-whatsapp {
     color: var(--colour-3);
 }
 
-.message .count .fa-clipboard.clicked {
-    color: var(--accent);
-}
-
+.message .count .fa-clipboard.clicked,
+.message .count .fa-print.clicked,
 .message .count .fa-volume-high.active {
     color: var(--accent);
 }
@@ -1120,5 +1128,19 @@ a:-webkit-any-link {
 @keyframes blinker {
     50% {
         opacity: 0;
+    }
+}
+
+@media print {
+    #systemPrompt:placeholder-shown,
+    .conversations,
+    .conversation .user-input,
+    .conversation .buttons,
+    .conversation .toolbar,
+    .conversation .slide-systemPrompt,
+    .message .count i,
+    .message .assistant,
+    .message .user {
+        display: none;
     }
 }

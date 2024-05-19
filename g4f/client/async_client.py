@@ -171,7 +171,8 @@ async def iter_image_response(
         if isinstance(chunk, ImageProviderResponse):
             if response_format == "b64_json":
                 async with ClientSession(
-                    connector=get_connector(connector, proxy)
+                    connector=get_connector(connector, proxy),
+                    cookies=chunk.options.get("cookies")
                 ) as session:
                     async def fetch_image(image):
                         async with session.get(image) as response:

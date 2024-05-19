@@ -47,13 +47,13 @@ class Backend_Api(Api):
                 'function': self.handle_conversation,
                 'methods': ['POST']
             },
-            '/backend-api/v2/gen.set.summarize:title': {
-                'function': self.generate_title,
-                'methods': ['POST']
-            },
             '/backend-api/v2/error': {
                 'function': self.handle_error,
                 'methods': ['POST']
+            },
+            '/images/<path:name>': {
+                'function': self.serve_images,
+                'methods': ['GET']
             }
         }
 
