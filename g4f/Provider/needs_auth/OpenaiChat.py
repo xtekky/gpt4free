@@ -373,6 +373,7 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
             except NoValidHarFileError as e:
                 if cls._api_key is None and cls.needs_auth:
                     raise e
+                cls._create_request_args()
 
             if cls.default_model is None:
                 cls.default_model = cls.get_model(await cls.get_default_model(session, cls._headers))
@@ -420,7 +421,7 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
                         **requirements["proofofwork"],
                         user_agent=cls._headers["user-agent"],
                         proofTokens=proofTokens
-                    )           
+                    )
                 if debug.logging:
                     print(
                         'Arkose:', False if not need_arkose else arkose_token[:12]+"...",

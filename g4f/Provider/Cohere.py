@@ -9,7 +9,7 @@ from .helper import format_prompt
 
 class Cohere(AbstractProvider):
     url                   = "https://cohereforai-c4ai-command-r-plus.hf.space"
-    working               = True
+    working               = False
     supports_gpt_35_turbo = False
     supports_gpt_4        = False
     supports_stream       = True
