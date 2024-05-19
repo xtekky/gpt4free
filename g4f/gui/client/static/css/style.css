@@ -61,6 +61,8 @@
     --user-input: #ac87bb;
     --conversations: #c7a2ff;
     --conversations-hover: #c7a2ff4d;
+    --scrollbar: var(--colour-3);
+    --scrollbar-thumb: var(--blur-bg);
 }
 
 :root {
@@ -379,7 +381,10 @@ body {
     z-index: 1000;
     display: none;
     cursor: pointer;
-    filter: grayscale(1) invert(1);
+}
+
+.message .user .fa-xmark {
+    color: var(--colour-1);
 }
 
 .message .count .fa-clipboard,
@@ -387,10 +392,6 @@ body {
 .message .count .fa-rotate {
     z-index: 1000;
     cursor: pointer;
-}
-
-.message .user .fa-xmark {
-    color: var(--colour-1);
 }
 
 .message .count .fa-clipboard {
@@ -697,6 +698,7 @@ select {
     background: transparent;
     cursor: pointer;
     height: 49px;
+    color: var(--colour-3);
 }
 
 @media only screen and (min-width: 40em) {
@@ -1003,6 +1005,16 @@ a:-webkit-any-link {
     --conversations: #0062cc;
     --colour-1: #ffffff;
     --colour-3: #212529;
+    --scrollbar: var(--colour-1);
+    --scrollbar-thumb: var(--gradient);
+}
+
+.white .message .assistant .fa-xmark {
+    color: var(--colour-1);
+}
+
+.white .message .user .fa-xmark {
+    color: var(--colour-3);
 }
 
 #send-button {
@@ -1072,15 +1084,12 @@ a:-webkit-any-link {
     white-space:nowrap;
 }
 
-::-webkit-scrollbar {
-    width: 10px;
-}
 ::-webkit-scrollbar-track {
-    background: var(--colour-3);
+    background: var(--scrollbar);
 }
 ::-webkit-scrollbar-thumb {
-    background: var(--blur-bg);
-    border-radius: 5px;
+    background: var(--scrollbar-thumb);
+    border-radius: 2px;
 }
 ::-webkit-scrollbar-thumb:hover {
     background: var(--accent);
@@ -1098,10 +1107,6 @@ a:-webkit-any-link {
     height: 90px;
     margin-left: 20px;
     max-height: 200px;
-}
-
-#message-input::-webkit-scrollbar {
-    width: 5px;
 }
 
 .hidden {
