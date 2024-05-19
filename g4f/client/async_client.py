@@ -183,9 +183,10 @@ async def iter_image_response(
             return ImagesResponse([Image(None, image, chunk.alt) for image in chunk.get_list()], int(time.time()))
 
 def create_image(provider: ProviderType, prompt: str, model: str = "", **kwargs) -> AsyncIterator:
-    prompt = f"create a image with: {prompt}"
-    if provider.__name__ == "You":
+    if isinstance(provider, type) and provider.__name__ == "You":
         kwargs["chat_mode"] = "create"
+    else:
+        prompt = f"create a image with: {prompt}"
     return provider.create_async_generator(
         model,
         [{"role": "user", "content": prompt}],
