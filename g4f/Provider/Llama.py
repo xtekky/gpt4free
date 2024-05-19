@@ -9,7 +9,7 @@ from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 
 class Llama(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://www.llama2.ai"
-    working = True
+    working = False
     supports_message_history = True
     default_model = "meta/meta-llama-3-70b-instruct"
     models = [

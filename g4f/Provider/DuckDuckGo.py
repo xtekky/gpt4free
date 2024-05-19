@@ -16,8 +16,11 @@ class DuckDuckGo(AsyncGeneratorProvider, ProviderModelMixin):
     supports_message_history = True
 
     default_model = "gpt-3.5-turbo-0125"
-    models = ["gpt-3.5-turbo-0125", "claude-instant-1.2"]
-    model_aliases = {"gpt-3.5-turbo": "gpt-3.5-turbo-0125"}
+    models = ["gpt-3.5-turbo-0125", "claude-3-haiku-20240307"]
+    model_aliases = {
+        "gpt-3.5-turbo": "gpt-3.5-turbo-0125",
+        "claude-3-haiku": "claude-3-haiku-20240307"
+    }
 
     status_url = "https://duckduckgo.com/duckchat/v1/status"
     chat_url = "https://duckduckgo.com/duckchat/v1/chat"

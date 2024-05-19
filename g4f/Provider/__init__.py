@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from ..providers.types          import BaseProvider, ProviderType
-from ..providers.retry_provider import RetryProvider, IterProvider
+from ..providers.retry_provider import RetryProvider, IterListProvider
 from ..providers.base_provider  import AsyncProvider, AsyncGeneratorProvider
 from ..providers.create_images  import CreateImagesProvider
 
