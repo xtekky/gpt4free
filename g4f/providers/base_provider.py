@@ -30,6 +30,13 @@ if sys.platform == 'win32':
 def get_running_loop(check_nested: bool) -> Union[AbstractEventLoop, None]:
     try:
         loop = asyncio.get_running_loop()
+        # Do not patch uvloop loop because its incompatible.
+        try:
+            import uvloop
+            if isinstance(loop, uvloop.Loop):
+                return loop
+        except (ImportError, ModuleNotFoundError):
+            pass
         if check_nested and not hasattr(loop.__class__, "_nest_patched"):
             try:
                 import nest_asyncio
