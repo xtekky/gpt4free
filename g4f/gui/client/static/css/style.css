@@ -1143,4 +1143,7 @@ a:-webkit-any-link {
     .message .user {
         display: none;
     }
+    .message.regenerate {
+        opacity: 1;
+    }
 }

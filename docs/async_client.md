@@ -9,15 +9,39 @@ Designed to maintain compatibility with the existing OpenAI API, the G4F AsyncCl
 The G4F AsyncClient API offers several key features:
 
 - **Custom Providers:** The G4F Client API allows you to use custom providers. This feature enhances the flexibility of the API, enabling it to cater to a wide range of use cases.
-
 - **ChatCompletion Interface:** The G4F package provides an interface for interacting with chat models through the ChatCompletion class. This class provides methods for creating both streaming and non-streaming responses.
-
 - **Streaming Responses:** The ChatCompletion.create method can return a response iteratively as and when they are received if the stream parameter is set to True.
-
 - **Non-Streaming Responses:** The ChatCompletion.create method can also generate non-streaming responses.
+- **Image Generation and Vision Models:** The G4F Client API also supports image generation and vision models, expanding its utility beyond text-based interactions.
 
-- **Image Generation and Vision Models:** The G4F Client API also supports image generation and vision models, expanding its utility beyond text-based interactions. 
+## Initializing the Client
 
+To utilize the G4F AsyncClient, create a new instance. Below is an example showcasing custom providers:
+
+```python
+from g4f.client import AsyncClient
+from g4f.Provider import BingCreateImages, OpenaiChat, Gemini
+
+client = AsyncClient(
+    provider=OpenaiChat,
+    image_provider=Gemini,
+    ...
+)
+```
+
+## Configuration
+
+You can set an "api_key" for your provider in the client. You also have the option to define a proxy for all outgoing requests:
+
+```python
+from g4f.client import AsyncClient
+
+client = AsyncClient(
+    api_key="...",
+    proxies="http://user:pass@host",
+    ...
+)
+```
 
 ## Using AsyncClient
 
@@ -60,6 +84,17 @@ response = await client.images.generate(
 )
 
 image_url = response.data[0].url
+```
+
+#### Base64 as the response format
+
+```python
+response = await client.images.generate(
+    prompt="a cool cat",
+    response_format="b64_json"
+)
+
+base64_text = response.data[0].b64_json
 ```
 
 ### Example usage with asyncio.gather
