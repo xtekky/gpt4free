@@ -34,7 +34,7 @@ def get_running_loop(check_nested: bool) -> Union[AbstractEventLoop, None]:
         try:
             import uvloop
             if isinstance(loop, uvloop.Loop):
-                return
+                return loop
         except (ImportError, ModuleNotFoundError):
             pass
         if check_nested and not hasattr(loop.__class__, "_nest_patched"):
