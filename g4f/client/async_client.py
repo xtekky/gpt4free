@@ -18,6 +18,7 @@ from ..Provider import ProviderUtils
 from ..typing import Union, Messages, AsyncIterator, ImageType
 from ..errors import NoImageResponseError, ProviderNotFoundError
 from ..requests.aiohttp import get_connector
+from ..providers.conversation import BaseConversation
 from ..image import ImageResponse as ImageProviderResponse, ImageDataResponse
 
 try:
@@ -42,6 +43,9 @@ async def iter_response(
         if isinstance(chunk, FinishReason):
             finish_reason = chunk.reason
             break
+        elif isinstance(chunk, BaseConversation):
+            yield chunk
+            continue
         content += str(chunk)
         count += 1
         if max_tokens is not None and count >= max_tokens:
