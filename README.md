@@ -441,19 +441,6 @@ While we wait for gpt-5, here is a list of new models that are at least better t
 | Replicate | `g4f.Provider.Replicate` | stability-ai/sdxl| llava-v1.6-34b | [replicate.com](https://replicate.com) |
 | You.com | `g4f.Provider.You` | dall-e-3| ✔️ | [you.com](https://you.com) |
 
-```python
-import requests
-from g4f.client import Client
-
-client = Client()
-image = requests.get("https://change_me.jpg", stream=True).raw
-response = client.chat.completions.create(
-    "",
-    messages=[{"role": "user", "content": "what is in this picture?"}],
-    image=image
-)
-print(response.choices[0].message.content)
-```
 
 ## 🔗 Powered by gpt4free
 

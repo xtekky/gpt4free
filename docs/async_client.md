@@ -16,7 +16,7 @@ The G4F AsyncClient API offers several key features:
 
 ## Initializing the Client
 
-To utilize the G4F AsyncClient, create a new instance. Below is an example showcasing custom providers:
+To utilize the G4F `AsyncClient`, you need to create a new instance. Below is an example showcasing how to initialize the client with custom providers:
 
 ```python
 from g4f.client import AsyncClient
@@ -29,25 +29,32 @@ client = AsyncClient(
 )
 ```
 
+In this example:
+- `provider` specifies the primary provider for generating text completions.
+- `image_provider` specifies the provider for image-related functionalities.
+
 ## Configuration
 
-You can set an "api_key" for your provider in the client. You also have the option to define a proxy for all outgoing requests:
+You can configure the `AsyncClient` with additional settings, such as an API key for your provider and a proxy for all outgoing requests:
 
 ```python
 from g4f.client import AsyncClient
 
 client = AsyncClient(
-    api_key="...",
+    api_key="your_api_key_here",
     proxies="http://user:pass@host",
     ...
 )
 ```
 
+- `api_key`: Your API key for the provider.
+- `proxies`: The proxy configuration for routing requests.
+
 ## Using AsyncClient
 
-### Text Completions:
+### Text Completions
 
-You can use the ChatCompletions endpoint to generate text completions as follows:
+You can use the `ChatCompletions` endpoint to generate text completions. Here’s how you can do it:
 
 ```python
 response = await client.chat.completions.create(
@@ -58,7 +65,9 @@ response = await client.chat.completions.create(
 print(response.choices[0].message.content)
 ```
 
-Streaming completions are also supported:
+### Streaming Completions
+
+The `AsyncClient` also supports streaming completions. This allows you to process the response incrementally as it is generated:
 
 ```python
 stream = client.chat.completions.create(
@@ -70,6 +79,33 @@ stream = client.chat.completions.create(
 async for chunk in stream:
     if chunk.choices[0].delta.content:
         print(chunk.choices[0].delta.content or "", end="")
+```
+
+In this example:
+- `stream=True` enables streaming of the response.
+
+### Example: Using a Vision Model
+
+The following code snippet demonstrates how to use a vision model to analyze an image and generate a description based on the content of the image. This example shows how to fetch an image, send it to the model, and then process the response.
+
+```python
+import requests
+from g4f.client import Client
+from g4f.Provider import Bing
+
+client = AsyncClient(
+    provider=Bing
+)
+
+image = requests.get("https://my_website/image.jpg", stream=True).raw
+# Or: image = open("local_path/image.jpg", "rb")
+
+response = client.chat.completions.create(
+    "",
+    messages=[{"role": "user", "content": "what is in this picture?"}],
+    image=image
+)
+print(response.choices[0].message.content)
 ```
 
 ### Image Generation:
