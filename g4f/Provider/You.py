@@ -8,7 +8,7 @@ import uuid
 from ..typing import AsyncResult, Messages, ImageType, Cookies
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from .helper import format_prompt
-from ..image import ImageResponse, ImagePreview, to_bytes, is_accepted_format
+from ..image import ImageResponse, ImagePreview, EXTENSIONS_MAP, to_bytes, is_accepted_format
 from ..requests import StreamSession, FormData, raise_for_status
 from .you.har_file import get_telemetry_ids
 from .. import debug
@@ -94,6 +94,8 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
                 "q": format_prompt(messages),
                 "domain": "youchat",
                 "selectedChatMode": chat_mode,
+                "conversationTurnId": str(uuid.uuid4()),
+                "chatId": str(uuid.uuid4()),
             }
             params = {
                 "userFiles": upload,
@@ -106,8 +108,8 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
 
             async with (session.post if chat_mode == "default" else session.get)(
                 f"{cls.url}/api/streamingSearch",
-                data=data,
-                params=params,
+                data=data if chat_mode == "default" else None,
+                params=params if chat_mode == "default" else data,
                 headers=headers,
                 cookies=cookies
             ) as response:
@@ -142,7 +144,9 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
             await raise_for_status(response)
             upload_nonce = await response.text()
         data = FormData()
-        data.add_field('file', file, content_type=is_accepted_format(file), filename=filename)
+        content_type = is_accepted_format(file)
+        filename = f"image.{EXTENSIONS_MAP[content_type]}" if filename is None else filename
+        data.add_field('file', file, content_type=content_type, filename=filename)
         async with client.post(
             f"{cls.url}/api/upload",
             data=data,

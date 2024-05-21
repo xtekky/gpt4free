@@ -16,6 +16,13 @@ from .errors import MissingRequirementsError
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'}
 
+EXTENSIONS_MAP: dict[str, str] = {
+    "image/png": "png",
+    "image/jpeg": "jpg",
+    "image/gif": "gif",
+    "image/webp": "webp",
+}
+
 def to_image(image: ImageType, is_svg: bool = False) -> Image:
     """
     Converts the input image to a PIL Image object.
