@@ -6,6 +6,7 @@ import string
 
 from ..typing import Union, Iterator, Messages, ImageType
 from ..providers.types import BaseProvider, ProviderType, FinishReason
+from ..providers.conversation import BaseConversation
 from ..image import ImageResponse as ImageProviderResponse
 from ..errors import NoImageResponseError
 from .stubs import ChatCompletion, ChatCompletionChunk, Image, ImagesResponse
@@ -29,6 +30,9 @@ def iter_response(
         if isinstance(chunk, FinishReason):
             finish_reason = chunk.reason
             break
+        elif isinstance(chunk, BaseConversation):
+            yield chunk
+            continue
         content += str(chunk)
         if max_tokens is not None and idx + 1 >= max_tokens:
             finish_reason = "length"
