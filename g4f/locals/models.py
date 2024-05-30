@@ -37,8 +37,10 @@ def get_model_dir() -> str:
     local_dir = os.path.dirname(os.path.abspath(__file__))
     project_dir = os.path.dirname(os.path.dirname(local_dir))
     model_dir = os.path.join(project_dir, "models")
-    if os.path.exists(model_dir):
-        return model_dir
+    if not os.path.exists(model_dir):
+        os.mkdir(model_dir)
+    return model_dir
+
 
 def get_models() -> dict[str, dict]:
     model_dir = get_model_dir()
