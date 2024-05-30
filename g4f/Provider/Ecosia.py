@@ -33,7 +33,8 @@ class Ecosia(AsyncGeneratorProvider, ProviderModelMixin):
             "accept": "*/*",
             "origin": cls.url,
             "referer": f"{cls.url}/",
-            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.114 Safari/537.36",
+            "content-type": "application/json",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 YaBrowser/24.4.0.0 Safari/537.36",
         }
         async with ClientSession(headers=headers, connector=get_connector(connector, proxy)) as session:
             data = {
