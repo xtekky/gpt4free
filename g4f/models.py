@@ -12,7 +12,6 @@ from .Provider import (
     Cnote,
     DeepInfra,
     DuckDuckGo,
-    Ecosia,
     Feedough,
     FreeGpt,
     Gemini,
@@ -59,7 +58,6 @@ default = Model(
         ChatgptAi,
         You,
         OpenaiChat,
-        Ecosia,
     ])
 )
 
@@ -73,7 +71,6 @@ gpt_35_long = Model(
         ChatgptNext,
         OpenaiChat,
         Koala,
-        Ecosia,
         DuckDuckGo,
     ])
 )
