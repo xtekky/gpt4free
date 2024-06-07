@@ -23,7 +23,8 @@ class HuggingChat(AsyncGeneratorProvider, ProviderModelMixin):
         'NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO',
         'mistralai/Mistral-7B-Instruct-v0.2',
         'meta-llama/Meta-Llama-3-70B-Instruct',
-        'microsoft/Phi-3-mini-4k-instruct'
+        'microsoft/Phi-3-mini-4k-instruct',
+        '01-ai/Yi-1.5-34B-Chat'
     ]
     model_aliases = {
         "mistralai/Mistral-7B-Instruct-v0.1": "mistralai/Mistral-7B-Instruct-v0.2"
@@ -102,7 +103,7 @@ class HuggingChat(AsyncGeneratorProvider, ProviderModelMixin):
                     elif line["type"] == "stream":
                         token = line["token"]
                         if first_token:
-                            token = token.lstrip()
+                            token = token.lstrip().replace('\u0000', '')
                             first_token = False
                         yield token
                     elif line["type"] == "finalAnswer":
