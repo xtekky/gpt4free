@@ -28,7 +28,7 @@ class arkReq:
         self.userAgent = userAgent
 
 arkPreURL = "https://tcr9i.chat.openai.com/fc/gt2/public_key/35536E1E-65B4-4D96-9D97-6ADB7EFF8147"
-sessionUrl = "https://chatgpt.com/api/auth/session"
+sessionUrl = "https://chatgpt.com/"
 chatArk: arkReq = None
 accessToken: str = None
 cookies: dict = None
@@ -68,7 +68,9 @@ def readHAR():
                     chatArks.append(parseHAREntry(v))
                 elif v['request']['url'] == sessionUrl:
                     try:
-                        accessToken = json.loads(v["response"]["content"]["text"]).get("accessToken")
+                        match = re.search(r'"accessToken":"(.*?)"', v["response"]["content"]["text"])
+                        if match:
+                            accessToken = match.group(1)
                     except KeyError:
                         continue
                     cookies = {c['name']: c['value'] for c in v['request']['cookies'] if c['name'] != "oai-did"}
