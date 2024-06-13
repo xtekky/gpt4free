@@ -284,9 +284,9 @@ Cookies added: 16 from .google.com
 
 ##### Generating a .HAR File
 
-To utilize the OpenaiChat provider, a .har file is required from https://chat.openai.com/. Follow the steps below to create a valid .har file:
+To utilize the OpenaiChat provider, a .har file is required from https://chatgpt.com/. Follow the steps below to create a valid .har file:
 
-1. Navigate to https://chat.openai.com/ using your preferred web browser and log in with your credentials.
+1. Navigate to https://chatgpt.com/ using your preferred web browser and log in with your credentials.
 2. Access the Developer Tools in your browser. This can typically be done by right-clicking the page and selecting "Inspect," or by pressing F12 or Ctrl+Shift+I (Cmd+Option+I on a Mac).
 3. With the Developer Tools open, switch to the "Network" tab.
 4. Reload the website to capture the loading process within the Network tab.
@@ -322,7 +322,7 @@ set G4F_PROXY=http://host:port
 | [bing.com](https://bing.com/chat) | `g4f.Provider.Bing` | ❌ | ✔️ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
 | [chatgpt.ai](https://chatgpt.ai) | `g4f.Provider.ChatgptAi` | ❌ | ✔️ | ✔️ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ❌ |
 | [liaobots.site](https://liaobots.site) | `g4f.Provider.Liaobots` | ✔️ | ✔️ | ✔️ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ❌ |
-| [chat.openai.com](https://chat.openai.com) | `g4f.Provider.OpenaiChat` | ✔️ | ✔️ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌+✔️ |
+| [chatgpt.com](https://chatgpt.com) | `g4f.Provider.OpenaiChat` | ✔️ | ✔️ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌+✔️ |
 | [raycast.com](https://raycast.com) | `g4f.Provider.Raycast` | ✔️ | ✔️ | ✔️ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ✔️ |
 | [beta.theb.ai](https://beta.theb.ai) | `g4f.Provider.Theb` | ✔️ | ✔️ | ✔️ | ![Unknown](https://img.shields.io/badge/Unknown-grey) | ❌ |
 | [you.com](https://you.com) | `g4f.Provider.You` | ✔️ | ✔️ | ✔️ | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
@@ -441,7 +441,7 @@ While we wait for gpt-5, here is a list of new models that are at least better t
 | Gemini | `g4f.Provider.Gemini` | ✔️ | ✔️ | [gemini.google.com](https://gemini.google.com) |
 | Gemini API | `g4f.Provider.GeminiPro` | ❌ | gemini-1.5-pro | [ai.google.dev](https://ai.google.dev) |
 | Meta AI | `g4f.Provider.MetaAI` | ✔️ | ❌ | [meta.ai](https://www.meta.ai) |
-| OpenAI ChatGPT | `g4f.Provider.OpenaiChat` | dall-e-3 | gpt-4-vision | [chat.openai.com](https://chat.openai.com) |
+| OpenAI ChatGPT | `g4f.Provider.OpenaiChat` | dall-e-3 | gpt-4-vision | [chatgpt.com](https://chatgpt.com) |
 | Reka | `g4f.Provider.Reka` | ❌ | ✔️ | [chat.reka.ai](https://chat.reka.ai/) |
 | Replicate | `g4f.Provider.Replicate` | stability-ai/sdxl| llava-v1.6-34b | [replicate.com](https://replicate.com) |
 | You.com | `g4f.Provider.You` | dall-e-3| ✔️ | [you.com](https://you.com) |
