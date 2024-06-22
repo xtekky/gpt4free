@@ -44,6 +44,7 @@ from .MetaAIAccount    import MetaAIAccount
 from .Ollama           import Ollama
 from .PerplexityLabs   import PerplexityLabs
 from .Pi               import Pi
+from .Pizzagpt         import Pizzagpt
 from .Replicate        import Replicate
 from .ReplicateImage   import ReplicateImage
 from .Vercel           import Vercel
