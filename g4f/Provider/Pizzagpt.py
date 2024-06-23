@@ -8,7 +8,7 @@ class Pizzagpt(AsyncGeneratorProvider):
     url = "https://www.pizzagpt.it"
     api_endpoint = "/api/chatx-completion"
     supports_message_history = False
-    supports_gpt_35_turbo = False
+    supports_gpt_35_turbo = True
     working = True
 
     @classmethod
@@ -29,9 +29,6 @@ class Pizzagpt(AsyncGeneratorProvider):
             "Content-Type": "application/json",
             "Origin": cls.url,
             "Referer": f"{cls.url}/en",
-            "Sec-Ch-Ua": "\"Not/A)Brand\";v=\"8\", \"Chromium\";v=\"126\", \"Google Chrome\";v=\"126\"",
-            "Sec-Ch-Ua-Mobile": "?0",
-            "Sec-Ch-Ua-Platform": "\"Windows\"",
             "Sec-Fetch-Dest": "empty",
             "Sec-Fetch-Mode": "cors",
             "Sec-Fetch-Site": "same-origin",
