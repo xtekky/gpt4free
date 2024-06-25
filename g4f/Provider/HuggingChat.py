@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import requests
-from aiohttp import ClientSession, BaseConnector
+from aiohttp import ClientSession, BaseConnector, FormData
 
 from ..typing import AsyncResult, Messages
 from ..requests.raise_for_status import raise_for_status
@@ -86,15 +86,28 @@ class HuggingChat(AsyncGeneratorProvider, ProviderModelMixin):
                 keys: list[int] = data[data[0]["messages"]]
                 message_keys: dict = data[keys[0]]
                 message_id: str = data[message_keys["id"]]
+
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
+                "Content-Type": "multipart/form-data; boundary=----Web",
+                "Origin": "https://huggingface.co",
+            }
             options = {
                 "id": message_id,
                 "inputs": format_prompt(messages) if conversation is None else messages[-1]["content"],
                 "is_continue": False,
                 "is_retry": False,
-                "web_search": web_search
+                "web_search": web_search,
             }
-            async with session.post(f"{cls.url}/conversation/{conversation_id}", json=options) as response:
-                first_token = True
+            options_json=json.dumps(options)
+            body = (
+                    '------Web\r\n'
+                    'Content-Disposition: form-data; name="data"\r\n\r\n'
+                    f'{options_json}\r\n'
+                    '------Web--'
+            )
+
+            async with session.post(f"{cls.url}/conversation/{conversation_id}", headers=headers, data=body) as response:
                 async for line in response.content:
                     await raise_for_status(response)
                     line = json.loads(line)
@@ -102,9 +115,7 @@ class HuggingChat(AsyncGeneratorProvider, ProviderModelMixin):
                         raise RuntimeError(f"Response: {line}")
                     elif line["type"] == "stream":
                         token = line["token"]
-                        if first_token:
-                            token = token.lstrip().replace('\u0000', '')
-                            first_token = False
+                        token = token.lstrip().replace('\u0000', ' ')
                         yield token
                     elif line["type"] == "finalAnswer":
                         break
