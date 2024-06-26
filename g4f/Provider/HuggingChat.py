@@ -1,20 +1,17 @@
 from __future__ import annotations
 
-import json
-import requests
-from aiohttp import ClientSession, BaseConnector
+import json, requests, re
 
-from ..typing import AsyncResult, Messages
-from ..requests.raise_for_status import raise_for_status
-from ..providers.conversation import BaseConversation
-from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from .helper import format_prompt, get_connector, get_cookies
+from curl_cffi      import requests as cf_reqs
+from ..typing       import CreateResult, Messages
+from .base_provider import ProviderModelMixin, AbstractProvider
+from .helper        import format_prompt, get_connector, get_cookies
 
-class HuggingChat(AsyncGeneratorProvider, ProviderModelMixin):
-    url = "https://huggingface.co/chat"
-    working = True
-    needs_auth = True
-    default_model = "mistralai/Mixtral-8x7B-Instruct-v0.1"
+class HuggingChat(AbstractProvider, ProviderModelMixin):
+    url             = "https://huggingface.co/chat"
+    working         = True
+    supports_stream = True
+    default_model   = "mistralai/Mixtral-8x7B-Instruct-v0.1"
     models = [
         "HuggingFaceH4/zephyr-orpo-141b-A35b-v0.1",
         'CohereForAI/c4ai-command-r-plus',
@@ -26,92 +23,118 @@ class HuggingChat(AsyncGeneratorProvider, ProviderModelMixin):
         'microsoft/Phi-3-mini-4k-instruct',
         '01-ai/Yi-1.5-34B-Chat'
     ]
+    
     model_aliases = {
         "mistralai/Mistral-7B-Instruct-v0.1": "mistralai/Mistral-7B-Instruct-v0.2"
     }
 
     @classmethod
-    def get_models(cls):
-        if not cls.models:
-            url = f"{cls.url}/__data.json"
-            data = requests.get(url).json()["nodes"][0]["data"]
-            models = [data[key]["name"] for key in data[data[0]["models"]]]
-            cls.models = [data[key] for key in models]
-        return cls.models
-
-    @classmethod
-    async def create_async_generator(
+    def create_completion(
         cls,
         model: str,
         messages: Messages,
-        stream: bool = True,
-        proxy: str = None,
-        connector: BaseConnector = None,
-        web_search: bool = False,
-        cookies: dict = None,
-        conversation: Conversation = None,
-        return_conversation: bool = False,
-        delete_conversation: bool = True,
+        stream: bool,
         **kwargs
-    ) -> AsyncResult:
-        options = {"model": cls.get_model(model)}
-        if cookies is None:
-            cookies = get_cookies("huggingface.co", False)
-        if return_conversation:
-            delete_conversation = False
-
-        system_prompt = "\n".join([message["content"] for message in messages if message["role"] == "system"])
-        if system_prompt:
-            options["preprompt"] = system_prompt
-            messages = [message for message in messages if message["role"] != "system"]
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36',
-        }
-        async with ClientSession(
-            cookies=cookies,
-            headers=headers,
-            connector=get_connector(connector, proxy)
-        ) as session:
-            if conversation is None:
-                async with session.post(f"{cls.url}/conversation", json=options) as response:
-                    await raise_for_status(response)
-                    conversation_id = (await response.json())["conversationId"]
-                if return_conversation:
-                    yield Conversation(conversation_id)
-            else:
-                conversation_id = conversation.conversation_id
-            async with session.get(f"{cls.url}/conversation/{conversation_id}/__data.json") as response:
-                await raise_for_status(response)
-                data: list = (await response.json())["nodes"][1]["data"]
-                keys: list[int] = data[data[0]["messages"]]
-                message_keys: dict = data[keys[0]]
-                message_id: str = data[message_keys["id"]]
-            options = {
-                "id": message_id,
-                "inputs": format_prompt(messages) if conversation is None else messages[-1]["content"],
-                "is_continue": False,
-                "is_retry": False,
-                "web_search": web_search
+    ) -> CreateResult:
+        
+        if (model in cls.models) :
+            
+            session = requests.Session()
+            headers = {
+                'accept': '*/*',
+                'accept-language': 'en,fr-FR;q=0.9,fr;q=0.8,es-ES;q=0.7,es;q=0.6,en-US;q=0.5,am;q=0.4,de;q=0.3',
+                'cache-control': 'no-cache',
+                'origin': 'https://huggingface.co',
+                'pragma': 'no-cache',
+                'priority': 'u=1, i',
+                'referer': 'https://huggingface.co/chat/',
+                'sec-ch-ua': '"Not/A)Brand";v="8", "Chromium";v="126", "Google Chrome";v="126"',
+                'sec-ch-ua-mobile': '?0',
+                'sec-ch-ua-platform': '"macOS"',
+                'sec-fetch-dest': 'empty',
+                'sec-fetch-mode': 'cors',
+                'sec-fetch-site': 'same-origin',
+                'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
             }
-            async with session.post(f"{cls.url}/conversation/{conversation_id}", json=options) as response:
-                first_token = True
-                async for line in response.content:
-                    await raise_for_status(response)
-                    line = json.loads(line)
-                    if "type" not in line:
-                        raise RuntimeError(f"Response: {line}")
-                    elif line["type"] == "stream":
-                        token = line["token"]
-                        if first_token:
-                            token = token.lstrip().replace('\u0000', '')
-                            first_token = False
-                        yield token
-                    elif line["type"] == "finalAnswer":
-                        break
-            if delete_conversation:
-                async with session.delete(f"{cls.url}/conversation/{conversation_id}") as response:
-                    await raise_for_status(response)
 
-class Conversation(BaseConversation):
-    def __init__(self, conversation_id: str) -> None:
-        self.conversation_id = conversation_id
+            json_data = {
+                'searchEnabled': True,
+                'ethicsModalAccepted': True,
+                'ethicsModalAcceptedAt': None,
+                'activeModel': 'CohereForAI/c4ai-command-r-plus', # doesn't matter
+                'hideEmojiOnSidebar': False,
+                'shareConversationsWithModelAuthors': False,
+                'customPrompts': {},
+                'assistants': [],
+                'tools': {},
+                'disableStream': False,
+                'recentlySaved': False,
+            }
+
+            response = cf_reqs.post('https://huggingface.co/chat/settings', headers=headers, json=json_data)
+            session.cookies.update(response.cookies)
+
+            response = session.post('https://huggingface.co/chat/conversation', 
+                                    headers=headers, json={'model': model})
+
+            conversationId = response.json()['conversationId']
+            response       = session.get(f'https://huggingface.co/chat/conversation/{conversationId}/__data.json?x-sveltekit-invalidated=11',
+                headers=headers,
+            )
+
+            messageId = extract_id(response.json())
+
+            settings = {
+                "inputs": format_prompt(messages),
+                "id": messageId,
+                "is_retry": False,
+                "is_continue": False,
+                "web_search": False,
+                
+                # enable tools
+                "tools": {
+                    "websearch": True,
+                    "document_parser": False,
+                    "query_calculator": False,
+                    "image_generation": False,
+                    "image_editing": False,
+                    "fetch_url": False,
+                }
+            }
+
+            payload = {
+                "data": json.dumps(settings),
+            }
+
+            response = session.post(f"https://huggingface.co/chat/conversation/{conversationId}",
+                headers=headers, data=payload, stream=True,
+            )
+
+            first_token = True
+            for line in response.iter_lines():
+                line = json.loads(line)
+                
+                if "type" not in line:
+                    raise RuntimeError(f"Response: {line}")
+                
+                elif line["type"] == "stream":
+                    token = line["token"]
+                    if first_token:
+                        token = token.lstrip().replace('\u0000', '')
+                        first_token = False
+                    #yield token
+                    yield (token)
+                
+                elif line["type"] == "finalAnswer":
+                    break
+
+def extract_id(response: dict) -> str:
+    data = response["nodes"][1]["data"]
+    uuid_pattern = re.compile(
+        r"^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$"
+    )
+    for item in data:
+        if type(item) == str and uuid_pattern.match(item):
+            return item
+
+    return None
