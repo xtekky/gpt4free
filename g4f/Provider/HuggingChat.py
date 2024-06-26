@@ -89,7 +89,7 @@ class HuggingChat(AsyncGeneratorProvider, ProviderModelMixin):
 
             headers = {
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
-                "Content-Type": "multipart/form-data; boundary=----Web",
+                "Content-Type": "multipart/form-data; boundary=----WebKitFormBoundary*",
                 "Origin": "https://huggingface.co",
             }
             options = {
@@ -101,24 +101,37 @@ class HuggingChat(AsyncGeneratorProvider, ProviderModelMixin):
             }
             options_json=json.dumps(options)
             body = (
-                    '------Web\r\n'
+                    '------WebKitFormBoundary*\r\n'
                     'Content-Disposition: form-data; name="data"\r\n\r\n'
                     f'{options_json}\r\n'
-                    '------Web--'
+                    '------WebKitFormBoundary*--'
             )
 
-            async with session.post(f"{cls.url}/conversation/{conversation_id}", headers=headers, data=body) as response:
-                async for line in response.content:
-                    await raise_for_status(response)
-                    line = json.loads(line)
-                    if "type" not in line:
-                        raise RuntimeError(f"Response: {line}")
-                    elif line["type"] == "stream":
-                        token = line["token"]
-                        token = token.lstrip().replace('\u0000', ' ')
-                        yield token
-                    elif line["type"] == "finalAnswer":
-                        break
+            async with session.post(f"{cls.url}/conversation/{conversation_id}", headers=headers, data=body) as response:  
+                await raise_for_status(response)
+                if stream:
+                    async for line in response.content:
+                        line = json.loads(line)
+                        if "type" not in line:
+                            raise RuntimeError(f"Response: {line}")
+                        elif line["type"] == "stream":
+                            token = line["token"].replace('\u0000', '')
+                            yield token
+                        elif line["type"] == "finalAnswer":
+                            break
+                else:
+                    content = await response.read()
+                    decoded_content = content.decode('utf-8')
+
+                    for line in decoded_content.splitlines():
+                        data = json.loads(line)
+                        if "type" not in data:
+                            raise RuntimeError(f"Response: {data}")
+                        elif data["type"] == "finalAnswer":
+                            text = data["text"]
+                            yield text
+                            break
+
             if delete_conversation:
                 async with session.delete(f"{cls.url}/conversation/{conversation_id}") as response:
                     await raise_for_status(response)
