@@ -23,7 +23,6 @@ from .Opchatgpts    import Opchatgpts
 from .Yqcloud       import Yqcloud
 from .Aichat        import Aichat
 from .Berlin        import Berlin
-from .Phind         import Phind
 from .AiAsk         import AiAsk
 from .AiChatOnline  import AiChatOnline
 from .ChatAnywhere  import ChatAnywhere

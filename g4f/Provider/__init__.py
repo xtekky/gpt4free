@@ -43,6 +43,7 @@ from .MetaAI           import MetaAI
 from .MetaAIAccount    import MetaAIAccount
 from .Ollama           import Ollama
 from .PerplexityLabs   import PerplexityLabs
+from .Phind            import Phind
 from .Pi               import Pi
 from .Pizzagpt         import Pizzagpt
 from .Replicate        import Replicate
