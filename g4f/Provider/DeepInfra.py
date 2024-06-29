@@ -8,7 +8,7 @@ class DeepInfra(Openai):
     label = "DeepInfra"
     url = "https://deepinfra.com"
     working = True
-    needs_auth = True
+    needs_auth = False
     supports_stream = True
     supports_message_history = True
     default_model = "meta-llama/Meta-Llama-3-70B-Instruct"

@@ -1,5 +1,4 @@
-![248433934-7886223b-c1d1-4260-82aa-da5741f303bb](https://github.com/xtekky/gpt4free/assets/98614666/ea012c87-76e0-496a-8ac4-e2de090cc6c9)
-
+# THIS IS A FORK OF THE OFFICIAL GPT4FREE REPOSITORY. This project is for educational purposes only, and must not be used for any other purpose.
 <a href="https://trendshift.io/repositories/1692" target="_blank"><img src="https://trendshift.io/api/badge/repositories/1692" alt="xtekky%2Fgpt4free | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
 
 The **ETA** till (v3 for g4f) where I, [@xtekky](https://github.com/xtekky) will pick this project back up and improve it is **`29` days** (written Tue 28 May), join [t.me/g4f_channel](https://t.me/g4f_channel) in the meanwhile to stay updated.

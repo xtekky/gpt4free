@@ -86,27 +86,27 @@ DESCRIPTION = (
 
 # Setting up
 setup(
-    name='g4f',
+    name='g4fu',
     version=os.environ.get("G4F_VERSION"),
-    author='Tekky',
-    author_email='<support@g4f.ai>',
+    author='XInTheDark',
+    author_email='<muzhengaming@gmail.com>',
     description=DESCRIPTION,
     long_description_content_type='text/markdown',
     long_description=long_description,
     packages=find_packages(),
     package_data={
-        'g4f': ['g4f/interference/*', 'g4f/gui/client/*', 'g4f/gui/server/*', 'g4f/Provider/npm/*', 'g4f/local/models/*']
+        'g4fu': ['g4f/interference/*', 'g4f/gui/client/*', 'g4f/gui/server/*', 'g4f/Provider/npm/*', 'g4f/local/models/*']
     },
     include_package_data=True,
     install_requires=INSTALL_REQUIRE,
     extras_require=EXTRA_REQUIRE,
     entry_points={
-        'console_scripts': ['g4f=g4f.cli:main'],
+        'console_scripts': ['g4fu=g4f.cli:main'],
     },
-    url='https://github.com/xtekky/gpt4free',  # Link to your GitHub repository
+    url='https://github.com/XinTheDark/gpt4free-u',  # Link to your GitHub repository
     project_urls={
-        'Source Code': 'https://github.com/xtekky/gpt4free',  # GitHub link
-        'Bug Tracker': 'https://github.com/xtekky/gpt4free/issues',  # Link to issue tracker
+        'Source Code': 'https://github.com/XinTheDark/gpt4free-u',  # GitHub link
+        'Bug Tracker': 'https://github.com/XinTheDark/gpt4free-u/issues',  # Link to issue tracker
     },
     keywords=[
         'python',

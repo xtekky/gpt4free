@@ -47,6 +47,9 @@ class ChatCompletion:
             ProviderNotWorkingError: If the provider is not operational.
             StreamNotSupportedError: If streaming is requested but not supported by the provider.
         """
+        # Force ignore_working to be True
+        ignore_working = True
+        
         model, provider = get_model_and_provider(
             model, provider, stream,
             ignored, ignore_working,

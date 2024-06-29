@@ -8,8 +8,8 @@ from subprocess import check_output, CalledProcessError, PIPE
 from .errors import VersionNotFoundError
 from . import debug
 
-PACKAGE_NAME = "g4f"
-GITHUB_REPOSITORY = "xtekky/gpt4free"
+PACKAGE_NAME = "g4fu"
+GITHUB_REPOSITORY = "XInTheDark/gpt4free-u"
 
 def get_pypi_version(package_name: str) -> str:
     """

@@ -47,6 +47,9 @@ def get_model_and_provider(model    : Union[Model, str],
         ProviderNotWorkingError: If the provider is not working.
         StreamNotSupportedError: If streaming is not supported by the provider.
     """
+    # Force ignore_working to be True
+    ignore_working = True
+    
     if debug.version_check:
         debug.version_check = False
         version.utils.check_version()

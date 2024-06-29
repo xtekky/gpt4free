@@ -9,7 +9,6 @@ from ..image        import to_bytes
 class Reka(AbstractProvider):
     url             = "https://chat.reka.ai/"
     working         = True
-    needs_auth      = True
     supports_stream = True
     default_vision_model = "reka"
     cookies         = {}
