@@ -5,7 +5,7 @@ import json, requests, re
 from curl_cffi      import requests as cf_reqs
 from ..typing       import CreateResult, Messages
 from .base_provider import ProviderModelMixin, AbstractProvider
-from .helper        import format_prompt, get_connector, get_cookies
+from .helper        import format_prompt
 
 class HuggingChat(AbstractProvider, ProviderModelMixin):
     url             = "https://huggingface.co/chat"
@@ -41,34 +41,34 @@ class HuggingChat(AbstractProvider, ProviderModelMixin):
             
             session = requests.Session()
             headers = {
-                'accept': '*/*',
-                'accept-language': 'en,fr-FR;q=0.9,fr;q=0.8,es-ES;q=0.7,es;q=0.6,en-US;q=0.5,am;q=0.4,de;q=0.3',
-                'cache-control': 'no-cache',
-                'origin': 'https://huggingface.co',
-                'pragma': 'no-cache',
-                'priority': 'u=1, i',
-                'referer': 'https://huggingface.co/chat/',
-                'sec-ch-ua': '"Not/A)Brand";v="8", "Chromium";v="126", "Google Chrome";v="126"',
-                'sec-ch-ua-mobile': '?0',
+                'accept'            : '*/*',
+                'accept-language'   : 'en,fr-FR;q=0.9,fr;q=0.8,es-ES;q=0.7,es;q=0.6,en-US;q=0.5,am;q=0.4,de;q=0.3',
+                'cache-control'     : 'no-cache',
+                'origin'            : 'https://huggingface.co',
+                'pragma'            : 'no-cache',
+                'priority'          : 'u=1, i',
+                'referer'           : 'https://huggingface.co/chat/',
+                'sec-ch-ua'         : '"Not/A)Brand";v="8", "Chromium";v="126", "Google Chrome";v="126"',
+                'sec-ch-ua-mobile'  : '?0',
                 'sec-ch-ua-platform': '"macOS"',
-                'sec-fetch-dest': 'empty',
-                'sec-fetch-mode': 'cors',
-                'sec-fetch-site': 'same-origin',
-                'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+                'sec-fetch-dest'    : 'empty',
+                'sec-fetch-mode'    : 'cors',
+                'sec-fetch-site'    : 'same-origin',
+                'user-agent'        : 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
             }
 
             json_data = {
-                'searchEnabled': True,
-                'ethicsModalAccepted': True,
-                'ethicsModalAcceptedAt': None,
-                'activeModel': 'CohereForAI/c4ai-command-r-plus', # doesn't matter
+                'searchEnabled'     : True,
+                'activeModel'       : 'CohereForAI/c4ai-command-r-plus', # doesn't matter
                 'hideEmojiOnSidebar': False,
+                'customPrompts'     : {},
+                'assistants'        : [],
+                'tools'             : {},
+                'disableStream'     : False,
+                'recentlySaved'     : False,
+                'ethicsModalAccepted'   : True,
+                'ethicsModalAcceptedAt' : None,
                 'shareConversationsWithModelAuthors': False,
-                'customPrompts': {},
-                'assistants': [],
-                'tools': {},
-                'disableStream': False,
-                'recentlySaved': False,
             }
 
             response = cf_reqs.post('https://huggingface.co/chat/settings', headers=headers, json=json_data)
@@ -85,20 +85,20 @@ class HuggingChat(AbstractProvider, ProviderModelMixin):
             messageId = extract_id(response.json())
 
             settings = {
-                "inputs": format_prompt(messages),
-                "id": messageId,
-                "is_retry": False,
-                "is_continue": False,
-                "web_search": False,
+                "inputs"      : format_prompt(messages),
+                "id"          : messageId,
+                "is_retry"    : False,
+                "is_continue" : False,
+                "web_search"  : False,
                 
-                # enable tools
+                # TODO // add feature to enable/disable tools
                 "tools": {
-                    "websearch": True,
-                    "document_parser": False,
-                    "query_calculator": False,
-                    "image_generation": False,
-                    "image_editing": False,
-                    "fetch_url": False,
+                    "websearch"         : True,
+                    "document_parser"   : False,
+                    "query_calculator"  : False,
+                    "image_generation"  : False,
+                    "image_editing"     : False,
+                    "fetch_url"         : False,
                 }
             }
 
@@ -122,8 +122,11 @@ class HuggingChat(AbstractProvider, ProviderModelMixin):
                     if first_token:
                         token = token.lstrip().replace('\u0000', '')
                         first_token = False
-                    #yield token
-                    yield (token)
+                    
+                    else:
+                        token = token.replace('\u0000', '')
+
+                    yield token
                 
                 elif line["type"] == "finalAnswer":
                     break

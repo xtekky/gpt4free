@@ -8,7 +8,6 @@ from .helper import format_prompt
 
 import random
 
-
 class Aichatos(AsyncGeneratorProvider):
     url = "https://chat10.aichatos.xyz"
     api = "https://api.binjie.fun"
