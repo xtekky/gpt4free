@@ -13,7 +13,7 @@ from .base_provider import AsyncGeneratorProvider
 
 
 class GeminiProChat(AsyncGeneratorProvider):
-    url = "https://www.chatgemini.net/"
+    url = "https://www.chatgot.one/"
     working = True
     supports_message_history = True
 
