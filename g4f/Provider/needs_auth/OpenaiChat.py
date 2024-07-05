@@ -406,7 +406,12 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
                     cls._update_request_args(session)
                     await raise_for_status(response)
                     requirements = await response.json()
-                    need_arkose = requirements.get("arkose", {}).get("required")
+                    text_data = json.loads(requirements.get("text", "{}")) 
+                    need_arkose = text_data.get("turnstile", {}).get("required", False)
+                    if need_arkose:
+                        arkose_token = text_data.get("turnstile", {}).get("dx")
+                    else:
+                        need_arkose = requirements.get("arkose", {}).get("required", False) 
                     chat_token = requirements["token"]        
 
                 if need_arkose and arkose_token is None:
