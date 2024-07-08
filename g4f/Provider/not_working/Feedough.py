@@ -5,9 +5,9 @@ import asyncio
 from aiohttp import ClientSession, TCPConnector
 from urllib.parse import urlencode
 
-from ..typing import AsyncResult, Messages
-from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from .helper import format_prompt
+from ...typing import AsyncResult, Messages
+from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from ..helper import format_prompt
 
 
 class Feedough(AsyncGeneratorProvider, ProviderModelMixin):
