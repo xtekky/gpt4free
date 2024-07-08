@@ -9,13 +9,14 @@ from ..errors import RateLimitError
 from ..requests import raise_for_status
 from ..requests.aiohttp import get_connector
 from ..typing import AsyncResult, Messages
-from .base_provider import AsyncGeneratorProvider
+from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 
 
-class GeminiProChat(AsyncGeneratorProvider):
+class GeminiProChat(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://www.chatgot.one/"
     working = True
     supports_message_history = True
+    default_model = ''
 
     @classmethod
     async def create_async_generator(
@@ -32,8 +33,8 @@ class GeminiProChat(AsyncGeneratorProvider):
             "Accept-Language": "en-US,en;q=0.5",
             "Accept-Encoding": "gzip, deflate, br",
             "Content-Type": "text/plain;charset=UTF-8",
-            "Referer": "https://gemini-chatbot-sigma.vercel.app/",
-            "Origin": "https://gemini-chatbot-sigma.vercel.app",
+            "Referer": f"{cls.url}/",
+            "Origin": cls.url,
             "Sec-Fetch-Dest": "empty",
             "Sec-Fetch-Mode": "cors",
             "Sec-Fetch-Site": "same-origin",
