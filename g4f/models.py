@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 from .Provider import IterListProvider, ProviderType
 from .Provider import (
-    	AI365VIP,
+    AI365VIP,
 	Bing,
 	Blackbox,
 	Chatgpt4o,
