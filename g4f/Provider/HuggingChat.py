@@ -13,10 +13,8 @@ class HuggingChat(AbstractProvider, ProviderModelMixin):
     supports_stream = True
     default_model   = "mistralai/Mixtral-8x7B-Instruct-v0.1"
     models = [
-        "HuggingFaceH4/zephyr-orpo-141b-A35b-v0.1",
         'CohereForAI/c4ai-command-r-plus',
         'mistralai/Mixtral-8x7B-Instruct-v0.1',
-        'google/gemma-1.1-7b-it',
         'NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO',
         'mistralai/Mistral-7B-Instruct-v0.2',
         'meta-llama/Meta-Llama-3-70B-Instruct',
