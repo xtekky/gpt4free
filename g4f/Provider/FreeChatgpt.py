@@ -1,17 +1,27 @@
 from __future__ import annotations
-
 import json
-from aiohttp import ClientSession, ClientTimeout
-
+from aiohttp import ClientSession
 from ..typing import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from ..requests.raise_for_status import raise_for_status
+from .helper import format_prompt
+
 
 class FreeChatgpt(AsyncGeneratorProvider, ProviderModelMixin):
-    url = "https://free.chatgpt.org.uk"
+    url = "https://chat.chatgpt.org.uk"
+    api_endpoint = "/api/openai/v1/chat/completions"
     working = True
-    supports_message_history = True
-    default_model = "google-gemini-pro"
+    supports_gpt_35_turbo = True
+    default_model = 'gpt-3.5-turbo'
+    models = [
+        'gpt-3.5-turbo',
+        'SparkDesk-v1.1',
+        'deepseek-coder',
+        'deepseek-chat',
+        'Qwen2-7B-Instruct',
+        'glm4-9B-chat',
+        'chatglm3-6B',
+        'Yi-1.5-9B-Chat',
+    ]
 
     @classmethod
     async def create_async_generator(
@@ -19,45 +29,50 @@ class FreeChatgpt(AsyncGeneratorProvider, ProviderModelMixin):
         model: str,
         messages: Messages,
         proxy: str = None,
-        timeout: int = 120,
         **kwargs
     ) -> AsyncResult:
         headers = {
-            "Accept": "application/json, text/event-stream",
-            "Content-Type":"application/json",
-            "Accept-Encoding": "gzip, deflate, br",
-            "Accept-Language": "en-US,en;q=0.5",
-            "Host":"free.chatgpt.org.uk",
-            "Referer":f"{cls.url}/",
-            "Origin":f"{cls.url}",
-            "Sec-Fetch-Dest": "empty",
-            "Sec-Fetch-Mode": "cors",
-            "Sec-Fetch-Site": "same-origin",
-            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36", 
+            "accept": "application/json, text/event-stream",
+            "accept-language": "en-US,en;q=0.9",
+            "content-type": "application/json",
+            "dnt": "1",
+            "origin": cls.url,
+            "referer": f"{cls.url}/",
+            "sec-ch-ua": '"Not/A)Brand";v="8", "Chromium";v="126"',
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": '"Linux"',
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "same-origin",
+            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
         }
-        async with ClientSession(headers=headers, timeout=ClientTimeout(timeout)) as session:
+        async with ClientSession(headers=headers) as session:
+            prompt = format_prompt(messages)
             data = {
-                "messages": messages,
+                "messages": [
+                    {"role": "system", "content": "\nYou are ChatGPT, a large language model trained by OpenAI.\nKnowledge cutoff: 2021-09\nCurrent model: gpt-3.5-turbo\nCurrent time: Thu Jul 04 2024 21:35:59 GMT+0300 (Eastern European Summer Time)\nLatex inline: \\(x^2\\) \nLatex block: $$e=mc^2$$\n\n"},
+                    {"role": "user", "content": prompt}
+                ],
                 "stream": True,
-                "model": cls.get_model(""),
-                "temperature": kwargs.get("temperature", 0.5),
-                "presence_penalty": kwargs.get("presence_penalty", 0),
-                "frequency_penalty": kwargs.get("frequency_penalty", 0),
-                "top_p": kwargs.get("top_p", 1)
+                "model": model,
+                "temperature": 0.5,
+                "presence_penalty": 0,
+                "frequency_penalty": 0,
+                "top_p": 1
             }
-            async with session.post(f'{cls.url}/api/openai/v1/chat/completions', json=data, proxy=proxy) as response:
-                await raise_for_status(response)
-                started = False
+            async with session.post(f"{cls.url}{cls.api_endpoint}", json=data, proxy=proxy) as response:
+                response.raise_for_status()
+                accumulated_text = ""
                 async for line in response.content:
-                    if line.startswith(b"data: [DONE]"):
-                        break
-                    elif line.startswith(b"data: "):
-                        line = json.loads(line[6:])
-                        if(line["choices"]==[]):
-                            continue
-                        chunk = line["choices"][0]["delta"].get("content")
-                        if chunk:
-                            started = True
-                            yield chunk
-                if not started:
-                    raise RuntimeError("Empty response")
+                    if line:
+                        line_str = line.decode().strip()
+                        if line_str == "data: [DONE]":
+                            yield accumulated_text
+                            break
+                        elif line_str.startswith("data: "):
+                            try:
+                                chunk = json.loads(line_str[6:])
+                                delta_content = chunk.get("choices", [{}])[0].get("delta", {}).get("content", "")
+                                accumulated_text += delta_content
+                            except json.JSONDecodeError:
+                                pass

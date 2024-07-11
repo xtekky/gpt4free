@@ -1,17 +1,17 @@
 from __future__ import annotations
 
+import json
 from aiohttp import ClientSession
 
-from ..typing import AsyncResult, Messages
-from .base_provider import AsyncGeneratorProvider
-from .helper import format_prompt
+from ...typing import AsyncResult, Messages
+from ..base_provider import AsyncGeneratorProvider
+from ..helper import format_prompt
 
-import random
 
-class Aichatos(AsyncGeneratorProvider):
-    url = "https://chat10.aichatos.xyz"
-    api = "https://api.binjie.fun"
-    working = True
+class Cnote(AsyncGeneratorProvider):
+    url = "https://f1.cnote.top"
+    api_url = "https://p1api.xjai.pro/freeapi/chat-process"
+    working = False
     supports_gpt_35_turbo = True
 
     @classmethod
@@ -28,7 +28,7 @@ class Aichatos(AsyncGeneratorProvider):
             "Accept-Language": "en-US,en;q=0.5",
             "Accept-Encoding": "gzip, deflate, br",
             "Content-Type": "application/json",
-            "Origin": "https://chat10.aichatos.xyz",
+            "Origin": cls.url,
             "DNT": "1",
             "Sec-GPC": "1",
             "Connection": "keep-alive",
@@ -39,18 +39,20 @@ class Aichatos(AsyncGeneratorProvider):
         }
         async with ClientSession(headers=headers) as session:
             prompt = format_prompt(messages)
-            userId = random.randint(1000000000000, 9999999999999)
             system_message: str = "",
             data = {
                 "prompt": prompt,
-                "userId": "#/chat/{userId}",
-                "network": True,
-                "system": system_message,
-                "withoutContext": False,
-                "stream": True,
+                "systemMessage": system_message,
+                "temperature": 0.8,
+                "top_p": 1,
             }
-            async with session.post(f"{cls.api}/api/generateStream", json=data, proxy=proxy) as response:
+            async with session.post(cls.api_url, json=data, proxy=proxy) as response:
                 response.raise_for_status()
                 async for chunk in response.content:
                     if chunk:
-                        yield chunk.decode()
+                        try:
+                            data = json.loads(chunk.decode().split("&KFw6loC9Qvy&")[-1])
+                            text = data.get("text", "")
+                            yield text
+                        except (json.JSONDecodeError, IndexError):
+                            pass

@@ -4,14 +4,14 @@ import time
 import hashlib
 import uuid
 
-from ..typing import AsyncResult, Messages
-from ..requests import StreamSession, raise_for_status
-from ..errors import RateLimitError
-from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from ...typing import AsyncResult, Messages
+from ...requests import StreamSession, raise_for_status
+from ...errors import RateLimitError
+from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
 
 class ChatForAi(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://chatforai.store"
-    working = True
+    working = False
     default_model = "gpt-3.5-turbo"
     supports_message_history = True
     supports_gpt_35_turbo = True

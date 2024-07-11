@@ -3,14 +3,14 @@ from __future__ import annotations
 import re, html, json, string, random
 from aiohttp import ClientSession
 
-from ..typing import Messages, AsyncResult
-from ..errors import RateLimitError
-from .base_provider import AsyncGeneratorProvider
-from .helper import get_random_string
+from ...typing import Messages, AsyncResult
+from ...errors import RateLimitError
+from ..base_provider import AsyncGeneratorProvider
+from ..helper import get_random_string
 
 class ChatgptAi(AsyncGeneratorProvider):
     url = "https://chatgpt.ai"
-    working = True
+    working = False
     supports_message_history = True
     supports_system_message = True,
     supports_gpt_4 = True,

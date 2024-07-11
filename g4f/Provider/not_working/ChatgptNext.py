@@ -3,12 +3,12 @@ from __future__ import annotations
 import json
 from aiohttp import ClientSession
 
-from ..typing import AsyncResult, Messages
-from .base_provider import AsyncGeneratorProvider
+from ...typing import AsyncResult, Messages
+from ..base_provider import AsyncGeneratorProvider
 
 class ChatgptNext(AsyncGeneratorProvider):
     url = "https://www.chatgpt-free.cc"
-    working = True
+    working = False
     supports_gpt_35_turbo = True
     supports_message_history = True
     supports_system_message = True

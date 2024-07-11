@@ -4,15 +4,15 @@ import re
 import json
 
 from aiohttp import ClientSession
-from ..typing import AsyncResult, Messages
-from .base_provider import AsyncGeneratorProvider
-from .helper import format_prompt
-from ..errors import RateLimitError
+from ...typing import AsyncResult, Messages
+from ..base_provider import AsyncGeneratorProvider
+from ..helper import format_prompt
+from ...errors import RateLimitError
 
 class ChatgptX(AsyncGeneratorProvider):
     url = "https://chatgptx.de"
     supports_gpt_35_turbo = True
-    working               = True
+    working               = False
 
     @classmethod
     async def create_async_generator(
