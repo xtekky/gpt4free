@@ -882,6 +882,33 @@ While we wait for gpt-5, here is a list of new models that are at least better t
         </a>
       </td>
     </tr>
+    <tr>
+      <td>
+        <a href="https://github.com/zachey01/gpt4free.js">
+          <b>GPT4js</b>
+        </a>
+      </td>
+      <td>
+        <a href="https://github.com/zachey01/gpt4free.js/stargazers">
+          <img alt="Stars" src="https://img.shields.io/github/stars/zachey01/gpt4free.js?style=flat-square&labelColor=343b41" />
+        </a>
+      </td>
+      <td>
+        <a href="https://github.com/zachey01/gpt4free.js/network/members">
+          <img alt="Forks" src="https://img.shields.io/github/forks/zachey01/gpt4free.js?style=flat-square&labelColor=343b41" />
+        </a>
+      </td>
+      <td>
+        <a href="https://github.com/zachey01/gpt4free.js/issues">
+          <img alt="Issues" src="https://img.shields.io/github/issues/zachey01/gpt4free.js?style=flat-square&labelColor=343b41" />
+        </a>
+      </td>
+      <td>
+        <a href="https://github.com/zachey01/gpt4free.js/pulls">
+          <img alt="Pull Requests" src="https://img.shields.io/github/issues-pr/zachey01/gpt4free.js?style=flat-square&labelColor=343b41" />
+        </a>
+      </td>
+    </tr>
   </tbody>
 </table>
 
