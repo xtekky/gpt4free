@@ -1,0 +1,683 @@
+Model: gpt_4_turbo
+Provider: AItianhuSpace
+Error: Install Webdriver packages | pip install -U g4f[webdriver]
+Time taken: 7.55 seconds
+
+Model: gpt_4_turbo
+Provider: Bing
+Error: Model is not supported: gpt_4_turbo in: Bing
+Time taken: 7.55 seconds
+
+Model: gpt_4_turbo
+Provider: HuggingChat
+Error: object ChatCompletion can't be used in 'await' expression
+Time taken: 18.66 seconds
+
+Model: gpt_4_turbo
+Provider: Local
+Error: Install "gpt4all" package | pip install -U g4f[local]
+Time taken: 18.66 seconds
+
+Model: gpt_4_turbo
+Provider: MyShell
+Error: Install Webdriver packages | pip install -U g4f[webdriver]
+Time taken: 23.11 seconds
+
+Model: gpt_4_turbo
+Provider: PerplexityAi
+Error: Install Webdriver packages | pip install -U g4f[webdriver]
+Time taken: 25.14 seconds
+
+Model: gpt_4_turbo
+Provider: Pi
+Error: Install Webdriver packages | pip install -U g4f[webdriver]
+Time taken: 25.13 seconds
+
+Model: gpt_4_turbo
+Provider: Poe
+Error: Model are not supported: gpt_4_turbo
+Time taken: 25.13 seconds
+
+Model: gpt_4_turbo
+Provider: Raycast
+Error: object ChatCompletion can't be used in 'await' expression
+Time taken: 25.13 seconds
+
+Model: gpt_4_turbo
+Provider: Reka
+Error: No cookies found for chat.reka.ai
+Time taken: 23.02 seconds
+
+Model: gpt_4_turbo
+Provider: TalkAi
+Error: Install Webdriver packages | pip install -U g4f[webdriver]
+Time taken: 18.54 seconds
+
+Model: gpt_4_turbo
+Provider: Theb
+Error: Install Webdriver packages | pip install -U g4f[webdriver]
+Time taken: 18.54 seconds
+
+Model: gpt_4_turbo
+Provider: Vercel
+Error: Only base64 data is allowed
+Time taken: 18.54 seconds
+
+Model: gpt_4_turbo
+Provider: You
+Error: Model is not supported: gpt_4_turbo in: You
+Time taken: 22.19 seconds
+
+Model: gpt_4_turbo
+Provider: WhiteRabbitNeo
+Error: Response 401: Unauthorized
+Time taken: 22.86 seconds
+
+Model: gpt_4_turbo
+Provider: ThebApi
+Error: Add a "api_key"
+Time taken: 23.73 seconds
+
+Model: gpt_4_turbo
+Provider: ReplicateHome
+Error: Cannot choose from an empty sequence
+Time taken: 23.73 seconds
+
+Model: gpt_4_turbo
+Provider: Replicate
+Error: api_key is missing
+Time taken: 23.73 seconds
+
+Model: gpt_4_turbo
+Provider: Pizzagpt
+Error: object ChatCompletion can't be used in 'await' expression
+Time taken: 32.15 seconds
+
+Model: gpt_4_turbo
+Provider: PerplexityLabs
+Error: Model is not supported: gpt_4_turbo in: PerplexityLabs
+Time taken: 33.64 seconds
+
+Model: gpt_4_turbo
+Provider: PerplexityApi
+Error: Add a "api_key"
+Time taken: 33.67 seconds
+
+Model: gpt_4_turbo
+Provider: OpenaiChat
+Error: Add a "api_key" or a .har file
+Time taken: 33.67 seconds
+
+Model: gpt_4_turbo
+Provider: OpenaiAccount
+Error: No .har file found
+Time taken: 33.67 seconds
+
+Model: gpt_4_turbo
+Provider: Openai
+Error: Add a "api_key"
+Time taken: 33.68 seconds
+
+Model: gpt_4_turbo
+Provider: OpenRouter
+Error: Add a "api_key"
+Time taken: 33.68 seconds
+
+Model: gpt_4_turbo
+Provider: Ollama
+Error: HTTPConnectionPool(host='127.0.0.1', port=11434): Max retries exceeded with url: /api/tags (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x0000022E41B94170>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))
+Time taken: 33.68 seconds
+
+Model: gpt_4_turbo
+Provider: MetaAIAccount
+Error: object ChatCompletion can't be used in 'await' expression
+Time taken: 33.69 seconds
+
+Model: gpt_4_turbo
+Provider: MetaAI
+Error: object ChatCompletion can't be used in 'await' expression
+Time taken: 37.71 seconds
+
+Model: gpt_4_turbo
+Provider: Liaobots
+Error: 'gpt_4_turbo'
+Time taken: 37.72 seconds
+
+Model: gpt_4_turbo
+Provider: Koala
+Error: object ChatCompletion can't be used in 'await' expression
+Time taken: 37.72 seconds
+
+Model: gpt_4_turbo
+Provider: HuggingFace
+Error: Object of type ClientSession is not JSON serializable
+Time taken: 37.72 seconds
+
+Model: gpt_4_turbo
+Provider: Groq
+Error: Add a "api_key"
+Time taken: 37.72 seconds
+
+Model: gpt_4_turbo
+Provider: GptTalkRu
+Error: Install "selenium-wire" package
+Time taken: 37.72 seconds
+
+Model: gpt_4_turbo
+Provider: GigaChat
+Error: Model is not supported: gpt_4_turbo in: GigaChat
+Time taken: 37.73 seconds
+
+Model: gpt_4_turbo
+Provider: GeminiProChat
+Error: object ChatCompletion can't be used in 'await' expression
+Time taken: 37.78 seconds
+
+Model: gpt_4_turbo
+Provider: GeminiPro
+Error: Model is not supported: gpt_4_turbo in: GeminiPro
+Time taken: 37.79 seconds
+
+Model: gpt_4_turbo
+Provider: Gemini
+Error: time ran out while waiting for div.ql-editor.textarea
+Time taken: 275.81 seconds
+
+Model: gpt_4_turbo
+Provider: FreeGpt
+Error: object ChatCompletion can't be used in 'await' expression
+Time taken: 275.86 seconds
+
+Model: gpt_4_turbo
+Provider: FreeChatgpt
+Error: 503, message='Service Unavailable', url=URL('https://chat.chatgpt.org.uk/api/openai/v1/chat/completions')
+Time taken: 276.10 seconds
+
+Model: gpt_4_turbo
+Provider: FlowGpt
+Error: Model is not supported: gpt_4_turbo in: FlowGpt
+Time taken: 276.25 seconds
+
+Model: gpt_4_turbo
+Provider: DeepInfraImage
+Error: Model is not supported: gpt_4_turbo in: DeepInfraImage
+Time taken: 276.26 seconds
+
+Model: gpt_4_turbo
+Provider: DeepInfra
+Error: Add a "api_key"
+Time taken: 276.27 seconds
+
+Model: gpt_4_turbo
+Provider: DDG
+Error: Model is not supported: gpt_4_turbo in: DDG
+Time taken: 276.28 seconds
+
+Model: gpt_4_turbo
+Provider: ChatgptFree
+Error: object ChatCompletion can't be used in 'await' expression
+Time taken: 276.28 seconds
+
+Model: gpt_4_turbo
+Provider: Chatgpt4o
+Error: object ChatCompletion can't be used in 'await' expression
+Time taken: 276.28 seconds
+
+Model: gpt_4_turbo
+Provider: Chatgpt4Online
+Error: Install Webdriver packages | pip install -U g4f[webdriver]
+Time taken: 276.28 seconds
+
+Model: gpt_4_turbo
+Provider: Blackbox
+Error: object ChatCompletion can't be used in 'await' expression
+Time taken: 276.31 seconds
+
+Model: gpt_4_turbo
+Provider: BingCreateImages
+Error: 
+Time taken: 333.69 seconds
+
+Model: gpt_4_turbo
+Provider: Aura
+Error: Install Webdriver packages | pip install -U g4f[webdriver]
+Time taken: 333.69 seconds
+
+Model: gpt_4_turbo
+Provider: AI365VIP
+Error: 403, message='Forbidden', url=URL('https://chat.ai365vip.com/api/chat')
+Time taken: 335.67 seconds
+
+Model: claude_3_haiku
+Provider: AItianhuSpace
+Error: Install Webdriver packages | pip install -U g4f[webdriver]
+Time taken: 7.02 seconds
+
+Model: claude_3_haiku
+Provider: Bing
+Error: Model is not supported: claude_3_haiku in: Bing
+Time taken: 7.02 seconds
+
+Model: claude_3_haiku
+Provider: HuggingChat
+Error: object ChatCompletion can't be used in 'await' expression
+Time taken: 18.31 seconds
+
+Model: claude_3_haiku
+Provider: Local
+Error: Install "gpt4all" package | pip install -U g4f[local]
+Time taken: 18.31 seconds
+
+Model: claude_3_haiku
+Provider: MyShell
+Error: Install Webdriver packages | pip install -U g4f[webdriver]
+Time taken: 22.93 seconds
+
+Model: claude_3_haiku
+Provider: PerplexityAi
+Error: Install Webdriver packages | pip install -U g4f[webdriver]
+Time taken: 24.95 seconds
+
+Model: claude_3_haiku
+Provider: Pi
+Error: Install Webdriver packages | pip install -U g4f[webdriver]
+Time taken: 24.95 seconds
+
+Model: claude_3_haiku
+Provider: Poe
+Error: Model are not supported: claude_3_haiku
+Time taken: 24.95 seconds
+
+Model: claude_3_haiku
+Provider: Raycast
+Error: object ChatCompletion can't be used in 'await' expression
+Time taken: 24.95 seconds
+
+Model: claude_3_haiku
+Provider: Reka
+Error: No cookies found for chat.reka.ai
+Time taken: 23.77 seconds
+
+Model: claude_3_haiku
+Provider: TalkAi
+Error: Install Webdriver packages | pip install -U g4f[webdriver]
+Time taken: 19.28 seconds
+
+Model: claude_3_haiku
+Provider: Theb
+Error: Install Webdriver packages | pip install -U g4f[webdriver]
+Time taken: 19.29 seconds
+
+Model: claude_3_haiku
+Provider: Vercel
+Error: Only base64 data is allowed
+Time taken: 19.28 seconds
+
+Model: claude_3_haiku
+Provider: You
+Error: Model is not supported: claude_3_haiku in: You
+Time taken: 22.47 seconds
+
+Model: claude_3_haiku
+Provider: WhiteRabbitNeo
+Error: Response 401: Unauthorized
+Time taken: 23.06 seconds
+
+Model: claude_3_haiku
+Provider: ThebApi
+Error: Add a "api_key"
+Time taken: 24.30 seconds
+
+Model: claude_3_haiku
+Provider: ReplicateHome
+Error: Cannot choose from an empty sequence
+Time taken: 24.31 seconds
+
+Model: claude_3_haiku
+Provider: Replicate
+Error: api_key is missing
+Time taken: 24.31 seconds
+
+Model: claude_3_haiku
+Provider: Pizzagpt
+Error: object ChatCompletion can't be used in 'await' expression
+Time taken: 31.09 seconds
+
+Model: claude_3_haiku
+Provider: PerplexityLabs
+Error: Model is not supported: claude_3_haiku in: PerplexityLabs
+Time taken: 33.06 seconds
+
+Model: claude_3_haiku
+Provider: PerplexityApi
+Error: Add a "api_key"
+Time taken: 33.06 seconds
+
+Model: claude_3_haiku
+Provider: OpenaiChat
+Error: Add a "api_key" or a .har file
+Time taken: 33.06 seconds
+
+Model: claude_3_haiku
+Provider: OpenaiAccount
+Error: No .har file found
+Time taken: 33.06 seconds
+
+Model: claude_3_haiku
+Provider: Openai
+Error: Add a "api_key"
+Time taken: 33.06 seconds
+
+Model: claude_3_haiku
+Provider: OpenRouter
+Error: Add a "api_key"
+Time taken: 33.07 seconds
+
+Model: claude_3_haiku
+Provider: Ollama
+Error: HTTPConnectionPool(host='127.0.0.1', port=11434): Max retries exceeded with url: /api/tags (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x00000219664D90D0>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))
+Time taken: 33.07 seconds
+
+Model: claude_3_haiku
+Provider: MetaAIAccount
+Error: object ChatCompletion can't be used in 'await' expression
+Time taken: 33.08 seconds
+
+Model: claude_3_haiku
+Provider: MetaAI
+Error: object ChatCompletion can't be used in 'await' expression
+Time taken: 39.50 seconds
+
+Model: claude_3_haiku
+Provider: Liaobots
+Error: 'claude_3_haiku'
+Time taken: 39.50 seconds
+
+Model: claude_3_haiku
+Provider: Koala
+Error: object ChatCompletion can't be used in 'await' expression
+Time taken: 39.51 seconds
+
+Model: claude_3_haiku
+Provider: HuggingFace
+Error: Object of type ClientSession is not JSON serializable
+Time taken: 39.51 seconds
+
+Model: claude_3_haiku
+Provider: Groq
+Error: Add a "api_key"
+Time taken: 39.51 seconds
+
+Model: claude_3_haiku
+Provider: GptTalkRu
+Error: Install "selenium-wire" package
+Time taken: 39.51 seconds
+
+Model: claude_3_haiku
+Provider: GigaChat
+Error: Model is not supported: claude_3_haiku in: GigaChat
+Time taken: 39.51 seconds
+
+Model: claude_3_haiku
+Provider: GeminiProChat
+Error: object ChatCompletion can't be used in 'await' expression
+Time taken: 39.52 seconds
+
+Model: claude_3_haiku
+Provider: GeminiPro
+Error: Model is not supported: claude_3_haiku in: GeminiPro
+Time taken: 39.52 seconds
+
+Model: claude_3_haiku
+Provider: AItianhuSpace
+Error: Install Webdriver packages | pip install -U g4f[webdriver]
+Time taken: 6.98 seconds
+
+Model: claude_3_haiku
+Provider: Bing
+Error: Model is not supported: claude_3_haiku in: Bing
+Time taken: 6.98 seconds
+
+Model: claude_3_haiku
+Provider: HuggingChat
+Response: 
+Time taken: 18.01 seconds
+
+Model: claude_3_haiku
+Provider: Local
+Error: Install "gpt4all" package | pip install -U g4f[local]
+Time taken: 18.00 seconds
+
+Model: claude_3_haiku
+Provider: MyShell
+Error: Install Webdriver packages | pip install -U g4f[webdriver]
+Time taken: 22.44 seconds
+
+Model: claude_3_haiku
+Provider: PerplexityAi
+Error: Install Webdriver packages | pip install -U g4f[webdriver]
+Time taken: 24.48 seconds
+
+Model: claude_3_haiku
+Provider: Pi
+Error: Install Webdriver packages | pip install -U g4f[webdriver]
+Time taken: 24.48 seconds
+
+Model: claude_3_haiku
+Provider: Poe
+Error: Model are not supported: claude_3_haiku
+Time taken: 24.48 seconds
+
+Model: claude_3_haiku
+Provider: Raycast
+Response: 
+Time taken: 24.48 seconds
+
+Model: claude_3_haiku
+Provider: Reka
+Error: No cookies found for chat.reka.ai
+Time taken: 23.01 seconds
+
+Model: claude_3_haiku
+Provider: TalkAi
+Error: Install Webdriver packages | pip install -U g4f[webdriver]
+Time taken: 18.57 seconds
+
+Model: claude_3_haiku
+Provider: Theb
+Error: Install Webdriver packages | pip install -U g4f[webdriver]
+Time taken: 18.57 seconds
+
+Model: claude_3_haiku
+Provider: Vercel
+Error: Only base64 data is allowed
+Time taken: 18.57 seconds
+
+Model: claude_3_haiku
+Provider: You
+Error: Model is not supported: claude_3_haiku in: You
+Time taken: 22.16 seconds
+
+Model: claude_3_haiku
+Provider: WhiteRabbitNeo
+Error: Response 401: Unauthorized
+Time taken: 22.74 seconds
+
+Model: claude_3_haiku
+Provider: ThebApi
+Error: Add a "api_key"
+Time taken: 23.62 seconds
+
+Model: claude_3_haiku
+Provider: ReplicateHome
+Error: Cannot choose from an empty sequence
+Time taken: 23.62 seconds
+
+Model: claude_3_haiku
+Provider: Replicate
+Error: api_key is missing
+Time taken: 23.63 seconds
+
+Model: claude_3_haiku
+Provider: Pizzagpt
+Response: Hello! I'm just a computer program, so I don't have feelings, but I'm here to help you. How can I assist you today?
+Time taken: 30.54 seconds
+
+Model: claude_3_haiku
+Provider: PerplexityLabs
+Error: Model is not supported: claude_3_haiku in: PerplexityLabs
+Time taken: 33.24 seconds
+
+Model: claude_3_haiku
+Provider: PerplexityApi
+Error: Add a "api_key"
+Time taken: 33.25 seconds
+
+Model: claude_3_haiku
+Provider: OpenaiChat
+Error: Add a "api_key" or a .har file
+Time taken: 33.25 seconds
+
+Model: claude_3_haiku
+Provider: OpenaiAccount
+Error: No .har file found
+Time taken: 33.25 seconds
+
+Model: claude_3_haiku
+Provider: Openai
+Error: Add a "api_key"
+Time taken: 33.25 seconds
+
+Model: claude_3_haiku
+Provider: OpenRouter
+Error: Add a "api_key"
+Time taken: 33.25 seconds
+
+Model: claude_3_haiku
+Provider: Ollama
+Error: HTTPConnectionPool(host='127.0.0.1', port=11434): Max retries exceeded with url: /api/tags (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x0000024C64C59340>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))
+Time taken: 33.25 seconds
+
+Model: claude_3_haiku
+Provider: MetaAIAccount
+Response: 
+Time taken: 33.25 seconds
+
+Model: claude_3_haiku
+Provider: MetaAI
+Response: **Hello!** I'm doing well, thanks for asking. I'm here to help you with any questions or tasks you may have. How about you? How's your day going so far?
+Time taken: 38.71 seconds
+
+Model: claude_3_haiku
+Provider: Liaobots
+Error: 'claude_3_haiku'
+Time taken: 38.72 seconds
+
+Model: claude_3_haiku
+Provider: Koala
+Response: Hello! I'm just a computer program, so I don't have feelings, but I'm here to help you. How can I assist you today?
+Time taken: 38.73 seconds
+
+Model: claude_3_haiku
+Provider: HuggingFace
+Error: Object of type ClientSession is not JSON serializable
+Time taken: 38.73 seconds
+
+Model: claude_3_haiku
+Provider: Groq
+Error: Add a "api_key"
+Time taken: 38.73 seconds
+
+Model: claude_3_haiku
+Provider: GptTalkRu
+Error: Install "selenium-wire" package
+Time taken: 38.74 seconds
+
+Model: claude_3_haiku
+Provider: GigaChat
+Error: Model is not supported: claude_3_haiku in: GigaChat
+Time taken: 38.74 seconds
+
+Model: claude_3_haiku
+Provider: GeminiProChat
+Response: I am doing well, thank you. I am a virtual assistant, and I am here to help you with any tasks that you need assistance with. Is there anything that I can help you with today?
+Time taken: 38.74 seconds
+
+Model: claude_3_haiku
+Provider: GeminiPro
+Error: Model is not supported: claude_3_haiku in: GeminiPro
+Time taken: 38.75 seconds
+
+Model: claude_3_haiku
+Provider: Gemini
+Error: server rejected WebSocket connection: HTTP 500
+Time taken: 50.97 seconds
+
+Model: claude_3_haiku
+Provider: FreeChatgpt
+Error: 503, message='Service Unavailable', url=URL('https://chat.chatgpt.org.uk/api/openai/v1/chat/completions')
+Time taken: 50.99 seconds
+
+Model: claude_3_haiku
+Provider: FlowGpt
+Error: Model is not supported: claude_3_haiku in: FlowGpt
+Time taken: 50.99 seconds
+
+Model: claude_3_haiku
+Provider: DeepInfraImage
+Error: Model is not supported: claude_3_haiku in: DeepInfraImage
+Time taken: 51.00 seconds
+
+Model: claude_3_haiku
+Provider: DeepInfra
+Error: Add a "api_key"
+Time taken: 51.00 seconds
+
+Model: claude_3_haiku
+Provider: DDG
+Error: Model is not supported: claude_3_haiku in: DDG
+Time taken: 51.00 seconds
+
+Model: claude_3_haiku
+Provider: ChatgptFree
+Response: Hello! I am an AI assistant designed to assist you with various tasks. How can I help you today?
+Time taken: 51.00 seconds
+
+Model: claude_3_haiku
+Provider: Chatgpt4o
+Response: Hello! I'm just a bunch of code, so I don't have feelings, but I'm here and ready to help you with anything you need. How can I assist you today?
+Time taken: 51.00 seconds
+
+Model: claude_3_haiku
+Provider: Chatgpt4Online
+Error: Install Webdriver packages | pip install -U g4f[webdriver]
+Time taken: 51.00 seconds
+
+Model: claude_3_haiku
+Provider: Blackbox
+Error: Event loop stopped before Future completed.
+Time taken: 51.00 seconds
+
+Model: claude_3_haiku
+Provider: BingCreateImages
+Response: 
+<!-- generated images start -->
+[![#1 hi, how are you](https://tse1.mm.bing.net/th/id/OIG2.d1lBXWP6Eu1OzjU0hJSQ?w=200&h=200)](https://tse1.mm.bing.net/th/id/OIG2.d1lBXWP6Eu1OzjU0hJSQ)
+[![#2 hi, how are you](https://tse4.mm.bing.net/th/id/OIG2.HPXzKAKtAWNAVwOojPUX?w=200&h=200)](https://tse4.mm.bing.net/th/id/OIG2.HPXzKAKtAWNAVwOojPUX)
+[![#3 hi, how are you](https://tse3.mm.bing.net/th/id/OIG2.SzUnAxOr.fj_FA3wJZ7X?w=200&h=200)](https://tse3.mm.bing.net/th/id/OIG2.SzUnAxOr.fj_FA3wJZ7X)
+[![#4 hi, how are you](https://tse4.mm.bing.net/th/id/OIG2.UOflwk3loD6MOnQnxS1_?w=200&h=200)](https://tse4.mm.bing.net/th/id/OIG2.UOflwk3loD6MOnQnxS1_)
+<!-- generated images end -->
+
+
+Time taken: 51.02 seconds
+
+Model: claude_3_haiku
+Provider: Aura
+Error: Install Webdriver packages | pip install -U g4f[webdriver]
+Time taken: 51.02 seconds
+
+Model: claude_3_haiku
+Provider: AI365VIP
+Error: 403, message='Forbidden', url=URL('https://chat.ai365vip.com/api/chat')
+Time taken: 52.13 seconds
+

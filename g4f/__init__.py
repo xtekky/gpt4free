@@ -10,6 +10,8 @@ from .cookies import get_cookies, set_cookies
 from .providers.types import ProviderType
 from .providers.base_provider import AsyncGeneratorProvider
 from .client.service import get_model_and_provider, get_last_provider
+from .client.check_model import CheckModel
+
 
 class ChatCompletion:
     @staticmethod
