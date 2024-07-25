@@ -10,14 +10,23 @@ from .helper import get_connector
 from ..requests import raise_for_status
 
 models = {
-    "gpt-3.5-turbo": {
-        "id": "gpt-3.5-turbo",
-        "name": "GPT-3.5-Turbo",
+    "gpt-4o-mini-free": {
+        "id": "gpt-4o-mini-free",
+        "name": "GPT-4o-Mini-Free",
         "model": "ChatGPT",
         "provider": "OpenAI",
-        "maxLength": 48000,
-        "tokenLimit": 14000,
-        "context": "16K",
+        "maxLength": 31200,
+        "tokenLimit": 7800,
+        "context": "8K",
+    },
+    "gpt-4o-mini": {
+        "id": "gpt-4o-mini",
+        "name": "GPT-4o-Mini",
+        "model": "ChatGPT",
+        "provider": "OpenAI",
+        "maxLength": 260000,
+        "tokenLimit": 126000,
+        "context": "128K",
     },
     "gpt-4o-free": {
         "context": "8K",
@@ -91,6 +100,15 @@ models = {
         "tokenLimit": 200000,
         "context": "200K",
     },
+    "claude-3-5-sonnet-20240620": {
+        "id": "claude-3-5-sonnet-20240620",
+        "name": "Claude-3.5-Sonnet",
+        "model": "Claude",
+        "provider": "Anthropic",
+        "maxLength": 800000,
+        "tokenLimit": 200000,
+        "context": "200K",
+    },
     "claude-3-haiku-20240307": {
         "id": "claude-3-haiku-20240307",
         "name": "Claude-3-Haiku",
@@ -155,10 +173,21 @@ class Liaobots(AsyncGeneratorProvider, ProviderModelMixin):
     supports_system_message = True
     supports_gpt_35_turbo = True
     supports_gpt_4 = True
-    default_model = "gpt-3.5-turbo"
+    default_model = "gpt-4o"
     models = list(models.keys())
     model_aliases = {
-        "claude-v2": "claude-2.0"
+        "gpt-4o-mini": "gpt-4o-mini-free",
+        "gpt-4o": "gpt-4o-free",
+        "claude-3-opus": "claude-3-opus-20240229",
+        "claude-3-opus": "claude-3-opus-20240229-aws",
+        "claude-3-opus": "claude-3-opus-20240229-gcp",
+        "claude-3-sonnet": "claude-3-sonnet-20240229",
+        "claude-3-5-sonnet": "claude-3-5-sonnet-20240620",
+        "claude-3-haiku": "claude-3-haiku-20240307",
+        "gpt-4-turbo": "gpt-4-turbo-2024-04-09",
+        "gemini-pro": "gemini-1.5-pro-latest",
+        "gemini-pro": "gemini-1.0-pro-latest",
+        "gemini-flash": "gemini-1.5-flash-latest",
     }
     _auth_code = ""
     _cookie_jar = None

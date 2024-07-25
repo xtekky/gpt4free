@@ -11,10 +11,12 @@ from .selenium        import *
 from .needs_auth      import *
 
 from .AI365VIP         import AI365VIP
+from .Allyfy           import Allyfy
 from .Aura             import Aura
 from .Bing             import Bing
 from .BingCreateImages import BingCreateImages
 from .Blackbox         import Blackbox
+from .ChatGot          import ChatGot
 from .Chatgpt4o        import Chatgpt4o
 from .Chatgpt4Online   import Chatgpt4Online
 from .ChatgptFree      import ChatgptFree

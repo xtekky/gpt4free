@@ -61,7 +61,7 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
     supports_system_message = True
     default_model = None
     default_vision_model = "gpt-4o"
-    models = ["gpt-3.5-turbo", "gpt-4", "gpt-4-gizmo", "gpt-4o", "auto"]
+    models = ["gpt-3.5-turbo", "gpt-4", "gpt-4-gizmo", "gpt-4o", "gpt-4o-mini", "auto"]
     model_aliases = {
         "text-davinci-002-render-sha": "gpt-3.5-turbo",
         "": "gpt-3.5-turbo",

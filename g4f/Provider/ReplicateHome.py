@@ -14,40 +14,46 @@ class ReplicateHome(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://replicate.com"
     parent = "Replicate"
     working = True
-    default_model = 'stability-ai/sdxl'
+    default_model = 'stability-ai/stable-diffusion-3'
     models = [
-		# image
-        'stability-ai/sdxl',
-        'ai-forever/kandinsky-2.2',
+		# Models for image generation
+        'stability-ai/stable-diffusion-3',
+        'bytedance/sdxl-lightning-4step',
+        'playgroundai/playground-v2.5-1024px-aesthetic',
         
-        # text
-        'meta/llama-2-70b-chat',
-        'mistralai/mistral-7b-instruct-v0.2'
+        # Models for image generation
+        'meta/meta-llama-3-70b-instruct',
+        'mistralai/mixtral-8x7b-instruct-v0.1',
+        'google-deepmind/gemma-2b-it',
     ]
 
     versions = {
-		# image
-        'stability-ai/sdxl': [
-            "39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b",
-            "2b017d9b67edd2ee1401238df49d75da53c523f36e363881e057f5dc3ed3c5b2",
-            "7762fd07cf82c948538e41f63f77d685e02b063e37e496e96eefd46c929f9bdc"
+		# Model versions for generating images
+        'stability-ai/stable-diffusion-3': [
+            "527d2a6296facb8e47ba1eaf17f142c240c19a30894f437feee9b91cc29d8e4f"
         ],
-        'ai-forever/kandinsky-2.2': [
-            "ad9d7879fbffa2874e1d909d1d37d9bc682889cc65b31f7bb00d2362619f194a"
+        'bytedance/sdxl-lightning-4step': [
+            "5f24084160c9089501c1b3545d9be3c27883ae2239b6f412990e82d4a6210f8f"
         ],
-
+        'playgroundai/playground-v2.5-1024px-aesthetic': [
+            "a45f82a1382bed5c7aeb861dac7c7d191b0fdf74d8d57c4a0e6ed7d4d0bf7d24"
+        ],
         
-        # Text
-        'meta/llama-2-70b-chat': [
-            "dp-542693885b1777c98ef8c5a98f2005e7"
+        
+        # Model versions for text generation
+        'meta/meta-llama-3-70b-instruct': [
+            "dp-cf04fe09351e25db628e8b6181276547"
         ],
-        'mistralai/mistral-7b-instruct-v0.2': [
+        'mistralai/mixtral-8x7b-instruct-v0.1': [
             "dp-89e00f489d498885048e94f9809fbc76"
+        ],
+        'google-deepmind/gemma-2b-it': [
+            "dff94eaf770e1fc211e425a50b51baa8e4cac6c39ef074681f9e39d778773626"
         ]
     }
 
-    image_models = {"stability-ai/sdxl", "ai-forever/kandinsky-2.2"}
-    text_models = {"meta/llama-2-70b-chat", "mistralai/mistral-7b-instruct-v0.2"}
+    image_models = {"stability-ai/stable-diffusion-3", "bytedance/sdxl-lightning-4step", "playgroundai/playground-v2.5-1024px-aesthetic"}
+    text_models = {"meta/meta-llama-3-70b-instruct", "mistralai/mixtral-8x7b-instruct-v0.1", "google-deepmind/gemma-2b-it"}
 
     @classmethod
     async def create_async_generator(

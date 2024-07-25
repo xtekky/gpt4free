@@ -11,6 +11,7 @@ class Pi(AbstractProvider):
     working         = True
     supports_stream = True
     _session = None
+    default_model = "pi"
 
     @classmethod
     def create_completion(

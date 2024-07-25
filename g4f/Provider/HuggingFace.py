@@ -14,16 +14,17 @@ class HuggingFace(AsyncGeneratorProvider, ProviderModelMixin):
     working = True
     needs_auth = True
     supports_message_history = True
+    default_model = "mistralai/Mixtral-8x7B-Instruct-v0.1"
     models = [
+        'meta-llama/Meta-Llama-3.1-70B-Instruct',
+        'meta-llama/Meta-Llama-3.1-405B-Instruct-FP8',
         'CohereForAI/c4ai-command-r-plus',
-        'meta-llama/Meta-Llama-3-70B-Instruct',
         'mistralai/Mixtral-8x7B-Instruct-v0.1',
         'NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO',
         '01-ai/Yi-1.5-34B-Chat',
         'mistralai/Mistral-7B-Instruct-v0.2',
         'microsoft/Phi-3-mini-4k-instruct',
     ]
-    default_model = "mistralai/Mixtral-8x7B-Instruct-v0.1"
 
     @classmethod
     async def create_async_generator(

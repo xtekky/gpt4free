@@ -16,6 +16,7 @@ class Openai(AsyncGeneratorProvider, ProviderModelMixin):
     needs_auth = True
     supports_message_history = True
     supports_system_message = True
+    default_model = ""
 
     @classmethod
     async def create_async_generator(
