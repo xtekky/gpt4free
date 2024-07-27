@@ -161,9 +161,7 @@ gpt_4_32k_0613 = Model(
 gpt_4_turbo = Model(
     name          = 'gpt-4-turbo',
     base_provider = 'openai',
-    best_provider = IterListProvider([
-        Bing, Liaobots
-    ])
+    best_provider = Bing
 )
 
 gpt_4o = Model(
