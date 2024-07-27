@@ -80,7 +80,6 @@ gpt_35_long = Model(
     best_provider = IterListProvider([
         FreeGpt,
         You,
-        OpenaiChat,
         Koala,
         ChatgptFree,
         FreeChatgpt,
@@ -105,7 +104,6 @@ gpt_35_turbo = Model(
         FreeGpt,
         You,
         Koala,
-        OpenaiChat,
         ChatgptFree,
         FreeChatgpt,
         DDG,
