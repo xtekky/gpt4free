@@ -6,37 +6,37 @@ from .Provider import IterListProvider, ProviderType
 from .Provider import (
     AI365VIP,
     Allyfy,
-	Bing,
-	Blackbox,
-	ChatGot,
-	Chatgpt4o,
-	Chatgpt4Online,
-	ChatgptFree,
-	DDG,
-	DeepInfra,
-	DeepInfraImage,
-	FreeChatgpt,
-	FreeGpt,
-	Gemini,
-	GeminiPro,
-	GeminiProChat,
-	GigaChat,
-	HuggingChat,
-	HuggingFace,
-	Koala,
-	Liaobots,
-	Marsyoo,
-	MetaAI,
-	OpenaiChat,
-	PerplexityLabs,
-	Pi,
-	Pizzagpt,
-	Reka,
-	Replicate,
-	ReplicateHome,
-	Vercel,
-	You,
+    Bing,
+    Blackbox,
+    ChatGot,
+    Chatgpt4o,
+    Chatgpt4Online,
+    ChatgptFree,
+    DDG,
+    DeepInfra,
+    DeepInfraImage,
+    FreeChatgpt,
+    FreeGpt,
+    Gemini,
+    GeminiPro,
+    GeminiProChat,
+    GigaChat,
+    HuggingChat,
+    HuggingFace,
+    Koala,
+    Liaobots,
+    Marsyoo,
+    MetaAI,
+    OpenaiChat,
+    PerplexityLabs,
+    Pi,
+    Pizzagpt,
+    Reka,
+    Replicate,
+    ReplicateHome,
+    You,
 )
+
 
 @dataclass(unsafe_hash=True)
 class Model:
@@ -198,16 +198,28 @@ meta = Model(
     best_provider = MetaAI
 )
 
-llama3_8b_instruct = Model(
+llama_3_8b_instruct = Model(
     name          = "meta-llama/Meta-Llama-3-8B-Instruct",
     base_provider = "meta",
     best_provider = IterListProvider([DeepInfra, PerplexityLabs, Replicate])
 )
 
-llama3_70b_instruct = Model(
+llama_3_70b_instruct = Model(
     name          = "meta-llama/Meta-Llama-3-70B-Instruct",
     base_provider = "meta",
-    best_provider = IterListProvider([DeepInfra, PerplexityLabs, Replicate, DDG, ReplicateHome])
+    best_provider = IterListProvider([DeepInfra, PerplexityLabs, Replicate])
+)
+
+llama3_70b_instruct = Model(
+    name          = "meta/meta-llama-3-70b-instruct",
+    base_provider = "meta",
+    best_provider = IterListProvider([ReplicateHome])
+)
+
+llama_3_70b_chat_hf = Model(
+    name          = "meta-llama/Llama-3-70b-chat-hf",
+    base_provider = "meta",
+    best_provider = IterListProvider([DDG])
 )
 
 llama_3_1_70b_Instruct = Model(
@@ -220,18 +232,6 @@ llama_3_1_405b_Instruct_FP8 = Model(
     name          = "meta-llama/Meta-Llama-3.1-405B-Instruct-FP8",
     base_provider = "meta",
     best_provider = IterListProvider([HuggingChat, HuggingFace])
-)
-
-codellama_34b_instruct = Model(
-    name          = "codellama/CodeLlama-34b-Instruct-hf",
-    base_provider = "meta",
-    best_provider = HuggingChat
-)
-
-codellama_70b_instruct = Model(
-    name          = "codellama/CodeLlama-70b-Instruct-hf",
-    base_provider = "meta",
-    best_provider = IterListProvider([DeepInfra])
 )
 
 
@@ -499,150 +499,116 @@ class ModelUtils:
     """
     convert: dict[str, Model] = {
     
-############
-### Text ###
-############
-		
-	### OpenAI ###
-	### GPT-3.5 / GPT-4 ###
-    # gpt-3.5
-    'gpt-3.5-turbo'          : gpt_35_turbo,
-    'gpt-3.5-turbo-0613'     : gpt_35_turbo_0613,
-    'gpt-3.5-turbo-16k'      : gpt_35_turbo_16k,
-    'gpt-3.5-turbo-16k-0613' : gpt_35_turbo_16k_0613,
-    'gpt-3.5-long': gpt_35_long,
+        ############
+        ### Text ###
+        ############
+        
+        ### OpenAI ###
+        ### GPT-3.5 / GPT-4 ###
+        # gpt-3.5
+        'gpt-3.5-turbo': gpt_35_turbo,
+        'gpt-3.5-long': gpt_35_long,
 
-    # gpt-4
-    'gpt-4o'         : gpt_4o,
-    'gpt-4o-mini'    : gpt_4o_mini,
-    'gpt-4'          : gpt_4,
-    'gpt-4-0613'     : gpt_4_0613,
-    'gpt-4-32k'      : gpt_4_32k,
-    'gpt-4-32k-0613' : gpt_4_32k_0613,
-    'gpt-4-turbo'    : gpt_4_turbo,
-		
-		
-	### Meta ###
-    "meta-ai": meta,
+        # gpt-4
+        'gpt-4o'         : gpt_4o,
+        'gpt-4o-mini'    : gpt_4o_mini,
+        'gpt-4'          : gpt_4,
+        'gpt-4-turbo'    : gpt_4_turbo,
         
-    'llama3-8b': llama3_8b_instruct, # alias
-    'llama3-70b': llama3_70b_instruct, # alias
-    'llama3-8b-instruct' : llama3_8b_instruct,
-    'llama3-70b-instruct': llama3_70b_instruct,
-    'llama-3.1-70b-Instruct': llama_3_1_70b_Instruct,
-    'llama-3.1-405B-Instruct-FP8': llama_3_1_405b_Instruct_FP8,
+        ### Meta ###
+        "meta-ai": meta,
         
+        'llama-3-8b': llama_3_8b_instruct,
+        'llama-3-70b': llama_3_70b_instruct,
+        'llama-3-70b-chat': llama_3_70b_chat_hf, 
+        'llama-3-70b-instruct': llama3_70b_instruct, 
+        'llama-3.1-70b': llama_3_1_70b_Instruct,
+        'llama-3.1-405b': llama_3_1_405b_Instruct_FP8,
+        
+        ### Mistral (Opensource) ###
+        'mixtral-8x7b': mixtral_8x7b,
+        'mistral-7b-v02': mistral_7b_v02,
+        
+        ### NousResearch ###
+        'Nous-Hermes-2-Mixtral-8x7B-DPO': Nous_Hermes_2_Mixtral_8x7B_DPO,
 
-    'codellama-34b-instruct': codellama_34b_instruct,
-    'codellama-70b-instruct': codellama_70b_instruct,
+        ### 01-ai ###
+        'Yi-1.5-34b': Yi_1_5_34B_Chat,
+        
+        ### Microsoft ###
+        'Phi-3-mini-4k': Phi_3_mini_4k_instruct,
 
+        ### Google ###
+        # gemini
+        'gemini': gemini,
+        'gemini-pro': gemini_pro,
+        'gemini-flash': gemini_flash,
+        
+        # gemma
+        'gemma-2b': gemma_2b_it,
+        'gemma-2-9b': gemma_2_9b_it,
+        'gemma-2-27b': gemma_2_27b_it,
 
-    ### Mistral (Opensource) ###
-    'mixtral-8x7b': mixtral_8x7b,
-    'mistral-7b-v02': mistral_7b_v02,
-        
-        
-    ### NousResearch ###
-	'Nous-Hermes-2-Mixtral-8x7B-DPO': Nous_Hermes_2_Mixtral_8x7B_DPO,
+        ### Anthropic ###
+        'claude-2': claude_2,
+        'claude-2.0': claude_2_0,
+        'claude-2.1': claude_2_1,
+        'claude-3-opus': claude_3_opus,
+        'claude-3-sonnet': claude_3_sonnet,
+        'claude-3-5-sonnet': claude_3_5_sonnet,
+        'claude-3-haiku': claude_3_haiku,
 
+        ### Reka AI ###
+        'reka': reka_core,
 
-	### 01-ai ###
-	'Yi-1.5-34B-Chat': Yi_1_5_34B_Chat,
-		
-		
-	### Microsoft ###
-	'Phi-3-mini-4k-instruct': Phi_3_mini_4k_instruct,
+        ### NVIDIA ###
+        'nemotron-4-340b': nemotron_4_340b_instruct,
+        
+        ### Blackbox ###
+        'blackbox': blackbox,
+        
+        ### CohereForAI ###
+        'command-r+': command_r_plus,
+        
+        ### Databricks ###
+        'dbrx-instruct': dbrx_instruct,
 
-
-    ### Google ###
-    # gemini
-    'gemini': gemini,
-    'gemini-pro': gemini_pro,
-    'gemini-flash': gemini_flash,
-       
-    # gemma
-    'gemma-2b-it': gemma_2b_it,
-    'gemma-2-9b-it': gemma_2_9b_it,
-    'gemma-2-27b-it': gemma_2_27b_it,
-
-
-    ### Anthropic ###
-    'claude-2': claude_2,
-    'claude-2.0': claude_2_0,
-    'claude-2.1': claude_2_1,
-    'claude-3-opus': claude_3_opus,
-    'claude-3-sonnet': claude_3_sonnet,
-    'claude-3-5-sonnet': claude_3_5_sonnet,
-    'claude-3-haiku': claude_3_haiku,
-
-
-    ### Reka AI ###
-    'reka': reka_core,
-
-
-    ### NVIDIA ###
-    'nemotron-4-340b-instruct': nemotron_4_340b_instruct,
-	
-		
-	### Blackbox ###
-	'blackbox': blackbox,
-		
-		
-	### CohereForAI ###
-    'command-r+': command_r_plus,
+        ### GigaChat ###
+        'gigachat': gigachat,
         
+        ### iFlytek ###
+        'SparkDesk-v1.1': SparkDesk_v1_1,
         
-    ### Databricks ###
-    'dbrx-instruct': dbrx_instruct,
-
-
-	### GigaChat ###
-    'gigachat': gigachat,
+        ### DeepSeek ###
+        'deepseek-coder': deepseek_coder,
+        'deepseek-chat': deepseek_chat,
         
+        ### Qwen ###
+        'Qwen2-7b': Qwen2_7B_Instruct,
         
-	### iFlytek ###
-    'SparkDesk-v1.1': SparkDesk_v1_1,
+        ### Zhipu AI ###
+        'glm4-9b': glm4_9B_chat,
+        'chatglm3-6b': chatglm3_6B,
         
+        ### 01-ai ###
+        'Yi-1.5-9b': Yi_1_5_9B_Chat,
         
-	### DeepSeek ###
-    'deepseek-coder': deepseek_coder,
-    'deepseek-chat': deepseek_chat,
+        # Other
+        'pi': pi,
         
+        #############
+        ### Image ###
+        #############
         
-    ### ### Qwen ### ###
-    'Qwen2-7B-Instruct': Qwen2_7B_Instruct,
+        ### Stability AI ###
+        'sdxl': sdxl,
+        'stable-diffusion-3': stable_diffusion_3,
         
+        ### ByteDance ###
+        'sdxl-lightning': sdxl_lightning_4step,
         
-    ### Zhipu AI ###
-    'glm4-9B-chat': glm4_9B_chat,
-    'chatglm3-6B': chatglm3_6B,
-        
-        
-    ### 01-ai ###
-    'Yi-1.5-9B-Chat': Yi_1_5_9B_Chat,
-        
-        
-    # Other
-    'pi': pi,     
-       
-        
-        
-#############
-### Image ###
-#############
-		
-	### Stability AI ###
-    'sdxl': sdxl,
-    'stable-diffusion-3': stable_diffusion_3,
-        
-	### ByteDance ###
-    'sdxl-lightning-4step': sdxl_lightning_4step,
-        
-	### ByteDance ###
-    'sdxl-lightning-4step': sdxl_lightning_4step,
-        
-	### Playground ###
-    'playground-v2.5-1024px-aesthetic': playground_v2_5_1024px_aesthetic,
+        ### Playground ###
+        'playground-v2.5': playground_v2_5_1024px_aesthetic,
 
     }
 
