@@ -37,6 +37,7 @@ from .Koala            import Koala
 from .Liaobots         import Liaobots
 from .Llama            import Llama
 from .Local            import Local
+from .Marsyoo          import Marsyoo
 from .MetaAI           import MetaAI
 from .MetaAIAccount    import MetaAIAccount
 from .Ollama           import Ollama

@@ -25,6 +25,7 @@ from .Provider import (
 	HuggingFace,
 	Koala,
 	Liaobots,
+	Marsyoo,
 	MetaAI,
 	OpenaiChat,
 	PerplexityLabs,
@@ -169,7 +170,7 @@ gpt_4o = Model(
     name          = 'gpt-4o',
     base_provider = 'openai',
     best_provider = IterListProvider([
-        You, Liaobots, Chatgpt4o, AI365VIP, OpenaiChat
+        You, Liaobots, Chatgpt4o, AI365VIP, OpenaiChat, Marsyoo
     ])
 )
 
