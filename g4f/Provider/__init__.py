@@ -27,6 +27,7 @@ from .DeepInfraImage   import DeepInfraImage
 from .FlowGpt          import FlowGpt
 from .FreeChatgpt      import FreeChatgpt
 from .FreeGpt          import FreeGpt
+from .FreeNetfly       import FreeNetfly
 from .GeminiPro        import GeminiPro
 from .GeminiProChat    import GeminiProChat
 from .GigaChat         import GigaChat

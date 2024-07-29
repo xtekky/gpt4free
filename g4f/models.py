@@ -17,6 +17,7 @@ from .Provider import (
     DeepInfraImage,
     FreeChatgpt,
     FreeGpt,
+    FreeNetfly,
     Gemini,
     GeminiPro,
     GeminiProChat,
@@ -143,7 +144,7 @@ gpt_4o_mini = Model(
     name          = 'gpt-4o-mini',
     base_provider = 'openai',
     best_provider = IterListProvider([
-        Liaobots, OpenaiChat, You,
+        Liaobots, OpenaiChat, You, FreeNetfly
     ])
 )
 
