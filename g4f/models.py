@@ -25,6 +25,7 @@ from .Provider import (
     HuggingFace,
     Koala,
     Liaobots,
+    LiteIcoding,
     Marsyoo,
     MetaAI,
     OpenaiChat,
@@ -114,24 +115,6 @@ gpt_35_turbo = Model(
     ])
 )
 
-gpt_35_turbo_16k = Model(
-    name          = 'gpt-3.5-turbo-16k',
-    base_provider = 'openai',
-    best_provider = gpt_35_long.best_provider
-)
-
-gpt_35_turbo_16k_0613 = Model(
-    name          = 'gpt-3.5-turbo-16k-0613',
-    base_provider = 'openai',
-    best_provider = gpt_35_long.best_provider
-)
-
-gpt_35_turbo_0613 = Model(
-    name          = 'gpt-3.5-turbo-0613',
-    base_provider = 'openai',
-    best_provider = gpt_35_turbo.best_provider
-)
-
 # gpt-4
 gpt_4 = Model(
     name          = 'gpt-4',
@@ -141,36 +124,18 @@ gpt_4 = Model(
     ])
 )
 
-gpt_4_0613 = Model(
-    name          = 'gpt-4-0613',
-    base_provider = 'openai',
-    best_provider = gpt_4.best_provider
-)
-
-gpt_4_32k = Model(
-    name          = 'gpt-4-32k',
-    base_provider = 'openai',
-    best_provider = gpt_4.best_provider
-)
-
-gpt_4_32k_0613 = Model(
-    name          = 'gpt-4-32k-0613',
-    base_provider = 'openai',
-    best_provider = gpt_4.best_provider
-)
-
 gpt_4_turbo = Model(
     name          = 'gpt-4-turbo',
     base_provider = 'openai',
     best_provider = IterListProvider([
-        Bing, Liaobots
+        Bing, Liaobots, LiteIcoding
     ])
 )
 gpt_4o = Model(
     name          = 'gpt-4o',
     base_provider = 'openai',
     best_provider = IterListProvider([
-        You, Liaobots, Chatgpt4o, AI365VIP, OpenaiChat, Marsyoo
+        You, Liaobots, Chatgpt4o, AI365VIP, OpenaiChat, Marsyoo, LiteIcoding
     ])
 )
 
@@ -210,7 +175,7 @@ llama_3_70b_instruct = Model(
     best_provider = IterListProvider([DeepInfra, PerplexityLabs, Replicate])
 )
 
-llama3_70b_instruct = Model(
+llama_3_70b_instruct = Model(
     name          = "meta/meta-llama-3-70b-instruct",
     base_provider = "meta",
     best_provider = IterListProvider([ReplicateHome])
@@ -222,13 +187,13 @@ llama_3_70b_chat_hf = Model(
     best_provider = IterListProvider([DDG])
 )
 
-llama_3_1_70b_Instruct = Model(
+llama_3_1_70b_instruct = Model(
     name          = "meta-llama/Meta-Llama-3.1-70B-Instruct",
     base_provider = "meta",
     best_provider = IterListProvider([HuggingChat, HuggingFace])
 )
 
-llama_3_1_405b_Instruct_FP8 = Model(
+llama_3_1_405b_instruct_FP8 = Model(
     name          = "meta-llama/Meta-Llama-3.1-405B-Instruct-FP8",
     base_provider = "meta",
     best_provider = IterListProvider([HuggingChat, HuggingFace])
@@ -258,7 +223,7 @@ Nous_Hermes_2_Mixtral_8x7B_DPO = Model(
 
 
 ### 01-ai ###
-Yi_1_5_34B_Chat = Model(
+Yi_1_5_34B_chat = Model(
     name          = "01-ai/Yi-1.5-34B-Chat",
     base_provider = "01-ai",
     best_provider = IterListProvider([HuggingFace, HuggingChat])
@@ -284,13 +249,19 @@ gemini = Model(
 gemini_pro = Model(
     name          = 'gemini-pro',
     base_provider = 'Google',
-    best_provider = IterListProvider([GeminiPro, You, ChatGot, GeminiProChat, Liaobots])
+    best_provider = IterListProvider([GeminiPro, You, ChatGot, GeminiProChat, Liaobots, LiteIcoding])
 )
 
 gemini_flash = Model(
     name          = 'gemini-flash',
     base_provider = 'Google',
     best_provider = IterListProvider([Liaobots])
+)
+
+gemini_1_5 = Model(
+    name          = 'gemini-1.5',
+    base_provider = 'Google',
+    best_provider = IterListProvider([LiteIcoding])
 )
 
 # gemma
@@ -354,6 +325,18 @@ claude_3_haiku = Model(
     name          = 'claude-3-haiku',
     base_provider = 'Anthropic',
     best_provider = IterListProvider([DDG, AI365VIP, Liaobots])
+)
+
+claude_3 = Model(
+    name          = 'claude-3',
+    base_provider = 'Anthropic',
+    best_provider = IterListProvider([LiteIcoding])
+)
+
+claude_3_5 = Model(
+    name          = 'claude-3.5',
+    base_provider = 'Anthropic',
+    best_provider = IterListProvider([LiteIcoding])
 )
 
 
@@ -420,7 +403,7 @@ deepseek_chat = Model(
 
 
 ### Qwen ###
-Qwen2_7B_Instruct = Model(
+Qwen2_7B_instruct = Model(
     name = 'Qwen2-7B-Instruct',
     base_provider = 'Qwen',
     best_provider = IterListProvider([FreeChatgpt])
@@ -442,7 +425,7 @@ chatglm3_6B = Model(
 
 
 ### 01-ai ###
-Yi_1_5_9B_Chat = Model(
+Yi_1_5_9B_chat = Model(
     name = 'Yi-1.5-9B-Chat',
     base_provider = '01-ai',
     best_provider = IterListProvider([FreeChatgpt])
@@ -518,12 +501,12 @@ class ModelUtils:
         ### Meta ###
         "meta-ai": meta,
         
-        'llama-3-8b': llama_3_8b_instruct,
-        'llama-3-70b': llama_3_70b_instruct,
+        'llama-3-8b-instruct': llama_3_8b_instruct,
+        'llama-3-70b-instruct': llama_3_70b_instruct,
         'llama-3-70b-chat': llama_3_70b_chat_hf, 
-        'llama-3-70b-instruct': llama3_70b_instruct, 
-        'llama-3.1-70b': llama_3_1_70b_Instruct,
-        'llama-3.1-405b': llama_3_1_405b_Instruct_FP8,
+        'llama-3-70b-instruct': llama_3_70b_instruct, 
+        'llama-3.1-70b-instruct': llama_3_1_70b_instruct,
+        'llama-3.1-405b-instruct': llama_3_1_405b_instruct_FP8,
         
         ### Mistral (Opensource) ###
         'mixtral-8x7b': mixtral_8x7b,
@@ -533,15 +516,16 @@ class ModelUtils:
         'Nous-Hermes-2-Mixtral-8x7B-DPO': Nous_Hermes_2_Mixtral_8x7B_DPO,
 
         ### 01-ai ###
-        'Yi-1.5-34b': Yi_1_5_34B_Chat,
+        'Yi-1.5-34b-chat': Yi_1_5_34B_chat,
         
         ### Microsoft ###
-        'Phi-3-mini-4k': Phi_3_mini_4k_instruct,
+        'Phi-3-mini-4k-instruct': Phi_3_mini_4k_instruct,
 
         ### Google ###
         # gemini
         'gemini': gemini,
         'gemini-pro': gemini_pro,
+        'gemini-pro': gemini_1_5,
         'gemini-flash': gemini_flash,
         
         # gemma
@@ -553,16 +537,22 @@ class ModelUtils:
         'claude-2': claude_2,
         'claude-2.0': claude_2_0,
         'claude-2.1': claude_2_1,
+        
         'claude-3-opus': claude_3_opus,
         'claude-3-sonnet': claude_3_sonnet,
         'claude-3-5-sonnet': claude_3_5_sonnet,
         'claude-3-haiku': claude_3_haiku,
+        
+        'claude-3-opus': claude_3,
+        'claude-3-5-sonnet': claude_3_5,
+        
+        
 
         ### Reka AI ###
         'reka': reka_core,
 
         ### NVIDIA ###
-        'nemotron-4-340b': nemotron_4_340b_instruct,
+        'nemotron-4-340b-instruct': nemotron_4_340b_instruct,
         
         ### Blackbox ###
         'blackbox': blackbox,
@@ -584,14 +574,14 @@ class ModelUtils:
         'deepseek-chat': deepseek_chat,
         
         ### Qwen ###
-        'Qwen2-7b': Qwen2_7B_Instruct,
+        'Qwen2-7b-instruct': Qwen2_7B_instruct,
         
         ### Zhipu AI ###
-        'glm4-9b': glm4_9B_chat,
+        'glm4-9b-chat': glm4_9B_chat,
         'chatglm3-6b': chatglm3_6B,
         
         ### 01-ai ###
-        'Yi-1.5-9b': Yi_1_5_9B_Chat,
+        'Yi-1.5-9b-chat': Yi_1_5_9B_chat,
         
         # Other
         'pi': pi,
