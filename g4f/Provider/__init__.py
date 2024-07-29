@@ -33,8 +33,10 @@ from .GigaChat         import GigaChat
 from .GptTalkRu        import GptTalkRu
 from .HuggingChat      import HuggingChat
 from .HuggingFace      import HuggingFace
+from .HuggingFace      import HuggingFace
 from .Koala            import Koala
 from .Liaobots         import Liaobots
+from .LiteIcoding      import LiteIcoding
 from .Llama            import Llama
 from .Local            import Local
 from .Marsyoo          import Marsyoo
