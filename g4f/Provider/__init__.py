@@ -40,6 +40,8 @@ from .Liaobots         import Liaobots
 from .LiteIcoding      import LiteIcoding
 from .Llama            import Llama
 from .Local            import Local
+from .MagickPenAsk     import MagickPenAsk
+from .MagickPenChat    import MagickPenChat
 from .Marsyoo          import Marsyoo
 from .MetaAI           import MetaAI
 from .MetaAIAccount    import MetaAIAccount
@@ -50,6 +52,7 @@ from .Pizzagpt         import Pizzagpt
 from .Reka             import Reka
 from .Replicate        import Replicate
 from .ReplicateHome    import ReplicateHome
+from .TeachAnything    import TeachAnything
 from .Vercel           import Vercel
 from .WhiteRabbitNeo   import WhiteRabbitNeo
 from .You              import You

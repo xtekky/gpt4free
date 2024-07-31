@@ -27,6 +27,8 @@ from .Provider import (
     Koala,
     Liaobots,
     LiteIcoding,
+    MagickPenAsk,
+    MagickPenChat,
     Marsyoo,
     MetaAI,
     OpenaiChat,
@@ -36,6 +38,7 @@ from .Provider import (
     Reka,
     Replicate,
     ReplicateHome,
+    TeachAnything,
     You,
 )
 
@@ -109,7 +112,6 @@ gpt_35_turbo = Model(
         Koala,
         ChatgptFree,
         FreeChatgpt,
-        DDG,
         AI365VIP,
         Pizzagpt,
         Allyfy,
@@ -136,7 +138,7 @@ gpt_4o = Model(
     name          = 'gpt-4o',
     base_provider = 'openai',
     best_provider = IterListProvider([
-        You, Liaobots, Chatgpt4o, AI365VIP, OpenaiChat, Marsyoo, LiteIcoding
+        You, Liaobots, Chatgpt4o, AI365VIP, OpenaiChat, Marsyoo, LiteIcoding, MagickPenAsk,
     ])
 )
 
@@ -144,7 +146,7 @@ gpt_4o_mini = Model(
     name          = 'gpt-4o-mini',
     base_provider = 'openai',
     best_provider = IterListProvider([
-        Liaobots, OpenaiChat, You, FreeNetfly
+        DDG, Liaobots, OpenaiChat, You, FreeNetfly, MagickPenChat,
     ])
 )
 
@@ -179,7 +181,7 @@ llama_3_70b_instruct = Model(
 llama_3_70b_instruct = Model(
     name          = "meta/meta-llama-3-70b-instruct",
     base_provider = "meta",
-    best_provider = IterListProvider([ReplicateHome])
+    best_provider = IterListProvider([ReplicateHome, TeachAnything])
 )
 
 llama_3_70b_chat_hf = Model(
