@@ -20,11 +20,10 @@ class DDG(AsyncGeneratorProvider, ProviderModelMixin):
 
     # default_model = "gpt-3.5-turbo-0125"
     default_model = "gpt-4o-mini"
-    models = ["gpt-4o-mini" ,"gpt-3.5-turbo-0125", "claude-3-haiku-20240307", "meta-llama/Llama-3-70b-chat-hf", "mistralai/Mixtral-8x7B-Instruct-v0.1"]
+    models = ["gpt-4o-mini", "claude-3-haiku-20240307", "meta-llama/Llama-3-70b-chat-hf", "mistralai/Mixtral-8x7B-Instruct-v0.1"]
     model_aliases = {
         "gpt-4": "gpt-4o-mini",
         "gpt-4o": "gpt-4o-mini",
-        "gpt-3.5-turbo": "gpt-3.5-turbo-0125",
         "claude-3-haiku": "claude-3-haiku-20240307",
         "llama-3-70b": "meta-llama/Llama-3-70b-chat-hf",
         "mixtral-8x7B": "mistralai/Mixtral-8x7B-Instruct-v0.1"
