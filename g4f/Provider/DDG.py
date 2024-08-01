@@ -18,10 +18,12 @@ class DDG(AsyncGeneratorProvider, ProviderModelMixin):
     supports_gpt_35_turbo = True
     supports_message_history = True
 
-    default_model = "gpt-3.5-turbo-0125"
-    models = ["gpt-3.5-turbo-0125", "claude-3-haiku-20240307", "meta-llama/Llama-3-70b-chat-hf", "mistralai/Mixtral-8x7B-Instruct-v0.1"]
+    # default_model = "gpt-3.5-turbo-0125"
+    default_model = "gpt-4o-mini"
+    models = ["gpt-4o-mini", "claude-3-haiku-20240307", "meta-llama/Llama-3-70b-chat-hf", "mistralai/Mixtral-8x7B-Instruct-v0.1"]
     model_aliases = {
-        "gpt-3.5-turbo": "gpt-3.5-turbo-0125",
+        "gpt-4": "gpt-4o-mini",
+        "gpt-4o": "gpt-4o-mini",
         "claude-3-haiku": "claude-3-haiku-20240307",
         "llama-3-70b": "meta-llama/Llama-3-70b-chat-hf",
         "mixtral-8x7B": "mistralai/Mixtral-8x7B-Instruct-v0.1"
@@ -33,7 +35,7 @@ class DDG(AsyncGeneratorProvider, ProviderModelMixin):
     referer = base64.b64decode("aHR0cHM6Ly9kdWNrZHVja2dvLmNvbS8=").decode("utf-8")
     origin = base64.b64decode("aHR0cHM6Ly9kdWNrZHVja2dvLmNvbQ==").decode("utf-8")
     
-    user_agent = 'Mozilla/5.0 (Windows NT 10.0; rv:127.0) Gecko/20100101 Firefox/127.0'
+    user_agent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36'
     headers = {
         'User-Agent': user_agent,
         'Accept': 'text/event-stream',
