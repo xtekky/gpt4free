@@ -1,22 +1,18 @@
 from __future__ import annotations
 
-import re
 import json
 from aiohttp import ClientSession
 
-from ..typing import Messages, AsyncResult
-from ..requests import get_args_from_browser
-from ..webdriver import WebDriver
+from ..typing import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider
-from .helper import get_random_string
+from .helper import format_prompt
+
 
 class Chatgpt4Online(AsyncGeneratorProvider):
     url = "https://chatgpt4online.org"
-    supports_message_history = True
-    supports_gpt_35_turbo = True
-    working = True 
-    _wpnonce = None
-    _context_id = None
+    api_endpoint = "/wp-json/mwai-ui/v1/chats/submit"
+    working = True
+    supports_gpt_4 = True
 
     @classmethod
     async def create_async_generator(
@@ -24,49 +20,52 @@ class Chatgpt4Online(AsyncGeneratorProvider):
         model: str,
         messages: Messages,
         proxy: str = None,
-        webdriver: WebDriver = None,
         **kwargs
     ) -> AsyncResult:
-        args = get_args_from_browser(f"{cls.url}/chat/", webdriver, proxy=proxy)
-        async with ClientSession(**args) as session:
-            if not cls._wpnonce:
-                async with session.get(f"{cls.url}/chat/", proxy=proxy) as response:
-                    response.raise_for_status()
-                    response = await response.text()
-                    result = re.search(r'restNonce&quot;:&quot;(.*?)&quot;', response)
-                    if result:
-                        cls._wpnonce = result.group(1)
-                    else:
-                        raise RuntimeError("No nonce found")
-                    result = re.search(r'contextId&quot;:(.*?),', response)
-                    if result:
-                        cls._context_id = result.group(1)
-                    else:
-                        raise RuntimeError("No contextId found")
+        headers = {
+            "accept": "text/event-stream",
+            "accept-language": "en-US,en;q=0.9",
+            "content-type": "application/json",
+            "dnt": "1",
+            "origin": cls.url,
+            "priority": "u=1, i",
+            "referer": f"{cls.url}/",
+            "sec-ch-ua": '"Not/A)Brand";v="8", "Chromium";v="126"',
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": '"Linux"',
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "same-origin",
+            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
+            "x-wp-nonce": "d9505e9877",
+        }
+
+        async with ClientSession(headers=headers) as session:
+            prompt = format_prompt(messages)
             data = {
-                "botId":"default",
-                "customId":None,
-                "session":"N/A",
-                "chatId":get_random_string(11),
-                "contextId":cls._context_id,
-                "messages":messages[:-1],
-                "newMessage":messages[-1]["content"],
-                "newImageId":None,
-                "stream":True
+                "botId": "default",
+                "newMessage": prompt,
+                "stream": True,
             }
-            async with session.post(
-                f"{cls.url}/wp-json/mwai-ui/v1/chats/submit",
-                json=data,
-                proxy=proxy,
-                headers={"x-wp-nonce": cls._wpnonce}
-            ) as response:
+
+            async with session.post(f"{cls.url}{cls.api_endpoint}", json=data, proxy=proxy) as response:
                 response.raise_for_status()
-                async for line in response.content:
-                    if line.startswith(b"data: "):
-                        line = json.loads(line[6:])
-                        if "type" not in line:
-                            raise RuntimeError(f"Response: {line}")
-                        elif line["type"] == "live":
-                            yield line["data"]
-                        elif line["type"] == "end":
-                            break
+                full_response = ""
+
+                async for chunk in response.content.iter_any():
+                    if chunk:
+                        try:
+                            # Extract the JSON object from the chunk
+                            for line in chunk.decode().splitlines():
+                                if line.startswith("data: "):
+                                    json_data = json.loads(line[6:])
+                                    if json_data["type"] == "live":
+                                        full_response += json_data["data"]
+                                    elif json_data["type"] == "end":
+                                        final_data = json.loads(json_data["data"])
+                                        full_response = final_data["reply"]
+                                        break
+                        except json.JSONDecodeError:
+                            continue
+
+                yield full_response

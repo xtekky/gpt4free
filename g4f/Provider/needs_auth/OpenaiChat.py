@@ -55,16 +55,13 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
     label = "OpenAI ChatGPT"
     url = "https://chatgpt.com"
     working = True
-    supports_gpt_35_turbo = True
     supports_gpt_4 = True
     supports_message_history = True
     supports_system_message = True
     default_model = None
     default_vision_model = "gpt-4o"
-    models = ["gpt-3.5-turbo", "gpt-4", "gpt-4-gizmo", "gpt-4o", "auto"]
+    models = [ "auto", "gpt-4o-mini", "gpt-4o", "gpt-4", "gpt-4-gizmo"]
     model_aliases = {
-        "text-davinci-002-render-sha": "gpt-3.5-turbo",
-        "": "gpt-3.5-turbo",
         "gpt-4-turbo-preview": "gpt-4",
         "dall-e": "gpt-4",
     }

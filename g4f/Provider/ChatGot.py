@@ -12,8 +12,8 @@ from ..typing import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 
 
-class GeminiProChat(AsyncGeneratorProvider, ProviderModelMixin):
-    url = "https://gemini-pro.chat/"
+class ChatGot(AsyncGeneratorProvider, ProviderModelMixin):
+    url = "https://www.chatgot.one/"
     working = True
     supports_message_history = True
     default_model = 'gemini-pro'
