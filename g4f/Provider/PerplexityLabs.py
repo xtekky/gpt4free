@@ -11,22 +11,23 @@ API_URL = "https://www.perplexity.ai/socket.io/"
 WS_URL = "wss://www.perplexity.ai/socket.io/"
 
 class PerplexityLabs(AsyncGeneratorProvider, ProviderModelMixin):
-    url = "https://labs.perplexity.ai"    
+    url = "https://labs.perplexity.ai"
     working = True
     default_model = "mixtral-8x7b-instruct"
     models = [
-        "llama-3-sonar-large-32k-online", "llama-3-sonar-small-32k-online", "llama-3-sonar-large-32k-chat", "llama-3-sonar-small-32k-chat",
-        "dbrx-instruct", "claude-3-haiku-20240307", "llama-3-8b-instruct", "llama-3-70b-instruct", "codellama-70b-instruct", "mistral-7b-instruct",
-        "llava-v1.5-7b-wrapper", "llava-v1.6-34b", "mixtral-8x7b-instruct", "mixtral-8x22b-instruct", "mistral-medium", "gemma-2b-it", "gemma-7b-it",
-        "related"
+	    "llama-3.1-sonar-large-128k-online",
+	    "llama-3.1-sonar-small-128k-online",
+	    "llama-3.1-sonar-large-128k-chat",
+	    "llama-3.1-sonar-small-128k-chat",
+	    "llama-3-8b-instruct",
+	    "llama-3-70b-instruct",
+	    "gemma-2-9b-it",
+	    "gemma-2-27b-it",
+	    "nemotron-4-340b-instruct",
+	    "mixtral-8x7b-instruct"
     ]
     model_aliases = {
-        "mistralai/Mistral-7B-Instruct-v0.1": "mistral-7b-instruct",
-        "mistralai/Mistral-7B-Instruct-v0.2": "mistral-7b-instruct",
         "mistralai/Mixtral-8x7B-Instruct-v0.1": "mixtral-8x7b-instruct",
-        "codellama/CodeLlama-70b-Instruct-hf": "codellama-70b-instruct",
-        "llava-v1.5-7b": "llava-v1.5-7b-wrapper",
-        "databricks/dbrx-instruct": "dbrx-instruct",
         "meta-llama/Meta-Llama-3-70B-Instruct": "llama-3-70b-instruct",
         "meta-llama/Meta-Llama-3-8B-Instruct": "llama-3-8b-instruct"
     }
@@ -67,7 +68,7 @@ class PerplexityLabs(AsyncGeneratorProvider, ProviderModelMixin):
                 data=post_data
             ) as response:
                 await raise_for_status(response)
-                assert await response.text() == "OK"                
+                assert await response.text() == "OK"
             async with session.ws_connect(f"{WS_URL}?EIO=4&transport=websocket&sid={sid}", autoping=False) as ws:
                 await ws.send_str("2probe")
                 assert(await ws.receive_str() == "3probe")
