@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import aiohttp
 from aiohttp import ClientSession, ClientResponseError
 
 from ..typing import AsyncResult, Messages
@@ -11,9 +12,38 @@ from .helper import format_prompt
 class Marsyoo(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://aiagent.marsyoo.com"
     api_endpoint = "/api/chat-messages"
+    passport_endpoint = "/api/passport"
     working = True
     supports_gpt_4 = True
     default_model = 'gpt-4o'
+
+    @classmethod
+    async def get_access_token(cls, proxy: str = None) -> str:
+        headers = {
+            "Accept": "*/*",
+            "Accept-Language": "en-US,en;q=0.9",
+            "Connection": "keep-alive",
+            "DNT": "1",
+            "Referer": f"{cls.url}/chat/LjHsubj68LMvBOBr",
+            "Sec-Fetch-Dest": "empty",
+            "Sec-Fetch-Mode": "cors",
+            "Sec-Fetch-Site": "same-origin",
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
+            "authorization": "Bearer",
+            "content-type": "application/json",
+            "sec-ch-ua": '"Not/A)Brand";v="8", "Chromium";v="126"',
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": '"Linux"',
+            "x-app-code": "LjHsubj68LMvBOBr"
+        }
+        
+        async with aiohttp.ClientSession() as session:
+            async with session.get(f"{cls.url}{cls.passport_endpoint}", headers=headers, proxy=proxy) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    return data.get('access_token', '')
+                else:
+                    raise Exception(f"Error: {response.status}")
 
     @classmethod
     async def create_async_generator(
@@ -23,6 +53,8 @@ class Marsyoo(AsyncGeneratorProvider, ProviderModelMixin):
         proxy: str = None,
         **kwargs
     ) -> AsyncResult:
+        access_token = await cls.get_access_token(proxy)
+        
         headers = {
             "Accept": "*/*",
             "Accept-Language": "en-US,en;q=0.9",
@@ -34,7 +66,7 @@ class Marsyoo(AsyncGeneratorProvider, ProviderModelMixin):
             "Sec-Fetch-Mode": "cors",
             "Sec-Fetch-Site": "same-origin",
             "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
-            "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiI0MWNkOTE3MS1mNTg1LTRjMTktOTY0Ni01NzgxMTBjYWViNTciLCJzdWIiOiJXZWIgQVBJIFBhc3Nwb3J0IiwiYXBwX2lkIjoiNDFjZDkxNzEtZjU4NS00YzE5LTk2NDYtNTc4MTEwY2FlYjU3IiwiYXBwX2NvZGUiOiJMakhzdWJqNjhMTXZCT0JyIiwiZW5kX3VzZXJfaWQiOiI4YjE5YjY2Mi05M2E1LTRhYTktOGNjNS03MDhmNWE0YmQxNjEifQ.pOzdQ4wTrQjjRlEv1XY9TZitkW5KW1K-wbcUJAoBJ5I",
+            "authorization": f"Bearer {access_token}",
             "content-type": "application/json",
             "sec-ch-ua": '"Not/A)Brand";v="8", "Chromium";v="126"',
             "sec-ch-ua-mobile": "?0",
