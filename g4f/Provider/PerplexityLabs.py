@@ -11,11 +11,20 @@ API_URL = "https://www.perplexity.ai/socket.io/"
 WS_URL = "wss://www.perplexity.ai/socket.io/"
 
 class PerplexityLabs(AsyncGeneratorProvider, ProviderModelMixin):
-    url = "https://labs.perplexity.ai"    
+    url = "https://labs.perplexity.ai"
     working = True
     default_model = "mixtral-8x7b-instruct"
     models = [
-        "llama-3-sonar-large-32k-online", "llama-3-sonar-small-32k-online", "llama-3-sonar-large-32k-chat", "llama-3-sonar-small-32k-chat", "llama-3-8b-instruct", "llama-3-70b-instruct", "gemma-2-9b-it", "gemma-2-27b-it", "nemotron-4-340b-instruct", "mixtral-8x7b-instruct",
+        "llama-3.1-sonar-large-128k-online",
+        "llama-3.1-sonar-small-128k-online",
+        "llama-3.1-sonar-large-128k-chat",
+        "llama-3.1-sonar-small-128k-chat",
+        "llama-3.1-8b-instruct",
+        "llama-3.1-70b-instruct",
+        "gemma-2-9b-it",
+        "gemma-2-27b-it",
+        "nemotron-4-340b-instruct",
+        "mixtral-8x7b-instruct"
     ]
 
     @classmethod
@@ -54,7 +63,7 @@ class PerplexityLabs(AsyncGeneratorProvider, ProviderModelMixin):
                 data=post_data
             ) as response:
                 await raise_for_status(response)
-                assert await response.text() == "OK"                
+                assert await response.text() == "OK"
             async with session.ws_connect(f"{WS_URL}?EIO=4&transport=websocket&sid={sid}", autoping=False) as ws:
                 await ws.send_str("2probe")
                 assert(await ws.receive_str() == "3probe")
