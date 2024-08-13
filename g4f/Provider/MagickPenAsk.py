@@ -36,7 +36,8 @@ class MagickPenAsk(AsyncGeneratorProvider, ProviderModelMixin):
             "sec-fetch-dest": "empty",
             "sec-fetch-mode": "cors",
             "sec-fetch-site": "same-site",
-            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
+            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
+            'X-API-Secret': 'WCASR6ZQJYM85DVDX7'
         }
         async with ClientSession(headers=headers) as session:
             data = {
