@@ -52,6 +52,7 @@ from .Pizzagpt         import Pizzagpt
 from .Reka             import Reka
 from .Replicate        import Replicate
 from .ReplicateHome    import ReplicateHome
+from .Rocks            import Rocks
 from .TeachAnything    import TeachAnything
 from .Vercel           import Vercel
 from .WhiteRabbitNeo   import WhiteRabbitNeo
