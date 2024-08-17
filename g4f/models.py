@@ -508,6 +508,9 @@ class ModelUtils:
         'llama-3-70b-instruct': llama_3_70b_instruct,
         'llama-3-70b-chat': llama_3_70b_chat_hf, 
         'llama-3-70b-instruct': llama_3_70b_instruct, 
+        
+        'llama-3.1-70b': llama_3_1_70b_instruct,
+        'llama-3.1-405b': llama_3_1_405b_instruct_FP8,
         'llama-3.1-70b-instruct': llama_3_1_70b_instruct,
         'llama-3.1-405b-instruct': llama_3_1_405b_instruct_FP8,
         

@@ -30,7 +30,7 @@ class FlowGpt(AsyncGeneratorProvider, ProviderModelMixin):
         "pygmalion-13b",
         "chronos-hermes-13b",
         "Mixtral-8x7B",
-        "Dolphin-2.6-8x7B"
+        "Dolphin-2.6-8x7B",
     ]
     model_aliases = {
         "gemini": "google-gemini",
@@ -91,7 +91,7 @@ class FlowGpt(AsyncGeneratorProvider, ProviderModelMixin):
                 "generateImage": False,
                 "generateAudio": False
             }
-            async with session.post("https://backend-k8s.flowgpt.com/v2/chat-anonymous-encrypted", json=data, proxy=proxy) as response:
+            async with session.post("https://prod-backend-k8s.flowgpt.com/v3/chat-anonymous", json=data, proxy=proxy) as response:
                 await raise_for_status(response)
                 async for chunk in response.content:
                     if chunk.strip():
