@@ -2,8 +2,6 @@
 
 <a href="https://trendshift.io/repositories/1692" target="_blank"><img src="https://trendshift.io/api/badge/repositories/1692" alt="xtekky%2Fgpt4free | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
 
-The **ETA** till (v3 for g4f) where I, [@xtekky](https://github.com/xtekky) will pick this project back up and improve it is **`29` days** (written Tue 28 May), join [t.me/g4f_channel](https://t.me/g4f_channel) in the meanwhile to stay updated.
-
 ---
 
 Written by [@xtekky](https://github.com/xtekky) & maintained by [@hlohaus](https://github.com/hlohaus)
