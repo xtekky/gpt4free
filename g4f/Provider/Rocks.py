@@ -1,14 +1,17 @@
+import asyncio
 import json
 from aiohttp import ClientSession
-
 from ..typing import Messages, AsyncResult
 from .base_provider import AsyncGeneratorProvider
 
 class Rocks(AsyncGeneratorProvider):
-    url = "https://api.discord.rocks"
+    url = "https://api.airforce"
     api_endpoint = "/chat/completions"
-    supports_message_history = False
+    supports_message_history = True
     supports_gpt_35_turbo = True
+    supports_gpt_4 = True
+    supports_stream = True
+    supports_system_message = True
     working = True
 
     @classmethod
@@ -25,12 +28,13 @@ class Rocks(AsyncGeneratorProvider):
             "Accept": "application/json",
             "Accept-Encoding": "gzip, deflate, br, zstd",
             "Accept-Language": "en-US,en;q=0.9",
-            "Origin": cls.url,
-            "Referer": f"{cls.url}/en",
+            "Authorization": "Bearer missing api key",
+            "Origin": "https://llmplayground.net",
+            "Referer": "https://llmplayground.net/",
             "Sec-Fetch-Dest": "empty",
             "Sec-Fetch-Mode": "cors",
             "Sec-Fetch-Site": "same-origin",
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
+            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36",
         }
 
         async with ClientSession() as session:
@@ -41,16 +45,26 @@ class Rocks(AsyncGeneratorProvider):
                 headers=headers
             ) as response:
                 response.raise_for_status()
+                last_chunk_time = asyncio.get_event_loop().time()
+                
                 async for line in response.content:
-                    if line.startswith(b"data: "):
+                    current_time = asyncio.get_event_loop().time()
+                    if current_time - last_chunk_time > 5:
+                        return
+                    
+                    if line.startswith(b"\n"):
+                        pass
+                    elif "discord.com/invite/" in line.decode() or "discord.gg/" in line.decode():
+                        pass # trolled
+                    elif line.startswith(b"data: "):
                         try:
                             line = json.loads(line[6:])
-                        except:
+                        except json.JSONDecodeError:
                             continue
                         chunk = line["choices"][0]["delta"].get("content")
                         if chunk:
                             yield chunk
-                    elif line.startswith(b"\n"):
-                        pass
+                            last_chunk_time = current_time
                     else:
                         raise Exception(f"Unexpected line: {line}")
+                return

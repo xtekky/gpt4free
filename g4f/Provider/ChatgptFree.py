@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import json
 
 from ..requests import StreamSession, raise_for_status
 from ..typing import Messages
@@ -74,6 +75,10 @@ class ChatgptFree(AsyncProvider):
                 "message": prompt,
                 "bot_id": "0"
             }
-            async with session.post(f"{cls.url}/wp-admin/admin-ajax.php", data=data, cookies=cookies) as response:
+            async with session.get(f"{cls.url}/wp-admin/admin-ajax.php", params=data, cookies=cookies) as response:
                 await raise_for_status(response)
-                return (await response.json())["data"]
+                full_answer = ""
+                for line in ((await response.text()).splitlines())[:-1]:
+                    if line.startswith("data:") and "[DONE]" not in line:
+                        full_answer += json.loads(line[5:])['choices'][0]['delta'].get('content', "")
+                return full_answer

@@ -33,8 +33,8 @@ class Aura(AsyncGeneratorProvider):
                     new_messages.append(message)
             data = {
                 "model": {
-                    "id": "openchat_v3.2_mistral",
-                    "name": "OpenChat Aura",
+                    "id": "openchat_3.6",
+                    "name": "OpenChat 3.6 (latest)",
                     "maxLength": 24576,
                     "tokenLimit": max_tokens
                 },

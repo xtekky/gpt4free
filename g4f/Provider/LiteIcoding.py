@@ -31,7 +31,7 @@ class LiteIcoding(AsyncGeneratorProvider, ProviderModelMixin):
         headers = {
             "Accept": "*/*",
             "Accept-Language": "en-US,en;q=0.9",
-            "Authorization": "Bearer null",
+            "Authorization": "Bearer b3b2712cf83640a5acfdc01e78369930",
             "Connection": "keep-alive",
             "Content-Type": "application/json;charset=utf-8",
             "DNT": "1",
@@ -74,6 +74,9 @@ class LiteIcoding(AsyncGeneratorProvider, ProviderModelMixin):
                     response.raise_for_status()
                     buffer = ""
                     full_response = ""
+                    def decode_content(data):
+                        bytes_array = bytes([int(b, 16) ^ 255 for b in data.split()])
+                        return bytes_array.decode('utf-8')
                     async for chunk in response.content.iter_any():
                         if chunk:
                             buffer += chunk.decode()
@@ -83,9 +86,17 @@ class LiteIcoding(AsyncGeneratorProvider, ProviderModelMixin):
                                     content = part[6:].strip()
                                     if content and content != "[DONE]":
                                         content = content.strip('"')
-                                        full_response += content
-
-                    full_response = full_response.replace('" "', ' ')
+                                        # Decoding each content block
+                                        decoded_content = decode_content(content)
+                                        full_response += decoded_content
+                    full_response = (
+                    full_response.replace('""', '')  # Handle double quotes
+                                  .replace('" "', ' ')  # Handle space within quotes
+                                  .replace("\\n\\n", "\n\n")
+                                  .replace("\\n", "\n")
+                                  .replace('\\"', '"')
+                                  .strip()
+                    )
                     yield full_response.strip()
 
             except ClientResponseError as e:

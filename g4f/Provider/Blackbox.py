@@ -67,7 +67,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
 
             async with session.post(
                 f"{cls.url}/api/chat", json=data, proxy=proxy
-            ) as response:  # type: ClientResponse
+            ) as response:
                 response.raise_for_status()
                 async for chunk in response.content.iter_any():
                     if chunk:
