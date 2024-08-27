@@ -10,18 +10,33 @@ class FreeChatgpt(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://chat.chatgpt.org.uk"
     api_endpoint = "/api/openai/v1/chat/completions"
     working = True
-    supports_gpt_35_turbo = True
-    default_model = 'gpt-3.5-turbo'
+    default_model = '@cf/qwen/qwen1.5-14b-chat-awq'
     models = [
-        'gpt-3.5-turbo',
+        '@cf/qwen/qwen1.5-14b-chat-awq',
         'SparkDesk-v1.1',
-        'deepseek-coder',
-        'deepseek-chat',
         'Qwen2-7B-Instruct',
         'glm4-9B-chat',
         'chatglm3-6B',
         'Yi-1.5-9B-Chat',
     ]
+    
+    model_aliases = {
+        "qwen-1.5-14b": "@cf/qwen/qwen1.5-14b-chat-awq",
+        "sparkdesk-v1.1": "SparkDesk-v1.1",
+        "qwen2-7b": "Qwen2-7B-Instruct",
+        "glm4-9b": "glm4-9B-chat",
+        "chatglm3-6b": "chatglm3-6B",
+        "yi-1.5-9b": "Yi-1.5-9B-Chat",
+    }
+
+    @classmethod
+    def get_model(cls, model: str) -> str:
+        if model in cls.models:
+            return model
+        elif model.lower() in cls.model_aliases:
+            return cls.model_aliases[model.lower()]
+        else:
+            return cls.default_model
 
     @classmethod
     async def create_async_generator(
@@ -31,6 +46,8 @@ class FreeChatgpt(AsyncGeneratorProvider, ProviderModelMixin):
         proxy: str = None,
         **kwargs
     ) -> AsyncResult:
+        model = cls.get_model(model)
+        
         headers = {
             "accept": "application/json, text/event-stream",
             "accept-language": "en-US,en;q=0.9",
@@ -74,5 +91,6 @@ class FreeChatgpt(AsyncGeneratorProvider, ProviderModelMixin):
                                 chunk = json.loads(line_str[6:])
                                 delta_content = chunk.get("choices", [{}])[0].get("delta", {}).get("content", "")
                                 accumulated_text += delta_content
+                                yield delta_content  # Yield each chunk of content
                             except json.JSONDecodeError:
                                 pass
