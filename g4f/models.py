@@ -156,16 +156,22 @@ llama_3_70b = Model(
     best_provider = IterListProvider([ReplicateHome, DeepInfra, PerplexityLabs, Replicate])
 )
 
+llama_3_1_8b = Model(
+    name          = "llama-3.1-8b",
+    base_provider = "meta",
+    best_provider = IterListProvider([Blackbox])
+)
+
 llama_3_1_70b = Model(
     name          = "llama-3.1-70b",
     base_provider = "meta",
-    best_provider = IterListProvider([DDG, HuggingChat, FreeGpt, HuggingFace])
+    best_provider = IterListProvider([DDG, HuggingChat, FreeGpt, Blackbox, HuggingFace])
 )
 
 llama_3_1_405b = Model(
     name          = "llama-3.1-405b",
     base_provider = "meta",
-    best_provider = IterListProvider([HuggingChat, HuggingFace])
+    best_provider = IterListProvider([HuggingChat, Blackbox, HuggingFace])
 )
 
 ### Mistral ###
@@ -214,7 +220,7 @@ gemini_pro = Model(
 gemini_flash = Model(
     name          = 'gemini-flash',
     base_provider = 'Google',
-    best_provider = IterListProvider([Liaobots])
+    best_provider = IterListProvider([Liaobots, Blackbox])
 )
 
 # gemma
@@ -447,6 +453,7 @@ class ModelUtils:
 'llama-3-70b': llama_3_70b,
         
 # llama-3.1
+'llama-3.1-8b': llama_3_1_8b,
 'llama-3.1-70b': llama_3_1_70b,
 'llama-3.1-405b': llama_3_1_405b,
         

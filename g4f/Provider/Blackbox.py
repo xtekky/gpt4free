@@ -14,6 +14,26 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://www.blackbox.ai"
     working = True
     default_model = 'blackbox'
+    models = [
+        default_model,
+        "gemini-1.5-flash",
+        "llama-3.1-8b",
+        'llama-3.1-70b',
+        'llama-3.1-405b',
+    ]
+    
+    model_aliases = {
+        "gemini-flash": "gemini-1.5-flash",
+    }
+    
+    @classmethod
+    def get_model(cls, model: str) -> str:
+        if model in cls.models:
+            return model
+        elif model in cls.model_aliases:
+            return cls.model_aliases[model]
+        else:
+            return cls.default_model
 
     @classmethod
     async def create_async_generator(
@@ -28,7 +48,8 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         if image is not None:
             messages[-1]["data"] = {
                 "fileText": image_name,
-                "imageBase64": to_data_uri(image)
+                "imageBase64": to_data_uri(image),
+                "title": str(uuid.uuid4())
             }
 
         headers = {
@@ -48,7 +69,17 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         async with ClientSession(headers=headers) as session:
             random_id = secrets.token_hex(16)
             random_user_id = str(uuid.uuid4())
-
+            
+            model = cls.get_model(model)  # Resolve the model alias
+            
+            model_id_map = {
+                "blackbox": {},
+                "gemini-1.5-flash": {'mode': True, 'id': 'Gemini'},
+                "llama-3.1-8b": {'mode': True, 'id': "llama-3.1-8b"},
+                'llama-3.1-70b': {'mode': True, 'id': "llama-3.1-70b"},
+                'llama-3.1-405b': {'mode': True, 'id': "llama-3.1-405b"}
+            }
+            
             data = {
                 "messages": messages,
                 "id": random_id,
@@ -62,12 +93,13 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
                 "webSearchMode": False,
                 "userSystemPrompt": "",
                 "githubToken": None,
+                "trendingAgentModel": model_id_map.get(model, {}),  # Default to empty dict if model not found
                 "maxTokens": None
             }
 
             async with session.post(
                 f"{cls.url}/api/chat", json=data, proxy=proxy
-            ) as response:  # type: ClientResponse
+            ) as response:
                 response.raise_for_status()
                 async for chunk in response.content.iter_any():
                     if chunk:
