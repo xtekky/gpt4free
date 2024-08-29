@@ -17,7 +17,7 @@ from .helper import format_prompt, get_connector, format_cookies
 
 class Sources():
     def __init__(self, link_list: List[Dict[str, str]]) -> None:
-        self.link = link_list
+        self.list = link_list
 
     def __str__(self) -> str:
         return "\n\n" + ("\n".join([f"[{link['title']}]({link['link']})" for link in self.list]))
