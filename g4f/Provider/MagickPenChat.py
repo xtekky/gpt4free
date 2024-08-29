@@ -8,12 +8,11 @@ from .helper import format_prompt
 
 
 class MagickPenChat(AsyncGeneratorProvider, ProviderModelMixin):
-    url = "https://api.magickpen.com"
-    api_endpoint = "/chat/free"
+    url = "https://magickpen.com/chat"
+    api_endpoint = "https://api.magickpen.com/chat/free"
     working = True
     supports_gpt_4 = True
     default_model = "gpt-4o-mini"
-
     @classmethod
     async def create_async_generator(
         cls,
@@ -44,7 +43,7 @@ class MagickPenChat(AsyncGeneratorProvider, ProviderModelMixin):
             data = {
                 "history": [{"role": "user", "content": format_prompt(messages)}]
             }
-            async with session.post(f"{cls.url}{cls.api_endpoint}", json=data, proxy=proxy) as response:
+            async with session.post(f"{cls.api_endpoint}", json=data, proxy=proxy) as response:
                 response.raise_for_status()
                 async for chunk in response.content:
                     if chunk:

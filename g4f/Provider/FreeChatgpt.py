@@ -16,13 +16,31 @@ class FreeChatgpt(AsyncGeneratorProvider, ProviderModelMixin):
         'gpt-3.5-turbo',
         'SparkDesk-v1.1',
         'deepseek-coder',
+        '@cf/qwen/qwen1.5-14b-chat-awq',
         'deepseek-chat',
         'Qwen2-7B-Instruct',
         'glm4-9B-chat',
         'chatglm3-6B',
         'Yi-1.5-9B-Chat',
     ]
+    model_aliases = {
+        "qwen-1.5-14b": "@cf/qwen/qwen1.5-14b-chat-awq",
+        "sparkdesk-v1.1": "SparkDesk-v1.1",
+        "qwen2-7b": "Qwen2-7B-Instruct",
+        "glm4-9b": "glm4-9B-chat",
+        "chatglm3-6b": "chatglm3-6B",
+        "yi-1.5-9b": "Yi-1.5-9B-Chat",
+    }
 
+    @classmethod
+    def get_model(cls, model: str) -> str:
+        if model in cls.models:
+            return model
+        elif model.lower() in cls.model_aliases:
+            return cls.model_aliases[model.lower()]
+        else:
+            return cls.default_model
+        
     @classmethod
     async def create_async_generator(
         cls,
@@ -46,6 +64,7 @@ class FreeChatgpt(AsyncGeneratorProvider, ProviderModelMixin):
             "sec-fetch-site": "same-origin",
             "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
         }
+        model = cls.get_model(model)
         async with ClientSession(headers=headers) as session:
             prompt = format_prompt(messages)
             data = {
@@ -74,5 +93,6 @@ class FreeChatgpt(AsyncGeneratorProvider, ProviderModelMixin):
                                 chunk = json.loads(line_str[6:])
                                 delta_content = chunk.get("choices", [{}])[0].get("delta", {}).get("content", "")
                                 accumulated_text += delta_content
+                                yield delta_content
                             except json.JSONDecodeError:
                                 pass

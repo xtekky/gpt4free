@@ -14,8 +14,8 @@ class Chatgpt4Online(AsyncGeneratorProvider):
     working = True
     supports_gpt_4 = True
     
-    async def get_nonce():
-        async with ClientSession() as session:
+    async def get_nonce(headers: dict) -> str:
+        async with ClientSession(headers=headers) as session:
             async with session.post(f"https://chatgpt4online.org/wp-json/mwai/v1/start_session") as response:
                 return (await response.json())["restNonce"]
     
@@ -42,9 +42,8 @@ class Chatgpt4Online(AsyncGeneratorProvider):
             "sec-fetch-mode": "cors",
             "sec-fetch-site": "same-origin",
             "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
-            "x-wp-nonce": await cls.get_nonce(),
         }
-
+        headers['x-wp-nonce'] = await cls.get_nonce(headers)
         async with ClientSession(headers=headers) as session:
             prompt = format_prompt(messages)
             data = {
