@@ -1,21 +1,26 @@
 from __future__ import annotations
 
 import re
-
+import json
+import asyncio
 from ..requests import StreamSession, raise_for_status
-from ..typing import Messages
-from .base_provider import AsyncProvider
+from ..typing import Messages, AsyncGenerator
+from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from .helper import format_prompt
 
-class ChatgptFree(AsyncProvider):
+class ChatgptFree(AsyncGeneratorProvider, ProviderModelMixin):
     url                   = "https://chatgptfree.ai"
-    supports_gpt_35_turbo = True
+    supports_gpt_4 = True
     working               = True
     _post_id              = None
     _nonce                = None
+    default_model = 'gpt-4o-mini-2024-07-18'
+    model_aliases = {
+        "gpt-4o-mini": "gpt-4o-mini-2024-07-18",
+    }
 
     @classmethod
-    async def create_async(
+    async def create_async_generator(
         cls,
         model: str,
         messages: Messages,
@@ -23,7 +28,7 @@ class ChatgptFree(AsyncProvider):
         timeout: int = 120,
         cookies: dict = None,
         **kwargs
-    ) -> str:
+    ) -> AsyncGenerator[str, None]:
         headers = {
             'authority': 'chatgptfree.ai',
             'accept': '*/*',
@@ -38,7 +43,6 @@ class ChatgptFree(AsyncProvider):
             'sec-fetch-site': 'same-origin',
             'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36',
         }
-
         async with StreamSession(
                 headers=headers,
                 cookies=cookies,
@@ -49,19 +53,11 @@ class ChatgptFree(AsyncProvider):
 
             if not cls._nonce:
                 async with session.get(f"{cls.url}/") as response:
-                    
                     await raise_for_status(response)
                     response = await response.text()
-
-                    result = re.search(r'data-post-id="([0-9]+)"', response)
-                    if not result:
-                        raise RuntimeError("No post id found")
-                    cls._post_id = result.group(1)
-
                     result = re.search(r'data-nonce="(.*?)"', response)
                     if result:
                         cls._nonce = result.group(1)
-
                     else:
                         raise RuntimeError("No nonce found")
 
@@ -74,6 +70,30 @@ class ChatgptFree(AsyncProvider):
                 "message": prompt,
                 "bot_id": "0"
             }
+
             async with session.post(f"{cls.url}/wp-admin/admin-ajax.php", data=data, cookies=cookies) as response:
                 await raise_for_status(response)
-                return (await response.json())["data"]
+                buffer = ""
+                async for line in response.iter_lines():
+                    line = line.decode('utf-8').strip()
+                    if line.startswith('data: '):
+                        data = line[6:]
+                        if data == '[DONE]':
+                            break
+                        try:
+                            json_data = json.loads(data)
+                            content = json_data['choices'][0]['delta'].get('content', '')
+                            if content:
+                                yield content
+                        except json.JSONDecodeError:
+                            continue
+                    elif line:
+                        buffer += line
+
+                if buffer:
+                    try:
+                        json_response = json.loads(buffer)
+                        if 'data' in json_response:
+                            yield json_response['data']
+                    except json.JSONDecodeError:
+                        print(f"Failed to decode final JSON. Buffer content: {buffer}")

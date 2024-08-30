@@ -4,7 +4,7 @@ import json
 from typing import AsyncGenerator, Optional, List, Dict, Union, Any
 from aiohttp import ClientSession, BaseConnector, ClientResponse
 
-from ..typing import AsyncResult, Messages
+from ..typing import Messages
 from .base_provider import AsyncGeneratorProvider
 from .helper import get_random_string, get_connector
 from ..requests import raise_for_status

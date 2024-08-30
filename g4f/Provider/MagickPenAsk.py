@@ -8,11 +8,11 @@ from .helper import format_prompt
 
 
 class MagickPenAsk(AsyncGeneratorProvider, ProviderModelMixin):
-    url = "https://api.magickpen.com"
-    api_endpoint = "/ask"
+    url = "https://magickpen.com/ask"
+    api_endpoint = "https://api.magickpen.com/ask"
     working = True
     supports_gpt_4 = True
-    default_model = "gpt-4o"
+    default_model = "gpt-4o-mini"
 
     @classmethod
     async def create_async_generator(
@@ -37,14 +37,14 @@ class MagickPenAsk(AsyncGeneratorProvider, ProviderModelMixin):
             "sec-fetch-mode": "cors",
             "sec-fetch-site": "same-site",
             "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
-            'X-API-Secret': 'WCASR6ZQJYM85DVDX7'
+            'X-API-Secret': 'W252GY255JVYBS9NAM'
         }
         async with ClientSession(headers=headers) as session:
             data = {
                 "query": format_prompt(messages),
                 "plan": "Pay as you go"
             }
-            async with session.post(f"{cls.url}{cls.api_endpoint}", json=data, proxy=proxy) as response:
+            async with session.post(f"{cls.api_endpoint}", json=data, proxy=proxy) as response:
                 response.raise_for_status()
                 async for chunk in response.content:
                     if chunk:

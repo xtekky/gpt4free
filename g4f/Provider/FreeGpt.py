@@ -6,23 +6,25 @@ import random
 from typing import AsyncGenerator, Optional, Dict, Any
 from ..typing import Messages
 from ..requests import StreamSession, raise_for_status
-from .base_provider import AsyncGeneratorProvider
+from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..errors import RateLimitError
 
 # Constants
 DOMAINS = [
     "https://s.aifree.site",
-    "https://v.aifree.site/"
+    "https://v.aifree.site/",
+    "https://al.aifree.site/",
+    "https://u4.aifree.site/"
 ]
 RATE_LIMIT_ERROR_MESSAGE = "当前地区当日额度已消耗完"
 
 
-class FreeGpt(AsyncGeneratorProvider):
-    url: str = "https://freegptsnav.aifree.site"
-    working: bool = True
-    supports_message_history: bool = True
-    supports_system_message: bool = True
-    supports_gpt_35_turbo: bool = True
+class FreeGpt(AsyncGeneratorProvider, ProviderModelMixin):
+    url = "https://freegptsnav.aifree.site"
+    working = True
+    supports_message_history = True
+    supports_system_message = True
+    default_model = 'llama-3.1-70b'
 
     @classmethod
     async def create_async_generator(

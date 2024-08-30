@@ -54,8 +54,8 @@ class FreeNetfly(AsyncGeneratorProvider, ProviderModelMixin):
             "top_p": 1
         }
         
-        max_retries = 3
-        retry_delay = 1
+        max_retries = 5
+        retry_delay = 2
 
         for attempt in range(max_retries):
             try:
