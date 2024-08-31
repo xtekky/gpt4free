@@ -6,7 +6,6 @@ from ..providers.base_provider  import AsyncProvider, AsyncGeneratorProvider
 from ..providers.create_images  import CreateImagesProvider
 
 from .deprecated      import *
-from .not_working     import *
 from .selenium        import *
 from .needs_auth      import *
 
@@ -21,16 +20,15 @@ from .ChatGot          import ChatGot
 from .Chatgpt4o        import Chatgpt4o
 from .Chatgpt4Online   import Chatgpt4Online
 from .ChatgptFree      import ChatgptFree
-from .Cohere           import Cohere
 from .DDG              import DDG
 from .DeepInfra        import DeepInfra
 from .DeepInfraImage   import DeepInfraImage
 from .FlowGpt          import FlowGpt
+from .FluxAirforce     import FluxAirforce
 from .FreeChatgpt      import FreeChatgpt
 from .FreeGpt          import FreeGpt
 from .FreeNetfly       import FreeNetfly
 from .GeminiPro        import GeminiPro
-from .GeminiProChat    import GeminiProChat
 from .GigaChat         import GigaChat
 from .GptTalkRu        import GptTalkRu
 from .HuggingChat      import HuggingChat
@@ -43,18 +41,17 @@ from .Llama            import Llama
 from .Local            import Local
 from .MagickPenAsk     import MagickPenAsk
 from .MagickPenChat    import MagickPenChat
-from .Marsyoo          import Marsyoo
 from .MetaAI           import MetaAI
 from .MetaAIAccount    import MetaAIAccount
 from .Ollama           import Ollama
 from .PerplexityLabs   import PerplexityLabs
 from .Pi               import Pi
 from .Pizzagpt         import Pizzagpt
+from .Upstage          import Upstage
 from .Reka             import Reka
 from .Replicate        import Replicate
 from .ReplicateHome    import ReplicateHome
 from .Rocks            import Rocks
-from .TeachAnything    import TeachAnything
 from .Vercel           import Vercel
 from .WhiteRabbitNeo   import WhiteRabbitNeo
 from .You              import You

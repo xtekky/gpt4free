@@ -43,6 +43,7 @@ class ChatgptFree(AsyncGeneratorProvider, ProviderModelMixin):
             'sec-fetch-site': 'same-origin',
             'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36',
         }
+
         async with StreamSession(
                 headers=headers,
                 cookies=cookies,
@@ -55,6 +56,12 @@ class ChatgptFree(AsyncGeneratorProvider, ProviderModelMixin):
                 async with session.get(f"{cls.url}/") as response:
                     await raise_for_status(response)
                     response = await response.text()
+
+                    result = re.search(r'data-post-id="([0-9]+)"', response)
+                    if not result:
+                        raise RuntimeError("No post id found")
+                    cls._post_id = result.group(1)
+
                     result = re.search(r'data-nonce="(.*?)"', response)
                     if result:
                         cls._nonce = result.group(1)
@@ -70,7 +77,7 @@ class ChatgptFree(AsyncGeneratorProvider, ProviderModelMixin):
                 "message": prompt,
                 "bot_id": "0"
             }
-
+            
             async with session.post(f"{cls.url}/wp-admin/admin-ajax.php", data=data, cookies=cookies) as response:
                 await raise_for_status(response)
                 buffer = ""

@@ -21,6 +21,20 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         'llama-3.1-70b',
         'llama-3.1-405b',
     ]
+    
+    model_aliases = {
+        "gemini-flash": "gemini-1.5-flash",
+    }
+    
+    @classmethod
+    def get_model(cls, model: str) -> str:
+        if model in cls.models:
+            return model
+        elif model in cls.model_aliases:
+            return cls.model_aliases[model]
+        else:
+            return cls.default_model
+
     @classmethod
     async def create_async_generator(
         cls,
@@ -55,6 +69,9 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         async with ClientSession(headers=headers) as session:
             random_id = secrets.token_hex(16)
             random_user_id = str(uuid.uuid4())
+            
+            model = cls.get_model(model)  # Resolve the model alias
+            
             model_id_map = {
                 "blackbox": {},
                 "gemini-1.5-flash": {'mode': True, 'id': 'Gemini'},
@@ -62,6 +79,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
                 'llama-3.1-70b': {'mode': True, 'id': "llama-3.1-70b"},
                 'llama-3.1-405b': {'mode': True, 'id': "llama-3.1-405b"}
             }
+            
             data = {
                 "messages": messages,
                 "id": random_id,
@@ -75,7 +93,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
                 "webSearchMode": False,
                 "userSystemPrompt": "",
                 "githubToken": None,
-                "trendingAgentModel": model_id_map[model], # if you actually test this on the site, just ask each model "yo", weird behavior imo
+                "trendingAgentModel": model_id_map.get(model, {}),  # Default to empty dict if model not found
                 "maxTokens": None
             }
 
