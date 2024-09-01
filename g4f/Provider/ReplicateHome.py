@@ -14,7 +14,7 @@ class ReplicateHome(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://replicate.com"
     parent = "Replicate"
     working = True
-    default_model = 'stability-ai/stable-diffusion-3'
+    default_model = 'meta/meta-llama-3-70b-instruct'
     models = [
         # Models for image generation
         'stability-ai/stable-diffusion-3',
