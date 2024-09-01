@@ -55,9 +55,9 @@ class ReplicateHome(AsyncGeneratorProvider, ProviderModelMixin):
     text_models = {"meta/meta-llama-3-70b-instruct", "mistralai/mixtral-8x7b-instruct-v0.1", "google-deepmind/gemma-2b-it"}
 
     model_aliases = {
-        "stable-diffusion-3": "stability-ai/stable-diffusion-3",
-        "sdxl-lightning-4step": "bytedance/sdxl-lightning-4step",
-        "playground-v2.5-aesthetic": "playgroundai/playground-v2.5-1024px-aesthetic",
+        "sd-3": "stability-ai/stable-diffusion-3",
+        "sdxl": "bytedance/sdxl-lightning-4step",
+        "playground-v2.5": "playgroundai/playground-v2.5-1024px-aesthetic",
         "llama-3-70b": "meta/meta-llama-3-70b-instruct",
         "mixtral-8x7b": "mistralai/mixtral-8x7b-instruct-v0.1",
         "gemma-2b": "google-deepmind/gemma-2b-it",
