@@ -68,7 +68,6 @@ default = Model(
         DDG,
         FreeChatgpt,
         FreeNetfly,
-        Gemini,
         HuggingChat,
         MagickPenAsk,
         MagickPenChat,
