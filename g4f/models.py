@@ -4,12 +4,13 @@ from dataclasses import dataclass
 
 from .Provider import IterListProvider, ProviderType
 from .Provider import (
+    AiChatOnline,
     Allyfy,
     Bing,
     Blackbox,
     ChatGot,
-    Chatgpt4o,
     Chatgpt4Online,
+    Chatgpt4o,
     ChatgptFree,
     DDG,
     DeepInfra,
@@ -35,6 +36,7 @@ from .Provider import (
     Reka,
     Replicate,
     ReplicateHome,
+    TeachAnything,
     Upstage,
     You,
 )
@@ -106,7 +108,7 @@ gpt_4o_mini = Model(
     name          = 'gpt-4o-mini',
     base_provider = 'openai',
     best_provider = IterListProvider([
-        DDG, Liaobots, You, FreeNetfly, MagickPenAsk, MagickPenChat, Pizzagpt, ChatgptFree, OpenaiChat, Koala,       
+        DDG, Liaobots, You, FreeNetfly, MagickPenAsk, MagickPenChat, Pizzagpt, ChatgptFree, AiChatOnline, OpenaiChat, Koala,       
     ])
 )
 
@@ -163,7 +165,7 @@ llama_3_1_8b = Model(
 llama_3_1_70b = Model(
     name          = "llama-3.1-70b",
     base_provider = "meta",
-    best_provider = IterListProvider([DDG, HuggingChat, FreeGpt, Blackbox, HuggingFace])
+    best_provider = IterListProvider([DDG, HuggingChat, FreeGpt, Blackbox, TeachAnything, HuggingFace])
 )
 
 llama_3_1_405b = Model(

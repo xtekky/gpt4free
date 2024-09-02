@@ -17,8 +17,8 @@ from .Bing             import Bing
 from .BingCreateImages import BingCreateImages
 from .Blackbox         import Blackbox
 from .ChatGot          import ChatGot
-from .Chatgpt4o        import Chatgpt4o
 from .Chatgpt4Online   import Chatgpt4Online
+from .Chatgpt4o        import Chatgpt4o
 from .ChatgptFree      import ChatgptFree
 from .DDG              import DDG
 from .DeepInfra        import DeepInfra
@@ -33,7 +33,6 @@ from .GigaChat         import GigaChat
 from .GptTalkRu        import GptTalkRu
 from .HuggingChat      import HuggingChat
 from .HuggingFace      import HuggingFace
-from .HuggingFace      import HuggingFace
 from .Koala            import Koala
 from .Liaobots         import Liaobots
 from .LiteIcoding      import LiteIcoding
@@ -47,11 +46,12 @@ from .Ollama           import Ollama
 from .PerplexityLabs   import PerplexityLabs
 from .Pi               import Pi
 from .Pizzagpt         import Pizzagpt
-from .Upstage          import Upstage
 from .Reka             import Reka
 from .Replicate        import Replicate
 from .ReplicateHome    import ReplicateHome
 from .Rocks            import Rocks
+from .TeachAnything    import TeachAnything
+from .Upstage          import Upstage
 from .Vercel           import Vercel
 from .WhiteRabbitNeo   import WhiteRabbitNeo
 from .You              import You
