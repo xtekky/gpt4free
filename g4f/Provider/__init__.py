@@ -51,6 +51,7 @@ from .Replicate        import Replicate
 from .ReplicateHome    import ReplicateHome
 from .Rocks            import Rocks
 from .TeachAnything    import TeachAnything
+from .TwitterBio       import TwitterBio
 from .Upstage          import Upstage
 from .Vercel           import Vercel
 from .WhiteRabbitNeo   import WhiteRabbitNeo

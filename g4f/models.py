@@ -37,6 +37,7 @@ from .Provider import (
     Replicate,
     ReplicateHome,
     TeachAnything,
+    TwitterBio,
     Upstage,
     You,
 )
@@ -91,7 +92,7 @@ gpt_35_turbo = Model(
     name          = 'gpt-3.5-turbo',
     base_provider = 'openai',
     best_provider = IterListProvider([
-        Allyfy,
+        Allyfy, TwitterBio,
     ])
 )
 
@@ -140,50 +141,50 @@ gigachat = Model(
 ### Meta ###
 meta = Model(
     name          = "meta-ai",
-    base_provider = "meta",
+    base_provider = "Meta",
     best_provider = MetaAI
 )
 
 llama_3_8b = Model(
     name          = "llama-3-8b",
-    base_provider = "meta",
+    base_provider = "Meta",
     best_provider = IterListProvider([DeepInfra, Replicate])
 )
 
 llama_3_70b = Model(
     name          = "llama-3-70b",
-    base_provider = "meta",
+    base_provider = "Meta",
     best_provider = IterListProvider([ReplicateHome, DeepInfra, PerplexityLabs, Replicate])
 )
 
 llama_3_1_8b = Model(
     name          = "llama-3.1-8b",
-    base_provider = "meta",
+    base_provider = "Meta",
     best_provider = IterListProvider([Blackbox])
 )
 
 llama_3_1_70b = Model(
     name          = "llama-3.1-70b",
-    base_provider = "meta",
+    base_provider = "Meta",
     best_provider = IterListProvider([DDG, HuggingChat, FreeGpt, Blackbox, TeachAnything, HuggingFace])
 )
 
 llama_3_1_405b = Model(
     name          = "llama-3.1-405b",
-    base_provider = "meta",
+    base_provider = "Meta",
     best_provider = IterListProvider([HuggingChat, Blackbox, HuggingFace])
 )
 
 ### Mistral ###
 mixtral_8x7b = Model(
     name          = "mixtral-8x7b",
-    base_provider = "huggingface",
-    best_provider = IterListProvider([HuggingChat, DDG, ReplicateHome, DeepInfra, HuggingFace,])
+    base_provider = "Mistral",
+    best_provider = IterListProvider([HuggingChat, DDG, ReplicateHome, TwitterBio, DeepInfra, HuggingFace,])
 )
 
 mistral_7b = Model(
     name          = "mistral-7b",
-    base_provider = "huggingface",
+    base_provider = "Mistral",
     best_provider = IterListProvider([HuggingChat, HuggingFace, DeepInfra])
 )
 
