@@ -8,9 +8,11 @@ import base64
 
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from .helper import get_connector
+from ..errors import ResponseError
 from ..typing import AsyncResult, Messages
 from ..requests.raise_for_status import raise_for_status
 from ..providers.conversation import BaseConversation
+
 
 class DDG(AsyncGeneratorProvider, ProviderModelMixin):
     url = base64.b64decode("aHR0cHM6Ly9kdWNrZHVja2dvLmNvbS9haWNoYXQ=").decode("utf-8")
@@ -33,7 +35,7 @@ class DDG(AsyncGeneratorProvider, ProviderModelMixin):
     chat_url = base64.b64decode("aHR0cHM6Ly9kdWNrZHVja2dvLmNvbS9kdWNrY2hhdC92MS9jaGF0").decode("utf-8")
     referer = base64.b64decode("aHR0cHM6Ly9kdWNrZHVja2dvLmNvbS8=").decode("utf-8")
     origin = base64.b64decode("aHR0cHM6Ly9kdWNrZHVja2dvLmNvbQ==").decode("utf-8")
-    
+
     user_agent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36'
     headers = {
         'User-Agent': user_agent,
@@ -74,32 +76,38 @@ class DDG(AsyncGeneratorProvider, ProviderModelMixin):
         **kwargs
     ) -> AsyncResult:
         async with aiohttp.ClientSession(headers=cls.headers, connector=get_connector(connector, proxy)) as session:
-            vqd_4 = None
-            if conversation is not None and len(messages) > 1:
+            if len(messages) > 1:
+                if conversation is None:
+                    raise ValueError(f"More than one message requires using conversation.")
+
                 vqd_4 = conversation.vqd_4
-                messages = [*conversation.messages, messages[-2], messages[-1]]
             else:
                 for _ in range(3):  # Try up to 3 times to get a valid VQD
                     vqd_4 = await cls.get_vqd(session)
                     if vqd_4:
                         break
                     await asyncio.sleep(1)  # Wait a bit before retrying
-                
+
                 if not vqd_4:
                     raise Exception("Failed to obtain a valid VQD token")
-                
-                messages = [messages[-1]]  # Only use the last message for new conversations
-            
+
             payload = {
                 'model': cls.get_model(model),
                 'messages': [{'role': m['role'], 'content': m['content']} for m in messages]
             }
-            
+
             async with session.post(cls.chat_url, json=payload, headers={"x-vqd-4": vqd_4}) as response:
+                if response.status == 400:
+                    if "ERR_INVALID_VQD" in await response.text():
+                        raise ResponseError(
+                            f"Status {response.status}: Conversation does not exactly match the messages or its id (vqd-4) is invalid"
+                        )
                 await raise_for_status(response)
                 if return_conversation:
-                    yield Conversation(vqd_4, messages)
-                
+                    vqd_4_new = response.headers.get("x-vqd-4")
+                    if vqd_4_new is not None:
+                        yield Conversation(vqd_4_new, messages)
+
                 async for line in response.content:
                     if line.startswith(b"data: "):
                         chunk = line[6:]
@@ -115,4 +123,3 @@ class DDG(AsyncGeneratorProvider, ProviderModelMixin):
 class Conversation(BaseConversation):
     def __init__(self, vqd_4: str, messages: Messages) -> None:
         self.vqd_4 = vqd_4
-        self.messages = messages
