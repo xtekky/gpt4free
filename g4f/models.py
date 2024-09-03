@@ -29,6 +29,7 @@ from .Provider import (
     MagickPenAsk,
     MagickPenChat,
     MetaAI,
+    Nexra,
     OpenaiChat,
     PerplexityLabs,
     Pi,
@@ -36,6 +37,7 @@ from .Provider import (
     Reka,
     Replicate,
     ReplicateHome,
+    Snova,
     TeachAnything,
     TwitterBio,
     Upstage,
@@ -86,20 +88,28 @@ default = Model(
 ############
 
 ### OpenAI ###
-### GPT-3.5 / GPT-4 ###
+# gpt-3
+gpt_3 = Model(
+    name          = 'gpt-3',
+    base_provider = 'OpenAI',
+    best_provider = IterListProvider([
+        Nexra,
+    ])
+)
+
 # gpt-3.5
 gpt_35_turbo = Model(
     name          = 'gpt-3.5-turbo',
-    base_provider = 'openai',
+    base_provider = 'OpenAI',
     best_provider = IterListProvider([
-        Allyfy, TwitterBio,
+        Allyfy, TwitterBio, Nexra,
     ])
 )
 
 # gpt-4
 gpt_4o = Model(
     name          = 'gpt-4o',
-    base_provider = 'openai',
+    base_provider = 'OpenAI',
     best_provider = IterListProvider([
         Liaobots, Chatgpt4o, OpenaiChat,
     ])
@@ -107,7 +117,7 @@ gpt_4o = Model(
 
 gpt_4o_mini = Model(
     name          = 'gpt-4o-mini',
-    base_provider = 'openai',
+    base_provider = 'OpenAI',
     best_provider = IterListProvider([
         DDG, Liaobots, You, FreeNetfly, MagickPenAsk, MagickPenChat, Pizzagpt, ChatgptFree, AiChatOnline, OpenaiChat, Koala,       
     ])
@@ -115,17 +125,17 @@ gpt_4o_mini = Model(
 
 gpt_4_turbo = Model(
     name          = 'gpt-4-turbo',
-    base_provider = 'openai',
+    base_provider = 'OpenAI',
     best_provider = IterListProvider([
-        Liaobots, Bing
+        Nexra, Liaobots, Bing
     ])
 )
 
 gpt_4 = Model(
     name          = 'gpt-4',
-    base_provider = 'openai',
+    base_provider = 'OpenAI',
     best_provider = IterListProvider([
-        Chatgpt4Online, Bing,
+        Chatgpt4Online, Nexra, Bing,
         gpt_4_turbo.best_provider, gpt_4o.best_provider, gpt_4o_mini.best_provider
     ])
 )
@@ -358,6 +368,35 @@ pi = Model(
     best_provider = Pi
 )
 
+### SambaNova ###
+samba_coe_v0_1 = Model(
+    name = 'samba-coe-v0.1',
+    base_provider = 'SambaNova',
+    best_provider = Snova
+)
+
+### Trong-Hieu Nguyen-Mau ###
+v1olet_merged_7b = Model(
+    name = 'v1olet-merged-7b',
+    base_provider = 'Trong-Hieu Nguyen-Mau',
+    best_provider = Snova
+)
+
+### Macadeliccc ###
+westlake_7b_v2 = Model(
+    name = 'westlake-7b-v2',
+    base_provider = 'Macadeliccc',
+    best_provider = Snova
+)
+
+### CookinAI ###
+donutlm_v1 = Model(
+    name = 'donutlm-v1',
+    base_provider = 'CookinAI',
+    best_provider = Snova
+)
+
+
 
 #############
 ### Image ###
@@ -436,6 +475,9 @@ class ModelUtils:
 ############
         
 ### OpenAI ###
+# gpt-3
+'gpt-3': gpt_3,
+
 # gpt-3.5
 'gpt-3.5-turbo': gpt_35_turbo,
 
@@ -536,6 +578,22 @@ class ModelUtils:
 
 ### Pi ###
 'pi': pi,
+
+
+### SambaNova ###
+'samba-coe-v0.1': samba_coe_v0_1,
+
+
+### Trong-Hieu Nguyen-Mau ###
+'v1olet-merged-7b': v1olet_merged_7b,
+
+
+### Macadeliccc ###
+'westlake-7b-v2': westlake_7b_v2,
+
+
+### CookinAI ###
+'donutlm-v1': donutlm_v1,
         
         
         

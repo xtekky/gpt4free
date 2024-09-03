@@ -12,6 +12,7 @@ from .needs_auth      import *
 from .AI365VIP         import AI365VIP
 from .Allyfy           import Allyfy
 from .AiChatOnline     import AiChatOnline
+from .AiChats     import AiChats
 from .Aura             import Aura
 from .Bing             import Bing
 from .BingCreateImages import BingCreateImages
@@ -42,11 +43,13 @@ from .MagickPenAsk     import MagickPenAsk
 from .MagickPenChat    import MagickPenChat
 from .MetaAI           import MetaAI
 from .MetaAIAccount    import MetaAIAccount
+from .Nexra            import Nexra
 from .Ollama           import Ollama
 from .PerplexityLabs   import PerplexityLabs
 from .Pi               import Pi
 from .Pizzagpt         import Pizzagpt
 from .Reka             import Reka
+from .Snova            import Snova
 from .Replicate        import Replicate
 from .ReplicateHome    import ReplicateHome
 from .Rocks            import Rocks
