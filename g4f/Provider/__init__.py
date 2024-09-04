@@ -12,7 +12,7 @@ from .needs_auth      import *
 from .AI365VIP         import AI365VIP
 from .Allyfy           import Allyfy
 from .AiChatOnline     import AiChatOnline
-from .AiChats     import AiChats
+from .AiChats          import AiChats
 from .Aura             import Aura
 from .Bing             import Bing
 from .BingCreateImages import BingCreateImages

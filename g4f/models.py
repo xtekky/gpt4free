@@ -461,6 +461,28 @@ flux_disney = Model(
     
 )
 
+### ###
+dalle = Model(
+    name = 'dalle',
+    base_provider = '',
+    best_provider = IterListProvider([Nexra])
+    
+)
+
+dalle_mini = Model(
+    name = 'dalle-mini',
+    base_provider = '',
+    best_provider = IterListProvider([Nexra])
+    
+)
+
+emi = Model(
+    name = 'emi',
+    base_provider = '',
+    best_provider = IterListProvider([Nexra])
+    
+)
+
 class ModelUtils:
     """
     Utility class for mapping string identifiers to Model instances.
@@ -617,6 +639,11 @@ class ModelUtils:
 'flux-3d': flux_3d,
 'flux-disney': flux_disney,
 
+
+###  ###
+'dalle': dalle,
+'dalle-mini': dalle_mini,
+'emi': emi,
     }
 
 _all_models = list(ModelUtils.convert.keys())
