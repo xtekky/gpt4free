@@ -197,7 +197,7 @@ class Api():
                         ) as session:
                             async def copy_image(image):
                                 if image.startswith("data:"):
-                                    # Обробка URL-адреси даних
+                                    # Processing the data URL
                                     data_uri_parts = image.split(",")
                                     if len(data_uri_parts) == 2:
                                         content_type, base64_data = data_uri_parts
