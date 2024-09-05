@@ -80,6 +80,7 @@ default = Model(
         ChatgptFree,
         ReplicateHome,
         Upstage,
+        Blackbox,
     ])
 )
 
