@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-from aiohttp import ClientSession, ClientResponseError
+from aiohttp import ClientSession
 from urllib.parse import urlencode
-import io
 
 from ..typing import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from ..image import ImageResponse, is_accepted_format
+from ..image import ImageResponse
 
 class FluxAirforce(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://flux.api.airforce/"
@@ -55,28 +54,8 @@ class FluxAirforce(AsyncGeneratorProvider, ProviderModelMixin):
 
         params = {k: v for k, v in params.items() if v is not None}
 
-        try:
-            async with ClientSession(headers=headers) as session:
-                async with session.get(f"{cls.api_endpoint}", params=params, proxy=proxy) as response:
-                    response.raise_for_status()
-                    
-                    content = await response.read()
-                    
-                    if response.content_type.startswith('image/'):
-                        image_url = str(response.url)
-                        yield ImageResponse(image_url, prompt)
-                    else:
-                        try:
-                            text = content.decode('utf-8', errors='ignore')
-                            yield f"Error: {text}"
-                        except Exception as decode_error:
-                            yield f"Error: Unable to decode response - {str(decode_error)}"
-
-        except ClientResponseError as e:
-            yield f"Error: HTTP {e.status}: {e.message}"
-        except Exception as e:
-            yield f"Unexpected error: {str(e)}"
-
-        finally:
-            if not session.closed:
-                await session.close()
+        async with ClientSession(headers=headers) as session:
+            async with session.get(f"{cls.api_endpoint}", params=params, proxy=proxy) as response:
+                response.raise_for_status()
+                image_url = str(response.url)
+                yield ImageResponse(image_url, prompt)
