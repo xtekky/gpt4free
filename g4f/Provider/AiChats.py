@@ -6,6 +6,7 @@ from aiohttp import ClientSession
 from ..typing import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..image import ImageResponse
+from .helper import format_prompt
 
 class AiChats(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://ai-chats.org"
@@ -39,10 +40,15 @@ class AiChats(AsyncGeneratorProvider, ProviderModelMixin):
             "sec-fetch-mode": "cors",
             "sec-fetch-site": "same-origin",
             "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36",
+            'cookie': 'muVyak=LSFNvUWqdgKkGprbDBsfieIoEMzjOQ; LSFNvUWqdgKkGprbDBsfieIoEMzjOQ=ac28831b98143847e83dbe004404e619-1725548624-1725548621; muVyak_hits=9; ai-chat-front=9d714d5dc46a6b47607c9a55e7d12a95; _csrf-front=76c23dc0a013e5d1e21baad2e6ba2b5fdab8d3d8a1d1281aa292353f8147b057a%3A2%3A%7Bi%3A0%3Bs%3A11%3A%22_csrf-front%22%3Bi%3A1%3Bs%3A32%3A%22K9lz0ezsNPMNnfpd_8gT5yEeh-55-cch%22%3B%7D',
         }
-        
+
         async with ClientSession(headers=headers) as session:
-            prompt = cls.format_prompt(messages)
+            if model == 'dalle':
+                prompt = messages[-1]['content'] if messages else ""
+            else:
+                prompt = format_prompt(messages)
+
             data = {
                 "type": "image" if model == 'dalle' else "chat",
                 "messagesHistory": [
@@ -52,21 +58,21 @@ class AiChats(AsyncGeneratorProvider, ProviderModelMixin):
                     }
                 ]
             }
-            
+
             try:
                 async with session.post(cls.api_endpoint, json=data, proxy=proxy) as response:
                     response.raise_for_status()
-                    
+
                     if model == 'dalle':
                         response_json = await response.json()
-                        
+
                         if 'data' in response_json and response_json['data']:
                             image_url = response_json['data'][0].get('url')
                             if image_url:
                                 async with session.get(image_url) as img_response:
                                     img_response.raise_for_status()
                                     image_data = await img_response.read()
-                                
+
                                 base64_image = base64.b64encode(image_data).decode('utf-8')
                                 base64_url = f"data:image/png;base64,{base64_image}"
                                 yield ImageResponse(base64_url, prompt)
@@ -80,12 +86,21 @@ class AiChats(AsyncGeneratorProvider, ProviderModelMixin):
                         for line in full_response.split('\n'):
                             if line.startswith('data: ') and line != 'data: ':
                                 message += line[6:]
-                        
+
                         message = message.strip()
                         yield message
             except Exception as e:
                 yield f"Error occurred: {str(e)}"
 
     @classmethod
-    def format_prompt(cls, messages: Messages) -> str:
-        return messages[-1]['content'] if messages else ""
+    async def create_async(
+        cls,
+        model: str,
+        messages: Messages,
+        proxy: str = None,
+        **kwargs
+    ) -> str:
+        async for response in cls.create_async_generator(model, messages, proxy, **kwargs):
+            if isinstance(response, ImageResponse):
+                return response.images[0]
+            return response
