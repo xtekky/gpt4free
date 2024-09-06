@@ -16,6 +16,7 @@ from .AiChats          import AiChats
 from .Aura             import Aura
 from .Bing             import Bing
 from .BingCreateImages import BingCreateImages
+from .Bixin123         import Bixin123
 from .Blackbox         import Blackbox
 from .ChatGot          import ChatGot
 from .Chatgpt4Online   import Chatgpt4Online

@@ -7,6 +7,7 @@ from .Provider import (
     AiChatOnline,
     Allyfy,
     Bing,
+    Bixin123,
     Blackbox,
     ChatGot,
     Chatgpt4Online,
@@ -81,6 +82,7 @@ default = Model(
         ReplicateHome,
         Upstage,
         Blackbox,
+        Bixin123,
     ])
 )
 
@@ -103,7 +105,7 @@ gpt_35_turbo = Model(
     name          = 'gpt-3.5-turbo',
     base_provider = 'OpenAI',
     best_provider = IterListProvider([
-        Allyfy, TwitterBio, Nexra,
+        Allyfy, TwitterBio, Nexra, Bixin123,
     ])
 )
 
@@ -128,7 +130,7 @@ gpt_4_turbo = Model(
     name          = 'gpt-4-turbo',
     base_provider = 'OpenAI',
     best_provider = IterListProvider([
-        Nexra, Liaobots, Bing
+        Nexra, Bixin123, Liaobots, Bing
     ])
 )
 
@@ -330,6 +332,12 @@ qwen_1_5_14b = Model(
     name = 'qwen-1.5-14b',
     base_provider = 'Qwen',
     best_provider = IterListProvider([FreeChatgpt])
+)
+
+qwen_turbo = Model(
+    name = 'qwen-turbo',
+    base_provider = 'Qwen',
+    best_provider = IterListProvider([Bixin123])
 )
 
 
@@ -584,6 +592,7 @@ class ModelUtils:
         
 ### Qwen ###
 'qwen-1.5-14b': qwen_1_5_14b,
+'qwen-turbo': qwen_turbo,
         
         
 ### Zhipu AI ###
