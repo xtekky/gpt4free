@@ -22,7 +22,7 @@ class CodeNews(AsyncGeneratorProvider, ProviderModelMixin):
     models = ['free_gpt', 'gpt-4o-mini', 'deepseek-coder', 'chatpdf']
     
     model_aliases = {
-        "GLM-4": "free_gpt",
+        "glm4": "free_gpt",
         "gpt-3.5-turbo": "chatpdf",
         "deepseek": "deepseek-coder",
     }
