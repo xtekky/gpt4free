@@ -82,6 +82,7 @@ default = Model(
         Bixin123,
         Binjie,
         Free2GPT,
+        MagickPen,
     ])
 )
 

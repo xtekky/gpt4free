@@ -12,15 +12,19 @@ from .helper import format_prompt
 
 class MagickPen(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://magickpen.com"
-    api_endpoint = "https://api.magickpen.com/chat/free"
+    api_endpoint_free = "https://api.magickpen.com/chat/free"
+    api_endpoint_ask = "https://api.magickpen.com/ask"
     working = True
     supports_gpt_4 = True
     supports_stream = False
     
-    default_model = 'gpt-4o-mini'
-    models = ['gpt-4o-mini']
+    default_model = 'free'
+    models = ['free', 'ask']
     
-    model_aliases = {}
+    model_aliases = {
+        "gpt-4o-mini": "free",
+        "gpt-4o-mini": "ask",
+    }
 
     @classmethod
     def get_model(cls, model: str) -> str:
@@ -102,10 +106,25 @@ class MagickPen(AsyncGeneratorProvider, ProviderModelMixin):
         }
         
         async with ClientSession(headers=headers) as session:
-            data = {
-                "history": [{"role": "user", "content": format_prompt(messages)}]
-            }
-            async with session.post(cls.api_endpoint, json=data, proxy=proxy) as response:
-                response.raise_for_status()
-                result = await response.text()
-                yield result
+            if model == 'free':
+                data = {
+                    "history": [{"role": "user", "content": format_prompt(messages)}]
+                }
+                async with session.post(cls.api_endpoint_free, json=data, proxy=proxy) as response:
+                    response.raise_for_status()
+                    result = await response.text()
+                    yield result
+            
+            elif model == 'ask':
+                data = {
+                    "query": format_prompt(messages),
+                    "plan": "Pay as you go"
+                }
+                async with session.post(cls.api_endpoint_ask, json=data, proxy=proxy) as response:
+                    response.raise_for_status()
+                    async for chunk in response.content:
+                        if chunk:
+                            yield chunk.decode()
+            
+            else:
+                raise ValueError(f"Unknown model: {model}")
