@@ -30,8 +30,7 @@ from .Provider import (
     HuggingFace,
     Koala,
     Liaobots,
-    MagickPenAsk,
-    MagickPenChat,
+    MagickPen,
     MetaAI,
     Nexra,
     OpenaiChat,
@@ -72,14 +71,9 @@ default = Model(
     name          = "",
     base_provider = "",
     best_provider = IterListProvider([
-        ChatGot,
-        Chatgpt4Online,
         DDG,
         FreeChatgpt,
-        FreeNetfly,
         HuggingChat,
-        MagickPenAsk,
-        MagickPenChat,
         Pizzagpt,
         ChatgptFree,
         ReplicateHome,
@@ -127,7 +121,8 @@ gpt_4o_mini = Model(
     name          = 'gpt-4o-mini',
     base_provider = 'OpenAI',
     best_provider = IterListProvider([
-        DDG, Liaobots, You, FreeNetfly, MagickPenAsk, MagickPenChat, Pizzagpt, ChatgptFree, AiChatOnline, CodeNews, OpenaiChat, Koala,       
+        DDG, Liaobots, You, FreeNetfly, Pizzagpt, ChatgptFree, AiChatOnline, CodeNews, 
+        MagickPen, OpenaiChat, Koala,       
     ])
 )
 

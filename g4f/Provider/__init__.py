@@ -43,8 +43,7 @@ from .Liaobots         import Liaobots
 from .LiteIcoding      import LiteIcoding
 from .Llama            import Llama
 from .Local            import Local
-from .MagickPenAsk     import MagickPenAsk
-from .MagickPenChat    import MagickPenChat
+from .MagickPen        import MagickPen
 from .MetaAI           import MetaAI
 from .MetaAIAccount    import MetaAIAccount
 from .Nexra            import Nexra
