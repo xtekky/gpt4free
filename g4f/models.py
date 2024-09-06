@@ -343,22 +343,22 @@ qwen_turbo = Model(
 
 
 ### Zhipu AI ###
-glm3_6b = Model(
-    name = 'glm3-6b',
+glm_3_6b = Model(
+    name = 'glm-3-6b',
     base_provider = 'Zhipu AI',
     best_provider = IterListProvider([FreeChatgpt])
 )
 
-glm4_9b = Model(
-    name = 'glm4-9B',
+glm_4_9b = Model(
+    name = 'glm-4-9B',
     base_provider = 'Zhipu AI',
     best_provider = IterListProvider([FreeChatgpt])
 )
 
-glm4 = Model(
-    name = 'glm4',
+glm_4 = Model(
+    name = 'glm-4',
     base_provider = 'Zhipu AI',
-    best_provider = IterListProvider([CodeNews, glm4_9b.best_provider,])
+    best_provider = IterListProvider([CodeNews, glm_4_9b.best_provider,])
 )
 
 ### 01-ai ###
@@ -609,9 +609,9 @@ class ModelUtils:
         
         
 ### Zhipu AI ###
-'glm3-6b': glm3_6b,
-'glm4-9b': glm4_9b,
-'glm4': glm4,
+'glm-3-6b': glm_3_6b,
+'glm-4-9b': glm_4_9b,
+'glm-4': glm_4,
         
         
 ### 01-ai ###

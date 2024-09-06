@@ -23,9 +23,9 @@ class FreeChatgpt(AsyncGeneratorProvider, ProviderModelMixin):
     model_aliases = {
         "qwen-1.5-14b": "@cf/qwen/qwen1.5-14b-chat-awq",
         "sparkdesk-v1.1": "SparkDesk-v1.1",
-        "qwen2-7b": "Qwen2-7B-Instruct",
-        "glm4-9b": "glm4-9B-chat",
-        "glm3-6b": "chatglm3-6B",
+        "qwen-2-7b": "Qwen2-7B-Instruct",
+        "glm-4-9b": "glm4-9B-chat",
+        "glm-3-6b": "chatglm3-6B",
         "yi-1.5-9b": "Yi-1.5-9B-Chat",
     }
 
