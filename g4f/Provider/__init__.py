@@ -16,13 +16,14 @@ from .AiChats          import AiChats
 from .Aura             import Aura
 from .Bing             import Bing
 from .BingCreateImages import BingCreateImages
+from .Binjie         import Binjie
 from .Bixin123         import Bixin123
 from .Blackbox         import Blackbox
 from .ChatGot          import ChatGot
 from .Chatgpt4Online   import Chatgpt4Online
 from .Chatgpt4o        import Chatgpt4o
 from .ChatgptFree      import ChatgptFree
-from .CodeNews      import CodeNews
+from .CodeNews         import CodeNews
 from .DDG              import DDG
 from .DeepInfra        import DeepInfra
 from .DeepInfraImage   import DeepInfraImage

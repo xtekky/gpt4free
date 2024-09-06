@@ -7,6 +7,7 @@ from .Provider import (
     AiChatOnline,
     Allyfy,
     Bing,
+    Binjie,
     Bixin123,
     Blackbox,
     ChatGot,
@@ -84,6 +85,7 @@ default = Model(
         Upstage,
         Blackbox,
         Bixin123,
+        Binjie,
     ])
 )
 
@@ -139,7 +141,7 @@ gpt_4 = Model(
     name          = 'gpt-4',
     base_provider = 'OpenAI',
     best_provider = IterListProvider([
-        Chatgpt4Online, Nexra, Bing,
+        Chatgpt4Online, Nexra, Binjie, Bing,
         gpt_4_turbo.best_provider, gpt_4o.best_provider, gpt_4o_mini.best_provider
     ])
 )
