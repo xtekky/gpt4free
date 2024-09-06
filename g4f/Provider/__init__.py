@@ -16,7 +16,7 @@ from .AiChats          import AiChats
 from .Aura             import Aura
 from .Bing             import Bing
 from .BingCreateImages import BingCreateImages
-from .Binjie         import Binjie
+from .Binjie           import Binjie
 from .Bixin123         import Bixin123
 from .Blackbox         import Blackbox
 from .ChatGot          import ChatGot
@@ -29,6 +29,7 @@ from .DeepInfra        import DeepInfra
 from .DeepInfraImage   import DeepInfraImage
 from .FlowGpt          import FlowGpt
 from .FluxAirforce     import FluxAirforce
+from .Free2GPT         import Free2GPT
 from .FreeChatgpt      import FreeChatgpt
 from .FreeGpt          import FreeGpt
 from .FreeNetfly       import FreeNetfly

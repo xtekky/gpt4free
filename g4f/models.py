@@ -19,6 +19,7 @@ from .Provider import (
     DeepInfra,
     DeepInfraImage,
     FluxAirforce,
+    Free2GPT,
     FreeChatgpt,
     FreeGpt,
     FreeNetfly,
@@ -86,6 +87,7 @@ default = Model(
         Blackbox,
         Bixin123,
         Binjie,
+        Free2GPT,
     ])
 )
 
@@ -182,7 +184,7 @@ llama_3_1_8b = Model(
 llama_3_1_70b = Model(
     name          = "llama-3.1-70b",
     base_provider = "Meta",
-    best_provider = IterListProvider([DDG, HuggingChat, FreeGpt, Blackbox, TeachAnything, HuggingFace])
+    best_provider = IterListProvider([DDG, HuggingChat, FreeGpt, Blackbox, TeachAnything, Free2GPT, HuggingFace])
 )
 
 llama_3_1_405b = Model(
