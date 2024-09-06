@@ -25,7 +25,7 @@ class FreeChatgpt(AsyncGeneratorProvider, ProviderModelMixin):
         "sparkdesk-v1.1": "SparkDesk-v1.1",
         "qwen2-7b": "Qwen2-7B-Instruct",
         "glm4-9b": "glm4-9B-chat",
-        "chatglm3-6b": "chatglm3-6B",
+        "glm3-6b": "chatglm3-6B",
         "yi-1.5-9b": "Yi-1.5-9B-Chat",
     }
 

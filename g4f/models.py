@@ -13,6 +13,7 @@ from .Provider import (
     Chatgpt4Online,
     Chatgpt4o,
     ChatgptFree,
+    CodeNews,
     DDG,
     DeepInfra,
     DeepInfraImage,
@@ -105,7 +106,7 @@ gpt_35_turbo = Model(
     name          = 'gpt-3.5-turbo',
     base_provider = 'OpenAI',
     best_provider = IterListProvider([
-        Allyfy, TwitterBio, Nexra, Bixin123,
+        Allyfy, TwitterBio, Nexra, Bixin123, CodeNews,
     ])
 )
 
@@ -122,7 +123,7 @@ gpt_4o_mini = Model(
     name          = 'gpt-4o-mini',
     base_provider = 'OpenAI',
     best_provider = IterListProvider([
-        DDG, Liaobots, You, FreeNetfly, MagickPenAsk, MagickPenChat, Pizzagpt, ChatgptFree, AiChatOnline, OpenaiChat, Koala,       
+        DDG, Liaobots, You, FreeNetfly, MagickPenAsk, MagickPenChat, Pizzagpt, ChatgptFree, AiChatOnline, CodeNews, OpenaiChat, Koala,       
     ])
 )
 
@@ -342,18 +343,23 @@ qwen_turbo = Model(
 
 
 ### Zhipu AI ###
+glm3_6b = Model(
+    name = 'glm3-6b',
+    base_provider = 'Zhipu AI',
+    best_provider = IterListProvider([FreeChatgpt])
+)
+
 glm4_9b = Model(
     name = 'glm4-9B',
     base_provider = 'Zhipu AI',
     best_provider = IterListProvider([FreeChatgpt])
 )
 
-chatglm3_6b = Model(
-    name = 'chatglm3-6b',
+glm4 = Model(
+    name = 'glm4',
     base_provider = 'Zhipu AI',
-    best_provider = IterListProvider([FreeChatgpt])
+    best_provider = IterListProvider([CodeNews, glm4_9b.best_provider,])
 )
-
 
 ### 01-ai ###
 yi_1_5_9b = Model(
@@ -403,6 +409,13 @@ donutlm_v1 = Model(
     name = 'donutlm-v1',
     base_provider = 'CookinAI',
     best_provider = Snova
+)
+
+### DeepSeek ###
+deepseek = Model(
+    name = 'deepseek',
+    base_provider = 'DeepSeek',
+    best_provider = CodeNews
 )
 
 
@@ -596,8 +609,9 @@ class ModelUtils:
         
         
 ### Zhipu AI ###
+'glm3-6b': glm3_6b,
 'glm4-9b': glm4_9b,
-'chatglm3-6b': chatglm3_6b,
+'glm4': glm4,
         
         
 ### 01-ai ###
@@ -626,6 +640,9 @@ class ModelUtils:
 
 ### CookinAI ###
 'donutlm-v1': donutlm_v1,
+
+### DeepSeek ###
+'deepseek': deepseek,
         
         
         

@@ -22,6 +22,7 @@ from .ChatGot          import ChatGot
 from .Chatgpt4Online   import Chatgpt4Online
 from .Chatgpt4o        import Chatgpt4o
 from .ChatgptFree      import ChatgptFree
+from .CodeNews      import CodeNews
 from .DDG              import DDG
 from .DeepInfra        import DeepInfra
 from .DeepInfraImage   import DeepInfraImage
