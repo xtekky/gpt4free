@@ -24,7 +24,6 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
     image_models = ["dall-e"]
     models = [
         default_model,
-        "gpt-4o-mini",
         "gpt-4o",
         "gpt-4-turbo",
         "gpt-4",

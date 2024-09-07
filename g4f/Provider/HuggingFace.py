@@ -1,11 +1,14 @@
 from __future__ import annotations
+
 import json
 from aiohttp import ClientSession, BaseConnector
+
 from ..typing import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from .helper import get_connector
 from ..errors import RateLimitError, ModelNotFoundError
 from ..requests.raise_for_status import raise_for_status
+
 class HuggingFace(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://huggingface.co/chat"
     working = True
@@ -22,7 +25,7 @@ class HuggingFace(AsyncGeneratorProvider, ProviderModelMixin):
         'mistralai/Mistral-7B-Instruct-v0.3',
         'microsoft/Phi-3-mini-4k-instruct',
     ]
-
+    
     model_aliases = {
         "llama-3.1-70b": "meta-llama/Meta-Llama-3.1-70B-Instruct",
         "llama-3.1-405b": "meta-llama/Meta-Llama-3.1-405B-Instruct-FP8",
@@ -76,7 +79,7 @@ class HuggingFace(AsyncGeneratorProvider, ProviderModelMixin):
         }
         if api_key is not None:
             headers["Authorization"] = f"Bearer {api_key}"
-
+        
         params = {
             "return_full_text": False,
             "max_new_tokens": max_new_tokens,
@@ -84,7 +87,7 @@ class HuggingFace(AsyncGeneratorProvider, ProviderModelMixin):
             **kwargs
         }
         payload = {"inputs": format_prompt(messages), "parameters": params, "stream": stream}
-
+        
         async with ClientSession(
             headers=headers,
             connector=get_connector(connector, proxy)
@@ -106,6 +109,7 @@ class HuggingFace(AsyncGeneratorProvider, ProviderModelMixin):
                                 yield chunk
                 else:
                     yield (await response.json())[0]["generated_text"].strip()
+
 def format_prompt(messages: Messages) -> str:
     system_messages = [message["content"] for message in messages if message["role"] == "system"]
     question = " ".join([messages[-1]["content"], *system_messages])

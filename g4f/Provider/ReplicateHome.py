@@ -14,9 +14,9 @@ class ReplicateHome(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://replicate.com"
     parent = "Replicate"
     working = True
-    default_model = 'stability-ai/stable-diffusion-3'
+    default_model = 'meta/meta-llama-3-70b-instruct'
     models = [
-		# Models for image generation
+        # Models for image generation
         'stability-ai/stable-diffusion-3',
         'bytedance/sdxl-lightning-4step',
         'playgroundai/playground-v2.5-1024px-aesthetic',
@@ -28,7 +28,7 @@ class ReplicateHome(AsyncGeneratorProvider, ProviderModelMixin):
     ]
 
     versions = {
-		# Model versions for generating images
+        # Model versions for generating images
         'stability-ai/stable-diffusion-3': [
             "527d2a6296facb8e47ba1eaf17f142c240c19a30894f437feee9b91cc29d8e4f"
         ],
@@ -38,7 +38,6 @@ class ReplicateHome(AsyncGeneratorProvider, ProviderModelMixin):
         'playgroundai/playground-v2.5-1024px-aesthetic': [
             "a45f82a1382bed5c7aeb861dac7c7d191b0fdf74d8d57c4a0e6ed7d4d0bf7d24"
         ],
-        
         
         # Model versions for text generation
         'meta/meta-llama-3-70b-instruct': [
@@ -54,6 +53,24 @@ class ReplicateHome(AsyncGeneratorProvider, ProviderModelMixin):
 
     image_models = {"stability-ai/stable-diffusion-3", "bytedance/sdxl-lightning-4step", "playgroundai/playground-v2.5-1024px-aesthetic"}
     text_models = {"meta/meta-llama-3-70b-instruct", "mistralai/mixtral-8x7b-instruct-v0.1", "google-deepmind/gemma-2b-it"}
+
+    model_aliases = {
+        "sd-3": "stability-ai/stable-diffusion-3",
+        "sdxl": "bytedance/sdxl-lightning-4step",
+        "playground-v2.5": "playgroundai/playground-v2.5-1024px-aesthetic",
+        "llama-3-70b": "meta/meta-llama-3-70b-instruct",
+        "mixtral-8x7b": "mistralai/mixtral-8x7b-instruct-v0.1",
+        "gemma-2b": "google-deepmind/gemma-2b-it",
+    }
+
+    @classmethod
+    def get_model(cls, model: str) -> str:
+        if model in cls.models:
+            return model
+        elif model in cls.model_aliases:
+            return cls.model_aliases[model]
+        else:
+            return cls.default_model
 
     @classmethod
     async def create_async_generator(
@@ -76,6 +93,7 @@ class ReplicateHome(AsyncGeneratorProvider, ProviderModelMixin):
         extra_data: Dict[str, Any] = {},
         **kwargs: Any
     ) -> Union[str, ImageResponse]:
+        model = cls.get_model(model)  # Use the get_model method to resolve model name
         headers = {
             'Accept-Encoding': 'gzip, deflate, br',
             'Accept-Language': 'en-US',
@@ -109,7 +127,7 @@ class ReplicateHome(AsyncGeneratorProvider, ProviderModelMixin):
                 "version": version
             }
             if api_key is None:
-                data["model"] = cls.get_model(model)
+                data["model"] = model
                 url = "https://homepage.replicate.com/api/prediction"
             else:
                 url = "https://api.replicate.com/v1/predictions"

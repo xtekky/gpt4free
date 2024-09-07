@@ -22,7 +22,7 @@ class HuggingChat(AbstractProvider, ProviderModelMixin):
         'mistralai/Mistral-7B-Instruct-v0.3',
         'microsoft/Phi-3-mini-4k-instruct',
     ]
-
+    
     model_aliases = {
         "llama-3.1-70b": "meta-llama/Meta-Llama-3.1-70B-Instruct",
         "llama-3.1-405b": "meta-llama/Meta-Llama-3.1-405B-Instruct-FP8",
@@ -42,7 +42,7 @@ class HuggingChat(AbstractProvider, ProviderModelMixin):
             return cls.model_aliases[model]
         else:
             return cls.default_model
-
+            
     @classmethod
     def create_completion(
         cls,
@@ -52,7 +52,7 @@ class HuggingChat(AbstractProvider, ProviderModelMixin):
         **kwargs
     ) -> CreateResult:
         model = cls.get_model(model)
-
+        
         if model in cls.models:
             session = cf_reqs.Session()
             session.headers = {
@@ -71,12 +71,17 @@ class HuggingChat(AbstractProvider, ProviderModelMixin):
                 'sec-fetch-site': 'same-origin',
                 'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
             }
+
+            print(model)
             json_data = {
                 'model': model,
             }
+
             response = session.post('https://huggingface.co/chat/conversation', json=json_data)
             conversationId = response.json()['conversationId']
+
             response = session.get(f'https://huggingface.co/chat/conversation/{conversationId}/__data.json?x-sveltekit-invalidated=01',)
+
             data: list = (response.json())["nodes"][1]["data"]
             keys: list[int] = data[data[0]["messages"]]
             message_keys: dict = data[keys[0]]
@@ -117,6 +122,7 @@ class HuggingChat(AbstractProvider, ProviderModelMixin):
                 headers=headers,
                 files=files,
             )
+
             first_token = True
             for line in response.iter_lines():
                 line = json.loads(line)
@@ -133,6 +139,6 @@ class HuggingChat(AbstractProvider, ProviderModelMixin):
                         token = token.replace('\u0000', '')
 
                     yield token
-
+                
                 elif line["type"] == "finalAnswer":
                     break

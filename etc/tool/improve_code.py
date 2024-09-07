@@ -30,7 +30,7 @@ Don't remove license comments.
 print("Create code...")
 response = []
 for chunk in g4f.ChatCompletion.create(
-    model=g4f.models.gpt_35_long,
+    model=g4f.models.default,
     messages=[{"role": "user", "content": prompt}],
     timeout=300,
     stream=True

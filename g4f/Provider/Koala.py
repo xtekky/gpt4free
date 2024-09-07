@@ -4,16 +4,17 @@ import json
 from typing import AsyncGenerator, Optional, List, Dict, Union, Any
 from aiohttp import ClientSession, BaseConnector, ClientResponse
 
-from ..typing import Messages
-from .base_provider import AsyncGeneratorProvider
+from ..typing import AsyncResult, Messages
+from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from .helper import get_random_string, get_connector
 from ..requests import raise_for_status
 
-class Koala(AsyncGeneratorProvider):
+class Koala(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://koala.sh"
     working = True
-    supports_gpt_35_turbo = True
     supports_message_history = True
+    supports_gpt_4 = True
+    default_model = 'gpt-4o-mini'
 
     @classmethod
     async def create_async_generator(

@@ -12,11 +12,11 @@ from ..typing import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 
 
-class GeminiProChat(AsyncGeneratorProvider, ProviderModelMixin):
-    url = "https://gemini-pro.chat/"
+class Free2GPT(AsyncGeneratorProvider, ProviderModelMixin):
+    url = "https://chat10.free2gpt.xyz"
     working = True
     supports_message_history = True
-    default_model = 'gemini-pro'
+    default_model = 'llama-3.1-70b'
 
     @classmethod
     async def create_async_generator(
@@ -28,9 +28,9 @@ class GeminiProChat(AsyncGeneratorProvider, ProviderModelMixin):
         **kwargs,
     ) -> AsyncResult:
         headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:122.0) Gecko/20100101 Firefox/122.0",
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36",
             "Accept": "*/*",
-            "Accept-Language": "en-US,en;q=0.5",
+            "Accept-Language": "en-US,en;q=0.9",
             "Accept-Encoding": "gzip, deflate, br",
             "Content-Type": "text/plain;charset=UTF-8",
             "Referer": f"{cls.url}/",
@@ -38,21 +38,23 @@ class GeminiProChat(AsyncGeneratorProvider, ProviderModelMixin):
             "Sec-Fetch-Dest": "empty",
             "Sec-Fetch-Mode": "cors",
             "Sec-Fetch-Site": "same-origin",
-            "Connection": "keep-alive",
-            "TE": "trailers",
+            "Sec-Ch-Ua": '"Chromium";v="127", "Not)A;Brand";v="99"',
+            "Sec-Ch-Ua-Mobile": "?0",
+            "Sec-Ch-Ua-Platform": '"Linux"',
+            "Cache-Control": "no-cache",
+            "Pragma": "no-cache",
+            "Priority": "u=1, i",
         }
         async with ClientSession(
             connector=get_connector(connector, proxy), headers=headers
         ) as session:
             timestamp = int(time.time() * 1e3)
+            system_message = {
+                "role": "system",
+                "content": ""
+            }
             data = {
-                "messages": [
-                    {
-                        "role": "model" if message["role"] == "assistant" else "user",
-                        "parts": [{"text": message["content"]}],
-                    }
-                    for message in messages
-                ],
+                "messages": [system_message] + messages,
                 "time": timestamp,
                 "pass": None,
                 "sign": generate_signature(timestamp, messages[-1]["content"]),

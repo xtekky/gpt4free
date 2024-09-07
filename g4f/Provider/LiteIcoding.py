@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from aiohttp import ClientSession, ClientResponseError
+import re
 from ..typing import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from .helper import format_prompt
@@ -31,7 +32,7 @@ class LiteIcoding(AsyncGeneratorProvider, ProviderModelMixin):
         headers = {
             "Accept": "*/*",
             "Accept-Language": "en-US,en;q=0.9",
-            "Authorization": "Bearer b3b2712cf83640a5acfdc01e78369930",
+            "Authorization": "Bearer aa3020ee873e40cb8b3f515a0708ebc4",
             "Connection": "keep-alive",
             "Content-Type": "application/json;charset=utf-8",
             "DNT": "1",
@@ -97,7 +98,11 @@ class LiteIcoding(AsyncGeneratorProvider, ProviderModelMixin):
                                   .replace('\\"', '"')
                                   .strip()
                     )
-                    yield full_response.strip()
+                    # Add filter to remove unwanted text
+                    filtered_response = re.sub(r'\n---\n.*', '', full_response, flags=re.DOTALL)
+                    # Remove extra quotes at the beginning and end
+                    cleaned_response = filtered_response.strip().strip('"')
+                    yield cleaned_response
 
             except ClientResponseError as e:
                 raise RuntimeError(

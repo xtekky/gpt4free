@@ -13,7 +13,7 @@ class TeachAnything(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://www.teach-anything.com"
     api_endpoint = "/api/generate"
     working = True
-    default_model = "llama-3-70b-instruct"
+    default_model = "llama-3.1-70b"
 
     @classmethod
     async def create_async_generator(
@@ -38,9 +38,23 @@ class TeachAnything(AsyncGeneratorProvider, ProviderModelMixin):
                 timeout=timeout
             ) as response:
                 response.raise_for_status()
+                buffer = b""
                 async for chunk in response.content.iter_any():
-                    if chunk:
-                        yield chunk.decode()
+                    buffer += chunk
+                    try:
+                        decoded = buffer.decode('utf-8')
+                        yield decoded
+                        buffer = b""
+                    except UnicodeDecodeError:
+                        # If we can't decode, we'll wait for more data
+                        continue
+                
+                # Handle any remaining data in the buffer
+                if buffer:
+                    try:
+                        yield buffer.decode('utf-8', errors='replace')
+                    except Exception as e:
+                        print(f"Error decoding final buffer: {e}")
 
     @staticmethod
     def _get_headers() -> Dict[str, str]:

@@ -6,6 +6,7 @@ import os.path
 import uuid
 import asyncio
 import time
+import base64
 from aiohttp import ClientSession
 from typing import Iterator, Optional
 from flask import send_from_directory
@@ -195,18 +196,32 @@ class Api():
                             cookies=cookies
                         ) as session:
                             async def copy_image(image):
-                                async with session.get(image) as response:
-                                    target = os.path.join(images_dir, f"{int(time.time())}_{str(uuid.uuid4())}")
-                                    with open(target, "wb") as f:
-                                        async for chunk in response.content.iter_any():
-                                            f.write(chunk)
-                                    with open(target, "rb") as f:
-                                        extension = is_accepted_format(f.read(12)).split("/")[-1]
-                                        extension = "jpg" if extension == "jpeg" else extension
-                                    new_target = f"{target}.{extension}"
-                                    os.rename(target, new_target)
-                                    return f"/images/{os.path.basename(new_target)}"
-                            return await asyncio.gather(*[copy_image(image) for image in images])                                
+                                if image.startswith("data:"):
+                                    # Processing the data URL
+                                    data_uri_parts = image.split(",")
+                                    if len(data_uri_parts) == 2:
+                                        content_type, base64_data = data_uri_parts
+                                        extension = content_type.split("/")[-1].split(";")[0]
+                                        target = os.path.join(images_dir, f"{int(time.time())}_{str(uuid.uuid4())}.{extension}")
+                                        with open(target, "wb") as f:
+                                            f.write(base64.b64decode(base64_data))
+                                        return f"/images/{os.path.basename(target)}"
+                                    else:
+                                        return None
+                                else:
+                                    # Обробка звичайної URL-адреси
+                                    async with session.get(image) as response:
+                                        target = os.path.join(images_dir, f"{int(time.time())}_{str(uuid.uuid4())}")
+                                        with open(target, "wb") as f:
+                                            async for chunk in response.content.iter_any():
+                                                f.write(chunk)
+                                        with open(target, "rb") as f:
+                                            extension = is_accepted_format(f.read(12)).split("/")[-1]
+                                            extension = "jpg" if extension == "jpeg" else extension
+                                        new_target = f"{target}.{extension}"
+                                        os.rename(target, new_target)
+                                        return f"/images/{os.path.basename(new_target)}"
+                            return await asyncio.gather(*[copy_image(image) for image in images])
                     images = asyncio.run(copy_images(chunk.get_list(), chunk.options.get("cookies")))
                     yield self._format_json("content", str(ImageResponse(images, chunk.alt)))
                 elif not isinstance(chunk, FinishReason):
