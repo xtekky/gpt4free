@@ -892,7 +892,7 @@ While we wait for gpt-5, here is a list of new models that are at least better t
       </td>
       <td>
         <a href="https://github.com/OfficiallyMelon/BetterDecompiler/network/members">
-          <img alt="Forks" src="https://img.shields.io/github/forks/OfficiallyMelon/BetterDecompiler/chatgpt-line-bot?style=flat-square&labelColor=343b41" />
+          <img alt="Forks" src="https://img.shields.io/github/forks/OfficiallyMelon/BetterDecompiler?style=flat-square&labelColor=343b41" />
         </a>
       </td>
       <td>
