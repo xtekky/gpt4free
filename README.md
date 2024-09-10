@@ -772,6 +772,34 @@ While we wait for gpt-5, here is a list of new models that are at least better t
       </td>
     </tr>
     <tr>
+    <tr>
+      <td>
+        <a href="https://github.com/Lin-jun-xiang/chatgpt-line-bot">
+          <b>ChatGpt Line Bot</b>
+        </a>
+      </td>
+      <td>
+        <a href="https://github.com/Lin-jun-xiang/chatgpt-line-bot/stargazers">
+          <img alt="Stars" src="https://img.shields.io/github/stars/Lin-jun-xiang/chatgpt-line-bot?style=flat-square&labelColor=343b41" />
+        </a>
+      </td>
+      <td>
+        <a href="https://github.com/Lin-jun-xiang/chatgpt-line-bot/network/members">
+          <img alt="Forks" src="https://img.shields.io/github/forks/Lin-jun-xiang/chatgpt-line-bot?style=flat-square&labelColor=343b41" />
+        </a>
+      </td>
+      <td>
+        <a href="https://github.com/Lin-jun-xiang/chatgpt-line-bot/issues">
+          <img alt="Issues" src="https://img.shields.io/github/issues/Lin-jun-xiang/chatgpt-line-bot?style=flat-square&labelColor=343b41" />
+        </a>
+      </td>
+      <td>
+        <a href="https://github.com/Lin-jun-xiang/chatgpt-line-bot/pulls">
+          <img alt="Pull Requests" src="https://img.shields.io/github/issues-pr/Lin-jun-xiang/chatgpt-line-bot?style=flat-square&labelColor=343b41" />
+        </a>
+      </td>
+    </tr>
+    <tr>
       <td>
         <a href="https://github.com/Lin-jun-xiang/action-translate-readme">
           <b>Action Translate Readme</b>
