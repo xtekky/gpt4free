@@ -10,7 +10,8 @@ from .helper import get_random_string, get_connector
 from ..requests import raise_for_status
 
 class Koala(AsyncGeneratorProvider, ProviderModelMixin):
-    url = "https://koala.sh"
+    url = "https://koala.sh/chat"
+    api_endpoint = "https://koala.sh/api/gpt/"
     working = True
     supports_message_history = True
     supports_gpt_4 = True
@@ -26,17 +27,17 @@ class Koala(AsyncGeneratorProvider, ProviderModelMixin):
         **kwargs: Any
     ) -> AsyncGenerator[Dict[str, Union[str, int, float, List[Dict[str, Any]], None]], None]:
         if not model:
-            model = "gpt-3.5-turbo"
+            model = "gpt-4o-mini"
 
         headers = {
             "User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:122.0) Gecko/20100101 Firefox/122.0",
             "Accept": "text/event-stream",
             "Accept-Language": "de,en-US;q=0.7,en;q=0.3",
             "Accept-Encoding": "gzip, deflate, br",
-            "Referer": f"{cls.url}/chat",
+            "Referer": f"{cls.url}",
             "Flag-Real-Time-Data": "false",
             "Visitor-ID": get_random_string(20),
-            "Origin": cls.url,
+            "Origin": "https://koala.sh",
             "Alt-Used": "koala.sh",
             "Sec-Fetch-Dest": "empty",
             "Sec-Fetch-Mode": "cors",
@@ -67,7 +68,7 @@ class Koala(AsyncGeneratorProvider, ProviderModelMixin):
                 "model": model,
             }
 
-            async with session.post(f"{cls.url}/api/gpt/", json=data, proxy=proxy) as response:
+            async with session.post(f"{cls.api_endpoint}", json=data, proxy=proxy) as response:
                 await raise_for_status(response)
                 async for chunk in cls._parse_event_stream(response):
                     yield chunk
