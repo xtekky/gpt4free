@@ -168,19 +168,19 @@ llama_3_8b = Model(
 llama_3_70b = Model(
     name          = "llama-3-70b",
     base_provider = "Meta",
-    best_provider = IterListProvider([ReplicateHome, DeepInfra, PerplexityLabs, Replicate])
+    best_provider = IterListProvider([ReplicateHome, DeepInfra, Replicate])
 )
 
 llama_3_1_8b = Model(
     name          = "llama-3.1-8b",
     base_provider = "Meta",
-    best_provider = IterListProvider([Blackbox])
+    best_provider = IterListProvider([Blackbox, PerplexityLabs])
 )
 
 llama_3_1_70b = Model(
     name          = "llama-3.1-70b",
     base_provider = "Meta",
-    best_provider = IterListProvider([DDG, HuggingChat, FreeGpt, Blackbox, TeachAnything, Free2GPT, HuggingFace])
+    best_provider = IterListProvider([DDG, HuggingChat, FreeGpt, Blackbox, TeachAnything, Free2GPT, HuggingFace, PerplexityLabs])
 )
 
 llama_3_1_405b = Model(
@@ -404,13 +404,6 @@ westlake_7b_v2 = Model(
     best_provider = Snova
 )
 
-### CookinAI ###
-donutlm_v1 = Model(
-    name = 'donutlm-v1',
-    base_provider = 'CookinAI',
-    best_provider = Snova
-)
-
 ### DeepSeek ###
 deepseek = Model(
     name = 'deepseek',
@@ -486,6 +479,13 @@ flux_disney = Model(
 ### ###
 dalle = Model(
     name = 'dalle',
+    base_provider = '',
+    best_provider = IterListProvider([Nexra])
+    
+)
+
+dalle_2 = Model(
+    name = 'dalle-2',
     base_provider = '',
     best_provider = IterListProvider([Nexra])
     
@@ -638,9 +638,6 @@ class ModelUtils:
 'westlake-7b-v2': westlake_7b_v2,
 
 
-### CookinAI ###
-'donutlm-v1': donutlm_v1,
-
 ### DeepSeek ###
 'deepseek': deepseek,
         
@@ -669,6 +666,7 @@ class ModelUtils:
 
 ###  ###
 'dalle': dalle,
+'dalle-2': dalle_2,
 'dalle-mini': dalle_mini,
 'emi': emi,
     }
