@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from aiohttp import ClientSession
 import json
+import random
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..typing import AsyncResult, Messages
 from .helper import format_prompt
@@ -31,6 +32,10 @@ class Bixin123(AsyncGeneratorProvider, ProviderModelMixin):
             return cls.default_model
 
     @classmethod
+    def generate_fingerprint(cls) -> str:
+        return str(random.randint(100000000, 999999999))
+
+    @classmethod
     async def create_async_generator(
         cls,
         model: str,
@@ -45,7 +50,7 @@ class Bixin123(AsyncGeneratorProvider, ProviderModelMixin):
             "accept-language": "en-US,en;q=0.9",
             "cache-control": "no-cache",
             "content-type": "application/json",
-            "fingerprint": "988148794",
+            "fingerprint": cls.generate_fingerprint(),
             "origin": cls.url,
             "pragma": "no-cache",
             "priority": "u=1, i",
