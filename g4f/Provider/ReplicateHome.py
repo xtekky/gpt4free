@@ -15,16 +15,11 @@ class ReplicateHome(AsyncGeneratorProvider, ProviderModelMixin):
     parent = "Replicate"
     working = True
     default_model = 'meta/meta-llama-3-70b-instruct'
+    text_models = {"meta/meta-llama-3-70b-instruct", "mistralai/mixtral-8x7b-instruct-v0.1", "google-deepmind/gemma-2b-it"}
+    image_models = {"stability-ai/stable-diffusion-3", "bytedance/sdxl-lightning-4step", "playgroundai/playground-v2.5-1024px-aesthetic"}
     models = [
-        # Models for image generation
-        'stability-ai/stable-diffusion-3',
-        'bytedance/sdxl-lightning-4step',
-        'playgroundai/playground-v2.5-1024px-aesthetic',
-        
-        # Models for image generation
-        'meta/meta-llama-3-70b-instruct',
-        'mistralai/mixtral-8x7b-instruct-v0.1',
-        'google-deepmind/gemma-2b-it',
+        *text_models,
+        *image_models
     ]
 
     versions = {
@@ -50,9 +45,6 @@ class ReplicateHome(AsyncGeneratorProvider, ProviderModelMixin):
             "dff94eaf770e1fc211e425a50b51baa8e4cac6c39ef074681f9e39d778773626"
         ]
     }
-
-    image_models = {"stability-ai/stable-diffusion-3", "bytedance/sdxl-lightning-4step", "playgroundai/playground-v2.5-1024px-aesthetic"}
-    text_models = {"meta/meta-llama-3-70b-instruct", "mistralai/mixtral-8x7b-instruct-v0.1", "google-deepmind/gemma-2b-it"}
 
     model_aliases = {
         "sd-3": "stability-ai/stable-diffusion-3",
