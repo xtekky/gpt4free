@@ -41,7 +41,6 @@ from .HuggingFace      import HuggingFace
 from .Koala            import Koala
 from .Liaobots         import Liaobots
 from .LiteIcoding      import LiteIcoding
-from .Llama            import Llama
 from .Local            import Local
 from .MagickPen        import MagickPen
 from .MetaAI           import MetaAI
