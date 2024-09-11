@@ -13,7 +13,7 @@ WS_URL = "wss://www.perplexity.ai/socket.io/"
 class PerplexityLabs(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://labs.perplexity.ai"
     working = True
-    default_model = "llama-3.1-8b-instruct"
+    default_model = "llama-3.1-70b-instruct"
     models = [
         "llama-3.1-sonar-large-128k-online",
         "llama-3.1-sonar-small-128k-online",
@@ -22,6 +22,15 @@ class PerplexityLabs(AsyncGeneratorProvider, ProviderModelMixin):
         "llama-3.1-8b-instruct",
         "llama-3.1-70b-instruct",
     ]
+    
+    model_aliases = {
+        "llama-3.1-8b": "llama-3.1-sonar-large-128k-online",
+        "llama-3.1-8b": "sonar-small-128k-online",
+        "llama-3.1-8b": "llama-3.1-sonar-large-128k-chat",
+        "llama-3.1-8b": "llama-3.1-sonar-small-128k-chat",
+        "llama-3.1-8b": "llama-3.1-8b-instruct",
+        "llama-3.1-70b": "llama-3.1-70b-instruct",
+    }
 
     @classmethod
     async def create_async_generator(
