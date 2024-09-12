@@ -14,8 +14,7 @@ class HuggingChat(AbstractProvider, ProviderModelMixin):
     default_model = "meta-llama/Meta-Llama-3.1-70B-Instruct"
     models = [
         'meta-llama/Meta-Llama-3.1-70B-Instruct',
-        'meta-llama/Meta-Llama-3.1-405B-Instruct-FP8',
-        'CohereForAI/c4ai-command-r-plus',
+        'CohereForAI/c4ai-command-r-plus-08-2024',
         'mistralai/Mixtral-8x7B-Instruct-v0.1',
         'NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO',
         '01-ai/Yi-1.5-34B-Chat',
@@ -25,8 +24,7 @@ class HuggingChat(AbstractProvider, ProviderModelMixin):
     
     model_aliases = {
         "llama-3.1-70b": "meta-llama/Meta-Llama-3.1-70B-Instruct",
-        "llama-3.1-405b": "meta-llama/Meta-Llama-3.1-405B-Instruct-FP8",
-        "command-r-plus": "CohereForAI/c4ai-command-r-plus",
+        "command-r-plus": "CohereForAI/c4ai-command-r-plus-08-2024",
         "mixtral-8x7b": "mistralai/Mixtral-8x7B-Instruct-v0.1",
         "mixtral-8x7b": "NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO",
         "yi-1.5-34b": "01-ai/Yi-1.5-34B-Chat",

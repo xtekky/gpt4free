@@ -186,7 +186,7 @@ llama_3_1_70b = Model(
 llama_3_1_405b = Model(
     name          = "llama-3.1-405b",
     base_provider = "Meta",
-    best_provider = IterListProvider([HuggingChat, Blackbox, HuggingFace])
+    best_provider = IterListProvider([Blackbox])
 )
 
 ### Mistral ###
