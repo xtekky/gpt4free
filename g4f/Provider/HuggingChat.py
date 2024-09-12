@@ -13,11 +13,10 @@ class HuggingChat(AbstractProvider, ProviderModelMixin):
     supports_stream = True
     default_model = "meta-llama/Meta-Llama-3.1-70B-Instruct"
     models = [
-        'meta-llama/Meta-Llama-3.1-70B-Instruct',
+        default_model,
         'CohereForAI/c4ai-command-r-plus-08-2024',
         'mistralai/Mixtral-8x7B-Instruct-v0.1',
         'NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO',
-        '01-ai/Yi-1.5-34B-Chat',
         'mistralai/Mistral-7B-Instruct-v0.3',
         'microsoft/Phi-3-mini-4k-instruct',
     ]
@@ -27,7 +26,6 @@ class HuggingChat(AbstractProvider, ProviderModelMixin):
         "command-r-plus": "CohereForAI/c4ai-command-r-plus-08-2024",
         "mixtral-8x7b": "mistralai/Mixtral-8x7B-Instruct-v0.1",
         "mixtral-8x7b": "NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO",
-        "yi-1.5-34b": "01-ai/Yi-1.5-34B-Chat",
         "mistral-7b": "mistralai/Mistral-7B-Instruct-v0.3",
         "phi-3-mini-4k": "microsoft/Phi-3-mini-4k-instruct",
     }

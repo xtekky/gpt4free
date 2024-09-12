@@ -202,13 +202,6 @@ mistral_7b = Model(
     best_provider = IterListProvider([HuggingChat, HuggingFace, DeepInfra])
 )
 
-### 01-ai ###
-yi_1_5_34b = Model(
-    name          = "yi-1.5-34b",
-    base_provider = "01-ai",
-    best_provider = IterListProvider([HuggingChat, HuggingFace])
-)
-
 
 ### Microsoft ###
 phi_3_mini_4k = Model(
@@ -548,10 +541,6 @@ class ModelUtils:
 ### Mistral ###
 'mixtral-8x7b': mixtral_8x7b,
 'mistral-7b': mistral_7b,
-
-
-### 01-ai ###
-'yi-1.5-34b': yi_1_5_34b,
         
         
 ### Microsoft ###
