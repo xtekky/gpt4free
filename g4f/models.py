@@ -207,7 +207,7 @@ mistral_7b = Model(
 phi_3_mini_4k = Model(
     name          = "phi-3-mini-4k",
     base_provider = "Microsoft",
-    best_provider = IterListProvider([HuggingFace, HuggingChat])
+    best_provider = IterListProvider([HuggingChat, HuggingFace])
 )
 
 
