@@ -50,6 +50,7 @@ from .Ollama           import Ollama
 from .PerplexityLabs   import PerplexityLabs
 from .Pi               import Pi
 from .Pizzagpt         import Pizzagpt
+from .Prodia           import Prodia
 from .Reka             import Reka
 from .Snova            import Snova
 from .Replicate        import Replicate
