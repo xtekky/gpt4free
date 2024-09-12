@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import re
 import json
+import random
+import string
 from aiohttp import ClientSession
 
 from ..typing import AsyncResult, Messages, ImageType
@@ -80,16 +82,18 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
                     "imageBase64": to_data_uri(image)
                 }
             
+            random_id = ''.join(random.choices(string.ascii_letters + string.digits, k=7))
+
             data = {
                 "messages": messages,
-                "id": "MRtAuMi",
+                "id": random_id,
                 "previewToken": None,
                 "userId": None,
                 "codeModelMode": True,
                 "agentMode": {},
                 "trendingAgentMode": {},
                 "isMicMode": False,
-                "maxTokens": 1024,
+                "maxTokens": None,
                 "isChromeExt": False,
                 "githubToken": None,
                 "clickedAnswer2": False,
