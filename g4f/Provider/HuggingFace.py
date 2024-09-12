@@ -9,29 +9,16 @@ from .helper import get_connector
 from ..errors import RateLimitError, ModelNotFoundError
 from ..requests.raise_for_status import raise_for_status
 
+from .HuggingChat import HuggingChat
+
 class HuggingFace(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://huggingface.co/chat"
     working = True
     needs_auth = True
     supports_message_history = True
-    default_model = "meta-llama/Meta-Llama-3.1-70B-Instruct"
-    models = [
-        default_model,
-        'CohereForAI/c4ai-command-r-plus-08-2024',
-        'mistralai/Mixtral-8x7B-Instruct-v0.1',
-        'NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO',
-        'mistralai/Mistral-7B-Instruct-v0.3',
-        'microsoft/Phi-3-mini-4k-instruct',
-    ]
-    
-    model_aliases = {
-        "llama-3.1-70b": "meta-llama/Meta-Llama-3.1-70B-Instruct",
-        "command-r-plus": "CohereForAI/c4ai-command-r-plus-08-2024",
-        "mixtral-8x7b": "mistralai/Mixtral-8x7B-Instruct-v0.1",
-        "mixtral-8x7b": "NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO",
-        "mistral-7b": "mistralai/Mistral-7B-Instruct-v0.3",
-        "phi-3-mini-4k": "microsoft/Phi-3-mini-4k-instruct",
-    }
+    default_model = HuggingChat.default_model
+    models = HuggingChat.models
+    model_aliases = HuggingChat.model_aliases
 
     @classmethod
     def get_model(cls, model: str) -> str:

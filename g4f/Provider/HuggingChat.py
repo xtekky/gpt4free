@@ -12,6 +12,7 @@ class HuggingChat(AbstractProvider, ProviderModelMixin):
     working = True
     supports_stream = True
     default_model = "meta-llama/Meta-Llama-3.1-70B-Instruct"
+    
     models = [
         default_model,
         'CohereForAI/c4ai-command-r-plus-08-2024',
