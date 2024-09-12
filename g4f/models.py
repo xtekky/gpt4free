@@ -546,11 +546,13 @@ class ModelUtils:
 'llama-3.1-70b': llama_3_1_70b,
 'llama-3.1-405b': llama_3_1_405b,
         
-        
 ### Mistral ###
 'mixtral-8x7b': mixtral_8x7b,
 'mistral-7b': mistral_7b,
-        
+     
+     
+### NousResearch ###
+'mixtral-8x7b-dpo': mixtral_8x7b_dpo,   
         
 ### Microsoft ###
 'phi-3-mini-4k': phi_3_mini_4k,
