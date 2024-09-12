@@ -14,7 +14,7 @@ class HuggingChat(AbstractProvider, ProviderModelMixin):
     default_model = "meta-llama/Meta-Llama-3.1-70B-Instruct"
     
     models = [
-        default_model,
+        'meta-llama/Meta-Llama-3.1-70B-Instruct',
         'CohereForAI/c4ai-command-r-plus-08-2024',
         'mistralai/Mixtral-8x7B-Instruct-v0.1',
         'NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO',
@@ -77,7 +77,7 @@ class HuggingChat(AbstractProvider, ProviderModelMixin):
             response = session.post('https://huggingface.co/chat/conversation', json=json_data)
             conversationId = response.json()['conversationId']
 
-            response = session.get(f'https://huggingface.co/chat/conversation/{conversationId}/__data.json?x-sveltekit-invalidated=01',)
+            response = session.get(f'https://huggingface.co/chat/conversation/{conversationId}/__data.json?x-sveltekit-invalidated=11',)
 
             data: list = (response.json())["nodes"][1]["data"]
             keys: list[int] = data[data[0]["messages"]]
