@@ -26,7 +26,7 @@ class HuggingChat(AbstractProvider, ProviderModelMixin):
         "llama-3.1-70b": "meta-llama/Meta-Llama-3.1-70B-Instruct",
         "command-r-plus": "CohereForAI/c4ai-command-r-plus-08-2024",
         "mixtral-8x7b": "mistralai/Mixtral-8x7B-Instruct-v0.1",
-        "mixtral-8x7b": "NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO",
+        "mixtral-8x7b-dpo": "NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO",
         "mistral-7b": "mistralai/Mistral-7B-Instruct-v0.3",
         "phi-3-mini-4k": "microsoft/Phi-3-mini-4k-instruct",
     }

@@ -189,6 +189,7 @@ llama_3_1_405b = Model(
     best_provider = IterListProvider([Blackbox])
 )
 
+
 ### Mistral ###
 mixtral_8x7b = Model(
     name          = "mixtral-8x7b",
@@ -200,6 +201,14 @@ mistral_7b = Model(
     name          = "mistral-7b",
     base_provider = "Mistral",
     best_provider = IterListProvider([HuggingChat, HuggingFace, DeepInfra])
+)
+
+
+### NousResearch ###
+mixtral_8x7b_dpo = Model(
+    name          = "mixtral-8x7b-dpo",
+    base_provider = "NousResearch",
+    best_provider = IterListProvider([HuggingChat, HuggingFace,])
 )
 
 
