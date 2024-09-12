@@ -25,7 +25,6 @@ class Prodia(AsyncGeneratorProvider, ProviderModelMixin):
         'anything-v4.5-pruned.ckpt [65745d25]',
         'anythingV5_PrtRE.safetensors [893e49b9]',
         'AOM3A3_orangemixs.safetensors [9600da17]',
-        'AOM3A3_orangemixs.safetensors [9600da17]',
         'blazing_drive_v10g.safetensors [ca1c1eab]',
         'breakdomain_I2428.safetensors [43cc7d2f]',
         'breakdomain_M2150.safetensors [15f7afca]',
