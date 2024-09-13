@@ -588,6 +588,13 @@ emi = Model(
     
 )
 
+any_dark = Model(
+    name = 'any-dark',
+    base_provider = '',
+    best_provider = IterListProvider([Airforce])
+    
+)
+
 class ModelUtils:
     """
     Utility class for mapping string identifiers to Model instances.
@@ -769,6 +776,7 @@ class ModelUtils:
 'dalle-2': dalle_2,
 'dalle-mini': dalle_mini,
 'emi': emi,
+'any-dark': any_dark,
     }
 
 _all_models = list(ModelUtils.convert.keys())
