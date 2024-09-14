@@ -56,17 +56,14 @@ class Nexra(AsyncGeneratorProvider, ProviderModelMixin):
         "dalle-2": "dalle2",
     }
     
-    
     @classmethod
     def get_model(cls, model: str) -> str:
         if model in cls.text_models or model in cls.image_models:
             return model
         elif model in cls.model_aliases:
             return cls.model_aliases[model]
-        elif model in cls.image_models:
-            return cls.default_image_model
         else:
-            return cls.default_chat_model
+            return cls.default_model
 
     @classmethod
     async def create_async_generator(
