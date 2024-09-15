@@ -29,7 +29,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
     ]
 
     model_config = {
-        "blackbox": {'mode': True, 'id': 'blackbox'},
+        "blackbox": {},
         "gemini-1.5-flash": {'mode': True, 'id': 'Gemini'},
         "llama-3.1-8b": {'mode': True, 'id': "llama-3.1-8b"},
         'llama-3.1-70b': {'mode': True, 'id': "llama-3.1-70b"},
