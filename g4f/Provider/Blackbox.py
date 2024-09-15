@@ -1,43 +1,40 @@
 from __future__ import annotations
 
-import uuid
-import secrets
 import re
-import base64
+import json
+import random
+import string
 from aiohttp import ClientSession
-from typing import AsyncGenerator, Optional
 
 from ..typing import AsyncResult, Messages, ImageType
-from ..image import to_data_uri, ImageResponse
+from ..image import ImageResponse, to_data_uri
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 
 class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://www.blackbox.ai"
+    api_endpoint = "https://www.blackbox.ai/api/chat"
     working = True
+    supports_stream = True
+    supports_system_message = True
+    supports_message_history = True
+    
     default_model = 'blackbox'
     models = [
-        default_model,
-        "gemini-1.5-flash",
+        'blackbox',
+        'gemini-1.5-flash',
         "llama-3.1-8b",
         'llama-3.1-70b',
         'llama-3.1-405b',
-        'ImageGeneration',
+        'ImageGenerationLV45LJp'
     ]
-    
-    model_aliases = {
-        "gemini-flash": "gemini-1.5-flash",
-    }
-    
-    agent_mode_map = {
-        'ImageGeneration': {"mode": True, "id": "ImageGenerationLV45LJp", "name": "Image Generation"},
-    }
 
-    model_id_map = {
+    model_config = {
         "blackbox": {},
         "gemini-1.5-flash": {'mode': True, 'id': 'Gemini'},
         "llama-3.1-8b": {'mode': True, 'id': "llama-3.1-8b"},
         'llama-3.1-70b': {'mode': True, 'id': "llama-3.1-70b"},
-        'llama-3.1-405b': {'mode': True, 'id': "llama-3.1-405b"}
+        'llama-3.1-405b': {'mode': True, 'id': "llama-3.1-405b"},
+        'ImageGenerationLV45LJp': {'mode': True, 'id': "ImageGenerationLV45LJp", 'name': "Image Generation"},
     }
 
     @classmethod
@@ -50,107 +47,81 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
             return cls.default_model
 
     @classmethod
-    async def download_image_to_base64_url(cls, url: str) -> str:
-        async with ClientSession() as session:
-            async with session.get(url) as response:
-                image_data = await response.read()
-                base64_data = base64.b64encode(image_data).decode('utf-8')
-                mime_type = response.headers.get('Content-Type', 'image/jpeg')
-                return f"data:{mime_type};base64,{base64_data}"
-
-    @classmethod
     async def create_async_generator(
         cls,
         model: str,
         messages: Messages,
-        proxy: Optional[str] = None,
-        image: Optional[ImageType] = None,
-        image_name: Optional[str] = None,
+        proxy: str = None,
+        image: ImageType = None,
+        image_name: str = None,
         **kwargs
-    ) -> AsyncGenerator[AsyncResult, None]:
-        if image is not None:
-            messages[-1]["data"] = {
-                "fileText": image_name,
-                "imageBase64": to_data_uri(image),
-                "title": str(uuid.uuid4())
-            }
-
+    ) -> AsyncResult:
+        model = cls.get_model(model)
+        
         headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-            "Accept": "*/*",
-            "Accept-Language": "en-US,en;q=0.5",
-            "Accept-Encoding": "gzip, deflate, br",
-            "Referer": cls.url,
-            "Content-Type": "application/json",
-            "Origin": cls.url,
-            "DNT": "1",
-            "Sec-GPC": "1",
-            "Alt-Used": "www.blackbox.ai",
-            "Connection": "keep-alive",
+            "accept": "*/*",
+            "accept-language": "en-US,en;q=0.9",
+            "cache-control": "no-cache",
+            "content-type": "application/json",
+            "origin": cls.url,
+            "pragma": "no-cache",
+            "referer": f"{cls.url}/",
+            "sec-ch-ua": '"Not;A=Brand";v="24", "Chromium";v="128"',
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": '"Linux"',
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "same-origin",
+            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36"
         }
-
+        
         async with ClientSession(headers=headers) as session:
-            random_id = secrets.token_hex(16)
-            random_user_id = str(uuid.uuid4())
+            if image is not None:
+                messages[-1]["data"] = {
+                    "fileText": image_name,
+                    "imageBase64": to_data_uri(image)
+                }
             
-            model = cls.get_model(model)  # Resolve the model alias
-            
+            random_id = ''.join(random.choices(string.ascii_letters + string.digits, k=7))
+
             data = {
                 "messages": messages,
                 "id": random_id,
-                "userId": random_user_id,
+                "previewToken": None,
+                "userId": None,
                 "codeModelMode": True,
-                "agentMode": cls.agent_mode_map.get(model, {}),
+                "agentMode": {},
                 "trendingAgentMode": {},
                 "isMicMode": False,
+                "maxTokens": None,
                 "isChromeExt": False,
-                "playgroundMode": False,
-                "webSearchMode": False,
-                "userSystemPrompt": "",
                 "githubToken": None,
-                "trendingAgentModel": cls.model_id_map.get(model, {}),
-                "maxTokens": None
+                "clickedAnswer2": False,
+                "clickedAnswer3": False,
+                "clickedForceWebSearch": False,
+                "visitFromDelta": False,
+                "mobileClient": False
             }
 
-            async with session.post(
-                f"{cls.url}/api/chat", json=data, proxy=proxy
-            ) as response:
+            if model == 'ImageGenerationLV45LJp':
+                data["agentMode"] = cls.model_config[model]
+            else:
+                data["trendingAgentMode"] = cls.model_config[model]
+            
+            async with session.post(cls.api_endpoint, json=data, proxy=proxy) as response:
                 response.raise_for_status()
-                full_response = ""
-                buffer = ""
-                image_base64_url = None
-                async for chunk in response.content.iter_any():
-                    if chunk:
-                        decoded_chunk = chunk.decode()
-                        cleaned_chunk = re.sub(r'\$@\$.+?\$@\$|\$@\$', '', decoded_chunk)
-                        
-                        buffer += cleaned_chunk
-                        
-                        # Check if there's a complete image line in the buffer
-                        image_match = re.search(r'!\[Generated Image\]\((https?://[^\s\)]+)\)', buffer)
-                        if image_match:
-                            image_url = image_match.group(1)
-                            # Download the image and convert to base64 URL
-                            image_base64_url = await cls.download_image_to_base64_url(image_url)
-                            
-                            # Remove the image line from the buffer
-                            buffer = re.sub(r'!\[Generated Image\]\(https?://[^\s\)]+\)', '', buffer)
-                        
-                        # Send text line by line
-                        lines = buffer.split('\n')
-                        for line in lines[:-1]:
-                            if line.strip():
-                                full_response += line + '\n'
-                                yield line + '\n'
-                        buffer = lines[-1]  # Keep the last incomplete line in the buffer
-
-                # Send the remaining buffer if it's not empty
-                if buffer.strip():
-                    full_response += buffer
-                    yield buffer
-
-                # If an image was found, send it as ImageResponse
-                if image_base64_url:
-                    alt_text = "Generated Image"
-                    image_response = ImageResponse(image_base64_url, alt=alt_text)
-                    yield image_response
+                if model == 'ImageGenerationLV45LJp':
+                    response_text = await response.text()
+                    url_match = re.search(r'https://storage\.googleapis\.com/[^\s\)]+', response_text)
+                    if url_match:
+                        image_url = url_match.group(0)
+                        yield ImageResponse(image_url, alt=messages[-1]['content'])
+                    else:
+                        raise Exception("Image URL not found in the response")
+                else:
+                    async for chunk in response.content:
+                        if chunk:
+                            decoded_chunk = chunk.decode()
+                            if decoded_chunk.startswith('$@$v=undefined-rv1$@$'):
+                                decoded_chunk = decoded_chunk[len('$@$v=undefined-rv1$@$'):]
+                            yield decoded_chunk

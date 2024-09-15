@@ -13,6 +13,7 @@ from .AI365VIP         import AI365VIP
 from .Allyfy           import Allyfy
 from .AiChatOnline     import AiChatOnline
 from .AiChats          import AiChats
+from .Airforce         import Airforce
 from .Aura             import Aura
 from .Bing             import Bing
 from .BingCreateImages import BingCreateImages
@@ -28,7 +29,6 @@ from .DDG              import DDG
 from .DeepInfra        import DeepInfra
 from .DeepInfraImage   import DeepInfraImage
 from .FlowGpt          import FlowGpt
-from .FluxAirforce     import FluxAirforce
 from .Free2GPT         import Free2GPT
 from .FreeChatgpt      import FreeChatgpt
 from .FreeGpt          import FreeGpt
@@ -41,7 +41,6 @@ from .HuggingFace      import HuggingFace
 from .Koala            import Koala
 from .Liaobots         import Liaobots
 from .LiteIcoding      import LiteIcoding
-from .Llama            import Llama
 from .Local            import Local
 from .MagickPen        import MagickPen
 from .MetaAI           import MetaAI
@@ -51,11 +50,11 @@ from .Ollama           import Ollama
 from .PerplexityLabs   import PerplexityLabs
 from .Pi               import Pi
 from .Pizzagpt         import Pizzagpt
+from .Prodia           import Prodia
 from .Reka             import Reka
 from .Snova            import Snova
 from .Replicate        import Replicate
 from .ReplicateHome    import ReplicateHome
-from .Rocks            import Rocks
 from .TeachAnything    import TeachAnything
 from .TwitterBio       import TwitterBio
 from .Upstage          import Upstage

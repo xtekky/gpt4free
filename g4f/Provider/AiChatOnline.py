@@ -12,10 +12,8 @@ class AiChatOnline(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://aichatonlineorg.erweima.ai"
     api_endpoint = "/aichatonline/api/chat/gpt"
     working = True
-    supports_gpt_35_turbo = True
     supports_gpt_4 = True
     default_model = 'gpt-4o-mini'
-    supports_message_history = False
 
     @classmethod
     async def grab_token(

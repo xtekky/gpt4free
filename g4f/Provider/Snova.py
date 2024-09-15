@@ -24,10 +24,9 @@ class Snova(AsyncGeneratorProvider, ProviderModelMixin):
         'Meta-Llama-3.1-70B-Instruct',
         'Meta-Llama-3.1-405B-Instruct',
         'Samba-CoE',
-        'ignos/Mistral-T5-7B-v1',
+        'ignos/Mistral-T5-7B-v1', # Error with the answer
         'v1olet/v1olet_merged_dpo_7B',
         'macadeliccc/WestLake-7B-v2-laser-truthy-dpo',
-        'cookinai/DonutLM-v1',
     ]
     
     model_aliases = {
@@ -40,7 +39,6 @@ class Snova(AsyncGeneratorProvider, ProviderModelMixin):
         "samba-coe-v0.1": "Samba-CoE",
         "v1olet-merged-7b": "v1olet/v1olet_merged_dpo_7B",
         "westlake-7b-v2": "macadeliccc/WestLake-7B-v2-laser-truthy-dpo",
-        "donutlm-v1": "cookinai/DonutLM-v1",
     }
 
     @classmethod
