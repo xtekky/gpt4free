@@ -489,6 +489,13 @@ sh_n_7b = Model(
     best_provider = Airforce
 )
 
+### Yorickvp ###
+llava_13b = Model(
+    name = 'llava-13b',
+    base_provider = 'Yorickvp',
+    best_provider = ReplicateHome
+)
+
 #############
 ### Image ###
 #############
@@ -556,6 +563,13 @@ flux_pixel = Model(
     name = 'flux-pixel',
     base_provider = 'Flux AI',
     best_provider = IterListProvider([Airforce])
+    
+)
+
+flux_schnell = Model(
+    name = 'flux-schnell',
+    base_provider = 'Flux AI',
+    best_provider = IterListProvider([ReplicateHome])
     
 )
 
@@ -746,6 +760,10 @@ class ModelUtils:
 
 ### Together ###
 'sh-n-7b': sh_n_7b,
+      
+        
+### Yorickvp ###
+'llava-13b': llava_13b,
         
         
         
@@ -769,6 +787,7 @@ class ModelUtils:
 'flux-3d': flux_3d,
 'flux-disney': flux_disney,
 'flux-pixel': flux_pixel,
+'flux-schnell': flux_schnell,
 
 
 ###  ###
