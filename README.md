@@ -879,6 +879,33 @@ While we wait for gpt-5, here is a list of new models that are at least better t
         </a>
       </td>
     </tr>
+    <tr>
+      <td>
+        <a href="https://github.com/TheFirstNoob/Discord-ChatGPT">
+          <b>Discord-ChatGPT</b>
+        </a>
+      </td>
+      <td>
+        <a href="https://github.com/TheFirstNoob/Discord-ChatGPT/stargazers">
+          <img alt="Stars" src="https://img.shields.io/github/stars/TheFirstNoob/Discord-ChatGPT?style=flat-square&labelColor=343b41" />
+        </a>
+      </td>
+      <td>
+        <a href="https://github.com/TheFirstNoob/Discord-ChatGPT/network/members">
+          <img alt="Forks" src="https://img.shields.io/github/forks/TheFirstNoob/Discord-ChatGPT?style=flat-square&labelColor=343b41" />
+        </a>
+      </td>
+      <td>
+        <a href="https://github.com/TheFirstNoob/Discord-ChatGPT/issues">
+          <img alt="Issues" src="https://img.shields.io/github/issues/TheFirstNoob/Discord-ChatGPT?style=flat-square&labelColor=343b41" />
+        </a>
+      </td>
+      <td>
+        <a href="https://github.com/TheFirstNoob/Discord-ChatGPT/pulls">
+          <img alt="Pull Requests" src="https://img.shields.io/github/issues-pr/TheFirstNoob/Discord-ChatGPT?style=flat-square&labelColor=343b41" />
+        </a>
+      </td>
+    </tr>
   </tbody>
 </table>
 
