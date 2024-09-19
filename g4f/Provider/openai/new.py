@@ -5,6 +5,9 @@ import json
 import time
 import uuid
 
+from collections import OrderedDict, defaultdict
+from typing import Any, Callable, Dict, List
+
 from datetime import (
     datetime, 
     timedelta, 
@@ -444,14 +447,6 @@ def get_requirements_token(config):
     
     
 ### processing turnstile token
-
-import json
-import random
-import time
-import base64
-
-from collections import OrderedDict, defaultdict
-from typing import Any, Callable, Dict, List
 
 class OrderedMap:
     def __init__(self):
