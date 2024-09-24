@@ -12,10 +12,11 @@ class Upstage(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://console.upstage.ai/playground/chat"
     api_endpoint = "https://ap-northeast-2.apistage.ai/v1/web/demo/chat/completions"
     working = True
-    default_model = 'upstage/solar-1-mini-chat'
+    default_model = 'solar-pro'
     models = [
         'upstage/solar-1-mini-chat',
         'upstage/solar-1-mini-chat-ja',
+        'solar-pro',
     ]
     model_aliases = {
         "solar-1-mini": "upstage/solar-1-mini-chat",

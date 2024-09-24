@@ -22,6 +22,7 @@ class Pi(AbstractProvider):
         proxy: str = None,
         timeout: int = 180,
         conversation_id: str = None,
+        webdriver: WebDriver = None,
         **kwargs
     ) -> CreateResult:
         if cls._session is None:

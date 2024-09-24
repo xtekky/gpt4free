@@ -36,6 +36,24 @@ models = {
         "tokenLimit": 7800,
         "context": "8K",
     },
+    "o1-preview": {
+        "id": "o1-preview",
+        "name": "o1-preview",
+        "model": "o1",
+        "provider": "OpenAI",
+        "maxLength": 400000,
+        "tokenLimit": 100000,
+        "context": "128K",
+    },
+    "o1-mini": {
+        "id": "o1-mini",
+        "name": "o1-mini",
+        "model": "o1",
+        "provider": "OpenAI",
+        "maxLength": 400000,
+        "tokenLimit": 100000,
+        "context": "128K",
+    },
     "gpt-4-turbo-2024-04-09": {
         "id": "gpt-4-turbo-2024-04-09",
         "name": "GPT-4-Turbo",
@@ -54,14 +72,23 @@ models = {
         "tokenLimit": 126000,
         "context": "128K",
     },
-    "gpt-4-0613": {
-        "id": "gpt-4-0613",
-        "name": "GPT-4-0613",
-        "model": "ChatGPT",
-        "provider": "OpenAI",
-        "maxLength": 32000,
-        "tokenLimit": 7600,
-        "context": "8K",
+    "grok-2": {
+        "id": "grok-2",
+        "name": "Grok-2",
+        "model": "Grok",
+        "provider": "x.ai",
+        "maxLength": 400000,
+        "tokenLimit": 100000,
+        "context": "100K",
+    },
+    "grok-2-mini": {
+        "id": "grok-2-mini",
+        "name": "Grok-2-mini",
+        "model": "Grok",
+        "provider": "x.ai",
+        "maxLength": 400000,
+        "tokenLimit": 100000,
+        "context": "100K",
     },
     "claude-3-opus-20240229": {
         "id": "claude-3-opus-20240229",
@@ -126,17 +153,8 @@ models = {
         "tokenLimit": 200000,
         "context": "200K",
     },
-    "gemini-1.0-pro-latest": {
-        "id": "gemini-1.0-pro-latest",
-        "name": "Gemini-Pro",
-        "model": "Gemini",
-        "provider": "Google",
-        "maxLength": 120000,
-        "tokenLimit": 30000,
-        "context": "32K",
-    },
-    "gemini-1.5-flash-latest": {
-        "id": "gemini-1.5-flash-latest",
+    "gemini-1.5-flash-exp-0827": {
+        "id": "gemini-1.5-flash-exp-0827",
         "name": "Gemini-1.5-Flash-1M",
         "model": "Gemini",
         "provider": "Google",
@@ -144,8 +162,8 @@ models = {
         "tokenLimit": 1000000,
         "context": "1024K",
     },
-    "gemini-1.5-pro-latest": {
-        "id": "gemini-1.5-pro-latest",
+    "gemini-1.5-pro-exp-0827": {
+        "id": "gemini-1.5-pro-exp-0827",
         "name": "Gemini-1.5-Pro-1M",
         "model": "Gemini",
         "provider": "Google",
@@ -162,12 +180,15 @@ class Liaobots(AsyncGeneratorProvider, ProviderModelMixin):
     supports_message_history = True
     supports_system_message = True
     supports_gpt_4 = True
-    default_model = "gpt-4o"
+    default_model = "gpt-3.5-turbo"
     models = list(models.keys())
     
     model_aliases = {
         "gpt-4o-mini": "gpt-4o-mini-free",
         "gpt-4o": "gpt-4o-free",
+        
+        "o1": "o1-preview",
+        
         "gpt-4-turbo": "gpt-4-turbo-2024-04-09",
         "gpt-4o": "gpt-4o-2024-08-06",
         "gpt-4": "gpt-4-0613",
@@ -176,13 +197,12 @@ class Liaobots(AsyncGeneratorProvider, ProviderModelMixin):
         "claude-3-opus": "claude-3-opus-20240229-aws",
         "claude-3-opus": "claude-3-opus-20240229-gcp",
         "claude-3-sonnet": "claude-3-sonnet-20240229",
-        "claude-3-5-sonnet": "claude-3-5-sonnet-20240620",
+        "claude-3.5-sonnet": "claude-3-5-sonnet-20240620",
         "claude-3-haiku": "claude-3-haiku-20240307",
         "claude-2.1": "claude-2.1",
         
-        "gemini-pro": "gemini-1.0-pro-latest",
-        "gemini-flash": "gemini-1.5-flash-latest",
-        "gemini-pro": "gemini-1.5-pro-latest",
+        "gemini-flash": "gemini-1.5-flash-exp-0827",
+        "gemini-pro": "gemini-1.5-pro-exp-0827",
     }
     
     _auth_code = ""

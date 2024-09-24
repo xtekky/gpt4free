@@ -11,7 +11,7 @@ from ...image import to_data_uri
 
 class Openai(AsyncGeneratorProvider, ProviderModelMixin):
     label = "OpenAI API"
-    url = "https://openai.com"
+    url = "https://platform.openai.com"
     working = True
     needs_auth = True
     supports_message_history = True

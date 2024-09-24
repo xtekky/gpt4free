@@ -16,7 +16,7 @@ from ...webdriver import WebDriver, WebDriverSession, element_send_text
 
 class PerplexityAi(AbstractProvider):
     url = "https://www.perplexity.ai"
-    working = True
+    working = False
     supports_gpt_35_turbo = True
     supports_stream = True
 

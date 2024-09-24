@@ -8,7 +8,7 @@ from ...typing import AsyncResult, Messages
 class OpenRouter(Openai):
     label = "OpenRouter"
     url = "https://openrouter.ai"
-    working = True
+    working = False
     default_model = "mistralai/mistral-7b-instruct:free"
 
     @classmethod

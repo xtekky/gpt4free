@@ -16,11 +16,11 @@ class AI365VIP(AsyncGeneratorProvider, ProviderModelMixin):
     default_model = 'gpt-3.5-turbo'
     models = [
         'gpt-3.5-turbo',
+        'gpt-3.5-turbo-16k',
         'gpt-4o',
-        'claude-3-haiku-20240307',
     ]
     model_aliases = {
-        "claude-3-haiku": "claude-3-haiku-20240307",
+        "gpt-3.5-turbo": "gpt-3.5-turbo-16k",
     }
 
     @classmethod
