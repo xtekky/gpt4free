@@ -19,6 +19,7 @@ from .BingCreateImages import BingCreateImages
 from .Binjie           import Binjie
 from .Bixin123         import Bixin123
 from .Blackbox         import Blackbox
+from .ChatGot          import ChatGot
 from .ChatGpt          import ChatGpt
 from .Chatgpt4Online   import Chatgpt4Online
 from .Chatgpt4o        import Chatgpt4o

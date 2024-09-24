@@ -1,4 +1,5 @@
 
+
 ## 🚀 Providers and Models
   - [Providers](#Providers)
   - [Models](#models)
@@ -20,6 +21,7 @@
 |[chat18.aichatos8.com](https://chat18.aichatos8.com)|`g4f.Provider.Binjie`|`gpt-4`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[chat.bixin123.com](https://chat.bixin123.com)|`g4f.Provider.Bixin123`|`gpt-3.5-turbo, gpt-4-turbo, qwen-turbo`|❌|❌||![Inactive](https://img.shields.io/badge/Inactive-red)||
 |[blackbox.ai](https://www.blackbox.ai)|`g4f.Provider.Blackbox`|`blackbox, gemini-flash, llama-3.1-8b, llama-3.1-70b, llama-3.1-405b, gpt-4o, gemini-pro, claude-3.5-sonnet`|`flux`|✔|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
+|[chatgot.one](https://www.chatgot.one/)|`g4f.Provider.ChatGot`|`gemini-pro`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[chatgpt.com](https://chatgpt.com)|`g4f.Provider.ChatGpt`|`?`|`?`|`?`|?|![Unknown](https://img.shields.io/badge/Unknown-grey) |❌|
 |[chatgpt.es](https://chatgpt.es)|`g4f.Provider.ChatGptEs`|`gpt-4o, gpt-4o-mini`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[chatgpt4online.org](https://chatgpt4online.org)|`g4f.Provider.Chatgpt4Online`|`gpt-4`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
