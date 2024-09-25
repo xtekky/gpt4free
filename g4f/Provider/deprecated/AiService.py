@@ -1,0 +1,39 @@
+from __future__ import annotations
+
+import requests
+
+from ...typing import Any, CreateResult, Messages
+from ..base_provider import AbstractProvider
+
+
+class AiService(AbstractProvider):
+    url = "https://aiservice.vercel.app/"
+    working = False
+    supports_gpt_35_turbo = True
+
+    @staticmethod
+    def create_completion(
+        model: str,
+        messages: Messages,
+        stream: bool,
+        **kwargs: Any,
+    ) -> CreateResult:
+        base = (
+            "\n".join(
+                f"{message['role']}: {message['content']}" for message in messages
+            )
+            + "\nassistant: "
+        )
+        headers = {
+            "accept": "*/*",
+            "content-type": "text/plain;charset=UTF-8",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "same-origin",
+            "Referer": "https://aiservice.vercel.app/chat",
+        }
+        data = {"input": base}
+        url = "https://aiservice.vercel.app/api/chat/answer"
+        response = requests.post(url, headers=headers, json=data)
+        response.raise_for_status()
+        yield response.json()["data"]

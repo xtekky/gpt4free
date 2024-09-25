@@ -5,6 +5,7 @@ from ..providers.retry_provider import RetryProvider, IterListProvider
 from ..providers.base_provider  import AsyncProvider, AsyncGeneratorProvider
 from ..providers.create_images  import CreateImagesProvider
 
+from .deprecated      import *
 from .selenium        import *
 from .needs_auth      import *
 
