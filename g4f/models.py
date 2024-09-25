@@ -249,27 +249,39 @@ mixtral_8x22b = Model(
     best_provider = IterListProvider([DeepInfraChat, Airforce])
 )
 
+mistral_nemo = Model(
+    name          = "mistral-nemo",
+    base_provider = "Mistral",
+    best_provider = IterListProvider([HuggingChat, HuggingFace])
+)
+
 
 ### NousResearch ###
 mixtral_8x7b_dpo = Model(
     name          = "mixtral-8x7b-dpo",
     base_provider = "NousResearch",
-    best_provider = IterListProvider([HuggingChat, Airforce, HuggingFace])
+    best_provider = IterListProvider([Airforce])
 )
 
-### Microsoft ###
-phi_3_mini_4k = Model(
-    name          = "phi-3-mini-4k",
-    base_provider = "Microsoft",
+hermes_3 = Model(
+    name          = "hermes-3",
+    base_provider = "NousResearch",
     best_provider = IterListProvider([HuggingChat, HuggingFace])
 )
 
+
+### Microsoft ###
 phi_3_medium_4k = Model(
     name          = "phi-3-medium-4k",
     base_provider = "Microsoft",
     best_provider = IterListProvider([DeepInfraChat])
 )
 
+phi_3_5_mini = Model(
+    name          = "phi-3.5-mini",
+    base_provider = "Microsoft",
+    best_provider = IterListProvider([HuggingChat, HuggingFace])
+)
 
 ### Google DeepMind ###
 # gemini
@@ -800,18 +812,19 @@ class ModelUtils:
 'mistral-7b': mistral_7b,
 'mixtral-8x7b': mixtral_8x7b,
 'mixtral-8x22b': mixtral_8x22b,
+'mistral-nemo': mistral_nemo,
      
      
 ### NousResearch ###
-'mixtral-8x7b-dpo': mixtral_8x7b_dpo,  
+'mixtral-8x7b-dpo': mixtral_8x7b_dpo,
+'hermes-3': hermes_3,
  
 'yi-34b': yi_34b,   
         
         
 ### Microsoft ###
-'phi-3-mini-4k': phi_3_mini_4k,
 'phi_3_medium-4k': phi_3_medium_4k,
-
+'phi-3.5-mini': phi_3_5_mini,
 
 ### Google ###
 # gemini
