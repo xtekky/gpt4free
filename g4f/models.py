@@ -443,7 +443,7 @@ qwen_1_5_110b = Model(
 qwen_2_72b = Model(
     name = 'qwen-2-72b',
     base_provider = 'Qwen',
-    best_provider = IterListProvider([DeepInfraChat, Airforce])
+    best_provider = IterListProvider([DeepInfraChat, HuggingChat, Airforce, HuggingFace])
 )
 
 qwen_turbo = Model(

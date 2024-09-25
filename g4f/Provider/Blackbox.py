@@ -154,7 +154,6 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
                     async for chunk in response.content.iter_any():
                         if chunk:
                             decoded_chunk = chunk.decode()
-                            # Видаляємо префікс $@$v=v1.10-rv1$@$ та інші подібні
                             decoded_chunk = re.sub(r'\$@\$v=[^$]+\$@\$', '', decoded_chunk)
-                            if decoded_chunk.strip():  # Перевіряємо, чи залишився якийсь текст після видалення префікса
+                            if decoded_chunk.strip():
                                 yield decoded_chunk
