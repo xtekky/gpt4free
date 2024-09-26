@@ -39,7 +39,7 @@ class DeepInfraChat(AsyncGeneratorProvider, ProviderModelMixin):
     model_aliases = {
         "llama-3.1-405b": "meta-llama/Meta-Llama-3.1-405B-Instruct",
         "llama-3.1-70b": "meta-llama/Meta-Llama-3.1-70B-Instruct",
-        "Llama-3.1-8B": "meta-llama/Meta-Llama-3.1-8B-Instruct",
+        "llama-3.1-8B": "meta-llama/Meta-Llama-3.1-8B-Instruct",
         "mixtral-8x22b": "mistralai/Mixtral-8x22B-Instruct-v0.1",
         "mixtral-8x7b": "mistralai/Mixtral-8x7B-Instruct-v0.1",
         "wizardlm-2-8x22b": "microsoft/WizardLM-2-8x22B",
@@ -47,9 +47,9 @@ class DeepInfraChat(AsyncGeneratorProvider, ProviderModelMixin):
         "qwen-2-72b": "Qwen/Qwen2-72B-Instruct",
         "phi-3-medium-4k": "microsoft/Phi-3-medium-4k-instruct",
         "gemma-2b-27b": "google/gemma-2-27b-it",
-        "minicpm-llama-3-v2.5": "openbmb/MiniCPM-Llama3-V-2_5",
+        "minicpm-llama-3-v2.5": "openbmb/MiniCPM-Llama3-V-2_5", # Image upload is available
         "mistral-7b": "mistralai/Mistral-7B-Instruct-v0.3",
-        "lzlv_70b": "lizpreciatior/lzlv_70b_fp16_hf",
+        "lzlv-70b": "lizpreciatior/lzlv_70b_fp16_hf",
         "openchat-3.6-8b": "openchat/openchat-3.6-8b",
         "phind-codellama-34b-v2": "Phind/Phind-CodeLlama-34B-v2",
         "dolphin-2.9.1-llama-3-70b": "cognitivecomputations/dolphin-2.9.1-llama-3-70b",

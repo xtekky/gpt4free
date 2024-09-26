@@ -10,6 +10,7 @@ from .selenium        import *
 from .needs_auth      import *
 
 from .AI365VIP         import AI365VIP
+from .AIChatFree       import AIChatFree
 from .Allyfy           import Allyfy
 from .AiChatOnline     import AiChatOnline
 from .AiChats          import AiChats

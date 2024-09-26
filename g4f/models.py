@@ -4,6 +4,7 @@ from dataclasses import dataclass
 
 from .Provider import IterListProvider, ProviderType
 from .Provider import (
+    AIChatFree,
     Airforce,
     Allyfy,
     Bing,
@@ -146,22 +147,6 @@ gpt_4 = Model(
     ])
 )
 
-# o1
-o1 = Model(
-    name          = 'o1',
-    base_provider = 'OpenAI',
-    best_provider = IterListProvider([
-        Liaobots
-    ])
-)
-
-o1_mini = Model(
-    name          = 'o1-mini',
-    base_provider = 'OpenAI',
-    best_provider = IterListProvider([
-        Liaobots
-    ])
-)
 
 ### GigaChat ###
 gigachat = Model(
@@ -288,7 +273,7 @@ phi_3_5_mini = Model(
 gemini_pro = Model(
     name          = 'gemini-pro',
     base_provider = 'Google DeepMind',
-    best_provider = IterListProvider([GeminiPro, LiteIcoding, Blackbox, Liaobots, Airforce])
+    best_provider = IterListProvider([GeminiPro, LiteIcoding, Blackbox, AIChatFree, Liaobots, Airforce])
 )
 
 gemini_flash = Model(
@@ -784,11 +769,7 @@ class ModelUtils:
 'gpt-4o-mini': gpt_4o_mini,
 'gpt-4': gpt_4,
 'gpt-4-turbo': gpt_4_turbo,
-
-# o1
-'o1': o1,
-'o1-mini': o1_mini,
-        
+       
         
 ### Meta ###
 "meta-ai": meta,
