@@ -240,7 +240,7 @@ mistral_7b = Model(
 mixtral_8x7b = Model(
     name          = "mixtral-8x7b",
     base_provider = "Mistral",
-    best_provider = IterListProvider([HuggingChat, DDG, ReplicateHome, DeepInfraChat, Airforce, DeepInfra, HuggingFace])
+    best_provider = IterListProvider([DDG, ReplicateHome, DeepInfraChat, Airforce, DeepInfra])
 )
 
 mixtral_8x22b = Model(
