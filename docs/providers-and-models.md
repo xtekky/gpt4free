@@ -11,6 +11,7 @@
 |Website|Provider|Text Model|Image Model|Vision Model|Stream|Status|Auth|
 |--|--|--|--|--|--|--|--|
 |[chat.ai365vip.com](https://chat.ai365vip.com)|`g4f.Provider.AI365VIP`|`gpt-3.5-turbo, gpt-4o`|❌|❌|?|![Cloudflare](https://img.shields.io/badge/Cloudflare-f48d37)|❌|
+|[aichatfree.info](https://aichatfree.info)|`g4f.Provider.AIChatFree`|`gemini-pro`|❌|❌|✔|[Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[aichatonline.org](https://aichatonline.org)|`g4f.Provider.AiChatOnline`|`gpt-4o-mini`|❌|❌|?|![Cloudflare](https://img.shields.io/badge/Cloudflare-f48d37)|❌|
 |[ai-chats.org](https://ai-chats.org)|`g4f.Provider.AiChats`|`gpt-4`|`dalle`|❌|?|![Captcha](https://img.shields.io/badge/Captcha-f48d37)|❌|
 |[api.airforce](https://api.airforce)|`g4f.Provider.Airforce`|`llama-2-13b, llama-3-70b, llama-3-8b, llama-3.1-405b, llama-3.1-70b, llama-3.1-8b, mixtral-8x7b, mixtral-8x22b, mistral-7b, mixtral-8x7b-dpo, qwen-1.5-72b, qwen-1.5-110b, qwen-2-72b, gemma-2b, gemma-2b-9b, gemma-2b-27b, deepseek, yi-34b, wizardlm-2-8x22b, solar-10-7b, sh-n-7b, sparkdesk-v1.1,gpt-4o, gpt-4o-mini, gpt-3.5-turbo, gemini-flash, gemini-pro, dbrx-instruct`|`flux, flux-realism', flux-anime, flux-3d, flux-disney, flux-pixel, flux-4o, any-dark, dalle-3`|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
