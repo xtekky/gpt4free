@@ -616,16 +616,16 @@ grok_2_mini = Model(
     best_provider = Liaobots
 )
 
-# Perplexity
+# Perplexity AI
 sonar_online = Model(
     name = 'sonar-online',
-    base_provider = 'Perplexity',
+    base_provider = 'Perplexity AI',
     best_provider = IterListProvider([ChatHub, PerplexityLabs])
 )
 
 sonar_chat = Model(
     name = 'sonar-chat',
-    base_provider = 'Perplexity',
+    base_provider = 'Perplexity AI',
     best_provider = PerplexityLabs
 )
 
@@ -948,7 +948,7 @@ class ModelUtils:
 'grok-2': grok_2,
 'grok-2-mini': grok_2_mini,
         
-### Perplexity ###
+### Perplexity AI ###
 'sonar-online': sonar_online,
 'sonar-chat': sonar_chat,
         
