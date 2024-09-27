@@ -1,23 +1,35 @@
 from __future__ import annotations
-
+import hashlib
 import time
-from hashlib import sha256
-
-from aiohttp import BaseConnector, ClientSession
-
-from ..errors import RateLimitError
-from ..requests import raise_for_status
-from ..requests.aiohttp import get_connector
+from aiohttp import ClientSession
 from ..typing import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
-
+from .helper import format_prompt
 
 class GPROChat(AsyncGeneratorProvider, ProviderModelMixin):
-    url = "https://gprochat.com/"
+    label = "GPROChat"
+    url = "https://gprochat.com"
+    api_endpoint = "https://gprochat.com/api/generate"
     working = True
     supports_stream = True
     supports_message_history = True
     default_model = 'gemini-pro'
+
+    @staticmethod
+    def generate_signature(timestamp: int, message: str) -> str:
+        secret_key = "2BC120D4-BB36-1B60-26DE-DB630472A3D8"
+        hash_input = f"{timestamp}:{message}:{secret_key}"
+        signature = hashlib.sha256(hash_input.encode('utf-8')).hexdigest()
+        return signature
+
+    @classmethod
+    def get_model(cls, model: str) -> str:
+        if model in cls.models:
+            return model
+        elif model in cls.model_aliases:
+            return cls.model_aliases[model]
+        else:
+            return cls.default_model
 
     @classmethod
     async def create_async_generator(
@@ -25,52 +37,31 @@ class GPROChat(AsyncGeneratorProvider, ProviderModelMixin):
         model: str,
         messages: Messages,
         proxy: str = None,
-        connector: BaseConnector = None,
-        **kwargs,
+        **kwargs
     ) -> AsyncResult:
+        model = cls.get_model(model)
+        timestamp = int(time.time() * 1000)
+        prompt = format_prompt(messages)
+        sign = cls.generate_signature(timestamp, prompt)
+
         headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:122.0) Gecko/20100101 Firefox/122.0",
-            "Accept": "*/*",
-            "Accept-Language": "en-US,en;q=0.5",
-            "Accept-Encoding": "gzip, deflate, br",
-            "Content-Type": "text/plain;charset=UTF-8",
-            "Referer": f"{cls.url}/",
-            "Origin": cls.url,
-            "Sec-Fetch-Dest": "empty",
-            "Sec-Fetch-Mode": "cors",
-            "Sec-Fetch-Site": "same-origin",
-            "Connection": "keep-alive",
-            "TE": "trailers",
+            "accept": "*/*",
+            "origin": cls.url,
+            "referer": f"{cls.url}/",
+            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36",
+            "content-type": "text/plain;charset=UTF-8"
         }
-        async with ClientSession(
-            connector=get_connector(connector, proxy), headers=headers
-        ) as session:
-            timestamp = int(time.time() * 1e3)
-            data = {
-                "messages": [
-                    {
-                        "role": "model" if message["role"] == "assistant" else "user",
-                        "parts": [{"text": message["content"]}],
-                    }
-                    for message in messages
-                ],
-                "time": timestamp,
-                "pass": None,
-                "sign": generate_signature(timestamp, messages[-1]["content"]),
-            }
-            async with session.post(
-                f"{cls.url}/api/generate", json=data, proxy=proxy
-            ) as response:
-                if response.status == 500:
-                    if "Quota exceeded" in await response.text():
-                        raise RateLimitError(
-                            f"Response {response.status}: Rate limit reached"
-                        )
-                await raise_for_status(response)
+        
+        data = {
+            "messages": [{"role": "user", "parts": [{"text": prompt}]}],
+            "time": timestamp,
+            "pass": None,
+            "sign": sign
+        }
+
+        async with ClientSession(headers=headers) as session:
+            async with session.post(cls.api_endpoint, json=data, proxy=proxy) as response:
+                response.raise_for_status()
                 async for chunk in response.content.iter_any():
-                    yield chunk.decode(errors="ignore")
-
-
-def generate_signature(time: int, text: str, secret: str = ""):
-    message = f"{time}:{text}:{secret}"
-    return sha256(message.encode()).hexdigest()
+                    if chunk:
+                        yield chunk.decode()

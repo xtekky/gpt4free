@@ -28,6 +28,7 @@ from .Provider import (
     Gemini,
     GeminiPro,
     GigaChat,
+    GPROChat,
     HuggingChat,
     HuggingFace,
     Koala,
@@ -272,7 +273,7 @@ phi_3_5_mini = Model(
 gemini_pro = Model(
     name          = 'gemini-pro',
     base_provider = 'Google DeepMind',
-    best_provider = IterListProvider([GeminiPro, LiteIcoding, Blackbox, AIChatFree, Liaobots, Airforce])
+    best_provider = IterListProvider([GeminiPro, LiteIcoding, Blackbox, AIChatFree, GPROChat, Liaobots, Airforce])
 )
 
 gemini_flash = Model(
