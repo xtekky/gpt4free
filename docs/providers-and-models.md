@@ -94,19 +94,20 @@
 |llama-3-8b|Meta Llama|1+ Providers|[ai.meta.com](https://ai.meta.com/blog/meta-llama-3/)|
 |llama-3-70b|Meta Llama|3+ Providers|[ai.meta.com](https://ai.meta.com/blog/meta-llama-3/)|
 |llama-3.1|Meta Llama|16+ Providers|[ai.meta.com](https://ai.meta.com/blog/meta-llama-3-1/)|
-|llama-3.1-8b|Meta Llama|4+ Providers|[ai.meta.com](https://ai.meta.com/blog/meta-llama-3-1/)|
+|llama-3.1-8b|Meta Llama|5+ Providers|[ai.meta.com](https://ai.meta.com/blog/meta-llama-3-1/)|
 |llama-3.1-70b|Meta Llama|9+ Providers|[ai.meta.com](https://ai.meta.com/blog/meta-llama-3-1/)|
 |llama-3.1-405b|Meta Llama|3+ Providers|[ai.meta.com](https://ai.meta.com/blog/meta-llama-3-1/)|
 |mistral-7b|Mistral AI|3+ Providers|[mistral.ai](https://mistral.ai/news/announcing-mistral-7b/)|
-|mixtral-8x7b|Mistral AI|5+ Providers|[mistral.ai](https://mistral.ai/news/mixtral-of-experts/)|
+|mixtral-8x7b|Mistral AI|6+ Providers|[mistral.ai](https://mistral.ai/news/mixtral-of-experts/)|
 |mixtral-8x22b|Mistral AI|2+ Providers|[mistral.ai](https://mistral.ai/news/mixtral-8x22b/)|
 |mixtral-8x7b-dpo|NousResearch|2+ Providers|[huggingface.co](https://huggingface.co/NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO)|
-|gemini|Google DeepMind|7+ Providers|[deepmind.google](http://deepmind.google/technologies/gemini/)|
+|gemini|Google DeepMind|9+ Providers|[deepmind.google](http://deepmind.google/technologies/gemini/)|
 |gemini-flash|Google DeepMind|3+ Providers|[deepmind.google](https://deepmind.google/technologies/gemini/flash/)|
-|gemini-pro|Google DeepMind|4+ Providers|[deepmind.google](https://deepmind.google/technologies/gemini/pro/)|
+|gemini-pro|Google DeepMind|6+ Providers|[deepmind.google](https://deepmind.google/technologies/gemini/pro/)|
 |gemma-2b|Google|4+ Providers|[huggingface.co](https://huggingface.co/google/gemma-2b)|
 |gemma-2b-9b|Google|1+ Providers|[huggingface.co](https://huggingface.co/google/gemma-2-9b)|
 |gemma-2b-27b|Google|2+ Providers|[huggingface.co](https://huggingface.co/google/gemma-2-27b)|
+|gemma-2|Google|1+ Providers|[huggingface.co](https://huggingface.co/blog/gemma2)|
 |claude-2|Anthropic|1+ Providers|[anthropic.com](https://www.anthropic.com/news/claude-2)|
 |claude-2.0|Anthropic|1+ Providers|[anthropic.com](https://www.anthropic.com/news/claude-2)|
 |claude-3|Anthropic|5+ Providers|[anthropic.com](https://www.anthropic.com/news/claude-3-family)|
