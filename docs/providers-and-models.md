@@ -28,6 +28,7 @@
 |[chatgpt4online.org](https://chatgpt4online.org)|`g4f.Provider.Chatgpt4Online`|`gpt-4`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[chatgpt4o.one](https://chatgpt4o.one)|`g4f.Provider.Chatgpt4o`|`gpt-4o-mini`|❌|❌|❌|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[chatgptfree.ai](https://chatgptfree.ai)|`g4f.Provider.ChatgptFree`|`gpt-4o-mini`|❌|❌|?|![Cloudflare](https://img.shields.io/badge/Cloudflare-f48d37)|❌|
+|[app.chathub.gg](https://app.chathub.gg)|`g4f.Provider.ChatHub`|`llama-3.1-8b, mixtral-8x7b, gemma-2, sonar-online`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[duckduckgo.com](https://duckduckgo.com/duckchat/v1/chat)|`g4f.Provider.DDG`|`gpt-4o-mini, claude-3-haiku, llama-3.1-70b, mixtral-8x7b`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[deepinfra.com](https://deepinfra.com)|`g4f.Provider.DeepInfra`|✔|❌|❌|✔|![Unknown](https://img.shields.io/badge/Unknown-grey)|✔|
 |[deepinfra.com/chat](https://deepinfra.com/chat)|`g4f.Provider.DeepInfraChat`|`llama-3.1-405b, llama-3.1-70b, Llama-3.1-8B, mixtral-8x22b, mixtral-8x7b, wizardlm-2-8x22b, wizardlm-2-7b, qwen-2-72b, phi-3-medium-4k, gemma-2b-27b, minicpm-llama-3-v2.5, mistral-7b, lzlv_70b, openchat-3.6-8b, phind-codellama-34b-v2, dolphin-2.9.1-llama-3-70b`|❌|`minicpm-llama-3-v2.5`|❌|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
@@ -55,7 +56,7 @@
 |[chatgpt.com](https://chatgpt.com/)|`g4f.Provider.OpenaiChat`|`gpt-4o, gpt-4o-mini, gpt-4`|❌|✔||![Unknown](https://img.shields.io/badge/Unknown-grey)|✔|
 |[www.perplexity.ai)](https://www.perplexity.ai)|`g4f.Provider.PerplexityAi`|✔|❌|❌|?|![Disabled](https://img.shields.io/badge/Disabled-red)|❌|
 |[perplexity.ai](https://www.perplexity.ai)|`g4f.Provider.PerplexityApi`|✔|❌|❌|?|![Unknown](https://img.shields.io/badge/Unknown-grey)|✔|
-|[labs.perplexity.ai](https://labs.perplexity.ai)|`g4f.Provider.PerplexityLabs`|`llama-3.1-8b, llama-3.1-70b`|❌|❌|?|![Cloudflare](https://img.shields.io/badge/Cloudflare-f48d37)|❌|
+|[labs.perplexity.ai](https://labs.perplexity.ai)|`g4f.Provider.PerplexityLabs`|`sonar-online, sonar-chat, llama-3.1-8b, llama-3.1-70b`|❌|❌|?|![Cloudflare](https://img.shields.io/badge/Cloudflare-f48d37)|❌|
 |[pi.ai/talk](https://pi.ai/talk)|`g4f.Provider.Pi`|`pi`|❌|❌|?|![Unknown](https://img.shields.io/badge/Unknown-grey)|❌|
 |[]()|`g4f.Provider.Pizzagpt`|`gpt-4o-mini`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[poe.com](https://poe.com)|`g4f.Provider.Poe`|✔|❌|❌|?|![Unknown](https://img.shields.io/badge/Unknown-grey)|✔|

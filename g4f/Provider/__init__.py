@@ -27,6 +27,7 @@ from .Chatgpt4Online   import Chatgpt4Online
 from .Chatgpt4o        import Chatgpt4o
 from .ChatGptEs        import ChatGptEs
 from .ChatgptFree      import ChatgptFree
+from .ChatHub          import ChatHub
 from .DDG              import DDG
 from .DeepInfra        import DeepInfra
 from .DeepInfraChat    import DeepInfraChat
