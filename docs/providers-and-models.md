@@ -87,7 +87,6 @@
 |gpt-4-turbo|OpenAI|2+ Providers|[platform.openai.com](https://platform.openai.com/docs/models/gpt-4-turbo-and-gpt-4)|
 |gpt-4o-mini|OpenAI|12+ Providers|[platform.openai.com](https://platform.openai.com/docs/models/gpt-4o-mini)|
 |gpt-4o|OpenAI|6+ Providers|[platform.openai.com](https://platform.openai.com/docs/models/gpt-4o)|
-|o1|OpenAI|1+ Providers|[platform.openai.com](https://platform.openai.com/docs/models/o1)|
 |llama-2-13b|Meta Llama|1+ Providers|[llama.com](https://www.llama.com/llama2/)|
 |llama-3|Meta Llama|4+ Providers|[ai.meta.com](https://ai.meta.com/blog/meta-llama-3/)|
 |llama-3-8b|Meta Llama|1+ Providers|[ai.meta.com](https://ai.meta.com/blog/meta-llama-3/)|
