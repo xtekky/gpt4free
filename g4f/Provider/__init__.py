@@ -39,6 +39,7 @@ from .FreeGpt          import FreeGpt
 from .FreeNetfly       import FreeNetfly
 from .GeminiPro        import GeminiPro
 from .GigaChat         import GigaChat
+from .GPROChat         import GPROChat
 from .HuggingChat      import HuggingChat
 from .HuggingFace      import HuggingFace
 from .Koala            import Koala
