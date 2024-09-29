@@ -54,6 +54,7 @@ class GeminiPro(AsyncGeneratorProvider, ProviderModelMixin):
                     "parts": [{"text": message["content"]}]
                 }
                 for message in messages
+                if message["role"] != "system"
             ]
             if image is not None:
                 image = to_bytes(image)
@@ -73,6 +74,13 @@ class GeminiPro(AsyncGeneratorProvider, ProviderModelMixin):
                     "topK": kwargs.get("top_k"),
                 }
             }
+            system_prompt = "\n".join(
+                message["content"]
+                for message in messages
+                if message["role"] == "system"
+            )
+            if system_prompt:
+                data["system_instruction"] = {"parts": {"text": system_prompt}}
             async with session.post(url, params=params, json=data) as response:
                 if not response.ok:
                     data = await response.json()
