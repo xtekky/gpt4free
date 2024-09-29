@@ -51,7 +51,7 @@
 |[magickpen.com](https://magickpen.com)|`g4f.Provider.MagickPen`|`gpt-4o-mini`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[meta.ai](https://www.meta.ai)|`g4f.Provider.MetaAI`|✔|✔|?|?|![Active](https://img.shields.io/badge/Active-brightgreen)|✔|
 |[app.myshell.ai/chat](https://app.myshell.ai/chat)|`g4f.Provider.MyShell`|✔|❌|?|?|![Disabled](https://img.shields.io/badge/Disabled-red)|❌|
-|[aryahcr.cc](https://nexra.aryahcr.cc)|`g4f.Provider.Nexra`|`gpt-3, gpt-3.5-turbo, gpt-4`|`dalle, dalle-2, dalle-mini, emi`|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
+|[aryahcr.cc](https://nexra.aryahcr.cc)|`g4f.Provider.Nexra`|`gpt-3, gpt-3.5-turbo, gpt-4, gpt-4o, gemini-pro, llama-3.1, qwen`|`dalle, dalle-2, dalle-mini, emi, sdxl-turbo, prodia`|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[openrouter.ai](https://openrouter.ai)|`g4f.Provider.OpenRouter`|✔|❌|?|?|![Disabled](https://img.shields.io/badge/Disabled-red)|❌|
 |[platform.openai.com](https://platform.openai.com/)|`g4f.Provider.Openai`|✔|❌|✔||![Unknown](https://img.shields.io/badge/Unknown-grey)|✔|
 |[chatgpt.com](https://chatgpt.com/)|`g4f.Provider.OpenaiChat`|`gpt-4o, gpt-4o-mini, gpt-4`|❌|✔||![Unknown](https://img.shields.io/badge/Unknown-grey)|✔|

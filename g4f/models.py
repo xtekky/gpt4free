@@ -115,7 +115,7 @@ gpt_4o = Model(
     name          = 'gpt-4o',
     base_provider = 'OpenAI',
     best_provider = IterListProvider([
-        Liaobots, Airforce, Chatgpt4o, ChatGptEs,
+        Liaobots, Nexra, Airforce, Chatgpt4o, ChatGptEs,
         OpenaiChat
     ])
 )
@@ -211,7 +211,7 @@ llama_3_1_405b = Model(
 llama_3_1 = Model(
     name          = "llama-3.1",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider([llama_3_1_8b.best_provider, llama_3_1_70b.best_provider, llama_3_1_405b.best_provider,])
+    best_provider = IterListProvider([Nexra, llama_3_1_8b.best_provider, llama_3_1_70b.best_provider, llama_3_1_405b.best_provider,])
 )
 
 
@@ -273,7 +273,7 @@ phi_3_5_mini = Model(
 gemini_pro = Model(
     name          = 'gemini-pro',
     base_provider = 'Google DeepMind',
-    best_provider = IterListProvider([GeminiPro, LiteIcoding, Blackbox, AIChatFree, GPROChat, Liaobots, Airforce])
+    best_provider = IterListProvider([GeminiPro, LiteIcoding, Blackbox, AIChatFree, GPROChat, Nexra, Liaobots, Airforce])
 )
 
 gemini_flash = Model(
@@ -285,10 +285,7 @@ gemini_flash = Model(
 gemini = Model(
     name          = 'gemini',
     base_provider = 'Google DeepMind',
-    best_provider = IterListProvider([
-        Gemini, 
-        gemini_flash.best_provider, gemini_pro.best_provider
-   ])
+    best_provider = IterListProvider([Gemini, gemini_flash.best_provider, gemini_pro.best_provider])
 )
 
 # gemma
@@ -458,9 +455,7 @@ qwen_turbo = Model(
 qwen = Model(
     name = 'qwen',
     base_provider = 'Qwen',
-    best_provider = IterListProvider([
-        qwen_1_5_14b.best_provider, qwen_1_5_72b.best_provider, qwen_1_5_110b.best_provider, qwen_2_72b.best_provider, qwen_turbo.best_provider
-   ])
+    best_provider = IterListProvider([Nexra, qwen_1_5_14b.best_provider, qwen_1_5_72b.best_provider, qwen_1_5_110b.best_provider, qwen_2_72b.best_provider, qwen_turbo.best_provider])
 )
 
 
@@ -639,7 +634,7 @@ sonar_chat = Model(
 sdxl = Model(
     name = 'sdxl',
     base_provider = 'Stability AI',
-    best_provider = IterListProvider([ReplicateHome, DeepInfraImage])
+    best_provider = IterListProvider([ReplicateHome, Nexra, DeepInfraImage])
     
 )
 
@@ -734,10 +729,7 @@ dalle_3 = Model(
 dalle = Model(
     name = 'dalle',
     base_provider = '',
-    best_provider = IterListProvider([
-        Nexra,
-        dalle_2.best_provider, dalle_3.best_provider,
-   ])
+    best_provider = IterListProvider([Nexra, dalle_2.best_provider, dalle_3.best_provider])
     
 )
 
@@ -748,7 +740,7 @@ dalle_mini = Model(
     
 )
 
-### ###
+### Other ###
 emi = Model(
     name = 'emi',
     base_provider = '',
@@ -760,6 +752,13 @@ any_dark = Model(
     name = 'any-dark',
     base_provider = '',
     best_provider = IterListProvider([Airforce])
+    
+)
+
+prodia = Model(
+    name = 'prodia',
+    base_provider = '',
+    best_provider = IterListProvider([Nexra])
     
 )
 
@@ -985,6 +984,7 @@ class ModelUtils:
 'dalle-mini': dalle_mini,
 'emi': emi,
 'any-dark': any_dark,
+'prodia': prodia,
     }
 
 _all_models = list(ModelUtils.convert.keys())
