@@ -56,7 +56,7 @@ class ImagesGenerateForm(BaseModel):
     proxy: Optional[str] = None
 
 class AppConfig():
-    list_ignored_providers: Optional[list[str]] = None
+    ignored_providers: Optional[list[str]] = None
     g4f_api_key: Optional[str] = None
     ignore_cookie_files: bool = False
     defaults: dict = {}
@@ -161,7 +161,7 @@ class Api:
                         **AppConfig.defaults,
                         **config.dict(exclude_none=True),
                     },
-                    ignored=AppConfig.list_ignored_providers
+                    ignored=AppConfig.ignored_providers
                 )
                 if not config.stream:
                     return JSONResponse((await response).to_json())
