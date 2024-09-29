@@ -54,6 +54,7 @@ class Gemini(AsyncGeneratorProvider):
     url = "https://gemini.google.com"
     needs_auth = True
     working = True
+    default_model = 'gemini'
     image_models = ["gemini"]
     default_vision_model = "gemini"
     _cookies: Cookies = None

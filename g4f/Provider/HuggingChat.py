@@ -16,19 +16,19 @@ class HuggingChat(AbstractProvider, ProviderModelMixin):
     models = [
         'meta-llama/Meta-Llama-3.1-70B-Instruct',
         'CohereForAI/c4ai-command-r-plus-08-2024',
-        'mistralai/Mixtral-8x7B-Instruct-v0.1',
-        'NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO',
-        'mistralai/Mistral-7B-Instruct-v0.3',
-        'microsoft/Phi-3-mini-4k-instruct',
+        'Qwen/Qwen2.5-72B-Instruct',
+        'NousResearch/Hermes-3-Llama-3.1-8B',
+        'mistralai/Mistral-Nemo-Instruct-2407',
+        'microsoft/Phi-3.5-mini-instruct',
     ]
     
     model_aliases = {
         "llama-3.1-70b": "meta-llama/Meta-Llama-3.1-70B-Instruct",
         "command-r-plus": "CohereForAI/c4ai-command-r-plus-08-2024",
-        "mixtral-8x7b": "mistralai/Mixtral-8x7B-Instruct-v0.1",
-        "mixtral-8x7b-dpo": "NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO",
-        "mistral-7b": "mistralai/Mistral-7B-Instruct-v0.3",
-        "phi-3-mini-4k": "microsoft/Phi-3-mini-4k-instruct",
+        "qwen-2-72b": "Qwen/Qwen2.5-72B-Instruct",
+        "hermes-3": "NousResearch/Hermes-3-Llama-3.1-8B",
+        "mistral-nemo": "mistralai/Mistral-Nemo-Instruct-2407",
+        "phi-3.5-mini": "microsoft/Phi-3.5-mini-instruct",
     }
 
     @classmethod

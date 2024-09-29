@@ -24,10 +24,10 @@ class PerplexityLabs(AsyncGeneratorProvider, ProviderModelMixin):
     ]
     
     model_aliases = {
-        "llama-3.1-8b": "llama-3.1-sonar-large-128k-online",
-        "llama-3.1-8b": "sonar-small-128k-online",
-        "llama-3.1-8b": "llama-3.1-sonar-large-128k-chat",
-        "llama-3.1-8b": "llama-3.1-sonar-small-128k-chat",
+        "sonar-online": "llama-3.1-sonar-large-128k-online",
+        "sonar-online": "sonar-small-128k-online",
+        "sonar-chat": "llama-3.1-sonar-large-128k-chat",
+        "sonar-chat": "llama-3.1-sonar-small-128k-chat",
         "llama-3.1-8b": "llama-3.1-8b-instruct",
         "llama-3.1-70b": "llama-3.1-70b-instruct",
     }

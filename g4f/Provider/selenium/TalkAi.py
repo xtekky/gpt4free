@@ -8,7 +8,7 @@ from ...webdriver import WebDriver, WebDriverSession
 
 class TalkAi(AbstractProvider):
     url = "https://talkai.info"
-    working = True
+    working = False
     supports_gpt_35_turbo = True
     supports_stream = True
 

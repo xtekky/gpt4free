@@ -9,7 +9,7 @@ from ...webdriver import WebDriver, WebDriverSession, bypass_cloudflare
 
 class MyShell(AbstractProvider):
     url = "https://app.myshell.ai/chat"
-    working = True
+    working = False
     supports_gpt_35_turbo = True
     supports_stream = True
 

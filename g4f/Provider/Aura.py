@@ -9,7 +9,7 @@ from ..webdriver import WebDriver
 
 class Aura(AsyncGeneratorProvider):
     url = "https://openchat.team"
-    working = True
+    working = False
 
     @classmethod
     async def create_async_generator(

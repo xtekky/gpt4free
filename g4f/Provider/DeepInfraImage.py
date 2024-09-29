@@ -11,7 +11,8 @@ class DeepInfraImage(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://deepinfra.com"
     parent = "DeepInfra"
     working = True
-    default_model = 'stability-ai/sdxl'
+    needs_auth = True
+    default_model = ''
     image_models = [default_model]
 
     @classmethod

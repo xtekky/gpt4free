@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import re
-import json
 import random
 import string
 from aiohttp import ClientSession
@@ -25,21 +24,43 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         "llama-3.1-8b",
         'llama-3.1-70b',
         'llama-3.1-405b',
-        'ImageGenerationLV45LJp'
+        'ImageGenerationLV45LJp',
+        'GPT-4o',
+        'Gemini-PRO',
+        'Claude-Sonnet-3.5',
     ]
+    
+    model_aliases = {
+        "gemini-flash": "gemini-1.5-flash",
+        "flux": "ImageGenerationLV45LJp",
+        "gpt-4o": "GPT-4o",
+        "gemini-pro": "Gemini-PRO",
+        "claude-3.5-sonnet": "Claude-Sonnet-3.5",
+    }
 
-    model_config = {
+    agentMode = {
+        'ImageGenerationLV45LJp': {'mode': True, 'id': "ImageGenerationLV45LJp", 'name': "Image Generation"},
+    }
+
+    trendingAgentMode = {
         "blackbox": {},
         "gemini-1.5-flash": {'mode': True, 'id': 'Gemini'},
         "llama-3.1-8b": {'mode': True, 'id': "llama-3.1-8b"},
         'llama-3.1-70b': {'mode': True, 'id': "llama-3.1-70b"},
         'llama-3.1-405b': {'mode': True, 'id': "llama-3.1-405b"},
-        'ImageGenerationLV45LJp': {'mode': True, 'id': "ImageGenerationLV45LJp", 'name': "Image Generation"},
+    }
+    
+    userSelectedModel = {
+        "GPT-4o": "GPT-4o",
+        "Gemini-PRO": "Gemini-PRO",
+        'Claude-Sonnet-3.5': "Claude-Sonnet-3.5",
     }
 
     @classmethod
     def get_model(cls, model: str) -> str:
         if model in cls.models:
+            return model
+        elif model in cls.userSelectedModel:
             return model
         elif model in cls.model_aliases:
             return cls.model_aliases[model]
@@ -74,6 +95,11 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
             "sec-fetch-site": "same-origin",
             "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36"
         }
+
+        if model in cls.userSelectedModel:
+            prefix = f"@{cls.userSelectedModel[model]}"
+            if not messages[0]['content'].startswith(prefix):
+                messages[0]['content'] = f"{prefix} {messages[0]['content']}"
         
         async with ClientSession(headers=headers) as session:
             if image is not None:
@@ -92,21 +118,27 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
                 "codeModelMode": True,
                 "agentMode": {},
                 "trendingAgentMode": {},
+                "userSelectedModel": None,
                 "isMicMode": False,
-                "maxTokens": None,
+                "maxTokens": 99999999,
+                "playgroundTopP": 0.9,
+                "playgroundTemperature": 0.5,
                 "isChromeExt": False,
                 "githubToken": None,
                 "clickedAnswer2": False,
                 "clickedAnswer3": False,
                 "clickedForceWebSearch": False,
                 "visitFromDelta": False,
-                "mobileClient": False
+                "mobileClient": False,
+                "webSearchMode": False,
             }
 
-            if model == 'ImageGenerationLV45LJp':
-                data["agentMode"] = cls.model_config[model]
-            else:
-                data["trendingAgentMode"] = cls.model_config[model]
+            if model in cls.agentMode:
+                data["agentMode"] = cls.agentMode[model]
+            elif model in cls.trendingAgentMode:
+                data["trendingAgentMode"] = cls.trendingAgentMode[model]
+            elif model in cls.userSelectedModel:
+                data["userSelectedModel"] = cls.userSelectedModel[model]
             
             async with session.post(cls.api_endpoint, json=data, proxy=proxy) as response:
                 response.raise_for_status()
@@ -119,9 +151,9 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
                     else:
                         raise Exception("Image URL not found in the response")
                 else:
-                    async for chunk in response.content:
+                    async for chunk in response.content.iter_any():
                         if chunk:
                             decoded_chunk = chunk.decode()
-                            if decoded_chunk.startswith('$@$v=undefined-rv1$@$'):
-                                decoded_chunk = decoded_chunk[len('$@$v=undefined-rv1$@$'):]
-                            yield decoded_chunk
+                            decoded_chunk = re.sub(r'\$@\$v=[^$]+\$@\$', '', decoded_chunk)
+                            if decoded_chunk.strip():
+                                yield decoded_chunk

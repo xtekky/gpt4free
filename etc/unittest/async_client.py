@@ -32,13 +32,13 @@ class AsyncTestPassModel(unittest.IsolatedAsyncioTestCase):
     async def test_max_stream(self):
         client = AsyncClient(provider=YieldProviderMock)
         messages = [{'role': 'user', 'content': chunk} for chunk in ["How ", "are ", "you", "?"]]
-        response = client.chat.completions.create(messages, "Hello", stream=True)
+        response = await client.chat.completions.create(messages, "Hello", stream=True)
         async for chunk in response:
             self.assertIsInstance(chunk, ChatCompletionChunk)
             if chunk.choices[0].delta.content is not None:
                 self.assertIsInstance(chunk.choices[0].delta.content, str)
         messages = [{'role': 'user', 'content': chunk} for chunk in ["You ", "You ", "Other", "?"]]
-        response = client.chat.completions.create(messages, "Hello", stream=True, max_tokens=2)
+        response = await client.chat.completions.create(messages, "Hello", stream=True, max_tokens=2)
         response = [chunk async for chunk in response]
         self.assertEqual(len(response), 3)
         for chunk in response:

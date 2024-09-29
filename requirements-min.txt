@@ -3,3 +3,4 @@ aiohttp
 brotli
 pycryptodome
 curl_cffi>=0.6.2
+nest_asyncio

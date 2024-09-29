@@ -15,7 +15,7 @@ class Bixin123(AsyncGeneratorProvider, ProviderModelMixin):
     supports_gpt_4 = True
 
     default_model = 'gpt-3.5-turbo-0125'
-    models = ['gpt-3.5-turbo-0125', 'gpt-3.5-turbo-16k-0613', 'gpt-4-turbo', 'qwen-turbo']
+    models = ['gpt-3.5-turbo', 'gpt-3.5-turbo-0125', 'gpt-3.5-turbo-16k-0613', 'gpt-4-turbo', 'qwen-turbo']
     
     model_aliases = {
         "gpt-3.5-turbo": "gpt-3.5-turbo-0125",
