@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import requests
+import os
 
 from .needs_auth.Openai import Openai
 from ..typing import AsyncResult, Messages
@@ -14,9 +15,11 @@ class Ollama(Openai):
     @classmethod
     def get_models(cls):
         if not cls.models:
-            url = 'http://127.0.0.1:11434/api/tags'
+            host = os.getenv("OLLAMA_HOST", "127.0.0.1")
+            port = os.getenv("OLLAMA_PORT", "11434")
+            url = f"http://{host}:{port}/api/tags"
             models = requests.get(url).json()["models"]
-            cls.models = [model['name'] for model in models]
+            cls.models = [model["name"] for model in models]
             cls.default_model = cls.models[0]
         return cls.models
 
@@ -25,9 +28,13 @@ class Ollama(Openai):
         cls,
         model: str,
         messages: Messages,
-        api_base: str = "http://localhost:11434/v1",
+        api_base: str = None,
         **kwargs
     ) -> AsyncResult:
+        if not api_base:
+            host = os.getenv("OLLAMA_HOST", "localhost")
+            port = os.getenv("OLLAMA_PORT", "11434")
+            api_base: str = f"http://{host}:{port}/v1"
         return super().create_async_generator(
             model, messages, api_base=api_base, **kwargs
         )
