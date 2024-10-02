@@ -136,7 +136,6 @@ class ChatGpt(AbstractProvider, ProviderModelMixin):
         response = session.post('https://chatgpt.com/backend-anon/sentinel/chat-requirements',
             headers=headers, json={'p': pow_req})
 
-        # Додана перевірка на статус відповідей, якщо "незвична активність"
         if response.status_code != 200:
             print(f"Request failed with status: {response.status_code}")
             print(f"Response content: {response.content}")
@@ -199,7 +198,6 @@ class ChatGpt(AbstractProvider, ProviderModelMixin):
             },
         }
 
-        # Додав паузу між запитами для уникнення блокувань через частоту
         time.sleep(2)
         
         response = session.post('https://chatgpt.com/backend-anon/conversation',
@@ -209,10 +207,10 @@ class ChatGpt(AbstractProvider, ProviderModelMixin):
         for line in response.iter_lines():
             if line:
                 decoded_line = line.decode()
-                print(f"Received line: {decoded_line}")  # Debugging output
+                print(f"Received line: {decoded_line}")
                 if decoded_line.startswith('data:'):
-                    json_string = decoded_line[6:]  # Extract JSON part after 'data:'
-                    if json_string.strip():  # Check if there's actual content
+                    json_string = decoded_line[6:]
+                    if json_string.strip():
                         try:
                             data = json.loads(json_string)
                         except json.JSONDecodeError as e:
