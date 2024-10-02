@@ -36,7 +36,7 @@ docker pull hlohaus789/g4f
 
 ## 🔻 Site Takedown
 
-Is your site on this repository and you want to take it down? Send an email to takedown@g4f.ai with proof it is yours and it will be removed as fast as possible. To prevent reproduction please secure your API. 😉
+Is your site on this repository and do you want to take it down? Send an email to takedown@g4f.ai with proof it is yours and it will be removed as fast as possible. To prevent reproduction please secure your API. 😉
 
 ## 🚀 Feedback and Todo
 
@@ -44,7 +44,7 @@ You can always leave some feedback here: https://forms.gle/FeWV9RLEedfdkmFN6
 
 As per the survey, here is a list of improvements to come
 
-- [x] Update the repository to include the new openai library syntax (ex: `Openai()` class) | completed, use `g4f.client.Client`
+- [x] Update the repository to include the new open AI library syntax (ex: `Openai()` class) | completed, use `g4f.client.Client`
 - [ ] Golang implementation
 - [ ] 🚧 Improve Documentation (in /docs & Guides, Howtos, & Do video tutorials)
 - [x] Improve the provider status list & updates
@@ -75,7 +75,7 @@ As per the survey, here is a list of improvements to come
 - [🚀 Providers and Models](docs/providers-and-models.md)
 - [🔗 Powered by gpt4free](#-powered-by-gpt4free)
 - [🤝 Contribute](#-contribute)
-  - [How do i create a new Provider?](#guide-how-do-i-create-a-new-provider)
+  - [How do I create a new Provider?](#guide-how-do-i-create-a-new-provider)
   - [How can AI help me with writing code?](#guide-how-can-ai-help-me-with-writing-code)
 - [🙌 Contributors](#-contributors)
 - [©️ Copyright](#-copyright)
@@ -122,9 +122,9 @@ To ensure the seamless operation of our application, please follow the instructi
 3. **Open GUI**: The app starts a web server with the GUI. Open your favorite browser and navigate to `http://localhost:8080/chat/` to access the application interface.
 4. **Firewall Configuration (Hotfix)**: Upon installation, it may be necessary to adjust your Windows Firewall settings to allow the application to operate correctly. To do this, access your Windows Firewall settings and allow the application.
 
-By following these steps, you should be able to successfully install and run the application on your Windows system. If you encounter any issues during the installation process, please refer to our Issue Tracker or try to get contact over Discord for assistance.
+By following these steps, you should be able to successfully install and run the application on your Windows system. If you encounter any issues during the installation process, please refer to our Issue Tracker or try to get in contact over Discord for assistance.
 
-Run the **Webview UI** on other Platfroms:
+Run the **Webview UI** on other Platforms:
 
 - [/docs/guides/webview](https://github.com/xtekky/gpt4free/blob/main/docs/webview.md)
 
@@ -139,7 +139,7 @@ Run the Web UI on Your Smartphone:
 ##### Prerequisites:
 
 1. [Download and install Python](https://www.python.org/downloads/) (Version 3.10+ is recommended).
-2. [Install Google Chrome](https://www.google.com/chrome/) for providers with webdriver
+2. [Install Google Chrome](https://www.google.com/chrome/) for providers with web driver
 
 ##### Install using PyPI package:
 
@@ -147,17 +147,17 @@ Run the Web UI on Your Smartphone:
 pip install -U g4f[all]
 ```
 
-How do I install only parts or do disable parts?
+How do I install only parts or disable parts?
 Use partial requirements: [/docs/requirements](https://github.com/xtekky/gpt4free/blob/main/docs/requirements.md)
 
 ##### Install from source:
 
-How do I load the project using git and installing the project requirements?
+How do I load the project using git and install the project requirements?
 Read this tutorial and follow it step by step: [/docs/git](https://github.com/xtekky/gpt4free/blob/main/docs/git.md)
 
 ##### Install using Docker:
 
-How do I build and run composer image from source?
+How do I build and run the composer image from the source?
 Use docker-compose: [/docs/docker](https://github.com/xtekky/gpt4free/blob/main/docs/docker.md)
 
 ## 💡 Usage
@@ -200,11 +200,11 @@ image_url = response.data[0].url
 
 - New AsyncClient API from G4F: [/docs/async_client](https://github.com/xtekky/gpt4free/blob/main/docs/async_client.md)
 - Client API like the OpenAI Python library: [/docs/client](https://github.com/xtekky/gpt4free/blob/main/docs/client.md)
-- Legacy API with python modules: [/docs/legacy](https://github.com/xtekky/gpt4free/blob/main/docs/legacy.md)
+- Legacy API with Python modules: [/docs/legacy](https://github.com/xtekky/gpt4free/blob/main/docs/legacy.md)
 
 #### Web UI
 
-To start the web interface, type the following codes in python:
+To start the web interface, type the following codes in Python:
 
 ```python
 from g4f.gui import run_gui
