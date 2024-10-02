@@ -10,7 +10,6 @@ def split_long_message(message: str, max_length: int = 4000) -> list[str]:
     return [message[i:i+max_length] for i in range(0, len(message), max_length)]
 
 class Airforce(AsyncGeneratorProvider, ProviderModelMixin):
-    label = "Airforce"
     url = "https://api.airforce"
     image_api_endpoint = "https://api.airforce/imagine2"
     text_api_endpoint = "https://api.airforce/chat/completions"
