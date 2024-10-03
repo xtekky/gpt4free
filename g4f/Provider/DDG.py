@@ -107,6 +107,10 @@ class DDG(AsyncGeneratorProvider, ProviderModelMixin):
                     vqd_4_new = response.headers.get("x-vqd-4")
                     if vqd_4_new is not None:
                         yield Conversation(vqd_4_new, messages)
+                    elif conversation is not None:
+                        raise ResponseError(
+                            "Conversation requested, but is not present in the response"
+                        )
 
                 async for line in response.content:
                     if line.startswith(b"data: "):
