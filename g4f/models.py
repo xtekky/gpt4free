@@ -206,7 +206,7 @@ llama_3_1_70b = Model(
 llama_3_1_405b = Model(
     name          = "llama-3.1-405b",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider([DeepInfraChat, Airforce])
+    best_provider = IterListProvider([DeepInfraChat, Blackbox, Airforce])
 )
 
 llama_3_1 = Model(
