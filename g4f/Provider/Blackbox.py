@@ -23,6 +23,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         'gemini-1.5-flash',
         "llama-3.1-8b",
         'llama-3.1-70b',
+        'llama-3.1-405b',
         'ImageGenerationLV45LJp',
         'gpt-4o',
         'gemini-pro',
@@ -38,6 +39,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         "gemini-1.5-flash": {'mode': True, 'id': 'Gemini'},
         "llama-3.1-8b": {'mode': True, 'id': "llama-3.1-8b"},
         'llama-3.1-70b': {'mode': True, 'id': "llama-3.1-70b"},
+        'llama-3.1-405b': {'mode': True, 'id': "llama-3.1-405b"},
     }
     
     userSelectedModel = {
