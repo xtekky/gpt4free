@@ -1,11 +1,10 @@
 from __future__ import annotations
-
-from aiohttp import ClientSession, ClientResponseError
+import base64
 import re
+from aiohttp import ClientSession, ClientResponseError
 from ..typing import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from .helper import format_prompt
-
 
 class LiteIcoding(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://lite.icoding.ink"
@@ -27,18 +26,20 @@ class LiteIcoding(AsyncGeneratorProvider, ProviderModelMixin):
     }
 
     bearer_tokens = [
-        "aa3020ee873e40cb8b3f515a0708ebc4",
-        "5d69cd271b144226ac1199b3c849a566",
-        "62977f48a95844f8853a953679401850",
-        "d815b091959e42dd8b7871dfaf879485"
+        "NWQ2OWNkMjcxYjE0NDIyNmFjMTE5OWIzYzg0OWE1NjY=",
+        "ZDgxNWIwOTU5NTk0ZTRkZDhiNzg3MWRmYWY4Nzk0ODU=" 
     ]
     current_token_index = 0
 
     @classmethod
+    def decode_token(cls, encoded_token: str) -> str:
+        return base64.b64decode(encoded_token).decode('utf-8')
+
+    @classmethod
     def get_next_bearer_token(cls):
-        token = cls.bearer_tokens[cls.current_token_index]
+        encoded_token = cls.bearer_tokens[cls.current_token_index]
         cls.current_token_index = (cls.current_token_index + 1) % len(cls.bearer_tokens)
-        return token
+        return cls.decode_token(encoded_token)
 
     @classmethod
     async def create_async_generator(
@@ -95,9 +96,11 @@ class LiteIcoding(AsyncGeneratorProvider, ProviderModelMixin):
                     response.raise_for_status()
                     buffer = ""
                     full_response = ""
+
                     def decode_content(data):
                         bytes_array = bytes([int(b, 16) ^ 255 for b in data.split()])
                         return bytes_array.decode('utf-8')
+
                     async for chunk in response.content.iter_any():
                         if chunk:
                             buffer += chunk.decode()

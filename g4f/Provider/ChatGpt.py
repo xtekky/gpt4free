@@ -134,11 +134,21 @@ class ChatGpt(AbstractProvider, ProviderModelMixin):
         }
         
         response = session.post('https://chatgpt.com/backend-anon/sentinel/chat-requirements',
-            headers=headers, json={'p': pow_req}).json()
+            headers=headers, json={'p': pow_req})
 
-        turnstile          = response.get('turnstile', {})
+        if response.status_code != 200:
+            print(f"Request failed with status: {response.status_code}")
+            print(f"Response content: {response.content}")
+            return
+
+        response_data = response.json()
+        if "detail" in response_data and "Unusual activity" in response_data["detail"]:
+            print(f"Blocked due to unusual activity: {response_data['detail']}")
+            return
+        
+        turnstile          = response_data.get('turnstile', {})
         turnstile_required = turnstile.get('required')
-        pow_conf           = response.get('proofofwork', {})
+        pow_conf           = response_data.get('proofofwork', {})
 
         if turnstile_required:
             turnstile_dx    = turnstile.get('dx')
@@ -146,7 +156,7 @@ class ChatGpt(AbstractProvider, ProviderModelMixin):
         
         headers = headers | {
             'openai-sentinel-turnstile-token'        : turnstile_token,
-            'openai-sentinel-chat-requirements-token': response.get('token'),
+            'openai-sentinel-chat-requirements-token': response_data.get('token'),
             'openai-sentinel-proof-token'            : get_answer_token(
                 pow_conf.get('seed'), pow_conf.get('difficulty'), config
             )
@@ -187,20 +197,29 @@ class ChatGpt(AbstractProvider, ProviderModelMixin):
                 'screen_width': random.randint(1200, 2000),
             },
         }
+
+        time.sleep(2)
         
         response = session.post('https://chatgpt.com/backend-anon/conversation',
             headers=headers, json=json_data, stream=True)
-        
+
         replace = ''
         for line in response.iter_lines():
             if line:
-                if 'DONE' in line.decode():
-                    break
-                
-                data = json.loads(line.decode()[6:])
-                if data.get('message').get('author').get('role') == 'assistant':
-                    tokens = (data.get('message').get('content').get('parts')[0])
-                    
-                    yield tokens.replace(replace, '')
-                    
-                    replace = tokens
+                decoded_line = line.decode()
+                print(f"Received line: {decoded_line}")
+                if decoded_line.startswith('data:'):
+                    json_string = decoded_line[6:]
+                    if json_string.strip():
+                        try:
+                            data = json.loads(json_string)
+                        except json.JSONDecodeError as e:
+                            print(f"Error decoding JSON: {e}, content: {json_string}")
+                            continue
+                        
+                        if data.get('message').get('author').get('role') == 'assistant':
+                            tokens = (data.get('message').get('content').get('parts')[0])
+                            
+                            yield tokens.replace(replace, '')
+                            
+                            replace = tokens

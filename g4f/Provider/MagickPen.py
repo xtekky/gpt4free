@@ -24,21 +24,18 @@ class MagickPen(AsyncGeneratorProvider, ProviderModelMixin):
 
     @classmethod
     async def fetch_api_credentials(cls) -> tuple:
-        url = "https://magickpen.com/_nuxt/9e47cd7579e60a9d1f13.js"
+        url = "https://magickpen.com/_nuxt/bf709a9ce19f14e18116.js"
         async with ClientSession() as session:
             async with session.get(url) as response:
                 text = await response.text()
 
-        # Extract the necessary values from the file
         pattern = r'"X-API-Secret":"(\w+)"'
         match = re.search(pattern, text)
         X_API_SECRET = match.group(1) if match else None
 
-        # Generate timestamp and nonce
-        timestamp = str(int(time.time() * 1000))  # in milliseconds
+        timestamp = str(int(time.time() * 1000))
         nonce = str(random.random())
 
-        # Generate the signature
         s = ["TGDBU9zCgM", timestamp, nonce]
         s.sort()
         signature_string = ''.join(s)

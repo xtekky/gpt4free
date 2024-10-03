@@ -9,8 +9,8 @@ from .helper import format_prompt
 
 
 class Allyfy(AsyncGeneratorProvider):
-    url = "https://chatbot.allyfy.chat"
-    api_endpoint = "/api/v1/message/stream/super/chat"
+    url = "https://allyfy.chat"
+    api_endpoint = "https://chatbot.allyfy.chat/api/v1/message/stream/super/chat"
     working = True
     supports_gpt_35_turbo = True
 
@@ -53,7 +53,7 @@ class Allyfy(AsyncGeneratorProvider):
                     "packageName": "com.cch.allyfy.webh",
                 }
             }
-            async with session.post(f"{cls.url}{cls.api_endpoint}", json=data, proxy=proxy) as response:
+            async with session.post(f"{cls.api_endpoint}", json=data, proxy=proxy) as response:
                 response.raise_for_status()
                 full_response = []
                 async for line in response.content:
