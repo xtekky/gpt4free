@@ -745,6 +745,33 @@ set G4F_PROXY=http://host:port
         </a>
       </td>
     </tr>
+    <tr>
+      <td>
+        <a href="https://github.com/yjg30737/pyqt-openai">
+          <b>VividNode (pyqt-openai)</b>
+        </a>
+      </td>
+      <td>
+        <a href="https://github.com/yjg30737/pyqt-openai/stargazers">
+          <img alt="Stars" src="https://img.shields.io/github/stars/yjg30737/pyqt-openai?style=flat-square&labelColor=343b41" />
+        </a>
+      </td>
+      <td>
+        <a href="https://github.com/yjg30737/pyqt-openai/network/members">
+          <img alt="Forks" src="https://img.shields.io/github/forks/yjg30737/pyqt-openai?style=flat-square&labelColor=343b41" />
+        </a>
+      </td>
+      <td>
+        <a href="https://github.com/yjg30737/pyqt-openai/issues">
+          <img alt="Issues" src="https://img.shields.io/github/issues/yjg30737/pyqt-openai?style=flat-square&labelColor=343b41" />
+        </a>
+      </td>
+      <td>
+        <a href="https://github.com/yjg30737/pyqt-openai/pulls">
+          <img alt="Pull Requests" src="https://img.shields.io/github/issues-pr/yjg30737/pyqt-openai?style=flat-square&labelColor=343b41" />
+        </a>
+      </td>
+    </tr>
   </tbody>
 </table>
 
