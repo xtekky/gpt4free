@@ -27,7 +27,6 @@ class LiteIcoding(AsyncGeneratorProvider, ProviderModelMixin):
 
     bearer_tokens = [
         "NWQ2OWNkMjcxYjE0NDIyNmFjMTE5OWIzYzg0OWE1NjY=",
-        "ZDgxNWIwOTU5NTk0ZTRkZDhiNzg3MWRmYWY4Nzk0ODU=" 
     ]
     current_token_index = 0
 
