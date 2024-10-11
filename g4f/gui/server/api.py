@@ -209,7 +209,7 @@ class Api():
                                     else:
                                         return None
                                 else:
-                                    # Обробка звичайної URL-адреси
+                                    # Processing a regular URL
                                     async with session.get(image) as response:
                                         target = os.path.join(images_dir, f"{int(time.time())}_{str(uuid.uuid4())}")
                                         with open(target, "wb") as f:
