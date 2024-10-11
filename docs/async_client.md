@@ -1,3 +1,4 @@
+
 # How to Use the G4F AsyncClient API
 
 The AsyncClient API is the asynchronous counterpart to the standard G4F Client API. It offers the same functionality as the synchronous API, but with the added benefit of improved performance due to its asynchronous nature.
@@ -57,12 +58,19 @@ client = AsyncClient(
 You can use the `ChatCompletions` endpoint to generate text completions. Here’s how you can do it:
 
 ```python
-response = await client.chat.completions.create(
-    model="gpt-3.5-turbo",
-    messages=[{"role": "user", "content": "Say this is a test"}],
-    ...
-)
-print(response.choices[0].message.content)
+import asyncio
+from g4f.client import AsyncClient
+
+async def main():
+    client = AsyncClient()
+    response = await client.chat.completions.create(
+        [{"role": "user", "content": "say this is a test"}],
+        model="gpt-3.5-turbo"
+    )
+    
+    print(response.choices[0].message.content)
+
+asyncio.run(main())
 ```
 
 ### Streaming Completions
@@ -70,15 +78,20 @@ print(response.choices[0].message.content)
 The `AsyncClient` also supports streaming completions. This allows you to process the response incrementally as it is generated:
 
 ```python
-stream = client.chat.completions.create(
-    model="gpt-4",
-    messages=[{"role": "user", "content": "Say this is a test"}],
-    stream=True,
-    ...
-)
-async for chunk in stream:
-    if chunk.choices[0].delta.content:
+import asyncio
+from g4f.client import AsyncClient
+
+async def main():
+    client = AsyncClient()
+    async for chunk in await client.chat.completions.create(
+        [{"role": "user", "content": "say this is a test"}],
+        model="gpt-4",
+        stream=True,
+    ):
         print(chunk.choices[0].delta.content or "", end="")
+    print()
+
+asyncio.run(main())
 ```
 
 In this example:
@@ -113,13 +126,22 @@ print(response.choices[0].message.content)
 You can generate images using a specified prompt:
 
 ```python
-response = await client.images.generate(
-    model="dall-e-3",
-    prompt="a white siamese cat",
-    ...
-)
+import asyncio
+from g4f.client import AsyncClient
 
-image_url = response.data[0].url
+async def main():
+    client = AsyncClient(image_provider='')
+    response = await client.images.generate(
+        prompt="a white siamese cat"
+        model="flux",
+        #n=1,
+        #size="1024x1024"
+        # ...
+    )
+    image_url = response.data[0].url
+    print(image_url)
+
+asyncio.run(main())
 ```
 
 #### Base64 as the response format
@@ -139,28 +161,34 @@ Start two tasks at the same time:
 
 ```python
 import asyncio
-
+import g4f
 from g4f.client import AsyncClient
-from g4f.Provider import BingCreateImages, OpenaiChat, Gemini
 
 async def main():
     client = AsyncClient(
         provider=OpenaiChat,
-        image_provider=Gemini,
-        # other parameters...
+        image_provider=BingCreateImages,
     )
 
-    task1 = client.chat.completions.create(
-        model="gpt-3.5-turbo",
-        messages=[{"role": "user", "content": "Say this is a test"}],
-    )
-    task2 = client.images.generate(
-        model="dall-e-3",
-        prompt="a white siamese cat",
-    )
-    responses = await asyncio.gather(task1, task2)
+    # Task for text completion
+    async def text_task():
+        response = await client.chat.completions.create(
+            [{"role": "user", "content": "Say this is a test"}],
+            model="gpt-3.5-turbo",
+        )
+        print(response.choices[0].message.content)
+        print()
 
-    print(responses)
+    # Task for image generation
+    async def image_task():
+        response = await client.images.generate(
+            "a white siamese cat",
+            model="flux",
+        )
+        print(f"Image generated: {response.data[0].url}")
+
+    # Execute both tasks asynchronously
+    await asyncio.gather(text_task(), image_task())
 
 asyncio.run(main())
 ```
