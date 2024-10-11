@@ -9,9 +9,13 @@ from .deprecated      import *
 from .selenium        import *
 from .needs_auth      import *
 
+from .nexra           import *
+
 from .AI365VIP         import AI365VIP
 from .AIChatFree       import AIChatFree
+from .AIUncensored     import AIUncensored
 from .Allyfy           import Allyfy
+from .AmigoChat        import AmigoChat
 from .AiChatOnline     import AiChatOnline
 from .AiChats          import AiChats
 from .Airforce         import Airforce
@@ -27,6 +31,9 @@ from .Chatgpt4o        import Chatgpt4o
 from .ChatGptEs        import ChatGptEs
 from .ChatgptFree      import ChatgptFree
 from .ChatHub          import ChatHub
+from .ChatifyAI        import ChatifyAI
+from .Cloudflare       import Cloudflare
+from .DarkAI           import DarkAI
 from .DDG              import DDG
 from .DeepInfra        import DeepInfra
 from .DeepInfraChat    import DeepInfraChat
@@ -48,7 +55,6 @@ from .Local            import Local
 from .MagickPen        import MagickPen
 from .MetaAI           import MetaAI
 #from .MetaAIAccount    import MetaAIAccount
-from .Nexra            import Nexra
 from .Ollama           import Ollama
 from .PerplexityLabs   import PerplexityLabs
 from .Pi               import Pi
