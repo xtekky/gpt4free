@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import uuid
-from aiohttp import ClientSession, ClientTimeout
+from aiohttp import ClientSession, ClientTimeout, ClientResponseError
 
 from ..typing import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
@@ -92,87 +92,99 @@ class AmigoChat(AsyncGeneratorProvider, ProviderModelMixin):
         model = cls.get_model(model)
         
         device_uuid = str(uuid.uuid4())
+        max_retries = 3
+        retry_count = 0
 
-        headers = {
-            "accept": "*/*",
-            "accept-language": "en-US,en;q=0.9",
-            "authorization": "Bearer",  # You need to implement proper authorization
-            "cache-control": "no-cache",
-            "content-type": "application/json",
-            "origin": cls.url,
-            "pragma": "no-cache",
-            "priority": "u=1, i",
-            "referer": f"{cls.url}/",
-            "sec-ch-ua": '"Chromium";v="129", "Not=A?Brand";v="8"',
-            "sec-ch-ua-mobile": "?0",
-            "sec-ch-ua-platform": '"Linux"',
-            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36",
-            "x-device-language": "en-US",
-            "x-device-platform": "web",
-            "x-device-uuid": device_uuid,
-            "x-device-version": "1.0.32"
-        }
-        
-        async with ClientSession(headers=headers) as session:
-            if model in cls.chat_models:
-                # Chat completion
-                data = {
-                    "messages": [{"role": m["role"], "content": m["content"]} for m in messages],
-                    "model": model,
-                    "personaId": cls.get_personaId(model),
-                    "frequency_penalty": 0,
-                    "max_tokens": 4000,
-                    "presence_penalty": 0,
-                    "stream": stream,
-                    "temperature": 0.5,
-                    "top_p": 0.95
+        while retry_count < max_retries:
+            try:
+                headers = {
+                    "accept": "*/*",
+                    "accept-language": "en-US,en;q=0.9",
+                    "authorization": "Bearer",
+                    "cache-control": "no-cache",
+                    "content-type": "application/json",
+                    "origin": cls.url,
+                    "pragma": "no-cache",
+                    "priority": "u=1, i",
+                    "referer": f"{cls.url}/",
+                    "sec-ch-ua": '"Chromium";v="129", "Not=A?Brand";v="8"',
+                    "sec-ch-ua-mobile": "?0",
+                    "sec-ch-ua-platform": '"Linux"',
+                    "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36",
+                    "x-device-language": "en-US",
+                    "x-device-platform": "web",
+                    "x-device-uuid": device_uuid,
+                    "x-device-version": "1.0.32"
                 }
                 
-                timeout = ClientTimeout(total=300)  # 5 minutes timeout
-                async with session.post(cls.chat_api_endpoint, json=data, proxy=proxy, timeout=timeout) as response:
-                    if response.status not in (200, 201):
-                        error_text = await response.text()
-                        raise Exception(f"Error {response.status}: {error_text}")
-                    
-                    async for line in response.content:
-                        line = line.decode('utf-8').strip()
-                        if line.startswith('data: '):
-                            if line == 'data: [DONE]':
-                                break
-                            try:
-                                chunk = json.loads(line[6:])  # Remove 'data: ' prefix
-                                if 'choices' in chunk and len(chunk['choices']) > 0:
-                                    choice = chunk['choices'][0]
-                                    if 'delta' in choice:
-                                        content = choice['delta'].get('content')
-                                    elif 'text' in choice:
-                                        content = choice['text']
-                                    else:
-                                        content = None
-                                    if content:
-                                        yield content
-                            except json.JSONDecodeError:
-                                pass
-            else:
-                # Image generation
-                prompt = messages[0]['content']
-                data = {
-                    "prompt": prompt,
-                    "model": model,
-                    "personaId": cls.get_personaId(model)
-                }
-                async with session.post(cls.image_api_endpoint, json=data, proxy=proxy) as response:
-                    response.raise_for_status()
-                    
-                    response_data = await response.json()
-                    
-                    if "data" in response_data:
-                        image_urls = []
-                        for item in response_data["data"]:
-                            if "url" in item:
-                                image_url = item["url"]
-                                image_urls.append(image_url)
-                        if image_urls:
-                            yield ImageResponse(image_urls, prompt)
+                async with ClientSession(headers=headers) as session:
+                    if model in cls.chat_models:
+                        # Chat completion
+                        data = {
+                            "messages": [{"role": m["role"], "content": m["content"]} for m in messages],
+                            "model": model,
+                            "personaId": cls.get_personaId(model),
+                            "frequency_penalty": 0,
+                            "max_tokens": 4000,
+                            "presence_penalty": 0,
+                            "stream": stream,
+                            "temperature": 0.5,
+                            "top_p": 0.95
+                        }
+                        
+                        timeout = ClientTimeout(total=300)  # 5 minutes timeout
+                        async with session.post(cls.chat_api_endpoint, json=data, proxy=proxy, timeout=timeout) as response:
+                            if response.status not in (200, 201):
+                                error_text = await response.text()
+                                raise Exception(f"Error {response.status}: {error_text}")
+                            
+                            async for line in response.content:
+                                line = line.decode('utf-8').strip()
+                                if line.startswith('data: '):
+                                    if line == 'data: [DONE]':
+                                        break
+                                    try:
+                                        chunk = json.loads(line[6:])  # Remove 'data: ' prefix
+                                        if 'choices' in chunk and len(chunk['choices']) > 0:
+                                            choice = chunk['choices'][0]
+                                            if 'delta' in choice:
+                                                content = choice['delta'].get('content')
+                                            elif 'text' in choice:
+                                                content = choice['text']
+                                            else:
+                                                content = None
+                                            if content:
+                                                yield content
+                                    except json.JSONDecodeError:
+                                        pass
                     else:
-                        yield None
+                        # Image generation
+                        prompt = messages[0]['content']
+                        data = {
+                            "prompt": prompt,
+                            "model": model,
+                            "personaId": cls.get_personaId(model)
+                        }
+                        async with session.post(cls.image_api_endpoint, json=data, proxy=proxy) as response:
+                            response.raise_for_status()
+                            
+                            response_data = await response.json()
+                            
+                            if "data" in response_data:
+                                image_urls = []
+                                for item in response_data["data"]:
+                                    if "url" in item:
+                                        image_url = item["url"]
+                                        image_urls.append(image_url)
+                                if image_urls:
+                                    yield ImageResponse(image_urls, prompt)
+                            else:
+                                yield None
+                
+                break
+            
+            except (ClientResponseError, Exception) as e:
+                retry_count += 1
+                if retry_count >= max_retries:
+                    raise e
+                device_uuid = str(uuid.uuid4())
