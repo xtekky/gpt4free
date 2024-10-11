@@ -1,17 +1,26 @@
 from __future__ import annotations
 
-import json
 from aiohttp import ClientSession
 
 from ...typing import AsyncResult, Messages
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..helper import format_prompt
-
+import json
 
 class NexraChatGPT4o(AsyncGeneratorProvider, ProviderModelMixin):
-    label = "Nexra GPT-4o"
+    label = "Nexra ChatGPT4o"
+    url = "https://nexra.aryahcr.cc/documentation/chatgpt/en"
     api_endpoint = "https://nexra.aryahcr.cc/api/chat/complements"
-    models = ['gpt-4o']
+    working = True
+    supports_gpt_4 = True
+    supports_stream = False
+    
+    default_model = 'gpt-4o'
+    models = [default_model]
+    
+    @classmethod
+    def get_model(cls, model: str) -> str:
+        return cls.default_model
 
     @classmethod
     async def create_async_generator(
@@ -21,32 +30,45 @@ class NexraChatGPT4o(AsyncGeneratorProvider, ProviderModelMixin):
         proxy: str = None,
         **kwargs
     ) -> AsyncResult:
+        model = cls.get_model(model)
+        
         headers = {
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
         }
         async with ClientSession(headers=headers) as session:
             data = {
                 "messages": [
-                    {'role': 'assistant', 'content': ''},
-                    {'role': 'user', 'content': format_prompt(messages)}
+                    {
+                        "role": "user",
+                        "content": format_prompt(messages)
+                    }
                 ],
+                "stream": False,
                 "markdown": False,
-                "stream": True,
                 "model": model
             }
             async with session.post(cls.api_endpoint, json=data, proxy=proxy) as response:
                 response.raise_for_status()
-                full_response = ''
-                async for line in response.content:
-                    if line:
-                        messages = line.decode('utf-8').split('\x1e')
-                        for message_str in messages:
-                            try:
-                                message = json.loads(message_str)
-                                if message.get('message'):
-                                    full_response = message['message']
-                                if message.get('finish'):
-                                    yield full_response.strip()
-                                    return
-                            except json.JSONDecodeError:
-                                pass
+                buffer = ""
+                last_message = ""
+                async for chunk in response.content.iter_any():
+                    chunk_str = chunk.decode()
+                    buffer += chunk_str
+                    while '{' in buffer and '}' in buffer:
+                        start = buffer.index('{')
+                        end = buffer.index('}', start) + 1
+                        json_str = buffer[start:end]
+                        buffer = buffer[end:]
+                        try:
+                            json_obj = json.loads(json_str)
+                            if json_obj.get("finish"):
+                                if last_message:
+                                    yield last_message
+                                return
+                            elif json_obj.get("message"):
+                                last_message = json_obj["message"]
+                        except json.JSONDecodeError:
+                            pass
+                
+                if last_message:
+                    yield last_message

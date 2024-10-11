@@ -3,23 +3,31 @@ from __future__ import annotations
 from aiohttp import ClientSession
 import json
 
-from ..typing import AsyncResult, Messages
-from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from ..image import ImageResponse
+from ...typing import AsyncResult, Messages
+from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from ...image import ImageResponse
 
 
-class Nexra(AsyncGeneratorProvider, ProviderModelMixin):
-    label = "Nexra Animagine XL"
-    url = "https://nexra.aryahcr.cc/documentation/midjourney/en"
+class NexraDallE2(AsyncGeneratorProvider, ProviderModelMixin):
+    label = "Nexra DALL-E 2"
+    url = "https://nexra.aryahcr.cc/documentation/dall-e/en"
     api_endpoint = "https://nexra.aryahcr.cc/api/image/complements"
     working = True
 
-    default_model = 'animagine-xl'
+    default_model = 'dalle2'
     models = [default_model]
+    model_aliases = {
+        "dalle-2": "dalle2",
+    }
 
     @classmethod
     def get_model(cls, model: str) -> str:
-        return cls.default_model
+        if model in cls.models:
+            return model
+        elif model in cls.model_aliases:
+            return cls.model_aliases[model]
+        else:
+            return cls.default_model
 
     @classmethod
     async def create_async_generator(
