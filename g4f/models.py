@@ -112,6 +112,8 @@ default = Model(
         ChatGptEs,
         ChatHub,
         AmigoChat,
+        ChatifyAI,
+        Cloudflare,
     ])
 )
 
