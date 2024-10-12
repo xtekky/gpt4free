@@ -12,7 +12,7 @@ class NexraMidjourney(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Nexra Midjourney"
     url = "https://nexra.aryahcr.cc/documentation/midjourney/en"
     api_endpoint = "https://nexra.aryahcr.cc/api/image/complements"
-    working = True
+    working = False
 
     default_model = 'midjourney'
     models = [default_model]

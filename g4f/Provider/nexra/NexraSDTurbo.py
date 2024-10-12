@@ -12,7 +12,7 @@ class NexraSDTurbo(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Nexra Stable Diffusion Turbo"
     url = "https://nexra.aryahcr.cc/documentation/stable-diffusion/en"
     api_endpoint = "https://nexra.aryahcr.cc/api/image/complements"
-    working = True
+    working = False
     
     default_model = 'sdxl-turbo'
     models = [default_model]

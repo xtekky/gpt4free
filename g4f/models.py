@@ -9,7 +9,6 @@ from .Provider import (
     Allyfy,
     AmigoChat,
     Bing,
-    Binjie,
     Blackbox,
     ChatGpt,
     Chatgpt4Online,
@@ -35,11 +34,8 @@ from .Provider import (
     HuggingFace,
     Koala,
     Liaobots,
-    LiteIcoding,
     MagickPen,
     MetaAI,
-    NexraAnimagineXL,
-    NexraBing,
     NexraBlackbox,
     NexraChatGPT,
     NexraChatGPT4o,
@@ -50,15 +46,8 @@ from .Provider import (
     NexraDalleMini,
     NexraEmi,
     NexraFluxPro,
-    NexraGeminiPro,
     NexraLLaMA31,
-    NexraMidjourney,
-    NexraProdiaAI,
     NexraQwen,
-    NexraSD15,
-    NexraSD21,
-    NexraSDLora,
-    NexraSDTurbo,
     OpenaiChat,
     PerplexityLabs,
     Pi,
@@ -68,7 +57,6 @@ from .Provider import (
     ReplicateHome,
     TeachAnything,
     Upstage,
-    You,
 )
 
 
@@ -102,11 +90,9 @@ default = Model(
         ReplicateHome,
         Upstage,
         Blackbox,
-        Binjie,
         Free2GPT,
         MagickPen,
         DeepInfraChat,
-        LiteIcoding,
         Airforce, 
         ChatHub,
         ChatGptEs,
@@ -133,58 +119,45 @@ gpt_3 = Model(
 gpt_35_turbo = Model(
     name          = 'gpt-3.5-turbo',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([
-        Allyfy, NexraChatGPT, Airforce, DarkAI, Liaobots,
-    ])
+    best_provider = IterListProvider([Allyfy, NexraChatGPT, Airforce, DarkAI, Liaobots])
 )
 
 # gpt-4
 gpt_4o = Model(
     name          = 'gpt-4o',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([
-        NexraChatGPT4o, ChatGptEs, AmigoChat, DarkAI, Liaobots, Airforce, 
-        OpenaiChat
-    ])
+    best_provider = IterListProvider([NexraChatGPT4o, ChatGptEs, AmigoChat, DarkAI, Liaobots, Airforce, OpenaiChat])
 )
 
 gpt_4o_mini = Model(
     name          = 'gpt-4o-mini',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([
-        DDG, ChatGptEs, You, FreeNetfly, Pizzagpt, LiteIcoding, MagickPen, AmigoChat, Liaobots, Airforce, ChatgptFree, Koala,
-        OpenaiChat, ChatGpt
-    ])
+    best_provider = IterListProvider([DDG, ChatGptEs, FreeNetfly, Pizzagpt, MagickPen, AmigoChat, Liaobots, Airforce, ChatgptFree, Koala, OpenaiChat, ChatGpt])
 )
 
 gpt_4_turbo = Model(
     name          = 'gpt-4-turbo',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([
-        Liaobots, Airforce, Bing
-    ])
+    best_provider = IterListProvider([Liaobots, Airforce, Bing])
 )
 
 gpt_4 = Model(
     name          = 'gpt-4',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([
-        NexraBing, NexraChatGPT, NexraChatGptV2, NexraChatGptWeb, Binjie, Airforce, Chatgpt4Online, Bing, OpenaiChat,
-        gpt_4_turbo.best_provider, gpt_4o.best_provider, gpt_4o_mini.best_provider
-    ])
+    best_provider = IterListProvider([NexraChatGPT, NexraChatGptV2, NexraChatGptWeb, Airforce, Chatgpt4Online, Bing, OpenaiChat])
 )
 
 # o1
 o1 = Model(
     name          = 'o1',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([AmigoChat])
+    best_provider = AmigoChat
 )
 
 o1_mini = Model(
     name          = 'o1-mini',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([AmigoChat])
+    best_provider = AmigoChat
 )
 
 
@@ -229,17 +202,11 @@ llama_3_70b = Model(
     best_provider = IterListProvider([ReplicateHome, Airforce, DeepInfra, Replicate])
 )
 
-llama_3 = Model(
-    name          = "llama-3",
-    base_provider = "Meta Llama",
-    best_provider = IterListProvider([llama_3_8b.best_provider, llama_3_70b.best_provider])
-)
-
 # llama 3.1
 llama_3_1_8b = Model(
     name          = "llama-3.1-8b",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider([Blackbox, DeepInfraChat, ChatHub, Cloudflare, Airforce, PerplexityLabs])
+    best_provider = IterListProvider([Blackbox, DeepInfraChat, ChatHub, Cloudflare, NexraLLaMA31, Airforce, PerplexityLabs])
 )
 
 llama_3_1_70b = Model(
@@ -254,23 +221,17 @@ llama_3_1_405b = Model(
     best_provider = IterListProvider([DeepInfraChat, Blackbox, AmigoChat, DarkAI, Airforce])
 )
 
-llama_3_1 = Model(
-    name          = "llama-3.1",
-    base_provider = "Meta Llama",
-    best_provider = IterListProvider([NexraLLaMA31, ChatifyAI, llama_3_1_8b.best_provider, llama_3_1_70b.best_provider, llama_3_1_405b.best_provider,])
-)
-
 # llama 3.2
 llama_3_2_1b = Model(
     name          = "llama-3.2-1b",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider([Cloudflare])
+    best_provider = Cloudflare
 )
 
 llama_3_2_3b = Model(
     name          = "llama-3.2-3b",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider([Cloudflare])
+    best_provider = Cloudflare
 )
 
 llama_3_2_11b = Model(
@@ -285,22 +246,18 @@ llama_3_2_90b = Model(
     best_provider = IterListProvider([AmigoChat, Airforce])
 )
 
-llama_3_2 = Model(
-    name          = "llama-3.2",
-    base_provider = "Meta Llama",
-    best_provider = IterListProvider([llama_3_2_1b.best_provider, llama_3_2_3b.best_provider, llama_3_2_11b.best_provider, llama_3_2_90b.best_provider])
-)
+
 # llamaguard
 llamaguard_7b = Model(
     name          = "llamaguard-7b",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider([Airforce])
+    best_provider = Airforce
 )
 
 llamaguard_2_8b = Model(
     name          = "llamaguard-2-8b",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider([Airforce])
+    best_provider = Airforce
 )
 
 
@@ -334,13 +291,13 @@ mistral_nemo = Model(
 mixtral_8x7b_dpo = Model(
     name          = "mixtral-8x7b-dpo",
     base_provider = "NousResearch",
-    best_provider = IterListProvider([Airforce])
+    best_provider = Airforce
 )
 
 yi_34b = Model(
     name          = "yi-34b",
     base_provider = "NousResearch",
-    best_provider = IterListProvider([Airforce])
+    best_provider = Airforce
 )
 
 hermes_3 = Model(
@@ -374,7 +331,7 @@ phi_3_5_mini = Model(
 gemini_pro = Model(
     name          = 'gemini-pro',
     base_provider = 'Google DeepMind',
-    best_provider = IterListProvider([GeminiPro, LiteIcoding, Blackbox, AIChatFree, GPROChat, NexraGeminiPro, AmigoChat, Liaobots, Airforce])
+    best_provider = IterListProvider([GeminiPro, Blackbox, AIChatFree, GPROChat, AmigoChat, Liaobots, Airforce])
 )
 
 gemini_flash = Model(
@@ -386,7 +343,7 @@ gemini_flash = Model(
 gemini = Model(
     name          = 'gemini',
     base_provider = 'Google DeepMind',
-    best_provider = IterListProvider([Gemini, gemini_flash.best_provider, gemini_pro.best_provider])
+    best_provider = Gemini
 )
 
 # gemma
@@ -405,16 +362,13 @@ gemma_2b_27b = Model(
 gemma_2b = Model(
     name          = 'gemma-2b',
     base_provider = 'Google',
-    best_provider = IterListProvider([
-        ReplicateHome, Airforce,
-        gemma_2b_9b.best_provider, gemma_2b_27b.best_provider,
-   ])
+    best_provider = IterListProvider([ReplicateHome, Airforce])
 )
 
 gemma_7b = Model(
     name          = 'gemma-7b',
     base_provider = 'Google',
-    best_provider = IterListProvider([Cloudflare])
+    best_provider = Cloudflare
 )
 
 # gemma 2
@@ -427,10 +381,7 @@ gemma_2_27b = Model(
 gemma_2 = Model(
     name          = 'gemma-2',
     base_provider = 'Google',
-    best_provider = IterListProvider([
-        ChatHub,
-        gemma_2_27b.best_provider,
-   ])
+    best_provider = ChatHub
 )
 
 
@@ -439,15 +390,6 @@ claude_2_1 = Model(
     name          = 'claude-2.1',
     base_provider = 'Anthropic',
     best_provider = Liaobots
-)
-
-claude_2 = Model(
-    name          = 'claude-2',
-    base_provider = 'Anthropic',
-    best_provider = IterListProvider([
-        You,
-        claude_2_1.best_provider,
-   ])
 )
 
 # claude 3
@@ -469,30 +411,12 @@ claude_3_haiku = Model(
     best_provider = IterListProvider([DDG, Airforce, Liaobots])
 )
 
-claude_3 = Model(
-    name          = 'claude-3',
-    base_provider = 'Anthropic',
-    best_provider = IterListProvider([
-        claude_3_opus.best_provider, claude_3_sonnet.best_provider, claude_3_haiku.best_provider
-   ])
-)
-
 # claude 3.5
 claude_3_5_sonnet = Model(
     name          = 'claude-3.5-sonnet',
     base_provider = 'Anthropic',
     best_provider = IterListProvider([Blackbox, Airforce, AmigoChat, Liaobots])
 )
-
-claude_3_5 = Model(
-    name          = 'claude-3.5',
-    base_provider = 'Anthropic',
-    best_provider = IterListProvider([
-        LiteIcoding,
-        claude_3_5_sonnet.best_provider
-   ])
-)
-
 
 
 ### Reka AI ###
@@ -513,7 +437,7 @@ blackboxai = Model(
 blackboxai_pro = Model(
     name = 'blackboxai-pro',
     base_provider = 'Blackbox AI',
-    best_provider = IterListProvider([Blackbox])
+    best_provider = Blackbox
 )
 
 
@@ -537,7 +461,7 @@ command_r_plus = Model(
 sparkdesk_v1_1 = Model(
     name = 'sparkdesk-v1.1',
     base_provider = 'iFlytek',
-    best_provider = IterListProvider([FreeChatgpt])
+    best_provider = FreeChatgpt
 )
 
 
@@ -589,7 +513,7 @@ qwen_2_72b = Model(
 qwen = Model(
     name = 'qwen',
     base_provider = 'Qwen',
-    best_provider = IterListProvider([NexraQwen, qwen_1_5_0_5b.best_provider, qwen_1_5_14b.best_provider, qwen_1_5_72b.best_provider, qwen_1_5_110b.best_provider, qwen_1_5_1_8b.best_provider, qwen_2_72b.best_provider])
+    best_provider = NexraQwen
 )
 
 
@@ -747,7 +671,7 @@ sonar_chat = Model(
 mythomax_l2_13b = Model(
     name = 'mythomax-l2-13b',
     base_provider = 'Gryphe',
-    best_provider = IterListProvider([Airforce])
+    best_provider = Airforce
 )
 
 
@@ -755,7 +679,7 @@ mythomax_l2_13b = Model(
 cosmosrp = Model(
     name = 'cosmosrp',
     base_provider = 'Pawan',
-    best_provider = IterListProvider([Airforce])
+    best_provider = Airforce
 )
 
 
@@ -763,7 +687,7 @@ cosmosrp = Model(
 german_7b = Model(
     name = 'german-7b',
     base_provider = 'TheBloke',
-    best_provider = IterListProvider([Cloudflare])
+    best_provider = Cloudflare
 )
 
 
@@ -771,7 +695,7 @@ german_7b = Model(
 tinyllama_1_1b = Model(
     name = 'tinyllama-1.1b',
     base_provider = 'Tinyllama',
-    best_provider = IterListProvider([Cloudflare])
+    best_provider = Cloudflare
 )
 
 
@@ -779,7 +703,7 @@ tinyllama_1_1b = Model(
 cybertron_7b = Model(
     name = 'cybertron-7b',
     base_provider = 'Fblgit',
-    best_provider = IterListProvider([Cloudflare])
+    best_provider = Cloudflare
 )
 
 
@@ -789,64 +713,25 @@ cybertron_7b = Model(
 #############
 
 ### Stability AI ###
-sdxl_lora = Model(
-    name = 'sdxl-lora',
-    base_provider = 'Stability AI',
-    best_provider = IterListProvider([NexraSDLora])
-    
-)
-
-sdxl_turbo = Model(
-    name = 'sdxl-turbo',
-    base_provider = 'Stability AI',
-    best_provider = IterListProvider([NexraSDTurbo])
-    
-)
-
 sdxl = Model(
     name = 'sdxl',
     base_provider = 'Stability AI',
-    best_provider = IterListProvider([
-        ReplicateHome, NexraSD21, DeepInfraImage,
-        sdxl_lora.best_provider, sdxl_turbo.best_provider,
-    ])
-    
-)
-
-sd_1_5 = Model(
-    name = 'sd-1.5',
-    base_provider = 'Stability AI',
-    best_provider = IterListProvider([NexraSD15])
-    
-)
-
-sd_2_1 = Model(
-    name = 'sd-2.1',
-    base_provider = 'Stability AI',
-    best_provider = IterListProvider([NexraSD21])
+    best_provider = IterListProvider([ReplicateHome, DeepInfraImage])
     
 )
 
 sd_3 = Model(
     name = 'sd-3',
     base_provider = 'Stability AI',
-    best_provider = IterListProvider([ReplicateHome])
+    best_provider = ReplicateHome
     
 )
-
-sd = Model(
-    name = 'sd',
-    base_provider = 'Stability AI',
-    best_provider = IterListProvider([sd_1_5.best_provider, sd_2_1.best_provider, sd_3.best_provider])
-    
-)
-
 
 ### Playground ###
 playground_v2_5 = Model(
     name = 'playground-v2.5',
     base_provider = 'Playground AI',
-    best_provider = IterListProvider([ReplicateHome])
+    best_provider = ReplicateHome
     
 )
 
@@ -876,42 +761,42 @@ flux_realism = Model(
 flux_anime = Model(
     name = 'flux-anime',
     base_provider = 'Flux AI',
-    best_provider = IterListProvider([Airforce])
+    best_provider = Airforce
     
 )
 
 flux_3d = Model(
     name = 'flux-3d',
     base_provider = 'Flux AI',
-    best_provider = IterListProvider([Airforce])
+    best_provider = Airforce
     
 )
 
 flux_disney = Model(
     name = 'flux-disney',
     base_provider = 'Flux AI',
-    best_provider = IterListProvider([Airforce])
+    best_provider = Airforce
     
 )
 
 flux_pixel = Model(
     name = 'flux-pixel',
     base_provider = 'Flux AI',
-    best_provider = IterListProvider([Airforce])
+    best_provider = Airforce
     
 )
 
 flux_4o = Model(
     name = 'flux-4o',
     base_provider = 'Flux AI',
-    best_provider = IterListProvider([Airforce])
+    best_provider = Airforce
     
 )
 
 flux_schnell = Model(
     name = 'flux-schnell',
     base_provider = 'Flux AI',
-    best_provider = IterListProvider([ReplicateHome])
+    best_provider = ReplicateHome
     
 )
 
@@ -920,59 +805,43 @@ flux_schnell = Model(
 dalle_2 = Model(
     name = 'dalle-2',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([NexraDallE2])
+    best_provider = NexraDallE2
     
 )
 dalle_3 = Model(
     name = 'dalle-3',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([Airforce])
+    best_provider = Airforce
     
 )
 
 dalle = Model(
     name = 'dalle',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([NexraDallE, dalle_2.best_provider, dalle_3.best_provider])
+    best_provider = NexraDallE
     
 )
 
 dalle_mini = Model(
     name = 'dalle-mini',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([NexraDalleMini])
+    best_provider = NexraDalleMini
     
 )
 
-
-### Cagliostro Research Lab ###
-animagine_xl = Model(
-    name = 'animagine-xl',
-    base_provider = 'Cagliostro Research Lab',
-    best_provider = IterListProvider([NexraAnimagineXL])
-    
-)
-
-### Midjourney ###
-midjourney = Model(
-    name = 'midjourney',
-    base_provider = 'Midjourney',
-    best_provider = IterListProvider([NexraMidjourney])
-    
-)
 
 ### Other ###
 emi = Model(
     name = 'emi',
     base_provider = '',
-    best_provider = IterListProvider([NexraEmi])
+    best_provider = NexraEmi
     
 )
 
 any_dark = Model(
     name = 'any-dark',
     base_provider = '',
-    best_provider = IterListProvider([Airforce])
+    best_provider = Airforce
     
 )
 
@@ -1015,18 +884,15 @@ class ModelUtils:
 'llama-2-13b': llama_2_13b,
 
 # llama-3
-'llama-3': llama_3,
 'llama-3-8b': llama_3_8b,
 'llama-3-70b': llama_3_70b,
         
 # llama-3.1
-'llama-3.1': llama_3_1,
 'llama-3.1-8b': llama_3_1_8b,
 'llama-3.1-70b': llama_3_1_70b,
 'llama-3.1-405b': llama_3_1_405b,
 
 # llama-3.2
-'llama-3.2': llama_3_2,
 'llama-3.2-1b': llama_3_2_1b,
 'llama-3.2-3b': llama_3_2_3b,
 'llama-3.2-11b': llama_3_2_11b,
@@ -1074,17 +940,14 @@ class ModelUtils:
 
 
 ### Anthropic ###
-'claude-2': claude_2,
 'claude-2.1': claude_2_1,
 
 # claude 3
-'claude-3': claude_3,
 'claude-3-opus': claude_3_opus,
 'claude-3-sonnet': claude_3_sonnet,
 'claude-3-haiku': claude_3_haiku,
 
 # claude 3.5
-'claude-3.5': claude_3_5,
 'claude-3.5-sonnet': claude_3_5_sonnet,
         
         
@@ -1213,11 +1076,6 @@ class ModelUtils:
         
 ### Stability AI ###
 'sdxl': sdxl,
-'sdxl-lora': sdxl_lora,
-'sdxl-turbo': sdxl_turbo,
-'sd': sd,
-'sd-1.5': sd_1_5,
-'sd-2.1': sd_2_1,
 'sd-3': sd_3,
         
         
@@ -1242,14 +1100,6 @@ class ModelUtils:
 'dalle-2': dalle_2,
 'dalle-3': dalle_3,
 'dalle-mini': dalle_mini,
-
-
-### Cagliostro Research Lab ###
-'animagine-xl': animagine_xl,
-
-
-### Midjourney ###
-'midjourney': midjourney,
 
 
 ### Other ###

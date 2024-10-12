@@ -17,10 +17,18 @@ class ChatifyAI(AsyncGeneratorProvider, ProviderModelMixin):
     
     default_model = 'llama-3.1'
     models = [default_model]
+    model_aliases = {
+        "llama-3.1-8b": "llama-3.1",
+    }
 
     @classmethod
     def get_model(cls, model: str) -> str:
-        return cls.default_model
+        if model in cls.models:
+            return model
+        elif model in cls.model_aliases:
+            return cls.model_aliases.get(model, cls.default_model)
+        else:
+            return cls.default_model
 
     @classmethod
     async def create_async_generator(

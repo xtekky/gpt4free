@@ -80,7 +80,6 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         "gpt-4o": "gpt-4o",
         "gemini-pro": "gemini-pro",
         'claude-sonnet-3.5': "claude-sonnet-3.5",
-        'blackboxai-pro': "blackboxai-pro",
     }
     
     model_prefixes = {
@@ -107,7 +106,6 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
     
     model_referers = {
         "blackboxai": f"{url}/?model=blackboxai",
-        "blackboxai-pro": f"{url}/?model=blackboxai-pro",
         "gpt-4o": f"{url}/?model=gpt-4o",
         "gemini-pro": f"{url}/?model=gemini-pro",
         "claude-sonnet-3.5": f"{url}/?model=claude-sonnet-3.5"

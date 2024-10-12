@@ -21,7 +21,6 @@
 |[openchat.team](https://openchat.team/)|`g4f.Provider.Aura`|✔|❌|❌|?|![Disabled](https://img.shields.io/badge/Disabled-red)|❌|
 |[bing.com](https://bing.com/chat)|`g4f.Provider.Bing`|`gpt-4`|✔|`gpt-4-vision`|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌+✔|
 |[bing.com/images](https://www.bing.com/images/create)|`g4f.Provider.BingCreateImages`|`❌|✔|❌|❌|![Active](https://img.shields.io/badge/Active-brightgreen)|✔|
-|[chat18.aichatos8.com](https://chat18.aichatos8.com)|`g4f.Provider.Binjie`|`gpt-4`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[blackbox.ai](https://www.blackbox.ai)|`g4f.Provider.Blackbox`|`blackboxai, blackboxai-pro, gemini-flash, llama-3.1-8b, llama-3.1-70b, gpt-4o, gemini-pro, claude-3.5-sonnet`|`flux`|✔|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[chatgot.one](https://www.chatgot.one/)|`g4f.Provider.ChatGot`|`gemini-pro`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[chatgpt.com](https://chatgpt.com)|`g4f.Provider.ChatGpt`|`?`|`?`|`?`|?|![Unknown](https://img.shields.io/badge/Unknown-grey) |❌|
@@ -30,12 +29,12 @@
 |[chatgpt4o.one](https://chatgpt4o.one)|`g4f.Provider.Chatgpt4o`|✔|❌|❌|❌|![Cloudflare](https://img.shields.io/badge/Cloudflare-f48d37)|❌|
 |[chatgptfree.ai](https://chatgptfree.ai)|`g4f.Provider.ChatgptFree`|`gpt-4o-mini`|❌|❌|?|![Cloudflare](https://img.shields.io/badge/Cloudflare-f48d37)|❌|
 |[app.chathub.gg](https://app.chathub.gg)|`g4f.Provider.ChatHub`|`llama-3.1-8b, mixtral-8x7b, gemma-2, sonar-online`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
-|[chatify-ai.vercel.app](https://chatify-ai.vercel.app)|`g4f.Provider.ChatifyAI`|`llama-3.1`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
+|[chatify-ai.vercel.app](https://chatify-ai.vercel.app)|`g4f.Provider.ChatifyAI`|`llama-3.1-8b`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[playground.ai.cloudflare.com](https://playground.ai.cloudflare.com)|`g4f.Provider.Cloudflare`|`german-7b, gemma-7b, llama-2-7b, llama-3-8b, llama-3.1-8b, llama-3.2-11b, llama-3.2-1b, llama-3.2-3b, mistral-7b, openchat-3.5, phi-2, qwen-1.5-0.5b, qwen-1.5-1.8b, qwen-1.5-14b, qwen-1.5-7b, tinyllama-1.1b, cybertron-7b`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[aiuncensored.info](https://www.aiuncensored.info)|`g4f.Provider.DarkAI`|`gpt-4o, gpt-3.5-turbo, llama-3-70b, llama-3-405b`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[duckduckgo.com](https://duckduckgo.com/duckchat/v1/chat)|`g4f.Provider.DDG`|`gpt-4o-mini, claude-3-haiku, llama-3.1-70b, mixtral-8x7b`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[deepinfra.com](https://deepinfra.com)|`g4f.Provider.DeepInfra`|✔|❌|❌|✔|![Unknown](https://img.shields.io/badge/Unknown-grey)|✔|
-|[deepinfra.com/chat](https://deepinfra.com/chat)|`g4f.Provider.DeepInfraChat`|`llama-3.1-405b, llama-3.1-70b, Llama-3.1-8B, mixtral-8x22b, mixtral-8x7b, wizardlm-2-8x22b, wizardlm-2-7b, qwen-2-72b, phi-3-medium-4k, gemma-2b-27b, minicpm-llama-3-v2.5, mistral-7b, lzlv_70b, openchat-3.6-8b, phind-codellama-34b-v2, dolphin-2.9.1-llama-3-70b`|❌|`minicpm-llama-3-v2.5`|❌|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
+|[deepinfra.com/chat](https://deepinfra.com/chat)|`g4f.Provider.DeepInfraChat`|`llama-3.1-405b, llama-3.1-70b, llama-3.1-8B, mixtral-8x22b, mixtral-8x7b, wizardlm-2-8x22b, wizardlm-2-7b, qwen-2-72b, phi-3-medium-4k, gemma-2b-27b, minicpm-llama-3-v2.5, mistral-7b, lzlv_70b, openchat-3.6-8b, phind-codellama-34b-v2, dolphin-2.9.1-llama-3-70b`|❌|`minicpm-llama-3-v2.5`|❌|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[deepinfra.com](https://deepinfra.com)|`g4f.Provider.DeepInfraImage`|❌|✔|❌|❌|![Unknown](https://img.shields.io/badge/Unknown-grey)|✔|
 |[flowgpt.com](https://flowgpt.com/chat)|`g4f.Provider.FlowGpt`|✔||❌|✔|![Disabled](https://img.shields.io/badge/Disabled-red)|❌|
 |[chat10.free2gpt.xyz](chat10.free2gpt.xyz)|`g4f.Provider.Free2GPT`|`llama-3.1-70b`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
@@ -51,12 +50,10 @@
 |[huggingface.co](https://huggingface.co/chat)|`g4f.Provider.HuggingFace`|✔|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[koala.sh/chat](https://koala.sh/chat)|`g4f.Provider.Koala`|`gpt-4o-mini`|❌|❌|?|![Cloudflare](https://img.shields.io/badge/Cloudflare-f48d37)|❌|
 |[liaobots.work](https://liaobots.work)|`g4f.Provider.Liaobots`|`gpt-3.5-turbo, gpt-4o-mini, gpt-4o, gpt-4-turbo, grok-2, grok-2-mini, claude-3-opus, claude-3-sonnet, claude-3-5-sonnet, claude-3-haiku, claude-2.1, gemini-flash, gemini-pro`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
-|[lite.icoding.ink](https://lite.icoding.ink)|`g4f.Provider.LiteIcoding`|`gpt-4o-mini, gpt-4-turbo, claude-3, claude-3.5, gemini-pro`|❌|❌|❌|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[magickpen.com](https://magickpen.com)|`g4f.Provider.MagickPen`|`gpt-4o-mini`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[meta.ai](https://www.meta.ai)|`g4f.Provider.MetaAI`|✔|✔|?|?|![Active](https://img.shields.io/badge/Active-brightgreen)|✔|
 |[app.myshell.ai/chat](https://app.myshell.ai/chat)|`g4f.Provider.MyShell`|✔|❌|?|?|![Disabled](https://img.shields.io/badge/Disabled-red)|❌|
-|[nexra.aryahcr.cc/midjourney](https://nexra.aryahcr.cc/documentation/midjourney/en)|`g4f.Provider.NexraAnimagineXL`|❌ |`animagine-xl`|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
-|[nexra.aryahcr.cc/bing](https://nexra.aryahcr.cc/documentation/bing/en)|`g4f.Provider.NexraBing`|`gpt-4` |❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
+|[nexra.aryahcr.cc/bing](https://nexra.aryahcr.cc/documentation/bing/en)|`g4f.Provider.NexraBing`|✔|❌|❌|✔|![Disabled](https://img.shields.io/badge/Disabled-red)|❌|
 |[nexra.aryahcr.cc/blackbox](https://nexra.aryahcr.cc/documentation/blackbox/en)|`g4f.Provider.NexraBlackbox`|`blackboxai` |❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[nexra.aryahcr.cc/chatgpt](https://nexra.aryahcr.cc/documentation/chatgpt/en)|`g4f.Provider.NexraChatGPT`|`gpt-4, gpt-3.5-turbo, gpt-3` |❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[nexra.aryahcr.cc/chatgpt](https://nexra.aryahcr.cc/documentation/chatgpt/en)|`g4f.Provider.NexraChatGPT4o`|`gpt-4o` |❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
@@ -67,16 +64,16 @@
 |[nexra.aryahcr.cc/dall-e](https://nexra.aryahcr.cc/documentation/dall-e/en)|`g4f.Provider.NexraDalleMini`|❌ |`dalle-mini`|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[nexra.aryahcr.cc/emi](https://nexra.aryahcr.cc/documentation/emi/en)|`g4f.Provider.NexraEmi`|❌ |`emi`|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[nexra.aryahcr.cc/flux-pro](https://nexra.aryahcr.cc/documentation/flux-pro/en)|`g4f.Provider.NexraFluxPro`|❌ |`flux-pro`|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
-|[nexra.aryahcr.cc/gemini-pro](https://nexra.aryahcr.cc/documentation/gemini-pro/en)|`g4f.Provider.NexraGeminiPro`|`gemini-pro`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
-|[nexra.aryahcr.cc/llama-3.1](https://nexra.aryahcr.cc/documentation/llama-3.1/en)|`g4f.Provider.NexraLLaMA31`|`llama-3.1`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
-|[nexra.aryahcr.cc/midjourney](https://nexra.aryahcr.cc/documentation/midjourney/en)|`g4f.Provider.NexraMidjourney`|❌|`midjourney`|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
-|[nexra.aryahcr.cc/prodia](https://nexra.aryahcr.cc/documentation/prodia/en)|`g4f.Provider.NexraProdiaAI`|❌|✔|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
+|[nexra.aryahcr.cc/gemini-pro](https://nexra.aryahcr.cc/documentation/gemini-pro/en)|`g4f.Provider.NexraGeminiPro`|✔|❌|❌|✔|![Disabled](https://img.shields.io/badge/Disabled-red)|❌|
+|[nexra.aryahcr.cc/llama-3.1](https://nexra.aryahcr.cc/documentation/llama-3.1/en)|`g4f.Provider.NexraLLaMA31`|`llama-3.1-8b`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
+|[nexra.aryahcr.cc/midjourney](https://nexra.aryahcr.cc/documentation/midjourney/en)|`g4f.Provider.NexraMidjourney`|❌|✔|❌|✔|![Disabled](https://img.shields.io/badge/Disabled-red)|❌|
+|[nexra.aryahcr.cc/prodia](https://nexra.aryahcr.cc/documentation/prodia/en)|`g4f.Provider.NexraProdiaAI`|❌|✔|❌|✔|![Disabled](https://img.shields.io/badge/Disabled-red)|❌|
 |[nexra.aryahcr.cc/qwen](https://nexra.aryahcr.cc/documentation/qwen/en)|`g4f.Provider.NexraQwen`|`qwen`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[nexra.aryahcr.cc/qwen](https://nexra.aryahcr.cc/documentation/qwen/en)|`g4f.Provider.NexraQwen`|`qwen`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|
-|[nexra.aryahcr.cc/stable-diffusion](https://nexra.aryahcr.cc/documentation/stable-diffusion/en)|`g4f.Provider.NexraSD15`|`sd-1.5`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|
-|[nexra.aryahcr.cc/stable-diffusion](https://nexra.aryahcr.cc/documentation/stable-diffusion/en)|`g4f.Provider.NexraSD21`|`sd-2.1`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|
-|[nexra.aryahcr.cc/stable-diffusion](https://nexra.aryahcr.cc/documentation/stable-diffusion/en)|`g4f.Provider.NexraSDLora`|`sdxl-lora`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|
-|[nexra.aryahcr.cc/stable-diffusion](https://nexra.aryahcr.cc/documentation/stable-diffusion/en)|`g4f.Provider.NexraSDTurbo`|`sdxl-turbo`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|
+|[nexra.aryahcr.cc/stable-diffusion](https://nexra.aryahcr.cc/documentation/stable-diffusion/en)|`g4f.Provider.NexraSD15`|✔|❌|❌|✔|![Disabled](https://img.shields.io/badge/Disabled-red)|
+|[nexra.aryahcr.cc/stable-diffusion](https://nexra.aryahcr.cc/documentation/stable-diffusion/en)|`g4f.Provider.NexraSD21`|✔|❌|❌|✔|![Disabled](https://img.shields.io/badge/Disabled-red)|
+|[nexra.aryahcr.cc/stable-diffusion](https://nexra.aryahcr.cc/documentation/stable-diffusion/en)|`g4f.Provider.NexraSDLora`|✔|❌|❌|✔|![Disabled](https://img.shields.io/badge/Disabled-red)|
+|[nexra.aryahcr.cc/stable-diffusion](https://nexra.aryahcr.cc/documentation/stable-diffusion/en)|`g4f.Provider.NexraSDTurbo`|✔|❌|❌|✔|![Disabled](https://img.shields.io/badge/Disabled-red)|
 |[openrouter.ai](https://openrouter.ai)|`g4f.Provider.OpenRouter`|✔|❌|?|?|![Disabled](https://img.shields.io/badge/Disabled-red)|❌|
 |[platform.openai.com](https://platform.openai.com/)|`g4f.Provider.Openai`|✔|❌|✔||![Unknown](https://img.shields.io/badge/Unknown-grey)|✔|
 |[chatgpt.com](https://chatgpt.com/)|`g4f.Provider.OpenaiChat`|`gpt-4o, gpt-4o-mini, gpt-4`|❌|✔||![Unknown](https://img.shields.io/badge/Unknown-grey)|✔|
@@ -109,19 +106,17 @@
 |--|--|--|-|
 |gpt-3|OpenAI|1+ Providers|[platform.openai.com](https://platform.openai.com/docs/models/gpt-base)|
 |gpt-3.5-turbo|OpenAI|5+ Providers|[platform.openai.com](https://platform.openai.com/docs/models/gpt-3-5-turbo)|
-|gpt-4|OpenAI|32+ Providers|[platform.openai.com](https://platform.openai.com/docs/models/gpt-4-turbo-and-gpt-4)|
-|gpt-4-turbo|OpenAI|3+ Providers|[platform.openai.com](https://platform.openai.com/docs/models/gpt-4-turbo-and-gpt-4)|
-|gpt-4o|OpenAI|7+ Providers|[platform.openai.com](https://platform.openai.com/docs/models/gpt-4o)|
-|gpt-4o-mini|OpenAI|14+ Providers|[platform.openai.com](https://platform.openai.com/docs/models/gpt-4o-mini)|
+|gpt-4|OpenAI|8+ Providers|[platform.openai.com](https://platform.openai.com/docs/models/gpt-4-turbo-and-gpt-4)|
+|gpt-4-turbo|OpenAI|2+ Providers|[platform.openai.com](https://platform.openai.com/docs/models/gpt-4-turbo-and-gpt-4)|
+|gpt-4o|OpenAI|6+ Providers|[platform.openai.com](https://platform.openai.com/docs/models/gpt-4o)|
+|gpt-4o-mini|OpenAI|13+ Providers|[platform.openai.com](https://platform.openai.com/docs/models/gpt-4o-mini)|
 |o1|OpenAI|1+ Providers|[platform.openai.com](https://openai.com/index/introducing-openai-o1-preview/)|
 |o1-mini|OpenAI|1+ Providers|[platform.openai.com](https://openai.com/index/openai-o1-mini-advancing-cost-efficient-reasoning/)|
 |llama-2-7b|Meta Llama|1+ Providers|[huggingface.co](https://huggingface.co/meta-llama/Llama-2-7b)|
 |llama-2-13b|Meta Llama|1+ Providers|[llama.com](https://www.llama.com/llama2/)|
-|llama-3|Meta Llama|7+ Providers|[ai.meta.com](https://ai.meta.com/blog/meta-llama-3/)|
 |llama-3-8b|Meta Llama|4+ Providers|[ai.meta.com](https://ai.meta.com/blog/meta-llama-3/)|
 |llama-3-70b|Meta Llama|4+ Providers|[ai.meta.com](https://ai.meta.com/blog/meta-llama-3/)|
-|llama-3.1|Meta Llama|21+ Providers|[ai.meta.com](https://ai.meta.com/blog/meta-llama-3-1/)|
-|llama-3.1-8b|Meta Llama|6+ Providers|[ai.meta.com](https://ai.meta.com/blog/meta-llama-3-1/)|
+|llama-3.1-8b|Meta Llama|7+ Providers|[ai.meta.com](https://ai.meta.com/blog/meta-llama-3-1/)|
 |llama-3.1-70b|Meta Llama|11+ Providers|[ai.meta.com](https://ai.meta.com/blog/meta-llama-3-1/)|
 |llama-3.1-405b|Meta Llama|5+ Providers|[ai.meta.com](https://ai.meta.com/blog/meta-llama-3-1/)|
 |llama-3.2-1b|Meta Llama|1+ Providers|[huggingface.co](https://huggingface.co/meta-llama/Llama-3.2-1B)|
@@ -137,22 +132,19 @@
 |mixtral-8x7b-dpo|NousResearch|1+ Providers|[huggingface.co](https://huggingface.co/NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO)|
 |yi-34b|NousResearch|1+ Providers|[huggingface.co](https://huggingface.co/NousResearch/Nous-Hermes-2-Yi-34B)|
 |hermes-3|NousResearch|1+ Providers|[huggingface.co](https://huggingface.co/NousResearch/Hermes-3-Llama-3.1-8B)|
-|gemini|Google DeepMind|13+ Providers|[deepmind.google](http://deepmind.google/technologies/gemini/)|
+|gemini|Google DeepMind|1+ Providers|[deepmind.google](http://deepmind.google/technologies/gemini/)|
 |gemini-flash|Google DeepMind|3+ Providers|[deepmind.google](https://deepmind.google/technologies/gemini/flash/)|
-|gemini-pro|Google DeepMind|9+ Providers|[deepmind.google](https://deepmind.google/technologies/gemini/pro/)|
+|gemini-pro|Google DeepMind|8+ Providers|[deepmind.google](https://deepmind.google/technologies/gemini/pro/)|
 |gemma-2b|Google|5+ Providers|[huggingface.co](https://huggingface.co/google/gemma-2b)|
 |gemma-2b-9b|Google|1+ Providers|[huggingface.co](https://huggingface.co/google/gemma-2-9b)|
 |gemma-2b-27b|Google|2+ Providers|[huggingface.co](https://huggingface.co/google/gemma-2-27b)|
 |gemma-7b|Google|1+ Providers|[huggingface.co](https://huggingface.co/google/gemma-7b)|
 |gemma-2|Google|2+ Providers|[huggingface.co](https://huggingface.co/blog/gemma2)|
 |gemma_2_27b|Google|1+ Providers|[huggingface.co](https://huggingface.co/blog/gemma2)|
-|claude-2|Anthropic|2+ Providers|[anthropic.com](https://www.anthropic.com/news/claude-2)|
 |claude-2.1|Anthropic|1+ Providers|[anthropic.com](https://www.anthropic.com/news/claude-2)|
-|claude-3|Anthropic|7+ Providers|[anthropic.com](https://www.anthropic.com/news/claude-3-family)|
 |claude-3-haiku|Anthropic|3+ Providers|[anthropic.com](https://www.anthropic.com/news/claude-3-haiku)|
 |claude-3-sonnet|Anthropic|2+ Providers|[anthropic.com](https://www.anthropic.com/news/claude-3-family)|
 |claude-3-opus|Anthropic|2+ Providers|[anthropic.com](https://www.anthropic.com/news/claude-3-family)|
-|claude-3.5|Anthropic|5+ Providers|[anthropic.com](https://www.anthropic.com/news/claude-3-5-sonnet)|
 |claude-3.5-sonnet|Anthropic|4+ Providers|[anthropic.com](https://www.anthropic.com/news/claude-3-5-sonnet)|
 |blackboxai|Blackbox AI|2+ Providers|[docs.blackbox.chat](https://docs.blackbox.chat/blackbox-ai-1)|
 |blackboxai-pro|Blackbox AI|1+ Providers|[docs.blackbox.chat](https://docs.blackbox.chat/blackbox-ai-1)|
@@ -163,7 +155,7 @@
 |dbrx-instruct|Databricks|1+ Providers|[huggingface.co](https://huggingface.co/databricks/dbrx-instruct)|
 |command-r-plus|CohereForAI|1+ Providers|[docs.cohere.com](https://docs.cohere.com/docs/command-r-plus)|
 |sparkdesk-v1.1|iFlytek|1+ Providers|[xfyun.cn](https://www.xfyun.cn/doc/spark/Guide.html)|
-|qwen|Qwen|10+ Providers|[huggingface.co](https://huggingface.co/Qwen)|
+|qwen|Qwen|1+ Providers|[huggingface.co](https://huggingface.co/Qwen)|
 |qwen-1.5-0.5b|Qwen|1+ Providers|[huggingface.co](https://huggingface.co/Qwen/Qwen1.5-0.5B)|
 |qwen-1.5-7b|Qwen|2+ Providers|[huggingface.co](https://huggingface.co/Qwen/Qwen1.5-7B)|
 |qwen-1.5-14b|Qwen|3+ Providers|[huggingface.co](https://huggingface.co/Qwen/Qwen1.5-14B)|
@@ -201,12 +193,7 @@
 ### ImageModel
 |Model|Base Provider|Provider|Website|
 |--|--|--|-|
-|sdxl|Stability AI|1+ Providers|[huggingface.co](https://huggingface.co/docs/diffusers/en/using-diffusers/sdxl)|
-|sdxl-lora|Stability AI|1+ Providers|[huggingface.co](https://huggingface.co/blog/lora)|
-|sdxl-turbo|Stability AI|1+ Providers|[huggingface.co](https://huggingface.co/stabilityai/sdxl-turbo)|
-|sd|Stability AI|3+ Providers|[huggingface.co](https://huggingface.co/stabilityai/)|
-|sd-1.5|Stability AI|1+ Providers|[github.com](https://github.com/Stability-AI/StableDiffusion)|
-|sd-2.1|Stability AI|1+ Providers|[huggingface.co](https://huggingface.co/stabilityai/stable-diffusion-2-1)|
+|sdxl|Stability AI|3+ Providers|[huggingface.co](https://huggingface.co/docs/diffusers/en/using-diffusers/sdxl)|
 |sd-3|Stability AI|1+ Providers|[huggingface.co](https://huggingface.co/docs/diffusers/main/en/api/pipelines/stable_diffusion/stable_diffusion_3)|
 |playground-v2.5|Playground AI|1+ Providers|[huggingface.co](https://huggingface.co/playgroundai/playground-v2.5-1024px-aesthetic)|
 |flux|Black Forest Labs|2+ Providers|[github.com/black-forest-labs/flux](https://github.com/black-forest-labs/flux)|
@@ -218,11 +205,9 @@
 |flux-pixel|Flux AI|1+ Providers|[]()|
 |flux-4o|Flux AI|1+ Providers|[]()|
 |flux-schnell|Black Forest Labs|1+ Providers|[huggingface.co](https://huggingface.co/black-forest-labs/FLUX.1-schnell)|
-|dalle|OpenAI|4+ Providers|[openai.com](https://openai.com/index/dall-e/)|
+|dalle|OpenAI|1+ Providers|[openai.com](https://openai.com/index/dall-e/)|
 |dalle-2|OpenAI|1+ Providers|[openai.com](https://openai.com/index/dall-e-2/)|
 |dalle-3|OpenAI|2+ Providers|[openai.com](https://openai.com/index/dall-e-3/)|
 |dalle-mini||1+ Providers|[huggingface.co](https://huggingface.co/dalle-mini/dalle-mini)|
-|animagine-xl|Cagliostro Research Lab|1+ Providers|[huggingface.co](https://huggingface.co/cagliostrolab/animagine-xl-3.1)|
-|midjourney|Midjourney|1+ Providers|[docs.midjourney.com](https://docs.midjourney.com/docs/model-versions)|
 |emi||1+ Providers|[]()|
 |any-dark||1+ Providers|[]()|

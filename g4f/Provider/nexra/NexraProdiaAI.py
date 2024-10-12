@@ -12,7 +12,7 @@ class NexraProdiaAI(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Nexra Prodia AI"
     url = "https://nexra.aryahcr.cc/documentation/prodia/en"
     api_endpoint = "https://nexra.aryahcr.cc/api/image/complements"
-    working = True
+    working = False
     
     default_model = 'absolutereality_v181.safetensors [3d9d4d2b]'
     models = [

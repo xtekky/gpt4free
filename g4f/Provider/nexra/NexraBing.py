@@ -13,7 +13,7 @@ class NexraBing(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Nexra Bing"
     url = "https://nexra.aryahcr.cc/documentation/bing/en"
     api_endpoint = "https://nexra.aryahcr.cc/api/chat/complements"
-    working = True
+    working = False
     supports_gpt_4 = False
     supports_stream = False
     

@@ -12,7 +12,7 @@ class NexraSDLora(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Nexra Stable Diffusion Lora"
     url = "https://nexra.aryahcr.cc/documentation/stable-diffusion/en"
     api_endpoint = "https://nexra.aryahcr.cc/api/image/complements"
-    working = True
+    working = False
     
     default_model = 'sdxl-lora'
     models = [default_model]

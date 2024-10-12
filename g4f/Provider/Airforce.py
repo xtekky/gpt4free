@@ -37,7 +37,7 @@ class Airforce(AsyncGeneratorProvider, ProviderModelMixin):
         'gpt-3.5-turbo', 
         'gpt-3.5-turbo-0125', 
         'gpt-3.5-turbo-1106', 
-        'llama-3-70b-chat', 
+        default_model,
         'llama-3-70b-chat-turbo', 
         'llama-3-8b-chat', 
         'llama-3-8b-chat-turbo', 
