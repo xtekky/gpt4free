@@ -17,23 +17,23 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
     supports_stream = True
     supports_system_message = True
     supports_message_history = True
-    
+
     default_model = 'blackboxai'
     models = [
         default_model,
         'blackboxai-pro',
-        
+
         "llama-3.1-8b",
         'llama-3.1-70b',
         'llama-3.1-405b',
-        
+
         'gpt-4o',
-        
+
         'gemini-pro',
         'gemini-1.5-flash',
-        
+
         'claude-sonnet-3.5',
-        
+
         'PythonAgent',
         'JavaAgent',
         'JavaScriptAgent',
@@ -89,7 +89,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
 
         'PythonAgent': '@Python Agent',
         'JavaAgent': '@Java Agent',
-        'JavaScriptAgent': '@Java Agent',
+        'JavaScriptAgent': '@JavaScript Agent',
         'HTMLAgent': '@HTML Agent',
         'GoogleCloudAgent': '@Google Cloud Agent',
         'AndroidDeveloper': '@Android Developer',
@@ -163,46 +163,50 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
             if not messages[0]['content'].startswith(prefix):
                 messages[0]['content'] = f"{prefix} {messages[0]['content']}"
         
-        async with ClientSession(headers=headers) as session:
-            if image is not None:
-                messages[-1]["data"] = {
-                    "fileText": image_name,
-                    "imageBase64": to_data_uri(image)
-                }
-            
-            random_id = ''.join(random.choices(string.ascii_letters + string.digits, k=7))
+        random_id = ''.join(random.choices(string.ascii_letters + string.digits, k=7))
+        messages[-1]['id'] = random_id
+        messages[-1]['role'] = 'user'
 
-            data = {
-                "messages": messages,
-                "id": random_id,
-                "previewToken": None,
-                "userId": None,
-                "codeModelMode": True,
-                "agentMode": {},
-                "trendingAgentMode": {},
-                "isMicMode": False,
-                "userSystemPrompt": None,
-                "maxTokens": 1024,
-                "playgroundTopP": 0.9,
-                "playgroundTemperature": 0.5,
-                "isChromeExt": False,
-                "githubToken": None,
-                "clickedAnswer2": False,
-                "clickedAnswer3": False,
-                "clickedForceWebSearch": False,
-                "visitFromDelta": False,
-                "mobileClient": False,
-                "userSelectedModel": None,
-                "webSearchMode": webSearchMode,
+        if image is not None:
+            messages[-1]['data'] = {
+                'fileText': '',
+                'imageBase64': to_data_uri(image),
+                'title': image_name
             }
+            messages[-1]['content'] = 'FILE:BB\n$#$\n\n$#$\n' + messages[-1]['content']
+        
+        data = {
+            "messages": messages,
+            "id": random_id,
+            "previewToken": None,
+            "userId": None,
+            "codeModelMode": True,
+            "agentMode": {},
+            "trendingAgentMode": {},
+            "isMicMode": False,
+            "userSystemPrompt": None,
+            "maxTokens": 1024,
+            "playgroundTopP": 0.9,
+            "playgroundTemperature": 0.5,
+            "isChromeExt": False,
+            "githubToken": None,
+            "clickedAnswer2": False,
+            "clickedAnswer3": False,
+            "clickedForceWebSearch": False,
+            "visitFromDelta": False,
+            "mobileClient": False,
+            "userSelectedModel": None,
+            "webSearchMode": webSearchMode,
+        }
 
-            if model in cls.agentMode:
-                data["agentMode"] = cls.agentMode[model]
-            elif model in cls.trendingAgentMode:
-                data["trendingAgentMode"] = cls.trendingAgentMode[model]
-            elif model in cls.userSelectedModel:
-                data["userSelectedModel"] = cls.userSelectedModel[model]
-            
+        if model in cls.agentMode:
+            data["agentMode"] = cls.agentMode[model]
+        elif model in cls.trendingAgentMode:
+            data["trendingAgentMode"] = cls.trendingAgentMode[model]
+        elif model in cls.userSelectedModel:
+            data["userSelectedModel"] = cls.userSelectedModel[model]
+        
+        async with ClientSession(headers=headers) as session:
             async with session.post(cls.api_endpoint, json=data, proxy=proxy) as response:
                 response.raise_for_status()
                 if model == 'ImageGeneration':
