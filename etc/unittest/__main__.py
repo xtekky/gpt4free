@@ -4,7 +4,7 @@ from .backend import *
 from .main import *
 from .model import *
 from .client import *
-from .async_client import *
+from .client import *
 from .include import *
 from .integration import *
 
