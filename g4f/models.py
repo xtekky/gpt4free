@@ -1,3 +1,4 @@
+# g4f/models.py
 from __future__  import annotations
 
 from dataclasses import dataclass
@@ -126,7 +127,7 @@ gpt_35_turbo = Model(
 gpt_4o = Model(
     name          = 'gpt-4o',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([NexraChatGPT4o, ChatGptEs, AmigoChat, DarkAI, Liaobots, Airforce, OpenaiChat])
+    best_provider = IterListProvider([NexraChatGPT4o, Blackbox, ChatGptEs, AmigoChat, DarkAI, Liaobots, Airforce, OpenaiChat])
 )
 
 gpt_4o_mini = Model(
