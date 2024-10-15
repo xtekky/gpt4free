@@ -23,18 +23,13 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
     models = [
         default_model,
         'blackboxai-pro',
-
         "llama-3.1-8b",
         'llama-3.1-70b',
         'llama-3.1-405b',
-
         'gpt-4o',
-
         'gemini-pro',
         'gemini-1.5-flash',
-
         'claude-sonnet-3.5',
-
         'PythonAgent',
         'JavaAgent',
         'JavaScriptAgent',
@@ -87,7 +82,6 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         'gpt-4o': '@GPT-4o',
         'gemini-pro': '@Gemini-PRO',
         'claude-sonnet-3.5': '@Claude-Sonnet-3.5',
-
         'PythonAgent': '@Python Agent',
         'JavaAgent': '@Java Agent',
         'JavaScriptAgent': '@JavaScript Agent',
@@ -149,14 +143,15 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
             "content-type": "application/json",
             "origin": cls.url,
             "pragma": "no-cache",
+            "priority": "u=1, i",
             "referer": cls.model_referers.get(model, cls.url),
-            "sec-ch-ua": '"Not;A=Brand";v="24", "Chromium";v="128"',
+            "sec-ch-ua": '"Chromium";v="129", "Not=A?Brand";v="8"',
             "sec-ch-ua-mobile": "?0",
             "sec-ch-ua-platform": '"Linux"',
             "sec-fetch-dest": "empty",
             "sec-fetch-mode": "cors",
             "sec-fetch-site": "same-origin",
-            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36"
+            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36",
         }
 
         if model in cls.model_prefixes:
@@ -221,7 +216,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
                 else:
                     full_response = ""
                     search_results_json = ""
-                    async for chunk in response.content.iter_any():
+                    async for chunk, _ in response.content.iter_chunks():
                         if chunk:
                             decoded_chunk = chunk.decode()
                             decoded_chunk = re.sub(r'\$@\$v=[^$]+\$@\$', '', decoded_chunk)
