@@ -3,18 +3,18 @@ from __future__ import annotations
 from aiohttp import ClientSession
 import json
 
-from ..typing import AsyncResult, Messages
-from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from ..image import ImageResponse
+from ...typing import AsyncResult, Messages
+from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from ...image import ImageResponse
 
 
-class Nexra(AsyncGeneratorProvider, ProviderModelMixin):
-    label = "Nexra Animagine XL"
-    url = "https://nexra.aryahcr.cc/documentation/midjourney/en"
+class NexraEmi(AsyncGeneratorProvider, ProviderModelMixin):
+    label = "Nexra Emi"
+    url = "https://nexra.aryahcr.cc/documentation/emi/en"
     api_endpoint = "https://nexra.aryahcr.cc/api/image/complements"
     working = True
 
-    default_model = 'animagine-xl'
+    default_model = 'emi'
     models = [default_model]
 
     @classmethod

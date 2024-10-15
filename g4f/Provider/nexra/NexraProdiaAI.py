@@ -1,17 +1,18 @@
 from __future__ import annotations
 
 from aiohttp import ClientSession
-import time
-import asyncio
+import json
 
-from ..typing import AsyncResult, Messages
-from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from ..image import ImageResponse
+from ...typing import AsyncResult, Messages
+from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from ...image import ImageResponse
 
-class Prodia(AsyncGeneratorProvider, ProviderModelMixin):
-    url = "https://app.prodia.com"
-    api_endpoint = "https://api.prodia.com/generate"
-    working = True
+
+class NexraProdiaAI(AsyncGeneratorProvider, ProviderModelMixin):
+    label = "Nexra Prodia AI"
+    url = "https://nexra.aryahcr.cc/documentation/prodia/en"
+    api_endpoint = "https://nexra.aryahcr.cc/api/image/complements"
+    working = False
     
     default_model = 'absolutereality_v181.safetensors [3d9d4d2b]'
     models = [
@@ -81,6 +82,9 @@ class Prodia(AsyncGeneratorProvider, ProviderModelMixin):
         'timeless-1.0.ckpt [7c4971d4]',
         'toonyou_beta6.safetensors [980f6b15]',
     ]
+    
+    model_aliases = {
+    }
 
     @classmethod
     def get_model(cls, model: str) -> str:
@@ -94,56 +98,50 @@ class Prodia(AsyncGeneratorProvider, ProviderModelMixin):
     @classmethod
     async def create_async_generator(
         cls,
-        model: str,
+        model: str, # Select from the list of models
         messages: Messages,
         proxy: str = None,
+        response: str = "url", # base64 or url
+        steps: str = 25, # Min: 1, Max: 30
+        cfg_scale: str = 7, # Min: 0, Max: 20
+        sampler: str = "DPM++ 2M Karras", # Select from these: "Euler","Euler a","Heun","DPM++ 2M Karras","DPM++ SDE Karras","DDIM"
+        negative_prompt: str = "", # Indicates what the AI should not do
         **kwargs
     ) -> AsyncResult:
         model = cls.get_model(model)
         
         headers = {
-            "accept": "*/*",
-            "accept-language": "en-US,en;q=0.9",
-            "origin": cls.url,
-            "referer": f"{cls.url}/",
-            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36"
+            "Content-Type": "application/json"
         }
-        
         async with ClientSession(headers=headers) as session:
-            prompt = messages[-1]['content'] if messages else ""
-            
-            params = {
-                "new": "true",
+            prompt = messages[0]['content']
+            data = {
                 "prompt": prompt,
-                "model": model,
-                "negative_prompt": kwargs.get("negative_prompt", ""),
-                "steps": kwargs.get("steps", 20),
-                "cfg": kwargs.get("cfg", 7),
-                "seed": kwargs.get("seed", int(time.time())),
-                "sampler": kwargs.get("sampler", "DPM++ 2M Karras"),
-                "aspect_ratio": kwargs.get("aspect_ratio", "square")
+                "model": "prodia",
+                "response": response,
+                "data": {
+                    "model": model,
+                    "steps": steps,
+                    "cfg_scale": cfg_scale,
+                    "sampler": sampler,
+                    "negative_prompt": negative_prompt
+                }
             }
-            
-            async with session.get(cls.api_endpoint, params=params, proxy=proxy) as response:
-                response.raise_for_status()
-                job_data = await response.json()
-                job_id = job_data["job"]
+            async with session.post(cls.api_endpoint, json=data, proxy=proxy) as response:
+                text_data = await response.text()
                 
-                image_url = await cls._poll_job(session, job_id, proxy)
-                yield ImageResponse(image_url, alt=prompt)
-
-    @classmethod
-    async def _poll_job(cls, session: ClientSession, job_id: str, proxy: str, max_attempts: int = 30, delay: int = 2) -> str:
-        for _ in range(max_attempts):
-            async with session.get(f"https://api.prodia.com/job/{job_id}", proxy=proxy) as response:
-                response.raise_for_status()
-                job_status = await response.json()
-
-                if job_status["status"] == "succeeded":
-                    return f"https://images.prodia.xyz/{job_id}.png"
-                elif job_status["status"] == "failed":
-                    raise Exception("Image generation failed")
-
-            await asyncio.sleep(delay)
-
-        raise Exception("Timeout waiting for image generation")
+                if response.status == 200:
+                    try:
+                        json_start = text_data.find('{')
+                        json_data = text_data[json_start:]
+                        
+                        data = json.loads(json_data)
+                        if 'images' in data and len(data['images']) > 0:
+                            image_url = data['images'][-1]
+                            yield ImageResponse(image_url, prompt)
+                        else:
+                            yield ImageResponse("No images found in the response.", prompt)
+                    except json.JSONDecodeError:
+                        yield ImageResponse("Failed to parse JSON. Response might not be in JSON format.", prompt)
+                else:
+                    yield ImageResponse(f"Request failed with status: {response.status}", prompt)

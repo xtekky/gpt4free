@@ -12,7 +12,9 @@ INSTALL_REQUIRE = [
     "requests",
     "aiohttp",
     "brotli",
-    "pycryptodome"
+    "pycryptodome",
+    "curl_cffi>=0.6.2",
+    "cloudscraper" # Cloudflare
 ]
 
 EXTRA_REQUIRE = {
@@ -33,7 +35,6 @@ EXTRA_REQUIRE = {
         "platformdirs",
         "plyer",
         "cryptography",
-        ####
         "aiohttp_socks",           # proxy
         "pillow",                  # image
         "cairosvg",                # svg image
@@ -74,9 +75,6 @@ EXTRA_REQUIRE = {
     ],
     "local": [
         "gpt4all"
-    ],
-    "curl_cffi": [
-        "curl_cffi>=0.6.2",
     ]
 }
 

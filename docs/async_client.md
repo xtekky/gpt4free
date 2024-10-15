@@ -1,3 +1,4 @@
+
 # How to Use the G4F AsyncClient API
 
 The AsyncClient API is the asynchronous counterpart to the standard G4F Client API. It offers the same functionality as the synchronous API, but with the added benefit of improved performance due to its asynchronous nature.
@@ -25,7 +26,7 @@ from g4f.Provider import BingCreateImages, OpenaiChat, Gemini
 client = AsyncClient(
     provider=OpenaiChat,
     image_provider=Gemini,
-    ...
+    # Add any other necessary parameters
 )
 ```
 
@@ -43,7 +44,7 @@ from g4f.client import AsyncClient
 client = AsyncClient(
     api_key="your_api_key_here",
     proxies="http://user:pass@host",
-    ...
+    # Add any other necessary parameters
 )
 ```
 
@@ -57,12 +58,20 @@ client = AsyncClient(
 You can use the `ChatCompletions` endpoint to generate text completions. Here’s how you can do it:
 
 ```python
-response = await client.chat.completions.create(
-    model="gpt-3.5-turbo",
-    messages=[{"role": "user", "content": "Say this is a test"}],
-    ...
-)
-print(response.choices[0].message.content)
+import asyncio
+
+from g4f.client import Client
+
+async def main():
+    client = Client()
+    response = await client.chat.completions.async_create(
+        model="gpt-3.5-turbo",
+        messages=[{"role": "user", "content": "say this is a test"}],
+        # Add any other necessary parameters
+    )
+    print(response.choices[0].message.content)
+
+asyncio.run(main())
 ```
 
 ### Streaming Completions
@@ -70,15 +79,23 @@ print(response.choices[0].message.content)
 The `AsyncClient` also supports streaming completions. This allows you to process the response incrementally as it is generated:
 
 ```python
-stream = client.chat.completions.create(
-    model="gpt-4",
-    messages=[{"role": "user", "content": "Say this is a test"}],
-    stream=True,
-    ...
-)
-async for chunk in stream:
-    if chunk.choices[0].delta.content:
-        print(chunk.choices[0].delta.content or "", end="")
+import asyncio
+
+from g4f.client import Client
+
+async def main():
+    client = Client()
+    stream = await client.chat.completions.async_create(
+        model="gpt-4",
+        messages=[{"role": "user", "content": "say this is a test"}],
+        stream=True,
+        # Add any other necessary parameters
+    )
+    async for chunk in stream:
+        if chunk.choices[0].delta.content:
+            print(chunk.choices[0].delta.content or "", end="")
+
+asyncio.run(main())
 ```
 
 In this example:
@@ -89,23 +106,28 @@ In this example:
 The following code snippet demonstrates how to use a vision model to analyze an image and generate a description based on the content of the image. This example shows how to fetch an image, send it to the model, and then process the response.
 
 ```python
+import g4f
 import requests
+import asyncio
+
 from g4f.client import Client
-from g4f.Provider import Bing
 
-client = AsyncClient(
-    provider=Bing
-)
+image = requests.get("https://raw.githubusercontent.com/xtekky/gpt4free/refs/heads/main/docs/cat.jpeg", stream=True).raw
+# Or: image = open("docs/cat.jpeg", "rb")
 
-image = requests.get("https://my_website/image.jpg", stream=True).raw
-# Or: image = open("local_path/image.jpg", "rb")
 
-response = client.chat.completions.create(
-    "",
-    messages=[{"role": "user", "content": "what is in this picture?"}],
-    image=image
-)
-print(response.choices[0].message.content)
+async def main():
+    client = Client()
+    response = await client.chat.completions.async_create(
+        model=g4f.models.default,
+        provider=g4f.Provider.Bing,
+        messages=[{"role": "user", "content": "What are on this image?"}],
+        image=image
+        # Add any other necessary parameters
+    )
+    print(response.choices[0].message.content)
+
+asyncio.run(main())
 ```
 
 ### Image Generation:
@@ -113,24 +135,40 @@ print(response.choices[0].message.content)
 You can generate images using a specified prompt:
 
 ```python
-response = await client.images.generate(
-    model="dall-e-3",
-    prompt="a white siamese cat",
-    ...
-)
+import asyncio
+from g4f.client import Client
 
-image_url = response.data[0].url
+async def main():
+    client = Client()
+    response = await client.images.async_generate(
+        prompt="a white siamese cat",
+        model="dall-e-3",
+        # Add any other necessary parameters
+    )
+    image_url = response.data[0].url
+    print(f"Generated image URL: {image_url}")
+
+asyncio.run(main())
 ```
 
 #### Base64 as the response format
 
 ```python
-response = await client.images.generate(
-    prompt="a cool cat",
-    response_format="b64_json"
-)
+import asyncio
+from g4f.client import Client
 
-base64_text = response.data[0].b64_json
+async def main():
+    client = Client()
+    response = await client.images.async_generate(
+        prompt="a white siamese cat",
+        model="dall-e-3",
+        response_format="b64_json"
+        # Add any other necessary parameters
+    )
+    base64_text = response.data[0].b64_json
+    print(base64_text)
+
+asyncio.run(main())
 ```
 
 ### Example usage with asyncio.gather
@@ -140,17 +178,12 @@ Start two tasks at the same time:
 ```python
 import asyncio
 
-from g4f.client import AsyncClient
-from g4f.Provider import BingCreateImages, OpenaiChat, Gemini
+from g4f.client import Client
 
 async def main():
-    client = AsyncClient(
-        provider=OpenaiChat,
-        image_provider=Gemini,
-        # other parameters...
-    )
+    client = Client()
 
-    task1 = client.chat.completions.create(
+    task1 = client.chat.completions.async_create(
         model="gpt-3.5-turbo",
         messages=[{"role": "user", "content": "Say this is a test"}],
     )
@@ -158,9 +191,19 @@ async def main():
         model="dall-e-3",
         prompt="a white siamese cat",
     )
-    responses = await asyncio.gather(task1, task2)
 
-    print(responses)
+    responses = await asyncio.gather(task1, task2)
+    
+    chat_response, image_response = responses
+
+    print("Chat Response:")
+    print(chat_response.choices[0].message.content)
+
+    print("\nImage Response:")
+    image_url = image_response.data[0].url
+    print(image_url)
 
 asyncio.run(main())
 ```
+
+[Return to Home](/)

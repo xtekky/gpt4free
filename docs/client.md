@@ -1,3 +1,4 @@
+
 ### G4F - Client API
 
 #### Introduction
@@ -33,7 +34,7 @@ from g4f.Provider import BingCreateImages, OpenaiChat, Gemini
 client = Client(
     provider=OpenaiChat,
     image_provider=Gemini,
-    ...
+    # Add any other necessary parameters
 )
 ```
 
@@ -48,7 +49,7 @@ from g4f.client import Client
 client = Client(
     api_key="...",
     proxies="http://user:pass@host",
-    ...
+    # Add any other necessary parameters
 )
 ```
 
@@ -59,10 +60,13 @@ client = Client(
 You can use the `ChatCompletions` endpoint to generate text completions as follows:
 
 ```python
+from g4f.client import Client
+client = Client()
+
 response = client.chat.completions.create(
     model="gpt-3.5-turbo",
     messages=[{"role": "user", "content": "Say this is a test"}],
-    ...
+    # Add any other necessary parameters
 )
 print(response.choices[0].message.content)
 ```
@@ -70,12 +74,16 @@ print(response.choices[0].message.content)
 Also streaming are supported:
 
 ```python
+from g4f.client import Client
+
+client = Client()
+
 stream = client.chat.completions.create(
     model="gpt-4",
     messages=[{"role": "user", "content": "Say this is a test"}],
     stream=True,
-    ...
 )
+
 for chunk in stream:
     if chunk.choices[0].delta.content:
         print(chunk.choices[0].delta.content or "", end="")
@@ -86,13 +94,17 @@ for chunk in stream:
 Generate images using a specified prompt:
 
 ```python
+from g4f.client import Client
+
+client = Client()
 response = client.images.generate(
     model="dall-e-3",
     prompt="a white siamese cat",
-    ...
+    # Add any other necessary parameters
 )
 
 image_url = response.data[0].url
+print(f"Generated image URL: {image_url}")
 ```
 
 **Creating Image Variations:**
@@ -100,13 +112,17 @@ image_url = response.data[0].url
 Create variations of an existing image:
 
 ```python
+from g4f.client import Client
+
+client = Client()
 response = client.images.create_variation(
     image=open("cat.jpg", "rb"),
     model="bing",
-    ...
+    # Add any other necessary parameters
 )
 
 image_url = response.data[0].url
+print(f"Generated image URL: {image_url}")
 ```
 Original / Variant:
 
@@ -120,6 +136,7 @@ from g4f.Provider import RetryProvider, Phind, FreeChatgpt, Liaobots
 
 import g4f.debug
 g4f.debug.logging = True
+g4f.debug.version_check = False
 
 client = Client(
     provider=RetryProvider([Phind, FreeChatgpt, Liaobots], shuffle=False)
@@ -154,13 +171,36 @@ response = client.chat.completions.create(
 )
 print(response.choices[0].message.content)
 ```
+
 ```
 User: What are on this image?
 ```
-![Waterfall](/docs/waterfall.jpeg)
 
+![Waterfall](/docs/waterfall.jpeg)
 ```
 Bot: There is a waterfall in the middle of a jungle. There is a rainbow over...
+```
+
+### Example: Using a Vision Model
+The following code snippet demonstrates how to use a vision model to analyze an image and generate a description based on the content of the image. This example shows how to fetch an image, send it to the model, and then process the response.
+
+```python
+import g4f
+import requests
+from g4f.client import Client
+
+image = requests.get("https://raw.githubusercontent.com/xtekky/gpt4free/refs/heads/main/docs/cat.jpeg", stream=True).raw
+# Or: image = open("docs/cat.jpeg", "rb")
+
+client = Client()
+response = client.chat.completions.create(
+    model=g4f.models.default,
+    messages=[{"role": "user", "content": "What are on this image?"}],
+    provider=g4f.Provider.Bing,
+    image=image,
+    # Add any other necessary parameters
+)
+print(response.choices[0].message.content)
 ```
 
 #### Advanced example: A command-line program
@@ -169,7 +209,7 @@ import g4f
 from g4f.client import Client
 
 # Initialize the GPT client with the desired provider
-client = Client(provider=g4f.Provider.Bing)
+client = Client()
 
 # Initialize an empty conversation history
 messages = []

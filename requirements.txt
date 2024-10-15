@@ -21,3 +21,4 @@ pywebview
 plyer
 cryptography
 nodriver
+cloudscraper
