@@ -72,7 +72,6 @@ async def main():
     print(response.choices[0].message.content)
 
 asyncio.run(main())
-
 ```
 
 ### Streaming Completions
@@ -97,7 +96,6 @@ async def main():
             print(chunk.choices[0].delta.content or "", end="")
 
 asyncio.run(main())
-
 ```
 
 In this example:
@@ -130,7 +128,6 @@ async def main():
     print(response.choices[0].message.content)
 
 asyncio.run(main())
-
 ```
 
 ### Image Generation:
@@ -152,7 +149,6 @@ async def main():
     print(f"Generated image URL: {image_url}")
 
 asyncio.run(main())
-
 ```
 
 #### Base64 as the response format
@@ -208,7 +204,6 @@ async def main():
     print(image_url)
 
 asyncio.run(main())
-
 ```
 
 [Return to Home](/)
