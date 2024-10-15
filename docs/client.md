@@ -171,17 +171,17 @@ response = client.chat.completions.create(
 )
 print(response.choices[0].message.content)
 ```
+
 ```
 User: What are on this image?
 ```
-![Waterfall](/docs/waterfall.jpeg)
 
+![Waterfall](/docs/waterfall.jpeg)
 ```
 Bot: There is a waterfall in the middle of a jungle. There is a rainbow over...
 ```
 
 ### Example: Using a Vision Model
-
 The following code snippet demonstrates how to use a vision model to analyze an image and generate a description based on the content of the image. This example shows how to fetch an image, send it to the model, and then process the response.
 
 ```python
