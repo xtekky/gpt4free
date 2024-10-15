@@ -187,7 +187,7 @@ async def main():
         model="gpt-3.5-turbo",
         messages=[{"role": "user", "content": "Say this is a test"}],
     )
-    task2 = client.images.generate(
+    task2 = client.images.async_generate(
         model="dall-e-3",
         prompt="a white siamese cat",
     )
