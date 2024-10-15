@@ -19,6 +19,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
     supports_message_history = True
 
     default_model = 'blackboxai'
+    image_models = ['ImageGeneration']
     models = [
         default_model,
         'blackboxai-pro',
@@ -47,7 +48,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         'ReactAgent',
         'XcodeAgent',
         'AngularJSAgent',
-        'ImageGeneration',
+        *image_models,
     ]
 
     agentMode = {
