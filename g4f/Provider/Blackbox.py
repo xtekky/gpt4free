@@ -25,18 +25,10 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         'llama-3.1-70b',
         'llama-3.1-405b',
         'ImageGenerationLV45LJp',
-        'GPT-4o',
-        'Gemini-PRO',
-        'Claude-Sonnet-3.5',
+        'gpt-4o',
+        'gemini-pro',
+        'claude-sonnet-3.5',
     ]
-    
-    model_aliases = {
-        "gemini-flash": "gemini-1.5-flash",
-        "flux": "ImageGenerationLV45LJp",
-        "gpt-4o": "GPT-4o",
-        "gemini-pro": "Gemini-PRO",
-        "claude-3.5-sonnet": "Claude-Sonnet-3.5",
-    }
 
     agentMode = {
         'ImageGenerationLV45LJp': {'mode': True, 'id': "ImageGenerationLV45LJp", 'name': "Image Generation"},
@@ -51,9 +43,14 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
     }
     
     userSelectedModel = {
-        "GPT-4o": "GPT-4o",
-        "Gemini-PRO": "Gemini-PRO",
-        'Claude-Sonnet-3.5': "Claude-Sonnet-3.5",
+        "gpt-4o": "gpt-4o",
+        "gemini-pro": "gemini-pro",
+        'claude-sonnet-3.5': "claude-sonnet-3.5",
+    }
+    
+    model_aliases = {
+        "gemini-flash": "gemini-1.5-flash",
+        "flux": "ImageGenerationLV45LJp",
     }
 
     @classmethod
@@ -119,8 +116,9 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
                 "agentMode": {},
                 "trendingAgentMode": {},
                 "userSelectedModel": None,
+                "userSystemPrompt": None,
                 "isMicMode": False,
-                "maxTokens": 99999999,
+                "maxTokens": 1024,
                 "playgroundTopP": 0.9,
                 "playgroundTemperature": 0.5,
                 "isChromeExt": False,
