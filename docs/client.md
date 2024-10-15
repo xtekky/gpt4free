@@ -61,8 +61,8 @@ You can use the `ChatCompletions` endpoint to generate text completions as follo
 
 ```python
 from g4f.client import Client
-client = Client()
 
+client = Client()
 response = client.chat.completions.create(
     model="gpt-3.5-turbo",
     messages=[{"role": "user", "content": "Say this is a test"}],
@@ -77,7 +77,6 @@ Also streaming are supported:
 from g4f.client import Client
 
 client = Client()
-
 stream = client.chat.completions.create(
     model="gpt-4",
     messages=[{"role": "user", "content": "Say this is a test"}],
