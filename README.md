@@ -170,8 +170,8 @@ from g4f.client import Client
 client = Client()
 response = client.chat.completions.create(
     model="gpt-3.5-turbo",
-    messages=[{"role": "user", "content": "Hello"}],
-    ...
+    messages=[{"role": "user", "content": "Say this is a test"}],
+    # Add any other necessary parameters
 )
 print(response.choices[0].message.content)
 ```
@@ -187,11 +187,13 @@ from g4f.client import Client
 
 client = Client()
 response = client.images.generate(
-  model="gemini",
-  prompt="a white siamese cat",
-  ...
+    model="dall-e-3",
+    prompt="a white siamese cat",
+    # Add any other necessary parameters
 )
+
 image_url = response.data[0].url
+print(f"Generated image URL: {image_url}")
 ```
 
 [![Image with cat](/docs/cat.jpeg)](https://github.com/xtekky/gpt4free/blob/main/docs/client.md)
