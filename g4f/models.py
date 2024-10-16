@@ -707,6 +707,13 @@ cybertron_7b = Model(
     best_provider = Cloudflare
 )
 
+### Nvidia ### 
+nemotron_70b = Model(
+    name = 'nemotron-70b',
+    base_provider = 'Nvidia',
+    best_provider = IterListProvider([HuggingChat, HuggingFace])
+)
+
 
 
 #############
@@ -1068,6 +1075,10 @@ class ModelUtils:
 
 ### Fblgit ###   
 'cybertron-7b': cybertron_7b,
+        
+        
+### Nvidia ###   
+'nemotron-70b': nemotron_70b,
         
         
         
