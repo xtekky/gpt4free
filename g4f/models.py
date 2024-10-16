@@ -24,6 +24,7 @@ from .Provider import (
     DeepInfra,
     DeepInfraChat,
     DeepInfraImage,
+    Editee,
     Free2GPT,
     FreeChatgpt,
     FreeGpt,
@@ -128,7 +129,7 @@ gpt_35_turbo = Model(
 gpt_4o = Model(
     name          = 'gpt-4o',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([NexraChatGPT4o, Blackbox, ChatGptEs, AmigoChat, DarkAI, Liaobots, Airforce, OpenaiChat])
+    best_provider = IterListProvider([NexraChatGPT4o, Blackbox, ChatGptEs, AmigoChat, DarkAI, Editee, Liaobots, Airforce, OpenaiChat])
 )
 
 gpt_4o_mini = Model(
@@ -288,6 +289,12 @@ mistral_nemo = Model(
     best_provider = IterListProvider([HuggingChat, HuggingFace])
 )
 
+mistral_large = Model(
+    name          = "mistral-large",
+    base_provider = "Mistral",
+    best_provider = Editee
+)
+
 
 ### NousResearch ###
 mixtral_8x7b_dpo = Model(
@@ -333,7 +340,7 @@ phi_3_5_mini = Model(
 gemini_pro = Model(
     name          = 'gemini-pro',
     base_provider = 'Google DeepMind',
-    best_provider = IterListProvider([GeminiPro, Blackbox, AIChatFree, GPROChat, AmigoChat, Liaobots, Airforce])
+    best_provider = IterListProvider([GeminiPro, Blackbox, AIChatFree, GPROChat, AmigoChat, Editee, Liaobots, Airforce])
 )
 
 gemini_flash = Model(
@@ -417,7 +424,7 @@ claude_3_haiku = Model(
 claude_3_5_sonnet = Model(
     name          = 'claude-3.5-sonnet',
     base_provider = 'Anthropic',
-    best_provider = IterListProvider([Blackbox, Airforce, AmigoChat, Liaobots])
+    best_provider = IterListProvider([Blackbox, Editee, AmigoChat, Airforce, Liaobots])
 )
 
 
@@ -917,6 +924,7 @@ class ModelUtils:
 'mixtral-8x7b': mixtral_8x7b,
 'mixtral-8x22b': mixtral_8x22b,
 'mistral-nemo': mistral_nemo,
+'mistral-large': mistral_large,
      
      
 ### NousResearch ###

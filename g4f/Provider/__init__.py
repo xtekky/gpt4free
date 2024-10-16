@@ -38,6 +38,7 @@ from .DDG              import DDG
 from .DeepInfra        import DeepInfra
 from .DeepInfraChat    import DeepInfraChat
 from .DeepInfraImage   import DeepInfraImage
+from .Editee           import Editee
 from .FlowGpt          import FlowGpt
 from .Free2GPT         import Free2GPT
 from .FreeChatgpt      import FreeChatgpt
