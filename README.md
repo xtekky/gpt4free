@@ -132,7 +132,7 @@ Run the **Webview UI** on other Platfroms:
 
 Run the Web UI on Your Smartphone:
 
-- [/docs/guides/phone](/docs/guides/phone.md)
+- [/docs/guides/phone](docs/guides/phone.md)
 
 #### Use python
 
