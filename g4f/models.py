@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from .Provider import IterListProvider, ProviderType
 from .Provider import (
     AIChatFree,
+    AiMathGPT,
     Airforce,
     Allyfy,
     AmigoChat,
@@ -213,7 +214,7 @@ llama_3_1_8b = Model(
 llama_3_1_70b = Model(
     name          = "llama-3.1-70b",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider([DDG, HuggingChat, Blackbox, FreeGpt, TeachAnything, Free2GPT, DeepInfraChat, DarkAI, Airforce, HuggingFace, PerplexityLabs])
+    best_provider = IterListProvider([DDG, HuggingChat, Blackbox, FreeGpt, TeachAnything, Free2GPT, DeepInfraChat, DarkAI, Airforce, AiMathGPT, HuggingFace, PerplexityLabs])
 )
 
 llama_3_1_405b = Model(

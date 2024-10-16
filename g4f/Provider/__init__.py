@@ -18,6 +18,7 @@ from .Allyfy           import Allyfy
 from .AmigoChat        import AmigoChat
 from .AiChatOnline     import AiChatOnline
 from .AiChats          import AiChats
+from .AiMathGPT        import AiMathGPT
 from .Airforce         import Airforce
 from .Aura             import Aura
 from .Bing             import Bing
