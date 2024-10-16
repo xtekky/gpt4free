@@ -9,7 +9,7 @@ Written by [@xtekky](https://github.com/xtekky)
 <div id="top"></div>
 
 > [!IMPORTANT]
-> By using this repository or any code related to it, you agree to the [legal notice](https://github.com/xtekky/gpt4free/blob/main/LEGAL_NOTICE.md). The author is **not responsible for the usage of this repository nor endorses it**, nor is the author responsible for any copies, forks, re-uploads made by other users, or anything else related to GPT4Free. This is the author's only account and repository. To prevent impersonation or irresponsible actions, please comply with the GNU GPL license this Repository uses.
+> By using this repository or any code related to it, you agree to the [legal notice](LEGAL_NOTICE.md). The author is **not responsible for the usage of this repository nor endorses it**, nor is the author responsible for any copies, forks, re-uploads made by other users, or anything else related to GPT4Free. This is the author's only account and repository. To prevent impersonation or irresponsible actions, please comply with the GNU GPL license this Repository uses.
 
 > [!WARNING]
 > _"gpt4free"_ serves as a **PoC** (proof of concept), demonstrating the development of an API package with multi-provider requests, with features like timeouts, load balance and flow control.
@@ -126,13 +126,13 @@ By following these steps, you should be able to successfully install and run the
 
 Run the **Webview UI** on other Platfroms:
 
-- [docs/guides/webview](https://github.com/xtekky/gpt4free/blob/main/docs/webview.md)
+- [/docs/guides/webview](docs/webview.md)
 
 ##### Use your smartphone:
 
 Run the Web UI on Your Smartphone:
 
-- [docs/guides/phone](https://github.com/xtekky/gpt4free/blob/main/docs/guides/phone.md)
+- [/docs/guides/phone](/docs/guides/phone.md)
 
 #### Use python
 
@@ -196,7 +196,7 @@ image_url = response.data[0].url
 print(f"Generated image URL: {image_url}")
 ```
 
-[![Image with cat](/docs/cat.jpeg)](https://github.com/xtekky/gpt4free/blob/main/docs/client.md)
+[![Image with cat](/docs/cat.jpeg)](docs/client.md)
 
 **Full Documentation for Python API**
 
