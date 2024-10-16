@@ -200,7 +200,7 @@ print(f"Generated image URL: {image_url}")
 
 **Full Documentation for Python API**
 
-- New AsyncClient API from G4F: [/docs/async_client](docs/async_client.md)
+- AsyncClient API from G4F: [/docs/async_client](docs/async_client.md)
 - Client API like the OpenAI Python library: [/docs/client](docs/client.md)
 - Legacy API with python modules: [/docs/legacy](docs/legacy.md)
 
