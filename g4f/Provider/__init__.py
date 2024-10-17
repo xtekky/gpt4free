@@ -63,6 +63,7 @@ from .Prodia           import Prodia
 from .Reka             import Reka
 from .Replicate        import Replicate
 from .ReplicateHome    import ReplicateHome
+from .RubiksAI         import RubiksAI
 from .TeachAnything    import TeachAnything
 from .Upstage          import Upstage
 from .WhiteRabbitNeo   import WhiteRabbitNeo

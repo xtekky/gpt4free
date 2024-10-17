@@ -58,6 +58,7 @@ from .Provider import (
     Reka,
     Replicate,
     ReplicateHome,
+    RubiksAI,
     TeachAnything,
     Upstage,
 )
@@ -135,7 +136,7 @@ gpt_4o = Model(
 gpt_4o_mini = Model(
     name          = 'gpt-4o-mini',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([DDG, ChatGptEs, FreeNetfly, Pizzagpt, MagickPen, AmigoChat, Liaobots, Airforce, ChatgptFree, Koala, OpenaiChat, ChatGpt])
+    best_provider = IterListProvider([DDG, ChatGptEs, FreeNetfly, Pizzagpt, MagickPen, AmigoChat, RubiksAI, Liaobots, Airforce, ChatgptFree, Koala, OpenaiChat, ChatGpt])
 )
 
 gpt_4_turbo = Model(
@@ -215,7 +216,7 @@ llama_3_1_8b = Model(
 llama_3_1_70b = Model(
     name          = "llama-3.1-70b",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider([DDG, HuggingChat, Blackbox, FreeGpt, TeachAnything, Free2GPT, DeepInfraChat, DarkAI, Airforce, AiMathGPT, HuggingFace, PerplexityLabs])
+    best_provider = IterListProvider([DDG, HuggingChat, Blackbox, FreeGpt, TeachAnything, Free2GPT, DeepInfraChat, DarkAI, Airforce, AiMathGPT, RubiksAI, HuggingFace, PerplexityLabs])
 )
 
 llama_3_1_405b = Model(
