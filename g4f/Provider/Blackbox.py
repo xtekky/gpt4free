@@ -181,7 +181,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
             model (str): Model to use for generating responses.
             messages (Messages): Message history.
             proxy (Optional[str]): Proxy URL, if needed.
-            web_search_mode (bool): Enables or disables web search mode.
+            websearch (bool): Enables or disables web search mode.
             **kwargs: Additional keyword arguments.
 
         Yields:
@@ -298,7 +298,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
                         else:
                             yield cleaned_response
                     else:
-                        if web_search_mode:
+                        if websearch:
                             match = re.search(r'\$~~~\$(.*?)\$~~~\$', cleaned_response, re.DOTALL)
                             if match:
                                 source_part = match.group(1).strip()
