@@ -171,7 +171,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         model: str,
         messages: Messages,
         proxy: Optional[str] = None,
-        web_search_mode: bool = False,
+        websearch: bool = False,
         **kwargs
     ) -> AsyncGenerator[Union[str, ImageResponse], None]:
         """
@@ -261,7 +261,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
             "clickedForceWebSearch": False,
             "visitFromDelta": False,
             "mobileClient": False,
-            "webSearchMode": web_search_mode,
+            "webSearchMode": websearch,
             "userSelectedModel": cls.userSelectedModel.get(model, model)
         }
 
