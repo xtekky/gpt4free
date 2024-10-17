@@ -65,19 +65,15 @@ class ChatifyAI(AsyncGeneratorProvider, ProviderModelMixin):
                 response.raise_for_status()
                 response_text = await response.text()
                 
-                # Фільтруємо та форматуємо відповідь
                 filtered_response = cls.filter_response(response_text)
                 yield filtered_response
 
     @staticmethod
     def filter_response(response_text: str) -> str:
-        # Розділяємо рядок на частини
         parts = response_text.split('"')
         
-        # Вибираємо лише текстові частини (кожна друга частина)
         text_parts = parts[1::2]
         
-        # Об'єднуємо текстові частини
         clean_text = ''.join(text_parts)
         
         return clean_text

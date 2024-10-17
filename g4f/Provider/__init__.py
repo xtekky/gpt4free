@@ -11,6 +11,7 @@ from .needs_auth      import *
 
 from .nexra           import *
 
+from .Ai4Chat          import Ai4Chat
 from .AI365VIP         import AI365VIP
 from .AIChatFree       import AIChatFree
 from .AIUncensored     import AIUncensored
@@ -18,6 +19,7 @@ from .Allyfy           import Allyfy
 from .AmigoChat        import AmigoChat
 from .AiChatOnline     import AiChatOnline
 from .AiChats          import AiChats
+from .AiMathGPT        import AiMathGPT
 from .Airforce         import Airforce
 from .Aura             import Aura
 from .Bing             import Bing
@@ -37,6 +39,7 @@ from .DDG              import DDG
 from .DeepInfra        import DeepInfra
 from .DeepInfraChat    import DeepInfraChat
 from .DeepInfraImage   import DeepInfraImage
+from .Editee           import Editee
 from .FlowGpt          import FlowGpt
 from .Free2GPT         import Free2GPT
 from .FreeChatgpt      import FreeChatgpt
@@ -61,6 +64,7 @@ from .Prodia           import Prodia
 from .Reka             import Reka
 from .Replicate        import Replicate
 from .ReplicateHome    import ReplicateHome
+from .RubiksAI         import RubiksAI
 from .TeachAnything    import TeachAnything
 from .Upstage          import Upstage
 from .WhiteRabbitNeo   import WhiteRabbitNeo

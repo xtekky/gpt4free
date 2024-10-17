@@ -5,7 +5,9 @@ from dataclasses import dataclass
 
 from .Provider import IterListProvider, ProviderType
 from .Provider import (
+    Ai4Chat,
     AIChatFree,
+    AiMathGPT,
     Airforce,
     Allyfy,
     AmigoChat,
@@ -23,6 +25,7 @@ from .Provider import (
     DeepInfra,
     DeepInfraChat,
     DeepInfraImage,
+    Editee,
     Free2GPT,
     FreeChatgpt,
     FreeGpt,
@@ -56,6 +59,7 @@ from .Provider import (
     Reka,
     Replicate,
     ReplicateHome,
+    RubiksAI,
     TeachAnything,
     Upstage,
 )
@@ -101,6 +105,9 @@ default = Model(
         AmigoChat,
         ChatifyAI,
         Cloudflare,
+        Ai4Chat,
+        Editee,
+        AiMathGPT,
     ])
 )
 
@@ -127,13 +134,13 @@ gpt_35_turbo = Model(
 gpt_4o = Model(
     name          = 'gpt-4o',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([NexraChatGPT4o, Blackbox, ChatGptEs, AmigoChat, DarkAI, Liaobots, Airforce, OpenaiChat])
+    best_provider = IterListProvider([NexraChatGPT4o, Blackbox, ChatGptEs, AmigoChat, DarkAI, Editee, Liaobots, Airforce, OpenaiChat])
 )
 
 gpt_4o_mini = Model(
     name          = 'gpt-4o-mini',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([DDG, ChatGptEs, FreeNetfly, Pizzagpt, MagickPen, AmigoChat, Liaobots, Airforce, ChatgptFree, Koala, OpenaiChat, ChatGpt])
+    best_provider = IterListProvider([DDG, ChatGptEs, FreeNetfly, Pizzagpt, MagickPen, AmigoChat, RubiksAI, Liaobots, Airforce, ChatgptFree, Koala, OpenaiChat, ChatGpt])
 )
 
 gpt_4_turbo = Model(
@@ -145,7 +152,7 @@ gpt_4_turbo = Model(
 gpt_4 = Model(
     name          = 'gpt-4',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([NexraChatGPT, NexraChatGptV2, NexraChatGptWeb, Airforce, Chatgpt4Online, Bing, OpenaiChat])
+    best_provider = IterListProvider([NexraChatGPT, NexraChatGptV2, NexraChatGptWeb, Ai4Chat, Airforce, Chatgpt4Online, Bing, OpenaiChat])
 )
 
 # o1
@@ -213,7 +220,7 @@ llama_3_1_8b = Model(
 llama_3_1_70b = Model(
     name          = "llama-3.1-70b",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider([DDG, HuggingChat, Blackbox, FreeGpt, TeachAnything, Free2GPT, DeepInfraChat, DarkAI, Airforce, HuggingFace, PerplexityLabs])
+    best_provider = IterListProvider([DDG, HuggingChat, Blackbox, FreeGpt, TeachAnything, Free2GPT, DeepInfraChat, DarkAI, Airforce, AiMathGPT, RubiksAI, HuggingFace, PerplexityLabs])
 )
 
 llama_3_1_405b = Model(
@@ -287,6 +294,12 @@ mistral_nemo = Model(
     best_provider = IterListProvider([HuggingChat, HuggingFace])
 )
 
+mistral_large = Model(
+    name          = "mistral-large",
+    base_provider = "Mistral",
+    best_provider = Editee
+)
+
 
 ### NousResearch ###
 mixtral_8x7b_dpo = Model(
@@ -332,7 +345,7 @@ phi_3_5_mini = Model(
 gemini_pro = Model(
     name          = 'gemini-pro',
     base_provider = 'Google DeepMind',
-    best_provider = IterListProvider([GeminiPro, Blackbox, AIChatFree, GPROChat, AmigoChat, Liaobots, Airforce])
+    best_provider = IterListProvider([GeminiPro, Blackbox, AIChatFree, GPROChat, AmigoChat, Editee, Liaobots, Airforce])
 )
 
 gemini_flash = Model(
@@ -416,7 +429,7 @@ claude_3_haiku = Model(
 claude_3_5_sonnet = Model(
     name          = 'claude-3.5-sonnet',
     base_provider = 'Anthropic',
-    best_provider = IterListProvider([Blackbox, Airforce, AmigoChat, Liaobots])
+    best_provider = IterListProvider([Blackbox, Editee, AmigoChat, Airforce, Liaobots])
 )
 
 
@@ -707,6 +720,13 @@ cybertron_7b = Model(
     best_provider = Cloudflare
 )
 
+### Nvidia ### 
+nemotron_70b = Model(
+    name = 'nemotron-70b',
+    base_provider = 'Nvidia',
+    best_provider = IterListProvider([HuggingChat, HuggingFace])
+)
+
 
 
 #############
@@ -909,6 +929,7 @@ class ModelUtils:
 'mixtral-8x7b': mixtral_8x7b,
 'mixtral-8x22b': mixtral_8x22b,
 'mistral-nemo': mistral_nemo,
+'mistral-large': mistral_large,
      
      
 ### NousResearch ###
@@ -1068,6 +1089,10 @@ class ModelUtils:
 
 ### Fblgit ###   
 'cybertron-7b': cybertron_7b,
+        
+        
+### Nvidia ###   
+'nemotron-70b': nemotron_70b,
         
         
         

@@ -9,7 +9,7 @@ Written by [@xtekky](https://github.com/xtekky)
 <div id="top"></div>
 
 > [!IMPORTANT]
-> By using this repository or any code related to it, you agree to the [legal notice](https://github.com/xtekky/gpt4free/blob/main/LEGAL_NOTICE.md). The author is **not responsible for the usage of this repository nor endorses it**, nor is the author responsible for any copies, forks, re-uploads made by other users, or anything else related to GPT4Free. This is the author's only account and repository. To prevent impersonation or irresponsible actions, please comply with the GNU GPL license this Repository uses.
+> By using this repository or any code related to it, you agree to the [legal notice](LEGAL_NOTICE.md). The author is **not responsible for the usage of this repository nor endorses it**, nor is the author responsible for any copies, forks, re-uploads made by other users, or anything else related to GPT4Free. This is the author's only account and repository. To prevent impersonation or irresponsible actions, please comply with the GNU GPL license this Repository uses.
 
 > [!WARNING]
 > _"gpt4free"_ serves as a **PoC** (proof of concept), demonstrating the development of an API package with multi-provider requests, with features like timeouts, load balance and flow control.
@@ -126,13 +126,13 @@ By following these steps, you should be able to successfully install and run the
 
 Run the **Webview UI** on other Platfroms:
 
-- [/docs/guides/webview](https://github.com/xtekky/gpt4free/blob/main/docs/webview.md)
+- [/docs/guides/webview](docs/webview.md)
 
 ##### Use your smartphone:
 
 Run the Web UI on Your Smartphone:
 
-- [/docs/guides/phone](https://github.com/xtekky/gpt4free/blob/main/docs/guides/phone.md)
+- [/docs/guides/phone](docs/guides/phone.md)
 
 #### Use python
 
@@ -148,17 +148,17 @@ pip install -U g4f[all]
 ```
 
 How do I install only parts or do disable parts?
-Use partial requirements: [/docs/requirements](https://github.com/xtekky/gpt4free/blob/main/docs/requirements.md)
+Use partial requirements: [/docs/requirements](docs/requirements.md)
 
 ##### Install from source:
 
 How do I load the project using git and installing the project requirements?
-Read this tutorial and follow it step by step: [/docs/git](https://github.com/xtekky/gpt4free/blob/main/docs/git.md)
+Read this tutorial and follow it step by step: [/docs/git](docs/git.md)
 
 ##### Install using Docker:
 
 How do I build and run composer image from source?
-Use docker-compose: [/docs/docker](https://github.com/xtekky/gpt4free/blob/main/docs/docker.md)
+Use docker-compose: [/docs/docker](docs/docker.md)
 
 ## 💡 Usage
 
@@ -171,7 +171,7 @@ client = Client()
 response = client.chat.completions.create(
     model="gpt-3.5-turbo",
     messages=[{"role": "user", "content": "Hello"}],
-    ...
+    # Add any other necessary parameters
 )
 print(response.choices[0].message.content)
 ```
@@ -187,20 +187,22 @@ from g4f.client import Client
 
 client = Client()
 response = client.images.generate(
-  model="gemini",
-  prompt="a white siamese cat",
-  ...
+    model="dall-e-3",
+    prompt="a white siamese cat",
+    # Add any other necessary parameters
 )
+
 image_url = response.data[0].url
+print(f"Generated image URL: {image_url}")
 ```
 
-[![Image with cat](/docs/cat.jpeg)](https://github.com/xtekky/gpt4free/blob/main/docs/client.md)
+[![Image with cat](/docs/cat.jpeg)](docs/client.md)
 
 **Full Documentation for Python API**
 
-- New AsyncClient API from G4F: [/docs/async_client](https://github.com/xtekky/gpt4free/blob/main/docs/async_client.md)
-- Client API like the OpenAI Python library: [/docs/client](https://github.com/xtekky/gpt4free/blob/main/docs/client.md)
-- Legacy API with python modules: [/docs/legacy](https://github.com/xtekky/gpt4free/blob/main/docs/legacy.md)
+- AsyncClient API from G4F: [/docs/async_client](docs/async_client.md)
+- Client API like the OpenAI Python library: [/docs/client](docs/client.md)
+- Legacy API with python modules: [/docs/legacy](docs/legacy.md)
 
 #### Web UI
 
@@ -221,7 +223,7 @@ python -m g4f.cli gui -port 8080 -debug
 
 You can use the Interference API to serve other OpenAI integrations with G4F.
 
-See docs: [/docs/interference](https://github.com/xtekky/gpt4free/blob/main/docs/interference.md)
+See docs: [/docs/interference](docs/interference.md)
 
 Access with: http://localhost:1337/v1
 
@@ -781,11 +783,11 @@ We welcome contributions from the community. Whether you're adding new providers
 
 ###### Guide: How do i create a new Provider?
 
-- Read: [/docs/guides/create_provider](https://github.com/xtekky/gpt4free/blob/main/docs/guides/create_provider.md)
+- Read: [/docs/guides/create_provider](docs/guides/create_provider.md)
 
 ###### Guide: How can AI help me with writing code?
 
-- Read: [/docs/guides/help_me](https://github.com/xtekky/gpt4free/blob/main/docs/guides/help_me.md)
+- Read: [/docs/guides/help_me](docs/guides/help_me.md)
 
 ## 🙌 Contributors
 

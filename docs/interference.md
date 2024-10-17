@@ -54,7 +54,7 @@ Send the POST request to /v1/chat/completions with body containing the `model` m
 import requests
 url = "http://localhost:1337/v1/chat/completions"
 body = {
-    "model": "gpt-3.5-turbo-16k",
+    "model": "gpt-3.5-turbo",
     "stream": False,
     "messages": [
         {"role": "assistant", "content": "What can you do?"}
