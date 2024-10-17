@@ -5,6 +5,7 @@ from dataclasses import dataclass
 
 from .Provider import IterListProvider, ProviderType
 from .Provider import (
+    Ai4Chat,
     AIChatFree,
     AiMathGPT,
     Airforce,
@@ -104,6 +105,9 @@ default = Model(
         AmigoChat,
         ChatifyAI,
         Cloudflare,
+        Ai4Chat,
+        Editee,
+        AiMathGPT,
     ])
 )
 
@@ -148,7 +152,7 @@ gpt_4_turbo = Model(
 gpt_4 = Model(
     name          = 'gpt-4',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([NexraChatGPT, NexraChatGptV2, NexraChatGptWeb, Airforce, Chatgpt4Online, Bing, OpenaiChat])
+    best_provider = IterListProvider([NexraChatGPT, NexraChatGptV2, NexraChatGptWeb, Ai4Chat, Airforce, Chatgpt4Online, Bing, OpenaiChat])
 )
 
 # o1

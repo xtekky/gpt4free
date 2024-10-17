@@ -11,6 +11,7 @@ from .needs_auth      import *
 
 from .nexra           import *
 
+from .Ai4Chat          import Ai4Chat
 from .AI365VIP         import AI365VIP
 from .AIChatFree       import AIChatFree
 from .AIUncensored     import AIUncensored
