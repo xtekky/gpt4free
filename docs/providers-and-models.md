@@ -1,10 +1,11 @@
 
 
+
 ## 🚀 Providers and Models
   - [Providers](#Providers)
   - [Models](#models)
-    - [Text Model](#textmodel)
-    - [Image Model](#imagemodel)
+    - [Text Model](#text-model)
+    - [Image Model](#image-model)
 
 ---
 #### Providers
@@ -105,7 +106,7 @@
 ---
 
 ### Models
-#### TextModel
+#### Text Model
 |Model|Base Provider|Provider|Website|
 |--|--|--|-|
 |gpt-3|OpenAI|1+ Providers|[platform.openai.com](https://platform.openai.com/docs/models/gpt-base)|
@@ -195,7 +196,7 @@
 |tinyllama-1.1b|TinyLlama|1+ Providers|[huggingface.co](https://huggingface.co/TinyLlama/TinyLlama-1.1B-Chat-v1.0)|
 |cybertron-7b|TheBloke|1+ Providers|[huggingface.co](https://huggingface.co/fblgit/una-cybertron-7b-v2-bf16)|
 ---
-### ImageModel
+### Image Model
 |Model|Base Provider|Provider|Website|
 |--|--|--|-|
 |sdxl|Stability AI|3+ Providers|[huggingface.co](https://huggingface.co/docs/diffusers/en/using-diffusers/sdxl)|
@@ -216,3 +217,7 @@
 |dalle-mini||1+ Providers|[huggingface.co](https://huggingface.co/dalle-mini/dalle-mini)|
 |emi||1+ Providers|[]()|
 |any-dark||1+ Providers|[]()|
+
+
+
+[Return to Home](/)
