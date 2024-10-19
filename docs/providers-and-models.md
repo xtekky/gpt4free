@@ -10,10 +10,12 @@
 #### Providers
 |Website|Provider|Text Model|Image Model|Vision Model|Stream|Status|Auth|
 |--|--|--|--|--|--|--|--|
+|[ai4chat.co](https://www.ai4chat.co)|`g4f.Provider.Ai4Chat`|`gpt-4`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[chat.ai365vip.com](https://chat.ai365vip.com)|`g4f.Provider.AI365VIP`|`gpt-3.5-turbo, gpt-4o`|❌|❌|?|![Cloudflare](https://img.shields.io/badge/Cloudflare-f48d37)|❌|
 |[aichatfree.info](https://aichatfree.info)|`g4f.Provider.AIChatFree`|`gemini-pro`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[aichatonline.org](https://aichatonline.org)|`g4f.Provider.AiChatOnline`|`gpt-4o-mini`|❌|❌|?|![Cloudflare](https://img.shields.io/badge/Cloudflare-f48d37)|❌|
 |[ai-chats.org](https://ai-chats.org)|`g4f.Provider.AiChats`|`gpt-4`|`dalle`|❌|?|![Captcha](https://img.shields.io/badge/Captcha-f48d37)|❌|
+|[api.airforce](https://api.airforce)|`g4f.Provider.AiMathGPT`|`llama-3.1-70b`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[api.airforce](https://api.airforce)|`g4f.Provider.Airforce`|`gpt-4, gpt-4-turbo, gpt-4o-mini, gpt-3.5-turbo, gpt-4o, claude-3-haiku, claude-3-sonnet, claude-3-5-sonnet, claude-3-opus, llama-3-70b, llama-3-8b, llama-2-13b, llama-3.1-405b, llama-3.1-70b, llama-3.1-8b, llamaguard-2-8b, llamaguard-7b, llama-3.2-90b, mixtral-8x7b mixtral-8x22b, mistral-7b, qwen-1.5-7b, qwen-1.5-14b, qwen-1.5-72b, qwen-1.5-110b, qwen-2-72b, gemma-2b, gemma-2-9b, gemma-2-27b, gemini-flash, gemini-pro, deepseek, mixtral-8x7b-dpo, yi-34b, wizardlm-2-8x22b, solar-10.7b, mythomax-l2-13b, cosmosrp`|`flux, flux-realism', flux-anime, flux-3d, flux-disney, flux-pixel, flux-4o, any-dark, dalle-3`|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[aiuncensored.info](https://www.aiuncensored.info)|`g4f.Provider.AIUncensored`|✔|✔|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[allyfy.chat](https://allyfy.chat/)|`g4f.Provider.Allyfy`|`gpt-3.5-turbo`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
@@ -36,6 +38,7 @@
 |[deepinfra.com](https://deepinfra.com)|`g4f.Provider.DeepInfra`|✔|❌|❌|✔|![Unknown](https://img.shields.io/badge/Unknown-grey)|✔|
 |[deepinfra.com/chat](https://deepinfra.com/chat)|`g4f.Provider.DeepInfraChat`|`llama-3.1-405b, llama-3.1-70b, llama-3.1-8B, mixtral-8x22b, mixtral-8x7b, wizardlm-2-8x22b, wizardlm-2-7b, qwen-2-72b, phi-3-medium-4k, gemma-2b-27b, minicpm-llama-3-v2.5, mistral-7b, lzlv_70b, openchat-3.6-8b, phind-codellama-34b-v2, dolphin-2.9.1-llama-3-70b`|❌|`minicpm-llama-3-v2.5`|❌|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[deepinfra.com](https://deepinfra.com)|`g4f.Provider.DeepInfraImage`|❌|✔|❌|❌|![Unknown](https://img.shields.io/badge/Unknown-grey)|✔|
+|[deepinfra.com](https://deepinfra.com)|`g4f.Provider.Editee`|`claude-3.5-sonnet, gpt-4o, gemini-pro, mistral-large`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[flowgpt.com](https://flowgpt.com/chat)|`g4f.Provider.FlowGpt`|✔||❌|✔|![Disabled](https://img.shields.io/badge/Disabled-red)|❌|
 |[chat10.free2gpt.xyz](chat10.free2gpt.xyz)|`g4f.Provider.Free2GPT`|`llama-3.1-70b`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[chat.chatgpt.org.uk](https://chat.chatgpt.org.uk)|`g4f.Provider.FreeChatgpt`|`qwen-1.5-14b, sparkdesk-v1.1, qwen-2-7b, glm-4-9b, glm-3-6b, yi-1.5-9b`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
@@ -88,6 +91,7 @@
 |[chat.reka.ai](https://chat.reka.ai/)|`g4f.Provider.Reka`|✔|❌|✔|✔|![Unknown](https://img.shields.io/badge/Unknown-grey)|✔|
 |[replicate.com](https://replicate.com)|`g4f.Provider.Replicate`|✔|❌|❌|?|![Unknown](https://img.shields.io/badge/Unknown-grey)|✔|
 |[replicate.com](https://replicate.com)|`g4f.Provider.ReplicateHome`|`llama-3-70b, mixtral-8x7b, llava-13b`|`flux-schnell, sdxl, sdxl, playground-v2.5`|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
+|[replicate.com](https://replicate.com)|`g4f.Provider.RubiksAI`|`llama-3.1-70b, gpt-4o-mini`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[talkai.info](https://talkai.info)|`g4f.Provider.TalkAi`|✔|❌|❌|✔|![Disabled](https://img.shields.io/badge/Disabled-red)|❌|
 |[teach-anything.com](https://www.teach-anything.com)|`g4f.Provider.TeachAnything`|`llama-3.1-70b`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[beta.theb.ai](https://beta.theb.ai)|`g4f.Provider.Theb`|✔|❌|❌|✔|![Unknown](https://img.shields.io/badge/Unknown-grey)|✔|
@@ -106,10 +110,10 @@
 |--|--|--|-|
 |gpt-3|OpenAI|1+ Providers|[platform.openai.com](https://platform.openai.com/docs/models/gpt-base)|
 |gpt-3.5-turbo|OpenAI|5+ Providers|[platform.openai.com](https://platform.openai.com/docs/models/gpt-3-5-turbo)|
-|gpt-4|OpenAI|8+ Providers|[platform.openai.com](https://platform.openai.com/docs/models/gpt-4-turbo-and-gpt-4)|
+|gpt-4|OpenAI|9+ Providers|[platform.openai.com](https://platform.openai.com/docs/models/gpt-4-turbo-and-gpt-4)|
 |gpt-4-turbo|OpenAI|2+ Providers|[platform.openai.com](https://platform.openai.com/docs/models/gpt-4-turbo-and-gpt-4)|
-|gpt-4o|OpenAI|6+ Providers|[platform.openai.com](https://platform.openai.com/docs/models/gpt-4o)|
-|gpt-4o-mini|OpenAI|13+ Providers|[platform.openai.com](https://platform.openai.com/docs/models/gpt-4o-mini)|
+|gpt-4o|OpenAI|7+ Providers|[platform.openai.com](https://platform.openai.com/docs/models/gpt-4o)|
+|gpt-4o-mini|OpenAI|14+ Providers|[platform.openai.com](https://platform.openai.com/docs/models/gpt-4o-mini)|
 |o1|OpenAI|1+ Providers|[platform.openai.com](https://openai.com/index/introducing-openai-o1-preview/)|
 |o1-mini|OpenAI|1+ Providers|[platform.openai.com](https://openai.com/index/openai-o1-mini-advancing-cost-efficient-reasoning/)|
 |llama-2-7b|Meta Llama|1+ Providers|[huggingface.co](https://huggingface.co/meta-llama/Llama-2-7b)|
@@ -117,7 +121,7 @@
 |llama-3-8b|Meta Llama|4+ Providers|[ai.meta.com](https://ai.meta.com/blog/meta-llama-3/)|
 |llama-3-70b|Meta Llama|4+ Providers|[ai.meta.com](https://ai.meta.com/blog/meta-llama-3/)|
 |llama-3.1-8b|Meta Llama|7+ Providers|[ai.meta.com](https://ai.meta.com/blog/meta-llama-3-1/)|
-|llama-3.1-70b|Meta Llama|11+ Providers|[ai.meta.com](https://ai.meta.com/blog/meta-llama-3-1/)|
+|llama-3.1-70b|Meta Llama|13+ Providers|[ai.meta.com](https://ai.meta.com/blog/meta-llama-3-1/)|
 |llama-3.1-405b|Meta Llama|5+ Providers|[ai.meta.com](https://ai.meta.com/blog/meta-llama-3-1/)|
 |llama-3.2-1b|Meta Llama|1+ Providers|[huggingface.co](https://huggingface.co/meta-llama/Llama-3.2-1B)|
 |llama-3.2-3b|Meta Llama|1+ Providers|[huggingface.co](https://huggingface.co/blog/llama32)|
@@ -129,12 +133,13 @@
 |mixtral-8x7b|Mistral AI|6+ Providers|[mistral.ai](https://mistral.ai/news/mixtral-of-experts/)|
 |mixtral-8x22b|Mistral AI|3+ Providers|[mistral.ai](https://mistral.ai/news/mixtral-8x22b/)|
 |mistral-nemo|Mistral AI|1+ Providers|[huggingface.co](https://huggingface.co/mistralai/Mistral-Nemo-Instruct-2407)|
+|mistral-large|Mistral AI|1+ Providers|[mistral.ai](https://mistral.ai/news/mistral-large-2407/)|
 |mixtral-8x7b-dpo|NousResearch|1+ Providers|[huggingface.co](https://huggingface.co/NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO)|
 |yi-34b|NousResearch|1+ Providers|[huggingface.co](https://huggingface.co/NousResearch/Nous-Hermes-2-Yi-34B)|
 |hermes-3|NousResearch|1+ Providers|[huggingface.co](https://huggingface.co/NousResearch/Hermes-3-Llama-3.1-8B)|
 |gemini|Google DeepMind|1+ Providers|[deepmind.google](http://deepmind.google/technologies/gemini/)|
 |gemini-flash|Google DeepMind|3+ Providers|[deepmind.google](https://deepmind.google/technologies/gemini/flash/)|
-|gemini-pro|Google DeepMind|8+ Providers|[deepmind.google](https://deepmind.google/technologies/gemini/pro/)|
+|gemini-pro|Google DeepMind|9+ Providers|[deepmind.google](https://deepmind.google/technologies/gemini/pro/)|
 |gemma-2b|Google|5+ Providers|[huggingface.co](https://huggingface.co/google/gemma-2b)|
 |gemma-2b-9b|Google|1+ Providers|[huggingface.co](https://huggingface.co/google/gemma-2-9b)|
 |gemma-2b-27b|Google|2+ Providers|[huggingface.co](https://huggingface.co/google/gemma-2-27b)|
@@ -145,7 +150,7 @@
 |claude-3-haiku|Anthropic|3+ Providers|[anthropic.com](https://www.anthropic.com/news/claude-3-haiku)|
 |claude-3-sonnet|Anthropic|2+ Providers|[anthropic.com](https://www.anthropic.com/news/claude-3-family)|
 |claude-3-opus|Anthropic|2+ Providers|[anthropic.com](https://www.anthropic.com/news/claude-3-family)|
-|claude-3.5-sonnet|Anthropic|4+ Providers|[anthropic.com](https://www.anthropic.com/news/claude-3-5-sonnet)|
+|claude-3.5-sonnet|Anthropic|5+ Providers|[anthropic.com](https://www.anthropic.com/news/claude-3-5-sonnet)|
 |blackboxai|Blackbox AI|2+ Providers|[docs.blackbox.chat](https://docs.blackbox.chat/blackbox-ai-1)|
 |blackboxai-pro|Blackbox AI|1+ Providers|[docs.blackbox.chat](https://docs.blackbox.chat/blackbox-ai-1)|
 |yi-1.5-9b|01-ai|1+ Providers|[huggingface.co](https://huggingface.co/01-ai/Yi-1.5-9B)|
