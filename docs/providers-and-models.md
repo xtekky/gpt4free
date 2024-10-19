@@ -1,16 +1,20 @@
 
+# G4F - Providers and Models
 
+This document provides an overview of various AI providers and models, including text generation, image generation, and vision capabilities. It aims to help users navigate the diverse landscape of AI services and choose the most suitable option for their needs.
 
-## 🚀 Providers and Models
-  - [Providers](#Providers)
+## Table of Contents
+  - [Providers](#providers)
   - [Models](#models)
-    - [Text Model](#text-model)
-    - [Image Model](#image-model)
+    - [Text Models](#text-models)
+    - [Image Models](#image-models)
+    - [Vision Models](#vision-models)
+  - [Conclusion and Usage Tips](#conclusion-and-usage-tips)
 
 ---
-#### Providers
-|Website|Provider|Text Model|Image Model|Vision Model|Stream|Status|Auth|
-|--|--|--|--|--|--|--|--|
+## Providers
+| Provider | Text Models | Image Models | Vision Models | Stream | Status | Auth |
+|----------|-------------|--------------|---------------|--------|--------|------|
 |[ai4chat.co](https://www.ai4chat.co)|`g4f.Provider.Ai4Chat`|`gpt-4`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[chat.ai365vip.com](https://chat.ai365vip.com)|`g4f.Provider.AI365VIP`|`gpt-3.5-turbo, gpt-4o`|❌|❌|?|![Cloudflare](https://img.shields.io/badge/Cloudflare-f48d37)|❌|
 |[aichatfree.info](https://aichatfree.info)|`g4f.Provider.AIChatFree`|`gemini-pro`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
@@ -101,14 +105,11 @@
 |[whiterabbitneo.com](https://www.whiterabbitneo.com)|`g4f.Provider.WhiteRabbitNeo`|✔|❌|❌|?|![Unknown](https://img.shields.io/badge/Unknown-grey)|✔|
 |[you.com](https://you.com)|`g4f.Provider.You`|✔|✔|✔|✔|![Unknown](https://img.shields.io/badge/Unknown-grey)|❌+✔|
 
+## Models
 
-
----
-
-### Models
-#### Text Model
-|Model|Base Provider|Provider|Website|
-|--|--|--|-|
+### Text Models
+| Model | Base Provider | Providers | Website |
+|-------|---------------|-----------|---------|
 |gpt-3|OpenAI|1+ Providers|[platform.openai.com](https://platform.openai.com/docs/models/gpt-base)|
 |gpt-3.5-turbo|OpenAI|5+ Providers|[platform.openai.com](https://platform.openai.com/docs/models/gpt-3-5-turbo)|
 |gpt-4|OpenAI|9+ Providers|[platform.openai.com](https://platform.openai.com/docs/models/gpt-4-turbo-and-gpt-4)|
@@ -195,10 +196,10 @@
 |german-7b|TheBloke|1+ Providers|[huggingface.co](https://huggingface.co/TheBloke/DiscoLM_German_7b_v1-GGUF)|
 |tinyllama-1.1b|TinyLlama|1+ Providers|[huggingface.co](https://huggingface.co/TinyLlama/TinyLlama-1.1B-Chat-v1.0)|
 |cybertron-7b|TheBloke|1+ Providers|[huggingface.co](https://huggingface.co/fblgit/una-cybertron-7b-v2-bf16)|
----
-### Image Model
-|Model|Base Provider|Provider|Website|
-|--|--|--|-|
+
+### Image Models
+| Model | Base Provider | Providers | Website |
+|-------|---------------|-----------|---------|
 |sdxl|Stability AI|3+ Providers|[huggingface.co](https://huggingface.co/docs/diffusers/en/using-diffusers/sdxl)|
 |sd-3|Stability AI|1+ Providers|[huggingface.co](https://huggingface.co/docs/diffusers/main/en/api/pipelines/stable_diffusion/stable_diffusion_3)|
 |playground-v2.5|Playground AI|1+ Providers|[huggingface.co](https://huggingface.co/playgroundai/playground-v2.5-1024px-aesthetic)|
@@ -218,6 +219,26 @@
 |emi||1+ Providers|[]()|
 |any-dark||1+ Providers|[]()|
 
+### Vision Models
+| Model | Base Provider | Providers | Website |
+|-------|---------------|-----------|---------|
+|gpt-4-vision|OpenAI|1+ Providers|[openai.com](https://openai.com/research/gpt-4v-system-card)|
+|gemini-pro-vision|Google DeepMind|1+ Providers | [deepmind.google](https://deepmind.google/technologies/gemini/)|
+|blackboxai|Blackbox AI|1+ Providers|[docs.blackbox.chat](https://docs.blackbox.chat/blackbox-ai-1)|
+|minicpm-llama-3-v2.5|OpenBMB|1+ Providers | [huggingface.co](https://huggingface.co/openbmb/MiniCPM-Llama3-V-2_5)|
 
+## Conclusion and Usage Tips
+This document provides a comprehensive overview of various AI providers and models available for text generation, image generation, and vision tasks. **When choosing a provider or model, consider the following factors:**
+   1. **Availability**: Check the status of the provider to ensure it's currently active and accessible.
+   2. **Model Capabilities**: Different models excel at different tasks. Choose a model that best fits your specific needs, whether it's text generation, image creation, or vision-related tasks.
+   3. **Authentication**: Some providers require authentication, while others don't. Consider this when selecting a provider for your project.
+   4. **Streaming Support**: If real-time responses are important for your application, prioritize providers that offer streaming capabilities.
+   5. **Vision Models**: For tasks requiring image understanding or multimodal interactions, look for providers offering vision models.
+
+Remember to stay updated with the latest developments in the AI field, as new models and providers are constantly emerging and evolving.
+
+---
+
+Last Updated: 2024-10-19
 
 [Return to Home](/)
