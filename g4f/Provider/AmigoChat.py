@@ -73,7 +73,7 @@ class AmigoChat(AsyncGeneratorProvider, ProviderModelMixin):
         elif model in cls.model_aliases:
             return cls.model_aliases[model]
         else:
-            return cls.default_chat_model if model in cls.chat_models else cls.default_image_model
+            return cls.default_model
 
     @classmethod
     def get_personaId(cls, model: str) -> str:
