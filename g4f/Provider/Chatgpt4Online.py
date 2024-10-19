@@ -12,7 +12,6 @@ class Chatgpt4Online(AsyncGeneratorProvider):
     url = "https://chatgpt4online.org"
     api_endpoint = "/wp-json/mwai-ui/v1/chats/submit"
     working = True
-    supports_gpt_4 = True
     
     async def get_nonce(headers: dict) -> str:
         async with ClientSession(headers=headers) as session:

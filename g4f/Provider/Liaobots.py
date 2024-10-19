@@ -170,7 +170,6 @@ class Liaobots(AsyncGeneratorProvider, ProviderModelMixin):
     working = True
     supports_message_history = True
     supports_system_message = True
-    supports_gpt_4 = True
     default_model = "gpt-3.5-turbo"
     models = list(models.keys())
     

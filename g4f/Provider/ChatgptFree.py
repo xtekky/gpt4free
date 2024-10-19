@@ -10,7 +10,6 @@ from .helper import format_prompt
 
 class ChatgptFree(AsyncGeneratorProvider, ProviderModelMixin):
     url                   = "https://chatgptfree.ai"
-    supports_gpt_4 = True
     working               = True
     _post_id              = None
     _nonce                = None

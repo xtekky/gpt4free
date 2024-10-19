@@ -13,7 +13,6 @@ from ..requests.raise_for_status import raise_for_status
 class FlowGpt(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://flowgpt.com/chat"
     working = False
-    supports_gpt_35_turbo = True
     supports_message_history = True
     supports_system_message = True
     default_model = "gpt-3.5-turbo"

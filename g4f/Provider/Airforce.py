@@ -17,9 +17,7 @@ class Airforce(AsyncGeneratorProvider, ProviderModelMixin):
     working = True
     
     default_model = 'llama-3-70b-chat'
-    
-    supports_gpt_35_turbo = True
-    supports_gpt_4 = True
+
     supports_stream = True
     supports_system_message = True
     supports_message_history = True
