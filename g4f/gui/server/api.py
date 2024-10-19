@@ -43,13 +43,8 @@ class Api():
             provider: ProviderType = __map__[provider]
             if issubclass(provider, ProviderModelMixin):
                 return [{"model": model, "default": model == provider.default_model} for model in provider.get_models()]
-            elif provider.supports_gpt_35_turbo or provider.supports_gpt_4:
-                return [
-                    *([{"model": "gpt-4", "default": not provider.supports_gpt_4}] if provider.supports_gpt_4 else []),
-                    *([{"model": "gpt-3.5-turbo", "default": not provider.supports_gpt_4}] if provider.supports_gpt_35_turbo else [])
-                ]
             else:
-                return [];
+                return []
 
     @staticmethod
     def get_image_models() -> list[dict]:
