@@ -1,4 +1,3 @@
-# g4f/models.py
 from __future__  import annotations
 
 from dataclasses import dataclass
@@ -829,12 +828,6 @@ dalle_2 = Model(
     best_provider = NexraDallE2
     
 )
-dalle_3 = Model(
-    name = 'dalle-3',
-    base_provider = 'OpenAI',
-    best_provider = Airforce
-    
-)
 
 dalle = Model(
     name = 'dalle',
@@ -1124,7 +1117,6 @@ class ModelUtils:
 ### OpenAI ###
 'dalle': dalle,
 'dalle-2': dalle_2,
-'dalle-3': dalle_3,
 'dalle-mini': dalle_mini,
 
 

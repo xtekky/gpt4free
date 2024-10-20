@@ -81,7 +81,6 @@ class Airforce(AsyncGeneratorProvider, ProviderModelMixin):
         'flux-pixel',
         'flux-4o',
         'any-dark',
-        'dall-e-3',
     ]
     
     models = [
@@ -153,7 +152,7 @@ class Airforce(AsyncGeneratorProvider, ProviderModelMixin):
         if seed is None:
             seed = random.randint(0, 100000)
 
-        prompt = messages[0]['content']
+        prompt = messages[-1]['content']
 
         async with ClientSession(headers=headers) as session:
             params = {
@@ -226,7 +225,6 @@ class Airforce(AsyncGeneratorProvider, ProviderModelMixin):
                         content = json_data['choices'][0]['message']['content']
                         part_response = content
 
-                    # Видаляємо повідомлення про перевищення ліміту символів
                     part_response = re.sub(
                         r"One message exceeds the \d+chars per message limit\..+https:\/\/discord\.com\/invite\/\S+",
                         '',
