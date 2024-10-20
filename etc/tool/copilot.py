@@ -18,17 +18,7 @@ g4f.debug.version_check = False
 GITHUB_TOKEN = os.getenv('GITHUB_TOKEN')
 GITHUB_REPOSITORY = os.getenv('GITHUB_REPOSITORY')
 G4F_PROVIDER = os.getenv('G4F_PROVIDER')
-G4F_MODEL = os.getenv('G4F_MODEL') or g4f.models.gpt_4o or g4f.models.gpt_4o
-
-def get_github_token():
-    token = os.getenv('GITHUB_TOKEN')
-    if not token:
-        raise ValueError("GITHUB_TOKEN environment variable is not set")
-    print(f"Token length: {len(token)}")
-    print(f"Token (masked): {'*' * (len(token) - 4) + token[-4:]}")
-    if len(token) != 40 or not token.isalnum():
-        raise ValueError("GITHUB_TOKEN appears to be invalid (should be 40 alphanumeric characters)")
-    return token
+G4F_MODEL = os.getenv('G4F_MODEL') or g4f.models.gpt_4
 
 def get_pr_details(github: Github) -> PullRequest:
     """
@@ -40,24 +30,15 @@ def get_pr_details(github: Github) -> PullRequest:
     Returns:
         PullRequest: An object representing the pull request.
     """
-    pr_number = os.getenv('PR_NUMBER')
+    with open('./pr_number', 'r') as file:
+        pr_number = file.read().strip()
     if not pr_number:
-        print("PR_NUMBER environment variable is not set.")
-        return None
+        return
 
-    try:
-        print(f"Attempting to get repo: {GITHUB_REPOSITORY}")
-        repo = github.get_repo(GITHUB_REPOSITORY)
-        print(f"Successfully got repo: {repo.full_name}")
-        
-        print(f"Attempting to get pull request: {pr_number}")
-        pull = repo.get_pull(int(pr_number))
-        print(f"Successfully got pull request: #{pull.number}")
-        
-        return pull
-    except Exception as e:
-        print(f"Error in get_pr_details: {e}")
-        return None
+    repo = github.get_repo(GITHUB_REPOSITORY)
+    pull = repo.get_pull(int(pr_number))
+
+    return pull
 
 def get_diff(diff_url: str) -> str:
     """
@@ -118,36 +99,15 @@ def get_ai_response(prompt: str, as_json: bool = True) -> Union[dict, str]:
     Returns:
         Union[dict, str]: The parsed response from g4f, either as a dictionary or a string.
     """
-    max_retries = 5
-    providers = [None, 'Chatgpt4Online', 'OpenaiChat', 'Bing', 'Ai4Chat', 'NexraChatGPT']
-    
-    for provider in providers:
-        for _ in range(max_retries):
-            try:
-                response = g4f.chat.completions.create(
-                    G4F_MODEL,
-                    [{'role': 'user', 'content': prompt}],
-                    provider,
-                    ignore_stream_and_auth=True
-                )
-                if as_json:
-                    parsed_response = read_json(response)
-                    if parsed_response and 'reviews' in parsed_response:
-                        return parsed_response
-                else:
-                    parsed_response = read_text(response)
-                    if parsed_response.strip():
-                        return parsed_response
-            except Exception as e:
-                print(f"Error with provider {provider}: {e}")
-    
-    # If all retries and providers fail, return a default response
-    if as_json:
-        return {"reviews": []}
-    else:
-        return "AI Code Review: Unable to generate a detailed response. Please review the changes manually."
+    response = g4f.ChatCompletion.create(
+        G4F_MODEL,
+        [{'role': 'user', 'content': prompt}],
+        G4F_PROVIDER,
+        ignore_stream_and_auth=True
+    )
+    return read_json(response) if as_json else read_text(response)
 
-def analyze_code(pull: PullRequest, diff: str) -> list[dict]:
+def analyze_code(pull: PullRequest, diff: str)-> list[dict]:
     """
     Analyzes the code changes in the pull request.
 
@@ -163,34 +123,28 @@ def analyze_code(pull: PullRequest, diff: str) -> list[dict]:
     current_file_path = None
     offset_line = 0
 
-    try:
-        for line in diff.split('\n'):
-            if line.startswith('+++ b/'):
-                current_file_path = line[6:]
-                changed_lines = []
-            elif line.startswith('@@'):
-                match = re.search(r'\+([0-9]+?),', line)
-                if match:
-                    offset_line = int(match.group(1))
-            elif current_file_path:
-                if (line.startswith('\\') or line.startswith('diff')) and changed_lines:
-                    prompt = create_analyze_prompt(changed_lines, pull, current_file_path)
-                    response = get_ai_response(prompt)
-                    for review in response.get('reviews', []):
-                        review['path'] = current_file_path
-                        comments.append(review)
-                    current_file_path = None
-                elif line.startswith('-'):
-                    changed_lines.append(line)
-                else:
-                    changed_lines.append(f"{offset_line}:{line}")
-                    offset_line += 1
-    except Exception as e:
-        print(f"Error in analyze_code: {e}")
-    
-    if not comments:
-        print("No comments generated by analyze_code")
-    
+    for line in diff.split('\n'):
+        if line.startswith('+++ b/'):
+            current_file_path = line[6:]
+            changed_lines = []
+        elif line.startswith('@@'):
+            match = re.search(r'\+([0-9]+?),', line)
+            if match:
+                offset_line = int(match.group(1))
+        elif current_file_path:
+            if (line.startswith('\\') or line.startswith('diff')) and changed_lines:
+                prompt = create_analyze_prompt(changed_lines, pull, current_file_path)
+                response = get_ai_response(prompt)
+                for review in response.get('reviews', []):
+                    review['path'] = current_file_path
+                    comments.append(review)
+                current_file_path = None
+            elif line.startswith('-'):
+                changed_lines.append(line)
+            else:
+                changed_lines.append(f"{offset_line}:{line}")
+                offset_line += 1
+        
     return comments
 
 def create_analyze_prompt(changed_lines: list[str], pull: PullRequest, file_path: str):
@@ -240,105 +194,57 @@ def create_review_prompt(pull: PullRequest, diff: str):
     Returns:
         str: The generated prompt for review.
     """
-    description = pull.body if pull.body else "No description provided."
     return f"""Your task is to review a pull request. Instructions:
 - Write in name of g4f copilot. Don't use placeholder.
 - Write the review in GitHub Markdown format.
 - Thank the author for contributing to the project.
-- If no issues are found, still provide a brief summary of the changes.
 
-Pull request author: {pull.user.name or "Unknown"}
-Pull request title: {pull.title or "Untitled Pull Request"}
+Pull request author: {pull.user.name}
+Pull request title: {pull.title}
 Pull request description:
 ---
-{description}
+{pull.body}
 ---
 
 Diff:
 ```diff
 {diff}
 ```
-
-Please provide a comprehensive review of the changes, highlighting any potential issues or improvements, or summarizing the changes if no issues are found.
 """
 
 def main():
     try:
-        github_token = get_github_token()
-    except ValueError as e:
-        print(f"Error: {str(e)}")
-        return
-
-    if not GITHUB_REPOSITORY or not os.getenv('PR_NUMBER'):
-        print("Error: GITHUB_REPOSITORY or PR_NUMBER environment variables are not set.")
-        return
-
-    print(f"GITHUB_REPOSITORY: {GITHUB_REPOSITORY}")
-    print(f"PR_NUMBER: {os.getenv('PR_NUMBER')}")
-    print("GITHUB_TOKEN is set")
-
-    try:
-        github = Github(github_token)
-        
-        # Test GitHub connection
-        print("Testing GitHub connection...")
-        try:
-            user = github.get_user()
-            print(f"Successfully authenticated as: {user.login}")
-        except Exception as e:
-            print(f"Error authenticating: {str(e)}")
-            print(f"Error type: {type(e).__name__}")
-            print(f"Error args: {e.args}")
-            return
-        
-        # If connection is successful, proceed with PR details
+        github = Github(GITHUB_TOKEN)
         pull = get_pr_details(github)
         if not pull:
-            print(f"No PR number found or invalid PR number")
-            return
-        print(f"Successfully fetched PR #{pull.number}")
+            print(f"No PR number found")
+            exit()
         if pull.get_reviews().totalCount > 0 or pull.get_issue_comments().totalCount > 0:
             print(f"Has already a review")
-            return
-        
+            exit()
         diff = get_diff(pull.diff_url)
-        review = "AI Code Review: Unable to generate a detailed response."
-        comments = []
-        
-        try:
-            review = get_ai_response(create_review_prompt(pull, diff), False)
-            comments = analyze_code(pull, diff)
-        except Exception as analysis_error:
-            print(f"Error during analysis: {analysis_error}")
-            review += f" Error during analysis: {str(analysis_error)[:200]}"
-        
-        print("Comments:", comments)
-        
-        review_body = review if review and review.strip() else "AI Code Review"
-        if not review_body.strip():
-            review_body = "AI Code Review: No specific issues found."
-        
-        try:
-            if comments:
-                pull.create_review(body=review_body, comments=comments, event='COMMENT')
-            else:
-                pull.create_review(body=review_body, event='COMMENT')
-            print("Review posted successfully")
-        except Exception as post_error:
-            print(f"Error posting review: {post_error}")
-            error_message = f"AI Code Review: An error occurred while posting the review. Error: {str(post_error)[:200]}. Please review the changes manually."
-            pull.create_issue_comment(body=error_message)
-    
     except Exception as e:
-        print(f"Unexpected error in main: {e.__class__.__name__}: {e}")
-        try:
-            if 'pull' in locals():
-                error_message = f"AI Code Review: An error occurred while processing this pull request. Error: {str(e)[:200]}. Please review the changes manually."
-                pull.create_issue_comment(body=error_message)
-            else:
-                print("Unable to post error message: Pull request object not available")
-        except Exception as post_error:
-            print(f"Failed to post error message to pull request: {post_error}")
+        print(f"Error get details: {e.__class__.__name__}: {e}")
+        exit(1)
+    try:
+        review = get_ai_response(create_review_prompt(pull, diff), False)
+    except Exception as e:
+        print(f"Error create review: {e}")
+        exit(1)
+    try:
+        comments = analyze_code(pull, diff)
+    except Exception as e:
+        print(f"Error analyze: {e}")
+        exit(1)
+    print("Comments:", comments)
+    try:
+        if comments:
+            pull.create_review(body=review, comments=comments)
+        else:
+            pull.create_issue_comment(body=review)
+    except Exception as e:
+        print(f"Error posting review: {e}")
+        exit(1)
 
 if __name__ == "__main__":
     main()
