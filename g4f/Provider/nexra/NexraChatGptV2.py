@@ -12,8 +12,7 @@ class NexraChatGptV2(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Nexra ChatGPT v2"
     url = "https://nexra.aryahcr.cc/documentation/chatgpt/en"
     api_endpoint = "https://nexra.aryahcr.cc/api/chat/complements"
-    working = True
-    supports_gpt_4 = True
+    working = False
     supports_stream = True
     
     default_model = 'chatgpt'

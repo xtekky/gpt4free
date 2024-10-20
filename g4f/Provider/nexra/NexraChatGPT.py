@@ -12,9 +12,7 @@ class NexraChatGPT(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Nexra ChatGPT"
     url = "https://nexra.aryahcr.cc/documentation/chatgpt/en"
     api_endpoint = "https://nexra.aryahcr.cc/api/chat/gpt"
-    working = True
-    supports_gpt_35_turbo = True
-    supports_gpt_4 = True
+    working = False
     supports_stream = False
     
     default_model = 'gpt-3.5-turbo'

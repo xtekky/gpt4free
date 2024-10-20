@@ -12,7 +12,7 @@ class NexraQwen(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Nexra Qwen"
     url = "https://nexra.aryahcr.cc/documentation/qwen/en"
     api_endpoint = "https://nexra.aryahcr.cc/api/chat/complements"
-    working = True
+    working = False
     supports_stream = True
     
     default_model = 'qwen'

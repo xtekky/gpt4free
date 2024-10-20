@@ -12,7 +12,7 @@ class NexraLLaMA31(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Nexra LLaMA 3.1"
     url = "https://nexra.aryahcr.cc/documentation/llama-3.1/en"
     api_endpoint = "https://nexra.aryahcr.cc/api/chat/complements"
-    working = True
+    working = False
     supports_stream = True
     
     default_model = 'llama-3.1'

@@ -11,8 +11,7 @@ class NexraChatGPT4o(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Nexra ChatGPT4o"
     url = "https://nexra.aryahcr.cc/documentation/chatgpt/en"
     api_endpoint = "https://nexra.aryahcr.cc/api/chat/complements"
-    working = True
-    supports_gpt_4 = True
+    working = False
     supports_stream = False
     
     default_model = 'gpt-4o'

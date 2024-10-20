@@ -10,7 +10,7 @@ class NexraBlackbox(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Nexra Blackbox"
     url = "https://nexra.aryahcr.cc/documentation/blackbox/en"
     api_endpoint = "https://nexra.aryahcr.cc/api/chat/complements"
-    working = True
+    working = False
     supports_stream = True
     
     default_model = 'blackbox'
