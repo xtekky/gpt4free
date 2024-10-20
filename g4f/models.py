@@ -151,7 +151,7 @@ gpt_4_turbo = Model(
 gpt_4 = Model(
     name          = 'gpt-4',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([NexraChatGPT, NexraChatGptV2, NexraChatGptWeb, Ai4Chat, Airforce, Chatgpt4Online, Bing, OpenaiChat])
+    best_provider = IterListProvider([NexraChatGPT, NexraChatGptV2, NexraChatGptWeb, Ai4Chat, Airforce, Chatgpt4Online, Bing, OpenaiChat, gpt_4_turbo.best_provider, gpt_4o.best_provider, gpt_4o_mini.best_provider])
 )
 
 # o1
