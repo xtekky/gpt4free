@@ -56,7 +56,6 @@ class NexraChatGPT(AbstractProvider, ProviderModelMixin):
         cls,
         model: str,
         messages: Messages,
-        stream: bool,
         **kwargs
     ) -> CreateResult:
         model = cls.get_model(model)
