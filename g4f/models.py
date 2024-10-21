@@ -50,6 +50,7 @@ from .Provider import (
     NexraDalleMini,
     NexraEmi,
     NexraFluxPro,
+    NexraGeminiPro,
     NexraLLaMA31,
     NexraQwen,
     OpenaiChat,
@@ -213,7 +214,7 @@ llama_3_70b = Model(
 llama_3_1_8b = Model(
     name          = "llama-3.1-8b",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider([Blackbox, DeepInfraChat, ChatHub, Cloudflare, NexraLLaMA31, Airforce, PerplexityLabs])
+    best_provider = IterListProvider([Blackbox, DeepInfraChat, ChatHub, Cloudflare, Airforce, PerplexityLabs])
 )
 
 llama_3_1_70b = Model(
@@ -344,7 +345,7 @@ phi_3_5_mini = Model(
 gemini_pro = Model(
     name          = 'gemini-pro',
     base_provider = 'Google DeepMind',
-    best_provider = IterListProvider([GeminiPro, Blackbox, AIChatFree, GPROChat, AmigoChat, Editee, Liaobots, Airforce])
+    best_provider = IterListProvider([GeminiPro, Blackbox, AIChatFree, GPROChat, NexraGeminiPro, AmigoChat, Editee, Liaobots, Airforce])
 )
 
 gemini_flash = Model(
