@@ -8,7 +8,9 @@ from ..base_provider import ProviderModelMixin, AbstractProvider
 from ..helper import format_prompt
 
 class NexraBlackbox(AbstractProvider, ProviderModelMixin):
-    url = "https://nexra.aryahcr.cc/api/chat/complements"
+    label = "Nexra Blackbox"
+    url = "https://nexra.aryahcr.cc/documentation/blackbox/en"
+    api_endpoint = "https://nexra.aryahcr.cc/api/chat/complements"
     working = True
     supports_stream = True
     
@@ -52,7 +54,7 @@ class NexraBlackbox(AbstractProvider, ProviderModelMixin):
             "model": model
         }
         
-        response = requests.post(cls.url, headers=headers, json=data, stream=stream)
+        response = requests.post(cls.api_endpoint, headers=headers, json=data, stream=stream)
 
         if stream:
             return cls.process_streaming_response(response)
