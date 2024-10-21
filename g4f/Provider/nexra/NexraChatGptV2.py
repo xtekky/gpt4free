@@ -78,7 +78,7 @@ class NexraChatGptV2(AbstractProvider, ProviderModelMixin):
         for line in response.iter_lines(decode_unicode=True):
             if line:
                 try:
-                    line = line.lstrip('`')
+                    line = line.lstrip('')
                     data = json.loads(line)
                     if data.get('finish'):
                         break
