@@ -39,8 +39,8 @@ class NexraBlackbox(AbstractProvider, ProviderModelMixin):
         stream: bool,
         **kwargs
     ) -> CreateResult:
-        model = model or cls.default_model
-        
+        model = cls.get_model(model)
+
         headers = {
             'Content-Type': 'application/json'
         }
@@ -59,7 +59,7 @@ class NexraBlackbox(AbstractProvider, ProviderModelMixin):
         }
         
         response = requests.post(cls.url, headers=headers, json=data, stream=stream)
-        
+
         if stream:
             return cls.process_streaming_response(response)
         else:
