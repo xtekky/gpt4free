@@ -9,7 +9,7 @@ from ..helper import format_prompt
 
 class NexraBlackbox(AbstractProvider, ProviderModelMixin):
     url = "https://nexra.aryahcr.cc/api/chat/complements"
-    working = False
+    working = True
     supports_stream = True
     
     default_model = "blackbox"

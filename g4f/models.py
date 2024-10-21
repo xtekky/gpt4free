@@ -443,7 +443,8 @@ reka_core = Model(
 blackboxai = Model(
     name = 'blackboxai',
     base_provider = 'Blackbox AI',
-    best_provider = IterListProvider([Blackbox, NexraBlackbox])
+    #best_provider = IterListProvider([Blackbox, NexraBlackbox])
+    best_provider = IterListProvider([NexraBlackbox])
 )
 
 blackboxai_pro = Model(
