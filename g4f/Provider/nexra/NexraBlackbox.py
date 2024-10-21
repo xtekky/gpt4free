@@ -13,14 +13,8 @@ class NexraBlackbox(AbstractProvider, ProviderModelMixin):
     supports_stream = True
     
     default_model = "blackbox"
-    
-    models = [
-        'blackbox',
-    ]
-    
-    model_aliases = {
-        "blackboxai": "blackbox",
-    }
+    models = [default_model]
+    model_aliases = {"blackboxai": "blackbox",}
 
     @classmethod
     def get_model(cls, model: str) -> str:
