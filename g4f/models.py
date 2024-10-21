@@ -39,6 +39,7 @@ from .Provider import (
     Liaobots,
     MagickPen,
     MetaAI,
+    NexraBing,
     NexraBlackbox,
     NexraChatGPT,
     NexraChatGPT4o,
@@ -150,7 +151,7 @@ gpt_4_turbo = Model(
 gpt_4 = Model(
     name          = 'gpt-4',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([Chatgpt4Online, Ai4Chat, NexraChatGPT, NexraChatGptV2, NexraChatGptWeb, Airforce, Bing, OpenaiChat, gpt_4_turbo.best_provider, gpt_4o.best_provider, gpt_4o_mini.best_provider])
+    best_provider = IterListProvider([Chatgpt4Online, Ai4Chat, NexraBing, NexraChatGPT, NexraChatGptV2, NexraChatGptWeb, Airforce, Bing, OpenaiChat, gpt_4_turbo.best_provider, gpt_4o.best_provider, gpt_4o_mini.best_provider])
 )
 
 # o1
