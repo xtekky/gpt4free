@@ -56,6 +56,7 @@ class NexraChatGPT(AbstractProvider, ProviderModelMixin):
         cls,
         model: str,
         messages: Messages,
+        markdown: bool = False,
         **kwargs
     ) -> CreateResult:
         model = cls.get_model(model)
@@ -68,7 +69,7 @@ class NexraChatGPT(AbstractProvider, ProviderModelMixin):
             "messages": [],
             "prompt": format_prompt(messages),
             "model": model,
-            "markdown": False
+            "markdown": markdown
         }
         
         response = requests.post(cls.api_endpoint, headers=headers, json=data)

@@ -31,6 +31,7 @@ class NexraChatGptWeb(AbstractProvider, ProviderModelMixin):
         cls,
         model: str,
         messages: Messages,
+        markdown: bool = False,
         **kwargs
     ) -> CreateResult:
         model = cls.get_model(model)
@@ -42,7 +43,7 @@ class NexraChatGptWeb(AbstractProvider, ProviderModelMixin):
         
         data = {
             "prompt": format_prompt(messages),
-            "markdown": False
+            "markdown": markdown
         }
         
         response = requests.post(api_endpoint, headers=headers, json=data)

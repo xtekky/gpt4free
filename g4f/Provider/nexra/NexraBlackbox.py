@@ -33,6 +33,8 @@ class NexraBlackbox(AbstractProvider, ProviderModelMixin):
         model: str,
         messages: Messages,
         stream: bool,
+        markdown: bool = False,
+        websearch: bool = False,
         **kwargs
     ) -> CreateResult:
         model = cls.get_model(model)
@@ -48,9 +50,9 @@ class NexraBlackbox(AbstractProvider, ProviderModelMixin):
                     "content": format_prompt(messages)
                 }
             ],
-            "websearch": False,
+            "websearch": websearch,
             "stream": stream,
-            "markdown": False,
+            "markdown": markdown,
             "model": model
         }
         

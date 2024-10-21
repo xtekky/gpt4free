@@ -33,6 +33,7 @@ class NexraChatGptV2(AbstractProvider, ProviderModelMixin):
         model: str,
         messages: Messages,
         stream: bool,
+        markdown: bool = False,
         **kwargs
     ) -> CreateResult:
         model = cls.get_model(model)
@@ -49,7 +50,7 @@ class NexraChatGptV2(AbstractProvider, ProviderModelMixin):
                 }
             ],
             "stream": stream,
-            "markdown": False,
+            "markdown": markdown,
             "model": model
         }
         

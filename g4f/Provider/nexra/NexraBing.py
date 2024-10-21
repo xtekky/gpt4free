@@ -38,6 +38,7 @@ class NexraBing(AbstractProvider, ProviderModelMixin):
         model: str,
         messages: Messages,
         stream: bool,
+        markdown: bool = False,
         **kwargs
     ) -> CreateResult:
         model = cls.get_model(model)
@@ -54,7 +55,7 @@ class NexraBing(AbstractProvider, ProviderModelMixin):
                 }
             ],
             "conversation_style": model,
-            "markdown": False,
+            "markdown": markdown,
             "stream": stream,
             "model": "Bing"
         }
