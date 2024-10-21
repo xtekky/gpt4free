@@ -12,7 +12,7 @@ class NexraDallE(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Nexra DALL-E"
     url = "https://nexra.aryahcr.cc/documentation/dall-e/en"
     api_endpoint = "https://nexra.aryahcr.cc/api/image/complements"
-    working = True
+    working = False
 
     default_model = 'dalle'
     models = [default_model]

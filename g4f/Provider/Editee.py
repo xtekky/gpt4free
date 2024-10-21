@@ -11,7 +11,6 @@ class Editee(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://editee.com"
     api_endpoint = "https://editee.com/submit/chatgptfree"
     working = True
-    supports_gpt_4 = True
     supports_stream = True
     supports_system_message = True
     supports_message_history = True

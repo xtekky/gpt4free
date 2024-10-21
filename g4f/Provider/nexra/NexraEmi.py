@@ -12,7 +12,7 @@ class NexraEmi(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Nexra Emi"
     url = "https://nexra.aryahcr.cc/documentation/emi/en"
     api_endpoint = "https://nexra.aryahcr.cc/api/image/complements"
-    working = True
+    working = False
 
     default_model = 'emi'
     models = [default_model]

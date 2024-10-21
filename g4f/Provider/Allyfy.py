@@ -12,7 +12,6 @@ class Allyfy(AsyncGeneratorProvider):
     url = "https://allyfy.chat"
     api_endpoint = "https://chatbot.allyfy.chat/api/v1/message/stream/super/chat"
     working = True
-    supports_gpt_35_turbo = True
 
     @classmethod
     async def create_async_generator(

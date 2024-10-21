@@ -13,7 +13,6 @@ class DDG(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://duckduckgo.com"
     api_endpoint = "https://duckduckgo.com/duckchat/v1/chat"
     working = True
-    supports_gpt_4 = True
     supports_stream = True
     supports_system_message = True
     supports_message_history = True

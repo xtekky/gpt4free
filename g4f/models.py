@@ -1,4 +1,3 @@
-# g4f/models.py
 from __future__  import annotations
 
 from dataclasses import dataclass
@@ -40,6 +39,7 @@ from .Provider import (
     Liaobots,
     MagickPen,
     MetaAI,
+    NexraBing,
     NexraBlackbox,
     NexraChatGPT,
     NexraChatGPT4o,
@@ -50,6 +50,7 @@ from .Provider import (
     NexraDalleMini,
     NexraEmi,
     NexraFluxPro,
+    NexraGeminiPro,
     NexraLLaMA31,
     NexraQwen,
     OpenaiChat,
@@ -105,7 +106,6 @@ default = Model(
         AmigoChat,
         ChatifyAI,
         Cloudflare,
-        Ai4Chat,
         Editee,
         AiMathGPT,
     ])
@@ -152,7 +152,7 @@ gpt_4_turbo = Model(
 gpt_4 = Model(
     name          = 'gpt-4',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([NexraChatGPT, NexraChatGptV2, NexraChatGptWeb, Ai4Chat, Airforce, Chatgpt4Online, Bing, OpenaiChat])
+    best_provider = IterListProvider([Chatgpt4Online, Ai4Chat, NexraBing, NexraChatGPT, NexraChatGptV2, NexraChatGptWeb, Airforce, Bing, OpenaiChat, gpt_4_turbo.best_provider, gpt_4o.best_provider, gpt_4o_mini.best_provider])
 )
 
 # o1
@@ -214,7 +214,7 @@ llama_3_70b = Model(
 llama_3_1_8b = Model(
     name          = "llama-3.1-8b",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider([Blackbox, DeepInfraChat, ChatHub, Cloudflare, NexraLLaMA31, Airforce, PerplexityLabs])
+    best_provider = IterListProvider([Blackbox, DeepInfraChat, ChatHub, Cloudflare, Airforce, PerplexityLabs])
 )
 
 llama_3_1_70b = Model(
@@ -345,7 +345,7 @@ phi_3_5_mini = Model(
 gemini_pro = Model(
     name          = 'gemini-pro',
     base_provider = 'Google DeepMind',
-    best_provider = IterListProvider([GeminiPro, Blackbox, AIChatFree, GPROChat, AmigoChat, Editee, Liaobots, Airforce])
+    best_provider = IterListProvider([GeminiPro, Blackbox, AIChatFree, GPROChat, NexraGeminiPro, AmigoChat, Editee, Liaobots, Airforce])
 )
 
 gemini_flash = Model(
@@ -768,7 +768,7 @@ flux = Model(
 flux_pro = Model(
     name = 'flux-pro',
     base_provider = 'Flux AI',
-    best_provider = IterListProvider([NexraFluxPro, AmigoChat])
+    best_provider = IterListProvider([AmigoChat, NexraFluxPro])
     
 )
 
@@ -827,12 +827,6 @@ dalle_2 = Model(
     name = 'dalle-2',
     base_provider = 'OpenAI',
     best_provider = NexraDallE2
-    
-)
-dalle_3 = Model(
-    name = 'dalle-3',
-    base_provider = 'OpenAI',
-    best_provider = Airforce
     
 )
 
@@ -1124,7 +1118,6 @@ class ModelUtils:
 ### OpenAI ###
 'dalle': dalle,
 'dalle-2': dalle_2,
-'dalle-3': dalle_3,
 'dalle-mini': dalle_mini,
 
 

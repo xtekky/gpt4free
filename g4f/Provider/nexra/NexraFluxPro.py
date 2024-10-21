@@ -12,7 +12,7 @@ class NexraFluxPro(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Nexra Flux PRO"
     url = "https://nexra.aryahcr.cc/documentation/flux-pro/en"
     api_endpoint = "https://nexra.aryahcr.cc/api/image/complements"
-    working = True
+    working = False
 
     default_model = 'flux'
     models = [default_model]

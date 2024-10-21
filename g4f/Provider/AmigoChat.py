@@ -14,7 +14,6 @@ class AmigoChat(AsyncGeneratorProvider, ProviderModelMixin):
     chat_api_endpoint = "https://api.amigochat.io/v1/chat/completions"
     image_api_endpoint = "https://api.amigochat.io/v1/images/generations"
     working = True
-    supports_gpt_4 = True
     supports_stream = True
     supports_system_message = True
     supports_message_history = True
@@ -74,7 +73,7 @@ class AmigoChat(AsyncGeneratorProvider, ProviderModelMixin):
         elif model in cls.model_aliases:
             return cls.model_aliases[model]
         else:
-            return cls.default_chat_model if model in cls.chat_models else cls.default_image_model
+            return cls.default_model
 
     @classmethod
     def get_personaId(cls, model: str) -> str:
@@ -159,7 +158,7 @@ class AmigoChat(AsyncGeneratorProvider, ProviderModelMixin):
                                         pass
                     else:
                         # Image generation
-                        prompt = messages[0]['content']
+                        prompt = messages[-1]['content']
                         data = {
                             "prompt": prompt,
                             "model": model,

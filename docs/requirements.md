@@ -43,4 +43,5 @@ Install all packages and uninstall this package for disabling the webdriver:
 pip uninstall undetected-chromedriver
 ```
 
+---
 [Return to Home](/)

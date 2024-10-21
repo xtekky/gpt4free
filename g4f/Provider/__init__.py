@@ -5,11 +5,12 @@ from ..providers.retry_provider import RetryProvider, IterListProvider
 from ..providers.base_provider  import AsyncProvider, AsyncGeneratorProvider
 from ..providers.create_images  import CreateImagesProvider
 
-from .deprecated      import *
-from .selenium        import *
-from .needs_auth      import *
+from .deprecated       import *
+from .selenium         import *
+from .needs_auth       import *
 
-from .nexra           import *
+from .gigachat         import *
+from .nexra            import *
 
 from .Ai4Chat          import Ai4Chat
 from .AI365VIP         import AI365VIP
@@ -46,7 +47,6 @@ from .FreeChatgpt      import FreeChatgpt
 from .FreeGpt          import FreeGpt
 from .FreeNetfly       import FreeNetfly
 from .GeminiPro        import GeminiPro
-from .GigaChat         import GigaChat
 from .GPROChat         import GPROChat
 from .HuggingChat      import HuggingChat
 from .HuggingFace      import HuggingFace
@@ -55,7 +55,7 @@ from .Liaobots         import Liaobots
 from .Local            import Local
 from .MagickPen        import MagickPen
 from .MetaAI           import MetaAI
-#from .MetaAIAccount    import MetaAIAccount
+#from .MetaAIAccount   import MetaAIAccount
 from .Ollama           import Ollama
 from .PerplexityLabs   import PerplexityLabs
 from .Pi               import Pi

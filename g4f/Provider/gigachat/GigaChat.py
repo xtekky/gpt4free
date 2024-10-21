@@ -9,10 +9,10 @@ import json
 from aiohttp import ClientSession, TCPConnector, BaseConnector
 from g4f.requests import raise_for_status
 
-from ..typing import AsyncResult, Messages
-from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from ..errors import MissingAuthError
-from .helper import get_connector
+from ...typing import AsyncResult, Messages
+from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from ...errors import MissingAuthError
+from ..helper import get_connector
 
 access_token = ""
 token_expires_at = 0
@@ -45,7 +45,7 @@ class GigaChat(AsyncGeneratorProvider, ProviderModelMixin):
         if not api_key:
             raise MissingAuthError('Missing "api_key"')
         
-        cafile = os.path.join(os.path.dirname(__file__), "gigachat_crt/russian_trusted_root_ca_pem.crt")
+        cafile = os.path.join(os.path.dirname(__file__), "russian_trusted_root_ca_pem.crt")
         ssl_context = ssl.create_default_context(cafile=cafile) if os.path.exists(cafile) else None
         if connector is None and ssl_context is not None:
             connector = TCPConnector(ssl_context=ssl_context)

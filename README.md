@@ -1,3 +1,5 @@
+
+
 ![248433934-7886223b-c1d1-4260-82aa-da5741f303bb](https://github.com/xtekky/gpt4free/assets/98614666/ea012c87-76e0-496a-8ac4-e2de090cc6c9)
 
 <a href="https://trendshift.io/repositories/1692" target="_blank"><img src="https://trendshift.io/api/badge/repositories/1692" alt="xtekky%2Fgpt4free | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
@@ -27,32 +29,28 @@ docker pull hlohaus789/g4f
 ```
 
 ## 🆕 What's New
-
-- Added `gpt-4o`, simply use `gpt-4o` in `chat.completion.create`.
-- Installation Guide for Windows (.exe): 💻 [#installation-guide-for-windows](#installation-guide-for-windows-exe)
-- Join our Telegram Channel: 📨 [telegram.me/g4f_channel](https://telegram.me/g4f_channel)
-- Join our Discord Group: 💬 [discord.gg/XfybzPXPH5](https://discord.gg/XfybzPXPH5)
-- `g4f` now supports 100% local inference: 🧠 [local-docs](https://g4f.mintlify.app/docs/core/usage/local)
+   - **For comprehensive details on new features and updates, please refer to our [Releases](https://github.com/xtekky/gpt4free/releases) page**
+   - **Installation Guide for Windows (.exe):** 💻 [#installation-guide-for-windows](#installation-guide-for-windows-exe)
+   - **Join our Telegram Channel:** 📨 [telegram.me/g4f_channel](https://telegram.me/g4f_channel)
+   - **Join our Discord Group:** 💬 [discord.gg/XfybzPXPH5](https://discord.gg/XfybzPXPH5)
 
 ## 🔻 Site Takedown
 
 Is your site on this repository and you want to take it down? Send an email to takedown@g4f.ai with proof it is yours and it will be removed as fast as possible. To prevent reproduction please secure your API. 😉
 
 ## 🚀 Feedback and Todo
+**You can always leave some feedback here:** https://forms.gle/FeWV9RLEedfdkmFN6
 
-You can always leave some feedback here: https://forms.gle/FeWV9RLEedfdkmFN6
-
-As per the survey, here is a list of improvements to come
-
-- [x] Update the repository to include the new openai library syntax (ex: `Openai()` class) | completed, use `g4f.client.Client`
-- [ ] Golang implementation
-- [ ] 🚧 Improve Documentation (in /docs & Guides, Howtos, & Do video tutorials)
-- [x] Improve the provider status list & updates
-- [ ] Tutorials on how to reverse sites to write your own wrapper (PoC only ofc)
-- [x] Improve the Bing wrapper. (Wait and Retry or reuse conversation)
-- [ ] 🚧 Write a standard provider performance test to improve the stability
-- [ ] Potential support and development of local models
-- [ ] 🚧 Improve compatibility and error handling
+**As per the survey, here is a list of improvements to come**
+   - [x] Update the repository to include the new openai library syntax (ex: `Openai()` class) | completed, use `g4f.client.Client`
+   - [ ] Golang implementation
+   - [ ] 🚧 Improve Documentation (in /docs & Guides, Howtos, & Do video tutorials)
+   - [x] Improve the provider status list & updates
+   - [ ] Tutorials on how to reverse sites to write your own wrapper (PoC only ofc)
+   - [x] Improve the Bing wrapper. (Wait and Retry or reuse conversation)
+   - [ ] 🚧 Write a standard provider performance test to improve the stability
+   - [ ] Potential support and development of local models
+   - [ ] 🚧 Improve compatibility and error handling
 
 ## 📚 Table of Contents
 
@@ -70,7 +68,8 @@ As per the survey, here is a list of improvements to come
   - [Text Generation](#text-generation)
   - [Image Generation](#image-generation)
   - [Web UI](#web-ui)
-  - [Interference API](#interference-api)
+  - [Interference API](docs/interference.md)
+  - [Local inference](docs/local.md)
   - [Configuration](#configuration)
 - [🚀 Providers and Models](docs/providers-and-models.md)
 - [🔗 Powered by gpt4free](#-powered-by-gpt4free)
@@ -156,7 +155,6 @@ How do I load the project using git and installing the project requirements?
 Read this tutorial and follow it step by step: [/docs/git](docs/git.md)
 
 ##### Install using Docker:
-
 How do I build and run composer image from source?
 Use docker-compose: [/docs/docker](docs/docker.md)
 
@@ -181,7 +179,6 @@ Hello! How can I assist you today?
 ```
 
 #### Image Generation
-
 ```python
 from g4f.client import Client
 
@@ -199,33 +196,26 @@ print(f"Generated image URL: {image_url}")
 [![Image with cat](/docs/cat.jpeg)](docs/client.md)
 
 **Full Documentation for Python API**
-
-- AsyncClient API from G4F: [/docs/async_client](docs/async_client.md)
-- Client API like the OpenAI Python library: [/docs/client](docs/client.md)
-- Legacy API with python modules: [/docs/legacy](docs/legacy.md)
+   - **Async Client API from G4F:** [/docs/async_client](docs/async_client.md)
+   - **Client API like the OpenAI Python library:** [/docs/client](docs/client.md)
+   - **Legacy API with python modules:** [/docs/legacy](docs/legacy.md)
 
 #### Web UI
-
-To start the web interface, type the following codes in python:
-
+**To start the web interface, type the following codes in python:**
 ```python
 from g4f.gui import run_gui
+
 run_gui()
 ```
-
 or execute the following command:
-
 ```bash
 python -m g4f.cli gui -port 8080 -debug
 ```
 
 #### Interference API
-
 You can use the Interference API to serve other OpenAI integrations with G4F.
-
-See docs: [/docs/interference](docs/interference.md)
-
-Access with: http://localhost:1337/v1
+**See docs:** [/docs/interference](docs/interference-api.md)
+**Access with:** http://localhost:1337/v1
 
 ### Configuration
 
@@ -778,19 +768,15 @@ set G4F_PROXY=http://host:port
 </table>
 
 ## 🤝 Contribute
-
 We welcome contributions from the community. Whether you're adding new providers or features, or simply fixing typos and making small improvements, your input is valued. Creating a pull request is all it takes – our co-pilot will handle the code review process. Once all changes have been addressed, we'll merge the pull request into the main branch and release the updates at a later time.
 
 ###### Guide: How do i create a new Provider?
-
-- Read: [/docs/guides/create_provider](docs/guides/create_provider.md)
+   - Read: [/docs/guides/create_provider](docs/guides/create_provider.md)
 
 ###### Guide: How can AI help me with writing code?
-
-- Read: [/docs/guides/help_me](docs/guides/help_me.md)
+   - Read: [/docs/guides/help_me](docs/guides/help_me.md)
 
 ## 🙌 Contributors
-
 A list of all contributors is available [here](https://github.com/xtekky/gpt4free/graphs/contributors)
 
 <a href="https://github.com/xtekky" target="_blank"><img src="https://avatars.githubusercontent.com/u/98614666?v=4&s=45" width="45" title="xtekky"></a>

@@ -14,7 +14,6 @@ class Koala(AsyncGeneratorProvider, ProviderModelMixin):
     api_endpoint = "https://koala.sh/api/gpt/"
     working = True
     supports_message_history = True
-    supports_gpt_4 = True
     default_model = 'gpt-4o-mini'
 
     @classmethod

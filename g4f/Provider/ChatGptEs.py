@@ -13,7 +13,6 @@ class ChatGptEs(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://chatgpt.es"
     api_endpoint = "https://chatgpt.es/wp-admin/admin-ajax.php"
     working = True
-    supports_gpt_4 = True
     supports_stream = True
     supports_system_message = True
     supports_message_history = True

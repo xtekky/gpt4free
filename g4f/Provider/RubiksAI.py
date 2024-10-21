@@ -19,7 +19,6 @@ class RubiksAI(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://rubiks.ai"
     api_endpoint = "https://rubiks.ai/search/api.php"
     working = True
-    supports_gpt_4 = True
     supports_stream = True
     supports_system_message = True
     supports_message_history = True
