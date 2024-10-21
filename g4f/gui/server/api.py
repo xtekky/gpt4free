@@ -24,7 +24,6 @@ logger = logging.getLogger(__main__)
 conversations: dict[dict[str, BaseConversation]] = {}
 images_dir = "./generated_images"
 
-
 class Api():
 
     @staticmethod
