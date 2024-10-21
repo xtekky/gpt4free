@@ -59,7 +59,7 @@ class NexraQwen(AbstractProvider, ProviderModelMixin):
     def process_non_streaming_response(cls, response):
         if response.status_code == 200:
             try:
-                content = response.text.lstrip('`')
+                content = response.text.lstrip('')
                 data = json.loads(content)
                 return data.get('message', '')
             except json.JSONDecodeError:
@@ -73,7 +73,7 @@ class NexraQwen(AbstractProvider, ProviderModelMixin):
         for line in response.iter_lines(decode_unicode=True):
             if line:
                 try:
-                    line = line.lstrip('`')
+                    line = line.lstrip('')
                     data = json.loads(line)
                     if data.get('finish'):
                         break
