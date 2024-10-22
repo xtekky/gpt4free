@@ -1036,7 +1036,7 @@ class ModelUtils:
         
         
 ### Upstage ###
-'solar-1-mini': solar_1_mini,
+'solar-mini': solar_1_mini,
 'solar-10-7b': solar_10_7b,
 'solar-pro': solar_pro,
 

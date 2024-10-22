@@ -97,7 +97,7 @@ This document provides an overview of various AI providers and models, including
 |[teach-anything.com](https://www.teach-anything.com)|`g4f.Provider.TeachAnything`|`llama-3.1-70b`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[beta.theb.ai](https://beta.theb.ai)|`g4f.Provider.Theb`|✔|❌|❌|✔|![Unknown](https://img.shields.io/badge/Unknown-grey)|✔|
 |[beta.theb.ai](https://beta.theb.ai)|`g4f.Provider.ThebApi`|✔|❌|❌|✔|![Unknown](https://img.shields.io/badge/Unknown-grey)|✔|
-|[console.upstage.ai/playground/chat](https://console.upstage.ai/playground/chat)|`g4f.Provider.Upstage`|`solar-pro, solar-1-mini`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
+|[console.upstage.ai/playground/chat](https://console.upstage.ai/playground/chat)|`g4f.Provider.Upstage`|`solar-pro, solar-mini`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[whiterabbitneo.com](https://www.whiterabbitneo.com)|`g4f.Provider.WhiteRabbitNeo`|✔|❌|❌|?|![Unknown](https://img.shields.io/badge/Unknown-grey)|✔|
 |[you.com](https://you.com)|`g4f.Provider.You`|✔|✔|✔|✔|![Unknown](https://img.shields.io/badge/Unknown-grey)|❌+✔|
 
