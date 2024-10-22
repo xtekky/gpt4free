@@ -216,7 +216,7 @@ This document provides an overview of various AI providers and models, including
 |dalle-3|OpenAI|2+ Providers|[openai.com](https://openai.com/index/dall-e-3/)|
 |emi||1+ Providers|[]()|
 |any-dark||1+ Providers|[]()|
-|midjourney||1+ Providers|[docs.midjourney.com](https://docs.midjourney.com/docs/model-versions)|
+|midjourney|Midjourney|1+ Providers|[docs.midjourney.com](https://docs.midjourney.com/docs/model-versions)|
 
 ### Vision Models
 | Model | Base Provider | Providers | Website |
