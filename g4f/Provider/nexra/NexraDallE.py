@@ -41,7 +41,7 @@ class NexraDallE(AbstractProvider, ProviderModelMixin):
         response = requests.post(cls.api_endpoint, headers=headers, json=data)
 
         result = cls.process_response(response)
-        yield result  # Повертаємо результат як генератор
+        yield result
 
     @classmethod
     def process_response(cls, response):
