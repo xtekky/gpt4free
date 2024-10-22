@@ -33,6 +33,7 @@ class NexraBlackbox(AbstractProvider, ProviderModelMixin):
         model: str,
         messages: Messages,
         stream: bool,
+        proxy: str = None,
         markdown: bool = False,
         websearch: bool = False,
         **kwargs

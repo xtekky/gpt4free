@@ -37,7 +37,8 @@ class NexraBing(AbstractProvider, ProviderModelMixin):
         cls,
         model: str,
         messages: Messages,
-        stream: bool,
+        stream: bool = False,
+        proxy: str = None,
         markdown: bool = False,
         **kwargs
     ) -> CreateResult:

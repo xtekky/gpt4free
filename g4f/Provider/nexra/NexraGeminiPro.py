@@ -27,6 +27,7 @@ class NexraGeminiPro(AbstractProvider, ProviderModelMixin):
         model: str,
         messages: Messages,
         stream: bool,
+        proxy: str = None,
         markdown: bool = False,
         **kwargs
     ) -> CreateResult:

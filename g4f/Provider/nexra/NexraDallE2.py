@@ -24,6 +24,7 @@ class NexraDallE2(AbstractProvider, ProviderModelMixin):
         cls,
         model: str,
         messages: Messages,
+        proxy: str = None,
         response: str = "url",  # base64 or url
         **kwargs
     ) -> CreateResult:

@@ -31,6 +31,7 @@ class NexraChatGptWeb(AbstractProvider, ProviderModelMixin):
         cls,
         model: str,
         messages: Messages,
+        proxy: str = None,
         markdown: bool = False,
         **kwargs
     ) -> CreateResult:
