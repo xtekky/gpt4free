@@ -47,11 +47,9 @@ from .Provider import (
     NexraChatGptWeb,
     NexraDallE,
     NexraDallE2,
-    NexraDalleMini,
     NexraEmi,
     NexraFluxPro,
     NexraGeminiPro,
-    NexraLLaMA31,
     NexraQwen,
     OpenaiChat,
     PerplexityLabs,
@@ -837,14 +835,6 @@ dalle = Model(
     
 )
 
-dalle_mini = Model(
-    name = 'dalle-mini',
-    base_provider = 'OpenAI',
-    best_provider = NexraDalleMini
-    
-)
-
-
 ### Other ###
 emi = Model(
     name = 'emi',
@@ -1118,7 +1108,6 @@ class ModelUtils:
 ### OpenAI ###
 'dalle': dalle,
 'dalle-2': dalle_2,
-'dalle-mini': dalle_mini,
 
 
 ### Other ###
