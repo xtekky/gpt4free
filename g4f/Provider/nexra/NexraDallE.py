@@ -24,6 +24,7 @@ class NexraDallE(AbstractProvider, ProviderModelMixin):
         cls,
         model: str,
         messages: Messages,
+        response: str = "url",  # base64 or url
         **kwargs
     ) -> CreateResult:
         model = cls.get_model(model)
@@ -35,7 +36,7 @@ class NexraDallE(AbstractProvider, ProviderModelMixin):
         data = {
             "prompt": messages[-1]["content"],
             "model": model,
-            "response": "url"
+            "response": response
         }
         
         response = requests.post(cls.api_endpoint, headers=headers, json=data)
