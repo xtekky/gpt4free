@@ -52,6 +52,7 @@ from .Provider import (
     NexraGeminiPro,
     NexraMidjourney,
     NexraQwen,
+    NexraSD15,
     OpenaiChat,
     PerplexityLabs,
     Pi,
@@ -740,6 +741,13 @@ sdxl = Model(
     
 )
 
+sd_1_5 = Model(
+    name = 'sd-1.5',
+    base_provider = 'Stability AI',
+    best_provider = NexraSD15
+    
+)
+
 sd_3 = Model(
     name = 'sd-3',
     base_provider = 'Stability AI',
@@ -1095,6 +1103,7 @@ class ModelUtils:
         
 ### Stability AI ###
 'sdxl': sdxl,
+'sd-1.5': sd_1_5,
 'sd-3': sd_3,
         
         
