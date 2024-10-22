@@ -53,6 +53,7 @@ from .Provider import (
     NexraMidjourney,
     NexraQwen,
     NexraSD15,
+    NexraSDTurbo,
     OpenaiChat,
     PerplexityLabs,
     Pi,
@@ -734,10 +735,17 @@ nemotron_70b = Model(
 #############
 
 ### Stability AI ###
+sdxl_turbo = Model(
+    name = 'sdxl-turbo',
+    base_provider = 'Stability AI',
+    best_provider = NexraSDTurbo
+    
+)
+
 sdxl = Model(
     name = 'sdxl',
     base_provider = 'Stability AI',
-    best_provider = IterListProvider([ReplicateHome, DeepInfraImage])
+    best_provider = IterListProvider([ReplicateHome, DeepInfraImage, sdxl_turbo.best_provider])
     
 )
 
@@ -1103,6 +1111,7 @@ class ModelUtils:
         
 ### Stability AI ###
 'sdxl': sdxl,
+'sdxl-turbo': sdxl_turbo,
 'sd-1.5': sd_1_5,
 'sd-3': sd_3,
         
