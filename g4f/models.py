@@ -50,6 +50,7 @@ from .Provider import (
     NexraEmi,
     NexraFluxPro,
     NexraGeminiPro,
+    NexraMidjourney,
     NexraQwen,
     OpenaiChat,
     PerplexityLabs,
@@ -835,6 +836,14 @@ dalle = Model(
     
 )
 
+### Midjourney ###
+midjourney = Model(
+    name = 'midjourney',
+    base_provider = 'Midjourney',
+    best_provider = NexraMidjourney
+    
+)
+
 ### Other ###
 emi = Model(
     name = 'emi',
@@ -1108,6 +1117,9 @@ class ModelUtils:
 ### OpenAI ###
 'dalle': dalle,
 'dalle-2': dalle_2,
+
+### Midjourney ###
+'midjourney': midjourney,
 
 
 ### Other ###
