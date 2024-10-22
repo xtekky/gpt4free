@@ -13,6 +13,5 @@ from .NexraMidjourney          import NexraMidjourney
 from .NexraProdiaAI            import NexraProdiaAI
 from .NexraQwen                import NexraQwen
 from .NexraSD15                import NexraSD15
-from .NexraSD21                import NexraSD21
 from .NexraSDLora              import NexraSDLora
 from .NexraSDTurbo             import NexraSDTurbo
