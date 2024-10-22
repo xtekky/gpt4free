@@ -67,21 +67,17 @@ This document provides an overview of various AI providers and models, including
 |[nexra.aryahcr.cc/chatgpt](https://nexra.aryahcr.cc/documentation/chatgpt/en)|`g4f.Provider.NexraChatGPT4o`|`gpt-4o` |❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[nexra.aryahcr.cc/chatgpt](https://nexra.aryahcr.cc/documentation/chatgpt/en)|`g4f.Provider.NexraChatGptV2`|`gpt-4` |❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[nexra.aryahcr.cc/chatgpt](https://nexra.aryahcr.cc/documentation/chatgpt/en)|`g4f.Provider.NexraChatGptWeb`|`gpt-4` |❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
-|[nexra.aryahcr.cc/dall-e](https://nexra.aryahcr.cc/documentation/dall-e/en)|`g4f.Provider.NexraDallE`|❌ |`dalle`|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
-|[nexra.aryahcr.cc/dall-e](https://nexra.aryahcr.cc/documentation/dall-e/en)|`g4f.Provider.NexraDallE2`|❌ |`dalle-2`|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
-|[nexra.aryahcr.cc/dall-e](https://nexra.aryahcr.cc/documentation/dall-e/en)|`g4f.Provider.NexraDalleMini`|❌ |`dalle-mini`|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
-|[nexra.aryahcr.cc/emi](https://nexra.aryahcr.cc/documentation/emi/en)|`g4f.Provider.NexraEmi`|❌ |`emi`|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
-|[nexra.aryahcr.cc/flux-pro](https://nexra.aryahcr.cc/documentation/flux-pro/en)|`g4f.Provider.NexraFluxPro`|❌ |`flux-pro`|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
-|[nexra.aryahcr.cc/gemini-pro](https://nexra.aryahcr.cc/documentation/gemini-pro/en)|`g4f.Provider.NexraGeminiPro`|✔|❌|❌|✔|![Disabled](https://img.shields.io/badge/Disabled-red)|❌|
-|[nexra.aryahcr.cc/llama-3.1](https://nexra.aryahcr.cc/documentation/llama-3.1/en)|`g4f.Provider.NexraLLaMA31`|`llama-3.1-8b`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
-|[nexra.aryahcr.cc/midjourney](https://nexra.aryahcr.cc/documentation/midjourney/en)|`g4f.Provider.NexraMidjourney`|❌|✔|❌|✔|![Disabled](https://img.shields.io/badge/Disabled-red)|❌|
-|[nexra.aryahcr.cc/prodia](https://nexra.aryahcr.cc/documentation/prodia/en)|`g4f.Provider.NexraProdiaAI`|❌|✔|❌|✔|![Disabled](https://img.shields.io/badge/Disabled-red)|❌|
+|[nexra.aryahcr.cc/dall-e](https://nexra.aryahcr.cc/documentation/dall-e/en)|`g4f.Provider.NexraDallE`|❌|`dalle`|❌|❌|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
+|[nexra.aryahcr.cc/dall-e](https://nexra.aryahcr.cc/documentation/dall-e/en)|`g4f.Provider.NexraDallE2`|❌|`dalle-2`|❌|❌|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
+|[nexra.aryahcr.cc/emi](https://nexra.aryahcr.cc/documentation/emi/en)|`g4f.Provider.NexraEmi`|❌|`emi`|❌|❌|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
+|[nexra.aryahcr.cc/flux-pro](https://nexra.aryahcr.cc/documentation/flux-pro/en)|`g4f.Provider.NexraFluxPro`|❌|`flux-pro`|❌|❌|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
+|[nexra.aryahcr.cc/gemini-pro](https://nexra.aryahcr.cc/documentation/gemini-pro/en)|`g4f.Provider.NexraGeminiPro`|`gemini-pro`|❌|❌|❌|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
+|[nexra.aryahcr.cc/midjourney](https://nexra.aryahcr.cc/documentation/midjourney/en)|`g4f.Provider.NexraMidjourney`|❌|`midjourney`|❌|❌|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
+|[nexra.aryahcr.cc/prodia](https://nexra.aryahcr.cc/documentation/prodia/en)|`g4f.Provider.NexraProdiaAI`|❌|✔|❌|❌|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[nexra.aryahcr.cc/qwen](https://nexra.aryahcr.cc/documentation/qwen/en)|`g4f.Provider.NexraQwen`|`qwen`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
-|[nexra.aryahcr.cc/qwen](https://nexra.aryahcr.cc/documentation/qwen/en)|`g4f.Provider.NexraQwen`|`qwen`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|
-|[nexra.aryahcr.cc/stable-diffusion](https://nexra.aryahcr.cc/documentation/stable-diffusion/en)|`g4f.Provider.NexraSD15`|✔|❌|❌|✔|![Disabled](https://img.shields.io/badge/Disabled-red)|
-|[nexra.aryahcr.cc/stable-diffusion](https://nexra.aryahcr.cc/documentation/stable-diffusion/en)|`g4f.Provider.NexraSD21`|✔|❌|❌|✔|![Disabled](https://img.shields.io/badge/Disabled-red)|
-|[nexra.aryahcr.cc/stable-diffusion](https://nexra.aryahcr.cc/documentation/stable-diffusion/en)|`g4f.Provider.NexraSDLora`|✔|❌|❌|✔|![Disabled](https://img.shields.io/badge/Disabled-red)|
-|[nexra.aryahcr.cc/stable-diffusion](https://nexra.aryahcr.cc/documentation/stable-diffusion/en)|`g4f.Provider.NexraSDTurbo`|✔|❌|❌|✔|![Disabled](https://img.shields.io/badge/Disabled-red)|
+|[nexra.aryahcr.cc/stable-diffusion](https://nexra.aryahcr.cc/documentation/stable-diffusion/en)|`g4f.Provider.NexraSD15`|❌|`sd-1.5`|❌|❌|![Active](https://img.shields.io/badge/Active-brightgreen)|❌
+|[nexra.aryahcr.cc/stable-diffusion](https://nexra.aryahcr.cc/documentation/stable-diffusion/en)|`g4f.Provider.NexraSDLora`|❌|`sdxl-lora`|❌|❌|![Active](https://img.shields.io/badge/Active-brightgreen)|❌
+|[nexra.aryahcr.cc/stable-diffusion](https://nexra.aryahcr.cc/documentation/stable-diffusion/en)|`g4f.Provider.NexraSDTurbo`|❌|`sdxl-turbo`|❌|❌|![Active](https://img.shields.io/badge/Active-brightgreen)|❌
 |[openrouter.ai](https://openrouter.ai)|`g4f.Provider.OpenRouter`|✔|❌|?|?|![Disabled](https://img.shields.io/badge/Disabled-red)|❌|
 |[platform.openai.com](https://platform.openai.com/)|`g4f.Provider.Openai`|✔|❌|✔||![Unknown](https://img.shields.io/badge/Unknown-grey)|✔|
 |[chatgpt.com](https://chatgpt.com/)|`g4f.Provider.OpenaiChat`|`gpt-4o, gpt-4o-mini, gpt-4`|❌|✔||![Unknown](https://img.shields.io/badge/Unknown-grey)|✔|
@@ -200,7 +196,10 @@ This document provides an overview of various AI providers and models, including
 ### Image Models
 | Model | Base Provider | Providers | Website |
 |-------|---------------|-----------|---------|
-|sdxl|Stability AI|3+ Providers|[huggingface.co](https://huggingface.co/docs/diffusers/en/using-diffusers/sdxl)|
+|sdxl|Stability AI|2+ Providers|[huggingface.co](https://huggingface.co/docs/diffusers/en/using-diffusers/sdxl)|
+|sdxl-lora|Stability AI|1+ Providers|[huggingface.co](https://huggingface.co/blog/lcm_lora)|
+|sdxl-turbo|Stability AI|1+ Providers|[huggingface.co](https://huggingface.co/stabilityai/sdxl-turbo)|
+|sd-1.5|Stability AI|1+ Providers|[huggingface.co](https://huggingface.co/runwayml/stable-diffusion-v1-5)|
 |sd-3|Stability AI|1+ Providers|[huggingface.co](https://huggingface.co/docs/diffusers/main/en/api/pipelines/stable_diffusion/stable_diffusion_3)|
 |playground-v2.5|Playground AI|1+ Providers|[huggingface.co](https://huggingface.co/playgroundai/playground-v2.5-1024px-aesthetic)|
 |flux|Black Forest Labs|2+ Providers|[github.com/black-forest-labs/flux](https://github.com/black-forest-labs/flux)|
@@ -215,9 +214,9 @@ This document provides an overview of various AI providers and models, including
 |dalle|OpenAI|1+ Providers|[openai.com](https://openai.com/index/dall-e/)|
 |dalle-2|OpenAI|1+ Providers|[openai.com](https://openai.com/index/dall-e-2/)|
 |dalle-3|OpenAI|2+ Providers|[openai.com](https://openai.com/index/dall-e-3/)|
-|dalle-mini||1+ Providers|[huggingface.co](https://huggingface.co/dalle-mini/dalle-mini)|
 |emi||1+ Providers|[]()|
 |any-dark||1+ Providers|[]()|
+|midjourney||1+ Providers|[docs.midjourney.com](https://docs.midjourney.com/docs/model-versions)|
 
 ### Vision Models
 | Model | Base Provider | Providers | Website |

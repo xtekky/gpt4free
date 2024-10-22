@@ -753,7 +753,7 @@ sdxl_lora = Model(
 sdxl = Model(
     name = 'sdxl',
     base_provider = 'Stability AI',
-    best_provider = IterListProvider([ReplicateHome, DeepInfraImage, sdxl_turbo.best_provider, sdxl_lora.best_provider])
+    best_provider = IterListProvider([ReplicateHome, DeepInfraImage])
     
 )
 
