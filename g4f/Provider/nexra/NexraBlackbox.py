@@ -1,24 +1,22 @@
 from __future__ import annotations
 
 import json
-from aiohttp import ClientSession, ClientTimeout, ClientError
+import requests
 
-from ...typing import AsyncResult, Messages
-from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from ...typing import CreateResult, Messages
+from ..base_provider import ProviderModelMixin, AbstractProvider
+from ..helper import format_prompt
 
-class NexraBlackbox(AsyncGeneratorProvider, ProviderModelMixin):
+class NexraBlackbox(AbstractProvider, ProviderModelMixin):
     label = "Nexra Blackbox"
     url = "https://nexra.aryahcr.cc/documentation/blackbox/en"
     api_endpoint = "https://nexra.aryahcr.cc/api/chat/complements"
     working = True
     supports_stream = True
     
-    default_model = 'blackbox'
+    default_model = "blackbox"
     models = [default_model]
-    
-    model_aliases = {
-        "blackboxai": "blackbox",
-    }
+    model_aliases = {"blackboxai": "blackbox",}
 
     @classmethod
     def get_model(cls, model: str) -> str:
@@ -28,74 +26,75 @@ class NexraBlackbox(AsyncGeneratorProvider, ProviderModelMixin):
             return cls.model_aliases[model]
         else:
             return cls.default_model
-
+            
     @classmethod
-    async def create_async_generator(
+    def create_completion(
         cls,
         model: str,
         messages: Messages,
+        stream: bool,
         proxy: str = None,
-        stream: bool = False,
         markdown: bool = False,
         websearch: bool = False,
         **kwargs
-    ) -> AsyncResult:
+    ) -> CreateResult:
         model = cls.get_model(model)
-        
+
         headers = {
-            "Content-Type": "application/json"
+            'Content-Type': 'application/json'
         }
         
-        payload = {
-            "messages": [{"role": msg["role"], "content": msg["content"]} for msg in messages],
+        data = {
+            "messages": [
+                {
+                    "role": "user",
+                    "content": format_prompt(messages)
+                }
+            ],
             "websearch": websearch,
             "stream": stream,
             "markdown": markdown,
             "model": model
         }
-
-        timeout = ClientTimeout(total=600)  # 10 minutes timeout
         
-        try:
-            async with ClientSession(headers=headers, timeout=timeout) as session:
-                async with session.post(cls.api_endpoint, json=payload, proxy=proxy) as response:
-                    if response.status != 200:
-                        error_text = await response.text()
-                        raise Exception(f"Error: {response.status} - {error_text}")
+        response = requests.post(cls.api_endpoint, headers=headers, json=data, stream=stream)
 
-                    content = await response.text()
+        if stream:
+            return cls.process_streaming_response(response)
+        else:
+            return cls.process_non_streaming_response(response)
 
-                    # Split content by Record Separator character
-                    parts = content.split('\x1e')
-                    full_message = ""
-                    links = []
+    @classmethod
+    def process_non_streaming_response(cls, response):
+        if response.status_code == 200:
+            try:
+                full_response = ""
+                for line in response.iter_lines(decode_unicode=True):
+                    if line:
+                        data = json.loads(line)
+                        if data.get('finish'):
+                            break
+                        message = data.get('message', '')
+                        if message:
+                            full_response = message
+                return full_response
+            except json.JSONDecodeError:
+                return "Error: Unable to decode JSON response"
+        else:
+            return f"Error: {response.status_code}"
 
-                    for part in parts:
-                        if part:
-                            try:
-                                json_response = json.loads(part)
-                                
-                                if json_response.get("message"):
-                                    full_message = json_response["message"]  # Overwrite instead of append
-                                
-                                if isinstance(json_response.get("search"), list):
-                                    links = json_response["search"]  # Overwrite instead of extend
-                                
-                                if json_response.get("finish", False):
-                                    break
-
-                            except json.JSONDecodeError:
-                                pass
-
-                    if full_message:
-                        yield full_message.strip()
-
-                    if payload["websearch"] and links:
-                        yield "\n\n**Source:**"
-                        for i, link in enumerate(links, start=1):
-                            yield f"\n{i}. {link['title']}: {link['link']}"
-
-        except ClientError:
-            raise
-        except Exception:
-            raise
+    @classmethod
+    def process_streaming_response(cls, response):
+        previous_message = ""
+        for line in response.iter_lines(decode_unicode=True):
+            if line:
+                try:
+                    data = json.loads(line)
+                    if data.get('finish'):
+                        break
+                    message = data.get('message', '')
+                    if message and message != previous_message:
+                        yield message[len(previous_message):]
+                        previous_message = message
+                except json.JSONDecodeError:
+                    pass

@@ -23,30 +23,6 @@ class ChatCompletion:
                ignore_stream: bool = False,
                patch_provider: callable = None,
                **kwargs) -> Union[CreateResult, str]:
-        """
-        Creates a chat completion using the specified model, provider, and messages.
-
-        Args:
-            model (Union[Model, str]): The model to use, either as an object or a string identifier.
-            messages (Messages): The messages for which the completion is to be created.
-            provider (Union[ProviderType, str, None], optional): The provider to use, either as an object, a string identifier, or None.
-            stream (bool, optional): Indicates if the operation should be performed as a stream.
-            auth (Union[str, None], optional): Authentication token or credentials, if required.
-            ignored (list[str], optional): List of provider names to be ignored.
-            ignore_working (bool, optional): If True, ignores the working status of the provider.
-            ignore_stream (bool, optional): If True, ignores the stream and authentication requirement checks.
-            patch_provider (callable, optional): Function to modify the provider.
-            **kwargs: Additional keyword arguments.
-
-        Returns:
-            Union[CreateResult, str]: The result of the chat completion operation.
-
-        Raises:
-            AuthenticationRequiredError: If authentication is required but not provided.
-            ProviderNotFoundError, ModelNotFoundError: If the specified provider or model is not found.
-            ProviderNotWorkingError: If the provider is not operational.
-            StreamNotSupportedError: If streaming is requested but not supported by the provider.
-        """
         model, provider = get_model_and_provider(
             model, provider, stream,
             ignored, ignore_working,
@@ -64,7 +40,8 @@ class ChatCompletion:
         if patch_provider:
             provider = patch_provider(provider)
 
-        result = provider.create_completion(model, messages, stream, **kwargs)
+        result = provider.create_completion(model, messages, stream=stream, **kwargs)
+
         return result if stream else ''.join([str(chunk) for chunk in result])
 
     @staticmethod
@@ -76,24 +53,6 @@ class ChatCompletion:
                      ignore_working: bool = False,
                      patch_provider: callable = None,
                      **kwargs) -> Union[AsyncResult, str]:
-        """
-        Asynchronously creates a completion using the specified model and provider.
-
-        Args:
-            model (Union[Model, str]): The model to use, either as an object or a string identifier.
-            messages (Messages): Messages to be processed.
-            provider (Union[ProviderType, str, None]): The provider to use, either as an object, a string identifier, or None.
-            stream (bool): Indicates if the operation should be performed as a stream.
-            ignored (list[str], optional): List of provider names to be ignored.
-            patch_provider (callable, optional): Function to modify the provider.
-            **kwargs: Additional keyword arguments.
-
-        Returns:
-            Union[AsyncResult, str]: The result of the asynchronous chat completion operation.
-
-        Raises:
-            StreamNotSupportedError: If streaming is requested but not supported by the provider.
-        """
         model, provider = get_model_and_provider(model, provider, False, ignored, ignore_working)
 
         if stream:
@@ -113,23 +72,6 @@ class Completion:
                provider : Union[ProviderType, None] = None,
                stream   : bool = False,
                ignored  : list[str] = None, **kwargs) -> Union[CreateResult, str]:
-        """
-        Creates a completion based on the provided model, prompt, and provider.
-
-        Args:
-            model (Union[Model, str]): The model to use, either as an object or a string identifier.
-            prompt (str): The prompt text for which the completion is to be created.
-            provider (Union[ProviderType, None], optional): The provider to use, either as an object or None.
-            stream (bool, optional): Indicates if the operation should be performed as a stream.
-            ignored (list[str], optional): List of provider names to be ignored.
-            **kwargs: Additional keyword arguments.
-
-        Returns:
-            Union[CreateResult, str]: The result of the completion operation.
-
-        Raises:
-            ModelNotAllowedError: If the specified model is not allowed for use with this method.
-        """
         allowed_models = [
             'code-davinci-002',
             'text-ada-001',
@@ -143,6 +85,6 @@ class Completion:
 
         model, provider = get_model_and_provider(model, provider, stream, ignored)
 
-        result = provider.create_completion(model, [{"role": "user", "content": prompt}], stream, **kwargs)
+        result = provider.create_completion(model, [{"role": "user", "content": prompt}], stream=stream, **kwargs)
 
         return result if stream else ''.join(result)

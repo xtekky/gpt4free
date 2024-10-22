@@ -1,27 +1,22 @@
 from __future__ import annotations
 
-from aiohttp import ClientSession
 import json
+import requests
 
-from ...typing import AsyncResult, Messages
-from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from ...typing import CreateResult, Messages
+from ..base_provider import ProviderModelMixin, AbstractProvider
 from ..helper import format_prompt
 
-
-class NexraChatGptV2(AsyncGeneratorProvider, ProviderModelMixin):
+class NexraChatGptV2(AbstractProvider, ProviderModelMixin):
     label = "Nexra ChatGPT v2"
     url = "https://nexra.aryahcr.cc/documentation/chatgpt/en"
     api_endpoint = "https://nexra.aryahcr.cc/api/chat/complements"
     working = True
-    supports_gpt_4 = True
     supports_stream = True
     
     default_model = 'chatgpt'
     models = [default_model]
-
-    model_aliases = {
-        "gpt-4": "chatgpt",
-    }
+    model_aliases = {"gpt-4": "chatgpt"}
 
     @classmethod
     def get_model(cls, model: str) -> str:
@@ -31,63 +26,67 @@ class NexraChatGptV2(AsyncGeneratorProvider, ProviderModelMixin):
             return cls.model_aliases[model]
         else:
             return cls.default_model
-
+            
     @classmethod
-    async def create_async_generator(
+    def create_completion(
         cls,
         model: str,
         messages: Messages,
+        stream: bool,
         proxy: str = None,
-        stream: bool = False,
         markdown: bool = False,
         **kwargs
-    ) -> AsyncResult:
+    ) -> CreateResult:
         model = cls.get_model(model)
-        
+
         headers = {
-            "Content-Type": "application/json"
+            'Content-Type': 'application/json'
         }
+        
+        data = {
+            "messages": [
+                {
+                    "role": "user",
+                    "content": format_prompt(messages)
+                }
+            ],
+            "stream": stream,
+            "markdown": markdown,
+            "model": model
+        }
+        
+        response = requests.post(cls.api_endpoint, headers=headers, json=data, stream=stream)
 
-        async with ClientSession(headers=headers) as session:
-            prompt = format_prompt(messages)
-            data = {
-                "messages": [
-                    {
-                        "role": "user",
-                        "content": prompt
-                    }
-                ],
-                "stream": stream,
-                "markdown": markdown,
-                "model": model
-            }
+        if stream:
+            return cls.process_streaming_response(response)
+        else:
+            return cls.process_non_streaming_response(response)
 
-            async with session.post(f"{cls.api_endpoint}", json=data, proxy=proxy) as response:
-                response.raise_for_status()
+    @classmethod
+    def process_non_streaming_response(cls, response):
+        if response.status_code == 200:
+            try:
+                content = response.text.lstrip('')
+                data = json.loads(content)
+                return data.get('message', '')
+            except json.JSONDecodeError:
+                return "Error: Unable to decode JSON response"
+        else:
+            return f"Error: {response.status_code}"
 
-                if stream:
-                    # Streamed response handling (stream=True)
-                    collected_message = ""
-                    async for chunk in response.content.iter_any():
-                        if chunk:
-                            decoded_chunk = chunk.decode().strip().split("\x1e")
-                            for part in decoded_chunk:
-                                if part:
-                                    message_data = json.loads(part)
-                                    
-                                    # Collect messages until 'finish': true
-                                    if 'message' in message_data and message_data['message']:
-                                        collected_message = message_data['message']
-                                    
-                                    # When finish is true, yield the final collected message
-                                    if message_data.get('finish', False):
-                                        yield collected_message
-                                        return
-                else:
-                    # Non-streamed response handling (stream=False)
-                    response_data = await response.json(content_type=None)
-                    
-                    # Yield the message directly from the response
-                    if 'message' in response_data and response_data['message']:
-                        yield response_data['message']
-                        return
+    @classmethod
+    def process_streaming_response(cls, response):
+        full_message = ""
+        for line in response.iter_lines(decode_unicode=True):
+            if line:
+                try:
+                    line = line.lstrip('')
+                    data = json.loads(line)
+                    if data.get('finish'):
+                        break
+                    message = data.get('message', '')
+                    if message:
+                        yield message[len(full_message):]
+                        full_message = message
+                except json.JSONDecodeError:
+                    pass

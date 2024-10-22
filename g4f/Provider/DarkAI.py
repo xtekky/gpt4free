@@ -12,8 +12,6 @@ class DarkAI(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://www.aiuncensored.info"
     api_endpoint = "https://darkai.foundation/chat"
     working = True
-    supports_gpt_35_turbo = True
-    supports_gpt_4 = True
     supports_stream = True
     supports_system_message = True
     supports_message_history = True

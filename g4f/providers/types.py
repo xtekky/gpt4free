@@ -13,9 +13,8 @@ class BaseProvider(ABC):
         working (bool): Indicates if the provider is currently working.
         needs_auth (bool): Indicates if the provider needs authentication.
         supports_stream (bool): Indicates if the provider supports streaming.
-        supports_gpt_35_turbo (bool): Indicates if the provider supports GPT-3.5 Turbo.
-        supports_gpt_4 (bool): Indicates if the provider supports GPT-4.
         supports_message_history (bool): Indicates if the provider supports message history.
+        supports_system_message (bool): Indicates if the provider supports system messages.
         params (str): List parameters for the provider.
     """
 
@@ -23,8 +22,6 @@ class BaseProvider(ABC):
     working: bool = False
     needs_auth: bool = False
     supports_stream: bool = False
-    supports_gpt_35_turbo: bool = False
-    supports_gpt_4: bool = False
     supports_message_history: bool = False
     supports_system_message: bool = False
     params: str

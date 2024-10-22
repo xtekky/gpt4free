@@ -12,7 +12,6 @@ class Pizzagpt(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://www.pizzagpt.it"
     api_endpoint = "/api/chatx-completion"
     working = True
-    supports_gpt_4 = True
     default_model = 'gpt-4o-mini'
 
     @classmethod

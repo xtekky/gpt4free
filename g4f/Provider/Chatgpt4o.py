@@ -9,7 +9,6 @@ from .helper import format_prompt
 
 class Chatgpt4o(AsyncProvider, ProviderModelMixin):
     url = "https://chatgpt4o.one"
-    supports_gpt_4 = True
     working = True
     _post_id = None
     _nonce = None

@@ -19,8 +19,8 @@ class Upstage(AsyncGeneratorProvider, ProviderModelMixin):
         'solar-pro',
     ]
     model_aliases = {
-        "solar-1-mini": "upstage/solar-1-mini-chat",
-        "solar-1-mini": "upstage/solar-1-mini-chat-ja",
+        "solar-mini": "upstage/solar-1-mini-chat",
+        "solar-mini": "upstage/solar-1-mini-chat-ja",
     }
 
     @classmethod

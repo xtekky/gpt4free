@@ -1,19 +1,16 @@
 from __future__ import annotations
 
-from aiohttp import ClientSession
 import json
-
-from ...typing import AsyncResult, Messages
-from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
+import requests
+from ...typing import CreateResult, Messages
+from ..base_provider import ProviderModelMixin, AbstractProvider
 from ...image import ImageResponse
 
-
-class NexraFluxPro(AsyncGeneratorProvider, ProviderModelMixin):
-    label = "Nexra Flux PRO"
+class NexraFluxPro(AbstractProvider, ProviderModelMixin):
     url = "https://nexra.aryahcr.cc/documentation/flux-pro/en"
     api_endpoint = "https://nexra.aryahcr.cc/api/image/complements"
     working = True
-
+    
     default_model = 'flux'
     models = [default_model]
     model_aliases = {
@@ -28,47 +25,46 @@ class NexraFluxPro(AsyncGeneratorProvider, ProviderModelMixin):
             return cls.model_aliases[model]
         else:
             return cls.default_model
-
+            
     @classmethod
-    async def create_async_generator(
+    def create_completion(
         cls,
         model: str,
         messages: Messages,
         proxy: str = None,
         response: str = "url",  # base64 or url
         **kwargs
-    ) -> AsyncResult:
-        # Retrieve the correct model to use
+    ) -> CreateResult:
         model = cls.get_model(model)
 
-        # Format the prompt from the messages
-        prompt = messages[0]['content']
-
         headers = {
-            "Content-Type": "application/json"
+            'Content-Type': 'application/json'
         }
-        payload = {
-            "prompt": prompt,
+        
+        data = {
+            "prompt": messages[-1]["content"],
             "model": model,
             "response": response
         }
+        
+        response = requests.post(cls.api_endpoint, headers=headers, json=data)
 
-        async with ClientSession(headers=headers) as session:
-            async with session.post(cls.api_endpoint, json=payload, proxy=proxy) as response:
-                response.raise_for_status()
-                text_data = await response.text()
+        result = cls.process_response(response)
+        yield result
 
-                try:
-                    # Parse the JSON response
-                    json_start = text_data.find('{')
-                    json_data = text_data[json_start:]
-                    data = json.loads(json_data)
-                    
-                    # Check if the response contains images
-                    if 'images' in data and len(data['images']) > 0:
-                        image_url = data['images'][0]
-                        yield ImageResponse(image_url, prompt)
-                    else:
-                        yield ImageResponse("No images found in the response.", prompt)
-                except json.JSONDecodeError:
-                    yield ImageResponse("Failed to parse JSON. Response might not be in JSON format.", prompt)
+    @classmethod
+    def process_response(cls, response):
+        if response.status_code == 200:
+            try:
+                content = response.text.strip()
+                content = content.lstrip('_')
+                data = json.loads(content)
+                if data.get('status') and data.get('images'):
+                    image_url = data['images'][0]
+                    return ImageResponse(images=[image_url], alt="Generated Image")
+                else:
+                    return "Error: No image URL found in the response"
+            except json.JSONDecodeError as e:
+                return f"Error: Unable to decode JSON response. Details: {str(e)}"
+        else:
+            return f"Error: {response.status_code}, Response: {response.text}"
