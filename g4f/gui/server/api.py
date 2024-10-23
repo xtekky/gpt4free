@@ -20,7 +20,7 @@ from g4f.Provider import ProviderType, __providers__, __map__
 from g4f.providers.base_provider import ProviderModelMixin, FinishReason
 from g4f.providers.conversation import BaseConversation
 
-logger = logging.getLogger(__main__)
+logger = logging.getLogger(__name__)
 conversations: dict[dict[str, BaseConversation]] = {}
 images_dir = "./generated_images"
 
