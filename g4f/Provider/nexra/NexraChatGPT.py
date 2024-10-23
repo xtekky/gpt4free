@@ -1,24 +1,20 @@
 from __future__ import annotations
 
-from aiohttp import ClientSession
 import json
+import requests
 
-from ...typing import AsyncResult, Messages
-from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from ...typing import CreateResult, Messages
+from ..base_provider import ProviderModelMixin, AbstractProvider
 from ..helper import format_prompt
 
-
-class NexraChatGPT(AsyncGeneratorProvider, ProviderModelMixin):
+class NexraChatGPT(AbstractProvider, ProviderModelMixin):
     label = "Nexra ChatGPT"
     url = "https://nexra.aryahcr.cc/documentation/chatgpt/en"
     api_endpoint = "https://nexra.aryahcr.cc/api/chat/gpt"
     working = True
-    supports_gpt_35_turbo = True
-    supports_gpt_4 = True
-    supports_stream = False
     
     default_model = 'gpt-3.5-turbo'
-    models = ['gpt-4', 'gpt-4-0613', 'gpt-4-0314', 'gpt-4-32k-0314', 'gpt-3.5-turbo', 'gpt-3.5-turbo-16k', 'gpt-3.5-turbo-0613', 'gpt-3.5-turbo-16k-0613', 'gpt-3.5-turbo-0301', 'text-davinci-003', 'text-davinci-002', 'code-davinci-002', 'gpt-3', 'text-curie-001', 'text-babbage-001', 'text-ada-001', 'davinci', 'curie', 'babbage', 'ada', 'babbage-002', 'davinci-002']
+    models = ['gpt-4', 'gpt-4-0613', 'gpt-4-0314', 'gpt-4-32k-0314', default_model, 'gpt-3.5-turbo-16k', 'gpt-3.5-turbo-0613', 'gpt-3.5-turbo-16k-0613', 'gpt-3.5-turbo-0301', 'text-davinci-003', 'text-davinci-002', 'code-davinci-002', 'gpt-3', 'text-curie-001', 'text-babbage-001', 'text-ada-001', 'davinci', 'curie', 'babbage', 'ada', 'babbage-002', 'davinci-002']
     
     model_aliases = {
         "gpt-4": "gpt-4-0613",
@@ -46,7 +42,6 @@ class NexraChatGPT(AsyncGeneratorProvider, ProviderModelMixin):
         "gpt-3": "davinci-002",
     }
 
-
     @classmethod
     def get_model(cls, model: str) -> str:
         if model in cls.models:
@@ -55,35 +50,40 @@ class NexraChatGPT(AsyncGeneratorProvider, ProviderModelMixin):
             return cls.model_aliases[model]
         else:
             return cls.default_model
-
+            
     @classmethod
-    async def create_async_generator(
+    def create_completion(
         cls,
         model: str,
         messages: Messages,
         proxy: str = None,
+        markdown: bool = False,
         **kwargs
-    ) -> AsyncResult:
+    ) -> CreateResult:
         model = cls.get_model(model)
-        
+
         headers = {
-            "Content-Type": "application/json"
+            'Content-Type': 'application/json'
         }
-        async with ClientSession(headers=headers) as session:
-            prompt = format_prompt(messages)
-            data = {
-                "messages": messages,
-                "prompt": prompt,
-                "model": model,
-                "markdown": False
-            }
-            async with session.post(cls.api_endpoint, json=data, proxy=proxy) as response:
-                response.raise_for_status()
-                response_text = await response.text()
-                try:
-                    if response_text.startswith('_'):
-                        response_text = response_text[1:]
-                    response_data = json.loads(response_text)
-                    yield response_data.get('gpt', '')
-                except json.JSONDecodeError:
-                    yield ''
+        
+        data = {
+            "messages": [],
+            "prompt": format_prompt(messages),
+            "model": model,
+            "markdown": markdown
+        }
+        
+        response = requests.post(cls.api_endpoint, headers=headers, json=data)
+
+        return cls.process_response(response)
+
+    @classmethod
+    def process_response(cls, response):
+        if response.status_code == 200:
+            try:
+                data = response.json()
+                return data.get('gpt', '')
+            except json.JSONDecodeError:
+                return "Error: Unable to decode JSON response"
+        else:
+            return f"Error: {response.status_code}"

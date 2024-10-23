@@ -11,9 +11,9 @@ from typing import Optional, AsyncGenerator, Union
 
 from aiohttp import ClientSession, ClientResponseError
 
-from ..typing import AsyncResult, Messages
+from ..typing import AsyncResult, Messages, ImageType
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from ..image import ImageResponse
+from ..image import ImageResponse, to_data_uri
 
 
 class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
@@ -21,7 +21,6 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://www.blackbox.ai"
     api_endpoint = "https://www.blackbox.ai/api/chat"
     working = True
-    supports_gpt_4 = True
     supports_stream = True
     supports_system_message = True
     supports_message_history = True
@@ -52,6 +51,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         'ReactAgent',
         'XcodeAgent',
         'AngularJSAgent',
+        'RepoMap',
     ]
 
     agentMode = {
@@ -78,6 +78,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         'ReactAgent': {'mode': True, 'id': "React Agent"},
         'XcodeAgent': {'mode': True, 'id': "Xcode Agent"},
         'AngularJSAgent': {'mode': True, 'id': "AngularJS Agent"},
+        'RepoMap': {'mode': True, 'id': "repomap"},
     }
 
     userSelectedModel = {
@@ -171,6 +172,8 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         model: str,
         messages: Messages,
         proxy: Optional[str] = None,
+        image: ImageType = None,
+        image_name: str = None,
         websearch: bool = False,
         **kwargs
     ) -> AsyncGenerator[Union[str, ImageResponse], None]:
@@ -181,12 +184,23 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
             model (str): Model to use for generating responses.
             messages (Messages): Message history.
             proxy (Optional[str]): Proxy URL, if needed.
+            image (ImageType): Image data to be processed, if any.
+            image_name (str): Name of the image file, if an image is provided.
             websearch (bool): Enables or disables web search mode.
             **kwargs: Additional keyword arguments.
 
         Yields:
             Union[str, ImageResponse]: Segments of the generated response or ImageResponse objects.
         """
+        
+        if image is not None:
+            messages[-1]['data'] = {
+                'fileText': '',
+                'imageBase64': to_data_uri(image),
+                'title': image_name
+            }
+            messages[-1]['content'] = 'FILE:BB\n$#$\n\n$#$\n' + messages[-1]['content']
+        
         model = cls.get_model(model)
 
         chat_id = cls.generate_random_string()
@@ -240,7 +254,8 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
                 {
                     "id": chat_id,
                     "content": formatted_prompt,
-                    "role": "user"
+                    "role": "user",
+					"data": messages[-1].get('data')
                 }
             ],
             "id": chat_id,

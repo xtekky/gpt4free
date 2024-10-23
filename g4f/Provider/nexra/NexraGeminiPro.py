@@ -1,42 +1,42 @@
 from __future__ import annotations
 
-from aiohttp import ClientSession
 import json
-from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
+import requests
+
+from ...typing import CreateResult, Messages
+from ..base_provider import ProviderModelMixin, AbstractProvider
 from ..helper import format_prompt
-from ...typing import AsyncResult, Messages
 
-
-class NexraGeminiPro(AsyncGeneratorProvider, ProviderModelMixin):
+class NexraGeminiPro(AbstractProvider, ProviderModelMixin):
     label = "Nexra Gemini PRO"
     url = "https://nexra.aryahcr.cc/documentation/gemini-pro/en"
     api_endpoint = "https://nexra.aryahcr.cc/api/chat/complements"
-    working = False
+    working = True
     supports_stream = True
-
+    
     default_model = 'gemini-pro'
     models = [default_model]
 
     @classmethod
     def get_model(cls, model: str) -> str:
         return cls.default_model
-
+            
     @classmethod
-    async def create_async_generator(
+    def create_completion(
         cls,
         model: str,
         messages: Messages,
+        stream: bool,
         proxy: str = None,
-        stream: bool = False,
         markdown: bool = False,
         **kwargs
-    ) -> AsyncResult:
+    ) -> CreateResult:
         model = cls.get_model(model)
 
         headers = {
-            "Content-Type": "application/json"
+            'Content-Type': 'application/json'
         }
-
+        
         data = {
             "messages": [
                 {
@@ -44,25 +44,43 @@ class NexraGeminiPro(AsyncGeneratorProvider, ProviderModelMixin):
                     "content": format_prompt(messages)
                 }
             ],
-            "markdown": markdown,
             "stream": stream,
+            "markdown": markdown,
             "model": model
         }
+        
+        response = requests.post(cls.api_endpoint, headers=headers, json=data, stream=stream)
 
-        async with ClientSession(headers=headers) as session:
-            async with session.post(cls.api_endpoint, json=data, proxy=proxy) as response:
-                response.raise_for_status()
-                buffer = ""
-                async for chunk in response.content.iter_any():
-                    if chunk.strip():  # Check if chunk is not empty
-                        buffer += chunk.decode()
-                        while '\x1e' in buffer:
-                            part, buffer = buffer.split('\x1e', 1)
-                            if part.strip():
-                                try:
-                                    response_json = json.loads(part)
-                                    message = response_json.get("message", "")
-                                    if message:
-                                        yield message
-                                except json.JSONDecodeError as e:
-                                    print(f"JSONDecodeError: {e}")
+        if stream:
+            return cls.process_streaming_response(response)
+        else:
+            return cls.process_non_streaming_response(response)
+
+    @classmethod
+    def process_non_streaming_response(cls, response):
+        if response.status_code == 200:
+            try:
+                content = response.text.lstrip('')
+                data = json.loads(content)
+                return data.get('message', '')
+            except json.JSONDecodeError:
+                return "Error: Unable to decode JSON response"
+        else:
+            return f"Error: {response.status_code}"
+
+    @classmethod
+    def process_streaming_response(cls, response):
+        full_message = ""
+        for line in response.iter_lines(decode_unicode=True):
+            if line:
+                try:
+                    line = line.lstrip('')
+                    data = json.loads(line)
+                    if data.get('finish'):
+                        break
+                    message = data.get('message', '')
+                    if message:
+                        yield message[len(full_message):]
+                        full_message = message
+                except json.JSONDecodeError:
+                    pass

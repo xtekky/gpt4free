@@ -33,14 +33,35 @@ from __future__ import annotations
 from aiohttp import ClientSession
 
 from ..typing import AsyncResult, Messages
-from .base_provider import AsyncGeneratorProvider
+from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from .helper import format_prompt
 
 
-class ChatGpt(AsyncGeneratorProvider):
-    url = "https://chat-gpt.com"
+class {name}(AsyncGeneratorProvider, ProviderModelMixin):
+    label = ""
+    url = "https://example.com"
+    api_endpoint = "https://example.com/api/completion"
     working = True
-    supports_gpt_35_turbo = True
+    needs_auth = False
+    supports_stream = True
+    supports_system_message = True
+    supports_message_history = True
+    
+    default_model = ''
+    models = ['', '']
+    
+    model_aliases = {
+        "alias1": "model1",
+    }
+
+   @classmethod
+    def get_model(cls, model: str) -> str:
+        if model in cls.models:
+            return model
+        elif model in cls.model_aliases:
+            return cls.model_aliases[model]
+        else:
+            return cls.default_model
 
     @classmethod
     async def create_async_generator(
@@ -50,19 +71,21 @@ class ChatGpt(AsyncGeneratorProvider):
         proxy: str = None,
         **kwargs
     ) -> AsyncResult:
-        headers = {
-            "authority": "chat-gpt.com",
+        model = cls.get_model(model)
+        
+        headers = {{
+            "authority": "example.com",
             "accept": "application/json",
             "origin": cls.url,
-            "referer": f"{cls.url}/chat",
-        }
+            "referer": f"{{cls.url}}/chat",
+        }}
         async with ClientSession(headers=headers) as session:
             prompt = format_prompt(messages)
-            data = {
+            data = {{
                 "prompt": prompt,
-                "purpose": "",
-            }
-            async with session.post(f"{cls.url}/api/chat", json=data, proxy=proxy) as response:
+                "model": model,
+            }}
+            async with session.post(f"{{cls.url}}/api/chat", json=data, proxy=proxy) as response:
                 response.raise_for_status()
                 async for chunk in response.content:
                     if chunk:
@@ -78,7 +101,7 @@ Create a provider from a cURL command. The command is:
 {command}
 ```
 A example for a provider:
-```py
+```python
 {example}
 ```
 The name for the provider class:
