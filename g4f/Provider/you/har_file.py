@@ -11,7 +11,7 @@ from ...cookies import get_cookies_dir
 from ...errors import MissingRequirementsError
 from ... import debug
 
-logger = logging.getLogger(__main__)
+logger = logging.getLogger(__name__)
 
 class NoValidHarFileError(Exception):
     ...
