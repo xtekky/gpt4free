@@ -22,8 +22,6 @@ from g4f.typing import Messages
 from g4f.cookies import read_cookie_files
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.ERROR)
-
 
 def create_app():
     app = FastAPI()
