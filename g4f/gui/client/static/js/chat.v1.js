@@ -109,19 +109,6 @@ const register_message_buttons = async () => {
             })
         }
     });
-    document.querySelectorAll(".message .fa-clipboard").forEach(async (el) => {
-        if (!("click" in el.dataset)) {
-            el.dataset.click = "true";
-            el.addEventListener("click", async () => {
-                const message_el = el.parentElement.parentElement.parentElement;
-                const copyText = await get_message(window.conversation_id, message_el.dataset.index);
-                navigator.clipboard.writeText(copyText);
-                el.classList.add("clicked");
-                setTimeout(() => el.classList.remove("clicked"), 1000);
-            })
-        }
-    });
-
 
     document.querySelectorAll(".message .fa-clipboard").forEach(async (el) => {
         if (!("click" in el.dataset)) {
