@@ -59,7 +59,7 @@ function filter_message(text) {
 
 function fallback_copy (text) {
     console.warn("Entering fallback_copy...")
-    var textBox = document.createElement("textbox");
+    var textBox = document.createElement("textarea");
     textBox.value = text; // Avoid scrolling to bottom
     textBox.style.top = "0";
     textBox.style.left = "0";
@@ -115,11 +115,7 @@ const register_message_buttons = async () => {
             el.dataset.click = "true";
             el.addEventListener("click", async () => {
                 const message_el = el.parentElement.parentElement.parentElement;
-            try {
                 const copyText = await get_message(window.conversation_id, message_el.dataset.index);
-            } catch(e) {
-                console.error(e);
-            };
                
             try {
                 console.warn("copyText type: ", typeof copyText)
