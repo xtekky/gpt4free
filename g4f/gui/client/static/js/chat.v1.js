@@ -57,6 +57,27 @@ function filter_message(text) {
     )
 }
 
+function fallback_copy (text) {
+    console.warn("Entering fallback_copy...")
+    var textBox = document.createElement("textbox");
+    textBox.value = text; // Avoid scrolling to bottom
+    textBox.style.top = "0";
+    textBox.style.left = "0";
+    textBox.style.position = "fixed";
+    document.body.appendChild(textBox);
+    textBox.focus();
+    textBox.select();
+    try {
+        var success = document.execCommand('copy');
+        var msg = success ? 'succeeded' : 'failed';
+        console.log('Fallback: Copying text command ' + msg);
+    } catch (err) {
+        console.error('Fallback: Unable to copy', err);
+    };
+    document.body.removeChild(textBox);
+    
+}
+
 hljs.addPlugin(new CopyButtonPlugin());
 let typesetPromise = Promise.resolve();
 const highlight = (container) => {
@@ -100,6 +121,37 @@ const register_message_buttons = async () => {
             })
         }
     });
+
+
+    document.querySelectorAll(".message .fa-clipboard").forEach(async (el) => {
+        if (!("click" in el.dataset)) {
+            el.dataset.click = "true";
+            el.addEventListener("click", async () => {
+                const message_el = el.parentElement.parentElement.parentElement;
+            try {
+                const copyText = await get_message(window.conversation_id, message_el.dataset.index);
+            } catch(e) {
+                console.error(e);
+            };
+               
+            try {
+                console.warn("copyText type: ", typeof copyText)
+                console.warn("Current Text: " + copyText);
+                await navigator.clipboard.writeText(copyText);
+            } catch (e) {
+                console.error("Clipboard API failed!") 
+                console.error(e);
+                fallback_copy(copyText);
+            };
+            
+                el.classList.add("clicked");
+                setTimeout(() => el.classList.remove("clicked"), 1000);
+            })
+        }
+    });
+
+
+    
     document.querySelectorAll(".message .fa-volume-high").forEach(async (el) => {
         if (!("click" in el.dataset)) {
             el.dataset.click = "true";
