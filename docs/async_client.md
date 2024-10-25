@@ -3,13 +3,14 @@ The G4F async client API is a powerful asynchronous interface for interacting wi
 
 
 ## Compatibility Note
-The G4F async client API is designed to be compatible with the OpenAI API, making it easy for developers familiar with OpenAI's interface to transition to G4F.
+The G4F async client API is designed to be compatible with the OpenAI and Anthropic API, making it easy for developers familiar with OpenAI's or Anthropic's interface to transition to G4F.
 
 ## Table of Contents
    - [Introduction](#introduction)
    - [Key Features](#key-features)
    - [Getting Started](#getting-started)
    - [Initializing the Client](#initializing-the-client)
+   - [Creating Chat Completions](#creating-chat-completions)
    - [Configuration](#configuration)
    - [Usage Examples](#usage-examples)
    - [Text Completions](#text-completions)
@@ -51,6 +52,30 @@ client = Client(
 )
 ```
 
+
+## Creating Chat Completions
+**Here’s an improved example of creating chat completions:**
+```python
+response = await async_client.chat.completions.create(
+    system="You are a helpful assistant.",
+    model="gpt-3.5-turbo",
+    messages=[
+        {
+            "role": "user",
+            "content": "Say this is a test"
+        }
+    ]
+     # Add other parameters as needed
+)
+```
+
+**This example:**
+   - Sets a system message to define the assistant's role
+   - Asks a specific question `Say this is a test`
+   - Configures various parameters like temperature and max_tokens for more control over the output
+   - Disables streaming for a complete response
+
+You can adjust these parameters based on your specific needs.
   
 
 ### Configuration
