@@ -1,4 +1,8 @@
+[![Badge Commits]][Commit Rate]
+[![Badge Issues]][Issues]
+[![Badge License]][License]
 
+---
 
 ![248433934-7886223b-c1d1-4260-82aa-da5741f303bb](https://github.com/xtekky/gpt4free/assets/98614666/ea012c87-76e0-496a-8ac4-e2de090cc6c9)
 
@@ -6,7 +10,7 @@
 
 ---
 
-Written by [@xtekky](https://github.com/xtekky)
+<p align="center"><strong>Written by <a href="https://github.com/xtekky">@xtekky</a></strong></p>
 
 <div id="top"></div>
 
@@ -53,7 +57,6 @@ Is your site on this repository and you want to take it down? Send an email to t
    - [ ] 🚧 Improve compatibility and error handling
 
 ## 📚 Table of Contents
-
 - [🆕 What's New](#-whats-new)
 - [📚 Table of Contents](#-table-of-contents)
 - [🛠️ Getting Started](#-getting-started)
@@ -68,7 +71,7 @@ Is your site on this repository and you want to take it down? Send an email to t
   - [Text Generation](#text-generation)
   - [Image Generation](#image-generation)
   - [Web UI](#web-ui)
-  - [Interference API](docs/interference.md)
+  - [Interference API](#interference-api)
   - [Local inference](docs/local.md)
   - [Configuration](#configuration)
 - [🚀 Providers and Models](docs/providers-and-models.md)
@@ -866,4 +869,7 @@ This project is licensed under <a href="https://github.com/xtekky/gpt4free/blob/
   </tr>
 </table>
 
+---
+
 <p align="right">(<a href="#top">🔼 Back to top</a>)</p>
+
