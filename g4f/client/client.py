@@ -149,6 +149,7 @@ class Completions:
         self,
         messages: Messages,
         model: str,
+        system: str = None,  # Added system parameter
         provider: ProviderType = None,
         stream: bool = False,
         proxy: str = None,
@@ -161,6 +162,12 @@ class Completions:
         ignore_stream: bool = False,
         **kwargs
     ) -> Union[ChatCompletion, Iterator[ChatCompletionChunk]]:
+        # If a system prompt is provided, prepend it to the messages
+        if system:
+            system_message = {"role": "system", "content": system}
+            messages = [system_message] + messages
+
+        # Existing implementation continues...
         model, provider = get_model_and_provider(
             model,
             self.provider if provider is None else provider,
@@ -221,6 +228,7 @@ class Completions:
         self,
         messages: Messages,
         model: str,
+        system: str = None,  # Added system parameter
         provider: ProviderType = None,
         stream: bool = False,
         proxy: str = None,
@@ -233,6 +241,12 @@ class Completions:
         ignore_stream: bool = False,
         **kwargs
     ) -> Union[ChatCompletion, AsyncIterator[ChatCompletionChunk]]:
+        # If a system prompt is provided, prepend it to the messages
+        if system:
+            system_message = {"role": "system", "content": system}
+            messages = [system_message] + messages
+
+        # Existing implementation continues...
         model, provider = get_model_and_provider(
             model,
             self.provider if provider is None else provider,
@@ -271,15 +285,17 @@ class Completions:
                 **kwargs
             )
 
-        # Removed 'await' here since 'async_iter_response' returns an async generator
-        response = async_iter_response(response, stream, response_format, max_tokens, stop)
-        response = async_iter_append_model_and_provider(response)
-
+        # Handle streaming or non-streaming responses
         if stream:
+            response = async_iter_response(response, stream, response_format, max_tokens, stop)
+            response = async_iter_append_model_and_provider(response)
             return response
         else:
+            response = async_iter_response(response, stream, response_format, max_tokens, stop)
+            response = async_iter_append_model_and_provider(response)
             async for result in response:
                 return result
+
 
 class Chat:
     completions: Completions
@@ -400,6 +416,12 @@ class Image:
 
     def __repr__(self):
         return f"Image(url={self.url}, b64_json={'<base64 data>' if self.b64_json else None})"
+
+    def to_dict(self):
+        return {
+            "url": self.url,
+            "b64_json": self.b64_json
+        }
 
 class ImagesResponse:
     def __init__(self, data: list[Image]):
