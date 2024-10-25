@@ -7,6 +7,7 @@
    - [Getting Started](#getting-started)
    - [Switching to G4F Client](#switching-to-g4f-client)
    - [Initializing the Client](#initializing-the-client)
+   - [Creating Chat Completions](#creating-chat-completions)
    - [Configuration](#configuration)
    - [Usage Examples](#usage-examples)
    - [Text Completions](#text-completions)
@@ -22,7 +23,7 @@
   
 
 ## Introduction
-Welcome to the G4F Client API, a cutting-edge tool for seamlessly integrating advanced AI capabilities into your Python applications. This guide is designed to facilitate your transition from using the OpenAI client to the G4F Client, offering enhanced features while maintaining compatibility with the existing OpenAI API.
+Welcome to the G4F Client API, a cutting-edge tool for seamlessly integrating advanced AI capabilities into your Python applications. This guide is designed to facilitate your transition from using the OpenAI or Anthropic client to the G4F Client, offering enhanced features while maintaining compatibility with the existing OpenAI and Anthropic API.
 
 ## Getting Started
 ### Switching to G4F Client
@@ -42,7 +43,7 @@ from g4f.client import Client as OpenAI
 
   
 
-The G4F Client preserves the same familiar API interface as OpenAI, ensuring a smooth transition process.
+The G4F Client preserves the same familiar API interface as OpenAI or Anthropic, ensuring a smooth transition process.
 
 ## Initializing the Client
 To utilize the G4F Client, create a new instance. **Below is an example showcasing custom providers:**
@@ -56,6 +57,30 @@ client = Client(
     # Add any other necessary parameters
 )
 ```
+
+## Creating Chat Completions
+**Here’s an improved example of creating chat completions:**
+```python
+response = client.chat.completions.create(
+    system="You are a helpful assistant.",
+    model="gpt-3.5-turbo",
+    messages=[
+        {
+            "role": "user",
+            "content": "Say this is a test"
+        }
+    ]
+    # Add any other necessary parameters
+)
+```
+
+**This example:**
+   - Sets a system message to define the assistant's role
+   - Asks a specific question `Say this is a test`
+   - Configures various parameters like temperature and max_tokens for more control over the output
+   - Disables streaming for a complete response
+
+You can adjust these parameters based on your specific needs.
  
 
 ## Configuration
@@ -271,6 +296,7 @@ while True:
     try:
         # Get GPT's response
         response = client.chat.completions.create(
+            system="You are a helpful assistant.",
             messages=messages,
             model=g4f.models.default,
         )
