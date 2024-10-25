@@ -474,7 +474,6 @@ body {
 
 .stop_generating, .toolbar .regenerate {
     position: absolute;
-    z-index: 1000000;
     top: 0;
     right: 0;
 }
@@ -1116,6 +1115,92 @@ a:-webkit-any-link {
 
 .hidden {
     display: none;
+}
+
+.album-image {
+    width: 100px;
+    height: auto;
+    margin: 5px;
+    display: inline-block;
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background-color: rgba(0,0,0,0.9);
+}
+
+.modal-content {
+    margin: auto;
+    display: block;
+    max-width: 80%;
+    max-height: 80%;
+    transition: transform 0.2s;
+}
+
+.close {
+    position: absolute;
+    top: 15px;
+    right: 35px;
+    color: #f1f1f1;
+    font-size: 40px;
+    font-weight: bold;
+    transition: 0.3s;
+}
+
+.close:hover,
+.close:focus {
+    color: #bbb;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+
+.image-counter {
+    color: #fff;
+    font-size: 18px;
+    margin: auto 10px;
+    user-select: none;
+}
+
+.nav-button {
+    background-color: #555;
+    color: #fff;
+    border: none;
+    padding: 10px;
+    font-size: 20px;
+    cursor: pointer;
+}
+
+.nav-button:hover {
+    background-color: #777;
+}
+
+.nav-button {
+    position: relative;
+}
+
+.nav-button.left {
+    left: 0;
+}
+
+.nav-button.right {
+    right: 0;
+}
+
+.navigation-controls {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 10px;
 }
 
 .blink {
