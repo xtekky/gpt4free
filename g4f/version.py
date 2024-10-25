@@ -76,6 +76,7 @@ class VersionUtils:
 
         # Read from docker environment
         version = environ.get("G4F_VERSION")
+        version = "0.3.3.6"
         if version:
             return version
 
