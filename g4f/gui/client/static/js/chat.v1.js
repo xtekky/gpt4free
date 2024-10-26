@@ -119,7 +119,7 @@ const register_message_buttons = async () => {
                 await navigator.clipboard.writeText(copyText);
             } catch (e) {
                 console.error(e);
-                console.error("Clipboard API failed! Fallback to document.exec("copy")...");
+                console.error("Clipboard API writeText() failed! Fallback to document.exec(\"copy\")...");
                 fallback_clipboard(copyText);
             }
             
