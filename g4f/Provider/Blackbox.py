@@ -51,7 +51,6 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         'ReactAgent',
         'XcodeAgent',
         'AngularJSAgent',
-        'RepoMap',
     ]
 
     agentMode = {
@@ -78,7 +77,6 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         'ReactAgent': {'mode': True, 'id': "React Agent"},
         'XcodeAgent': {'mode': True, 'id': "Xcode Agent"},
         'AngularJSAgent': {'mode': True, 'id': "AngularJS Agent"},
-        'RepoMap': {'mode': True, 'id': "repomap"},
     }
 
     userSelectedModel = {
