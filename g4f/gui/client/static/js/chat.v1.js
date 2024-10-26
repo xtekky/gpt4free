@@ -115,7 +115,10 @@ const register_message_buttons = async () => {
                 const message_el = el.parentElement.parentElement.parentElement;
                 const copyText = await get_message(window.conversation_id, message_el.dataset.index);
                
-            try {
+            try {        
+                if (!navigator.clipboard) {
+                    throw new Error("navigator.clipboard: Clipboard API unavailable.");
+                }
                 await navigator.clipboard.writeText(copyText);
             } catch (e) {
                 console.error(e);
