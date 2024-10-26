@@ -109,18 +109,18 @@ This document provides an overview of various AI providers and models, including
 |-------|---------------|-----------|---------|
 |gpt-3|OpenAI|1+ Providers|[platform.openai.com](https://platform.openai.com/docs/models/gpt-base)|
 |gpt-3.5-turbo|OpenAI|5+ Providers|[platform.openai.com](https://platform.openai.com/docs/models/gpt-3-5-turbo)|
-|gpt-4|OpenAI|33+ Providers|[platform.openai.com](https://platform.openai.com/docs/models/gpt-4-turbo-and-gpt-4)|
-|gpt-4-turbo|OpenAI|2+ Providers|[platform.openai.com](https://platform.openai.com/docs/models/gpt-4-turbo-and-gpt-4)|
-|gpt-4o|OpenAI|7+ Providers|[platform.openai.com](https://platform.openai.com/docs/models/gpt-4o)|
+|gpt-4|OpenAI|9+ Providers|[platform.openai.com](https://platform.openai.com/docs/models/gpt-4-turbo-and-gpt-4)|
+|gpt-4-turbo|OpenAI|3+ Providers|[platform.openai.com](https://platform.openai.com/docs/models/gpt-4-turbo-and-gpt-4)|
+|gpt-4o|OpenAI|10+ Providers|[platform.openai.com](https://platform.openai.com/docs/models/gpt-4o)|
 |gpt-4o-mini|OpenAI|14+ Providers|[platform.openai.com](https://platform.openai.com/docs/models/gpt-4o-mini)|
 |o1|OpenAI|1+ Providers|[platform.openai.com](https://openai.com/index/introducing-openai-o1-preview/)|
-|o1-mini|OpenAI|1+ Providers|[platform.openai.com](https://openai.com/index/openai-o1-mini-advancing-cost-efficient-reasoning/)|
+|o1-mini|OpenAI|2+ Providers|[platform.openai.com](https://openai.com/index/openai-o1-mini-advancing-cost-efficient-reasoning/)|
 |llama-2-7b|Meta Llama|1+ Providers|[huggingface.co](https://huggingface.co/meta-llama/Llama-2-7b)|
 |llama-2-13b|Meta Llama|1+ Providers|[llama.com](https://www.llama.com/llama2/)|
 |llama-3-8b|Meta Llama|4+ Providers|[ai.meta.com](https://ai.meta.com/blog/meta-llama-3/)|
 |llama-3-70b|Meta Llama|4+ Providers|[ai.meta.com](https://ai.meta.com/blog/meta-llama-3/)|
 |llama-3.1-8b|Meta Llama|7+ Providers|[ai.meta.com](https://ai.meta.com/blog/meta-llama-3-1/)|
-|llama-3.1-70b|Meta Llama|13+ Providers|[ai.meta.com](https://ai.meta.com/blog/meta-llama-3-1/)|
+|llama-3.1-70b|Meta Llama|14+ Providers|[ai.meta.com](https://ai.meta.com/blog/meta-llama-3-1/)|
 |llama-3.1-405b|Meta Llama|5+ Providers|[ai.meta.com](https://ai.meta.com/blog/meta-llama-3-1/)|
 |llama-3.2-1b|Meta Llama|1+ Providers|[huggingface.co](https://huggingface.co/meta-llama/Llama-3.2-1B)|
 |llama-3.2-3b|Meta Llama|1+ Providers|[huggingface.co](https://huggingface.co/blog/llama32)|
@@ -128,17 +128,17 @@ This document provides an overview of various AI providers and models, including
 |llama-3.2-90b|Meta Llama|2+ Providers|[ai.meta.com](https://ai.meta.com/blog/llama-3-2-connect-2024-vision-edge-mobile-devices/)|
 |llamaguard-7b|Meta Llama|1+ Providers|[huggingface.co](https://huggingface.co/meta-llama/LlamaGuard-7b)|
 |llamaguard-2-8b|Meta Llama|1+ Providers|[huggingface.co](https://huggingface.co/meta-llama/Meta-Llama-Guard-2-8B)|
-|mistral-7b|Mistral AI|5+ Providers|[mistral.ai](https://mistral.ai/news/announcing-mistral-7b/)|
+|mistral-7b|Mistral AI|4+ Providers|[mistral.ai](https://mistral.ai/news/announcing-mistral-7b/)|
 |mixtral-8x7b|Mistral AI|6+ Providers|[mistral.ai](https://mistral.ai/news/mixtral-of-experts/)|
 |mixtral-8x22b|Mistral AI|3+ Providers|[mistral.ai](https://mistral.ai/news/mixtral-8x22b/)|
-|mistral-nemo|Mistral AI|1+ Providers|[huggingface.co](https://huggingface.co/mistralai/Mistral-Nemo-Instruct-2407)|
-|mistral-large|Mistral AI|1+ Providers|[mistral.ai](https://mistral.ai/news/mistral-large-2407/)|
+|mistral-nemo|Mistral AI|2+ Providers|[huggingface.co](https://huggingface.co/mistralai/Mistral-Nemo-Instruct-2407)|
+|mistral-large|Mistral AI|2+ Providers|[mistral.ai](https://mistral.ai/news/mistral-large-2407/)|
 |mixtral-8x7b-dpo|NousResearch|1+ Providers|[huggingface.co](https://huggingface.co/NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO)|
 |yi-34b|NousResearch|1+ Providers|[huggingface.co](https://huggingface.co/NousResearch/Nous-Hermes-2-Yi-34B)|
-|hermes-3|NousResearch|1+ Providers|[huggingface.co](https://huggingface.co/NousResearch/Hermes-3-Llama-3.1-8B)|
+|hermes-3|NousResearch|2+ Providers|[huggingface.co](https://huggingface.co/NousResearch/Hermes-3-Llama-3.1-8B)|
 |gemini|Google DeepMind|1+ Providers|[deepmind.google](http://deepmind.google/technologies/gemini/)|
-|gemini-flash|Google DeepMind|3+ Providers|[deepmind.google](https://deepmind.google/technologies/gemini/flash/)|
-|gemini-pro|Google DeepMind|9+ Providers|[deepmind.google](https://deepmind.google/technologies/gemini/pro/)|
+|gemini-flash|Google DeepMind|4+ Providers|[deepmind.google](https://deepmind.google/technologies/gemini/flash/)|
+|gemini-pro|Google DeepMind|10+ Providers|[deepmind.google](https://deepmind.google/technologies/gemini/pro/)|
 |gemma-2b|Google|5+ Providers|[huggingface.co](https://huggingface.co/google/gemma-2b)|
 |gemma-2b-9b|Google|1+ Providers|[huggingface.co](https://huggingface.co/google/gemma-2-9b)|
 |gemma-2b-27b|Google|2+ Providers|[huggingface.co](https://huggingface.co/google/gemma-2-27b)|
@@ -146,10 +146,10 @@ This document provides an overview of various AI providers and models, including
 |gemma-2|Google|2+ Providers|[huggingface.co](https://huggingface.co/blog/gemma2)|
 |gemma_2_27b|Google|1+ Providers|[huggingface.co](https://huggingface.co/blog/gemma2)|
 |claude-2.1|Anthropic|1+ Providers|[anthropic.com](https://www.anthropic.com/news/claude-2)|
-|claude-3-haiku|Anthropic|3+ Providers|[anthropic.com](https://www.anthropic.com/news/claude-3-haiku)|
+|claude-3-haiku|Anthropic|4+ Providers|[anthropic.com](https://www.anthropic.com/news/claude-3-haiku)|
 |claude-3-sonnet|Anthropic|2+ Providers|[anthropic.com](https://www.anthropic.com/news/claude-3-family)|
 |claude-3-opus|Anthropic|2+ Providers|[anthropic.com](https://www.anthropic.com/news/claude-3-family)|
-|claude-3.5-sonnet|Anthropic|5+ Providers|[anthropic.com](https://www.anthropic.com/news/claude-3-5-sonnet)|
+|claude-3.5-sonnet|Anthropic|6+ Providers|[anthropic.com](https://www.anthropic.com/news/claude-3-5-sonnet)|
 |blackboxai|Blackbox AI|2+ Providers|[docs.blackbox.chat](https://docs.blackbox.chat/blackbox-ai-1)|
 |blackboxai-pro|Blackbox AI|1+ Providers|[docs.blackbox.chat](https://docs.blackbox.chat/blackbox-ai-1)|
 |yi-1.5-9b|01-ai|1+ Providers|[huggingface.co](https://huggingface.co/01-ai/Yi-1.5-9B)|
@@ -197,7 +197,7 @@ This document provides an overview of various AI providers and models, including
 ### Image Models
 | Model | Base Provider | Providers | Website |
 |-------|---------------|-----------|---------|
-|sdxl|Stability AI|2+ Providers|[huggingface.co](https://huggingface.co/docs/diffusers/en/using-diffusers/sdxl)|
+|sdxl|Stability AI|1+ Providers|[huggingface.co](https://huggingface.co/docs/diffusers/en/using-diffusers/sdxl)|
 |sdxl-lora|Stability AI|1+ Providers|[huggingface.co](https://huggingface.co/blog/lcm_lora)|
 |sdxl-turbo|Stability AI|1+ Providers|[huggingface.co](https://huggingface.co/stabilityai/sdxl-turbo)|
 |sd-1.5|Stability AI|1+ Providers|[huggingface.co](https://huggingface.co/runwayml/stable-diffusion-v1-5)|
@@ -212,10 +212,9 @@ This document provides an overview of various AI providers and models, including
 |flux-disney|Flux AI|1+ Providers|[]()|
 |flux-pixel|Flux AI|1+ Providers|[]()|
 |flux-4o|Flux AI|1+ Providers|[]()|
-|flux-schnell|Black Forest Labs|1+ Providers|[huggingface.co](https://huggingface.co/black-forest-labs/FLUX.1-schnell)|
+|flux-schnell|Black Forest Labs|2+ Providers|[huggingface.co](https://huggingface.co/black-forest-labs/FLUX.1-schnell)|
 |dalle|OpenAI|1+ Providers|[openai.com](https://openai.com/index/dall-e/)|
 |dalle-2|OpenAI|1+ Providers|[openai.com](https://openai.com/index/dall-e-2/)|
-|dalle-3|OpenAI|2+ Providers|[openai.com](https://openai.com/index/dall-e-3/)|
 |emi||1+ Providers|[]()|
 |any-dark||1+ Providers|[]()|
 |midjourney|Midjourney|1+ Providers|[docs.midjourney.com](https://docs.midjourney.com/docs/model-versions)|
