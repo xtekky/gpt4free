@@ -51,6 +51,7 @@ This document provides an overview of various AI providers and models, including
 |[free.netfly.top](https://free.netfly.top)|`g4f.Provider.FreeNetfly`|✔|❌|❌|?|![Cloudflare](https://img.shields.io/badge/Cloudflare-f48d37)|❌|
 |[gemini.google.com](https://gemini.google.com)|`g4f.Provider.Gemini`|✔|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|✔|
 |[ai.google.dev](https://ai.google.dev)|`g4f.Provider.GeminiPro`|✔|❌|✔|?|![Active](https://img.shields.io/badge/Active-brightgreen)|✔|
+|[app.giz.ai](https://app.giz.ai/assistant/)|`g4f.Provider.GizAI`|`gemini-flash, gemini-pro, gpt-4o-mini, gpt-4o, claude-3.5-sonnet, claude-3-haiku, llama-3.1-70b, llama-3.1-8b, mistral-large`|`sdxl, sd-1.5, sd-3.5, dalle-3, flux-schnell, flux1-pro`|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[developers.sber.ru](https://developers.sber.ru/gigachat)|`g4f.Provider.GigaChat`|✔|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|✔|
 |[gprochat.com](https://gprochat.com)|`g4f.Provider.GPROChat`|`gemini-pro`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[console.groq.com/playground](https://console.groq.com/playground)|`g4f.Provider.Groq`|✔|❌|❌|?|![Active](https://img.shields.io/badge/Active-brightgreen)|✔|
@@ -201,6 +202,7 @@ This document provides an overview of various AI providers and models, including
 |sdxl-turbo|Stability AI|1+ Providers|[huggingface.co](https://huggingface.co/stabilityai/sdxl-turbo)|
 |sd-1.5|Stability AI|1+ Providers|[huggingface.co](https://huggingface.co/runwayml/stable-diffusion-v1-5)|
 |sd-3|Stability AI|1+ Providers|[huggingface.co](https://huggingface.co/docs/diffusers/main/en/api/pipelines/stable_diffusion/stable_diffusion_3)|
+|sd-3.5|Stability AI|1+ Providers|[stability.ai](https://stability.ai/news/introducing-stable-diffusion-3-5)|
 |playground-v2.5|Playground AI|1+ Providers|[huggingface.co](https://huggingface.co/playgroundai/playground-v2.5-1024px-aesthetic)|
 |flux|Black Forest Labs|2+ Providers|[github.com/black-forest-labs/flux](https://github.com/black-forest-labs/flux)|
 |flux-pro|Black Forest Labs|2+ Providers|[github.com/black-forest-labs/flux](https://github.com/black-forest-labs/flux)|
