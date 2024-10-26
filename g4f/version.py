@@ -76,12 +76,10 @@ class VersionUtils:
 
         # Read from docker environment
         version = environ.get("G4F_VERSION")
-        version = "0.3.3.6"
         if version:
             return version
 
-        # Read from git repository
-        try:
+        # Read from git repository        try:
             command = ["git", "describe", "--tags", "--abbrev=0"]
             return check_output(command, text=True, stderr=PIPE).strip()
         except CalledProcessError:
