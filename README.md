@@ -21,7 +21,7 @@
 > _"gpt4free"_ serves as a **PoC** (proof of concept), demonstrating the development of an API package with multi-provider requests, with features like timeouts, load balance and flow control.
 
 > [!NOTE]
-> <sup><strong>Lastet version:</strong></sup> [![PyPI version](https://img.shields.io/pypi/v/g4f?color=blue)](https://pypi.org/project/g4f) [![Docker version](https://img.shields.io/docker/v/hlohaus789/g4f?label=docker&color=blue)](https://hub.docker.com/r/hlohaus789/g4f)  
+> <sup><strong>Latest version:</strong></sup> [![PyPI version](https://img.shields.io/pypi/v/g4f?color=blue)](https://pypi.org/project/g4f) [![Docker version](https://img.shields.io/docker/v/hlohaus789/g4f?label=docker&color=blue)](https://hub.docker.com/r/hlohaus789/g4f)  
 > <sup><strong>Stats:</strong></sup> [![Downloads](https://static.pepy.tech/badge/g4f)](https://pepy.tech/project/g4f) [![Downloads](https://static.pepy.tech/badge/g4f/month)](https://pepy.tech/project/g4f)
 
 ```sh
@@ -34,9 +34,10 @@ docker pull hlohaus789/g4f
 
 ## 🆕 What's New
    - **For comprehensive details on new features and updates, please refer to our [Releases](https://github.com/xtekky/gpt4free/releases) page**
-   - **Installation Guide for Windows (.exe):** 💻 [#installation-guide-for-windows](#installation-guide-for-windows-exe)
+   - **Installation Guide for Windows (.exe):** 💻 [Installation Guide for Windows (.exe)](#installation-guide-for-windows-exe)
    - **Join our Telegram Channel:** 📨 [telegram.me/g4f_channel](https://telegram.me/g4f_channel)
    - **Join our Discord Group:** 💬 [discord.gg/XfybzPXPH5](https://discord.gg/XfybzPXPH5)
+
 
 ## 🔻 Site Takedown
 
@@ -57,32 +58,32 @@ Is your site on this repository and you want to take it down? Send an email to t
    - [ ] 🚧 Improve compatibility and error handling
 
 ## 📚 Table of Contents
-- [🆕 What's New](#-whats-new)
-- [📚 Table of Contents](#-table-of-contents)
-- [🛠️ Getting Started](#-getting-started)
-  - [Docker Container Guide](#docker-container-guide)
-  - [Installation Guide for Windows (.exe)](#installation-guide-for-windows-exe)
-  - [Use python](#use-python)
-    - [Prerequisites](#prerequisites)
-    - [Install using PyPI package:](#install-using-pypi-package)
-    - [Install from source:](#install-from-source)
-    - [Install using Docker:](#install-using-docker)
-- [💡 Usage](#-usage)
-  - [Text Generation](#text-generation)
-  - [Image Generation](#image-generation)
-  - [Web UI](#web-ui)
-  - [Interference API](#interference-api)
-  - [Local inference](docs/local.md)
-  - [Configuration](#configuration)
-- [🚀 Providers and Models](docs/providers-and-models.md)
-- [🔗 Powered by gpt4free](#-powered-by-gpt4free)
-- [🤝 Contribute](#-contribute)
-  - [How do i create a new Provider?](#guide-how-do-i-create-a-new-provider)
-  - [How can AI help me with writing code?](#guide-how-can-ai-help-me-with-writing-code)
-- [🙌 Contributors](#-contributors)
-- [©️ Copyright](#-copyright)
-- [⭐ Star History](#-star-history)
-- [📄 License](#-license)
+   - [🆕 What's New](#-whats-new)
+   - [📚 Table of Contents](#-table-of-contents)
+   - [🛠️ Getting Started](#-getting-started)
+      - [Docker Container Guide](#docker-container-guide)
+      - [Installation Guide for Windows (.exe)](#installation-guide-for-windows-exe)
+   - [Use python](#use-python)
+      - [Prerequisites](#prerequisites)
+      - [Install using PyPI package](#install-using-pypi-package)
+      - [Install from source](#install-from-source)
+   - [Install using Docker](#install-using-docker)
+   - [💡 Usage](#-usage)
+      - [Text Generation](#text-generation)
+      - [Image Generation](#image-generation)
+      - [Web UI](#web-ui)
+      - [Interference API](#interference-api)
+      - [Local Inference](docs/local.md)
+      - [Configuration](#configuration)
+   - [🚀 Providers and Models](docs/providers-and-models.md)
+   - [🔗 Powered by gpt4free](#-powered-by-gpt4free)
+   - [🤝 Contribute](#-contribute)
+      - [How do i create a new Provider?](#guide-how-do-i-create-a-new-provider)
+      - [How can AI help me with writing code?](#guide-how-can-ai-help-me-with-writing-code)
+   - [🙌 Contributors](#-contributors)
+   - [©️ Copyright](#-copyright)
+   - [⭐ Star History](#-star-history)
+   - [📄 License](#-license)
 
 ## 🛠️ Getting Started
 
@@ -126,7 +127,7 @@ To ensure the seamless operation of our application, please follow the instructi
 
 By following these steps, you should be able to successfully install and run the application on your Windows system. If you encounter any issues during the installation process, please refer to our Issue Tracker or try to get contact over Discord for assistance.
 
-Run the **Webview UI** on other Platfroms:
+Run the **Webview UI** on other Platforms:
 
 - [/docs/guides/webview](docs/webview.md)
 
@@ -774,10 +775,10 @@ set G4F_PROXY=http://host:port
 We welcome contributions from the community. Whether you're adding new providers or features, or simply fixing typos and making small improvements, your input is valued. Creating a pull request is all it takes – our co-pilot will handle the code review process. Once all changes have been addressed, we'll merge the pull request into the main branch and release the updates at a later time.
 
 ###### Guide: How do i create a new Provider?
-   - Read: [/docs/guides/create_provider](docs/guides/create_provider.md)
+   - Read: [Create Provider Guide](docs/guides/create_provider.md)
 
 ###### Guide: How can AI help me with writing code?
-   - Read: [/docs/guides/help_me](docs/guides/help_me.md)
+   - Read: [AI Assistance Guide](docs/guides/help_me.md)
 
 ## 🙌 Contributors
 A list of all contributors is available [here](https://github.com/xtekky/gpt4free/graphs/contributors)
