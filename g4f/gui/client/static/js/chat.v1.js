@@ -57,10 +57,9 @@ function filter_message(text) {
     )
 }
 
-function fallback_copy (text) {
-    console.warn("Entering fallback_copy...")
+function fallback_clipboard (text) {
     var textBox = document.createElement("textarea");
-    textBox.value = text; // Avoid scrolling to bottom
+    textBox.value = text;
     textBox.style.top = "0";
     textBox.style.left = "0";
     textBox.style.position = "fixed";
@@ -70,12 +69,11 @@ function fallback_copy (text) {
     try {
         var success = document.execCommand('copy');
         var msg = success ? 'succeeded' : 'failed';
-        console.log('Fallback: Copying text command ' + msg);
-    } catch (err) {
-        console.error('Fallback: Unable to copy', err);
-    };
+        console.log('Clipboard Fallback: Copying text command ' + msg);
+    } catch (e) {
+        console.error('Clipboard Fallback: Unable to copy', e);
+    }
     document.body.removeChild(textBox);
-    
 }
 
 hljs.addPlugin(new CopyButtonPlugin());
@@ -118,14 +116,12 @@ const register_message_buttons = async () => {
                 const copyText = await get_message(window.conversation_id, message_el.dataset.index);
                
             try {
-                console.warn("copyText type: ", typeof copyText)
-                console.warn("Current Text: " + copyText);
                 await navigator.clipboard.writeText(copyText);
             } catch (e) {
-                console.error("Clipboard API failed!") 
                 console.error(e);
-                fallback_copy(copyText);
-            };
+                console.error("Clipboard API failed! Fallback to document.exec("copy")...");
+                fallback_clipboard(copyText);
+            }
             
                 el.classList.add("clicked");
                 setTimeout(() => el.classList.remove("clicked"), 1000);
@@ -133,8 +129,6 @@ const register_message_buttons = async () => {
         }
     });
 
-
-    
     document.querySelectorAll(".message .fa-volume-high").forEach(async (el) => {
         if (!("click" in el.dataset)) {
             el.dataset.click = "true";
