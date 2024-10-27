@@ -64,10 +64,7 @@ This document provides an overview of various AI providers and models, including
 |[app.myshell.ai/chat](https://app.myshell.ai/chat)|`g4f.Provider.MyShell`|✔|❌|?|?|![Disabled](https://img.shields.io/badge/Disabled-red)|❌|
 |[nexra.aryahcr.cc/bing](https://nexra.aryahcr.cc/documentation/bing/en)|`g4f.Provider.NexraBing`|✔|❌|❌|✔|![Disabled](https://img.shields.io/badge/Disabled-red)|❌|
 |[nexra.aryahcr.cc/blackbox](https://nexra.aryahcr.cc/documentation/blackbox/en)|`g4f.Provider.NexraBlackbox`|`blackboxai` |❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
-|[nexra.aryahcr.cc/chatgpt](https://nexra.aryahcr.cc/documentation/chatgpt/en)|`g4f.Provider.NexraChatGPT`|`gpt-4, gpt-3.5-turbo, gpt-3` |❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
-|[nexra.aryahcr.cc/chatgpt](https://nexra.aryahcr.cc/documentation/chatgpt/en)|`g4f.Provider.NexraChatGPT4o`|`gpt-4o` |❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
-|[nexra.aryahcr.cc/chatgpt](https://nexra.aryahcr.cc/documentation/chatgpt/en)|`g4f.Provider.NexraChatGptV2`|`gpt-4` |❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
-|[nexra.aryahcr.cc/chatgpt](https://nexra.aryahcr.cc/documentation/chatgpt/en)|`g4f.Provider.NexraChatGptWeb`|`gpt-4` |❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
+|[nexra.aryahcr.cc/chatgpt](https://nexra.aryahcr.cc/documentation/chatgpt/en)|`g4f.Provider.NexraChatGPT`|`gpt-4, gpt-3.5-turbo, gpt-3, gpt-4o` |❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[nexra.aryahcr.cc/dall-e](https://nexra.aryahcr.cc/documentation/dall-e/en)|`g4f.Provider.NexraDallE`|❌|`dalle`|❌|❌|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[nexra.aryahcr.cc/dall-e](https://nexra.aryahcr.cc/documentation/dall-e/en)|`g4f.Provider.NexraDallE2`|❌|`dalle-2`|❌|❌|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[nexra.aryahcr.cc/emi](https://nexra.aryahcr.cc/documentation/emi/en)|`g4f.Provider.NexraEmi`|❌|`emi`|❌|❌|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
@@ -109,7 +106,7 @@ This document provides an overview of various AI providers and models, including
 |-------|---------------|-----------|---------|
 |gpt-3|OpenAI|1+ Providers|[platform.openai.com](https://platform.openai.com/docs/models/gpt-base)|
 |gpt-3.5-turbo|OpenAI|5+ Providers|[platform.openai.com](https://platform.openai.com/docs/models/gpt-3-5-turbo)|
-|gpt-4|OpenAI|9+ Providers|[platform.openai.com](https://platform.openai.com/docs/models/gpt-4-turbo-and-gpt-4)|
+|gpt-4|OpenAI|7+ Providers|[platform.openai.com](https://platform.openai.com/docs/models/gpt-4-turbo-and-gpt-4)|
 |gpt-4-turbo|OpenAI|3+ Providers|[platform.openai.com](https://platform.openai.com/docs/models/gpt-4-turbo-and-gpt-4)|
 |gpt-4o|OpenAI|10+ Providers|[platform.openai.com](https://platform.openai.com/docs/models/gpt-4o)|
 |gpt-4o-mini|OpenAI|14+ Providers|[platform.openai.com](https://platform.openai.com/docs/models/gpt-4o-mini)|

@@ -42,9 +42,6 @@ from .Provider import (
     NexraBing,
     NexraBlackbox,
     NexraChatGPT,
-    NexraChatGPT4o,
-    NexraChatGptV2,
-    NexraChatGptWeb,
     NexraDallE,
     NexraDallE2,
     NexraEmi,
@@ -140,7 +137,7 @@ gpt_35_turbo = Model(
 gpt_4o = Model(
     name          = 'gpt-4o',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([NexraChatGPT4o, Blackbox, ChatGptEs, AmigoChat, DarkAI, Editee, GizAI, Airforce, Liaobots, OpenaiChat])
+    best_provider = IterListProvider([NexraChatGPT, Blackbox, ChatGptEs, AmigoChat, DarkAI, Editee, GizAI, Airforce, Liaobots, OpenaiChat])
 )
 
 gpt_4o_mini = Model(
@@ -158,7 +155,7 @@ gpt_4_turbo = Model(
 gpt_4 = Model(
     name          = 'gpt-4',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([Chatgpt4Online, Ai4Chat, NexraBing, NexraChatGPT, NexraChatGptV2, NexraChatGptWeb, Airforce, Bing, OpenaiChat, gpt_4_turbo.best_provider, gpt_4o.best_provider, gpt_4o_mini.best_provider])
+    best_provider = IterListProvider([Chatgpt4Online, Ai4Chat, NexraBing, NexraChatGPT, Airforce, Bing, OpenaiChat, gpt_4_turbo.best_provider, gpt_4o.best_provider, gpt_4o_mini.best_provider])
 )
 
 # o1
