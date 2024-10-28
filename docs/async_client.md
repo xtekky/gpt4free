@@ -189,7 +189,7 @@ async def main():
     
     response = await client.images.async_generate(
         prompt="a white siamese cat",
-        model="dall-e-3"
+        model="flux"
     )
     
     image_url = response.data[0].url
@@ -210,7 +210,7 @@ async def main():
     
     response = await client.images.async_generate(
         prompt="a white siamese cat",
-        model="dall-e-3",
+        model="flux",
         response_format="b64_json"
     )
     
@@ -242,7 +242,7 @@ async def main():
     )
     
     task2 = client.images.async_generate(
-        model="dall-e-3",
+        model="flux",
         prompt="a white siamese cat"
     )
     
