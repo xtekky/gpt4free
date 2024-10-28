@@ -154,7 +154,7 @@ from g4f.client import Client
 client = Client()
 
 response = client.images.generate(
-    model="dall-e-3",
+    model="flux",
     prompt="a white siamese cat"
     # Add any other necessary parameters
 )
@@ -162,6 +162,23 @@ response = client.images.generate(
 image_url = response.data[0].url
 
 print(f"Generated image URL: {image_url}")
+```
+
+
+#### Base64 Response Format
+```python
+from g4f.client import Client
+
+client = Client()
+
+response = client.images.generate(
+    model="flux",
+    prompt="a white siamese cat",
+    response_format="b64_json"
+)
+
+base64_text = response.data[0].b64_json
+print(base64_text)
 ```
 
   
