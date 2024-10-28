@@ -75,7 +75,7 @@ curl -X POST "http://localhost:1337/v1/images/generate" \
      -H "Content-Type: application/json" \
      -d '{
            "prompt": "a white siamese cat",
-           "model": "dall-e-3",
+           "model": "flux",
            "response_format": "url"
          }'
 ```
@@ -86,7 +86,7 @@ curl -X POST "http://localhost:1337/v1/images/generate" \
      -H "Content-Type: application/json" \
      -d '{
            "prompt": "a white siamese cat",
-           "model": "dall-e-3",
+           "model": "flux",
            "response_format": "b64_json"
          }'
 ```
