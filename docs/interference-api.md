@@ -15,7 +15,7 @@
   
 
 ## Introduction
-The G4F Interference API is a powerful tool that allows you to serve other OpenAI integrations using G4F (Gpt4free). It acts as a proxy, translating requests intended for the OpenAI and Anthropic API into requests compatible with G4F providers. This guide will walk you through the process of setting up, running, and using the Interference API effectively.
+The G4F Interference API is a powerful tool that allows you to serve other OpenAI integrations using G4F (Gpt4free). It acts as a proxy, translating requests intended for the OpenAI API into requests compatible with G4F providers. This guide will walk you through the process of setting up, running, and using the Interference API effectively.
   
 
 ## Running the Interference API
