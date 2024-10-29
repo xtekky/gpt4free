@@ -936,126 +936,16 @@ function open_settings() {
     }
 }
 
-async function loadImages() {
-    try {
-        const response = await fetch('/images');
-        const images = await response.json();
-        console.log(images);
-        displayImages(images);
-    } catch (error) {
-        console.error('Error fetching images:', error);
-    }
-}
-
-function displayImages(images) {
-    const album = document.querySelector('.images');
-    album.innerHTML = '';
-    images.forEach(image => {
-        const imgElement = document.createElement('img');
-        imgElement.src = image;
-        imgElement.alt = 'Generated Image';
-        imgElement.classList.add('album-image');
-        album.appendChild(imgElement);
-    });
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-    loadImages();
-});
-
 function open_album() {
-    const album = document.querySelector('.images');
     if (album.classList.contains("hidden")) {
         sidebar.classList.remove("shown");
         settings.classList.add("hidden");
         album.classList.remove("hidden");
         history.pushState({}, null, "/images/");
-        loadImages();
     } else {
         album.classList.add("hidden");
     }
 }
-
-let currentScale = 1;
-let currentImageIndex = 0;
-let imagesList = [];
-
-function displayImages(images) {
-    imagesList = images;
-    const album = document.querySelector('.images');
-    album.innerHTML = '';
-    images.forEach((image, index) => {
-        const imgElement = document.createElement('img');
-        imgElement.src = image;
-        imgElement.alt = 'Generated Image';
-        imgElement.classList.add('album-image');
-        imgElement.style.cursor = 'pointer';
-        imgElement.addEventListener('click', () => openImageModal(index));
-        album.appendChild(imgElement);
-    });
-}
-
-function openImageModal(index) {
-    currentImageIndex = index;
-    const modal = document.getElementById('imageModal');
-    const modalImg = document.getElementById('img01');
-    const imageCounter = document.getElementById('imageCounter');
-    modal.style.display = 'block';
-    modalImg.src = imagesList[index];
-    currentScale = 1;
-    modalImg.style.transform = `scale(${currentScale})`;
-    imageCounter.textContent = `${index + 1} / ${imagesList.length}`;
-}
-
-const modal = document.getElementById('imageModal');
-const span = document.getElementsByClassName('close')[0];
-const prevImageButton = document.getElementById('prevImage');
-const nextImageButton = document.getElementById('nextImage');
-
-span.onclick = function() {
-    modal.style.display = 'none';
-}
-
-window.onclick = function(event) {
-    if (event.target == modal) {
-        modal.style.display = 'none';
-    }
-}
-
-document.getElementById('img01').addEventListener('wheel', function(event) {
-    event.preventDefault();
-    if (event.deltaY < 0) {
-        currentScale += 0.1;
-    } else if (currentScale > 0.1) {
-        currentScale -= 0.1;
-    }
-    document.getElementById('img01').style.transform = `scale(${currentScale})`;
-});
-
-prevImageButton.onclick = function() {
-    if (currentImageIndex > 0) {
-        currentImageIndex--;
-        openImageModal(currentImageIndex);
-    }
-}
-
-nextImageButton.onclick = function() {
-    if (currentImageIndex < imagesList.length - 1) {
-        currentImageIndex++;
-        openImageModal(currentImageIndex);
-    }
-}
-
-document.addEventListener('keydown', function(event) {
-    if (modal.style.display === 'block') {
-        if (event.key === 'ArrowLeft') {
-            prevImageButton.click();
-        } else if (event.key === 'ArrowRight') {
-            nextImageButton.click();
-        }
-    }
-});
-
 
 const register_settings_storage = async () => {
     optionElements.forEach((element) => {

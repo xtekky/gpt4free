@@ -1,6 +1,5 @@
 import json
-import os
-from flask import request, Flask, jsonify, send_from_directory
+from flask import request, Flask
 from g4f.image import is_allowed_extension, to_image
 from .api import Api
 
@@ -54,10 +53,6 @@ class Backend_Api(Api):
             },
             '/images/<path:name>': {
                 'function': self.serve_images,
-                'methods': ['GET']
-            },
-            '/images': {
-                'function': self.get_images,
                 'methods': ['GET']
             }
         }
@@ -116,18 +111,3 @@ class Backend_Api(Api):
             str: A JSON formatted string.
         """
         return json.dumps(super()._format_json(response_type, content)) + "\n"
-
-    @staticmethod
-    def get_images():
-        images_dir = "./generated_images"
-        try:
-            images = [f for f in os.listdir(images_dir) if os.path.isfile(os.path.join(images_dir, f))]
-            images = [f"/images/{image}" for image in images if image.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.webp'))]
-            return jsonify(images)
-        except Exception as e:
-            return str(e), 500
-
-    @staticmethod
-    def serve_images(name):
-        images_dir = "./generated_images"
-        return send_from_directory(os.path.abspath(images_dir), name)
