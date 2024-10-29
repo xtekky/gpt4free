@@ -184,7 +184,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
             proxy (Optional[str]): Proxy URL, if needed.
             image (ImageType): Image data to be processed, if any.
             image_name (str): Name of the image file, if an image is provided.
-            websearch (bool): Enables or disables web search mode.
+            web_search (bool): Enables or disables web search mode.
             **kwargs: Additional keyword arguments.
 
         Yields:
@@ -311,7 +311,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
                         else:
                             yield cleaned_response
                     else:
-                        if websearch:
+                        if web_search:
                             match = re.search(r'\$~~~\$(.*?)\$~~~\$', cleaned_response, re.DOTALL)
                             if match:
                                 source_part = match.group(1).strip()
