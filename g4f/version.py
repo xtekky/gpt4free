@@ -28,7 +28,7 @@ def get_pypi_version(package_name: str) -> str:
         response = requests.get(f"https://pypi.org/pypi/{package_name}/json").json()
         return response["info"]["version"]
     except requests.RequestException as e:
-        raise VersionNotFoundError(f"Failed to get PyPI version: {e}")
+        pass  # disable version checking
 
 def get_github_version(repo: str) -> str:
     """
@@ -47,7 +47,7 @@ def get_github_version(repo: str) -> str:
         response = requests.get(f"https://api.github.com/repos/{repo}/releases/latest").json()
         return response["tag_name"]
     except requests.RequestException as e:
-        raise VersionNotFoundError(f"Failed to get GitHub release version: {e}")
+        pass  # disable version checking
 
 class VersionUtils:
     """
@@ -86,7 +86,7 @@ class VersionUtils:
         except CalledProcessError:
             pass
 
-        raise VersionNotFoundError("Version not found")
+        pass  # disable version checking
 
     @cached_property
     def latest_version(self) -> str:
@@ -100,8 +100,7 @@ class VersionUtils:
         try:
             get_package_version(PACKAGE_NAME)
         except PackageNotFoundError:
-            return get_github_version(GITHUB_REPOSITORY)
-        return get_pypi_version(PACKAGE_NAME)
+            pass  # disable version checking
 
     def check_version(self) -> None:
         """
@@ -114,6 +113,6 @@ class VersionUtils:
             if self.current_version != self.latest_version:
                 print(f'New g4f version: {self.latest_version} (current: {self.current_version}) | pip install -U g4f')
         except Exception as e:
-            print(f'Failed to check g4f version: {e}')
+            pass  # disable version checking
 
 utils = VersionUtils()
