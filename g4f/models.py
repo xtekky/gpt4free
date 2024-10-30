@@ -891,6 +891,17 @@ any_dark = Model(
     
 )
 
+
+class ModelVersions:
+    # Global Prefixes for All Models
+    GLOBAL_PREFIXES = [":latest"]
+
+    # Specific Prefixes for Particular Models
+    MODEL_SPECIFIC_PREFIXES = {
+        #frozenset(["gpt-3.5-turbo", "gpt-4"]): [":custom1", ":custom2"]
+        #frozenset(["gpt-3.5-turbo"]): [":custom"],
+    }
+
 class ModelUtils:
     """
     Utility class for mapping string identifiers to Model instances.
@@ -1162,5 +1173,36 @@ class ModelUtils:
 'emi': emi,
 'any-dark': any_dark,
     }
+
+    @classmethod
+    def get_model(cls, model_name: str) -> Model:
+        # Checking for specific prefixes
+        for model_set, specific_prefixes in ModelVersions.MODEL_SPECIFIC_PREFIXES.items():
+            for prefix in specific_prefixes:
+                if model_name.endswith(prefix):
+                    base_name = model_name[:-len(prefix)]
+                    if base_name in model_set:
+                        return cls.convert.get(base_name, None)
+        
+        # Check for global prefixes
+        for prefix in ModelVersions.GLOBAL_PREFIXES:
+            if model_name.endswith(prefix):
+                base_name = model_name[:-len(prefix)]
+                return cls.convert.get(base_name, None)
+
+        # Check without prefix
+        if model_name in cls.convert:
+            return cls.convert[model_name]
+
+        raise KeyError(f"Model {model_name} not found")
+
+    @classmethod
+    def get_available_versions(cls, model_name: str) -> list[str]:
+        # Obtaining prefixes for a specific model
+        prefixes = ModelVersions.GLOBAL_PREFIXES.copy()
+        for model_set, specific_prefixes in ModelVersions.MODEL_SPECIFIC_PREFIXES.items():
+            if model_name in model_set:
+                prefixes.extend(specific_prefixes)
+        return prefixes
 
 _all_models = list(ModelUtils.convert.keys())
