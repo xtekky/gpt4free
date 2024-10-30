@@ -338,6 +338,14 @@ const prepare_messages = (messages, message_index = -1) => {
         messages = messages.filter((_, index) => message_index >= index);
     }
 
+    let new_messages = [];
+    if (systemPrompt?.value) {
+        new_messages.push({
+            "role": "system",
+            "content": systemPrompt.value
+        });
+    }
+
     // Remove history, if it's selected
     if (document.getElementById('history')?.checked) {
         if (message_index == null) {
@@ -347,13 +355,6 @@ const prepare_messages = (messages, message_index = -1) => {
         }
     }
 
-    let new_messages = [];
-    if (systemPrompt?.value) {
-        new_messages.push({
-            "role": "system",
-            "content": systemPrompt.value
-        });
-    }
     messages.forEach((new_message) => {
         // Include only not regenerated messages
         if (new_message && !new_message.regenerate) {
@@ -365,6 +366,7 @@ const prepare_messages = (messages, message_index = -1) => {
     });
     return new_messages;
 }
+
 
 async function add_message_chunk(message) {
     if (message.type == "conversation") {

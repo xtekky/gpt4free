@@ -7,6 +7,7 @@
    - [Getting Started](#getting-started)
    - [Switching to G4F Client](#switching-to-g4f-client)
    - [Initializing the Client](#initializing-the-client)
+   - [Creating Chat Completions](#creating-chat-completions)
    - [Configuration](#configuration)
    - [Usage Examples](#usage-examples)
    - [Text Completions](#text-completions)
@@ -56,6 +57,28 @@ client = Client(
     # Add any other necessary parameters
 )
 ```
+
+## Creating Chat Completions
+**Here’s an improved example of creating chat completions:**
+```python
+response = client.chat.completions.create(
+    model="gpt-3.5-turbo",
+    messages=[
+        {
+            "role": "user",
+            "content": "Say this is a test"
+        }
+    ]
+    # Add any other necessary parameters
+)
+```
+
+**This example:**
+   - Asks a specific question `Say this is a test`
+   - Configures various parameters like temperature and max_tokens for more control over the output
+   - Disables streaming for a complete response
+
+You can adjust these parameters based on your specific needs.
  
 
 ## Configuration
@@ -129,7 +152,7 @@ from g4f.client import Client
 client = Client()
 
 response = client.images.generate(
-    model="dall-e-3",
+    model="flux",
     prompt="a white siamese cat"
     # Add any other necessary parameters
 )
@@ -137,6 +160,23 @@ response = client.images.generate(
 image_url = response.data[0].url
 
 print(f"Generated image URL: {image_url}")
+```
+
+
+#### Base64 Response Format
+```python
+from g4f.client import Client
+
+client = Client()
+
+response = client.images.generate(
+    model="flux",
+    prompt="a white siamese cat",
+    response_format="b64_json"
+)
+
+base64_text = response.data[0].b64_json
+print(base64_text)
 ```
 
   

@@ -531,3 +531,4 @@ class Images:
     async def create_variation(self, image: Union[str, bytes], model: str = None, response_format: str = "url", **kwargs):
         # Existing implementation, adjust if you want to support b64_json here as well
         pass
+
