@@ -792,7 +792,7 @@ playground_v2_5 = Model(
 flux = Model(
     name = 'flux',
     base_provider = 'Flux AI',
-    best_provider = IterListProvider([Airforce, Blackbox])
+    best_provider = IterListProvider([Blackbox, Airforce])
     
 )
 
