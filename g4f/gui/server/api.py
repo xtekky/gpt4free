@@ -2,12 +2,11 @@ from __future__ import annotations
 
 import logging
 import os
-import os.path
 import uuid
 import asyncio
 import time
 from aiohttp import ClientSession
-from typing import Iterator, Optional
+from typing import Iterator, Optional, AsyncIterator, Union
 from flask import send_from_directory
 
 from g4f import version, models
@@ -20,21 +19,20 @@ from g4f.Provider import ProviderType, __providers__, __map__
 from g4f.providers.base_provider import ProviderModelMixin, FinishReason
 from g4f.providers.conversation import BaseConversation
 
-conversations: dict[dict[str, BaseConversation]] = {}
+# Define the directory for generated images
 images_dir = "./generated_images"
+
+# Function to ensure the images directory exists
+def ensure_images_dir():
+    if not os.path.exists(images_dir):
+        os.makedirs(images_dir)
+
+conversations: dict[dict[str, BaseConversation]] = {}
 
 
 class Api:
     @staticmethod
     def get_models() -> list[str]:
-        """
-        Return a list of all models.
-
-        Fetches and returns a list of all available models in the system.
-
-        Returns:
-            List[str]: A list of model names.
-        """
         return models._all_models
 
     @staticmethod
@@ -82,9 +80,6 @@ class Api:
 
     @staticmethod
     def get_providers() -> list[str]:
-        """
-        Return a list of all working providers.
-        """
         return {
             provider.__name__: (
                 provider.label if hasattr(provider, "label") else provider.__name__
@@ -99,12 +94,6 @@ class Api:
 
     @staticmethod
     def get_version():
-        """
-        Returns the current and latest version of the application.
-
-        Returns:
-            dict: A dictionary containing the current and latest version.
-        """
         try:
             current_version = version.utils.current_version
         except VersionNotFoundError:
@@ -115,18 +104,10 @@ class Api:
         }
 
     def serve_images(self, name):
+        ensure_images_dir()
         return send_from_directory(os.path.abspath(images_dir), name)
 
     def _prepare_conversation_kwargs(self, json_data: dict, kwargs: dict):
-        """
-        Prepares arguments for chat completion based on the request data.
-
-        Reads the request and prepares the necessary arguments for handling 
-        a chat completion request.
-
-        Returns:
-            dict: Arguments prepared for chat completion.
-        """
         model = json_data.get('model') or models.default
         provider = json_data.get('provider')
         messages = json_data['messages']
@@ -134,7 +115,7 @@ class Api:
         if api_key is not None:
             kwargs["api_key"] = api_key
         if json_data.get('web_search'):
-            if provider in ("Bing", "HuggingChat"):
+            if provider:
                 kwargs['web_search'] = True
             else:
                 from .internet import get_search_message
@@ -159,13 +140,11 @@ class Api:
             result = ChatCompletion.create(**kwargs)
             first = True
             if isinstance(result, ImageResponse):
-                # Якщо результат є ImageResponse, обробляємо його як одиночний елемент
                 if first:
                     first = False
                     yield self._format_json("provider", get_last_provider(True))
                 yield self._format_json("content", str(result))
             else:
-                # Якщо результат є ітерабельним, обробляємо його як раніше
                 for chunk in result:
                     if first:
                         first = False
@@ -181,7 +160,6 @@ class Api:
                     elif isinstance(chunk, ImagePreview):
                         yield self._format_json("preview", chunk.to_string())
                     elif isinstance(chunk, ImageResponse):
-                        # Обробка ImageResponse
                         images = asyncio.run(self._copy_images(chunk.get_list(), chunk.options.get("cookies")))
                         yield self._format_json("content", str(ImageResponse(images, chunk.alt)))
                     elif not isinstance(chunk, FinishReason):
@@ -190,8 +168,8 @@ class Api:
             logging.exception(e)
             yield self._format_json('error', get_error_message(e))
 
-    # Додайте цей метод до класу Api
     async def _copy_images(self, images: list[str], cookies: Optional[Cookies] = None):
+        ensure_images_dir()
         async with ClientSession(
             connector=get_connector(None, os.environ.get("G4F_PROXY")),
             cookies=cookies
@@ -212,16 +190,6 @@ class Api:
             return await asyncio.gather(*[copy_image(image) for image in images])
 
     def _format_json(self, response_type: str, content):
-        """
-        Formats and returns a JSON response.
-
-        Args:
-            response_type (str): The type of the response.
-            content: The content to be included in the response.
-
-        Returns:
-            str: A JSON formatted string.
-        """
         return {
             'type': response_type,
             response_type: content
@@ -229,15 +197,6 @@ class Api:
 
 
 def get_error_message(exception: Exception) -> str:
-    """
-    Generates a formatted error message from an exception.
-
-    Args:
-        exception (Exception): The exception to format.
-
-    Returns:
-        str: A formatted error message string.
-    """
     message = f"{type(exception).__name__}: {exception}"
     provider = get_last_provider()
     if provider is None:

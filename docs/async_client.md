@@ -10,6 +10,7 @@ The G4F async client API is designed to be compatible with the OpenAI API, makin
    - [Key Features](#key-features)
    - [Getting Started](#getting-started)
    - [Initializing the Client](#initializing-the-client)
+   - [Creating Chat Completions](#creating-chat-completions)
    - [Configuration](#configuration)
    - [Usage Examples](#usage-examples)
    - [Text Completions](#text-completions)
@@ -51,6 +52,28 @@ client = Client(
 )
 ```
 
+
+## Creating Chat Completions
+**Here’s an improved example of creating chat completions:**
+```python
+response = await async_client.chat.completions.create(
+    model="gpt-3.5-turbo",
+    messages=[
+        {
+            "role": "user",
+            "content": "Say this is a test"
+        }
+    ]
+     # Add other parameters as needed
+)
+```
+
+**This example:**
+   - Asks a specific question `Say this is a test`
+   - Configures various parameters like temperature and max_tokens for more control over the output
+   - Disables streaming for a complete response
+
+You can adjust these parameters based on your specific needs.
   
 
 ### Configuration
@@ -164,7 +187,7 @@ async def main():
     
     response = await client.images.async_generate(
         prompt="a white siamese cat",
-        model="dall-e-3"
+        model="flux"
     )
     
     image_url = response.data[0].url
@@ -185,7 +208,7 @@ async def main():
     
     response = await client.images.async_generate(
         prompt="a white siamese cat",
-        model="dall-e-3",
+        model="flux",
         response_format="b64_json"
     )
     
@@ -217,7 +240,7 @@ async def main():
     )
     
     task2 = client.images.async_generate(
-        model="dall-e-3",
+        model="flux",
         prompt="a white siamese cat"
     )
     

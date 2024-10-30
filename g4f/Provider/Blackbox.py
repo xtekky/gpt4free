@@ -51,7 +51,6 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         'ReactAgent',
         'XcodeAgent',
         'AngularJSAgent',
-        'RepoMap',
     ]
 
     agentMode = {
@@ -78,7 +77,6 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         'ReactAgent': {'mode': True, 'id': "React Agent"},
         'XcodeAgent': {'mode': True, 'id': "Xcode Agent"},
         'AngularJSAgent': {'mode': True, 'id': "AngularJS Agent"},
-        'RepoMap': {'mode': True, 'id': "repomap"},
     }
 
     userSelectedModel = {
@@ -174,7 +172,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         proxy: Optional[str] = None,
         image: ImageType = None,
         image_name: str = None,
-        websearch: bool = False,
+        web_search: bool = False,
         **kwargs
     ) -> AsyncGenerator[Union[str, ImageResponse], None]:
         """
@@ -186,7 +184,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
             proxy (Optional[str]): Proxy URL, if needed.
             image (ImageType): Image data to be processed, if any.
             image_name (str): Name of the image file, if an image is provided.
-            websearch (bool): Enables or disables web search mode.
+            web_search (bool): Enables or disables web search mode.
             **kwargs: Additional keyword arguments.
 
         Yields:
@@ -276,7 +274,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
             "clickedForceWebSearch": False,
             "visitFromDelta": False,
             "mobileClient": False,
-            "webSearchMode": websearch,
+            "webSearchMode": web_search,
             "userSelectedModel": cls.userSelectedModel.get(model, model)
         }
 
@@ -313,7 +311,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
                         else:
                             yield cleaned_response
                     else:
-                        if websearch:
+                        if web_search:
                             match = re.search(r'\$~~~\$(.*?)\$~~~\$', cleaned_response, re.DOTALL)
                             if match:
                                 source_part = match.group(1).strip()

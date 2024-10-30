@@ -60,10 +60,6 @@ class AiMathGPT(AsyncGeneratorProvider, ProviderModelMixin):
             data = {
                 "messages": [
                     {
-                        "role": "system",
-                        "content": ""
-                    },
-                    {
                         "role": "user",
                         "content": format_prompt(messages)
                     }
