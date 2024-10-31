@@ -191,7 +191,7 @@ from g4f.client import Client
 
 client = Client()
 response = client.images.generate(
-    model="dall-e-3",
+    model="flux",
     prompt="a white siamese cat",
     # Add any other necessary parameters
 )
