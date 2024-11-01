@@ -11,7 +11,7 @@ from .helper import format_prompt
 class AiChats(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://ai-chats.org"
     api_endpoint = "https://ai-chats.org/chat/send2/"
-    working = True
+    working = False
     supports_message_history = True
     default_model = 'gpt-4'
     models = ['gpt-4', 'dalle']
