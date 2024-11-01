@@ -16,12 +16,12 @@ This document provides an overview of various AI providers and models, including
 | Provider | Text Models | Image Models | Vision Models | Stream | Status | Auth |
 |----------|-------------|--------------|---------------|--------|--------|------|
 |[ai4chat.co](https://www.ai4chat.co)|`g4f.Provider.Ai4Chat`|`gpt-4`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
-|[chat.ai365vip.com](https://chat.ai365vip.com)|`g4f.Provider.AI365VIP`|`gpt-3.5-turbo, gpt-4o`|❌|❌|?|![Cloudflare](https://img.shields.io/badge/Cloudflare-f48d37)|❌|
+|[chat.ai365vip.com](https://chat.ai365vip.com)|`g4f.Provider.AI365VIP`|✔|❌|❌|?|![Cloudflare](https://img.shields.io/badge/Cloudflare-f48d37)|❌|
 |[aichatfree.info](https://aichatfree.info)|`g4f.Provider.AIChatFree`|`gemini-pro`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[aichatonline.org](https://aichatonline.org)|`g4f.Provider.AiChatOnline`|`gpt-4o-mini`|❌|❌|?|![Cloudflare](https://img.shields.io/badge/Cloudflare-f48d37)|❌|
 |[ai-chats.org](https://ai-chats.org)|`g4f.Provider.AiChats`|`gpt-4`|`dalle`|❌|?|![Captcha](https://img.shields.io/badge/Captcha-f48d37)|❌|
 |[api.airforce](https://api.airforce)|`g4f.Provider.AiMathGPT`|`llama-3.1-70b`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
-|[api.airforce](https://api.airforce)|`g4f.Provider.Airforce`|`gpt-4, gpt-4-turbo, gpt-4o-mini, gpt-3.5-turbo, gpt-4o, claude-3-haiku, claude-3-sonnet, claude-3-5-sonnet, claude-3-opus, llama-3-70b, llama-3-8b, llama-2-13b, llama-3.1-405b, llama-3.1-70b, llama-3.1-8b, llamaguard-2-8b, llamaguard-7b, llama-3.2-90b, mixtral-8x7b mixtral-8x22b, mistral-7b, qwen-1.5-7b, qwen-1.5-14b, qwen-1.5-72b, qwen-1.5-110b, qwen-2-72b, gemma-2b, gemma-2-9b, gemma-2-27b, gemini-flash, gemini-pro, deepseek, mixtral-8x7b-dpo, yi-34b, wizardlm-2-8x22b, solar-10.7b, mythomax-l2-13b, cosmosrp`|`flux, flux-realism', flux-anime, flux-3d, flux-disney, flux-pixel, flux-4o, any-dark, dalle-3`|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
+|[api.airforce](https://api.airforce)|`g4f.Provider.Airforce`|`claude-3-haiku, claude-3-sonnet, claude-3-opus, gpt-4, gpt-4-turbo, gpt-4o-mini, gpt-3.5-turbo, llama-3-70b, llama-3-8b, llama-2-13b, llama-3.1-405b, llama-3.1-70b, llama-3.1-8b, llamaguard-2-8b, llamaguard-7b, llama-3.2-90b, llamaguard-3-8b, llama-3.2-11b, llamaguard-3-11b, llama-3.2-3b, llama-3.2-1b, llama-2-7b, mixtral-8x7b, mixtral-8x22b, mythomax-13b, openchat-3.5, qwen-2-72b, qwen-2-5-7b, qwen-2-5-72b, gemma-2b, gemma-2-9b, gemma-2b-27b, gemini-flash, gemini-pro, dbrx-instruct, deepseek-coder, hermes-2-dpo, hermes-2, openhermes-2.5, wizardlm-2-8x22b, phi-2, solar-10-7b, cosmosrp, lfm-40b, german-7b, zephyr-7b`|`flux, flux-realism', flux-anime, flux-3d, flux-disney, flux-pixel, flux-4o, any-dark, dalle-3`|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[aiuncensored.info](https://www.aiuncensored.info)|`g4f.Provider.AIUncensored`|✔|✔|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[allyfy.chat](https://allyfy.chat/)|`g4f.Provider.Allyfy`|`gpt-3.5-turbo`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[amigochat.io/chat](https://amigochat.io/chat/)|`g4f.Provider.AmigoChat`|`gpt-4o, gpt-4o-mini, o1, o1-mini, claude-3.5-sonnet, llama-3.2-90b, llama-3.1-405b, gemini-pro`|`flux-pro, flux-realism, dalle-3`|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
@@ -131,6 +131,8 @@ This document provides an overview of various AI providers and models, including
 |mistral-nemo|Mistral AI|2+ Providers|[huggingface.co](https://huggingface.co/mistralai/Mistral-Nemo-Instruct-2407)|
 |mistral-large|Mistral AI|2+ Providers|[mistral.ai](https://mistral.ai/news/mistral-large-2407/)|
 |mixtral-8x7b-dpo|NousResearch|1+ Providers|[huggingface.co](https://huggingface.co/NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO)|
+|hermes-2-dpo|NousResearch|1+ Providers|[huggingface.co](https://huggingface.co/NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO)|
+|hermes-2|NousResearch|1+ Providers|[huggingface.co](https://huggingface.co/NousResearch/Hermes-2-Pro-Mistral-7B)|
 |yi-34b|NousResearch|1+ Providers|[huggingface.co](https://huggingface.co/NousResearch/Nous-Hermes-2-Yi-34B)|
 |hermes-3|NousResearch|2+ Providers|[huggingface.co](https://huggingface.co/NousResearch/Hermes-3-Llama-3.1-8B)|
 |gemini|Google DeepMind|1+ Providers|[deepmind.google](http://deepmind.google/technologies/gemini/)|
@@ -170,7 +172,7 @@ This document provides an overview of various AI providers and models, including
 |solar-10-7b|Upstage|1+ Providers|[huggingface.co](https://huggingface.co/upstage/SOLAR-10.7B-Instruct-v1.0)|
 |solar-pro|Upstage|1+ Providers|[huggingface.co](https://huggingface.co/upstage/solar-pro-preview-instruct)|
 |pi|Inflection|1+ Providers|[inflection.ai](https://inflection.ai/blog/inflection-2-5)|
-|deepseek|DeepSeek|1+ Providers|[deepseek.com](https://www.deepseek.com/)|
+|deepseek-coder|DeepSeek|1+ Providers|[huggingface.co](https://huggingface.co/deepseek-ai/DeepSeek-Coder-V2-Instruct)|
 |wizardlm-2-7b|WizardLM|1+ Providers|[huggingface.co](https://huggingface.co/dreamgen/WizardLM-2-7B)|
 |wizardlm-2-8x22b|WizardLM|2+ Providers|[huggingface.co](https://huggingface.co/alpindale/WizardLM-2-8x22B)|
 |sh-n-7b|Together|1+ Providers|[huggingface.co](https://huggingface.co/togethercomputer/StripedHyena-Nous-7B)|
@@ -190,6 +192,10 @@ This document provides an overview of various AI providers and models, including
 |german-7b|TheBloke|1+ Providers|[huggingface.co](https://huggingface.co/TheBloke/DiscoLM_German_7b_v1-GGUF)|
 |tinyllama-1.1b|TinyLlama|1+ Providers|[huggingface.co](https://huggingface.co/TinyLlama/TinyLlama-1.1B-Chat-v1.0)|
 |cybertron-7b|TheBloke|1+ Providers|[huggingface.co](https://huggingface.co/fblgit/una-cybertron-7b-v2-bf16)|
+|openhermes-2.5|Teknium|1+ Providers|[huggingface.co](https://huggingface.co/datasets/teknium/OpenHermes-2.5)|
+|lfm-40b|Liquid|1+ Providers|[liquid.ai](https://www.liquid.ai/liquid-foundation-models)|
+|zephyr-7b|HuggingFaceH4|1+ Providers|[huggingface.co](https://huggingface.co/HuggingFaceH4/zephyr-7b-beta)|
+
 
 ### Image Models
 | Model | Base Provider | Providers | Website |
