@@ -88,7 +88,6 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
     model_prefixes = {
         'gpt-4o': '@GPT-4o',
         'gemini-pro': '@Gemini-PRO',
-        'claude-sonnet-3.5': '@Claude-Sonnet-3.5',
         'PythonAgent': '@Python Agent',
         'JavaAgent': '@Java Agent',
         'JavaScriptAgent': '@JavaScript Agent',
