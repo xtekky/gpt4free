@@ -8,6 +8,7 @@ from .Provider import (
     AIChatFree,
     AiMathGPT,
     Airforce,
+    AIUncensored,
     Allyfy,
     AmigoChat,
     Bing,
@@ -109,6 +110,7 @@ default = Model(
         Cloudflare,
         Editee,
         AiMathGPT,
+        AIUncensored,
     ])
 )
 
@@ -808,7 +810,7 @@ playground_v2_5 = Model(
 flux = Model(
     name = 'flux',
     base_provider = 'Flux AI',
-    best_provider = IterListProvider([Blackbox, Airforce])
+    best_provider = IterListProvider([Blackbox, AIUncensored, Airforce])
     
 )
 
