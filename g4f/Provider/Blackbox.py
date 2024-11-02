@@ -274,7 +274,8 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
             "visitFromDelta": False,
             "mobileClient": False,
             "webSearchMode": web_search,
-            "userSelectedModel": cls.userSelectedModel.get(model, model)
+            "userSelectedModel": cls.userSelectedModel.get(model, model),
+            "validated": "69783381-2ce4-4dbd-ac78-35e9063feabc"
         }
 
         headers_chat = {

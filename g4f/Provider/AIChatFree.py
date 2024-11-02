@@ -14,7 +14,7 @@ from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 
 class AIChatFree(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://aichatfree.info/"
-    working = True
+    working = False
     supports_stream = True
     supports_message_history = True
     default_model = 'gemini-pro'
