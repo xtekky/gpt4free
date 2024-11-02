@@ -10,7 +10,6 @@ from .Provider import (
     Airforce,
     AIUncensored,
     Allyfy,
-    AmigoChat,
     Bing,
     Blackbox,
     ChatGpt,
@@ -105,7 +104,6 @@ default = Model(
         ChatHub,
         ChatGptEs,
         ChatHub,
-        AmigoChat,
         ChatifyAI,
         Cloudflare,
         Editee,
@@ -139,13 +137,13 @@ gpt_35_turbo = Model(
 gpt_4o = Model(
     name          = 'gpt-4o',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([NexraChatGPT, Blackbox, ChatGptEs, AmigoChat, DarkAI, Editee, GizAI, Airforce, Liaobots, OpenaiChat])
+    best_provider = IterListProvider([NexraChatGPT, Blackbox, ChatGptEs, DarkAI, Editee, GizAI, Airforce, Liaobots, OpenaiChat])
 )
 
 gpt_4o_mini = Model(
     name          = 'gpt-4o-mini',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([DDG, ChatGptEs, FreeNetfly, Pizzagpt, MagickPen, AmigoChat, RubiksAI, Liaobots, Airforce, GizAI, ChatgptFree, Koala, OpenaiChat, ChatGpt])
+    best_provider = IterListProvider([DDG, ChatGptEs, FreeNetfly, Pizzagpt, MagickPen, RubiksAI, Liaobots, Airforce, GizAI, ChatgptFree, Koala, OpenaiChat, ChatGpt])
 )
 
 gpt_4_turbo = Model(
@@ -164,13 +162,13 @@ gpt_4 = Model(
 o1 = Model(
     name          = 'o1',
     base_provider = 'OpenAI',
-    best_provider = AmigoChat
+    best_provider = None
 )
 
 o1_mini = Model(
     name          = 'o1-mini',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([AmigoChat, GizAI])
+    best_provider = IterListProvider([GizAI])
 )
 
 
@@ -231,7 +229,7 @@ llama_3_1_70b = Model(
 llama_3_1_405b = Model(
     name          = "llama-3.1-405b",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider([DeepInfraChat, Blackbox, AmigoChat, DarkAI, Airforce])
+    best_provider = IterListProvider([DeepInfraChat, Blackbox, DarkAI, Airforce])
 )
 
 # llama 3.2
@@ -256,7 +254,7 @@ llama_3_2_11b = Model(
 llama_3_2_90b = Model(
     name          = "llama-3.2-90b",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider([AmigoChat, Airforce])
+    best_provider = IterListProvider([Airforce])
 )
 
 
@@ -362,7 +360,7 @@ phi_3_5_mini = Model(
 gemini_pro = Model(
     name          = 'gemini-pro',
     base_provider = 'Google DeepMind',
-    best_provider = IterListProvider([GeminiPro, Blackbox, AIChatFree, GPROChat, NexraGeminiPro, AmigoChat, Editee, GizAI, Airforce, Liaobots])
+    best_provider = IterListProvider([GeminiPro, Blackbox, AIChatFree, GPROChat, NexraGeminiPro, Editee, GizAI, Airforce, Liaobots])
 )
 
 gemini_flash = Model(
@@ -440,7 +438,7 @@ claude_3_haiku = Model(
 claude_3_5_sonnet = Model(
     name          = 'claude-3.5-sonnet',
     base_provider = 'Anthropic',
-    best_provider = IterListProvider([Blackbox, Editee, AmigoChat, GizAI, Liaobots])
+    best_provider = IterListProvider([Blackbox, Editee, GizAI, Liaobots])
 )
 
 
@@ -817,14 +815,14 @@ flux = Model(
 flux_pro = Model(
     name = 'flux-pro',
     base_provider = 'Flux AI',
-    best_provider = IterListProvider([NexraFluxPro, AmigoChat])
+    best_provider = IterListProvider([NexraFluxPro])
     
 )
 
 flux_realism = Model(
     name = 'flux-realism',
     base_provider = 'Flux AI',
-    best_provider = IterListProvider([Airforce, AmigoChat])
+    best_provider = IterListProvider([Airforce])
     
 )
 
