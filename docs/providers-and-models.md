@@ -1,4 +1,5 @@
 
+
 # G4F - Providers and Models
 
 This document provides an overview of various AI providers and models, including text generation, image generation, and vision capabilities. It aims to help users navigate the diverse landscape of AI services and choose the most suitable option for their needs.
@@ -9,6 +10,7 @@ This document provides an overview of various AI providers and models, including
     - [Text Models](#text-models)
     - [Image Models](#image-models)
     - [Vision Models](#vision-models)
+       - [Providers and vision models](#providers-and-vision-models)
   - [Conclusion and Usage Tips](#conclusion-and-usage-tips)
 
 ---
@@ -25,7 +27,7 @@ This document provides an overview of various AI providers and models, including
 |[aiuncensored.info](https://www.aiuncensored.info)|`g4f.Provider.AIUncensored`|✔|✔|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[allyfy.chat](https://allyfy.chat/)|`g4f.Provider.Allyfy`|`gpt-3.5-turbo`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[amigochat.io/chat](https://amigochat.io/chat/)|`g4f.Provider.AmigoChat`|✔|✔|❌|✔|![Cloudflare](https://img.shields.io/badge/Cloudflare-f48d37)|❌|
-|[openchat.team](https://openchat.team/)|`g4f.Provider.Aura`|✔|❌|❌|?|![Disabled](https://img.shields.io/badge/Disabled-red)|❌|
+|[openchat.team](https://openchat.team/)|`g4f.Provider.Aura`|✔|❌|❌|?|![Cloudflare](https://img.shields.io/badge/Cloudflare-f48d37)![Disabled](https://img.shields.io/badge/Disabled-red)|❌|
 |[bing.com](https://bing.com/chat)|`g4f.Provider.Bing`|`gpt-4`|✔|`gpt-4-vision`|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌+✔|
 |[bing.com/images](https://www.bing.com/images/create)|`g4f.Provider.BingCreateImages`|`❌|✔|❌|❌|![Active](https://img.shields.io/badge/Active-brightgreen)|✔|
 |[blackbox.ai](https://www.blackbox.ai)|`g4f.Provider.Blackbox`|`blackboxai, blackboxai-pro, gemini-flash, llama-3.1-8b, llama-3.1-70b, gpt-4o, gemini-pro, claude-3.5-sonnet`|`flux`|✔|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
@@ -33,8 +35,8 @@ This document provides an overview of various AI providers and models, including
 |[chatgpt.com](https://chatgpt.com)|`g4f.Provider.ChatGpt`|`?`|`?`|`?`|?|![Unknown](https://img.shields.io/badge/Unknown-grey) |❌|
 |[chatgpt.es](https://chatgpt.es)|`g4f.Provider.ChatGptEs`|`gpt-4o, gpt-4o-mini`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[chatgpt4online.org](https://chatgpt4online.org)|`g4f.Provider.Chatgpt4Online`|`gpt-4`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
-|[chatgpt4o.one](https://chatgpt4o.one)|`g4f.Provider.Chatgpt4o`|✔|❌|❌|❌|![Cloudflare](https://img.shields.io/badge/Cloudflare-f48d37)|❌|
-|[chatgptfree.ai](https://chatgptfree.ai)|`g4f.Provider.ChatgptFree`|`gpt-4o-mini`|❌|❌|?|![Cloudflare](https://img.shields.io/badge/Cloudflare-f48d37)|❌|
+|[chatgpt4o.one](https://chatgpt4o.one)|`g4f.Provider.Chatgpt4o`|✔|❌|❌|❌|![Disabled](https://img.shields.io/badge/Disabled-red)![Cloudflare](https://img.shields.io/badge/Cloudflare-f48d37)|❌|
+|[chatgptfree.ai](https://chatgptfree.ai)|`g4f.Provider.ChatgptFree`|`gpt-4o-mini`|❌|❌|?|![Disabled](https://img.shields.io/badge/Disabled-red)![Cloudflare](https://img.shields.io/badge/Cloudflare-f48d37)|❌|
 |[app.chathub.gg](https://app.chathub.gg)|`g4f.Provider.ChatHub`|`llama-3.1-8b, mixtral-8x7b, gemma-2, sonar-online`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[chatify-ai.vercel.app](https://chatify-ai.vercel.app)|`g4f.Provider.ChatifyAI`|`llama-3.1-8b`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[playground.ai.cloudflare.com](https://playground.ai.cloudflare.com)|`g4f.Provider.Cloudflare`|`german-7b, gemma-7b, llama-2-7b, llama-3-8b, llama-3.1-8b, llama-3.2-11b, llama-3.2-1b, llama-3.2-3b, mistral-7b, openchat-3.5, phi-2, qwen-1.5-0.5b, qwen-1.5-1.8b, qwen-1.5-14b, qwen-1.5-7b, tinyllama-1.1b, cybertron-7b`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
@@ -48,7 +50,7 @@ This document provides an overview of various AI providers and models, including
 |[chat10.free2gpt.xyz](chat10.free2gpt.xyz)|`g4f.Provider.Free2GPT`|`llama-3.1-70b`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[chat.chatgpt.org.uk](https://chat.chatgpt.org.uk)|`g4f.Provider.FreeChatgpt`|`qwen-1.5-14b, sparkdesk-v1.1, qwen-2-7b, glm-4-9b, glm-3-6b, yi-1.5-9b`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[freegptsnav.aifree.site](https://freegptsnav.aifree.site)|`g4f.Provider.FreeGpt`|`llama-3.1-70b`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
-|[free.netfly.top](https://free.netfly.top)|`g4f.Provider.FreeNetfly`|✔|❌|❌|?|![Cloudflare](https://img.shields.io/badge/Cloudflare-f48d37)|❌|
+|[free.netfly.top](https://free.netfly.top)|`g4f.Provider.FreeNetfly`|✔|❌|❌|?|![Disabled](https://img.shields.io/badge/Disabled-red)![Cloudflare](https://img.shields.io/badge/Cloudflare-f48d37)|❌|
 |[gemini.google.com](https://gemini.google.com)|`g4f.Provider.Gemini`|✔|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|✔|
 |[ai.google.dev](https://ai.google.dev)|`g4f.Provider.GeminiPro`|✔|❌|✔|?|![Active](https://img.shields.io/badge/Active-brightgreen)|✔|
 |[app.giz.ai](https://app.giz.ai/assistant/)|`g4f.Provider.GizAI`|`gemini-flash, gemini-pro, gpt-4o-mini, gpt-4o, claude-3.5-sonnet, claude-3-haiku, llama-3.1-70b, llama-3.1-8b, mistral-large`|`sdxl, sd-1.5, sd-3.5, dalle-3, flux-schnell, flux1-pro`|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
@@ -57,7 +59,7 @@ This document provides an overview of various AI providers and models, including
 |[console.groq.com/playground](https://console.groq.com/playground)|`g4f.Provider.Groq`|✔|❌|❌|?|![Active](https://img.shields.io/badge/Active-brightgreen)|✔|
 |[huggingface.co/chat](https://huggingface.co/chat)|`g4f.Provider.HuggingChat`|`llama-3.1-70b, command-r-plus, qwen-2-72b, llama-3.2-11b, hermes-3, mistral-nemo, phi-3.5-mini`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[huggingface.co](https://huggingface.co/chat)|`g4f.Provider.HuggingFace`|✔|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
-|[koala.sh/chat](https://koala.sh/chat)|`g4f.Provider.Koala`|`gpt-4o-mini`|❌|❌|?|![Cloudflare](https://img.shields.io/badge/Cloudflare-f48d37)|❌|
+|[koala.sh/chat](https://koala.sh/chat)|`g4f.Provider.Koala`|`gpt-4o-mini`|❌|❌|?|![Disabled](https://img.shields.io/badge/Disabled-red)![Cloudflare](https://img.shields.io/badge/Cloudflare-f48d37)|❌|
 |[liaobots.work](https://liaobots.work)|`g4f.Provider.Liaobots`|`gpt-3.5-turbo, gpt-4o-mini, gpt-4o, gpt-4-turbo, grok-2, grok-2-mini, claude-3-opus, claude-3-sonnet, claude-3-5-sonnet, claude-3-haiku, claude-2.1, gemini-flash, gemini-pro`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[magickpen.com](https://magickpen.com)|`g4f.Provider.MagickPen`|`gpt-4o-mini`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[meta.ai](https://www.meta.ai)|`g4f.Provider.MetaAI`|✔|✔|?|?|![Active](https://img.shields.io/badge/Active-brightgreen)|✔|
@@ -81,7 +83,7 @@ This document provides an overview of various AI providers and models, including
 |[chatgpt.com](https://chatgpt.com/)|`g4f.Provider.OpenaiChat`|`gpt-4o, gpt-4o-mini, gpt-4`|❌|✔||![Unknown](https://img.shields.io/badge/Unknown-grey)|✔|
 |[www.perplexity.ai)](https://www.perplexity.ai)|`g4f.Provider.PerplexityAi`|✔|❌|❌|?|![Disabled](https://img.shields.io/badge/Disabled-red)|❌|
 |[perplexity.ai](https://www.perplexity.ai)|`g4f.Provider.PerplexityApi`|✔|❌|❌|?|![Unknown](https://img.shields.io/badge/Unknown-grey)|✔|
-|[labs.perplexity.ai](https://labs.perplexity.ai)|`g4f.Provider.PerplexityLabs`|`sonar-online, sonar-chat, llama-3.1-8b, llama-3.1-70b`|❌|❌|?|![Cloudflare](https://img.shields.io/badge/Cloudflare-f48d37)|❌|
+|[labs.perplexity.ai](https://labs.perplexity.ai)|`g4f.Provider.PerplexityLabs`|`sonar-online, sonar-chat, llama-3.1-8b, llama-3.1-70b`|❌|❌|?|![Disabled](https://img.shields.io/badge/Disabled-red)![Cloudflare](https://img.shields.io/badge/Cloudflare-f48d37)|❌|
 |[pi.ai/talk](https://pi.ai/talk)|`g4f.Provider.Pi`|`pi`|❌|❌|?|![Unknown](https://img.shields.io/badge/Unknown-grey)|❌|
 |[]()|`g4f.Provider.Pizzagpt`|`gpt-4o-mini`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[poe.com](https://poe.com)|`g4f.Provider.Poe`|✔|❌|❌|?|![Unknown](https://img.shields.io/badge/Unknown-grey)|✔|
@@ -229,6 +231,11 @@ This document provides an overview of various AI providers and models, including
 |gemini-pro-vision|Google DeepMind|1+ Providers | [deepmind.google](https://deepmind.google/technologies/gemini/)|
 |blackboxai|Blackbox AI|1+ Providers|[docs.blackbox.chat](https://docs.blackbox.chat/blackbox-ai-1)|
 |minicpm-llama-3-v2.5|OpenBMB|1+ Providers | [huggingface.co](https://huggingface.co/openbmb/MiniCPM-Llama3-V-2_5)|
+
+### Providers and vision models
+| Provider | Base Provider | | Vision Models | Status | Auth |
+|-------|---------------|-----------|---------|---------|---------|
+| `g4f.Provider.Blackbox` | Blackbox AI | | `blackboxai, blackboxai-pro, gemini-flash, llama-3.1-8b, llama-3.1-70b, gpt-4o, gemini-pro, claude-3.5-sonnet` | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
 
 ## Conclusion and Usage Tips
 This document provides a comprehensive overview of various AI providers and models available for text generation, image generation, and vision tasks. **When choosing a provider or model, consider the following factors:**
