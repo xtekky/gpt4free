@@ -30,7 +30,7 @@ This document provides an overview of various AI providers and models, including
 |[openchat.team](https://openchat.team/)|`g4f.Provider.Aura`|✔|❌|❌|?|![Cloudflare](https://img.shields.io/badge/Cloudflare-f48d37)![Disabled](https://img.shields.io/badge/Disabled-red)|❌|
 |[bing.com](https://bing.com/chat)|`g4f.Provider.Bing`|`gpt-4`|✔|`gpt-4-vision`|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌+✔|
 |[bing.com/images](https://www.bing.com/images/create)|`g4f.Provider.BingCreateImages`|`❌|✔|❌|❌|![Active](https://img.shields.io/badge/Active-brightgreen)|✔|
-|[blackbox.ai](https://www.blackbox.ai)|`g4f.Provider.Blackbox`|`blackboxai, blackboxai-pro, gemini-flash, llama-3.1-8b, llama-3.1-70b, gpt-4o, gemini-pro, claude-3.5-sonnet`|`flux`|✔|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
+|[blackbox.ai](https://www.blackbox.ai)|`g4f.Provider.Blackbox`|`blackboxai, blackboxai-pro, gemini-flash, llama-3.1-8b, llama-3.1-70b, llama-3.1-405b, gpt-4o, gemini-pro, claude-3.5-sonnet`|`flux`|`blackboxai, gemini-flash, llama-3.1-8b, llama-3.1-70b, llama-3.1-405b, gpt-4o, gemini-pro`|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[chatgot.one](https://www.chatgot.one/)|`g4f.Provider.ChatGot`|`gemini-pro`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[chatgpt.com](https://chatgpt.com)|`g4f.Provider.ChatGpt`|`?`|`?`|`?`|?|![Unknown](https://img.shields.io/badge/Unknown-grey) |❌|
 |[chatgpt.es](https://chatgpt.es)|`g4f.Provider.ChatGptEs`|`gpt-4o, gpt-4o-mini`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
@@ -53,7 +53,7 @@ This document provides an overview of various AI providers and models, including
 |[free.netfly.top](https://free.netfly.top)|`g4f.Provider.FreeNetfly`|✔|❌|❌|?|![Disabled](https://img.shields.io/badge/Disabled-red)![Cloudflare](https://img.shields.io/badge/Cloudflare-f48d37)|❌|
 |[gemini.google.com](https://gemini.google.com)|`g4f.Provider.Gemini`|✔|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|✔|
 |[ai.google.dev](https://ai.google.dev)|`g4f.Provider.GeminiPro`|✔|❌|✔|?|![Active](https://img.shields.io/badge/Active-brightgreen)|✔|
-|[app.giz.ai](https://app.giz.ai/assistant/)|`g4f.Provider.GizAI`|`gemini-flash, gemini-pro, gpt-4o-mini, gpt-4o, claude-3.5-sonnet, claude-3-haiku, llama-3.1-70b, llama-3.1-8b, mistral-large`|`sdxl, sd-1.5, sd-3.5, dalle-3, flux-schnell, flux1-pro`|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
+|[app.giz.ai](https://app.giz.ai/assistant/)|`g4f.Provider.GizAI`|`gemini-flash`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[developers.sber.ru](https://developers.sber.ru/gigachat)|`g4f.Provider.GigaChat`|✔|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|✔|
 |[gprochat.com](https://gprochat.com)|`g4f.Provider.GPROChat`|`gemini-pro`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[console.groq.com/playground](https://console.groq.com/playground)|`g4f.Provider.Groq`|✔|❌|❌|?|![Active](https://img.shields.io/badge/Active-brightgreen)|✔|
@@ -112,8 +112,8 @@ This document provides an overview of various AI providers and models, including
 |gpt-4-turbo|OpenAI|3+ Providers|[platform.openai.com](https://platform.openai.com/docs/models/gpt-4-turbo-and-gpt-4)|
 |gpt-4o|OpenAI|10+ Providers|[platform.openai.com](https://platform.openai.com/docs/models/gpt-4o)|
 |gpt-4o-mini|OpenAI|14+ Providers|[platform.openai.com](https://platform.openai.com/docs/models/gpt-4o-mini)|
-|o1|OpenAI|1+ Providers|[platform.openai.com](https://openai.com/index/introducing-openai-o1-preview/)|
-|o1-mini|OpenAI|2+ Providers|[platform.openai.com](https://openai.com/index/openai-o1-mini-advancing-cost-efficient-reasoning/)|
+|o1|OpenAI|0+ Providers|[platform.openai.com](https://openai.com/index/introducing-openai-o1-preview/)|
+|o1-mini|OpenAI|0+ Providers|[platform.openai.com](https://openai.com/index/openai-o1-mini-advancing-cost-efficient-reasoning/)|
 |llama-2-7b|Meta Llama|1+ Providers|[huggingface.co](https://huggingface.co/meta-llama/Llama-2-7b)|
 |llama-2-13b|Meta Llama|1+ Providers|[llama.com](https://www.llama.com/llama2/)|
 |llama-3-8b|Meta Llama|4+ Providers|[ai.meta.com](https://ai.meta.com/blog/meta-llama-3/)|
@@ -207,7 +207,6 @@ This document provides an overview of various AI providers and models, including
 |sdxl-turbo|Stability AI|1+ Providers|[huggingface.co](https://huggingface.co/stabilityai/sdxl-turbo)|
 |sd-1.5|Stability AI|1+ Providers|[huggingface.co](https://huggingface.co/runwayml/stable-diffusion-v1-5)|
 |sd-3|Stability AI|1+ Providers|[huggingface.co](https://huggingface.co/docs/diffusers/main/en/api/pipelines/stable_diffusion/stable_diffusion_3)|
-|sd-3.5|Stability AI|1+ Providers|[stability.ai](https://stability.ai/news/introducing-stable-diffusion-3-5)|
 |playground-v2.5|Playground AI|1+ Providers|[huggingface.co](https://huggingface.co/playgroundai/playground-v2.5-1024px-aesthetic)|
 |flux|Black Forest Labs|2+ Providers|[github.com/black-forest-labs/flux](https://github.com/black-forest-labs/flux)|
 |flux-pro|Black Forest Labs|2+ Providers|[github.com/black-forest-labs/flux](https://github.com/black-forest-labs/flux)|
@@ -235,7 +234,7 @@ This document provides an overview of various AI providers and models, including
 ### Providers and vision models
 | Provider | Base Provider | | Vision Models | Status | Auth |
 |-------|---------------|-----------|---------|---------|---------|
-| `g4f.Provider.Blackbox` | Blackbox AI | | `blackboxai, blackboxai-pro, gemini-flash, llama-3.1-8b, llama-3.1-70b, gpt-4o, gemini-pro, claude-3.5-sonnet` | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
+| `g4f.Provider.Blackbox` | Blackbox AI | | `blackboxai, gemini-flash, llama-3.1-8b, llama-3.1-70b, llama-3.1-405b, gpt-4o, gemini-pro` | ![Active](https://img.shields.io/badge/Active-brightgreen) | ❌ |
 
 ## Conclusion and Usage Tips
 This document provides a comprehensive overview of various AI providers and models available for text generation, image generation, and vision tasks. **When choosing a provider or model, consider the following factors:**
