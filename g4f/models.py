@@ -130,7 +130,7 @@ gpt_3 = Model(
 gpt_35_turbo = Model(
     name          = 'gpt-3.5-turbo',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([Allyfy, NexraChatGPT, DarkAI, Airforce, Liaobots])
+    best_provider = IterListProvider([DarkAI, NexraChatGPT, Airforce, Liaobots, Allyfy])
 )
 
 # gpt-4
