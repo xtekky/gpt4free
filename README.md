@@ -288,7 +288,7 @@ To utilize the OpenaiChat provider, a .har file is required from https://chatgpt
 
 ##### Storing the .HAR File
 
-- Place the exported .har file in the `./har_and_cookies` directory if you are using Docker. Alternatively, you can store it in any preferred location within your current working directory.
+- Place the exported .har file in the `./har_and_cookies` directory if you are using Docker. Alternatively, if you are using Python from a terminal, you can store it in a `./har_and_cookies` directory within your current working directory.
 
 Note: Ensure that your .har file is stored securely, as it may contain sensitive information.
 
