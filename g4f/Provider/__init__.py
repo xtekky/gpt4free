@@ -26,7 +26,6 @@ from .Aura             import Aura
 from .Bing             import Bing
 from .BingCreateImages import BingCreateImages
 from .Blackbox         import Blackbox
-from .ChatGot          import ChatGot
 from .ChatGpt          import ChatGpt
 from .Chatgpt4Online   import Chatgpt4Online
 from .Chatgpt4o        import Chatgpt4o
