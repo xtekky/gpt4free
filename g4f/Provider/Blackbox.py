@@ -33,6 +33,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         "gemini-1.5-flash": {'mode': True, 'id': 'Gemini'},
         "llama-3.1-8b": {'mode': True, 'id': "llama-3.1-8b"},
         'llama-3.1-70b': {'mode': True, 'id': "llama-3.1-70b"},
+	'llama-3.1-405b': {'mode': True, 'id': "llama-3.1-405"},
         #
         'Python Agent': {'mode': True, 'id': "Python Agent"},
         'Java Agent': {'mode': True, 'id': "Java Agent"},
@@ -70,7 +71,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         'builder Agent': {'mode': True, 'id': "builder Agent"},
     }
     
-    model_prefixes = {mode: f"@{value['id']}" for mode, value in trendingAgentMode.items() if mode not in ["gemini-1.5-flash", "llama-3.1-8b", "llama-3.1-70b", "repomap"]}
+    model_prefixes = {mode: f"@{value['id']}" for mode, value in trendingAgentMode.items() if mode not in ["gemini-1.5-flash", "llama-3.1-8b", "llama-3.1-70b", "llama-3.1-405b", "repomap"]}
 
     
     models = [default_model, *userSelectedModel, *list(agentMode.keys()), *list(trendingAgentMode.keys())]
