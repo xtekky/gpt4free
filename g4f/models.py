@@ -15,7 +15,6 @@ from .Provider import (
     ChatGpt,
     Chatgpt4Online,
     ChatGptEs,
-    ChatgptFree,
     ChatifyAI,
     Cloudflare,
     DarkAI,
@@ -140,7 +139,7 @@ gpt_4o = Model(
 gpt_4o_mini = Model(
     name          = 'gpt-4o-mini',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([DDG, ChatGptEs, FreeNetfly, Pizzagpt, MagickPen, RubiksAI, Liaobots, ChatGpt, Airforce, ChatgptFree, Koala, OpenaiChat])
+    best_provider = IterListProvider([DDG, ChatGptEs, FreeNetfly, Pizzagpt, MagickPen, RubiksAI, Liaobots, ChatGpt, Airforce, Koala, OpenaiChat])
 )
 
 gpt_4_turbo = Model(
