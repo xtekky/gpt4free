@@ -16,7 +16,6 @@ from .Provider import (
     Chatgpt4Online,
     ChatGptEs,
     ChatgptFree,
-    ChatHub,
     ChatifyAI,
     Cloudflare,
     DarkAI,
@@ -101,9 +100,7 @@ default = Model(
         MagickPen,
         DeepInfraChat,
         Airforce, 
-        ChatHub,
         ChatGptEs,
-        ChatHub,
         ChatifyAI,
         Cloudflare,
         Editee,
@@ -217,7 +214,7 @@ llama_3_70b = Model(
 llama_3_1_8b = Model(
     name          = "llama-3.1-8b",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider([Blackbox, DeepInfraChat, ChatHub, Cloudflare, Airforce, PerplexityLabs])
+    best_provider = IterListProvider([Blackbox, DeepInfraChat, Cloudflare, Airforce, PerplexityLabs])
 )
 
 llama_3_1_70b = Model(
@@ -294,7 +291,7 @@ mistral_7b = Model(
 mixtral_8x7b = Model(
     name          = "mixtral-8x7b",
     base_provider = "Mistral",
-    best_provider = IterListProvider([DDG, ReplicateHome, DeepInfraChat, ChatHub, Airforce, DeepInfra])
+    best_provider = IterListProvider([DDG, ReplicateHome, DeepInfraChat, Airforce, DeepInfra])
 )
 
 mixtral_8x22b = Model(
@@ -395,12 +392,6 @@ gemma_7b = Model(
 )
 
 # gemma 2
-gemma_2 = Model(
-    name          = 'gemma-2',
-    base_provider = 'Google',
-    best_provider = ChatHub
-)
-
 gemma_2_9b = Model(
     name          = 'gemma-2-9b',
     base_provider = 'Google',
@@ -674,7 +665,7 @@ grok_2_mini = Model(
 sonar_online = Model(
     name = 'sonar-online',
     base_provider = 'Perplexity AI',
-    best_provider = IterListProvider([ChatHub, PerplexityLabs])
+    best_provider = IterListProvider([PerplexityLabs])
 )
 
 sonar_chat = Model(
@@ -992,7 +983,6 @@ class ModelUtils:
 'gemma-7b': gemma_7b,
 
 # gemma-2
-'gemma-2': gemma_2,
 'gemma-2-9b': gemma_2_9b,
 
 

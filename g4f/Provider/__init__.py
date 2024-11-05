@@ -31,7 +31,6 @@ from .Chatgpt4Online   import Chatgpt4Online
 from .Chatgpt4o        import Chatgpt4o
 from .ChatGptEs        import ChatGptEs
 from .ChatgptFree      import ChatgptFree
-from .ChatHub          import ChatHub
 from .ChatifyAI        import ChatifyAI
 from .Cloudflare       import Cloudflare
 from .DarkAI           import DarkAI
