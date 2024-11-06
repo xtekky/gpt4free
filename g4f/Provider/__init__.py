@@ -35,7 +35,6 @@ from .ChatifyAI        import ChatifyAI
 from .Cloudflare       import Cloudflare
 from .DarkAI           import DarkAI
 from .DDG              import DDG
-from .DeepInfra        import DeepInfra
 from .DeepInfraChat    import DeepInfraChat
 from .DeepInfraImage   import DeepInfraImage
 from .Editee           import Editee

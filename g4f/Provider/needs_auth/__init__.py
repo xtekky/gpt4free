@@ -1,3 +1,4 @@
+from .DeepInfra     import DeepInfra
 from .Gemini        import Gemini
 from .Raycast       import Raycast
 from .Theb          import Theb

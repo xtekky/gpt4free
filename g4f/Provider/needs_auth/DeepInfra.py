@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import requests
-from ..typing import AsyncResult, Messages
-from .needs_auth.Openai import Openai
+from ...typing import AsyncResult, Messages
+from .Openai import Openai
 
 class DeepInfra(Openai):
     label = "DeepInfra"
