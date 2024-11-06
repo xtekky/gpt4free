@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from aiohttp import ClientSession, BaseConnector
 
-from ..typing import AsyncResult, Messages, Cookies
-from ..requests.raise_for_status import raise_for_status
-from .base_provider import AsyncGeneratorProvider
-from .helper import get_cookies, get_connector, get_random_string
+from ...typing import AsyncResult, Messages, Cookies
+from ...requests.raise_for_status import raise_for_status
+from ..base_provider import AsyncGeneratorProvider
+from ..helper import get_cookies, get_connector, get_random_string
 
 class WhiteRabbitNeo(AsyncGeneratorProvider):
     url = "https://www.whiterabbitneo.com"

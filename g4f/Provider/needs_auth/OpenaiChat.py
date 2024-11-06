@@ -55,6 +55,7 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
     label = "OpenAI ChatGPT"
     url = "https://chatgpt.com"
     working = True
+    needs_auth = True
     supports_gpt_4 = True
     supports_message_history = True
     supports_system_message = True

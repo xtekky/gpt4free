@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from ..cookies import get_cookies
-from ..image import ImageResponse
-from ..errors import MissingAuthError
-from ..typing import AsyncResult, Messages, Cookies
-from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from .bing.create_images import create_images, create_session
+from ...cookies import get_cookies
+from ...image import ImageResponse
+from ...errors import MissingAuthError
+from ...typing import AsyncResult, Messages, Cookies
+from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from ..bing.create_images import create_images, create_session
 
 class BingCreateImages(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Microsoft Designer in Bing"

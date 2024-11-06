@@ -4,11 +4,11 @@ import base64
 import json
 from aiohttp import ClientSession, BaseConnector
 
-from ..typing import AsyncResult, Messages, ImageType
-from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from ..image import to_bytes, is_accepted_format
-from ..errors import MissingAuthError
-from .helper import get_connector
+from ...typing import AsyncResult, Messages, ImageType
+from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from ...image import to_bytes, is_accepted_format
+from ...errors import MissingAuthError
+from ..helper import get_connector
 
 class GeminiPro(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Gemini API"

@@ -17,7 +17,7 @@ from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from .helper import get_random_hex
 from .bing.upload_image import upload_image
 from .bing.conversation import Conversation, create_conversation, delete_conversation
-from .BingCreateImages import BingCreateImages
+from .needs_auth.BingCreateImages import BingCreateImages
 from .. import debug
 
 class Tones:
