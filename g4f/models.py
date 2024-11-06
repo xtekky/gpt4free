@@ -238,13 +238,13 @@ llama_3_2_1b = Model(
 llama_3_2_3b = Model(
     name          = "llama-3.2-3b",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider([Cloudflare, Airforce])
+    best_provider = IterListProvider([Airforce])
 )
 
 llama_3_2_11b = Model(
     name          = "llama-3.2-11b",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider([Cloudflare, HuggingChat, Airforce, HuggingFace])
+    best_provider = IterListProvider([HuggingChat, Airforce, HuggingFace])
 )
 
 llama_3_2_90b = Model(
@@ -284,7 +284,7 @@ llamaguard_3_11b = Model(
 mistral_7b = Model(
     name          = "mistral-7b",
     base_provider = "Mistral",
-    best_provider = IterListProvider([DeepInfraChat, Cloudflare, Airforce, DeepInfra])
+    best_provider = IterListProvider([DeepInfraChat, Airforce, DeepInfra])
 )
 
 mixtral_8x7b = Model(
@@ -479,9 +479,9 @@ sparkdesk_v1_1 = Model(
 
 
 ### Qwen ###
-# qwen 1
-qwen_1_5_0_5b = Model(
-    name = 'qwen-1.5-0.5b',
+# qwen 1_5
+qwen_1_5_5b = Model(
+    name = 'qwen-1.5-5b',
     base_provider = 'Qwen',
     best_provider = Cloudflare
 )
@@ -489,13 +489,19 @@ qwen_1_5_0_5b = Model(
 qwen_1_5_7b = Model(
     name = 'qwen-1.5-7b',
     base_provider = 'Qwen',
-    best_provider = IterListProvider([Cloudflare])
+    best_provider = Cloudflare
+)
+
+qwen_1_5_8b = Model(
+    name = 'qwen-1.5-8b',
+    base_provider = 'Qwen',
+    best_provider = Cloudflare
 )
 
 qwen_1_5_14b = Model(
     name = 'qwen-1.5-14b',
     base_provider = 'Qwen',
-    best_provider = IterListProvider([FreeChatgpt, Cloudflare])
+    best_provider = IterListProvider([Cloudflare, FreeChatgpt])
 )
 
 # qwen 2
@@ -617,12 +623,6 @@ lzlv_70b = Model(
 
 
 ### OpenChat ###
-openchat_3_5 = Model(
-    name = 'openchat-3.5',
-    base_provider = 'OpenChat',
-    best_provider = IterListProvider([Cloudflare])
-)
-
 openchat_3_6_8b = Model(
     name = 'openchat-3.6-8b',
     base_provider = 'OpenChat',
@@ -672,22 +672,6 @@ sonar_chat = Model(
     base_provider = 'Perplexity AI',
     best_provider = PerplexityLabs
 )
-
-### TheBloke ### 
-german_7b = Model(
-    name = 'german-7b',
-    base_provider = 'TheBloke',
-    best_provider = Cloudflare
-)
-
-
-### Fblgit ### 
-cybertron_7b = Model(
-    name = 'cybertron-7b',
-    base_provider = 'Fblgit',
-    best_provider = Cloudflare
-)
-
 
 ### Nvidia ### 
 nemotron_70b = Model(
@@ -1024,10 +1008,17 @@ class ModelUtils:
         
 ### Qwen ###
 'qwen': qwen,
-'qwen-1.5-0.5b': qwen_1_5_0_5b,
+
+# qwen-1.5
+'qwen-1.5-5b': qwen_1_5_5b,
 'qwen-1.5-7b': qwen_1_5_7b,
+'qwen-1.5-8b': qwen_1_5_8b,
 'qwen-1.5-14b': qwen_1_5_14b,
+
+# qwen-2
 'qwen-2-72b': qwen_2_72b,
+
+# qwen-2-5
 'qwen-2-5-7b': qwen_2_5_7b,
 'qwen-2-5-72b': qwen_2_5_72b,
         
@@ -1073,7 +1064,6 @@ class ModelUtils:
      
         
 ### OpenChat ###
-'openchat-3.5': openchat_3_5,
 'openchat-3.6-8b': openchat_3_6_8b,
 
 
@@ -1097,10 +1087,6 @@ class ModelUtils:
         
 ### TheBloke ###   
 'german-7b': german_7b,
-
-
-### Fblgit ###   
-'cybertron-7b': cybertron_7b,
         
         
 ### Nvidia ###   
