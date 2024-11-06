@@ -4,10 +4,10 @@ import json
 import uuid
 from aiohttp import ClientSession, ClientTimeout, ClientResponseError
 
-from ..typing import AsyncResult, Messages
-from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from .helper import format_prompt
-from ..image import ImageResponse
+from ...typing import AsyncResult, Messages
+from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from ..helper import format_prompt
+from ...image import ImageResponse
 
 class AmigoChat(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://amigochat.io/chat/"

@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import re
-from ..requests import StreamSession, raise_for_status
-from ..typing import Messages
-from .base_provider import AsyncProvider, ProviderModelMixin
-from .helper import format_prompt
+from ...requests import StreamSession, raise_for_status
+from ...typing import Messages
+from ..base_provider import AsyncProvider, ProviderModelMixin
+from ..helper import format_prompt
 
 
 class Chatgpt4o(AsyncProvider, ProviderModelMixin):

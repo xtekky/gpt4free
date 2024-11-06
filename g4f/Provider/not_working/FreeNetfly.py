@@ -5,14 +5,14 @@ import asyncio
 from aiohttp import ClientSession, ClientTimeout, ClientError
 from typing import AsyncGenerator
 
-from ..typing import AsyncResult, Messages
-from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from ...typing import AsyncResult, Messages
+from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
 
 
 class FreeNetfly(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://free.netfly.top"
     api_endpoint = "/api/openai/v1/chat/completions"
-    working = True
+    working = False
     default_model = 'gpt-3.5-turbo'
     models = [
         'gpt-3.5-turbo',

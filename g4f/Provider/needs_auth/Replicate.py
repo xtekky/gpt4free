@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from .helper import format_prompt, filter_none
-from ..typing import AsyncResult, Messages
-from ..requests import raise_for_status
-from ..requests.aiohttp import StreamSession
-from ..errors import ResponseError, MissingAuthError
+from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from ..helper import format_prompt, filter_none
+from ...typing import AsyncResult, Messages
+from ...requests import raise_for_status
+from ...requests.aiohttp import StreamSession
+from ...errors import ResponseError, MissingAuthError
 
 class Replicate(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://replicate.com"

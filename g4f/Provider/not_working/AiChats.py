@@ -3,10 +3,10 @@ from __future__ import annotations
 import json
 import base64
 from aiohttp import ClientSession
-from ..typing import AsyncResult, Messages
-from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from ..image import ImageResponse
-from .helper import format_prompt
+from ...typing import AsyncResult, Messages
+from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from ...image import ImageResponse
+from ..helper import format_prompt
 
 class AiChats(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://ai-chats.org"

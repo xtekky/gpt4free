@@ -1,15 +1,15 @@
 from __future__ import annotations
 
-from ..locals.models import get_models
+from ...locals.models import get_models
 try:
-    from ..locals.provider import LocalProvider
+    from ...locals.provider import LocalProvider
     has_requirements = True
 except ImportError:
     has_requirements = False
 
-from ..typing import Messages, CreateResult
-from ..providers.base_provider import AbstractProvider, ProviderModelMixin
-from ..errors import MissingRequirementsError
+from ...typing import Messages, CreateResult
+from ...providers.base_provider import AbstractProvider, ProviderModelMixin
+from ...errors import MissingRequirementsError
 
 class Local(AbstractProvider, ProviderModelMixin):
     label = "GPT4All"

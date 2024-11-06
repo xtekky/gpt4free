@@ -3,10 +3,10 @@ from __future__ import annotations
 import re
 import json
 import asyncio
-from ..requests import StreamSession, raise_for_status
-from ..typing import Messages, AsyncGenerator
-from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from .helper import format_prompt
+from ...requests import StreamSession, raise_for_status
+from ...typing import Messages, AsyncGenerator
+from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from ..helper import format_prompt
 
 class ChatgptFree(AsyncGeneratorProvider, ProviderModelMixin):
     url                   = "https://chatgptfree.ai"

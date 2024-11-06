@@ -3,13 +3,13 @@ from __future__ import annotations
 import json
 from aiohttp import ClientSession, BaseConnector
 
-from ..typing import AsyncResult, Messages
-from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from .helper import get_connector
-from ..errors import RateLimitError, ModelNotFoundError
-from ..requests.raise_for_status import raise_for_status
+from ...typing import AsyncResult, Messages
+from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from ..helper import get_connector
+from ...errors import RateLimitError, ModelNotFoundError
+from ...requests.raise_for_status import raise_for_status
 
-from .HuggingChat import HuggingChat
+from ..HuggingChat import HuggingChat
 
 class HuggingFace(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://huggingface.co/chat"

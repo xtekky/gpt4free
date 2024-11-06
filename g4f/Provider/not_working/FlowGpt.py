@@ -5,10 +5,10 @@ import time
 import hashlib
 from aiohttp import ClientSession
 
-from ..typing import AsyncResult, Messages
-from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from .helper import get_random_hex, get_random_string
-from ..requests.raise_for_status import raise_for_status
+from ...typing import AsyncResult, Messages
+from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from ..helper import get_random_hex, get_random_string
+from ...requests.raise_for_status import raise_for_status
 
 class FlowGpt(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://flowgpt.com/chat"

@@ -9,10 +9,10 @@ import json
 from aiohttp import ClientSession, TCPConnector, BaseConnector
 from g4f.requests import raise_for_status
 
-from ...typing import AsyncResult, Messages
-from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from ...errors import MissingAuthError
-from ..helper import get_connector
+from ....typing import AsyncResult, Messages
+from ...base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from ....errors import MissingAuthError
+from ...helper import get_connector
 
 access_token = ""
 token_expires_at = 0

@@ -18,16 +18,11 @@ This document provides an overview of various AI providers and models, including
 | Provider | Text Models | Image Models | Vision Models | Stream | Status | Auth |
 |----------|-------------|--------------|---------------|--------|--------|------|
 |[ai4chat.co](https://www.ai4chat.co)|`g4f.Provider.Ai4Chat`|`gpt-4`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
-|[chat.ai365vip.com](https://chat.ai365vip.com)|`g4f.Provider.AI365VIP`|✔|❌|❌|?|![Cloudflare](https://img.shields.io/badge/Cloudflare-f48d37)|❌|
 |[aichatfree.info](https://aichatfree.info)|`g4f.Provider.AIChatFree`|`gemini-pro`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
-|[aichatonline.org](https://aichatonline.org)|`g4f.Provider.AiChatOnline`|`gpt-4o-mini`|❌|❌|?|![Cloudflare](https://img.shields.io/badge/Cloudflare-f48d37)|❌|
-|[ai-chats.org](https://ai-chats.org)|`g4f.Provider.AiChats`|`gpt-4`|`dalle`|❌|?|![Captcha](https://img.shields.io/badge/Captcha-f48d37)|❌|
 |[api.airforce](https://api.airforce)|`g4f.Provider.AiMathGPT`|`llama-3.1-70b`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[api.airforce](https://api.airforce)|`g4f.Provider.Airforce`|`claude-3-haiku, claude-3-sonnet, claude-3-opus, gpt-4, gpt-4-turbo, gpt-4o-mini, gpt-3.5-turbo, llama-3-70b, llama-3-8b, llama-2-13b, llama-3.1-405b, llama-3.1-70b, llama-3.1-8b, llamaguard-2-8b, llamaguard-7b, llama-3.2-90b, llamaguard-3-8b, llama-3.2-11b, llamaguard-3-11b, llama-3.2-3b, llama-3.2-1b, llama-2-7b, mixtral-8x7b, mixtral-8x22b, mythomax-13b, openchat-3.5, qwen-2-72b, qwen-2-5-7b, qwen-2-5-72b, gemma-2b, gemma-2-9b, gemma-2b-27b, gemini-flash, gemini-pro, dbrx-instruct, deepseek-coder, hermes-2-dpo, hermes-2, openhermes-2.5, wizardlm-2-8x22b, phi-2, solar-10-7b, cosmosrp, lfm-40b, german-7b, zephyr-7b`|`flux, flux-realism', flux-anime, flux-3d, flux-disney, flux-pixel, flux-4o, any-dark, sdxl`|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[aiuncensored.info](https://www.aiuncensored.info)|`g4f.Provider.AIUncensored`|✔|✔|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[allyfy.chat](https://allyfy.chat/)|`g4f.Provider.Allyfy`|`gpt-3.5-turbo`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
-|[amigochat.io/chat](https://amigochat.io/chat/)|`g4f.Provider.AmigoChat`|✔|✔|❌|✔|![Cloudflare](https://img.shields.io/badge/Cloudflare-f48d37)|❌|
-|[openchat.team](https://openchat.team/)|`g4f.Provider.Aura`|✔|❌|❌|?|![Cloudflare](https://img.shields.io/badge/Cloudflare-f48d37)![Disabled](https://img.shields.io/badge/Disabled-red)|❌|
 |[bing.com](https://bing.com/chat)|`g4f.Provider.Bing`|`gpt-4`|✔|`gpt-4-vision`|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌+✔|
 |[bing.com/images](https://www.bing.com/images/create)|`g4f.Provider.BingCreateImages`|`❌|✔|❌|❌|![Active](https://img.shields.io/badge/Active-brightgreen)|✔|
 |[blackbox.ai](https://www.blackbox.ai)|`g4f.Provider.Blackbox`|`blackboxai, blackboxai-pro, gemini-flash, llama-3.1-8b, llama-3.1-70b, llama-3.1-405b, gpt-4o, gemini-pro, claude-3.5-sonnet`|`flux`|`blackboxai, gemini-flash, llama-3.1-8b, llama-3.1-70b, llama-3.1-405b, gpt-4o, gemini-pro`|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
@@ -35,34 +30,25 @@ This document provides an overview of various AI providers and models, including
 |[chatgpt.com](https://chatgpt.com)|`g4f.Provider.ChatGpt`|`?`|`?`|`?`|?|![Unknown](https://img.shields.io/badge/Unknown-grey) |❌|
 |[chatgpt.es](https://chatgpt.es)|`g4f.Provider.ChatGptEs`|`gpt-4o, gpt-4o-mini`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[chatgpt4online.org](https://chatgpt4online.org)|`g4f.Provider.Chatgpt4Online`|`gpt-4`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
-|[chatgpt4o.one](https://chatgpt4o.one)|`g4f.Provider.Chatgpt4o`|✔|❌|❌|❌|![Disabled](https://img.shields.io/badge/Disabled-red)![Cloudflare](https://img.shields.io/badge/Cloudflare-f48d37)|❌|
-|[chatgptfree.ai](https://chatgptfree.ai)|`g4f.Provider.ChatgptFree`|`gpt-4o-mini`|❌|❌|?|![Disabled](https://img.shields.io/badge/Disabled-red)![Cloudflare](https://img.shields.io/badge/Cloudflare-f48d37)|❌|
 |[chatify-ai.vercel.app](https://chatify-ai.vercel.app)|`g4f.Provider.ChatifyAI`|`llama-3.1-8b`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[playground.ai.cloudflare.com](https://playground.ai.cloudflare.com)|`g4f.Provider.Cloudflare`|`gemma-7b, llama-2-7b, llama-3-8b, llama-3.1-8b, llama-3.2-1b, phi-2, qwen-1.5-0-5b, qwen-1.5-8b, qwen-1.5-14b, qwen-1.5-7b`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
-|[aiuncensored.info](https://www.aiuncensored.info)|`g4f.Provider.DarkAI`|`gpt-4o, gpt-3.5-turbo, llama-3-70b, llama-3-405b`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
+|[darkai.foundation/chat](https://darkai.foundation/chat)|`g4f.Provider.DarkAI`|`gpt-4o, gpt-3.5-turbo, llama-3-70b, llama-3-405b`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[duckduckgo.com](https://duckduckgo.com/duckchat/v1/chat)|`g4f.Provider.DDG`|`gpt-4o-mini, claude-3-haiku, llama-3.1-70b, mixtral-8x7b`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[deepinfra.com](https://deepinfra.com)|`g4f.Provider.DeepInfra`|✔|❌|❌|✔|![Unknown](https://img.shields.io/badge/Unknown-grey)|✔|
-|[deepinfra.com/chat](https://deepinfra.com/chat)|`g4f.Provider.DeepInfraChat`|`llama-3.1-405b, llama-3.1-70b, llama-3.1-8B, mixtral-8x22b, mixtral-8x7b, wizardlm-2-8x22b, wizardlm-2-7b, qwen-2-72b, phi-3-medium-4k, gemma-2b-27b, minicpm-llama-3-v2.5, mistral-7b, lzlv_70b, openchat-3.6-8b, phind-codellama-34b-v2, dolphin-2.9.1-llama-3-70b`|❌|`minicpm-llama-3-v2.5`|❌|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
+|[deepinfra.com/chat](https://deepinfra.com/chat)|`g4f.Provider.DeepInfraChat`|`llama-3.1-8b, llama-3.1-70b, wizardlm-2-8x22b, qwen-2-72b`|❌|❌|❌|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[deepinfra.com](https://deepinfra.com)|`g4f.Provider.DeepInfraImage`|❌|✔|❌|❌|![Unknown](https://img.shields.io/badge/Unknown-grey)|✔|
-|[deepinfra.com](https://deepinfra.com)|`g4f.Provider.Editee`|`claude-3.5-sonnet, gpt-4o, gemini-pro, mistral-large`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
-|[flowgpt.com](https://flowgpt.com/chat)|`g4f.Provider.FlowGpt`|✔||❌|✔|![Disabled](https://img.shields.io/badge/Disabled-red)|❌|
-|[chat10.free2gpt.xyz](chat10.free2gpt.xyz)|`g4f.Provider.Free2GPT`|`llama-3.1-70b`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
-|[chat.chatgpt.org.uk](https://chat.chatgpt.org.uk)|`g4f.Provider.FreeChatgpt`|`qwen-1.5-14b, sparkdesk-v1.1, qwen-2-7b, glm-4-9b, glm-3-6b, yi-1.5-9b`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
-|[freegptsnav.aifree.site](https://freegptsnav.aifree.site)|`g4f.Provider.FreeGpt`|`llama-3.1-70b`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
-|[free.netfly.top](https://free.netfly.top)|`g4f.Provider.FreeNetfly`|✔|❌|❌|?|![Disabled](https://img.shields.io/badge/Disabled-red)![Cloudflare](https://img.shields.io/badge/Cloudflare-f48d37)|❌|
+|[chat10.free2gpt.xyz](chat10.free2gpt.xyz)|`g4f.Provider.Free2GPT`|`mixtral-7b`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
+|[freegptsnav.aifree.site](https://freegptsnav.aifree.site)|`g4f.Provider.FreeGpt`|`gemini-pro`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[gemini.google.com](https://gemini.google.com)|`g4f.Provider.Gemini`|✔|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|✔|
 |[ai.google.dev](https://ai.google.dev)|`g4f.Provider.GeminiPro`|✔|❌|✔|?|![Active](https://img.shields.io/badge/Active-brightgreen)|✔|
 |[app.giz.ai](https://app.giz.ai/assistant/)|`g4f.Provider.GizAI`|`gemini-flash`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[developers.sber.ru](https://developers.sber.ru/gigachat)|`g4f.Provider.GigaChat`|✔|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|✔|
-|[gprochat.com](https://gprochat.com)|`g4f.Provider.GPROChat`|`gemini-pro`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[console.groq.com/playground](https://console.groq.com/playground)|`g4f.Provider.Groq`|✔|❌|❌|?|![Active](https://img.shields.io/badge/Active-brightgreen)|✔|
 |[huggingface.co/chat](https://huggingface.co/chat)|`g4f.Provider.HuggingChat`|`llama-3.1-70b, command-r-plus, qwen-2-72b, llama-3.2-11b, hermes-3, mistral-nemo, phi-3.5-mini`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[huggingface.co](https://huggingface.co/chat)|`g4f.Provider.HuggingFace`|✔|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
-|[koala.sh/chat](https://koala.sh/chat)|`g4f.Provider.Koala`|`gpt-4o-mini`|❌|❌|?|![Disabled](https://img.shields.io/badge/Disabled-red)![Cloudflare](https://img.shields.io/badge/Cloudflare-f48d37)|❌|
 |[liaobots.work](https://liaobots.work)|`g4f.Provider.Liaobots`|`gpt-3.5-turbo, gpt-4o-mini, gpt-4o, gpt-4-turbo, grok-2, grok-2-mini, claude-3-opus, claude-3-sonnet, claude-3-5-sonnet, claude-3-haiku, claude-2.1, gemini-flash, gemini-pro`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[magickpen.com](https://magickpen.com)|`g4f.Provider.MagickPen`|`gpt-4o-mini`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[meta.ai](https://www.meta.ai)|`g4f.Provider.MetaAI`|✔|✔|?|?|![Active](https://img.shields.io/badge/Active-brightgreen)|✔|
-|[app.myshell.ai/chat](https://app.myshell.ai/chat)|`g4f.Provider.MyShell`|✔|❌|?|?|![Disabled](https://img.shields.io/badge/Disabled-red)|❌|
 |[nexra.aryahcr.cc/bing](https://nexra.aryahcr.cc/documentation/bing/en)|`g4f.Provider.NexraBing`|✔|❌|❌|✔|![Disabled](https://img.shields.io/badge/Disabled-red)|❌|
 |[nexra.aryahcr.cc/blackbox](https://nexra.aryahcr.cc/documentation/blackbox/en)|`g4f.Provider.NexraBlackbox`|`blackboxai` |❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[nexra.aryahcr.cc/chatgpt](https://nexra.aryahcr.cc/documentation/chatgpt/en)|`g4f.Provider.NexraChatGPT`|`gpt-4, gpt-3.5-turbo, gpt-3, gpt-4o` |❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
@@ -77,12 +63,11 @@ This document provides an overview of various AI providers and models, including
 |[nexra.aryahcr.cc/stable-diffusion](https://nexra.aryahcr.cc/documentation/stable-diffusion/en)|`g4f.Provider.NexraSD15`|❌|`sd-1.5`|❌|❌|![Active](https://img.shields.io/badge/Active-brightgreen)|❌
 |[nexra.aryahcr.cc/stable-diffusion](https://nexra.aryahcr.cc/documentation/stable-diffusion/en)|`g4f.Provider.NexraSDLora`|❌|`sdxl-lora`|❌|❌|![Active](https://img.shields.io/badge/Active-brightgreen)|❌
 |[nexra.aryahcr.cc/stable-diffusion](https://nexra.aryahcr.cc/documentation/stable-diffusion/en)|`g4f.Provider.NexraSDTurbo`|❌|`sdxl-turbo`|❌|❌|![Active](https://img.shields.io/badge/Active-brightgreen)|❌
-|[openrouter.ai](https://openrouter.ai)|`g4f.Provider.OpenRouter`|✔|❌|?|?|![Disabled](https://img.shields.io/badge/Disabled-red)|❌|
 |[platform.openai.com](https://platform.openai.com/)|`g4f.Provider.Openai`|✔|❌|✔||![Unknown](https://img.shields.io/badge/Unknown-grey)|✔|
 |[chatgpt.com](https://chatgpt.com/)|`g4f.Provider.OpenaiChat`|`gpt-4o, gpt-4o-mini, gpt-4`|❌|✔||![Unknown](https://img.shields.io/badge/Unknown-grey)|✔|
 |[www.perplexity.ai)](https://www.perplexity.ai)|`g4f.Provider.PerplexityAi`|✔|❌|❌|?|![Disabled](https://img.shields.io/badge/Disabled-red)|❌|
 |[perplexity.ai](https://www.perplexity.ai)|`g4f.Provider.PerplexityApi`|✔|❌|❌|?|![Unknown](https://img.shields.io/badge/Unknown-grey)|✔|
-|[labs.perplexity.ai](https://labs.perplexity.ai)|`g4f.Provider.PerplexityLabs`|`sonar-online, sonar-chat, llama-3.1-8b, llama-3.1-70b`|❌|❌|?|![Disabled](https://img.shields.io/badge/Disabled-red)![Cloudflare](https://img.shields.io/badge/Cloudflare-f48d37)|❌|
+|[labs.perplexity.ai](https://labs.perplexity.ai)|`g4f.Provider.PerplexityLabs`|`sonar-online, sonar-chat, llama-3.1-8b, llama-3.1-70b`|❌|❌|?|![Cloudflare](https://img.shields.io/badge/Cloudflare-f48d37)|❌|
 |[pi.ai/talk](https://pi.ai/talk)|`g4f.Provider.Pi`|`pi`|❌|❌|?|![Unknown](https://img.shields.io/badge/Unknown-grey)|❌|
 |[]()|`g4f.Provider.Pizzagpt`|`gpt-4o-mini`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[poe.com](https://poe.com)|`g4f.Provider.Poe`|✔|❌|❌|?|![Unknown](https://img.shields.io/badge/Unknown-grey)|✔|
@@ -177,7 +162,6 @@ This document provides an overview of various AI providers and models, including
 |wizardlm-2-8x22b|WizardLM|2+ Providers|[huggingface.co](https://huggingface.co/alpindale/WizardLM-2-8x22B)|
 |sh-n-7b|Together|1+ Providers|[huggingface.co](https://huggingface.co/togethercomputer/StripedHyena-Nous-7B)|
 |llava-13b|Yorickvp|1+ Providers|[huggingface.co](https://huggingface.co/liuhaotian/llava-v1.5-13b)|
-|minicpm-llama-3-v2.5|OpenBMB|1+ Providers|[huggingface.co](https://huggingface.co/openbmb/MiniCPM-Llama3-V-2_5)|
 |lzlv-70b|Lzlv|1+ Providers|[huggingface.co](https://huggingface.co/lizpreciatior/lzlv_70b_fp16_hf)|
 |openchat-3.5|OpenChat|1+ Providers|[huggingface.co](https://huggingface.co/openchat/openchat_3.5)|
 |openchat-3.6-8b|OpenChat|1+ Providers|[huggingface.co](https://huggingface.co/openchat/openchat-3.6-8b-20240522)|
@@ -227,7 +211,6 @@ This document provides an overview of various AI providers and models, including
 |gpt-4-vision|OpenAI|1+ Providers|[openai.com](https://openai.com/research/gpt-4v-system-card)|
 |gemini-pro-vision|Google DeepMind|1+ Providers | [deepmind.google](https://deepmind.google/technologies/gemini/)|
 |blackboxai|Blackbox AI|1+ Providers|[docs.blackbox.chat](https://docs.blackbox.chat/blackbox-ai-1)|
-|minicpm-llama-3-v2.5|OpenBMB|1+ Providers | [huggingface.co](https://huggingface.co/openbmb/MiniCPM-Llama3-V-2_5)|
 
 ### Providers and vision models
 | Provider | Base Provider | | Vision Models | Status | Auth |

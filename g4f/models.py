@@ -19,21 +19,16 @@ from .Provider import (
     Cloudflare,
     DarkAI,
     DDG,
-    DeepInfra,
     DeepInfraChat,
-    Editee,
     Free2GPT,
-    FreeChatgpt,
     FreeGpt,
     FreeNetfly,
     Gemini,
     GeminiPro,
     GizAI,
     GigaChat,
-    GPROChat,
     HuggingChat,
     HuggingFace,
-    Koala,
     Liaobots,
     MagickPen,
     MetaAI,
@@ -55,7 +50,6 @@ from .Provider import (
     Pi,
     Pizzagpt,
     Reka,
-    Replicate,
     ReplicateHome,
     RubiksAI,
     TeachAnything,
@@ -89,8 +83,6 @@ default = Model(
     base_provider = "",
     best_provider = IterListProvider([
         DDG,
-        FreeChatgpt,
-        HuggingChat,
         Pizzagpt,
         ReplicateHome,
         Upstage,
@@ -102,9 +94,9 @@ default = Model(
         ChatGptEs,
         ChatifyAI,
         Cloudflare,
-        Editee,
         AiMathGPT,
         AIUncensored,
+        DarkAI,
     ])
 )
 
@@ -133,13 +125,13 @@ gpt_35_turbo = Model(
 gpt_4o = Model(
     name          = 'gpt-4o',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([Blackbox, ChatGptEs, DarkAI, Editee, NexraChatGPT, Airforce, ChatGpt, Liaobots, OpenaiChat])
+    best_provider = IterListProvider([Blackbox, ChatGptEs, DarkAI, NexraChatGPT, Airforce, ChatGpt, Liaobots, OpenaiChat])
 )
 
 gpt_4o_mini = Model(
     name          = 'gpt-4o-mini',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([DDG, ChatGptEs, FreeNetfly, Pizzagpt, MagickPen, RubiksAI, Liaobots, ChatGpt, Airforce, Koala, OpenaiChat])
+    best_provider = IterListProvider([DDG, ChatGptEs, FreeNetfly, Pizzagpt, MagickPen, RubiksAI, Liaobots, ChatGpt, Airforce, OpenaiChat])
 )
 
 gpt_4_turbo = Model(
@@ -200,13 +192,13 @@ llama_2_13b = Model(
 llama_3_8b = Model(
     name          = "llama-3-8b",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider([Cloudflare, Airforce, DeepInfra, Replicate])
+    best_provider = IterListProvider([Cloudflare, Airforce])
 )
 
 llama_3_70b = Model(
     name          = "llama-3-70b",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider([ReplicateHome, Airforce, DeepInfra, Replicate])
+    best_provider = IterListProvider([ReplicateHome, Airforce])
 )
 
 # llama 3.1
@@ -219,13 +211,13 @@ llama_3_1_8b = Model(
 llama_3_1_70b = Model(
     name          = "llama-3.1-70b",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider([DDG, HuggingChat, Blackbox, FreeGpt, TeachAnything, Free2GPT, DeepInfraChat, DarkAI, AiMathGPT, RubiksAI, Airforce, HuggingFace, PerplexityLabs])
+    best_provider = IterListProvider([DDG, DeepInfraChat, Blackbox, TeachAnything, DarkAI, AiMathGPT, RubiksAI, Airforce, HuggingChat, HuggingFace, PerplexityLabs])
 )
 
 llama_3_1_405b = Model(
     name          = "llama-3.1-405b",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider([DeepInfraChat, Blackbox, DarkAI, Airforce])
+    best_provider = IterListProvider([Blackbox, DarkAI, Airforce])
 )
 
 # llama 3.2
@@ -284,31 +276,25 @@ llamaguard_3_11b = Model(
 mistral_7b = Model(
     name          = "mistral-7b",
     base_provider = "Mistral",
-    best_provider = IterListProvider([DeepInfraChat, Airforce, DeepInfra])
+    best_provider = IterListProvider([Free2GPT, Airforce])
 )
 
 mixtral_8x7b = Model(
     name          = "mixtral-8x7b",
     base_provider = "Mistral",
-    best_provider = IterListProvider([DDG, ReplicateHome, DeepInfraChat, Airforce, DeepInfra])
+    best_provider = IterListProvider([DDG, ReplicateHome, Airforce])
 )
 
 mixtral_8x22b = Model(
     name          = "mixtral-8x22b",
     base_provider = "Mistral",
-    best_provider = IterListProvider([DeepInfraChat, Airforce])
+    best_provider = IterListProvider([Airforce])
 )
 
 mistral_nemo = Model(
     name          = "mistral-nemo",
     base_provider = "Mistral",
     best_provider = IterListProvider([HuggingChat, HuggingFace])
-)
-
-mistral_large = Model(
-    name          = "mistral-large",
-    base_provider = "Mistral",
-    best_provider = IterListProvider([Editee])
 )
 
 
@@ -342,7 +328,7 @@ phi_2 = Model(
 phi_3_medium_4k = Model(
     name          = "phi-3-medium-4k",
     base_provider = "Microsoft",
-    best_provider = DeepInfraChat
+    best_provider = None
 )
 
 phi_3_5_mini = Model(
@@ -356,7 +342,7 @@ phi_3_5_mini = Model(
 gemini_pro = Model(
     name          = 'gemini-pro',
     base_provider = 'Google DeepMind',
-    best_provider = IterListProvider([GeminiPro, Blackbox, AIChatFree, GPROChat, NexraGeminiPro, Editee, Airforce, Liaobots])
+    best_provider = IterListProvider([GeminiPro, Blackbox, AIChatFree, FreeGpt, NexraGeminiPro, Airforce, Liaobots])
 )
 
 gemini_flash = Model(
@@ -381,7 +367,7 @@ gemma_2b = Model(
 gemma_2b_27b = Model(
     name          = 'gemma-2b-27b',
     base_provider = 'Google',
-    best_provider = IterListProvider([DeepInfraChat, Airforce])
+    best_provider = IterListProvider([Airforce])
 )
 
 gemma_7b = Model(
@@ -428,7 +414,7 @@ claude_3_haiku = Model(
 claude_3_5_sonnet = Model(
     name          = 'claude-3.5-sonnet',
     base_provider = 'Anthropic',
-    best_provider = IterListProvider([Blackbox, Editee, Liaobots])
+    best_provider = IterListProvider([Blackbox, Liaobots])
 )
 
 
@@ -458,7 +444,7 @@ blackboxai_pro = Model(
 dbrx_instruct = Model(
     name = 'dbrx-instruct',
     base_provider = 'Databricks',
-    best_provider = IterListProvider([Airforce, DeepInfra])
+    best_provider = IterListProvider([Airforce])
 )
 
 
@@ -467,14 +453,6 @@ command_r_plus = Model(
     name = 'command-r-plus',
     base_provider = 'CohereForAI',
     best_provider = HuggingChat
-)
-
-
-### iFlytek ###
-sparkdesk_v1_1 = Model(
-    name = 'sparkdesk-v1.1',
-    base_provider = 'iFlytek',
-    best_provider = FreeChatgpt
 )
 
 
@@ -501,7 +479,7 @@ qwen_1_5_8b = Model(
 qwen_1_5_14b = Model(
     name = 'qwen-1.5-14b',
     base_provider = 'Qwen',
-    best_provider = IterListProvider([Cloudflare, FreeChatgpt])
+    best_provider = IterListProvider([Cloudflare])
 )
 
 # qwen 2
@@ -527,28 +505,6 @@ qwen = Model(
     name = 'qwen',
     base_provider = 'Qwen',
     best_provider = NexraQwen
-)
-
-
-### Zhipu AI ###
-glm_3_6b = Model(
-    name = 'glm-3-6b',
-    base_provider = 'Zhipu AI',
-    best_provider = FreeChatgpt
-)
-
-glm_4_9b = Model(
-    name = 'glm-4-9B',
-    base_provider = 'Zhipu AI',
-    best_provider = FreeChatgpt
-)
-
-
-### 01-ai ###
-yi_1_5_9b = Model(
-    name = 'yi-1.5-9b',
-    base_provider = '01-ai',
-    best_provider = FreeChatgpt
 )
 
 ### Upstage ###
@@ -586,12 +542,6 @@ deepseek_coder = Model(
 )
 
 ### WizardLM ###
-wizardlm_2_7b = Model(
-    name = 'wizardlm-2-7b',
-    base_provider = 'WizardLM',
-    best_provider = DeepInfraChat
-)
-
 wizardlm_2_8x22b = Model(
     name = 'wizardlm-2-8x22b',
     base_provider = 'WizardLM',
@@ -610,7 +560,7 @@ llava_13b = Model(
 minicpm_llama_3_v2_5 = Model(
     name = 'minicpm-llama-3-v2.5',
     base_provider = 'OpenBMB',
-    best_provider = DeepInfraChat
+    best_provider = None
 )
 
 
@@ -618,7 +568,7 @@ minicpm_llama_3_v2_5 = Model(
 lzlv_70b = Model(
     name = 'lzlv-70b',
     base_provider = 'Lzlv',
-    best_provider = DeepInfraChat
+    best_provider = None
 )
 
 
@@ -626,7 +576,7 @@ lzlv_70b = Model(
 openchat_3_6_8b = Model(
     name = 'openchat-3.6-8b',
     base_provider = 'OpenChat',
-    best_provider = DeepInfraChat
+    best_provider = None
 )
 
 
@@ -634,7 +584,7 @@ openchat_3_6_8b = Model(
 phind_codellama_34b_v2 = Model(
     name = 'phind-codellama-34b-v2',
     base_provider = 'Phind',
-    best_provider = DeepInfraChat
+    best_provider = None
 )
 
 
@@ -642,7 +592,7 @@ phind_codellama_34b_v2 = Model(
 dolphin_2_9_1_llama_3_70b = Model(
     name = 'dolphin-2.9.1-llama-3-70b',
     base_provider = 'Cognitive Computations',
-    best_provider = DeepInfraChat
+    best_provider = None
 )
 
 
@@ -655,6 +605,12 @@ grok_2 = Model(
 
 grok_2_mini = Model(
     name = 'grok-2-mini',
+    base_provider = 'x.ai',
+    best_provider = Liaobots
+)
+
+grok_beta = Model(
+    name = 'grok-beta',
     base_provider = 'x.ai',
     best_provider = Liaobots
 )
@@ -939,7 +895,6 @@ class ModelUtils:
 'mixtral-8x7b': mixtral_8x7b,
 'mixtral-8x22b': mixtral_8x22b,
 'mistral-nemo': mistral_nemo,
-'mistral-large': mistral_large,
      
      
 ### NousResearch ###
@@ -1001,36 +956,24 @@ class ModelUtils:
 ### GigaChat ###
 'gigachat': gigachat,
         
-        
-### iFlytek ###
-'sparkdesk-v1.1': sparkdesk_v1_1,
-        
+    
         
 ### Qwen ###
 'qwen': qwen,
 
-# qwen-1.5
+# qwen 1.5
 'qwen-1.5-5b': qwen_1_5_5b,
 'qwen-1.5-7b': qwen_1_5_7b,
 'qwen-1.5-8b': qwen_1_5_8b,
 'qwen-1.5-14b': qwen_1_5_14b,
 
-# qwen-2
+# qwen 2
 'qwen-2-72b': qwen_2_72b,
 
-# qwen-2-5
+# qwen 2-5
 'qwen-2-5-7b': qwen_2_5_7b,
 'qwen-2-5-72b': qwen_2_5_72b,
-        
-        
-### Zhipu AI ###
-'glm-3-6b': glm_3_6b,
-'glm-4-9b': glm_4_9b,
-        
-        
-### 01-ai ###
-'yi-1.5-9b': yi_1_5_9b,
-        
+                      
         
 ### Upstage ###
 'solar-10-7b': solar_10_7b,
@@ -1051,7 +994,6 @@ class ModelUtils:
 
 
 ### WizardLM ###
-'wizardlm-2-7b': wizardlm_2_7b,
 'wizardlm-2-8x22b': wizardlm_2_8x22b,
       
         
@@ -1078,6 +1020,7 @@ class ModelUtils:
 ### x.ai ###
 'grok-2': grok_2,
 'grok-2-mini': grok_2_mini,
+'grok-beta': grok_beta,
         
         
 ### Perplexity AI ###

@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from aiohttp import ClientSession
 
-from ..typing import AsyncResult, Messages
-from .base_provider import AsyncGeneratorProvider
-from ..requests import get_args_from_browser
-from ..webdriver import WebDriver
+from ...typing import AsyncResult, Messages
+from ..base_provider import AsyncGeneratorProvider
+from ...requests import get_args_from_browser
+from ...webdriver import WebDriver
 
 class Aura(AsyncGeneratorProvider):
     url = "https://openchat.team"

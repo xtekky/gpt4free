@@ -8,12 +8,12 @@ from typing import Dict, List
 
 from aiohttp import ClientSession, BaseConnector
 
-from ..typing import AsyncResult, Messages, Cookies
-from ..requests import raise_for_status, DEFAULT_HEADERS
-from ..image import ImageResponse, ImagePreview
-from ..errors import ResponseError
-from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from .helper import format_prompt, get_connector, format_cookies
+from ...typing import AsyncResult, Messages, Cookies
+from ...requests import raise_for_status, DEFAULT_HEADERS
+from ...image import ImageResponse, ImagePreview
+from ...errors import ResponseError
+from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from ..helper import format_prompt, get_connector, format_cookies
 
 class Sources():
     def __init__(self, link_list: List[Dict[str, str]]) -> None:

@@ -3,8 +3,8 @@ from __future__ import annotations
 import requests
 import os
 
-from .needs_auth.Openai import Openai
-from ..typing import AsyncResult, Messages
+from ..needs_auth.Openai import Openai
+from ...typing import AsyncResult, Messages
 
 class Ollama(Openai):
     label = "Ollama"

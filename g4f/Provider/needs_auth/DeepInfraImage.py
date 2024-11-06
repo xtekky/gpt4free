@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import requests
 
-from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from ..typing import AsyncResult, Messages
-from ..requests import StreamSession, raise_for_status
-from ..image import ImageResponse
+from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from ...typing import AsyncResult, Messages
+from ...requests import StreamSession, raise_for_status
+from ...image import ImageResponse
 
 class DeepInfraImage(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://deepinfra.com"
