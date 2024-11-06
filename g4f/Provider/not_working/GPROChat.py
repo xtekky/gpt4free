@@ -10,7 +10,7 @@ class GPROChat(AsyncGeneratorProvider, ProviderModelMixin):
     label = "GPROChat"
     url = "https://gprochat.com"
     api_endpoint = "https://gprochat.com/api/generate"
-    working = True
+    working = False
     supports_stream = True
     supports_message_history = True
     default_model = 'gemini-pro'

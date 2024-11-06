@@ -11,7 +11,7 @@ class AiChatOnline(AsyncGeneratorProvider, ProviderModelMixin):
     site_url = "https://aichatonline.org"
     url = "https://aichatonlineorg.erweima.ai"
     api_endpoint = "/aichatonline/api/chat/gpt"
-    working = True
+    working = False
     default_model = 'gpt-4o-mini'
 
     @classmethod
