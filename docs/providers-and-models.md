@@ -49,20 +49,6 @@ This document provides an overview of various AI providers and models, including
 |[liaobots.work](https://liaobots.work)|`g4f.Provider.Liaobots`|`gpt-3.5-turbo, gpt-4o-mini, gpt-4o, gpt-4-turbo, grok-2, grok-2-mini, claude-3-opus, claude-3-sonnet, claude-3-5-sonnet, claude-3-haiku, claude-2.1, gemini-flash, gemini-pro`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[magickpen.com](https://magickpen.com)|`g4f.Provider.MagickPen`|`gpt-4o-mini`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[meta.ai](https://www.meta.ai)|`g4f.Provider.MetaAI`|✔|✔|?|?|![Active](https://img.shields.io/badge/Active-brightgreen)|✔|
-|[nexra.aryahcr.cc/bing](https://nexra.aryahcr.cc/documentation/bing/en)|`g4f.Provider.NexraBing`|✔|❌|❌|✔|![Disabled](https://img.shields.io/badge/Disabled-red)|❌|
-|[nexra.aryahcr.cc/blackbox](https://nexra.aryahcr.cc/documentation/blackbox/en)|`g4f.Provider.NexraBlackbox`|`blackboxai` |❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
-|[nexra.aryahcr.cc/chatgpt](https://nexra.aryahcr.cc/documentation/chatgpt/en)|`g4f.Provider.NexraChatGPT`|`gpt-4, gpt-3.5-turbo, gpt-3, gpt-4o` |❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
-|[nexra.aryahcr.cc/dall-e](https://nexra.aryahcr.cc/documentation/dall-e/en)|`g4f.Provider.NexraDallE`|❌|`dalle`|❌|❌|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
-|[nexra.aryahcr.cc/dall-e](https://nexra.aryahcr.cc/documentation/dall-e/en)|`g4f.Provider.NexraDallE2`|❌|`dalle-2`|❌|❌|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
-|[nexra.aryahcr.cc/emi](https://nexra.aryahcr.cc/documentation/emi/en)|`g4f.Provider.NexraEmi`|❌|`emi`|❌|❌|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
-|[nexra.aryahcr.cc/flux-pro](https://nexra.aryahcr.cc/documentation/flux-pro/en)|`g4f.Provider.NexraFluxPro`|❌|`flux-pro`|❌|❌|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
-|[nexra.aryahcr.cc/gemini-pro](https://nexra.aryahcr.cc/documentation/gemini-pro/en)|`g4f.Provider.NexraGeminiPro`|`gemini-pro`|❌|❌|❌|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
-|[nexra.aryahcr.cc/midjourney](https://nexra.aryahcr.cc/documentation/midjourney/en)|`g4f.Provider.NexraMidjourney`|❌|`midjourney`|❌|❌|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
-|[nexra.aryahcr.cc/prodia](https://nexra.aryahcr.cc/documentation/prodia/en)|`g4f.Provider.NexraProdiaAI`|❌|✔|❌|❌|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
-|[nexra.aryahcr.cc/qwen](https://nexra.aryahcr.cc/documentation/qwen/en)|`g4f.Provider.NexraQwen`|`qwen`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
-|[nexra.aryahcr.cc/stable-diffusion](https://nexra.aryahcr.cc/documentation/stable-diffusion/en)|`g4f.Provider.NexraSD15`|❌|`sd-1.5`|❌|❌|![Active](https://img.shields.io/badge/Active-brightgreen)|❌
-|[nexra.aryahcr.cc/stable-diffusion](https://nexra.aryahcr.cc/documentation/stable-diffusion/en)|`g4f.Provider.NexraSDLora`|❌|`sdxl-lora`|❌|❌|![Active](https://img.shields.io/badge/Active-brightgreen)|❌
-|[nexra.aryahcr.cc/stable-diffusion](https://nexra.aryahcr.cc/documentation/stable-diffusion/en)|`g4f.Provider.NexraSDTurbo`|❌|`sdxl-turbo`|❌|❌|![Active](https://img.shields.io/badge/Active-brightgreen)|❌
 |[platform.openai.com](https://platform.openai.com/)|`g4f.Provider.Openai`|✔|❌|✔||![Unknown](https://img.shields.io/badge/Unknown-grey)|✔|
 |[chatgpt.com](https://chatgpt.com/)|`g4f.Provider.OpenaiChat`|`gpt-4o, gpt-4o-mini, gpt-4`|❌|✔||![Unknown](https://img.shields.io/badge/Unknown-grey)|✔|
 |[www.perplexity.ai)](https://www.perplexity.ai)|`g4f.Provider.PerplexityAi`|✔|❌|❌|?|![Disabled](https://img.shields.io/badge/Disabled-red)|❌|

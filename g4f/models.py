@@ -32,19 +32,6 @@ from .Provider import (
     Liaobots,
     MagickPen,
     MetaAI,
-    NexraBing,
-    NexraBlackbox,
-    NexraChatGPT,
-    NexraDallE,
-    NexraDallE2,
-    NexraEmi,
-    NexraFluxPro,
-    NexraGeminiPro,
-    NexraMidjourney,
-    NexraQwen,
-    NexraSD15,
-    NexraSDLora,
-    NexraSDTurbo,
     OpenaiChat,
     PerplexityLabs,
     Pi,
@@ -107,25 +94,18 @@ default = Model(
 ############
 
 ### OpenAI ###
-# gpt-3
-gpt_3 = Model(
-    name          = 'gpt-3',
-    base_provider = 'OpenAI',
-    best_provider = NexraChatGPT
-)
-
 # gpt-3.5
 gpt_35_turbo = Model(
     name          = 'gpt-3.5-turbo',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([DarkAI, NexraChatGPT, Airforce, Liaobots, Allyfy])
+    best_provider = IterListProvider([DarkAI, Airforce, Liaobots, Allyfy])
 )
 
 # gpt-4
 gpt_4o = Model(
     name          = 'gpt-4o',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([Blackbox, ChatGptEs, DarkAI, NexraChatGPT, Airforce, ChatGpt, Liaobots, OpenaiChat])
+    best_provider = IterListProvider([Blackbox, ChatGptEs, DarkAI, Airforce, ChatGpt, Liaobots, OpenaiChat])
 )
 
 gpt_4o_mini = Model(
@@ -143,7 +123,7 @@ gpt_4_turbo = Model(
 gpt_4 = Model(
     name          = 'gpt-4',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([Chatgpt4Online, Ai4Chat, NexraBing, NexraChatGPT, ChatGpt, Airforce, Bing, OpenaiChat, gpt_4_turbo.best_provider, gpt_4o.best_provider, gpt_4o_mini.best_provider])
+    best_provider = IterListProvider([Chatgpt4Online, Ai4Chat, ChatGpt, Airforce, Bing, OpenaiChat, gpt_4_turbo.best_provider, gpt_4o.best_provider, gpt_4o_mini.best_provider])
 )
 
 # o1
@@ -342,7 +322,7 @@ phi_3_5_mini = Model(
 gemini_pro = Model(
     name          = 'gemini-pro',
     base_provider = 'Google DeepMind',
-    best_provider = IterListProvider([GeminiPro, Blackbox, AIChatFree, FreeGpt, NexraGeminiPro, Airforce, Liaobots])
+    best_provider = IterListProvider([GeminiPro, Blackbox, AIChatFree, FreeGpt, Airforce, Liaobots])
 )
 
 gemini_flash = Model(
@@ -430,7 +410,7 @@ reka_core = Model(
 blackboxai = Model(
     name = 'blackboxai',
     base_provider = 'Blackbox AI',
-    best_provider = IterListProvider([Blackbox, NexraBlackbox])
+    best_provider = Blackbox
 )
 
 blackboxai_pro = Model(
@@ -499,12 +479,6 @@ qwen_2_5_72b = Model(
     name = 'qwen-2-5-72b',
     base_provider = 'Qwen',
     best_provider = Airforce
-)
-
-qwen = Model(
-    name = 'qwen',
-    base_provider = 'Qwen',
-    best_provider = NexraQwen
 )
 
 ### Upstage ###
@@ -683,31 +657,10 @@ zephyr_7b = Model(
 #############
 
 ### Stability AI ###
-sdxl_turbo = Model(
-    name = 'sdxl-turbo',
-    base_provider = 'Stability AI',
-    best_provider = NexraSDTurbo
-    
-)
-
-sdxl_lora = Model(
-    name = 'sdxl-lora',
-    base_provider = 'Stability AI',
-    best_provider = NexraSDLora
-    
-)
-
 sdxl = Model(
     name = 'sdxl',
     base_provider = 'Stability AI',
     best_provider = IterListProvider([ReplicateHome, Airforce])
-    
-)
-
-sd_1_5 = Model(
-    name = 'sd-1.5',
-    base_provider = 'Stability AI',
-    best_provider = IterListProvider([NexraSD15])
     
 )
 
@@ -732,13 +685,6 @@ flux = Model(
     name = 'flux',
     base_provider = 'Flux AI',
     best_provider = IterListProvider([Blackbox, AIUncensored, Airforce])
-    
-)
-
-flux_pro = Model(
-    name = 'flux-pro',
-    base_provider = 'Flux AI',
-    best_provider = IterListProvider([NexraFluxPro])
     
 )
 
@@ -792,37 +738,7 @@ flux_schnell = Model(
 )
 
 
-### OpenAI ###
-dalle_2 = Model(
-    name = 'dalle-2',
-    base_provider = 'OpenAI',
-    best_provider = NexraDallE2
-    
-)
-
-dalle = Model(
-    name = 'dalle',
-    base_provider = 'OpenAI',
-    best_provider = NexraDallE
-    
-)
-
-### Midjourney ###
-midjourney = Model(
-    name = 'midjourney',
-    base_provider = 'Midjourney',
-    best_provider = NexraMidjourney
-    
-)
-
 ### Other ###
-emi = Model(
-    name = 'emi',
-    base_provider = '',
-    best_provider = NexraEmi
-    
-)
-
 any_dark = Model(
     name = 'any-dark',
     base_provider = '',
@@ -844,9 +760,6 @@ class ModelUtils:
 ############
         
 ### OpenAI ###
-# gpt-3
-'gpt-3': gpt_3,
-
 # gpt-3.5
 'gpt-3.5-turbo': gpt_35_turbo,
 
@@ -959,8 +872,6 @@ class ModelUtils:
     
         
 ### Qwen ###
-'qwen': qwen,
-
 # qwen 1.5
 'qwen-1.5-5b': qwen_1_5_5b,
 'qwen-1.5-7b': qwen_1_5_7b,
@@ -1063,9 +974,6 @@ class ModelUtils:
         
 ### Stability AI ###
 'sdxl': sdxl,
-'sdxl-lora': sdxl_lora,
-'sdxl-turbo': sdxl_turbo,
-'sd-1.5': sd_1_5,
 'sd-3': sd_3,
         
         
@@ -1075,7 +983,6 @@ class ModelUtils:
 
 ### Flux AI ###
 'flux': flux,
-'flux-pro': flux_pro,
 'flux-realism': flux_realism,
 'flux-anime': flux_anime,
 'flux-3d': flux_3d,
@@ -1085,16 +992,7 @@ class ModelUtils:
 'flux-schnell': flux_schnell,
 
 
-### OpenAI ###
-'dalle': dalle,
-'dalle-2': dalle_2,
-
-### Midjourney ###
-'midjourney': midjourney,
-
-
 ### Other ###
-'emi': emi,
 'any-dark': any_dark,
     }
 

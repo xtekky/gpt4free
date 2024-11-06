@@ -11,8 +11,6 @@ from .needs_auth       import *
 from .not_working      import *
 from .local            import *
 
-from .nexra            import *
-
 from .AI365VIP         import AI365VIP
 from .AIChatFree       import AIChatFree
 from .AIUncensored     import AIUncensored
