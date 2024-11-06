@@ -2,7 +2,7 @@ name: Auto-generate PR description [G4F]
 
 on:
   pull_request:
-    types: [opened, edited, reopened, synchronize]
+    types: [opened, synchronize]
 
 jobs:
   generate-pr-description:
