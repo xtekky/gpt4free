@@ -77,10 +77,10 @@ This document provides an overview of various AI providers and models, including
 | Model | Base Provider | Providers | Website |
 |-------|---------------|-----------|---------|
 |gpt-3.5-turbo|OpenAI|4+ Providers|[platform.openai.com](https://platform.openai.com/docs/models/gpt-3-5-turbo)|
-|gpt-4|OpenAI|7+ Providers|[platform.openai.com](https://platform.openai.com/docs/models/gpt-4-turbo-and-gpt-4)|
-|gpt-4-turbo|OpenAI|3+ Providers|[platform.openai.com](https://platform.openai.com/docs/models/gpt-4-turbo-and-gpt-4)|
-|gpt-4o|OpenAI|10+ Providers|[platform.openai.com](https://platform.openai.com/docs/models/gpt-4o)|
-|gpt-4o-mini|OpenAI|14+ Providers|[platform.openai.com](https://platform.openai.com/docs/models/gpt-4o-mini)|
+|gpt-4|OpenAI|6+ Providers|[platform.openai.com](https://platform.openai.com/docs/models/gpt-4-turbo-and-gpt-4)|
+|gpt-4-turbo|OpenAI|4+ Providers|[platform.openai.com](https://platform.openai.com/docs/models/gpt-4-turbo-and-gpt-4)|
+|gpt-4o|OpenAI|7+ Providers|[platform.openai.com](https://platform.openai.com/docs/models/gpt-4o)|
+|gpt-4o-mini|OpenAI|10+ Providers|[platform.openai.com](https://platform.openai.com/docs/models/gpt-4o-mini)|
 |o1|OpenAI|0+ Providers|[platform.openai.com](https://openai.com/index/introducing-openai-o1-preview/)|
 |o1-mini|OpenAI|0+ Providers|[platform.openai.com](https://openai.com/index/openai-o1-mini-advancing-cost-efficient-reasoning/)|
 |llama-2-7b|Meta Llama|1+ Providers|[huggingface.co](https://huggingface.co/meta-llama/Llama-2-7b)|
