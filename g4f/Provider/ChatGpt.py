@@ -210,7 +210,6 @@ class ChatGpt(AbstractProvider, ProviderModelMixin):
         for line in response.iter_lines():
             if line:
                 decoded_line = line.decode()
-                print(decoded_line)
 
                 if decoded_line.startswith('data:'):
                     json_string = decoded_line[6:].strip()

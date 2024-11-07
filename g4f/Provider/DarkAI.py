@@ -75,9 +75,9 @@ class DarkAI(AsyncGeneratorProvider, ProviderModelMixin):
                                         yield full_text.strip()
                                     return
                         except json.JSONDecodeError:
-                            print(f"Failed to decode JSON: {chunk_str}")
-                        except Exception as e:
-                            print(f"Error processing chunk: {e}")
+                            pass
+                        except Exception:
+                            pass
                 
                 if full_text:
                     yield full_text.strip()
