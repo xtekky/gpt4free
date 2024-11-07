@@ -173,7 +173,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
             "mobileClient": False,
             "userSelectedModel": model if model in cls.userSelectedModel else None,
             "webSearchMode": web_search,
-            "validated": "69783381-2ce4-4dbd-ac78-35e9063feabc"
+            "validated": "00f37b34-a166-4efb-bce5-1312d87f2f94"
         }
 
         async with ClientSession(headers=headers) as session:
