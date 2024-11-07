@@ -11,7 +11,6 @@ from .needs_auth       import *
 from .not_working      import *
 from .local            import *
 
-from .AIChatFree       import AIChatFree
 from .AIUncensored     import AIUncensored
 from .Allyfy           import Allyfy
 from .AiMathGPT        import AiMathGPT
