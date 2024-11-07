@@ -119,7 +119,7 @@ This document provides an overview of various AI providers and models, including
 |claude-3-sonnet|Anthropic|2+ Providers|[anthropic.com](https://www.anthropic.com/news/claude-3-family)|
 |claude-3-opus|Anthropic|2+ Providers|[anthropic.com](https://www.anthropic.com/news/claude-3-family)|
 |claude-3.5-sonnet|Anthropic|6+ Providers|[anthropic.com](https://www.anthropic.com/news/claude-3-5-sonnet)|
-|blackboxai|Blackbox AI|2+ Providers|[docs.blackbox.chat](https://docs.blackbox.chat/blackbox-ai-1)|
+|blackboxai|Blackbox AI|1+ Providers|[docs.blackbox.chat](https://docs.blackbox.chat/blackbox-ai-1)|
 |blackboxai-pro|Blackbox AI|1+ Providers|[docs.blackbox.chat](https://docs.blackbox.chat/blackbox-ai-1)|
 |yi-1.5-9b|01-ai|1+ Providers|[huggingface.co](https://huggingface.co/01-ai/Yi-1.5-9B)|
 |phi-2|Microsoft|1+ Providers|[huggingface.co](https://huggingface.co/microsoft/phi-2)|
