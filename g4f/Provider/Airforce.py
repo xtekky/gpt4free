@@ -12,8 +12,8 @@ from .airforce.AirforceImage import AirforceImage
 
 class Airforce(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://api.airforce"
-    api_endpoint_completions = AirforceChat.api_endpoint_completions
-    api_endpoint_imagine2 = AirforceImage.api_endpoint_imagine2
+    api_endpoint_completions = AirforceChat.api_endpoint
+    api_endpoint_imagine2 = AirforceImage.api_endpoint
     working = True
     supports_stream = AirforceChat.supports_stream
     supports_system_message = AirforceChat.supports_system_message

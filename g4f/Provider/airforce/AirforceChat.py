@@ -46,7 +46,7 @@ def split_messages(messages: Messages, chunk_size: int = 995) -> Messages:
 
 class AirforceChat(AsyncGeneratorProvider, ProviderModelMixin):
     label = "AirForce Chat"
-    api_endpoint_completions = "https://api.airforce/chat/completions"  # Замініть на реальний ендпоінт
+    api_endpoint = "https://api.airforce/chat/completions"
     supports_stream = True
     supports_system_message = True
     supports_message_history = True
@@ -118,8 +118,8 @@ class AirforceChat(AsyncGeneratorProvider, ProviderModelMixin):
         'openchat-3.5-0106',
         
         # qwen
-        #'Qwen1.5-72B-Chat', Пуста відповідь
-        #'Qwen1.5-110B-Chat', Пуста відповідь
+        #'Qwen1.5-72B-Chat', # Empty answer
+        #'Qwen1.5-110B-Chat', # Empty answer
         'Qwen2-72B-Instruct',
         'Qwen2.5-7B-Instruct-Turbo',
         'Qwen2.5-72B-Instruct-Turbo',
@@ -350,7 +350,7 @@ class AirforceChat(AsyncGeneratorProvider, ProviderModelMixin):
         }
 
         async with ClientSession(headers=headers) as session:
-            async with session.post(cls.api_endpoint_completions, json=data, proxy=proxy) as response:
+            async with session.post(cls.api_endpoint, json=data, proxy=proxy) as response:
                 response.raise_for_status()
                 text = ""
                 if stream:
@@ -362,7 +362,7 @@ class AirforceChat(AsyncGeneratorProvider, ProviderModelMixin):
                                 chunk = json.loads(json_str)
                                 if 'choices' in chunk and chunk['choices']:
                                     content = chunk['choices'][0].get('delta', {}).get('content', '')
-                                    text += content # Збираємо дельти
+                                    text += content
                             except json.JSONDecodeError as e:
                                 print(f"Error decoding JSON: {json_str}, Error: {e}")
                         elif line.strip() == "[DONE]":

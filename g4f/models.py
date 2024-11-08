@@ -688,6 +688,13 @@ flux = Model(
     
 )
 
+flux_pro = Model(
+    name = 'flux-pro',
+    base_provider = 'Flux AI',
+    best_provider = IterListProvider([Airforce])
+    
+)
+
 flux_realism = Model(
     name = 'flux-realism',
     base_provider = 'Flux AI',
@@ -983,6 +990,7 @@ class ModelUtils:
 
 ### Flux AI ###
 'flux': flux,
+'flux-pro': flux_pro,
 'flux-realism': flux_realism,
 'flux-anime': flux_anime,
 'flux-3d': flux_3d,
