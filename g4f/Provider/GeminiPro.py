@@ -104,4 +104,8 @@ class GeminiPro(AsyncGeneratorProvider, ProviderModelMixin):
                             lines.append(chunk)
                 else:
                     data = await response.json()
-                    yield data["candidates"][0]["content"]["parts"][0]["text"]
+                    candidate = data["candidates"][0]
+                    if candidate["finishReason"] == "STOP":
+                        yield candidate["content"]["parts"][0]["text"]
+                    else:
+                        yield candidate["finishReason"] + ' ' + candidate["safetyRatings"]
