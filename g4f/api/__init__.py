@@ -223,7 +223,7 @@ class Api:
                     response_format=config.response_format
                 )
                 # Convert Image objects to dictionaries
-                response_data = [image.to_dict() for image in response.data]
+                response_data = [{"url": image.url, "b64_json": image.b64_json} for image in response.data]
                 return JSONResponse({"data": response_data})
             except Exception as e:
                 logging.exception(e)
