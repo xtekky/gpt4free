@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from .Openai import Openai
+from .OpenaiAPI import OpenaiAPI
 from ...typing import AsyncResult, Messages
 
-class Groq(Openai):
+class Groq(OpenaiAPI):
     label = "Groq"
     url = "https://console.groq.com/playground"
     working = True

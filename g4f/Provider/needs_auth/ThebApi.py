@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from ...typing import CreateResult, Messages
-from .Openai import Openai
+from .OpenaiAPI import OpenaiAPI
 
 models = {
     "theb-ai": "TheB.AI",
@@ -27,7 +27,7 @@ models = {
     "qwen-7b-chat": "Qwen 7B"
 }
 
-class ThebApi(Openai):
+class ThebApi(OpenaiAPI):
     label = "TheB.AI API"
     url = "https://theb.ai"
     working = True

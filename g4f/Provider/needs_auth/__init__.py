@@ -11,7 +11,7 @@ from .GeminiPro        import GeminiPro
 from .Groq             import Groq
 from .HuggingFace      import HuggingFace
 from .MetaAI           import MetaAI
-from .Openai           import Openai
+from .OpenaiAPI        import OpenaiAPI
 from .OpenaiChat       import OpenaiChat
 from .PerplexityApi    import PerplexityApi
 from .Poe              import Poe

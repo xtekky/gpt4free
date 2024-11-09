@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from .Openai import Openai
+from .OpenaiAPI import OpenaiAPI
 from ...typing import AsyncResult, Messages
 
-class PerplexityApi(Openai):
+class PerplexityApi(OpenaiAPI):
     label = "Perplexity API"
     url = "https://www.perplexity.ai"
     working = True

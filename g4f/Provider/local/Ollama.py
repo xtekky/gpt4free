@@ -3,10 +3,10 @@ from __future__ import annotations
 import requests
 import os
 
-from ..needs_auth.Openai import Openai
+from ..needs_auth.OpenaiAPI import OpenaiAPI
 from ...typing import AsyncResult, Messages
 
-class Ollama(Openai):
+class Ollama(OpenaiAPI):
     label = "Ollama"
     url = "https://ollama.com"
     needs_auth = False

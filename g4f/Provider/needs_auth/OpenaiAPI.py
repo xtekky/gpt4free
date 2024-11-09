@@ -9,7 +9,7 @@ from ...requests import StreamSession, raise_for_status
 from ...errors import MissingAuthError, ResponseError
 from ...image import to_data_uri
 
-class Openai(AsyncGeneratorProvider, ProviderModelMixin):
+class OpenaiAPI(AsyncGeneratorProvider, ProviderModelMixin):
     label = "OpenAI API"
     url = "https://platform.openai.com"
     working = True

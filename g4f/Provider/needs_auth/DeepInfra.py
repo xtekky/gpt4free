@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import requests
 from ...typing import AsyncResult, Messages
-from .Openai import Openai
+from .OpenaiAPI import OpenaiAPI
 
-class DeepInfra(Openai):
+class DeepInfra(OpenaiAPI):
     label = "DeepInfra"
     url = "https://deepinfra.com"
     working = True
