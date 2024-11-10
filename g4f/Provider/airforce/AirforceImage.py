@@ -25,7 +25,6 @@ class AirforceImage(AsyncGeneratorProvider, ProviderModelMixin):
         'flux-pixel',
         'flux-4o',
         'any-dark',
-        'any-uncensored',
         'stable-diffusion-xl-base',
         'stable-diffusion-xl-lightning',
         'Flux-1.1-Pro',
