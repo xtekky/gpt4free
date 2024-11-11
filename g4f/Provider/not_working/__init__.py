@@ -12,3 +12,4 @@ from .FreeNetfly        import FreeNetfly
 from .GPROChat          import GPROChat
 from .Koala             import Koala
 from .MyShell           import MyShell
+from .Chatgpt4Online    import Chatgpt4Online

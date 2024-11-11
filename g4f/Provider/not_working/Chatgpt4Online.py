@@ -3,15 +3,15 @@ from __future__ import annotations
 import json
 from aiohttp import ClientSession
 
-from ..typing import AsyncResult, Messages
-from .base_provider import AsyncGeneratorProvider
-from .helper import format_prompt
+from ...typing import AsyncResult, Messages
+from ..base_provider import AsyncGeneratorProvider
+from ..helper import format_prompt
 
 
 class Chatgpt4Online(AsyncGeneratorProvider):
     url = "https://chatgpt4online.org"
     api_endpoint = "/wp-json/mwai-ui/v1/chats/submit"
-    working = True
+    working = False
     
     default_model = 'gpt-4'
     models = [default_model]

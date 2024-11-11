@@ -28,7 +28,6 @@ This document provides an overview of various AI providers and models, including
 |[chatgot.one](https://www.chatgot.one/)|`g4f.Provider.ChatGot`|`gemini-pro`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[chatgpt.com](https://chatgpt.com)|`g4f.Provider.ChatGpt`|`?`|`?`|`?`|?|![Unknown](https://img.shields.io/badge/Unknown-grey) |❌|
 |[chatgpt.es](https://chatgpt.es)|`g4f.Provider.ChatGptEs`|`gpt-4o, gpt-4o-mini`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
-|[chatgpt4online.org](https://chatgpt4online.org)|`g4f.Provider.Chatgpt4Online`|`gpt-4`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[chatify-ai.vercel.app](https://chatify-ai.vercel.app)|`g4f.Provider.ChatifyAI`|`llama-3.1-8b`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[playground.ai.cloudflare.com](https://playground.ai.cloudflare.com)|`g4f.Provider.Cloudflare`|`gemma-7b, llama-2-7b, llama-3-8b, llama-3.1-8b, llama-3.2-1b, phi-2, qwen-1.5-0-5b, qwen-1.5-8b, qwen-1.5-14b, qwen-1.5-7b`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[darkai.foundation/chat](https://darkai.foundation/chat)|`g4f.Provider.DarkAI`|`gpt-4o, gpt-3.5-turbo, llama-3-70b, llama-3-405b`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
