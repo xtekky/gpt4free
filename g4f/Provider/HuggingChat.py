@@ -83,7 +83,7 @@ class HuggingChat(AbstractProvider, ProviderModelMixin):
                 raise RuntimeError(f"Request failed with status code: {response.status_code}, response: {response.text}")
 
             conversationId = response.json().get('conversationId')
-            response = session.get(f'https://huggingface.co/chat/conversation/{conversationId}/__data.json?x-sveltekit-invalidated=11')
+            response = session.get(f'https://huggingface.co/chat/conversation/{conversationId}/__data.json?x-sveltekit-invalidated=01')
 
             data: list = response.json()["nodes"][1]["data"]
             keys: list[int] = data[data[0]["messages"]]
