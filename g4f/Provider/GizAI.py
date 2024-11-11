@@ -8,7 +8,7 @@ from .helper import format_prompt
 
 
 class GizAI(AsyncGeneratorProvider, ProviderModelMixin):
-    url = "https://app.giz.ai"
+    url = "https://app.giz.ai/assistant"
     api_endpoint = "https://app.giz.ai/api/data/users/inferenceServer.infer"
     working = True
     supports_stream = False
@@ -46,7 +46,7 @@ class GizAI(AsyncGeneratorProvider, ProviderModelMixin):
             'Connection': 'keep-alive',
             'Content-Type': 'application/json',
             'DNT': '1',
-            'Origin': cls.url,
+            'Origin': 'https://app.giz.ai',
             'Pragma': 'no-cache',
             'Sec-Fetch-Dest': 'empty',
             'Sec-Fetch-Mode': 'cors',
@@ -56,16 +56,21 @@ class GizAI(AsyncGeneratorProvider, ProviderModelMixin):
             'sec-ch-ua-mobile': '?0',
             'sec-ch-ua-platform': '"Linux"'
         }
+        
+        prompt = format_prompt(messages)
+        
         async with ClientSession(headers=headers) as session:
             data = {
                 "model": model,
                 "input": {
-                    "messages": messages,
+                    "messages": [{"type": "human", "content": prompt}],
                     "mode": "plan"
                 },
                 "noStream": True
             }
             async with session.post(cls.api_endpoint, json=data, proxy=proxy) as response:
-                response.raise_for_status()
-                result = await response.json()
-                yield result['output'].strip()
+                if response.status == 201:
+                    result = await response.json()
+                    yield result['output'].strip()
+                else:
+                    raise Exception(f"Unexpected response status: {response.status}")
