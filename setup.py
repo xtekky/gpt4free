@@ -39,7 +39,7 @@ EXTRA_REQUIRE = {
         "pillow",                  # image
         "cairosvg",                # svg image
         "werkzeug", "flask",       # gui
-        "loguru", "fastapi",       # api
+        "fastapi",                 # api
         "uvicorn", "nest_asyncio", # api
         "pycryptodome"             # openai
     ],

@@ -11,7 +11,7 @@ from ...cookies import get_cookies_dir
 from ...errors import MissingRequirementsError
 from ... import debug
 
-logging.basicConfig(level=logging.ERROR)
+logger = logging.getLogger(__name__)
 
 class NoValidHarFileError(Exception):
     ...
@@ -81,14 +81,14 @@ async def get_telemetry_ids(proxy: str = None) -> list:
         return [await create_telemetry_id(proxy)]
     except NoValidHarFileError as e:
         if debug.logging:
-            logging.error(e)
+            logger.error(e)
 
     try:
         from nodriver import start
     except ImportError:
         raise MissingRequirementsError('Add .har file from you.com or install "nodriver" package | pip install -U nodriver')
     if debug.logging:
-        logging.error('Getting telemetry_id for you.com with nodriver')
+        logger.error('Getting telemetry_id for you.com with nodriver')
 
     browser = page = None
     try:
@@ -112,4 +112,4 @@ async def get_telemetry_ids(proxy: str = None) -> list:
                 await browser.stop()
         except Exception as e:
             if debug.logging:
-                logging.error(e)
+                logger.error(e)
