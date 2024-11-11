@@ -21,10 +21,7 @@ class Cloudflare(AsyncGeneratorProvider, ProviderModelMixin):
     supports_message_history = True
     
     default_model = '@cf/meta/llama-3.1-8b-instruct-awq'
-    models = [        
-         '@cf/tiiuae/falcon-7b-instruct', # Specific answer
-         
-         
+    models = [               
          '@hf/google/gemma-7b-it', 
 
          '@cf/meta/llama-2-7b-chat-fp16', 
@@ -120,9 +117,12 @@ class Cloudflare(AsyncGeneratorProvider, ProviderModelMixin):
         
         scraper = cloudscraper.create_scraper()
         
+
+        prompt = messages[-1]['content']
+        
         data = {
             "messages": [
-                {"role": "user", "content": format_prompt(messages)}
+                {"role": "user", "content": prompt}
             ],
             "lora": None,
             "model": model,
@@ -147,7 +147,7 @@ class Cloudflare(AsyncGeneratorProvider, ProviderModelMixin):
                 
                 response.raise_for_status()
                 
-                skip_tokens = ["</s>", "<s>", "[DONE]", "<|endoftext|>", "<|end|>"]
+                skip_tokens = ["</s>", "<s>", "</s>", "[DONE]", "<|endoftext|>", "<|end|>"]
                 filtered_response = ""
                 
                 for line in response.iter_lines():
