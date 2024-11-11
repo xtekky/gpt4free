@@ -27,6 +27,10 @@ class Website:
                 'function': redirect_home,
                 'methods': ['GET', 'POST']
             },
+            '/images/': {
+                'function': redirect_home,
+                'methods': ['GET', 'POST']
+            },
         }
 
     def _chat(self, conversation_id):

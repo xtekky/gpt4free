@@ -23,7 +23,6 @@ from .Provider import (
     DDG,
     DeepInfra,
     DeepInfraChat,
-    DeepInfraImage,
     Editee,
     Free2GPT,
     FreeChatgpt,
@@ -31,6 +30,7 @@ from .Provider import (
     FreeNetfly,
     Gemini,
     GeminiPro,
+    GizAI,
     GigaChat,
     GPROChat,
     HuggingChat,
@@ -42,9 +42,6 @@ from .Provider import (
     NexraBing,
     NexraBlackbox,
     NexraChatGPT,
-    NexraChatGPT4o,
-    NexraChatGptV2,
-    NexraChatGptWeb,
     NexraDallE,
     NexraDallE2,
     NexraEmi,
@@ -87,6 +84,8 @@ class Model:
         """Returns a list of all model names."""
         return _all_models
 
+
+### Default ###
 default = Model(
     name          = "",
     base_provider = "",
@@ -113,6 +112,8 @@ default = Model(
     ])
 )
 
+
+
 ############
 ### Text ###
 ############
@@ -136,13 +137,13 @@ gpt_35_turbo = Model(
 gpt_4o = Model(
     name          = 'gpt-4o',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([NexraChatGPT4o, Blackbox, ChatGptEs, AmigoChat, DarkAI, Editee, Liaobots, Airforce, OpenaiChat])
+    best_provider = IterListProvider([NexraChatGPT, Blackbox, ChatGptEs, AmigoChat, DarkAI, Editee, GizAI, Airforce, Liaobots, OpenaiChat])
 )
 
 gpt_4o_mini = Model(
     name          = 'gpt-4o-mini',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([DDG, ChatGptEs, FreeNetfly, Pizzagpt, MagickPen, AmigoChat, RubiksAI, Liaobots, Airforce, ChatgptFree, Koala, OpenaiChat, ChatGpt])
+    best_provider = IterListProvider([DDG, ChatGptEs, FreeNetfly, Pizzagpt, MagickPen, AmigoChat, RubiksAI, Liaobots, Airforce, GizAI, ChatgptFree, Koala, OpenaiChat, ChatGpt])
 )
 
 gpt_4_turbo = Model(
@@ -154,7 +155,7 @@ gpt_4_turbo = Model(
 gpt_4 = Model(
     name          = 'gpt-4',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([Chatgpt4Online, Ai4Chat, NexraBing, NexraChatGPT, NexraChatGptV2, NexraChatGptWeb, Airforce, Bing, OpenaiChat, gpt_4_turbo.best_provider, gpt_4o.best_provider, gpt_4o_mini.best_provider])
+    best_provider = IterListProvider([Chatgpt4Online, Ai4Chat, NexraBing, NexraChatGPT, Airforce, Bing, OpenaiChat, gpt_4_turbo.best_provider, gpt_4o.best_provider, gpt_4o_mini.best_provider])
 )
 
 # o1
@@ -167,7 +168,7 @@ o1 = Model(
 o1_mini = Model(
     name          = 'o1-mini',
     base_provider = 'OpenAI',
-    best_provider = AmigoChat
+    best_provider = IterListProvider([AmigoChat, GizAI])
 )
 
 
@@ -216,13 +217,13 @@ llama_3_70b = Model(
 llama_3_1_8b = Model(
     name          = "llama-3.1-8b",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider([Blackbox, DeepInfraChat, ChatHub, Cloudflare, Airforce, PerplexityLabs])
+    best_provider = IterListProvider([Blackbox, DeepInfraChat, ChatHub, Cloudflare, Airforce, GizAI, PerplexityLabs])
 )
 
 llama_3_1_70b = Model(
     name          = "llama-3.1-70b",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider([DDG, HuggingChat, Blackbox, FreeGpt, TeachAnything, Free2GPT, DeepInfraChat, DarkAI, Airforce, AiMathGPT, RubiksAI, HuggingFace, PerplexityLabs])
+    best_provider = IterListProvider([DDG, HuggingChat, Blackbox, FreeGpt, TeachAnything, Free2GPT, DeepInfraChat, DarkAI, Airforce, AiMathGPT, RubiksAI, GizAI, HuggingFace, PerplexityLabs])
 )
 
 llama_3_1_405b = Model(
@@ -299,7 +300,7 @@ mistral_nemo = Model(
 mistral_large = Model(
     name          = "mistral-large",
     base_provider = "Mistral",
-    best_provider = Editee
+    best_provider = IterListProvider([Editee, GizAI])
 )
 
 
@@ -347,13 +348,13 @@ phi_3_5_mini = Model(
 gemini_pro = Model(
     name          = 'gemini-pro',
     base_provider = 'Google DeepMind',
-    best_provider = IterListProvider([GeminiPro, Blackbox, AIChatFree, GPROChat, NexraGeminiPro, AmigoChat, Editee, Liaobots, Airforce])
+    best_provider = IterListProvider([GeminiPro, Blackbox, AIChatFree, GPROChat, NexraGeminiPro, AmigoChat, Editee, GizAI, Airforce, Liaobots])
 )
 
 gemini_flash = Model(
     name          = 'gemini-flash',
     base_provider = 'Google DeepMind',
-    best_provider = IterListProvider([Blackbox, Liaobots, Airforce])
+    best_provider = IterListProvider([Blackbox, GizAI, Airforce, Liaobots])
 )
 
 gemini = Model(
@@ -424,14 +425,14 @@ claude_3_sonnet = Model(
 claude_3_haiku = Model(
     name          = 'claude-3-haiku',
     base_provider = 'Anthropic',
-    best_provider = IterListProvider([DDG, Airforce, Liaobots])
+    best_provider = IterListProvider([DDG, Airforce, GizAI, Liaobots])
 )
 
 # claude 3.5
 claude_3_5_sonnet = Model(
     name          = 'claude-3.5-sonnet',
     base_provider = 'Anthropic',
-    best_provider = IterListProvider([Blackbox, Editee, AmigoChat, Airforce, Liaobots])
+    best_provider = IterListProvider([Blackbox, Editee, AmigoChat, Airforce, GizAI, Liaobots])
 )
 
 
@@ -753,14 +754,14 @@ sdxl_lora = Model(
 sdxl = Model(
     name = 'sdxl',
     base_provider = 'Stability AI',
-    best_provider = IterListProvider([ReplicateHome, DeepInfraImage])
+    best_provider = IterListProvider([ReplicateHome])
     
 )
 
 sd_1_5 = Model(
     name = 'sd-1.5',
     base_provider = 'Stability AI',
-    best_provider = NexraSD15
+    best_provider = IterListProvider([NexraSD15, GizAI])
     
 )
 
@@ -768,6 +769,13 @@ sd_3 = Model(
     name = 'sd-3',
     base_provider = 'Stability AI',
     best_provider = ReplicateHome
+    
+)
+
+sd_3_5 = Model(
+    name = 'sd-3.5',
+    base_provider = 'Stability AI',
+    best_provider = GizAI
     
 )
 
@@ -791,7 +799,7 @@ flux = Model(
 flux_pro = Model(
     name = 'flux-pro',
     base_provider = 'Flux AI',
-    best_provider = IterListProvider([AmigoChat, NexraFluxPro])
+    best_provider = IterListProvider([NexraFluxPro, AmigoChat])
     
 )
 
@@ -840,7 +848,7 @@ flux_4o = Model(
 flux_schnell = Model(
     name = 'flux-schnell',
     base_provider = 'Flux AI',
-    best_provider = ReplicateHome
+    best_provider = IterListProvider([ReplicateHome, GizAI])
     
 )
 
@@ -1123,6 +1131,7 @@ class ModelUtils:
 'sdxl-turbo': sdxl_turbo,
 'sd-1.5': sd_1_5,
 'sd-3': sd_3,
+'sd-3.5': sd_3_5,
         
         
 ### Playground ###

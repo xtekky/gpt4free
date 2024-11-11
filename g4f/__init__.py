@@ -5,6 +5,7 @@ import logging
 
 from . import debug, version
 from .models import Model
+from .client import Client, AsyncClient
 from .typing import Messages, CreateResult, AsyncResult, Union
 from .errors import StreamNotSupportedError, ModelNotAllowedError
 from .cookies import get_cookies, set_cookies
