@@ -3,6 +3,7 @@ from __future__ import annotations
 from aiohttp import ClientSession
 from urllib.parse import urlencode
 import random
+import requests
 
 from ...typing import AsyncResult, Messages
 from ...image import ImageResponse
@@ -16,20 +17,13 @@ class AirforceImage(AsyncGeneratorProvider, ProviderModelMixin):
     #working = True
     
     default_model = 'flux'
-    image_models = [
-        'flux',
-        'flux-realism', 
-        'flux-anime',
-        'flux-3d',
-        'flux-disney',
-        'flux-pixel',
-        'flux-4o',
-        'any-dark',
-        'stable-diffusion-xl-base',
-        'stable-diffusion-xl-lightning',
-        'Flux-1.1-Pro',
-    ]
-    models = [*image_models]
+    
+    response = requests.get('https://api.airforce/imagine/models')
+    data = response.json()
+
+    image_models = data
+
+    models = [*image_models, "stable-diffusion-xl-base", "stable-diffusion-xl-lightning", "Flux-1.1-Pro"]
     
     model_aliases = {
         "sdxl": "stable-diffusion-xl-base",
