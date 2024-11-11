@@ -18,7 +18,6 @@ from .Bing             import Bing
 from .Blackbox         import Blackbox
 from .ChatGpt          import ChatGpt
 from .ChatGptEs        import ChatGptEs
-from .ChatifyAI        import ChatifyAI
 from .Cloudflare       import Cloudflare
 from .DarkAI           import DarkAI
 from .DDG              import DDG
