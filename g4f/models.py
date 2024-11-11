@@ -250,7 +250,7 @@ hermes_3 = Model(
 phi_2 = Model(
     name          = "phi-2",
     base_provider = "Microsoft",
-    best_provider = IterListProvider([Cloudflare, Airforce])
+    best_provider = IterListProvider([Airforce])
 )
 
 phi_3_5_mini = Model(
@@ -284,12 +284,6 @@ gemma_2b = Model(
     name          = 'gemma-2b',
     base_provider = 'Google',
     best_provider = IterListProvider([ReplicateHome])
-)
-
-gemma_7b = Model(
-    name          = 'gemma-7b',
-    base_provider = 'Google',
-    best_provider = Cloudflare
 )
 
 
@@ -358,28 +352,10 @@ command_r_plus = Model(
 
 ### Qwen ###
 # qwen 1_5
-qwen_1_5_5b = Model(
-    name = 'qwen-1.5-5b',
-    base_provider = 'Qwen',
-    best_provider = Cloudflare
-)
-
 qwen_1_5_7b = Model(
     name = 'qwen-1.5-7b',
     base_provider = 'Qwen',
     best_provider = Cloudflare
-)
-
-qwen_1_5_8b = Model(
-    name = 'qwen-1.5-8b',
-    base_provider = 'Qwen',
-    best_provider = Cloudflare
-)
-
-qwen_1_5_14b = Model(
-    name = 'qwen-1.5-14b',
-    base_provider = 'Qwen',
-    best_provider = IterListProvider([Cloudflare])
 )
 
 # qwen 2
@@ -690,7 +666,6 @@ class ModelUtils:
 
                 
 ### Microsoft ###
-'phi-2': phi_2,
 'phi-3.5-mini': phi_3_5_mini,
 
 
@@ -702,7 +677,6 @@ class ModelUtils:
         
 # gemma
 'gemma-2b': gemma_2b,
-'gemma-7b': gemma_7b,
 
 
 ### Anthropic ###
@@ -737,10 +711,7 @@ class ModelUtils:
         
 ### Qwen ###
 # qwen 1.5
-'qwen-1.5-5b': qwen_1_5_5b,
 'qwen-1.5-7b': qwen_1_5_7b,
-'qwen-1.5-8b': qwen_1_5_8b,
-'qwen-1.5-14b': qwen_1_5_14b,
 
 # qwen 2
 'qwen-2-72b': qwen_2_72b,

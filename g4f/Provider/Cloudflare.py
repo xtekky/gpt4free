@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from aiohttp import ClientSession
 import asyncio
 import json
 import uuid
@@ -9,7 +10,6 @@ from typing import AsyncGenerator
 from ..typing import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from .helper import format_prompt
-
 
 class Cloudflare(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Cloudflare AI"
@@ -22,8 +22,6 @@ class Cloudflare(AsyncGeneratorProvider, ProviderModelMixin):
     
     default_model = '@cf/meta/llama-3.1-8b-instruct-awq'
     models = [               
-         '@hf/google/gemma-7b-it', 
-
          '@cf/meta/llama-2-7b-chat-fp16', 
          '@cf/meta/llama-2-7b-chat-int8', 
          
@@ -38,21 +36,12 @@ class Cloudflare(AsyncGeneratorProvider, ProviderModelMixin):
 
          '@hf/mistral/mistral-7b-instruct-v0.2',
          
-         '@cf/microsoft/phi-2',
-         
-         '@cf/qwen/qwen1.5-0.5b-chat',
-         '@cf/qwen/qwen1.5-1.8b-chat',
-         '@cf/qwen/qwen1.5-14b-chat-awq',
          '@cf/qwen/qwen1.5-7b-chat-awq', 
          
          '@cf/defog/sqlcoder-7b-2',
     ]
     
     model_aliases = {       
-        #"falcon-7b": "@cf/tiiuae/falcon-7b-instruct",
-        
-        "gemma-7b": "@hf/google/gemma-7b-it",
-
         "llama-2-7b": "@cf/meta/llama-2-7b-chat-fp16",
         "llama-2-7b": "@cf/meta/llama-2-7b-chat-int8",
         
@@ -65,11 +54,6 @@ class Cloudflare(AsyncGeneratorProvider, ProviderModelMixin):
         
         "llama-3.2-1b": "@cf/meta/llama-3.2-1b-instruct",
         
-        "phi-2": "@cf/microsoft/phi-2",
-        
-        "qwen-1.5-0-5b": "@cf/qwen/qwen1.5-0.5b-chat",
-        "qwen-1.5-1-8b": "@cf/qwen/qwen1.5-1.8b-chat",
-        "qwen-1.5-14b": "@cf/qwen/qwen1.5-14b-chat-awq",
         "qwen-1.5-7b": "@cf/qwen/qwen1.5-7b-chat-awq",
         
         #"sqlcoder-7b": "@cf/defog/sqlcoder-7b-2",
@@ -90,6 +74,7 @@ class Cloudflare(AsyncGeneratorProvider, ProviderModelMixin):
         model: str,
         messages: Messages,
         proxy: str = None,
+        max_tokens: int = 2048,
         **kwargs
     ) -> AsyncResult:
         model = cls.get_model(model)
@@ -117,20 +102,19 @@ class Cloudflare(AsyncGeneratorProvider, ProviderModelMixin):
         
         scraper = cloudscraper.create_scraper()
         
-
-        prompt = messages[-1]['content']
-        
         data = {
             "messages": [
-                {"role": "user", "content": prompt}
+                {"role": "user", "content": format_prompt(messages)}
             ],
             "lora": None,
             "model": model,
-            "max_tokens": 2048,
+            "max_tokens": max_tokens,
             "stream": True
         }
         
-        max_retries = 5
+        max_retries = 3
+        full_response = ""
+        
         for attempt in range(max_retries):
             try:
                 response = scraper.post(
@@ -138,31 +122,28 @@ class Cloudflare(AsyncGeneratorProvider, ProviderModelMixin):
                     headers=headers,
                     cookies=cookies,
                     json=data,
-                    stream=True
+                    stream=True,
+                    proxies={'http': proxy, 'https': proxy} if proxy else None
                 )
                 
                 if response.status_code == 403:
                     await asyncio.sleep(2 ** attempt)
                     continue
-                
+                    
                 response.raise_for_status()
-                
-                skip_tokens = ["</s>", "<s>", "</s>", "[DONE]", "<|endoftext|>", "<|end|>"]
-                filtered_response = ""
                 
                 for line in response.iter_lines():
                     if line.startswith(b'data: '):
                         if line == b'data: [DONE]':
+                            if full_response:
+                                yield full_response
                             break
                         try:
                             content = json.loads(line[6:].decode('utf-8'))
-                            response_text = content['response']
-                            if not any(token in response_text for token in skip_tokens):
-                                filtered_response += response_text
+                            if 'response' in content and content['response'] != '</s>':
+                                yield content['response']
                         except Exception:
                             continue
-                
-                yield filtered_response.strip()
                 break
             except Exception as e:
                 if attempt == max_retries - 1:
