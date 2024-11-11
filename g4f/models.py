@@ -6,7 +6,6 @@ from .Provider import IterListProvider, ProviderType
 from .Provider import (
     Ai4Chat,
     AIChatFree,
-    AiMathGPT,
     Airforce,
     AIUncensored,
     Allyfy,
@@ -81,7 +80,6 @@ default = Model(
         ChatGptEs,
         ChatifyAI,
         Cloudflare,
-        AiMathGPT,
         AIUncensored,
         DarkAI,
     ])
@@ -184,7 +182,7 @@ llama_3_1_8b = Model(
 llama_3_1_70b = Model(
     name          = "llama-3.1-70b",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider([DDG, DeepInfraChat, Blackbox, TeachAnything, DarkAI, AiMathGPT, Airforce, RubiksAI, HuggingChat, HuggingFace, PerplexityLabs])
+    best_provider = IterListProvider([DDG, DeepInfraChat, Blackbox, TeachAnything, DarkAI, Airforce, RubiksAI, HuggingChat, HuggingFace, PerplexityLabs])
 )
 
 llama_3_1_405b = Model(

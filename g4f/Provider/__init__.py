@@ -13,7 +13,6 @@ from .local            import *
 
 from .AIUncensored     import AIUncensored
 from .Allyfy           import Allyfy
-from .AiMathGPT        import AiMathGPT
 from .Airforce         import Airforce
 from .Bing             import Bing
 from .Blackbox         import Blackbox
