@@ -20,7 +20,7 @@ class Airforce(AsyncGeneratorProvider, ProviderModelMixin):
     supports_message_history = AirforceChat.supports_message_history 
     
     default_model = AirforceChat.default_model
-    models = [*AirforceChat.text_models, *AirforceImage.image_models]
+    models = [*AirforceChat.models, *AirforceImage.models]
     
     model_aliases = {
         **AirforceChat.model_aliases,

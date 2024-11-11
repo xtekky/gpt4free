@@ -1,8 +1,8 @@
 from __future__ import annotations
 import re
 import json
-from aiohttp import ClientSession
 import requests
+from aiohttp import ClientSession
 from typing import List
 
 from ...typing import AsyncResult, Messages
@@ -21,7 +21,11 @@ def clean_response(text: str) -> str:
     ]
     for pattern in patterns:
         text = re.sub(pattern, '', text)
-    return text.strip()
+    
+    # Remove the <|im_end|> token if present
+    text = text.replace("<|im_end|>", "").strip()
+    
+    return text
 
 def split_message(message: str, max_length: int = 1000) -> List[str]:
     """Splits the message into chunks of a given length (max_length)"""

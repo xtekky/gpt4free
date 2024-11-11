@@ -463,15 +463,6 @@ openhermes_2_5 = Model(
     best_provider = Airforce
 )
 
-
-### Pawan ### 
-cosmosrp = Model(
-    name = 'cosmosrp',
-    base_provider = 'Pawan',
-    best_provider = Airforce
-)
-
-
 ### Liquid ### 
 lfm_40b = Model(
     name = 'lfm-40b',
@@ -666,6 +657,7 @@ class ModelUtils:
 
                 
 ### Microsoft ###
+'phi-2': phi_2,
 'phi-3.5-mini': phi_3_5_mini,
 
 
@@ -764,10 +756,6 @@ class ModelUtils:
 ### Teknium ###   
 'openhermes-2.5': openhermes_2_5,
         
-        
-### Pawan ###   
-'cosmosrp': cosmosrp,
-
 
 ### Liquid ###   
 'lfm-40b': lfm_40b,
