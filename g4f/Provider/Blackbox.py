@@ -97,7 +97,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
                         cls._last_validated_value = validated_value 
                         return validated_value
             except Exception as e:
-                pass
+                print(f"Error fetching validated value: {e}")
 
         return cls._last_validated_value
 
