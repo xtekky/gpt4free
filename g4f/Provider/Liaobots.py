@@ -9,15 +9,6 @@ from .helper import get_connector
 from ..requests import raise_for_status
 
 models = {
-    "gpt-3.5-turbo": {
-        "id": "gpt-3.5-turbo",
-        "name": "GPT-3.5-Turbo",
-        "model": "ChatGPT",
-        "provider": "OpenAI",
-        "maxLength": 48000,
-        "tokenLimit": 14000,
-        "context": "16K",
-    },
     "gpt-4o-mini-free": {
         "id": "gpt-4o-mini-free",
         "name": "GPT-4o-Mini-Free",
@@ -179,7 +170,7 @@ class Liaobots(AsyncGeneratorProvider, ProviderModelMixin):
     working = True
     supports_message_history = True
     supports_system_message = True
-    default_model = "gpt-3.5-turbo"
+    default_model = "gpt-4o-2024-08-06"
     models = list(models.keys())
     
     model_aliases = {
