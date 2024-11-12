@@ -17,7 +17,13 @@ class ReplicateHome(AsyncGeneratorProvider, ProviderModelMixin):
     supports_system_message = True
     supports_message_history = True
     
-    default_model = 'meta/meta-llama-3-70b-instruct'
+    default_model = 'yorickvp/llava-13b'
+    
+    image_models = [
+        'stability-ai/stable-diffusion-3',
+        'bytedance/sdxl-lightning-4step',
+        'playgroundai/playground-v2.5-1024px-aesthetic',
+    ]
     
     text_models = [
         'meta/meta-llama-3-70b-instruct',
@@ -26,35 +32,31 @@ class ReplicateHome(AsyncGeneratorProvider, ProviderModelMixin):
         'yorickvp/llava-13b',
     ]
 
-    image_models = [
-        'black-forest-labs/flux-schnell',
-        'stability-ai/stable-diffusion-3',
-        'bytedance/sdxl-lightning-4step',
-        'playgroundai/playground-v2.5-1024px-aesthetic',
-    ]
+
 
     models = text_models + image_models
     
     model_aliases = {
-        "flux-schnell": "black-forest-labs/flux-schnell",
+        # image_models
         "sd-3": "stability-ai/stable-diffusion-3",
         "sdxl": "bytedance/sdxl-lightning-4step",
         "playground-v2.5": "playgroundai/playground-v2.5-1024px-aesthetic",
-        "llama-3-70b": "meta/meta-llama-3-70b-instruct",
-        "mixtral-8x7b": "mistralai/mixtral-8x7b-instruct-v0.1",
+        
+        # text_models
         "gemma-2b": "google-deepmind/gemma-2b-it",
         "llava-13b": "yorickvp/llava-13b",
     }
 
     model_versions = {
-        "meta/meta-llama-3-70b-instruct": "fbfb20b472b2f3bdd101412a9f70a0ed4fc0ced78a77ff00970ee7a2383c575d",
-        "mistralai/mixtral-8x7b-instruct-v0.1": "5d78bcd7a992c4b793465bcdcf551dc2ab9668d12bb7aa714557a21c1e77041c",
-        "google-deepmind/gemma-2b-it": "dff94eaf770e1fc211e425a50b51baa8e4cac6c39ef074681f9e39d778773626",
-        "yorickvp/llava-13b": "80537f9eead1a5bfa72d5ac6ea6414379be41d4d4f6679fd776e9535d1eb58bb",
-        'black-forest-labs/flux-schnell': "f2ab8a5bfe79f02f0789a146cf5e73d2a4ff2684a98c2b303d1e1ff3814271db",
+        # image_models
         'stability-ai/stable-diffusion-3': "527d2a6296facb8e47ba1eaf17f142c240c19a30894f437feee9b91cc29d8e4f",
         'bytedance/sdxl-lightning-4step': "5f24084160c9089501c1b3545d9be3c27883ae2239b6f412990e82d4a6210f8f",
         'playgroundai/playground-v2.5-1024px-aesthetic': "a45f82a1382bed5c7aeb861dac7c7d191b0fdf74d8d57c4a0e6ed7d4d0bf7d24",
+        
+        # text_models
+        "google-deepmind/gemma-2b-it": "dff94eaf770e1fc211e425a50b51baa8e4cac6c39ef074681f9e39d778773626",
+        "yorickvp/llava-13b": "80537f9eead1a5bfa72d5ac6ea6414379be41d4d4f6679fd776e9535d1eb58bb",
+        
     }
 
     @classmethod

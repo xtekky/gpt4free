@@ -164,12 +164,6 @@ llama_3_8b = Model(
     best_provider = IterListProvider([Cloudflare])
 )
 
-llama_3_70b = Model(
-    name          = "llama-3-70b",
-    base_provider = "Meta Llama",
-    best_provider = IterListProvider([ReplicateHome])
-)
-
 # llama 3.1
 llama_3_1_8b = Model(
     name          = "llama-3.1-8b",
@@ -212,7 +206,7 @@ mistral_7b = Model(
 mixtral_8x7b = Model(
     name          = "mixtral-8x7b",
     base_provider = "Mistral",
-    best_provider = IterListProvider([DDG, ReplicateHome])
+    best_provider = DDG
 )
 
 mistral_nemo = Model(
@@ -279,7 +273,7 @@ gemini = Model(
 gemma_2b = Model(
     name          = 'gemma-2b',
     base_provider = 'Google',
-    best_provider = IterListProvider([ReplicateHome])
+    best_provider = ReplicateHome
 )
 
 
@@ -583,12 +577,6 @@ flux_4o = Model(
     
 )
 
-flux_schnell = Model(
-    name = 'flux-schnell',
-    base_provider = 'Flux AI',
-    best_provider = ReplicateHome
-    
-)
 
 
 ### Other ###
@@ -635,7 +623,6 @@ class ModelUtils:
 
 # llama-3
 'llama-3-8b': llama_3_8b,
-'llama-3-70b': llama_3_70b,
         
 # llama-3.1
 'llama-3.1-8b': llama_3_1_8b,
@@ -802,7 +789,6 @@ class ModelUtils:
 'flux-disney': flux_disney,
 'flux-pixel': flux_pixel,
 'flux-4o': flux_4o,
-'flux-schnell': flux_schnell,
 
 
 ### Other ###
