@@ -464,7 +464,7 @@ openhermes_2_5 = Model(
 lfm_40b = Model(
     name = 'lfm-40b',
     base_provider = 'Liquid',
-    best_provider = Airforce
+    best_provider = IterListProvider([Airforce, PerplexityLabs])
 )
 
 

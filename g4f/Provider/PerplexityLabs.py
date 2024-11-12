@@ -31,6 +31,7 @@ class PerplexityLabs(AsyncGeneratorProvider, ProviderModelMixin):
         "sonar-chat": "llama-3.1-sonar-small-128k-chat",
         "llama-3.1-8b": "llama-3.1-8b-instruct",
         "llama-3.1-70b": "llama-3.1-70b-instruct",
+        "lfm-40b": "/models/LiquidCloud",
     }
 
     @classmethod
