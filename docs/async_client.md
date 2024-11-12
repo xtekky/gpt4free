@@ -57,7 +57,7 @@ client = Client(
 **Here’s an improved example of creating chat completions:**
 ```python
 response = await async_client.chat.completions.create(
-    model="gpt-3.5-turbo",
+    model="gpt-4o-mini",
     messages=[
         {
             "role": "user",
@@ -99,7 +99,7 @@ async def main():
     client = Client()
     
     response = await client.chat.completions.async_create(
-        model="gpt-3.5-turbo",
+        model="gpt-4o-mini",
         messages=[
             {
                 "role": "user",
@@ -230,7 +230,7 @@ async def main():
     client = Client()
     
     task1 = client.chat.completions.async_create(
-        model="gpt-3.5-turbo",
+        model="gpt-4o-mini",
         messages=[
             {
                 "role": "user",
@@ -262,6 +262,7 @@ The G4F AsyncClient supports a wide range of AI models and providers, allowing y
 
 ### Models
    - GPT-3.5-Turbo
+   - GPT-4o-Mini
    - GPT-4
    - DALL-E 3
    - Gemini
@@ -306,7 +307,7 @@ Implementing proper error handling and following best practices is crucial when 
 ```python
 try:
     response = await client.chat.completions.async_create(
-        model="gpt-3.5-turbo",
+        model="gpt-4o-mini",
         messages=[
             {
                 "role": "user",

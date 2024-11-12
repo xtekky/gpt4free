@@ -154,14 +154,29 @@ class AsyncClient(Client):
             stacklevel=2
         )
         super().__init__(*args, **kwargs)
+        self.chat = Chat(self)
+        self._images = Images(self)
+        self.completions = Completions(self)
 
-    async def chat_complete(self, *args, **kwargs):
-        """Legacy method that redirects to async_create"""
-        return await self.chat.completions.async_create(*args, **kwargs)
+    @property
+    def images(self) -> 'Images':
+        return self._images
 
-    async def create_image(self, *args, **kwargs):
-        """Legacy method that redirects to async_generate"""
-        return await self.images.async_generate(*args, **kwargs)
+    async def async_create(self, *args, **kwargs) -> Union['ChatCompletion', AsyncIterator['ChatCompletionChunk']]:
+        response = await super().async_create(*args, **kwargs)
+        async for result in response:
+            return result
+
+    async def async_generate(self, *args, **kwargs) -> 'ImagesResponse':
+        return await super().async_generate(*args, **kwargs)
+
+    async def _fetch_image(self, url: str) -> bytes:
+        async with ClientSession() as session:
+            async with session.get(url) as resp:
+                if resp.status == 200:
+                    return await resp.read()
+                else:
+                    raise Exception(f"Failed to fetch image from {url}, status code {resp.status}")
 
 class Completions:
     def __init__(self, client: Client, provider: ProviderType = None):
@@ -531,4 +546,3 @@ class Images:
     async def create_variation(self, image: Union[str, bytes], model: str = None, response_format: str = "url", **kwargs):
         # Existing implementation, adjust if you want to support b64_json here as well
         pass
-
