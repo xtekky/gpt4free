@@ -5,6 +5,7 @@ import random
 import string
 import json
 import re
+import aiohttp
 
 from ..typing import AsyncResult, Messages, ImageType
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
@@ -18,6 +19,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
     supports_stream = True
     supports_system_message = True
     supports_message_history = True
+    _last_validated_value = None
     
     default_model = 'blackboxai'
     
@@ -82,6 +84,23 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         "flux": "Image Generation",
     }
 
+    @classmethod
+    async def fetch_validated(cls):
+        async with aiohttp.ClientSession() as session:
+            try:
+                async with session.get('https://www.blackbox.ai/_next/static/chunks/2052-0407a0af8bffe0a9.js') as response:
+                    page_content = await response.text()
+                    validated_match = re.search(r'w="([0-9a-fA-F-]{36})"', page_content)
+
+                    if validated_match:
+                        validated_value = validated_match.group(1)
+                        cls._last_validated_value = validated_value 
+                        return validated_value
+            except Exception as e:
+                pass
+
+        return cls._last_validated_value
+
     @staticmethod
     def generate_id(length=7):
         characters = string.ascii_letters + string.digits
@@ -125,6 +144,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         model = cls.get_model(model)
         message_id = cls.generate_id()
         messages_with_prefix = cls.add_prefix_to_messages(messages, model)
+        validated_value = await cls.fetch_validated()
 
         if image is not None:
             messages_with_prefix[-1]['data'] = {
@@ -173,7 +193,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
             "mobileClient": False,
             "userSelectedModel": model if model in cls.userSelectedModel else None,
             "webSearchMode": web_search,
-            "validated": "00f37b34-a166-4efb-bce5-1312d87f2f94"
+            "validated": validated_value,
         }
 
         async with ClientSession(headers=headers) as session:
