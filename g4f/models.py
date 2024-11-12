@@ -361,6 +361,13 @@ qwen_2_72b = Model(
     best_provider = IterListProvider([DeepInfraChat, HuggingChat, HuggingFace])
 )
 
+# qwen 2.5
+qwen_2_5_coder_32b = Model(
+    name = 'qwen-2.5-coder-32b',
+    base_provider = 'Qwen',
+    best_provider = IterListProvider([HuggingChat, HuggingFace])
+)
+
 ### Upstage ###
 solar_mini = Model(
     name = 'solar-mini',
@@ -703,6 +710,9 @@ class ModelUtils:
 
 # qwen 2
 'qwen-2-72b': qwen_2_72b,
+
+# qwen 2.5
+'qwen-2.5-coder-32b': qwen_2_5_coder_32b,
                   
         
 ### Upstage ###
