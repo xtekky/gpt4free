@@ -58,7 +58,7 @@ This document provides an overview of various AI providers and models, including
 |[raycast.com](https://raycast.com)|`g4f.Provider.Raycast`|✔|❌|❌|✔|![Unknown](https://img.shields.io/badge/Unknown-grey)|✔|
 |[chat.reka.ai](https://chat.reka.ai/)|`g4f.Provider.Reka`|✔|❌|✔|✔|![Unknown](https://img.shields.io/badge/Unknown-grey)|✔|
 |[replicate.com](https://replicate.com)|`g4f.Provider.Replicate`|✔|❌|❌|?|![Unknown](https://img.shields.io/badge/Unknown-grey)|✔|
-|[replicate.com](https://replicate.com)|`g4f.Provider.ReplicateHome`|`llama-3-70b, mixtral-8x7b, llava-13b`|`flux-schnell, sdxl, sdxl, playground-v2.5`|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
+|[replicate.com](https://replicate.com)|`g4f.Provider.ReplicateHome`|`gemma-2b, llava-13b`|`sd-3, sdxl, playground-v2.5`|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[replicate.com](https://replicate.com)|`g4f.Provider.RubiksAI`|`llama-3.1-70b, gpt-4o-mini`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[talkai.info](https://talkai.info)|`g4f.Provider.TalkAi`|✔|❌|❌|✔|![Disabled](https://img.shields.io/badge/Disabled-red)|❌|
 |[teach-anything.com](https://www.teach-anything.com)|`g4f.Provider.TeachAnything`|`llama-3.1-70b`|❌|❌|✔|![Active](https://img.shields.io/badge/Active-brightgreen)|❌|
