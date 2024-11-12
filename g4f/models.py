@@ -107,7 +107,7 @@ gpt_4o = Model(
 gpt_4o_mini = Model(
     name          = 'gpt-4o-mini',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([DDG, ChatGptEs, FreeNetfly, Pizzagpt, MagickPen, ChatGpt, Airforce, RubiksAI, Liaobots, OpenaiChat])
+    best_provider = IterListProvider([DDG, ChatGptEs, FreeNetfly, Pizzagpt, ChatGpt, Airforce, RubiksAI, MagickPen, Liaobots, OpenaiChat])
 )
 
 gpt_4_turbo = Model(
