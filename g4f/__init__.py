@@ -13,10 +13,12 @@ from .providers.types import ProviderType
 from .providers.base_provider import AsyncGeneratorProvider
 from .client.service import get_model_and_provider, get_last_provider
 
+#Configure "g4f" logger
 logger = logging.getLogger(__name__)
 log_handler = logging.StreamHandler()
 log_handler.setFormatter(logging.Formatter(logging.BASIC_FORMAT))
 logger.addHandler(log_handler)
+
 logger.setLevel(logging.ERROR)
 
 class ChatCompletion:
