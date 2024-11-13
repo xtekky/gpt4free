@@ -144,39 +144,32 @@ class Client(BaseClient):
 class AsyncClient(Client):
     """Legacy AsyncClient that redirects to the main Client class.
     This class exists for backwards compatibility."""
-    
+
     def __init__(self, *args, **kwargs):
         import warnings
         warnings.warn(
-            "AsyncClient is deprecated and will be removed in a future version. "
+            "AsyncClient is deprecated and will be removed in future versions."
             "Use Client instead, which now supports both sync and async operations.",
             DeprecationWarning,
             stacklevel=2
         )
         super().__init__(*args, **kwargs)
-        self.chat = Chat(self)
-        self._images = Images(self)
-        self.completions = Completions(self)
 
-    @property
-    def images(self) -> 'Images':
-        return self._images
+    async def async_create(self, *args, **kwargs):
+        """Asynchronous create method that calls the synchronous method."""
+        return await super().async_create(*args, **kwargs)
 
-    async def async_create(self, *args, **kwargs) -> Union['ChatCompletion', AsyncIterator['ChatCompletionChunk']]:
-        response = await super().async_create(*args, **kwargs)
-        async for result in response:
-            return result
-
-    async def async_generate(self, *args, **kwargs) -> 'ImagesResponse':
+    async def async_generate(self, *args, **kwargs):
+        """Asynchronous image generation method."""
         return await super().async_generate(*args, **kwargs)
 
-    async def _fetch_image(self, url: str) -> bytes:
-        async with ClientSession() as session:
-            async with session.get(url) as resp:
-                if resp.status == 200:
-                    return await resp.read()
-                else:
-                    raise Exception(f"Failed to fetch image from {url}, status code {resp.status}")
+    async def async_images(self) -> Images:
+        """Asynchronous access to images."""
+        return await super().async_images()
+
+    async def async_fetch_image(self, url: str) -> bytes:
+        """Asynchronous fetching of an image by URL."""
+        return await self._fetch_image(url)
 
 class Completions:
     def __init__(self, client: Client, provider: ProviderType = None):
