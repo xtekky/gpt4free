@@ -35,7 +35,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         "gemini-1.5-flash": {'mode': True, 'id': 'Gemini'},
         "llama-3.1-8b": {'mode': True, 'id': "llama-3.1-8b"},
         'llama-3.1-70b': {'mode': True, 'id': "llama-3.1-70b"},
-	'llama-3.1-405b': {'mode': True, 'id': "llama-3.1-405"},
+	    'llama-3.1-405b': {'mode': True, 'id': "llama-3.1-405"},
         #
         'Python Agent': {'mode': True, 'id': "Python Agent"},
         'Java Agent': {'mode': True, 'id': "Java Agent"},
@@ -86,21 +86,23 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
 
     @classmethod
     async def fetch_validated(cls):       
+        # Якщо ключ вже збережений в пам'яті, повертаємо його
+        if cls._last_validated_value:
+            return cls._last_validated_value
+
+        # Якщо ключ не знайдено, виконуємо пошук
         async with aiohttp.ClientSession() as session:
             try:
-                # Get the HTML of the page
                 async with session.get(cls.url) as response:
                     if response.status != 200:
                         print("Failed to load the page.")
                         return cls._last_validated_value
                     
                     page_content = await response.text()
-                    # Find all JavaScript file links
                     js_files = re.findall(r'static/chunks/\d{4}-[a-fA-F0-9]+\.js', page_content)
 
                 key_pattern = re.compile(r'w="([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})"')
 
-                # Check each JavaScript file for the key
                 for js_file in js_files:
                     js_url = f"{cls.url}/_next/{js_file}"
                     async with session.get(js_url) as js_response:
@@ -109,7 +111,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
                             match = key_pattern.search(js_content)
                             if match:
                                 validated_value = match.group(1)
-                                cls._last_validated_value = validated_value
+                                cls._last_validated_value = validated_value  # Зберігаємо в пам'яті
                                 return validated_value
             except Exception as e:
                 print(f"Error fetching validated value: {e}")
