@@ -70,6 +70,7 @@ from .TeachAnything    import TeachAnything
 from .Upstage          import Upstage
 from .WhiteRabbitNeo   import WhiteRabbitNeo
 from .You              import You
+from .Mhystical       import Mhystical
 
 import sys
 
