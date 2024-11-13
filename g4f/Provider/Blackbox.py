@@ -85,21 +85,37 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
     }
 
     @classmethod
-    async def fetch_validated(cls):
+    async def fetch_validated(cls):       
         async with aiohttp.ClientSession() as session:
             try:
-                async with session.get('https://www.blackbox.ai/_next/static/chunks/2052-cdfeaea1ea292ff5.js') as response:
+                # Get the HTML of the page
+                async with session.get(cls.url) as response:
+                    if response.status != 200:
+                        print("Failed to load the page.")
+                        return cls._last_validated_value
+                    
                     page_content = await response.text()
-                    validated_match = re.search(r'w="([0-9a-fA-F-]{36})"', page_content)
+                    # Find all JavaScript file links
+                    js_files = re.findall(r'static/chunks/\d{4}-[a-fA-F0-9]+\.js', page_content)
 
-                    if validated_match:
-                        validated_value = validated_match.group(1)
-                        cls._last_validated_value = validated_value 
-                        return validated_value
+                key_pattern = re.compile(r'w="([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})"')
+
+                # Check each JavaScript file for the key
+                for js_file in js_files:
+                    js_url = f"{cls.url}/_next/{js_file}"
+                    async with session.get(js_url) as js_response:
+                        if js_response.status == 200:
+                            js_content = await js_response.text()
+                            match = key_pattern.search(js_content)
+                            if match:
+                                validated_value = match.group(1)
+                                cls._last_validated_value = validated_value
+                                return validated_value
             except Exception as e:
                 print(f"Error fetching validated value: {e}")
 
         return cls._last_validated_value
+
 
     @staticmethod
     def generate_id(length=7):
