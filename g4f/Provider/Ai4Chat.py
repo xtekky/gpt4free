@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import re
+import html
 import logging
 from aiohttp import ClientSession
 
@@ -79,8 +80,9 @@ class Ai4Chat(AsyncGeneratorProvider, ProviderModelMixin):
                     json_result = json.loads(result)
                     
                     message = json_result.get("message", "")
-                    
-                    clean_message = re.sub(r'<[^>]+>', '', message)
+                    clean_message = html.unescape(
+                        re.sub(r'<[^>]+>', '', message)
+                    )
                     
                     yield clean_message
             except Exception as e:
