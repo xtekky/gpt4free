@@ -18,6 +18,8 @@ from .helper import format_prompt
 
 """
 
+logger = logging.getLogger(__name__)
+
 class Mhystical(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://api.mhystical.cc"
     api_endpoint = "https://api.mhystical.cc/v1/completions"
@@ -84,5 +86,5 @@ class Mhystical(AsyncGeneratorProvider, ProviderModelMixin):
             message_content = json_response["choices"][0]["message"]["content"]
             return message_content
         except (KeyError, IndexError, json.JSONDecodeError) as e:
-            logging.error("Error parsing response: %s", e)
+            logger.error("Error parsing response: %s", e)
             return "Error: Failed to parse response from API."
