@@ -86,11 +86,11 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
 
     @classmethod
     async def fetch_validated(cls):       
-        # Якщо ключ вже збережений в пам'яті, повертаємо його
+        # If the key is already stored in memory, return it
         if cls._last_validated_value:
             return cls._last_validated_value
 
-        # Якщо ключ не знайдено, виконуємо пошук
+        # If the key is not found, perform a search
         async with aiohttp.ClientSession() as session:
             try:
                 async with session.get(cls.url) as response:
@@ -111,7 +111,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
                             match = key_pattern.search(js_content)
                             if match:
                                 validated_value = match.group(1)
-                                cls._last_validated_value = validated_value  # Зберігаємо в пам'яті
+                                cls._last_validated_value = validated_value  # Keep in mind
                                 return validated_value
             except Exception as e:
                 print(f"Error fetching validated value: {e}")
