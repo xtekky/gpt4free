@@ -88,7 +88,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
     async def fetch_validated(cls):
         async with aiohttp.ClientSession() as session:
             try:
-                async with session.get('https://www.blackbox.ai/_next/static/chunks/2052-0407a0af8bffe0a9.js') as response:
+                async with session.get('https://www.blackbox.ai/_next/static/chunks/2052-cdfeaea1ea292ff5.js') as response:
                     page_content = await response.text()
                     validated_match = re.search(r'w="([0-9a-fA-F-]{36})"', page_content)
 
