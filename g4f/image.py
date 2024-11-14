@@ -217,7 +217,7 @@ def format_images_markdown(images: Union[str, list], alt: str, preview: Union[st
         str: The formatted markdown string.
     """
     if isinstance(images, str):
-        result = f"[![{alt}]({preview.replace('{image}', images) if preview else images})]({images})"
+        result = f"[![{alt}]({fix_url(preview.replace('{image}', images) if preview else images)})]({fix_url(images)})"
     else:
         if not isinstance(preview, list):
             preview = [preview.replace('{image}', image) if preview else image for image in images]
