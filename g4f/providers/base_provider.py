@@ -248,7 +248,7 @@ class AsyncGeneratorProvider(AsyncProvider):
             str: The created result as a string.
         """
         return "".join([
-            chunk async for chunk in cls.create_async_generator(model, messages, stream=False, **kwargs) 
+            str(chunk) async for chunk in cls.create_async_generator(model, messages, stream=False, **kwargs) 
             if not isinstance(chunk, (Exception, FinishReason))
         ])
 
