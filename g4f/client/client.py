@@ -144,24 +144,32 @@ class Client(BaseClient):
 class AsyncClient(Client):
     """Legacy AsyncClient that redirects to the main Client class.
     This class exists for backwards compatibility."""
-    
+
     def __init__(self, *args, **kwargs):
         import warnings
         warnings.warn(
-            "AsyncClient is deprecated and will be removed in a future version. "
+            "AsyncClient is deprecated and will be removed in future versions."
             "Use Client instead, which now supports both sync and async operations.",
             DeprecationWarning,
             stacklevel=2
         )
         super().__init__(*args, **kwargs)
 
-    async def chat_complete(self, *args, **kwargs):
-        """Legacy method that redirects to async_create"""
-        return await self.chat.completions.async_create(*args, **kwargs)
+    async def async_create(self, *args, **kwargs):
+        """Asynchronous create method that calls the synchronous method."""
+        return await super().async_create(*args, **kwargs)
 
-    async def create_image(self, *args, **kwargs):
-        """Legacy method that redirects to async_generate"""
-        return await self.images.async_generate(*args, **kwargs)
+    async def async_generate(self, *args, **kwargs):
+        """Asynchronous image generation method."""
+        return await super().async_generate(*args, **kwargs)
+
+    async def async_images(self) -> Images:
+        """Asynchronous access to images."""
+        return await super().async_images()
+
+    async def async_fetch_image(self, url: str) -> bytes:
+        """Asynchronous fetching of an image by URL."""
+        return await self._fetch_image(url)
 
 class Completions:
     def __init__(self, client: Client, provider: ProviderType = None):
@@ -531,4 +539,3 @@ class Images:
     async def create_variation(self, image: Union[str, bytes], model: str = None, response_format: str = "url", **kwargs):
         # Existing implementation, adjust if you want to support b64_json here as well
         pass
-

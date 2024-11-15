@@ -3,7 +3,10 @@ from __future__ import annotations
 from ..typing import Messages, CreateResult
 from ..providers.base_provider import AbstractProvider, ProviderModelMixin
 
-import time, uuid, random, json
+import time
+import uuid
+import random
+import json
 from requests import Session
 
 from .openai.new import (
@@ -72,17 +75,34 @@ def init_session(user_agent):
 
 class ChatGpt(AbstractProvider, ProviderModelMixin):
     label = "ChatGpt"
+    url = "https://chatgpt.com"
     working = True
     supports_message_history = True
     supports_system_message = True
     supports_stream = True
+    default_model = 'auto'
     models = [
+        default_model,
+        'gpt-3.5-turbo',
         'gpt-4o',
         'gpt-4o-mini',
         'gpt-4',
         'gpt-4-turbo',
         'chatgpt-4o-latest',
     ]
+    
+    model_aliases = {
+        "gpt-4o": "chatgpt-4o-latest",
+    }
+    
+    @classmethod
+    def get_model(cls, model: str) -> str:
+        if model in cls.models:
+            return model
+        elif model in cls.model_aliases:
+            return cls.model_aliases[model]
+        else:
+            return cls.default_model
 
     @classmethod
     def create_completion(
@@ -92,30 +112,17 @@ class ChatGpt(AbstractProvider, ProviderModelMixin):
         stream: bool,
         **kwargs
     ) -> CreateResult:
+        model = cls.get_model(model)
+        if model not in cls.models:
+            raise ValueError(f"Model '{model}' is not available. Available models: {', '.join(cls.models)}")
+
         
-        if model in [
-            'gpt-4o',
-            'gpt-4o-mini',
-            'gpt-4',
-            'gpt-4-turbo',
-            'chatgpt-4o-latest'
-        ]:
-            model = 'auto'
-        
-        elif model in [
-            'gpt-3.5-turbo'
-        ]:
-            model = 'text-davinci-002-render-sha'
-            
-        else:
-            raise ValueError(f"Invalid model: {model}")
-        
-        user_agent       = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36'
+        user_agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36'
         session: Session = init_session(user_agent)
         
-        config   = get_config(user_agent)
-        pow_req  = get_requirements_token(config)
-        headers  = { 
+        config = get_config(user_agent)
+        pow_req = get_requirements_token(config)
+        headers = { 
             'accept': '*/*',
             'accept-language': 'en-US,en;q=0.8',
             'content-type': 'application/json',
@@ -134,39 +141,35 @@ class ChatGpt(AbstractProvider, ProviderModelMixin):
         }
         
         response = session.post('https://chatgpt.com/backend-anon/sentinel/chat-requirements',
-            headers=headers, json={'p': pow_req})
+                                 headers=headers, json={'p': pow_req})
 
         if response.status_code != 200:
-            print(f"Request failed with status: {response.status_code}")
-            print(f"Response content: {response.content}")
             return
 
         response_data = response.json()
         if "detail" in response_data and "Unusual activity" in response_data["detail"]:
-            print(f"Blocked due to unusual activity: {response_data['detail']}")
             return
         
-        turnstile          = response_data.get('turnstile', {})
+        turnstile = response_data.get('turnstile', {})
         turnstile_required = turnstile.get('required')
-        pow_conf           = response_data.get('proofofwork', {})
+        pow_conf = response_data.get('proofofwork', {})
 
         if turnstile_required:
-            turnstile_dx    = turnstile.get('dx')
+            turnstile_dx = turnstile.get('dx')
             turnstile_token = process_turnstile(turnstile_dx, pow_req)
         
-        headers = headers | {
-            'openai-sentinel-turnstile-token'        : turnstile_token,
-            'openai-sentinel-chat-requirements-token': response_data.get('token'),
-            'openai-sentinel-proof-token'            : get_answer_token(
-                pow_conf.get('seed'), pow_conf.get('difficulty'), config
-            )
-        }
-        
+        headers = {**headers, 
+                   'openai-sentinel-turnstile-token': turnstile_token,
+                   'openai-sentinel-chat-requirements-token': response_data.get('token'),
+                   'openai-sentinel-proof-token': get_answer_token(
+                       pow_conf.get('seed'), pow_conf.get('difficulty'), config
+                   )}
+
         json_data = {
             'action': 'next',
             'messages': format_conversation(messages),
             'parent_message_id': str(uuid.uuid4()),
-            'model': 'auto',
+            'model': model,
             'timezone_offset_min': -120,
             'suggestions': [
                 'Can you help me create a personalized morning routine that would help increase my productivity throughout the day? Start by asking me about my current habits and what activities energize me in the morning.',
@@ -189,7 +192,7 @@ class ChatGpt(AbstractProvider, ProviderModelMixin):
             'conversation_origin': None,
             'client_contextual_info': {
                 'is_dark_mode': True,
-                'time_since_loaded': random.randint(22,33),
+                'time_since_loaded': random.randint(22, 33),
                 'page_height': random.randint(600, 900),
                 'page_width': random.randint(500, 800),
                 'pixel_ratio': 2,
@@ -201,25 +204,29 @@ class ChatGpt(AbstractProvider, ProviderModelMixin):
         time.sleep(2)
         
         response = session.post('https://chatgpt.com/backend-anon/conversation',
-            headers=headers, json=json_data, stream=True)
+                                 headers=headers, json=json_data, stream=True)
 
         replace = ''
         for line in response.iter_lines():
             if line:
                 decoded_line = line.decode()
-                print(f"Received line: {decoded_line}")
+
                 if decoded_line.startswith('data:'):
-                    json_string = decoded_line[6:]
-                    if json_string.strip():
+                    json_string = decoded_line[6:].strip()
+
+                    if json_string == '[DONE]':
+                        break
+                    
+                    if json_string:
                         try:
                             data = json.loads(json_string)
-                        except json.JSONDecodeError as e:
-                            print(f"Error decoding JSON: {e}, content: {json_string}")
+                        except json.JSONDecodeError:
                             continue
                         
-                        if data.get('message').get('author').get('role') == 'assistant':
-                            tokens = (data.get('message').get('content').get('parts')[0])
-                            
-                            yield tokens.replace(replace, '')
-                            
-                            replace = tokens
+                        if data.get('message') and data['message'].get('author'):
+                            role = data['message']['author'].get('role')
+                            if role == 'assistant':
+                                tokens = data['message']['content'].get('parts', [])
+                                if tokens:
+                                    yield tokens[0].replace(replace, '')
+                                    replace = tokens[0]

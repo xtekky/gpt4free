@@ -98,6 +98,12 @@ class Prodia(AsyncGeneratorProvider, ProviderModelMixin):
         model: str,
         messages: Messages,
         proxy: str = None,
+        negative_prompt: str = "",
+        steps: str = 20, # 1-25
+        cfg: str = 7, # 0-20
+        seed: str = "-1",
+        sampler: str = "DPM++ 2M Karras", # "Euler", "Euler a", "Heun", "DPM++ 2M Karras", "DPM++ SDE Karras", "DDIM"
+        aspect_ratio: str = "square", # "square", "portrait", "landscape"
         **kwargs
     ) -> AsyncResult:
         model = cls.get_model(model)
@@ -117,12 +123,12 @@ class Prodia(AsyncGeneratorProvider, ProviderModelMixin):
                 "new": "true",
                 "prompt": prompt,
                 "model": model,
-                "negative_prompt": kwargs.get("negative_prompt", ""),
-                "steps": kwargs.get("steps", 20),
-                "cfg": kwargs.get("cfg", 7),
-                "seed": kwargs.get("seed", int(time.time())),
-                "sampler": kwargs.get("sampler", "DPM++ 2M Karras"),
-                "aspect_ratio": kwargs.get("aspect_ratio", "square")
+                "negative_prompt": negative_prompt,
+                "steps": steps,
+                "cfg": cfg,
+                "seed": seed,
+                "sampler": sampler,
+                "aspect_ratio": aspect_ratio
             }
             
             async with session.get(cls.api_endpoint, params=params, proxy=proxy) as response:

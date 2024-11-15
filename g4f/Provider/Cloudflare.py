@@ -1,15 +1,18 @@
 from __future__ import annotations
 
+from aiohttp import ClientSession
 import asyncio
 import json
 import uuid
 import cloudscraper
 from typing import AsyncGenerator
+
 from ..typing import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from .helper import format_prompt
 
 class Cloudflare(AsyncGeneratorProvider, ProviderModelMixin):
+    label = "Cloudflare AI"
     url = "https://playground.ai.cloudflare.com"
     api_endpoint = "https://playground.ai.cloudflare.com/api/inference"
     working = True
@@ -17,97 +20,43 @@ class Cloudflare(AsyncGeneratorProvider, ProviderModelMixin):
     supports_system_message = True
     supports_message_history = True
     
-    default_model = '@cf/meta/llama-3.1-8b-instruct'
-    models = [        
-         '@cf/deepseek-ai/deepseek-math-7b-instruct', # Specific answer
-         
-         
-         '@cf/thebloke/discolm-german-7b-v1-awq', 
-         
-         
-         '@cf/tiiuae/falcon-7b-instruct', # Specific answer
-         
-         
-         '@hf/google/gemma-7b-it', 
-
-
+    default_model = '@cf/meta/llama-3.1-8b-instruct-awq'
+    models = [               
          '@cf/meta/llama-2-7b-chat-fp16', 
          '@cf/meta/llama-2-7b-chat-int8', 
          
          '@cf/meta/llama-3-8b-instruct', 
          '@cf/meta/llama-3-8b-instruct-awq', 
-         default_model, 
          '@hf/meta-llama/meta-llama-3-8b-instruct', 
          
-         '@cf/meta/llama-3.1-8b-instruct-awq', 
+         default_model, 
          '@cf/meta/llama-3.1-8b-instruct-fp8',  
-         '@cf/meta/llama-3.2-11b-vision-instruct',  
+         
          '@cf/meta/llama-3.2-1b-instruct',  
-         '@cf/meta/llama-3.2-3b-instruct',  
 
-         '@cf/mistral/mistral-7b-instruct-v0.1',
          '@hf/mistral/mistral-7b-instruct-v0.2',
          
-         '@cf/openchat/openchat-3.5-0106',
+         '@cf/qwen/qwen1.5-7b-chat-awq', 
          
-         '@cf/microsoft/phi-2',
-         
-         '@cf/qwen/qwen1.5-0.5b-chat',
-         '@cf/qwen/qwen1.5-1.8b-chat',
-         '@cf/qwen/qwen1.5-14b-chat-awq',
-         '@cf/qwen/qwen1.5-7b-chat-awq',
-         
-         '@cf/defog/sqlcoder-7b-2', # Specific answer
-         
-         '@cf/tinyllama/tinyllama-1.1b-chat-v1.0',
-         
-         '@cf/fblgit/una-cybertron-7b-v2-bf16',
+         '@cf/defog/sqlcoder-7b-2',
     ]
     
     model_aliases = {       
-        "german-7b-v1": "@cf/thebloke/discolm-german-7b-v1-awq",
-
-        
-        "gemma-7b": "@hf/google/gemma-7b-it",
-        
-        
         "llama-2-7b": "@cf/meta/llama-2-7b-chat-fp16",
         "llama-2-7b": "@cf/meta/llama-2-7b-chat-int8",
         
         "llama-3-8b": "@cf/meta/llama-3-8b-instruct",
         "llama-3-8b": "@cf/meta/llama-3-8b-instruct-awq",
-        "llama-3-8b": "@cf/meta/llama-3.1-8b-instruct",
         "llama-3-8b": "@hf/meta-llama/meta-llama-3-8b-instruct",
         
         "llama-3.1-8b": "@cf/meta/llama-3.1-8b-instruct-awq",
         "llama-3.1-8b": "@cf/meta/llama-3.1-8b-instruct-fp8",
-        "llama-3.1-8b": "@cf/meta/llama-3.1-8b-instruct-fp8",
         
-        "llama-3.2-11b": "@cf/meta/llama-3.2-11b-vision-instruct",
         "llama-3.2-1b": "@cf/meta/llama-3.2-1b-instruct",
-        "llama-3.2-3b": "@cf/meta/llama-3.2-3b-instruct",
         
-        
-        "mistral-7b": "@cf/mistral/mistral-7b-instruct-v0.1",
-        "mistral-7b": "@hf/mistral/mistral-7b-instruct-v0.2",
-        
-        
-        "openchat-3.5": "@cf/openchat/openchat-3.5-0106",
-        
-        
-        "phi-2": "@cf/microsoft/phi-2",
-        
-                
-        "qwen-1.5-0.5b": "@cf/qwen/qwen1.5-0.5b-chat",
-        "qwen-1.5-1.8b": "@cf/qwen/qwen1.5-1.8b-chat",
-        "qwen-1.5-14b": "@cf/qwen/qwen1.5-14b-chat-awq",
         "qwen-1.5-7b": "@cf/qwen/qwen1.5-7b-chat-awq",
         
-
-        "tinyllama-1.1b": "@cf/tinyllama/tinyllama-1.1b-chat-v1.0",
-        
-        
-        "cybertron-7b": "@cf/fblgit/una-cybertron-7b-v2-bf16",
+        #"sqlcoder-7b": "@cf/defog/sqlcoder-7b-2",
     }
 
     @classmethod
@@ -125,8 +74,7 @@ class Cloudflare(AsyncGeneratorProvider, ProviderModelMixin):
         model: str,
         messages: Messages,
         proxy: str = None,
-        max_tokens: str = 2048,
-        stream: bool = True,
+        max_tokens: int = 2048,
         **kwargs
     ) -> AsyncResult:
         model = cls.get_model(model)
@@ -154,19 +102,19 @@ class Cloudflare(AsyncGeneratorProvider, ProviderModelMixin):
         
         scraper = cloudscraper.create_scraper()
         
-        prompt = format_prompt(messages)
         data = {
             "messages": [
-                {"role": "system", "content": "You are a helpful assistant"},
-                {"role": "user", "content": prompt}
+                {"role": "user", "content": format_prompt(messages)}
             ],
             "lora": None,
             "model": model,
             "max_tokens": max_tokens,
-            "stream": stream
+            "stream": True
         }
         
         max_retries = 3
+        full_response = ""
+        
         for attempt in range(max_retries):
             try:
                 response = scraper.post(
@@ -181,32 +129,22 @@ class Cloudflare(AsyncGeneratorProvider, ProviderModelMixin):
                 if response.status_code == 403:
                     await asyncio.sleep(2 ** attempt)
                     continue
-                
+                    
                 response.raise_for_status()
                 
                 for line in response.iter_lines():
                     if line.startswith(b'data: '):
                         if line == b'data: [DONE]':
+                            if full_response:
+                                yield full_response
                             break
                         try:
-                            content = json.loads(line[6:].decode('utf-8'))['response']
-                            yield content
+                            content = json.loads(line[6:].decode('utf-8'))
+                            if 'response' in content and content['response'] != '</s>':
+                                yield content['response']
                         except Exception:
                             continue
                 break
             except Exception as e:
                 if attempt == max_retries - 1:
                     raise
-
-    @classmethod
-    async def create_async(
-        cls,
-        model: str,
-        messages: Messages,
-        proxy: str = None,
-        **kwargs
-    ) -> str:
-        full_response = ""
-        async for response in cls.create_async_generator(model, messages, proxy, **kwargs):
-            full_response += response
-        return full_response

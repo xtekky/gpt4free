@@ -15,7 +15,7 @@ class Ai4Chat(AsyncGeneratorProvider, ProviderModelMixin):
     label = "AI4Chat"
     url = "https://www.ai4chat.co"
     api_endpoint = "https://www.ai4chat.co/generate-response"
-    working = True
+    working = False
     supports_stream = True
     supports_system_message = True
     supports_message_history = True

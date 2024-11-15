@@ -41,35 +41,51 @@ class Upstage(AsyncGeneratorProvider, ProviderModelMixin):
         **kwargs
     ) -> AsyncResult:
         model = cls.get_model(model)
-        
+
         headers = {
             "accept": "*/*",
             "accept-language": "en-US,en;q=0.9",
+            "cache-control": "no-cache",
             "content-type": "application/json",
+            "dnt": "1",
             "origin": "https://console.upstage.ai",
+            "pragma": "no-cache",
             "priority": "u=1, i",
             "referer": "https://console.upstage.ai/",
-            "sec-ch-ua": '"Chromium";v="127", "Not)A;Brand";v="99"',
+            "sec-ch-ua": '"Not?A_Brand";v="99", "Chromium";v="130"',
             "sec-ch-ua-mobile": "?0",
             "sec-ch-ua-platform": '"Linux"',
             "sec-fetch-dest": "empty",
             "sec-fetch-mode": "cors",
             "sec-fetch-site": "cross-site",
-            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36"
+            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36"
         }
+
         async with ClientSession(headers=headers) as session:
             data = {
                 "stream": True,
                 "messages": [{"role": "user", "content": format_prompt(messages)}],
                 "model": model
             }
+
             async with session.post(f"{cls.api_endpoint}", json=data, proxy=proxy) as response:
                 response.raise_for_status()
+
+                response_text = ""
+
                 async for line in response.content:
                     if line:
                         line = line.decode('utf-8').strip()
+                        
                         if line.startswith("data: ") and line != "data: [DONE]":
-                            data = json.loads(line[6:])
-                            content = data['choices'][0]['delta'].get('content', '')
-                            if content:
-                                yield content
+                            try:
+                                data = json.loads(line[6:])
+                                content = data['choices'][0]['delta'].get('content', '')
+                                if content:
+                                    response_text += content
+                                    yield content
+                            except json.JSONDecodeError:
+                                continue
+                        
+                        if line == "data: [DONE]":
+                            break

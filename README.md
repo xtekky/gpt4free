@@ -1,4 +1,5 @@
 
+
 ![248433934-7886223b-c1d1-4260-82aa-da5741f303bb](https://github.com/xtekky/gpt4free/assets/98614666/ea012c87-76e0-496a-8ac4-e2de090cc6c9)
 
 <a href="https://trendshift.io/repositories/1692" target="_blank"><img src="https://trendshift.io/api/badge/repositories/1692" alt="xtekky%2Fgpt4free | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
@@ -28,7 +29,7 @@ docker pull hlohaus789/g4f
 ```
 
 ## 🆕 What's New
-   - **For comprehensive details on new features and updates, please refer to our [Releases](https://github.com/xtekky/gpt4free/releases) page**
+   - **For comprehensive details on new features and updates, please refer to our** [Releases](https://github.com/xtekky/gpt4free/releases) **page**
    - **Installation Guide for Windows (.exe):** 💻 [Installation Guide for Windows (.exe)](#installation-guide-for-windows-exe)
    - **Join our Telegram Channel:** 📨 [telegram.me/g4f_channel](https://telegram.me/g4f_channel)
    - **Join our Discord Group:** 💬 [discord.gg/XfybzPXPH5](https://discord.gg/5E39JUWUFa)
@@ -70,6 +71,13 @@ Is your site on this repository and you want to take it down? Send an email to t
       - [Interference API](#interference-api)
       - [Local Inference](docs/local.md)
       - [Configuration](#configuration)
+      -  [Full Documentation for Python API](#full-documentation-for-python-api)
+         - **New:**
+            -  [Async Client API from G4F](docs/async_client.md)
+            - [Client API like the OpenAI Python library](docs/client.md)
+         - **Legacy**
+            - [Legacy API with python modules](docs/legacy/legacy.md)
+            - [Legacy AsyncClient API from G4F](docs/legacy/legacy_async_client.md)
    - [🚀 Providers and Models](docs/providers-and-models.md)
    - [🔗 Powered by gpt4free](#-powered-by-gpt4free)
    - [🤝 Contribute](#-contribute)
@@ -166,7 +174,7 @@ from g4f.client import Client
 
 client = Client()
 response = client.chat.completions.create(
-    model="gpt-3.5-turbo",
+    model="gpt-4o-mini",
     messages=[{"role": "user", "content": "Hello"}],
     # Add any other necessary parameters
 )
@@ -183,7 +191,7 @@ from g4f.client import Client
 
 client = Client()
 response = client.images.generate(
-    model="dall-e-3",
+    model="flux",
     prompt="a white siamese cat",
     # Add any other necessary parameters
 )
@@ -194,10 +202,14 @@ print(f"Generated image URL: {image_url}")
 
 [![Image with cat](/docs/cat.jpeg)](docs/client.md)
 
-**Full Documentation for Python API**
-   - **Async Client API from G4F:** [/docs/async_client](docs/async_client.md)
-   - **Client API like the OpenAI Python library:** [/docs/client](docs/client.md)
-   - **Legacy API with python modules:** [/docs/legacy](docs/legacy.md)
+#### **Full Documentation for Python API**
+   - **New:**
+      - **Async Client API from G4F:** [/docs/async_client](docs/async_client.md)
+      - **Client API like the OpenAI Python library:** [/docs/client](docs/client.md)
+   
+   - **Legacy:**
+      - **Legacy API with python modules:** [/docs/legacy/legacy](docs/legacy/legacy.md)
+      - **Legacy AsyncClient API from G4F:** [/docs/async_client](docs/legacy/legacy_async_client.md)
 
 #### Web UI
 **To start the web interface, type the following codes in python:**
@@ -290,20 +302,18 @@ To utilize the OpenaiChat provider, a .har file is required from https://chatgpt
 
 - Place the exported .har file in the `./har_and_cookies` directory if you are using Docker. Alternatively, if you are using Python from a terminal, you can store it in a `./har_and_cookies` directory within your current working directory.
 
-Note: Ensure that your .har file is stored securely, as it may contain sensitive information.
+> **Note:** Ensure that your .har file is stored securely, as it may contain sensitive information.
 
 #### Using Proxy
 
 If you want to hide or change your IP address for the providers, you can set a proxy globally via an environment variable:
 
-- On macOS and Linux:
-
+**- On macOS and Linux:**
 ```bash
 export G4F_PROXY="http://host:port"
 ```
 
-- On Windows:
-
+**- On Windows:**
 ```bash
 set G4F_PROXY=http://host:port
 ```
@@ -770,10 +780,10 @@ set G4F_PROXY=http://host:port
 We welcome contributions from the community. Whether you're adding new providers or features, or simply fixing typos and making small improvements, your input is valued. Creating a pull request is all it takes – our co-pilot will handle the code review process. Once all changes have been addressed, we'll merge the pull request into the main branch and release the updates at a later time.
 
 ###### Guide: How do i create a new Provider?
-   - Read: [Create Provider Guide](docs/guides/create_provider.md)
+   - **Read:** [Create Provider Guide](docs/guides/create_provider.md)
 
 ###### Guide: How can AI help me with writing code?
-   - Read: [AI Assistance Guide](docs/guides/help_me.md)
+   - **Read:** [AI Assistance Guide](docs/guides/help_me.md)
 
 ## 🙌 Contributors
 A list of all contributors is available [here](https://github.com/xtekky/gpt4free/graphs/contributors)

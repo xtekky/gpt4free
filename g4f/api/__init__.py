@@ -195,9 +195,13 @@ class Api:
                     return JSONResponse(response_list[0].to_json())
 
                 # Streaming response
+                async def async_generator(sync_gen):
+                    for item in sync_gen:
+                        yield item
+
                 async def streaming():
                     try:
-                        async for chunk in response:
+                        async for chunk in async_generator(response):
                             yield f"data: {json.dumps(chunk.to_json())}\n\n"
                     except GeneratorExit:
                         pass
@@ -221,7 +225,7 @@ class Api:
                     response_format=config.response_format
                 )
                 # Convert Image objects to dictionaries
-                response_data = [image.to_dict() for image in response.data]
+                response_data = [{"url": image.url, "b64_json": image.b64_json} for image in response.data]
                 return JSONResponse({"data": response_data})
             except Exception as e:
                 logger.exception(e)

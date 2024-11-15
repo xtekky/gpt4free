@@ -71,7 +71,7 @@ import requests
 
 url = "http://localhost:1337/v1/chat/completions"
 body = {
-    "model": "gpt-3.5-turbo", 
+    "model": "gpt-4o-mini", 
     "stream": False,
     "messages": [
         {"role": "assistant", "content": "What can you do?"}

@@ -9,19 +9,19 @@ from .helper import format_prompt
 
 
 class DarkAI(AsyncGeneratorProvider, ProviderModelMixin):
-    url = "https://www.aiuncensored.info"
+    url = "https://darkai.foundation/chat"
     api_endpoint = "https://darkai.foundation/chat"
     working = True
     supports_stream = True
     supports_system_message = True
     supports_message_history = True
     
-    default_model = 'gpt-4o'
+    default_model = 'llama-3-405b'
     models = [
-         default_model, # Uncensored
+         'gpt-4o', # Uncensored
          'gpt-3.5-turbo', # Uncensored
          'llama-3-70b', # Uncensored
-         'llama-3-405b',
+         default_model,
     ]
     
     model_aliases = {
@@ -51,8 +51,6 @@ class DarkAI(AsyncGeneratorProvider, ProviderModelMixin):
         headers = {
             "accept": "text/event-stream",
             "content-type": "application/json",
-            "origin": "https://www.aiuncensored.info",
-            "referer": "https://www.aiuncensored.info/",
             "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36"
         }
         async with ClientSession(headers=headers) as session:
@@ -77,9 +75,9 @@ class DarkAI(AsyncGeneratorProvider, ProviderModelMixin):
                                         yield full_text.strip()
                                     return
                         except json.JSONDecodeError:
-                            print(f"Failed to decode JSON: {chunk_str}")
-                        except Exception as e:
-                            print(f"Error processing chunk: {e}")
+                            pass
+                        except Exception:
+                            pass
                 
                 if full_text:
                     yield full_text.strip()

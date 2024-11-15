@@ -9,15 +9,6 @@ from .helper import get_connector
 from ..requests import raise_for_status
 
 models = {
-    "gpt-3.5-turbo": {
-        "id": "gpt-3.5-turbo",
-        "name": "GPT-3.5-Turbo",
-        "model": "ChatGPT",
-        "provider": "OpenAI",
-        "maxLength": 48000,
-        "tokenLimit": 14000,
-        "context": "16K",
-    },
     "gpt-4o-mini-free": {
         "id": "gpt-4o-mini-free",
         "name": "GPT-4o-Mini-Free",
@@ -63,6 +54,15 @@ models = {
         "tokenLimit": 126000,
         "context": "128K",
     },
+    "grok-beta": {
+        "id": "grok-beta",
+        "name": "Grok-Beta",
+        "model": "Grok",
+        "provider": "x.ai",
+        "maxLength": 400000,
+        "tokenLimit": 100000,
+        "context": "100K",
+    },
     "grok-2": {
         "id": "grok-2",
         "name": "Grok-2",
@@ -99,18 +99,18 @@ models = {
         "tokenLimit": 200000,
         "context": "200K",
     },
-    "claude-3-opus-20240229-gcp": {
-        "id": "claude-3-opus-20240229-gcp",
-        "name": "Claude-3-Opus-Gcp",
+    "claude-3-5-sonnet-20240620": {
+        "id": "claude-3-5-sonnet-20240620",
+        "name": "Claude-3.5-Sonnet",
         "model": "Claude",
         "provider": "Anthropic",
         "maxLength": 800000,
         "tokenLimit": 200000,
         "context": "200K",
     },
-    "claude-3-5-sonnet-20240620": {
-        "id": "claude-3-5-sonnet-20240620",
-        "name": "Claude-3.5-Sonnet",
+    "claude-3-5-sonnet-20241022": {
+        "id": "claude-3-5-sonnet-20241022",
+        "name": "Claude-3.5-Sonnet-V2",
         "model": "Claude",
         "provider": "Anthropic",
         "maxLength": 800000,
@@ -170,7 +170,7 @@ class Liaobots(AsyncGeneratorProvider, ProviderModelMixin):
     working = True
     supports_message_history = True
     supports_system_message = True
-    default_model = "gpt-3.5-turbo"
+    default_model = "gpt-4o-2024-08-06"
     models = list(models.keys())
     
     model_aliases = {
@@ -183,9 +183,9 @@ class Liaobots(AsyncGeneratorProvider, ProviderModelMixin):
         
         "claude-3-opus": "claude-3-opus-20240229",
         "claude-3-opus": "claude-3-opus-20240229-aws",
-        "claude-3-opus": "claude-3-opus-20240229-gcp",
         "claude-3-sonnet": "claude-3-sonnet-20240229",
         "claude-3.5-sonnet": "claude-3-5-sonnet-20240620",
+        "claude-3.5-sonnet": "claude-3-5-sonnet-20241022",
         "claude-3-haiku": "claude-3-haiku-20240307",
         "claude-2.1": "claude-2.1",
         

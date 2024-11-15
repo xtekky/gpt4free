@@ -19,6 +19,7 @@ class HuggingChat(AbstractProvider, ProviderModelMixin):
         'CohereForAI/c4ai-command-r-plus-08-2024',
         'Qwen/Qwen2.5-72B-Instruct',
         'nvidia/Llama-3.1-Nemotron-70B-Instruct-HF',
+        'Qwen/Qwen2.5-Coder-32B-Instruct',
         'meta-llama/Llama-3.2-11B-Vision-Instruct',
         'NousResearch/Hermes-3-Llama-3.1-8B',
         'mistralai/Mistral-Nemo-Instruct-2407',
@@ -30,6 +31,7 @@ class HuggingChat(AbstractProvider, ProviderModelMixin):
         "command-r-plus": "CohereForAI/c4ai-command-r-plus-08-2024",
         "qwen-2-72b": "Qwen/Qwen2.5-72B-Instruct",
         "nemotron-70b": "nvidia/Llama-3.1-Nemotron-70B-Instruct-HF",
+        "qwen-2.5-coder-32b": "Qwen/Qwen2.5-Coder-32B-Instruct",
         "llama-3.2-11b": "meta-llama/Llama-3.2-11B-Vision-Instruct",
         "hermes-3": "NousResearch/Hermes-3-Llama-3.1-8B",
         "mistral-nemo": "mistralai/Mistral-Nemo-Instruct-2407",
@@ -83,12 +85,33 @@ class HuggingChat(AbstractProvider, ProviderModelMixin):
                 raise RuntimeError(f"Request failed with status code: {response.status_code}, response: {response.text}")
 
             conversationId = response.json().get('conversationId')
+            
+            # Get the data response and parse it properly
             response = session.get(f'https://huggingface.co/chat/conversation/{conversationId}/__data.json?x-sveltekit-invalidated=11')
+            
+            # Split the response content by newlines and parse each line as JSON
+            try:
+                json_data = None
+                for line in response.text.split('\n'):
+                    if line.strip():
+                        try:
+                            parsed = json.loads(line)
+                            if isinstance(parsed, dict) and "nodes" in parsed:
+                                json_data = parsed
+                                break
+                        except json.JSONDecodeError:
+                            continue
+                            
+                if not json_data:
+                    raise RuntimeError("Failed to parse response data")
 
-            data: list = response.json()["nodes"][1]["data"]
-            keys: list[int] = data[data[0]["messages"]]
-            message_keys: dict = data[keys[0]]
-            messageId: str = data[message_keys["id"]]
+                data: list = json_data["nodes"][1]["data"]
+                keys: list[int] = data[data[0]["messages"]]
+                message_keys: dict = data[keys[0]]
+                messageId: str = data[message_keys["id"]]
+
+            except (KeyError, IndexError, TypeError) as e:
+                raise RuntimeError(f"Failed to extract message ID: {str(e)}")
 
             settings = {
                 "inputs": format_prompt(messages),
@@ -120,7 +143,8 @@ class HuggingChat(AbstractProvider, ProviderModelMixin):
                 'data': (None, json.dumps(settings, separators=(',', ':'))),
             }
 
-            response = requests.post(f'https://huggingface.co/chat/conversation/{conversationId}',
+            response = requests.post(
+                f'https://huggingface.co/chat/conversation/{conversationId}',
                 cookies=session.cookies,
                 headers=headers,
                 files=files,
@@ -142,10 +166,18 @@ class HuggingChat(AbstractProvider, ProviderModelMixin):
                 elif line["type"] == "stream":
                     token = line["token"].replace('\u0000', '')
                     full_response += token
+                    if stream:
+                        yield token
                 
                 elif line["type"] == "finalAnswer":
                     break
             
             full_response = full_response.replace('<|im_end|', '').replace('\u0000', '').strip()
 
-            yield full_response
+            if not stream:
+                yield full_response
+
+    @classmethod
+    def supports_model(cls, model: str) -> bool:
+        """Check if the model is supported by the provider."""
+        return model in cls.models or model in cls.model_aliases
