@@ -46,8 +46,6 @@ class SearchResultEntry():
 
 def scrape_text(html: str, max_words: int = None) -> str:
     soup = BeautifulSoup(html, "html.parser")
-    for exclude in soup(["script", "style"]):
-        exclude.extract()
     for selector in [
             "main",
             ".main-content-wrapper",
