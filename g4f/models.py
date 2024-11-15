@@ -2,9 +2,10 @@ from __future__  import annotations
 
 from dataclasses import dataclass
 
+from .Provider.not_working import Ai4Chat
+
 from .Provider import IterListProvider, ProviderType
 from .Provider import (
-    Ai4Chat,
     AIChatFree,
     Airforce,
     AIUncensored,
