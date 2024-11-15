@@ -67,7 +67,7 @@ def scrape_text(html: str, max_words: int = None) -> str:
         if select:
             select.extract()
     clean_text = ""
-    for paragraph in soup.select("p"):
+    for paragraph in soup.select("p, h1, h2, h3, h4, h5, h6"):
         text = paragraph.get_text()
         for line in text.splitlines():
             words = []
