@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import logging
 
 from . import debug, version
 from .models import Model
@@ -11,6 +12,14 @@ from .cookies import get_cookies, set_cookies
 from .providers.types import ProviderType
 from .providers.base_provider import AsyncGeneratorProvider
 from .client.service import get_model_and_provider, get_last_provider
+
+#Configure "g4f" logger
+logger = logging.getLogger(__name__)
+log_handler = logging.StreamHandler()
+log_handler.setFormatter(logging.Formatter(logging.BASIC_FORMAT))
+logger.addHandler(log_handler)
+
+logger.setLevel(logging.ERROR)
 
 class ChatCompletion:
     @staticmethod

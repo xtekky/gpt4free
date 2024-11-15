@@ -19,6 +19,8 @@ from g4f.Provider import ProviderType, __providers__, __map__
 from g4f.providers.base_provider import ProviderModelMixin, FinishReason
 from g4f.providers.conversation import BaseConversation
 
+logger = logging.getLogger(__name__)
+
 # Define the directory for generated images
 images_dir = "./generated_images"
 
@@ -155,7 +157,7 @@ class Api:
                         conversations[provider][conversation_id] = chunk
                         yield self._format_json("conversation", conversation_id)
                     elif isinstance(chunk, Exception):
-                        logging.exception(chunk)
+                        logger.exception(chunk)
                         yield self._format_json("message", get_error_message(chunk))
                     elif isinstance(chunk, ImagePreview):
                         yield self._format_json("preview", chunk.to_string())
@@ -165,7 +167,7 @@ class Api:
                     elif not isinstance(chunk, FinishReason):
                         yield self._format_json("content", str(chunk))
         except Exception as e:
-            logging.exception(e)
+            logger.exception(e)
             yield self._format_json('error', get_error_message(e))
 
     async def _copy_images(self, images: list[str], cookies: Optional[Cookies] = None):

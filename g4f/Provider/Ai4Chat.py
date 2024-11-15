@@ -9,6 +9,7 @@ from ..typing import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from .helper import format_prompt
 
+logger = logging.getLogger(__name__)
 
 class Ai4Chat(AsyncGeneratorProvider, ProviderModelMixin):
     label = "AI4Chat"
@@ -84,5 +85,5 @@ class Ai4Chat(AsyncGeneratorProvider, ProviderModelMixin):
                     
                     yield clean_message
             except Exception as e:
-                logging.exception("Error while calling AI 4Chat API: %s", e)
+                logger.exception("Error while calling AI 4Chat API: %s", e)
                 yield f"Error: {e}"
