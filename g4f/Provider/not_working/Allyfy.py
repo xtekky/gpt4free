@@ -4,15 +4,15 @@ import asyncio
 import json
 import uuid
 from aiohttp import ClientSession
-from ..typing import AsyncResult, Messages
-from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from .helper import format_prompt
+from ...typing import AsyncResult, Messages
+from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from ..helper import format_prompt
 
 
 class Allyfy(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://allyfy.chat"
     api_endpoint = "https://chatbot.allyfy.chat/api/v1/message/stream/super/chat"
-    working = True
+    working = False
     supports_stream = True
     supports_system_message = True
     supports_message_history = True

@@ -26,6 +26,7 @@ class Poe(AbstractProvider):
     needs_auth = True
     supports_gpt_35_turbo = True
     supports_stream = True
+    models = models.keys()
 
     @classmethod
     def create_completion(

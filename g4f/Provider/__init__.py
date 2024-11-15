@@ -12,7 +12,6 @@ from .not_working      import *
 from .local            import *
 
 from .AIUncensored     import AIUncensored
-from .Allyfy           import Allyfy
 from .Airforce         import Airforce
 from .Bing             import Bing
 from .Blackbox         import Blackbox

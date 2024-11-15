@@ -9,7 +9,6 @@ from .Provider import (
     AIChatFree,
     Airforce,
     AIUncensored,
-    Allyfy,
     Bing,
     Blackbox,
     ChatGpt,
@@ -599,203 +598,202 @@ class ModelUtils:
     """
     convert: dict[str, Model] = {
     
-############
-### Text ###
-############
-        
-### OpenAI ###
-# gpt-3.5
-'gpt-3.5-turbo': gpt_35_turbo,
-
-# gpt-4
-'gpt-4o': gpt_4o,
-'gpt-4o-mini': gpt_4o_mini,
-'gpt-4': gpt_4,
-'gpt-4-turbo': gpt_4_turbo,
-
-# o1
-'o1': o1,
-'o1-mini': o1_mini,
-       
-        
-### Meta ###
-"meta-ai": meta,
-
-# llama-2
-'llama-2-7b': llama_2_7b,
-
-# llama-3
-'llama-3-8b': llama_3_8b,
-        
-# llama-3.1
-'llama-3.1-8b': llama_3_1_8b,
-'llama-3.1-70b': llama_3_1_70b,
-'llama-3.1-405b': llama_3_1_405b,
-
-# llama-3.2
-'llama-3.2-1b': llama_3_2_1b,
-'llama-3.2-11b': llama_3_2_11b,
-   
-        
-### Mistral ###
-'mistral-7b': mistral_7b,
-'mixtral-8x7b': mixtral_8x7b,
-'mistral-nemo': mistral_nemo,
-     
-     
-### NousResearch ###
-'hermes-2-pro': hermes_2_pro,
-'hermes-2-dpo': hermes_2_dpo,
-'hermes-3': hermes_3,
-
+        ############
+        ### Text ###
+        ############
                 
-### Microsoft ###
-'phi-2': phi_2,
-'phi-3.5-mini': phi_3_5_mini,
+        ### OpenAI ###
+        # gpt-3.5
+        'gpt-3.5-turbo': gpt_35_turbo,
+
+        # gpt-4
+        'gpt-4o': gpt_4o,
+        'gpt-4o-mini': gpt_4o_mini,
+        'gpt-4': gpt_4,
+        'gpt-4-turbo': gpt_4_turbo,
+
+        # o1
+        'o1': o1,
+        'o1-mini': o1_mini,
 
 
-### Google ###
-# gemini
-'gemini': gemini,
-'gemini-pro': gemini_pro,
-'gemini-flash': gemini_flash,
-        
-# gemma
-'gemma-2b': gemma_2b,
+        ### Meta ###
+        "meta-ai": meta,
 
+        # llama-2
+        'llama-2-7b': llama_2_7b,
 
-### Anthropic ###
-'claude-2.1': claude_2_1,
-
-# claude 3
-'claude-3-opus': claude_3_opus,
-'claude-3-sonnet': claude_3_sonnet,
-'claude-3-haiku': claude_3_haiku,
-
-# claude 3.5
-'claude-3.5-sonnet': claude_3_5_sonnet,
-        
-        
-### Reka AI ###
-'reka-core': reka_core,
-      
-        
-### Blackbox AI ###
-'blackboxai': blackboxai,
-'blackboxai-pro': blackboxai_pro,
-        
-        
-### CohereForAI ###
-'command-r+': command_r_plus,
-        
-
-### GigaChat ###
-'gigachat': gigachat,
-        
-    
-        
-### Qwen ###
-# qwen 1.5
-'qwen-1.5-7b': qwen_1_5_7b,
-
-# qwen 2
-'qwen-2-72b': qwen_2_72b,
-
-# qwen 2.5
-'qwen-2.5-coder-32b': qwen_2_5_coder_32b,
-                  
-        
-### Upstage ###
-'solar-mini': solar_mini,
-'solar-pro': solar_pro,
-
-
-### Inflection ###
-'pi': pi,
-
-
-### DeepSeek ###
-'deepseek-coder': deepseek_coder,
-     
-        
-### Yorickvp ###
-'llava-13b': llava_13b,
-
-
-### WizardLM ###
-'wizardlm-2-8x22b': wizardlm_2_8x22b,
+        # llama-3
+        'llama-3-8b': llama_3_8b,
                 
-        
-### OpenChat ###
-'openchat-3.5': openchat_3_5,
-       
-        
-### x.ai ###
-'grok-2': grok_2,
-'grok-2-mini': grok_2_mini,
-'grok-beta': grok_beta,
-        
-        
-### Perplexity AI ###
-'sonar-online': sonar_online,
-'sonar-chat': sonar_chat,
-     
-        
-### TheBloke ###   
-'german-7b': german_7b,
-        
-        
-### Nvidia ###   
-'nemotron-70b': nemotron_70b,
+        # llama-3.1
+        'llama-3.1-8b': llama_3_1_8b,
+        'llama-3.1-70b': llama_3_1_70b,
+        'llama-3.1-405b': llama_3_1_405b,
+
+        # llama-3.2
+        'llama-3.2-1b': llama_3_2_1b,
+        'llama-3.2-11b': llama_3_2_11b,
+                
+        ### Mistral ###
+        'mistral-7b': mistral_7b,
+        'mixtral-8x7b': mixtral_8x7b,
+        'mistral-nemo': mistral_nemo,
+            
+            
+        ### NousResearch ###
+        'hermes-2-pro': hermes_2_pro,
+        'hermes-2-dpo': hermes_2_dpo,
+        'hermes-3': hermes_3,
+
+                        
+        ### Microsoft ###
+        'phi-2': phi_2,
+        'phi-3.5-mini': phi_3_5_mini,
 
 
-### Teknium ###   
-'openhermes-2.5': openhermes_2_5,
-        
-
-### Liquid ###   
-'lfm-40b': lfm_40b,
-      
-        
-### DiscoResearch ###   
-'german-7b': german_7b,
+        ### Google ###
+        # gemini
+        'gemini': gemini,
+        'gemini-pro': gemini_pro,
+        'gemini-flash': gemini_flash,
+                
+        # gemma
+        'gemma-2b': gemma_2b,
 
 
-### HuggingFaceH4 ###   
-'zephyr-7b': zephyr_7b,
+        ### Anthropic ###
+        'claude-2.1': claude_2_1,
+
+        # claude 3
+        'claude-3-opus': claude_3_opus,
+        'claude-3-sonnet': claude_3_sonnet,
+        'claude-3-haiku': claude_3_haiku,
+
+        # claude 3.5
+        'claude-3.5-sonnet': claude_3_5_sonnet,
+                
+                
+        ### Reka AI ###
+        'reka-core': reka_core,
+            
+                
+        ### Blackbox AI ###
+        'blackboxai': blackboxai,
+        'blackboxai-pro': blackboxai_pro,
+                
+                
+        ### CohereForAI ###
+        'command-r+': command_r_plus,
+                
+
+        ### GigaChat ###
+        'gigachat': gigachat,
+                
+            
+                
+        ### Qwen ###
+        # qwen 1.5
+        'qwen-1.5-7b': qwen_1_5_7b,
+
+        # qwen 2
+        'qwen-2-72b': qwen_2_72b,
+
+        # qwen 2.5
+        'qwen-2.5-coder-32b': qwen_2_5_coder_32b,
+                        
+                
+        ### Upstage ###
+        'solar-mini': solar_mini,
+        'solar-pro': solar_pro,
 
 
-### Inferless ###   
-'neural-7b': neural_7b,
-        
-        
-        
-#############
-### Image ###
-#############
-        
-### Stability AI ###
-'sdxl': sdxl,
-'sd-3': sd_3,
-        
-        
-### Playground ###
-'playground-v2.5': playground_v2_5,
+        ### Inflection ###
+        'pi': pi,
 
 
-### Flux AI ###
-'flux': flux,
-'flux-pro': flux_pro,
-'flux-realism': flux_realism,
-'flux-anime': flux_anime,
-'flux-3d': flux_3d,
-'flux-disney': flux_disney,
-'flux-pixel': flux_pixel,
-'flux-4o': flux_4o,
+        ### DeepSeek ###
+        'deepseek-coder': deepseek_coder,
+            
+                
+        ### Yorickvp ###
+        'llava-13b': llava_13b,
 
 
-### Other ###
-'any-dark': any_dark,
+        ### WizardLM ###
+        'wizardlm-2-8x22b': wizardlm_2_8x22b,
+                        
+                
+        ### OpenChat ###
+        'openchat-3.5': openchat_3_5,
+            
+                
+        ### x.ai ###
+        'grok-2': grok_2,
+        'grok-2-mini': grok_2_mini,
+        'grok-beta': grok_beta,
+                
+                
+        ### Perplexity AI ###
+        'sonar-online': sonar_online,
+        'sonar-chat': sonar_chat,
+            
+                
+        ### TheBloke ###   
+        'german-7b': german_7b,
+                
+                
+        ### Nvidia ###   
+        'nemotron-70b': nemotron_70b,
+
+
+        ### Teknium ###   
+        'openhermes-2.5': openhermes_2_5,
+                
+
+        ### Liquid ###   
+        'lfm-40b': lfm_40b,
+            
+                
+        ### DiscoResearch ###   
+        'german-7b': german_7b,
+
+
+        ### HuggingFaceH4 ###   
+        'zephyr-7b': zephyr_7b,
+
+
+        ### Inferless ###   
+        'neural-7b': neural_7b,
+                
+                
+                
+        #############
+        ### Image ###
+        #############
+                
+        ### Stability AI ###
+        'sdxl': sdxl,
+        'sd-3': sd_3,
+                
+                
+        ### Playground ###
+        'playground-v2.5': playground_v2_5,
+
+
+        ### Flux AI ###
+        'flux': flux,
+        'flux-pro': flux_pro,
+        'flux-realism': flux_realism,
+        'flux-anime': flux_anime,
+        'flux-3d': flux_3d,
+        'flux-disney': flux_disney,
+        'flux-pixel': flux_pixel,
+        'flux-4o': flux_4o,
+
+
+        ### Other ###
+        'any-dark': any_dark,
     }
 
 _all_models = list(ModelUtils.convert.keys())

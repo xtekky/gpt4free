@@ -16,6 +16,11 @@ class Raycast(AbstractProvider):
     needs_auth              = True
     working                 = True
 
+    models = [
+        "gpt-3.5-turbo",
+        "gpt-4"
+    ]
+
     @staticmethod
     def create_completion(
         model: str,
@@ -25,6 +30,9 @@ class Raycast(AbstractProvider):
         **kwargs,
     ) -> CreateResult:
         auth = kwargs.get('auth')
+        if not auth:
+            raise ValueError("Raycast needs an auth token, pass it with the `auth` parameter")
+
         headers = {
             'Accept': 'application/json',
             'Accept-Language': 'en-US,en;q=0.9',

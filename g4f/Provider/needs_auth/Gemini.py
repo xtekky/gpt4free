@@ -57,6 +57,7 @@ class Gemini(AsyncGeneratorProvider):
     default_model = 'gemini'
     image_models = ["gemini"]
     default_vision_model = "gemini"
+    models = ["gemini", "gemini-1.5-flash", "gemini-1.5-pro"]
     _cookies: Cookies = None
     _snlm0e: str = None
     _sid: str = None
