@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from aiohttp import ClientSession, ClientTimeout
 try:
-    from duckduckgo_search.duckduckgo_search_async import AsyncDDGS
+    from duckduckgo_search import DDGS
     from bs4 import BeautifulSoup
     has_requirements = True
 except ImportError:
