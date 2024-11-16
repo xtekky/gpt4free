@@ -13,6 +13,7 @@ INSTALL_REQUIRE = [
     "aiohttp",
     "brotli",
     "pycryptodome",
+    "nest_asyncio",
 ]
 
 EXTRA_REQUIRE = {
