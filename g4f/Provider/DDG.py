@@ -27,7 +27,8 @@ class DDG(AsyncGeneratorProvider, ProviderModelMixin):
     model_aliases = {
         "claude-3-haiku": "claude-3-haiku-20240307",
         "llama-3.1-70b": "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo",
-        "mixtral-8x7b": "mistralai/Mixtral-8x7B-Instruct-v0.1"
+        "mixtral-8x7b": "mistralai/Mixtral-8x7B-Instruct-v0.1",
+        "gpt-4": "gpt-4o-mini"
     }
 
     @classmethod

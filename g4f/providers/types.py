@@ -3,6 +3,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Union, Dict, Type
 from ..typing import Messages, CreateResult
+from .conversation import BaseConversation
 
 class BaseProvider(ABC):
     """
