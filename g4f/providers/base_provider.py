@@ -163,7 +163,7 @@ class AsyncProvider(AbstractProvider):
         Returns:
             CreateResult: The result of the completion creation.
         """
-        get_running_loop(check_nested=True)
+        get_running_loop(check_nested=False)
         yield asyncio.run(cls.create_async(model, messages, **kwargs))
 
     @staticmethod
