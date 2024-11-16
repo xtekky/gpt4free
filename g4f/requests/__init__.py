@@ -117,7 +117,7 @@ def get_session_from_browser(url: str, webdriver: WebDriver = None, proxy: str =
         timeout=timeout,
         impersonate="chrome"
     )
-def get_cookie_params_from_dict(cookies: Cookies, url: str = None, domain: str = None):
+def get_cookie_params_from_dict(cookies: Cookies, url: str = None, domain: str = None) -> list[CookieParam]:
     [CookieParam.from_json({
         "name": key,
         "value": value,
@@ -161,7 +161,7 @@ async def get_args_from_nodriver(
         "proxy": proxy
     }
 
-def merge_cookies(cookies: Iterator[Morsel], response: Response):
+def merge_cookies(cookies: Iterator[Morsel], response: Response) -> Cookies:
     if cookies is None:
         cookies = {}
     for cookie in response.cookies.jar:

@@ -3,8 +3,13 @@ from __future__ import annotations
 import json
 import requests
 
-from curl_cffi import requests as cf_reqs
+try:
+    from curl_cffi import requests as cf_reqs
+    has_curl_cffi = True
+except ImportError:
+    has_curl_cffi = False
 from ..typing import CreateResult, Messages
+from ..errors import MissingRequirementsError
 from .base_provider import ProviderModelMixin, AbstractProvider
 from .helper import format_prompt
 
@@ -55,6 +60,8 @@ class HuggingChat(AbstractProvider, ProviderModelMixin):
         stream: bool,
         **kwargs
     ) -> CreateResult:
+        if not has_curl_cffi:
+            raise MissingRequirementsError('Install "curl_cffi" package | pip install -U curl_cffi')
         model = cls.get_model(model)
         
         if model in cls.models:
