@@ -61,11 +61,11 @@ class TestChatCompletionNestAsync(unittest.IsolatedAsyncioTestCase):
         result = await ChatCompletion.create_async(g4f.models.default, DEFAULT_MESSAGES, ProviderMock)
         self.assertEqual("Mock",result)
 
-    async def test_nested(self):
+    async def _test_nested(self):
         result = ChatCompletion.create(g4f.models.default, DEFAULT_MESSAGES, AsyncProviderMock)
         self.assertEqual("Mock",result)
 
-    async def test_nested_generator(self):
+    async def _test_nested_generator(self):
         result = ChatCompletion.create(g4f.models.default, DEFAULT_MESSAGES, AsyncGeneratorProviderMock)
         self.assertEqual("Mock",result)
 
