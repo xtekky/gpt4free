@@ -132,7 +132,7 @@ async def create_images(session: ClientSession, prompt: str, timeout: int = TIME
 
     redirect_url = response.headers["Location"].replace("&nfy=1", "")
     redirect_url = f"{BING_URL}{redirect_url}"
-    request_id = redirect_url.split("id=")[1]
+    request_id = redirect_url.split("id=")[-1]
     async with session.get(redirect_url) as response:
         response.raise_for_status()
 

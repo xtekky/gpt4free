@@ -4,7 +4,6 @@ import json
 import base64
 from datetime import datetime, timezone
 
-
 def generate_proof_token(required: bool, seed: str = "", difficulty: str = "", user_agent: str = None, proofTokens: list = None):
     if not required:
         return

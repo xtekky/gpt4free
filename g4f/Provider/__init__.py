@@ -13,6 +13,7 @@ from .local            import *
 
 from .AIUncensored     import AIUncensored
 from .Airforce         import Airforce
+from .AmigoChat        import AmigoChat
 from .Bing             import Bing
 from .Blackbox         import Blackbox
 from .ChatGpt          import ChatGpt

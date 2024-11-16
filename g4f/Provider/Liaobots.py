@@ -179,7 +179,7 @@ class Liaobots(AsyncGeneratorProvider, ProviderModelMixin):
         "gpt-4o": "gpt-4o-2024-08-06",
               
         "gpt-4-turbo": "gpt-4-turbo-2024-04-09",
-        "gpt-4": "gpt-4-0613",
+        "gpt-4": "gpt-4o-mini-free",
         
         "claude-3-opus": "claude-3-opus-20240229",
         "claude-3-opus": "claude-3-opus-20240229-aws",

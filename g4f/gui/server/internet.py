@@ -96,7 +96,7 @@ async def fetch_and_scrape(session: ClientSession, url: str, max_words: int = No
 
 async def search(query: str, n_results: int = 5, max_words: int = 2500, add_text: bool = True) -> SearchResults:
     if not has_requirements:
-        raise MissingRequirementsError('Install "duckduckgo-search" and "beautifulsoup4" package')
+        raise MissingRequirementsError('Install "duckduckgo-search" and "beautifulsoup4" package | pip install -U g4f[search]')
     with DDGS() as ddgs:
         results = []
         for result in ddgs.text(

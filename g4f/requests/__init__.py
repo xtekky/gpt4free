@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from urllib.parse import urlparse
+from typing import Iterator
+from http.cookies import Morsel
 try:
     from curl_cffi.requests import Session, Response
     from .curl_cffi import StreamResponse, StreamSession, FormData
@@ -14,11 +17,19 @@ try:
     has_webview = True
 except ImportError:
     has_webview = False
+try:
+    import nodriver
+    from nodriver.cdp.network import CookieParam
+    has_nodriver = True
+except ImportError:
+    has_nodriver = False
 
+from .. import debug
 from .raise_for_status import raise_for_status
 from ..webdriver import WebDriver, WebDriverSession
 from ..webdriver import bypass_cloudflare, get_driver_cookies
 from ..errors import MissingRequirementsError
+from ..typing import Cookies
 from .defaults import DEFAULT_HEADERS, WEBVIEW_HAEDERS
 
 async def get_args_from_webview(url: str) -> dict:
@@ -106,3 +117,52 @@ def get_session_from_browser(url: str, webdriver: WebDriver = None, proxy: str =
         timeout=timeout,
         impersonate="chrome"
     )
+def get_cookie_params_from_dict(cookies: Cookies, url: str = None, domain: str = None) -> list[CookieParam]:
+    [CookieParam.from_json({
+        "name": key,
+        "value": value,
+        "url": url,
+        "domain": domain
+    }) for key, value in cookies.items()]
+
+async def get_args_from_nodriver(
+    url: str,
+    proxy: str = None,
+    timeout: int = 120,
+    cookies: Cookies = None
+) -> dict:
+    if not has_nodriver:
+        raise MissingRequirementsError('Install "nodriver" package | pip install -U nodriver')
+    if debug.logging:
+        print(f"Open nodriver with url: {url}")
+    browser = await nodriver.start(
+        browser_args=None if proxy is None else [f"--proxy-server={proxy}"],
+    )
+    domain = urlparse(url).netloc
+    if cookies is None:
+        cookies = {}
+    else:
+        await browser.cookies.set_all(get_cookie_params_from_dict(cookies, url=url, domain=domain))
+    page = await browser.get(url)
+    for c in await browser.cookies.get_all():
+        if c.domain.endswith(domain):
+            cookies[c.name] = c.value
+    user_agent = await page.evaluate("window.navigator.userAgent")
+    await page.wait_for("body:not(.no-js)", timeout=timeout)
+    await page.close()
+    browser.stop()
+    return {
+        "cookies": cookies,
+        "headers": {
+            **DEFAULT_HEADERS,
+            "user-agent": user_agent,
+            "referer": url,
+        },
+        "proxy": proxy
+    }
+
+def merge_cookies(cookies: Iterator[Morsel], response: Response) -> Cookies:
+    if cookies is None:
+        cookies = {}
+    for cookie in response.cookies.jar:
+        cookies[cookie.name] = cookie.value

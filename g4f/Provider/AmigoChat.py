@@ -2,18 +2,18 @@ from __future__ import annotations
 
 import json
 import uuid
-from aiohttp import ClientSession, ClientTimeout, ClientResponseError
 
-from ...typing import AsyncResult, Messages
-from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from ..helper import format_prompt
-from ...image import ImageResponse
+from ..typing import AsyncResult, Messages
+from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from ..image import ImageResponse
+from ..requests import StreamSession, raise_for_status
+from ..errors import ResponseStatusError
 
 class AmigoChat(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://amigochat.io/chat/"
     chat_api_endpoint = "https://api.amigochat.io/v1/chat/completions"
     image_api_endpoint = "https://api.amigochat.io/v1/images/generations"
-    working = False
+    working = True
     supports_stream = True
     supports_system_message = True
     supports_message_history = True
@@ -67,15 +67,6 @@ class AmigoChat(AsyncGeneratorProvider, ProviderModelMixin):
     }
 
     @classmethod
-    def get_model(cls, model: str) -> str:
-        if model in cls.models:
-            return model
-        elif model in cls.model_aliases:
-            return cls.model_aliases[model]
-        else:
-            return cls.default_model
-
-    @classmethod
     def get_personaId(cls, model: str) -> str:
         return cls.persona_ids[model]
 
@@ -86,6 +77,12 @@ class AmigoChat(AsyncGeneratorProvider, ProviderModelMixin):
         messages: Messages,
         proxy: str = None,
         stream: bool = False,
+        timeout: int = 300,
+        frequency_penalty: float = 0,
+        max_tokens: int = 4000,
+        presence_penalty: float = 0,
+        temperature: float = 0.5,
+        top_p: float = 0.95,
         **kwargs
     ) -> AsyncResult:
         model = cls.get_model(model)
@@ -113,31 +110,25 @@ class AmigoChat(AsyncGeneratorProvider, ProviderModelMixin):
                     "x-device-language": "en-US",
                     "x-device-platform": "web",
                     "x-device-uuid": device_uuid,
-                    "x-device-version": "1.0.32"
+                    "x-device-version": "1.0.41"
                 }
                 
-                async with ClientSession(headers=headers) as session:
-                    if model in cls.chat_models:
-                        # Chat completion
+                async with StreamSession(headers=headers, proxy=proxy) as session:
+                    if model not in cls.image_models:
                         data = {
-                            "messages": [{"role": m["role"], "content": m["content"]} for m in messages],
+                            "messages": messages,
                             "model": model,
                             "personaId": cls.get_personaId(model),
-                            "frequency_penalty": 0,
-                            "max_tokens": 4000,
-                            "presence_penalty": 0,
+                            "frequency_penalty": frequency_penalty,
+                            "max_tokens": max_tokens,
+                            "presence_penalty": presence_penalty,
                             "stream": stream,
-                            "temperature": 0.5,
-                            "top_p": 0.95
+                            "temperature": temperature,
+                            "top_p": top_p
                         }
-                        
-                        timeout = ClientTimeout(total=300)  # 5 minutes timeout
-                        async with session.post(cls.chat_api_endpoint, json=data, proxy=proxy, timeout=timeout) as response:
-                            if response.status not in (200, 201):
-                                error_text = await response.text()
-                                raise Exception(f"Error {response.status}: {error_text}")
-                            
-                            async for line in response.content:
+                        async with session.post(cls.chat_api_endpoint, json=data, timeout=timeout) as response:
+                            await raise_for_status(response)
+                            async for line in response.iter_lines():
                                 line = line.decode('utf-8').strip()
                                 if line.startswith('data: '):
                                     if line == 'data: [DONE]':
@@ -164,11 +155,9 @@ class AmigoChat(AsyncGeneratorProvider, ProviderModelMixin):
                             "model": model,
                             "personaId": cls.get_personaId(model)
                         }
-                        async with session.post(cls.image_api_endpoint, json=data, proxy=proxy) as response:
-                            response.raise_for_status()
-                            
+                        async with session.post(cls.image_api_endpoint, json=data) as response:
+                            await raise_for_status(response)
                             response_data = await response.json()
-                            
                             if "data" in response_data:
                                 image_urls = []
                                 for item in response_data["data"]:
@@ -179,10 +168,8 @@ class AmigoChat(AsyncGeneratorProvider, ProviderModelMixin):
                                     yield ImageResponse(image_urls, prompt)
                             else:
                                 yield None
-                
                 break
-            
-            except (ClientResponseError, Exception) as e:
+            except (ResponseStatusError, Exception) as e:
                 retry_count += 1
                 if retry_count >= max_retries:
                     raise e
