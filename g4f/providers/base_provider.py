@@ -47,11 +47,11 @@ def get_running_loop(check_nested: bool) -> Union[AbstractEventLoop, None]:
         if has_uvloop:
             if isinstance(loop, uvloop.Loop):
                return loop
-        if check_nested and not hasattr(loop.__class__, "_nest_patched"):
+        if not hasattr(loop.__class__, "_nest_patched"):
             if has_nest_asyncio:
                 nest_asyncio.apply(loop)
-            else:
-                raise NestAsyncioError('Install "nest_asyncio" package')
+            elif check_nested:
+                raise NestAsyncioError('Install "nest_asyncio" package | pip install -U nest_asyncio')
         return loop
     except RuntimeError:
         pass
