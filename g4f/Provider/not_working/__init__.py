@@ -2,7 +2,6 @@ from .AI365VIP          import AI365VIP
 from .AIChatFree        import AIChatFree
 from .AiChatOnline      import AiChatOnline
 from .AiChats           import AiChats
-from .AmigoChat         import AmigoChat
 from .Aura              import Aura
 from .Chatgpt4o         import Chatgpt4o
 from .ChatgptFree       import ChatgptFree
