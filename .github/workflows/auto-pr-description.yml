@@ -1,0 +1,24 @@
+name: Auto-generate PR description [G4F]
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  generate-pr-description:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Auto-generate PR Description
+        uses: yuri-val/auto-pr-description-g4f-action@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
