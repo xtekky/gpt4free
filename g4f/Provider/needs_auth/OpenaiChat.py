@@ -9,22 +9,19 @@ from aiohttp import ClientWebSocketResponse
 from copy import copy
 
 try:
-    import webview
-    has_webview = True
+    import nodriver
+    has_nodriver = True
 except ImportError:
-    has_webview = False
-
+    has_nodriver = False
 try:
-    from selenium.webdriver.common.by import By
-    from selenium.webdriver.support.ui import WebDriverWait
-    from selenium.webdriver.support import expected_conditions as EC
+    from platformdirs import user_config_dir
+    has_platformdirs = True
 except ImportError:
-    pass
+    has_platformdirs = False
 
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from ...webdriver import get_browser
 from ...typing import AsyncResult, Messages, Cookies, ImageType, AsyncIterator
-from ...requests import get_args_from_browser, raise_for_status
+from ...requests.raise_for_status import raise_for_status
 from ...requests.aiohttp import StreamSession
 from ...image import ImageResponse, ImageRequest, to_image, to_bytes, is_accepted_format
 from ...errors import MissingAuthError, ResponseError
@@ -62,12 +59,7 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
     default_model = None
     default_vision_model = "gpt-4o"
     models = [ "auto", "gpt-4o-mini", "gpt-4o", "gpt-4", "gpt-4-gizmo"]
-    
-    model_aliases = {
-        #"gpt-4-turbo": "gpt-4",
-        #"gpt-4": "gpt-4-gizmo",
-        #"dalle": "gpt-4",
-    }
+
     _api_key: str = None
     _headers: dict = None
     _cookies: Cookies = None
@@ -219,9 +211,12 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
         """
         # Create a message object with the user role and the content
         messages = [{
-            "id": str(uuid.uuid4()),
             "author": {"role": message["role"]},
             "content": {"content_type": "text", "parts": [message["content"]]},
+            "id": str(uuid.uuid4()),
+            "create_time": int(time.time()),
+            "id": str(uuid.uuid4()),
+            "metadata": {"serialization_metadata": {"custom_symbol_offsets": []}}
         } for message in messages]
 
         # Check if there is an image response
@@ -250,7 +245,7 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
         return messages
 
     @classmethod
-    async def get_generated_image(cls, session: StreamSession, headers: dict, line: dict) -> ImageResponse:
+    async def get_generated_image(cls, session: StreamSession, headers: dict, element: dict) -> ImageResponse:
         """
         Retrieves the image response based on the message content.
 
@@ -269,15 +264,8 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
         Raises:
             RuntimeError: If there'san error in downloading the image, including issues with the HTTP request or response.
         """
-        if "parts" not in line["message"]["content"]:
-            return
-        first_part = line["message"]["content"]["parts"][0]
-        if "asset_pointer" not in first_part or "metadata" not in first_part:
-            return
-        if first_part["metadata"] is None or first_part["metadata"]["dalle"] is None:
-            return
-        prompt = first_part["metadata"]["dalle"]["prompt"]
-        file_id = first_part["asset_pointer"].split("file-service://", 1)[1]
+        prompt = element["metadata"]["dalle"]["prompt"]
+        file_id = element["asset_pointer"].split("file-service://", 1)[1]
         try:
             async with session.get(f"{cls.url}/backend-api/files/{file_id}/download", headers=headers) as response:
                 cls._update_request_args(session)
@@ -365,9 +353,10 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
             if cls._expires is not None and cls._expires < time.time():
                 cls._headers = cls._api_key = None
             arkose_token = None
-            proofTokens = None
+            proofToken = None
+            turnstileToken = None
             try:
-                arkose_token, api_key, cookies, headers, proofTokens = await getArkoseAndAccessToken(proxy)
+                arkose_token, api_key, cookies, headers, proofToken, turnstileToken = await getArkoseAndAccessToken(proxy)
                 cls._create_request_args(cookies, headers)
                 cls._set_api_key(api_key)
             except NoValidHarFileError as e:
@@ -400,32 +389,28 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
                     f"{cls.url}/backend-anon/sentinel/chat-requirements"
                     if cls._api_key is None else
                     f"{cls.url}/backend-api/sentinel/chat-requirements",
-                    json={"p": generate_proof_token(True, user_agent=cls._headers["user-agent"], proofTokens=proofTokens)},
+                    json={"p": generate_proof_token(True, user_agent=cls._headers["user-agent"], proofToken=proofToken)},
                     headers=cls._headers
                 ) as response:
                     cls._update_request_args(session)
                     await raise_for_status(response)
-                    requirements = await response.json()
-                    text_data = json.loads(requirements.get("text", "{}")) 
-                    need_arkose = text_data.get("turnstile", {}).get("required", False)
-                    if need_arkose:
-                        arkose_token = text_data.get("turnstile", {}).get("dx")
-                    else:
-                        need_arkose = requirements.get("arkose", {}).get("required", False) 
-                    chat_token = requirements["token"]        
+                    chat_requirements = await response.json()
+                    need_turnstile = chat_requirements.get("turnstile", {}).get("required", False)
+                    need_arkose = chat_requirements.get("arkose", {}).get("required", False) 
+                    chat_token = chat_requirements.get("token")  
 
                 if need_arkose and arkose_token is None:
-                    arkose_token, api_key, cookies, headers, proofTokens = await getArkoseAndAccessToken(proxy)
+                    arkose_token, api_key, cookies, headers, proofToken, turnstileToken = await getArkoseAndAccessToken(proxy)
                     cls._create_request_args(cookies, headers)
                     cls._set_api_key(api_key)
                     if arkose_token is None:
                         raise MissingAuthError("No arkose token found in .har file")
 
-                if "proofofwork" in requirements:
+                if "proofofwork" in chat_requirements:
                     proofofwork = generate_proof_token(
-                        **requirements["proofofwork"],
+                        **chat_requirements["proofofwork"],
                         user_agent=cls._headers["user-agent"],
-                        proofTokens=proofTokens
+                        proofToken=proofToken
                     )
                 if debug.logging:
                     print(
@@ -441,15 +426,18 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
                 websocket_request_id = str(uuid.uuid4())
                 data = {
                     "action": action,
-                    "conversation_mode": {"kind": "primary_assistant"},
-                    "force_paragen": False,
-                    "force_rate_limit": False,
-                    "conversation_id": conversation.conversation_id,
+                    "messages": None,
                     "parent_message_id": conversation.message_id,
                     "model": model,
+                    "paragen_cot_summary_display_override": "allow",
                     "history_and_training_disabled": history_disabled and not auto_continue and not return_conversation,
-                    "websocket_request_id": websocket_request_id
+                    "conversation_mode": {"kind":"primary_assistant"},
+                    "websocket_request_id": websocket_request_id,
+                    "supported_encodings": ["v1"],
+                    "supports_buffering": True
                 }
+                if conversation.conversation_id is not None:
+                    data["conversation_id"] = conversation.conversation_id
                 if action != "continue":
                     messages = messages if conversation_id is None else [messages[-1]]
                     data["messages"] = cls.create_messages(messages, image_request)
@@ -458,10 +446,12 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
                     "Openai-Sentinel-Chat-Requirements-Token": chat_token,
                     **cls._headers
                 }
-                if need_arkose:
+                if arkose_token:
                     headers["Openai-Sentinel-Arkose-Token"] = arkose_token
                 if proofofwork is not None:
                     headers["Openai-Sentinel-Proof-Token"] = proofofwork
+                if need_turnstile and turnstileToken is not None:
+                    headers['openai-sentinel-turnstile-token'] = turnstileToken
                 async with session.post(
                     f"{cls.url}/backend-anon/conversation"
                     if cls._api_key is None else
@@ -510,7 +500,6 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
         fields: Conversation,
         ws = None
     ) -> AsyncIterator:
-        last_message: int = 0
         async for message in messages:
             if message.startswith(b'{"wss_url":'):
                 message = json.loads(message)
@@ -527,10 +516,6 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
             async for chunk in cls.iter_messages_line(session, message, fields):
                 if fields.finish_reason is not None:
                     break
-                elif isinstance(chunk, str):
-                    if len(chunk) > last_message:
-                        yield chunk[last_message:]
-                    last_message = len(chunk)
                 else:
                     yield chunk
             if fields.finish_reason is not None:
@@ -548,82 +533,50 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
             line = json.loads(line[6:])
         except:
             return
-        if "message" not in line:
+        if isinstance(line, dict) and "v" in line:
+            v = line.get("v")
+            r = ""
+            if isinstance(v, str):
+                yield v
+            elif isinstance(v, list):
+                for m in v:
+                    if m.get("p") == "/message/content/parts/0":
+                        yield m.get("v")
+                    elif m.get("p") == "/message/metadata":
+                        fields.finish_reason = m.get("v", {}).get("finish_details", {}).get("type")
+                        break
+            elif isinstance(v, dict):
+                if fields.conversation_id is None:
+                    fields.conversation_id = v.get("conversation_id")
+                fields.message_id = v.get("message", {}).get("id")
+                c = v.get("message", {}).get("content", {})
+                if c.get("content_type") == "multimodal_text":
+                    generated_images = []
+                    for element in c.get("parts"):
+                        if element.get("content_type") == "image_asset_pointer":
+                            generated_images.append(
+                                cls.get_generated_image(session, cls._headers, element)
+                            )
+                        elif element.get("content_type") == "text":
+                            for part in element.get("parts", []):
+                                yield part
+                    for image_response in await asyncio.gather(*generated_images):
+                        yield image_response
             return
-        if "error" in line and line["error"]:
-            raise RuntimeError(line["error"])
-        if "message_type" not in line["message"]["metadata"]:
-            return
-        image_response = await cls.get_generated_image(session, cls._headers, line)
-        if image_response is not None:
-            yield image_response
-        if line["message"]["author"]["role"] != "assistant":
-            return
-        if line["message"]["content"]["content_type"] != "text":
-            return
-        if line["message"]["metadata"]["message_type"] not in ("next", "continue", "variant"):
-            return
-        if line["message"]["recipient"] != "all":
-            return
-        if fields.conversation_id is None:
-            fields.conversation_id = line["conversation_id"]
-            fields.message_id = line["message"]["id"]
-        if "parts" in line["message"]["content"]:
-            yield line["message"]["content"]["parts"][0]
-        if "finish_details" in line["message"]["metadata"]:
-            fields.finish_reason = line["message"]["metadata"]["finish_details"]["type"]
-
-    @classmethod
-    async def webview_access_token(cls) -> str:
-        window = webview.create_window("OpenAI Chat", cls.url)
-        await asyncio.sleep(3)
-        prompt_input = None
-        while not prompt_input:
-            try:
-                await asyncio.sleep(1)
-                prompt_input = window.dom.get_element("#prompt-textarea")
-            except:
-                ...
-        window.evaluate_js("""
-this._fetch = this.fetch;
-this.fetch = async (url, options) => {
-    const response = await this._fetch(url, options);
-    if (url == "https://chatgpt.com/backend-api/conversation") {
-        this._headers = options.headers;
-        return response;
-    }
-    return response;
-};
-""")
-        window.evaluate_js("""
-            document.querySelector('.from-token-main-surface-secondary').click();
-        """)
-        headers = None
-        while headers is None:
-            headers = window.evaluate_js("this._headers")
-            await asyncio.sleep(1)
-        headers["User-Agent"] = window.evaluate_js("this.navigator.userAgent")
-        cookies = [list(*cookie.items()) for cookie in window.get_cookies()]
-        window.destroy()
-        cls._cookies = dict([(name, cookie.value) for name, cookie in cookies])
-        cls._headers = headers
-        cls._expires = int(time.time()) + 60 * 60 * 4
-        cls._update_cookie_header()
+        if "error" in line and line.get("error"):
+            raise RuntimeError(line.get("error"))
 
     @classmethod
     async def nodriver_access_token(cls, proxy: str = None):
-        try:
-            import nodriver as uc
-        except ImportError:
+        if not has_nodriver:
             return
-        try:
-            from platformdirs import user_config_dir
+        if has_platformdirs:
             user_data_dir = user_config_dir("g4f-nodriver")
-        except:
+        else:
             user_data_dir = None
         if debug.logging:
             print(f"Open nodriver with user_dir: {user_data_dir}")
-        browser = await uc.start(
+        browser = await nodriver.start(
             user_data_dir=user_data_dir,
             browser_args=None if proxy is None else [f"--proxy-server={proxy}"],
         )
@@ -648,48 +601,6 @@ this.fetch = async (url, options) => {
         await page.close()
         cls._create_request_args(cookies, user_agent=user_agent)
         cls._set_api_key(api_key)
-
-    @classmethod
-    def browse_access_token(cls, proxy: str = None, timeout: int = 1200) -> None:
-        """
-        Browse to obtain an access token.
-
-        Args:
-            proxy (str): Proxy to use for browsing.
-
-        Returns:
-            tuple[str, dict]: A tuple containing the access token and cookies.
-        """
-        driver = get_browser(proxy=proxy)
-        try:
-            driver.get(f"{cls.url}/")
-            WebDriverWait(driver, timeout).until(EC.presence_of_element_located((By.ID, "prompt-textarea")))
-            access_token = driver.execute_script(
-                "let session = await fetch('/api/auth/session');"
-                "let data = await session.json();"
-                "let accessToken = data['accessToken'];"
-                "let expires = new Date(); expires.setTime(expires.getTime() + 60 * 60 * 4 * 1000);"
-                "document.cookie = 'access_token=' + accessToken + ';expires=' + expires.toUTCString() + ';path=/';"
-                "return accessToken;"
-            )
-            args = get_args_from_browser(f"{cls.url}/", driver, do_bypass_cloudflare=False)
-            cls._headers = args["headers"]
-            cls._cookies = args["cookies"]
-            cls._update_cookie_header()
-            cls._set_api_key(access_token)
-        finally:
-            driver.close()
-
-    @classmethod
-    async def fetch_access_token(cls, session: StreamSession, headers: dict):
-        async with session.get(
-            f"{cls.url}/api/auth/session",
-            headers=headers
-        ) as response:
-            if response.ok:
-                data = await response.json()
-                if "accessToken" in data:
-                    return data["accessToken"]
 
     @staticmethod
     def get_default_headers() -> dict:

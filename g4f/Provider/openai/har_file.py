@@ -27,16 +27,18 @@ class arkReq:
         self.arkCookies = arkCookies
         self.userAgent = userAgent
 
-arkPreURL = "https://tcr9i.chat.openai.com/fc/gt2/public_key/35536E1E-65B4-4D96-9D97-6ADB7EFF8147"
-sessionUrl = "https://chatgpt.com/"
-chatArk: arkReq = None
+arkoseURL = "https://tcr9i.chat.openai.com/fc/gt2/public_key/35536E1E-65B4-4D96-9D97-6ADB7EFF8147"
+startUrl = "https://chatgpt.com/"
+conversationUrl = "https://chatgpt.com/c/"
+arkoseRequest: arkReq = None
 accessToken: str = None
 cookies: dict = None
 headers: dict = None
-proofTokens: list = []
+proofToken: list = []
+turnstileToken: str = None
 
 def readHAR():
-    global proofTokens
+    global arkoseRequest, accessToken, proofToken, turnstileToken
     harPath = []
     chatArks = []
     accessToken = None
@@ -58,15 +60,17 @@ def readHAR():
                 v_headers = get_headers(v)
                 try:
                     if "openai-sentinel-proof-token" in v_headers:
-                        proofTokens.append(json.loads(base64.b64decode(
+                        proofToken = json.loads(base64.b64decode(
                             v_headers["openai-sentinel-proof-token"].split("gAAAAAB", 1)[-1].encode()
-                        ).decode()))
+                        ).decode())
+                    if "openai-sentinel-turnstile-token" in v_headers:
+                        turnstileToken = v_headers["openai-sentinel-turnstile-token"]
                 except Exception as e:
                     if debug.logging:
                         print(f"Read proof token: {e}")
-                if arkPreURL in v['request']['url']:
-                    chatArks.append(parseHAREntry(v))
-                elif v['request']['url'] == sessionUrl:
+                if arkoseURL in v['request']['url']:
+                    arkoseRequest = parseHAREntry(v)
+                elif v['request']['url'] == startUrl or v['request']['url'].startswith(conversationUrl):
                     try:
                         match = re.search(r'"accessToken":"(.*?)"', v["response"]["content"]["text"])
                         if match:
@@ -78,8 +82,8 @@ def readHAR():
     if not accessToken:
         raise NoValidHarFileError("No accessToken found in .har files")
     if not chatArks:
-        return None, accessToken, cookies, headers
-    return chatArks.pop(), accessToken, cookies, headers
+        return cookies, headers
+    return cookies, headers
 
 def get_headers(entry) -> dict:
     return {h['name'].lower(): h['value'] for h in entry['request']['headers'] if h['name'].lower() not in ['content-length', 'cookie'] and not h['name'].startswith(':')}
@@ -110,7 +114,7 @@ def genArkReq(chatArk: arkReq) -> arkReq:
     tmpArk.arkHeader['x-ark-esync-value'] = bw
     return tmpArk
 
-async def sendRequest(tmpArk: arkReq, proxy: str = None):
+async def sendRequest(tmpArk: arkReq, proxy: str = None) -> str:
     async with StreamSession(headers=tmpArk.arkHeader, cookies=tmpArk.arkCookies, proxies={"https": proxy}) as session:
         async with session.post(tmpArk.arkURL, data=tmpArk.arkBody) as response:
             data = await response.json()
@@ -144,10 +148,10 @@ def getN() -> str:
     return base64.b64encode(timestamp.encode()).decode()
 
 async def getArkoseAndAccessToken(proxy: str) -> tuple[str, str, dict, dict]:
-    global chatArk, accessToken, cookies, headers, proofTokens
-    if chatArk is None or accessToken is None:
-        chatArk, accessToken, cookies, headers = readHAR()
-    if chatArk is None:
-        return None, accessToken, cookies, headers, proofTokens
-    newReq = genArkReq(chatArk)
-    return await sendRequest(newReq, proxy), accessToken, cookies, headers, proofTokens
+    global arkoseRequest, accessToken, cookies, headers, proofToken, turnstileToken
+    if arkoseRequest is None or accessToken is None:
+        cookies, headers = readHAR()
+    if arkoseRequest is None:
+        return None, accessToken, cookies, headers, proofToken, turnstileToken
+    newReq = genArkReq(arkoseRequest)
+    return await sendRequest(newReq, proxy), accessToken, cookies, headers, proofToken, turnstileToken

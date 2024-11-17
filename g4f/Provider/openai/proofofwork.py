@@ -4,18 +4,16 @@ import json
 import base64
 from datetime import datetime, timezone
 
-def generate_proof_token(required: bool, seed: str = "", difficulty: str = "", user_agent: str = None, proofTokens: list = None):
+def generate_proof_token(required: bool, seed: str = "", difficulty: str = "", user_agent: str = None, proofToken: str = None):
     if not required:
         return
 
-    if proofTokens:
-        config = proofTokens[-1]
-    else:
+    if proofToken is None:
         screen = random.choice([3008, 4010, 6000]) * random.choice([1, 2, 4])
         # Get current UTC time
         now_utc = datetime.now(timezone.utc)
         parse_time = now_utc.strftime('%a, %d %b %Y %H:%M:%S GMT')
-        config = [
+        proofToken = [
             screen, parse_time,
             None, 0, user_agent,
             "https://tcr9i.chat.openai.com/v2/35536E1E-65B4-4D96-9D97-6ADB7EFF8147/api.js",
@@ -28,8 +26,8 @@ def generate_proof_token(required: bool, seed: str = "", difficulty: str = "", u
 
     diff_len = len(difficulty)
     for i in range(100000):
-        config[3] = i
-        json_data = json.dumps(config)
+        proofToken[3] = i
+        json_data = json.dumps(proofToken)
         base = base64.b64encode(json_data.encode()).decode()
         hash_value = hashlib.sha3_512((seed + base).encode()).digest()
 
