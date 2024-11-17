@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from ...typing import AsyncResult, Messages, Cookies
 from ..helper import format_prompt, get_cookies
-from ..MetaAI import MetaAI
+from .MetaAI import MetaAI
 
 class MetaAIAccount(MetaAI):
     needs_auth = True

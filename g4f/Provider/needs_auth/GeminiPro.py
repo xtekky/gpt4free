@@ -16,9 +16,9 @@ class GeminiPro(AsyncGeneratorProvider, ProviderModelMixin):
     working = True
     supports_message_history = True
     needs_auth = True
-    default_model = "gemini-1.5-pro-latest"
+    default_model = "gemini-1.5-pro"
     default_vision_model = default_model
-    models = [default_model, "gemini-pro", "gemini-pro-vision", "gemini-1.5-flash"]
+    models = [default_model, "gemini-pro", "gemini-1.5-flash", "gemini-1.5-flash-8b"]
 
     @classmethod
     async def create_async_generator(

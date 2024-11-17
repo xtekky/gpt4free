@@ -7,6 +7,7 @@ import uuid
 from ..typing import AsyncResult, Messages, Cookies
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin, get_running_loop
 from ..requests import Session, StreamSession, get_args_from_nodriver, raise_for_status, merge_cookies
+from ..errors import ResponseStatusError
 
 class Cloudflare(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Cloudflare AI"
@@ -42,10 +43,14 @@ class Cloudflare(AsyncGeneratorProvider, ProviderModelMixin):
                 cls._args = asyncio.run(args)
             with Session(**cls._args) as session:
                 response = session.get(cls.models_url)
-                raise_for_status(response)
+                cls._args["cookies"] = merge_cookies(cls._args["cookies"] , response)
+                try:
+                    raise_for_status(response)
+                except ResponseStatusError as e:
+                    cls._args = None
+                    raise e
                 json_data = response.json()
                 cls.models = [model.get("name") for model in json_data.get("models")]
-                cls._args["cookies"] = merge_cookies(cls._args["cookies"] , response)
         return cls.models
 
     @classmethod
@@ -74,8 +79,12 @@ class Cloudflare(AsyncGeneratorProvider, ProviderModelMixin):
                 cls.api_endpoint,
                 json=data,
             ) as response:
-                await raise_for_status(response)
                 cls._args["cookies"] = merge_cookies(cls._args["cookies"] , response)
+                try:
+                    await raise_for_status(response)
+                except ResponseStatusError as e:
+                    cls._args = None
+                    raise e
                 async for line in response.iter_lines():
                     if line.startswith(b'data: '):
                         if line == b'data: [DONE]':

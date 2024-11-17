@@ -40,6 +40,7 @@ RUN apt-get -qqy update \
 
 # Update entrypoint
 COPY docker/supervisor.conf /etc/supervisor/conf.d/selenium.conf
+COPY docker/supervisor-api.conf /etc/supervisor/conf.d/api.conf
 COPY docker/supervisor-gui.conf /etc/supervisor/conf.d/gui.conf
 
 # If no gui

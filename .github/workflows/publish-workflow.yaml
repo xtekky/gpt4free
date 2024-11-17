@@ -48,3 +48,15 @@ jobs:
           labels: ${{ steps.metadata.outputs.labels }}
           build-args: |
             G4F_VERSION=${{ github.ref_name }}
+      - name: Build and push slim image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/Dockerfile-slim
+          push: true
+          tags: |
+            hlohaus789/g4f=slim
+            hlohaus789/g4f=${{ github.ref_name }}-slim
+          labels: ${{ steps.metadata.outputs.labels }}
+          build-args: |
+            G4F_VERSION=${{ github.ref_name }}

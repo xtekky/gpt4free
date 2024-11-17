@@ -62,6 +62,10 @@ EXTRA_REQUIRE = {
         "duckduckgo-search>=5.0",
         "browser_cookie3"
     ],
+    "search": [
+        "beautifulsoup4", "pillow",
+        "duckduckgo-search>=5.0",
+    ],
     "local": [
         "gpt4all"
     ]
