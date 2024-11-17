@@ -6,14 +6,14 @@ import uuid
 import asyncio
 import time
 from aiohttp import ClientSession
-from typing import Iterator, Optional, AsyncIterator, Union
+from typing import Iterator, Optional
 from flask import send_from_directory
 
 from g4f import version, models
 from g4f import get_last_provider, ChatCompletion
 from g4f.errors import VersionNotFoundError
 from g4f.typing import Cookies
-from g4f.image import ImagePreview, ImageResponse, is_accepted_format
+from g4f.image import ImagePreview, ImageResponse, is_accepted_format, extract_data_uri
 from g4f.requests.aiohttp import get_connector
 from g4f.Provider import ProviderType, __providers__, __map__
 from g4f.providers.base_provider import ProviderModelMixin, FinishReason
@@ -30,7 +30,6 @@ def ensure_images_dir():
         os.makedirs(images_dir)
 
 conversations: dict[dict[str, BaseConversation]] = {}
-
 
 class Api:
     @staticmethod
@@ -176,18 +175,22 @@ class Api:
             connector=get_connector(None, os.environ.get("G4F_PROXY")),
             cookies=cookies
         ) as session:
-            async def copy_image(image):
-                async with session.get(image) as response:
-                    target = os.path.join(images_dir, f"{int(time.time())}_{str(uuid.uuid4())}")
+            async def copy_image(image: str) -> str:
+                target = os.path.join(images_dir, f"{int(time.time())}_{str(uuid.uuid4())}")
+                if image.startswith("data:"):
                     with open(target, "wb") as f:
-                        async for chunk in response.content.iter_any():
-                            f.write(chunk)
-                    with open(target, "rb") as f:
-                        extension = is_accepted_format(f.read(12)).split("/")[-1]
-                        extension = "jpg" if extension == "jpeg" else extension
-                    new_target = f"{target}.{extension}"
-                    os.rename(target, new_target)
-                    return f"/images/{os.path.basename(new_target)}"
+                        f.write(extract_data_uri(image))
+                else:
+                    async with session.get(image) as response:
+                        with open(target, "wb") as f:
+                            async for chunk in response.content.iter_any():
+                                f.write(chunk)
+                with open(target, "rb") as f:
+                    extension = is_accepted_format(f.read(12)).split("/")[-1]
+                    extension = "jpg" if extension == "jpeg" else extension
+                new_target = f"{target}.{extension}"
+                os.rename(target, new_target)
+                return f"/images/{os.path.basename(new_target)}"
 
             return await asyncio.gather(*[copy_image(image) for image in images])
 
@@ -196,7 +199,6 @@ class Api:
             'type': response_type,
             response_type: content
         }
-
 
 def get_error_message(exception: Exception) -> str:
     message = f"{type(exception).__name__}: {exception}"

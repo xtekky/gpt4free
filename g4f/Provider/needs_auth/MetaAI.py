@@ -79,7 +79,6 @@ class MetaAI(AsyncGeneratorProvider, ProviderModelMixin):
             self.access_token = None
         if self.access_token is None and cookies is None:
             await self.update_access_token()
-
         if self.access_token is None:
             url = "https://www.meta.ai/api/graphql/"
             payload = {"lsd": self.lsd, 'fb_dtsg': self.dtsg}
@@ -128,6 +127,8 @@ class MetaAI(AsyncGeneratorProvider, ProviderModelMixin):
                     json_line = json.loads(line)
                 except json.JSONDecodeError:
                     continue
+                if json_line.get("errors"):
+                    raise RuntimeError("\n".join([error.get("message") for error in json_line.get("errors")]))
                 bot_response_message = json_line.get("data", {}).get("node", {}).get("bot_response_message", {})
                 streaming_state = bot_response_message.get("streaming_state")
                 fetch_id = bot_response_message.get("fetch_id") or fetch_id

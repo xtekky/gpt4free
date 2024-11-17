@@ -28,12 +28,22 @@
    ```
 
 2. **Build and Run with Docker Compose**
+
+   Pull the latest image and run a container with Google Chrome support:
    ```bash
-   docker-compose up --build
+      docker pull hlohaus789/g4f
+      docker-compose up -d
+   ```
+   Or run the small docker images without Google Chrome:
+   ```bash
+      docker-compose -f docker-compose-slim.yml up -d
    ```
 
-3. **Access the API**
-   The server will be accessible at `http://localhost:1337`
+3. **Access the API or the GUI**
+
+   The api server will be accessible at `http://localhost:1337`
+
+   And the gui at this url: `http://localhost:8080`
 
 ### Non-Docker Method
 If you encounter issues with Docker, you can run the project directly using Python:
@@ -54,8 +64,12 @@ If you encounter issues with Docker, you can run the project directly using Pyth
    python -m g4f.api.run
    ```
 
-4. **Access the API**
-   The server will be accessible at `http://localhost:1337`
+4. **Access the API or the GUI**
+
+   The api server will be accessible at `http://localhost:1337`
+
+   And the gui at this url: `http://localhost:8080`
+
 
 ## Testing the API
 **You can test the API using curl or by creating a simple Python script:**

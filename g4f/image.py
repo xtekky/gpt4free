@@ -133,7 +133,7 @@ def extract_data_uri(data_uri: str) -> bytes:
     Returns:
         bytes: The extracted binary data.
     """
-    data = data_uri.split(",")[1]
+    data = data_uri.split(",")[-1]
     data = base64.b64decode(data)
     return data
 

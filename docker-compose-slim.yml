@@ -1,0 +1,25 @@
+version: '3'
+
+services:
+  g4f-gui:
+    container_name: g4f-gui
+    image: hlohaus789/g4f:slim
+    build:
+      context: .
+      dockerfile: docker/Dockerfile-slim
+    command: python -m g4f.cli gui -debug
+    volumes:
+      - .:/app
+    ports:
+      - '8080:8080'
+  g4f-api:
+    container_name: g4f-api
+    image: hlohaus789/g4f:slim
+    build:
+      context: .
+      dockerfile: docker/Dockerfile-slim
+    command: python -m g4f.cli api
+    volumes:
+      - .:/app
+    ports:
+      - '1337:1337'
