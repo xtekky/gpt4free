@@ -21,7 +21,7 @@
 > <sup><strong>Stats:</strong></sup> [![Downloads](https://static.pepy.tech/badge/g4f)](https://pepy.tech/project/g4f) [![Downloads](https://static.pepy.tech/badge/g4f/month)](https://pepy.tech/project/g4f)
 
 ```sh
-pip install -U g4f
+pip install -U g4f[all]
 ```
 
 ```sh
