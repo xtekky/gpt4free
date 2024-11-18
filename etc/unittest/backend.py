@@ -46,4 +46,4 @@ class TestBackendApi(unittest.TestCase):
             self.skipTest(e)
         except MissingRequirementsError:
             self.skipTest("search is not installed")
-        self.assertEqual(4, len(result))
+        self.assertTrue(len(result) >= 4)

@@ -64,6 +64,7 @@ class Copilot(AbstractProvider):
 
         websocket_url = cls.websocket_url
         access_token = None
+        headers = None
         cookies = conversation.cookie_jar if conversation is not None else None
         if cls.needs_auth:
             if conversation is None or conversation.access_token is None:
