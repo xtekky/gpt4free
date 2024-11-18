@@ -4,7 +4,7 @@ import json
 import requests
 
 try:
-    from curl_cffi import Session
+    from curl_cffi.requests import Session
     has_curl_cffi = True
 except ImportError:
     has_curl_cffi = False
