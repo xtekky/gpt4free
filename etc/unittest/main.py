@@ -7,18 +7,6 @@ from .mocks import ProviderMock
 
 DEFAULT_MESSAGES = [{'role': 'user', 'content': 'Hello'}]
 
-class NoTestChatCompletion(unittest.TestCase):
-
-    def no_test_create_default(self):
-        result = ChatCompletion.create(g4f.models.default, DEFAULT_MESSAGES)
-        if "Good" not in result and "Hi" not in result:
-            self.assertIn("Hello", result)
-
-    def no_test_bing_provider(self):
-        provider = g4f.Provider.Bing
-        result = ChatCompletion.create(g4f.models.default, DEFAULT_MESSAGES, provider)
-        self.assertIn("Bing", result)
-
 class TestGetLastProvider(unittest.TestCase):
 
     def test_get_last_provider(self):

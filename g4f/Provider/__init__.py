@@ -19,6 +19,7 @@ from .Blackbox         import Blackbox
 from .ChatGpt          import ChatGpt
 from .ChatGptEs        import ChatGptEs
 from .Cloudflare       import Cloudflare
+from .Copilot          import Copilot
 from .DarkAI           import DarkAI
 from .DDG              import DDG
 from .DeepInfraChat    import DeepInfraChat

@@ -4,9 +4,7 @@ from aiohttp import ClientSession
 import json
 
 from ..typing import AsyncResult, Messages, ImageType
-from ..image import to_data_uri
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
-
 
 class DeepInfraChat(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://deepinfra.com/chat"

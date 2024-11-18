@@ -109,7 +109,7 @@ def get_args_from_browser(
 
 def get_session_from_browser(url: str, webdriver: WebDriver = None, proxy: str = None, timeout: int = 120) -> Session:
     if not has_curl_cffi:
-        raise MissingRequirementsError('Install "curl_cffi" package')
+        raise MissingRequirementsError('Install "curl_cffi" package | pip install -U curl_cffi')
     args = get_args_from_browser(url, webdriver, proxy, timeout)
     return Session(
         **args,

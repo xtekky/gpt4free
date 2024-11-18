@@ -50,11 +50,13 @@ class AirforceChat(AsyncGeneratorProvider, ProviderModelMixin):
     supports_message_history = True
 
     default_model = 'llama-3.1-70b-chat'
-    response = requests.get('https://api.airforce/models')
-    data = response.json()
 
-    text_models = [model['id'] for model in data['data']]
-    models = [*text_models]
+    @classmethod
+    def get_models(cls) -> list:
+        if not cls.models:
+            response = requests.get('https://api.airforce/models')
+            data = response.json()
+            cls.models = [model['id'] for model in data['data']]
 
     model_aliases = {
         # openchat
