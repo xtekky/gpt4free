@@ -247,7 +247,7 @@ class Images:
         """
         Synchronous generate method that runs the async_generate method in an event loop.
         """
-        return asyncio.run(self.async_generate(prompt, model, provider, response_format=response_format, proxy=proxy **kwargs))
+        return asyncio.run(self.async_generate(prompt, model, provider, response_format=response_format, proxy=proxy, **kwargs))
 
     async def async_generate(self, prompt: str, model: str = None, provider: ProviderType = None, response_format: str = "url", proxy: str = None, **kwargs) -> ImagesResponse:
         if provider is None:
@@ -343,8 +343,7 @@ class Images:
 
     def create_variation(self, image: Union[str, bytes], model: str = None, provider: ProviderType = None, response_format: str = "url", **kwargs) -> ImagesResponse:
         return asyncio.run(self.async_create_variation(
-           image, model, provider, response_format
-            **kwargs
+           image, model, provider, response_format, **kwargs
         ))
 
     async def async_create_variation(self, image: Union[str, bytes], model: str = None, provider: ProviderType = None, response_format: str = "url", proxy: str = None, **kwargs) -> ImagesResponse:
