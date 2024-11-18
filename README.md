@@ -105,9 +105,9 @@ docker run \
   hlohaus789/g4f:latest
 ```
 
-Or run this commands to start only the gui without a browser and in the debug mode:
+Or run this command to start the gui without a browser and in the debug mode:
 ```bash
-docker pull hlohaus789/g4f
+docker pull hlohaus789/g4f:latest-slim
 docker run \
   -p 8080:8080 \
   -v ${PWD}/har_and_cookies:/app/har_and_cookies \
@@ -115,7 +115,6 @@ docker run \
   hlohaus789/g4f:latest-slim \
   python -m g4f.cli gui -debug
 ```
-
 
 3. **Access the Client:**
 
