@@ -1367,7 +1367,8 @@ async function load_provider_models(providerIndex=null) {
         modelProvider.classList.remove("hidden");
         models.forEach((model) => {
             let option = document.createElement('option');
-            option.value = option.text = model.model;
+            option.value = model.model;
+            option.text = `${model.model}${model.image ? " (Image Generation)" : ""}${model.vision ? " (Image Upload)" : ""}`;
             option.selected = model.default;
             modelProvider.appendChild(option);
         });
@@ -1381,7 +1382,7 @@ providerSelect.addEventListener("change", () => load_provider_models());
 function save_storage() {
     let filename = `chat ${new Date().toLocaleString()}.json`.replaceAll(":", "-");
     let data = {"options": {"g4f": ""}};
-    for (let i = 0; i < appStorage.length; i++){
+    for (let i = 0; i < appStorage.length; i++){label
         let key = appStorage.key(i);
         let item = appStorage.getItem(key);
         if (key.startsWith("conversation:")) {

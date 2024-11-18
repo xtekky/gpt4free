@@ -6,6 +6,7 @@ import uuid
 import json
 import base64
 import time
+import requests
 from aiohttp import ClientWebSocketResponse
 from copy import copy
 
@@ -62,12 +63,25 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
     supports_system_message = True
     default_model = "auto"
     default_vision_model = "gpt-4o"
-    models = ["auto", "gpt-4o-mini", "gpt-4o", "gpt-4", "gpt-4-gizmo"]
+    fallback_models = ["auto", "gpt-4", "gpt-4o", "gpt-4o-mini", "gpt-4o-canmore", "o1-preview", "o1-mini"]
+    vision_models = fallback_models
 
     _api_key: str = None
     _headers: dict = None
     _cookies: Cookies = None
     _expires: int = None
+
+    @classmethod
+    def get_models(cls):
+        if not cls.models:
+            try:
+                response = requests.get(f"{cls.url}/backend-anon/models")
+                response.raise_for_status()
+                data = response.json()
+                cls.models = [model.get("slug") for model in data.get("models")]
+            except Exception:
+                cls.models = cls.fallback_models
+        return cls.models
 
     @classmethod
     async def create(
