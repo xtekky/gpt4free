@@ -338,8 +338,7 @@ class Images:
 
     def create_variation(self, image: Union[str, bytes], model: str = None, provider: ProviderType = None, response_format: str = "url", **kwargs) -> ImagesResponse:
         return asyncio.run(self.async_create_variation(
-           image, model, provider, response_format
-            **kwargs
+           image, model, provider, response_format, **kwargs
         ))
 
     async def async_create_variation(self, image: Union[str, bytes], model: str = None, provider: ProviderType = None, response_format: str = "url", proxy: str = None, **kwargs) -> ImagesResponse:
