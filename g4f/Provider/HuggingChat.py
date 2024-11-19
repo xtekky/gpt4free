@@ -2,115 +2,175 @@ from __future__ import annotations
 
 import json
 import requests
-from aiohttp import ClientSession, BaseConnector
 
-from ..typing import AsyncResult, Messages
+try:
+    from curl_cffi.requests import Session
+    has_curl_cffi = True
+except ImportError:
+    has_curl_cffi = False
+from ..typing import CreateResult, Messages
+from ..errors import MissingRequirementsError
 from ..requests.raise_for_status import raise_for_status
-from ..providers.conversation import BaseConversation
-from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from .helper import format_prompt, get_connector, get_cookies
+from .base_provider import ProviderModelMixin, AbstractProvider
+from .helper import format_prompt
 
-class HuggingChat(AsyncGeneratorProvider, ProviderModelMixin):
+class HuggingChat(AbstractProvider, ProviderModelMixin):
     url = "https://huggingface.co/chat"
     working = True
-    needs_auth = True
-    default_model = "mistralai/Mixtral-8x7B-Instruct-v0.1"
+    supports_stream = True
+    default_model = "meta-llama/Meta-Llama-3.1-70B-Instruct"
+
     models = [
-        "HuggingFaceH4/zephyr-orpo-141b-A35b-v0.1",
-        'CohereForAI/c4ai-command-r-plus',
-        'mistralai/Mixtral-8x7B-Instruct-v0.1',
-        'google/gemma-1.1-7b-it',
-        'NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO',
-        'mistralai/Mistral-7B-Instruct-v0.2',
-        'meta-llama/Meta-Llama-3-70B-Instruct',
-        'microsoft/Phi-3-mini-4k-instruct'
+        'meta-llama/Meta-Llama-3.1-70B-Instruct',
+        'CohereForAI/c4ai-command-r-plus-08-2024',
+        'Qwen/Qwen2.5-72B-Instruct',
+        'nvidia/Llama-3.1-Nemotron-70B-Instruct-HF',
+        'Qwen/Qwen2.5-Coder-32B-Instruct',
+        'meta-llama/Llama-3.2-11B-Vision-Instruct',
+        'NousResearch/Hermes-3-Llama-3.1-8B',
+        'mistralai/Mistral-Nemo-Instruct-2407',
+        'microsoft/Phi-3.5-mini-instruct',
     ]
+
     model_aliases = {
-        "mistralai/Mistral-7B-Instruct-v0.1": "mistralai/Mistral-7B-Instruct-v0.2"
+        "llama-3.1-70b": "meta-llama/Meta-Llama-3.1-70B-Instruct",
+        "command-r-plus": "CohereForAI/c4ai-command-r-plus-08-2024",
+        "qwen-2-72b": "Qwen/Qwen2.5-72B-Instruct",
+        "nemotron-70b": "nvidia/Llama-3.1-Nemotron-70B-Instruct-HF",
+        "qwen-2.5-coder-32b": "Qwen/Qwen2.5-Coder-32B-Instruct",
+        "llama-3.2-11b": "meta-llama/Llama-3.2-11B-Vision-Instruct",
+        "hermes-3": "NousResearch/Hermes-3-Llama-3.1-8B",
+        "mistral-nemo": "mistralai/Mistral-Nemo-Instruct-2407",
+        "phi-3.5-mini": "microsoft/Phi-3.5-mini-instruct",
     }
 
     @classmethod
-    def get_models(cls):
-        if not cls.models:
-            url = f"{cls.url}/__data.json"
-            data = requests.get(url).json()["nodes"][0]["data"]
-            models = [data[key]["name"] for key in data[data[0]["models"]]]
-            cls.models = [data[key] for key in models]
-        return cls.models
-
-    @classmethod
-    async def create_async_generator(
+    def create_completion(
         cls,
         model: str,
         messages: Messages,
-        stream: bool = True,
-        proxy: str = None,
-        connector: BaseConnector = None,
-        web_search: bool = False,
-        cookies: dict = None,
-        conversation: Conversation = None,
-        return_conversation: bool = False,
-        delete_conversation: bool = True,
+        stream: bool,
         **kwargs
-    ) -> AsyncResult:
-        options = {"model": cls.get_model(model)}
-        if cookies is None:
-            cookies = get_cookies("huggingface.co", False)
-        if return_conversation:
-            delete_conversation = False
+    ) -> CreateResult:
+        if not has_curl_cffi:
+            raise MissingRequirementsError('Install "curl_cffi" package | pip install -U curl_cffi')
+        model = cls.get_model(model)
+        
+        if model in cls.models:
+            session = Session()
+            session.headers = {
+                'accept': '*/*',
+                'accept-language': 'en',
+                'cache-control': 'no-cache',
+                'origin': 'https://huggingface.co',
+                'pragma': 'no-cache',
+                'priority': 'u=1, i',
+                'referer': 'https://huggingface.co/chat/',
+                'sec-ch-ua': '"Not)A;Brand";v="99", "Google Chrome";v="127", "Chromium";v="127"',
+                'sec-ch-ua-mobile': '?0',
+                'sec-ch-ua-platform': '"macOS"',
+                'sec-fetch-dest': 'empty',
+                'sec-fetch-mode': 'cors',
+                'sec-fetch-site': 'same-origin',
+                'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
+            }
+            json_data = {
+                'model': model,
+            }
+            response = session.post('https://huggingface.co/chat/conversation', json=json_data)
+            raise_for_status(response)
 
-        system_prompt = "\n".join([message["content"] for message in messages if message["role"] == "system"])
-        if system_prompt:
-            options["preprompt"] = system_prompt
-            messages = [message for message in messages if message["role"] != "system"]
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36',
-        }
-        async with ClientSession(
-            cookies=cookies,
-            headers=headers,
-            connector=get_connector(connector, proxy)
-        ) as session:
-            if conversation is None:
-                async with session.post(f"{cls.url}/conversation", json=options) as response:
-                    await raise_for_status(response)
-                    conversation_id = (await response.json())["conversationId"]
-                if return_conversation:
-                    yield Conversation(conversation_id)
-            else:
-                conversation_id = conversation.conversation_id
-            async with session.get(f"{cls.url}/conversation/{conversation_id}/__data.json") as response:
-                await raise_for_status(response)
-                data: list = (await response.json())["nodes"][1]["data"]
+            conversationId = response.json().get('conversationId')
+            
+            # Get the data response and parse it properly
+            response = session.get(f'https://huggingface.co/chat/conversation/{conversationId}/__data.json?x-sveltekit-invalidated=11')
+            raise_for_status(response)
+
+            # Split the response content by newlines and parse each line as JSON
+            try:
+                json_data = None
+                for line in response.text.split('\n'):
+                    if line.strip():
+                        try:
+                            parsed = json.loads(line)
+                            if isinstance(parsed, dict) and "nodes" in parsed:
+                                json_data = parsed
+                                break
+                        except json.JSONDecodeError:
+                            continue
+                            
+                if not json_data:
+                    raise RuntimeError("Failed to parse response data")
+
+                data: list = json_data["nodes"][1]["data"]
                 keys: list[int] = data[data[0]["messages"]]
                 message_keys: dict = data[keys[0]]
-                message_id: str = data[message_keys["id"]]
-            options = {
-                "id": message_id,
-                "inputs": format_prompt(messages) if conversation is None else messages[-1]["content"],
-                "is_continue": False,
-                "is_retry": False,
-                "web_search": web_search
-            }
-            async with session.post(f"{cls.url}/conversation/{conversation_id}", json=options) as response:
-                first_token = True
-                async for line in response.content:
-                    await raise_for_status(response)
-                    line = json.loads(line)
-                    if "type" not in line:
-                        raise RuntimeError(f"Response: {line}")
-                    elif line["type"] == "stream":
-                        token = line["token"]
-                        if first_token:
-                            token = token.lstrip()
-                            first_token = False
-                        yield token
-                    elif line["type"] == "finalAnswer":
-                        break
-            if delete_conversation:
-                async with session.delete(f"{cls.url}/conversation/{conversation_id}") as response:
-                    await raise_for_status(response)
+                messageId: str = data[message_keys["id"]]
 
-class Conversation(BaseConversation):
-    def __init__(self, conversation_id: str) -> None:
-        self.conversation_id = conversation_id
+            except (KeyError, IndexError, TypeError) as e:
+                raise RuntimeError(f"Failed to extract message ID: {str(e)}")
+
+            settings = {
+                "inputs": format_prompt(messages),
+                "id": messageId,
+                "is_retry": False,
+                "is_continue": False,
+                "web_search": False,
+                "tools": []
+            }
+
+            headers = {
+                'accept': '*/*',
+                'accept-language': 'en',
+                'cache-control': 'no-cache',
+                'origin': 'https://huggingface.co',
+                'pragma': 'no-cache',
+                'priority': 'u=1, i',
+                'referer': f'https://huggingface.co/chat/conversation/{conversationId}',
+                'sec-ch-ua': '"Not)A;Brand";v="99", "Google Chrome";v="127", "Chromium";v="127"',
+                'sec-ch-ua-mobile': '?0',
+                'sec-ch-ua-platform': '"macOS"',
+                'sec-fetch-dest': 'empty',
+                'sec-fetch-mode': 'cors',
+                'sec-fetch-site': 'same-origin',
+                'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
+            }
+
+            files = {
+                'data': (None, json.dumps(settings, separators=(',', ':'))),
+            }
+
+            response = requests.post(
+                f'https://huggingface.co/chat/conversation/{conversationId}',
+                cookies=session.cookies,
+                headers=headers,
+                files=files,
+            )
+            raise_for_status(response)
+
+            full_response = ""
+            for line in response.iter_lines():
+                if not line:
+                    continue
+                try:
+                    line = json.loads(line)
+                except json.JSONDecodeError as e:
+                    print(f"Failed to decode JSON: {line}, error: {e}")
+                    continue
+                
+                if "type" not in line:
+                    raise RuntimeError(f"Response: {line}")
+                
+                elif line["type"] == "stream":
+                    token = line["token"].replace('\u0000', '')
+                    full_response += token
+                    if stream:
+                        yield token
+                
+                elif line["type"] == "finalAnswer":
+                    break
+            
+            full_response = full_response.replace('<|im_end|', '').replace('\u0000', '').strip()
+
+            if not stream:
+                yield full_response

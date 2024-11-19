@@ -19,8 +19,7 @@
     <script src="/static/js/highlightjs-copy.min.js"></script>
     <script src="/static/js/chat.v1.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/markdown-it@13.0.1/dist/markdown-it.min.js"></script>
-    <link rel="stylesheet"
-        href="//cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.7.0/build/styles/base16/dracula.min.css">
+    <link rel="stylesheet" href="/static/css/dracula.min.css">
     <script>
         MathJax = {
             chtml: {
@@ -33,10 +32,10 @@
     <script type="module" src="https://cdn.jsdelivr.net/npm/mistral-tokenizer-js" async>
         import mistralTokenizer from "mistral-tokenizer-js"
     </script>
-    <script type="module" src="https://belladoreai.github.io/llama-tokenizer-js/llama-tokenizer.js" async>
+    <script type="module" src="https://cdn.jsdelivr.net/gh/belladoreai/llama-tokenizer-js@master/llama-tokenizer.js" async>
         import llamaTokenizer from "llama-tokenizer-js"
     </script>
-    <script src="https://unpkg.com/gpt-tokenizer/dist/cl100k_base.js" async></script>
+    <script src="https://cdn.jsdelivr.net/npm/gpt-tokenizer/dist/cl100k_base.js" async></script>
     <script src="/static/js/text_to_speech/index.js" async></script>
     <!--
             <script src="/static/js/whisper-web/index.js" async></script>
@@ -73,7 +72,7 @@
                 </button>
                 <div class="info">
                     <i class="fa-brands fa-discord"></i>
-                    <span class="convo-title">discord ~ <a href="https://discord.gg/XfybzPXPH5">discord.gg/XfybzPXPH5</a>
+                    <span class="convo-title">discord ~ <a href="https://discord.gghttps://discord.gg/6yrm7H4B">discord.gg/6yrm7H4B</a>
                     </span>
                 </div>
                 <div class="info">
@@ -94,22 +93,27 @@
             <div class="paper">
             <h3>Settings</h3>
             <div class="field">
-                <span class="label">Web Access</span>
+                <span class="label">Enable Dark Mode</span>
+                <input type="checkbox" id="darkMode" checked />
+                <label for="darkMode" class="toogle" title=""></label>
+            </div>
+            <div class="field">
+                <span class="label">Web Access with DuckDuckGo</span>
                 <input type="checkbox" id="switch" />
                 <label for="switch" class="toogle" title="Add the pages of the first 5 search results to the query."></label>
             </div>
             <div class="field">
-                <span class="label">Disable History</span>
+                <span class="label">Disable Conversation History</span>
                 <input type="checkbox" id="history" />
                 <label for="history" class="toogle" title="To improve the reaction time or if you have trouble with large conversations."></label>
             </div>
             <div class="field">
-                <span class="label">Hide System prompt</span>
+                <span class="label">Hide System-prompt</span>
                 <input type="checkbox" id="hide-systemPrompt" />
                 <label for="hide-systemPrompt" class="toogle" title="For more space on phones"></label>
             </div>
             <div class="field">
-                <span class="label">Auto continue</span>
+                <span class="label">Auto continue in ChatGPT</span>
                 <input id="auto_continue" type="checkbox" name="auto_continue" checked/>
                 <label for="auto_continue" class="toogle" title="Continue large responses in OpenaiChat"></label>
             </div>
@@ -122,8 +126,8 @@
                 <input type="text" id="recognition-language" value="" placeholder="navigator.language"/>
             </div>
             <div class="field box">
-                <label for="Bing-api_key" class="label" title="">Bing:</label>
-                <textarea id="Bing-api_key" name="Bing[api_key]" class="BingCreateImages-api_key" placeholder="&quot;_U&quot; cookie"></textarea>
+                <label for="BingCreateImages-api_key" class="label" title="">Microsoft Designer in Bing:</label>
+                <textarea id="BingCreateImages-api_key" name="BingCreateImages[api_key]" placeholder="&quot;_U&quot; cookie"></textarea>
             </div>
             <div class="field box">
                 <label for="DeepInfra-api_key" class="label" title="">DeepInfra:</label>
@@ -146,12 +150,12 @@
                 <textarea id="Openai-api_key" name="Openai[api_key]" placeholder="api_key"></textarea>
             </div>
             <div class="field box">
-                <label for="OpenaiAccount-api_key" class="label" title="">OpenAI ChatGPT:</label>
-                <textarea id="OpenaiAccount-api_key" name="OpenaiAccount[api_key]" class="OpenaiChat-api_key" placeholder="access_key"></textarea>
-            </div>
-            <div class="field box">
                 <label for="OpenRouter-api_key" class="label" title="">OpenRouter:</label>
                 <textarea id="OpenRouter-api_key" name="OpenRouter[api_key]" placeholder="api_key"></textarea>
+            </div>
+            <div class="field box">
+                <label for="PerplexityApi-api_key" class="label" title="">Perplexity API:</label>
+                <textarea id="PerplexityApi-api_key" name="PerplexityApi[api_key]" placeholder="api_key"></textarea>
             </div>
             <div class="field box">
                 <label for="Replicate-api_key" class="label" title="">Replicate:</label>
@@ -170,11 +174,17 @@
             </div>
         </div>
         <div class="conversation">
-            <textarea id="systemPrompt" class="box" placeholder="System prompt"></textarea>    
+            <textarea id="systemPrompt" class="box" placeholder="System prompt"></textarea>
             <div id="messages" class="box"></div>
+            <button class="slide-systemPrompt">
+                <i class="fa-solid fa-angles-up"></i>
+            </button>
             <div class="toolbar">
                 <div id="input-count" class="">
-                    &nbsp;
+                    <button class="hide-input">
+                        <i class="fa-solid fa-angles-down"></i>
+                    </button>
+                    <span class="text"></span>
                 </div>
                 <div class="stop_generating stop_generating-hidden">
                     <button id="cancelButton">
@@ -214,28 +224,36 @@
                 </div>
             </div>
             <div class="buttons">
-                <div class="field">
-                    <select name="model" id="model">
-                        <option value="">Model: Default</option>
-                        <option value="gpt-4">gpt-4</option>
-                        <option value="gpt-3.5-turbo">gpt-3.5-turbo</option>
-                        <option value="llama2-70b">llama2-70b</option>
-                        <option value="llama3-70b-instruct">llama3-70b-instruct</option>
-                        <option value="gemini-pro">gemini-pro</option>
-                        <option value="">----</option>
-                    </select>
-                    <select name="model2" id="model2" class="hidden"></select>
-                </div>
-                <div class="field">
-                    <select name="provider" id="provider">
-                        <option value="">Provider: Auto</option>
-                        <option value="Bing">Bing</option>
-                        <option value="OpenaiChat">OpenAI ChatGPT</option>
-                        <option value="Gemini">Gemini</option>
-                        <option value="Liaobots">Liaobots</option>
-                        <option value="MetaAI">Meta AI</option>
-                        <option value="You">You</option>
-                        <option value="">----</option>
+               <div class="field">
+                  <select name="model" id="model">
+                     <option value="">Model: Default</option>
+                     <option value="gpt-4">gpt-4</option>
+                     <option value="gpt-4o">gpt-4o</option>
+                     <option value="gpt-4o-mini">gpt-4o-mini</option>
+                     <option value="llama-3.1-70b">llama-3.1-70b</option>
+                     <option value="llama-3.1-70b">llama-3.1-405b</option>
+                     <option value="llama-3.1-70b">mixtral-8x7b</option>
+                     <option value="gemini-pro">gemini-pro</option>
+                     <option value="gemini-flash">gemini-flash</option>
+                     <option value="claude-3-haiku">claude-3-haiku</option>
+                     <option value="claude-3.5-sonnet">claude-3.5-sonnet</option>
+                     <option disabled="disabled">----</option>
+                  </select>
+                  <select name="model2" id="model2" class="hidden"></select>
+               </div>
+               <div class="field">
+                  <select name="provider" id="provider">
+                     <option value="">Provider: Auto</option>
+                     <option value="OpenaiChat">OpenAI ChatGPT</option>
+                     <option value="Copilot">Microsoft Copilot</option>
+                     <option value="ChatGpt">ChatGpt</option>
+                     <option value="Gemini">Gemini</option>
+                     <option value="MetaAI">Meta AI</option>
+                     <option value="DeepInfraChat">DeepInfraChat</option>
+                     <option value="Blackbox">Blackbox</option>
+                     <option value="DDG">DuckDuckGo</option>
+                     <option value="Pizzagpt">Pizzagpt</option>
+                     <option disabled="disabled">----</option>
                     </select>
                 </div>
             </div>
@@ -244,8 +262,5 @@
     <div class="mobile-sidebar">
         <i class="fa-solid fa-bars"></i>
     </div>
-    <script>
-    </script>
 </body>
-
 </html>

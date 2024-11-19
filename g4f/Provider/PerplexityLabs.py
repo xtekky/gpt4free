@@ -11,18 +11,27 @@ API_URL = "https://www.perplexity.ai/socket.io/"
 WS_URL = "wss://www.perplexity.ai/socket.io/"
 
 class PerplexityLabs(AsyncGeneratorProvider, ProviderModelMixin):
-    url = "https://labs.perplexity.ai"    
+    url = "https://labs.perplexity.ai"
     working = True
-    default_model = "mixtral-8x7b-instruct"
+    default_model = "llama-3.1-70b-instruct"
     models = [
-        "sonar-small-online", "sonar-medium-online", "sonar-small-chat", "sonar-medium-chat", "dbrx-instruct", "claude-3-haiku-20240307", "llama-3-8b-instruct", "llama-3-70b-instruct", "codellama-70b-instruct", "mistral-7b-instruct", "llava-v1.5-7b-wrapper", "llava-v1.6-34b", "mixtral-8x7b-instruct", "mixtral-8x22b-instruct", "mistral-medium", "gemma-2b-it", "gemma-7b-it", "related"
+        "llama-3.1-sonar-large-128k-online",
+        "llama-3.1-sonar-small-128k-online",
+        "llama-3.1-sonar-large-128k-chat",
+        "llama-3.1-sonar-small-128k-chat",
+        "llama-3.1-8b-instruct",
+        "llama-3.1-70b-instruct",
+        "/models/LiquidCloud",
     ]
+    
     model_aliases = {
-        "mistralai/Mistral-7B-Instruct-v0.1": "mistral-7b-instruct", 
-        "mistralai/Mixtral-8x7B-Instruct-v0.1": "mixtral-8x7b-instruct",
-        "codellama/CodeLlama-70b-Instruct-hf": "codellama-70b-instruct",
-        "llava-v1.5-7b": "llava-v1.5-7b-wrapper",
-        'databricks/dbrx-instruct': "dbrx-instruct"
+        "sonar-online": "llama-3.1-sonar-large-128k-online",
+        "sonar-online": "sonar-small-128k-online",
+        "sonar-chat": "llama-3.1-sonar-large-128k-chat",
+        "sonar-chat": "llama-3.1-sonar-small-128k-chat",
+        "llama-3.1-8b": "llama-3.1-8b-instruct",
+        "llama-3.1-70b": "llama-3.1-70b-instruct",
+        "lfm-40b": "/models/LiquidCloud",
     }
 
     @classmethod
@@ -61,7 +70,7 @@ class PerplexityLabs(AsyncGeneratorProvider, ProviderModelMixin):
                 data=post_data
             ) as response:
                 await raise_for_status(response)
-                assert await response.text() == "OK"                
+                assert await response.text() == "OK"
             async with session.ws_connect(f"{WS_URL}?EIO=4&transport=websocket&sid={sid}", autoping=False) as ws:
                 await ws.send_str("2probe")
                 assert(await ws.receive_str() == "3probe")

@@ -16,6 +16,18 @@ from .errors import MissingRequirementsError
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'}
 
+EXTENSIONS_MAP: dict[str, str] = {
+    "image/png": "png",
+    "image/jpeg": "jpg",
+    "image/gif": "gif",
+    "image/webp": "webp",
+}
+
+def fix_url(url:str) -> str:
+    """ replace ' ' by '+' (to be markdown compliant)"""
+    return url.replace(" ","+")
+    
+
 def to_image(image: ImageType, is_svg: bool = False) -> Image:
     """
     Converts the input image to a PIL Image object.
@@ -121,7 +133,7 @@ def extract_data_uri(data_uri: str) -> bytes:
     Returns:
         bytes: The extracted binary data.
     """
-    data = data_uri.split(",")[1]
+    data = data_uri.split(",")[-1]
     data = base64.b64decode(data)
     return data
 
@@ -205,13 +217,13 @@ def format_images_markdown(images: Union[str, list], alt: str, preview: Union[st
         str: The formatted markdown string.
     """
     if isinstance(images, str):
-        result = f"[![{alt}]({preview.replace('{image}', images) if preview else images})]({images})"
+        result = f"[![{alt}]({fix_url(preview.replace('{image}', images) if preview else images)})]({fix_url(images)})"
     else:
         if not isinstance(preview, list):
             preview = [preview.replace('{image}', image) if preview else image for image in images]
         result = "\n".join(
-            #f"[![#{idx+1} {alt}]({preview[idx]})]({image})"
-            f'[<img src="{preview[idx]}" width="200" alt="#{idx+1} {alt}">]({image})'
+            f"[![#{idx+1} {alt}]({fix_url(preview[idx])})]({fix_url(image)})"
+            #f'[<img src="{preview[idx]}" width="200" alt="#{idx+1} {alt}">]({image})'
             for idx, image in enumerate(images)
         )
     start_flag = "<!-- generated images start -->\n"
@@ -274,6 +286,18 @@ class ImagePreview(ImageResponse):
 
     def to_string(self):
         return super().__str__()
+
+class ImageDataResponse():
+    def __init__(
+        self,
+        images: Union[str, list],
+        alt: str,
+    ):
+        self.images = images
+        self.alt = alt
+
+    def get_list(self) -> list[str]:
+        return [self.images] if isinstance(self.images, str) else self.images
 
 class ImageRequest:
     def __init__(

@@ -18,7 +18,7 @@ g4f.debug.version_check = False
 GITHUB_TOKEN = os.getenv('GITHUB_TOKEN')
 GITHUB_REPOSITORY = os.getenv('GITHUB_REPOSITORY')
 G4F_PROVIDER = os.getenv('G4F_PROVIDER')
-G4F_MODEL = os.getenv('G4F_MODEL') or g4f.models.gpt_4
+G4F_MODEL = os.getenv('G4F_MODEL') or g4f.models.default
 
 def get_pr_details(github: Github) -> PullRequest:
     """
@@ -219,9 +219,6 @@ def main():
         if not pull:
             print(f"No PR number found")
             exit()
-        if pull.get_reviews().totalCount > 0 or pull.get_issue_comments().totalCount > 0:
-            print(f"Has already a review")
-            exit()
         diff = get_diff(pull.diff_url)
     except Exception as e:
         print(f"Error get details: {e.__class__.__name__}: {e}")
@@ -231,6 +228,9 @@ def main():
     except Exception as e:
         print(f"Error create review: {e}")
         exit(1)
+    if pull.get_reviews().totalCount > 0 or pull.get_issue_comments().totalCount > 0:
+        pull.create_issue_comment(body=review)
+        return
     try:
         comments = analyze_code(pull, diff)
     except Exception as e:

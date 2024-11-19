@@ -11,7 +11,7 @@ const imageInput        = document.getElementById("image");
 const cameraInput       = document.getElementById("camera");
 const fileInput         = document.getElementById("file");
 const microLabel        = document.querySelector(".micro-label");
-const inputCount        = document.getElementById("input-count");
+const inputCount        = document.getElementById("input-count").querySelector(".text");
 const providerSelect    = document.getElementById("provider");
 const modelSelect       = document.getElementById("model");
 const modelProvider     = document.getElementById("model2");
@@ -41,9 +41,7 @@ appStorage = window.localStorage || {
     length: 0
 }
 
-const markdown = window.markdownit({
-    html: true,
-});
+const markdown = window.markdownit();
 const markdown_render = (content) => {
     return markdown.render(content
         .replaceAll(/<!-- generated images start -->|<!-- generated images end -->/gm, "")
@@ -57,6 +55,25 @@ function filter_message(text) {
     return text.replaceAll(
         /<!-- generated images start -->[\s\S]+<!-- generated images end -->/gm, ""
     )
+}
+
+function fallback_clipboard (text) {
+    var textBox = document.createElement("textarea");
+    textBox.value = text;
+    textBox.style.top = "0";
+    textBox.style.left = "0";
+    textBox.style.position = "fixed";
+    document.body.appendChild(textBox);
+    textBox.focus();
+    textBox.select();
+    try {
+        var success = document.execCommand('copy');
+        var msg = success ? 'succeeded' : 'failed';
+        console.log('Clipboard Fallback: Copying text command ' + msg);
+    } catch (e) {
+        console.error('Clipboard Fallback: Unable to copy', e);
+    }
+    document.body.removeChild(textBox);
 }
 
 hljs.addPlugin(new CopyButtonPlugin());
@@ -90,18 +107,31 @@ const register_message_buttons = async () => {
             })
         }
     });
+
     document.querySelectorAll(".message .fa-clipboard").forEach(async (el) => {
         if (!("click" in el.dataset)) {
             el.dataset.click = "true";
             el.addEventListener("click", async () => {
                 const message_el = el.parentElement.parentElement.parentElement;
                 const copyText = await get_message(window.conversation_id, message_el.dataset.index);
-                navigator.clipboard.writeText(copyText);
+               
+            try {        
+                if (!navigator.clipboard) {
+                    throw new Error("navigator.clipboard: Clipboard API unavailable.");
+                }
+                await navigator.clipboard.writeText(copyText);
+            } catch (e) {
+                console.error(e);
+                console.error("Clipboard API writeText() failed! Fallback to document.exec(\"copy\")...");
+                fallback_clipboard(copyText);
+            }
+            
                 el.classList.add("clicked");
                 setTimeout(() => el.classList.remove("clicked"), 1000);
             })
         }
     });
+
     document.querySelectorAll(".message .fa-volume-high").forEach(async (el) => {
         if (!("click" in el.dataset)) {
             el.dataset.click = "true";
@@ -109,8 +139,9 @@ const register_message_buttons = async () => {
                 let playlist = [];
                 function play_next() {
                     const next = playlist.shift();
-                    if (next)
+                    if (next && el.dataset.do_play) {
                         next.play();
+                    }
                 }
                 if (el.dataset.stopped) {
                     el.classList.remove("blink")
@@ -179,6 +210,40 @@ const register_message_buttons = async () => {
             });
         }
     });
+    document.querySelectorAll(".message .fa-rotate").forEach(async (el) => {
+        if (!("click" in el.dataset)) {
+            el.dataset.click = "true";
+            el.addEventListener("click", async () => {
+                const message_el = el.parentElement.parentElement.parentElement;
+                el.classList.add("clicked");
+                setTimeout(() => el.classList.remove("clicked"), 1000);
+                prompt_lock = true;
+                await hide_message(window.conversation_id, message_el.dataset.index);
+                window.token = message_id();
+                await ask_gpt(message_el.dataset.index);
+            })
+        }
+    });
+    document.querySelectorAll(".message .fa-whatsapp").forEach(async (el) => {
+        if (!el.parentElement.href) {
+            const text = el.parentElement.parentElement.parentElement.innerText;
+            el.parentElement.href = `https://wa.me/?text=${encodeURIComponent(text)}`;
+        }
+    });
+    document.querySelectorAll(".message .fa-print").forEach(async (el) => {
+        if (!("click" in el.dataset)) {
+            el.dataset.click = "true";
+            el.addEventListener("click", async () => {
+                const message_el = el.parentElement.parentElement.parentElement;
+                el.classList.add("clicked");
+                message_box.scrollTop = 0;
+                message_el.classList.add("print");
+                setTimeout(() => el.classList.remove("clicked"), 1000);
+                setTimeout(() => message_el.classList.remove("print"), 1000);
+                window.print()
+            })
+        }
+    });
 }
 
 const delete_conversations = async () => {
@@ -240,6 +305,8 @@ const handle_ask = async () => {
                     ${count_words_and_tokens(message, get_selected_model())}
                     <i class="fa-solid fa-volume-high"></i>
                     <i class="fa-regular fa-clipboard"></i>
+                    <a><i class="fa-brands fa-whatsapp"></i></a>
+                    <i class="fa-solid fa-print"></i>
                 </div>
             </div>
         </div>
@@ -257,9 +324,9 @@ const remove_cancel_button = async () => {
     }, 300);
 };
 
-const prepare_messages = (messages, filter_last_message=true) => {
+const prepare_messages = (messages, message_index = -1) => {
     // Removes none user messages at end
-    if (filter_last_message) {
+    if (message_index == -1) {
         let last_message;
         while (last_message = messages.pop()) {
             if (last_message["role"] == "user") {
@@ -267,15 +334,8 @@ const prepare_messages = (messages, filter_last_message=true) => {
                 break;
             }
         }
-    }
-
-    // Remove history, if it's selected
-    if (document.getElementById('history')?.checked) {
-        if (filter_last_message) {
-            messages = [messages.pop()];
-        } else {
-            messages = [messages.pop(), messages.pop()];
-        }
+    } else if (message_index >= 0) {
+        messages = messages.filter((_, index) => message_index >= index);
     }
 
     let new_messages = [];
@@ -285,9 +345,19 @@ const prepare_messages = (messages, filter_last_message=true) => {
             "content": systemPrompt.value
         });
     }
+
+    // Remove history, if it's selected
+    if (document.getElementById('history')?.checked) {
+        if (message_index == null) {
+            messages = [messages.pop(), messages.pop()];
+        } else {
+            messages = [messages.pop()];
+        }
+    }
+
     messages.forEach((new_message) => {
         // Include only not regenerated messages
-        if (!new_message.regenerate) {
+        if (new_message && !new_message.regenerate) {
             // Remove generated images from history
             new_message.content = filter_message(new_message.content);
             delete new_message.provider;
@@ -296,6 +366,7 @@ const prepare_messages = (messages, filter_last_message=true) => {
     });
     return new_messages;
 }
+
 
 async function add_message_chunk(message) {
     if (message.type == "conversation") {
@@ -361,11 +432,11 @@ imageInput?.addEventListener("click", (e) => {
     }
 });
 
-const ask_gpt = async () => {
+const ask_gpt = async (message_index = -1) => {
     regenerate.classList.add(`regenerate-hidden`);
     messages = await get_messages(window.conversation_id);
     total_messages = messages.length;
-    messages = prepare_messages(messages);
+    messages = prepare_messages(messages, message_index);
 
     stop_generating.classList.remove(`stop_generating-hidden`);
 
@@ -528,6 +599,7 @@ const hide_option = async (conversation_id) => {
         const span_el = document.createElement("span");
         span_el.innerText = input_el.value;
         span_el.classList.add("convo-title");
+        span_el.onclick = () => set_conversation(conversation_id);
         left_el.removeChild(input_el);
         left_el.appendChild(span_el);
     }
@@ -609,6 +681,8 @@ const load_conversation = async (conversation_id, scroll=true) => {
                         ${count_words_and_tokens(item.content, next_provider?.model)}
                         <i class="fa-solid fa-volume-high"></i>
                         <i class="fa-regular fa-clipboard"></i>
+                        <a><i class="fa-brands fa-whatsapp"></i></a>
+                        <i class="fa-solid fa-print"></i>
                     </div>
                 </div>
             </div>
@@ -616,7 +690,7 @@ const load_conversation = async (conversation_id, scroll=true) => {
     }
 
     if (window.GPTTokenizer_cl100k_base) {
-        const filtered = prepare_messages(messages, false);
+        const filtered = prepare_messages(messages, null);
         if (filtered.length > 0) {
             last_model = last_model?.startsWith("gpt-4") ? "gpt-4" : "gpt-3.5-turbo"
             let count_total = GPTTokenizer_cl100k_base?.encodeChat(filtered, last_model).length
@@ -683,15 +757,15 @@ async function save_system_message() {
         await save_conversation(window.conversation_id, conversation);
     }
 }
-
-const hide_last_message = async (conversation_id) => {
+const hide_message = async (conversation_id, message_index =- 1) => {
     const conversation = await get_conversation(conversation_id)
-    const last_message = conversation.items.pop();
+    message_index = message_index == -1 ? conversation.items.length - 1 : message_index
+    const last_message = message_index in conversation.items ? conversation.items[message_index] : null;
     if (last_message !== null) {
         if (last_message["role"] == "assistant") {
             last_message["regenerate"] = true;
         }
-        conversation.items.push(last_message);
+        conversation.items[message_index] = last_message;
     }
     await save_conversation(conversation_id, conversation);
 };
@@ -790,9 +864,20 @@ document.getElementById("cancelButton").addEventListener("click", async () => {
 
 document.getElementById("regenerateButton").addEventListener("click", async () => {
     prompt_lock = true;
-    await hide_last_message(window.conversation_id);
+    await hide_message(window.conversation_id);
     window.token = message_id();
     await ask_gpt();
+});
+
+const hide_input = document.querySelector(".toolbar .hide-input");
+hide_input.addEventListener("click", async (e) => {
+    const icon = hide_input.querySelector("i");
+    const func = icon.classList.contains("fa-angles-down") ? "add" : "remove";
+    const remv = icon.classList.contains("fa-angles-down") ? "remove" : "add";
+    icon.classList[func]("fa-angles-up");
+    icon.classList[remv]("fa-angles-down");
+    document.querySelector(".conversation .user-input").classList[func]("hidden");
+    document.querySelector(".conversation .buttons").classList[func]("hidden");
 });
 
 const uuid = () => {
@@ -998,7 +1083,7 @@ const count_input = async () => {
         if (countFocus.value) {
             inputCount.innerText = count_words_and_tokens(countFocus.value, get_selected_model());
         } else {
-            inputCount.innerHTML = "&nbsp;"
+            inputCount.innerText = "";
         }
     }, 100);
 };
@@ -1042,6 +1127,8 @@ async function on_api() {
     messageInput.addEventListener("keydown", async (evt) => {
         if (prompt_lock) return;
 
+        // If not mobile
+        if (!window.matchMedia("(pointer:coarse)").matches)
         if (evt.keyCode === 13 && !evt.shiftKey) {
             evt.preventDefault();
             console.log("pressed enter");
@@ -1079,8 +1166,11 @@ async function on_api() {
     await load_settings_storage()
 
     const hide_systemPrompt = document.getElementById("hide-systemPrompt")
+    const slide_systemPrompt_icon = document.querySelector(".slide-systemPrompt i");
     if (hide_systemPrompt.checked) {
         systemPrompt.classList.add("hidden");
+        slide_systemPrompt_icon.classList.remove("fa-angles-up");
+        slide_systemPrompt_icon.classList.add("fa-angles-down");
     }
     hide_systemPrompt.addEventListener('change', async (event) => {
         if (event.target.checked) {
@@ -1089,6 +1179,13 @@ async function on_api() {
             systemPrompt.classList.remove("hidden");
         }
     });
+    document.querySelector(".slide-systemPrompt")?.addEventListener("click", () => {
+        hide_systemPrompt.click();
+        let checked = hide_systemPrompt.checked;
+        systemPrompt.classList[checked ? "add": "remove"]("hidden");
+        slide_systemPrompt_icon.classList[checked ? "remove": "add"]("fa-angles-up");
+        slide_systemPrompt_icon.classList[checked ? "add": "remove"]("fa-angles-down");
+    });
     const messageInputHeight = document.getElementById("message-input-height");
     if (messageInputHeight) {
         if (messageInputHeight.value) {
@@ -1096,6 +1193,19 @@ async function on_api() {
         }
         messageInputHeight.addEventListener('change', async () => {
             messageInput.style.maxHeight = `${messageInputHeight.value}px`;
+        });
+    }
+    const darkMode = document.getElementById("darkMode");
+    if (darkMode) {
+        if (!darkMode.checked) {
+            document.body.classList.add("white");
+        }
+        darkMode.addEventListener('change', async (event) => {
+            if (event.target.checked) {
+                document.body.classList.remove("white");
+            } else {
+                document.body.classList.add("white");
+            }
         });
     }
 }
@@ -1244,6 +1354,7 @@ async function load_provider_models(providerIndex=null) {
     if (!providerIndex) {
         providerIndex = providerSelect.selectedIndex;
     }
+    modelProvider.innerHTML = '';
     const provider = providerSelect.options[providerIndex].value;
     if (!provider) {
         modelProvider.classList.add("hidden");
@@ -1251,13 +1362,13 @@ async function load_provider_models(providerIndex=null) {
         return;
     }
     const models = await api('models', provider);
-    modelProvider.innerHTML = '';
     if (models.length > 0) {
         modelSelect.classList.add("hidden");
         modelProvider.classList.remove("hidden");
         models.forEach((model) => {
             let option = document.createElement('option');
-            option.value = option.text = model.model;
+            option.value = model.model;
+            option.text = `${model.model}${model.image ? " (Image Generation)" : ""}${model.vision ? " (Image Upload)" : ""}`;
             option.selected = model.default;
             modelProvider.appendChild(option);
         });
@@ -1271,7 +1382,7 @@ providerSelect.addEventListener("change", () => load_provider_models());
 function save_storage() {
     let filename = `chat ${new Date().toLocaleString()}.json`.replaceAll(":", "-");
     let data = {"options": {"g4f": ""}};
-    for (let i = 0; i < appStorage.length; i++){
+    for (let i = 0; i < appStorage.length; i++){label
         let key = appStorage.key(i);
         let item = appStorage.getItem(key);
         if (key.startsWith("conversation:")) {

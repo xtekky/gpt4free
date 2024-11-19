@@ -11,6 +11,8 @@ class CloudflareError(ResponseStatusError):
     ...
 
 def is_cloudflare(text: str) -> bool:
+    if "<title>Attention Required! | Cloudflare</title>" in text:
+        return True
     return '<div id="cf-please-wait">' in text or "<title>Just a moment...</title>" in text
 
 def is_openai(text: str) -> bool:

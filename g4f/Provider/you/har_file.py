@@ -4,10 +4,14 @@ import json
 import os
 import os.path
 import random
+import logging
 
 from ...requests import StreamSession, raise_for_status
+from ...cookies import get_cookies_dir
 from ...errors import MissingRequirementsError
 from ... import debug
+
+logger = logging.getLogger(__name__)
 
 class NoValidHarFileError(Exception):
     ...
@@ -25,10 +29,9 @@ public_token = "public-token-live-507a52ad-7e69-496b-aee0-1c9863c7c819"
 chatArks: list = None
 
 def readHAR():
-    dirPath = "./"
     harPath = []
     chatArks = []
-    for root, dirs, files in os.walk(dirPath):
+    for root, dirs, files in os.walk(get_cookies_dir()):
         for file in files:
             if file.endswith(".har"):
                 harPath.append(os.path.join(root, file))
@@ -78,28 +81,35 @@ async def get_telemetry_ids(proxy: str = None) -> list:
         return [await create_telemetry_id(proxy)]
     except NoValidHarFileError as e:
         if debug.logging:
-            print(e)
-    if debug.logging:
-        print('Getting telemetry_id for you.com with nodriver')
+            logger.error(e)
+
     try:
         from nodriver import start
     except ImportError:
         raise MissingRequirementsError('Add .har file from you.com or install "nodriver" package | pip install -U nodriver')
-    page = None
-    try:
-        browser = await start()
-        page = await browser.get("https://you.com")
+    if debug.logging:
+        logger.error('Getting telemetry_id for you.com with nodriver')
 
+    browser = page = None
+    try:
+        browser = await start(
+            browser_args=None if proxy is None else [f"--proxy-server={proxy}"],
+        )
+        page = await browser.get("https://you.com")
         while not await page.evaluate('"GetTelemetryID" in this'):
             await page.sleep(1)
-
         async def get_telemetry_id():
             return await page.evaluate(
                 f'this.GetTelemetryID("{public_token}", "{telemetry_url}");',
                 await_promise=True
             )
-
         return [await get_telemetry_id()]
     finally:
-        if page is not None:
-            await page.close()
+        try:
+            if page is not None:
+                await page.close()
+            if browser is not None:
+                await browser.stop()
+        except Exception as e:
+            if debug.logging:
+                logger.error(e)

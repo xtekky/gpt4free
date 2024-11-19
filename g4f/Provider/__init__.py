@@ -1,57 +1,45 @@
 from __future__ import annotations
 
 from ..providers.types          import BaseProvider, ProviderType
-from ..providers.retry_provider import RetryProvider, IterProvider
+from ..providers.retry_provider import RetryProvider, IterListProvider
 from ..providers.base_provider  import AsyncProvider, AsyncGeneratorProvider
 from ..providers.create_images  import CreateImagesProvider
 
-from .deprecated      import *
-from .not_working     import *
-from .selenium        import *
-from .needs_auth      import *
+from .deprecated       import *
+from .selenium         import *
+from .needs_auth       import *
+from .not_working      import *
+from .local            import *
 
-from .Aichatos         import Aichatos
-from .Aura             import Aura
+from .AIUncensored     import AIUncensored
+from .Airforce         import Airforce
+from .AmigoChat        import AmigoChat
 from .Bing             import Bing
-from .BingCreateImages import BingCreateImages
 from .Blackbox         import Blackbox
-from .ChatForAi        import ChatForAi
-from .Chatgpt4Online   import Chatgpt4Online
-from .ChatgptAi        import ChatgptAi
-from .ChatgptFree      import ChatgptFree
-from .ChatgptNext      import ChatgptNext
-from .ChatgptX         import ChatgptX
-from .Cnote            import Cnote
-from .Cohere           import Cohere
-from .DeepInfra        import DeepInfra
-from .DeepInfraImage   import DeepInfraImage
-from .DuckDuckGo       import DuckDuckGo
-from .Ecosia           import Ecosia
-from .Feedough         import Feedough
-from .FlowGpt          import FlowGpt
-from .FreeChatgpt      import FreeChatgpt
+from .ChatGpt          import ChatGpt
+from .ChatGptEs        import ChatGptEs
+from .Cloudflare       import Cloudflare
+from .Copilot          import Copilot
+from .DarkAI           import DarkAI
+from .DDG              import DDG
+from .DeepInfraChat    import DeepInfraChat
+from .Free2GPT         import Free2GPT
 from .FreeGpt          import FreeGpt
-from .GigaChat         import GigaChat
-from .GeminiPro        import GeminiPro
-from .GeminiProChat    import GeminiProChat
-from .GptTalkRu        import GptTalkRu
+from .GizAI            import GizAI
 from .HuggingChat      import HuggingChat
-from .HuggingFace      import HuggingFace
-from .Koala            import Koala
 from .Liaobots         import Liaobots
-from .Llama            import Llama
-from .Local            import Local
-from .MetaAI           import MetaAI
-from .MetaAIAccount    import MetaAIAccount
-from .Ollama           import Ollama
+from .MagickPen        import MagickPen
 from .PerplexityLabs   import PerplexityLabs
 from .Pi               import Pi
-from .Replicate        import Replicate
-from .ReplicateImage   import ReplicateImage
-from .Vercel           import Vercel
-from .WhiteRabbitNeo   import WhiteRabbitNeo
-from .You              import You
+from .Pizzagpt         import Pizzagpt
+from .Prodia           import Prodia
 from .Reka             import Reka
+from .ReplicateHome    import ReplicateHome
+from .RubiksAI         import RubiksAI
+from .TeachAnything    import TeachAnything
+from .Upstage          import Upstage
+from .You              import You
+from .Mhystical       import Mhystical
 
 import sys
 

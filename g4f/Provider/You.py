@@ -8,7 +8,7 @@ import uuid
 from ..typing import AsyncResult, Messages, ImageType, Cookies
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from .helper import format_prompt
-from ..image import ImageResponse, ImagePreview, to_bytes, is_accepted_format
+from ..image import ImageResponse, ImagePreview, EXTENSIONS_MAP, to_bytes, is_accepted_format
 from ..requests import StreamSession, FormData, raise_for_status
 from .you.har_file import get_telemetry_ids
 from .. import debug
@@ -17,33 +17,31 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
     label = "You.com"
     url = "https://you.com"
     working = True
-    supports_gpt_35_turbo = True
-    supports_gpt_4 = True
-    default_model = "gpt-3.5-turbo"
+    default_model = "gpt-4o-mini"
     default_vision_model = "agent"
     image_models = ["dall-e"]
     models = [
         default_model,
-        "gpt-4",
+        "gpt-4o",
         "gpt-4-turbo",
-        "claude-instant",
-        "claude-2",
+        "gpt-4",
+        "claude-3.5-sonnet",
         "claude-3-opus",
         "claude-3-sonnet",
         "claude-3-haiku",
-        "gemini-pro",
+        "claude-2",
+        "llama-3.1-70b",
+        "llama-3",
+        "gemini-1-5-flash",
         "gemini-1-5-pro",
+        "gemini-1-0-pro",
         "databricks-dbrx-instruct",
         "command-r",
         "command-r-plus",
-        "llama3",
-        "zephyr",
+        "dolphin-2.5",
         default_vision_model,
         *image_models
     ]
-    model_aliases = {
-        "claude-v2": "claude-2"
-    }
     _cookies = None
     _cookies_used = 0
     _telemetry_ids = []
@@ -93,17 +91,22 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
                 "q": format_prompt(messages),
                 "domain": "youchat",
                 "selectedChatMode": chat_mode,
+                "conversationTurnId": str(uuid.uuid4()),
+                "chatId": str(uuid.uuid4()),
             }
             params = {
                 "userFiles": upload,
                 "selectedChatMode": chat_mode,
             }
             if chat_mode == "custom":
-                params["selectedAIModel"] = model.replace("-", "_")
+                if debug.logging:
+                    print(f"You model: {model}")
+                params["selectedAiModel"] = model.replace("-", "_")
+
             async with (session.post if chat_mode == "default" else session.get)(
                 f"{cls.url}/api/streamingSearch",
-                data=data,
-                params=params,
+                data=data if chat_mode == "default" else None,
+                params=params if chat_mode == "default" else data,
                 headers=headers,
                 cookies=cookies
             ) as response:
@@ -114,9 +117,9 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
                     elif line.startswith(b'data: '):
                         if event in ["youChatUpdate", "youChatToken"]:
                             data = json.loads(line[6:])
-                        if event == "youChatToken" and event in data:
+                        if event == "youChatToken" and event in data and data[event]:
                             yield data[event]
-                        elif event == "youChatUpdate" and "t" in data and data["t"] is not None:
+                        elif event == "youChatUpdate" and "t" in data and data["t"]:
                             if chat_mode == "create":
                                 match = re.search(r"!\[(.+?)\]\((.+?)\)", data["t"])
                                 if match:
@@ -138,7 +141,9 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
             await raise_for_status(response)
             upload_nonce = await response.text()
         data = FormData()
-        data.add_field('file', file, content_type=is_accepted_format(file), filename=filename)
+        content_type = is_accepted_format(file)
+        filename = f"image.{EXTENSIONS_MAP[content_type]}" if filename is None else filename
+        data.add_field('file', file, content_type=content_type, filename=filename)
         async with client.post(
             f"{cls.url}/api/upload",
             data=data,

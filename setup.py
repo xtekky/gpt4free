@@ -12,7 +12,8 @@ INSTALL_REQUIRE = [
     "requests",
     "aiohttp",
     "brotli",
-    "pycryptodome"
+    "pycryptodome",
+    "nest_asyncio",
 ]
 
 EXTRA_REQUIRE = {
@@ -20,27 +21,19 @@ EXTRA_REQUIRE = {
         "curl_cffi>=0.6.2",
         "certifi",
         "browser_cookie3",         # get_cookies
-        "PyExecJS",                # GptForLove, Vercel
         "duckduckgo-search>=5.0"  ,# internet.search
         "beautifulsoup4",          # internet.search and bing.create_images
         "brotli",                  # openai, bing
-        # webdriver
-        #"undetected-chromedriver>=3.5.5",
-        #"setuptools", 
-        #"selenium-wire"
-        # webview
-        "pywebview",
         "platformdirs",
-        "plyer",
         "cryptography",
-        ####
         "aiohttp_socks",           # proxy
         "pillow",                  # image
         "cairosvg",                # svg image
         "werkzeug", "flask",       # gui
-        "loguru", "fastapi",       # api
+        "fastapi",                 # api
         "uvicorn", "nest_asyncio", # api
-        "pycryptodome"             # openai
+        "pycryptodome",            # openai
+        "nodriver",
     ],
     "image": [
         "pillow",
@@ -59,12 +52,9 @@ EXTRA_REQUIRE = {
         "plyer",
         "cryptography"
     ],
-    "openai": [
-        "pycryptodome"
-    ],
     "api": [
         "loguru", "fastapi",
-        "uvicorn", "nest_asyncio"
+        "uvicorn",
     ],
     "gui": [
         "werkzeug", "flask",
@@ -72,11 +62,12 @@ EXTRA_REQUIRE = {
         "duckduckgo-search>=5.0",
         "browser_cookie3"
     ],
+    "search": [
+        "beautifulsoup4", "pillow",
+        "duckduckgo-search>=5.0",
+    ],
     "local": [
         "gpt4all"
-    ],
-    "curl_cffi": [
-        "curl_cffi>=0.6.2",
     ]
 }
 
@@ -87,7 +78,7 @@ DESCRIPTION = (
 # Setting up
 setup(
     name='g4f',
-    version="0.3.0.9.dev0",
+    version=os.environ.get("G4F_VERSION"),
     author='Tekky',
     author_email='<support@g4f.ai>',
     description=DESCRIPTION,

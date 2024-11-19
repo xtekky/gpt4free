@@ -37,7 +37,21 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GHCR_PAT }}
 
-      - name: Build and push image
+      - name: Build and push small images
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/Dockerfile-slim
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            hlohaus789/g4f:latest-slim
+            hlohaus789/g4f:${{ github.ref_name }}-slim
+          labels: ${{ steps.metadata.outputs.labels }}
+          build-args: |
+            G4F_VERSION=${{ github.ref_name }}
+
+      - name: Build and push big images
         uses: docker/build-push-action@v5
         with:
           context: .

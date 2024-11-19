@@ -12,9 +12,30 @@ from copy import deepcopy
 
 from .crypt import decrypt, encrypt
 from ...requests import StreamSession
+from ...cookies import get_cookies_dir
+from ... import debug
+
+arkose_url = "https://tcr9i.chat.openai.com/fc/gt2/public_key/35536E1E-65B4-4D96-9D97-6ADB7EFF8147"
+backend_url = "https://chatgpt.com/backend-api/conversation"
+backend_anon_url = "https://chatgpt.com/backend-anon/conversation"
+start_url = "https://chatgpt.com/"
+conversation_url = "https://chatgpt.com/c/"
 
 class NoValidHarFileError(Exception):
-    ...
+    pass
+
+class RequestConfig:
+    user_agent: str = None
+    cookies: dict = None
+    headers: dict = None
+    access_request_id: str = None
+    access_token: str = None
+    proof_token: list = None
+    turnstile_token: str = None
+    arkose_request: arkReq = None
+    arkose_token: str = None
+    headers: dict = {}
+    cookies: dict = {}
 
 class arkReq:
     def __init__(self, arkURL, arkBx, arkHeader, arkBody, arkCookies, userAgent):
@@ -25,25 +46,12 @@ class arkReq:
         self.arkCookies = arkCookies
         self.userAgent = userAgent
 
-arkPreURL = "https://tcr9i.chat.openai.com/fc/gt2/public_key/35536E1E-65B4-4D96-9D97-6ADB7EFF8147"
-sessionUrl = "https://chat.openai.com/api/auth/session"
-chatArk: arkReq = None
-accessToken: str = None
-cookies: dict = None
-headers: dict = None
-
 def readHAR():
-    dirPath = "./"
     harPath = []
-    chatArks = []
-    accessToken = None
-    cookies = {}
-    for root, dirs, files in os.walk(dirPath):
+    for root, _, files in os.walk(get_cookies_dir()):
         for file in files:
             if file.endswith(".har"):
                 harPath.append(os.path.join(root, file))
-        if harPath:
-            break
     if not harPath:
         raise NoValidHarFileError("No .har file found")
     for path in harPath:
@@ -54,20 +62,30 @@ def readHAR():
                 # Error: not a HAR file!
                 continue
             for v in harFile['log']['entries']:
-                if arkPreURL in v['request']['url']:
-                    chatArks.append(parseHAREntry(v))
-                elif v['request']['url'] == sessionUrl:
+                v_headers = get_headers(v)
+                try:
+                    if "openai-sentinel-proof-token" in v_headers:
+                        RequestConfig.proof_token = json.loads(base64.b64decode(
+                            v_headers["openai-sentinel-proof-token"].split("gAAAAAB", 1)[-1].encode()
+                        ).decode())
+                    if "openai-sentinel-turnstile-token" in v_headers:
+                        RequestConfig.turnstile_token = v_headers["openai-sentinel-turnstile-token"]
+                except Exception as e:
+                    if debug.logging:
+                        print(f"Read proof token: {e}")
+                if arkose_url == v['request']['url']:
+                    RequestConfig.arkose_request = parseHAREntry(v)
+                elif v['request']['url'] == start_url or v['request']['url'].startswith(conversation_url):
                     try:
-                        accessToken = json.loads(v["response"]["content"]["text"]).get("accessToken")
+                        match = re.search(r'"accessToken":"(.*?)"', v["response"]["content"]["text"])
+                        if match:
+                            RequestConfig.access_token = match.group(1)
                     except KeyError:
                         continue
-                    cookies = {c['name']: c['value'] for c in v['request']['cookies']}
-                    headers = get_headers(v)
-    if not accessToken:
+                    RequestConfig.cookies = {c['name']: c['value'] for c in v['request']['cookies'] if c['name'] != "oai-did"}
+                    RequestConfig.headers = v_headers
+    if RequestConfig.access_token is None:
         raise NoValidHarFileError("No accessToken found in .har files")
-    if not chatArks:
-        return None, accessToken, cookies, headers
-    return chatArks.pop(), accessToken, cookies, headers
 
 def get_headers(entry) -> dict:
     return {h['name'].lower(): h['value'] for h in entry['request']['headers'] if h['name'].lower() not in ['content-length', 'cookie'] and not h['name'].startswith(':')}
@@ -98,10 +116,11 @@ def genArkReq(chatArk: arkReq) -> arkReq:
     tmpArk.arkHeader['x-ark-esync-value'] = bw
     return tmpArk
 
-async def sendRequest(tmpArk: arkReq, proxy: str = None):
+async def sendRequest(tmpArk: arkReq, proxy: str = None) -> str:
     async with StreamSession(headers=tmpArk.arkHeader, cookies=tmpArk.arkCookies, proxies={"https": proxy}) as session:
         async with session.post(tmpArk.arkURL, data=tmpArk.arkBody) as response:
-            arkose = (await response.json()).get("token")
+            data = await response.json()
+            arkose = data.get("token")
     if "sup=1|rid=" not in arkose:
         return RuntimeError("No valid arkose token generated")
     return arkose
@@ -130,11 +149,9 @@ def getN() -> str:
     timestamp = str(int(time.time()))
     return base64.b64encode(timestamp.encode()).decode()
 
-async def getArkoseAndAccessToken(proxy: str) -> tuple[str, str, dict, dict]:
-    global chatArk, accessToken, cookies, headers
-    if chatArk is None or accessToken is None:
-        chatArk, accessToken, cookies, headers = readHAR()
-    if chatArk is None:
-        return None, accessToken, cookies, headers
-    newReq = genArkReq(chatArk)
-    return await sendRequest(newReq, proxy), accessToken, cookies, headers
+async def get_request_config(proxy: str) -> RequestConfig:
+    if RequestConfig.arkose_request is None or RequestConfig.access_token is None:
+        readHAR()
+    if RequestConfig.arkose_request is not None:
+        RequestConfig.arkose_token = await sendRequest(genArkReq(RequestConfig.arkose_request), proxy)
+    return RequestConfig

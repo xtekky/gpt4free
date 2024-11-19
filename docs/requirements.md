@@ -38,13 +38,10 @@ Install required package for loading cookies from browser:
 ```
 pip install browser_cookie3
 ```
-Install curl_cffi for better protection from being blocked:
-```
-pip install curl_cffi
-```
 Install all packages and uninstall this package for disabling the webdriver:
 ```
 pip uninstall undetected-chromedriver
 ```
 
+---
 [Return to Home](/)
