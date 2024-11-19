@@ -254,6 +254,8 @@ class Images:
             provider_handler = self.models.get(model, provider or self.provider or BingCreateImages)
         elif isinstance(provider, str):
             provider_handler = convert_to_provider(provider)
+        else:
+            provider_handler = provider
         if provider_handler is None:
             raise ValueError(f"Unknown model: {model}")
         if proxy is None:
