@@ -1051,11 +1051,20 @@ a:-webkit-any-link {
     padding: var(--inner-gap) var(--inner-gap) var(--inner-gap) 0;
 }
 
-.settings, .images {
+.settings, .log {
     width: 100%;
     display: flex;
     flex-direction: column;
     overflow: auto;
+}
+
+.log {
+    white-space: pre-wrap;
+    font-family: Consolas, "Andale Mono WT", "Andale Mono", "Lucida Console", "Lucida Sans Typewriter", "DejaVu Sans Mono", "Bitstream Vera Sans Mono", "Liberation Mono", "Nimbus Mono L", Monaco, "Courier New", Courier, monospace;
+}
+
+.log.hidden {
+    display: none;
 }
 
 .settings .paper {

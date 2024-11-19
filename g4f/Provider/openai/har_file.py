@@ -71,8 +71,7 @@ def readHAR():
                     if "openai-sentinel-turnstile-token" in v_headers:
                         RequestConfig.turnstile_token = v_headers["openai-sentinel-turnstile-token"]
                 except Exception as e:
-                    if debug.logging:
-                        print(f"Read proof token: {e}")
+                    debug.log(f"Read proof token: {e}")
                 if arkose_url == v['request']['url']:
                     RequestConfig.arkose_request = parseHAREntry(v)
                 elif v['request']['url'] == start_url or v['request']['url'].startswith(conversation_url):
@@ -150,7 +149,7 @@ def getN() -> str:
     return base64.b64encode(timestamp.encode()).decode()
 
 async def get_request_config(proxy: str) -> RequestConfig:
-    if RequestConfig.arkose_request is None or RequestConfig.access_token is None:
+    if RequestConfig.access_token is None:
         readHAR()
     if RequestConfig.arkose_request is not None:
         RequestConfig.arkose_token = await sendRequest(genArkReq(RequestConfig.arkose_request), proxy)

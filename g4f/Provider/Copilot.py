@@ -93,13 +93,11 @@ class Copilot(AbstractProvider):
                 if return_conversation:
                     yield Conversation(conversation_id, session.cookies.jar, access_token)
                 prompt = format_prompt(messages)
-                if debug.logging:
-                    print(f"Copilot: Created conversation: {conversation_id}")
+                debug.log(f"Copilot: Created conversation: {conversation_id}")
             else:
                 conversation_id = conversation.conversation_id
                 prompt = messages[-1]["content"]
-                if debug.logging:
-                    print(f"Copilot: Use conversation: {conversation_id}")
+                debug.log(f"Copilot: Use conversation: {conversation_id}")
 
             images = []
             if image is not None:
@@ -143,8 +141,7 @@ class Copilot(AbstractProvider):
         if not has_nodriver:
             raise MissingRequirementsError('Install "nodriver" package | pip install -U nodriver')
         user_data_dir = user_config_dir("g4f-nodriver") if has_platformdirs else None
-        if debug.logging:
-            print(f"Copilot: Open nodriver with user_dir: {user_data_dir}")
+        debug.log(f"Copilot: Open nodriver with user_dir: {user_data_dir}")
         browser = await nodriver.start(
             user_data_dir=user_data_dir,
             browser_args=None if proxy is None else [f"--proxy-server={proxy}"],

@@ -5,3 +5,8 @@ version_check: bool = True
 last_provider: ProviderType = None
 last_model: str = None
 version: str = None
+log_handler: callable = print
+
+def log(text):
+    if logging:
+        log_handler(text)

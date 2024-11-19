@@ -18,6 +18,7 @@ from g4f.requests.aiohttp import get_connector
 from g4f.Provider import ProviderType, __providers__, __map__
 from g4f.providers.base_provider import ProviderModelMixin, FinishReason
 from g4f.providers.conversation import BaseConversation
+from g4f import debug
 
 logger = logging.getLogger(__name__)
 
@@ -140,6 +141,13 @@ class Api:
         }
 
     def _create_response_stream(self, kwargs: dict, conversation_id: str, provider: str) -> Iterator:
+        if debug.logging:
+            logs = []
+            print_callback = debug.log_handler
+            def log_handler(text: str):
+                logs.append(text)
+                print_callback(text)
+            debug.log_handler = log_handler
         try:
             result = ChatCompletion.create(**kwargs)
             first = True
@@ -168,6 +176,10 @@ class Api:
                         yield self._format_json("content", str(ImageResponse(images, chunk.alt)))
                     elif not isinstance(chunk, FinishReason):
                         yield self._format_json("content", str(chunk))
+                    if logs:
+                        for log in logs:
+                            yield self._format_json("log", str(log))
+                        logs = []
         except Exception as e:
             logger.exception(e)
             yield self._format_json('error', get_error_message(e))

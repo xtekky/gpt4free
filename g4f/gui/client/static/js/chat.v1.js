@@ -19,13 +19,15 @@ const systemPrompt      = document.getElementById("systemPrompt");
 const settings          = document.querySelector(".settings");
 const chat              = document.querySelector(".conversation");
 const album             = document.querySelector(".images");
+const log_storage       = document.querySelector(".log");
 
 const optionElements = document.querySelectorAll(".settings input, .settings textarea, #model, #model2, #provider")
 
 let provider_storage = {};
 let message_storage = {};
 let controller_storage = {};
-let content_storage = {}
+let content_storage = {};
+let error_storage = {};
 
 messageInput.addEventListener("blur", () => {
     window.scrollTo(0, 0);
@@ -256,14 +258,14 @@ const delete_conversations = async () => {
 const handle_ask = async () => {
     messageInput.style.height = "82px";
     messageInput.focus();
-    window.scrollTo(0, 0);
+    await scroll_to_bottom();
 
     let message = messageInput.value;
     if (message.length <= 0) {
         return;
     }
     messageInput.value = "";
-    count_input()
+    await count_input()
     await add_conversation(window.conversation_id, message);
 
     if ("text" in fileInput.dataset) {
@@ -396,9 +398,12 @@ async function add_message_chunk(message, message_index) {
     } else if (message.type == "message") {
         console.error(message.message)
     } else if (message.type == "error") {
-        window.error = message.error
+        error_storage[message_index] = message.error
         console.error(message.error);
         content_map.inner.innerHTML += `<p><strong>An error occured:</strong> ${message.error}</p>`;
+        let p = document.createElement("p");
+        p.innerText = message.error;
+        log_storage.appendChild(p);
     } else if (message.type == "preview") {
         content_map.inner.innerHTML = markdown_render(message.preview);
     } else if (message.type == "content") {
@@ -418,6 +423,10 @@ async function add_message_chunk(message, message_index) {
         content_map.inner.innerHTML = html;
         content_map.count.innerText = count_words_and_tokens(message_storage[message_index], provider_storage[message_index]?.model);
         highlight(content_map.inner);
+    } else if (message.type == "log") {
+        let p = document.createElement("p");
+        p.innerText = message.log;
+        log_storage.appendChild(p);
     }
     window.scrollTo(0, 0);
     if (message_box.scrollTop >= message_box.scrollHeight - message_box.clientHeight - 100) {
@@ -469,7 +478,6 @@ const ask_gpt = async (message_index = -1, message_id) => {
     `;
 
     controller_storage[message_index] = new AbortController();
-    let error = false;
 
     let content_el = document.getElementById(`gpt_${message_id}`)
     let content_map = content_storage[message_index] = {
@@ -478,8 +486,7 @@ const ask_gpt = async (message_index = -1, message_id) => {
         count: content_el.querySelector('.count'),
     }
 
-    message_box.scrollTop = message_box.scrollHeight;
-    window.scrollTo(0, 0);
+    await scroll_to_bottom();
     try {
         const input = imageInput && imageInput.files.length > 0 ? imageInput : cameraInput;
         const file = input && input.files.length > 0 ? input.files[0] : null;
@@ -501,7 +508,7 @@ const ask_gpt = async (message_index = -1, message_id) => {
             auto_continue: auto_continue,
             api_key: api_key
         }, file, message_index);
-        if (!error) {
+        if (!error_storage[message_index]) {
             html = markdown_render(message_storage[message_index]);
             content_map.inner.innerHTML = html;
             highlight(content_map.inner);
@@ -513,12 +520,12 @@ const ask_gpt = async (message_index = -1, message_id) => {
     } catch (e) {
         console.error(e);
         if (e.name != "AbortError") {
-            error = true;
+            error_storage[message_index] = true;
             content_map.inner.innerHTML += `<p><strong>An error occured:</strong> ${e}</p>`;
         }
     }
     delete controller_storage[message_index];
-    if (!error && message_storage[message_index]) {
+    if (!error_storage[message_index] && message_storage[message_index]) {
         const message_provider = message_index in provider_storage ? provider_storage[message_index] : null;
         await add_message(window.conversation_id, "assistant", message_storage[message_index], message_provider);
         await safe_load_conversation(window.conversation_id);
@@ -526,12 +533,17 @@ const ask_gpt = async (message_index = -1, message_id) => {
         let cursorDiv = message_box.querySelector(".cursor");
         if (cursorDiv) cursorDiv.parentNode.removeChild(cursorDiv);
     }
-    window.scrollTo(0, 0);
-    message_box.scrollTop = message_box.scrollHeight;
+    await scroll_to_bottom();
     await remove_cancel_button();
     await register_message_buttons();
     await load_conversations();
+    regenerate.classList.remove("regenerate-hidden");
 };
+
+async function scroll_to_bottom() {
+    window.scrollTo(0, 0);
+    message_box.scrollTop = message_box.scrollHeight;
+}
 
 const clear_conversations = async () => {
     const elements = box_conversations.childNodes;
@@ -631,6 +643,7 @@ const set_conversation = async (conversation_id) => {
     await load_conversation(conversation_id);
     load_conversations();
     hide_sidebar();
+    log_storage.classList.add("hidden");
 };
 
 const new_conversation = async () => {
@@ -643,6 +656,7 @@ const new_conversation = async () => {
     }
     load_conversations();
     hide_sidebar();
+    log_storage.classList.add("hidden");
     say_hello();
 };
 
@@ -941,6 +955,7 @@ function open_settings() {
         settings.classList.add("hidden");
         chat.classList.remove("hidden");
     }
+    log_storage.classList.add("hidden");
 }
 
 function open_album() {
@@ -1472,3 +1487,9 @@ if (SpeechRecognition) {
         }
     });
 }
+
+document.getElementById("showLog").addEventListener("click", ()=> {
+    log_storage.classList.remove("hidden");
+    settings.classList.add("hidden");
+    log_storage.scrollTop = log_storage.scrollHeight;
+});
