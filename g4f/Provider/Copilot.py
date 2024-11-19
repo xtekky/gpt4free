@@ -136,7 +136,7 @@ class Copilot(AbstractProvider):
                 elif msg.get("event") in ["done", "partCompleted"]:
                     break
             if not is_started:
-                raise RuntimeError("Last message: {msg}")
+                raise RuntimeError(f"Last message: {msg}")
 
     @classmethod
     async def get_access_token_and_cookies(cls, proxy: str = None):
