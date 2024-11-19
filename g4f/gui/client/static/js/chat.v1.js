@@ -19,6 +19,7 @@ const systemPrompt      = document.getElementById("systemPrompt");
 const settings          = document.querySelector(".settings");
 const chat              = document.querySelector(".conversation");
 const album             = document.querySelector(".images");
+const log_storage       = document.querySelector(".log");
 
 const optionElements = document.querySelectorAll(".settings input, .settings textarea, #model, #model2, #provider")
 
@@ -400,6 +401,9 @@ async function add_message_chunk(message, message_index) {
         error_storage[message_index] = message.error
         console.error(message.error);
         content_map.inner.innerHTML += `<p><strong>An error occured:</strong> ${message.error}</p>`;
+        let p = document.createElement("p");
+        p.innerText = message.error;
+        log_storage.appendChild(p);
     } else if (message.type == "preview") {
         content_map.inner.innerHTML = markdown_render(message.preview);
     } else if (message.type == "content") {
@@ -419,6 +423,10 @@ async function add_message_chunk(message, message_index) {
         content_map.inner.innerHTML = html;
         content_map.count.innerText = count_words_and_tokens(message_storage[message_index], provider_storage[message_index]?.model);
         highlight(content_map.inner);
+    } else if (message.type == "log") {
+        let p = document.createElement("p");
+        p.innerText = message.log;
+        log_storage.appendChild(p);
     }
     window.scrollTo(0, 0);
     if (message_box.scrollTop >= message_box.scrollHeight - message_box.clientHeight - 100) {
@@ -517,7 +525,7 @@ const ask_gpt = async (message_index = -1, message_id) => {
         }
     }
     delete controller_storage[message_index];
-    if (!error && message_storage[message_index]) {
+    if (!error_storage[message_index] && message_storage[message_index]) {
         const message_provider = message_index in provider_storage ? provider_storage[message_index] : null;
         await add_message(window.conversation_id, "assistant", message_storage[message_index], message_provider);
         await safe_load_conversation(window.conversation_id);
@@ -635,6 +643,7 @@ const set_conversation = async (conversation_id) => {
     await load_conversation(conversation_id);
     load_conversations();
     hide_sidebar();
+    log_storage.classList.add("hidden");
 };
 
 const new_conversation = async () => {
@@ -647,6 +656,7 @@ const new_conversation = async () => {
     }
     load_conversations();
     hide_sidebar();
+    log_storage.classList.add("hidden");
     say_hello();
 };
 
@@ -945,6 +955,7 @@ function open_settings() {
         settings.classList.add("hidden");
         chat.classList.remove("hidden");
     }
+    log_storage.classList.add("hidden");
 }
 
 function open_album() {
@@ -1476,3 +1487,9 @@ if (SpeechRecognition) {
         }
     });
 }
+
+document.getElementById("showLog").addEventListener("click", ()=> {
+    log_storage.classList.remove("hidden");
+    settings.classList.add("hidden");
+    log_storage.scrollTop = log_storage.scrollHeight;
+});
