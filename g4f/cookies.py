@@ -15,9 +15,32 @@ try:
         brave, edge, vivaldi, firefox,
         _LinuxPasswordManager, BrowserCookieError
     )
+
+    def _g4f(domain_name: str) -> list:
+        """
+        Load cookies from the 'g4f' browser (if exists).
+
+        Args:
+            domain_name (str): The domain for which to load cookies.
+
+        Returns:
+            list: List of cookies.
+        """
+        if not has_platformdirs:
+            return []
+        user_data_dir = user_config_dir("g4f")
+        cookie_file = os.path.join(user_data_dir, "Default", "Cookies")
+        return [] if not os.path.exists(cookie_file) else chrome(cookie_file, domain_name)
+
+    browsers = [
+        _g4f,
+        chrome, chromium, opera, opera_gx,
+        brave, edge, vivaldi, firefox,
+    ]
     has_browser_cookie3 = True
 except ImportError:
     has_browser_cookie3 = False
+    browsers = []
 
 from .typing import Dict, Cookies
 from .errors import MissingRequirementsError
@@ -114,7 +137,7 @@ def read_cookie_files(dirPath: str = None):
 
     harFiles = []
     cookieFiles = []
-    for root, dirs, files in os.walk(CookiesConfig.cookies_dir if dirPath is None else dirPath):
+    for root, _, files in os.walk(CookiesConfig.cookies_dir if dirPath is None else dirPath):
         for file in files:
             if file.endswith(".har"):
                 harFiles.append(os.path.join(root, file))

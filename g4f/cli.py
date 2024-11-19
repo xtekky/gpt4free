@@ -4,6 +4,7 @@ import argparse
 
 from g4f import Provider
 from g4f.gui.run import gui_parser, run_gui_args
+import g4f.cookies
 
 def main():
     parser = argparse.ArgumentParser(description="Run gpt4free")
@@ -23,6 +24,8 @@ def main():
     api_parser.add_argument("--g4f-api-key", type=str, default=None, help="Sets an authentication key for your API. (incompatible with --reload and --workers)")
     api_parser.add_argument("--ignored-providers", nargs="+", choices=[provider.__name__ for provider in Provider.__providers__ if provider.working],
                             default=[], help="List of providers to ignore when processing request. (incompatible with --reload and --workers)")
+    api_parser.add_argument("--cookie-browsers", nargs="+", choices=[browser.__name__ for browser in g4f.cookies.browsers],
+                            default=[], help="List of browsers to access or retrieve cookies from. (incompatible with --reload and --workers)")
     api_parser.add_argument("--reload", action="store_true", help="Enable reloading.")
     subparsers.add_parser("gui", parents=[gui_parser()], add_help=False)
 
@@ -47,6 +50,7 @@ def run_api_args(args):
         proxy=args.proxy,
         model=args.model
     )
+    g4f.cookies.browsers = [g4f.cookies[browser] for browser in args.cookie_browsers]
     run_api(
         bind=args.bind,
         debug=args.debug,
