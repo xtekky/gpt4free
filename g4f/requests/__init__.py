@@ -20,9 +20,15 @@ except ImportError:
 try:
     import nodriver
     from nodriver.cdp.network import CookieParam
+    from nodriver import Browser
     has_nodriver = True
 except ImportError:
     has_nodriver = False
+try:
+    from platformdirs import user_config_dir
+    has_platformdirs = True
+except ImportError:
+    has_platformdirs = False
 
 from .. import debug
 from .raise_for_status import raise_for_status
@@ -166,3 +172,14 @@ def merge_cookies(cookies: Iterator[Morsel], response: Response) -> Cookies:
         cookies = {}
     for cookie in response.cookies.jar:
         cookies[cookie.name] = cookie.value
+        
+async def get_nodriver(proxy: str = None, **kwargs)-> Browser:
+    if not has_nodriver:
+        raise MissingRequirementsError('Install "nodriver" package | pip install -U nodriver')
+    user_data_dir = user_config_dir("g4f-nodriver") if has_platformdirs else None
+    debug.log(f"Copilot: Open nodriver with user_dir: {user_data_dir}")
+    return await nodriver.start(
+        user_data_dir=user_data_dir,
+        browser_args=None if proxy is None else [f"--proxy-server={proxy}"],
+        **kwargs
+    )

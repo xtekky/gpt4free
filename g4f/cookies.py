@@ -40,6 +40,7 @@ try:
     has_browser_cookie3 = True
 except ImportError:
     has_browser_cookie3 = False
+    browsers = []
 
 from .typing import Dict, Cookies
 from .errors import MissingRequirementsError
