@@ -23,9 +23,10 @@ except ImportError:
 
 from .base_provider import AbstractProvider, BaseConversation
 from .helper import format_prompt
-from ..typing import CreateResult, Messages
+from ..typing import CreateResult, Messages, ImageType
 from ..errors import MissingRequirementsError
 from ..requests.raise_for_status import raise_for_status
+from ..image import to_bytes, is_accepted_format
 from .. import debug
 
 class Conversation(BaseConversation):
@@ -43,6 +44,7 @@ class Copilot(AbstractProvider):
     url = "https://copilot.microsoft.com"
     working = True
     supports_stream = True
+    default_model = "Copilot"
 
     websocket_url = "wss://copilot.microsoft.com/c/api/chat?api-version=2"
     conversation_url = f"{url}/c/api/conversations"
@@ -55,6 +57,7 @@ class Copilot(AbstractProvider):
         stream: bool = False,
         proxy: str = None,
         timeout: int = 900,
+        image: ImageType = None,
         conversation: Conversation = None,
         return_conversation: bool = False,
         **kwargs
@@ -98,11 +101,21 @@ class Copilot(AbstractProvider):
                 if debug.logging:
                     print(f"Copilot: Use conversation: {conversation_id}")
 
+            images = []
+            if image is not None:
+                data = to_bytes(image)
+                response = session.post(
+                    "https://copilot.microsoft.com/c/api/attachments",
+                    headers={"content-type": is_accepted_format(data)},
+                    data=data
+                )
+                images.append({"type":"image", "url": response.json().get("url")})
+
             wss = session.ws_connect(cls.websocket_url)
             wss.send(json.dumps({
                 "event": "send",
                 "conversationId": conversation_id,
-                "content": [{
+                "content": [*images, {
                     "type": "text",
                     "text": prompt,
                 }],

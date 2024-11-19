@@ -472,19 +472,16 @@ body {
     padding: 0 4px;
 }
 
+.stop_generating-hidden, .regenerate-hidden {
+    animation: hide_popup 0.4s;
+    display: none;
+}
+
 .stop_generating, .toolbar .regenerate {
     position: absolute;
     z-index: 1000000;
     top: 0;
     right: 0;
-}
-
-@media only screen and (min-width: 40em) {
-    .stop_generating, .toolbar .regenerate {
-        left: 50%;
-        transform: translateX(-50%);
-        right: auto;
-    }
 }
 
 .stop_generating button, .toolbar .regenerate button{
@@ -501,6 +498,17 @@ body {
     gap: 12px;
     cursor: pointer;
     animation: show_popup 0.4s;
+}
+
+@media only screen and (min-width: 40em) {
+    .stop_generating {
+        left: 50%;
+        transform: translateX(-50%);
+        right: auto;
+    }
+    .toolbar .regenerate {
+        right: 5px;
+    }
 }
 
 .toolbar .hide-input {
@@ -522,11 +530,6 @@ body {
         opacity: 0;
         transform: translateY(10px);
     }
-}
-
-.stop_generating-hidden #cancelButton, .regenerate-hidden #regenerateButton {
-    animation: hide_popup 0.4s;
-    display: none;
 }
 
 .typing {
@@ -779,8 +782,7 @@ select {
     overflow: auto;
 }
 
-
-#cursor {
+.cursor {
     line-height: 17px;
     margin-left: 3px;
     -webkit-animation: blink 0.8s infinite;

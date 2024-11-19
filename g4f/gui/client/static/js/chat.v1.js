@@ -20,11 +20,12 @@ const settings          = document.querySelector(".settings");
 const chat              = document.querySelector(".conversation");
 const album             = document.querySelector(".images");
 
-let prompt_lock = false;
-
-let content, content_inner, content_count = null;
-
 const optionElements = document.querySelectorAll(".settings input, .settings textarea, #model, #model2, #provider")
+
+let provider_storage = {};
+let message_storage = {};
+let controller_storage = {};
+let content_storage = {}
 
 messageInput.addEventListener("blur", () => {
     window.scrollTo(0, 0);
@@ -98,13 +99,10 @@ const register_message_buttons = async () => {
         if (!("click" in el.dataset)) {
             el.dataset.click = "true";
             el.addEventListener("click", async () => {
-                if (prompt_lock) {
-                    return;
-                }
                 const message_el = el.parentElement.parentElement;
                 await remove_message(window.conversation_id, message_el.dataset.index);
-                await load_conversation(window.conversation_id, false);
-            })
+                await safe_load_conversation(window.conversation_id, false);
+            });
         }
     });
 
@@ -114,18 +112,16 @@ const register_message_buttons = async () => {
             el.addEventListener("click", async () => {
                 const message_el = el.parentElement.parentElement.parentElement;
                 const copyText = await get_message(window.conversation_id, message_el.dataset.index);
-               
-            try {        
-                if (!navigator.clipboard) {
-                    throw new Error("navigator.clipboard: Clipboard API unavailable.");
+                try {        
+                    if (!navigator.clipboard) {
+                        throw new Error("navigator.clipboard: Clipboard API unavailable.");
+                    }
+                    await navigator.clipboard.writeText(copyText);
+                } catch (e) {
+                    console.error(e);
+                    console.error("Clipboard API writeText() failed! Fallback to document.exec(\"copy\")...");
+                    fallback_clipboard(copyText);
                 }
-                await navigator.clipboard.writeText(copyText);
-            } catch (e) {
-                console.error(e);
-                console.error("Clipboard API writeText() failed! Fallback to document.exec(\"copy\")...");
-                fallback_clipboard(copyText);
-            }
-            
                 el.classList.add("clicked");
                 setTimeout(() => el.classList.remove("clicked"), 1000);
             })
@@ -217,10 +213,8 @@ const register_message_buttons = async () => {
                 const message_el = el.parentElement.parentElement.parentElement;
                 el.classList.add("clicked");
                 setTimeout(() => el.classList.remove("clicked"), 1000);
-                prompt_lock = true;
                 await hide_message(window.conversation_id, message_el.dataset.index);
-                window.token = message_id();
-                await ask_gpt(message_el.dataset.index);
+                await ask_gpt(message_el.dataset.index, get_message_id());
             })
         }
     });
@@ -264,12 +258,11 @@ const handle_ask = async () => {
     messageInput.focus();
     window.scrollTo(0, 0);
 
-    message = messageInput.value
+    let message = messageInput.value;
     if (message.length <= 0) {
         return;
     }
     messageInput.value = "";
-    prompt_lock = true;
     count_input()
     await add_conversation(window.conversation_id, message);
 
@@ -279,7 +272,7 @@ const handle_ask = async () => {
         message += '\n```'
     }
     let message_index = await add_message(window.conversation_id, "user", message);
-    window.token = message_id();
+    let message_id = get_message_id();
 
     if (imageInput.dataset.src) URL.revokeObjectURL(imageInput.dataset.src);
     const input = imageInput && imageInput.files.length > 0 ? imageInput : cameraInput
@@ -293,7 +286,7 @@ const handle_ask = async () => {
                 <i class="fa-solid fa-xmark"></i>
                 <i class="fa-regular fa-phone-arrow-up-right"></i>
             </div>
-            <div class="content" id="user_${token}"> 
+            <div class="content" id="user_${message_id}"> 
                 <div class="content_inner">
                 ${markdown_render(message)}
                 ${imageInput.dataset.src
@@ -312,17 +305,38 @@ const handle_ask = async () => {
         </div>
     `;
     highlight(message_box);
-    await ask_gpt();
+    stop_generating.classList.remove("stop_generating-hidden");
+    await ask_gpt(-1, message_id);
 };
 
-const remove_cancel_button = async () => {
-    stop_generating.classList.add(`stop_generating-hiding`);
+async function remove_cancel_button() {
+    stop_generating.classList.add("stop_generating-hidden");
+}
 
-    setTimeout(() => {
-        stop_generating.classList.remove(`stop_generating-hiding`);
-        stop_generating.classList.add(`stop_generating-hidden`);
-    }, 300);
-};
+regenerate.addEventListener("click", async () => {
+    regenerate.classList.add("regenerate-hidden");
+    stop_generating.classList.remove("stop_generating-hidden");
+    await hide_message(window.conversation_id);
+    await ask_gpt(-1, get_message_id());
+});
+
+stop_generating.addEventListener("click", async () => {
+    stop_generating.classList.add("stop_generating-hidden");
+    regenerate.classList.remove("regenerate-hidden");
+    let key;
+    for (key in controller_storage) {
+        if (!controller_storage[key].signal.aborted) {
+            controller_storage[key].abort();
+            let message = message_storage[key];
+            if (message) {
+                content_storage[key].inner.innerHTML += " [aborted]";
+                message_storage[key] += " [aborted]";
+                console.log(`aborted ${window.conversation_id} #${key}`);
+            }
+        }
+    }
+    await load_conversation(window.conversation_id);
+});
 
 const prepare_messages = (messages, message_index = -1) => {
     // Removes none user messages at end
@@ -367,13 +381,13 @@ const prepare_messages = (messages, message_index = -1) => {
     return new_messages;
 }
 
-
-async function add_message_chunk(message) {
+async function add_message_chunk(message, message_index) {
+    content_map = content_storage[message_index];
     if (message.type == "conversation") {
         console.info("Conversation used:", message.conversation)
     } else if (message.type == "provider") {
-        window.provider_result = message.provider;
-        content.querySelector('.provider').innerHTML = `
+        provider_storage[message_index] = message.provider;
+        content_map.content.querySelector('.provider').innerHTML = `
             <a href="${message.provider.url}" target="_blank">
                 ${message.provider.label ? message.provider.label : message.provider.name}
             </a>
@@ -384,12 +398,12 @@ async function add_message_chunk(message) {
     } else if (message.type == "error") {
         window.error = message.error
         console.error(message.error);
-        content_inner.innerHTML += `<p><strong>An error occured:</strong> ${message.error}</p>`;
+        content_map.inner.innerHTML += `<p><strong>An error occured:</strong> ${message.error}</p>`;
     } else if (message.type == "preview") {
-        content_inner.innerHTML = markdown_render(message.preview);
+        content_map.inner.innerHTML = markdown_render(message.preview);
     } else if (message.type == "content") {
-        window.text += message.content;
-        html = markdown_render(window.text);
+        message_storage[message_index] += message.content;
+        html = markdown_render(message_storage[message_index]);
         let lastElement, lastIndex = null;
         for (element of ['</p>', '</code></pre>', '</p>\n</li>\n</ol>', '</li>\n</ol>', '</li>\n</ul>']) {
             const index = html.lastIndexOf(element)
@@ -399,24 +413,17 @@ async function add_message_chunk(message) {
             }
         }
         if (lastIndex) {
-            html = html.substring(0, lastIndex) + '<span id="cursor"></span>' + lastElement;
+            html = html.substring(0, lastIndex) + '<span class="cursor"></span>' + lastElement;
         }
-        content_inner.innerHTML = html;
-        content_count.innerText = count_words_and_tokens(text, window.provider_result?.model);
-        highlight(content_inner);
+        content_map.inner.innerHTML = html;
+        content_map.count.innerText = count_words_and_tokens(message_storage[message_index], provider_storage[message_index]?.model);
+        highlight(content_map.inner);
     }
     window.scrollTo(0, 0);
     if (message_box.scrollTop >= message_box.scrollHeight - message_box.clientHeight - 100) {
         message_box.scrollTo({ top: message_box.scrollHeight, behavior: "auto" });
     }
 }
-
-// fileInput?.addEventListener("click", (e) => {
-//     if (window?.pywebview) {
-//         e.preventDefault();
-//         pywebview.api.choose_file();
-//     }
-// });
 
 cameraInput?.addEventListener("click", (e) => {
     if (window?.pywebview) {
@@ -432,44 +439,44 @@ imageInput?.addEventListener("click", (e) => {
     }
 });
 
-const ask_gpt = async (message_index = -1) => {
-    regenerate.classList.add(`regenerate-hidden`);
-    messages = await get_messages(window.conversation_id);
-    total_messages = messages.length;
+const ask_gpt = async (message_index = -1, message_id) => {
+    let messages = await get_messages(window.conversation_id);
+    let total_messages = messages.length;
     messages = prepare_messages(messages, message_index);
-
-    stop_generating.classList.remove(`stop_generating-hidden`);
+    message_index = total_messages
+    message_storage[message_index] = "";
+    stop_generating.classList.remove(".stop_generating-hidden");
 
     message_box.scrollTop = message_box.scrollHeight;
     window.scrollTo(0, 0);
 
-    el = message_box.querySelector('.count_total');
-    el ? el.parentElement.removeChild(el) : null;
+    let count_total = message_box.querySelector('.count_total');
+    count_total ? count_total.parentElement.removeChild(count_total) : null;
 
     message_box.innerHTML += `
-        <div class="message" data-index="${total_messages}">
+        <div class="message" data-index="${message_index}">
             <div class="assistant">
                 ${gpt_image}
                 <i class="fa-solid fa-xmark"></i>
                 <i class="fa-regular fa-phone-arrow-down-left"></i>
             </div>
-            <div class="content" id="gpt_${window.token}">
+            <div class="content" id="gpt_${message_id}">
                 <div class="provider"></div>
-                <div class="content_inner"><span id="cursor"></span></div>
+                <div class="content_inner"><span class="cursor"></span></div>
                 <div class="count"></div>
             </div>
         </div>
     `;
 
-    window.controller = new AbortController();
-    window.text  = "";
-    window.error = null;
-    window.abort = false;
-    window.provider_result = null;
+    controller_storage[message_index] = new AbortController();
+    let error = false;
 
-    content = document.getElementById(`gpt_${window.token}`);
-    content_inner = content.querySelector('.content_inner');
-    content_count = content.querySelector('.count');
+    let content_el = document.getElementById(`gpt_${message_id}`)
+    let content_map = content_storage[message_index] = {
+        content: content_el,
+        inner: content_el.querySelector('.content_inner'),
+        count: content_el.querySelector('.count'),
+    }
 
     message_box.scrollTop = message_box.scrollHeight;
     window.scrollTo(0, 0);
@@ -478,8 +485,6 @@ const ask_gpt = async (message_index = -1) => {
         const file = input && input.files.length > 0 ? input.files[0] : null;
         const provider = providerSelect.options[providerSelect.selectedIndex].value;
         const auto_continue = document.getElementById("auto_continue")?.checked;
-        if (file && !provider)
-            provider = "Bing";
         let api_key = null;
         if (provider) {
             api_key = document.getElementById(`${provider}-api_key`)?.value || null;
@@ -487,7 +492,7 @@ const ask_gpt = async (message_index = -1) => {
                 api_key = document.querySelector(`.${provider}-api_key`)?.value || null;
         }
         await api("conversation", {
-            id: window.token,
+            id: message_id,
             conversation_id: window.conversation_id,
             model: get_selected_model(),
             web_search: document.getElementById("switch").checked,
@@ -495,11 +500,11 @@ const ask_gpt = async (message_index = -1) => {
             messages: messages,
             auto_continue: auto_continue,
             api_key: api_key
-        }, file);
+        }, file, message_index);
         if (!error) {
-            html = markdown_render(text);
-            content_inner.innerHTML = html;
-            highlight(content_inner);
+            html = markdown_render(message_storage[message_index]);
+            content_map.inner.innerHTML = html;
+            highlight(content_map.inner);
 
             if (imageInput) imageInput.value = "";
             if (cameraInput) cameraInput.value = "";
@@ -509,23 +514,23 @@ const ask_gpt = async (message_index = -1) => {
         console.error(e);
         if (e.name != "AbortError") {
             error = true;
-            content_inner.innerHTML += `<p><strong>An error occured:</strong> ${e}</p>`;
+            content_map.inner.innerHTML += `<p><strong>An error occured:</strong> ${e}</p>`;
         }
     }
-    if (!error && text) {
-        await add_message(window.conversation_id, "assistant", text, provider_result);
-        await load_conversation(window.conversation_id);
+    delete controller_storage[message_index];
+    if (!error && message_storage[message_index]) {
+        const message_provider = message_index in provider_storage ? provider_storage[message_index] : null;
+        await add_message(window.conversation_id, "assistant", message_storage[message_index], message_provider);
+        await safe_load_conversation(window.conversation_id);
     } else {
-        let cursorDiv = document.getElementById("cursor");
+        let cursorDiv = message_box.querySelector(".cursor");
         if (cursorDiv) cursorDiv.parentNode.removeChild(cursorDiv);
     }
     window.scrollTo(0, 0);
     message_box.scrollTop = message_box.scrollHeight;
     await remove_cancel_button();
     await register_message_buttons();
-    prompt_lock = false;
     await load_conversations();
-    regenerate.classList.remove("regenerate-hidden");
 };
 
 const clear_conversations = async () => {
@@ -645,6 +650,10 @@ const load_conversation = async (conversation_id, scroll=true) => {
     let conversation = await get_conversation(conversation_id);
     let messages = conversation?.items || [];
 
+    if (!conversation) {
+        return;
+    }
+
     if (systemPrompt) {
         systemPrompt.value = conversation.system || "";
     }
@@ -713,6 +722,19 @@ const load_conversation = async (conversation_id, scroll=true) => {
         }, 500);
     }
 };
+
+async function safe_load_conversation(conversation_id, scroll=true) {
+    let is_running = false
+    for (const key in controller_storage) {
+        if (!controller_storage[key].signal.aborted) {
+            is_running = true;
+            break
+        }
+    }
+    if (!is_running) {
+        load_conversation(conversation_id, scroll);
+    }
+}
 
 async function get_conversation(conversation_id) {
     let conversation = await JSON.parse(
@@ -852,23 +874,6 @@ const load_conversations = async () => {
     box_conversations.innerHTML += html;
 };
 
-document.getElementById("cancelButton").addEventListener("click", async () => {
-    window.controller.abort();
-    if (!window.abort) {
-        window.abort = true;
-        content_inner.innerHTML += " [aborted]";
-        if (window.text) window.text += " [aborted]";
-    }
-    console.log(`aborted ${window.conversation_id}`);
-});
-
-document.getElementById("regenerateButton").addEventListener("click", async () => {
-    prompt_lock = true;
-    await hide_message(window.conversation_id);
-    window.token = message_id();
-    await ask_gpt();
-});
-
 const hide_input = document.querySelector(".toolbar .hide-input");
 hide_input.addEventListener("click", async (e) => {
     const icon = hide_input.querySelector("i");
@@ -891,7 +896,7 @@ const uuid = () => {
     );
 };
 
-const message_id = () => {
+function get_message_id() {
     random_bytes = (Math.floor(Math.random() * 1338377565) + 2956589730).toString(
         2
     );
@@ -1124,6 +1129,7 @@ async function on_load() {
 }
 
 async function on_api() {
+    let prompt_lock = false;
     messageInput.addEventListener("keydown", async (evt) => {
         if (prompt_lock) return;
 
@@ -1132,6 +1138,8 @@ async function on_api() {
         if (evt.keyCode === 13 && !evt.shiftKey) {
             evt.preventDefault();
             console.log("pressed enter");
+            prompt_lock = true;
+            setTimeout(()=>prompt_lock=false, 3);
             await handle_ask();
         } else {
             messageInput.style.removeProperty("height");
@@ -1141,6 +1149,8 @@ async function on_api() {
     sendButton.addEventListener(`click`, async () => {
         console.log("clicked send");
         if (prompt_lock) return;
+        prompt_lock = true;
+        setTimeout(()=>prompt_lock=false, 3);
         await handle_ask();
     });
     messageInput.focus();
@@ -1289,7 +1299,7 @@ function get_selected_model() {
     }
 }
 
-async function api(ressource, args=null, file=null) {
+async function api(ressource, args=null, file=null, message_index=null) {
     if (window?.pywebview) {
         if (args !== null) {
             if (ressource == "models") {
@@ -1318,17 +1328,17 @@ async function api(ressource, args=null, file=null) {
         }
         response = await fetch(url, {
             method: 'POST',
-            signal: window.controller.signal,
+            signal: controller_storage[message_index].signal,
             headers: headers,
             body: body
         });
-        return read_response(response);
+        return read_response(response, message_index);
     }
     response = await fetch(url);
     return await response.json();
 }
 
-async function read_response(response) {
+async function read_response(response, message_index) {
     const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
     let buffer = ""
     while (true) {
@@ -1341,7 +1351,7 @@ async function read_response(response) {
                 continue;
             }
             try {
-                add_message_chunk(JSON.parse(buffer + line))
+                add_message_chunk(JSON.parse(buffer + line), message_index);
                 buffer = "";
             } catch {
                 buffer += line
@@ -1382,7 +1392,7 @@ providerSelect.addEventListener("change", () => load_provider_models());
 function save_storage() {
     let filename = `chat ${new Date().toLocaleString()}.json`.replaceAll(":", "-");
     let data = {"options": {"g4f": ""}};
-    for (let i = 0; i < appStorage.length; i++){label
+    for (let i = 0; i < appStorage.length; i++) {
         let key = appStorage.key(i);
         let item = appStorage.getItem(key);
         if (key.startsWith("conversation:")) {
