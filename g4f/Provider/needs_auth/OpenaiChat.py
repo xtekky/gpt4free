@@ -396,7 +396,7 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
                     f"{cls.url}/backend-anon/sentinel/chat-requirements"
                     if cls._api_key is None else
                     f"{cls.url}/backend-api/sentinel/chat-requirements",
-                    json={"p": get_requirements_token(RequestConfig.proof_token)},
+                    json={"p": get_requirements_token(RequestConfig.proof_token) if RequestConfig.proof_token else None},
                     headers=cls._headers
                 ) as response:
                     cls._update_request_args(session)
