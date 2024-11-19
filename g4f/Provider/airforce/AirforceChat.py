@@ -4,6 +4,7 @@ import json
 import requests
 from aiohttp import ClientSession
 from typing import List
+import logging
 
 from ...typing import AsyncResult, Messages
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
@@ -54,9 +55,13 @@ class AirforceChat(AsyncGeneratorProvider, ProviderModelMixin):
     @classmethod
     def get_models(cls) -> list:
         if not cls.models:
-            response = requests.get('https://api.airforce/models')
-            data = response.json()
-            cls.models = [model['id'] for model in data['data']]
+            try:
+                response = requests.get('https://api.airforce/models', verify=False)
+                data = response.json()
+                cls.models = [model['id'] for model in data['data']]
+            except Exception as e:
+                logging.exception(e)
+                cls.models = [cls.default_model]
 
     model_aliases = {
         # openchat

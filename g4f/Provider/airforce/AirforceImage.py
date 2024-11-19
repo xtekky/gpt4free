@@ -4,39 +4,37 @@ from aiohttp import ClientSession
 from urllib.parse import urlencode
 import random
 import requests
+import logging
 
 from ...typing import AsyncResult, Messages
 from ...image import ImageResponse
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
 
-
 class AirforceImage(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Airforce Image"
-    #url = "https://api.airforce"
+    url = "https://api.airforce"
     api_endpoint = "https://api.airforce/imagine2"
-    #working = True
+    working = False
     
     default_model = 'flux'
-    
-    response = requests.get('https://api.airforce/imagine/models')
-    data = response.json()
-
-    image_models = data
-
-    models = [*image_models, "stable-diffusion-xl-base", "stable-diffusion-xl-lightning", "Flux-1.1-Pro"]
-    
+    additional_models = ["stable-diffusion-xl-base", "stable-diffusion-xl-lightning", "Flux-1.1-Pro"]
     model_aliases = {
         "sdxl": "stable-diffusion-xl-base",
         "sdxl": "stable-diffusion-xl-lightning", 
         "flux-pro": "Flux-1.1-Pro",
     }
-    
+
     @classmethod
-    def get_model(cls, model: str) -> str:
-        if model in cls.models:
-            return model
-        else:
-            return cls.default_model
+    def get_models(cls) -> list:
+        if not cls.models:
+            try:
+                response = requests.get('https://api.airforce/imagine/models', verify=False)
+                response.raise_for_status()
+                cls.models = [*response.json(), *cls.additional_models]
+            except Exception as e:
+                logging.exception(e)
+                cls.models = [cls.default_model]
+        return cls.models
 
     @classmethod
     async def create_async_generator(
