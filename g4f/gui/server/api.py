@@ -142,10 +142,10 @@ class Api:
 
     def _create_response_stream(self, kwargs: dict, conversation_id: str, provider: str) -> Iterator:
         if debug.logging:
-            logs = []
+            debug.logs = []
             print_callback = debug.log_handler
             def log_handler(text: str):
-                logs.append(text)
+                debug.logs.append(text)
                 print_callback(text)
             debug.log_handler = log_handler
         try:
@@ -176,10 +176,10 @@ class Api:
                         yield self._format_json("content", str(ImageResponse(images, chunk.alt)))
                     elif not isinstance(chunk, FinishReason):
                         yield self._format_json("content", str(chunk))
-                    if logs:
-                        for log in logs:
+                    if debug.logs:
+                        for log in debug.logs:
                             yield self._format_json("log", str(log))
-                        logs = []
+                        debug.logs = []
         except Exception as e:
             logger.exception(e)
             yield self._format_json('error', get_error_message(e))

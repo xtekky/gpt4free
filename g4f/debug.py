@@ -6,6 +6,7 @@ last_provider: ProviderType = None
 last_model: str = None
 version: str = None
 log_handler: callable = print
+logs: list = []
 
 def log(text):
     if logging:
