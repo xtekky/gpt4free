@@ -211,7 +211,7 @@ phi_3_5_mini = Model(
 gemini_pro = Model(
     name          = 'gemini-pro',
     base_provider = 'Google DeepMind',
-    best_provider = IterListProvider([GeminiPro, Blackbox, AIChatFree, Liaobots])
+    best_provider = IterListProvider([Blackbox, AIChatFree, GeminiPro, Liaobots])
 )
 
 gemini_flash = Model(
@@ -347,7 +347,7 @@ deepseek_coder = Model(
 wizardlm_2_8x22b = Model(
     name = 'wizardlm-2-8x22b',
     base_provider = 'WizardLM',
-    best_provider = IterListProvider([DeepInfraChat])
+    best_provider = DeepInfraChat
 )
 
 ### Yorickvp ###
@@ -389,7 +389,7 @@ grok_beta = Model(
 sonar_online = Model(
     name = 'sonar-online',
     base_provider = 'Perplexity AI',
-    best_provider = IterListProvider([PerplexityLabs])
+    best_provider = PerplexityLabs
 )
 
 sonar_chat = Model(
@@ -450,7 +450,7 @@ neural_7b = Model(
 sdxl = Model(
     name = 'sdxl',
     base_provider = 'Stability AI',
-    best_provider = IterListProvider([ReplicateHome])
+    best_provider = ReplicateHome
     
 )
 
