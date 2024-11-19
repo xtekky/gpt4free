@@ -73,7 +73,7 @@ class DeepInfraImage(AsyncGeneratorProvider, ProviderModelMixin):
             async with session.post(f"{api_base.rstrip('/')}/{model}", json=data) as response:
                 await raise_for_status(response)
                 data = await response.json()
-                images = data["output"] if "output" in data else data["images"]
+                images = data.get("output", data.get("images"))
                 if not images:
                     raise RuntimeError(f"Response: {data}")
                 images = images[0] if len(images) == 1 else images

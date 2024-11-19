@@ -15,17 +15,13 @@ try:
     has_nodriver = True
 except ImportError:
     has_nodriver = False
-try:
-    from platformdirs import user_config_dir
-    has_platformdirs = True
-except ImportError:
-    has_platformdirs = False
 
 from .base_provider import AbstractProvider, BaseConversation
 from .helper import format_prompt
 from ..typing import CreateResult, Messages, ImageType
 from ..errors import MissingRequirementsError
 from ..requests.raise_for_status import raise_for_status
+from ..requests import get_nodriver
 from ..image import to_bytes, is_accepted_format
 from .. import debug
 
@@ -130,6 +126,7 @@ class Copilot(AbstractProvider):
                 except:
                     break
                 if msg.get("event") == "appendText":
+                    is_started = True
                     yield msg.get("text")
                 elif msg.get("event") in ["done", "partCompleted"]:
                     break
@@ -138,14 +135,7 @@ class Copilot(AbstractProvider):
 
     @classmethod
     async def get_access_token_and_cookies(cls, proxy: str = None):
-        if not has_nodriver:
-            raise MissingRequirementsError('Install "nodriver" package | pip install -U nodriver')
-        user_data_dir = user_config_dir("g4f-nodriver") if has_platformdirs else None
-        debug.log(f"Copilot: Open nodriver with user_dir: {user_data_dir}")
-        browser = await nodriver.start(
-            user_data_dir=user_data_dir,
-            browser_args=None if proxy is None else [f"--proxy-server={proxy}"],
-        )
+        browser = await get_nodriver(proxy=proxy)
         page = await browser.get(cls.url)
         access_token = None
         while access_token is None:
