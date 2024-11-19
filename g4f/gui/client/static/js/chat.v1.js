@@ -781,6 +781,7 @@ async function save_system_message() {
 }
 const hide_message = async (conversation_id, message_index =- 1) => {
     const conversation = await get_conversation(conversation_id)
+    if (!conversation) return;
     message_index = message_index == -1 ? conversation.items.length - 1 : message_index
     const last_message = message_index in conversation.items ? conversation.items[message_index] : null;
     if (last_message !== null) {
@@ -817,6 +818,7 @@ const get_message = async (conversation_id, index) => {
 
 const add_message = async (conversation_id, role, content, provider) => {
     const conversation = await get_conversation(conversation_id);
+    if (!conversation) return;
     conversation.items.push({
         role: role,
         content: content,
