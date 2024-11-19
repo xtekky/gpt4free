@@ -14,14 +14,17 @@ class AirforceImage(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Airforce Image"
     #url = "https://api.airforce"
     api_endpoint = "https://api.airforce/imagine2"
-    #working = True
+    working = False
     
     default_model = 'flux'
     
-    response = requests.get('https://api.airforce/imagine/models')
-    data = response.json()
+    response = requests.get('https://api.airforce/imagine/models', verify=False)
+    try:
+        data = response.json()
 
-    image_models = data
+        image_models = data
+    except:
+        image_models=[]
 
     models = [*image_models, "stable-diffusion-xl-base", "stable-diffusion-xl-lightning", "Flux-1.1-Pro"]
     
