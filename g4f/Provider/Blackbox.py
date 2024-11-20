@@ -28,6 +28,9 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
     image_models = [default_image_model, 'repomap']
     text_models = [default_model, 'gpt-4o', 'gemini-pro', 'claude-sonnet-3.5', 'blackboxai-pro']
     vision_models = [default_model, 'gpt-4o', 'gemini-pro', 'blackboxai-pro']
+    model_aliases = {
+        "claude-3.5-sonnet": "claude-sonnet-3.5",
+    }
     agentMode = {
         default_image_model: {'mode': True, 'id': "ImageGenerationLV45LJp", 'name': "Image Generation"},
     }
@@ -198,6 +201,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         async with ClientSession(headers=headers) as session:
             async with session.post(cls.api_endpoint, json=data, proxy=proxy) as response:
                 response.raise_for_status()
+                is_first = False
                 async for chunk in response.content.iter_any():
                     text_chunk = chunk.decode(errors="ignore")
                     if model in cls.image_models:
@@ -217,5 +221,9 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
                         for i, result in enumerate(search_results, 1):
                             formatted_response += f"\n{i}. {result['title']}: {result['link']}"
                         yield formatted_response
-                    else:
-                        yield text_chunk.strip()
+                    elif text_chunk:
+                        if is_first:
+                            is_first = False
+                            yield text_chunk.lstrip()
+                        else:
+                            yield text_chunk

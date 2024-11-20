@@ -21,8 +21,9 @@ from .helper import format_prompt
 from ..typing import CreateResult, Messages, ImageType
 from ..errors import MissingRequirementsError
 from ..requests.raise_for_status import raise_for_status
+from ..providers.helper import format_cookies
 from ..requests import get_nodriver
-from ..image import to_bytes, is_accepted_format
+from ..image import ImageResponse, to_bytes, is_accepted_format
 from .. import debug
 
 class Conversation(BaseConversation):
@@ -70,18 +71,21 @@ class Copilot(AbstractProvider):
                 access_token, cookies = asyncio.run(cls.get_access_token_and_cookies(proxy))
             else:
                 access_token = conversation.access_token
-            websocket_url = f"{websocket_url}&acessToken={quote(access_token)}"
-            headers = {"Authorization": f"Bearer {access_token}"}
+            debug.log(f"Copilot: Access token: {access_token[:7]}...{access_token[-5:]}")
+            debug.log(f"Copilot: Cookies: {';'.join([*cookies])}")
+            websocket_url = f"{websocket_url}&accessToken={quote(access_token)}"
+            headers = {"authorization": f"Bearer {access_token}", "cookie": format_cookies(cookies)}
     
         with Session(
             timeout=timeout,
             proxy=proxy,
             impersonate="chrome",
             headers=headers,
-            cookies=cookies
+            cookies=cookies,
         ) as session:
-            response = session.get(f"{cls.url}/")
+            response = session.get("https://copilot.microsoft.com/c/api/user")
             raise_for_status(response)
+            debug.log(f"Copilot: User: {response.json().get('firstName', 'null')}")
             if conversation is None:
                 response = session.post(cls.conversation_url)
                 raise_for_status(response)
@@ -119,6 +123,7 @@ class Copilot(AbstractProvider):
 
             is_started = False
             msg = None
+            image_prompt: str = None
             while True:
                 try:
                     msg = wss.recv()[0]
@@ -128,7 +133,11 @@ class Copilot(AbstractProvider):
                 if msg.get("event") == "appendText":
                     is_started = True
                     yield msg.get("text")
-                elif msg.get("event") in ["done", "partCompleted"]:
+                elif msg.get("event") == "generatingImage":
+                    image_prompt = msg.get("prompt")
+                elif msg.get("event") == "imageGenerated":
+                    yield ImageResponse(msg.get("url"), image_prompt, {"preview": msg.get("thumbnailUrl")})
+                elif msg.get("event") == "done":
                     break
             if not is_started:
                 raise RuntimeError(f"Last message: {msg}")
@@ -152,7 +161,7 @@ class Copilot(AbstractProvider):
                 })()
             """)
             if access_token is None:
-                asyncio.sleep(1)
+                await asyncio.sleep(1)
         cookies = {}
         for c in await page.send(nodriver.cdp.network.get_cookies([cls.url])):
             cookies[c.name] = c.value
