@@ -512,9 +512,7 @@ body {
 
 @media only screen and (min-width: 40em) {
     .stop_generating {
-        left: 50%;
-        transform: translateX(-50%);
-        right: auto;
+        right: 4px;
     }
     .toolbar .regenerate span {
         display: block;

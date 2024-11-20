@@ -12,7 +12,7 @@ from typing import Union, AsyncIterator, Iterator, Coroutine
 
 from ..providers.base_provider import AsyncGeneratorProvider
 from ..image import ImageResponse, to_image, to_data_uri, is_accepted_format, EXTENSIONS_MAP
-from ..typing import Messages, Cookies, Image
+from ..typing import Messages, Image
 from ..providers.types import ProviderType, FinishReason, BaseConversation
 from ..errors import NoImageResponseError
 from ..providers.retry_provider import IterListProvider

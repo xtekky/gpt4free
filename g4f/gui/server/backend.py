@@ -94,7 +94,8 @@ class Backend_Api(Api):
         )
 
     def get_provider_models(self, provider: str):
-        models = super().get_provider_models(provider)
+        api_key = None if request.authorization is None else request.authorization.token
+        models = super().get_provider_models(provider, api_key)
         if models is None:
             return 404, "Provider not found"
         return models

@@ -38,10 +38,11 @@ class Api:
         return models._all_models
 
     @staticmethod
-    def get_provider_models(provider: str) -> list[dict]:
+    def get_provider_models(provider: str, api_key: str = None) -> list[dict]:
         if provider in __map__:
             provider: ProviderType = __map__[provider]
             if issubclass(provider, ProviderModelMixin):
+                models = provider.get_models() if api_key is None else provider.get_models(api_key=api_key)
                 return [
                     {
                         "model": model,
@@ -49,7 +50,7 @@ class Api:
                         "vision": getattr(provider, "default_vision_model", None) == model or model in getattr(provider, "vision_models", []),
                         "image": model in getattr(provider, "image_models", []),
                     }
-                    for model in provider.get_models()
+                    for model in models
                 ]
         return []
 
