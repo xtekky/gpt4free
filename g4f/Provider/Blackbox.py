@@ -10,7 +10,6 @@ import aiohttp
 from ..typing import AsyncResult, Messages, ImageType
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..image import ImageResponse, to_data_uri
-from .helper import get_random_string
 
 class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Blackbox AI"
@@ -21,19 +20,19 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
     supports_system_message = True
     supports_message_history = True
     _last_validated_value = None
-
+    
     default_model = 'blackboxai'
     default_vision_model = default_model
-    default_image_model = 'generate_image'  
-    image_models = [default_image_model, 'repomap']
-    text_models = [default_model, 'gpt-4o', 'gemini-pro', 'claude-sonnet-3.5', 'blackboxai-pro']
-    vision_models = [default_model, 'gpt-4o', 'gemini-pro', 'blackboxai-pro']
-    model_aliases = {
-        "claude-3.5-sonnet": "claude-sonnet-3.5",
-    }
+    default_image_model = 'Image Generation' 
+    image_models = ['Image Generation', 'repomap']
+    vision_models = [default_model, 'gpt-4o', 'gemini-pro', 'gemini-1.5-flash', 'llama-3.1-8b', 'llama-3.1-70b', 'llama-3.1-405b']
+   
+    userSelectedModel = ['gpt-4o', 'gemini-pro', 'claude-sonnet-3.5', 'blackboxai-pro']
+    
     agentMode = {
-        default_image_model: {'mode': True, 'id': "ImageGenerationLV45LJp", 'name': "Image Generation"},
+        'Image Generation': {'mode': True, 'id': "ImageGenerationLV45LJp", 'name': "Image Generation"},
     }
+    
     trendingAgentMode = {
         "gemini-1.5-flash": {'mode': True, 'id': 'Gemini'},
         "llama-3.1-8b": {'mode': True, 'id': "llama-3.1-8b"},
@@ -53,6 +52,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         'React Agent': {'mode': True, 'id': "React Agent"},
         'Xcode Agent': {'mode': True, 'id': "Xcode Agent"},
         'AngularJS Agent': {'mode': True, 'id': "AngularJS Agent"},
+        #
         'blackboxai-pro': {'mode': True, 'id': "BLACKBOXAI-PRO"},
         #
         'repomap': {'mode': True, 'id': "repomap"},
@@ -75,8 +75,24 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         'Youtube Agent': {'mode': True, 'id': "Youtube Agent"},
         'builder Agent': {'mode': True, 'id': "builder Agent"},
     }
-    model_prefixes = {mode: f"@{value['id']}" for mode, value in trendingAgentMode.items() if mode not in ["gemini-1.5-flash", "llama-3.1-8b", "llama-3.1-70b", "llama-3.1-405b", "repomap"]}
-    models = [*text_models, default_image_model, *list(trendingAgentMode.keys())]
+    
+    additional_prefixes = {
+    'gpt-4o': '@gpt-4o',
+    'gemini-pro': '@gemini-pro',
+    'claude-sonnet-3.5': '@claude-sonnet'
+		}
+    
+    model_prefixes = {
+    **{mode: f"@{value['id']}" for mode, value in trendingAgentMode.items() 
+       if mode not in ["gemini-1.5-flash", "llama-3.1-8b", "llama-3.1-70b", "llama-3.1-405b", "repomap"]},
+    **additional_prefixes
+        }
+
+    
+    models = list(dict.fromkeys([default_model, *userSelectedModel, *list(agentMode.keys()), *list(trendingAgentMode.keys())]))
+
+
+    
     model_aliases = {
         "gemini-flash": "gemini-1.5-flash",
         "claude-3.5-sonnet": "claude-sonnet-3.5",
@@ -85,11 +101,9 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
 
     @classmethod
     async def fetch_validated(cls):       
-        # If the key is already stored in memory, return it
         if cls._last_validated_value:
             return cls._last_validated_value
 
-        # If the key is not found, perform a search
         async with aiohttp.ClientSession() as session:
             try:
                 async with session.get(cls.url) as response:
@@ -110,13 +124,19 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
                             match = key_pattern.search(js_content)
                             if match:
                                 validated_value = match.group(1)
-                                cls._last_validated_value = validated_value  # Keep in mind
+                                cls._last_validated_value = validated_value
                                 return validated_value
             except Exception as e:
                 print(f"Error fetching validated value: {e}")
 
         return cls._last_validated_value
 
+
+    @staticmethod
+    def generate_id(length=7):
+        characters = string.ascii_letters + string.digits
+        return ''.join(random.choice(characters) for _ in range(length))
+        
     @classmethod
     def add_prefix_to_messages(cls, messages: Messages, model: str) -> Messages:
         prefix = cls.model_prefixes.get(model, "")
@@ -143,8 +163,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         image_name: str = None,
         **kwargs
     ) -> AsyncResult:
-        model = cls.get_model(model)
-        message_id = get_random_string(7)
+        message_id = cls.generate_id()
         messages = cls.add_prefix_to_messages(messages, model)
         validated_value = await cls.fetch_validated()
 
@@ -172,7 +191,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
             'sec-fetch-site': 'same-origin',
             'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36'
         }
-
+        
         data = {
             "messages": messages,
             "id": message_id,
@@ -193,7 +212,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
             "clickedForceWebSearch": False,
             "visitFromDelta": False,
             "mobileClient": False,
-            "userSelectedModel": model if model in cls.text_models else None,
+            "userSelectedModel": model if model in cls.userSelectedModel else None,
             "webSearchMode": web_search,
             "validated": validated_value,
         }
@@ -201,29 +220,27 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         async with ClientSession(headers=headers) as session:
             async with session.post(cls.api_endpoint, json=data, proxy=proxy) as response:
                 response.raise_for_status()
-                is_first = False
-                async for chunk in response.content.iter_any():
-                    text_chunk = chunk.decode(errors="ignore")
-                    if model in cls.image_models:
-                        image_matches = re.findall(r'!\[.*?\]\((https?://[^\)]+)\)', text_chunk)
-                        if image_matches:
-                            image_url = image_matches[0]
-                            image_response = ImageResponse(images=[image_url])
-                            yield image_response
-                            continue
+                response_text = await response.text()
+                
+                if model in cls.image_models:
+                    image_matches = re.findall(r'!\[.*?\]\((https?://[^\)]+)\)', response_text)
+                    if image_matches:
+                        image_url = image_matches[0]
+                        image_response = ImageResponse(images=[image_url], alt="Generated Image")
+                        yield image_response
+                        return
 
-                    text_chunk = re.sub(r'Generated by BLACKBOX.AI, try unlimited chat https://www.blackbox.ai', '', text_chunk, flags=re.DOTALL)
-                    json_match = re.search(r'\$~~~\$(.*?)\$~~~\$', text_chunk, re.DOTALL)
-                    if json_match:
-                        search_results = json.loads(json_match.group(1))
-                        answer = text_chunk.split('$~~~$')[-1].strip()
-                        formatted_response = f"{answer}\n\n**Source:**"
-                        for i, result in enumerate(search_results, 1):
-                            formatted_response += f"\n{i}. {result['title']}: {result['link']}"
-                        yield formatted_response
-                    elif text_chunk:
-                        if is_first:
-                            is_first = False
-                            yield text_chunk.lstrip()
-                        else:
-                            yield text_chunk
+                response_text = re.sub(r'Generated by BLACKBOX.AI, try unlimited chat https://www.blackbox.ai', '', response_text, flags=re.DOTALL)
+                
+                json_match = re.search(r'\$~~~\$(.*?)\$~~~\$', response_text, re.DOTALL)
+                if json_match:
+                    search_results = json.loads(json_match.group(1))
+                    answer = response_text.split('$~~~$')[-1].strip()
+                    
+                    formatted_response = f"{answer}\n\n**Source:**"
+                    for i, result in enumerate(search_results, 1):
+                        formatted_response += f"\n{i}. {result['title']}: {result['link']}"
+                    
+                    yield formatted_response
+                else:
+                    yield response_text.strip()

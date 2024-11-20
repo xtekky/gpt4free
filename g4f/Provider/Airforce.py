@@ -4,46 +4,88 @@ import random
 import json
 import re
 
+import requests
+from requests.packages.urllib3.exceptions import InsecureRequestWarning
+requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
+
 from ..typing import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..image import ImageResponse
 from ..requests import StreamSession, raise_for_status
-from .airforce.AirforceChat import AirforceChat
-from .airforce.AirforceImage import AirforceImage
 
 class Airforce(AsyncGeneratorProvider, ProviderModelMixin):
-    url = "https://api.airforce"
-    api_endpoint_completions = AirforceChat.api_endpoint
-    api_endpoint_imagine = AirforceImage.api_endpoint
+    url = "https://llmplayground.net"
+    api_endpoint_completions = "https://api.airforce/chat/completions"
+    api_endpoint_imagine = "https://api.airforce/imagine2"
     working = True
-    default_model = "gpt-4o-mini"
     supports_system_message = True
     supports_message_history = True
-    text_models = [
-        'gpt-4-turbo',
-        default_model,
-        'llama-3.1-70b-turbo',
-        'llama-3.1-8b-turbo',
-    ]
-    image_models = [
-        'flux',
-        'flux-realism',
-        'flux-anime',
-        'flux-3d',
-        'flux-disney',
-        'flux-pixel',
-        'flux-4o',
-        'any-dark',
-    ]
+    
+    @classmethod
+    def fetch_completions_models(cls):
+        response = requests.get('https://api.airforce/models', verify=False)
+        response.raise_for_status()
+        data = response.json()
+        return [model['id'] for model in data['data']]
+
+    @classmethod
+    def fetch_imagine_models(cls):
+        response = requests.get('https://api.airforce/imagine/models', verify=False)
+        response.raise_for_status()
+        return response.json()
+
+    completions_models = fetch_completions_models.__func__(None)
+    imagine_models = fetch_imagine_models.__func__(None)
+
+    default_model = "gpt-4o-mini"
+    default_image_model = "flux"
+    additional_models_imagine = ["stable-diffusion-xl-base", "stable-diffusion-xl-lightning", "Flux-1.1-Pro"]
+    text_models = completions_models
+    image_models = [*imagine_models, *additional_models_imagine]
     models = [
         *text_models,
         *image_models,
     ]
-    model_aliases = {
-        "gpt-4o": "chatgpt-4o-latest",
+    
+    model_aliases = {        
+        ### completions ###
+        # openchat
+        "openchat-3.5": "openchat-3.5-0106",
+        
+        # deepseek-ai
+        "deepseek-coder": "deepseek-coder-6.7b-instruct",
+        
+        # NousResearch
+        "hermes-2-dpo": "Nous-Hermes-2-Mixtral-8x7B-DPO",
+        "hermes-2-pro": "hermes-2-pro-mistral-7b",
+        
+        # teknium
+        "openhermes-2.5": "openhermes-2.5-mistral-7b",
+        
+        # liquid
+        "lfm-40b": "lfm-40b-moe",
+        
+        # DiscoResearch
+        "german-7b": "discolm-german-7b-v1",
+            
+        # meta-llama
+        "llama-2-7b": "llama-2-7b-chat-int8",
+        "llama-2-7b": "llama-2-7b-chat-fp16",
+        "llama-3.1-70b": "llama-3.1-70b-chat",
+        "llama-3.1-8b": "llama-3.1-8b-chat",
         "llama-3.1-70b": "llama-3.1-70b-turbo",
         "llama-3.1-8b": "llama-3.1-8b-turbo",
-        "gpt-4": "gpt-4-turbo",
+        
+        # inferless
+        "neural-7b": "neural-chat-7b-v3-1",
+        
+        # HuggingFaceH4
+        "zephyr-7b": "zephyr-7b-beta",
+        
+        ### imagine ###
+        "sdxl": "stable-diffusion-xl-base",
+        "sdxl": "stable-diffusion-xl-lightning", 
+        "flux-pro": "Flux-1.1-Pro",
     }
 
     @classmethod
@@ -53,7 +95,7 @@ class Airforce(AsyncGeneratorProvider, ProviderModelMixin):
         messages: Messages,
         proxy: str = None,
         seed: int = None,
-        size: str = "1:1",
+        size: str = "1:1", # "1:1", "16:9", "9:16", "21:9", "9:21", "1:2", "2:1"
         stream: bool = False,
         **kwargs
     ) -> AsyncResult:

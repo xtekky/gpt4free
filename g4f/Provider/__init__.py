@@ -35,11 +35,12 @@ from .Pizzagpt         import Pizzagpt
 from .Prodia           import Prodia
 from .Reka             import Reka
 from .ReplicateHome    import ReplicateHome
+from .RobocodersAPI    import RobocodersAPI
 from .RubiksAI         import RubiksAI
 from .TeachAnything    import TeachAnything
 from .Upstage          import Upstage
 from .You              import You
-from .Mhystical       import Mhystical
+from .Mhystical        import Mhystical
 
 import sys
 
