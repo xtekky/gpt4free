@@ -12,7 +12,7 @@ from typing import Union, AsyncIterator, Iterator, Coroutine
 
 from ..providers.base_provider import AsyncGeneratorProvider
 from ..image import ImageResponse, to_image, to_data_uri, is_accepted_format, EXTENSIONS_MAP
-from ..typing import Messages, Cookies, Image
+from ..typing import Messages, Image
 from ..providers.types import ProviderType, FinishReason, BaseConversation
 from ..errors import NoImageResponseError
 from ..providers.retry_provider import IterListProvider
@@ -254,6 +254,8 @@ class Images:
             provider_handler = self.models.get(model, provider or self.provider or BingCreateImages)
         elif isinstance(provider, str):
             provider_handler = convert_to_provider(provider)
+        else:
+            provider_handler = provider
         if provider_handler is None:
             raise ValueError(f"Unknown model: {model}")
         if proxy is None:

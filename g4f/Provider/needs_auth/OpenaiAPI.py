@@ -34,6 +34,7 @@ class OpenaiAPI(AsyncGeneratorProvider, ProviderModelMixin):
         stop: Union[str, list[str]] = None,
         stream: bool = False,
         headers: dict = None,
+        impersonate: str = None,
         extra_data: dict = {},
         **kwargs
     ) -> AsyncResult:
@@ -55,7 +56,8 @@ class OpenaiAPI(AsyncGeneratorProvider, ProviderModelMixin):
         async with StreamSession(
             proxies={"all": proxy},
             headers=cls.get_headers(stream, api_key, headers),
-            timeout=timeout
+            timeout=timeout,
+            impersonate=impersonate,
         ) as session:
             data = filter_none(
                 messages=messages,
