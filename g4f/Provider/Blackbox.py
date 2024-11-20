@@ -76,7 +76,17 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         'builder Agent': {'mode': True, 'id': "builder Agent"},
     }
     
-    model_prefixes = {mode: f"@{value['id']}" for mode, value in trendingAgentMode.items() if mode not in ["gemini-1.5-flash", "llama-3.1-8b", "llama-3.1-70b", "llama-3.1-405b", "repomap"]}
+    additional_prefixes = {
+    'gpt-4o': '@gpt-4o',
+    'gemini-pro': '@gemini-pro',
+    'claude-sonnet-3.5': '@claude-sonnet'
+		}
+    
+    model_prefixes = {
+    **{mode: f"@{value['id']}" for mode, value in trendingAgentMode.items() 
+       if mode not in ["gemini-1.5-flash", "llama-3.1-8b", "llama-3.1-70b", "llama-3.1-405b", "repomap"]},
+    **additional_prefixes
+        }
 
     
     models = list(dict.fromkeys([default_model, *userSelectedModel, *list(agentMode.keys()), *list(trendingAgentMode.keys())]))
