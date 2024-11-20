@@ -29,9 +29,10 @@ class DeepInfraImage(AsyncGeneratorProvider, ProviderModelMixin):
         cls,
         model: str,
         messages: Messages,
+        prompt: str = None,
         **kwargs
     ) -> AsyncResult:
-        yield await cls.create_async(messages[-1]["content"], model, **kwargs)
+        yield await cls.create_async(messages[-1]["content"] if prompt is None else prompt, model, **kwargs)
 
     @classmethod
     async def create_async(

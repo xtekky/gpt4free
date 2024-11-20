@@ -6,7 +6,7 @@ import threading
 import logging
 import asyncio
 
-from typing import AsyncIterator, Iterator, AsyncGenerator
+from typing import AsyncIterator, Iterator, AsyncGenerator, Optional
 
 def filter_json(text: str) -> str:
     """
@@ -23,7 +23,7 @@ def filter_json(text: str) -> str:
         return match.group("code")
     return text
 
-def find_stop(stop, content: str, chunk: str = None):
+def find_stop(stop: Optional[list[str]], content: str, chunk: str = None):
     first = -1
     word = None
     if stop is not None:

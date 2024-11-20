@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from .types import Client, ImageProvider
-
 from ..models import ModelUtils
 
 class ImageModels():

@@ -498,6 +498,7 @@ body {
     gap: 12px;
     cursor: pointer;
     animation: show_popup 0.4s;
+    height: 28px;
 }
 
 .toolbar .regenerate {

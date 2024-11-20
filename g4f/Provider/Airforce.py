@@ -20,7 +20,7 @@ class Airforce(AsyncGeneratorProvider, ProviderModelMixin):
     working = True
     supports_system_message = True
     supports_message_history = True
-    
+
     @classmethod
     def fetch_completions_models(cls):
         response = requests.get('https://api.airforce/models', verify=False)
@@ -34,19 +34,20 @@ class Airforce(AsyncGeneratorProvider, ProviderModelMixin):
         response.raise_for_status()
         return response.json()
 
-    completions_models = fetch_completions_models.__func__(None)
-    imagine_models = fetch_imagine_models.__func__(None)
-
     default_model = "gpt-4o-mini"
     default_image_model = "flux"
     additional_models_imagine = ["stable-diffusion-xl-base", "stable-diffusion-xl-lightning", "Flux-1.1-Pro"]
-    text_models = completions_models
-    image_models = [*imagine_models, *additional_models_imagine]
-    models = [
-        *text_models,
-        *image_models,
-    ]
-    
+
+    @classmethod
+    def get_models(cls):
+        if not cls.models:
+            cls.image_models = [*cls.fetch_imagine_models(), *cls.additional_models_imagine]
+            cls.models = [
+                *cls.fetch_completions_models(),
+                *cls.image_models
+            ]
+        return cls.models
+
     model_aliases = {        
         ### completions ###
         # openchat
@@ -100,7 +101,6 @@ class Airforce(AsyncGeneratorProvider, ProviderModelMixin):
         **kwargs
     ) -> AsyncResult:
         model = cls.get_model(model)
-
         if model in cls.image_models:
             return cls._generate_image(model, messages, proxy, seed, size)
         else:

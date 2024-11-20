@@ -10,7 +10,8 @@ from inspect import signature, Parameter
 from typing import Callable, Union
 
 from ..typing import CreateResult, AsyncResult, Messages
-from .types import BaseProvider, FinishReason
+from .types import BaseProvider
+from .response import FinishReason, BaseConversation
 from ..errors import NestAsyncioError, ModelNotSupportedError
 from .. import debug
 
@@ -100,7 +101,7 @@ class AbstractProvider(BaseProvider):
         )
 
     @classmethod
-    def get_parameters(cls) -> dict:
+    def get_parameters(cls) -> dict[str, Parameter]:
         return signature(
             cls.create_async_generator if issubclass(cls, AsyncGeneratorProvider) else
             cls.create_async if issubclass(cls, AsyncProvider) else
@@ -258,7 +259,7 @@ class AsyncGeneratorProvider(AsyncProvider):
         """
         return "".join([
             str(chunk) async for chunk in cls.create_async_generator(model, messages, stream=False, **kwargs) 
-            if not isinstance(chunk, (Exception, FinishReason))
+            if not isinstance(chunk, (Exception, FinishReason, BaseConversation))
         ])
 
     @staticmethod

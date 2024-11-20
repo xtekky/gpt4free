@@ -28,7 +28,7 @@ from ...requests.raise_for_status import raise_for_status
 from ...requests.aiohttp import StreamSession
 from ...image import ImageResponse, ImageRequest, to_image, to_bytes, is_accepted_format
 from ...errors import MissingAuthError, ResponseError
-from ...providers.conversation import BaseConversation
+from ...providers.response import BaseConversation
 from ..helper import format_cookies
 from ..openai.har_file import get_request_config, NoValidHarFileError
 from ..openai.har_file import RequestConfig, arkReq, arkose_url, start_url, conversation_url, backend_url, backend_anon_url
