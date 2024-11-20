@@ -290,6 +290,7 @@ class ProviderModelMixin:
     default_model: str = None
     models: list[str] = []
     model_aliases: dict[str, str] = {}
+    image_models: list = None
 
     @classmethod
     def get_models(cls) -> list[str]:

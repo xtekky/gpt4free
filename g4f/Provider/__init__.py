@@ -32,6 +32,7 @@ from .MagickPen        import MagickPen
 from .PerplexityLabs   import PerplexityLabs
 from .Pi               import Pi
 from .Pizzagpt         import Pizzagpt
+from .PollinationsAI   import PollinationsAI
 from .Prodia           import Prodia
 from .Reka             import Reka
 from .ReplicateHome    import ReplicateHome
