@@ -48,7 +48,7 @@ class Api:
                         "model": model,
                         "default": model == provider.default_model,
                         "vision": getattr(provider, "default_vision_model", None) == model or model in getattr(provider, "vision_models", []),
-                        "image": model in getattr(provider, "image_models", []),
+                        "image": False if provider.image_models is None else model in provider.image_models,
                     }
                     for model in models
                 ]
