@@ -228,6 +228,8 @@ class Api:
                         async for chunk in response:
                             if isinstance(chunk, BaseConversation):
                                 if config.conversation_id is not None and config.provider is not None:
+                                    if config.conversation_id not in self.conversations:
+                                        self.conversations[config.conversation_id] = {}
                                     self.conversations[config.conversation_id][config.provider] = chunk
                             else:
                                 yield f"data: {json.dumps(chunk.to_json())}\n\n"

@@ -123,7 +123,8 @@ async def search(query: str, n_results: int = 5, max_words: int = 2500, add_text
                 texts = await asyncio.gather(*requests)
 
         formatted_results = []
-        left_words = max_words = used_words
+        used_words = 0
+        left_words = max_words
         for i, entry in enumerate(results):
             if add_text:
                 entry.text = texts[i]
