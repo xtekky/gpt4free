@@ -3,7 +3,6 @@ from __future__ import annotations
 from urllib.parse import quote
 import random
 import requests
-from sys import maxsize
 from aiohttp import ClientSession
 
 from ..typing import AsyncResult, Messages
@@ -51,7 +50,7 @@ class PollinationsAI(OpenaiAPI):
         if model in cls.image_models:
             prompt = messages[-1]["content"]
             if seed is None:
-                seed = random.randint(0, maxsize)
+                seed = random.randint(0, 100000)
             image = f"https://image.pollinations.ai/prompt/{quote(prompt)}?width=1024&height=1024&seed={int(seed)}&nofeed=true&nologo=true&model={quote(model)}"
             yield ImageResponse(image, prompt)
             return

@@ -5,11 +5,12 @@ import os
 import asyncio
 from typing import Iterator
 from flask import send_from_directory
+from inspect import signature
 
 from g4f import version, models
 from g4f import get_last_provider, ChatCompletion
 from g4f.errors import VersionNotFoundError
-from g4f.image import ImagePreview, ImageResponse, copy_images
+from g4f.image import ImagePreview, ImageResponse, copy_images, ensure_images_dir, images_dir
 from g4f.Provider import ProviderType, __providers__, __map__
 from g4f.providers.base_provider import ProviderModelMixin
 from g4f.providers.response import BaseConversation, FinishReason
@@ -28,7 +29,10 @@ class Api:
         if provider in __map__:
             provider: ProviderType = __map__[provider]
             if issubclass(provider, ProviderModelMixin):
-                models = provider.get_models() if api_key is None else provider.get_models(api_key=api_key)
+                if api_key is not None and "api_key" in signature(provider.get_models).parameters:
+                    models = provider.get_models(api_key=api_key)
+                else:
+                    models = provider.get_models()
                 return [
                     {
                         "model": model,
@@ -76,7 +80,7 @@ class Api:
     def get_providers() -> list[str]:
         return {
             provider.__name__: (provider.label if hasattr(provider, "label") else provider.__name__)
-            + (" (Image Generation)" if hasattr(provider, "image_models") else "")
+            + (" (Image Generation)" if getattr(provider, "image_models", None) else "")
             + (" (Image Upload)" if getattr(provider, "default_vision_model", None) else "")
             + (" (WebDriver)" if "webdriver" in provider.get_parameters() else "")
             + (" (Auth)" if provider.needs_auth else "")
