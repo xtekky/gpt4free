@@ -2,34 +2,20 @@ from __future__ import annotations
 
 import logging
 import os
-import uuid
 import asyncio
-import time
-from aiohttp import ClientSession
-from typing import Iterator, Optional
+from typing import Iterator
 from flask import send_from_directory
 
 from g4f import version, models
 from g4f import get_last_provider, ChatCompletion
 from g4f.errors import VersionNotFoundError
-from g4f.typing import Cookies
-from g4f.image import ImagePreview, ImageResponse, is_accepted_format, extract_data_uri
-from g4f.requests.aiohttp import get_connector
+from g4f.image import ImagePreview, ImageResponse, copy_images
 from g4f.Provider import ProviderType, __providers__, __map__
-from g4f.providers.base_provider import ProviderModelMixin, FinishReason
-from g4f.providers.conversation import BaseConversation
+from g4f.providers.base_provider import ProviderModelMixin
+from g4f.providers.response import BaseConversation, FinishReason
 from g4f import debug
 
 logger = logging.getLogger(__name__)
-
-# Define the directory for generated images
-images_dir = "./generated_images"
-
-# Function to ensure the images directory exists
-def ensure_images_dir():
-    if not os.path.exists(images_dir):
-        os.makedirs(images_dir)
-
 conversations: dict[dict[str, BaseConversation]] = {}
 
 class Api:
@@ -173,7 +159,7 @@ class Api:
                     elif isinstance(chunk, ImagePreview):
                         yield self._format_json("preview", chunk.to_string())
                     elif isinstance(chunk, ImageResponse):
-                        images = asyncio.run(self._copy_images(chunk.get_list(), chunk.options.get("cookies")))
+                        images = asyncio.run(copy_images(chunk.get_list(), chunk.options.get("cookies")))
                         yield self._format_json("content", str(ImageResponse(images, chunk.alt)))
                     elif not isinstance(chunk, FinishReason):
                         yield self._format_json("content", str(chunk))
@@ -184,31 +170,6 @@ class Api:
         except Exception as e:
             logger.exception(e)
             yield self._format_json('error', get_error_message(e))
-
-    async def _copy_images(self, images: list[str], cookies: Optional[Cookies] = None):
-        ensure_images_dir()
-        async with ClientSession(
-            connector=get_connector(None, os.environ.get("G4F_PROXY")),
-            cookies=cookies
-        ) as session:
-            async def copy_image(image: str) -> str:
-                target = os.path.join(images_dir, f"{int(time.time())}_{str(uuid.uuid4())}")
-                if image.startswith("data:"):
-                    with open(target, "wb") as f:
-                        f.write(extract_data_uri(image))
-                else:
-                    async with session.get(image) as response:
-                        with open(target, "wb") as f:
-                            async for chunk in response.content.iter_any():
-                                f.write(chunk)
-                with open(target, "rb") as f:
-                    extension = is_accepted_format(f.read(12)).split("/")[-1]
-                    extension = "jpg" if extension == "jpeg" else extension
-                new_target = f"{target}.{extension}"
-                os.rename(target, new_target)
-                return f"/images/{os.path.basename(new_target)}"
-
-            return await asyncio.gather(*[copy_image(image) for image in images])
 
     def _format_json(self, response_type: str, content):
         return {

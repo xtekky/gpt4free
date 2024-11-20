@@ -3,7 +3,6 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Union, Dict, Type
 from ..typing import Messages, CreateResult
-from .conversation import BaseConversation
 
 class BaseProvider(ABC):
     """
@@ -97,10 +96,6 @@ class BaseRetryProvider(BaseProvider):
     last_provider: Type[BaseProvider] = None
 
 ProviderType = Union[Type[BaseProvider], BaseRetryProvider]
-
-class FinishReason():
-    def __init__(self, reason: str):
-        self.reason = reason
 
 class Streaming():
     def __init__(self, data: str) -> None:

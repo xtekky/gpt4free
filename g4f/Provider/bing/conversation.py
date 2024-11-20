@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from ...requests import StreamSession, raise_for_status
 from ...errors import RateLimitError
-from ...providers.conversation import BaseConversation
+from ...providers.response import BaseConversation
 
 class Conversation(BaseConversation):
     """

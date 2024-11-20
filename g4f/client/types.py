@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 
 from .stubs import ChatCompletion, ChatCompletionChunk
-from ..providers.types import BaseProvider, ProviderType, FinishReason
+from ..providers.types import BaseProvider
 from typing import Union, Iterator, AsyncIterator
 
 ImageProvider = Union[BaseProvider, object]

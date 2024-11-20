@@ -32,10 +32,8 @@ class ReplicateHome(AsyncGeneratorProvider, ProviderModelMixin):
         'yorickvp/llava-13b',
     ]
 
-
-
     models = text_models + image_models
-    
+
     model_aliases = {
         # image_models
         "sd-3": "stability-ai/stable-diffusion-3",
@@ -56,7 +54,6 @@ class ReplicateHome(AsyncGeneratorProvider, ProviderModelMixin):
         # text_models
         "google-deepmind/gemma-2b-it": "dff94eaf770e1fc211e425a50b51baa8e4cac6c39ef074681f9e39d778773626",
         "yorickvp/llava-13b": "80537f9eead1a5bfa72d5ac6ea6414379be41d4d4f6679fd776e9535d1eb58bb",
-        
     }
 
     @classmethod
@@ -131,7 +128,7 @@ class ReplicateHome(AsyncGeneratorProvider, ProviderModelMixin):
                     if result['status'] == 'succeeded':
                         if model in cls.image_models:
                             image_url = result['output'][0]
-                            yield ImageResponse(image_url, "Generated image")
+                            yield ImageResponse(image_url, prompt)
                             return
                         else:
                             for chunk in result['output']:
