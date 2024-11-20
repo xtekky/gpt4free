@@ -14,6 +14,7 @@ from g4f.image import ImagePreview, ImageResponse, copy_images, ensure_images_di
 from g4f.Provider import ProviderType, __providers__, __map__
 from g4f.providers.base_provider import ProviderModelMixin
 from g4f.providers.response import BaseConversation, FinishReason
+from g4f.client.service import convert_to_provider
 from g4f import debug
 
 logger = logging.getLogger(__name__)
@@ -110,16 +111,23 @@ class Api:
         api_key = json_data.get("api_key")
         if api_key is not None:
             kwargs["api_key"] = api_key
-        if json_data.get('web_search'):
-            if provider:
-                kwargs['web_search'] = True
-            else:
-                from .internet import get_search_message
-                messages[-1]["content"] = get_search_message(messages[-1]["content"])
+        do_web_search = json_data.get('web_search')
+        if do_web_search and provider:
+            provider_handler = convert_to_provider(provider)
+            if hasattr(provider_handler, "get_parameters"):
+                if "web_search" in provider_handler.get_parameters():
+                    kwargs['web_search'] = True
+                    do_web_search = False
+        if do_web_search:
+            from .internet import get_search_message
+            messages[-1]["content"] = get_search_message(messages[-1]["content"])
+        if json_data.get("auto_continue"):
+            kwargs['auto_continue'] = True
 
         conversation_id = json_data.get("conversation_id")
-        if conversation_id and provider in conversations and conversation_id in conversations[provider]:
-            kwargs["conversation"] = conversations[provider][conversation_id]
+        if conversation_id and provider:
+            if provider in conversations and conversation_id in conversations[provider]:
+                kwargs["conversation"] = conversations[provider][conversation_id]
 
         return {
             "model": model,
@@ -131,7 +139,7 @@ class Api:
             **kwargs
         }
 
-    def _create_response_stream(self, kwargs: dict, conversation_id: str, provider: str) -> Iterator:
+    def _create_response_stream(self, kwargs: dict, conversation_id: str, provider: str, download_images: bool = True) -> Iterator:
         if debug.logging:
             debug.logs = []
             print_callback = debug.log_handler
@@ -153,18 +161,22 @@ class Api:
                         first = False
                         yield self._format_json("provider", get_last_provider(True))
                     if isinstance(chunk, BaseConversation):
-                        if provider not in conversations:
-                            conversations[provider] = {}
-                        conversations[provider][conversation_id] = chunk
-                        yield self._format_json("conversation", conversation_id)
+                        if provider:
+                            if provider not in conversations:
+                                conversations[provider] = {}
+                            conversations[provider][conversation_id] = chunk
+                            yield self._format_json("conversation", conversation_id)
                     elif isinstance(chunk, Exception):
                         logger.exception(chunk)
                         yield self._format_json("message", get_error_message(chunk))
                     elif isinstance(chunk, ImagePreview):
                         yield self._format_json("preview", chunk.to_string())
                     elif isinstance(chunk, ImageResponse):
-                        images = asyncio.run(copy_images(chunk.get_list(), chunk.options.get("cookies")))
-                        yield self._format_json("content", str(ImageResponse(images, chunk.alt)))
+                        images = chunk
+                        if download_images:
+                            images = asyncio.run(copy_images(chunk.get_list(), chunk.options.get("cookies")))
+                            images = ImageResponse(images, chunk.alt)
+                        yield self._format_json("content", str(images))
                     elif not isinstance(chunk, FinishReason):
                         yield self._format_json("content", str(chunk))
                     if debug.logs:

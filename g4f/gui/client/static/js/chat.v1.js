@@ -428,10 +428,14 @@ async function add_message_chunk(message, message_id) {
         p.innerText = message.log;
         log_storage.appendChild(p);
     }
-    window.scrollTo(0, 0);
-    if (message_box.scrollTop >= message_box.scrollHeight - message_box.clientHeight - 100) {
-        message_box.scrollTo({ top: message_box.scrollHeight, behavior: "auto" });
+    let scroll_down = ()=>{
+        if (message_box.scrollTop >= message_box.scrollHeight - message_box.clientHeight - 100) {
+            window.scrollTo(0, 0);
+            message_box.scrollTo({ top: message_box.scrollHeight, behavior: "auto" });
+        }
     }
+    setTimeout(scroll_down, 200);
+    setTimeout(scroll_down, 1000);
 }
 
 cameraInput?.addEventListener("click", (e) => {
@@ -492,6 +496,7 @@ const ask_gpt = async (message_index = -1, message_id) => {
         const file = input && input.files.length > 0 ? input.files[0] : null;
         const provider = providerSelect.options[providerSelect.selectedIndex].value;
         const auto_continue = document.getElementById("auto_continue")?.checked;
+        const download_images = document.getElementById("download_images")?.checked;
         let api_key = get_api_key_by_provider(provider);
         await api("conversation", {
             id: message_id,
@@ -501,13 +506,13 @@ const ask_gpt = async (message_index = -1, message_id) => {
             provider: provider,
             messages: messages,
             auto_continue: auto_continue,
+            download_images: download_images,
             api_key: api_key,
         }, file, message_id);
         if (!error_storage[message_id]) {
             html = markdown_render(message_storage[message_id]);
             content_map.inner.innerHTML = html;
             highlight(content_map.inner);
-
             if (imageInput) imageInput.value = "";
             if (cameraInput) cameraInput.value = "";
             if (fileInput) fileInput.value = "";
@@ -1239,8 +1244,7 @@ async function load_version() {
     if (versions["version"] != versions["latest_version"]) {
         let release_url = 'https://github.com/xtekky/gpt4free/releases/tag/' + versions["latest_version"];
         let title = `New version: ${versions["latest_version"]}`;
-        text += `<a href="${release_url}" target="_blank" title="${title}">${versions["version"]}</a> `;
-        text += `<i class="fa-solid fa-rotate"></i>`
+        text += `<a href="${release_url}" target="_blank" title="${title}">${versions["version"]}</a> 🆕`;
     } else {
         text += versions["version"];
     }

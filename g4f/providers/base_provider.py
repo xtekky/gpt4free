@@ -101,7 +101,7 @@ class AbstractProvider(BaseProvider):
         )
 
     @classmethod
-    def get_parameters(cls) -> dict:
+    def get_parameters(cls) -> dict[str, Parameter]:
         return signature(
             cls.create_async_generator if issubclass(cls, AsyncGeneratorProvider) else
             cls.create_async if issubclass(cls, AsyncProvider) else

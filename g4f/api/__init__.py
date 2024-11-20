@@ -103,7 +103,7 @@ class Api:
         self.client = AsyncClient()
         self.g4f_api_key = g4f_api_key
         self.get_g4f_api_key = APIKeyHeader(name="g4f-api-key")
-        self.conversations: dict[str, BaseConversation] = {}
+        self.conversations: dict[str, dict[str, BaseConversation]] = {}
 
     def register_authorization(self):
         @self.app.middleware("http")
@@ -185,18 +185,21 @@ class Api:
         async def chat_completions(config: ChatCompletionsConfig, request: Request = None, provider: str = None):
             try:
                 config.provider = provider if config.provider is None else config.provider
+                if config.provider is None:
+                    config.provider = AppConfig.provider
                 if config.api_key is None and request is not None:
                     auth_header = request.headers.get("Authorization")
                     if auth_header is not None:
-                        auth_header = auth_header.split(None, 1)[-1]
-                        if auth_header and auth_header != "Bearer":
-                            config.api_key = auth_header
+                        api_key = auth_header.split(None, 1)[-1]
+                        if api_key and api_key != "Bearer":
+                            config.api_key = api_key
 
                 conversation = return_conversation = None
-                if config.conversation_id is not None:
+                if config.conversation_id is not None and config.provider is not None:
                     return_conversation = True
                     if config.conversation_id in self.conversations:
-                        conversation = self.conversations[config.conversation_id]
+                        if config.provider in self.conversations[config.conversation_id]:
+                            conversation = self.conversations[config.conversation_id][config.provider]
 
                 # Create the completion response
                 response = self.client.chat.completions.create(
@@ -224,8 +227,8 @@ class Api:
                     try:
                         async for chunk in response:
                             if isinstance(chunk, BaseConversation):
-                                if config.conversation_id is not None:
-                                    self.conversations[config.conversation_id] = chunk
+                                if config.conversation_id is not None and config.provider is not None:
+                                    self.conversations[config.conversation_id][config.provider] = chunk
                             else:
                                 yield f"data: {json.dumps(chunk.to_json())}\n\n"
                     except GeneratorExit:
@@ -244,6 +247,12 @@ class Api:
         @self.app.post("/v1/images/generate")
         @self.app.post("/v1/images/generations")
         async def generate_image(config: ImageGenerationConfig, request: Request):
+            if config.api_key is None:
+                auth_header = request.headers.get("Authorization")
+                if auth_header is not None:
+                    api_key = auth_header.split(None, 1)[-1]
+                    if api_key and api_key != "Bearer":
+                        config.api_key = api_key
             try:
                 response = await self.client.images.generate(
                     prompt=config.prompt,
