@@ -14,7 +14,7 @@ from ..image import ImageResponse, copy_images, images_dir
 from ..typing import Messages, Image, ImageType
 from ..providers.types import ProviderType
 from ..providers.response import ResponseType, FinishReason, BaseConversation
-from ..errors import NoImageResponseError
+from ..errors import NoImageResponseError, ModelNotFoundError
 from ..providers.retry_provider import IterListProvider
 from ..providers.base_provider import get_running_loop
 from ..Provider.needs_auth.BingCreateImages import BingCreateImages
@@ -95,7 +95,7 @@ def iter_append_model_and_provider(response: ChatCompletionResponseType) -> Chat
     last_provider = None
 
     for chunk in response:
-        if not isinstance(chunk, BaseConversation):
+        if isinstance(chunk, (ChatCompletion, ChatCompletionChunk)):
             last_provider = get_last_provider(True) if last_provider is None else last_provider
             chunk.model = last_provider.get("model")
             chunk.provider = last_provider.get("name")
@@ -159,7 +159,7 @@ async def async_iter_append_model_and_provider(
     last_provider = None
     try:
         async for chunk in response:
-            if not isinstance(chunk, BaseConversation):
+            if isinstance(chunk, (ChatCompletion, ChatCompletionChunk)):
                 last_provider = get_last_provider(True) if last_provider is None else last_provider
                 chunk.model = last_provider.get("model")
                 chunk.provider = last_provider.get("name")
@@ -255,14 +255,14 @@ class Images:
         prompt: str,
         model: str = None,
         provider: Optional[ProviderType] = None,
-        response_format: Optional[str] = "url",
+        response_format: str = "url",
         proxy: Optional[str] = None,
         **kwargs
     ) -> ImagesResponse:
         """
         Synchronous generate method that runs the async_generate method in an event loop.
         """
-        return asyncio.run(self.async_generate(prompt, model, provider, response_format=response_format, proxy=proxy, **kwargs))
+        return asyncio.run(self.async_generate(prompt, model, provider, response_format, proxy, **kwargs))
 
     async def async_generate(
         self,
@@ -280,20 +280,19 @@ class Images:
         else:
             provider_handler = provider
         if provider_handler is None:
-            raise ValueError(f"Unknown model: {model}")
-        if proxy is None:
-            proxy = self.client.proxy
-
+            raise ModelNotFoundError(f"Unknown model: {model}")
         if isinstance(provider_handler, IterListProvider):
             if provider_handler.providers:
                 provider_handler = provider_handler.providers[0]
             else:
-                raise ValueError(f"IterListProvider for model {model} has no providers")
+                raise ModelNotFoundError(f"IterListProvider for model {model} has no providers")
+        if proxy is None:
+            proxy = self.client.proxy
 
         response = None
-        if hasattr(provider_handler, "create_async_generator"):
+        if isinstance(provider, type) and issubclass(provider, AsyncGeneratorProvider):
             messages = [{"role": "user", "content": f"Generate a image: {prompt}"}]
-            async for item in provider_handler.create_async_generator(model, messages, **kwargs):
+            async for item in provider_handler.create_async_generator(model, messages, prompt=prompt, **kwargs):
                 if isinstance(item, ImageResponse):
                     response = item
                     break
@@ -307,7 +306,7 @@ class Images:
         elif hasattr(provider_handler, "create_completion"):
             get_running_loop(check_nested=True)
             messages = [{"role": "user", "content": f"Generate a image: {prompt}"}]
-            for item in provider_handler.create_completion(model, messages, **kwargs):
+            for item in provider_handler.create_completion(model, messages, prompt=prompt, **kwargs):
                 if isinstance(item, ImageResponse):
                     response = item
                     break
@@ -319,8 +318,64 @@ class Images:
                 response_format,
                 proxy,
                 model,
-                getattr(provider, "__name__")
+                getattr(provider_handler, "__name__", None)
             )
+        raise NoImageResponseError(f"Unexpected response type: {type(response)}")
+
+    def create_variation(
+        self,
+        image: Union[str, bytes],
+        model: str = None,
+        provider: Optional[ProviderType] = None,
+        response_format: str = "url",
+        **kwargs
+    ) -> ImagesResponse:
+        return asyncio.run(self.async_create_variation(
+           image, model, provider, response_format, **kwargs
+        ))
+
+    async def async_create_variation(
+        self,
+        image: ImageType,
+        model: Optional[str] = None,
+        provider: Optional[ProviderType] = None,
+        response_format: str = "url",
+        proxy: Optional[str] = None,
+        **kwargs
+    ) -> ImagesResponse:
+        if provider is None:
+            provider = self.models.get(model, provider or self.provider or BingCreateImages)
+            if provider is None:
+                raise ModelNotFoundError(f"Unknown model: {model}")
+        if isinstance(provider, str):
+            provider = convert_to_provider(provider)
+        if proxy is None:
+            proxy = self.client.proxy
+
+        if isinstance(provider, type) and issubclass(provider, AsyncGeneratorProvider):
+            messages = [{"role": "user", "content": "create a variation of this image"}]
+            generator = None
+            try:
+                generator = provider.create_async_generator(model, messages, image=image, response_format=response_format, proxy=proxy, **kwargs)
+                async for chunk in generator:
+                    if isinstance(chunk, ImageResponse):
+                        response = chunk
+                        break
+            finally:
+                if generator and hasattr(generator, 'aclose'):
+                    await safe_aclose(generator)
+        elif hasattr(provider, 'create_variation'):
+            if asyncio.iscoroutinefunction(provider.create_variation):
+                response = await provider.create_variation(image, model=model, response_format=response_format, proxy=proxy, **kwargs)
+            else:
+                response = provider.create_variation(image, model=model, response_format=response_format, proxy=proxy, **kwargs)
+        else:
+            raise NoImageResponseError(f"Provider {provider} does not support image variation")
+    
+        if isinstance(response, str):
+            response = ImageResponse([response])
+        if isinstance(response, ImageResponse):
+            return self._process_image_response(response, response_format, proxy, model, getattr(provider, "__name__", None))
         raise NoImageResponseError(f"Unexpected response type: {type(response)}")
 
     async def _process_image_response(
@@ -348,64 +403,6 @@ class Images:
             model=last_provider.get("model") if model is None else model,
             provider=last_provider.get("name") if provider is None else provider
         )
-
-    def create_variation(
-        self,
-        image: Union[str, bytes],
-        model: str = None,
-        provider: Optional[ProviderType] = None,
-        response_format: str = "url",
-        **kwargs
-    ) -> ImagesResponse:
-        return asyncio.run(self.async_create_variation(
-           image, model, provider, response_format, **kwargs
-        ))
-
-    async def async_create_variation(
-        self,
-        image: ImageType,
-        model: Optional[str] = None,
-        provider: Optional[ProviderType] = None,
-        response_format: str = "url",
-        proxy: Optional[str] = None,
-        **kwargs
-    ) -> ImagesResponse:
-        if provider is None:
-            provider = self.models.get(model, provider or self.provider or BingCreateImages)
-            if provider is None:
-                raise ValueError(f"Unknown model: {model}")
-        if isinstance(provider, str):
-            provider = convert_to_provider(provider)
-        if proxy is None:
-            proxy = self.client.proxy
-
-        if isinstance(provider, type) and issubclass(provider, AsyncGeneratorProvider):
-            messages = [{"role": "user", "content": "create a variation of this image"}]
-            generator = None
-            try:
-                generator = provider.create_async_generator(model, messages, image=image, response_format=response_format, proxy=proxy, **kwargs)
-                async for response in generator:
-                    if isinstance(response, ImageResponse):
-                        return self._process_image_response(response, response_format, proxy, model, getattr(provider, "__name__"))
-            except RuntimeError as e:
-                if "async generator ignored GeneratorExit" in str(e):
-                    logging.warning("Generator ignored GeneratorExit in create_variation, handling gracefully")
-                else:
-                    raise
-            finally:
-                if generator and hasattr(generator, 'aclose'):
-                    await safe_aclose(generator)
-                logging.info("AsyncGeneratorProvider processing completed in create_variation")
-        elif hasattr(provider, 'create_variation'):
-            if asyncio.iscoroutinefunction(provider.create_variation):
-                response = await provider.create_variation(image, model=model, response_format=response_format, proxy=proxy, **kwargs)
-            else:
-                response = provider.create_variation(image, model=model, response_format=response_format, proxy=proxy, **kwargs)
-            if isinstance(response, str):
-                response = ImageResponse([response])
-            return self._process_image_response(response, response_format, proxy, model, getattr(provider, "__name__"))
-        else:
-            raise ValueError(f"Provider {provider} does not support image variation")
 
 class AsyncClient(BaseClient):
     def __init__(

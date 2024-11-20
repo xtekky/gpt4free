@@ -28,13 +28,14 @@ class BingCreateImages(AsyncGeneratorProvider, ProviderModelMixin):
         cls,
         model: str,
         messages: Messages,
+        prompt: str = None,
         api_key: str = None,
         cookies: Cookies = None,
         proxy: str = None,
         **kwargs
     ) -> AsyncResult:
         session = BingCreateImages(cookies, proxy, api_key)
-        yield await session.generate(messages[-1]["content"])
+        yield await session.generate(messages[-1]["content"] if prompt is None else prompt)
 
     async def generate(self, prompt: str) -> ImageResponse:
         """
