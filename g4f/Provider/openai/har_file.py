@@ -63,26 +63,28 @@ def readHAR():
                 continue
             for v in harFile['log']['entries']:
                 v_headers = get_headers(v)
-                try:
-                    if "openai-sentinel-proof-token" in v_headers:
-                        RequestConfig.proof_token = json.loads(base64.b64decode(
-                            v_headers["openai-sentinel-proof-token"].split("gAAAAAB", 1)[-1].encode()
-                        ).decode())
-                    if "openai-sentinel-turnstile-token" in v_headers:
-                        RequestConfig.turnstile_token = v_headers["openai-sentinel-turnstile-token"]
-                except Exception as e:
-                    debug.log(f"Read proof token: {e}")
                 if arkose_url == v['request']['url']:
                     RequestConfig.arkose_request = parseHAREntry(v)
-                elif v['request']['url'] == start_url or v['request']['url'].startswith(conversation_url):
+                elif v['request']['url'].startswith(start_url):
                     try:
                         match = re.search(r'"accessToken":"(.*?)"', v["response"]["content"]["text"])
                         if match:
                             RequestConfig.access_token = match.group(1)
                     except KeyError:
-                        continue
-                    RequestConfig.cookies = {c['name']: c['value'] for c in v['request']['cookies']}
-                    RequestConfig.headers = v_headers
+                        pass
+                    try:
+                        if "openai-sentinel-proof-token" in v_headers:
+                            RequestConfig.headers = v_headers
+                            RequestConfig.proof_token = json.loads(base64.b64decode(
+                                v_headers["openai-sentinel-proof-token"].split("gAAAAAB", 1)[-1].encode()
+                            ).decode())
+                        if "openai-sentinel-turnstile-token" in v_headers:
+                            RequestConfig.turnstile_token = v_headers["openai-sentinel-turnstile-token"]
+                        if "authorization" in v_headers:
+                            RequestConfig.access_token = v_headers["authorization"].split(" ")[1]
+                        RequestConfig.cookies = {c['name']: c['value'] for c in v['request']['cookies']}
+                    except Exception as e:
+                        debug.log(f"Error on read headers: {e}")
     if RequestConfig.proof_token is None:
         raise NoValidHarFileError("No proof_token found in .har files")
 
