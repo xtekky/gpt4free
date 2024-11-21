@@ -1,12 +1,15 @@
 import json
 import asyncio
 import flask
+import os
 from flask import request, Flask
 from typing import AsyncGenerator, Generator
+from werkzeug.utils import secure_filename
 
 from g4f.image import is_allowed_extension, to_image
 from g4f.client.service import convert_to_provider
 from g4f.errors import ProviderNotFoundError
+from g4f.cookies import get_cookies_dir
 from .api import Api
 
 def safe_iter_generator(generator: Generator) -> Generator:
@@ -79,8 +82,8 @@ class Backend_Api(Api):
                 'function': self.handle_synthesize,
                 'methods': ['GET']
             },
-            '/backend-api/v2/error': {
-                'function': self.handle_error,
+            '/backend-api/v2/upload_cookies': {
+                'function': self.upload_cookies,
                 'methods': ['POST']
             },
             '/images/<path:name>': {
@@ -89,15 +92,17 @@ class Backend_Api(Api):
             }
         }
 
-    def handle_error(self):
-        """
-        Initialize the backend API with the given Flask application.
-
-        Args:
-            app (Flask): Flask application instance to attach routes to.
-        """
-        print(request.json)
-        return 'ok', 200
+    def upload_cookies(self):
+        file = None
+        if "file" in request.files:
+            file = request.files['file']
+            if file.filename == '':
+                return 'No selected file', 400
+        if file and file.filename.endswith(".json") or file.filename.endswith(".har"):
+            filename = secure_filename(file.filename)
+            file.save(os.path.join(get_cookies_dir(), filename))
+            return "File saved", 200
+        return 'Not supported file', 400
 
     def handle_conversation(self):
         """

@@ -418,6 +418,7 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
                 [debug.log(text) for text in (
                     f"Arkose: {'False' if not need_arkose else RequestConfig.arkose_token[:12]+'...'}",
                     f"Proofofwork: {'False' if proofofwork is None else proofofwork[:12]+'...'}",
+                    f"AccessToken: {'False' if cls._api_key is None else cls._api_key[:12]+'...'}",
                 )]
                 data = {
                     "action": action,
@@ -438,7 +439,8 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
                     messages = messages if conversation_id is None else [messages[-1]]
                     data["messages"] = cls.create_messages(messages, image_request)
                 headers = {
-                    "accept": "text/event-stream",
+                    "Accept": "text/event-stream",
+                    "Content-Type": "application/json",
                     "Openai-Sentinel-Chat-Requirements-Token": chat_token,
                     **cls._headers
                 }

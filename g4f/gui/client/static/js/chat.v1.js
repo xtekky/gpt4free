@@ -1338,17 +1338,25 @@ fileInput.addEventListener('click', async (event) => {
     delete fileInput.dataset.text;
 });
 
+async function upload_cookies() {
+    const file = fileInput.files[0];
+    const formData = new FormData();
+    formData.append('file', file);
+    response = await fetch("/backend-api/v2/upload_cookies", {
+        method: 'POST',
+        body: formData,
+    });
+    if (response.status == 200) {
+        inputCount.innerText = `${file.name} was uploaded successfully`;
+    }
+    fileInput.value = "";
+}
+
 fileInput.addEventListener('change', async (event) => {
     if (fileInput.files.length) {
-        type = fileInput.files[0].type;
-        if (type && type.indexOf('/')) {
-            type = type.split('/').pop().replace('x-', '')
-            type = type.replace('plain', 'plaintext')
-                       .replace('shellscript', 'sh')
-                       .replace('svg+xml', 'svg')
-                       .replace('vnd.trolltech.linguist', 'ts')
-        } else {
-            type = fileInput.files[0].name.split('.').pop()
+        type = fileInput.files[0].name.split('.').pop()
+        if (type == "har") {
+            return await upload_cookies();
         }
         fileInput.dataset.type = type
         const reader = new FileReader();
@@ -1357,14 +1365,19 @@ fileInput.addEventListener('change', async (event) => {
             if (type == "json") {
                 const data = JSON.parse(fileInput.dataset.text);
                 if ("g4f" in data.options) {
+                    let count = 0;
                     Object.keys(data).forEach(key => {
                         if (key != "options" && !localStorage.getItem(key)) {
                             appStorage.setItem(key, JSON.stringify(data[key]));
-                        } 
+                            count += 1;
+                        }
                     });
                     delete fileInput.dataset.text;
                     await load_conversations();
                     fileInput.value = "";
+                    inputCount.innerText = `${count} Conversations were imported successfully`;
+                } else {
+                    await upload_cookies();
                 }
             }
         });

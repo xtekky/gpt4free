@@ -81,10 +81,10 @@ def readHAR():
                             RequestConfig.access_token = match.group(1)
                     except KeyError:
                         continue
-                    RequestConfig.cookies = {c['name']: c['value'] for c in v['request']['cookies'] if c['name'] != "oai-did"}
+                    RequestConfig.cookies = {c['name']: c['value'] for c in v['request']['cookies']}
                     RequestConfig.headers = v_headers
-    if RequestConfig.access_token is None:
-        raise NoValidHarFileError("No accessToken found in .har files")
+    if RequestConfig.proof_token is None:
+        raise NoValidHarFileError("No proof_token found in .har files")
 
 def get_headers(entry) -> dict:
     return {h['name'].lower(): h['value'] for h in entry['request']['headers'] if h['name'].lower() not in ['content-length', 'cookie'] and not h['name'].startswith(':')}
@@ -149,7 +149,7 @@ def getN() -> str:
     return base64.b64encode(timestamp.encode()).decode()
 
 async def get_request_config(proxy: str) -> RequestConfig:
-    if RequestConfig.access_token is None:
+    if RequestConfig.proof_token is None:
         readHAR()
     if RequestConfig.arkose_request is not None:
         RequestConfig.arkose_token = await sendRequest(genArkReq(RequestConfig.arkose_request), proxy)
