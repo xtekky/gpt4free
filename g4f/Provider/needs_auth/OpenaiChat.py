@@ -412,7 +412,7 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
                 if "proofofwork" in chat_requirements:
                     proofofwork = generate_proof_token(
                         **chat_requirements["proofofwork"],
-                        user_agent=cls._headers["user-agent"],
+                        user_agent=cls._headers.get("user-agent"),
                         proof_token=RequestConfig.proof_token
                     )
                 [debug.log(text) for text in (
@@ -439,15 +439,15 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
                     messages = messages if conversation_id is None else [messages[-1]]
                     data["messages"] = cls.create_messages(messages, image_request)
                 headers = {
-                    "Accept": "text/event-stream",
-                    "Content-Type": "application/json",
-                    "Openai-Sentinel-Chat-Requirements-Token": chat_token,
-                    **cls._headers
+                    **cls._headers,
+                    "accept": "text/event-stream",
+                    "content-type": "application/json",
+                    "openai-sentinel-chat-requirements-token": chat_token,
                 }
                 if RequestConfig.arkose_token:
-                    headers["Openai-Sentinel-Arkose-Token"] = RequestConfig.arkose_token
+                    headers["openai-sentinel-arkose-token"] = RequestConfig.arkose_token
                 if proofofwork is not None:
-                    headers["Openai-Sentinel-Proof-Token"] = proofofwork
+                    headers["openai-sentinel-proof-token"] = proofofwork
                 if need_turnstile and RequestConfig.turnstile_token is not None:
                     headers['openai-sentinel-turnstile-token'] = RequestConfig.turnstile_token
                 async with session.post(
