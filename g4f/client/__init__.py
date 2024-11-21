@@ -6,7 +6,6 @@ import random
 import string
 import asyncio
 import base64
-import logging
 from typing import Union, AsyncIterator, Iterator, Coroutine, Optional
 
 from ..providers.base_provider import AsyncGeneratorProvider
@@ -16,13 +15,13 @@ from ..providers.types import ProviderType
 from ..providers.response import ResponseType, FinishReason, BaseConversation, SynthesizeData
 from ..errors import NoImageResponseError, ModelNotFoundError
 from ..providers.retry_provider import IterListProvider
-from ..providers.base_provider import get_running_loop
+from ..providers.asyncio import get_running_loop, to_sync_generator, async_generator_to_list
 from ..Provider.needs_auth.BingCreateImages import BingCreateImages
 from .stubs import ChatCompletion, ChatCompletionChunk, Image, ImagesResponse
 from .image_models import ImageModels
 from .types import IterResponse, ImageProvider, Client as BaseClient
 from .service import get_model_and_provider, get_last_provider, convert_to_provider
-from .helper import find_stop, filter_json, filter_none, safe_aclose, to_sync_iter, to_async_iterator
+from .helper import find_stop, filter_json, filter_none, safe_aclose, to_async_iterator
 
 ChatCompletionResponseType = Iterator[Union[ChatCompletion, ChatCompletionChunk, BaseConversation]]
 AsyncChatCompletionResponseType = AsyncIterator[Union[ChatCompletion, ChatCompletionChunk, BaseConversation]]
@@ -50,8 +49,7 @@ def iter_response(
     idx = 0
 
     if hasattr(response, '__aiter__'):
-        # It's an async iterator, wrap it into a sync iterator
-        response = to_sync_iter(response)
+        response = to_sync_generator(response)
 
     for chunk in response:
         if isinstance(chunk, FinishReason):
@@ -231,10 +229,10 @@ class Completions:
             response = asyncio.run(response)
         if stream and hasattr(response, '__aiter__'):
             # It's an async generator, wrap it into a sync iterator
-            response = to_sync_iter(response)
+            response = to_sync_generator(response)
         elif hasattr(response, '__aiter__'):
             # If response is an async generator, collect it into a list
-            response = list(to_sync_iter(response))
+            response = asyncio.run(async_generator_to_list(response))
         response = iter_response(response, stream, response_format, max_tokens, stop)
         response = iter_append_model_and_provider(response)
         if stream:

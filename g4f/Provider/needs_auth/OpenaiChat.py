@@ -15,18 +15,14 @@ try:
     has_nodriver = True
 except ImportError:
     has_nodriver = False
-try:
-    from platformdirs import user_config_dir
-    has_platformdirs = True
-except ImportError:
-    has_platformdirs = False
 
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ...typing import AsyncResult, Messages, Cookies, ImageType, AsyncIterator
 from ...requests.raise_for_status import raise_for_status
-from ...requests.aiohttp import StreamSession
+from ...requests import StreamSession
+from ...requests import get_nodriver
 from ...image import ImageResponse, ImageRequest, to_image, to_bytes, is_accepted_format
-from ...errors import MissingAuthError, ResponseError
+from ...errors import MissingAuthError
 from ...providers.response import BaseConversation, FinishReason, SynthesizeData
 from ..helper import format_cookies
 from ..openai.har_file import get_request_config, NoValidHarFileError
@@ -62,7 +58,7 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
     supports_system_message = True
     default_model = "auto"
     default_vision_model = "gpt-4o"
-    fallback_models = ["auto", "gpt-4", "gpt-4o", "gpt-4o-mini", "gpt-4o-canmore", "o1-preview", "o1-mini"]
+    fallback_models = [default_model, "gpt-4", "gpt-4o", "gpt-4o-mini", "gpt-4o-canmore", "o1-preview", "o1-mini"]
     vision_models = fallback_models
     image_models = fallback_models
 
@@ -82,51 +78,6 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
             except Exception:
                 cls.models = cls.fallback_models
         return cls.models
-
-    @classmethod
-    async def create(
-        cls,
-        prompt: str = None,
-        model: str = "",
-        messages: Messages = [],
-        action: str = "next",
-        **kwargs
-    ) -> Response:
-        """
-        Create a new conversation or continue an existing one
-        
-        Args:
-            prompt: The user input to start or continue the conversation
-            model: The name of the model to use for generating responses
-            messages: The list of previous messages in the conversation
-            history_disabled: A flag indicating if the history and training should be disabled
-            action: The type of action to perform, either "next", "continue", or "variant"
-            conversation_id: The ID of the existing conversation, if any
-            parent_id: The ID of the parent message, if any
-            image: The image to include in the user input, if any
-            **kwargs: Additional keyword arguments to pass to the generator
-        
-        Returns:
-            A Response object that contains the generator, action, messages, and options
-        """
-        # Add the user input to the messages list
-        if prompt is not None:
-            messages.append({
-                "role": "user",
-                "content": prompt
-            })
-        generator = cls.create_async_generator(
-            model,
-            messages,
-            return_conversation=True,
-            **kwargs
-        )
-        return Response(
-            generator,
-            action,
-            messages,
-            kwargs
-        )
 
     @classmethod
     async def upload_image(
@@ -188,32 +139,6 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
             await raise_for_status(response)
             image_data["download_url"] = (await response.json())["download_url"]
         return ImageRequest(image_data)
-
-    @classmethod
-    async def get_default_model(cls, session: StreamSession, headers: dict):
-        """
-        Get the default model name from the service
-        
-        Args:
-            session: The StreamSession object to use for requests
-            headers: The headers to include in the requests
-        
-        Returns:
-            The default model name as a string
-        """
-        if not cls.default_model:
-            url = f"{cls.url}/backend-anon/models" if cls._api_key is None else f"{cls.url}/backend-api/models"
-            async with session.get(url, headers=headers) as response:
-                cls._update_request_args(session)
-                if response.status == 401:
-                    raise MissingAuthError('Add a .har file for OpenaiChat' if cls._api_key is None else "Invalid api key")
-                await raise_for_status(response)
-                data = await response.json()
-                if "categories" in data:
-                    cls.default_model = data["categories"][-1]["default_model"]
-                    return cls.default_model 
-                raise ResponseError(data)
-        return cls.default_model
 
     @classmethod
     def create_messages(cls, messages: Messages, image_request: ImageRequest = None):
@@ -297,37 +222,12 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
             raise RuntimeError(f"Error in downloading image: {e}")
 
     @classmethod
-    async def delete_conversation(cls, session: StreamSession, headers: dict, conversation_id: str):
-        """
-        Deletes a conversation by setting its visibility to False.
-
-        This method sends an HTTP PATCH request to update the visibility of a conversation. 
-        It's used to effectively delete a conversation from being accessed or displayed in the future.
-
-        Args:
-            session (StreamSession): The StreamSession object used for making HTTP requests.
-            headers (dict): HTTP headers to be used for the request.
-            conversation_id (str): The unique identifier of the conversation to be deleted.
-
-        Raises:
-            HTTPError: If the HTTP request fails or returns an unsuccessful status code.
-        """
-        async with session.patch(
-            f"{cls.url}/backend-api/conversation/{conversation_id}",
-            json={"is_visible": False},
-            headers=headers
-        ) as response:
-            cls._update_request_args(session)
-            ...
-
-    @classmethod
     async def create_async_generator(
         cls,
         model: str,
         messages: Messages,
         proxy: str = None,
         timeout: int = 180,
-        api_key: str = None,
         cookies: Cookies = None,
         auto_continue: bool = False,
         history_disabled: bool = False,
@@ -465,7 +365,6 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
                         continue
                     await raise_for_status(response)
                     if return_conversation:
-                        history_disabled = False
                         yield conversation
                     async for line in response.iter_lines():
                         async for chunk in cls.iter_messages_line(session, line, conversation):
@@ -483,19 +382,6 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
                 else:
                     break
             yield FinishReason(conversation.finish_reason)
-            if history_disabled and auto_continue:
-                await cls.delete_conversation(session, cls._headers, conversation.conversation_id)
-
-    @classmethod
-    async def iter_messages_chunk(
-        cls,
-        messages: AsyncIterator,
-        session: StreamSession,
-        fields: Conversation,
-    ) -> AsyncIterator:
-        async for message in messages:
-            async for chunk in cls.iter_messages_line(session, message, fields):
-                yield chunk
 
     @classmethod
     async def iter_messages_line(cls, session: StreamSession, line: bytes, fields: Conversation) -> AsyncIterator:
@@ -575,15 +461,7 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
 
     @classmethod
     async def nodriver_auth(cls, proxy: str = None):
-        if has_platformdirs:
-            user_data_dir = user_config_dir("g4f-nodriver")
-        else:
-            user_data_dir = None
-        debug.log(f"Open nodriver with user_dir: {user_data_dir}")
-        browser = await nodriver.start(
-            user_data_dir=user_data_dir,
-            browser_args=None if proxy is None else [f"--proxy-server={proxy}"],
-        )
+        browser = await get_nodriver(proxy=proxy)
         page = browser.main_tab
         def on_request(event: nodriver.cdp.network.RequestWillBeSent):
             if event.request.url == start_url or event.request.url.startswith(conversation_url):
@@ -622,14 +500,14 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
             pass
         for c in await page.send(nodriver.cdp.network.get_cookies([cls.url])):
             RequestConfig.cookies[c.name] = c.value
-        RequestConfig.user_agent = await page.evaluate("window.navigator.userAgent")
+        user_agent = await page.evaluate("window.navigator.userAgent")
         await page.select("#prompt-textarea", 240)
         while True:
             if RequestConfig.proof_token:
                 break
             await asyncio.sleep(1)
         await page.close()
-        cls._create_request_args(RequestConfig.cookies, RequestConfig.headers, user_agent=RequestConfig.user_agent)
+        cls._create_request_args(RequestConfig.cookies, RequestConfig.headers, user_agent=user_agent)
         cls._set_api_key(RequestConfig.access_token)
 
     @staticmethod
@@ -673,89 +551,3 @@ class Conversation(BaseConversation):
         self.message_id = message_id
         self.finish_reason = finish_reason
         self.is_recipient = False
-
-class Response():
-    """
-    Class to encapsulate a response from the chat service.
-    """
-    def __init__(
-        self,
-        generator: AsyncResult,
-        action: str,
-        messages: Messages,
-        options: dict
-    ):
-        self._generator = generator
-        self.action = action
-        self.is_end = False
-        self._message = None
-        self._messages = messages
-        self._options = options
-        self._fields = None
-
-    async def generator(self) -> AsyncIterator:
-        if self._generator is not None:
-            self._generator = None
-            chunks = []
-            async for chunk in self._generator:
-                if isinstance(chunk, Conversation):
-                    self._fields = chunk
-                else:
-                    yield chunk
-                    chunks.append(str(chunk))
-            self._message = "".join(chunks)
-            if self._fields is None:
-                raise RuntimeError("Missing response fields")
-            self.is_end = self._fields.finish_reason == "stop"
-
-    def __aiter__(self):
-        return self.generator()
-
-    async def get_message(self) -> str:
-        await self.generator()
-        return self._message
-
-    async def get_fields(self) -> dict:
-        await self.generator()
-        return {
-            "conversation_id": self._fields.conversation_id,
-            "parent_id": self._fields.message_id
-        }
-
-    async def create_next(self, prompt: str, **kwargs) -> Response:
-        return await OpenaiChat.create(
-            **self._options,
-            prompt=prompt,
-            messages=await self.get_messages(),
-            action="next",
-            **await self.get_fields(),
-            **kwargs
-        )
-
-    async def do_continue(self, **kwargs) -> Response:
-        fields = await self.get_fields()
-        if self.is_end:
-            raise RuntimeError("Can't continue message. Message already finished.")
-        return await OpenaiChat.create(
-            **self._options,
-            messages=await self.get_messages(),
-            action="continue",
-            **fields,
-            **kwargs
-        )
-
-    async def create_variant(self, **kwargs) -> Response:
-        if self.action != "next":
-            raise RuntimeError("Can't create variant from continue or variant request.")
-        return await OpenaiChat.create(
-            **self._options,
-            messages=self._messages,
-            action="variant",
-            **await self.get_fields(),
-            **kwargs
-        )
-
-    async def get_messages(self) -> list:
-        messages = self._messages
-        messages.append({"role": "assistant", "content": await self.message()})
-        return messages

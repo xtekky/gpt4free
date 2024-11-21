@@ -1,13 +1,13 @@
 import json
-import asyncio
 import flask
 import os
 from flask import request, Flask
-from typing import AsyncGenerator, Generator
+from typing import Generator
 from werkzeug.utils import secure_filename
 
 from g4f.image import is_allowed_extension, to_image
 from g4f.client.service import convert_to_provider
+from g4f.providers.asyncio import to_sync_generator
 from g4f.errors import ProviderNotFoundError
 from g4f.cookies import get_cookies_dir
 from .api import Api
@@ -18,21 +18,6 @@ def safe_iter_generator(generator: Generator) -> Generator:
         yield start
         yield from generator
     return iter_generator()
-
-def to_sync_generator(gen: AsyncGenerator) -> Generator:
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    gen = gen.__aiter__()
-    async def get_next():
-        try:
-            obj = await gen.__anext__()
-            return False, obj
-        except StopAsyncIteration: return True, None
-    while True:
-        done, obj = loop.run_until_complete(get_next())
-        if done:
-            break
-        yield obj
 
 class Backend_Api(Api):    
     """
