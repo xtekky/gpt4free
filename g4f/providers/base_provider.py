@@ -3,7 +3,7 @@ from __future__ import annotations
 import sys
 import asyncio
 
-from asyncio import AbstractEventLoop
+from asyncio import AbstractEventLoop, runners
 from concurrent.futures import ThreadPoolExecutor
 from abc import abstractmethod
 from inspect import signature, Parameter
@@ -235,8 +235,13 @@ class AsyncGeneratorProvider(AsyncProvider):
             pass
         finally:
             if new_loop:
-                loop.close()
-                asyncio.set_event_loop(None)
+                try:
+                    runners._cancel_all_tasks(loop)
+                    loop.run_until_complete(loop.shutdown_asyncgens())
+                    loop.run_until_complete(loop.shutdown_default_executor())
+                finally:
+                    asyncio.set_event_loop(None)
+                    loop.close()
 
     @classmethod
     async def create_async(
