@@ -13,7 +13,7 @@ from g4f.errors import VersionNotFoundError
 from g4f.image import ImagePreview, ImageResponse, copy_images, ensure_images_dir, images_dir
 from g4f.Provider import ProviderType, __providers__, __map__
 from g4f.providers.base_provider import ProviderModelMixin
-from g4f.providers.response import BaseConversation, FinishReason
+from g4f.providers.response import BaseConversation, FinishReason, SynthesizeData
 from g4f.client.service import convert_to_provider
 from g4f import debug
 
@@ -177,6 +177,8 @@ class Api:
                             images = asyncio.run(copy_images(chunk.get_list(), chunk.options.get("cookies")))
                             images = ImageResponse(images, chunk.alt)
                         yield self._format_json("content", str(images))
+                    elif isinstance(chunk, SynthesizeData):
+                        yield self._format_json("synthesize", chunk.to_json())
                     elif not isinstance(chunk, FinishReason):
                         yield self._format_json("content", str(chunk))
                     if debug.logs:

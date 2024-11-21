@@ -13,7 +13,7 @@ from ..providers.base_provider import AsyncGeneratorProvider
 from ..image import ImageResponse, copy_images, images_dir
 from ..typing import Messages, Image, ImageType
 from ..providers.types import ProviderType
-from ..providers.response import ResponseType, FinishReason, BaseConversation
+from ..providers.response import ResponseType, FinishReason, BaseConversation, SynthesizeData
 from ..errors import NoImageResponseError, ModelNotFoundError
 from ..providers.retry_provider import IterListProvider
 from ..providers.base_provider import get_running_loop
@@ -59,6 +59,8 @@ def iter_response(
             break
         elif isinstance(chunk, BaseConversation):
             yield chunk
+            continue
+        elif isinstance(chunk, SynthesizeData):
             continue
 
         chunk = str(chunk)
@@ -120,6 +122,8 @@ async def async_iter_response(
                 break
             elif isinstance(chunk, BaseConversation):
                 yield chunk
+                continue
+            elif isinstance(chunk, SynthesizeData):
                 continue
 
             chunk = str(chunk)

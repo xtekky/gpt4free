@@ -11,7 +11,7 @@ from typing import Callable, Union
 
 from ..typing import CreateResult, AsyncResult, Messages
 from .types import BaseProvider
-from .response import FinishReason, BaseConversation
+from .response import FinishReason, BaseConversation, SynthesizeData
 from ..errors import NestAsyncioError, ModelNotSupportedError
 from .. import debug
 
@@ -259,7 +259,7 @@ class AsyncGeneratorProvider(AsyncProvider):
         """
         return "".join([
             str(chunk) async for chunk in cls.create_async_generator(model, messages, stream=False, **kwargs) 
-            if not isinstance(chunk, (Exception, FinishReason, BaseConversation))
+            if not isinstance(chunk, (Exception, FinishReason, BaseConversation, SynthesizeData))
         ])
 
     @staticmethod

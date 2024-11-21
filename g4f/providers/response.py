@@ -24,3 +24,16 @@ class Sources(ResponseType):
 class BaseConversation(ResponseType):
     def __str__(self) -> str:
         return ""
+
+class SynthesizeData(ResponseType):
+    def __init__(self, provider: str, data: dict):
+        self.provider = provider
+        self.data = data
+
+    def to_json(self) -> dict:
+        return {
+            **self.__dict__
+        }
+
+    def __str__(self) -> str:
+        return ""

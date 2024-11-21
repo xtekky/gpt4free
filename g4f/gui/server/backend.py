@@ -1,7 +1,35 @@
 import json
+import asyncio
+import flask
 from flask import request, Flask
+from typing import AsyncGenerator, Generator
+
 from g4f.image import is_allowed_extension, to_image
+from g4f.client.service import convert_to_provider
+from g4f.errors import ProviderNotFoundError
 from .api import Api
+
+def safe_iter_generator(generator: Generator) -> Generator:
+    start = next(generator)
+    def iter_generator():
+        yield start
+        yield from generator
+    return iter_generator()
+
+def to_sync_generator(gen: AsyncGenerator) -> Generator:
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    gen = gen.__aiter__()
+    async def get_next():
+        try:
+            obj = await gen.__anext__()
+            return False, obj
+        except StopAsyncIteration: return True, None
+    while True:
+        done, obj = loop.run_until_complete(get_next())
+        if done:
+            break
+        yield obj
 
 class Backend_Api(Api):    
     """
@@ -46,6 +74,10 @@ class Backend_Api(Api):
             '/backend-api/v2/conversation': {
                 'function': self.handle_conversation,
                 'methods': ['POST']
+            },
+            '/backend-api/v2/synthesize/<provider>': {
+                'function': self.handle_synthesize,
+                'methods': ['GET']
             },
             '/backend-api/v2/error': {
                 'function': self.handle_error,
@@ -98,11 +130,28 @@ class Backend_Api(Api):
             mimetype='text/event-stream'
         )
 
+    def handle_synthesize(self, provider: str):
+        try:
+            provider_handler = convert_to_provider(provider)
+        except ProviderNotFoundError:
+            return "Provider not found", 404
+        if not hasattr(provider_handler, "synthesize"):
+            return "Provider doesn't support synthesize", 500
+        try:
+            response_generator = provider_handler.synthesize({**request.args})
+            if hasattr(response_generator, "__aiter__"):
+                response_generator = to_sync_generator(response_generator)
+            response = flask.Response(safe_iter_generator(response_generator), content_type="audio/mpeg")
+            response.headers['Cache-Control'] = "max-age=604800"
+            return response
+        except Exception as e:
+            return f"{e.__class__.__name__}: {e}", 500
+
     def get_provider_models(self, provider: str):
         api_key = None if request.authorization is None else request.authorization.token
         models = super().get_provider_models(provider, api_key)
         if models is None:
-            return 404, "Provider not found"
+            return "Provider not found", 404
         return models
 
     def _format_json(self, response_type: str, content) -> str:
