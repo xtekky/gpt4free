@@ -66,11 +66,12 @@ class AbstractProvider(BaseProvider):
 
     @classmethod
     def get_parameters(cls) -> dict[str, Parameter]:
-        return signature(
+        return {name: parameter for name, parameter in signature(
             cls.create_async_generator if issubclass(cls, AsyncGeneratorProvider) else
             cls.create_async if issubclass(cls, AsyncProvider) else
             cls.create_completion
-        ).parameters
+        ).parameters.items() if name not in ["kwargs", "model", "messages"]
+            and (name != "stream" or cls.supports_stream)}
 
     @classmethod
     @property
@@ -90,8 +91,6 @@ class AbstractProvider(BaseProvider):
 
         args = ""
         for name, param in cls.get_parameters().items():
-            if name in ("self", "kwargs") or (name == "stream" and not cls.supports_stream):
-                continue
             args += f"\n    {name}"
             args += f": {get_type_name(param.annotation)}" if param.annotation is not Parameter.empty else ""
             default_value = f'"{param.default}"' if isinstance(param.default, str) else param.default

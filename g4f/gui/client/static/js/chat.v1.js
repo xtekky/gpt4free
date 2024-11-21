@@ -44,17 +44,18 @@ appStorage = window.localStorage || {
     removeItem: (key) => delete self[key],
     length: 0
 }
-
-const markdown = window.markdownit();
-const markdown_render = (content) => {
-    return markdown.render(content
-        .replaceAll(/<!-- generated images start -->|<!-- generated images end -->/gm, "")
-        .replaceAll(/<img data-prompt="[^>]+">/gm, "")
-    )
-        .replaceAll("<a href=", '<a target="_blank" href=')
-        .replaceAll('<code>', '<code class="language-plaintext">')
+let markdown_render = () => null;
+if (window.markdownit) {
+    const markdown = window.markdownit();
+    markdown_render = (content) => {
+        return markdown.render(content
+            .replaceAll(/<!-- generated images start -->|<!-- generated images end -->/gm, "")
+            .replaceAll(/<img data-prompt="[^>]+">/gm, "")
+        )
+            .replaceAll("<a href=", '<a target="_blank" href=')
+            .replaceAll('<code>', '<code class="language-plaintext">')
+    }
 }
-
 function filter_message(text) {
     return text.replaceAll(
         /<!-- generated images start -->[\s\S]+<!-- generated images end -->/gm, ""
@@ -135,10 +136,21 @@ const register_message_buttons = async () => {
         if (!("click" in el.dataset)) {
             el.dataset.click = "true";
             el.addEventListener("click", async () => {
-                const content_el = el.parentElement.parentElement;
-                const audio = content_el.querySelector("audio");
-                if (audio) {
-                    audio.classList.add("show");
+                const message_el = el.parentElement.parentElement.parentElement;
+                let audio;
+                if (message_el.dataset.synthesize_url) {
+                    el.classList.add("active");
+                    setTimeout(()=>el.classList.remove("active"), 2000);
+                    const media_player = document.querySelector(".media_player");
+                    if (!media_player.classList.contains("show")) {
+                        media_player.classList.add("show");
+                        audio = new Audio(message_el.dataset.synthesize_url);
+                        audio.controls = true;   
+                        media_player.appendChild(audio);
+                    } else {
+                        audio = media_player.querySelector("audio");
+                        audio.src = message_el.dataset.synthesize_url;
+                    }
                     audio.play();
                     return;
                 }
@@ -163,7 +175,7 @@ const register_message_buttons = async () => {
                 el.dataset.running = true;
                 el.classList.add("blink")
                 el.classList.add("active")
-                const message_el = content_el.parentElement;
+
                 let speechText = await get_message(window.conversation_id, message_el.dataset.index);
 
                 speechText = speechText.replaceAll(/([^0-9])\./gm, "$1.;");
@@ -349,6 +361,13 @@ stop_generating.addEventListener("click", async () => {
         }
     }
     await load_conversation(window.conversation_id, false);
+});
+
+document.querySelector(".media_player .fa-x").addEventListener("click", ()=>{
+    const media_player = document.querySelector(".media_player");
+    media_player.classList.remove("show");
+    const audio = document.querySelector(".media_player audio");
+    media_player.removeChild(audio);
 });
 
 const prepare_messages = (messages, message_index = -1) => {
@@ -726,17 +745,17 @@ const load_conversation = async (conversation_id, scroll=true) => {
                 ${item.provider.model ? ' with ' + item.provider.model : ''}
             </div>
         ` : "";
-        let audio = "";
+        let synthesize_params = {text: item.content}
+        let synthesize_provider = "Gemini";
         if (item.synthesize) {
-            const synthesize_params = (new URLSearchParams(item.synthesize.data)).toString();
-            audio = `
-                <audio controls preload="none">
-                    <source src="/backend-api/v2/synthesize/${item.synthesize.provider}?${synthesize_params}" type="audio/mpeg">
-                </audio> 
-            `;
+            synthesize_params = item.synthesize.data
+            synthesize_provider = item.synthesize.provider;
         }
+        synthesize_params = (new URLSearchParams(synthesize_params)).toString();
+        let synthesize_url = `/backend-api/v2/synthesize/${synthesize_provider}?${synthesize_params}`;
+
         elements += `
-            <div class="message${item.regenerate ? " regenerate": ""}" data-index="${i}">
+            <div class="message${item.regenerate ? " regenerate": ""}" data-index="${i}" data-synthesize_url="${synthesize_url}">
                 <div class="${item.role}">
                     ${item.role == "assistant" ? gpt_image : user_image}
                     <i class="fa-solid fa-xmark"></i>
@@ -748,7 +767,6 @@ const load_conversation = async (conversation_id, scroll=true) => {
                 <div class="content">
                     ${provider}
                     <div class="content_inner">${markdown_render(item.content)}</div>
-                    ${audio}
                     <div class="count">
                         ${count_words_and_tokens(item.content, next_provider?.model)}
                         <i class="fa-solid fa-volume-high"></i>

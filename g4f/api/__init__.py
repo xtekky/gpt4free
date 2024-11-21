@@ -26,6 +26,7 @@ from g4f.client.helper import filter_none
 from g4f.image import is_accepted_format, images_dir
 from g4f.typing import Messages
 from g4f.cookies import read_cookie_files
+from g4f.Provider import ProviderType, ProviderUtils, __providers__
 
 logger = logging.getLogger(__name__)
 
@@ -152,7 +153,9 @@ class Api:
             return HTMLResponse('g4f API: Go to '
                                 '<a href="/v1/models">models</a>, '
                                 '<a href="/v1/chat/completions">chat/completions</a>, or '
-                                '<a href="/v1/images/generate">images/generate</a>.')
+                                '<a href="/v1/images/generate">images/generate</a> <br><br>'
+                                'Open Swagger UI at: '
+                                '<a href="/docs">/docs</a>')
 
         @self.app.get("/v1/models")
         async def models():
@@ -289,6 +292,40 @@ class Api:
                 content_type = is_accepted_format(f.read(12))
 
             return FileResponse(target, media_type=content_type)
+
+        @self.app.get("/providers")
+        async def providers():
+            model_list = [{
+                'id': provider.__name__,
+                'object': 'provider',
+                'created': 0,
+                'url': provider.url,
+                'label': getattr(provider, "label", None),
+            } for provider in __providers__ if provider.working]
+            return JSONResponse(model_list)
+
+        @self.app.get("/providers/{provider}")
+        async def providers_info(provider: str):
+            if provider not in ProviderUtils.convert:
+                return JSONResponse({"error": "The model does not exist."}, 404)
+            provider: ProviderType = ProviderUtils.convert[provider]
+            def safe_get_models(provider: ProviderType) -> list[str]:
+                try:
+                    return provider.get_models() if hasattr(provider, "get_models") else []
+                except:
+                    return []
+            provider_info = {
+                'id': provider.__name__,
+                'object': 'provider',
+                'created': 0,
+                'url': provider.url,
+                'label': getattr(provider, "label", None),
+                'models': safe_get_models(provider),
+                'image_models': getattr(provider, "image_models", []) or [],
+                'vision_models': [model for model in [getattr(provider, "default_vision_model", None)] if model],
+                'params': [*provider.get_parameters()] if hasattr(provider, "get_parameters") else []
+            }
+            return JSONResponse(provider_info)
 
 def format_exception(e: Exception, config: Union[ChatCompletionsConfig, ImageGenerationConfig], image: bool = False) -> str:
     last_provider = {} if not image else g4f.get_last_provider(True)

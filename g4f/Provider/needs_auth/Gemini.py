@@ -4,8 +4,10 @@ import os
 import json
 import random
 import re
+import base64
 
 from aiohttp import ClientSession, BaseConnector
+
 try:
     import nodriver
     has_nodriver = True
@@ -14,12 +16,13 @@ except ImportError:
 
 from ... import debug
 from ...typing import Messages, Cookies, ImageType, AsyncResult, AsyncIterator
-from ..base_provider import AsyncGeneratorProvider, BaseConversation
+from ..base_provider import AsyncGeneratorProvider, BaseConversation, SynthesizeData
 from ..helper import format_prompt, get_cookies
 from ...requests.raise_for_status import raise_for_status
 from ...requests.aiohttp import get_connector
 from ...errors import MissingAuthError
 from ...image import ImageResponse, to_bytes
+from ... import debug
 
 REQUEST_HEADERS = {
     "authority": "gemini.google.com",
@@ -54,6 +57,7 @@ class Gemini(AsyncGeneratorProvider):
     image_models = ["gemini"]
     default_vision_model = "gemini"
     models = ["gemini", "gemini-1.5-flash", "gemini-1.5-pro"]
+    synthesize_content_type = "audio/vnd.wav"
     _cookies: Cookies = None
     _snlm0e: str = None
     _sid: str = None
@@ -106,6 +110,7 @@ class Gemini(AsyncGeneratorProvider):
         prompt = format_prompt(messages) if conversation is None else messages[-1]["content"]
         cls._cookies = cookies or cls._cookies or get_cookies(".google.com", False, True)
         base_connector = get_connector(connector, proxy)
+
         async with ClientSession(
             headers=REQUEST_HEADERS,
             connector=base_connector
@@ -122,6 +127,7 @@ class Gemini(AsyncGeneratorProvider):
             if not cls._snlm0e:
                 raise RuntimeError("Invalid cookies. SNlM0e not found")
 
+            yield SynthesizeData(cls.__name__, {"text": messages[-1]["content"]})
             image_url = await cls.upload_image(base_connector, to_bytes(image), image_name) if image else None
 
             async with ClientSession(
@@ -197,6 +203,40 @@ class Gemini(AsyncGeneratorProvider):
                                 yield ImageResponse(resolved_images, image_prompt, {"orginal_links": images, "preview": preview})
                         except TypeError:
                             pass
+
+    @classmethod
+    async def synthesize(cls, params: dict, proxy: str = None) -> AsyncIterator[bytes]:
+        async with ClientSession(
+            cookies=cls._cookies,
+            headers=REQUEST_HEADERS,
+            connector=get_connector(proxy=proxy),
+        ) as session:
+            if not cls._snlm0e:
+                await cls.fetch_snlm0e(session, cls._cookies) if cls._cookies else None
+            if not cls._snlm0e:
+                async for chunk in cls.nodriver_login(proxy):
+                    debug.log(chunk)
+            inner_data = json.dumps([None, params["text"], "de-DE", None, 2])
+            async with session.post(
+                "https://gemini.google.com/_/BardChatUi/data/batchexecute",
+                data={
+                      "f.req": json.dumps([[["XqA3Ic", inner_data, None, "generic"]]]),
+                      "at": cls._snlm0e,
+                },
+                params={
+                    "rpcids": "XqA3Ic",
+                    "source-path": "/app/2704fb4aafcca926",
+                    "bl": "boq_assistant-bard-web-server_20241119.00_p1",
+                    "f.sid": "" if cls._sid is None else cls._sid,
+                    "hl": "de",
+                    "_reqid": random.randint(1111, 9999),
+                    "rt": "c"
+                },
+            ) as response:
+                await raise_for_status(response)
+                iter_base64_response = iter_filter_base64(response.content.iter_chunked(1024))
+                async for chunk in iter_base64_decode(iter_base64_response):
+                    yield chunk
 
     def build_request(
         prompt: str,
@@ -280,3 +320,27 @@ class Conversation(BaseConversation):
         self.conversation_id = conversation_id
         self.response_id = response_id
         self.choice_id = choice_id
+async def iter_filter_base64(response_iter: AsyncIterator[bytes]) -> AsyncIterator[bytes]:
+    search_for = b'[["wrb.fr","XqA3Ic","[\\"'
+    end_with = b'\\'
+    is_started = False
+    async for chunk in response_iter:
+        if is_started:
+            if end_with in chunk:
+                yield chunk.split(end_with, 1).pop(0)
+                break
+            else:
+                yield chunk
+        elif search_for in chunk:
+            is_started = True
+            yield chunk.split(search_for, 1).pop()
+        else:
+            raise RuntimeError(f"Response: {chunk}")
+
+async def iter_base64_decode(response_iter: AsyncIterator[bytes]) -> AsyncIterator[bytes]:
+    buffer = b""
+    async for chunk in response_iter:
+        chunk = buffer + chunk
+        rest = len(chunk) % 4
+        buffer = chunk[-rest:]
+        yield base64.b64decode(chunk[:-rest])
