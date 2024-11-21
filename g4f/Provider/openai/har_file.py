@@ -25,7 +25,6 @@ class NoValidHarFileError(Exception):
     pass
 
 class RequestConfig:
-    user_agent: str = None
     cookies: dict = None
     headers: dict = None
     access_request_id: str = None
