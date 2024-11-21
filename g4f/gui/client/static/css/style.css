@@ -259,7 +259,6 @@ body {
     flex-direction: column;
     gap: var(--section-gap);
     padding: var(--inner-gap) var(--section-gap);
-    padding-bottom: 0;
 }
 
 .message.print {
@@ -271,7 +270,11 @@ body {
 }
 
 .message.regenerate {
-    opacity: 0.75;
+    background-color: var(--colour-6);
+}
+
+.white .message.regenerate {
+    background-color: var(--colour-4);
 }
 
 .message:last-child {
@@ -407,6 +410,7 @@ body {
 
 .message .count .fa-clipboard.clicked,
 .message .count .fa-print.clicked,
+.message .count .fa-rotate.clicked,
 .message .count .fa-volume-high.active {
     color: var(--accent);
 }
@@ -428,6 +432,15 @@ body {
 
 .message .content .count {
     font-size: 12px;
+}
+
+.message audio {
+    display: none;
+    max-width: 400px;
+}
+
+.message audio.show {
+    display: block;
 }
 
 .count_total {
@@ -1159,7 +1172,10 @@ a:-webkit-any-link {
     .message .user {
         display: none;
     }
-    .message.regenerate {
-        opacity: 1;
+    body {
+        height: auto;
+    }
+    .box {
+        backdrop-filter: none;
     }
 }
