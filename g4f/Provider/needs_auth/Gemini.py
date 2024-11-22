@@ -206,6 +206,8 @@ class Gemini(AsyncGeneratorProvider):
 
     @classmethod
     async def synthesize(cls, params: dict, proxy: str = None) -> AsyncIterator[bytes]:
+        if "text" not in params:
+            raise ValueError("Missing parameter text")
         async with ClientSession(
             cookies=cls._cookies,
             headers=REQUEST_HEADERS,

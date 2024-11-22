@@ -14,3 +14,4 @@ brotli
 beautifulsoup4
 aiohttp_socks
 cryptography
+python-multipart
