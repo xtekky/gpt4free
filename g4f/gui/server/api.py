@@ -140,13 +140,12 @@ class Api:
         }
 
     def _create_response_stream(self, kwargs: dict, conversation_id: str, provider: str, download_images: bool = True) -> Iterator:
-        if debug.logging:
-            debug.logs = []
-            print_callback = debug.log_handler
-            def log_handler(text: str):
-                debug.logs.append(text)
-                print_callback(text)
-            debug.log_handler = log_handler
+        debug.logs = []
+        print_callback = debug.log_handler
+        def log_handler(text: str):
+            debug.logs.append(text)
+            print_callback(text)
+        debug.log_handler = log_handler
         try:
             result = ChatCompletion.create(**kwargs)
             first = True

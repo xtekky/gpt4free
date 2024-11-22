@@ -434,13 +434,26 @@ body {
     font-size: 12px;
 }
 
-.message audio {
+.media_player {
     display: none;
-    max-width: 400px;
 }
 
-.message audio.show {
+.media_player audio {
+    right: 28px;
+    position: absolute;
+    top: -4px;
+    z-index: 900;
+}
+
+.media_player.show {
     display: block;
+}
+
+.media_player .fa-x {
+    position: absolute;
+    right: 8px;
+    top: 8px;
+    z-index: 1000;
 }
 
 .count_total {

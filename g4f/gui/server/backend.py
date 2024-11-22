@@ -1,6 +1,8 @@
 import json
 import flask
 import os
+import logging
+import asyncio
 from flask import request, Flask
 from typing import Generator
 from werkzeug.utils import secure_filename
@@ -11,6 +13,8 @@ from g4f.providers.asyncio import to_sync_generator
 from g4f.errors import ProviderNotFoundError
 from g4f.cookies import get_cookies_dir
 from .api import Api
+
+logger = logging.getLogger(__name__)
 
 def safe_iter_generator(generator: Generator) -> Generator:
     start = next(generator)
@@ -127,15 +131,17 @@ class Backend_Api(Api):
             return "Provider not found", 404
         if not hasattr(provider_handler, "synthesize"):
             return "Provider doesn't support synthesize", 500
-        try:
-            response_generator = provider_handler.synthesize({**request.args})
-            if hasattr(response_generator, "__aiter__"):
-                response_generator = to_sync_generator(response_generator)
-            response = flask.Response(safe_iter_generator(response_generator), content_type="audio/mpeg")
-            response.headers['Cache-Control'] = "max-age=604800"
-            return response
-        except Exception as e:
-            return f"{e.__class__.__name__}: {e}", 500
+        response_data = provider_handler.synthesize({**request.args})
+        if asyncio.iscoroutinefunction(provider_handler.synthesize):
+            response_data = asyncio.run(response_data)
+        else:
+            if hasattr(response_data, "__aiter__"):
+                response_data = to_sync_generator(response_data)
+            response_data = safe_iter_generator(response_data)
+        content_type = getattr(provider_handler, "synthesize_content_type", "application/octet-stream")
+        response = flask.Response(response_data, content_type=content_type)
+        response.headers['Cache-Control'] = "max-age=604800"
+        return response
 
     def get_provider_models(self, provider: str):
         api_key = None if request.authorization is None else request.authorization.token

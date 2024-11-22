@@ -61,6 +61,7 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
     fallback_models = [default_model, "gpt-4", "gpt-4o", "gpt-4o-mini", "gpt-4o-canmore", "o1-preview", "o1-mini"]
     vision_models = fallback_models
     image_models = fallback_models
+    synthesize_content_type = "audio/mpeg"
 
     _api_key: str = None
     _headers: dict = None
