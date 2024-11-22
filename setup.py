@@ -46,6 +46,18 @@ EXTRA_REQUIRE = {
         "uvicorn",                 # api
         "python-multipart",
     ],
+    'slim': [
+        "curl_cffi>=0.6.2",
+        "certifi",
+        "duckduckgo-search>=5.0"  ,# internet.search
+        "beautifulsoup4",          # internet.search and bing.create_images
+        "aiohttp_socks",           # proxy
+        "pillow",                  # image
+        "cairosvg",                # svg image
+        "werkzeug", "flask",       # gui
+        "fastapi",                 # api
+        "uvicorn",                 # api
+    ],
     "image": [
         "pillow",
         "cairosvg",
