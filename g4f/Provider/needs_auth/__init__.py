@@ -7,6 +7,7 @@ from .DeepInfra        import DeepInfra
 from .DeepInfraImage   import DeepInfraImage
 from .Gemini           import Gemini
 from .GeminiPro        import GeminiPro
+from .GithubCopilot    import GithubCopilot
 from .Groq             import Groq
 from .HuggingFace      import HuggingFace
 from .HuggingFace2     import HuggingFace2

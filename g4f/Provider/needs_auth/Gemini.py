@@ -206,6 +206,8 @@ class Gemini(AsyncGeneratorProvider):
 
     @classmethod
     async def synthesize(cls, params: dict, proxy: str = None) -> AsyncIterator[bytes]:
+        if "text" not in params:
+            raise ValueError("Missing parameter text")
         async with ClientSession(
             cookies=cls._cookies,
             headers=REQUEST_HEADERS,
@@ -213,9 +215,6 @@ class Gemini(AsyncGeneratorProvider):
         ) as session:
             if not cls._snlm0e:
                 await cls.fetch_snlm0e(session, cls._cookies) if cls._cookies else None
-            if not cls._snlm0e:
-                async for chunk in cls.nodriver_login(proxy):
-                    debug.log(chunk)
             inner_data = json.dumps([None, params["text"], "de-DE", None, 2])
             async with session.post(
                 "https://gemini.google.com/_/BardChatUi/data/batchexecute",

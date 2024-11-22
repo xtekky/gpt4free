@@ -19,3 +19,4 @@ pywebview
 plyer
 cryptography
 nodriver
+python-multipart

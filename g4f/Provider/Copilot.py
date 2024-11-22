@@ -73,10 +73,9 @@ class Copilot(AbstractProvider):
             else:
                 access_token = conversation.access_token
             debug.log(f"Copilot: Access token: {access_token[:7]}...{access_token[-5:]}")
-            debug.log(f"Copilot: Cookies: {';'.join([*cookies])}")
             websocket_url = f"{websocket_url}&accessToken={quote(access_token)}"
-            headers = {"authorization": f"Bearer {access_token}", "cookie": format_cookies(cookies)}
-    
+            headers = {"authorization": f"Bearer {access_token}"}
+
         with Session(
             timeout=timeout,
             proxy=proxy,

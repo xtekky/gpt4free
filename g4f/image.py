@@ -33,9 +33,13 @@ EXTENSIONS_MAP: dict[str, str] = {
 # Define the directory for generated images
 images_dir = "./generated_images"
 
-def fix_url(url:str) -> str:
+def fix_url(url: str) -> str:
     """ replace ' ' by '+' (to be markdown compliant)"""
     return url.replace(" ","+")
+
+def fix_title(title: str) -> str:
+    if title:
+        return title.replace("\n", "").replace('"', '')
 
 def to_image(image: ImageType, is_svg: bool = False) -> Image:
     """
@@ -226,12 +230,12 @@ def format_images_markdown(images: Union[str, list], alt: str, preview: Union[st
         str: The formatted markdown string.
     """
     if isinstance(images, str):
-        result = f"[![{alt}]({fix_url(preview.replace('{image}', images) if preview else images)})]({fix_url(images)})"
+        result = f"[![{fix_title(alt)}]({fix_url(preview.replace('{image}', images) if preview else images)})]({fix_url(images)})"
     else:
         if not isinstance(preview, list):
             preview = [preview.replace('{image}', image) if preview else image for image in images]
         result = "\n".join(
-            f"[![#{idx+1} {alt}]({fix_url(preview[idx])})]({fix_url(image)})"
+            f"[![#{idx+1} {fix_title(alt)}]({fix_url(preview[idx])})]({fix_url(image)})"
             for idx, image in enumerate(images)
         )
     start_flag = "<!-- generated images start -->\n"
