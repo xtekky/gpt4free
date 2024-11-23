@@ -20,7 +20,7 @@ from ..base_provider import AsyncGeneratorProvider, BaseConversation, Synthesize
 from ..helper import format_prompt, get_cookies
 from ...requests.raise_for_status import raise_for_status
 from ...requests.aiohttp import get_connector
-from ..requests import get_browser
+from ..requests import get_nodriver
 from ...errors import MissingAuthError
 from ...image import ImageResponse, to_bytes
 from ... import debug
@@ -69,7 +69,7 @@ class Gemini(AsyncGeneratorProvider):
             if debug.logging:
                 print("Skip nodriver login in Gemini provider")
             return
-        browset = await get_browser(proxy=proxy)
+        browser = await get_nodriver(proxy=proxy)
         login_url = os.environ.get("G4F_LOGIN_URL")
         if login_url:
             yield f"Please login: [Google Gemini]({login_url})\n\n"
