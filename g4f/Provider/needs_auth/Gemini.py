@@ -109,8 +109,11 @@ class Gemini(AsyncGeneratorProvider):
             if not cls._snlm0e:
                 await cls.fetch_snlm0e(session, cls._cookies) if cls._cookies else None
             if not cls._snlm0e:
-                async for chunk in cls.nodriver_login(proxy):
-                    yield chunk
+                try:
+                    async for chunk in cls.nodriver_login(proxy):
+                        yield chunk
+                except Exception as e:
+                    raise MissingAuthError('Missing "__Secure-1PSID" cookie', e)
             if not cls._snlm0e:
                 if cls._cookies is None or "__Secure-1PSID" not in cls._cookies:
                     raise MissingAuthError('Missing "__Secure-1PSID" cookie')
