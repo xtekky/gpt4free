@@ -88,10 +88,10 @@ class ProviderResponseModel(BaseModel):
     owned_by: Optional[str]
     url: Optional[str]
     label: Optional[str]
-
+⅞
 class ProviderResponseModelDetail(ProviderResponseModel):
     models: list[str]
-    image_models: list[str] = "provider"
+    image_models: list[str]
     vision_models: list[str]
     params: list[str]
 
