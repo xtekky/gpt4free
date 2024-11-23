@@ -360,39 +360,7 @@ class Api:
 
             return FileResponse(target, media_type=content_type)
 
-        @self.app.get("/providers")
-        async def providers():
-            model_list = [{
-                'id': provider.__name__,
-                'object': 'provider',
-                'created': 0,
-                'url': provider.url,
-                'label': getattr(provider, "label", None),
-            } for provider in __providers__ if provider.working]
-            return JSONResponse(model_list)
-
-        @self.app.get("/providers/{provider}")
-        async def providers_info(provider: str):
-            if provider not in ProviderUtils.convert:
-                return JSONResponse({"error": "The model does not exist."}, 404)
-            provider: ProviderType = ProviderUtils.convert[provider]
-            def safe_get_models(provider: ProviderType) -> list[str]:
-                try:
-                    return provider.get_models() if hasattr(provider, "get_models") else []
-                except:
-                    return []
-            provider_info = {
-                'id': provider.__name__,
-                'object': 'provider',
-                'created': 0,
-                'url': provider.url,
-                'label': getattr(provider, "label", None),
-                'models': safe_get_models(provider),
-                'image_models': getattr(provider, "image_models", []) or [],
-                'vision_models': [model for model in [getattr(provider, "default_vision_model", None)] if model],
-                'params': [*provider.get_parameters()] if hasattr(provider, "get_parameters") else []
-            }
-            return JSONResponse(provider_info)
+        
 
 def format_exception(e: Exception, config: Union[ChatCompletionsConfig, ImageGenerationConfig], image: bool = False) -> str:
     last_provider = {} if not image else g4f.get_last_provider(True)
