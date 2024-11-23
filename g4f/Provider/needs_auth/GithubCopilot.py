@@ -29,7 +29,7 @@ class GithubCopilot(AsyncGeneratorProvider, ProviderModelMixin):
         model: str,
         messages: Messages,
         stream: bool = False,
-        api_key: str = "X2eRgXPamxGK_TXS6seGGYy541mQuVJdH1CYljrvSPuc38je5J4KK4Aw0y5X2oVRFMjA4B1fo9sdsr4VJcl-VBae7H0Mr4U9GIkFnGx3hSs=",
+        api_key: str = None,
         proxy: str = None,
         cookies: Cookies = None,
         conversation_id: str = None,
