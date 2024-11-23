@@ -1,12 +1,9 @@
 from __future__ import annotations
 
 import re
-import queue
-import threading
 import logging
-import asyncio
 
-from typing import AsyncIterator, Iterator, AsyncGenerator
+from typing import AsyncIterator, Iterator, AsyncGenerator, Optional
 
 def filter_json(text: str) -> str:
     """
@@ -23,7 +20,7 @@ def filter_json(text: str) -> str:
         return match.group("code")
     return text
 
-def find_stop(stop, content: str, chunk: str = None):
+def find_stop(stop: Optional[list[str]], content: str, chunk: str = None):
     first = -1
     word = None
     if stop is not None:
@@ -52,33 +49,6 @@ async def safe_aclose(generator: AsyncGenerator) -> None:
         await generator.aclose()
     except Exception as e:
         logging.warning(f"Error while closing generator: {e}")
-
-# Helper function to convert an async generator to a synchronous iterator
-def to_sync_iter(async_gen: AsyncIterator) -> Iterator:
-    q = queue.Queue()
-    loop = asyncio.new_event_loop()
-    done = object()
-
-    def _run():
-        asyncio.set_event_loop(loop)
-
-        async def iterate():
-            try:
-                async for item in async_gen:
-                    q.put(item)
-            finally:
-                q.put(done)
-
-        loop.run_until_complete(iterate())
-        loop.close()
-
-    threading.Thread(target=_run).start()
-
-    while True:
-        item = q.get()
-        if item is done:
-            break
-        yield item
 
 # Helper function to convert a synchronous iterator to an async iterator
 async def to_async_iterator(iterator: Iterator) -> AsyncIterator:

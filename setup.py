@@ -23,17 +23,28 @@ EXTRA_REQUIRE = {
         "browser_cookie3",         # get_cookies
         "duckduckgo-search>=5.0"  ,# internet.search
         "beautifulsoup4",          # internet.search and bing.create_images
-        "brotli",                  # openai, bing
         "platformdirs",
-        "cryptography",
         "aiohttp_socks",           # proxy
         "pillow",                  # image
         "cairosvg",                # svg image
         "werkzeug", "flask",       # gui
         "fastapi",                 # api
-        "uvicorn", "nest_asyncio", # api
-        "pycryptodome",            # openai
+        "uvicorn",                 # api
         "nodriver",
+        "python-multipart",
+    ],
+    'slim': [
+        "curl_cffi>=0.6.2",
+        "certifi",
+        "duckduckgo-search>=5.0"  ,# internet.search
+        "beautifulsoup4",          # internet.search and bing.create_images
+        "aiohttp_socks",           # proxy
+        "pillow",                  # image
+        "cairosvg",                # svg image
+        "werkzeug", "flask",       # gui
+        "fastapi",                 # api
+        "uvicorn",                 # api
+        "python-multipart",
     ],
     "image": [
         "pillow",
@@ -55,12 +66,13 @@ EXTRA_REQUIRE = {
     "api": [
         "loguru", "fastapi",
         "uvicorn",
+        "python-multipart",
     ],
     "gui": [
         "werkzeug", "flask",
         "beautifulsoup4", "pillow",
         "duckduckgo-search>=5.0",
-        "browser_cookie3"
+        "browser_cookie3",
     ],
     "search": [
         "beautifulsoup4", "pillow",

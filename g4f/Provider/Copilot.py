@@ -57,6 +57,7 @@ class Copilot(AbstractProvider):
         image: ImageType = None,
         conversation: Conversation = None,
         return_conversation: bool = False,
+        web_search: bool = True,
         **kwargs
     ) -> CreateResult:
         if not has_curl_cffi:
@@ -72,10 +73,9 @@ class Copilot(AbstractProvider):
             else:
                 access_token = conversation.access_token
             debug.log(f"Copilot: Access token: {access_token[:7]}...{access_token[-5:]}")
-            debug.log(f"Copilot: Cookies: {';'.join([*cookies])}")
             websocket_url = f"{websocket_url}&accessToken={quote(access_token)}"
-            headers = {"authorization": f"Bearer {access_token}", "cookie": format_cookies(cookies)}
-    
+            headers = {"authorization": f"Bearer {access_token}"}
+
         with Session(
             timeout=timeout,
             proxy=proxy,
@@ -124,12 +124,14 @@ class Copilot(AbstractProvider):
             is_started = False
             msg = None
             image_prompt: str = None
+            last_msg = None
             while True:
                 try:
                     msg = wss.recv()[0]
                     msg = json.loads(msg)
                 except:
                     break
+                last_msg = msg
                 if msg.get("event") == "appendText":
                     is_started = True
                     yield msg.get("text")
@@ -139,8 +141,12 @@ class Copilot(AbstractProvider):
                     yield ImageResponse(msg.get("url"), image_prompt, {"preview": msg.get("thumbnailUrl")})
                 elif msg.get("event") == "done":
                     break
+                elif msg.get("event") == "error":
+                    raise RuntimeError(f"Error: {msg}")
+                elif msg.get("event") not in ["received", "startMessage", "citation", "partCompleted"]:
+                    debug.log(f"Copilot Message: {msg}")
             if not is_started:
-                raise RuntimeError(f"Last message: {msg}")
+                raise RuntimeError(f"Invalid response: {last_msg}")
 
     @classmethod
     async def get_access_token_and_cookies(cls, proxy: str = None):

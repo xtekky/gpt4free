@@ -259,7 +259,6 @@ body {
     flex-direction: column;
     gap: var(--section-gap);
     padding: var(--inner-gap) var(--section-gap);
-    padding-bottom: 0;
 }
 
 .message.print {
@@ -271,7 +270,11 @@ body {
 }
 
 .message.regenerate {
-    opacity: 0.75;
+    background-color: var(--colour-6);
+}
+
+.white .message.regenerate {
+    background-color: var(--colour-4);
 }
 
 .message:last-child {
@@ -407,6 +410,7 @@ body {
 
 .message .count .fa-clipboard.clicked,
 .message .count .fa-print.clicked,
+.message .count .fa-rotate.clicked,
 .message .count .fa-volume-high.active {
     color: var(--accent);
 }
@@ -428,6 +432,28 @@ body {
 
 .message .content .count {
     font-size: 12px;
+}
+
+.media_player {
+    display: none;
+}
+
+.media_player audio {
+    right: 28px;
+    position: absolute;
+    top: -4px;
+    z-index: 900;
+}
+
+.media_player.show {
+    display: block;
+}
+
+.media_player .fa-x {
+    position: absolute;
+    right: 8px;
+    top: 8px;
+    z-index: 1000;
 }
 
 .count_total {
@@ -498,6 +524,7 @@ body {
     gap: 12px;
     cursor: pointer;
     animation: show_popup 0.4s;
+    height: 28px;
 }
 
 .toolbar .regenerate {
@@ -1158,7 +1185,10 @@ a:-webkit-any-link {
     .message .user {
         display: none;
     }
-    .message.regenerate {
-        opacity: 1;
+    body {
+        height: auto;
+    }
+    .box {
+        backdrop-filter: none;
     }
 }

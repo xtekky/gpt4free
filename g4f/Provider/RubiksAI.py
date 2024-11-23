@@ -9,7 +9,7 @@ from urllib.parse import urlencode
 from aiohttp import ClientSession
 
 from ..typing import AsyncResult, Messages
-from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from .base_provider import AsyncGeneratorProvider, ProviderModelMixin, Sources
 from ..requests.raise_for_status import raise_for_status
 
 class RubiksAI(AsyncGeneratorProvider, ProviderModelMixin):
@@ -23,7 +23,6 @@ class RubiksAI(AsyncGeneratorProvider, ProviderModelMixin):
 
     default_model = 'gpt-4o-mini'
     models = [default_model, 'gpt-4o', 'o1-mini', 'claude-3.5-sonnet', 'grok-beta', 'gemini-1.5-pro', 'nova-pro']
-
     model_aliases = {
         "llama-3.1-70b": "llama-3.1-70b-versatile",
     }
@@ -118,7 +117,7 @@ class RubiksAI(AsyncGeneratorProvider, ProviderModelMixin):
 
                     if 'url' in json_data and 'title' in json_data:
                         if web_search:
-                            sources.append({'title': json_data['title'], 'url': json_data['url']})
+                            sources.append(json_data)
 
                     elif 'choices' in json_data:
                         for choice in json_data['choices']:
@@ -128,5 +127,4 @@ class RubiksAI(AsyncGeneratorProvider, ProviderModelMixin):
                                 yield content
 
                 if web_search and sources:
-                    sources_text = '\n'.join([f"{i+1}. [{s['title']}]: {s['url']}" for i, s in enumerate(sources)])
-                    yield f"\n\n**Source:**\n{sources_text}"
+                    yield Sources(sources)

@@ -4,8 +4,11 @@ import logging
 import json
 import uvicorn
 import secrets
+import os
+import shutil
 
-from fastapi import FastAPI, Response, Request
+import os.path
+from fastapi import FastAPI, Response, Request, UploadFile
 from fastapi.responses import StreamingResponse, RedirectResponse, HTMLResponse, JSONResponse
 from fastapi.exceptions import RequestValidationError
 from fastapi.security import APIKeyHeader
@@ -13,15 +16,20 @@ from starlette.exceptions import HTTPException
 from starlette.status import HTTP_422_UNPROCESSABLE_ENTITY, HTTP_401_UNAUTHORIZED, HTTP_403_FORBIDDEN
 from fastapi.encoders import jsonable_encoder
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.responses import FileResponse
 from pydantic import BaseModel
-from typing import Union, Optional
+from typing import Union, Optional, List
 
 import g4f
 import g4f.debug
-from g4f.client import AsyncClient, ChatCompletion
+from g4f.client import AsyncClient, ChatCompletion, convert_to_provider
+from g4f.providers.response import BaseConversation
 from g4f.client.helper import filter_none
+from g4f.image import is_accepted_format, images_dir
 from g4f.typing import Messages
-from g4f.cookies import read_cookie_files
+from g4f.errors import ProviderNotFoundError
+from g4f.cookies import read_cookie_files, get_cookies_dir
+from g4f.Provider import ProviderType, ProviderUtils, __providers__
 
 logger = logging.getLogger(__name__)
 
@@ -63,6 +71,7 @@ class ChatCompletionsConfig(BaseModel):
     api_key: Optional[str] = None
     web_search: Optional[bool] = None
     proxy: Optional[str] = None
+    conversation_id: str = None
 
 class ImageGenerationConfig(BaseModel):
     prompt: str
@@ -71,6 +80,18 @@ class ImageGenerationConfig(BaseModel):
     response_format: str = "url"
     api_key: Optional[str] = None
     proxy: Optional[str] = None
+
+class ProviderResponseModel(BaseModel):
+    id: str
+    object: str = "provider"
+    created: int
+    owned_by: Optional[str]
+
+class ModelResponseModel(BaseModel):
+    id: str
+    object: str = "model"
+    created: int
+    owned_by: Optional[str]
 
 class AppConfig:
     ignored_providers: Optional[list[str]] = None
@@ -98,11 +119,12 @@ class Api:
         self.client = AsyncClient()
         self.g4f_api_key = g4f_api_key
         self.get_g4f_api_key = APIKeyHeader(name="g4f-api-key")
+        self.conversations: dict[str, dict[str, BaseConversation]] = {}
 
     def register_authorization(self):
         @self.app.middleware("http")
         async def authorization(request: Request, call_next):
-            if self.g4f_api_key and request.url.path in ["/v1/chat/completions", "/v1/completions", "/v1/images/generate"]:
+            if self.g4f_api_key and request.url.path not in ("/", "/v1"):
                 try:
                     user_g4f_api_key = await self.get_g4f_api_key(request)
                 except HTTPException as e:
@@ -116,9 +138,7 @@ class Api:
                         status_code=HTTP_403_FORBIDDEN,
                         content=jsonable_encoder({"detail": "Invalid G4F API key"}),
                     )
-
-            response = await call_next(request)
-            return response
+            return await call_next(request)
 
     def register_validation_exception_handler(self):
         @self.app.exception_handler(RequestValidationError)
@@ -146,25 +166,26 @@ class Api:
             return HTMLResponse('g4f API: Go to '
                                 '<a href="/v1/models">models</a>, '
                                 '<a href="/v1/chat/completions">chat/completions</a>, or '
-                                '<a href="/v1/images/generate">images/generate</a>.')
+                                '<a href="/v1/images/generate">images/generate</a> <br><br>'
+                                'Open Swagger UI at: '
+                                '<a href="/docs">/docs</a>')
 
         @self.app.get("/v1/models")
-        async def models():
+        async def models() -> list[ModelResponseModel]:
             model_list = dict(
                 (model, g4f.models.ModelUtils.convert[model])
                 for model in g4f.Model.__all__()
             )
-            model_list = [{
+            return [{
                 'id': model_id,
                 'object': 'model',
                 'created': 0,
                 'owned_by': model.base_provider
             } for model_id, model in model_list.items()]
-            return JSONResponse(model_list)
 
         @self.app.get("/v1/models/{model_name}")
         async def model_info(model_name: str):
-            try:
+            if model_name in g4f.models.ModelUtils.convert:
                 model_info = g4f.models.ModelUtils.convert[model_name]
                 return JSONResponse({
                     'id': model_name,
@@ -172,19 +193,27 @@ class Api:
                     'created': 0,
                     'owned_by': model_info.base_provider
                 })
-            except:
-                return JSONResponse({"error": "The model does not exist."})
+            return JSONResponse({"error": "The model does not exist."}, 404)
 
         @self.app.post("/v1/chat/completions")
         async def chat_completions(config: ChatCompletionsConfig, request: Request = None, provider: str = None):
             try:
                 config.provider = provider if config.provider is None else config.provider
+                if config.provider is None:
+                    config.provider = AppConfig.provider
                 if config.api_key is None and request is not None:
                     auth_header = request.headers.get("Authorization")
                     if auth_header is not None:
-                        auth_header = auth_header.split(None, 1)[-1]
-                        if auth_header and auth_header != "Bearer":
-                            config.api_key = auth_header
+                        api_key = auth_header.split(None, 1)[-1]
+                        if api_key and api_key != "Bearer":
+                            config.api_key = api_key
+
+                conversation = return_conversation = None
+                if config.conversation_id is not None and config.provider is not None:
+                    return_conversation = True
+                    if config.conversation_id in self.conversations:
+                        if config.provider in self.conversations[config.conversation_id]:
+                            conversation = self.conversations[config.conversation_id][config.provider]
 
                 # Create the completion response
                 response = self.client.chat.completions.create(
@@ -194,6 +223,11 @@ class Api:
                             "provider": AppConfig.provider,
                             "proxy": AppConfig.proxy,
                             **config.dict(exclude_none=True),
+                            **{
+                                "conversation_id": None,
+                                "return_conversation": return_conversation,
+                                "conversation": conversation
+                            }
                         },
                         ignored=AppConfig.ignored_providers
                     ),
@@ -206,7 +240,13 @@ class Api:
                 async def streaming():
                     try:
                         async for chunk in response:
-                            yield f"data: {json.dumps(chunk.to_json())}\n\n"
+                            if isinstance(chunk, BaseConversation):
+                                if config.conversation_id is not None and config.provider is not None:
+                                    if config.conversation_id not in self.conversations:
+                                        self.conversations[config.conversation_id] = {}
+                                    self.conversations[config.conversation_id][config.provider] = chunk
+                            else:
+                                yield f"data: {json.dumps(chunk.to_json())}\n\n"
                     except GeneratorExit:
                         pass
                     except Exception as e:
@@ -222,7 +262,13 @@ class Api:
 
         @self.app.post("/v1/images/generate")
         @self.app.post("/v1/images/generations")
-        async def generate_image(config: ImageGenerationConfig):
+        async def generate_image(config: ImageGenerationConfig, request: Request):
+            if config.api_key is None:
+                auth_header = request.headers.get("Authorization")
+                if auth_header is not None:
+                    api_key = auth_header.split(None, 1)[-1]
+                    if api_key and api_key != "Bearer":
+                        config.api_key = api_key
             try:
                 response = await self.client.images.generate(
                     prompt=config.prompt,
@@ -234,14 +280,87 @@ class Api:
                         proxy = config.proxy
                     )
                 )
+                for image in response.data:
+                    if hasattr(image, "url") and image.url.startswith("/"):
+                        image.url = f"{request.base_url}{image.url.lstrip('/')}"
                 return JSONResponse(response.to_json())
             except Exception as e:
                 logger.exception(e)
                 return Response(content=format_exception(e, config, True), status_code=500, media_type="application/json")
 
-        @self.app.post("/v1/completions")
-        async def completions():
-            return Response(content=json.dumps({'info': 'Not working yet.'}, indent=4), media_type="application/json")
+        @self.app.get("/v1/providers")
+        async def providers() -> list[ProviderResponseModel]:
+            return [{
+                'id': provider.__name__,
+                'object': 'provider',
+                'created': 0,
+                'url': provider.url,
+                'label': getattr(provider, "label", None),
+            } for provider in __providers__ if provider.working]
+
+        @self.app.get("/v1/providers/{provider}")
+        async def providers_info(provider: str) -> ProviderResponseModel:
+            if provider not in ProviderUtils.convert:
+                return JSONResponse({"error": "The provider does not exist."}, 404)
+            provider: ProviderType = ProviderUtils.convert[provider]
+            def safe_get_models(provider: ProviderType) -> list[str]:
+                try:
+                    return provider.get_models() if hasattr(provider, "get_models") else []
+                except:
+                    return []
+            return {
+                'id': provider.__name__,
+                'object': 'provider',
+                'created': 0,
+                'url': provider.url,
+                'label': getattr(provider, "label", None),
+                'models': safe_get_models(provider),
+                'image_models': getattr(provider, "image_models", []) or [],
+                'vision_models': [model for model in [getattr(provider, "default_vision_model", None)] if model],
+                'params': [*provider.get_parameters()] if hasattr(provider, "get_parameters") else []
+            }
+
+        @self.app.post("/v1/upload_cookies")
+        def upload_cookies(files: List[UploadFile]):
+            response_data = []
+            for file in files:
+                try:
+                    if file and file.filename.endswith(".json") or file.filename.endswith(".har"):
+                        filename = os.path.basename(file.filename)
+                        with open(os.path.join(get_cookies_dir(), filename), 'wb') as f:
+                            shutil.copyfileobj(file.file, f)
+                        response_data.append({"filename": filename})
+                finally:
+                    file.file.close()
+            return response_data
+
+        @self.app.get("/v1/synthesize/{provider}")
+        async def synthesize(request: Request, provider: str):
+            try:
+                provider_handler = convert_to_provider(provider)
+            except ProviderNotFoundError:
+                return Response("Provider not found", 404)
+            if not hasattr(provider_handler, "synthesize"):
+                return Response("Provider doesn't support synthesize", 500)
+            if len(request.query_params) == 0:
+                return Response("Missing query params", 500)
+            response_data = provider_handler.synthesize({**request.query_params})
+            content_type = getattr(provider_handler, "synthesize_content_type", "application/octet-stream")
+            return StreamingResponse(response_data, media_type=content_type)
+
+        @self.app.get("/images/{filename}")
+        async def get_image(filename) -> FileResponse:
+            target = os.path.join(images_dir, filename)
+
+            if not os.path.isfile(target):
+                return Response(status_code=404)
+
+            with open(target, "rb") as f:
+                content_type = is_accepted_format(f.read(12))
+
+            return FileResponse(target, media_type=content_type)
+
+        
 
 def format_exception(e: Exception, config: Union[ChatCompletionsConfig, ImageGenerationConfig], image: bool = False) -> str:
     last_provider = {} if not image else g4f.get_last_provider(True)
