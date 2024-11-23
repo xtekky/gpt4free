@@ -20,7 +20,7 @@ from ..base_provider import AsyncGeneratorProvider, BaseConversation, Synthesize
 from ..helper import format_prompt, get_cookies
 from ...requests.raise_for_status import raise_for_status
 from ...requests.aiohttp import get_connector
-from ..requests import get_nodriver
+from ...requests import get_nodriver
 from ...errors import MissingAuthError
 from ...image import ImageResponse, to_bytes
 from ... import debug
