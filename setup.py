@@ -46,18 +46,6 @@ EXTRA_REQUIRE = {
         "uvicorn",                 # api
         "python-multipart",
     ],
-    'slim': [
-        "curl_cffi>=0.6.2",
-        "certifi",
-        "duckduckgo-search>=5.0"  ,# internet.search
-        "beautifulsoup4",          # internet.search and bing.create_images
-        "aiohttp_socks",           # proxy
-        "pillow",                  # image
-        "cairosvg",                # svg image
-        "werkzeug", "flask",       # gui
-        "fastapi",                 # api
-        "uvicorn",                 # api
-    ],
     "image": [
         "pillow",
         "cairosvg",
@@ -78,13 +66,13 @@ EXTRA_REQUIRE = {
     "api": [
         "loguru", "fastapi",
         "uvicorn",
+        "python-multipart",
     ],
     "gui": [
         "werkzeug", "flask",
         "beautifulsoup4", "pillow",
         "duckduckgo-search>=5.0",
         "browser_cookie3",
-        "python-multipart",
     ],
     "search": [
         "beautifulsoup4", "pillow",
