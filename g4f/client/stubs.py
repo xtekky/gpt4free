@@ -133,13 +133,13 @@ class Image(BaseModel):
         ))
 
 class ImagesResponse(BaseModel):
-    data: list[Image]
+    data: List[Image]
     model: str
     provider: str
     created: int
 
     @classmethod
-    def model_construct(cls, data: list[Image], created: int = None, model: str = None, provider: str = None):
+    def model_construct(cls, data: List[Image], created: int = None, model: str = None, provider: str = None):
         if created is None:
             created = int(time())
         return super().model_construct(
