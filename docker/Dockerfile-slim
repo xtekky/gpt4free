@@ -47,7 +47,7 @@ RUN python -m pip install --upgrade pip \
     --global-option=build_ext \
     --global-option=-j8 \
     pydantic==${PYDANTIC_VERSION} \
-  && pip install --no-cache-dir -r requirements-slim.txt \
+  && cat requirements.txt | xargs -n 1 pip install --no-cache-dir \
   # Remove build packages
   && pip uninstall --yes \
       Cython \
