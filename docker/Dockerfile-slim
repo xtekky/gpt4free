@@ -30,14 +30,15 @@ ENV PATH "${HOME}/.local/bin:${HOME}/.cargo/bin:${PATH}"
 
 # Create app dir and copy the project's requirements file into it
 RUN mkdir -p $G4F_DIR
+COPY requirements-min.txt $G4F_DIR
 COPY requirements-slim.txt $G4F_DIR
 
 # Install rust toolchain
 RUN curl https://sh.rustup.rs -sSf | bash -s -- -y
 
 # Upgrade pip for the latest features and install the project's Python dependencies.
-RUN pip install --no-cache-dir \
-    --no-binary :all: \
+RUN pip install --no-cache-dir -r requirements-min.txt \
+  && pip install --no-cache-dir --no-binary setuptools \
     Cython==0.29.22 \
     setuptools \
   # Install PyDantic
@@ -57,7 +58,8 @@ RUN pip install --no-cache-dir \
 USER root
 
 # Clean up build deps
-RUN rustup self uninstall -y \
+RUN rm --recursive --force "${HOME}/.rustup" \
+  && rustup self uninstall -y \
   && apt-get purge --auto-remove --yes \
     build-essential \
   && apt-get clean \
