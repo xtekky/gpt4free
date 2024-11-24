@@ -4,7 +4,7 @@ import logging
 import os
 import asyncio
 from typing import Iterator
-from flask import send_from_directory, jsonify
+from flask import send_from_directory
 from inspect import signature
 
 from g4f import version, models
@@ -22,11 +22,11 @@ conversations: dict[dict[str, BaseConversation]] = {}
 
 class Api:
     @staticmethod
-    def get_models() -> list[str]:
-        return jsonify(models._all_models)
+    def get_models():
+        return models._all_models
 
     @staticmethod
-    def get_provider_models(provider: str, api_key: str = None) -> list[dict]:
+    def get_provider_models(provider: str, api_key: str = None):
         if provider in __map__:
             provider: ProviderType = __map__[provider]
             if issubclass(provider, ProviderModelMixin):
@@ -34,7 +34,7 @@ class Api:
                     models = provider.get_models(api_key=api_key)
                 else:
                     models = provider.get_models()
-                return jsonify([
+                return [
                     {
                         "model": model,
                         "default": model == provider.default_model,
@@ -42,8 +42,8 @@ class Api:
                         "image": False if provider.image_models is None else model in provider.image_models,
                     }
                     for model in models
-                ])
-        return jsonify([])
+                ]
+        return []
 
     @staticmethod
     def get_providers() -> dict[str, str]:
