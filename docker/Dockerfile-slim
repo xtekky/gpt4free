@@ -37,6 +37,7 @@ RUN curl https://sh.rustup.rs -sSf | bash -s -- -y
 
 # Upgrade pip for the latest features and install the project's Python dependencies.
 RUN pip install --no-cache-dir \
+    --no-binary :all: \
     Cython==0.29.22 \
     setuptools \
   # Install PyDantic
