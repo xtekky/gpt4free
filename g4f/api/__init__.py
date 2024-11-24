@@ -147,6 +147,9 @@ class ErrorResponse(Response):
     def from_message(cls, message: str, status_code: int = HTTP_500_INTERNAL_SERVER_ERROR):
         return cls(format_exception(message), status_code)
 
+    def render(self, content) -> bytes:
+        return str(content).encode(errors="ignore")
+
 class AppConfig:
     ignored_providers: Optional[list[str]] = None
     g4f_api_key: Optional[str] = None
@@ -186,9 +189,9 @@ class Api:
                     user_g4f_api_key = await self.get_g4f_api_key(request)
                 except HTTPException as e:
                     if e.status_code == 403:
-                        return ErrorResponse("G4F API key required", HTTP_401_UNAUTHORIZED)
+                        return ErrorResponse.from_message("G4F API key required", HTTP_401_UNAUTHORIZED)
                 if not secrets.compare_digest(self.g4f_api_key, user_g4f_api_key):
-                    return ErrorResponse("Invalid G4F API key", HTTP_403_FORBIDDEN)
+                    return ErrorResponse.from_message("Invalid G4F API key", HTTP_403_FORBIDDEN)
             return await call_next(request)
 
     def register_validation_exception_handler(self):
@@ -249,7 +252,7 @@ class Api:
                     'created': 0,
                     'owned_by': model_info.base_provider
                 })
-            return ErrorResponse("The model does not exist.", HTTP_404_NOT_FOUND)
+            return ErrorResponse.from_message("The model does not exist.", HTTP_404_NOT_FOUND)
 
         @self.app.post("/v1/chat/completions", responses={
             HTTP_200_OK: {"model": ChatCompletion},
@@ -318,13 +321,13 @@ class Api:
 
             except (ModelNotFoundError, ProviderNotFoundError) as e:
                 logger.exception(e)
-                return ErrorResponse(e, HTTP_404_NOT_FOUND)
+                return ErrorResponse.from_exception(e, config, HTTP_404_NOT_FOUND)
             except MissingAuthError as e:
                 logger.exception(e)
-                return ErrorResponse(e, HTTP_401_UNAUTHORIZED)
+                return ErrorResponse.from_exception(e, config, HTTP_401_UNAUTHORIZED)
             except Exception as e:
                 logger.exception(e)
-                return ErrorResponse(e, HTTP_500_INTERNAL_SERVER_ERROR)
+                return ErrorResponse.from_exception(e, config, HTTP_500_INTERNAL_SERVER_ERROR)
 
         responses = {
             HTTP_200_OK: {"model": ImagesResponse},
@@ -359,13 +362,13 @@ class Api:
                 return response
             except (ModelNotFoundError, ProviderNotFoundError) as e:
                 logger.exception(e)
-                return ErrorResponse(e, HTTP_404_NOT_FOUND)
+                return ErrorResponse.from_exception(e, config, HTTP_404_NOT_FOUND)
             except MissingAuthError as e:
                 logger.exception(e)
-                return ErrorResponse(e, HTTP_401_UNAUTHORIZED)
+                return ErrorResponse.from_exception(e, config, HTTP_401_UNAUTHORIZED)
             except Exception as e:
                 logger.exception(e)
-                return ErrorResponse(e, HTTP_500_INTERNAL_SERVER_ERROR)
+                return ErrorResponse.from_exception(e, config, HTTP_500_INTERNAL_SERVER_ERROR)
 
         @self.app.get("/v1/providers", responses={
             HTTP_200_OK: {"model": List[ProviderResponseModel]},
@@ -428,12 +431,12 @@ class Api:
         async def synthesize(request: Request, provider: str):
             try:
                 provider_handler = convert_to_provider(provider)
-            except ProviderNotFoundError:
-                return ErrorResponse("Provider not found", HTTP_404_NOT_FOUND)
+            except ProviderNotFoundError as e:
+                return ErrorResponse.from_exception(e, status_code=HTTP_404_NOT_FOUND)
             if not hasattr(provider_handler, "synthesize"):
-                return ErrorResponse("Provider doesn't support synthesize", HTTP_404_NOT_FOUND)
+                return ErrorResponse.from_message("Provider doesn't support synthesize", HTTP_404_NOT_FOUND)
             if len(request.query_params) == 0:
-                return ErrorResponse("Missing query params", HTTP_422_UNPROCESSABLE_ENTITY)
+                return ErrorResponse.from_message("Missing query params", HTTP_422_UNPROCESSABLE_ENTITY)
             response_data = provider_handler.synthesize({**request.query_params})
             content_type = getattr(provider_handler, "synthesize_content_type", "application/octet-stream")
             return StreamingResponse(response_data, media_type=content_type)

@@ -16,7 +16,9 @@ jobs:
         python-version: "3.8"
         cache: 'pip'
     - name: Install requirements
-      run: pip install fastapi uvicorn python-multipart
+      run: |
+        pip install fastapi uvicorn python-multipart
+        pip install -r requirements-min.txt
     - name: Generate openapi.json
       run: |
         python -m etc.tool.openapi
