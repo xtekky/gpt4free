@@ -108,10 +108,7 @@ class ChatCompletionDelta(BaseModel):
 
     @classmethod
     def construct(cls, content: Optional[str]):
-        if content is not None:
-            return super().construct(role="assistant", content=content)
-        else:
-            return super().construct()
+        return super().construct(role="assistant", content=content)
 
 class ChatCompletionDeltaChoice(BaseModel):
     index: int
