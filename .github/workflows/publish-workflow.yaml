@@ -6,6 +6,23 @@ on:
       - '**'
 
 jobs:
+  openapi:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Python 3.8
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.8"
+        cache: 'pip'
+    - name: Install requirements
+      run: pip install fastapi uvicorn python-multipart
+    - name: Generate openapi.json
+      run: |
+        python -m etc.tool.openapi
+    - uses: actions/upload-artifact@v4
+      with:
+        path: openapi.json
   publish:
     runs-on: ubuntu-latest
     steps:

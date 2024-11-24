@@ -19,7 +19,8 @@ from starlette.status import (
     HTTP_422_UNPROCESSABLE_ENTITY, 
     HTTP_404_NOT_FOUND,
     HTTP_401_UNAUTHORIZED,
-    HTTP_403_FORBIDDEN
+    HTTP_403_FORBIDDEN,
+    HTTP_500_INTERNAL_SERVER_ERROR,
 )
 from fastapi.encoders import jsonable_encoder
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -35,7 +36,7 @@ from g4f.providers.response import BaseConversation
 from g4f.client.helper import filter_none
 from g4f.image import is_accepted_format, images_dir
 from g4f.typing import Messages
-from g4f.errors import ProviderNotFoundError
+from g4f.errors import ProviderNotFoundError, ModelNotFoundError, MissingAuthError
 from g4f.cookies import read_cookie_files, get_cookies_dir
 from g4f.Provider import ProviderType, ProviderUtils, __providers__
 from g4f.gui import get_gui_app
@@ -55,6 +56,15 @@ def create_app(g4f_api_key: str = None):
     )
 
     api = Api(app, g4f_api_key=g4f_api_key)
+
+    if AppConfig.gui:
+        @app.get("/")
+        async def home():
+            return HTMLResponse(f'g4f v-{g4f.version.utils.current_version}:<br><br>'
+                                'Start to chat: <a href="/chat/">/chat/</a><br>'
+                                'Open Swagger UI at: '
+                                '<a href="/docs">/docs</a>')
+
     api.register_routes()
     api.register_authorization()
     api.register_validation_exception_handler()
@@ -98,11 +108,10 @@ class ProviderResponseModel(BaseModel):
     id: str
     object: str = "provider"
     created: int
-    owned_by: Optional[str]
     url: Optional[str]
     label: Optional[str]
 
-class ProviderResponseModelDetail(ProviderResponseModel):
+class ProviderResponseDetailModel(ProviderResponseModel):
     models: list[str]
     image_models: list[str]
     vision_models: list[str]
@@ -115,7 +124,28 @@ class ModelResponseModel(BaseModel):
     owned_by: Optional[str]
 
 class ErrorResponseModel(BaseModel):
-    error: str
+    error: ErrorResponseMessageModel
+    model: Optional[str] = None
+    provider: Optional[str] = None
+
+class ErrorResponseMessageModel(BaseModel):
+    message: str
+
+class FileResponseModel(BaseModel):
+    filename: str
+    
+class ErrorResponse(Response):
+    media_type = "application/json"
+
+    @classmethod
+    def from_exception(cls, exception: Exception,
+                       config: Union[ChatCompletionsConfig, ImageGenerationConfig] = None,
+                       status_code: int = HTTP_500_INTERNAL_SERVER_ERROR):
+        return cls(format_exception(exception, config), status_code)
+
+    @classmethod
+    def from_message(cls, message: str, status_code: int = HTTP_500_INTERNAL_SERVER_ERROR):
+        return cls(format_exception(message), status_code)
 
 class AppConfig:
     ignored_providers: Optional[list[str]] = None
@@ -156,15 +186,9 @@ class Api:
                     user_g4f_api_key = await self.get_g4f_api_key(request)
                 except HTTPException as e:
                     if e.status_code == 403:
-                        return JSONResponse(
-                            status_code=HTTP_401_UNAUTHORIZED,
-                            content=jsonable_encoder({"detail": "G4F API key required"}),
-                        )
+                        return ErrorResponse("G4F API key required", HTTP_401_UNAUTHORIZED)
                 if not secrets.compare_digest(self.g4f_api_key, user_g4f_api_key):
-                    return JSONResponse(
-                        status_code=HTTP_403_FORBIDDEN,
-                        content=jsonable_encoder({"detail": "Invalid G4F API key"}),
-                    )
+                    return ErrorResponse("Invalid G4F API key", HTTP_403_FORBIDDEN)
             return await call_next(request)
 
     def register_validation_exception_handler(self):
@@ -197,8 +221,10 @@ class Api:
                                 'Open Swagger UI at: '
                                 '<a href="/docs">/docs</a>')
 
-        @self.app.get("/v1/models")
-        async def models() -> list[ModelResponseModel]:
+        @self.app.get("/v1/models", responses={
+            HTTP_200_OK: {"model": List[ModelResponseModel]},
+        })
+        async def models():
             model_list = dict(
                 (model, g4f.models.ModelUtils.convert[model])
                 for model in g4f.Model.__all__()
@@ -210,7 +236,10 @@ class Api:
                 'owned_by': model.base_provider
             } for model_id, model in model_list.items()]
 
-        @self.app.get("/v1/models/{model_name}")
+        @self.app.get("/v1/models/{model_name}", responses={
+            HTTP_200_OK: {"model": ModelResponseModel},
+            HTTP_404_NOT_FOUND: {"model": ErrorResponseModel},
+        })
         async def model_info(model_name: str) -> ModelResponseModel:
             if model_name in g4f.models.ModelUtils.convert:
                 model_info = g4f.models.ModelUtils.convert[model_name]
@@ -220,9 +249,14 @@ class Api:
                     'created': 0,
                     'owned_by': model_info.base_provider
                 })
-            return JSONResponse({"error": "The model does not exist."}, HTTP_404_NOT_FOUND)
+            return ErrorResponse("The model does not exist.", HTTP_404_NOT_FOUND)
 
-        @self.app.post("/v1/chat/completions", response_model=ChatCompletion)
+        @self.app.post("/v1/chat/completions", responses={
+            HTTP_200_OK: {"model": ChatCompletion},
+            HTTP_401_UNAUTHORIZED: {"model": ErrorResponseModel},
+            HTTP_404_NOT_FOUND: {"model": ErrorResponseModel},
+            HTTP_500_INTERNAL_SERVER_ERROR: {"model": ErrorResponseModel},
+        })
         async def chat_completions(
             config: ChatCompletionsConfig,
             credentials: Annotated[HTTPAuthorizationCredentials, Depends(Api.security)] = None,
@@ -282,12 +316,25 @@ class Api:
 
                 return StreamingResponse(streaming(), media_type="text/event-stream")
 
+            except (ModelNotFoundError, ProviderNotFoundError) as e:
+                logger.exception(e)
+                return ErrorResponse(e, HTTP_404_NOT_FOUND)
+            except MissingAuthError as e:
+                logger.exception(e)
+                return ErrorResponse(e, HTTP_401_UNAUTHORIZED)
             except Exception as e:
                 logger.exception(e)
-                return Response(content=format_exception(e, config), status_code=500, media_type="application/json")
+                return ErrorResponse(e, HTTP_500_INTERNAL_SERVER_ERROR)
 
-        @self.app.post("/v1/images/generate", response_model=ImagesResponse)
-        @self.app.post("/v1/images/generations", response_model=ImagesResponse)
+        responses = {
+            HTTP_200_OK: {"model": ImagesResponse},
+            HTTP_401_UNAUTHORIZED: {"model": ErrorResponseModel},
+            HTTP_404_NOT_FOUND: {"model": ErrorResponseModel},
+            HTTP_500_INTERNAL_SERVER_ERROR: {"model": ErrorResponseModel},
+        }
+
+        @self.app.post("/v1/images/generate", responses=responses)
+        @self.app.post("/v1/images/generations", responses=responses)
         async def generate_image(
             request: Request,
             config: ImageGenerationConfig,
@@ -310,12 +357,20 @@ class Api:
                     if hasattr(image, "url") and image.url.startswith("/"):
                         image.url = f"{request.base_url}{image.url.lstrip('/')}"
                 return response
+            except (ModelNotFoundError, ProviderNotFoundError) as e:
+                logger.exception(e)
+                return ErrorResponse(e, HTTP_404_NOT_FOUND)
+            except MissingAuthError as e:
+                logger.exception(e)
+                return ErrorResponse(e, HTTP_401_UNAUTHORIZED)
             except Exception as e:
                 logger.exception(e)
-                return Response(content=format_exception(e, config, True), status_code=500, media_type="application/json")
+                return ErrorResponse(e, HTTP_500_INTERNAL_SERVER_ERROR)
 
-        @self.app.get("/v1/providers")
-        async def providers() -> list[ProviderResponseModel]:
+        @self.app.get("/v1/providers", responses={
+            HTTP_200_OK: {"model": List[ProviderResponseModel]},
+        })
+        async def providers():
             return [{
                 'id': provider.__name__,
                 'object': 'provider',
@@ -324,10 +379,13 @@ class Api:
                 'label': getattr(provider, "label", None),
             } for provider in __providers__ if provider.working]
 
-        @self.app.get("/v1/providers/{provider}")
-        async def providers_info(provider: str) -> ProviderResponseModelDetail:
+        @self.app.get("/v1/providers/{provider}", responses={
+            HTTP_200_OK: {"model": ProviderResponseDetailModel},
+            HTTP_404_NOT_FOUND: {"model": ErrorResponseModel},
+        })
+        async def providers_info(provider: str):
             if provider not in ProviderUtils.convert:
-                return JSONResponse({"error": "The provider does not exist."}, 404)
+                return ErrorResponse.from_message("The provider does not exist.", 404)
             provider: ProviderType = ProviderUtils.convert[provider]
             def safe_get_models(provider: ProviderType) -> list[str]:
                 try:
@@ -346,7 +404,9 @@ class Api:
                 'params': [*provider.get_parameters()] if hasattr(provider, "get_parameters") else []
             }
 
-        @self.app.post("/v1/upload_cookies")
+        @self.app.post("/v1/upload_cookies", responses={
+            HTTP_200_OK: {"model": List[FileResponseModel]},
+        })
         def upload_cookies(files: List[UploadFile]):
             response_data = []
             for file in files:
@@ -369,11 +429,11 @@ class Api:
             try:
                 provider_handler = convert_to_provider(provider)
             except ProviderNotFoundError:
-                return JSONResponse({"error": "Provider not found"}, HTTP_404_NOT_FOUND)
+                return ErrorResponse("Provider not found", HTTP_404_NOT_FOUND)
             if not hasattr(provider_handler, "synthesize"):
-                return JSONResponse({"error": "Provider doesn't support synthesize"}, HTTP_404_NOT_FOUND)
+                return ErrorResponse("Provider doesn't support synthesize", HTTP_404_NOT_FOUND)
             if len(request.query_params) == 0:
-                return JSONResponse({"error": "Missing query params"}, HTTP_422_UNPROCESSABLE_ENTITY)
+                return ErrorResponse("Missing query params", HTTP_422_UNPROCESSABLE_ENTITY)
             response_data = provider_handler.synthesize({**request.query_params})
             content_type = getattr(provider_handler, "synthesize_content_type", "application/octet-stream")
             return StreamingResponse(response_data, media_type=content_type)
@@ -395,12 +455,21 @@ class Api:
 
         
 
-def format_exception(e: Exception, config: Union[ChatCompletionsConfig, ImageGenerationConfig], image: bool = False) -> str:
+def format_exception(e: Union[Exception, str], config: Union[ChatCompletionsConfig, ImageGenerationConfig] = None, image: bool = False) -> str:
     last_provider = {} if not image else g4f.get_last_provider(True)
-    provider = (AppConfig.image_provider if image else AppConfig.provider) if config.provider is None else config.provider
-    model = AppConfig.model if config.model is None else config.model 
+    provider = (AppConfig.image_provider if image else AppConfig.provider)
+    model = AppConfig.model
+    if config is not None:
+        if config.provider is not None:
+            provider = config.provider
+        if config.model is not None:
+            model = config.model
+    if isinstance(e, str):
+        message = e
+    else:
+        message = f"{e.__class__.__name__}: {e}"
     return json.dumps({
-        "error": {"message": f"{e.__class__.__name__}: {e}"},
+        "error": {"message": message},
         "model":  last_provider.get("model") if model is None else model,
         **filter_none(
             provider=last_provider.get("name") if provider is None else provider
