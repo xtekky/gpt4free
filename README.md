@@ -105,23 +105,23 @@ docker run \
   hlohaus789/g4f:latest
 ```
 
-Start the GUI without a browser requirement and in debug mode.
-There's no need to update the Docker image every time.
-Simply remove the g4f package from the image and install the Python package:
+To run the slim docker image. Use this command:
+
 ```bash
 docker run \
-  -p 8080:8080 \
+  -p 1337:1337 \
   -v ${PWD}/har_and_cookies:/app/har_and_cookies \
   -v ${PWD}/generated_images:/app/generated_images \
   hlohaus789/g4f:latest-slim \
   rm -r -f /app/g4f/ \
   && pip install -U g4f[slim] \
-  && python -m g4f.cli gui -d
+  && python -m g4f.cli api --gui --debug
 ```
+It also updates the `g4f` package at startup and installs any new required dependencies.
 
 3. **Access the Client:**
 
-   - To use the included client, navigate to: [http://localhost:8080/chat/](http://localhost:8080/chat/)
+   - To use the included client, navigate to: [http://localhost:8080/chat/](http://localhost:8080/chat/) or [http://localhost:1337/chat/](http://localhost:1337/chat/)
    - Or set the API base for your client to: [http://localhost:1337/v1](http://localhost:1337/v1)
 
 4. **(Optional) Provider Login:**
