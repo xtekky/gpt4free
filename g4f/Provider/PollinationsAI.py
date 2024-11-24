@@ -46,8 +46,7 @@ class PollinationsAI(OpenaiAPI):
         seed: str = None,
         **kwargs
     ) -> AsyncResult:
-        if model:
-            model = cls.get_model(model)
+        model = cls.get_model(model)
         if model in cls.image_models:
             if prompt is None:
                 prompt = messages[-1]["content"]

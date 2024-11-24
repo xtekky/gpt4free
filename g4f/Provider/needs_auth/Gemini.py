@@ -313,6 +313,7 @@ class Conversation(BaseConversation):
         self.conversation_id = conversation_id
         self.response_id = response_id
         self.choice_id = choice_id
+
 async def iter_filter_base64(response_iter: AsyncIterator[bytes]) -> AsyncIterator[bytes]:
     search_for = b'[["wrb.fr","XqA3Ic","[\\"'
     end_with = b'\\'
