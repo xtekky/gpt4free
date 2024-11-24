@@ -1,130 +1,153 @@
 from __future__ import annotations
 
-from typing import Union
+from typing import Optional, List, Dict
 from time import time
 
-class Model():
-    ...
+from .helper import filter_none
 
-class ChatCompletion(Model):
-    def __init__(
-        self,
+try:
+    from pydantic import BaseModel, Field
+except ImportError:
+    class BaseModel():
+        @classmethod
+        def construct(cls, **data):
+            new = cls()
+            for key, value in data.items:
+                setattr(new, key, value)
+            return new
+    class Field():
+        def __init__(self, **config):
+            pass
+
+class ChatCompletionChunk(BaseModel):
+    id: str
+    object: str
+    created: int
+    model: str
+    provider: Optional[str]
+    choices: List[ChatCompletionDeltaChoice]
+
+    @classmethod
+    def construct(
+        cls,
         content: str,
         finish_reason: str,
         completion_id: str = None,
         created: int = None
     ):
-        self.id: str = f"chatcmpl-{completion_id}" if completion_id else None
-        self.object: str = "chat.completion"
-        self.created: int = created
-        self.model: str = None
-        self.provider: str = None
-        self.choices = [ChatCompletionChoice(ChatCompletionMessage(content), finish_reason)]
-        self.usage: dict[str, int] = {
-            "prompt_tokens": 0, #prompt_tokens,
-            "completion_tokens": 0, #completion_tokens,
-            "total_tokens": 0, #prompt_tokens + completion_tokens,
-        }
+        return super().construct(
+            id=f"chatcmpl-{completion_id}" if completion_id else None,
+            object="chat.completion.cunk",
+            created=created,
+            model=None,
+            provider=None,
+            choices=[ChatCompletionDeltaChoice.construct(
+                ChatCompletionDelta.construct(content),
+                finish_reason
+            )]
+        )
 
-    def to_json(self):
-        return {
-            **self.__dict__,
-            "choices": [choice.to_json() for choice in self.choices]
-        }
+class ChatCompletionMessage(BaseModel):
+    role: str
+    content: str
 
-class ChatCompletionChunk(Model):
-    def __init__(
-        self,
+    @classmethod
+    def construct(cls, content: str):
+        return super().construct(role="assistant", content=content)
+
+class ChatCompletionChoice(BaseModel):
+    index: int
+    message: ChatCompletionMessage
+    finish_reason: str
+
+    @classmethod
+    def construct(cls, message: ChatCompletionMessage, finish_reason: str):
+        return super().construct(index=0, message=message, finish_reason=finish_reason)
+
+class ChatCompletion(BaseModel):
+    id: str
+    object: str
+    created: int
+    model: str
+    provider: Optional[str]
+    choices: List[ChatCompletionChoice]
+    usage: Dict[str, int] = Field(examples=[{
+        "prompt_tokens": 0, #prompt_tokens,
+        "completion_tokens": 0, #completion_tokens,
+        "total_tokens": 0, #prompt_tokens + completion_tokens,
+    }])
+
+    @classmethod
+    def construct(
+        cls,
         content: str,
         finish_reason: str,
         completion_id: str = None,
         created: int = None
     ):
-        self.id: str = f"chatcmpl-{completion_id}" if completion_id else None
-        self.object: str = "chat.completion.chunk"
-        self.created: int = created
-        self.model: str = None
-        self.provider: str = None
-        self.choices = [ChatCompletionDeltaChoice(ChatCompletionDelta(content), finish_reason)]
+        return super().construct(
+            id=f"chatcmpl-{completion_id}" if completion_id else None,
+            object="chat.completion",
+            created=created,
+            model=None,
+            provider=None,
+            choices=[ChatCompletionChoice.construct(
+                ChatCompletionMessage.construct(content),
+                finish_reason
+            )],
+            usage={
+                "prompt_tokens": 0, #prompt_tokens,
+                "completion_tokens": 0, #completion_tokens,
+                "total_tokens": 0, #prompt_tokens + completion_tokens,
+            }
+        )
 
-    def to_json(self):
-        return {
-            **self.__dict__,
-            "choices": [choice.to_json() for choice in self.choices]
-        }
+class ChatCompletionDelta(BaseModel):
+    role: str
+    content: str
 
-class ChatCompletionMessage(Model):
-    def __init__(self, content: Union[str, None]):
-        self.role = "assistant"
-        self.content = content
-
-    def to_json(self):
-        return self.__dict__
-
-class ChatCompletionChoice(Model):
-    def __init__(self, message: ChatCompletionMessage, finish_reason: str):
-        self.index = 0
-        self.message = message
-        self.finish_reason = finish_reason
-
-    def to_json(self):
-        return {
-            **self.__dict__,
-            "message": self.message.to_json()
-        }
-
-class ChatCompletionDelta(Model):
-    content: Union[str, None] = None
-
-    def __init__(self, content: Union[str, None]):
+    @classmethod
+    def construct(cls, content: Optional[str]):
         if content is not None:
-            self.content = content
-            self.role = "assistant"
+            return super().construct(role="assistant", content=content)
+        else:
+            return super().construct()
 
-    def to_json(self):
-        return self.__dict__
+class ChatCompletionDeltaChoice(BaseModel):
+    index: int
+    delta: ChatCompletionDelta
+    finish_reason: Optional[str]
 
-class ChatCompletionDeltaChoice(Model):
-    def __init__(self, delta: ChatCompletionDelta, finish_reason: Union[str, None]):
-        self.index = 0
-        self.delta = delta
-        self.finish_reason = finish_reason
+    @classmethod
+    def construct(cls, delta: ChatCompletionDelta, finish_reason: Optional[str]):
+        return super().construct(index=0, delta=delta, finish_reason=finish_reason)
 
-    def to_json(self):
-        return {
-            **self.__dict__,
-            "delta": self.delta.to_json()
-        }
+class Image(BaseModel):
+    url: Optional[str]
+    b64_json: Optional[str]
+    revised_prompt: Optional[str]
 
-class Image(Model):
-    def __init__(self, url: str = None, b64_json: str = None, revised_prompt: str = None) -> None:
-        if url is not None:
-            self.url = url
-        if b64_json is not None:
-            self.b64_json = b64_json
-        if revised_prompt is not None:
-            self.revised_prompt = revised_prompt
+    @classmethod
+    def construct(cls, url: str = None, b64_json: str = None, revised_prompt: str = None):
+        return super().construct(**filter_none(
+            url=url,
+            b64_json=b64_json,
+            revised_prompt=revised_prompt
+        ))
 
-    def to_json(self):
-        return self.__dict__
-
-class ImagesResponse(Model):
+class ImagesResponse(BaseModel):
     data: list[Image]
     model: str
     provider: str
     created: int
 
-    def __init__(self, data: list[Image], created: int = None, model: str = None, provider: str = None) -> None:
-        self.data = data
+    @classmethod
+    def construct(cls, data: list[Image], created: int = None, model: str = None, provider: str = None):
         if created is None:
             created = int(time())
-        self.model = model
-        if provider is not None:
-            self.provider = provider
-        self.created = created
-
-    def to_json(self):
-        return {
-            **self.__dict__,
-            "data": [image.to_json() for image in self.data]
-        }
+        return super().construct(
+            data=data,
+            model=model,
+            provider=provider,
+            created=created
+        )

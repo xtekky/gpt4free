@@ -3,7 +3,7 @@ import flask
 import os
 import logging
 import asyncio
-from flask import request, Flask
+from flask import Flask, request
 from typing import Generator
 from werkzeug.utils import secure_filename
 
@@ -49,10 +49,6 @@ class Backend_Api(Api):
             },
             '/backend-api/v2/models/<provider>': {
                 'function': self.get_provider_models,
-                'methods': ['GET']
-            },
-            '/backend-api/v2/image_models': {
-                'function': self.get_image_models,
                 'methods': ['GET']
             },
             '/backend-api/v2/providers': {
