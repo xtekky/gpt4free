@@ -86,6 +86,14 @@ class ProviderResponseModel(BaseModel):
     object: str = "provider"
     created: int
     owned_by: Optional[str]
+    url: Optional[str]
+    label: Optional[str]
+⅞
+class ProviderResponseModelDetail(ProviderResponseModel):
+    models: list[str]
+    image_models: list[str]
+    vision_models: list[str]
+    params: list[str]
 
 class ModelResponseModel(BaseModel):
     id: str
@@ -299,7 +307,7 @@ class Api:
             } for provider in __providers__ if provider.working]
 
         @self.app.get("/v1/providers/{provider}")
-        async def providers_info(provider: str) -> ProviderResponseModel:
+        async def providers_info(provider: str) -> ProviderResponseModelDetail:
             if provider not in ProviderUtils.convert:
                 return JSONResponse({"error": "The provider does not exist."}, 404)
             provider: ProviderType = ProviderUtils.convert[provider]
