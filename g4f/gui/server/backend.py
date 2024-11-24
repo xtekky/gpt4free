@@ -3,7 +3,7 @@ import flask
 import os
 import logging
 import asyncio
-from flask import request, Flask
+from flask import Flask, request, jsonify
 from typing import Generator
 from werkzeug.utils import secure_filename
 
@@ -42,17 +42,26 @@ class Backend_Api(Api):
             app (Flask): Flask application instance to attach routes to.
         """
         self.app: Flask = app
+
+        def jsonify_models(**kwargs):
+            response = self.get_models(**kwargs)
+            if isinstance(response, list):
+                return jsonify(response)
+            return response
+
+        def jsonify_provider_models(**kwargs):
+            response = self.get_provider_models(**kwargs)
+            if isinstance(response, list):
+                return jsonify(response)
+            return response
+
         self.routes = {
             '/backend-api/v2/models': {
-                'function': self.get_models,
+                'function': jsonify_models,
                 'methods': ['GET']
             },
             '/backend-api/v2/models/<provider>': {
-                'function': self.get_provider_models,
-                'methods': ['GET']
-            },
-            '/backend-api/v2/image_models': {
-                'function': self.get_image_models,
+                'function': jsonify_provider_models,
                 'methods': ['GET']
             },
             '/backend-api/v2/providers': {
