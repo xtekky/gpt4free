@@ -12,7 +12,7 @@ except ImportError:
         @classmethod
         def construct(cls, **data):
             new = cls()
-            for key, value in data.items:
+            for key, value in data.items():
                 setattr(new, key, value)
             return new
     class Field():
