@@ -107,7 +107,6 @@ async def search(query: str, n_results: int = 5, max_words: int = 2500, add_text
                 safesearch="moderate",
                 timelimit="y",
                 max_results=n_results,
-                backend="html"
             ):
             results.append(SearchResultEntry(
                 result["title"],
