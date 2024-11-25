@@ -27,7 +27,12 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.responses import FileResponse
 from pydantic import BaseModel, Field
-from typing import Union, Optional, List, Annotated
+from typing import Union, Optional, List
+try:
+    from typing import Annotated
+except ImportError:
+    class Annotated:
+        pass
 
 import g4f
 import g4f.debug
@@ -455,8 +460,6 @@ class Api:
                 content_type = is_accepted_format(f.read(12))
 
             return FileResponse(target, media_type=content_type)
-
-        
 
 def format_exception(e: Union[Exception, str], config: Union[ChatCompletionsConfig, ImageGenerationConfig] = None, image: bool = False) -> str:
     last_provider = {} if not image else g4f.get_last_provider(True)
