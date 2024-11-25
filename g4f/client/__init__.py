@@ -152,8 +152,7 @@ async def async_iter_response(
                     content = filter_json(content)
             yield ChatCompletion.model_construct(content, finish_reason, completion_id, int(time.time()))
     finally:
-        if hasattr(response, 'aclose'):
-            await safe_aclose(response)
+        await safe_aclose(response)
 
 async def async_iter_append_model_and_provider(
         response: AsyncChatCompletionResponseType
@@ -167,8 +166,7 @@ async def async_iter_append_model_and_provider(
                 chunk.provider = last_provider.get("name")
             yield chunk
     finally:
-        if hasattr(response, 'aclose'):
-            await safe_aclose(response)
+        await safe_aclose(response)
 
 class Client(BaseClient):
     def __init__(
@@ -292,7 +290,7 @@ class Images:
             proxy = self.client.proxy
 
         response = None
-        if isinstance(provider, type) and issubclass(provider, AsyncGeneratorProvider):
+        if hasattr(provider_handler, "create_async_generator"):
             messages = [{"role": "user", "content": f"Generate a image: {prompt}"}]
             async for item in provider_handler.create_async_generator(model, messages, prompt=prompt, **kwargs):
                 if isinstance(item, ImageResponse):
@@ -354,7 +352,7 @@ class Images:
         if proxy is None:
             proxy = self.client.proxy
 
-        if isinstance(provider, type) and issubclass(provider, AsyncGeneratorProvider):
+        if hasattr(provider, "create_async_generator"):
             messages = [{"role": "user", "content": "create a variation of this image"}]
             generator = None
             try:
@@ -364,8 +362,7 @@ class Images:
                         response = chunk
                         break
             finally:
-                if generator and hasattr(generator, 'aclose'):
-                    await safe_aclose(generator)
+                await safe_aclose(generator)
         elif hasattr(provider, 'create_variation'):
             if asyncio.iscoroutinefunction(provider.create_variation):
                 response = await provider.create_variation(image, model=model, response_format=response_format, proxy=proxy, **kwargs)
@@ -454,7 +451,11 @@ class AsyncCompletions:
         )
         stop = [stop] if isinstance(stop, str) else stop
 
-        response = provider.create_completion(
+        if hasattr(provider, "create_async_generator"):
+            create_handler = provider.create_async_generator
+        else:
+            create_handler = provider.create_completion
+        response = create_handler(
             model,
             messages,
             stream=stream,
