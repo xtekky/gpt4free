@@ -91,15 +91,15 @@ def create_app_debug(g4f_api_key: str = None):
 class ChatCompletionsConfig(BaseModel):
     messages: Messages = Field(examples=[[{"role": "system", "content": ""}, {"role": "user", "content": ""}]])
     model: str = Field(default="")
-    provider: Optional[str] = Field(examples=[None])
+    provider: Optional[str] = None
     stream: bool = False
-    temperature: Optional[float] = Field(examples=[None])
-    max_tokens: Optional[int] = Field(examples=[None])
-    stop: Union[list[str], str, None] = Field(examples=[None])
-    api_key: Optional[str] = Field(examples=[None])
-    web_search: Optional[bool] = Field(examples=[None])
-    proxy: Optional[str] = Field(examples=[None])
-    conversation_id: Optional[str] = Field(examples=[None])
+    temperature: Optional[float] = None
+    max_tokens: Optional[int] = None
+    stop: Union[list[str], str, None] = None
+    api_key: Optional[str] = None
+    web_search: Optional[bool] = None
+    proxy: Optional[str] = None
+    conversation_id: Optional[str] = None
 
 class ImageGenerationConfig(BaseModel):
     prompt: str
