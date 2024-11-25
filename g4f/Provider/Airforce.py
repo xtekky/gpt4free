@@ -37,7 +37,7 @@ class Airforce(AsyncGeneratorProvider, ProviderModelMixin):
 
     default_model = "gpt-4o-mini"
     default_image_model = "flux"
-    additional_models_imagine = ["stable-diffusion-xl-base", "stable-diffusion-xl-lightning", "Flux-1.1-Pro"]
+    additional_models_imagine = ["stable-diffusion-xl-base", "stable-diffusion-xl-lightning", "flux-1.1-pro"]
 
     @classmethod
     def get_models(cls):
@@ -87,7 +87,7 @@ class Airforce(AsyncGeneratorProvider, ProviderModelMixin):
         ### imagine ###
         "sdxl": "stable-diffusion-xl-base",
         "sdxl": "stable-diffusion-xl-lightning", 
-        "flux-pro": "Flux-1.1-Pro",
+        "flux-pro": "flux-1.1-pro",
     }
 
     @classmethod
