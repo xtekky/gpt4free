@@ -24,6 +24,7 @@ jobs:
         python -m etc.tool.openapi
     - uses: actions/upload-artifact@v4
       with:
+        name: openapi
         path: openapi.json
   publish:
     runs-on: ubuntu-latest
