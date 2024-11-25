@@ -26,6 +26,7 @@ USER $G4F_USER_ID
 WORKDIR $G4F_DIR
 
 ENV HOME /home/$G4F_USER
+ENV PATH "${HOME}/.local/bin:${PATH}"
 
 # Create app dir and copy the project's requirements file into it
 RUN mkdir -p $G4F_DIR
