@@ -46,7 +46,8 @@ def filter_none(**kwargs) -> dict:
 
 async def safe_aclose(generator: AsyncGenerator) -> None:
     try:
-        await generator.aclose()
+        if generator and hasattr(generator, 'aclose'):
+            await generator.aclose()
     except Exception as e:
         logging.warning(f"Error while closing generator: {e}")
 
