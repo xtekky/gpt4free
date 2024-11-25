@@ -177,6 +177,10 @@ body {
     filter: blur(calc(0.5 * 70vw)) opacity(var(--opacity));
 }
 
+body.white .gradient{
+    display: none;
+}
+
 .conversations {
     display: flex;
     flex-direction: column;

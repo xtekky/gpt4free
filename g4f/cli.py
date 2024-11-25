@@ -10,8 +10,9 @@ def main():
     parser = argparse.ArgumentParser(description="Run gpt4free")
     subparsers = parser.add_subparsers(dest="mode", help="Mode to run the g4f in.")
     api_parser = subparsers.add_parser("api")
-    api_parser.add_argument("--bind", default="0.0.0.0:1337", help="The bind string.")
-    api_parser.add_argument("--debug", action="store_true", help="Enable verbose logging.")
+    api_parser.add_argument("--bind", default=None, help="The bind string. (Default: 0.0.0.0:1337)")
+    api_parser.add_argument("--port", default=None, help="Change the port of the server.")
+    api_parser.add_argument("--debug", "-d", action="store_true", help="Enable verbose logging.")
     api_parser.add_argument("--gui", "-g", default=False, action="store_true", help="Add gui to the api.")
     api_parser.add_argument("--model", default=None, help="Default model for chat completion. (incompatible with --reload and --workers)")
     api_parser.add_argument("--provider", choices=[provider.__name__ for provider in Provider.__providers__ if provider.working],
@@ -55,6 +56,7 @@ def run_api_args(args):
     g4f.cookies.browsers = [g4f.cookies[browser] for browser in args.cookie_browsers]
     run_api(
         bind=args.bind,
+        port=args.port,
         debug=args.debug,
         workers=args.workers,
         use_colors=not args.disable_colors,
