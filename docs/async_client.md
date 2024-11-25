@@ -154,13 +154,14 @@ import asyncio
 from g4f.client import AsyncClient
 
 async def main():
-    client = AsyncClient()
-    
+    client = AsyncClient(
+        provider=g4f.Provider.CopilotAccount
+    )
+
     image = requests.get("https://raw.githubusercontent.com/xtekky/gpt4free/refs/heads/main/docs/cat.jpeg", stream=True).raw
-    
+
     response = await client.chat.completions.create(
         model=g4f.models.default,
-        provider=g4f.Provider.Bing,
         messages=[
             {
                 "role": "user",
@@ -169,7 +170,7 @@ async def main():
         ],
         image=image
     )
-    
+
     print(response.choices[0].message.content)
 
 asyncio.run(main())

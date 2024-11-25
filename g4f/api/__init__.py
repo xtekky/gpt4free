@@ -39,7 +39,7 @@ import g4f.debug
 from g4f.client import AsyncClient, ChatCompletion, ImagesResponse, convert_to_provider
 from g4f.providers.response import BaseConversation
 from g4f.client.helper import filter_none
-from g4f.image import is_accepted_format, images_dir
+from g4f.image import is_accepted_format, is_data_uri_an_image, images_dir
 from g4f.typing import Messages
 from g4f.errors import ProviderNotFoundError, ModelNotFoundError, MissingAuthError
 from g4f.cookies import read_cookie_files, get_cookies_dir
@@ -93,6 +93,8 @@ class ChatCompletionsConfig(BaseModel):
     model: str = Field(default="")
     provider: Optional[str] = None
     stream: bool = False
+    image: Optional[str] = None
+    image_name: Optional[str] = None
     temperature: Optional[float] = None
     max_tokens: Optional[int] = None
     stop: Union[list[str], str, None] = None
@@ -263,6 +265,7 @@ class Api:
             HTTP_200_OK: {"model": ChatCompletion},
             HTTP_401_UNAUTHORIZED: {"model": ErrorResponseModel},
             HTTP_404_NOT_FOUND: {"model": ErrorResponseModel},
+            HTTP_422_UNPROCESSABLE_ENTITY: {"model": ErrorResponseModel},
             HTTP_500_INTERNAL_SERVER_ERROR: {"model": ErrorResponseModel},
         })
         async def chat_completions(
@@ -284,6 +287,12 @@ class Api:
                         if config.provider in self.conversations[config.conversation_id]:
                             conversation = self.conversations[config.conversation_id][config.provider]
 
+                if config.image is not None:
+                    try:
+                        is_data_uri_an_image(config.image)
+                    except ValueError as e:
+                        return ErrorResponse.from_message(f"The image you send must be a data URI. Example: data:image/webp;base64,...", status_code=HTTP_422_UNPROCESSABLE_ENTITY)
+
                 # Create the completion response
                 response = self.client.chat.completions.create(
                     **filter_none(
@@ -291,7 +300,7 @@ class Api:
                             "model": AppConfig.model,
                             "provider": AppConfig.provider,
                             "proxy": AppConfig.proxy,
-                            **config.dict(exclude_none=True),
+                            **config.model_dump(exclude_none=True),
                             **{
                                 "conversation_id": None,
                                 "return_conversation": return_conversation,
