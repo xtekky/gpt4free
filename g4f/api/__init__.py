@@ -39,7 +39,7 @@ import g4f.debug
 from g4f.client import AsyncClient, ChatCompletion, ImagesResponse, convert_to_provider
 from g4f.providers.response import BaseConversation
 from g4f.client.helper import filter_none
-from g4f.image import is_accepted_format, images_dir
+from g4f.image import is_accepted_format, images_dir, to_image
 from g4f.typing import Messages
 from g4f.errors import ProviderNotFoundError, ModelNotFoundError, MissingAuthError
 from g4f.cookies import read_cookie_files, get_cookies_dir
@@ -100,6 +100,7 @@ class ChatCompletionsConfig(BaseModel):
     web_search: Optional[bool] = None
     proxy: Optional[str] = None
     conversation_id: Optional[str] = None
+    image: Optional[str] = None
 
 class ImageGenerationConfig(BaseModel):
     prompt: str
@@ -284,6 +285,11 @@ class Api:
                         if config.provider in self.conversations[config.conversation_id]:
                             conversation = self.conversations[config.conversation_id][config.provider]
 
+                if config.image is not None:
+                    image = to_image(config.image)
+                else:
+                    image = None
+
                 # Create the completion response
                 response = self.client.chat.completions.create(
                     **filter_none(
@@ -291,7 +297,8 @@ class Api:
                             "model": AppConfig.model,
                             "provider": AppConfig.provider,
                             "proxy": AppConfig.proxy,
-                            **config.dict(exclude_none=True),
+                            "image": image,
+                            **config.dict(exclude_none=True, exclude={'image'}),
                             **{
                                 "conversation_id": None,
                                 "return_conversation": return_conversation,
