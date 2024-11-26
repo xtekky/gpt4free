@@ -88,7 +88,7 @@ class VersionUtils:
 
         raise VersionNotFoundError("Version not found")
 
-    @cached_property
+    @property
     def latest_version(self) -> str:
         """
         Retrieves the latest version of the 'g4f' package.
