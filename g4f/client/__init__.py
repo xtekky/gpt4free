@@ -58,7 +58,7 @@ def iter_response(
         elif isinstance(chunk, BaseConversation):
             yield chunk
             continue
-        elif isinstance(chunk, SynthesizeData):
+        elif isinstance(chunk, SynthesizeData) or chunk is None:
             continue
 
         chunk = str(chunk)
@@ -121,7 +121,7 @@ async def async_iter_response(
             elif isinstance(chunk, BaseConversation):
                 yield chunk
                 continue
-            elif isinstance(chunk, SynthesizeData):
+            elif isinstance(chunk, SynthesizeData) or chunk is None:
                 continue
 
             chunk = str(chunk)

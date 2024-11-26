@@ -424,10 +424,10 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
                         for element in c.get("parts"):
                             if isinstance(element, dict) and element.get("content_type") == "image_asset_pointer":
                                 image = cls.get_generated_image(session, cls._headers, element)
-                                if image is not None:
-                                    generated_images.append(image)
+                                generated_images.append(image)
                         for image_response in await asyncio.gather(*generated_images):
-                            yield image_response
+                            if image_response is not None:
+                                yield image_response
                     if m.get("author", {}).get("role") == "assistant":
                         fields.message_id = v.get("message", {}).get("id")
             return

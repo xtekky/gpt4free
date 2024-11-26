@@ -45,7 +45,7 @@ class arkReq:
         self.arkCookies = arkCookies
         self.userAgent = userAgent
 
-def readHAR():
+def get_har_files():
     harPath = []
     for root, _, files in os.walk(get_cookies_dir()):
         for file in files:
@@ -53,7 +53,11 @@ def readHAR():
                 harPath.append(os.path.join(root, file))
     if not harPath:
         raise NoValidHarFileError("No .har file found")
-    for path in harPath:
+    harPath.sort(key=lambda x: os.path.getmtime(x))
+    return harPath
+
+def readHAR():
+    for path in get_har_files():
         with open(path, 'rb') as file:
             try:
                 harFile = json.loads(file.read())

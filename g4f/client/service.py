@@ -90,9 +90,9 @@ def get_model_and_provider(model    : Union[Model, str],
         raise StreamNotSupportedError(f'{provider.__name__} does not support "stream" argument')
 
     if model:
-        debug.log(f'Using {provider.__name__} provider and {model} model')
+        debug.log(f'Using {type(provider).__name__} provider and {model} model')
     else:
-        debug.log(f'Using {provider.__name__} provider')
+        debug.log(f'Using {type(provider).__name__} provider')
 
     debug.last_provider = provider
     debug.last_model = model
@@ -115,7 +115,7 @@ def get_last_provider(as_dict: bool = False) -> Union[ProviderType, dict[str, st
     if as_dict:
         if last:
             return {
-                "name": last.__name__,
+                "name": type(last).__name__,
                 "url": last.url,
                 "model": debug.last_model,
                 "label": getattr(last, "label", None) if hasattr(last, "label") else None

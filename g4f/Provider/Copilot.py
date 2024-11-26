@@ -23,7 +23,7 @@ from ..typing import CreateResult, Messages, ImageType
 from ..errors import MissingRequirementsError
 from ..requests.raise_for_status import raise_for_status
 from ..providers.asyncio import get_running_loop
-from ..Provider.openai.har_file import NoValidHarFileError, get_headers
+from ..Provider.openai.har_file import NoValidHarFileError, get_headers, get_har_files
 from ..requests import get_nodriver
 from ..image import ImageResponse, to_bytes, is_accepted_format
 from ..cookies import get_cookies_dir
@@ -188,16 +188,9 @@ class Copilot(AbstractProvider):
         return access_token, cookies
 
 def readHAR():
-    harPath = []
-    for root, _, files in os.walk(get_cookies_dir()):
-        for file in files:
-            if file.endswith(".har"):
-                harPath.append(os.path.join(root, file))
-    if not harPath:
-        raise NoValidHarFileError("No .har file found")
     api_key = None
     cookies = None
-    for path in harPath:
+    for path in get_har_files():
         with open(path, 'rb') as file:
             try:
                 harFile = json.loads(file.read())
