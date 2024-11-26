@@ -48,6 +48,8 @@ from g4f.gui import get_gui_app
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_PORT = 1337
+
 def create_app(g4f_api_key: str = None):
     app = FastAPI()
 
@@ -493,7 +495,7 @@ def format_exception(e: Union[Exception, str], config: Union[ChatCompletionsConf
 
 def run_api(
     host: str = '0.0.0.0',
-    port: int = 1337,
+    port: int = None,
     bind: str = None,
     debug: bool = False,
     workers: int = None,
@@ -505,6 +507,8 @@ def run_api(
         use_colors = debug
     if bind is not None:
         host, port = bind.split(":")
+    if port is None:
+        port = DEFAULT_PORT
     uvicorn.run(
         f"g4f.api:create_app{'_debug' if debug else ''}", 
         host=host, 

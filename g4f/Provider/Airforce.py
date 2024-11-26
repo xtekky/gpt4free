@@ -7,6 +7,7 @@ import re
 import requests
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
+from urllib.parse import quote
 
 from ..typing import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
@@ -36,7 +37,7 @@ class Airforce(AsyncGeneratorProvider, ProviderModelMixin):
 
     default_model = "gpt-4o-mini"
     default_image_model = "flux"
-    additional_models_imagine = ["stable-diffusion-xl-base", "stable-diffusion-xl-lightning", "Flux-1.1-Pro"]
+    additional_models_imagine = ["stable-diffusion-xl-base", "stable-diffusion-xl-lightning", "flux-1.1-pro"]
 
     @classmethod
     def get_models(cls):
@@ -86,7 +87,7 @@ class Airforce(AsyncGeneratorProvider, ProviderModelMixin):
         ### imagine ###
         "sdxl": "stable-diffusion-xl-base",
         "sdxl": "stable-diffusion-xl-lightning", 
-        "flux-pro": "Flux-1.1-Pro",
+        "flux-pro": "flux-1.1-pro",
     }
 
     @classmethod
@@ -95,14 +96,18 @@ class Airforce(AsyncGeneratorProvider, ProviderModelMixin):
         model: str,
         messages: Messages,
         proxy: str = None,
+        prompt: str = None,
         seed: int = None,
         size: str = "1:1", # "1:1", "16:9", "9:16", "21:9", "9:21", "1:2", "2:1"
         stream: bool = False,
         **kwargs
     ) -> AsyncResult:
         model = cls.get_model(model)
+
         if model in cls.image_models:
-            return cls._generate_image(model, messages, proxy, seed, size)
+            if prompt is None:
+                prompt = messages[-1]['content']
+            return cls._generate_image(model, prompt, proxy, seed, size)
         else:
             return cls._generate_text(model, messages, proxy, stream, **kwargs)
 
@@ -110,7 +115,7 @@ class Airforce(AsyncGeneratorProvider, ProviderModelMixin):
     async def _generate_image(
         cls,
         model: str,
-        messages: Messages,
+        prompt: str,
         proxy: str = None,
         seed: int = None,
         size: str = "1:1",
@@ -125,7 +130,6 @@ class Airforce(AsyncGeneratorProvider, ProviderModelMixin):
         }
         if seed is None:
             seed = random.randint(0, 100000)
-        prompt = messages[-1]['content']
 
         async with StreamSession(headers=headers, proxy=proxy) as session:
             params = {
@@ -140,12 +144,8 @@ class Airforce(AsyncGeneratorProvider, ProviderModelMixin):
 
                 if 'application/json' in content_type:
                     raise RuntimeError(await response.json().get("error", {}).get("message"))
-                elif 'image' in content_type:
-                    image_data = b""
-                    async for chunk in response.iter_content():
-                        if chunk:
-                            image_data += chunk
-                    image_url = f"{cls.api_endpoint_imagine}?model={model}&prompt={prompt}&size={size}&seed={seed}"
+                elif content_type.startswith("image/"):
+                    image_url = f"{cls.api_endpoint_imagine}?model={model}&prompt={quote(prompt)}&size={size}&seed={seed}"
                     yield ImageResponse(images=image_url, alt=prompt)
 
     @classmethod
