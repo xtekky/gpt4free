@@ -1327,6 +1327,8 @@ async function on_api() {
 }
 
 async function load_version() {
+    let new_version = document.querySelector(".new_version");
+    if (new_version) return;
     const versions = await api("version");
     document.title = 'g4f - ' + versions["version"];
     let text = "version ~ "
@@ -1334,7 +1336,7 @@ async function load_version() {
         let release_url = 'https://github.com/xtekky/gpt4free/releases/latest';
         let title = `New version: ${versions["latest_version"]}`;
         text += `<a href="${release_url}" target="_blank" title="${title}">${versions["version"]}</a> 🆕`;
-        const new_version = document.createElement("div");
+        new_version = document.createElement("div");
         new_version.classList.add("new_version");
         const link = `<a href="${release_url}" target="_blank" title="${title}">v${versions["latest_version"]}</a>`;
         new_version.innerHTML = `g4f ${link}&nbsp;&nbsp;🆕`;
@@ -1344,6 +1346,7 @@ async function load_version() {
         text += versions["version"];
     }
     document.getElementById("version_text").innerHTML = text
+    setTimeout(load_version, 1000 * 60 * 60); // 1 hour
 }
 setTimeout(load_version, 100);
 

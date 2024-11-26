@@ -8,7 +8,6 @@ import asyncio
 import base64
 from typing import Union, AsyncIterator, Iterator, Coroutine, Optional
 
-from ..providers.base_provider import AsyncGeneratorProvider
 from ..image import ImageResponse, copy_images, images_dir
 from ..typing import Messages, Image, ImageType
 from ..providers.types import ProviderType
@@ -58,7 +57,7 @@ def iter_response(
         elif isinstance(chunk, BaseConversation):
             yield chunk
             continue
-        elif isinstance(chunk, SynthesizeData):
+        elif isinstance(chunk, SynthesizeData) or chunk is None:
             continue
 
         chunk = str(chunk)
@@ -121,7 +120,7 @@ async def async_iter_response(
             elif isinstance(chunk, BaseConversation):
                 yield chunk
                 continue
-            elif isinstance(chunk, SynthesizeData):
+            elif isinstance(chunk, SynthesizeData) or chunk is None:
                 continue
 
             chunk = str(chunk)
@@ -292,6 +291,7 @@ class Images:
         **kwargs
     ) -> ImagesResponse:
         provider_handler = await self.get_provider_handler(model, provider, BingCreateImages)
+        provider_name = provider.__name__ if hasattr(provider, "__name__") else type(provider).__name__
         if proxy is None:
             proxy = self.client.proxy
 
@@ -317,17 +317,17 @@ class Images:
                     response = item
                     break
         else:
-            raise ValueError(f"Provider {getattr(provider_handler, '__name__')} does not support image generation")
+            raise ValueError(f"Provider {provider_name} does not support image generation")
         if isinstance(response, ImageResponse):
             return await self._process_image_response(
                 response,
                 response_format,
                 proxy,
                 model,
-                getattr(provider_handler, "__name__", None)
+                provider_name
             )
         if response is None:
-            raise NoImageResponseError(f"No image response from {getattr(provider_handler, '__name__')}")
+            raise NoImageResponseError(f"No image response from {provider_name}")
         raise NoImageResponseError(f"Unexpected response type: {type(response)}")
 
     def create_variation(
@@ -352,6 +352,7 @@ class Images:
         **kwargs
     ) -> ImagesResponse:
         provider_handler = await self.get_provider_handler(model, provider, OpenaiAccount)
+        provider_name = provider.__name__ if hasattr(provider, "__name__") else type(provider).__name__
         if proxy is None:
             proxy = self.client.proxy
 
@@ -372,14 +373,14 @@ class Images:
             else:
                 response = provider_handler.create_variation(image, model=model, response_format=response_format, proxy=proxy, **kwargs)
         else:
-            raise NoImageResponseError(f"Provider {provider} does not support image variation")
-    
+            raise NoImageResponseError(f"Provider {provider_name} does not support image variation")
+
         if isinstance(response, str):
             response = ImageResponse([response])
         if isinstance(response, ImageResponse):
-            return self._process_image_response(response, response_format, proxy, model, getattr(provider, "__name__", None))
+            return self._process_image_response(response, response_format, proxy, model, provider_name)
         if response is None:
-            raise NoImageResponseError(f"No image response from {getattr(provider, '__name__')}")
+            raise NoImageResponseError(f"No image response from {provider_name}")
         raise NoImageResponseError(f"Unexpected response type: {type(response)}")
 
     async def _process_image_response(

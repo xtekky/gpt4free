@@ -61,18 +61,26 @@ def get_model_and_provider(model    : Union[Model, str],
     if not provider:
         if not model:
             model = default
+            provider = model.best_provider
         elif isinstance(model, str):
-            raise ModelNotFoundError(f'Model not found: {model}')
-        provider = model.best_provider
+            if model in ProviderUtils.convert:
+                provider = ProviderUtils.convert[model]
+                model = provider.default_model if hasattr(provider, "default_model") else ""
+            else:
+                raise ModelNotFoundError(f'Model not found: {model}')
+        else:
+            provider = model.best_provider
 
     if not provider:
         raise ProviderNotFoundError(f'No provider found for model: {model}')
+
+    provider_name = provider.__name__ if hasattr(provider, "__name__") else type(provider).__name__
 
     if isinstance(model, Model):
         model = model.name
 
     if not ignore_working and not provider.working:
-        raise ProviderNotWorkingError(f'{provider.__name__} is not working')
+        raise ProviderNotWorkingError(f"{provider_name} is not working")
 
     if isinstance(provider, BaseRetryProvider):
         if not ignore_working:
@@ -81,12 +89,12 @@ def get_model_and_provider(model    : Union[Model, str],
             provider.providers = [p for p in provider.providers if p.__name__ not in ignored]
 
     if not ignore_stream and not provider.supports_stream and stream:
-        raise StreamNotSupportedError(f'{provider.__name__} does not support "stream" argument')
+        raise StreamNotSupportedError(f'{provider_name} does not support "stream" argument')
 
     if model:
-        debug.log(f'Using {provider.__name__} provider and {model} model')
+        debug.log(f'Using {provider_name} provider and {model} model')
     else:
-        debug.log(f'Using {provider.__name__} provider')
+        debug.log(f'Using {provider_name} provider')
 
     debug.last_provider = provider
     debug.last_model = model
@@ -109,7 +117,7 @@ def get_last_provider(as_dict: bool = False) -> Union[ProviderType, dict[str, st
     if as_dict:
         if last:
             return {
-                "name": last.__name__,
+                "name": last.__name__ if hasattr(last, "__name__") else type(last).__name__,
                 "url": last.url,
                 "model": debug.last_model,
                 "label": getattr(last, "label", None) if hasattr(last, "label") else None

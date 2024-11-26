@@ -205,6 +205,7 @@ class ChatGpt(AbstractProvider, ProviderModelMixin):
         
         response = session.post('https://chatgpt.com/backend-anon/conversation',
                                  headers=headers, json=json_data, stream=True)
+        response.raise_for_status()
 
         replace = ''
         for line in response.iter_lines():
