@@ -8,17 +8,17 @@ import asyncio
 from urllib import parse
 from datetime import datetime, date
 
-from ..typing import AsyncResult, Messages, ImageType, Cookies
-from ..image import ImageRequest
-from ..errors import ResponseError, ResponseStatusError, RateLimitError
-from ..requests import DEFAULT_HEADERS
-from ..requests.aiohttp import StreamSession
-from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from .helper import get_random_hex
-from .bing.upload_image import upload_image
-from .bing.conversation import Conversation, create_conversation, delete_conversation
-from .needs_auth.BingCreateImages import BingCreateImages
-from .. import debug
+from ...typing import AsyncResult, Messages, ImageType, Cookies
+from ...image import ImageRequest
+from ...errors import ResponseError, ResponseStatusError, RateLimitError
+from ...requests import DEFAULT_HEADERS
+from ...requests.aiohttp import StreamSession
+from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from ..helper import get_random_hex
+from ..bing.upload_image import upload_image
+from ..bing.conversation import Conversation, create_conversation, delete_conversation
+from ..needs_auth.BingCreateImages import BingCreateImages
+from ... import debug
 
 class Tones:
     """
@@ -35,7 +35,7 @@ class Bing(AsyncGeneratorProvider, ProviderModelMixin):
     """
     label = "Microsoft Copilot in Bing"
     url = "https://bing.com/chat"
-    working = True
+    working = False
     supports_message_history = True
     default_model = "Balanced"
     default_vision_model = "gpt-4-vision"
