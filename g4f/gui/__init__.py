@@ -9,6 +9,9 @@ except ImportError as e:
     import_error = e
 
 def get_gui_app():
+    if import_error is not None:
+        raise MissingRequirementsError(f'Install "gui" requirements | pip install -U g4f[gui]\n{import_error}')
+
     site = Website(app)
     for route in site.routes:
         app.add_url_rule(
@@ -27,9 +30,6 @@ def get_gui_app():
     return app
 
 def run_gui(host: str = '0.0.0.0', port: int = 8080, debug: bool = False) -> None:
-    if import_error is not None:
-        raise MissingRequirementsError(f'Install "gui" requirements | pip install -U g4f[gui]\n{import_error}')
-
     config = {
         'host' : host,
         'port' : port,

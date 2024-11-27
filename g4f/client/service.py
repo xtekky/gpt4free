@@ -68,9 +68,10 @@ def get_model_and_provider(model    : Union[Model, str],
                 model = provider.default_model if hasattr(provider, "default_model") else ""
             else:
                 raise ModelNotFoundError(f'Model not found: {model}')
-        else:
+        elif isinstance(model, Model):
             provider = model.best_provider
-
+        else:
+            raise ValueError(f"Unexpected type: {type(model)}")
     if not provider:
         raise ProviderNotFoundError(f'No provider found for model: {model}')
 

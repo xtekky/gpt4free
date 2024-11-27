@@ -9,7 +9,7 @@ import base64
 from typing import Union, AsyncIterator, Iterator, Coroutine, Optional
 
 from ..image import ImageResponse, copy_images, images_dir
-from ..typing import Messages, Image, ImageType
+from ..typing import Messages, ImageType
 from ..providers.types import ProviderType
 from ..providers.response import ResponseType, FinishReason, BaseConversation, SynthesizeData
 from ..errors import NoImageResponseError, ModelNotFoundError
@@ -332,7 +332,7 @@ class Images:
 
     def create_variation(
         self,
-        image: Union[str, bytes],
+        image: ImageType,
         model: str = None,
         provider: Optional[ProviderType] = None,
         response_format: str = "url",
