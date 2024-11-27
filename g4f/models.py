@@ -68,7 +68,6 @@ default = Model(
         Upstage,
         Blackbox,
         Free2GPT,
-        MagickPen,
         DeepInfraChat,
         LLMPlayground, 
         ChatGptEs,
