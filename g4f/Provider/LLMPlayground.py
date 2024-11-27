@@ -140,7 +140,6 @@ class LLMPlayground(AsyncGeneratorProvider, ProviderModelMixin):
             "accept": "*/*",
             "accept-language": "en-US,en;q=0.9",
             "cache-control": "no-cache",
-            "origin": "https://llmplayground.net",
             "user-agent": "Mozilla/5.0"
         }
         if seed is None:
