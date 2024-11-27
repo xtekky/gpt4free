@@ -21,7 +21,7 @@ from .Provider import (
     HuggingChat,
     HuggingFace,
     Liaobots,
-    LLMPlayground,
+    Airforce,
     MagickPen,
     Mhystical,
     MetaAI,
@@ -67,7 +67,7 @@ default = Model(
         Blackbox,
         Free2GPT,
         DeepInfraChat,
-        LLMPlayground, 
+        Airforce, 
         ChatGptEs,
         Cloudflare,
         DarkAI,
@@ -85,32 +85,32 @@ default = Model(
 gpt_35_turbo = Model(
     name          = 'gpt-3.5-turbo',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([LLMPlayground])
+    best_provider = IterListProvider([Airforce])
 )
 
 # gpt-4
 gpt_4o = Model(
     name          = 'gpt-4o',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([Blackbox, ChatGptEs, DarkAI, ChatGpt, AmigoChat, LLMPlayground, Liaobots, OpenaiChat])
+    best_provider = IterListProvider([Blackbox, ChatGptEs, DarkAI, ChatGpt, AmigoChat, Airforce, Liaobots, OpenaiChat])
 )
 
 gpt_4o_mini = Model(
     name          = 'gpt-4o-mini',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([DDG, ChatGptEs, Pizzagpt, ChatGpt, AmigoChat, LLMPlayground, RubiksAI, MagickPen, Liaobots, OpenaiChat])
+    best_provider = IterListProvider([DDG, ChatGptEs, Pizzagpt, ChatGpt, AmigoChat, Airforce, RubiksAI, MagickPen, Liaobots, OpenaiChat])
 )
 
 gpt_4_turbo = Model(
     name          = 'gpt-4-turbo',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([Liaobots, LLMPlayground])
+    best_provider = IterListProvider([Liaobots, Airforce])
 )
 
 gpt_4 = Model(
     name          = 'gpt-4',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([DDG, Copilot, OpenaiChat, Liaobots, LLMPlayground])
+    best_provider = IterListProvider([DDG, Copilot, OpenaiChat, Liaobots, Airforce])
 )
 
 # o1
@@ -144,7 +144,7 @@ meta = Model(
 llama_2_7b = Model(
     name          = "llama-2-7b",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider([Cloudflare, LLMPlayground])
+    best_provider = IterListProvider([Cloudflare, Airforce])
 )
 # llama 3
 llama_3_8b = Model(
@@ -157,13 +157,13 @@ llama_3_8b = Model(
 llama_3_1_8b = Model(
     name          = "llama-3.1-8b",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider([Blackbox, DeepInfraChat, Cloudflare, LLMPlayground, PerplexityLabs])
+    best_provider = IterListProvider([Blackbox, DeepInfraChat, Cloudflare, Airforce, PerplexityLabs])
 )
 
 llama_3_1_70b = Model(
     name          = "llama-3.1-70b",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider([DDG, DeepInfraChat, Blackbox, TeachAnything, DarkAI, LLMPlayground, RubiksAI, HuggingChat, HuggingFace, PerplexityLabs])
+    best_provider = IterListProvider([DDG, DeepInfraChat, Blackbox, TeachAnything, DarkAI, Airforce, RubiksAI, HuggingChat, HuggingFace, PerplexityLabs])
 )
 
 llama_3_1_405b = Model(
@@ -227,13 +227,13 @@ mistral_nemo = Model(
 hermes_2_dpo = Model(
     name          = "hermes-2-dpo",
     base_provider = "NousResearch",
-    best_provider = LLMPlayground
+    best_provider = Airforce
 )
 
 hermes_2_pro = Model(
     name          = "hermes-2-pro",
     base_provider = "NousResearch",
-    best_provider = LLMPlayground
+    best_provider = Airforce
 )
 
 hermes_3 = Model(
@@ -245,14 +245,14 @@ hermes_3 = Model(
 mixtral_8x7b_dpo = Model(
     name          = "mixtral-8x7b-dpo",
     base_provider = "NousResearch",
-    best_provider = IterListProvider([AmigoChat, LLMPlayground])
+    best_provider = IterListProvider([AmigoChat, Airforce])
 )
 
 ### Microsoft ###
 phi_2 = Model(
     name          = "phi-2",
     base_provider = "Microsoft",
-    best_provider = IterListProvider([LLMPlayground])
+    best_provider = IterListProvider([Airforce])
 )
 
 phi_3_5_mini = Model(
@@ -407,7 +407,7 @@ deepseek_chat = Model(
 deepseek_coder = Model(
     name = 'deepseek-coder',
     base_provider = 'DeepSeek',
-    best_provider = LLMPlayground
+    best_provider = Airforce
 )
 
 ### WizardLM ###
@@ -428,7 +428,7 @@ llava_13b = Model(
 openchat_3_5 = Model(
     name = 'openchat-3.5',
     base_provider = 'OpenChat',
-    best_provider = LLMPlayground
+    best_provider = Airforce
 )
 
 
@@ -477,14 +477,14 @@ nemotron_70b = Model(
 openhermes_2_5 = Model(
     name = 'openhermes-2.5',
     base_provider = 'Teknium',
-    best_provider = LLMPlayground
+    best_provider = Airforce
 )
 
 ### Liquid ### 
 lfm_40b = Model(
     name = 'lfm-40b',
     base_provider = 'Liquid',
-    best_provider = IterListProvider([LLMPlayground, PerplexityLabs])
+    best_provider = IterListProvider([Airforce, PerplexityLabs])
 )
 
 
@@ -492,21 +492,21 @@ lfm_40b = Model(
 german_7b = Model(
     name = 'german-7b',
     base_provider = 'DiscoResearch',
-    best_provider = LLMPlayground
+    best_provider = Airforce
 )
 
 ### HuggingFaceH4 ### 
 zephyr_7b = Model(
     name = 'zephyr-7b',
     base_provider = 'HuggingFaceH4',
-    best_provider = LLMPlayground
+    best_provider = Airforce
 )
 
 ### Inferless ### 
 neural_7b = Model(
     name = 'neural-7b',
     base_provider = 'inferless',
-    best_provider = LLMPlayground
+    best_provider = Airforce
 )
 
 ### Gryphe ### 
@@ -541,7 +541,7 @@ jamba_mini = Model(
 any_uncensored = Model(
     name = 'any-uncensored',
     base_provider = 'llmplayground.net',
-    best_provider = LLMPlayground
+    best_provider = Airforce
 )
 
 #############
@@ -552,7 +552,7 @@ any_uncensored = Model(
 sdxl = Model(
     name = 'sdxl',
     base_provider = 'Stability AI',
-    best_provider = IterListProvider([ReplicateHome, LLMPlayground])
+    best_provider = IterListProvider([ReplicateHome, Airforce])
     
 )
 
@@ -576,13 +576,13 @@ playground_v2_5 = Model(
 flux = Model(
     name = 'flux',
     base_provider = 'Flux AI',
-    best_provider = IterListProvider([Blackbox, LLMPlayground])
+    best_provider = IterListProvider([Blackbox, Airforce])
 )
 
 flux_pro = Model(
     name = 'flux-pro',
     base_provider = 'Flux AI',
-    best_provider = LLMPlayground
+    best_provider = Airforce
 )
 
 flux_dev = Model(
@@ -594,37 +594,37 @@ flux_dev = Model(
 flux_realism = Model(
     name = 'flux-realism',
     base_provider = 'Flux AI',
-    best_provider = IterListProvider([LLMPlayground, AmigoChat])
+    best_provider = IterListProvider([Airforce, AmigoChat])
 )
 
 flux_anime = Model(
     name = 'flux-anime',
     base_provider = 'Flux AI',
-    best_provider = LLMPlayground
+    best_provider = Airforce
 )
 
 flux_3d = Model(
     name = 'flux-3d',
     base_provider = 'Flux AI',
-    best_provider = LLMPlayground
+    best_provider = Airforce
 )
 
 flux_disney = Model(
     name = 'flux-disney',
     base_provider = 'Flux AI',
-    best_provider = LLMPlayground
+    best_provider = Airforce
 )
 
 flux_pixel = Model(
     name = 'flux-pixel',
     base_provider = 'Flux AI',
-    best_provider = LLMPlayground
+    best_provider = Airforce
 )
 
 flux_4o = Model(
     name = 'flux-4o',
     base_provider = 'Flux AI',
-    best_provider = LLMPlayground
+    best_provider = Airforce
 )
 
 ### OpenAI ###
@@ -645,7 +645,7 @@ recraft_v3 = Model(
 any_dark = Model(
     name = 'any-dark',
     base_provider = 'Other',
-    best_provider = LLMPlayground
+    best_provider = Airforce
 )
 
 class ModelUtils:
