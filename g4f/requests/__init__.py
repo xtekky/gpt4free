@@ -123,6 +123,7 @@ def get_session_from_browser(url: str, webdriver: WebDriver = None, proxy: str =
         timeout=timeout,
         impersonate="chrome"
     )
+
 def get_cookie_params_from_dict(cookies: Cookies, url: str = None, domain: str = None) -> list[CookieParam]:
     [CookieParam.from_json({
         "name": key,
@@ -172,12 +173,12 @@ def merge_cookies(cookies: Iterator[Morsel], response: Response) -> Cookies:
         cookies = {}
     for cookie in response.cookies.jar:
         cookies[cookie.name] = cookie.value
-        
+
 async def get_nodriver(proxy: str = None, **kwargs)-> Browser:
     if not has_nodriver:
         raise MissingRequirementsError('Install "nodriver" package | pip install -U nodriver')
     user_data_dir = user_config_dir("g4f-nodriver") if has_platformdirs else None
-    debug.log(f"Copilot: Open nodriver with user_dir: {user_data_dir}")
+    debug.log(f"Open nodriver with user_dir: {user_data_dir}")
     return await nodriver.start(
         user_data_dir=user_data_dir,
         browser_args=None if proxy is None else [f"--proxy-server={proxy}"],

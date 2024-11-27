@@ -104,6 +104,9 @@ class ChatCompletionsConfig(BaseModel):
     web_search: Optional[bool] = None
     proxy: Optional[str] = None
     conversation_id: Optional[str] = None
+    history_disabled: Optional[bool] = None
+    auto_continue: Optional[bool] = None
+    timeout: Optional[int] = None
 
 class ImageGenerationConfig(BaseModel):
     prompt: str

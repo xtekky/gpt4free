@@ -7,7 +7,7 @@ import g4f
 
 g4f.debug.logging = True  # Enable debug logging
 g4f.debug.version_check = False  # Disable automatic version checking
-print(g4f.Provider.Bing.params)  # Print supported args for Bing
+print(g4f.Provider.Gemini.params)  # Print supported args for Bing
 
 # Using automatic a provider for the given model
 ## Streamed completion
@@ -78,7 +78,7 @@ for message in response:
 
 Image upload and generation are supported by three main providers:
 
-- **Bing & Other GPT-4 Providers:** Utilizes Microsoft's Image Creator.
+- **Microsoft Copilot & Other GPT-4 Providers:** Utilizes Microsoft's Image Creator.
 - **Google Gemini:** Available for free accounts with IP addresses outside Europe.
 - **OpenaiChat with GPT-4:** Accessible for users with a Plus subscription.
 
