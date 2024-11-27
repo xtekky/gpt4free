@@ -8,7 +8,6 @@ from .Provider import (
     AmigoChat,
     Blackbox,
     ChatGpt,
-    Chatgpt4Online,
     ChatGptEs,
     Cloudflare,
     Copilot,
@@ -16,7 +15,6 @@ from .Provider import (
     DDG,
     DeepInfraChat,
     Free2GPT,
-    FreeNetfly,
     GigaChat,
     Gemini,
     GeminiPro,
@@ -100,7 +98,7 @@ gpt_4o = Model(
 gpt_4o_mini = Model(
     name          = 'gpt-4o-mini',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([DDG, ChatGptEs, FreeNetfly, Pizzagpt, ChatGpt, AmigoChat, LLMPlayground, RubiksAI, MagickPen, Liaobots, OpenaiChat])
+    best_provider = IterListProvider([DDG, ChatGptEs, Pizzagpt, ChatGpt, AmigoChat, LLMPlayground, RubiksAI, MagickPen, Liaobots, OpenaiChat])
 )
 
 gpt_4_turbo = Model(
@@ -112,7 +110,7 @@ gpt_4_turbo = Model(
 gpt_4 = Model(
     name          = 'gpt-4',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([Chatgpt4Online, Copilot, OpenaiChat, DDG, Liaobots, LLMPlayground])
+    best_provider = IterListProvider([DDG, Copilot, OpenaiChat, Liaobots, LLMPlayground])
 )
 
 # o1
