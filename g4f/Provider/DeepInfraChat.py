@@ -20,12 +20,16 @@ class DeepInfraChat(AsyncGeneratorProvider, ProviderModelMixin):
         default_model,
         'microsoft/WizardLM-2-8x22B',
         'Qwen/Qwen2.5-72B-Instruct',
+        'Qwen/Qwen2.5-Coder-32B-Instruct',
+        'nvidia/Llama-3.1-Nemotron-70B-Instruct',
     ]
     model_aliases = {
         "llama-3.1-8b": "meta-llama/Meta-Llama-3.1-8B-Instruct",
         "llama-3.1-70b": "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo",
         "wizardlm-2-8x22b": "microsoft/WizardLM-2-8x22B",
         "qwen-2-72b": "Qwen/Qwen2.5-72B-Instruct",
+        "qwen-2.5-coder-32b": "Qwen2.5-Coder-32B-Instruct",
+        "nemotron-70b": "nvidia/Llama-3.1-Nemotron-70B-Instruct",
     }
 
 
