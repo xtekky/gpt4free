@@ -26,7 +26,7 @@ USER $G4F_USER_ID
 WORKDIR $G4F_DIR
 
 ENV HOME /home/$G4F_USER
-ENV PATH "${HOME}/.local/bin:${PATH}"
+ENV PATH "${HOME}/.local/bin:${HOME}/.cargo/bin:${PATH}"
 
 # Install rust toolchain
 RUN curl https://sh.rustup.rs -sSf | bash -s -- -y
