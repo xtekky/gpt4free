@@ -11,8 +11,6 @@ from .needs_auth       import *
 from .not_working      import *
 from .local            import *
 
-from .AIUncensored     import AIUncensored
-from .Airforce         import Airforce
 from .AmigoChat        import AmigoChat
 from .Blackbox         import Blackbox
 from .ChatGpt          import ChatGpt
@@ -27,11 +25,11 @@ from .FreeGpt          import FreeGpt
 from .GizAI            import GizAI
 from .HuggingChat      import HuggingChat
 from .Liaobots         import Liaobots
+from .LLMPlayground    import LLMPlayground
 from .MagickPen        import MagickPen
 from .PerplexityLabs   import PerplexityLabs
 from .Pi               import Pi
 from .Pizzagpt         import Pizzagpt
-from .PollinationsAI   import PollinationsAI
 from .Prodia           import Prodia
 from .Reka             import Reka
 from .ReplicateHome    import ReplicateHome
