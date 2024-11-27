@@ -59,6 +59,7 @@ RUN pip uninstall --yes \
 USER root
 
 # Clean up build deps
+RUN rm --recursive --force "${HOME}/.rustup"
 RUN apt-get purge --auto-remove --yes \
     build-essential \
   && apt-get clean \
