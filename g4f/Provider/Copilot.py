@@ -17,13 +17,13 @@ try:
 except ImportError:
     has_nodriver = False
 
-from .base_provider import AbstractProvider, BaseConversation
+from .base_provider import AbstractProvider, ProviderModelMixin, BaseConversation
 from .helper import format_prompt
 from ..typing import CreateResult, Messages, ImageType
 from ..errors import MissingRequirementsError
 from ..requests.raise_for_status import raise_for_status
 from ..providers.asyncio import get_running_loop
-from ..Provider.openai.har_file import NoValidHarFileError, get_headers, get_har_files
+from .openai.har_file import NoValidHarFileError, get_headers
 from ..requests import get_nodriver
 from ..image import ImageResponse, to_bytes, is_accepted_format
 from .. import debug
@@ -38,12 +38,16 @@ class Conversation(BaseConversation):
         self.cookie_jar = cookie_jar
         self.access_token = access_token
 
-class Copilot(AbstractProvider):
+class Copilot(AbstractProvider, ProviderModelMixin):
     label = "Microsoft Copilot"
     url = "https://copilot.microsoft.com"
     working = True
     supports_stream = True
     default_model = "Copilot"
+    models = [default_model]
+    model_aliases = {
+        "gpt-4": "Copilot",
+    }
 
     websocket_url = "wss://copilot.microsoft.com/c/api/chat?api-version=2"
     conversation_url = f"{url}/c/api/conversations"
