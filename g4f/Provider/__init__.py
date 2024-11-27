@@ -11,7 +11,7 @@ from .needs_auth       import *
 from .not_working      import *
 from .local            import *
 
-from .Airforce        import Airforce
+from .Airforce         import Airforce
 from .AmigoChat        import AmigoChat
 from .Blackbox         import Blackbox
 from .ChatGpt          import ChatGpt
