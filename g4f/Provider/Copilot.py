@@ -26,7 +26,6 @@ from ..providers.asyncio import get_running_loop
 from ..Provider.openai.har_file import NoValidHarFileError, get_headers, get_har_files
 from ..requests import get_nodriver
 from ..image import ImageResponse, to_bytes, is_accepted_format
-from ..cookies import get_cookies_dir
 from .. import debug
 
 class Conversation(BaseConversation):
