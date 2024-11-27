@@ -18,7 +18,8 @@ MODELS = [
     {"model":"claude-3-opus-20240229","modelName":"Claude 3","modelVariant":"Opus","modelStyleId":"claude-3-haiku","createdBy":"Anthropic","moderationLevel":"HIGH","isAvailable":1,"inputCharLimit":16e3,"settingId":"2"},
     {"model":"claude-3-haiku-20240307","modelName":"Claude 3","modelVariant":"Haiku","modelStyleId":"claude-3-haiku","createdBy":"Anthropic","moderationLevel":"HIGH","isAvailable":0,"inputCharLimit":16e3,"settingId":"1"},
     {"model":"meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo","modelName":"Llama 3.1","modelVariant":"70B","modelStyleId":"llama-3","createdBy":"Meta","moderationLevel":"MEDIUM","isAvailable":0,"isOpenSource":0,"inputCharLimit":16e3,"settingId":"5"},
-    {"model":"mistralai/Mixtral-8x7B-Instruct-v0.1","modelName":"Mixtral","modelVariant":"8x7B","modelStyleId":"mixtral","createdBy":"Mistral AI","moderationLevel":"LOW","isAvailable":0,"isOpenSource":0,"inputCharLimit":16e3,"settingId":"6"}
+    {"model":"mistralai/Mixtral-8x7B-Instruct-v0.1","modelName":"Mixtral","modelVariant":"8x7B","modelStyleId":"mixtral","createdBy":"Mistral AI","moderationLevel":"LOW","isAvailable":0,"isOpenSource":0,"inputCharLimit":16e3,"settingId":"6"},
+    {"model":"Qwen/Qwen2.5-Coder-32B-Instruct","modelName":"Qwen 2.5 Coder","modelVariant":"32B","modelStyleId":"qwen","createdBy":"Alibaba Cloud","moderationLevel":"LOW","isAvailable":0,"isOpenSource":1,"inputCharLimit":16e3,"settingId":"90"}
 ]
 
 class Conversation(BaseConversation):
@@ -29,7 +30,7 @@ class Conversation(BaseConversation):
         self.model = model
 
 class DDG(AsyncGeneratorProvider, ProviderModelMixin):
-    url = "https://duckduckgo.com"
+    url = "https://duckduckgo.com/aichat"
     api_endpoint = "https://duckduckgo.com/duckchat/v1/chat"
     working = True
     supports_stream = True
@@ -42,7 +43,7 @@ class DDG(AsyncGeneratorProvider, ProviderModelMixin):
         "claude-3-haiku": "claude-3-haiku-20240307",
         "llama-3.1-70b": "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo",
         "mixtral-8x7b": "mistralai/Mixtral-8x7B-Instruct-v0.1",
-        "gpt-4": "gpt-4o-mini"
+        "gpt-4": "gpt-4o-mini",
     }
 
     @classmethod
@@ -75,7 +76,9 @@ class DDG(AsyncGeneratorProvider, ProviderModelMixin):
         if conversation is None:
             conversation = Conversation(model)
             is_new_conversation = True
+        
         debug.last_model = model
+        
         if conversation.vqd is None:
             conversation.vqd = await cls.get_vqd(proxy, connector)
         if not conversation.vqd:
@@ -87,24 +90,35 @@ class DDG(AsyncGeneratorProvider, ProviderModelMixin):
             'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
             'x-vqd-4': conversation.vqd,
         }
+        
         async with ClientSession(headers=headers, connector=get_connector(connector, proxy)) as session:
             if is_new_conversation:
                 conversation.message_history = [{"role": "user", "content": format_prompt(messages)}]
             else:
-                conversation.message_history = [
-                    *conversation.message_history,
-                    messages[-2],
-                    messages[-1]
-                ]
+                if len(messages) >= 2:
+                    conversation.message_history = [
+                        *conversation.message_history,
+                        messages[-2],
+                        messages[-1]
+                    ]
+                elif len(messages) == 1:
+                    conversation.message_history = [
+                        *conversation.message_history,
+                        messages[-1]
+                    ]
+
             if return_conversation:
                 yield conversation
+
             data = {
                 "model": conversation.model,
                 "messages": conversation.message_history
             }
+
             async with session.post(cls.api_endpoint, json=data) as response:
                 conversation.vqd = response.headers.get("x-vqd-4")
                 await raise_for_status(response)
+                
                 async for line in response.content:
                     if line:
                         decoded_line = line.decode('utf-8')
