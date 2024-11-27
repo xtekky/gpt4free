@@ -28,7 +28,6 @@ def split_message(message: str, max_length: int = 1000) -> list[str]:
     return chunks
 
 class Airforce(AsyncGeneratorProvider, ProviderModelMixin):
-    label = "LLM Playground"
     url = "https://llmplayground.net"
     api_endpoint_completions = "https://api.airforce/chat/completions"
     api_endpoint_imagine = "https://api.airforce/imagine2"
