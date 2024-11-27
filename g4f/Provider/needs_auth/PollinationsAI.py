@@ -5,12 +5,12 @@ import random
 import requests
 from aiohttp import ClientSession
 
-from ..typing import AsyncResult, Messages
-from ..image import ImageResponse
-from ..requests.raise_for_status import raise_for_status
-from ..requests.aiohttp import get_connector
-from .needs_auth.OpenaiAPI import OpenaiAPI
-from .helper import format_prompt
+from ...typing import AsyncResult, Messages
+from ...image import ImageResponse
+from ...requests.raise_for_status import raise_for_status
+from ...requests.aiohttp import get_connector
+from .OpenaiAPI import OpenaiAPI
+from ..helper import format_prompt
 
 class PollinationsAI(OpenaiAPI):
     label = "Pollinations.AI"
