@@ -295,14 +295,14 @@ class Images:
         if isinstance(provider_handler, IterListProvider):
             for provider in provider_handler.providers:
                 try:
-                    response = await self._generate_image_response(provider, provider.__name__, prompt, model, **kwargs)
+                    response = await self._generate_image_response(provider, provider.__name__, model, prompt, **kwargs)
                     if response is not None:
                         provider_name = provider.__name__
                         break
                 except (MissingAuthError, NoValidHarFileError) as e:
                     debug.log(f"Image provider {provider.__name__}: {e}")
         else:
-            response = await self._generate_image_response(provider_handler, provider_name, prompt, model, **kwargs)
+            response = await self._generate_image_response(provider_handler, provider_name, model, prompt, **kwargs)
 
         if isinstance(response, ImageResponse):
             return await self._process_image_response(
@@ -320,29 +320,36 @@ class Images:
         self,
         provider_handler,
         provider_name,
-        prompt: str,
         model: str,
+        prompt: str,
         prompt_prefix: str = "Generate a image: ",
+        image: ImageType = None,
         **kwargs
     ) -> ImageResponse:
+        messages = [{"role": "user", "content": f"{prompt_prefix}{prompt}"}]
         response = None
         if hasattr(provider_handler, "create_async_generator"):
-            messages = [{"role": "user", "content": f"{prompt_prefix}{prompt}"}]
-            async for item in provider_handler.create_async_generator(model, messages, prompt=prompt, **kwargs):
+            async for item in provider_handler.create_async_generator(
+                model,
+                messages,
+                stream=True,
+                prompt=prompt,
+                image=image,
+                **kwargs
+            ):
                 if isinstance(item, ImageResponse):
                     response = item
                     break
-        elif hasattr(provider_handler, 'create'):
-            if asyncio.iscoroutinefunction(provider_handler.create):
-                response = await provider_handler.create(prompt)
-            else:
-                response = provider_handler.create(prompt) 
-            if isinstance(response, str):
-                response = ImageResponse([response], prompt)
         elif hasattr(provider_handler, "create_completion"):
             get_running_loop(check_nested=True)
-            messages = [{"role": "user", "content": f"{prompt_prefix}{prompt}"}]
-            for item in provider_handler.create_completion(model, messages, prompt=prompt, **kwargs):
+            for item in provider_handler.create_completion(
+                model,
+                messages,
+                True,
+                prompt=prompt,
+                image=image,
+                **kwargs
+            ):
                 if isinstance(item, ImageResponse):
                     response = item
                     break
@@ -372,33 +379,26 @@ class Images:
         **kwargs
     ) -> ImagesResponse:
         provider_handler = await self.get_provider_handler(model, provider, OpenaiAccount)
-        provider_name = provider.__name__ if hasattr(provider, "__name__") else type(provider).__name__
+        provider_name = provider_handler.__name__ if hasattr(provider_handler, "__name__") else type(provider_handler).__name__
         if proxy is None:
             proxy = self.client.proxy
+        prompt = "create a variation of this image"
 
-        if hasattr(provider_handler, "create_async_generator"):
-            messages = [{"role": "user", "content": "create a variation of this image"}]
-            generator = None
-            try:
-                generator = provider_handler.create_async_generator(model, messages, image=image, response_format=response_format, proxy=proxy, **kwargs)
-                async for chunk in generator:
-                    if isinstance(chunk, ImageResponse):
-                        response = chunk
+        response = None
+        if isinstance(provider_handler, IterListProvider):
+            for provider in provider_handler.providers:
+                try:
+                    response = await self._generate_image_response(provider, provider.__name__, model, prompt, image=image, **kwargs)
+                    if response is not None:
+                        provider_name = provider.__name__
                         break
-            finally:
-                await safe_aclose(generator)
-        elif hasattr(provider_handler, 'create_variation'):
-            if asyncio.iscoroutinefunction(provider.provider_handler):
-                response = await provider_handler.create_variation(image, model=model, response_format=response_format, proxy=proxy, **kwargs)
-            else:
-                response = provider_handler.create_variation(image, model=model, response_format=response_format, proxy=proxy, **kwargs)
+                except (MissingAuthError, NoValidHarFileError) as e:
+                    debug.log(f"Image provider {provider.__name__}: {e}")
         else:
-            raise NoImageResponseError(f"Provider {provider_name} does not support image variation")
+            response = await self._generate_image_response(provider_handler, provider_name, model, prompt, image=image, **kwargs)
 
-        if isinstance(response, str):
-            response = ImageResponse([response])
         if isinstance(response, ImageResponse):
-            return self._process_image_response(response, response_format, proxy, model, provider_name)
+            return await self._process_image_response(response, response_format, proxy, model, provider_name)
         if response is None:
             raise NoImageResponseError(f"No image response from {provider_name}")
         raise NoImageResponseError(f"Unexpected response type: {type(response)}")

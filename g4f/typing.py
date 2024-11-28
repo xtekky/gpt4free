@@ -4,7 +4,8 @@ from typing import Any, AsyncGenerator, Generator, AsyncIterator, Iterator, NewT
 try:
     from PIL.Image import Image
 except ImportError:
-    from typing import Type as Image
+    class Image:
+        pass
 
 if sys.version_info >= (3, 8):
     from typing import TypedDict
