@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from asyncio import AbstractEventLoop, runners
-from typing import Union, Callable, AsyncGenerator, Generator
+from typing import Optional, Callable, AsyncGenerator, Generator
 
 from ..errors import NestAsyncioError
 
@@ -17,7 +17,7 @@ try:
 except ImportError:
     has_uvloop = False
 
-def get_running_loop(check_nested: bool) -> Union[AbstractEventLoop, None]:
+def get_running_loop(check_nested: bool) -> Optional[AbstractEventLoop]:
     try:
         loop = asyncio.get_running_loop()
         # Do not patch uvloop loop because its incompatible.

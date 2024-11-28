@@ -13,6 +13,7 @@ from .HuggingFace      import HuggingFace
 from .HuggingFace2     import HuggingFace2
 from .MetaAI           import MetaAI
 from .MetaAIAccount    import MetaAIAccount
+from .OpenaiAccount    import OpenaiAccount
 from .OpenaiAPI        import OpenaiAPI
 from .OpenaiChat       import OpenaiChat
 from .PerplexityApi    import PerplexityApi

@@ -65,9 +65,9 @@ MODELS = {
         'flux-pro/v1.1-ultra': {'persona_id': "flux-pro-v1.1-ultra"}, # Amigo, your balance is not enough to make the request, wait until 12 UTC or upgrade your plan
         'flux-pro/v1.1-ultra-raw': {'persona_id': "flux-pro-v1.1-ultra-raw"}, # Amigo, your balance is not enough to make the request, wait until 12 UTC or upgrade your plan
         'flux/dev': {'persona_id': "flux-dev"},
-        
-        'dalle-e-3': {'persona_id': "dalle-three"},
-        
+
+        'dall-e-3': {'persona_id': "dalle-three"},
+
         'recraft-v3': {'persona_id': "recraft"}
     }
 }
@@ -129,8 +129,8 @@ class AmigoChat(AsyncGeneratorProvider, ProviderModelMixin):
         ### image ###
         "flux-realism": "flux-realism",
         "flux-dev": "flux/dev",
-        
-        "dalle-3": "dalle-e-3",
+
+        "dalle-3": "dall-e-3",
     }
 
     @classmethod

@@ -22,10 +22,10 @@ from ...requests.raise_for_status import raise_for_status
 from ...requests import StreamSession
 from ...requests import get_nodriver
 from ...image import ImageResponse, ImageRequest, to_image, to_bytes, is_accepted_format
-from ...errors import MissingAuthError
+from ...errors import MissingAuthError, NoValidHarFileError
 from ...providers.response import BaseConversation, FinishReason, SynthesizeData
 from ..helper import format_cookies
-from ..openai.har_file import get_request_config, NoValidHarFileError
+from ..openai.har_file import get_request_config
 from ..openai.har_file import RequestConfig, arkReq, arkose_url, start_url, conversation_url, backend_url, backend_anon_url
 from ..openai.proofofwork import generate_proof_token
 from ..openai.new import get_requirements_token

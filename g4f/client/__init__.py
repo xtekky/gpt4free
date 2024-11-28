@@ -12,7 +12,7 @@ from ..image import ImageResponse, copy_images, images_dir
 from ..typing import Messages, ImageType
 from ..providers.types import ProviderType
 from ..providers.response import ResponseType, FinishReason, BaseConversation, SynthesizeData
-from ..errors import NoImageResponseError, ModelNotFoundError
+from ..errors import NoImageResponseError, MissingAuthError, NoValidHarFileError
 from ..providers.retry_provider import IterListProvider
 from ..providers.asyncio import get_running_loop, to_sync_generator, async_generator_to_list
 from ..Provider.needs_auth import BingCreateImages, OpenaiAccount
@@ -21,6 +21,7 @@ from .image_models import ImageModels
 from .types import IterResponse, ImageProvider, Client as BaseClient
 from .service import get_model_and_provider, get_last_provider, convert_to_provider
 from .helper import find_stop, filter_json, filter_none, safe_aclose, to_async_iterator
+from .. import debug
 
 ChatCompletionResponseType = Iterator[Union[ChatCompletion, ChatCompletionChunk, BaseConversation]]
 AsyncChatCompletionResponseType = AsyncIterator[Union[ChatCompletion, ChatCompletionChunk, BaseConversation]]
@@ -274,11 +275,6 @@ class Images:
             provider_handler = provider
         if provider_handler is None:
             return default
-        if isinstance(provider_handler, IterListProvider):
-            if provider_handler.providers:
-                provider_handler = provider_handler.providers[0]
-            else:
-                raise ModelNotFoundError(f"IterListProvider for model {model} has no providers")
         return provider_handler
 
     async def async_generate(
@@ -291,13 +287,47 @@ class Images:
         **kwargs
     ) -> ImagesResponse:
         provider_handler = await self.get_provider_handler(model, provider, BingCreateImages)
-        provider_name = provider.__name__ if hasattr(provider, "__name__") else type(provider).__name__
+        provider_name = provider_handler.__name__ if hasattr(provider_handler, "__name__") else type(provider_handler).__name__
         if proxy is None:
             proxy = self.client.proxy
 
         response = None
+        if isinstance(provider_handler, IterListProvider):
+            for provider in provider_handler.providers:
+                try:
+                    response = await self._generate_image_response(provider, provider.__name__, prompt, model, **kwargs)
+                    if response is not None:
+                        provider_name = provider.__name__
+                        break
+                except (MissingAuthError, NoValidHarFileError) as e:
+                    debug.log(f"Image provider {provider.__name__}: {e}")
+        else:
+            response = await self._generate_image_response(provider_handler, provider_name, prompt, model, **kwargs)
+
+        if isinstance(response, ImageResponse):
+            return await self._process_image_response(
+                response,
+                response_format,
+                proxy,
+                model,
+                provider_name
+            )
+        if response is None:
+            raise NoImageResponseError(f"No image response from {provider_name}")
+        raise NoImageResponseError(f"Unexpected response type: {type(response)}")
+
+    async def _generate_image_response(
+        self,
+        provider_handler,
+        provider_name,
+        prompt: str,
+        model: str,
+        prompt_prefix: str = "Generate a image: ",
+        **kwargs
+    ) -> ImageResponse:
+        response = None
         if hasattr(provider_handler, "create_async_generator"):
-            messages = [{"role": "user", "content": f"Generate a image: {prompt}"}]
+            messages = [{"role": "user", "content": f"{prompt_prefix}{prompt}"}]
             async for item in provider_handler.create_async_generator(model, messages, prompt=prompt, **kwargs):
                 if isinstance(item, ImageResponse):
                     response = item
@@ -311,24 +341,14 @@ class Images:
                 response = ImageResponse([response], prompt)
         elif hasattr(provider_handler, "create_completion"):
             get_running_loop(check_nested=True)
-            messages = [{"role": "user", "content": f"Generate a image: {prompt}"}]
+            messages = [{"role": "user", "content": f"{prompt_prefix}{prompt}"}]
             for item in provider_handler.create_completion(model, messages, prompt=prompt, **kwargs):
                 if isinstance(item, ImageResponse):
                     response = item
                     break
         else:
             raise ValueError(f"Provider {provider_name} does not support image generation")
-        if isinstance(response, ImageResponse):
-            return await self._process_image_response(
-                response,
-                response_format,
-                proxy,
-                model,
-                provider_name
-            )
-        if response is None:
-            raise NoImageResponseError(f"No image response from {provider_name}")
-        raise NoImageResponseError(f"Unexpected response type: {type(response)}")
+        return response
 
     def create_variation(
         self,

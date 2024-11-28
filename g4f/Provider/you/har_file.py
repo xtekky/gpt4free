@@ -8,13 +8,10 @@ import logging
 
 from ...requests import StreamSession, raise_for_status
 from ...cookies import get_cookies_dir
-from ...errors import MissingRequirementsError
+from ...errors import MissingRequirementsError, NoValidHarFileError
 from ... import debug
 
 logger = logging.getLogger(__name__)
-
-class NoValidHarFileError(Exception):
-    ...
 
 class arkReq:
     def __init__(self, arkURL, arkHeaders, arkBody, arkCookies, userAgent):
