@@ -57,7 +57,9 @@ class AbstractProvider(BaseProvider):
         loop = loop or asyncio.get_running_loop()
 
         def create_func() -> str:
-            return "".join(cls.create_completion(model, messages, False, **kwargs))
+            chunks = [str(chunk) for chunk in cls.create_completion(model, messages, False, **kwargs) if chunk]
+            if chunks:
+                return "".join(chunks)
 
         return await asyncio.wait_for(
             loop.run_in_executor(executor, create_func),
@@ -205,7 +207,7 @@ class AsyncGeneratorProvider(AsyncProvider):
         """
         return "".join([
             str(chunk) async for chunk in cls.create_async_generator(model, messages, stream=False, **kwargs) 
-            if not isinstance(chunk, (Exception, FinishReason, BaseConversation, SynthesizeData))
+            if chunk and not isinstance(chunk, (Exception, FinishReason, BaseConversation, SynthesizeData))
         ])
 
     @staticmethod
