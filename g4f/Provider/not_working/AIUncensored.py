@@ -6,9 +6,9 @@ from aiohttp import ClientSession, ClientError
 import asyncio
 from itertools import cycle
 
-from ..typing import AsyncResult, Messages
-from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from ..image import ImageResponse
+from ...typing import AsyncResult, Messages
+from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from ...image import ImageResponse
 
 class AIUncensored(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://www.aiuncensored.info/ai_uncensored"
@@ -22,7 +22,7 @@ class AIUncensored(AsyncGeneratorProvider, ProviderModelMixin):
         "https://twitterclone-i0wr.onrender.com/api/image",
         "https://twitterclone-8wd1.onrender.com/api/image",
     ]
-    working = True
+    working = False
     supports_stream = True
     supports_system_message = True
     supports_message_history = True

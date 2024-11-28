@@ -9,6 +9,69 @@ from ..image import ImageResponse
 from ..requests import StreamSession, raise_for_status
 from ..errors import ResponseStatusError
 
+MODELS = {
+    'chat': {
+        'gpt-4o-2024-11-20': {'persona_id': "gpt"},
+        'gpt-4o': {'persona_id': "summarizer"},
+        'gpt-4o-mini': {'persona_id': "gemini-1-5-flash"},
+
+        'o1-preview-': {'persona_id': "openai-o-one"}, # Amigo, your balance is not enough to make the request, wait until 12 UTC or upgrade your plan
+        'o1-preview-2024-09-12-': {'persona_id': "orion"}, # Amigo, your balance is not enough to make the request, wait until 12 UTC or upgrade your plan
+        'o1-mini-': {'persona_id': "openai-o-one-mini"}, # Amigo, your balance is not enough to make the request, wait until 12 UTC or upgrade your plan
+        
+        'meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo': {'persona_id': "llama-three-point-one"},
+        'meta-llama/Llama-3.2-90B-Vision-Instruct-Turbo': {'persona_id': "llama-3-2"},
+        'codellama/CodeLlama-34b-Instruct-hf': {'persona_id': "codellama-CodeLlama-34b-Instruct-hf"},
+        
+        'gemini-1.5-pro': {'persona_id': "gemini-1-5-pro"}, # Amigo, your balance is not enough to make the request, wait until 12 UTC or upgrade your plan
+        'gemini-1.5-flash': {'persona_id': "amigo"},
+        
+        'claude-3-5-sonnet-20240620': {'persona_id': "claude"},
+        'claude-3-5-sonnet-20241022': {'persona_id': "clude-claude-3-5-sonnet-20241022"},
+        'claude-3-5-haiku-latest': {'persona_id': "3-5-haiku"},
+        
+        'Qwen/Qwen2.5-72B-Instruct-Turbo': {'persona_id': "qwen-2-5"},
+        
+        'google/gemma-2b-it': {'persona_id': "google-gemma-2b-it"},
+        'google/gemma-7b': {'persona_id': "google-gemma-7b"}, # Error handling AIML chat completion stream
+        
+        'Gryphe/MythoMax-L2-13b': {'persona_id': "Gryphe-MythoMax-L2-13b"},
+        
+        'mistralai/Mistral-7B-Instruct-v0.3': {'persona_id': "mistralai-Mistral-7B-Instruct-v0.1"},
+        'mistralai/mistral-tiny': {'persona_id': "mistralai-mistral-tiny"},
+        'mistralai/mistral-nemo': {'persona_id': "mistralai-mistral-nemo"},
+        
+        'deepseek-ai/deepseek-llm-67b-chat': {'persona_id': "deepseek-ai-deepseek-llm-67b-chat"},
+        
+        'databricks/dbrx-instruct': {'persona_id': "databricks-dbrx-instruct"},
+        
+        'NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO': {'persona_id': "NousResearch-Nous-Hermes-2-Mixtral-8x7B-DPO"},
+        
+        'x-ai/grok-beta': {'persona_id': "x-ai-grok-beta"},
+        
+        'anthracite-org/magnum-v4-72b': {'persona_id': "anthracite-org-magnum-v4-72b"},
+        
+        'cohere/command-r-plus': {'persona_id': "cohere-command-r-plus"},
+        
+        'ai21/jamba-1-5-mini': {'persona_id': "ai21-jamba-1-5-mini"},
+        
+        'zero-one-ai/Yi-34B': {'persona_id': "zero-one-ai-Yi-34B"} # Error handling AIML chat completion stream
+    },
+    
+    'image': {
+        'flux-pro/v1.1': {'persona_id': "flux-1-1-pro"}, # Amigo, your balance is not enough to make the request, wait until 12 UTC or upgrade your plan
+        'flux-realism': {'persona_id': "flux-realism"},
+        'flux-pro': {'persona_id': "flux-pro"}, # Amigo, your balance is not enough to make the request, wait until 12 UTC or upgrade your plan
+        'flux-pro/v1.1-ultra': {'persona_id': "flux-pro-v1.1-ultra"}, # Amigo, your balance is not enough to make the request, wait until 12 UTC or upgrade your plan
+        'flux-pro/v1.1-ultra-raw': {'persona_id': "flux-pro-v1.1-ultra-raw"}, # Amigo, your balance is not enough to make the request, wait until 12 UTC or upgrade your plan
+        'flux/dev': {'persona_id': "flux-dev"},
+        
+        'dalle-e-3': {'persona_id': "dalle-three"},
+        
+        'recraft-v3': {'persona_id': "recraft"}
+    }
+}
+
 class AmigoChat(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://amigochat.io/chat/"
     chat_api_endpoint = "https://api.amigochat.io/v1/chat/completions"
@@ -17,58 +80,67 @@ class AmigoChat(AsyncGeneratorProvider, ProviderModelMixin):
     supports_stream = True
     supports_system_message = True
     supports_message_history = True
-    
+       
     default_model = 'gpt-4o-mini'
-    
-    chat_models = [
-        'gpt-4o',
-        default_model,
-        'o1-preview',
-        'o1-mini',
-        'meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo',
-        'meta-llama/Llama-3.2-90B-Vision-Instruct-Turbo',
-        'claude-3-sonnet-20240229',
-        'gemini-1.5-pro',
-    ]
-    
-    image_models = [
-        'flux-pro/v1.1',
-        'flux-realism',
-        'flux-pro',
-        'dalle-e-3',
-    ]
-    
-    models = [*chat_models, *image_models]
+
+    chat_models = list(MODELS['chat'].keys())
+    image_models = list(MODELS['image'].keys())
+    models = chat_models + image_models
     
     model_aliases = {
-        "o1": "o1-preview",
+        ### chat ###
+        "gpt-4o": "gpt-4o-2024-11-20",
+        "gpt-4o-mini": "gpt-4o-mini",
+        
         "llama-3.1-405b": "meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo",
         "llama-3.2-90b": "meta-llama/Llama-3.2-90B-Vision-Instruct-Turbo",
-        "claude-3.5-sonnet": "claude-3-sonnet-20240229",
-        "gemini-pro": "gemini-1.5-pro",
+        "codellama-34b": "codellama/CodeLlama-34b-Instruct-hf",
         
-        "flux-pro": "flux-pro/v1.1",
+        "gemini-flash": "gemini-1.5-flash",
+        
+        "claude-3.5-sonnet": "claude-3-5-sonnet-20240620",
+        "claude-3.5-sonnet": "claude-3-5-sonnet-20241022",
+        "claude-3.5-haiku": "claude-3-5-haiku-latest",
+        
+        "qwen-2.5-72b": "Qwen/Qwen2.5-72B-Instruct-Turbo",
+        "gemma-2b": "google/gemma-2b-it",
+        
+        "mythomax-13b": "Gryphe/MythoMax-L2-13b",
+        
+        "mixtral-7b": "mistralai/Mistral-7B-Instruct-v0.3",
+        "mistral-tiny": "mistralai/mistral-tiny",
+        "mistral-nemo": "mistralai/mistral-nemo",
+        
+        "deepseek-chat": "deepseek-ai/deepseek-llm-67b-chat",
+        
+        "dbrx-instruct": "databricks/dbrx-instruct",
+        
+        "mixtral-8x7b-dpo": "NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO",
+        
+        "grok-beta": "x-ai/grok-beta",
+        
+        "magnum-72b": "anthracite-org/magnum-v4-72b",
+        
+        "command-r-plus": "cohere/command-r-plus",
+        
+        "jamba-mini": "ai21/jamba-1-5-mini",
+        
+        
+        ### image ###
+        "flux-realism": "flux-realism",
+        "flux-dev": "flux/dev",
+        
         "dalle-3": "dalle-e-3",
-    }
-
-    persona_ids = {
-        'gpt-4o': "gpt",
-        'gpt-4o-mini': "amigo",
-        'o1-preview': "openai-o-one",
-        'o1-mini': "openai-o-one-mini",
-        'meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo': "llama-three-point-one",
-        'meta-llama/Llama-3.2-90B-Vision-Instruct-Turbo': "llama-3-2",
-        'claude-3-sonnet-20240229': "claude",
-        'gemini-1.5-pro': "gemini-1-5-pro",
-        'flux-pro/v1.1': "flux-1-1-pro",
-        'flux-realism': "flux-realism",
-        'flux-pro': "flux-pro",
-        'dalle-e-3': "dalle-three",
     }
 
     @classmethod
     def get_personaId(cls, model: str) -> str:
-        return cls.persona_ids[model]
+        if model in cls.chat_models:
+            return MODELS['chat'][model]['persona_id']
+        elif model in cls.image_models:
+            return MODELS['image'][model]['persona_id']
+        else:
+            raise ValueError(f"Unknown model: {model}")
 
     @classmethod
     async def create_async_generator(
@@ -110,7 +182,7 @@ class AmigoChat(AsyncGeneratorProvider, ProviderModelMixin):
                     "x-device-language": "en-US",
                     "x-device-platform": "web",
                     "x-device-uuid": device_uuid,
-                    "x-device-version": "1.0.41"
+                    "x-device-version": "1.0.42"
                 }
                 
                 async with StreamSession(headers=headers, proxy=proxy) as session:

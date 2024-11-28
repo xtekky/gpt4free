@@ -17,6 +17,7 @@ from .OpenaiAPI        import OpenaiAPI
 from .OpenaiChat       import OpenaiChat
 from .PerplexityApi    import PerplexityApi
 from .Poe              import Poe
+from .PollinationsAI   import PollinationsAI
 from .Raycast          import Raycast
 from .Replicate        import Replicate
 from .Theb             import Theb

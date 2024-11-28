@@ -11,6 +11,8 @@ from ..typing import AsyncResult, Messages, ImageType
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..image import ImageResponse, to_data_uri
 
+from .helper import format_prompt
+
 class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Blackbox AI"
     url = "https://www.blackbox.ai"
@@ -37,7 +39,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         "gemini-1.5-flash": {'mode': True, 'id': 'Gemini'},
         "llama-3.1-8b": {'mode': True, 'id': "llama-3.1-8b"},
         'llama-3.1-70b': {'mode': True, 'id': "llama-3.1-70b"},
-	    'llama-3.1-405b': {'mode': True, 'id': "llama-3.1-405"},
+        'llama-3.1-405b': {'mode': True, 'id': "llama-3.1-405"},
         #
         'Python Agent': {'mode': True, 'id': "Python Agent"},
         'Java Agent': {'mode': True, 'id': "Java Agent"},
@@ -62,7 +64,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         'Go Agent': {'mode': True, 'id': "Go Agent"},
         'Gitlab Agent': {'mode': True, 'id': "Gitlab Agent"},
         'Git Agent': {'mode': True, 'id': "Git Agent"},
-	    'Flask Agent': {'mode': True, 'id': "Flask Agent"},
+        'Flask Agent': {'mode': True, 'id': "Flask Agent"},
         'Firebase Agent': {'mode': True, 'id': "Firebase Agent"},
         'FastAPI Agent': {'mode': True, 'id': "FastAPI Agent"},
         'Erlang Agent': {'mode': True, 'id': "Erlang Agent"},
@@ -165,6 +167,9 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         message_id = cls.generate_id()
         messages = cls.add_prefix_to_messages(messages, model)
         validated_value = await cls.fetch_validated()
+        formatted_message = format_prompt(messages)
+        
+        messages = [{"id": message_id, "content": formatted_message, "role": "user"}]
 
         if image is not None:
             messages[-1]['data'] = {
