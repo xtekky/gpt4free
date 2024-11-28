@@ -77,7 +77,7 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
                 response.raise_for_status()
                 data = response.json()
                 cls.models = [model.get("slug") for model in data.get("models")]
-                cls.append(cls.default_image_model)
+                cls.models.append(cls.default_image_model)
             except Exception:
                 cls.models = cls.fallback_models
         return cls.models
