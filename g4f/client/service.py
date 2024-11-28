@@ -7,14 +7,14 @@ from ..errors import ProviderNotFoundError, ModelNotFoundError, ProviderNotWorki
 from ..models import Model, ModelUtils, default
 from ..Provider import ProviderUtils
 from ..providers.types import BaseRetryProvider, ProviderType
-from ..providers.retry_provider import IterProvider
+from ..providers.retry_provider import IterListProvider
 
 def convert_to_provider(provider: str) -> ProviderType:
     if " " in provider:
         provider_list = [ProviderUtils.convert[p] for p in provider.split() if p in ProviderUtils.convert]
         if not provider_list:
             raise ProviderNotFoundError(f'Providers not found: {provider}')
-        provider = IterProvider(provider_list)
+        provider = IterListProvider(provider_list, False)
     elif provider in ProviderUtils.convert:
         provider = ProviderUtils.convert[provider]
     elif provider:
