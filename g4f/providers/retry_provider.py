@@ -124,9 +124,11 @@ class IterListProvider(BaseRetryProvider):
                     print(f"Using {provider.__name__} provider")
                 if not stream:
                     yield await provider.create_async(model, messages, **kwargs)
+                    started = True
                 elif hasattr(provider, "create_async_generator"):
                     async for token in provider.create_async_generator(model, messages, stream=stream, **kwargs):
                         yield token
+                        started = True
                 else:
                     for token in provider.create_completion(model, messages, stream, **kwargs):
                         yield token

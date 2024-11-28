@@ -32,26 +32,17 @@ docker pull hlohaus789/g4f
    - **For comprehensive details on new features and updates, please refer to our** [Releases](https://github.com/xtekky/gpt4free/releases) **page**
    - **Installation Guide for Windows (.exe):** 💻 [Installation Guide for Windows (.exe)](#installation-guide-for-windows-exe)
    - **Join our Telegram Channel:** 📨 [telegram.me/g4f_channel](https://telegram.me/g4f_channel)
-   - **Join our Discord Group:** 💬🆕️ [discord.gg/6yrm7H4B](https://discord.gg/6yrm7H4B)
+   - **Join our Discord Group:** 💬🆕️ [discord.gg/vE7gCvss](https://discord.gg/vE7gCvss)
 
 
 ## 🔻 Site Takedown
 
 Is your site on this repository and you want to take it down? Send an email to takedown@g4f.ai with proof it is yours and it will be removed as fast as possible. To prevent reproduction please secure your API. 😉
 
-## 🚀 Feedback and Todo
-**You can always leave some feedback here:** https://forms.gle/FeWV9RLEedfdkmFN6
+## 🚀 Preview
+**Take a look at our GUI on the mobile device. We connect to ChatGPT and generate an image.** 
 
-**As per the survey, here is a list of improvements to come**
-   - [x] Update the repository to include the new openai library syntax (ex: `Openai()` class) | completed, use `g4f.client.Client`
-   - [ ] Golang implementation
-   - [ ] 🚧 Improve Documentation (in /docs & Guides, Howtos, & Do video tutorials)
-   - [x] Improve the provider status list & updates
-   - [ ] Tutorials on how to reverse sites to write your own wrapper (PoC only ofc)
-   - [x] Improve the Bing wrapper. (Wait and Retry or reuse conversation)
-   - [ ] 🚧 Write a standard provider performance test to improve the stability
-   - [ ] Potential support and development of local models
-   - [ ] 🚧 Improve compatibility and error handling
+[![Preview image](https://github.com/user-attachments/assets/9da24a87-a591-4da4-a80f-8fc7c222c92f)](https://github.com/user-attachments/assets/56c02389-61b1-4849-be7d-50b173b84ce6)
 
 ## 📚 Table of Contents
    - [🆕 What's New](#-whats-new)

@@ -108,6 +108,25 @@ body {
     border: 1px solid var(--blur-border);
 }
 
+.new_version {
+    position: absolute;
+    right: 0;
+    top: 0;
+    padding: 10px;
+    font-weight: 500;
+    background-color: rgba(0, 0, 0, 0.5);
+    color: var(--colour-3);
+}
+
+.white .new_version {
+    color: var(--colour-1);
+}
+
+.new_version a {
+    color: var(--colour-4);
+    text-decoration: underline dotted;
+}
+
 .conversations {
     max-width: 300px;
     padding: var(--section-gap);
@@ -458,6 +477,7 @@ body.white .gradient{
     right: 8px;
     top: 8px;
     z-index: 1000;
+    cursor: pointer;
 }
 
 .count_total {

@@ -280,10 +280,9 @@ The G4F AsyncClient supports a wide range of AI models and providers, allowing y
    - OpenAI
    - Google (for Gemini)
    - Anthropic
-   - Bing
+   - Microsoft Copilot 
    - Custom providers
 
-  
 
 **To use a specific model or provider, specify it when creating the client or in the API call:**
 ```python
@@ -293,7 +292,7 @@ client = AsyncClient(provider=g4f.Provider.OpenaiChat)
 
 response = await client.chat.completions.create(
     model="gpt-4",
-    provider=g4f.Provider.Bing,
+    provider=g4f.Provider.CopilotAccount,
     messages=[
         {
             "role": "user",

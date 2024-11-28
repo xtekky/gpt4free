@@ -3,7 +3,7 @@ pycryptodome
 curl_cffi>=0.6.2
 aiohttp
 certifi
-duckduckgo-search>=5.0
+duckduckgo-search>=6.3.7
 nest_asyncio
 werkzeug
 pillow

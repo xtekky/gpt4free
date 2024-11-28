@@ -29,11 +29,11 @@ ENV PATH "${HOME}/.local/bin:${PATH}"
 
 # Create app dir and copy the project's requirements file into it
 RUN mkdir -p $G4F_DIR
-COPY requirements-min.txt $G4F_DIR
 COPY requirements-slim.txt $G4F_DIR
 
 # Upgrade pip for the latest features and install the project's Python dependencies.
-RUN cat requirements-slim.txt | xargs -n 1 pip install --no-cache-dir || true
+RUN pip install --no-cache-dir -r requirements-slim.txt \
+  && pip install --no-cache-dir duckduckgo-search>=5.0
 
 # Copy the entire package into the container.
 ADD --chown=$G4F_USER:$G4F_USER g4f $G4F_DIR/g4f

@@ -32,3 +32,4 @@ from .GPTalk        import GPTalk
 from .Hashnode      import Hashnode
 from .Ylokh         import Ylokh
 from .OpenAssistant import OpenAssistant
+from .Bing          import Bing
