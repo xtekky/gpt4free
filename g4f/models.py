@@ -7,10 +7,12 @@ from .Provider import (
     AIChatFree,
     AmigoChat,
     Blackbox,
+    BingCreateImages,
     ChatGpt,
     ChatGptEs,
     Cloudflare,
     Copilot,
+    CopilotAccount,
     DarkAI,
     DDG,
     DeepInfraChat,
@@ -25,7 +27,9 @@ from .Provider import (
     MagickPen,
     Mhystical,
     MetaAI,
+    MicrosoftDesigner,
     OpenaiChat,
+    OpenaiAccount,
     PerplexityLabs,
     Pi,
     Pizzagpt,
@@ -629,9 +633,9 @@ flux_4o = Model(
 
 ### OpenAI ###
 dalle_3 = Model(
-    name = 'dalle-3',
+    name = 'dall-e-3',
     base_provider = 'OpenAI',
-    best_provider = AmigoChat
+    best_provider = IterListProvider([CopilotAccount, OpenaiAccount, MicrosoftDesigner, BingCreateImages])
 )
 
 ### Recraft ###
@@ -828,7 +832,8 @@ class ModelUtils:
 
         ### OpenAI ###
         'dalle-3': dalle_3,
-        
+        'dall-e-3': dalle_3,
+
         ### Recraft ###
         'recraft-v3': recraft_v3,
         

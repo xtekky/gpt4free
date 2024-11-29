@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import random
 
-from ..typing import Type, List, CreateResult, Messages, Iterator, AsyncResult
+from ..typing import Type, List, CreateResult, Messages, AsyncResult
 from .types import BaseProvider, BaseRetryProvider, ProviderType
 from .. import debug
 from ..errors import RetryProviderError, RetryNoProviderError
