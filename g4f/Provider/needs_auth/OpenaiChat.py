@@ -58,7 +58,8 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
     supports_system_message = True
     default_model = "auto"
     default_vision_model = "gpt-4o"
-    fallback_models = [default_model, "gpt-4", "gpt-4o", "gpt-4o-mini", "gpt-4o-canmore", "o1-preview", "o1-mini"]
+    default_image_model = "dall-e-3"
+    fallback_models = [default_model, "gpt-4", "gpt-4o", "gpt-4o-mini", "gpt-4o-canmore", "o1-preview", "o1-mini", default_image_model]
     vision_models = fallback_models
     image_models = fallback_models
     synthesize_content_type = "audio/mpeg"
@@ -76,6 +77,7 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
                 response.raise_for_status()
                 data = response.json()
                 cls.models = [model.get("slug") for model in data.get("models")]
+                cls.models.append(cls.default_image_model)
             except Exception:
                 cls.models = cls.fallback_models
         return cls.models
@@ -270,6 +272,8 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
         Raises:
             RuntimeError: If an error occurs during processing.
         """
+        if model == cls.default_image_model:
+            model = cls.default_model
         await cls.login(proxy)
 
         async with StreamSession(

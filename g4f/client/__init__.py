@@ -474,7 +474,7 @@ class AsyncCompletions:
             **kwargs
         )
 
-        if not isinstance(response, AsyncIterator):
+        if not hasattr(response, "__aiter__"):
             response = to_async_iterator(response)
         response = async_iter_response(response, stream, response_format, max_tokens, stop)
         response = async_iter_append_model_and_provider(response)
