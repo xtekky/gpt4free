@@ -27,6 +27,7 @@ from .Provider import (
     MagickPen,
     Mhystical,
     MetaAI,
+    MicrosoftDesigner,
     OpenaiChat,
     OpenaiAccount,
     PerplexityLabs,
@@ -634,7 +635,7 @@ flux_4o = Model(
 dalle_3 = Model(
     name = 'dall-e-3',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([CopilotAccount, OpenaiAccount, BingCreateImages])
+    best_provider = IterListProvider([CopilotAccount, OpenaiAccount, MicrosoftDesigner, BingCreateImages])
 )
 
 ### Recraft ###
