@@ -199,13 +199,10 @@ def readHAR(url: str):
                 # Error: not a HAR file!
                 continue
             for v in harFile['log']['entries']:
-                v_headers = get_headers(v)
                 if v['request']['url'].startswith(url):
-                    try:
-                        if "authorization" in v_headers:
-                            api_key = v_headers["authorization"].split(maxsplit=1).pop()
-                    except Exception as e:
-                        debug.log(f"Error on read headers: {e}")
+                    v_headers = get_headers(v)
+                    if "authorization" in v_headers:
+                        api_key = v_headers["authorization"].split(maxsplit=1).pop()
                     if v['request']['cookies']:
                         cookies = {c['name']: c['value'] for c in v['request']['cookies']}
     if api_key is None:

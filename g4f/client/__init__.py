@@ -14,8 +14,9 @@ from ..providers.types import ProviderType
 from ..providers.response import ResponseType, FinishReason, BaseConversation, SynthesizeData
 from ..errors import NoImageResponseError, MissingAuthError, NoValidHarFileError
 from ..providers.retry_provider import IterListProvider
-from ..providers.asyncio import get_running_loop, to_sync_generator, async_generator_to_list
+from ..providers.asyncio import to_sync_generator, async_generator_to_list
 from ..Provider.needs_auth import BingCreateImages, OpenaiAccount
+from ..image import to_bytes
 from .stubs import ChatCompletion, ChatCompletionChunk, Image, ImagesResponse
 from .image_models import ImageModels
 from .types import IterResponse, ImageProvider, Client as BaseClient
@@ -341,7 +342,6 @@ class Images:
                     response = item
                     break
         elif hasattr(provider_handler, "create_completion"):
-            get_running_loop(check_nested=True)
             for item in provider_handler.create_completion(
                 model,
                 messages,
@@ -386,6 +386,8 @@ class Images:
 
         response = None
         if isinstance(provider_handler, IterListProvider):
+            # File pointer can be read only once, so we need to convert it to bytes
+            image = to_bytes(image)
             for provider in provider_handler.providers:
                 try:
                     response = await self._generate_image_response(provider, provider.__name__, model, prompt, image=image, **kwargs)
