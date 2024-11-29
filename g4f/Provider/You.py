@@ -139,9 +139,9 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
                                     else:
                                         yield ImageResponse(match.group(2), match.group(1))
                                 else:
-                                    yield data["t"]          
+                                    yield data["t"]
                             else:
-                                yield data["t"]               
+                                yield data["t"]
 
     @classmethod
     async def upload_file(cls, client: StreamSession, cookies: Cookies, file: bytes, filename: str = None) -> dict:

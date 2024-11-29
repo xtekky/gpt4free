@@ -128,10 +128,13 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
             data=data_bytes,
             headers={
                 "Content-Type": image_data["mime_type"],
-                "x-ms-blob-type": "BlockBlob"
+                "x-ms-blob-type": "BlockBlob",
+                "x-ms-version": "2020-04-08",
+                "Origin": "https://chatgpt.com",
+                "Referer": "https://chatgpt.com/",
             }
         ) as response:
-            await raise_for_status(response, "Send file failed")
+            await raise_for_status(response)
         # Post the file ID to the service and get the download URL
         async with session.post(
             f"{cls.url}/backend-api/files/{image_data['file_id']}/uploaded",
