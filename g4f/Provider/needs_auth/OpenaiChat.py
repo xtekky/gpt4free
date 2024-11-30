@@ -128,10 +128,13 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
             data=data_bytes,
             headers={
                 "Content-Type": image_data["mime_type"],
-                "x-ms-blob-type": "BlockBlob"
+                "x-ms-blob-type": "BlockBlob",
+                "x-ms-version": "2020-04-08",
+                "Origin": "https://chatgpt.com",
+                "Referer": "https://chatgpt.com/",
             }
         ) as response:
-            await raise_for_status(response, "Send file failed")
+            await raise_for_status(response)
         # Post the file ID to the service and get the download URL
         async with session.post(
             f"{cls.url}/backend-api/files/{image_data['file_id']}/uploaded",
@@ -162,7 +165,7 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
             "id": str(uuid.uuid4()),
             "create_time": int(time.time()),
             "id": str(uuid.uuid4()),
-            "metadata": {"serialization_metadata": {"custom_symbol_offsets": []}, "system_hints": system_hints}, 
+            "metadata": {"serialization_metadata": {"custom_symbol_offsets": []}, "system_hints": system_hints},
         } for message in messages]
 
         # Check if there is an image response
@@ -407,7 +410,8 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
         if isinstance(line, dict) and "v" in line:
             v = line.get("v")
             if isinstance(v, str) and fields.is_recipient:
-                yield v
+                if "p" not in line or line.get("p") == "/message/content/parts/0":
+                    yield v
             elif isinstance(v, list) and fields.is_recipient:
                 for m in v:
                     if m.get("p") == "/message/content/parts/0":
@@ -420,7 +424,7 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
                     fields.conversation_id = v.get("conversation_id")
                     debug.log(f"OpenaiChat: New conversation: {fields.conversation_id}")
                 m = v.get("message", {})
-                fields.is_recipient = m.get("recipient") == "all"
+                fields.is_recipient = m.get("recipient", "all") == "all"
                 if fields.is_recipient:
                     c = m.get("content", {})
                     if c.get("content_type") == "multimodal_text":

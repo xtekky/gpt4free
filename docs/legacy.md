@@ -7,7 +7,7 @@ import g4f
 
 g4f.debug.logging = True  # Enable debug logging
 g4f.debug.version_check = False  # Disable automatic version checking
-print(g4f.Provider.Gemini.params)  # Print supported args for Bing
+print(g4f.Provider.Gemini.params)  # Print supported args for Gemini
 
 # Using automatic a provider for the given model
 ## Streamed completion
