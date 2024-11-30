@@ -165,7 +165,7 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
             "id": str(uuid.uuid4()),
             "create_time": int(time.time()),
             "id": str(uuid.uuid4()),
-            "metadata": {"serialization_metadata": {"custom_symbol_offsets": []}, "system_hints": system_hints}, 
+            "metadata": {"serialization_metadata": {"custom_symbol_offsets": []}, "system_hints": system_hints},
         } for message in messages]
 
         # Check if there is an image response
@@ -410,7 +410,8 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
         if isinstance(line, dict) and "v" in line:
             v = line.get("v")
             if isinstance(v, str) and fields.is_recipient:
-                yield v
+                if "p" not in line or line.get("p") == "/message/content/parts/0":
+                    yield v
             elif isinstance(v, list) and fields.is_recipient:
                 for m in v:
                     if m.get("p") == "/message/content/parts/0":
@@ -423,7 +424,7 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
                     fields.conversation_id = v.get("conversation_id")
                     debug.log(f"OpenaiChat: New conversation: {fields.conversation_id}")
                 m = v.get("message", {})
-                fields.is_recipient = m.get("recipient") == "all"
+                fields.is_recipient = m.get("recipient", "all") == "all"
                 if fields.is_recipient:
                     c = m.get("content", {})
                     if c.get("content_type") == "multimodal_text":
