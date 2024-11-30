@@ -272,6 +272,7 @@ class RetryProvider(IterListProvider):
                             timeout=kwargs.get("timeout", DEFAULT_TIMEOUT),
                         )
                         if chunk:
+                            yield chunk
                             started = True
                     elif hasattr(provider, "create_async_generator"):
                         async for chunk in provider.create_async_generator(model, messages, stream=stream, **kwargs):
