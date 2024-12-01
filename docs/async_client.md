@@ -2,7 +2,6 @@
 # G4F - AsyncClient API Guide
 The G4F AsyncClient API is a powerful asynchronous interface for interacting with various AI models. This guide provides comprehensive information on how to use the API effectively, including setup, usage examples, best practices, and important considerations for optimal performance.
 
-
 ## Compatibility Note
 The G4F AsyncClient API is designed to be compatible with the OpenAI API, making it easy for developers familiar with OpenAI's interface to transition to G4F.
 
@@ -24,8 +23,6 @@ The G4F AsyncClient API is designed to be compatible with the OpenAI API, making
    - [Rate Limiting and API Usage](#rate-limiting-and-api-usage)
    - [Conclusion](#conclusion)
 
-  
-
 ## Introduction
 The G4F AsyncClient API is an asynchronous version of the standard G4F Client API. It offers the same functionality as the synchronous API but with improved performance due to its asynchronous nature. This guide will walk you through the key features and usage of the G4F AsyncClient API.
   
@@ -36,8 +33,6 @@ The G4F AsyncClient API is an asynchronous version of the standard G4F Client AP
    - **Streaming Responses**: Get responses iteratively as they are received.
    - **Non-Streaming Responses**: Generate complete responses in a single call.
    - **Image Generation and Vision Models**: Support for image-related tasks.
-
-  
 
 ## Getting Started
 ### Initializing the AsyncClient
@@ -52,7 +47,6 @@ client = AsyncClient(
     # Add other parameters as needed
 )
 ```
-
 
 ## Creating Chat Completions
 **Here’s an improved example of creating chat completions:**
@@ -75,7 +69,6 @@ response = await client.chat.completions.create(
    - Disables streaming for a complete response
 
 You can adjust these parameters based on your specific needs.
-  
 
 ### Configuration
 **Configure the `AsyncClient` with additional settings:**
@@ -86,8 +79,6 @@ client = AsyncClient(
     # Add other parameters as needed
 )
 ```
-
-  
 
 ## Usage Examples
 ### Text Completions
@@ -113,8 +104,6 @@ async def main():
 
 asyncio.run(main())
 ```
-
-  
 
 ### Streaming Completions
 **Process responses incrementally as they are generated:**
@@ -142,8 +131,6 @@ async def main():
 
 asyncio.run(main())
 ```
-
-  
 
 ### Using a Vision Model
 **Analyze an image and generate a description:**
@@ -176,8 +163,6 @@ async def main():
 asyncio.run(main())
 ```
 
-  
-
 ### Image Generation
 **Generate images using a specified prompt:**
 ```python
@@ -198,8 +183,6 @@ async def main():
 asyncio.run(main())
 ```
 
-  
-
 #### Base64 Response Format
 ```python
 import asyncio
@@ -219,8 +202,6 @@ async def main():
 
 asyncio.run(main())
 ```
-
-  
 
 ### Concurrent Tasks with asyncio.gather
 **Execute multiple tasks concurrently:**
@@ -260,8 +241,6 @@ async def main():
 asyncio.run(main())
 ```
 
-  
-
 ## Available Models and Providers
 The G4F AsyncClient supports a wide range of AI models and providers, allowing you to choose the best option for your specific use case. **Here's a brief overview of the available models and providers:**
 
@@ -274,15 +253,12 @@ The G4F AsyncClient supports a wide range of AI models and providers, allowing y
    - Claude (Anthropic)
    - And more...
 
-  
-
 ### Providers
    - OpenAI
    - Google (for Gemini)
    - Anthropic
    - Microsoft Copilot 
    - Custom providers
-
 
 **To use a specific model or provider, specify it when creating the client or in the API call:**
 ```python
@@ -301,8 +277,6 @@ response = await client.chat.completions.create(
     ]
 )
 ```
-
-  
 
 ## Error Handling and Best Practices
 Implementing proper error handling and following best practices is crucial when working with the G4F AsyncClient API. This ensures your application remains robust and can gracefully handle various scenarios. **Here are some key practices to follow:**
@@ -342,8 +316,6 @@ async def make_api_call():
     pass
 ```
 
-  
-
 ## Rate Limiting and API Usage
 When working with the G4F AsyncClient API, it's important to implement rate limiting and monitor your API usage. This helps ensure fair usage, prevents overloading the service, and optimizes your application's performance. Here are some key strategies to consider:
   
@@ -361,8 +333,6 @@ async def make_api_call():
         pass
 ```
 
-  
-
 2. **Monitor your API usage and implement logging:**
 ```python
 import logging
@@ -377,8 +347,6 @@ async def make_api_call():
     except Exception as e:
         logger.error(f"API call failed: {e}")
 ```
-
-  
 
 3. **Use caching to reduce API calls for repeated queries:**
 ```python
