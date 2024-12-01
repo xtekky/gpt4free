@@ -144,7 +144,7 @@ def analyze_code(pull: PullRequest, diff: str)-> list[dict]:
             else:
                 changed_lines.append(f"{offset_line}:{line}")
                 offset_line += 1
-        
+
     return comments
 
 def create_analyze_prompt(changed_lines: list[str], pull: PullRequest, file_path: str):

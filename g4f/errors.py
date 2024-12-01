@@ -45,3 +45,6 @@ class ResponseError(Exception):
 
 class ResponseStatusError(Exception):
     ...
+
+class NoValidHarFileError(Exception):
+    ...

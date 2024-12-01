@@ -101,7 +101,7 @@ def load_cookies_from_browsers(domain_name: str, raise_requirements_error: bool 
             raise MissingRequirementsError('Install "browser_cookie3" package')
         return {}
     cookies = {}
-    for cookie_fn in [_g4f, chrome, chromium, opera, opera_gx, brave, edge, vivaldi, firefox]:
+    for cookie_fn in browsers:
         try:
             cookie_jar = cookie_fn(domain_name=domain_name)
             if len(cookie_jar) and debug.logging:
@@ -189,19 +189,3 @@ def read_cookie_files(dirPath: str = None):
                 if debug.logging:
                     print(f"Cookies added: {len(new_values)} from {domain}")
                 CookiesConfig.cookies[domain] = new_values
-
-def _g4f(domain_name: str) -> list:
-    """
-    Load cookies from the 'g4f' browser (if exists).
-
-    Args:
-        domain_name (str): The domain for which to load cookies.
-
-    Returns:
-        list: List of cookies.
-    """
-    if not has_platformdirs:
-        return []
-    user_data_dir = user_config_dir("g4f")
-    cookie_file = os.path.join(user_data_dir, "Default", "Cookies")
-    return [] if not os.path.exists(cookie_file) else chrome(cookie_file, domain_name)

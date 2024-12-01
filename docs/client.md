@@ -185,12 +185,15 @@ print(base64_text)
 **Create variations of an existing image:**
 ```python
 from g4f.client import Client
+from g4f.Provider import OpenaiChat
 
-client = Client()
+client = Client(
+    image_provider=OpenaiChat
+)
 
 response = client.images.create_variation(
     image=open("cat.jpg", "rb"),
-    model="bing"
+    model="dall-e-3",
     # Add any other necessary parameters
 )
 
