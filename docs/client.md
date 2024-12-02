@@ -153,7 +153,8 @@ client = Client()
 
 response = client.images.generate(
     model="flux",
-    prompt="a white siamese cat"
+    prompt="a white siamese cat",
+    response_format="url"
     # Add any other necessary parameters
 )
 
@@ -173,6 +174,7 @@ response = client.images.generate(
     model="flux",
     prompt="a white siamese cat",
     response_format="b64_json"
+    # Add any other necessary parameters
 )
 
 base64_text = response.data[0].b64_json
