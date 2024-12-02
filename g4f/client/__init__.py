@@ -405,6 +405,7 @@ class Images:
             raise NoImageResponseError(f"No image response from {provider_name}")
         raise NoImageResponseError(f"Unexpected response type: {type(response)}")
 
+
     async def _process_image_response(
         self,
         response: ImageResponse,
@@ -412,24 +413,28 @@ class Images:
         proxy: str = None,
         model: Optional[str] = None,
         provider: Optional[str] = None
-    ) -> list[Image]:
-        if response_format in ("url", "b64_json"):
+    ) -> ImagesResponse:
+        if response_format == "url":
+            # Return original URLs without saving locally
+            images = [Image.model_construct(url=image, revised_prompt=response.alt) for image in response.get_list()]
+        elif response_format == "b64_json":
             images = await copy_images(response.get_list(), response.options.get("cookies"), proxy)
             async def process_image_item(image_file: str) -> Image:
-                if response_format == "b64_json":
-                    with open(os.path.join(images_dir, os.path.basename(image_file)), "rb") as file:
-                        image_data = base64.b64encode(file.read()).decode()
-                        return Image.model_construct(url=image_file, b64_json=image_data, revised_prompt=response.alt)
-                return Image.model_construct(url=image_file, revised_prompt=response.alt)
+                with open(os.path.join(images_dir, os.path.basename(image_file)), "rb") as file:
+                    image_data = base64.b64encode(file.read()).decode()
+                    return Image.model_construct(url=image_file, b64_json=image_data, revised_prompt=response.alt)
             images = await asyncio.gather(*[process_image_item(image) for image in images])
         else:
             images = [Image.model_construct(url=image, revised_prompt=response.alt) for image in response.get_list()]
+        
         last_provider = get_last_provider(True)
         return ImagesResponse.model_construct(
-            images,
+            created=int(time.time()),
+            data=images,
             model=last_provider.get("model") if model is None else model,
             provider=last_provider.get("name") if provider is None else provider
         )
+
 
 class AsyncClient(BaseClient):
     def __init__(
