@@ -189,7 +189,9 @@ async def main():
     
     response = await client.images.generate(
         prompt="a white siamese cat",
-        model="flux"
+        model="flux",
+        response_format="url"
+        # Add any other necessary parameters
     )
     
     image_url = response.data[0].url
@@ -212,6 +214,7 @@ async def main():
         prompt="a white siamese cat",
         model="flux",
         response_format="b64_json"
+        # Add any other necessary parameters
     )
     
     base64_text = response.data[0].b64_json
@@ -243,7 +246,8 @@ async def main():
     
     task2 = client.images.generate(
         model="flux",
-        prompt="a white siamese cat"
+        prompt="a white siamese cat",
+        response_format="url"
     )
     
     try:
