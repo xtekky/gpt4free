@@ -129,8 +129,6 @@ class AmigoChat(AsyncGeneratorProvider, ProviderModelMixin):
         ### image ###
         "flux-realism": "flux-realism",
         "flux-dev": "flux/dev",
-
-        "dalle-3": "dall-e-3",
     }
 
     @classmethod
