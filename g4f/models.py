@@ -7,6 +7,7 @@ from .Provider import (
     AIChatFree,
     AmigoChat,
     Blackbox,
+    Blackbox2,
     BingCreateImages,
     ChatGpt,
     ChatGptEs,
@@ -89,7 +90,7 @@ default = Model(
 gpt_35_turbo = Model(
     name          = 'gpt-3.5-turbo',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([Airforce])
+    best_provider = Blackbox
 )
 
 # gpt-4
@@ -167,7 +168,7 @@ llama_3_1_8b = Model(
 llama_3_1_70b = Model(
     name          = "llama-3.1-70b",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider([DDG, DeepInfraChat, Blackbox, TeachAnything, DarkAI, Airforce, RubiksAI, HuggingChat, HuggingFace, PerplexityLabs])
+    best_provider = IterListProvider([DDG, DeepInfraChat, Blackbox, Blackbox2, TeachAnything, DarkAI, Airforce, RubiksAI, HuggingChat, HuggingFace, PerplexityLabs])
 )
 
 llama_3_1_405b = Model(
@@ -632,10 +633,10 @@ flux_4o = Model(
 )
 
 ### OpenAI ###
-dalle_3 = Model(
+dall_e_3 = Model(
     name = 'dall-e-3',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([CopilotAccount, OpenaiAccount, MicrosoftDesigner, BingCreateImages])
+    best_provider = IterListProvider([Airforce, CopilotAccount, OpenaiAccount, MicrosoftDesigner, BingCreateImages])
 )
 
 ### Recraft ###
@@ -763,6 +764,7 @@ class ModelUtils:
         'qwen-2.5-coder-32b': qwen_2_5_coder_32b,
                 
         ### Upstage ###
+        'solar-mini': solar_mini,
         'solar-pro': solar_pro,
 
         ### Inflection ###
@@ -796,6 +798,12 @@ class ModelUtils:
         ### Nvidia ###   
         'nemotron-70b': nemotron_70b,
         
+        ### Teknium ###   
+        'openhermes-2.5': openhermes_2_5,
+        
+        ### Liquid ### 
+        'lfm-40b': lfm_40b,
+        
         ### databricks ###   
         'dbrx-instruct': dbrx_instruct,
         
@@ -804,6 +812,15 @@ class ModelUtils:
         
         ### anthracite-org ###   
         'jamba-mini': jamba_mini,
+        
+        ### HuggingFaceH4 ###   
+        'zephyr-7b': zephyr_7b,
+        
+        ### Inferless ###   
+        'neural-7b': neural_7b,
+        
+        ### Gryphe ###   
+        'mythomax-13b': mythomax_13b,
         
         ### llmplayground.net ###   
         'any-uncensored': any_uncensored,
@@ -831,8 +848,7 @@ class ModelUtils:
         'flux-4o': flux_4o,
 
         ### OpenAI ###
-        'dalle-3': dalle_3,
-        'dall-e-3': dalle_3,
+        'dall-e-3': dall_e_3,
 
         ### Recraft ###
         'recraft-v3': recraft_v3,
