@@ -63,6 +63,7 @@ Is your site on this repository and you want to take it down? Send an email to t
       - [Local Inference](docs/local.md)
       - [Configuration](#configuration)
       -  [Full Documentation for Python API](#full-documentation-for-python-api)
+         - [Requests API from G4F](docs/requests.md)
          - [Client API from G4F](docs/client.md)
          - [AsyncClient API from G4F](docs/async_client.md)
    - [🚀 Providers and Models](docs/providers-and-models.md)
@@ -206,6 +207,7 @@ print(f"Generated image URL: {image_url}")
 
 #### **Full Documentation for Python API**
    - **New:**
+      - **Requests API from G4F:** [/docs/requests](docs/requests.md)
       - **Client API from G4F:** [/docs/client](docs/client.md)
       - **AsyncClient API from G4F:** [/docs/async_client](docs/async_client.md)
    
