@@ -196,6 +196,7 @@ client = Client()
 response = client.images.generate(
     model="flux",
     prompt="a white siamese cat",
+    response_format="url"
     # Add any other necessary parameters
 )
 
