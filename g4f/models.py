@@ -68,6 +68,7 @@ default = Model(
         DDG,
         Pizzagpt,
         ReplicateHome,
+        Blackbox2,
         Upstage,
         Blackbox,
         Free2GPT,
