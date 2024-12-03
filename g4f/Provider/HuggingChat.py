@@ -21,6 +21,7 @@ class HuggingChat(AbstractProvider, ProviderModelMixin):
     default_model = "meta-llama/Meta-Llama-3.1-70B-Instruct"
 
     models = [
+        'Qwen/Qwen2.5-72B-Instruct',
         'meta-llama/Meta-Llama-3.1-70B-Instruct',
         'CohereForAI/c4ai-command-r-plus-08-2024',
         'Qwen/Qwen2.5-72B-Instruct',
@@ -33,6 +34,7 @@ class HuggingChat(AbstractProvider, ProviderModelMixin):
     ]
 
     model_aliases = {
+        "qwen-2.5-72b": "Qwen/Qwen2.5-72B-Instruct",
         "llama-3.1-70b": "meta-llama/Meta-Llama-3.1-70B-Instruct",
         "command-r-plus": "CohereForAI/c4ai-command-r-plus-08-2024",
         "qwen-2-72b": "Qwen/Qwen2.5-72B-Instruct",

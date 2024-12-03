@@ -181,7 +181,7 @@ llama_3_1_405b = Model(
 llama_3_2_1b = Model(
     name          = "llama-3.2-1b",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider([Cloudflare])
+    best_provider = Cloudflare
 )
 
 llama_3_2_11b = Model(
@@ -257,7 +257,7 @@ mixtral_8x7b_dpo = Model(
 phi_2 = Model(
     name          = "phi-2",
     base_provider = "Microsoft",
-    best_provider = IterListProvider([Airforce])
+    best_provider = Airforce
 )
 
 phi_3_5_mini = Model(
