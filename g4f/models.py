@@ -372,7 +372,7 @@ qwen_2_72b = Model(
 qwen_2_5_72b = Model(
     name = 'qwen-2.5-72b',
     base_provider = 'Qwen',
-    best_provider = AmigoChat
+    best_provider = IterListProvider([AmigoChat, HuggingChat, HuggingFace])
 )
 
 qwen_2_5_coder_32b = Model(
