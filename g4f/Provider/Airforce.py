@@ -29,7 +29,7 @@ def split_message(message: str, max_length: int = 1000) -> list[str]:
 class Airforce(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://llmplayground.net"
     api_endpoint_completions = "https://api.airforce/chat/completions"
-    api_endpoint_imagine2 = "https://api.airforce/v1/imagine2"
+    api_endpoint_imagine2 = "https://api.airforce/imagine2"
 
     working = True
     needs_auth = True
