@@ -7,7 +7,7 @@ from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ...errors import ModelNotFoundError
 from ...requests import StreamSession, raise_for_status
 
-from ..HuggingChat import HuggingChat
+from .HuggingChat import HuggingChat
 
 class HuggingFace(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://huggingface.co/chat"

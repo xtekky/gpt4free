@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from .OpenaiAPI import OpenaiAPI
-from ..HuggingChat import HuggingChat
+from .HuggingChat import HuggingChat
 from ...typing import AsyncResult, Messages
 
 class HuggingFace2(OpenaiAPI):

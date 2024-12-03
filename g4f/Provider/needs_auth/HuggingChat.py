@@ -8,16 +8,17 @@ try:
     has_curl_cffi = True
 except ImportError:
     has_curl_cffi = False
-from ..typing import CreateResult, Messages
-from ..errors import MissingRequirementsError
-from ..requests.raise_for_status import raise_for_status
-from .base_provider import ProviderModelMixin, AbstractProvider
-from .helper import format_prompt
+from ...typing import CreateResult, Messages
+from ...errors import MissingRequirementsError
+from ...requests.raise_for_status import raise_for_status
+from ..base_provider import ProviderModelMixin, AbstractProvider
+from ..helper import format_prompt
 
 class HuggingChat(AbstractProvider, ProviderModelMixin):
     url = "https://huggingface.co/chat"
     working = True
     supports_stream = True
+    needs_auth = True
     default_model = "meta-llama/Meta-Llama-3.1-70B-Instruct"
 
     models = [

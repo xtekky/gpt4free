@@ -9,6 +9,7 @@ from .Gemini            import Gemini
 from .GeminiPro         import GeminiPro
 from .GithubCopilot     import GithubCopilot
 from .Groq              import Groq
+from .HuggingChat       import HuggingChat
 from .HuggingFace       import HuggingFace
 from .HuggingFace2      import HuggingFace2
 from .MetaAI            import MetaAI
