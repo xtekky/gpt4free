@@ -14,7 +14,6 @@ from .Provider import (
     Cloudflare,
     Copilot,
     CopilotAccount,
-    DarkAI,
     DDG,
     DeepInfraChat,
     Free2GPT,
@@ -76,7 +75,6 @@ default = Model(
         Airforce, 
         ChatGptEs,
         Cloudflare,
-        DarkAI,
         Mhystical,
         AmigoChat,
     ])
@@ -98,7 +96,7 @@ gpt_35_turbo = Model(
 gpt_4o = Model(
     name          = 'gpt-4o',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([Blackbox, ChatGptEs, DarkAI, ChatGpt, AmigoChat, Airforce, Liaobots, OpenaiChat])
+    best_provider = IterListProvider([Blackbox, ChatGptEs, ChatGpt, AmigoChat, Airforce, Liaobots, OpenaiChat])
 )
 
 gpt_4o_mini = Model(
@@ -169,13 +167,13 @@ llama_3_1_8b = Model(
 llama_3_1_70b = Model(
     name          = "llama-3.1-70b",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider([DDG, DeepInfraChat, Blackbox, Blackbox2, TeachAnything, DarkAI, Airforce, RubiksAI, HuggingChat, HuggingFace, PerplexityLabs])
+    best_provider = IterListProvider([DDG, DeepInfraChat, Blackbox, Blackbox2, TeachAnything, Airforce, RubiksAI, HuggingChat, HuggingFace, PerplexityLabs])
 )
 
 llama_3_1_405b = Model(
     name          = "llama-3.1-405b",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider([Blackbox, DarkAI, AmigoChat])
+    best_provider = IterListProvider([Blackbox, AmigoChat])
 )
 
 # llama 3.2
