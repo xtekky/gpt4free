@@ -25,14 +25,14 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
 
     default_model = 'blackboxai'
     default_vision_model = default_model
-    default_image_model = 'Image Generation' 
-    image_models = ['Image Generation', 'repomap']
+    default_image_model = 'flux' 
+    image_models = ['flux', 'repomap']
     vision_models = [default_model, 'gpt-4o', 'gemini-pro', 'gemini-1.5-flash', 'llama-3.1-8b', 'llama-3.1-70b', 'llama-3.1-405b']
 
     userSelectedModel = ['gpt-4o', 'gemini-pro', 'claude-sonnet-3.5', 'blackboxai-pro']
 
     agentMode = {
-        'Image Generation': {'mode': True, 'id': "ImageGenerationLV45LJp", 'name': "Image Generation"}
+        'flux': {'mode': True, 'id': "ImageGenerationLV45LJp", 'name': "Image Generation"}
     }
     
     trendingAgentMode = {
@@ -97,8 +97,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
     model_aliases = {
         "gpt-3.5-turbo": "blackboxai",
         "gemini-flash": "gemini-1.5-flash",
-        "claude-3.5-sonnet": "claude-sonnet-3.5",
-        "flux": "Image Generation"
+        "claude-3.5-sonnet": "claude-sonnet-3.5"
     }
 
     @classmethod
