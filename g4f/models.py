@@ -127,7 +127,7 @@ o1_preview = Model(
 o1_mini = Model(
     name          = 'o1-mini',
     base_provider = 'OpenAI',
-    best_provider = Liaobots
+    best_provider = IterListProvider([Liaobots, Airforce])
 )
 
 ### GigaChat ###
