@@ -40,8 +40,6 @@ class DeepInfraChat(AsyncGeneratorProvider, ProviderModelMixin):
         model: str,
         messages: Messages,
         proxy: str = None,
-        image: ImageType = None,
-        image_name: str = None,
         **kwargs
     ) -> AsyncResult:
         headers = {
