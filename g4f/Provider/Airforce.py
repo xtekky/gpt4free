@@ -89,10 +89,10 @@ class Airforce(AsyncGeneratorProvider, ProviderModelMixin):
     @classmethod
     async def check_api_key(cls, api_key: str) -> bool:
         """
-        Always returns True to allow all models when missing_key is used.
+        Always returns True to allow all models.
         """
-        if not api_key or api_key == "missing_key":
-            return True  # No restrictions if no key or missing_key is used.
+        if not api_key or api_key == "null":
+            return True  # No restrictions if no key.
         
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
@@ -121,7 +121,10 @@ class Airforce(AsyncGeneratorProvider, ProviderModelMixin):
         proxy: str = None
     ) -> AsyncResult:
         headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:132.0) Gecko/20100101 Firefox/132.0",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:133.0) Gecko/20100101 Firefox/133.0",
+            "Accept": "image/avif,image/webp,image/png,image/svg+xml,image/*;q=0.8,*/*;q=0.5",
+            "Accept-Encoding": "gzip, deflate, br, zstd",
+            "Content-Type": "application/json",
             "Authorization": f"Bearer {api_key}",
         }
         params = {"model": model, "prompt": prompt, "size": size, "seed": seed}
@@ -148,8 +151,11 @@ class Airforce(AsyncGeneratorProvider, ProviderModelMixin):
         proxy: str = None
     ) -> AsyncResult:
         headers = {
-            "Authorization": f"Bearer {api_key}",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:133.0) Gecko/20100101 Firefox/133.0",
+            "Accept": "application/json, text/event-stream",
+            "Accept-Encoding": "gzip, deflate, br, zstd",
             "Content-Type": "application/json",
+            "Authorization": f"Bearer {api_key}",
         }
         full_message = "\n".join([msg['content'] for msg in messages])
         message_chunks = split_message(full_message, max_length=1000)
