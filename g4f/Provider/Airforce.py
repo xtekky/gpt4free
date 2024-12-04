@@ -212,9 +212,8 @@ class Airforce(AsyncGeneratorProvider, ProviderModelMixin):
         seed: int = None,
         **kwargs
     ) -> AsyncResult:
-        # Always proceed even if API key is "missing_key"
         if not await cls.check_api_key(api_key):
-            print("Warning: Using invalid or missing API key. All models are still accessible.")
+            pass
 
         if cls.is_image_model(model):
             if prompt is None:

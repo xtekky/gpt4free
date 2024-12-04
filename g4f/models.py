@@ -383,7 +383,7 @@ qwen_2_5_coder_32b = Model(
 qwq_32b = Model(
     name = 'qwq-32b',
     base_provider = 'Qwen',
-    best_provider = IterListProvider([HuggingChat, HuggingFace])
+    best_provider = IterListProvider([DeepInfraChat, HuggingChat, HuggingFace])
 )
 
 ### Upstage ###
