@@ -207,7 +207,7 @@ class Airforce(AsyncGeneratorProvider, ProviderModelMixin):
         temperature: float = 1,
         top_p: float = 1,
         stream: bool = True,
-        api_key: str = "missing_key",
+        api_key: str = None,
         size: str = "1:1",
         seed: int = None,
         **kwargs
