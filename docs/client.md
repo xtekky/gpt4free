@@ -145,6 +145,11 @@ for chunk in stream:
   
 
 ### Image Generation
+The `response_format` parameter is optional and can have the following values:
+- If not specified (default): The image will be saved locally, and a local path will be returned (e.g., "/images/1733331238_cf9d6aa9-f606-4fea-ba4b-f06576cba309.jpg").
+- "url": Returns a URL to the generated image.
+- "b64_json": Returns the image as a base64-encoded JSON string.
+
 **Generate images using a specified prompt:**
 ```python
 from g4f.client import Client

@@ -256,13 +256,15 @@ class Images:
         prompt: str,
         model: str = None,
         provider: Optional[ProviderType] = None,
-        response_format: str = "url",
+        response_format: Optional[str] = None,
         proxy: Optional[str] = None,
         **kwargs
     ) -> ImagesResponse:
         """
         Synchronous generate method that runs the async_generate method in an event loop.
         """
+        if response_format is None:
+            response_format = "local"
         return asyncio.run(self.async_generate(prompt, model, provider, response_format, proxy, **kwargs))
 
     async def get_provider_handler(self, model: Optional[str], provider: Optional[ImageProvider], default: ImageProvider) -> ImageProvider:
@@ -283,10 +285,12 @@ class Images:
         prompt: str,
         model: Optional[str] = None,
         provider: Optional[ProviderType] = None,
-        response_format: Optional[str] = "url",
+        response_format: Optional[str] = None,
         proxy: Optional[str] = None,
         **kwargs
     ) -> ImagesResponse:
+        if response_format is None:
+            response_format = "local"
         provider_handler = await self.get_provider_handler(model, provider, BingCreateImages)
         provider_name = provider_handler.__name__ if hasattr(provider_handler, "__name__") else type(provider_handler).__name__
         if proxy is None:
@@ -409,7 +413,7 @@ class Images:
     async def _process_image_response(
         self,
         response: ImageResponse,
-        response_format: str,
+        response_format: Optional[str] = None,
         proxy: str = None,
         model: Optional[str] = None,
         provider: Optional[str] = None
@@ -422,10 +426,12 @@ class Images:
             async def process_image_item(image_file: str) -> Image:
                 with open(os.path.join(images_dir, os.path.basename(image_file)), "rb") as file:
                     image_data = base64.b64encode(file.read()).decode()
-                    return Image.model_construct(url=image_file, b64_json=image_data, revised_prompt=response.alt)
+                    return Image.model_construct(b64_json=image_data, revised_prompt=response.alt)
             images = await asyncio.gather(*[process_image_item(image) for image in images])
         else:
-            images = [Image.model_construct(url=image, revised_prompt=response.alt) for image in response.get_list()]
+            # Save locally for None (default) case
+            images = await copy_images(response.get_list(), response.options.get("cookies"), proxy)
+            images = [Image.model_construct(url=f"/images/{os.path.basename(image)}", revised_prompt=response.alt) for image in images]
         
         last_provider = get_last_provider(True)
         return ImagesResponse.model_construct(
@@ -518,9 +524,11 @@ class AsyncImages(Images):
         prompt: str,
         model: Optional[str] = None,
         provider: Optional[ProviderType] = None,
-        response_format: str = "url",
+        response_format: Optional[str] = None,
         **kwargs
     ) -> ImagesResponse:
+        if response_format is None:
+            response_format = "local"
         return await self.async_generate(prompt, model, provider, response_format, **kwargs)
 
     async def create_variation(
