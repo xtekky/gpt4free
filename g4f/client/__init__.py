@@ -263,8 +263,6 @@ class Images:
         """
         Synchronous generate method that runs the async_generate method in an event loop.
         """
-        if response_format is None:
-            response_format = "local"
         return asyncio.run(self.async_generate(prompt, model, provider, response_format, proxy, **kwargs))
 
     async def get_provider_handler(self, model: Optional[str], provider: Optional[ImageProvider], default: ImageProvider) -> ImageProvider:
@@ -289,8 +287,6 @@ class Images:
         proxy: Optional[str] = None,
         **kwargs
     ) -> ImagesResponse:
-        if response_format is None:
-            response_format = "local"
         provider_handler = await self.get_provider_handler(model, provider, BingCreateImages)
         provider_name = provider_handler.__name__ if hasattr(provider_handler, "__name__") else type(provider_handler).__name__
         if proxy is None:
@@ -527,8 +523,6 @@ class AsyncImages(Images):
         response_format: Optional[str] = None,
         **kwargs
     ) -> ImagesResponse:
-        if response_format is None:
-            response_format = "local"
         return await self.async_generate(prompt, model, provider, response_format, **kwargs)
 
     async def create_variation(
