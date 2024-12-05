@@ -1065,6 +1065,7 @@ async function hide_sidebar() {
     sidebar_button.classList.remove("rotated");
     settings.classList.add("hidden");
     chat.classList.remove("hidden");
+    log_storage.classList.add("hidden");
     if (window.location.pathname == "/menu/" || window.location.pathname == "/settings/") {
         history.back();
     }
@@ -1182,31 +1183,6 @@ const say_hello = async () => {
     }
 }
 
-// Theme storage for recurring viewers
-const storeTheme = function (theme) {
-    appStorage.setItem("theme", theme);
-};
-
-// set theme when visitor returns
-const setTheme = function () {
-    const activeTheme = appStorage.getItem("theme");
-    colorThemes.forEach((themeOption) => {
-        if (themeOption.id === activeTheme) {
-            themeOption.checked = true;
-        }
-    });
-    // fallback for no :has() support
-    document.documentElement.className = activeTheme;
-};
-
-colorThemes.forEach((themeOption) => {
-    themeOption.addEventListener("click", () => {
-        storeTheme(themeOption.id);
-        // fallback for no :has() support
-        document.documentElement.className = themeOption.id;
-    });
-});
-
 function count_tokens(model, text) {
     if (model) {
         if (window.llamaTokenizer)
@@ -1273,7 +1249,6 @@ window.addEventListener('pywebviewready', async function() {
 });
 
 async function on_load() {
-    setTheme();
     count_input();
 
     if (/\/chat\/.+/.test(window.location.href)) {
@@ -1290,8 +1265,7 @@ async function on_api() {
         if (prompt_lock) return;
 
         // If not mobile
-        if (!window.matchMedia("(pointer:coarse)").matches)
-        if (evt.keyCode === 13 && !evt.shiftKey) {
+        if (!window.matchMedia("(pointer:coarse)").matches && evt.keyCode === 13 && !evt.shiftKey) {
             evt.preventDefault();
             console.log("pressed enter");
             prompt_lock = true;

@@ -1,16 +1,17 @@
 from __future__ import annotations
 
 import json
-import requests
 
 try:
-    from curl_cffi.requests import Session
+    from curl_cffi.requests import Session, CurlMime
     has_curl_cffi = True
 except ImportError:
     has_curl_cffi = False
-from ...typing import CreateResult, Messages
+
+from ...typing import CreateResult, Messages, Cookies
 from ...errors import MissingRequirementsError
 from ...requests.raise_for_status import raise_for_status
+from ...cookies import get_cookies
 from ..base_provider import ProviderModelMixin, AbstractProvider
 from ..helper import format_prompt
 
@@ -53,127 +54,130 @@ class HuggingChat(AbstractProvider, ProviderModelMixin):
         model: str,
         messages: Messages,
         stream: bool,
+        web_search: bool = False,
+        cookies: Cookies = None,
         **kwargs
     ) -> CreateResult:
         if not has_curl_cffi:
             raise MissingRequirementsError('Install "curl_cffi" package | pip install -U curl_cffi')
         model = cls.get_model(model)
+        if cookies is None:
+            cookies = get_cookies("huggingface.co")
+
+        session = Session(cookies=cookies)
+        session.headers = {
+            'accept': '*/*',
+            'accept-language': 'en',
+            'cache-control': 'no-cache',
+            'origin': 'https://huggingface.co',
+            'pragma': 'no-cache',
+            'priority': 'u=1, i',
+            'referer': 'https://huggingface.co/chat/',
+            'sec-ch-ua': '"Not)A;Brand";v="99", "Google Chrome";v="127", "Chromium";v="127"',
+            'sec-ch-ua-mobile': '?0',
+            'sec-ch-ua-platform': '"macOS"',
+            'sec-fetch-dest': 'empty',
+            'sec-fetch-mode': 'cors',
+            'sec-fetch-site': 'same-origin',
+            'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
+        }
+        json_data = {
+            'model': model,
+        }
+        response = session.post('https://huggingface.co/chat/conversation', json=json_data)
+        raise_for_status(response)
+
+        conversationId = response.json().get('conversationId')
         
-        if model in cls.models:
-            session = Session()
-            session.headers = {
-                'accept': '*/*',
-                'accept-language': 'en',
-                'cache-control': 'no-cache',
-                'origin': 'https://huggingface.co',
-                'pragma': 'no-cache',
-                'priority': 'u=1, i',
-                'referer': 'https://huggingface.co/chat/',
-                'sec-ch-ua': '"Not)A;Brand";v="99", "Google Chrome";v="127", "Chromium";v="127"',
-                'sec-ch-ua-mobile': '?0',
-                'sec-ch-ua-platform': '"macOS"',
-                'sec-fetch-dest': 'empty',
-                'sec-fetch-mode': 'cors',
-                'sec-fetch-site': 'same-origin',
-                'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
-            }
-            json_data = {
-                'model': model,
-            }
-            response = session.post('https://huggingface.co/chat/conversation', json=json_data)
-            raise_for_status(response)
+        # Get the data response and parse it properly
+        response = session.get(f'https://huggingface.co/chat/conversation/{conversationId}/__data.json?x-sveltekit-invalidated=11')
+        raise_for_status(response)
 
-            conversationId = response.json().get('conversationId')
-            
-            # Get the data response and parse it properly
-            response = session.get(f'https://huggingface.co/chat/conversation/{conversationId}/__data.json?x-sveltekit-invalidated=11')
-            raise_for_status(response)
+        # Split the response content by newlines and parse each line as JSON
+        try:
+            json_data = None
+            for line in response.text.split('\n'):
+                if line.strip():
+                    try:
+                        parsed = json.loads(line)
+                        if isinstance(parsed, dict) and "nodes" in parsed:
+                            json_data = parsed
+                            break
+                    except json.JSONDecodeError:
+                        continue
+                        
+            if not json_data:
+                raise RuntimeError("Failed to parse response data")
 
-            # Split the response content by newlines and parse each line as JSON
+            data: list = json_data["nodes"][1]["data"]
+            keys: list[int] = data[data[0]["messages"]]
+            message_keys: dict = data[keys[0]]
+            messageId: str = data[message_keys["id"]]
+
+        except (KeyError, IndexError, TypeError) as e:
+            raise RuntimeError(f"Failed to extract message ID: {str(e)}")
+
+        settings = {
+            "inputs": format_prompt(messages),
+            "id": messageId,
+            "is_retry": False,
+            "is_continue": False,
+            "web_search": web_search,
+            "tools": []
+        }
+
+        headers = {
+            'accept': '*/*',
+            'accept-language': 'en',
+            'cache-control': 'no-cache',
+            'origin': 'https://huggingface.co',
+            'pragma': 'no-cache',
+            'priority': 'u=1, i',
+            'referer': f'https://huggingface.co/chat/conversation/{conversationId}',
+            'sec-ch-ua': '"Not)A;Brand";v="99", "Google Chrome";v="127", "Chromium";v="127"',
+            'sec-ch-ua-mobile': '?0',
+            'sec-ch-ua-platform': '"macOS"',
+            'sec-fetch-dest': 'empty',
+            'sec-fetch-mode': 'cors',
+            'sec-fetch-site': 'same-origin',
+            'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
+        }
+
+        data = CurlMime()
+        data.addpart('data', data=json.dumps(settings, separators=(',', ':')))
+
+        response = session.post(
+            f'https://huggingface.co/chat/conversation/{conversationId}',
+            cookies=session.cookies,
+            headers=headers,
+            multipart=data,
+            stream=True
+        )
+        raise_for_status(response)
+
+        full_response = ""
+        for line in response.iter_lines():
+            if not line:
+                continue
             try:
-                json_data = None
-                for line in response.text.split('\n'):
-                    if line.strip():
-                        try:
-                            parsed = json.loads(line)
-                            if isinstance(parsed, dict) and "nodes" in parsed:
-                                json_data = parsed
-                                break
-                        except json.JSONDecodeError:
-                            continue
-                            
-                if not json_data:
-                    raise RuntimeError("Failed to parse response data")
-
-                data: list = json_data["nodes"][1]["data"]
-                keys: list[int] = data[data[0]["messages"]]
-                message_keys: dict = data[keys[0]]
-                messageId: str = data[message_keys["id"]]
-
-            except (KeyError, IndexError, TypeError) as e:
-                raise RuntimeError(f"Failed to extract message ID: {str(e)}")
-
-            settings = {
-                "inputs": format_prompt(messages),
-                "id": messageId,
-                "is_retry": False,
-                "is_continue": False,
-                "web_search": False,
-                "tools": []
-            }
-
-            headers = {
-                'accept': '*/*',
-                'accept-language': 'en',
-                'cache-control': 'no-cache',
-                'origin': 'https://huggingface.co',
-                'pragma': 'no-cache',
-                'priority': 'u=1, i',
-                'referer': f'https://huggingface.co/chat/conversation/{conversationId}',
-                'sec-ch-ua': '"Not)A;Brand";v="99", "Google Chrome";v="127", "Chromium";v="127"',
-                'sec-ch-ua-mobile': '?0',
-                'sec-ch-ua-platform': '"macOS"',
-                'sec-fetch-dest': 'empty',
-                'sec-fetch-mode': 'cors',
-                'sec-fetch-site': 'same-origin',
-                'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
-            }
-
-            files = {
-                'data': (None, json.dumps(settings, separators=(',', ':'))),
-            }
-
-            response = requests.post(
-                f'https://huggingface.co/chat/conversation/{conversationId}',
-                cookies=session.cookies,
-                headers=headers,
-                files=files,
-            )
-            raise_for_status(response)
-
-            full_response = ""
-            for line in response.iter_lines():
-                if not line:
-                    continue
-                try:
-                    line = json.loads(line)
-                except json.JSONDecodeError as e:
-                    print(f"Failed to decode JSON: {line}, error: {e}")
-                    continue
-                
-                if "type" not in line:
-                    raise RuntimeError(f"Response: {line}")
-                
-                elif line["type"] == "stream":
-                    token = line["token"].replace('\u0000', '')
-                    full_response += token
-                    if stream:
-                        yield token
-                
-                elif line["type"] == "finalAnswer":
-                    break
+                line = json.loads(line)
+            except json.JSONDecodeError as e:
+                print(f"Failed to decode JSON: {line}, error: {e}")
+                continue
             
-            full_response = full_response.replace('<|im_end|', '').replace('\u0000', '').strip()
+            if "type" not in line:
+                raise RuntimeError(f"Response: {line}")
+            
+            elif line["type"] == "stream":
+                token = line["token"].replace('\u0000', '')
+                full_response += token
+                if stream:
+                    yield token
+            
+            elif line["type"] == "finalAnswer":
+                break
+        
+        full_response = full_response.replace('<|im_end|', '').replace('\u0000', '').strip()
 
-            if not stream:
-                yield full_response
+        if not stream:
+            yield full_response
