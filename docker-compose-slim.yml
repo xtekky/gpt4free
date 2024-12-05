@@ -3,7 +3,7 @@ version: '3'
 services:
   g4f-gui:
     container_name: g4f-gui
-    image: hlohaus789/g4f:slim
+    image: hlohaus789/g4f:latest-slim
     build:
       context: .
       dockerfile: docker/Dockerfile-slim
@@ -14,7 +14,7 @@ services:
       - '8080:8080'
   g4f-api:
     container_name: g4f-api
-    image: hlohaus789/g4f:slim
+    image: hlohaus789/g4f:latest-slim
     build:
       context: .
       dockerfile: docker/Dockerfile-slim
