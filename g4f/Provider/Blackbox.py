@@ -25,14 +25,14 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
 
     default_model = 'blackboxai'
     default_vision_model = default_model
-    default_image_model = 'Image Generation' 
-    image_models = ['Image Generation', 'repomap']
+    default_image_model = 'flux' 
+    image_models = ['flux', 'repomap']
     vision_models = [default_model, 'gpt-4o', 'gemini-pro', 'gemini-1.5-flash', 'llama-3.1-8b', 'llama-3.1-70b', 'llama-3.1-405b']
 
     userSelectedModel = ['gpt-4o', 'gemini-pro', 'claude-sonnet-3.5', 'blackboxai-pro']
 
     agentMode = {
-        'Image Generation': {'mode': True, 'id': "ImageGenerationLV45LJp", 'name': "Image Generation"},
+        'flux': {'mode': True, 'id': "ImageGenerationLV45LJp", 'name': "Image Generation"}
     }
     
     trendingAgentMode = {
@@ -79,9 +79,9 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
     }
     
     additional_prefixes = {
-        'gpt-4o': '@gpt-4o',
-        'gemini-pro': '@gemini-pro',
-        'claude-sonnet-3.5': '@claude-sonnet'
+        'gpt-4o': '@GPT-4o',
+        'gemini-pro': '@Gemini-PRO',
+        'claude-sonnet-3.5': '@Claude-Sonnet-3.5'
     }
     
     model_prefixes = {
@@ -95,9 +95,9 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
     models = list(dict.fromkeys([default_model, *userSelectedModel, *list(agentMode.keys()), *list(trendingAgentMode.keys())]))
 
     model_aliases = {
+        "gpt-3.5-turbo": "blackboxai",
         "gemini-flash": "gemini-1.5-flash",
-        "claude-3.5-sonnet": "claude-sonnet-3.5",
-        "flux": "Image Generation",
+        "claude-3.5-sonnet": "claude-sonnet-3.5"
     }
 
     @classmethod
@@ -173,9 +173,14 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
 
         if image is not None:
             messages[-1]['data'] = {
-                'fileText': '',
-                'imageBase64': to_data_uri(image),
-                'title': image_name
+                "imagesData": [
+                    {
+                        "filePath": f"MultipleFiles/{image_name}",
+                        "contents": to_data_uri(image)
+                    }
+                ],
+                "fileText": "",
+                "title": ""
             }
 
         headers = {
@@ -219,6 +224,8 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
             "userSelectedModel": model if model in cls.userSelectedModel else None,
             "webSearchMode": web_search,
             "validated": validated_value,
+            "imageGenerationMode": False,
+            "webSearchModePrompt": False
         }
 
         async with ClientSession(headers=headers) as session:

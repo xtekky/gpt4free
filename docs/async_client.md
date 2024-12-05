@@ -164,6 +164,11 @@ asyncio.run(main())
 ```
 
 ### Image Generation
+**The `response_format` parameter is optional and can have the following values:**
+- **If not specified (default):** The image will be saved locally, and a local path will be returned (e.g., "/images/1733331238_cf9d6aa9-f606-4fea-ba4b-f06576cba309.jpg").
+- **"url":** Returns a URL to the generated image.
+- **"b64_json":** Returns the image as a base64-encoded JSON string.
+
 **Generate images using a specified prompt:**
 ```python
 import asyncio
@@ -174,7 +179,9 @@ async def main():
     
     response = await client.images.generate(
         prompt="a white siamese cat",
-        model="flux"
+        model="flux",
+        response_format="url"
+        # Add any other necessary parameters
     )
     
     image_url = response.data[0].url
@@ -195,6 +202,7 @@ async def main():
         prompt="a white siamese cat",
         model="flux",
         response_format="b64_json"
+        # Add any other necessary parameters
     )
     
     base64_text = response.data[0].b64_json
@@ -224,7 +232,8 @@ async def main():
     
     task2 = client.images.generate(
         model="flux",
-        prompt="a white siamese cat"
+        prompt="a white siamese cat",
+        response_format="url"
     )
     
     try:

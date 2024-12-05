@@ -14,6 +14,7 @@ from .local            import *
 from .Airforce         import Airforce
 from .AmigoChat        import AmigoChat
 from .Blackbox         import Blackbox
+from .Blackbox2        import Blackbox2
 from .ChatGpt          import ChatGpt
 from .ChatGptEs        import ChatGptEs
 from .Cloudflare       import Cloudflare
@@ -24,7 +25,6 @@ from .DeepInfraChat    import DeepInfraChat
 from .Free2GPT         import Free2GPT
 from .FreeGpt          import FreeGpt
 from .GizAI            import GizAI
-from .HuggingChat      import HuggingChat
 from .Liaobots         import Liaobots
 from .MagickPen        import MagickPen
 from .PerplexityLabs   import PerplexityLabs

@@ -256,7 +256,7 @@ class Images:
         prompt: str,
         model: str = None,
         provider: Optional[ProviderType] = None,
-        response_format: str = "url",
+        response_format: Optional[str] = None,
         proxy: Optional[str] = None,
         **kwargs
     ) -> ImagesResponse:
@@ -283,7 +283,7 @@ class Images:
         prompt: str,
         model: Optional[str] = None,
         provider: Optional[ProviderType] = None,
-        response_format: Optional[str] = "url",
+        response_format: Optional[str] = None,
         proxy: Optional[str] = None,
         **kwargs
     ) -> ImagesResponse:
@@ -405,31 +405,37 @@ class Images:
             raise NoImageResponseError(f"No image response from {provider_name}")
         raise NoImageResponseError(f"Unexpected response type: {type(response)}")
 
+
     async def _process_image_response(
         self,
         response: ImageResponse,
-        response_format: str,
+        response_format: Optional[str] = None,
         proxy: str = None,
         model: Optional[str] = None,
         provider: Optional[str] = None
-    ) -> list[Image]:
-        if response_format in ("url", "b64_json"):
+    ) -> ImagesResponse:
+        if response_format == "url":
+            # Return original URLs without saving locally
+            images = [Image.construct(url=image, revised_prompt=response.alt) for image in response.get_list()]
+        elif response_format == "b64_json":
             images = await copy_images(response.get_list(), response.options.get("cookies"), proxy)
             async def process_image_item(image_file: str) -> Image:
-                if response_format == "b64_json":
-                    with open(os.path.join(images_dir, os.path.basename(image_file)), "rb") as file:
-                        image_data = base64.b64encode(file.read()).decode()
-                        return Image.construct(url=image_file, b64_json=image_data, revised_prompt=response.alt)
-                return Image.construct(url=image_file, revised_prompt=response.alt)
+                with open(os.path.join(images_dir, os.path.basename(image_file)), "rb") as file:
+                    image_data = base64.b64encode(file.read()).decode()
+                    return Image.construct(b64_json=image_data, revised_prompt=response.alt)
             images = await asyncio.gather(*[process_image_item(image) for image in images])
         else:
-            images = [Image.construct(url=image, revised_prompt=response.alt) for image in response.get_list()]
+            # Save locally for None (default) case
+            images = await copy_images(response.get_list(), response.options.get("cookies"), proxy)
+            images = [Image.construct(url=f"/images/{os.path.basename(image)}", revised_prompt=response.alt) for image in images]
         last_provider = get_last_provider(True)
         return ImagesResponse.construct(
-            images,
+            created=int(time.time()),
+            data=images,
             model=last_provider.get("model") if model is None else model,
             provider=last_provider.get("name") if provider is None else provider
         )
+
 
 class AsyncClient(BaseClient):
     def __init__(
@@ -513,7 +519,7 @@ class AsyncImages(Images):
         prompt: str,
         model: Optional[str] = None,
         provider: Optional[ProviderType] = None,
-        response_format: str = "url",
+        response_format: Optional[str] = None,
         **kwargs
     ) -> ImagesResponse:
         return await self.async_generate(prompt, model, provider, response_format, **kwargs)

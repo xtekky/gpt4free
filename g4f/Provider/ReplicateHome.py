@@ -28,8 +28,6 @@ class ReplicateHome(AsyncGeneratorProvider, ProviderModelMixin):
     ]
     
     text_models = [
-        'meta/meta-llama-3-70b-instruct',
-        'mistralai/mixtral-8x7b-instruct-v0.1',
         'google-deepmind/gemma-2b-it',
         'yorickvp/llava-13b',
     ]

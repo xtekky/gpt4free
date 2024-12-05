@@ -7,13 +7,13 @@ from .Provider import (
     AIChatFree,
     AmigoChat,
     Blackbox,
+    Blackbox2,
     BingCreateImages,
     ChatGpt,
     ChatGptEs,
     Cloudflare,
     Copilot,
     CopilotAccount,
-    DarkAI,
     DDG,
     DeepInfraChat,
     Free2GPT,
@@ -67,6 +67,7 @@ default = Model(
         DDG,
         Pizzagpt,
         ReplicateHome,
+        Blackbox2,
         Upstage,
         Blackbox,
         Free2GPT,
@@ -74,7 +75,6 @@ default = Model(
         Airforce, 
         ChatGptEs,
         Cloudflare,
-        DarkAI,
         Mhystical,
         AmigoChat,
     ])
@@ -89,14 +89,14 @@ default = Model(
 gpt_35_turbo = Model(
     name          = 'gpt-3.5-turbo',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([Airforce])
+    best_provider = Blackbox
 )
 
 # gpt-4
 gpt_4o = Model(
     name          = 'gpt-4o',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([Blackbox, ChatGptEs, DarkAI, ChatGpt, AmigoChat, Airforce, Liaobots, OpenaiChat])
+    best_provider = IterListProvider([Blackbox, ChatGptEs, ChatGpt, AmigoChat, Airforce, Liaobots, OpenaiChat])
 )
 
 gpt_4o_mini = Model(
@@ -127,7 +127,7 @@ o1_preview = Model(
 o1_mini = Model(
     name          = 'o1-mini',
     base_provider = 'OpenAI',
-    best_provider = Liaobots
+    best_provider = IterListProvider([Liaobots, Airforce])
 )
 
 ### GigaChat ###
@@ -167,20 +167,20 @@ llama_3_1_8b = Model(
 llama_3_1_70b = Model(
     name          = "llama-3.1-70b",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider([DDG, DeepInfraChat, Blackbox, TeachAnything, DarkAI, Airforce, RubiksAI, HuggingChat, HuggingFace, PerplexityLabs])
+    best_provider = IterListProvider([DDG, DeepInfraChat, Blackbox, Blackbox2, TeachAnything, Airforce, RubiksAI, HuggingChat, HuggingFace, PerplexityLabs])
 )
 
 llama_3_1_405b = Model(
     name          = "llama-3.1-405b",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider([Blackbox, DarkAI, AmigoChat])
+    best_provider = IterListProvider([Blackbox, AmigoChat])
 )
 
 # llama 3.2
 llama_3_2_1b = Model(
     name          = "llama-3.2-1b",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider([Cloudflare])
+    best_provider = Cloudflare
 )
 
 llama_3_2_11b = Model(
@@ -256,7 +256,7 @@ mixtral_8x7b_dpo = Model(
 phi_2 = Model(
     name          = "phi-2",
     base_provider = "Microsoft",
-    best_provider = IterListProvider([Airforce])
+    best_provider = Airforce
 )
 
 phi_3_5_mini = Model(
@@ -371,11 +371,17 @@ qwen_2_72b = Model(
 qwen_2_5_72b = Model(
     name = 'qwen-2.5-72b',
     base_provider = 'Qwen',
-    best_provider = AmigoChat
+    best_provider = IterListProvider([AmigoChat, HuggingChat, HuggingFace])
 )
 
 qwen_2_5_coder_32b = Model(
     name = 'qwen-2.5-coder-32b',
+    base_provider = 'Qwen',
+    best_provider = IterListProvider([DeepInfraChat, HuggingChat, HuggingFace])
+)
+
+qwq_32b = Model(
+    name = 'qwq-32b',
     base_provider = 'Qwen',
     best_provider = IterListProvider([DeepInfraChat, HuggingChat, HuggingFace])
 )
@@ -632,10 +638,10 @@ flux_4o = Model(
 )
 
 ### OpenAI ###
-dalle_3 = Model(
+dall_e_3 = Model(
     name = 'dall-e-3',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([CopilotAccount, OpenaiAccount, MicrosoftDesigner, BingCreateImages])
+    best_provider = IterListProvider([Airforce, CopilotAccount, OpenaiAccount, MicrosoftDesigner, BingCreateImages])
 )
 
 ### Recraft ###
@@ -761,8 +767,10 @@ class ModelUtils:
         # qwen 2.5
         'qwen-2.5-72b': qwen_2_5_72b,
         'qwen-2.5-coder-32b': qwen_2_5_coder_32b,
+        'qwq-32b': qwq_32b,
                 
         ### Upstage ###
+        'solar-mini': solar_mini,
         'solar-pro': solar_pro,
 
         ### Inflection ###
@@ -796,6 +804,12 @@ class ModelUtils:
         ### Nvidia ###   
         'nemotron-70b': nemotron_70b,
         
+        ### Teknium ###   
+        'openhermes-2.5': openhermes_2_5,
+        
+        ### Liquid ### 
+        'lfm-40b': lfm_40b,
+        
         ### databricks ###   
         'dbrx-instruct': dbrx_instruct,
         
@@ -804,6 +818,15 @@ class ModelUtils:
         
         ### anthracite-org ###   
         'jamba-mini': jamba_mini,
+        
+        ### HuggingFaceH4 ###   
+        'zephyr-7b': zephyr_7b,
+        
+        ### Inferless ###   
+        'neural-7b': neural_7b,
+        
+        ### Gryphe ###   
+        'mythomax-13b': mythomax_13b,
         
         ### llmplayground.net ###   
         'any-uncensored': any_uncensored,
@@ -831,8 +854,7 @@ class ModelUtils:
         'flux-4o': flux_4o,
 
         ### OpenAI ###
-        'dalle-3': dalle_3,
-        'dall-e-3': dalle_3,
+        'dall-e-3': dall_e_3,
 
         ### Recraft ###
         'recraft-v3': recraft_v3,

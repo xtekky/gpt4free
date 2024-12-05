@@ -129,8 +129,6 @@ class AmigoChat(AsyncGeneratorProvider, ProviderModelMixin):
         ### image ###
         "flux-realism": "flux-realism",
         "flux-dev": "flux/dev",
-
-        "dalle-3": "dall-e-3",
     }
 
     @classmethod
@@ -141,7 +139,12 @@ class AmigoChat(AsyncGeneratorProvider, ProviderModelMixin):
             return MODELS['image'][model]['persona_id']
         else:
             raise ValueError(f"Unknown model: {model}")
-
+            
+    @staticmethod
+    def generate_chat_id() -> str:
+        """Generate a chat ID in format: 8-4-4-4-12 hexadecimal digits"""
+        return str(uuid.uuid4())
+		
     @classmethod
     async def create_async_generator(
         cls,
@@ -182,22 +185,24 @@ class AmigoChat(AsyncGeneratorProvider, ProviderModelMixin):
                     "x-device-language": "en-US",
                     "x-device-platform": "web",
                     "x-device-uuid": device_uuid,
-                    "x-device-version": "1.0.42"
+                    "x-device-version": "1.0.45"
                 }
                 
                 async with StreamSession(headers=headers, proxy=proxy) as session:
                     if model not in cls.image_models:
                         data = {
+                            "chatId": cls.generate_chat_id(),
+                            "frequency_penalty": frequency_penalty,
+                            "max_tokens": max_tokens,
                             "messages": messages,
                             "model": model,
                             "personaId": cls.get_personaId(model),
-                            "frequency_penalty": frequency_penalty,
-                            "max_tokens": max_tokens,
                             "presence_penalty": presence_penalty,
                             "stream": stream,
                             "temperature": temperature,
                             "top_p": top_p
                         }
+                        print(data)
                         async with session.post(cls.chat_api_endpoint, json=data, timeout=timeout) as response:
                             await raise_for_status(response)
                             async for line in response.iter_lines():

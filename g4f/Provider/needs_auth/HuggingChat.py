@@ -8,22 +8,24 @@ try:
     has_curl_cffi = True
 except ImportError:
     has_curl_cffi = False
-from ..typing import CreateResult, Messages
-from ..errors import MissingRequirementsError
-from ..requests.raise_for_status import raise_for_status
-from .base_provider import ProviderModelMixin, AbstractProvider
-from .helper import format_prompt
+from ...typing import CreateResult, Messages
+from ...errors import MissingRequirementsError
+from ...requests.raise_for_status import raise_for_status
+from ..base_provider import ProviderModelMixin, AbstractProvider
+from ..helper import format_prompt
 
 class HuggingChat(AbstractProvider, ProviderModelMixin):
     url = "https://huggingface.co/chat"
     working = True
     supports_stream = True
+    needs_auth = True
     default_model = "meta-llama/Meta-Llama-3.1-70B-Instruct"
 
     models = [
+        'Qwen/Qwen2.5-72B-Instruct',
         'meta-llama/Meta-Llama-3.1-70B-Instruct',
         'CohereForAI/c4ai-command-r-plus-08-2024',
-        'Qwen/Qwen2.5-72B-Instruct',
+        'Qwen/QwQ-32B-Preview',
         'nvidia/Llama-3.1-Nemotron-70B-Instruct-HF',
         'Qwen/Qwen2.5-Coder-32B-Instruct',
         'meta-llama/Llama-3.2-11B-Vision-Instruct',
@@ -33,9 +35,10 @@ class HuggingChat(AbstractProvider, ProviderModelMixin):
     ]
 
     model_aliases = {
+        "qwen-2.5-72b": "Qwen/Qwen2.5-72B-Instruct",
         "llama-3.1-70b": "meta-llama/Meta-Llama-3.1-70B-Instruct",
         "command-r-plus": "CohereForAI/c4ai-command-r-plus-08-2024",
-        "qwen-2-72b": "Qwen/Qwen2.5-72B-Instruct",
+        "qwq-32b": "Qwen/QwQ-32B-Preview",
         "nemotron-70b": "nvidia/Llama-3.1-Nemotron-70B-Instruct-HF",
         "qwen-2.5-coder-32b": "Qwen/Qwen2.5-Coder-32B-Instruct",
         "llama-3.2-11b": "meta-llama/Llama-3.2-11B-Vision-Instruct",
