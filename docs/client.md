@@ -1,6 +1,5 @@
 
 # G4F Client API Guide
- 
 
 ## Table of Contents
    - [Introduction](#introduction)
@@ -16,11 +15,8 @@
    - [Creating Image Variations](#creating-image-variations)
    - [Advanced Usage](#advanced-usage)
    - [Using a List of Providers with RetryProvider](#using-a-list-of-providers-with-retryprovider)
-   - [Using GeminiProVision](#using-geminiprovision)
    - [Using a Vision Model](#using-a-vision-model)
    - [Command-line Chat Program](#command-line-chat-program)
-
-  
 
 ## Introduction
 Welcome to the G4F Client API, a cutting-edge tool for seamlessly integrating advanced AI capabilities into your Python applications. This guide is designed to facilitate your transition from using the OpenAI client to the G4F Client, offering enhanced features while maintaining compatibility with the existing OpenAI API.
@@ -34,14 +30,10 @@ Welcome to the G4F Client API, a cutting-edge tool for seamlessly integrating ad
 from openai import OpenAI
 ```
 
-  
-
 **New Import:**
 ```python
 from g4f.client import Client as OpenAI
 ```
-
-  
 
 The G4F Client preserves the same familiar API interface as OpenAI, ensuring a smooth transition process.
 
@@ -79,7 +71,6 @@ response = client.chat.completions.create(
    - Disables streaming for a complete response
 
 You can adjust these parameters based on your specific needs.
- 
 
 ## Configuration
 **You can set an `api_key` for your provider in the client and define a proxy for all outgoing requests:**
@@ -92,8 +83,6 @@ client = Client(
     # Add any other necessary parameters
 )
 ```
-
-  
 
 ## Usage Examples
 ### Text Completions
@@ -116,8 +105,6 @@ response = client.chat.completions.create(
 
 print(response.choices[0].message.content)
 ```
-
-  
 
 ### Streaming Completions
 **Process responses incrementally as they are generated:**
@@ -142,8 +129,6 @@ for chunk in stream:
         print(chunk.choices[0].delta.content or "", end="")
 ```
 
-  
-
 ### Image Generation
 **Generate images using a specified prompt:**
 ```python
@@ -162,7 +147,6 @@ image_url = response.data[0].url
 print(f"Generated image URL: {image_url}")
 ```
 
-
 #### Base64 Response Format
 ```python
 from g4f.client import Client
@@ -178,8 +162,6 @@ response = client.images.generate(
 base64_text = response.data[0].b64_json
 print(base64_text)
 ```
-
-  
 
 ### Creating Image Variations
 **Create variations of an existing image:**
@@ -201,8 +183,6 @@ image_url = response.data[0].url
 
 print(f"Generated image URL: {image_url}")
 ```
-
-  
 
 ## Advanced Usage
 
@@ -231,46 +211,24 @@ response = client.chat.completions.create(
 
 print(response.choices[0].message.content)
 ```
-
-  
-### Using GeminiProVision
-```python
-from g4f.client import Client
-from g4f.Provider.GeminiPro import GeminiPro
-
-client = Client(
-    api_key="your_api_key_here",
-    provider=GeminiPro
-)
-
-response = client.chat.completions.create(
-    model="gemini-pro-vision",
-    messages=[
-        {
-            "role": "user",
-            "content": "What are on this image?"
-        }
-    ],
-    image=open("docs/waterfall.jpeg", "rb")
-)
-
-print(response.choices[0].message.content)
-```
-
   
 ### Using a Vision Model
 **Analyze an image and generate a description:**
 ```python
 import g4f
 import requests
+
 from g4f.client import Client
+from g4f.Provider.GeminiPro import GeminiPro
+
+# Initialize the GPT client with the desired provider and api key
+client = Client(
+    api_key="your_api_key_here",
+    provider=GeminiPro
+)
 
 image = requests.get("https://raw.githubusercontent.com/xtekky/gpt4free/refs/heads/main/docs/cat.jpeg", stream=True).raw
 # Or: image = open("docs/cat.jpeg", "rb")
-
-client = Client(
-    provider=CopilotAccount
-)
 
 response = client.chat.completions.create(
     model=g4f.models.default,

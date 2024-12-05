@@ -305,7 +305,7 @@ class Api:
                             "model": AppConfig.model,
                             "provider": AppConfig.provider,
                             "proxy": AppConfig.proxy,
-                            **config.model_dump(exclude_none=True),
+                            **config.dict(exclude_none=True),
                             **{
                                 "conversation_id": None,
                                 "return_conversation": return_conversation,
