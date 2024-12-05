@@ -68,7 +68,7 @@ class Airforce(AsyncGeneratorProvider, ProviderModelMixin):
     @classmethod
     def fetch_imagine_models(cls):
         response = requests.get(
-            'https://api.airforce/imagine/models',
+            'https://api.airforce/v1/imagine2/models',
             verify=False
         )
         response.raise_for_status()
