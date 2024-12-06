@@ -28,13 +28,13 @@ from ..helper import format_cookies
 from ..openai.har_file import get_request_config
 from ..openai.har_file import RequestConfig, arkReq, arkose_url, start_url, conversation_url, backend_url, backend_anon_url
 from ..openai.proofofwork import generate_proof_token
-from ..openai.new import get_requirements_token
+from ..openai.new import get_requirements_token, get_config
 from ... import debug
 
 DEFAULT_HEADERS = {
     "accept": "*/*",
     "accept-encoding": "gzip, deflate, br, zstd",
-    "accept-language": "en-US,en;q=0.5",
+    'accept-language': 'en-US,en;q=0.8',
     "referer": "https://chatgpt.com/",
     "sec-ch-ua": "\"Brave\";v=\"123\", \"Not:A-Brand\";v=\"8\", \"Chromium\";v=\"123\"",
     "sec-ch-ua-mobile": "?0",
@@ -46,13 +46,33 @@ DEFAULT_HEADERS = {
     "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"
 }
 
+INIT_HEADERS = {
+    'accept': '*/*',
+    'accept-language': 'en-US,en;q=0.8',
+    'cache-control': 'no-cache',
+    'pragma': 'no-cache',
+    'priority': 'u=0, i',
+    'sec-ch-ua': '"Not)A;Brand";v="99", "Google Chrome";v="127", "Chromium";v="127"',
+    'sec-ch-ua-arch': '"arm"',
+    'sec-ch-ua-bitness': '"64"',
+    'sec-ch-ua-mobile': '?0',
+    'sec-ch-ua-model': '""',
+    'sec-ch-ua-platform': '"macOS"',
+    'sec-ch-ua-platform-version': '"14.4.0"',
+    'sec-fetch-dest': 'document',
+    'sec-fetch-mode': 'navigate',
+    'sec-fetch-site': 'none',
+    'sec-fetch-user': '?1',
+    'upgrade-insecure-requests': '1',
+    "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"
+}
+
 class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
     """A class for creating and managing conversations with OpenAI chat service"""
 
     label = "OpenAI ChatGPT"
     url = "https://chatgpt.com"
     working = True
-    needs_auth = True
     supports_gpt_4 = True
     supports_message_history = True
     supports_system_message = True
@@ -127,11 +147,11 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
             image_data["upload_url"],
             data=data_bytes,
             headers={
+                **DEFAULT_HEADERS,
                 "Content-Type": image_data["mime_type"],
                 "x-ms-blob-type": "BlockBlob",
                 "x-ms-version": "2020-04-08",
                 "Origin": "https://chatgpt.com",
-                "Referer": "https://chatgpt.com/",
             }
         ) as response:
             await raise_for_status(response)
@@ -277,13 +297,20 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
         """
         if model == cls.default_image_model:
             model = cls.default_model
-        await cls.login(proxy)
+        if cls.needs_auth:
+            await cls.login(proxy)
 
         async with StreamSession(
             proxy=proxy,
             impersonate="chrome",
             timeout=timeout
         ) as session:
+            if not cls.needs_auth:
+                cls._create_request_args(cookies)
+                RequestConfig.proof_token = get_config(cls._headers.get("user-agent"))
+                async with session.get(cls.url, headers=INIT_HEADERS) as response:
+                    cls._update_request_args(session)
+                    await raise_for_status(response)
             try:
                 image_request = await cls.upload_image(session, cls._headers, image, image_name) if image else None
             except Exception as e:
@@ -553,7 +580,8 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
 
     @classmethod
     def _update_cookie_header(cls):
-        cls._headers["cookie"] = format_cookies(cls._cookies)
+        if cls._cookies:
+            cls._headers["cookie"] = format_cookies(cls._cookies)
 
 class Conversation(BaseConversation):
     """

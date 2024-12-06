@@ -53,7 +53,8 @@ def run_api_args(args):
         model=args.model,
         gui=args.gui,
     )
-    g4f.cookies.browsers = [g4f.cookies[browser] for browser in args.cookie_browsers]
+    if args.cookie_browsers:
+        g4f.cookies.browsers = [g4f.cookies[browser] for browser in args.cookie_browsers]
     run_api(
         bind=args.bind,
         port=args.port,

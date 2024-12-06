@@ -382,11 +382,11 @@ def get_config(user_agent):
     config = [
         core + screen,
         get_parse_time(),
-        4294705152,
+        None,
         random.random(),
         user_agent,
         None,
-        "remix-prod-15f1ec0f78ad898b9606a88d384ef76345b82b82", #document.documentElement.getAttribute("data-build"),
+        "prod-0b673b9a04fb6983c1417b587f2f31173eafa605", #document.documentElement.getAttribute("data-build"),
         "en-US",
         "en-US,es-US,en,es",
         0,
@@ -395,6 +395,8 @@ def get_config(user_agent):
         random.choice(window_keys),
         time.perf_counter(),
         str(uuid.uuid4()),
+        "",
+        8
     ]
     
     return config

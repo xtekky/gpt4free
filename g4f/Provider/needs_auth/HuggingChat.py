@@ -12,8 +12,14 @@ from ...typing import CreateResult, Messages, Cookies
 from ...errors import MissingRequirementsError
 from ...requests.raise_for_status import raise_for_status
 from ...cookies import get_cookies
-from ..base_provider import ProviderModelMixin, AbstractProvider
+from ..base_provider import ProviderModelMixin, AbstractProvider, BaseConversation
 from ..helper import format_prompt
+from ... import debug
+
+class Conversation(BaseConversation):
+    def __init__(self, conversation_id: str, message_id: str):
+        self.conversation_id = conversation_id
+        self.message_id = message_id
 
 class HuggingChat(AbstractProvider, ProviderModelMixin):
     url = "https://huggingface.co/chat"
@@ -54,6 +60,8 @@ class HuggingChat(AbstractProvider, ProviderModelMixin):
         model: str,
         messages: Messages,
         stream: bool,
+        return_conversation: bool = False,
+        conversation: Conversation = None,
         web_search: bool = False,
         cookies: Cookies = None,
         **kwargs
@@ -81,45 +89,23 @@ class HuggingChat(AbstractProvider, ProviderModelMixin):
             'sec-fetch-site': 'same-origin',
             'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
         }
-        json_data = {
-            'model': model,
-        }
-        response = session.post('https://huggingface.co/chat/conversation', json=json_data)
-        raise_for_status(response)
 
-        conversationId = response.json().get('conversationId')
-        
-        # Get the data response and parse it properly
-        response = session.get(f'https://huggingface.co/chat/conversation/{conversationId}/__data.json?x-sveltekit-invalidated=11')
-        raise_for_status(response)
+        if conversation is None:
+            conversationId = cls.create_conversation(session, model)
+            messageId = cls.fetch_message_id(session, conversationId)
+            conversation = Conversation(conversationId, messageId)
+            if return_conversation:
+                yield conversation
+            inputs = format_prompt(messages)
+        else:
+            conversation.message_id = cls.fetch_message_id(session, conversation.conversation_id)
+            inputs = messages[-1]["content"]
 
-        # Split the response content by newlines and parse each line as JSON
-        try:
-            json_data = None
-            for line in response.text.split('\n'):
-                if line.strip():
-                    try:
-                        parsed = json.loads(line)
-                        if isinstance(parsed, dict) and "nodes" in parsed:
-                            json_data = parsed
-                            break
-                    except json.JSONDecodeError:
-                        continue
-                        
-            if not json_data:
-                raise RuntimeError("Failed to parse response data")
-
-            data: list = json_data["nodes"][1]["data"]
-            keys: list[int] = data[data[0]["messages"]]
-            message_keys: dict = data[keys[0]]
-            messageId: str = data[message_keys["id"]]
-
-        except (KeyError, IndexError, TypeError) as e:
-            raise RuntimeError(f"Failed to extract message ID: {str(e)}")
+        debug.log(f"Use conversation: {conversation.conversation_id} Use message: {conversation.message_id}")
 
         settings = {
-            "inputs": format_prompt(messages),
-            "id": messageId,
+            "inputs": inputs,
+            "id": conversation.message_id,
             "is_retry": False,
             "is_continue": False,
             "web_search": web_search,
@@ -133,7 +119,7 @@ class HuggingChat(AbstractProvider, ProviderModelMixin):
             'origin': 'https://huggingface.co',
             'pragma': 'no-cache',
             'priority': 'u=1, i',
-            'referer': f'https://huggingface.co/chat/conversation/{conversationId}',
+            'referer': f'https://huggingface.co/chat/conversation/{conversation.conversation_id}',
             'sec-ch-ua': '"Not)A;Brand";v="99", "Google Chrome";v="127", "Chromium";v="127"',
             'sec-ch-ua-mobile': '?0',
             'sec-ch-ua-platform': '"macOS"',
@@ -147,7 +133,7 @@ class HuggingChat(AbstractProvider, ProviderModelMixin):
         data.addpart('data', data=json.dumps(settings, separators=(',', ':')))
 
         response = session.post(
-            f'https://huggingface.co/chat/conversation/{conversationId}',
+            f'https://huggingface.co/chat/conversation/{conversation.conversation_id}',
             cookies=session.cookies,
             headers=headers,
             multipart=data,
@@ -181,3 +167,43 @@ class HuggingChat(AbstractProvider, ProviderModelMixin):
 
         if not stream:
             yield full_response
+
+    @classmethod
+    def create_conversation(cls, session: Session, model: str):
+        json_data = {
+            'model': model,
+        }
+        response = session.post('https://huggingface.co/chat/conversation', json=json_data)
+        raise_for_status(response)
+
+        return response.json().get('conversationId')
+
+    @classmethod
+    def fetch_message_id(cls, session: Session, conversation_id: str):
+        # Get the data response and parse it properly
+        response = session.get(f'https://huggingface.co/chat/conversation/{conversation_id}/__data.json?x-sveltekit-invalidated=11')
+        raise_for_status(response)
+
+        # Split the response content by newlines and parse each line as JSON
+        try:
+            json_data = None
+            for line in response.text.split('\n'):
+                if line.strip():
+                    try:
+                        parsed = json.loads(line)
+                        if isinstance(parsed, dict) and "nodes" in parsed:
+                            json_data = parsed
+                            break
+                    except json.JSONDecodeError:
+                        continue
+                        
+            if not json_data:
+                raise RuntimeError("Failed to parse response data")
+
+            data = json_data["nodes"][1]["data"]
+            keys = data[data[0]["messages"]]
+            message_keys = data[keys[-1]]
+            return data[message_keys["id"]]
+
+        except (KeyError, IndexError, TypeError) as e:
+            raise RuntimeError(f"Failed to extract message ID: {str(e)}")
