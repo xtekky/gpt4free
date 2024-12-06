@@ -18,7 +18,7 @@ def is_cloudflare(text: str) -> bool:
     return '<div id="cf-please-wait">' in text or "<title>Just a moment...</title>" in text
 
 def is_openai(text: str) -> bool:
-    return "<p>Unable to load site</p>" in text
+    return "<p>Unable to load site</p>" in text or 'id="challenge-error-text"' in text
 
 async def raise_for_status_async(response: Union[StreamResponse, ClientResponse], message: str = None):
     if response.status in (429, 402):
@@ -27,8 +27,10 @@ async def raise_for_status_async(response: Union[StreamResponse, ClientResponse]
     if response.status == 403 and is_cloudflare(message):
         raise CloudflareError(f"Response {response.status}: Cloudflare detected")
     elif response.status == 403 and is_openai(message):
-        raise ResponseStatusError(f"Response {response.status}: Bot are detected")
+        raise ResponseStatusError(f"Response {response.status}: OpenAI Bot detected")
     elif not response.ok:
+        if "<html>" in message:
+            message = "HTML content"
         raise ResponseStatusError(f"Response {response.status}: {message}")
 
 def raise_for_status(response: Union[Response, StreamResponse, ClientResponse, RequestsResponse], message: str = None):

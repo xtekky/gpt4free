@@ -292,6 +292,7 @@ class Images:
         if proxy is None:
             proxy = self.client.proxy
 
+        e = None
         response = None
         if isinstance(provider_handler, IterListProvider):
             for provider in provider_handler.providers:
@@ -300,7 +301,7 @@ class Images:
                     if response is not None:
                         provider_name = provider.__name__
                         break
-                except (MissingAuthError, NoValidHarFileError) as e:
+                except Exception as e:
                     debug.log(f"Image provider {provider.__name__}: {e}")
         else:
             response = await self._generate_image_response(provider_handler, provider_name, model, prompt, **kwargs)
@@ -314,6 +315,8 @@ class Images:
                 provider_name
             )
         if response is None:
+            if e is not None:
+                raise e
             raise NoImageResponseError(f"No image response from {provider_name}")
         raise NoImageResponseError(f"Unexpected response type: {type(response)}")
 
@@ -362,7 +365,7 @@ class Images:
         image: ImageType,
         model: str = None,
         provider: Optional[ProviderType] = None,
-        response_format: str = "url",
+        response_format: Optional[str] = None,
         **kwargs
     ) -> ImagesResponse:
         return asyncio.run(self.async_create_variation(
@@ -374,7 +377,7 @@ class Images:
         image: ImageType,
         model: Optional[str] = None,
         provider: Optional[ProviderType] = None,
-        response_format: str = "url",
+        response_format: Optional[str] = None,
         proxy: Optional[str] = None,
         **kwargs
     ) -> ImagesResponse:
@@ -384,6 +387,7 @@ class Images:
             proxy = self.client.proxy
         prompt = "create a variation of this image"
 
+        e = None
         response = None
         if isinstance(provider_handler, IterListProvider):
             # File pointer can be read only once, so we need to convert it to bytes
@@ -394,7 +398,7 @@ class Images:
                     if response is not None:
                         provider_name = provider.__name__
                         break
-                except (MissingAuthError, NoValidHarFileError) as e:
+                except Exception as e:
                     debug.log(f"Image provider {provider.__name__}: {e}")
         else:
             response = await self._generate_image_response(provider_handler, provider_name, model, prompt, image=image, **kwargs)
@@ -402,9 +406,10 @@ class Images:
         if isinstance(response, ImageResponse):
             return await self._process_image_response(response, response_format, proxy, model, provider_name)
         if response is None:
+            if e is not None:
+                raise e
             raise NoImageResponseError(f"No image response from {provider_name}")
         raise NoImageResponseError(f"Unexpected response type: {type(response)}")
-
 
     async def _process_image_response(
         self,
@@ -414,21 +419,21 @@ class Images:
         model: Optional[str] = None,
         provider: Optional[str] = None
     ) -> ImagesResponse:
+        last_provider = get_last_provider(True)
         if response_format == "url":
             # Return original URLs without saving locally
             images = [Image.construct(url=image, revised_prompt=response.alt) for image in response.get_list()]
-        elif response_format == "b64_json":
-            images = await copy_images(response.get_list(), response.options.get("cookies"), proxy)
-            async def process_image_item(image_file: str) -> Image:
-                with open(os.path.join(images_dir, os.path.basename(image_file)), "rb") as file:
-                    image_data = base64.b64encode(file.read()).decode()
-                    return Image.construct(b64_json=image_data, revised_prompt=response.alt)
-            images = await asyncio.gather(*[process_image_item(image) for image in images])
         else:
             # Save locally for None (default) case
-            images = await copy_images(response.get_list(), response.options.get("cookies"), proxy)
-            images = [Image.construct(url=f"/images/{os.path.basename(image)}", revised_prompt=response.alt) for image in images]
-        last_provider = get_last_provider(True)
+            images = await copy_images(response.get_list(), response.get("cookies"), proxy)
+            if response_format == "b64_json":
+                async def process_image_item(image_file: str) -> Image:
+                    with open(os.path.join(images_dir, os.path.basename(image_file)), "rb") as file:
+                        image_data = base64.b64encode(file.read()).decode()
+                        return Image.construct(b64_json=image_data, revised_prompt=response.alt)
+                images = await asyncio.gather(*[process_image_item(image) for image in images])
+            else:
+                images = [Image.construct(url=f"/images/{os.path.basename(image)}", revised_prompt=response.alt) for image in images]
         return ImagesResponse.construct(
             created=int(time.time()),
             data=images,
@@ -529,7 +534,7 @@ class AsyncImages(Images):
         image: ImageType,
         model: str = None,
         provider: ProviderType = None,
-        response_format: str = "url",
+        response_format: Optional[str] = None,
         **kwargs
     ) -> ImagesResponse:
         return await self.async_create_variation(

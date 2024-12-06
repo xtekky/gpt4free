@@ -184,7 +184,6 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
             "content": {"content_type": "text", "parts": [message["content"]]},
             "id": str(uuid.uuid4()),
             "create_time": int(time.time()),
-            "id": str(uuid.uuid4()),
             "metadata": {"serialization_metadata": {"custom_symbol_offsets": []}, "system_hints": system_hints},
         } for message in messages]
 
@@ -295,8 +294,6 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
         Raises:
             RuntimeError: If an error occurs during processing.
         """
-        if model == cls.default_image_model:
-            model = cls.default_model
         if cls.needs_auth:
             await cls.login(proxy)
 
@@ -308,9 +305,9 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
             if not cls.needs_auth:
                 cls._create_request_args(cookies)
                 RequestConfig.proof_token = get_config(cls._headers.get("user-agent"))
-                async with session.get(cls.url, headers=INIT_HEADERS) as response:
-                    cls._update_request_args(session)
-                    await raise_for_status(response)
+            async with session.get(cls.url, headers=INIT_HEADERS) as response:
+                cls._update_request_args(session)
+                await raise_for_status(response)
             try:
                 image_request = await cls.upload_image(session, cls._headers, image, image_name) if image else None
             except Exception as e:
@@ -318,6 +315,8 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
                 debug.log("OpenaiChat: Upload image failed")
                 debug.log(f"{e.__class__.__name__}: {e}")
             model = cls.get_model(model)
+            if model == cls.default_image_model:
+                model = cls.default_vision_model
             if conversation is None:
                 conversation = Conversation(conversation_id, str(uuid.uuid4()) if parent_id is None else parent_id)
             else:
@@ -363,13 +362,22 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
                     "messages": None,
                     "parent_message_id": conversation.message_id,
                     "model": model,
-                    "paragen_cot_summary_display_override": "allow",
+                    "timezone_offset_min":-60,
+                    "timezone":"Europe/Berlin",
                     "history_and_training_disabled": history_disabled and not auto_continue and not return_conversation,
-                    "conversation_mode": {"kind":"primary_assistant"},
+                    "conversation_mode":{"kind":"primary_assistant","plugin_ids":None},
+                    "force_paragen":False,
+                    "force_paragen_model_slug":"",
+                    "force_rate_limit":False,
+                    "reset_rate_limits":False,
                     "websocket_request_id": str(uuid.uuid4()),
-                    "supported_encodings": ["v1"],
-                    "supports_buffering": True,
-                    "system_hints": ["search"] if web_search else None
+                    "system_hints": ["search"] if web_search else None,
+                    "supported_encodings":["v1"],
+                    "conversation_origin":None,
+                    "client_contextual_info":{"is_dark_mode":False,"time_since_loaded":14,"page_height":578,"page_width":1850,"pixel_ratio":1,"screen_height":1080,"screen_width":1920},
+                    "paragen_stream_type_override":None,
+                    "paragen_cot_summary_display_override":"allow",
+                    "supports_buffering":True
                 }
                 if conversation.conversation_id is not None:
                     data["conversation_id"] = conversation.conversation_id
@@ -408,7 +416,7 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
                     async for line in response.iter_lines():
                         async for chunk in cls.iter_messages_line(session, line, conversation):
                             yield chunk
-                if not history_disabled:
+                if not history_disabled and RequestConfig.access_token is not None:
                     yield SynthesizeData(cls.__name__, {
                         "conversation_id": conversation.conversation_id,
                         "message_id": conversation.message_id,
@@ -493,9 +501,12 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
             await get_request_config(proxy)
             cls._create_request_args(RequestConfig.cookies, RequestConfig.headers)
             cls._set_api_key(RequestConfig.access_token)
+            if RequestConfig.proof_token is None:
+                RequestConfig.proof_token = get_config(cls._headers.get("user-agent"))
         except NoValidHarFileError:
             if has_nodriver:
-                await cls.nodriver_auth(proxy)
+                if RequestConfig.access_token is None:
+                    await cls.nodriver_auth(proxy)
             else:
                 raise
 
@@ -527,23 +538,17 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
         await page.send(nodriver.cdp.network.enable())
         page.add_handler(nodriver.cdp.network.RequestWillBeSent, on_request)
         page = await browser.get(cls.url)
-        try:
-            if RequestConfig.access_request_id is not None:
-                body = await page.send(get_response_body(RequestConfig.access_request_id))
-                if isinstance(body, tuple) and body:
-                    body = body[0]
-                if body:
-                    match = re.search(r'"accessToken":"(.*?)"', body)
-                    if match:
-                        RequestConfig.access_token = match.group(1)
-        except KeyError:
-            pass
+        body = await page.evaluate("JSON.stringify(window.__remixContext)")
+        if body:
+            match = re.search(r'"accessToken":"(.*?)"', body)
+            if match:
+                RequestConfig.access_token = match.group(1)
         for c in await page.send(nodriver.cdp.network.get_cookies([cls.url])):
             RequestConfig.cookies[c.name] = c.value
         user_agent = await page.evaluate("window.navigator.userAgent")
         await page.select("#prompt-textarea", 240)
         while True:
-            if RequestConfig.proof_token:
+            if RequestConfig.access_token:
                 break
             await asyncio.sleep(1)
         await page.close()

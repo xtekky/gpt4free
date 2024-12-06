@@ -112,7 +112,7 @@ class ImageGenerationConfig(BaseModel):
     prompt: str
     model: Optional[str] = None
     provider: Optional[str] = None
-    response_format: str = "url"
+    response_format: Optional[str] = None
     api_key: Optional[str] = None
     proxy: Optional[str] = None
 
@@ -370,9 +370,9 @@ class Api:
                     model=config.model,
                     provider=AppConfig.image_provider if config.provider is None else config.provider,
                     **filter_none(
-                        response_format = config.response_format,
-                        api_key = config.api_key,
-                        proxy = config.proxy
+                        response_format=config.response_format,
+                        api_key=config.api_key,
+                        proxy=config.proxy
                     )
                 )
                 for image in response.data:
