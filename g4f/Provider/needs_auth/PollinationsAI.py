@@ -16,6 +16,7 @@ class PollinationsAI(OpenaiAPI):
     label = "Pollinations.AI"
     url = "https://pollinations.ai"
     working = True
+    needs_auth = False
     supports_stream = True
     default_model = "openai"
 

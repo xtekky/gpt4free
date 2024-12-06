@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 from aiohttp import ClientSession
 
 from ..typing import AsyncResult, Messages
@@ -45,5 +44,6 @@ class Pizzagpt(AsyncGeneratorProvider, ProviderModelMixin):
             async with session.post(f"{cls.url}{cls.api_endpoint}", json=data, proxy=proxy) as response:
                 response.raise_for_status()
                 response_json = await response.json()
-                content = response_json.get("answer", {}).get("content", "")
-                yield content
+                content = response_json.get("answer", response_json).get("content")
+                if content:
+                    yield content

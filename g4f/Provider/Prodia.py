@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from aiohttp import ClientSession
-import time
 import asyncio
 
 from ..typing import AsyncResult, Messages
