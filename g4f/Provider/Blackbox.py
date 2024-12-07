@@ -7,6 +7,10 @@ import json
 import re
 import aiohttp
 
+import os
+import json
+from pathlib import Path
+
 from ..typing import AsyncResult, Messages, ImageType
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..image import ImageResponse, to_data_uri
@@ -17,22 +21,22 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Blackbox AI"
     url = "https://www.blackbox.ai"
     api_endpoint = "https://www.blackbox.ai/api/chat"
+    
     working = True
     supports_stream = True
     supports_system_message = True
     supports_message_history = True
-    _last_validated_value = None
 
     default_model = 'blackboxai'
     default_vision_model = default_model
     default_image_model = 'flux' 
-    image_models = ['flux', 'repomap']
+    image_models = ['ImageGeneration', 'repomap']
     vision_models = [default_model, 'gpt-4o', 'gemini-pro', 'gemini-1.5-flash', 'llama-3.1-8b', 'llama-3.1-70b', 'llama-3.1-405b']
 
     userSelectedModel = ['gpt-4o', 'gemini-pro', 'claude-sonnet-3.5', 'blackboxai-pro']
 
     agentMode = {
-        'flux': {'mode': True, 'id': "ImageGenerationLV45LJp", 'name': "Image Generation"}
+        'ImageGeneration': {'mode': True, 'id': "ImageGenerationLV45LJp", 'name': "Image Generation"}
     }
     
     trendingAgentMode = {
@@ -95,22 +99,63 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
     models = list(dict.fromkeys([default_model, *userSelectedModel, *list(agentMode.keys()), *list(trendingAgentMode.keys())]))
 
     model_aliases = {
+        "gpt-4": "blackboxai",
+        "gpt-4": "gpt-4o",
+        "gpt-4o-mini": "gpt-4o",
         "gpt-3.5-turbo": "blackboxai",
         "gemini-flash": "gemini-1.5-flash",
-        "claude-3.5-sonnet": "claude-sonnet-3.5"
+        "claude-3.5-sonnet": "claude-sonnet-3.5",
+        "flux": "ImageGeneration",
     }
 
     @classmethod
-    async def fetch_validated(cls):       
-        if cls._last_validated_value:
-            return cls._last_validated_value
+    def _get_cache_dir(cls) -> Path:
+        # Get the path to the current file
+        current_file = Path(__file__)
+        # Create the path to the .cache directory
+        cache_dir = current_file.parent / '.cache'
+        # Create a directory if it does not exist
+        cache_dir.mkdir(exist_ok=True)
+        return cache_dir
+
+    @classmethod
+    def _get_cache_file(cls) -> Path:
+        return cls._get_cache_dir() / 'blackbox.json'
+
+    @classmethod
+    def _load_cached_value(cls) -> str | None:
+        cache_file = cls._get_cache_file()
+        if cache_file.exists():
+            try:
+                with open(cache_file, 'r') as f:
+                    data = json.load(f)
+                    return data.get('validated_value')
+            except Exception as e:
+                print(f"Error reading cache file: {e}")
+        return None
+
+    @classmethod
+    def _save_cached_value(cls, value: str):
+        cache_file = cls._get_cache_file()
+        try:
+            with open(cache_file, 'w') as f:
+                json.dump({'validated_value': value}, f)
+        except Exception as e:
+            print(f"Error writing to cache file: {e}")
+
+    @classmethod
+    async def fetch_validated(cls):
+        # Let's try to load the value from the cache first
+        cached_value = cls._load_cached_value()
+        if cached_value:
+            return cached_value
 
         async with aiohttp.ClientSession() as session:
             try:
                 async with session.get(cls.url) as response:
                     if response.status != 200:
                         print("Failed to load the page.")
-                        return cls._last_validated_value
+                        return cached_value
                     
                     page_content = await response.text()
                     js_files = re.findall(r'static/chunks/\d{4}-[a-fA-F0-9]+\.js', page_content)
@@ -125,12 +170,13 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
                             match = key_pattern.search(js_content)
                             if match:
                                 validated_value = match.group(1)
-                                cls._last_validated_value = validated_value
+                                # Save the new value to the cache file
+                                cls._save_cached_value(validated_value)
                                 return validated_value
             except Exception as e:
                 print(f"Error fetching validated value: {e}")
 
-        return cls._last_validated_value
+        return cached_value
 
     @staticmethod
     def generate_id(length=7):
@@ -162,12 +208,16 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         web_search: bool = False,
         image: ImageType = None,
         image_name: str = None,
+        top_p: float = 0.9,
+        temperature: float = 0.5,
+        max_tokens: int = 1024,
         **kwargs
     ) -> AsyncResult:
         message_id = cls.generate_id()
         messages = cls.add_prefix_to_messages(messages, model)
         validated_value = await cls.fetch_validated()
         formatted_message = format_prompt(messages)
+        model = cls.get_model(model)
         
         messages = [{"id": message_id, "content": formatted_message, "role": "user"}]
 
@@ -185,20 +235,10 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
 
         headers = {
             'accept': '*/*',
-            'accept-language': 'en-US,en;q=0.9',
-            'cache-control': 'no-cache',
             'content-type': 'application/json',
             'origin': cls.url,
-            'pragma': 'no-cache',
-            'priority': 'u=1, i',
             'referer': f'{cls.url}/',
-            'sec-ch-ua': '"Not?A_Brand";v="99", "Chromium";v="130"',
-            'sec-ch-ua-mobile': '?0',
-            'sec-ch-ua-platform': '"Linux"',
-            'sec-fetch-dest': 'empty',
-            'sec-fetch-mode': 'cors',
-            'sec-fetch-site': 'same-origin',
-            'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36'
+            'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
         }
 
         data = {
@@ -211,9 +251,9 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
             "trendingAgentMode": cls.trendingAgentMode.get(model, {}) if model in cls.trendingAgentMode else {},
             "isMicMode": False,
             "userSystemPrompt": None,
-            "maxTokens": 1024,
-            "playgroundTopP": 0.9,
-            "playgroundTemperature": 0.5,
+            "maxTokens": max_tokens,
+            "playgroundTopP": top_p,
+            "playgroundTemperature": temperature,
             "isChromeExt": False,
             "githubToken": None,
             "clickedAnswer2": False,
@@ -225,7 +265,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
             "webSearchMode": web_search,
             "validated": validated_value,
             "imageGenerationMode": False,
-            "webSearchModePrompt": False
+            "webSearchModePrompt": web_search
         }
 
         async with ClientSession(headers=headers) as session:
