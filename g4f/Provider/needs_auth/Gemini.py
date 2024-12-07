@@ -16,7 +16,7 @@ except ImportError:
 
 from ... import debug
 from ...typing import Messages, Cookies, ImageType, AsyncResult, AsyncIterator
-from ..base_provider import AsyncGeneratorProvider, BaseConversation, SynthesizeData
+from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin, BaseConversation, SynthesizeData
 from ..helper import format_prompt, get_cookies
 from ...requests.raise_for_status import raise_for_status
 from ...requests.aiohttp import get_connector
@@ -50,7 +50,7 @@ UPLOAD_IMAGE_HEADERS = {
     "x-tenant-id": "bard-storage",
 }
 
-class Gemini(AsyncGeneratorProvider):
+class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://gemini.google.com"
     needs_auth = True
     working = True
