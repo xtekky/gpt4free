@@ -1653,7 +1653,7 @@ async function load_provider_models(providerIndex=null) {
 };
 providerSelect.addEventListener("change", () => load_provider_models());
 document.getElementById("pin").addEventListener("click", async () => {
-    const pin_container = document.getElementById("pin").parentElement;
+    const pin_container = document.getElementById("pin_container");
     let selected_provider = providerSelect.options[providerSelect.selectedIndex];
     selected_provider = selected_provider.value ? selected_provider : null;
     const selected_model = get_selected_model();

@@ -39,12 +39,18 @@
     <script src="https://cdn.jsdelivr.net/npm/gpt-tokenizer/dist/cl100k_base.js" async></script>
     <script src="/static/js/text_to_speech/index.js" async></script>
     <script type="module" async>
-        import PhotoSwipeLightbox from 'https://unpkg.com/photoswipe/dist/photoswipe-lightbox.esm.js';
+        import PhotoSwipeLightbox from 'https://cdn.jsdelivr.net/npm/photoswipe/dist/photoswipe-lightbox.esm.js';
         const lightbox = new PhotoSwipeLightbox({
             gallery: '#messages',
             children: 'a:has(img)',
-            showHideAnimationType: 'none',
-            pswpModule: () => import('https://unpkg.com/photoswipe'),
+            secondaryZoomLevel: 2,
+            pswpModule: () => import('https://cdn.jsdelivr.net/npm/photoswipe'),
+        });
+        lightbox.addFilter('itemData', (itemData, index) => {
+            const img = itemData.element.querySelector('img');
+            itemData.width = img.naturalWidth;
+            itemData.height = img.naturalHeight;
+            return itemData;
         });
         lightbox.on('uiRegister', function() {
             lightbox.pswp.ui.registerElement({
@@ -297,6 +303,7 @@
                         <i class="fa-solid fa-thumbtack"></i>
                     </button>
                 </div>
+                <div id="pin_container" class="field"></div>
             </div>
         </div>
         <div class="log hidden"></div>
