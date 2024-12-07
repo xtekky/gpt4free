@@ -69,7 +69,7 @@ class Gemini(AsyncGeneratorProvider):
             if debug.logging:
                 print("Skip nodriver login in Gemini provider")
             return
-        browser = await get_nodriver(proxy=proxy)
+        browser = await get_nodriver(proxy=proxy, user_data_dir="gemini")
         login_url = os.environ.get("G4F_LOGIN_URL")
         if login_url:
             yield f"Please login: [Google Gemini]({login_url})\n\n"

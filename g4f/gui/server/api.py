@@ -8,11 +8,12 @@ from flask import send_from_directory
 from inspect import signature
 
 from g4f import version, models
-from g4f import get_last_provider, ChatCompletion
+from g4f import get_last_provider, ChatCompletion, get_model_and_provider
 from g4f.errors import VersionNotFoundError
 from g4f.image import ImagePreview, ImageResponse, copy_images, ensure_images_dir, images_dir
 from g4f.Provider import ProviderType, __providers__, __map__
 from g4f.providers.base_provider import ProviderModelMixin
+from g4f.providers.retry_provider import BaseRetryProvider
 from g4f.providers.response import BaseConversation, FinishReason, SynthesizeData
 from g4f.client.service import convert_to_provider
 from g4f import debug
@@ -47,15 +48,15 @@ class Api:
 
     @staticmethod
     def get_providers() -> dict[str, str]:
-        return {
-            provider.__name__: (provider.label if hasattr(provider, "label") else provider.__name__)
-            + (" (Image Generation)" if getattr(provider, "image_models", None) else "")
-            + (" (Image Upload)" if getattr(provider, "default_vision_model", None) else "")
-            + (" (WebDriver)" if "webdriver" in provider.get_parameters() else "")
-            + (" (Auth)" if provider.needs_auth else "")
-            for provider in __providers__
-            if provider.working
-        }
+        return [{
+            "name": provider.__name__,
+            "label": provider.label if hasattr(provider, "label") else provider.__name__,
+            "parent": getattr(provider, "parent", None),
+            "image": getattr(provider, "image_models", None) is not None,
+            "vision": getattr(provider, "default_vision_model", None) is not None,
+            "webdriver": "webdriver" in provider.get_parameters(),
+            "auth": provider.needs_auth,
+        } for provider in __providers__ if provider.working]
 
     @staticmethod
     def get_version() -> dict:
@@ -115,43 +116,44 @@ class Api:
         debug.log_handler = log_handler
         proxy = os.environ.get("G4F_PROXY")
         try:
-            result = ChatCompletion.create(**kwargs)
+            model, provider = get_model_and_provider(
+                kwargs.get("model"), kwargs.get("provider"),
+                stream=True,
+                ignore_stream=True
+            )
+            result = ChatCompletion.create(**{**kwargs, "model": model, "provider": provider})
             first = True
-            if isinstance(result, ImageResponse):
+            for chunk in result:
                 if first:
                     first = False
-                    yield self._format_json("provider", get_last_provider(True))
-                yield self._format_json("content", str(result))
-            else:
-                for chunk in result:
-                    if first:
-                        first = False
-                        yield self._format_json("provider", get_last_provider(True))
-                    if isinstance(chunk, BaseConversation):
-                        if provider:
-                            if provider not in conversations:
-                                conversations[provider] = {}
-                            conversations[provider][conversation_id] = chunk
-                            yield self._format_json("conversation", conversation_id)
-                    elif isinstance(chunk, Exception):
-                        logger.exception(chunk)
-                        yield self._format_json("message", get_error_message(chunk))
-                    elif isinstance(chunk, ImagePreview):
-                        yield self._format_json("preview", chunk.to_string())
-                    elif isinstance(chunk, ImageResponse):
-                        images = chunk
-                        if download_images:
-                            images = asyncio.run(copy_images(chunk.get_list(), chunk.get("cookies"), proxy))
-                            images = ImageResponse(images, chunk.alt)
-                        yield self._format_json("content", str(images))
-                    elif isinstance(chunk, SynthesizeData):
-                        yield self._format_json("synthesize", chunk.to_json())
-                    elif not isinstance(chunk, FinishReason):
-                        yield self._format_json("content", str(chunk))
-                    if debug.logs:
-                        for log in debug.logs:
-                            yield self._format_json("log", str(log))
-                        debug.logs = []
+                    if isinstance(provider, BaseRetryProvider):
+                        provider = provider.last_provider
+                    yield self._format_json("provider", {**provider.get_dict(), "model": model})
+                if isinstance(chunk, BaseConversation):
+                    if provider:
+                        if provider not in conversations:
+                            conversations[provider] = {}
+                        conversations[provider][conversation_id] = chunk
+                        yield self._format_json("conversation", conversation_id)
+                elif isinstance(chunk, Exception):
+                    logger.exception(chunk)
+                    yield self._format_json("message", get_error_message(chunk))
+                elif isinstance(chunk, ImagePreview):
+                    yield self._format_json("preview", chunk.to_string())
+                elif isinstance(chunk, ImageResponse):
+                    images = chunk
+                    if download_images:
+                        images = asyncio.run(copy_images(chunk.get_list(), chunk.get("cookies"), proxy))
+                        images = ImageResponse(images, chunk.alt)
+                    yield self._format_json("content", str(images))
+                elif isinstance(chunk, SynthesizeData):
+                    yield self._format_json("synthesize", chunk.to_json())
+                elif not isinstance(chunk, FinishReason):
+                    yield self._format_json("content", str(chunk))
+                if debug.logs:
+                    for log in debug.logs:
+                        yield self._format_json("log", str(log))
+                    debug.logs = []
         except Exception as e:
             logger.exception(e)
             yield self._format_json('error', get_error_message(e))

@@ -174,10 +174,10 @@ def merge_cookies(cookies: Iterator[Morsel], response: Response) -> Cookies:
     for cookie in response.cookies.jar:
         cookies[cookie.name] = cookie.value
 
-async def get_nodriver(proxy: str = None, **kwargs)-> Browser:
+async def get_nodriver(proxy: str = None, user_data_dir = "nodriver", **kwargs)-> Browser:
     if not has_nodriver:
         raise MissingRequirementsError('Install "nodriver" package | pip install -U nodriver')
-    user_data_dir = user_config_dir("g4f-nodriver") if has_platformdirs else None
+    user_data_dir = user_config_dir(f"g4f-{user_data_dir}") if has_platformdirs else None
     debug.log(f"Open nodriver with user_dir: {user_data_dir}")
     return await nodriver.start(
         user_data_dir=user_data_dir,
