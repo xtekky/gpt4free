@@ -19,7 +19,8 @@ class ReplicateHome(AsyncGeneratorProvider, ProviderModelMixin):
     supports_system_message = True
     supports_message_history = True
     
-    default_model = 'yorickvp/llava-13b'
+    default_model = 'google-deepmind/gemma-2b-it'
+    default_image_model = 'stability-ai/stable-diffusion-3'
     
     image_models = [
         'stability-ai/stable-diffusion-3',
@@ -29,7 +30,6 @@ class ReplicateHome(AsyncGeneratorProvider, ProviderModelMixin):
     
     text_models = [
         'google-deepmind/gemma-2b-it',
-        'yorickvp/llava-13b',
     ]
 
     models = text_models + image_models
@@ -42,7 +42,6 @@ class ReplicateHome(AsyncGeneratorProvider, ProviderModelMixin):
         
         # text_models
         "gemma-2b": "google-deepmind/gemma-2b-it",
-        "llava-13b": "yorickvp/llava-13b",
     }
 
     model_versions = {
@@ -53,7 +52,6 @@ class ReplicateHome(AsyncGeneratorProvider, ProviderModelMixin):
         
         # text_models
         "google-deepmind/gemma-2b-it": "dff94eaf770e1fc211e425a50b51baa8e4cac6c39ef074681f9e39d778773626",
-        "yorickvp/llava-13b": "80537f9eead1a5bfa72d5ac6ea6414379be41d4d4f6679fd776e9535d1eb58bb",
     }
 
     @classmethod
@@ -70,18 +68,9 @@ class ReplicateHome(AsyncGeneratorProvider, ProviderModelMixin):
         headers = {
             "accept": "*/*",
             "accept-language": "en-US,en;q=0.9",
-            "cache-control": "no-cache",
             "content-type": "application/json",
             "origin": "https://replicate.com",
-            "pragma": "no-cache",
-            "priority": "u=1, i",
             "referer": "https://replicate.com/",
-            "sec-ch-ua": '"Not;A=Brand";v="24", "Chromium";v="128"',
-            "sec-ch-ua-mobile": "?0",
-            "sec-ch-ua-platform": '"Linux"',
-            "sec-fetch-dest": "empty",
-            "sec-fetch-mode": "cors",
-            "sec-fetch-site": "same-site",
             "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36"
         }
         
