@@ -1,19 +1,18 @@
 from __future__ import annotations
 
 import argparse
+from argparse import ArgumentParser
 
 from g4f import Provider
 from g4f.gui.run import gui_parser, run_gui_args
 import g4f.cookies
 
-def main():
-    parser = argparse.ArgumentParser(description="Run gpt4free")
-    subparsers = parser.add_subparsers(dest="mode", help="Mode to run the g4f in.")
-    api_parser = subparsers.add_parser("api")
+def get_api_parser():
+    api_parser = ArgumentParser(description="Run the API and GUI")
     api_parser.add_argument("--bind", default=None, help="The bind string. (Default: 0.0.0.0:1337)")
-    api_parser.add_argument("--port", default=None, help="Change the port of the server.")
+    api_parser.add_argument("--port", "-p", default=None, help="Change the port of the server.")
     api_parser.add_argument("--debug", "-d", action="store_true", help="Enable verbose logging.")
-    api_parser.add_argument("--gui", "-g", default=False, action="store_true", help="Add gui to the api.")
+    api_parser.add_argument("--gui", "-g", default=None, action="store_true", help="Add gui to the api.")
     api_parser.add_argument("--model", default=None, help="Default model for chat completion. (incompatible with --reload and --workers)")
     api_parser.add_argument("--provider", choices=[provider.__name__ for provider in Provider.__providers__ if provider.working],
                             default=None, help="Default provider for chat completion. (incompatible with --reload and --workers)")
@@ -29,6 +28,12 @@ def main():
     api_parser.add_argument("--cookie-browsers", nargs="+", choices=[browser.__name__ for browser in g4f.cookies.browsers],
                             default=[], help="List of browsers to access or retrieve cookies from. (incompatible with --reload and --workers)")
     api_parser.add_argument("--reload", action="store_true", help="Enable reloading.")
+    return api_parser
+
+def main():
+    parser = argparse.ArgumentParser(description="Run gpt4free")
+    subparsers = parser.add_subparsers(dest="mode", help="Mode to run the g4f in.")
+    subparsers.add_parser("api", parents=[get_api_parser()], add_help=False)
     subparsers.add_parser("gui", parents=[gui_parser()], add_help=False)
 
     args = parser.parse_args()

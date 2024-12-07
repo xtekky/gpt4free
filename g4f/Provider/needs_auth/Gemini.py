@@ -76,9 +76,8 @@ class Gemini(AsyncGeneratorProvider):
         page = await browser.get(f"{cls.url}/app")
         await page.select("div.ql-editor.textarea", 240)
         cookies = {}
-        for c in await page.browser.cookies.get_all():
-            if c.domain.endswith(".google.com"):
-                cookies[c.name] = c.value
+        for c in await page.send(nodriver.cdp.network.get_cookies([cls.url])):
+            cookies[c.name] = c.value
         await page.close()
         cls._cookies = cookies
 
@@ -92,7 +91,6 @@ class Gemini(AsyncGeneratorProvider):
         connector: BaseConnector = None,
         image: ImageType = None,
         image_name: str = None,
-        response_format: str = None,
         return_conversation: bool = False,
         conversation: Conversation = None,
         language: str = "en",
@@ -113,7 +111,7 @@ class Gemini(AsyncGeneratorProvider):
                     async for chunk in cls.nodriver_login(proxy):
                         yield chunk
                 except Exception as e:
-                    raise MissingAuthError('Missing "__Secure-1PSID" cookie', e)
+                    raise MissingAuthError('Missing or invalid "__Secure-1PSID" cookie', e)
             if not cls._snlm0e:
                 if cls._cookies is None or "__Secure-1PSID" not in cls._cookies:
                     raise MissingAuthError('Missing "__Secure-1PSID" cookie')
@@ -153,7 +151,7 @@ class Gemini(AsyncGeneratorProvider):
                 ) as response:
                     await raise_for_status(response)
                     image_prompt = response_part = None
-                    last_content_len = 0
+                    last_content = ""
                     async for line in response.content:
                         try:
                             try:
@@ -171,32 +169,26 @@ class Gemini(AsyncGeneratorProvider):
                                 yield Conversation(response_part[1][0], response_part[1][1], response_part[4][0][0])
                             content = response_part[4][0][1][0]
                         except (ValueError, KeyError, TypeError, IndexError) as e:
-                            print(f"{cls.__name__}:{e.__class__.__name__}:{e}")
+                            debug.log(f"{cls.__name__}:{e.__class__.__name__}:{e}")
                             continue
                         match = re.search(r'\[Imagen of (.*?)\]', content)
                         if match:
                             image_prompt = match.group(1)
                             content = content.replace(match.group(0), '')
-                        yield content[last_content_len:]
-                        last_content_len = len(content)
-                    if image_prompt:
-                        try:
-                            images = [image[0][3][3] for image in response_part[4][0][12][7][0]]
-                            if response_format == "b64_json":
+                        pattern = r"http://googleusercontent.com/image_generation_content/\d+"
+                        content = re.sub(pattern, "", content)
+                        if last_content and content.startswith(last_content):
+                            yield content[len(last_content):]
+                        else:
+                            yield content
+                        last_content = content
+                        if image_prompt:
+                            try:
+                                images = [image[0][3][3] for image in response_part[4][0][12][7][0]]
+                                image_prompt = image_prompt.replace("a fake image", "")
                                 yield ImageResponse(images, image_prompt, {"cookies": cls._cookies})
-                            else:
-                                resolved_images = []
-                                preview = []
-                                for image in images:
-                                    async with client.get(image, allow_redirects=False) as fetch:
-                                        image = fetch.headers["location"]
-                                    async with client.get(image, allow_redirects=False) as fetch:
-                                        image = fetch.headers["location"]
-                                    resolved_images.append(image)
-                                    preview.append(image.replace('=s512', '=s200'))
-                                yield ImageResponse(resolved_images, image_prompt, {"orginal_links": images, "preview": preview})
-                        except TypeError:
-                            pass
+                            except TypeError:
+                                pass
 
     @classmethod
     async def synthesize(cls, params: dict, proxy: str = None) -> AsyncIterator[bytes]:

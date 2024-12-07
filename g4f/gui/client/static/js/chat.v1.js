@@ -744,7 +744,11 @@ const delete_conversation = async (conversation_id) => {
 };
 
 const set_conversation = async (conversation_id) => {
-    history.pushState({}, null, `/chat/${conversation_id}`);
+    try {
+        history.pushState({}, null, `/chat/${conversation_id}`);
+    } catch (e) {
+        console.error(e);
+    }
     window.conversation_id = conversation_id;
 
     await clear_conversation();
@@ -898,7 +902,11 @@ async function add_conversation(conversation_id, content) {
             items: [],
         });
     }
-    history.pushState({}, null, `/chat/${conversation_id}`);
+    try {
+        history.pushState({}, null, `/chat/${conversation_id}`);
+    } catch (e) {
+        console.error(e);
+    }
 }
 
 async function save_system_message() {
@@ -1287,23 +1295,29 @@ async function on_api() {
 
     register_settings_storage();
 
-    models = await api("models");
-    models.forEach((model) => {
-        let option = document.createElement("option");
-        option.value = option.text = model;
-        modelSelect.appendChild(option);
-    });
-
-    providers = await api("providers")
-    Object.entries(providers).forEach(([provider, label]) => {
-        let option = document.createElement("option");
-        option.value = provider;
-        option.text = label;
-        providerSelect.appendChild(option);
-    })
+    try {
+        models = await api("models");
+        models.forEach((model) => {
+            let option = document.createElement("option");
+            option.value = option.text = model;
+            modelSelect.appendChild(option);
+        });
+        providers = await api("providers")
+        Object.entries(providers).forEach(([provider, label]) => {
+            let option = document.createElement("option");
+            option.value = provider;
+            option.text = label;
+            providerSelect.appendChild(option);
+        });
+        await load_provider_models(appStorage.getItem("provider"));
+    } catch (e) {
+        console.error(e)
+        if (document.location.pathname == "/chat/") {
+            document.location.href = `/chat/error`;
+        }
+    }
 
     await load_settings_storage()
-    await load_provider_models(appStorage.getItem("provider"));
 
     const hide_systemPrompt = document.getElementById("hide-systemPrompt")
     const slide_systemPrompt_icon = document.querySelector(".slide-systemPrompt i");
@@ -1465,7 +1479,7 @@ async function api(ressource, args=null, file=null, message_id=null) {
     const url = `/backend-api/v2/${ressource}`;
     const headers = {};
     if (api_key) {
-        headers.authorization = `Bearer ${api_key}`;
+        headers.x_api_key = api_key;
     }
     if (ressource == "conversation") {
         let body = JSON.stringify(args);

@@ -7,8 +7,7 @@ import uuid
 from io import BytesIO
 import base64
 import asyncio
-from aiohttp import ClientSession
-
+from aiohttp import ClientSession, ClientError
 try:
     from PIL.Image import open as open_image, new as new_image
     from PIL.Image import FLIP_LEFT_RIGHT, ROTATE_180, ROTATE_270, ROTATE_90
@@ -20,6 +19,7 @@ from .typing import ImageType, Union, Image, Optional, Cookies
 from .errors import MissingRequirementsError
 from .providers.response import ResponseType
 from .requests.aiohttp import get_connector
+from . import debug
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'}
 
@@ -277,12 +277,14 @@ def ensure_images_dir():
     if not os.path.exists(images_dir):
         os.makedirs(images_dir)
 
-async def copy_images(images: list[str], cookies: Optional[Cookies] = None, proxy: Optional[str] = None):
+async def copy_images(
+    images: list[str],
+    cookies: Optional[Cookies] = None,
+    proxy: Optional[str] = None
+):
     ensure_images_dir()
     async with ClientSession(
-        connector=get_connector(
-            proxy=os.environ.get("G4F_PROXY") if proxy is None else proxy
-        ),
+        connector=get_connector(proxy=proxy),
         cookies=cookies
     ) as session:
         async def copy_image(image: str) -> str:
@@ -291,10 +293,15 @@ async def copy_images(images: list[str], cookies: Optional[Cookies] = None, prox
                 with open(target, "wb") as f:
                     f.write(extract_data_uri(image))
             else:
-                async with session.get(image) as response:
-                    with open(target, "wb") as f:
-                        async for chunk in response.content.iter_chunked(4096):
-                            f.write(chunk)
+                try:
+                    async with session.get(image) as response:
+                        response.raise_for_status()
+                        with open(target, "wb") as f:
+                            async for chunk in response.content.iter_chunked(4096):
+                                f.write(chunk)
+                except ClientError as e:
+                    debug.log(f"copy_images failed: {e.__class__.__name__}: {e}")
+                    return image
             with open(target, "rb") as f:
                 extension = is_accepted_format(f.read(12)).split("/")[-1]
                 extension = "jpg" if extension == "jpeg" else extension

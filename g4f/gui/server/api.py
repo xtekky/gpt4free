@@ -110,8 +110,10 @@ class Api:
     def _create_response_stream(self, kwargs: dict, conversation_id: str, provider: str, download_images: bool = True) -> Iterator:
         def log_handler(text: str):
             debug.logs.append(text)
-            print(text)
+            if debug.logging:
+                print(text)
         debug.log_handler = log_handler
+        proxy = os.environ.get("G4F_PROXY")
         try:
             result = ChatCompletion.create(**kwargs)
             first = True
@@ -139,7 +141,7 @@ class Api:
                     elif isinstance(chunk, ImageResponse):
                         images = chunk
                         if download_images:
-                            images = asyncio.run(copy_images(chunk.get_list(), chunk.options.get("cookies")))
+                            images = asyncio.run(copy_images(chunk.get_list(), chunk.get("cookies"), proxy))
                             images = ImageResponse(images, chunk.alt)
                         yield self._format_json("content", str(images))
                     elif isinstance(chunk, SynthesizeData):

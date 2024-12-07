@@ -23,7 +23,7 @@ from starlette.status import (
     HTTP_500_INTERNAL_SERVER_ERROR,
 )
 from fastapi.encoders import jsonable_encoder
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials, HTTPBasic
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.responses import FileResponse
 from pydantic import BaseModel, Field
@@ -50,7 +50,7 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_PORT = 1337
 
-def create_app(g4f_api_key: str = None):
+def create_app():
     app = FastAPI()
 
     # Add CORS middleware
@@ -62,7 +62,7 @@ def create_app(g4f_api_key: str = None):
         allow_headers=["*"],
     )
 
-    api = Api(app, g4f_api_key=g4f_api_key)
+    api = Api(app)
 
     if AppConfig.gui:
         @app.get("/")
@@ -86,9 +86,14 @@ def create_app(g4f_api_key: str = None):
 
     return app
 
-def create_app_debug(g4f_api_key: str = None):
+def create_app_debug():
     g4f.debug.logging = True
-    return create_app(g4f_api_key)
+    return create_app()
+
+def create_app_with_gui_and_debug():
+    g4f.debug.logging = True
+    AppConfig.gui = True
+    return create_app()
 
 class ChatCompletionsConfig(BaseModel):
     messages: Messages = Field(examples=[[{"role": "system", "content": ""}, {"role": "user", "content": ""}]])
@@ -112,7 +117,7 @@ class ImageGenerationConfig(BaseModel):
     prompt: str
     model: Optional[str] = None
     provider: Optional[str] = None
-    response_format: str = "url"
+    response_format: Optional[str] = None
     api_key: Optional[str] = None
     proxy: Optional[str] = None
 
@@ -156,8 +161,8 @@ class ErrorResponse(Response):
         return cls(format_exception(exception, config), status_code)
 
     @classmethod
-    def from_message(cls, message: str, status_code: int = HTTP_500_INTERNAL_SERVER_ERROR):
-        return cls(format_exception(message), status_code)
+    def from_message(cls, message: str, status_code: int = HTTP_500_INTERNAL_SERVER_ERROR, headers: dict = None):
+        return cls(format_exception(message), status_code, headers=headers)
 
     def render(self, content) -> bytes:
         return str(content).encode(errors="ignore")
@@ -184,26 +189,57 @@ def set_list_ignored_providers(ignored: list[str]):
     list_ignored_providers = ignored
 
 class Api:
-    def __init__(self, app: FastAPI, g4f_api_key=None) -> None:
+    def __init__(self, app: FastAPI) -> None:
         self.app = app
         self.client = AsyncClient()
-        self.g4f_api_key = g4f_api_key
         self.get_g4f_api_key = APIKeyHeader(name="g4f-api-key")
         self.conversations: dict[str, dict[str, BaseConversation]] = {}
 
     security = HTTPBearer(auto_error=False)
+    basic_security = HTTPBasic()
+
+    async def get_username(self, request: Request):
+        credentials = await self.basic_security(request)
+        current_password_bytes = credentials.password.encode()
+        is_correct_password = secrets.compare_digest(
+            current_password_bytes, AppConfig.g4f_api_key.encode()
+        )
+        if not is_correct_password:
+            raise HTTPException(
+                status_code=HTTP_401_UNAUTHORIZED,
+                detail="Incorrect username or password",
+                headers={"WWW-Authenticate": "Basic"},
+            )
+        return credentials.username
 
     def register_authorization(self):
+        if AppConfig.g4f_api_key:
+            print(f"Register authentication key: {''.join(['*' for _ in range(len(AppConfig.g4f_api_key))])}")
         @self.app.middleware("http")
         async def authorization(request: Request, call_next):
-            if self.g4f_api_key and request.url.path not in ("/", "/v1"):
+            if AppConfig.g4f_api_key is not None:
                 try:
                     user_g4f_api_key = await self.get_g4f_api_key(request)
-                except HTTPException as e:
-                    if e.status_code == 403:
+                except HTTPException:
+                    user_g4f_api_key = None
+                if request.url.path.startswith("/v1"):
+                    if user_g4f_api_key is None:
                         return ErrorResponse.from_message("G4F API key required", HTTP_401_UNAUTHORIZED)
-                if not secrets.compare_digest(self.g4f_api_key, user_g4f_api_key):
-                    return ErrorResponse.from_message("Invalid G4F API key", HTTP_403_FORBIDDEN)
+                    if not secrets.compare_digest(AppConfig.g4f_api_key, user_g4f_api_key):
+                        return ErrorResponse.from_message("Invalid G4F API key", HTTP_403_FORBIDDEN)
+                else:
+                    path = request.url.path
+                    if user_g4f_api_key is not None and path.startswith("/images/"):
+                        if not secrets.compare_digest(AppConfig.g4f_api_key, user_g4f_api_key):
+                            return ErrorResponse.from_message("Invalid G4F API key", HTTP_403_FORBIDDEN)
+                    elif path.startswith("/backend-api/") or path.startswith("/images/") or path.startswith("/chat/") and path != "/chat/":
+                        try:
+                            username = await self.get_username(request)
+                        except HTTPException as e:
+                            return ErrorResponse.from_message(e.detail, e.status_code, e.headers)
+                        response = await call_next(request)
+                        response.headers["X-Username"] = username
+                        return response
             return await call_next(request)
 
     def register_validation_exception_handler(self):
@@ -370,9 +406,9 @@ class Api:
                     model=config.model,
                     provider=AppConfig.image_provider if config.provider is None else config.provider,
                     **filter_none(
-                        response_format = config.response_format,
-                        api_key = config.api_key,
-                        proxy = config.proxy
+                        response_format=config.response_format,
+                        api_key=config.api_key,
+                        proxy=config.proxy
                     )
                 )
                 for image in response.data:
@@ -512,8 +548,12 @@ def run_api(
         host, port = bind.split(":")
     if port is None:
         port = DEFAULT_PORT
+    if AppConfig.gui and debug:
+        method = "create_app_with_gui_and_debug"
+    else:
+        method = "create_app_debug" if debug else "create_app"
     uvicorn.run(
-        f"g4f.api:create_app{'_debug' if debug else ''}", 
+        f"g4f.api:{method}", 
         host=host, 
         port=int(port), 
         workers=workers, 

@@ -107,7 +107,7 @@ docker run \
   hlohaus789/g4f:latest-slim \
   rm -r -f /app/g4f/ \
   && pip install -U g4f[slim] \
-  && python -m g4f.cli api --gui --debug
+  && python -m g4f --debug
 ```
 It also updates the `g4f` package at startup and installs any new required dependencies.
 
@@ -134,7 +134,7 @@ By following these steps, you should be able to successfully install and run the
 
 Run the **Webview UI** on other Platforms:
 
-- [/docs/guides/webview](docs/webview.md)
+- [/docs/webview](docs/webview.md)
 
 ##### Use your smartphone:
 
@@ -204,7 +204,7 @@ image_url = response.data[0].url
 print(f"Generated image URL: {image_url}")
 ```
 
-[![Image with cat](/docs/cat.jpeg)](docs/client.md)
+[![Image with cat](/docs/images/cat.jpeg)](docs/client.md)
 
 #### **Full Documentation for Python API**
    - **New:**
@@ -240,6 +240,10 @@ The **Interference API** enables seamless integration with OpenAI's services thr
 This API is designed for straightforward implementation and enhanced compatibility with other OpenAI integrations.
 
 ### Configuration
+
+#### Authentication
+
+Refer to the [G4F Authentication Setup Guide](docs/authentication.md) for detailed instructions on setting up authentication.
 
 #### Cookies
 
