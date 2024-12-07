@@ -6,6 +6,7 @@ from aiohttp import ClientSession
 
 from ..typing import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from .. import debug
 
 class Blackbox2(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://www.blackbox.ai"
@@ -13,7 +14,7 @@ class Blackbox2(AsyncGeneratorProvider, ProviderModelMixin):
     working = True
     supports_system_message = True
     supports_message_history = True
-    
+    supports_stream = False
     default_model = 'llama-3.1-70b'
     models = [default_model]
 
@@ -62,8 +63,8 @@ class Blackbox2(AsyncGeneratorProvider, ProviderModelMixin):
                             raise KeyError("'prompt' key not found in the response")
                 except Exception as e:
                     if attempt == max_retries - 1:
-                        yield f"Error after {max_retries} attempts: {str(e)}"
+                        raise RuntimeError(f"Error after {max_retries} attempts: {str(e)}")
                     else:
                         wait_time = delay * (2 ** attempt) + random.uniform(0, 1)
-                        print(f"Attempt {attempt + 1} failed. Retrying in {wait_time:.2f} seconds...")
+                        debug.log(f"Attempt {attempt + 1} failed. Retrying in {wait_time:.2f} seconds...")
                         await asyncio.sleep(wait_time)

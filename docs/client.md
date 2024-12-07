@@ -181,7 +181,7 @@ client = Client(
 )
 
 response = client.images.create_variation(
-    image=open("cat.jpg", "rb"),
+    image=open("docs/images/cat.jpg", "rb"),
     model="dall-e-3",
     # Add any other necessary parameters
 )
@@ -235,7 +235,7 @@ client = Client(
 )
 
 image = requests.get("https://raw.githubusercontent.com/xtekky/gpt4free/refs/heads/main/docs/cat.jpeg", stream=True).raw
-# Or: image = open("docs/cat.jpeg", "rb")
+# Or: image = open("docs/images/cat.jpeg", "rb")
 
 response = client.chat.completions.create(
     model=g4f.models.default,

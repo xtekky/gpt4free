@@ -305,7 +305,7 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
             if not cls.needs_auth:
                 cls._create_request_args(cookies)
                 RequestConfig.proof_token = get_config(cls._headers.get("user-agent"))
-            async with session.get(cls.url, headers=INIT_HEADERS) as response:
+            async with session.get(cls.url, headers=cls._headers) as response:
                 cls._update_request_args(session)
                 await raise_for_status(response)
             try:
@@ -538,6 +538,7 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
         await page.send(nodriver.cdp.network.enable())
         page.add_handler(nodriver.cdp.network.RequestWillBeSent, on_request)
         page = await browser.get(cls.url)
+        await asyncio.sleep(1)
         body = await page.evaluate("JSON.stringify(window.__remixContext)")
         if body:
             match = re.search(r'"accessToken":"(.*?)"', body)

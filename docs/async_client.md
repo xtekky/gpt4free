@@ -145,7 +145,7 @@ async def main():
         provider=g4f.Provider.CopilotAccount
     )
 
-    image = requests.get("https://raw.githubusercontent.com/xtekky/gpt4free/refs/heads/main/docs/cat.jpeg", stream=True).raw
+    image = requests.get("https://raw.githubusercontent.com/xtekky/gpt4free/refs/heads/main/docs/images/cat.jpeg", stream=True).raw
 
     response = await client.chat.completions.create(
         model=g4f.models.default,
