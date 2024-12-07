@@ -12,17 +12,14 @@ from .helper import format_prompt
 class ChatGptEs(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://chatgpt.es"
     api_endpoint = "https://chatgpt.es/wp-admin/admin-ajax.php"
+    
     working = True
     supports_stream = True
     supports_system_message = True
     supports_message_history = True
     
     default_model = 'gpt-4o'
-    models = ['gpt-4o', 'gpt-4o-mini', 'chatgpt-4o-latest']
-    
-    model_aliases = {
-        "gpt-4o": "chatgpt-4o-latest",
-    }
+    models = ['gpt-3.5-turbo', 'gpt-4o', 'gpt-4o-mini']
 
     @classmethod
     def get_model(cls, model: str) -> str:
