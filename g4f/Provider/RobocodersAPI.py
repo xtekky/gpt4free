@@ -3,8 +3,16 @@ from __future__ import annotations
 import json
 import aiohttp
 from pathlib import Path
-from bs4 import BeautifulSoup
+
+try:
+    from bs4 import BeautifulSoup
+    HAS_BEAUTIFULSOUP = True
+except ImportError:
+    HAS_BEAUTIFULSOUP = False
+    BeautifulSoup = None
+    
 from aiohttp import ClientTimeout
+from ..errors import MissingRequirementsError
 from ..typing import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from .helper import format_prompt
@@ -139,6 +147,10 @@ class RobocodersAPI(AsyncGeneratorProvider, ProviderModelMixin):
 
     @staticmethod
     async def _fetch_and_cache_access_token(session: aiohttp.ClientSession) -> str:
+        if not HAS_BEAUTIFULSOUP:
+            raise MissingRequirementsError('Install "beautifulsoup4" package | pip install -U beautifulsoup4')
+            return token
+
         url_auth = 'https://api.robocoders.ai/auth'
         headers_auth = {
             'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
