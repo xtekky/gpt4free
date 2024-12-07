@@ -43,6 +43,7 @@ class DeepInfraChat(AsyncGeneratorProvider, ProviderModelMixin):
         **kwargs
     ) -> AsyncResult:
         headers = {
+            'Accept-Language': 'en-US,en;q=0.9',
             'Content-Type': 'application/json',
             'Origin': 'https://deepinfra.com',
             'Referer': 'https://deepinfra.com/',
