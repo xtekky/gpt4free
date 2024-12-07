@@ -1,8 +1,9 @@
 import json
 import random
 import re
-from aiohttp import ClientSession
 import requests
+from aiohttp import ClientSession
+from typing import List
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 from ..typing import AsyncResult, Messages
 from ..image import ImageResponse
@@ -12,7 +13,7 @@ from .. import debug
 
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
-def split_message(message: str, max_length: int = 1000) -> list[str]:
+def split_message(message: str, max_length: int = 1000) -> List[str]:
     """Splits the message into parts up to (max_length)."""
     chunks = []
     while len(message) > max_length:
