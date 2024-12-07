@@ -13,7 +13,7 @@ from g4f.errors import VersionNotFoundError
 from g4f.image import ImagePreview, ImageResponse, copy_images, ensure_images_dir, images_dir
 from g4f.Provider import ProviderType, __providers__, __map__
 from g4f.providers.base_provider import ProviderModelMixin
-from g4f.providers.retry_provider import BaseRetryProvider
+from g4f.providers.retry_provider import IterListProvider
 from g4f.providers.response import BaseConversation, FinishReason, SynthesizeData
 from g4f.client.service import convert_to_provider
 from g4f import debug
@@ -24,7 +24,15 @@ conversations: dict[dict[str, BaseConversation]] = {}
 class Api:
     @staticmethod
     def get_models():
-        return models._all_models
+        return [{
+            "name": model.name,
+            "image": isinstance(model, models.ImageModel),
+            "providers": [
+                getattr(provider, "parent", provider.__name__)
+                for provider in providers
+            ]
+        }
+        for model, providers in models.__models__.values()]
 
     @staticmethod
     def get_provider_models(provider: str, api_key: str = None):
@@ -126,7 +134,7 @@ class Api:
             for chunk in result:
                 if first:
                     first = False
-                    if isinstance(provider, BaseRetryProvider):
+                    if isinstance(provider, IterListProvider):
                         provider = provider.last_provider
                     yield self._format_json("provider", {**provider.get_dict(), "model": model})
                 if isinstance(chunk, BaseConversation):
