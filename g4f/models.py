@@ -484,14 +484,6 @@ lfm_40b = Model(
     best_provider = IterListProvider([Airforce, PerplexityLabs])
 )
 
-
-### DiscoResearch ### 
-german_7b = Model(
-    name = 'german-7b',
-    base_provider = 'DiscoResearch',
-    best_provider = Airforce
-)
-
 ### HuggingFaceH4 ### 
 zephyr_7b = Model(
     name = 'zephyr-7b',
@@ -815,9 +807,6 @@ class ModelUtils:
         ### DeepSeek ###
         'deepseek-chat': deepseek_chat,
         'deepseek-coder': deepseek_coder,
-
-        ### TheBloke ###   
-        'german-7b': german_7b,
 
         ### Nvidia ###   
         'nemotron-70b': nemotron_70b,
