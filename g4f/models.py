@@ -38,6 +38,7 @@ from .Provider import (
     RubiksAI,
     TeachAnything,
     Upstage,
+    Flux,
 )
 
 @dataclass(unsafe_hash=True)
@@ -599,7 +600,7 @@ flux_pro = ImageModel(
 flux_dev = ImageModel(
     name = 'flux-dev',
     base_provider = 'Flux AI',
-    best_provider = AmigoChat
+    best_provider = IterListProvider([Flux, AmigoChat, HuggingChat, HuggingFace])
 )
 
 flux_realism = ImageModel(

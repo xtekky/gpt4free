@@ -123,22 +123,21 @@ class Api:
                 print(text)
         debug.log_handler = log_handler
         proxy = os.environ.get("G4F_PROXY")
+        provider = kwargs.get("provider")
+        model, provider_handler = get_model_and_provider(
+            kwargs.get("model"), provider,
+            stream=True,
+            ignore_stream=True
+        )
+        first = True
         try:
-            model, provider = get_model_and_provider(
-                kwargs.get("model"), kwargs.get("provider"),
-                stream=True,
-                ignore_stream=True
-            )
-            result = ChatCompletion.create(**{**kwargs, "model": model, "provider": provider})
-            first = True
+            result = ChatCompletion.create(**{**kwargs, "model": model, "provider": provider_handler})
             for chunk in result:
                 if first:
                     first = False
-                    if isinstance(provider, IterListProvider):
-                        provider = provider.last_provider
-                    yield self._format_json("provider", {**provider.get_dict(), "model": model})
+                    yield self.handle_provider(provider_handler, model)
                 if isinstance(chunk, BaseConversation):
-                    if provider:
+                    if provider is not None:
                         if provider not in conversations:
                             conversations[provider] = {}
                         conversations[provider][conversation_id] = chunk
@@ -165,6 +164,8 @@ class Api:
         except Exception as e:
             logger.exception(e)
             yield self._format_json('error', get_error_message(e))
+        if first:
+            yield self.handle_provider(provider_handler, model)
 
     def _format_json(self, response_type: str, content):
         return {
@@ -172,9 +173,12 @@ class Api:
             response_type: content
         }
 
+    def handle_provider(self, provider_handler, model):
+        if isinstance(provider_handler, IterListProvider):
+            provider_handler = provider_handler.last_provider
+        if issubclass(provider_handler, ProviderModelMixin) and provider_handler.last_model is not None:
+            model = provider_handler.last_model
+        return self._format_json("provider", {**provider_handler.get_dict(), "model": model})
+
 def get_error_message(exception: Exception) -> str:
-    message = f"{type(exception).__name__}: {exception}"
-    provider = get_last_provider()
-    if provider is None:
-        return message
-    return f"{provider.__name__}: {message}"
+    return f"{type(exception).__name__}: {exception}"

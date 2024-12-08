@@ -504,6 +504,8 @@ async function add_message_chunk(message, message_id) {
         p.innerText = message.error;
         log_storage.appendChild(p);
     } else if (message.type == "preview") {
+        if (content_map.inner.clientHeight > 200)
+            content_map.inner.style.height = content_map.inner.clientHeight + "px";
         content_map.inner.innerHTML = markdown_render(message.preview);
     } else if (message.type == "content") {
         message_storage[message_id] += message.content;
@@ -522,6 +524,7 @@ async function add_message_chunk(message, message_id) {
         content_map.inner.innerHTML = html;
         content_map.count.innerText = count_words_and_tokens(message_storage[message_id], provider_storage[message_id]?.model);
         highlight(content_map.inner);
+        content_map.inner.style.height = "";
     } else if (message.type == "log") {
         let p = document.createElement("p");
         p.innerText = message.log;
