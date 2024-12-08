@@ -12,7 +12,7 @@ class Flux(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://black-forest-labs-flux-1-dev.hf.space"
     api_endpoint = "/gradio_api/call/infer"
     working = True
-    default_model = 'flux-1-dev'
+    default_model = 'flux-dev'
     models = [default_model]
     image_models = [default_model]
 

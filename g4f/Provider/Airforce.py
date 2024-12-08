@@ -60,6 +60,7 @@ class Airforce(AsyncGeneratorProvider, ProviderModelMixin):
         "evil": "any-uncensored",
         "sdxl": "stable-diffusion-xl-base",
         "flux-pro": "flux-1.1-pro",
+        "llama-3.1-8b": "llama-3.1-8b-chat"
     }
 
     @classmethod
@@ -85,7 +86,6 @@ class Airforce(AsyncGeneratorProvider, ProviderModelMixin):
                 cls.models = [model for model in cls.models if model not in cls.hidden_models]
             except Exception as e:
                 debug.log(f"Error fetching text models: {e}")
-                cls.models = [cls.default_model]
 
         return cls.models
         
