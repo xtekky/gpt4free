@@ -29,7 +29,7 @@ class MetaAI(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Meta AI"
     url = "https://www.meta.ai"
     working = True
-    default_model = ''
+    default_model = 'meta-ai'
 
     def __init__(self, proxy: str = None, connector: BaseConnector = None):
         self.session = ClientSession(connector=get_connector(connector, proxy), headers=DEFAULT_HEADERS)

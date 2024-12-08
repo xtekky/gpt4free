@@ -29,9 +29,7 @@ class PollinationsAI(OpenaiAPI):
         "gpt-4o": "openai",
         "mistral-nemo": "mistral",
         "llama-3.1-70b": "llama", #
-        "gpt-3.5-turbo": "searchgpt",
         "gpt-4": "searchgpt",
-        "gpt-3.5-turbo": "claude",
         "gpt-4": "claude",
         "qwen-2.5-coder-32b": "qwen-coder", 
         "claude-3.5-sonnet": "sur", 

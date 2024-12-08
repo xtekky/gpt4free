@@ -8,11 +8,12 @@ from flask import send_from_directory
 from inspect import signature
 
 from g4f import version, models
-from g4f import get_last_provider, ChatCompletion
+from g4f import get_last_provider, ChatCompletion, get_model_and_provider
 from g4f.errors import VersionNotFoundError
 from g4f.image import ImagePreview, ImageResponse, copy_images, ensure_images_dir, images_dir
 from g4f.Provider import ProviderType, __providers__, __map__
 from g4f.providers.base_provider import ProviderModelMixin
+from g4f.providers.retry_provider import IterListProvider
 from g4f.providers.response import BaseConversation, FinishReason, SynthesizeData
 from g4f.client.service import convert_to_provider
 from g4f import debug
@@ -23,7 +24,15 @@ conversations: dict[dict[str, BaseConversation]] = {}
 class Api:
     @staticmethod
     def get_models():
-        return models._all_models
+        return [{
+            "name": model.name,
+            "image": isinstance(model, models.ImageModel),
+            "providers": [
+                getattr(provider, "parent", provider.__name__)
+                for provider in providers
+            ]
+        }
+        for model, providers in models.__models__.values()]
 
     @staticmethod
     def get_provider_models(provider: str, api_key: str = None):
@@ -47,15 +56,15 @@ class Api:
 
     @staticmethod
     def get_providers() -> dict[str, str]:
-        return {
-            provider.__name__: (provider.label if hasattr(provider, "label") else provider.__name__)
-            + (" (Image Generation)" if getattr(provider, "image_models", None) else "")
-            + (" (Image Upload)" if getattr(provider, "default_vision_model", None) else "")
-            + (" (WebDriver)" if "webdriver" in provider.get_parameters() else "")
-            + (" (Auth)" if provider.needs_auth else "")
-            for provider in __providers__
-            if provider.working
-        }
+        return [{
+            "name": provider.__name__,
+            "label": provider.label if hasattr(provider, "label") else provider.__name__,
+            "parent": getattr(provider, "parent", None),
+            "image": getattr(provider, "image_models", None) is not None,
+            "vision": getattr(provider, "default_vision_model", None) is not None,
+            "webdriver": "webdriver" in provider.get_parameters(),
+            "auth": provider.needs_auth,
+        } for provider in __providers__ if provider.working]
 
     @staticmethod
     def get_version() -> dict:
@@ -114,47 +123,49 @@ class Api:
                 print(text)
         debug.log_handler = log_handler
         proxy = os.environ.get("G4F_PROXY")
+        provider = kwargs.get("provider")
+        model, provider_handler = get_model_and_provider(
+            kwargs.get("model"), provider,
+            stream=True,
+            ignore_stream=True
+        )
+        first = True
         try:
-            result = ChatCompletion.create(**kwargs)
-            first = True
-            if isinstance(result, ImageResponse):
+            result = ChatCompletion.create(**{**kwargs, "model": model, "provider": provider_handler})
+            for chunk in result:
                 if first:
                     first = False
-                    yield self._format_json("provider", get_last_provider(True))
-                yield self._format_json("content", str(result))
-            else:
-                for chunk in result:
-                    if first:
-                        first = False
-                        yield self._format_json("provider", get_last_provider(True))
-                    if isinstance(chunk, BaseConversation):
-                        if provider:
-                            if provider not in conversations:
-                                conversations[provider] = {}
-                            conversations[provider][conversation_id] = chunk
-                            yield self._format_json("conversation", conversation_id)
-                    elif isinstance(chunk, Exception):
-                        logger.exception(chunk)
-                        yield self._format_json("message", get_error_message(chunk))
-                    elif isinstance(chunk, ImagePreview):
-                        yield self._format_json("preview", chunk.to_string())
-                    elif isinstance(chunk, ImageResponse):
-                        images = chunk
-                        if download_images:
-                            images = asyncio.run(copy_images(chunk.get_list(), chunk.get("cookies"), proxy))
-                            images = ImageResponse(images, chunk.alt)
-                        yield self._format_json("content", str(images))
-                    elif isinstance(chunk, SynthesizeData):
-                        yield self._format_json("synthesize", chunk.to_json())
-                    elif not isinstance(chunk, FinishReason):
-                        yield self._format_json("content", str(chunk))
-                    if debug.logs:
-                        for log in debug.logs:
-                            yield self._format_json("log", str(log))
-                        debug.logs = []
+                    yield self.handle_provider(provider_handler, model)
+                if isinstance(chunk, BaseConversation):
+                    if provider is not None:
+                        if provider not in conversations:
+                            conversations[provider] = {}
+                        conversations[provider][conversation_id] = chunk
+                        yield self._format_json("conversation", conversation_id)
+                elif isinstance(chunk, Exception):
+                    logger.exception(chunk)
+                    yield self._format_json("message", get_error_message(chunk))
+                elif isinstance(chunk, ImagePreview):
+                    yield self._format_json("preview", chunk.to_string())
+                elif isinstance(chunk, ImageResponse):
+                    images = chunk
+                    if download_images:
+                        images = asyncio.run(copy_images(chunk.get_list(), chunk.get("cookies"), proxy))
+                        images = ImageResponse(images, chunk.alt)
+                    yield self._format_json("content", str(images))
+                elif isinstance(chunk, SynthesizeData):
+                    yield self._format_json("synthesize", chunk.to_json())
+                elif not isinstance(chunk, FinishReason):
+                    yield self._format_json("content", str(chunk))
+                if debug.logs:
+                    for log in debug.logs:
+                        yield self._format_json("log", str(log))
+                    debug.logs = []
         except Exception as e:
             logger.exception(e)
             yield self._format_json('error', get_error_message(e))
+        if first:
+            yield self.handle_provider(provider_handler, model)
 
     def _format_json(self, response_type: str, content):
         return {
@@ -162,9 +173,12 @@ class Api:
             response_type: content
         }
 
+    def handle_provider(self, provider_handler, model):
+        if isinstance(provider_handler, IterListProvider):
+            provider_handler = provider_handler.last_provider
+        if issubclass(provider_handler, ProviderModelMixin) and provider_handler.last_model is not None:
+            model = provider_handler.last_model
+        return self._format_json("provider", {**provider_handler.get_dict(), "model": model})
+
 def get_error_message(exception: Exception) -> str:
-    message = f"{type(exception).__name__}: {exception}"
-    provider = get_last_provider()
-    if provider is None:
-        return message
-    return f"{provider.__name__}: {message}"
+    return f"{type(exception).__name__}: {exception}"

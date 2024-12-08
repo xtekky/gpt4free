@@ -34,8 +34,8 @@ try:
 
     browsers = [
         _g4f,
-        chrome, chromium, opera, opera_gx,
-        brave, edge, vivaldi, firefox,
+        chrome, chromium, firefox, opera, opera_gx,
+        brave, edge, vivaldi,
     ]
     has_browser_cookie3 = True
 except ImportError:

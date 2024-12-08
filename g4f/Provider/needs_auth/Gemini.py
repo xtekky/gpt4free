@@ -51,14 +51,22 @@ UPLOAD_IMAGE_HEADERS = {
 }
 
 class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
+    label = "Google Gemini"
     url = "https://gemini.google.com"
+    
     needs_auth = True
     working = True
+    
     default_model = 'gemini'
     image_models = ["gemini"]
     default_vision_model = "gemini"
     models = ["gemini", "gemini-1.5-flash", "gemini-1.5-pro"]
+    model_aliases = {
+        "gemini-flash": "gemini-1.5-flash",
+        "gemini-pro": "gemini-1.5-pro",
+    }
     synthesize_content_type = "audio/vnd.wav"
+    
     _cookies: Cookies = None
     _snlm0e: str = None
     _sid: str = None
@@ -69,7 +77,7 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
             if debug.logging:
                 print("Skip nodriver login in Gemini provider")
             return
-        browser = await get_nodriver(proxy=proxy)
+        browser = await get_nodriver(proxy=proxy, user_data_dir="gemini")
         login_url = os.environ.get("G4F_LOGIN_URL")
         if login_url:
             yield f"Please login: [Google Gemini]({login_url})\n\n"

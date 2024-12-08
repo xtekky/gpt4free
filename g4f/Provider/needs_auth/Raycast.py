@@ -10,8 +10,6 @@ from ..base_provider import AbstractProvider
 
 class Raycast(AbstractProvider):
     url                     = "https://raycast.com"
-    supports_gpt_35_turbo   = True
-    supports_gpt_4          = True
     supports_stream         = True
     needs_auth              = True
     working                 = True

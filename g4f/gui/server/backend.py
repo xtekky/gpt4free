@@ -55,6 +55,12 @@ class Backend_Api(Api):
                 return jsonify(response)
             return response
 
+        def jsonify_providers(**kwargs):
+            response = self.get_providers(**kwargs)
+            if isinstance(response, list):
+                return jsonify(response)
+            return response
+
         self.routes = {
             '/backend-api/v2/models': {
                 'function': jsonify_models,
@@ -65,7 +71,7 @@ class Backend_Api(Api):
                 'methods': ['GET']
             },
             '/backend-api/v2/providers': {
-                'function': self.get_providers,
+                'function': jsonify_providers,
                 'methods': ['GET']
             },
             '/backend-api/v2/version': {

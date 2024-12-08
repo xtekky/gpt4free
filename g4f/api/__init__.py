@@ -276,16 +276,12 @@ class Api:
             HTTP_200_OK: {"model": List[ModelResponseModel]},
         })
         async def models():
-            model_list = dict(
-                (model, g4f.models.ModelUtils.convert[model])
-                for model in g4f.Model.__all__()
-            )
             return [{
                 'id': model_id,
                 'object': 'model',
                 'created': 0,
                 'owned_by': model.base_provider
-            } for model_id, model in model_list.items()]
+            } for model_id, model in g4f.models.ModelUtils.convert.items()]
 
         @self.app.get("/v1/models/{model_name}", responses={
             HTTP_200_OK: {"model": ModelResponseModel},

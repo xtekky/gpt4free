@@ -19,7 +19,7 @@ class ChatGptEs(AsyncGeneratorProvider, ProviderModelMixin):
     supports_message_history = True
     
     default_model = 'gpt-4o'
-    models = ['gpt-3.5-turbo', 'gpt-4o', 'gpt-4o-mini']
+    models = ['gpt-4', 'gpt-4o', 'gpt-4o-mini']
 
     @classmethod
     def get_model(cls, model: str) -> str:

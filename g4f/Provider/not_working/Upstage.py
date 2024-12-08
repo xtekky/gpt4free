@@ -3,9 +3,9 @@ from __future__ import annotations
 from aiohttp import ClientSession
 import json
 
-from ..typing import AsyncResult, Messages
-from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from .helper import format_prompt
+from ...typing import AsyncResult, Messages
+from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from ..helper import format_prompt
 
 
 class Upstage(AsyncGeneratorProvider, ProviderModelMixin):

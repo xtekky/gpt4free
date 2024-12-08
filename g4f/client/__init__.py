@@ -74,7 +74,7 @@ def iter_response(
             finish_reason = "stop"
 
         if stream:
-            yield ChatCompletionChunk.construct(chunk, None, completion_id, int(time.time()))
+            yield ChatCompletionChunk.model_construct(chunk, None, completion_id, int(time.time()))
 
         if finish_reason is not None:
             break
@@ -84,12 +84,12 @@ def iter_response(
     finish_reason = "stop" if finish_reason is None else finish_reason
 
     if stream:
-        yield ChatCompletionChunk.construct(None, finish_reason, completion_id, int(time.time()))
+        yield ChatCompletionChunk.model_construct(None, finish_reason, completion_id, int(time.time()))
     else:
         if response_format is not None and "type" in response_format:
             if response_format["type"] == "json_object":
                 content = filter_json(content)
-        yield ChatCompletion.construct(content, finish_reason, completion_id, int(time.time()))
+        yield ChatCompletion.model_construct(content, finish_reason, completion_id, int(time.time()))
 
 # Synchronous iter_append_model_and_provider function
 def iter_append_model_and_provider(response: ChatCompletionResponseType) -> ChatCompletionResponseType:
@@ -138,7 +138,7 @@ async def async_iter_response(
                 finish_reason = "stop"
 
             if stream:
-                yield ChatCompletionChunk.construct(chunk, None, completion_id, int(time.time()))
+                yield ChatCompletionChunk.model_construct(chunk, None, completion_id, int(time.time()))
 
             if finish_reason is not None:
                 break
@@ -146,12 +146,12 @@ async def async_iter_response(
         finish_reason = "stop" if finish_reason is None else finish_reason
 
         if stream:
-            yield ChatCompletionChunk.construct(None, finish_reason, completion_id, int(time.time()))
+            yield ChatCompletionChunk.model_construct(None, finish_reason, completion_id, int(time.time()))
         else:
             if response_format is not None and "type" in response_format:
                 if response_format["type"] == "json_object":
                     content = filter_json(content)
-            yield ChatCompletion.construct(content, finish_reason, completion_id, int(time.time()))
+            yield ChatCompletion.model_construct(content, finish_reason, completion_id, int(time.time()))
     finally:
         await safe_aclose(response)
 
@@ -422,7 +422,7 @@ class Images:
         last_provider = get_last_provider(True)
         if response_format == "url":
             # Return original URLs without saving locally
-            images = [Image.construct(url=image, revised_prompt=response.alt) for image in response.get_list()]
+            images = [Image.model_construct(url=image, revised_prompt=response.alt) for image in response.get_list()]
         else:
             # Save locally for None (default) case
             images = await copy_images(response.get_list(), response.get("cookies"), proxy)
@@ -430,11 +430,11 @@ class Images:
                 async def process_image_item(image_file: str) -> Image:
                     with open(os.path.join(images_dir, os.path.basename(image_file)), "rb") as file:
                         image_data = base64.b64encode(file.read()).decode()
-                        return Image.construct(b64_json=image_data, revised_prompt=response.alt)
+                        return Image.model_construct(b64_json=image_data, revised_prompt=response.alt)
                 images = await asyncio.gather(*[process_image_item(image) for image in images])
             else:
-                images = [Image.construct(url=f"/images/{os.path.basename(image)}", revised_prompt=response.alt) for image in images]
-        return ImagesResponse.construct(
+                images = [Image.model_construct(url=f"/images/{os.path.basename(image)}", revised_prompt=response.alt) for image in images]
+        return ImagesResponse.model_construct(
             created=int(time.time()),
             data=images,
             model=last_provider.get("model") if model is None else model,

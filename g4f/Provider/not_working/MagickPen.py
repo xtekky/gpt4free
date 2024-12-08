@@ -6,9 +6,9 @@ import time
 import random
 import re
 import json
-from ..typing import AsyncResult, Messages
-from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from .helper import format_prompt
+from ...typing import AsyncResult, Messages
+from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from ..helper import format_prompt
 
 class MagickPen(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://magickpen.com"

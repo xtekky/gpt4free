@@ -29,13 +29,9 @@ from .. import debug
 
 class Conversation(BaseConversation):
     conversation_id: str
-    cookie_jar: CookieJar
-    access_token: str
 
-    def __init__(self, conversation_id: str, cookie_jar: CookieJar, access_token: str = None):
+    def __init__(self, conversation_id: str):
         self.conversation_id = conversation_id
-        self.cookie_jar = cookie_jar
-        self.access_token = access_token
 
 class Copilot(AbstractProvider, ProviderModelMixin):
     label = "Microsoft Copilot"
@@ -50,6 +46,9 @@ class Copilot(AbstractProvider, ProviderModelMixin):
 
     websocket_url = "wss://copilot.microsoft.com/c/api/chat?api-version=2"
     conversation_url = f"{url}/c/api/conversations"
+    
+    _access_token: str = None
+    _cookies: CookieJar = None
 
     @classmethod
     def create_completion(
@@ -69,42 +68,43 @@ class Copilot(AbstractProvider, ProviderModelMixin):
             raise MissingRequirementsError('Install or update "curl_cffi" package | pip install -U curl_cffi')
 
         websocket_url = cls.websocket_url
-        access_token = None
         headers = None
-        cookies = conversation.cookie_jar if conversation is not None else None
         if cls.needs_auth or image is not None:
-            if conversation is None or conversation.access_token is None:
+            if cls._access_token is None:
                 try:
-                    access_token, cookies = readHAR(cls.url)
+                    cls._access_token, cls._cookies = readHAR(cls.url)
                 except NoValidHarFileError as h:
                     debug.log(f"Copilot: {h}")
                     try:
                         get_running_loop(check_nested=True)
-                        access_token, cookies = asyncio.run(get_access_token_and_cookies(cls.url, proxy))
+                        cls._access_token, cls._cookies = asyncio.run(get_access_token_and_cookies(cls.url, proxy))
                     except MissingRequirementsError:
                         raise h
-            else:
-                access_token = conversation.access_token
-            debug.log(f"Copilot: Access token: {access_token[:7]}...{access_token[-5:]}")
-            websocket_url = f"{websocket_url}&accessToken={quote(access_token)}"
-            headers = {"authorization": f"Bearer {access_token}"}
+            debug.log(f"Copilot: Access token: {cls._access_token[:7]}...{cls._access_token[-5:]}")
+            websocket_url = f"{websocket_url}&accessToken={quote(cls._access_token)}"
+            headers = {"authorization": f"Bearer {cls._access_token}"}
 
         with Session(
             timeout=timeout,
             proxy=proxy,
             impersonate="chrome",
             headers=headers,
-            cookies=cookies,
+            cookies=cls._cookies,
         ) as session:
+            if cls._access_token is not None:
+                cls._cookies = session.cookies.jar
             response = session.get("https://copilot.microsoft.com/c/api/user")
             raise_for_status(response)
-            debug.log(f"Copilot: User: {response.json().get('firstName', 'null')}")
+            user = response.json().get('firstName')
+            if user is None:
+                cls._access_token = None
+            debug.log(f"Copilot: User: {user or 'null'}")
             if conversation is None:
                 response = session.post(cls.conversation_url)
                 raise_for_status(response)
                 conversation_id = response.json().get("id")
                 if return_conversation:
-                    yield Conversation(conversation_id, session.cookies.jar, access_token)
+                    yield Conversation(conversation_id)
                 prompt = format_prompt(messages)
                 debug.log(f"Copilot: Created conversation: {conversation_id}")
             else:
@@ -162,7 +162,7 @@ class Copilot(AbstractProvider, ProviderModelMixin):
                 raise RuntimeError(f"Invalid response: {last_msg}")
 
 async def get_access_token_and_cookies(url: str, proxy: str = None, target: str = "ChatAI",):
-    browser = await get_nodriver(proxy=proxy)
+    browser = await get_nodriver(proxy=proxy, user_data_dir="copilot")
     page = await browser.get(url)
     access_token = None
     while access_token is None:
