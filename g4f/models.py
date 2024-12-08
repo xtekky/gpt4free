@@ -114,13 +114,13 @@ gpt_4o_mini = Model(
 gpt_4_turbo = Model(
     name          = 'gpt-4-turbo',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([Liaobots, Airforce])
+    best_provider = Airforce
 )
 
 gpt_4 = Model(
     name          = 'gpt-4',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([DDG, Blackbox, PollinationsAI, Copilot, OpenaiChat, Liaobots, Airforce])
+    best_provider = IterListProvider([DDG, Blackbox, PollinationsAI, Copilot, OpenaiChat, Liaobots])
 )
 
 # o1
@@ -258,12 +258,6 @@ hermes_3 = Model(
     best_provider = IterListProvider([HuggingChat, HuggingFace])
 )
 
-mixtral_8x7b_dpo = Model(
-    name          = "mixtral-8x7b-dpo",
-    base_provider = "NousResearch",
-    best_provider = IterListProvider([AmigoChat, Airforce])
-)
-
 ### Microsoft ###
 phi_2 = Model(
     name          = "phi-2",
@@ -321,7 +315,7 @@ claude_3_sonnet = Model(
 claude_3_haiku = Model(
     name          = 'claude-3-haiku',
     base_provider = 'Anthropic',
-    best_provider = IterListProvider([DDG, Liaobots])
+    best_provider = DDG
 )
 
 # claude 3.5
@@ -361,7 +355,7 @@ blackboxai_pro = Model(
 command_r_plus = Model(
     name = 'command-r-plus',
     base_provider = 'CohereForAI',
-    best_provider = IterListProvider([PollinationsAI, HuggingChat, AmigoChat])
+    best_provider = IterListProvider([HuggingChat, AmigoChat])
 )
 
 ### Qwen ###
@@ -376,7 +370,7 @@ qwen_1_5_7b = Model(
 qwen_2_72b = Model(
     name = 'qwen-2-72b',
     base_provider = 'Qwen',
-    best_provider = IterListProvider([DeepInfraChat, HuggingChat, HuggingFace])
+    best_provider = DeepInfraChat
 )
 
 # qwen 2.5
@@ -448,18 +442,6 @@ openchat_3_5 = Model(
 
 
 ### x.ai ###
-grok_2 = Model(
-    name = 'grok-2',
-    base_provider = 'x.ai',
-    best_provider = Liaobots
-)
-
-grok_2_mini = Model(
-    name = 'grok-2-mini',
-    base_provider = 'x.ai',
-    best_provider = Liaobots
-)
-
 grok_beta = Model(
     name = 'grok-beta',
     base_provider = 'x.ai',
@@ -500,14 +482,6 @@ lfm_40b = Model(
     name = 'lfm-40b',
     base_provider = 'Liquid',
     best_provider = IterListProvider([Airforce, PerplexityLabs])
-)
-
-
-### DiscoResearch ### 
-german_7b = Model(
-    name = 'german-7b',
-    base_provider = 'DiscoResearch',
-    best_provider = Airforce
 )
 
 ### HuggingFaceH4 ### 
@@ -758,7 +732,6 @@ class ModelUtils:
         'mistral-large': mistral_large,
 
         ### NousResearch ###
-        'mixtral-8x7b-dpo': mixtral_8x7b_dpo,
         'hermes-2-dpo': hermes_2_dpo,
         'hermes-2-pro': hermes_2_pro,
         'hermes-3': hermes_3,
@@ -825,8 +798,6 @@ class ModelUtils:
         'openchat-3.5': openchat_3_5,
 
         ### x.ai ###
-        'grok-2': grok_2,
-        'grok-2-mini': grok_2_mini,
         'grok-beta': grok_beta,
 
         ### Perplexity AI ###
@@ -836,9 +807,6 @@ class ModelUtils:
         ### DeepSeek ###
         'deepseek-chat': deepseek_chat,
         'deepseek-coder': deepseek_coder,
-
-        ### TheBloke ###   
-        'german-7b': german_7b,
 
         ### Nvidia ###   
         'nemotron-70b': nemotron_70b,

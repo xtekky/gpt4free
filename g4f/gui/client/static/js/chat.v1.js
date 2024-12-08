@@ -333,7 +333,7 @@ const handle_ask = async () => {
     }
     messageInput.value = "";
     await count_input()
-    await add_conversation(window.conversation_id, message);
+    await add_conversation(window.conversation_id);
 
     if ("text" in fileInput.dataset) {
         message += '\n```' + fileInput.dataset.type + '\n'; 
@@ -543,20 +543,6 @@ async function add_message_chunk(message, message_id) {
         setTimeout(scroll_down, 200);
     }
 }
-
-cameraInput?.addEventListener("click", (e) => {
-    if (window?.pywebview) {
-        e.preventDefault();
-        pywebview.api.take_picture();
-    }
-});
-
-imageInput?.addEventListener("click", (e) => {
-    if (window?.pywebview) {
-        e.preventDefault();
-        pywebview.api.choose_image();
-    }
-});
 
 const ask_gpt = async (message_id, message_index = -1, regenerate = false, provider = null, model = null) => {
     if (!model && !provider) {
@@ -861,7 +847,7 @@ const load_conversation = async (conversation_id, scroll=true) => {
     if (window.GPTTokenizer_cl100k_base) {
         const filtered = prepare_messages(messages, null);
         if (filtered.length > 0) {
-            last_model = last_model?.startsWith("gpt-4") ? "gpt-4" : "gpt-3.5-turbo"
+            last_model = last_model?.startsWith("gpt-3") ? "gpt-3.5-turbo" : "gpt-4"
             let count_total = GPTTokenizer_cl100k_base?.encodeChat(filtered, last_model).length
             if (count_total > 0) {
                 elements += `<div class="count_total">(${count_total} tokens used)</div>`;
@@ -916,7 +902,7 @@ async function get_messages(conversation_id) {
     return conversation?.items || [];
 }
 
-async function add_conversation(conversation_id, content) {
+async function add_conversation(conversation_id) {
     if (appStorage.getItem(`conversation:${conversation_id}`) == null) {
         await save_conversation(conversation_id, {
             id: conversation_id,
@@ -1134,17 +1120,6 @@ function open_settings() {
     log_storage.classList.add("hidden");
 }
 
-function open_album() {
-    if (album.classList.contains("hidden")) {
-        sidebar.classList.remove("shown");
-        settings.classList.add("hidden");
-        album.classList.remove("hidden");
-        history.pushState({}, null, "/images/");
-    } else {
-        album.classList.add("hidden");
-    }
-}
-
 const register_settings_storage = async () => {
     const optionElements = document.querySelectorAll(optionElementsSelector);
     optionElements.forEach((element) => {
@@ -1277,18 +1252,12 @@ window.addEventListener('load', async function() {
     await on_load();
     if (window.conversation_id == "{{chat_id}}") {
         window.conversation_id = uuid();
-    } else {
-        await on_api();
     }
-});
-
-window.addEventListener('pywebviewready', async function() {
     await on_api();
 });
 
 async function on_load() {
     count_input();
-
     if (/\/chat\/.+/.test(window.location.href)) {
         load_conversation(window.conversation_id);
     } else {
@@ -1334,7 +1303,7 @@ async function on_api() {
     messageInput.addEventListener("keydown", async (evt) => {
         if (prompt_lock) return;
 
-        // If not mobile
+        // If not mobile and not shift enter
         if (!window.matchMedia("(pointer:coarse)").matches && evt.keyCode === 13 && !evt.shiftKey) {
             evt.preventDefault();
             console.log("pressed enter");
@@ -1396,6 +1365,7 @@ async function on_api() {
         await load_provider_models(appStorage.getItem("provider"));
     } catch (e) {
         console.error(e)
+        // Redirect to show basic authenfication
         if (document.location.pathname == "/chat/") {
             document.location.href = `/chat/error`;
         }
@@ -1552,15 +1522,6 @@ function get_selected_model() {
 }
 
 async function api(ressource, args=null, file=null, message_id=null) {
-    if (window?.pywebview) {
-        if (args !== null) {
-            if (ressource == "models") {
-                ressource = "provider_models";
-            }
-            return pywebview.api[`get_${ressource}`](args);
-        }
-        return pywebview.api[`get_${ressource}`]();
-    }
     let api_key;
     if (ressource == "models" && args) {
         api_key = get_api_key_by_provider(args);

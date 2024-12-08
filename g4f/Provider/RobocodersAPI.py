@@ -14,6 +14,7 @@ except ImportError:
 from aiohttp import ClientTimeout
 from ..errors import MissingRequirementsError
 from ..typing import AsyncResult, Messages
+from ..cookies import get_cookies_dir
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from .helper import format_prompt
 
@@ -30,7 +31,7 @@ class RobocodersAPI(AsyncGeneratorProvider, ProviderModelMixin):
     agent = [default_model, "RepoAgent", "FrontEndAgent"]
     models = [*agent]
 
-    CACHE_DIR = Path(__file__).parent / ".cache"
+    CACHE_DIR = Path(get_cookies_dir())
     CACHE_FILE = CACHE_DIR / "robocoders.json"
 
     @classmethod

@@ -277,8 +277,7 @@ def to_data_uri(image: ImageType) -> str:
 
 # Function to ensure the images directory exists
 def ensure_images_dir():
-    if not os.path.exists(images_dir):
-        os.makedirs(images_dir)
+    os.makedirs(images_dir, exist_ok=True)
 
 async def copy_images(
     images: list[str],

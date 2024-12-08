@@ -10,3 +10,6 @@ class CopilotAccount(Copilot, ProviderModelMixin):
     default_vision_model = default_model
     models = [default_model]
     image_models = models
+    model_aliases = {
+        "dall-e-3": default_model
+    }

@@ -7,21 +7,20 @@ import json
 import re
 import aiohttp
 
-import os
 import json
 from pathlib import Path
 
 from ..typing import AsyncResult, Messages, ImageType
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..image import ImageResponse, to_data_uri
-
+from ..cookies import get_cookies_dir
 from .helper import format_prompt
 
 class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Blackbox AI"
     url = "https://www.blackbox.ai"
     api_endpoint = "https://www.blackbox.ai/api/chat"
-    
+
     working = True
     supports_stream = True
     supports_system_message = True
@@ -38,7 +37,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
     agentMode = {
         'ImageGeneration': {'mode': True, 'id': "ImageGenerationLV45LJp", 'name': "Image Generation"}
     }
-    
+
     trendingAgentMode = {
         "gemini-1.5-flash": {'mode': True, 'id': 'Gemini'},
         "llama-3.1-8b": {'mode': True, 'id': "llama-3.1-8b"},
@@ -109,18 +108,10 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
     }
 
     @classmethod
-    def _get_cache_dir(cls) -> Path:
-        # Get the path to the current file
-        current_file = Path(__file__)
-        # Create the path to the .cache directory
-        cache_dir = current_file.parent / '.cache'
-        # Create a directory if it does not exist
-        cache_dir.mkdir(exist_ok=True)
-        return cache_dir
-
-    @classmethod
     def _get_cache_file(cls) -> Path:
-        return cls._get_cache_dir() / 'blackbox.json'
+        dir = Path(get_cookies_dir())
+        dir.mkdir(exist_ok=True)
+        return dir / 'blackbox.json'
 
     @classmethod
     def _load_cached_value(cls) -> str | None:
