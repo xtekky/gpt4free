@@ -40,6 +40,7 @@ def fix_url(url: str) -> str:
 def fix_title(title: str) -> str:
     if title:
         return title.replace("\n", "").replace('"', '')
+    return ""
 
 def to_image(image: ImageType, is_svg: bool = False) -> Image:
     """
@@ -229,6 +230,8 @@ def format_images_markdown(images: Union[str, list], alt: str, preview: Union[st
     Returns:
         str: The formatted markdown string.
     """
+    if isinstance(images, list) and len(images) == 1:
+        images = images[0]
     if isinstance(images, str):
         result = f"[![{fix_title(alt)}]({fix_url(preview.replace('{image}', images) if preview else images)})]({fix_url(images)})"
     else:

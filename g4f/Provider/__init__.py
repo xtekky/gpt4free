@@ -39,6 +39,7 @@ from .TeachAnything    import TeachAnything
 from .Upstage          import Upstage
 from .You              import You
 from .Mhystical        import Mhystical
+from .Flux             import Flux
 
 import sys
 

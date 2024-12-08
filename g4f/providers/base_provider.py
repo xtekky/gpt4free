@@ -98,7 +98,7 @@ class AbstractProvider(BaseProvider):
             default_value = f'"{param.default}"' if isinstance(param.default, str) else param.default
             args += f" = {default_value}" if param.default is not Parameter.empty else ""
             args += ","
-        
+
         return f"g4f.Provider.{cls.__name__} supports: ({args}\n)"
 
 class AsyncProvider(AbstractProvider):
@@ -240,6 +240,7 @@ class ProviderModelMixin:
     models: list[str] = []
     model_aliases: dict[str, str] = {}
     image_models: list = None
+    last_model: str = None
 
     @classmethod
     def get_models(cls) -> list[str]:
@@ -255,5 +256,6 @@ class ProviderModelMixin:
             model = cls.model_aliases[model]
         elif model not in cls.get_models() and cls.models:
             raise ModelNotSupportedError(f"Model is not supported: {model} in: {cls.__name__}")
+        cls.last_model = model
         debug.last_model = model
         return model

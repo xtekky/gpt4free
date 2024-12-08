@@ -3,7 +3,7 @@ const message_box       = document.getElementById(`messages`);
 const messageInput      = document.getElementById(`message-input`);
 const box_conversations = document.querySelector(`.top`);
 const stop_generating   = document.querySelector(`.stop_generating`);
-const regenerate        = document.querySelector(`.regenerate`);
+const regenerate_button = document.querySelector(`.regenerate`);
 const sidebar           = document.querySelector(".conversations");
 const sidebar_button    = document.querySelector(".mobile-sidebar");
 const sendButton        = document.getElementById("send-button");
@@ -21,7 +21,7 @@ const chat              = document.querySelector(".conversation");
 const album             = document.querySelector(".images");
 const log_storage       = document.querySelector(".log");
 
-const optionElements = document.querySelectorAll(".settings input, .settings textarea, #model, #model2, #provider")
+const optionElementsSelector = ".settings input, .settings textarea, #model, #model2, #provider";
 
 let provider_storage = {};
 let message_storage = {};
@@ -364,7 +364,7 @@ const handle_ask = async () => {
                 }
                 </div>
                 <div class="count">
-                    ${count_words_and_tokens(message, get_selected_model())}
+                    ${count_words_and_tokens(message, get_selected_model()?.value)}
                     <i class="fa-solid fa-volume-high"></i>
                     <i class="fa-regular fa-clipboard"></i>
                     <a><i class="fa-brands fa-whatsapp"></i></a>
@@ -375,7 +375,19 @@ const handle_ask = async () => {
         </div>
     `;
     highlight(message_box);
-    await ask_gpt(message_id);
+
+    const all_pinned = document.querySelectorAll(".buttons button.pinned")
+    if (all_pinned.length > 0) {
+        all_pinned.forEach((el, idx) => ask_gpt(
+            idx == 0 ? message_id : get_message_id(),
+            -1,
+            idx != 0,
+            el.dataset.provider,
+            el.dataset.model
+        ));
+    } else {
+        await ask_gpt(message_id);
+    }
 };
 
 async function safe_remove_cancel_button() {
@@ -387,16 +399,21 @@ async function safe_remove_cancel_button() {
     stop_generating.classList.add("stop_generating-hidden");
 }
 
-regenerate.addEventListener("click", async () => {
-    regenerate.classList.add("regenerate-hidden");
-    setTimeout(()=>regenerate.classList.remove("regenerate-hidden"), 3000);
-    await hide_message(window.conversation_id);
-    await ask_gpt(get_message_id());
+regenerate_button.addEventListener("click", async () => {
+    regenerate_button.classList.add("regenerate-hidden");
+    setTimeout(()=>regenerate_button.classList.remove("regenerate-hidden"), 3000);
+    const all_pinned = document.querySelectorAll(".buttons button.pinned")
+    if (all_pinned.length > 0) {
+        all_pinned.forEach((el) => ask_gpt(get_message_id(), -1, true, el.dataset.provider, el.dataset.model));
+    } else {
+        await hide_message(window.conversation_id);
+        await ask_gpt(get_message_id());
+    }
 });
 
 stop_generating.addEventListener("click", async () => {
     stop_generating.classList.add("stop_generating-hidden");
-    regenerate.classList.remove("regenerate-hidden");
+    regenerate_button.classList.remove("regenerate-hidden");
     let key;
     for (key in controller_storage) {
         if (!controller_storage[key].signal.aborted) {
@@ -487,6 +504,8 @@ async function add_message_chunk(message, message_id) {
         p.innerText = message.error;
         log_storage.appendChild(p);
     } else if (message.type == "preview") {
+        if (content_map.inner.clientHeight > 200)
+            content_map.inner.style.height = content_map.inner.clientHeight + "px";
         content_map.inner.innerHTML = markdown_render(message.preview);
     } else if (message.type == "content") {
         message_storage[message_id] += message.content;
@@ -505,6 +524,7 @@ async function add_message_chunk(message, message_id) {
         content_map.inner.innerHTML = html;
         content_map.count.innerText = count_words_and_tokens(message_storage[message_id], provider_storage[message_id]?.model);
         highlight(content_map.inner);
+        content_map.inner.style.height = "";
     } else if (message.type == "log") {
         let p = document.createElement("p");
         p.innerText = message.log;
@@ -538,7 +558,11 @@ imageInput?.addEventListener("click", (e) => {
     }
 });
 
-const ask_gpt = async (message_id, message_index = -1) => {
+const ask_gpt = async (message_id, message_index = -1, regenerate = false, provider = null, model = null) => {
+    if (!model && !provider) {
+        model = get_selected_model()?.value || null;
+        provider = providerSelect.options[providerSelect.selectedIndex].value;
+    }
     let messages = await get_messages(window.conversation_id);
     messages = prepare_messages(messages, message_index);
     message_storage[message_id] = "";
@@ -553,7 +577,7 @@ const ask_gpt = async (message_id, message_index = -1) => {
 
     const message_el = document.createElement("div");
     message_el.classList.add("message");
-    if (message_index != -1) {
+    if (message_index != -1 || regenerate) {
         message_el.classList.add("regenerate");
     }
     message_el.innerHTML += `
@@ -593,14 +617,13 @@ const ask_gpt = async (message_id, message_index = -1) => {
     try {
         const input = imageInput && imageInput.files.length > 0 ? imageInput : cameraInput;
         const file = input && input.files.length > 0 ? input.files[0] : null;
-        const provider = providerSelect.options[providerSelect.selectedIndex].value;
         const auto_continue = document.getElementById("auto_continue")?.checked;
         const download_images = document.getElementById("download_images")?.checked;
         let api_key = get_api_key_by_provider(provider);
         await api("conversation", {
             id: message_id,
             conversation_id: window.conversation_id,
-            model: get_selected_model(),
+            model: model,
             web_search: document.getElementById("switch").checked,
             provider: provider,
             messages: messages,
@@ -632,7 +655,8 @@ const ask_gpt = async (message_id, message_index = -1) => {
             message_storage[message_id],
             message_provider,
             message_index,
-            synthesize_storage[message_id]
+            synthesize_storage[message_id],
+            regenerate
         );
         await safe_load_conversation(window.conversation_id, message_index == -1);
     } else {
@@ -645,7 +669,7 @@ const ask_gpt = async (message_id, message_index = -1) => {
     await safe_remove_cancel_button();
     await register_message_buttons();
     await load_conversations();
-    regenerate.classList.remove("regenerate-hidden");
+    regenerate_button.classList.remove("regenerate-hidden");
 };
 
 async function scroll_to_bottom() {
@@ -848,7 +872,7 @@ const load_conversation = async (conversation_id, scroll=true) => {
     message_box.innerHTML = elements;
     register_message_buttons();
     highlight(message_box);
-    regenerate.classList.remove("regenerate-hidden");
+    regenerate_button.classList.remove("regenerate-hidden");
 
     if (scroll) {
         message_box.scrollTo({ top: message_box.scrollHeight, behavior: "smooth" });
@@ -960,7 +984,8 @@ const add_message = async (
     conversation_id, role, content,
     provider = null,
     message_index = -1,
-    synthesize_data = null
+    synthesize_data = null,
+    regenerate = false
 ) => {
     const conversation = await get_conversation(conversation_id);
     if (!conversation) return;
@@ -971,6 +996,9 @@ const add_message = async (
     };
     if (synthesize_data) {
         new_message.synthesize = synthesize_data;
+    }
+    if (regenerate) {
+        new_message.regenerate = true;
     }
     if (message_index == -1) {
          conversation.items.push(new_message);
@@ -1118,6 +1146,7 @@ function open_album() {
 }
 
 const register_settings_storage = async () => {
+    const optionElements = document.querySelectorAll(optionElementsSelector);
     optionElements.forEach((element) => {
         if (element.type == "textarea") {
             element.addEventListener('input', async (event) => {
@@ -1145,6 +1174,7 @@ const register_settings_storage = async () => {
 }
 
 const load_settings_storage = async () => {
+    const optionElements = document.querySelectorAll(optionElementsSelector);
     optionElements.forEach((element) => {
         if (!(value = appStorage.getItem(element.id))) {
             return;
@@ -1226,7 +1256,7 @@ const count_input = async () => {
     if (timeoutId) clearTimeout(timeoutId);
     timeoutId = setTimeout(() => {
         if (countFocus.value) {
-            inputCount.innerText = count_words_and_tokens(countFocus.value, get_selected_model());
+            inputCount.innerText = count_words_and_tokens(countFocus.value, get_selected_model()?.value);
         } else {
             inputCount.innerText = "";
         }
@@ -1267,6 +1297,38 @@ async function on_load() {
     load_conversations();
 }
 
+const load_provider_option = (input, provider_name) => {
+    if (input.checked) {
+        modelSelect.querySelectorAll(`option[data-disabled_providers*="${provider_name}"]`).forEach(
+            (el) => {
+                el.dataset.disabled_providers = el.dataset.disabled_providers ? el.dataset.disabled_providers.split(" ").filter((provider) => provider!=provider_name).join(" ") : "";
+                el.dataset.providers = (el.dataset.providers ? el.dataset.providers + " " : "") + provider_name;
+                modelSelect.querySelectorAll(`option[value="${el.value}"]`).forEach((o)=>o.removeAttribute("disabled", "disabled"))
+            }
+        );
+        providerSelect.querySelectorAll(`option[value="${provider_name}"]`).forEach(
+            (el) => el.removeAttribute("disabled")
+        );
+        providerSelect.querySelectorAll(`option[data-parent="${provider_name}"]`).forEach(
+            (el) => el.removeAttribute("disabled")
+        );
+    } else {
+        modelSelect.querySelectorAll(`option[data-providers*="${provider_name}"]`).forEach(
+            (el) => {
+                el.dataset.providers = el.dataset.providers ? el.dataset.providers.split(" ").filter((provider) => provider!=provider_name).join(" ") : "";
+                el.dataset.disabled_providers = (el.dataset.disabled_providers ? el.dataset.disabled_providers + " " : "") + provider_name;
+                if (!el.dataset.providers) modelSelect.querySelectorAll(`option[value="${el.value}"]`).forEach((o)=>o.setAttribute("disabled", "disabled"))
+            }
+        );
+        providerSelect.querySelectorAll(`option[value="${provider_name}"]`).forEach(
+            (el) => el.setAttribute("disabled", "disabled")
+        );
+        providerSelect.querySelectorAll(`option[data-parent="${provider_name}"]`).forEach(
+            (el) => el.setAttribute("disabled", "disabled")
+        );
+    }
+};
+
 async function on_api() {
     let prompt_lock = false;
     messageInput.addEventListener("keydown", async (evt) => {
@@ -1292,22 +1354,44 @@ async function on_api() {
         await handle_ask();
     });
     messageInput.focus();
-
-    register_settings_storage();
-
+    let provider_options = [];
     try {
         models = await api("models");
         models.forEach((model) => {
             let option = document.createElement("option");
-            option.value = option.text = model;
+            option.value = model.name;
+            option.text = model.name + (model.image ? " (Image Generation)" : "");
+            option.dataset.providers = model.providers.join(" ");
             modelSelect.appendChild(option);
         });
         providers = await api("providers")
-        Object.entries(providers).forEach(([provider, label]) => {
+        providers.sort((a, b) => a.label.localeCompare(b.label));
+        providers.forEach((provider) => {
             let option = document.createElement("option");
-            option.value = provider;
-            option.text = label;
+            option.value = provider.name;
+            option.dataset.label = provider.label;
+            option.text = provider.label
+                + (provider.vision ? " (Image Upload)" : "")
+                + (provider.image ? " (Image Generation)" : "")
+                + (provider.webdriver ? " (Webdriver)" : "")
+                + (provider.auth ? " (Auth)" : "");
+            if (provider.parent)
+                option.dataset.parent = provider.parent;
             providerSelect.appendChild(option);
+
+            if (!provider.parent) {
+                option = document.createElement("div");
+                option.classList.add("field");
+                option.innerHTML = `
+                    <div class="field">
+                        <span class="label">Enable ${provider.label}</span>
+                        <input id="Provider${provider.name}" type="checkbox" name="Provider${provider.name}" checked="">
+                        <label for="Provider${provider.name}" class="toogle" title="Remove provider from dropdown"></label>
+                    </div>`;
+                option.querySelector("input").addEventListener("change", (event) => load_provider_option(event.target, provider.name));
+                settings.querySelector(".paper").appendChild(option);
+                provider_options[provider.name] = option;
+            }
         });
         await load_provider_models(appStorage.getItem("provider"));
     } catch (e) {
@@ -1316,8 +1400,11 @@ async function on_api() {
             document.location.href = `/chat/error`;
         }
     }
-
+    register_settings_storage();
     await load_settings_storage()
+    Object.entries(provider_options).forEach(
+        ([provider_name, option]) => load_provider_option(option.querySelector("input"), provider_name)
+    );
 
     const hide_systemPrompt = document.getElementById("hide-systemPrompt")
     const slide_systemPrompt_icon = document.querySelector(".slide-systemPrompt i");
@@ -1455,9 +1542,12 @@ systemPrompt?.addEventListener("input", async () => {
 
 function get_selected_model() {
     if (modelProvider.selectedIndex >= 0) {
-        return modelProvider.options[modelProvider.selectedIndex].value;
+        return modelProvider.options[modelProvider.selectedIndex];
     } else if (modelSelect.selectedIndex >= 0) {
-        return modelSelect.options[modelSelect.selectedIndex].value;
+        model = modelSelect.options[modelSelect.selectedIndex];
+        if (model.value) {
+            return model;
+        }
     }
 }
 
@@ -1554,6 +1644,7 @@ async function load_provider_models(providerIndex=null) {
         models.forEach((model) => {
             let option = document.createElement('option');
             option.value = model.model;
+            option.dataset.label = model.model;
             option.text = `${model.model}${model.image ? " (Image Generation)" : ""}${model.vision ? " (Image Upload)" : ""}`;
             option.selected = model.default;
             modelProvider.appendChild(option);
@@ -1564,6 +1655,32 @@ async function load_provider_models(providerIndex=null) {
     }
 };
 providerSelect.addEventListener("change", () => load_provider_models());
+document.getElementById("pin").addEventListener("click", async () => {
+    const pin_container = document.getElementById("pin_container");
+    let selected_provider = providerSelect.options[providerSelect.selectedIndex];
+    selected_provider = selected_provider.value ? selected_provider : null;
+    const selected_model = get_selected_model();
+    if (selected_provider || selected_model) {
+        const pinned = document.createElement("button");
+        pinned.classList.add("pinned");
+        if (selected_provider) pinned.dataset.provider = selected_provider.value;
+        if (selected_model) pinned.dataset.model = selected_model.value;
+        pinned.innerHTML = `
+            <span>
+            ${selected_provider ? selected_provider.dataset.label || selected_provider.text : ""}
+            ${selected_provider && selected_model ? "/" : ""}
+            ${selected_model ? selected_model.dataset.label || selected_model.text : ""}
+            </span>
+            <i class="fa-regular fa-circle-xmark"></i>`;
+        pinned.addEventListener("click", () => pin_container.removeChild(pinned));
+        let all_pinned = pin_container.querySelectorAll(".pinned");
+        while (all_pinned.length > 4) {
+            pin_container.removeChild(all_pinned[0])
+            all_pinned = pin_container.querySelectorAll(".pinned");
+        }
+        pin_container.appendChild(pinned);
+    }
+});
 
 function save_storage() {
     let filename = `chat ${new Date().toLocaleString()}.json`.replaceAll(":", "-");

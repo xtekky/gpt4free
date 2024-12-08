@@ -63,6 +63,7 @@
     --conversations-hover: #c7a2ff4d;
     --scrollbar: var(--colour-3);
     --scrollbar-thumb: var(--blur-bg);
+    --button-hover: var(--colour-5);
 }
 
 :root {
@@ -533,7 +534,7 @@ body.white .gradient{
 
 .stop_generating, .toolbar .regenerate {
     position: absolute;
-    z-index: 1000000;
+    z-index: 100000;
     top: 0;
     right: 0;
 }
@@ -729,13 +730,8 @@ label[for="camera"] {
 
 
 select {
-    -webkit-border-radius: 8px;
-    -moz-border-radius: 8px;
     border-radius: 8px;
-
-    -webkit-backdrop-filter: blur(20px);
     backdrop-filter: blur(20px);
-
     cursor: pointer;
     background-color: var(--colour-1);
     border: 1px solid var(--blur-border);
@@ -745,9 +741,45 @@ select {
     overflow: hidden;
     outline: none;
     padding: 8px 16px;
-
     appearance: none;
     width: 160px;
+}
+
+.buttons button {
+    border-radius: 8px;
+    backdrop-filter: blur(20px);
+    cursor: pointer;
+    background-color: var(--colour-1);
+    border: 1px solid var(--blur-border);
+    color: var(--colour-3);
+    padding: 8px;
+}
+
+.buttons button.pinned span {
+    max-width: 160px;
+    overflow: hidden;
+    text-wrap: nowrap;
+    margin-right: 16px;
+    display: block;
+    text-overflow: ellipsis;
+}
+
+.buttons button.pinned i {
+    position: absolute;
+    top: 10px;
+    right: 6px;
+}
+
+select:hover,
+.buttons button:hover,
+.stop_generating button:hover,
+.toolbar .regenerate button:hover,
+#send-button:hover {
+    background-color: var(--button-hover);
+}
+
+#provider option:disabled[value], #model option:disabled[value] {
+    display: none;
 }
 
 #systemPrompt, .settings textarea {
@@ -759,6 +791,39 @@ select {
     outline: none;
     padding: var(--inner-gap) var(--section-gap);
     resize: vertical;
+}
+
+.pswp {
+    --pswp-placeholder-bg: #000 !important;
+}
+.pswp img {
+    object-fit: contain;
+}
+.pswp__img--placeholder--blank{
+    display: none !important;
+}
+.pswp__custom-caption {
+    opacity: 0 !important;
+    background: rgba(0, 0, 0, 0.3);
+    font-size: 16px;
+    color: #fff;
+    width: calc(100% - 32px);
+    max-width: 400px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    position: absolute;
+    left: 50%;
+    bottom: 16px;
+    transform: translateX(-50%);
+    max-height: 100px;
+    overflow: auto;
+}
+.pswp__custom-caption:hover {
+    opacity: 1 !important;
+}
+.pswp__custom-caption a {
+    color: #fff;
+    text-decoration: underline;
 }
 
 .slide-systemPrompt {
@@ -1112,6 +1177,7 @@ ul {
     --colour-3: #212529;
     --scrollbar: var(--colour-1);
     --scrollbar-thumb: var(--gradient);
+    --button-hover: var(--colour-4);
 }
 
 .white .message .assistant .fa-xmark {

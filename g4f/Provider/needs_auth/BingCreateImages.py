@@ -9,11 +9,11 @@ from ..bing.create_images import create_images, create_session
 
 class BingCreateImages(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Microsoft Designer in Bing"
-    parent = "Bing"
     url = "https://www.bing.com/images/create"
     working = True
     needs_auth = True
-    image_models = ["dall-e"]
+    image_models = ["dall-e-3"]
+    models = image_models
 
     def __init__(self, cookies: Cookies = None, proxy: str = None, api_key: str = None) -> None:
         if api_key is not None:

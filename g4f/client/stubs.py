@@ -10,7 +10,7 @@ try:
 except ImportError:
     class BaseModel():
         @classmethod
-        def construct(cls, **data):
+        def model_construct(cls, **data):
             new = cls()
             for key, value in data.items():
                 setattr(new, key, value)
@@ -18,6 +18,13 @@ except ImportError:
     class Field():
         def __init__(self, **config):
             pass
+
+class BaseModel(BaseModel):
+    @classmethod
+    def model_construct(cls, **data):
+        if hasattr(super(), "model_construct"):
+            return super().model_construct(**data)
+        return cls.construct(**data)
 
 class ChatCompletionChunk(BaseModel):
     id: str
@@ -28,21 +35,21 @@ class ChatCompletionChunk(BaseModel):
     choices: List[ChatCompletionDeltaChoice]
 
     @classmethod
-    def construct(
+    def model_construct(
         cls,
         content: str,
         finish_reason: str,
         completion_id: str = None,
         created: int = None
     ):
-        return super().construct(
+        return super().model_construct(
             id=f"chatcmpl-{completion_id}" if completion_id else None,
             object="chat.completion.cunk",
             created=created,
             model=None,
             provider=None,
-            choices=[ChatCompletionDeltaChoice.construct(
-                ChatCompletionDelta.construct(content),
+            choices=[ChatCompletionDeltaChoice.model_construct(
+                ChatCompletionDelta.model_construct(content),
                 finish_reason
             )]
         )
@@ -52,8 +59,8 @@ class ChatCompletionMessage(BaseModel):
     content: str
 
     @classmethod
-    def construct(cls, content: str):
-        return super().construct(role="assistant", content=content)
+    def model_construct(cls, content: str):
+        return super().model_construct(role="assistant", content=content)
 
 class ChatCompletionChoice(BaseModel):
     index: int
@@ -61,8 +68,8 @@ class ChatCompletionChoice(BaseModel):
     finish_reason: str
 
     @classmethod
-    def construct(cls, message: ChatCompletionMessage, finish_reason: str):
-        return super().construct(index=0, message=message, finish_reason=finish_reason)
+    def model_construct(cls, message: ChatCompletionMessage, finish_reason: str):
+        return super().model_construct(index=0, message=message, finish_reason=finish_reason)
 
 class ChatCompletion(BaseModel):
     id: str
@@ -78,21 +85,21 @@ class ChatCompletion(BaseModel):
     }])
 
     @classmethod
-    def construct(
+    def model_construct(
         cls,
         content: str,
         finish_reason: str,
         completion_id: str = None,
         created: int = None
     ):
-        return super().construct(
+        return super().model_construct(
             id=f"chatcmpl-{completion_id}" if completion_id else None,
             object="chat.completion",
             created=created,
             model=None,
             provider=None,
-            choices=[ChatCompletionChoice.construct(
-                ChatCompletionMessage.construct(content),
+            choices=[ChatCompletionChoice.model_construct(
+                ChatCompletionMessage.model_construct(content),
                 finish_reason
             )],
             usage={
@@ -107,8 +114,8 @@ class ChatCompletionDelta(BaseModel):
     content: str
 
     @classmethod
-    def construct(cls, content: Optional[str]):
-        return super().construct(role="assistant", content=content)
+    def model_construct(cls, content: Optional[str]):
+        return super().model_construct(role="assistant", content=content)
 
 class ChatCompletionDeltaChoice(BaseModel):
     index: int
@@ -116,8 +123,8 @@ class ChatCompletionDeltaChoice(BaseModel):
     finish_reason: Optional[str]
 
     @classmethod
-    def construct(cls, delta: ChatCompletionDelta, finish_reason: Optional[str]):
-        return super().construct(index=0, delta=delta, finish_reason=finish_reason)
+    def model_construct(cls, delta: ChatCompletionDelta, finish_reason: Optional[str]):
+        return super().model_construct(index=0, delta=delta, finish_reason=finish_reason)
 
 class Image(BaseModel):
     url: Optional[str]
@@ -125,8 +132,8 @@ class Image(BaseModel):
     revised_prompt: Optional[str]
 
     @classmethod
-    def construct(cls, url: str = None, b64_json: str = None, revised_prompt: str = None):
-        return super().construct(**filter_none(
+    def model_construct(cls, url: str = None, b64_json: str = None, revised_prompt: str = None):
+        return super().model_construct(**filter_none(
             url=url,
             b64_json=b64_json,
             revised_prompt=revised_prompt
@@ -139,10 +146,10 @@ class ImagesResponse(BaseModel):
     created: int
 
     @classmethod
-    def construct(cls, data: List[Image], created: int = None, model: str = None, provider: str = None):
+    def model_construct(cls, data: List[Image], created: int = None, model: str = None, provider: str = None):
         if created is None:
             created = int(time())
-        return super().construct(
+        return super().model_construct(
             data=data,
             model=model,
             provider=provider,

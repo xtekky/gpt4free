@@ -132,17 +132,27 @@ To ensure the seamless operation of our application, please follow the instructi
 
 By following these steps, you should be able to successfully install and run the application on your Windows system. If you encounter any issues during the installation process, please refer to our Issue Tracker or try to get contact over Discord for assistance.
 
-Run the **Webview UI** on other Platforms:
+---
 
-- [/docs/webview](docs/webview.md)
+### Learn More About the GUI
 
-##### Use your smartphone:
+For detailed instructions on how to set up, configure, and use the GPT4Free GUI, refer to the **GUI Documentation**:
 
-Run the Web UI on Your Smartphone:
+- [GUI Documentation](docs/gui.md)
 
-- [/docs/guides/phone](docs/guides/phone.md)
+This guide includes step-by-step details on provider selection, managing conversations, using advanced features like speech recognition, and more.
 
-#### Use python
+---
+
+### Use Your Smartphone
+
+Run the Web UI on your smartphone for easy access on the go. Check out the dedicated guide to learn how to set up and use the GUI on your mobile device:
+
+- [Run on Smartphone Guide](docs/guides/phone.md)
+
+---
+
+### Use python
 
 ##### Prerequisites:
 

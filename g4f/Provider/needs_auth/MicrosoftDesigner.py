@@ -142,7 +142,7 @@ def readHAR(url: str) -> tuple[str, str]:
     return api_key, user_agent
 
 async def get_access_token_and_user_agent(url: str, proxy: str = None):
-    browser = await get_nodriver(proxy=proxy)
+    browser = await get_nodriver(proxy=proxy, user_data_dir="designer")
     page = await browser.get(url)
     user_agent = await page.evaluate("navigator.userAgent")
     access_token = None

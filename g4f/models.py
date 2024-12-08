@@ -38,6 +38,7 @@ from .Provider import (
     RubiksAI,
     TeachAnything,
     Upstage,
+    Flux,
 )
 
 @dataclass(unsafe_hash=True)
@@ -58,6 +59,9 @@ class Model:
     def __all__() -> list[str]:
         """Returns a list of all model names."""
         return _all_models
+
+class ImageModel(Model):
+    pass
 
 ### Default ###
 default = Model(
@@ -559,100 +563,98 @@ any_uncensored = Model(
 #############
 
 ### Stability AI ###
-sdxl = Model(
+sdxl = ImageModel(
     name = 'sdxl',
     base_provider = 'Stability AI',
     best_provider = IterListProvider([ReplicateHome, Airforce])
     
 )
 
-sd_3 = Model(
+sd_3 = ImageModel(
     name = 'sd-3',
     base_provider = 'Stability AI',
     best_provider = ReplicateHome
-    
 )
 
 ### Playground ###
-playground_v2_5 = Model(
+playground_v2_5 = ImageModel(
     name = 'playground-v2.5',
     base_provider = 'Playground AI',
     best_provider = ReplicateHome
-    
 )
 
 
 ### Flux AI ###
-flux = Model(
+flux = ImageModel(
     name = 'flux',
     base_provider = 'Flux AI',
     best_provider = IterListProvider([Blackbox, Airforce])
 )
 
-flux_pro = Model(
+flux_pro = ImageModel(
     name = 'flux-pro',
     base_provider = 'Flux AI',
     best_provider = Airforce
 )
 
-flux_dev = Model(
+flux_dev = ImageModel(
     name = 'flux-dev',
     base_provider = 'Flux AI',
-    best_provider = AmigoChat
+    best_provider = IterListProvider([Flux, AmigoChat, HuggingChat, HuggingFace])
 )
 
-flux_realism = Model(
+flux_realism = ImageModel(
     name = 'flux-realism',
     base_provider = 'Flux AI',
     best_provider = IterListProvider([Airforce, AmigoChat])
 )
 
-flux_anime = Model(
+flux_anime = ImageModel(
     name = 'flux-anime',
     base_provider = 'Flux AI',
     best_provider = Airforce
 )
 
-flux_3d = Model(
+flux_3d = ImageModel(
     name = 'flux-3d',
     base_provider = 'Flux AI',
     best_provider = Airforce
 )
 
-flux_disney = Model(
+flux_disney = ImageModel(
     name = 'flux-disney',
     base_provider = 'Flux AI',
     best_provider = Airforce
 )
 
-flux_pixel = Model(
+flux_pixel = ImageModel(
     name = 'flux-pixel',
     base_provider = 'Flux AI',
     best_provider = Airforce
 )
 
-flux_4o = Model(
+flux_4o = ImageModel(
     name = 'flux-4o',
     base_provider = 'Flux AI',
     best_provider = Airforce
 )
 
 ### OpenAI ###
-dall_e_3 = Model(
+dall_e_3 = ImageModel(
     name = 'dall-e-3',
     base_provider = 'OpenAI',
     best_provider = IterListProvider([Airforce, CopilotAccount, OpenaiAccount, MicrosoftDesigner, BingCreateImages])
 )
 
 ### Recraft ###
-recraft_v3 = Model(
+recraft_v3 = ImageModel(
     name = 'recraft-v3',
     base_provider = 'Recraft',
     best_provider = AmigoChat
 )
 
 ### Other ###
-any_dark = Model(
+any_dark = ImageModel(
     name = 'any-dark',
     base_provider = 'Other',
     best_provider = Airforce
@@ -863,4 +865,17 @@ class ModelUtils:
         'any-dark': any_dark,
     }
 
+# Create a list of all working models
+__models__  = {model.name: (model, providers) for model, providers in [
+    (model, [provider for provider in providers if provider.working])
+        for model, providers in [
+            (model, model.best_provider.providers
+                if isinstance(model.best_provider, IterListProvider)
+                else [model.best_provider]
+                if model.best_provider is not None
+                else [])
+        for model in ModelUtils.convert.values()]
+    ] if providers}
+# Update the ModelUtils.convert with the working models
+ModelUtils.convert = {model.name: model for model, _ in __models__.values()}
 _all_models = list(ModelUtils.convert.keys())
