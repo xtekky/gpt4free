@@ -113,7 +113,7 @@ And replace "gpt-3.5-turbo" with `model`.
     print("Create code...")
     response = []
     for chunk in g4f.ChatCompletion.create(
-        model=g4f.models.default,
+        model=g4f.models.gpt_4o,
         messages=[{"role": "user", "content": prompt}],
         timeout=300,
         stream=True,

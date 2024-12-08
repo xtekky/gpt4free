@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en" data-framework="javascript">
-
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -62,9 +61,8 @@
                 onInit: (el, pswp) => {
                     lightbox.pswp.on('change', () => {
                         const currSlideElement = lightbox.pswp.currSlide.data.element;
-                        let captionHTML = '';
                         if (currSlideElement) {
-                            el.innerHTML = currSlideElement.querySelector('img').getAttribute('alt');
+                            el.innerText = currSlideElement.querySelector('img').getAttribute('alt');
                         }
                     });
                 }
@@ -80,7 +78,6 @@
     <script>window.conversation_id = "{{chat_id}}"</script>
     <title>g4f - gui</title>
 </head>
-
 <body>
     <div class="gradient"></div>
     <div class="row">
@@ -92,12 +89,6 @@
                 </button>
             </div>
             <div class="bottom_buttons">
-                <!--
-                <button onclick="open_album();">
-                    <i class="fa-solid fa-toolbox"></i>
-                    <span>Images Album</span>
-                </button>
-                -->
                 <button onclick="open_settings();">
                     <i class="fa-solid fa-toolbox"></i>
                     <span>Open Settings</span>
@@ -117,8 +108,6 @@
                     <span id="version_text" class="convo-title"></span>
                 </div>
             </div>
-        </div>
-        <div class="images hidden">
         </div>
         <div class="settings hidden">
             <div class="paper">
@@ -151,14 +140,14 @@
             <div class="field">
                 <span class="label">Auto continue in ChatGPT</span>
                 <input id="auto_continue" type="checkbox" name="auto_continue" checked/>
-                <label for="auto_continue" class="toogle" title="Continue large responses in OpenaiChat"></label>
+                <label for="auto_continue" class="toogle" title="Continue large responses in OpenAI ChatGPT"></label>
             </div>
             <div class="field box">
                 <label for="message-input-height" class="label" title="">Input max. height</label>
                 <input type="number" id="message-input-height" value="200"/>
             </div>
             <div class="field box">
-                <label for="recognition-language" class="label" title="">Speech recognition lang</label>
+                <label for="recognition-language" class="label" title="">Speech recognition language</label>
                 <input type="text" id="recognition-language" value="" placeholder="navigator.language"/>
             </div>
             <div class="field box">
@@ -250,7 +239,7 @@
                 <div class="box input-box">
                     <textarea id="message-input" placeholder="Ask a question" cols="30" rows="10"
                         style="white-space: pre-wrap;resize: none;"></textarea>
-                    <label class="file-label image-label" for="image" title="Works with Bing, Gemini, OpenaiChat and You">
+                    <label class="file-label image-label" for="image" title="">
                         <input type="file" id="image" name="image" accept="image/*" required/>
                         <i class="fa-regular fa-image"></i>
                     </label>
@@ -278,12 +267,13 @@
                      <option value="gpt-4o">gpt-4o</option>
                      <option value="gpt-4o-mini">gpt-4o-mini</option>
                      <option value="llama-3.1-70b">llama-3.1-70b</option>
-                     <option value="llama-3.1-70b">llama-3.1-405b</option>
-                     <option value="llama-3.1-70b">mixtral-8x7b</option>
+                     <option value="llama-3.1-405b">llama-3.1-405b</option>
+                     <option value="mixtral-8x7b">mixtral-8x7b</option>
                      <option value="gemini-pro">gemini-pro</option>
                      <option value="gemini-flash">gemini-flash</option>
-                     <option value="claude-3-haiku">claude-3-haiku</option>
                      <option value="claude-3.5-sonnet">claude-3.5-sonnet</option>
+                     <option value="flux">flux (Image Generation)</option>
+                     <option value="dall-e-3">dall-e-3 (Image Generation)</option>
                      <option disabled="disabled">----</option>
                   </select>
                   <select name="model2" id="model2" class="hidden"></select>
