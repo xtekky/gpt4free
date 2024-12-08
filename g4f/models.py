@@ -97,7 +97,7 @@ gpt_35_turbo = Model(
 gpt_4 = Model(
     name          = 'gpt-4',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([DDG, Blackbox, ChatGptEs, PollinationsAI, Copilot, OpenaiChat, Liaobots, Airforce])
+    best_provider = IterListProvider([DDG, Blackbox, ChatGptEs, PollinationsAI, Copilot, OpenaiChat, Liaobots])
 )
 
 gpt_4_turbo = Model(
@@ -169,7 +169,7 @@ llama_3_1_8b = Model(
 llama_3_1_70b = Model(
     name          = "llama-3.1-70b",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider([DDG, DeepInfraChat, Blackbox, Blackbox2, TeachAnything, PollinationsAI, DarkAI, Airforce, RubiksAI, HuggingChat, HuggingFace, PerplexityLabs])
+    best_provider = IterListProvider([DDG, DeepInfraChat, Blackbox, Blackbox2, TeachAnything, PollinationsAI, DarkAI, Airforce, RubiksAI, PerplexityLabs])
 )
 
 llama_3_1_405b = Model(
@@ -236,11 +236,6 @@ hermes_3 = Model(
     best_provider = IterListProvider([HuggingChat, HuggingFace])
 )
 
-mixtral_8x7b_dpo = Model(
-    name          = "mixtral-8x7b-dpo",
-    base_provider = "NousResearch",
-    best_provider = Airforce
-)
 
 ### Microsoft ###
 phi_2 = Model(
@@ -333,7 +328,7 @@ blackboxai_pro = Model(
 command_r_plus = Model(
     name = 'command-r-plus',
     base_provider = 'CohereForAI',
-    best_provider = IterListProvider([PollinationsAI, HuggingChat])
+    best_provider = HuggingChat
 )
 
 ### Qwen ###
@@ -440,6 +435,14 @@ lfm_40b = Model(
     name = 'lfm-40b',
     base_provider = 'Liquid',
     best_provider = IterListProvider([Airforce, PerplexityLabs])
+)
+
+
+### DiscoResearch ### 
+german_7b = Model(
+    name = 'german-7b',
+    base_provider = 'DiscoResearch',
+    best_provider = Airforce
 )
 
 ### HuggingFaceH4 ### 
@@ -723,6 +726,9 @@ class ModelUtils:
         
         ### DeepSeek ###
         'deepseek-coder': deepseek_coder,
+
+        ### TheBloke ###   
+        'german-7b': german_7b,
 
         ### Nvidia ###   
         'nemotron-70b': nemotron_70b,
