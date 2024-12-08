@@ -740,7 +740,6 @@ class ModelUtils:
         'mistral-large': mistral_large,
 
         ### NousResearch ###
-        'mixtral-8x7b-dpo': mixtral_8x7b_dpo,
         'hermes-2-dpo': hermes_2_dpo,
         'hermes-2-pro': hermes_2_pro,
         'hermes-3': hermes_3,
