@@ -258,12 +258,6 @@ hermes_3 = Model(
     best_provider = IterListProvider([HuggingChat, HuggingFace])
 )
 
-mixtral_8x7b_dpo = Model(
-    name          = "mixtral-8x7b-dpo",
-    base_provider = "NousResearch",
-    best_provider = IterListProvider([AmigoChat, Airforce])
-)
-
 ### Microsoft ###
 phi_2 = Model(
     name          = "phi-2",
