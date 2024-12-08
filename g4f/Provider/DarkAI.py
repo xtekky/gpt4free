@@ -16,17 +16,15 @@ class DarkAI(AsyncGeneratorProvider, ProviderModelMixin):
     supports_system_message = True
     supports_message_history = True
     
-    default_model = 'llama-3-405b'
+    default_model = 'llama-3-70b'
     models = [
          'gpt-4o', # Uncensored
          'gpt-3.5-turbo', # Uncensored
-         'llama-3-70b', # Uncensored
          default_model,
     ]
     
     model_aliases = {
         "llama-3.1-70b": "llama-3-70b",
-        "llama-3.1-405b": "llama-3-405b",
     }
 
     @classmethod

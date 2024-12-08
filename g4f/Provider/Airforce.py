@@ -1,18 +1,19 @@
-from __future__ import annotations
 import json
 import random
 import re
 import requests
-from requests.packages.urllib3.exceptions import InsecureRequestWarning
 from aiohttp import ClientSession
-
+from typing import List
+from requests.packages.urllib3.exceptions import InsecureRequestWarning
 from ..typing import AsyncResult, Messages
 from ..image import ImageResponse
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 
-requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
+from .. import debug
 
-def split_message(message: str, max_length: int = 1000) -> list[str]:
+requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
+ 
+def split_message(message: str, max_length: int = 1000) -> List[str]:
     """Splits the message into parts up to (max_length)."""
     chunks = []
     while len(message) > max_length:
@@ -38,6 +39,8 @@ class Airforce(AsyncGeneratorProvider, ProviderModelMixin):
 
     default_model = "gpt-4o-mini"
     default_image_model = "flux"
+    
+    hidden_models = {"Flux-1.1-Pro"}
 
     additional_models_imagine = ["flux-1.1-pro", "dall-e-3"]
 
@@ -54,39 +57,38 @@ class Airforce(AsyncGeneratorProvider, ProviderModelMixin):
         "llama-3.1-70b": "llama-3.1-70b-turbo",
         "neural-7b": "neural-chat-7b-v3-1",
         "zephyr-7b": "zephyr-7b-beta",
+        "evil": "any-uncensored",
         "sdxl": "stable-diffusion-xl-base",
         "flux-pro": "flux-1.1-pro",
     }
 
     @classmethod
-    def fetch_completions_models(cls):
-        response = requests.get('https://api.airforce/models', verify=False)
-        response.raise_for_status()
-        data = response.json()
-        return [model['id'] for model in data['data']]
-
-    @classmethod
-    def fetch_imagine_models(cls):
-        response = requests.get(
-            'https://api.airforce/v1/imagine2/models',
-            verify=False
-        )
-        response.raise_for_status()
-        return response.json()
-
-    @classmethod
-    def is_image_model(cls, model: str) -> bool:
-        return model in cls.image_models
-
-    @classmethod
     def get_models(cls):
-        if not cls.models:
-            cls.image_models = cls.fetch_imagine_models() + cls.additional_models_imagine
-            cls.models = list(dict.fromkeys([cls.default_model] +
-                                    cls.fetch_completions_models() +
-                                    cls.image_models))
-        return cls.models
+        if not cls.image_models:
+            try:
+                url = "https://api.airforce/imagine2/models"
+                response = requests.get(url, verify=False)
+                response.raise_for_status()
+                cls.image_models = response.json()
+                cls.image_models.extend(cls.additional_models_imagine)
+            except Exception as e:
+                debug.log(f"Error fetching image models: {e}")
 
+        if not cls.models:
+            try:
+                url = "https://api.airforce/models"
+                response = requests.get(url, verify=False)
+                response.raise_for_status()
+                data = response.json()
+                cls.models = [model['id'] for model in data['data']]
+                cls.models.extend(cls.image_models)
+                cls.models = [model for model in cls.models if model not in cls.hidden_models]
+            except Exception as e:
+                debug.log(f"Error fetching text models: {e}")
+                cls.models = [cls.default_model]
+
+        return cls.models
+        
     @classmethod
     async def check_api_key(cls, api_key: str) -> bool:
         """
@@ -112,6 +114,37 @@ class Airforce(AsyncGeneratorProvider, ProviderModelMixin):
             return False
 
     @classmethod
+    def _filter_content(cls, part_response: str) -> str:
+        """
+        Filters out unwanted content from the partial response.
+        """
+        part_response = re.sub(
+            r"One message exceeds the \d+chars per message limit\..+https:\/\/discord\.com\/invite\/\S+",
+            '',
+            part_response
+        )
+
+        part_response = re.sub(
+            r"Rate limit \(\d+\/minute\) exceeded\. Join our discord for more: .+https:\/\/discord\.com\/invite\/\S+",
+            '',
+            part_response
+        )
+
+        return part_response
+
+    @classmethod
+    def _filter_response(cls, response: str) -> str:
+        """
+        Filters the full response to remove system errors and other unwanted text.
+        """
+        filtered_response = re.sub(r"\[ERROR\] '\w{8}-\w{4}-\w{4}-\w{4}-\w{12}'", '', response)  # any-uncensored
+        filtered_response = re.sub(r'<\|im_end\|>', '', filtered_response)  # remove <|im_end|> token
+        filtered_response = re.sub(r'</s>', '', filtered_response)  # neural-chat-7b-v3-1  
+        filtered_response = re.sub(r'^(Assistant: |AI: |ANSWER: |Output: )', '', filtered_response)  # phi-2
+        filtered_response = cls._filter_content(filtered_response)
+        return filtered_response
+
+    @classmethod
     async def generate_image(
         cls,
         model: str,
@@ -124,6 +157,7 @@ class Airforce(AsyncGeneratorProvider, ProviderModelMixin):
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:133.0) Gecko/20100101 Firefox/133.0",
             "Accept": "image/avif,image/webp,image/png,image/svg+xml,image/*;q=0.8,*/*;q=0.5",
+            "Accept-Language": "en-US,en;q=0.5",
             "Accept-Encoding": "gzip, deflate, br, zstd",
             "Content-Type": "application/json",
             "Authorization": f"Bearer {api_key}",
@@ -151,9 +185,13 @@ class Airforce(AsyncGeneratorProvider, ProviderModelMixin):
         api_key: str,
         proxy: str = None
     ) -> AsyncResult:
+        """
+        Generates text, buffers the response, filters it, and returns the final result.
+        """
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:133.0) Gecko/20100101 Firefox/133.0",
             "Accept": "application/json, text/event-stream",
+            "Accept-Language": "en-US,en;q=0.5",
             "Accept-Encoding": "gzip, deflate, br, zstd",
             "Content-Type": "application/json",
             "Authorization": f"Bearer {api_key}",
@@ -175,6 +213,7 @@ class Airforce(AsyncGeneratorProvider, ProviderModelMixin):
                 response.raise_for_status()
 
                 if stream:
+                    buffer = []  # Buffer to collect partial responses
                     async for line in response.content:
                         line = line.decode('utf-8').strip()
                         if line.startswith('data: '):
@@ -184,18 +223,20 @@ class Airforce(AsyncGeneratorProvider, ProviderModelMixin):
                                 if 'choices' in chunk and chunk['choices']:
                                     delta = chunk['choices'][0].get('delta', {})
                                     if 'content' in delta:
-                                        filtered_content = cls._filter_response(delta['content'])
-                                        yield filtered_content
+                                        buffer.append(delta['content'])
                             except json.JSONDecodeError:
                                 continue
+                    # Combine the buffered response and filter it
+                    filtered_response = cls._filter_response(''.join(buffer))
+                    yield filtered_response
                 else:
                     # Non-streaming response
                     result = await response.json()
                     if 'choices' in result and result['choices']:
                         message = result['choices'][0].get('message', {})
                         content = message.get('content', '')
-                        filtered_content = cls._filter_response(content)
-                        yield filtered_content
+                        filtered_response = cls._filter_response(content)
+                        yield filtered_response
 
     @classmethod
     async def create_async_generator(
@@ -217,7 +258,7 @@ class Airforce(AsyncGeneratorProvider, ProviderModelMixin):
             pass
 
         model = cls.get_model(model)
-        if cls.is_image_model(model):
+        if model in cls.image_models:
             if prompt is None:
                 prompt = messages[-1]['content']
             if seed is None:
@@ -227,27 +268,3 @@ class Airforce(AsyncGeneratorProvider, ProviderModelMixin):
         else:
             async for result in cls.generate_text(model, messages, max_tokens, temperature, top_p, stream, api_key, proxy):
                 yield result
-
-    @classmethod
-    def _filter_content(cls, part_response: str) -> str:
-        part_response = re.sub(
-            r"One message exceeds the \d+chars per message limit\..+https:\/\/discord\.com\/invite\/\S+",
-            '',
-            part_response
-        )
-
-        part_response = re.sub(
-            r"Rate limit \(\d+\/minute\) exceeded\. Join our discord for more: .+https:\/\/discord\.com\/invite\/\S+",
-            '',
-            part_response
-        )
-
-        return part_response
-
-    @classmethod
-    def _filter_response(cls, response: str) -> str:
-        filtered_response = re.sub(r"\[ERROR\] '\w{8}-\w{4}-\w{4}-\w{4}-\w{12}'", '', response) # any-uncensored
-        filtered_response = re.sub(r'<\|im_end\|>', '', response) # hermes-2-pro-mistral-7b 
-        filtered_response = re.sub(r'</s>', '', response) # neural-chat-7b-v3-1  
-        filtered_response = cls._filter_content(filtered_response)
-        return filtered_response
