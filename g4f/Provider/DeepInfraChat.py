@@ -9,6 +9,7 @@ from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 class DeepInfraChat(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://deepinfra.com/chat"
     api_endpoint = "https://api.deepinfra.com/v1/openai/chat/completions"
+    
     working = True
     supports_stream = True
     supports_system_message = True

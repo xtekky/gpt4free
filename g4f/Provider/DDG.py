@@ -30,6 +30,7 @@ class Conversation(BaseConversation):
         self.model = model
 
 class DDG(AsyncGeneratorProvider, ProviderModelMixin):
+    label = "DuckDuckGo AI Chat"
     url = "https://duckduckgo.com/aichat"
     api_endpoint = "https://duckduckgo.com/duckchat/v1/chat"
     working = True

@@ -108,7 +108,6 @@ class AmigoChat(AsyncGeneratorProvider, ProviderModelMixin):
         "mythomax-13b": "Gryphe/MythoMax-L2-13b",
         
         "mixtral-7b": "mistralai/Mistral-7B-Instruct-v0.3",
-        "mistral-tiny": "mistralai/mistral-tiny",
         "mistral-nemo": "mistralai/mistral-nemo",
         
         "deepseek-chat": "deepseek-ai/deepseek-llm-67b-chat",
@@ -127,7 +126,6 @@ class AmigoChat(AsyncGeneratorProvider, ProviderModelMixin):
         
         
         ### image ###
-        "flux-realism": "flux-realism",
         "flux-dev": "flux/dev",
     }
 

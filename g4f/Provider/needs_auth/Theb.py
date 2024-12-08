@@ -35,9 +35,8 @@ class Theb(AbstractProvider):
     label = "TheB.AI"
     url = "https://beta.theb.ai"
     working = True
-    supports_gpt_35_turbo = True
-    supports_gpt_4 = True
     supports_stream = True
+    
     models = models.keys()
 
     @classmethod

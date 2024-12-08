@@ -98,12 +98,12 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
     models = list(dict.fromkeys([default_model, *userSelectedModel, *list(agentMode.keys()), *list(trendingAgentMode.keys())]))
 
     model_aliases = {
-        "gpt-4": "blackboxai",
+        ### chat ###
         "gpt-4": "gpt-4o",
-        "gpt-4o-mini": "gpt-4o",
-        "gpt-3.5-turbo": "blackboxai",
         "gemini-flash": "gemini-1.5-flash",
         "claude-3.5-sonnet": "claude-sonnet-3.5",
+        
+        ### image ###
         "flux": "ImageGeneration",
     }
 

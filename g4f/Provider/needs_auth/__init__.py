@@ -11,7 +11,7 @@ from .GithubCopilot     import GithubCopilot
 from .Groq              import Groq
 from .HuggingChat       import HuggingChat
 from .HuggingFace       import HuggingFace
-from .HuggingFace2      import HuggingFace2
+from .HuggingFaceAPI    import HuggingFaceAPI
 from .MetaAI            import MetaAI
 from .MetaAIAccount     import MetaAIAccount
 from .MicrosoftDesigner import MicrosoftDesigner
@@ -21,6 +21,7 @@ from .OpenaiChat        import OpenaiChat
 from .PerplexityApi     import PerplexityApi
 from .Poe               import Poe
 from .Raycast           import Raycast
+from .Reka              import Reka
 from .Replicate         import Replicate
 from .Theb              import Theb
 from .ThebApi           import ThebApi

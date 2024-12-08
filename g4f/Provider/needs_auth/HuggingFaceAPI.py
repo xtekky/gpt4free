@@ -4,9 +4,9 @@ from .OpenaiAPI import OpenaiAPI
 from .HuggingChat import HuggingChat
 from ...typing import AsyncResult, Messages
 
-class HuggingFace2(OpenaiAPI):
+class HuggingFaceAPI(OpenaiAPI):
     label = "HuggingFace (Inference API)"
-    url = "https://huggingface.co"
+    url = "https://api-inference.huggingface.co"
     working = True
     default_model = "meta-llama/Llama-3.2-11B-Vision-Instruct"
     default_vision_model = default_model

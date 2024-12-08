@@ -51,14 +51,22 @@ UPLOAD_IMAGE_HEADERS = {
 }
 
 class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
+    label = "Google Gemini"
     url = "https://gemini.google.com"
+    
     needs_auth = True
     working = True
+    
     default_model = 'gemini'
     image_models = ["gemini"]
     default_vision_model = "gemini"
     models = ["gemini", "gemini-1.5-flash", "gemini-1.5-pro"]
+    model_aliases = {
+        "gemini-flash": "gemini-1.5-flash",
+        "gemini-pro": "gemini-1.5-pro",
+    }
     synthesize_content_type = "audio/vnd.wav"
+    
     _cookies: Cookies = None
     _snlm0e: str = None
     _sid: str = None

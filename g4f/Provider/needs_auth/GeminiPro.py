@@ -11,14 +11,20 @@ from ...errors import MissingAuthError
 from ..helper import get_connector
 
 class GeminiPro(AsyncGeneratorProvider, ProviderModelMixin):
-    label = "Gemini API"
+    label = "Google Gemini API"
     url = "https://ai.google.dev"
+    
     working = True
     supports_message_history = True
     needs_auth = True
+    
     default_model = "gemini-1.5-pro"
     default_vision_model = default_model
     models = [default_model, "gemini-pro", "gemini-1.5-flash", "gemini-1.5-flash-8b"]
+    model_aliases = {
+        "gemini-flash": "gemini-1.5-flash",
+        "gemini-flash": "gemini-1.5-flash-8b",
+    }
 
     @classmethod
     async def create_async_generator(

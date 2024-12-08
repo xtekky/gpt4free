@@ -8,13 +8,14 @@ from ..image import ImageResponse, ImagePreview
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 
 class Flux(AsyncGeneratorProvider, ProviderModelMixin):
-    label = "Flux Provider"
+    label = "HuggingSpace (black-forest-labs-flux-1-dev)"
     url = "https://black-forest-labs-flux-1-dev.hf.space"
     api_endpoint = "/gradio_api/call/infer"
     working = True
     default_model = 'flux-dev'
     models = [default_model]
     image_models = [default_model]
+    model_aliases = {"flux-dev": "flux-1-dev"}
 
     @classmethod
     async def create_async_generator(

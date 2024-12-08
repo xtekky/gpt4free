@@ -143,9 +143,9 @@ class Liaobots(AsyncGeneratorProvider, ProviderModelMixin):
     working = True
     supports_message_history = True
     supports_system_message = True
+    
     default_model = "gpt-4o-2024-08-06"
     models = list(models.keys())
-    
     model_aliases = {
         "gpt-4o-mini": "gpt-4o-mini-free",
         "gpt-4o": "gpt-4o-2024-08-06",
