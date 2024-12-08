@@ -13,4 +13,5 @@ from .GPROChat          import GPROChat
 from .Koala             import Koala
 from .MagickPen         import MagickPen
 from .MyShell           import MyShell
+from .RobocodersAPI     import RobocodersAPI
 from .Upstage           import Upstage

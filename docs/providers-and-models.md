@@ -44,15 +44,12 @@ This document provides an overview of various AI providers and models, including
 |[pollinations.ai](https://pollinations.ai)|`g4f.Provider.PollinationsAI`|`gpt-4o, mistral-large, mistral-nemo, llama-3.1-70b, gpt-4, qwen-2.5-coder-32b, claude-3.5-sonnet, command-r, evil, p1`|`flux, flux-realism, flux-cablyai, flux-anime, flux-3d, any-dark, flux-pro, turbo, unity, midijourney, rtist`|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[app.prodia.com](https://app.prodia.com)|`g4f.Provider.Prodia`|❌|✔|❌|❌|![](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[replicate.com](https://replicate.com)|`g4f.Provider.ReplicateHome`|`gemma-2b`|`sd-3, sdxl, playground-v2.5`|❌|❌|![](https://img.shields.io/badge/Active-brightgreen)|❌|
-|[api.robocoders.ai](https://api.robocoders.ai/docs)|`g4f.Provider.RobocodersAPI`|✔|❌|❌|❌|![](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[rubiks.ai](https://rubiks.ai)|`g4f.Provider.RubiksAI`|`gpt-4o-mini, llama-3.1-70b`|❌|❌|✔|![Error](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[teach-anything.com](https://www.teach-anything.com)|`g4f.Provider.TeachAnything`|`llama-3.1-70b`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[you.com](https://you.com)|`g4f.Provider.You`|✔|✔|✔|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌|
 
+
 ---
-
-
-
 ### Providers Needs Auth
 | Provider | Text Models | Image Models | Vision Models | Stream | Status | Auth |
 |----------|-------------|--------------|---------------|--------|--------|------|
@@ -80,7 +77,7 @@ This document provides an overview of various AI providers and models, including
 |[beta.theb.ai](https://beta.theb.ai)|`g4f.Provider.WhiteRabbitNeo`|✔|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|✔|
 |[whiterabbitneo.com](https://www.whiterabbitneo.com)|`g4f.Provider.WhiteRabbitNeo`|✔|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|✔|
 
-
+---
 
 ## Models
 
