@@ -97,7 +97,7 @@ gpt_35_turbo = Model(
 gpt_4 = Model(
     name          = 'gpt-4',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([DDG, Blackbox, ChatGptEs, PollinationsAI, Copilot, OpenaiChat, Liaobots])
+    best_provider = IterListProvider([DDG, Blackbox, ChatGptEs, PollinationsAI, Copilot, OpenaiChat, Liaobots, Airforce])
 )
 
 gpt_4_turbo = Model(
@@ -329,6 +329,12 @@ command_r_plus = Model(
     name = 'command-r-plus',
     base_provider = 'CohereForAI',
     best_provider = HuggingChat
+)
+
+command_r = Model(
+    name = 'command-r',
+    base_provider = 'CohereForAI',
+    best_provider = PollinationsAI
 )
 
 ### Qwen ###
@@ -692,6 +698,7 @@ class ModelUtils:
 
         ### CohereForAI ###
         'command-r+': command_r_plus,
+        'command-r': command_r,
 
         ### GigaChat ###
         'gigachat': gigachat,
