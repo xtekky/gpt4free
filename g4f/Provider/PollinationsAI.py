@@ -35,13 +35,17 @@ class PollinationsAI(OpenaiAPI):
         "claude-3.5-sonnet": "sur", 
     }
     
+    headers = {
+        "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+    }
+    
     @classmethod
     def get_models(cls):
         if not hasattr(cls, 'image_models'):
             cls.image_models = []
         if not cls.image_models:
             url = "https://image.pollinations.ai/models"
-            response = requests.get(url)
+            response = requests.get(url, headers=cls.headers)
             raise_for_status(response)
             cls.image_models = response.json()
             cls.image_models.extend(cls.additional_models_image)
@@ -49,7 +53,7 @@ class PollinationsAI(OpenaiAPI):
             cls.models = []
         if not cls.models:
             url = "https://text.pollinations.ai/models"
-            response = requests.get(url)
+            response = requests.get(url, headers=cls.headers)
             raise_for_status(response)
             cls.models = [model.get("name") for model in response.json()]
             cls.models.extend(cls.image_models)
@@ -92,7 +96,7 @@ class PollinationsAI(OpenaiAPI):
     @classmethod
     async def _generate_text(cls, model: str, messages: Messages, api_base: str, api_key: str = None, proxy: str = None, **kwargs):
         if api_key is None:
-            async with ClientSession(connector=get_connector(proxy=proxy)) as session:
+            async with ClientSession(connector=get_connector(proxy=proxy), headers=cls.headers) as session:
                 prompt = format_prompt(messages)
                 async with session.get(f"https://text.pollinations.ai/{quote(prompt)}?model={quote(model)}") as response:
                     await raise_for_status(response)
