@@ -13,7 +13,7 @@ from .needs_auth.OpenaiAPI import OpenaiAPI
 from .helper import format_prompt
 
 class PollinationsAI(OpenaiAPI):
-    label = "Pollinations.AI"
+    label = "Pollinations AI"
     url = "https://pollinations.ai"
     
     working = True
@@ -22,7 +22,7 @@ class PollinationsAI(OpenaiAPI):
     
     default_model = "openai"
     
-    additional_models_image = ["unity", "midijourney", "rtist"]
+    additional_models_image = ["midjourney", "dall-e-3"]
     additional_models_text = ["sur", "sur-mistral", "claude"]
     
     model_aliases = {

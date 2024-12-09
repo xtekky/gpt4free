@@ -42,7 +42,7 @@ class Airforce(AsyncGeneratorProvider, ProviderModelMixin):
     
     hidden_models = {"Flux-1.1-Pro"}
 
-    additional_models_imagine = ["flux-1.1-pro", "dall-e-3"]
+    additional_models_imagine = ["flux-1.1-pro", "midjourney", "dall-e-3"]
 
     model_aliases = {
         # Alias mappings for models

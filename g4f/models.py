@@ -479,6 +479,30 @@ evil = Model(
     best_provider = IterListProvider([PollinationsAI, Airforce])
 )
 
+### Other ###
+midijourney = Model(
+    name = 'midijourney',
+    base_provider = 'Other',
+    best_provider = PollinationsAI
+)
+turbo = Model(
+    name = 'turbo',
+    base_provider = 'Other',
+    best_provider = PollinationsAI
+)
+
+unity = Model(
+    name = 'unity',
+    base_provider = 'Other',
+    best_provider = PollinationsAI
+)
+
+rtist = Model(
+    name = 'rtist',
+    base_provider = 'Other',
+    best_provider = PollinationsAI
+)
+
 #############
 ### Image ###
 #############
@@ -570,14 +594,14 @@ flux_4o = ImageModel(
 dall_e_3 = ImageModel(
     name = 'dall-e-3',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([Airforce, CopilotAccount, OpenaiAccount, MicrosoftDesigner, BingCreateImages])
+    best_provider = IterListProvider([Airforce, PollinationsAI, CopilotAccount, OpenaiAccount, MicrosoftDesigner, BingCreateImages])
 )
 
 ### Midjourney ###
-midijourney = ImageModel(
-    name = 'midijourney',
+midjourney = ImageModel(
+    name = 'midjourney',
     base_provider = 'Midjourney',
-    best_provider = PollinationsAI
+    best_provider = IterListProvider([PollinationsAI, Airforce])
 )
 
 ### Other ###
@@ -585,24 +609,6 @@ any_dark = ImageModel(
     name = 'any-dark',
     base_provider = 'Other',
     best_provider = IterListProvider([PollinationsAI, Airforce])
-)
-
-turbo = ImageModel(
-    name = 'turbo',
-    base_provider = 'Other',
-    best_provider = PollinationsAI
-)
-
-unity = ImageModel(
-    name = 'unity',
-    base_provider = 'Other',
-    best_provider = PollinationsAI
-)
-
-rtist = ImageModel(
-    name = 'rtist',
-    base_provider = 'Other',
-    best_provider = PollinationsAI
 )
 
 class ModelUtils:
@@ -758,6 +764,12 @@ class ModelUtils:
         ### Uncensored AI ###   
         'evil': evil,
         
+        ### Other ###
+        'midijourney': midijourney,
+        'turbo': turbo,
+        'unity': unity,
+        'rtist': rtist,
+        
         #############
         ### Image ###
         #############
@@ -785,13 +797,10 @@ class ModelUtils:
         'dall-e-3': dall_e_3,
         
         ### Midjourney ###
-        'midijourney': midijourney,
+        'midjourney': midjourney,
         
         ### Other ###
         'any-dark': any_dark,
-        'turbo': turbo,
-        'unity': unity,
-        'rtist': rtist,
     }
 
 # Create a list of all working models
