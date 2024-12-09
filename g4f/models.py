@@ -78,6 +78,7 @@ default = Model(
         ChatGptEs,
         Cloudflare,
         Mhystical,
+        PollinationsAI,
     ])
 )
 
