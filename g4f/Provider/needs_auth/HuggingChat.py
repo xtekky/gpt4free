@@ -24,16 +24,19 @@ class Conversation(BaseConversation):
 
 class HuggingChat(AbstractProvider, ProviderModelMixin):
     url = "https://huggingface.co/chat"
+    
     working = True
     supports_stream = True
     needs_auth = True
+    
     default_model = "Qwen/Qwen2.5-72B-Instruct"
+    default_image_model = "black-forest-labs/FLUX.1-dev"
     image_models = [    
         "black-forest-labs/FLUX.1-dev"
     ]
     models = [
         default_model,
-        'meta-llama/Meta-Llama-3.1-70B-Instruct',
+        'meta-llama/Llama-3.3-70B-Instruct',
         'CohereForAI/c4ai-command-r-plus-08-2024',
         'Qwen/QwQ-32B-Preview',
         'nvidia/Llama-3.1-Nemotron-70B-Instruct-HF',
@@ -45,8 +48,9 @@ class HuggingChat(AbstractProvider, ProviderModelMixin):
         *image_models
     ]
     model_aliases = {
+        ### Chat ###
         "qwen-2.5-72b": "Qwen/Qwen2.5-72B-Instruct",
-        "llama-3.1-70b": "meta-llama/Meta-Llama-3.1-70B-Instruct",
+        "llama-3.3-70b": "meta-llama/Llama-3.3-70B-Instruct",
         "command-r-plus": "CohereForAI/c4ai-command-r-plus-08-2024",
         "qwq-32b": "Qwen/QwQ-32B-Preview",
         "nemotron-70b": "nvidia/Llama-3.1-Nemotron-70B-Instruct-HF",
@@ -55,6 +59,8 @@ class HuggingChat(AbstractProvider, ProviderModelMixin):
         "hermes-3": "NousResearch/Hermes-3-Llama-3.1-8B",
         "mistral-nemo": "mistralai/Mistral-Nemo-Instruct-2407",
         "phi-3.5-mini": "microsoft/Phi-3.5-mini-instruct",
+        
+        ### Image ###
         "flux-dev": "black-forest-labs/FLUX.1-dev",
     }
 

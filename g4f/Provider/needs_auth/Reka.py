@@ -1,10 +1,10 @@
 from __future__     import annotations
 
 import os, requests, time, json
-from ..typing       import CreateResult, Messages, ImageType
-from .base_provider import AbstractProvider
-from ..cookies      import get_cookies
-from ..image        import to_bytes
+from ...typing       import CreateResult, Messages, ImageType
+from ..base_provider import AbstractProvider
+from ...cookies      import get_cookies
+from ...image        import to_bytes
 
 class Reka(AbstractProvider):
     url             = "https://chat.reka.ai/"

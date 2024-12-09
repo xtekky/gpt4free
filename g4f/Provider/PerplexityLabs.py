@@ -29,6 +29,7 @@ class PerplexityLabs(AsyncGeneratorProvider, ProviderModelMixin):
         "sonar-online": "sonar-small-128k-online",
         "sonar-chat": "llama-3.1-sonar-large-128k-chat",
         "sonar-chat": "llama-3.1-sonar-small-128k-chat",
+        "llama-3.3-70b": "llama-3.3-70b-instruct",
         "llama-3.1-8b": "llama-3.1-8b-instruct",
         "llama-3.1-70b": "llama-3.1-70b-instruct",
         "lfm-40b": "/models/LiquidCloud",
@@ -78,9 +79,9 @@ class PerplexityLabs(AsyncGeneratorProvider, ProviderModelMixin):
                 assert(await ws.receive_str())
                 assert(await ws.receive_str() == "6")
                 message_data = {
-                    "version": "2.5",
+                    "version": "2.13",
                     "source": "default",
-                    "model": cls.get_model(model),
+                    "model": model,
                     "messages": messages
                 }
                 await ws.send_str("42" + json.dumps(["perplexity_labs", message_data]))

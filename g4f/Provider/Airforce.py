@@ -42,22 +42,24 @@ class Airforce(AsyncGeneratorProvider, ProviderModelMixin):
     
     hidden_models = {"Flux-1.1-Pro"}
 
-    additional_models_imagine = ["flux-1.1-pro", "dall-e-3"]
+    additional_models_imagine = ["flux-1.1-pro", "midjourney", "dall-e-3"]
 
     model_aliases = {
         # Alias mappings for models
+        "gpt-4": "gpt-4o",
         "openchat-3.5": "openchat-3.5-0106",
         "deepseek-coder": "deepseek-coder-6.7b-instruct",
         "hermes-2-dpo": "Nous-Hermes-2-Mixtral-8x7B-DPO",
         "hermes-2-pro": "hermes-2-pro-mistral-7b",
         "openhermes-2.5": "openhermes-2.5-mistral-7b",
         "lfm-40b": "lfm-40b-moe",
-        "discolm-german-7b": "discolm-german-7b-v1",
+        "german-7b": "discolm-german-7b-v1",
         "llama-2-7b": "llama-2-7b-chat-int8",
         "llama-3.1-70b": "llama-3.1-70b-turbo",
         "neural-7b": "neural-chat-7b-v3-1",
         "zephyr-7b": "zephyr-7b-beta",
         "evil": "any-uncensored",
+        "sdxl": "stable-diffusion-xl-lightning",
         "sdxl": "stable-diffusion-xl-base",
         "flux-pro": "flux-1.1-pro",
         "llama-3.1-8b": "llama-3.1-8b-chat"

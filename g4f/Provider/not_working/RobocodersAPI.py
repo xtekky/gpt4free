@@ -12,20 +12,20 @@ except ImportError:
     BeautifulSoup = None
     
 from aiohttp import ClientTimeout
-from ..errors import MissingRequirementsError
-from ..typing import AsyncResult, Messages
-from ..cookies import get_cookies_dir
-from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from .helper import format_prompt
+from ...errors import MissingRequirementsError
+from ...typing import AsyncResult, Messages
+from ...cookies import get_cookies_dir
+from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from ..helper import format_prompt
 
-from .. import debug
+from ... import debug
 
 
 class RobocodersAPI(AsyncGeneratorProvider, ProviderModelMixin):
     label = "API Robocoders AI"
     url = "https://api.robocoders.ai/docs"
     api_endpoint = "https://api.robocoders.ai/chat"
-    working = True
+    working = False
     supports_message_history = True
     default_model = 'GeneralCodingAgent'
     agent = [default_model, "RepoAgent", "FrontEndAgent"]

@@ -10,6 +10,7 @@ from .helper import format_prompt
 class GizAI(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://app.giz.ai/assistant"
     api_endpoint = "https://app.giz.ai/api/data/users/inferenceServer.infer"
+    
     working = True
     supports_stream = False
     supports_system_message = True
@@ -17,7 +18,6 @@ class GizAI(AsyncGeneratorProvider, ProviderModelMixin):
     
     default_model = 'chat-gemini-flash'
     models = [default_model]
-    
     model_aliases = {"gemini-flash": "chat-gemini-flash",}
 
     @classmethod
