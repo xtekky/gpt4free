@@ -37,14 +37,14 @@ DEFAULT_HEADERS = {
     "accept-encoding": "gzip, deflate, br, zstd",
     'accept-language': 'en-US,en;q=0.8',
     "referer": "https://chatgpt.com/",
-    "sec-ch-ua": "\"Brave\";v=\"123\", \"Not:A-Brand\";v=\"8\", \"Chromium\";v=\"123\"",
+    "sec-ch-ua": "\"Google Chrome\";v=\"131\", \"Chromium\";v=\"131\", \"Not_A Brand\";v=\"24\"",
     "sec-ch-ua-mobile": "?0",
     "sec-ch-ua-platform": "\"Windows\"",
     "sec-fetch-dest": "empty",
     "sec-fetch-mode": "cors",
     "sec-fetch-site": "same-origin",
     "sec-gpc": "1",
-    "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"
+    "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
 }
 
 INIT_HEADERS = {
@@ -53,19 +53,35 @@ INIT_HEADERS = {
     'cache-control': 'no-cache',
     'pragma': 'no-cache',
     'priority': 'u=0, i',
-    'sec-ch-ua': '"Not)A;Brand";v="99", "Google Chrome";v="127", "Chromium";v="127"',
+    "sec-ch-ua": "\"Google Chrome\";v=\"131\", \"Chromium\";v=\"131\", \"Not_A Brand\";v=\"24\"",
     'sec-ch-ua-arch': '"arm"',
     'sec-ch-ua-bitness': '"64"',
     'sec-ch-ua-mobile': '?0',
     'sec-ch-ua-model': '""',
-    'sec-ch-ua-platform': '"macOS"',
+    "sec-ch-ua-platform": "\"Windows\"",
     'sec-ch-ua-platform-version': '"14.4.0"',
     'sec-fetch-dest': 'document',
     'sec-fetch-mode': 'navigate',
     'sec-fetch-site': 'none',
     'sec-fetch-user': '?1',
     'upgrade-insecure-requests': '1',
-    "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"
+    "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+}
+
+UPLOAD_HEADERS = {
+    "accept": "application/json, text/plain, */*",
+    'accept-language': 'en-US,en;q=0.8',
+    "referer": "https://chatgpt.com/",
+    "priority": "u=1, i",
+    "sec-ch-ua": "\"Google Chrome\";v=\"131\", \"Chromium\";v=\"131\", \"Not_A Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?0",
+    'sec-ch-ua-platform': '"macOS"',
+    "sec-fetch-dest": "empty",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "cross-site",
+    "x-ms-blob-type": "BlockBlob",
+    "x-ms-version": "2020-04-08",
+    "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
 }
 
 class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
@@ -140,11 +156,12 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
                     "width": image.width
                 }
             # Put the image bytes to the upload URL and check the status
+            await asyncio.sleep(1)
             async with session.put(
                 image_data["upload_url"],
                 data=data_bytes,
                 headers={
-                    **DEFAULT_HEADERS,
+                    **UPLOAD_HEADERS,
                     "Content-Type": image_data["mime_type"],
                     "x-ms-blob-type": "BlockBlob",
                     "x-ms-version": "2020-04-08",
@@ -164,8 +181,7 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
             return ImageRequest(image_data)
         if not images:
             return
-        tasks = [upload_image(image, image_name) for image, image_name in images]
-        return await asyncio.gather(*tasks)
+        return [await upload_image(image, image_name) for image, image_name in images]
 
     @classmethod
     def create_messages(cls, messages: Messages, image_requests: ImageRequest = None, system_hints: list = None):

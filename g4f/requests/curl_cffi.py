@@ -91,6 +91,7 @@ class StreamSession(AsyncSession):
     put = partialmethod(request, "PUT")
     patch = partialmethod(request, "PATCH")
     delete = partialmethod(request, "DELETE")
+    options = partialmethod(request, "OPTIONS")
 
 if has_curl_mime:
     class FormData(CurlMime):

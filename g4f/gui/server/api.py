@@ -8,7 +8,7 @@ from flask import send_from_directory
 from inspect import signature
 
 from g4f import version, models
-from g4f import get_last_provider, ChatCompletion, get_model_and_provider
+from g4f import ChatCompletion, get_model_and_provider
 from g4f.errors import VersionNotFoundError
 from g4f.image import ImagePreview, ImageResponse, copy_images, ensure_images_dir, images_dir
 from g4f.Provider import ProviderType, __providers__, __map__
