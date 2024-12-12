@@ -4,7 +4,7 @@ import json
 
 from ..helper import filter_none
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin, FinishReason
-from ...typing import Union, Optional, AsyncResult, Messages, ImageType
+from ...typing import Union, Optional, AsyncResult, Messages, ImagesType
 from ...requests import StreamSession, raise_for_status
 from ...errors import MissingAuthError, ResponseError
 from ...image import to_data_uri
@@ -25,7 +25,7 @@ class OpenaiAPI(AsyncGeneratorProvider, ProviderModelMixin):
         messages: Messages,
         proxy: str = None,
         timeout: int = 120,
-        image: ImageType = None,
+        images: ImagesType = None,
         api_key: str = None,
         api_base: str = "https://api.openai.com/v1",
         temperature: float = None,
@@ -40,14 +40,14 @@ class OpenaiAPI(AsyncGeneratorProvider, ProviderModelMixin):
     ) -> AsyncResult:
         if cls.needs_auth and api_key is None:
             raise MissingAuthError('Add a "api_key"')
-        if image is not None:
+        if images is not None:
             if not model and hasattr(cls, "default_vision_model"):
                 model = cls.default_vision_model
             messages[-1]["content"] = [
-                {
+                *[{
                     "type": "image_url",
                     "image_url": {"url": to_data_uri(image)}
-                },
+                } for image, image_name in images],
                 {
                     "type": "text",
                     "text": messages[-1]["content"]

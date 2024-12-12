@@ -12,7 +12,7 @@ from ..image import ImageResponse, copy_images, images_dir
 from ..typing import Messages, ImageType
 from ..providers.types import ProviderType
 from ..providers.response import ResponseType, FinishReason, BaseConversation, SynthesizeData
-from ..errors import NoImageResponseError, MissingAuthError, NoValidHarFileError
+from ..errors import NoImageResponseError
 from ..providers.retry_provider import IterListProvider
 from ..providers.asyncio import to_sync_generator, async_generator_to_list
 from ..Provider.needs_auth import BingCreateImages, OpenaiAccount
@@ -192,6 +192,8 @@ class Completions:
         provider: Optional[ProviderType] = None,
         stream: Optional[bool] = False,
         proxy: Optional[str] = None,
+        image: Optional[ImageType] = None,
+        image_name: Optional[str] = None,
         response_format: Optional[dict] = None,
         max_tokens: Optional[int] = None,
         stop: Optional[Union[list[str], str]] = None,
@@ -210,6 +212,8 @@ class Completions:
             ignore_stream,
         )
         stop = [stop] if isinstance(stop, str) else stop
+        if image is not None:
+            kwargs["images"] = [[image, image_name]]
 
         response = provider.create_completion(
             model,
@@ -471,6 +475,8 @@ class AsyncCompletions:
         provider: Optional[ProviderType] = None,
         stream: Optional[bool] = False,
         proxy: Optional[str] = None,
+        image: Optional[ImageType] = None,
+        image_name: Optional[str] = None,
         response_format: Optional[dict] = None,
         max_tokens: Optional[int] = None,
         stop: Optional[Union[list[str], str]] = None,
@@ -489,7 +495,8 @@ class AsyncCompletions:
             ignore_stream,
         )
         stop = [stop] if isinstance(stop, str) else stop
-
+        if image is not None:
+            kwargs["images"] = [[image, image_name]]
         if hasattr(provider, "create_async_generator"):
             create_handler = provider.create_async_generator
         else:

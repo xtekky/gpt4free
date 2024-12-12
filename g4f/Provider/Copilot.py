@@ -18,7 +18,7 @@ except ImportError:
 
 from .base_provider import AbstractProvider, ProviderModelMixin, BaseConversation
 from .helper import format_prompt
-from ..typing import CreateResult, Messages, ImageType
+from ..typing import CreateResult, Messages, ImagesType
 from ..errors import MissingRequirementsError, NoValidHarFileError
 from ..requests.raise_for_status import raise_for_status
 from ..providers.asyncio import get_running_loop
@@ -58,7 +58,7 @@ class Copilot(AbstractProvider, ProviderModelMixin):
         stream: bool = False,
         proxy: str = None,
         timeout: int = 900,
-        image: ImageType = None,
+        images: ImagesType = None,
         conversation: Conversation = None,
         return_conversation: bool = False,
         web_search: bool = True,
@@ -69,7 +69,7 @@ class Copilot(AbstractProvider, ProviderModelMixin):
 
         websocket_url = cls.websocket_url
         headers = None
-        if cls.needs_auth or image is not None:
+        if cls.needs_auth or images is not None:
             if cls._access_token is None:
                 try:
                     cls._access_token, cls._cookies = readHAR(cls.url)
@@ -112,22 +112,23 @@ class Copilot(AbstractProvider, ProviderModelMixin):
                 prompt = messages[-1]["content"]
                 debug.log(f"Copilot: Use conversation: {conversation_id}")
 
-            images = []
-            if image is not None:
-                data = to_bytes(image)
-                response = session.post(
-                    "https://copilot.microsoft.com/c/api/attachments",
-                    headers={"content-type": is_accepted_format(data)},
-                    data=data
-                )
-                raise_for_status(response)
-                images.append({"type":"image", "url": response.json().get("url")})
+            uploaded_images = []
+            if images is not None:
+                for image, _ in images:
+                    data = to_bytes(image)
+                    response = session.post(
+                        "https://copilot.microsoft.com/c/api/attachments",
+                        headers={"content-type": is_accepted_format(data)},
+                        data=data
+                    )
+                    raise_for_status(response)
+                    uploaded_images.append({"type":"image", "url": response.json().get("url")})
 
             wss = session.ws_connect(cls.websocket_url)
             wss.send(json.dumps({
                 "event": "send",
                 "conversationId": conversation_id,
-                "content": [*images, {
+                "content": [*uploaded_images, {
                     "type": "text",
                     "text": prompt,
                 }],
