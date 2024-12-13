@@ -775,6 +775,7 @@ const set_conversation = async (conversation_id) => {
 const new_conversation = async () => {
     history.pushState({}, null, `/chat/`);
     window.conversation_id = uuid();
+    document.title = window.title || document.title;
 
     await clear_conversation();
     if (systemPrompt) {
@@ -793,6 +794,8 @@ const load_conversation = async (conversation_id, scroll=true) => {
     if (!conversation) {
         return;
     }
+
+    document.title = conversation.new_title ? `g4f - ${conversation.new_title}` : document.title;
 
     if (systemPrompt) {
         systemPrompt.value = conversation.system || "";
@@ -1426,7 +1429,10 @@ async function load_version() {
     let new_version = document.querySelector(".new_version");
     if (new_version) return;
     const versions = await api("version");
-    document.title = 'g4f - ' + versions["version"];
+    window.title = 'g4f - ' + versions["version"];
+    if (document.title == "g4f - gui") {
+        document.title = window.title;
+    }
     let text = "version ~ "
     if (versions["version"] != versions["latest_version"]) {
         let release_url = 'https://github.com/xtekky/gpt4free/releases/latest';

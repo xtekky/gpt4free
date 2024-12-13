@@ -24,7 +24,7 @@ class DeepInfraChat(OpenaiAPI):
         "qwq-32b": "Qwen/QwQ-32B-Preview",
         "wizardlm-2-8x22b": "microsoft/WizardLM-2-8x22B",
         "qwen-2-72b": "Qwen/Qwen2.5-72B-Instruct",
-        "qwen-2.5-coder-32b": "Qwen2.5-Coder-32B-Instruct",
+        "qwen-2.5-coder-32b": "Qwen/Qwen2.5-Coder-32B-Instruct",
         "nemotron-70b": "nvidia/Llama-3.1-Nemotron-70B-Instruct",
     }
 

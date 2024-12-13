@@ -266,6 +266,7 @@ def to_bytes(image: ImageType) -> bytes:
         image.seek(0)
         return bytes_io.getvalue()
     else:
+        image.seek(0)
         return image.read()
 
 def to_data_uri(image: ImageType) -> str:
@@ -283,7 +284,7 @@ async def copy_images(
     images: list[str],
     cookies: Optional[Cookies] = None,
     proxy: Optional[str] = None
-):
+) -> list[str]:
     ensure_images_dir()
     async with ClientSession(
         connector=get_connector(proxy=proxy),

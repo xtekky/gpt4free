@@ -102,6 +102,7 @@ class ChatCompletionsConfig(BaseModel):
     stream: bool = False
     image: Optional[str] = None
     image_name: Optional[str] = None
+    images: Optional[list[tuple[str, str]]] = None
     temperature: Optional[float] = None
     max_tokens: Optional[int] = None
     stop: Union[list[str], str, None] = None
@@ -171,7 +172,7 @@ class AppConfig:
     ignored_providers: Optional[list[str]] = None
     g4f_api_key: Optional[str] = None
     ignore_cookie_files: bool = False
-    model: str = None,
+    model: str = None
     provider: str = None
     image_provider: str = None
     proxy: str = None
@@ -328,8 +329,14 @@ class Api:
                     try:
                         is_data_uri_an_image(config.image)
                     except ValueError as e:
-                        return ErrorResponse.from_message(f"The image you send must be a data URI. Example: data:image/webp;base64,...", status_code=HTTP_422_UNPROCESSABLE_ENTITY)
-
+                        return ErrorResponse.from_message(f"The image you send must be a data URI. Example: data:image/jpeg;base64,...", status_code=HTTP_422_UNPROCESSABLE_ENTITY)
+                if config.images is not None:
+                    for image in config.images:
+                        try:
+                            is_data_uri_an_image(image[0])
+                        except ValueError as e:
+                            example = json.dumps({"images": [["data:image/jpeg;base64,...", "filename"]]})
+                            return ErrorResponse.from_message(f'The image you send must be a data URI. Example: {example}', status_code=HTTP_422_UNPROCESSABLE_ENTITY)
                 # Create the completion response
                 response = self.client.chat.completions.create(
                     **filter_none(
@@ -522,8 +529,8 @@ def format_exception(e: Union[Exception, str], config: Union[ChatCompletionsConf
         message = f"{e.__class__.__name__}: {e}"
     return json.dumps({
         "error": {"message": message},
-        "model":  last_provider.get("model") if model is None else model,
         **filter_none(
+            model=last_provider.get("model") if model is None else model,
             provider=last_provider.get("name") if provider is None else provider
         )
     })
