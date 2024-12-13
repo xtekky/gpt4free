@@ -18,7 +18,7 @@ class HuggingFace(AsyncGeneratorProvider, ProviderModelMixin):
     supports_message_history = True
     default_model = HuggingChat.default_model
     default_image_model = HuggingChat.default_image_model
-    models = [*HuggingChat.models, default_image_model]
+    models = HuggingChat.models
     image_models = [default_image_model]
     model_aliases = HuggingChat.model_aliases
 

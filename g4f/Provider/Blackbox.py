@@ -10,7 +10,7 @@ import aiohttp
 import json
 from pathlib import Path
 
-from ..typing import AsyncResult, Messages, ImageType
+from ..typing import AsyncResult, Messages, ImagesType
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..image import ImageResponse, to_data_uri
 from ..cookies import get_cookies_dir
@@ -197,8 +197,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         prompt: str = None,
         proxy: str = None,
         web_search: bool = False,
-        image: ImageType = None,
-        image_name: str = None,
+        images: ImagesType = None,
         top_p: float = 0.9,
         temperature: float = 0.5,
         max_tokens: int = 1024,
@@ -212,13 +211,14 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         
         messages = [{"id": message_id, "content": formatted_message, "role": "user"}]
 
-        if image is not None:
+        if images is not None:
             messages[-1]['data'] = {
                 "imagesData": [
                     {
                         "filePath": f"MultipleFiles/{image_name}",
                         "contents": to_data_uri(image)
                     }
+                    for image, image_name in images
                 ],
                 "fileText": "",
                 "title": ""
