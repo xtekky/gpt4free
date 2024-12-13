@@ -193,7 +193,7 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
                                 images = [image[0][3][3] for image in response_part[4][0][12][7][0]]
                                 image_prompt = image_prompt.replace("a fake image", "")
                                 yield ImageResponse(images, image_prompt, {"cookies": cls._cookies})
-                            except TypeError:
+                            except (TypeError, IndexError, KeyError):
                                 pass
 
     @classmethod

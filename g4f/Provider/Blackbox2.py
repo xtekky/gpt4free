@@ -3,7 +3,7 @@ from __future__ import annotations
 import random
 import asyncio
 from aiohttp import ClientSession
-from typing import Union, AsyncGenerator
+from typing import AsyncGenerator
 
 from ..typing import AsyncResult, Messages
 from ..image import ImageResponse
@@ -37,12 +37,15 @@ class Blackbox2(AsyncGeneratorProvider, ProviderModelMixin):
         max_retries: int = 3,
         delay: int = 1,
         **kwargs
-    ) -> AsyncGenerator:
+    ) -> AsyncResult:
+        if not model:
+            model = cls.default_model
         if model in cls.chat_models:
             async for result in cls._generate_text(model, messages, proxy, max_retries, delay):
                 yield result
         elif model in cls.image_models:
-            async for result in cls._generate_image(model, messages, proxy):
+            prompt = messages[-1]["content"] if prompt is None else prompt
+            async for result in cls._generate_image(model, prompt, proxy):
                 yield result
         else:
             raise ValueError(f"Unsupported model: {model}")
@@ -87,14 +90,13 @@ class Blackbox2(AsyncGeneratorProvider, ProviderModelMixin):
     async def _generate_image(
         cls, 
         model: str, 
-        messages: Messages, 
+        prompt: str, 
         proxy: str = None
     ) -> AsyncGenerator:
         headers = cls._get_headers()
         api_endpoint = cls.api_endpoints[model]
 
         async with ClientSession(headers=headers) as session:
-            prompt = messages[-1]["content"]
             data = {
                 "query": prompt
             }
