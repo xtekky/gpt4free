@@ -24,6 +24,6 @@ class TestProviderHasModel(unittest.IsolatedAsyncioTestCase):
             try:
                 self.cache[provider.__name__] = provider.get_models()
             except (MissingRequirementsError, MissingAuthError):
-                pass
+                return
         if self.cache[provider.__name__]:
             self.assertIn(model, self.cache[provider.__name__], provider.__name__)
