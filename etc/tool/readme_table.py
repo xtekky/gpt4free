@@ -4,7 +4,9 @@ import asyncio
 
 from g4f import models, ChatCompletion
 from g4f.providers.types import BaseRetryProvider, ProviderType
-from etc.testing._providers import get_providers
+from g4f.providers.base_provider import ProviderModelMixin
+from g4f.Provider import __providers__
+from g4f.models import _all_models
 from g4f import debug
 
 debug.logging = True
@@ -35,53 +37,76 @@ def test_async_list(providers: list[ProviderType]):
     return responses
 
 def print_providers():
-
-    providers = get_providers()
+    providers = [provider for provider in __providers__ if provider.working]
     responses = test_async_list(providers)
-
-    for type in ("GPT-4", "GPT-3.5", "Other"):
-        lines = [
+    lines = []
+    for type in ("Free", "Auth"):
+        lines += [
             "",
-            f"### {type}",
+            f"## {type}",
             "",
-            "| Website | Provider | GPT-3.5 | GPT-4 | Stream | Status | Auth |",
-            "| ------  | -------  | ------- | ----- | ------ | ------ | ---- |",
         ]
-        for is_working in (True, False):
-            for idx, _provider in enumerate(providers):
-                if is_working != _provider.working:
-                    continue
-                do_continue = False
-                if type == "GPT-4" and _provider.supports_gpt_4:
-                    do_continue = True
-                elif type == "GPT-3.5" and not _provider.supports_gpt_4 and _provider.supports_gpt_35_turbo:
-                    do_continue = True
-                elif type == "Other" and not _provider.supports_gpt_4 and not _provider.supports_gpt_35_turbo:
-                    do_continue = True
-                if not do_continue:
-                    continue
+        for idx, _provider in enumerate(providers):
+            do_continue = False
+            if type == "Auth" and _provider.needs_auth:
+                do_continue = True
+            elif type == "Free" and not _provider.needs_auth:
+                do_continue = True
+            if not do_continue:
+                continue
+            
+            lines.append(
+                f"### {getattr(_provider, 'label', _provider.__name__)}",
+            )
+            provider_name = f"`g4f.Provider.{_provider.__name__}`"
+            lines.append(f"| Provider | {provider_name} |")
+            lines.append("| -------- | ---- |")
+            
+            if _provider.url:
                 netloc = urlparse(_provider.url).netloc.replace("www.", "")
                 website = f"[{netloc}]({_provider.url})"
+            else:
+                website = "❌"
 
-                provider_name = f"`g4f.Provider.{_provider.__name__}`"
-
-                has_gpt_35 = "✔️" if _provider.supports_gpt_35_turbo else "❌"
-                has_gpt_4 = "✔️" if _provider.supports_gpt_4 else "❌"
-                stream = "✔️" if _provider.supports_stream else "❌"
-                if _provider.working:
+            message_history = "✔️" if _provider.supports_message_history else "❌"
+            system = "✔️" if _provider.supports_system_message else "❌"
+            stream = "✔️" if _provider.supports_stream else "❌"
+            if _provider.working:
+                status = '![Active](https://img.shields.io/badge/Active-brightgreen)'
+                if responses[idx]:
                     status = '![Active](https://img.shields.io/badge/Active-brightgreen)'
-                    if responses[idx]:
-                        status = '![Active](https://img.shields.io/badge/Active-brightgreen)'
-                    else:
-                        status = '![Unknown](https://img.shields.io/badge/Unknown-grey)'
                 else:
-                    status = '![Inactive](https://img.shields.io/badge/Inactive-red)'
-                auth = "✔️" if _provider.needs_auth else "❌"
+                    status = '![Unknown](https://img.shields.io/badge/Unknown-grey)'
+            else:
+                status = '![Inactive](https://img.shields.io/badge/Inactive-red)'
+            auth = "✔️" if _provider.needs_auth else "❌"
 
-                lines.append(
-                    f"| {website} | {provider_name} | {has_gpt_35} | {has_gpt_4} | {stream} | {status} | {auth} |"
-                )
-        print("\n".join(lines))
+            lines.append(f"| **Website** | {website} | \n| **Status** | {status} |")
+
+            if issubclass(_provider, ProviderModelMixin):
+                try:
+                    all_models = _provider.get_models()
+                    models = [model for model in _all_models if model in all_models or model in _provider.model_aliases]
+                    image_models = _provider.image_models
+                    if image_models:
+                        for alias, name in _provider.model_aliases.items():
+                            if alias in _all_models and name in image_models:
+                                image_models.append(alias)
+                        image_models = [model for model in image_models if model in _all_models]
+                        if image_models:
+                            models = [model for model in models if model not in image_models]
+                    if models:
+                        lines.append(f"| **Models** | {', '.join(models)} ({len(all_models)})|")
+                    if image_models:
+                        lines.append(f"| **Image Models (Image Generation)** | {', '.join(image_models)} |")
+                    if hasattr(_provider, "vision_models"):
+                        lines.append(f"| **Vision (Image Upload)** | ✔️ |")
+                except:
+                    pass
+
+            lines.append(f"| **Authentication** | {auth} | \n| **Streaming** | {stream} |")
+            lines.append(f"| **System message** | {system} | \n| **Message history** | {message_history} |")
+    return lines
 
 def print_models():
     base_provider_names = {
@@ -123,30 +148,34 @@ def print_models():
 
         lines.append(f"| {name} | {base_provider} | {provider_name} | {website} |")
 
-    print("\n".join(lines))
+    return lines
 
 def print_image_models():
     lines = [
         "| Label | Provider | Image Model | Vision Model | Website |",
         "| ----- | -------- | ----------- | ------------ | ------- |",
     ]
-    from g4f.gui.server.api import Api
-    for image_model in Api.get_image_models():
-        provider_url = image_model["url"]
+    for provider in [provider for provider in __providers__ if provider.working and getattr(provider, "image_models", None) or getattr(provider, "vision_models", None)]:
+        provider_url = provider.url if provider.url else "❌"
         netloc = urlparse(provider_url).netloc.replace("www.", "")
         website = f"[{netloc}]({provider_url})"
-        label = image_model["provider"] if image_model["label"] is None else image_model["label"]
-        if image_model["image_model"] is None:
-            image_model["image_model"] = "❌"
-        if image_model["vision_model"] is None:
-            image_model["vision_model"] = "❌"
-        lines.append(f'| {label} | `g4f.Provider.{image_model["provider"]}` | {image_model["image_model"]}| {image_model["vision_model"]} | {website} |')
+        label = getattr(provider, "label", provider.__name__)
+        if provider.image_models:
+            image_models = ", ".join([model for model in provider.image_models if model in _all_models])
+        else:
+            image_models = "❌"
+        if hasattr(provider, "vision_models"):
+            vision_models = "✔️"
+        else:
+            vision_models = "❌"
+        lines.append(f'| {label} | `g4f.Provider.{provider.__name__}` | {image_models}| {vision_models} | {website} |')
 
-    print("\n".join(lines))
+    return lines
 
 if __name__ == "__main__":
-    #print_providers()
-    #print("\n", "-" * 50, "\n")
-    #print_models()
-    print("\n", "-" * 50, "\n")
-    print_image_models()
+    with open("docs/providers.md", "w") as f:
+        f.write("\n".join(print_providers()))
+        f.write(f"\n{'-' * 50} \n")
+        #f.write("\n".join(print_models()))
+        #f.write(f"\n{'-' * 50} \n")
+        f.write("\n".join(print_image_models()))
