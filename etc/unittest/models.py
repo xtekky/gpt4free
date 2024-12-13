@@ -4,7 +4,7 @@ import asyncio
 
 from g4f.models import __models__
 from g4f.providers.base_provider import BaseProvider, ProviderModelMixin
-from g4f.models import Model
+from g4f.errors import MissingRequirementsError, MissingAuthError
 
 class TestProviderHasModel(unittest.IsolatedAsyncioTestCase):
     cache: dict = {}
@@ -21,6 +21,9 @@ class TestProviderHasModel(unittest.IsolatedAsyncioTestCase):
 
     async def provider_has_model(self, provider: Type[BaseProvider], model: str):
         if provider.__name__ not in self.cache:
-            self.cache[provider.__name__] = provider.get_models()
+            try:
+                self.cache[provider.__name__] = provider.get_models()
+            except (MissingRequirementsError, MissingAuthError):
+                pass
         if self.cache[provider.__name__]:
             self.assertIn(model, self.cache[provider.__name__], provider.__name__)
