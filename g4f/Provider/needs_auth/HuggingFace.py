@@ -27,6 +27,7 @@ class HuggingFace(AsyncGeneratorProvider, ProviderModelMixin):
             url = "https://huggingface.co/api/models?inference=warm&pipeline_tag=text-generation"
             cls.models = [model["id"] for model in requests.get(url).json()]
             cls.models.append("meta-llama/Llama-3.2-11B-Vision-Instruct")
+            cls.models.append("nvidia/Llama-3.1-Nemotron-70B-Instruct-HF")
         if not cls.image_models:
             url = "https://huggingface.co/api/models?pipeline_tag=text-to-image"
             cls.image_models = [model["id"] for model in requests.get(url).json() if model["trendingScore"] >= 20]
