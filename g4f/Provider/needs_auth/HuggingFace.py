@@ -3,24 +3,36 @@ from __future__ import annotations
 import json
 import base64
 import random
+import requests
 
 from ...typing import AsyncResult, Messages
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from ...errors import ModelNotFoundError
+from ...errors import ModelNotFoundError, ModelNotSupportedError
 from ...requests import StreamSession, raise_for_status
 from ...image import ImageResponse
 
 from .HuggingChat import HuggingChat
 
 class HuggingFace(AsyncGeneratorProvider, ProviderModelMixin):
-    url = "https://huggingface.co/chat"
+    url = "https://huggingface.co"
     working = True
     supports_message_history = True
     default_model = HuggingChat.default_model
     default_image_model = HuggingChat.default_image_model
-    models = HuggingChat.models
-    image_models = [default_image_model]
     model_aliases = HuggingChat.model_aliases
+
+    @classmethod
+    def get_models(cls) -> list[str]:
+        if not cls.models:
+            url = "https://huggingface.co/api/models?inference=warm&pipeline_tag=text-generation"
+            cls.models = [model["id"] for model in requests.get(url).json()]
+            cls.models.append("meta-llama/Llama-3.2-11B-Vision-Instruct")
+            cls.models.append("nvidia/Llama-3.1-Nemotron-70B-Instruct-HF")
+        if not cls.image_models:
+            url = "https://huggingface.co/api/models?pipeline_tag=text-to-image"
+            cls.image_models = [model["id"] for model in requests.get(url).json() if model["trendingScore"] >= 20]
+            cls.models.extend(cls.image_models)
+        return cls.models
 
     @classmethod
     async def create_async_generator(
@@ -36,7 +48,10 @@ class HuggingFace(AsyncGeneratorProvider, ProviderModelMixin):
         prompt: str = None,
         **kwargs
     ) -> AsyncResult:
-        model = cls.get_model(model)
+        try:
+            model = cls.get_model(model)
+        except ModelNotSupportedError:
+            pass
         headers = {
             'accept': '*/*',
             'accept-language': 'en',
@@ -55,6 +70,7 @@ class HuggingFace(AsyncGeneratorProvider, ProviderModelMixin):
         }
         if api_key is not None:
             headers["Authorization"] = f"Bearer {api_key}"
+        payload = None
         if model in cls.image_models:
             stream = False
             prompt = messages[-1]["content"] if prompt is None else prompt
@@ -66,12 +82,28 @@ class HuggingFace(AsyncGeneratorProvider, ProviderModelMixin):
                 "temperature": temperature,
                 **kwargs
             }
-            payload = {"inputs": format_prompt(messages), "parameters": params, "stream": stream}
         async with StreamSession(
             headers=headers,
             proxy=proxy,
             timeout=600
         ) as session:
+            if payload is None:
+                async with session.get(f"https://huggingface.co/api/models/{model}") as response:
+                    model_data = await response.json()
+                    if "config" in model_data and "tokenizer_config" in model_data["config"] and "eos_token" in model_data["config"]["tokenizer_config"]:
+                        eos_token = model_data["config"]["tokenizer_config"]["eos_token"]
+                        if eos_token == "</s>":
+                            inputs = format_prompt_mistral(messages)
+                        elif eos_token == "<|im_end|>":
+                            inputs = format_prompt_qwen(messages)
+                        elif eos_token == "<|eot_id|>":
+                            inputs = format_prompt_llama(messages)
+                        else:
+                            inputs = format_prompt(messages)
+                    else:
+                        inputs = format_prompt(messages)
+                payload = {"inputs": inputs, "parameters": params, "stream": stream}
+
             async with session.post(f"{api_base.rstrip('/')}/models/{model}", json=payload) as response:
                 if response.status == 404:
                     raise ModelNotFoundError(f"Model is not supported: {model}")
@@ -105,3 +137,18 @@ def format_prompt(messages: Messages) -> str:
         if message["role"] == "assistant"
     ])
     return f"{history}<s>[INST] {question} [/INST]"
+
+def format_prompt_qwen(messages: Messages) -> str:
+    return "".join([
+        f"<|im_start|>{message['role']}\n{message['content']}\n<|im_end|>\n" for message in messages
+    ]) + "<|im_start|>assistant\n"
+
+def format_prompt_llama(messages: Messages) -> str:
+    return "<|begin_of_text|>" + "".join([
+        f"<|start_header_id|>{message['role']}<|end_header_id|>\n\n{message['content']}\n<|eot_id|>\n" for message in messages
+    ]) + "<|start_header_id|>assistant<|end_header_id|>\\n\\n"
+    
+def format_prompt_mistral(messages: Messages) -> str:
+    return "".join([
+        f"<|{message['role']}|>\n{message['content']}'</s>\n" for message in messages
+    ]) + "<|assistant|>\n"

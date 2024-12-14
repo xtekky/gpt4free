@@ -470,15 +470,17 @@ class Api:
         })
         def upload_cookies(files: List[UploadFile]):
             response_data = []
-            for file in files:
-                try:
-                    if file and file.filename.endswith(".json") or file.filename.endswith(".har"):
-                        filename = os.path.basename(file.filename)
-                        with open(os.path.join(get_cookies_dir(), filename), 'wb') as f:
-                            shutil.copyfileobj(file.file, f)
-                        response_data.append({"filename": filename})
-                finally:
-                    file.file.close()
+            if not AppConfig.ignore_cookie_files:
+                for file in files:
+                    try:
+                        if file and file.filename.endswith(".json") or file.filename.endswith(".har"):
+                            filename = os.path.basename(file.filename)
+                            with open(os.path.join(get_cookies_dir(), filename), 'wb') as f:
+                                shutil.copyfileobj(file.file, f)
+                            response_data.append({"filename": filename})
+                    finally:
+                        file.file.close()
+                read_cookie_files()
             return response_data
 
         @self.app.get("/v1/synthesize/{provider}", responses={

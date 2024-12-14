@@ -13,7 +13,7 @@ MODELS = {
     'chat': {
         'gpt-4o-2024-11-20': {'persona_id': "gpt"},
         'gpt-4o': {'persona_id': "summarizer"},
-        'gpt-4o-mini': {'persona_id': "gemini-1-5-flash"},
+        'gpt-4o-mini': {'persona_id': "amigo"},
 
         'o1-preview-': {'persona_id': "openai-o-one"}, # Amigo, your balance is not enough to make the request, wait until 12 UTC or upgrade your plan
         'o1-preview-2024-09-12-': {'persona_id': "orion"}, # Amigo, your balance is not enough to make the request, wait until 12 UTC or upgrade your plan
@@ -24,7 +24,7 @@ MODELS = {
         'codellama/CodeLlama-34b-Instruct-hf': {'persona_id': "codellama-CodeLlama-34b-Instruct-hf"},
         
         'gemini-1.5-pro': {'persona_id': "gemini-1-5-pro"}, # Amigo, your balance is not enough to make the request, wait until 12 UTC or upgrade your plan
-        'gemini-1.5-flash': {'persona_id': "amigo"},
+        'gemini-1.5-flash': {'persona_id': "gemini-1.5-flash"},
         
         'claude-3-5-sonnet-20240620': {'persona_id': "claude"},
         'claude-3-5-sonnet-20241022': {'persona_id': "clude-claude-3-5-sonnet-20241022"},
@@ -200,7 +200,6 @@ class AmigoChat(AsyncGeneratorProvider, ProviderModelMixin):
                             "temperature": temperature,
                             "top_p": top_p
                         }
-                        print(data)
                         async with session.post(cls.chat_api_endpoint, json=data, timeout=timeout) as response:
                             await raise_for_status(response)
                             async for line in response.iter_lines():

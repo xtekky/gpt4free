@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import asyncio
+import base64
 from http.cookiejar import CookieJar
 from urllib.parse import quote
 
@@ -93,6 +94,20 @@ class Copilot(AbstractProvider, ProviderModelMixin):
         ) as session:
             if cls._access_token is not None:
                 cls._cookies = session.cookies.jar
+            if cls._access_token is None:
+                try:
+                    url = "https://copilot.microsoft.com/cl/eus-sc/collect"
+                    headers = {
+                        "Accept": "application/x-clarity-gzip",
+                        "referrer": "https://copilot.microsoft.com/onboarding"
+                    }
+                    response = session.post(url, headers=headers, data=get_clarity())
+                    clarity_token = json.loads(response.text.split(" ", maxsplit=1)[-1])[0]["value"]
+                    debug.log(f"Copilot: Clarity Token: ...{clarity_token[-12:]}")
+                except Exception as e:
+                    debug.log(f"Copilot: {e}")
+            else:
+                clarity_token = None
             response = session.get("https://copilot.microsoft.com/c/api/user")
             raise_for_status(response)
             user = response.json().get('firstName')
@@ -125,6 +140,12 @@ class Copilot(AbstractProvider, ProviderModelMixin):
                     uploaded_images.append({"type":"image", "url": response.json().get("url")})
 
             wss = session.ws_connect(cls.websocket_url)
+            if clarity_token is not None:
+                wss.send(json.dumps({
+                    "event": "challengeResponse",
+                    "token": clarity_token,
+                    "method":"clarity"
+                }).encode(), CurlWsFlag.TEXT)
             wss.send(json.dumps({
                 "event": "send",
                 "conversationId": conversation_id,
@@ -210,3 +231,8 @@ def readHAR(url: str):
         raise NoValidHarFileError("No access token found in .har files")
 
     return api_key, cookies
+
+def get_clarity() -> bytes:
+     #{"e":["0.7.58",5,7284,4779,"n59ae4ieqq","aln5en","1upufhz",1,0,0],"a":[[7323,12,65,217,324],[7344,12,65,214,329],[7385,12,65,211,334],[7407,12,65,210,337],[7428,12,65,209,338],[7461,12,65,209,339],[7497,12,65,209,339],[7531,12,65,208,340],[7545,12,65,208,342],[11654,13,65,208,342],[11728,14,65,208,342],[11728,9,65,208,342,17535,19455,0,0,0,"Annehmen",null,"52w7wqv1r.8ovjfyrpu",1],[7284,4,1,393,968,393,968,0,0,231,310,939,0],[12063,0,2,147,3,4,4,18,5,1,10,79,25,15],[12063,36,6,[11938,0]]]}
+    body = base64.b64decode("H4sIAAAAAAAAA23RwU7DMAwG4HfJ2aqS2E5ibjxH1cMOnQYqYZvUTQPx7vyJRGGAemj01XWcP+9udg+j80MetDhSyrEISc5GrqrtZnmaTydHbrdUnSsWYT2u+8Obo0Ce/IQvaDBmjkwhUlKKIRNHmQgosqEArWPRDQMx90rxeUMPzB1j+UJvwNIxhTvsPcXyX1T+rizE4juK3mEEhpAUg/JvzW1/+U/tB1LATmhqotoiweMea50PLy2vui4LOY3XfD1dwnkor5fn/e18XBFgm6fHjSzZmCyV7d3aRByAEYextaTHEH3i5pgKGVP/s+DScE5PuLKIpW6FnCi1gY3Rbpqmj0/DI/+L7QEAAA==")
+    return body

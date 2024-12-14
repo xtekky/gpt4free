@@ -106,6 +106,9 @@ class Api:
             if provider in conversations and conversation_id in conversations[provider]:
                 kwargs["conversation"] = conversations[provider][conversation_id]
 
+        if json_data.get("ignored"):
+            kwargs["ignored"] = json_data["ignored"]
+
         return {
             "model": model,
             "provider": provider,
