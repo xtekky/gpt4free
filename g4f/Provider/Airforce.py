@@ -32,8 +32,7 @@ class Airforce(AsyncGeneratorProvider, ProviderModelMixin):
     api_endpoint_imagine2 = "https://api.airforce/imagine2"
 
     working = True
-    needs_auth = True
-    supports_stream = True
+    supports_stream = False
     supports_system_message = True
     supports_message_history = True
 
@@ -41,9 +40,7 @@ class Airforce(AsyncGeneratorProvider, ProviderModelMixin):
     default_image_model = "flux"
     
     hidden_models = {"Flux-1.1-Pro"}
-
     additional_models_imagine = ["flux-1.1-pro", "midjourney", "dall-e-3"]
-
     model_aliases = {
         # Alias mappings for models
         "gpt-4": "gpt-4o",

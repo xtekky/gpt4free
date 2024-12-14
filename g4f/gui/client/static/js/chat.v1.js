@@ -610,6 +610,7 @@ const ask_gpt = async (message_id, message_index = -1, regenerate = false, provi
         const auto_continue = document.getElementById("auto_continue")?.checked;
         const download_images = document.getElementById("download_images")?.checked;
         let api_key = get_api_key_by_provider(provider);
+        const ignored = Array.from(settings.querySelectorAll("input.provider:not(:checked)")).map((el)=>el.value);
         await api("conversation", {
             id: message_id,
             conversation_id: window.conversation_id,
@@ -620,6 +621,7 @@ const ask_gpt = async (message_id, message_index = -1, regenerate = false, provi
             auto_continue: auto_continue,
             download_images: download_images,
             api_key: api_key,
+            ignored: ignored,
         }, files, message_id);
         if (!error_storage[message_id]) {
             html = markdown_render(message_storage[message_id]);
@@ -1217,6 +1219,7 @@ function count_tokens(model, text) {
     if (window.GPTTokenizer_cl100k_base) {
         return GPTTokenizer_cl100k_base.encode(text).length;
     }
+    return 0;
 }
 
 function count_words(text) {
@@ -1256,6 +1259,10 @@ systemPrompt.addEventListener("input", function() {
 });
 
 window.addEventListener('load', async function() {
+    await safe_load_conversation(window.conversation_id, false);
+});
+
+window.addEventListener('DOMContentLoaded', async function() {
     await on_load();
     if (window.conversation_id == "{{chat_id}}") {
         window.conversation_id = uuid();
@@ -1309,7 +1316,6 @@ async function on_api() {
     let prompt_lock = false;
     messageInput.addEventListener("keydown", async (evt) => {
         if (prompt_lock) return;
-
         // If not mobile and not shift enter
         if (!window.matchMedia("(pointer:coarse)").matches && evt.keyCode === 13 && !evt.shiftKey) {
             evt.preventDefault();
@@ -1361,7 +1367,7 @@ async function on_api() {
                 option.innerHTML = `
                     <div class="field">
                         <span class="label">Enable ${provider.label}</span>
-                        <input id="Provider${provider.name}" type="checkbox" name="Provider${provider.name}" checked="">
+                        <input id="Provider${provider.name}" type="checkbox" name="Provider${provider.name}" value="${provider.name}" class="provider" checked="">
                         <label for="Provider${provider.name}" class="toogle" title="Remove provider from dropdown"></label>
                     </div>`;
                 option.querySelector("input").addEventListener("change", (event) => load_provider_option(event.target, provider.name));

@@ -476,7 +476,6 @@ start_time = time.time()
 
 def get_turnstile_token(dx: str, p: str) -> str:
     decoded_bytes = base64.b64decode(dx)
-    # print(decoded_bytes.decode())
     return process_turnstile_token(decoded_bytes.decode(), p)
 
 
