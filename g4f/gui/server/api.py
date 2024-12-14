@@ -120,11 +120,11 @@ class Api:
         }
 
     def _create_response_stream(self, kwargs: dict, conversation_id: str, provider: str, download_images: bool = True) -> Iterator:
-        def log_handler(text: str):
+        def decorated_log(text: str):
             debug.logs.append(text)
             if debug.logging:
-                print(text)
-        debug.log_handler = log_handler
+                debug.log_handler(text)
+        debug.log = decorated_log
         proxy = os.environ.get("G4F_PROXY")
         provider = kwargs.get("provider")
         model, provider_handler = get_model_and_provider(

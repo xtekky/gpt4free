@@ -1028,7 +1028,7 @@ ul {
     .buttons {
         align-items: flex-start;
         flex-wrap: wrap;
-        gap: 15px;
+        gap: 12px;
     }
 
     .mobile-sidebar {
