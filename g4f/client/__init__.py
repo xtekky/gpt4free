@@ -12,7 +12,7 @@ from ..image import ImageResponse, copy_images, images_dir
 from ..typing import Messages, ImageType
 from ..providers.types import ProviderType
 from ..providers.response import ResponseType, FinishReason, BaseConversation, SynthesizeData
-from ..errors import NoImageResponseError, MissingAuthError, NoValidHarFileError
+from ..errors import NoImageResponseError
 from ..providers.retry_provider import IterListProvider
 from ..providers.asyncio import to_sync_generator, async_generator_to_list
 from ..Provider.needs_auth import BingCreateImages, OpenaiAccount
@@ -192,6 +192,8 @@ class Completions:
         provider: Optional[ProviderType] = None,
         stream: Optional[bool] = False,
         proxy: Optional[str] = None,
+        image: Optional[ImageType] = None,
+        image_name: Optional[str] = None,
         response_format: Optional[dict] = None,
         max_tokens: Optional[int] = None,
         stop: Optional[Union[list[str], str]] = None,
@@ -210,7 +212,8 @@ class Completions:
             ignore_stream,
         )
         stop = [stop] if isinstance(stop, str) else stop
-
+        if image is not None:
+            kwargs["images"] = [(image, image_name)]
         response = provider.create_completion(
             model,
             messages,
@@ -390,8 +393,6 @@ class Images:
         e = None
         response = None
         if isinstance(provider_handler, IterListProvider):
-            # File pointer can be read only once, so we need to convert it to bytes
-            image = to_bytes(image)
             for provider in provider_handler.providers:
                 try:
                     response = await self._generate_image_response(provider, provider.__name__, model, prompt, image=image, **kwargs)
@@ -471,6 +472,8 @@ class AsyncCompletions:
         provider: Optional[ProviderType] = None,
         stream: Optional[bool] = False,
         proxy: Optional[str] = None,
+        image: Optional[ImageType] = None,
+        image_name: Optional[str] = None,
         response_format: Optional[dict] = None,
         max_tokens: Optional[int] = None,
         stop: Optional[Union[list[str], str]] = None,
@@ -489,7 +492,8 @@ class AsyncCompletions:
             ignore_stream,
         )
         stop = [stop] if isinstance(stop, str) else stop
-
+        if image is not None:
+            kwargs["images"] = [(image, image_name)]
         if hasattr(provider, "create_async_generator"):
             create_handler = provider.create_async_generator
         else:

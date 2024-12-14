@@ -117,11 +117,12 @@ class Backend_Api(Api):
         """
         
         kwargs = {}
-        if "file" in request.files:
-            file = request.files['file']
-            if file.filename != '' and is_allowed_extension(file.filename):
-                kwargs['image'] = to_image(file.stream, file.filename.endswith('.svg'))
-                kwargs['image_name'] = file.filename
+        if "files[]" in request.files:
+            images = []
+            for file in request.files.getlist('files[]'):
+                if file.filename != '' and is_allowed_extension(file.filename):
+                    images.append((to_image(file.stream, file.filename.endswith('.svg')), file.filename))
+            kwargs['images'] = images
         if "json" in request.form:
             json_data = json.loads(request.form['json'])
         else:

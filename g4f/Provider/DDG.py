@@ -77,9 +77,7 @@ class DDG(AsyncGeneratorProvider, ProviderModelMixin):
         if conversation is None:
             conversation = Conversation(model)
             is_new_conversation = True
-        
-        debug.last_model = model
-        
+
         if conversation.vqd is None:
             conversation.vqd = await cls.get_vqd(proxy, connector)
         if not conversation.vqd:
@@ -91,7 +89,7 @@ class DDG(AsyncGeneratorProvider, ProviderModelMixin):
             'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
             'x-vqd-4': conversation.vqd,
         }
-        
+
         async with ClientSession(headers=headers, connector=get_connector(connector, proxy)) as session:
             if is_new_conversation:
                 conversation.message_history = [{"role": "user", "content": format_prompt(messages)}]
@@ -119,7 +117,7 @@ class DDG(AsyncGeneratorProvider, ProviderModelMixin):
             async with session.post(cls.api_endpoint, json=data) as response:
                 conversation.vqd = response.headers.get("x-vqd-4")
                 await raise_for_status(response)
-                
+
                 async for line in response.content:
                     if line:
                         decoded_line = line.decode('utf-8')

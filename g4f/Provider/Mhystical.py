@@ -4,6 +4,7 @@ import json
 import logging
 from aiohttp import ClientSession
 from ..typing import AsyncResult, Messages
+from ..requests.raise_for_status import raise_for_status
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from .helper import format_prompt
 
@@ -67,17 +68,10 @@ class Mhystical(AsyncGeneratorProvider, ProviderModelMixin):
                 "messages": [{"role": "user", "content": format_prompt(messages)}]
             }
             async with session.post(cls.api_endpoint, json=data, headers=headers, proxy=proxy) as response:
-                if response.status == 400:
-                    yield "Error: API key is missing"
-                elif response.status == 429:
-                    yield "Error: Rate limit exceeded"
-                elif response.status == 500:
-                    yield "Error: Internal server error"
-                else:
-                    response.raise_for_status()
-                    response_text = await response.text()
-                    filtered_response = cls.filter_response(response_text)
-                    yield filtered_response
+                await raise_for_status(response)
+                response_text = await response.text()
+                filtered_response = cls.filter_response(response_text)
+                yield filtered_response
 
     @staticmethod
     def filter_response(response_text: str) -> str:

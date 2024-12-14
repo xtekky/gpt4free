@@ -5,6 +5,7 @@ import json
 import random
 import re
 import base64
+import asyncio
 
 from aiohttp import ClientSession, BaseConnector
 
@@ -15,7 +16,7 @@ except ImportError:
     has_nodriver = False
 
 from ... import debug
-from ...typing import Messages, Cookies, ImageType, AsyncResult, AsyncIterator
+from ...typing import Messages, Cookies, ImagesType, AsyncResult, AsyncIterator
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin, BaseConversation, SynthesizeData
 from ..helper import format_prompt, get_cookies
 from ...requests.raise_for_status import raise_for_status
@@ -97,8 +98,7 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
         proxy: str = None,
         cookies: Cookies = None,
         connector: BaseConnector = None,
-        image: ImageType = None,
-        image_name: str = None,
+        images: ImagesType = None,
         return_conversation: bool = False,
         conversation: Conversation = None,
         language: str = "en",
@@ -128,8 +128,7 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
                 raise RuntimeError("Invalid cookies. SNlM0e not found")
 
             yield SynthesizeData(cls.__name__, {"text": messages[-1]["content"]})
-            image_url = await cls.upload_image(base_connector, to_bytes(image), image_name) if image else None
-
+            images = await cls.upload_images(base_connector, images) if images else None
             async with ClientSession(
                 cookies=cls._cookies,
                 headers=REQUEST_HEADERS,
@@ -148,8 +147,7 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
                         prompt,
                         language=language,
                         conversation=conversation,
-                        image_url=image_url,
-                        image_name=image_name
+                        images=images
                     ))])
                 }
                 async with client.post(
@@ -195,7 +193,7 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
                                 images = [image[0][3][3] for image in response_part[4][0][12][7][0]]
                                 image_prompt = image_prompt.replace("a fake image", "")
                                 yield ImageResponse(images, image_prompt, {"cookies": cls._cookies})
-                            except TypeError:
+                            except (TypeError, IndexError, KeyError):
                                 pass
 
     @classmethod
@@ -235,11 +233,10 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
         prompt: str,
         language: str,
         conversation: Conversation = None,
-        image_url: str = None,
-        image_name: str = None,
+        images: list[list[str, str]] = None,
         tools: list[list[str]] = []
     ) -> list:
-        image_list = [[[image_url, 1], image_name]] if image_url else []
+        image_list = [[[image_url, 1], image_name] for image_url, image_name in images] if images else []
         return [
             [prompt, 0, None, image_list, None, None, 0],
             [language],
@@ -262,35 +259,39 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
             0,
         ]
 
-    async def upload_image(connector: BaseConnector, image: bytes, image_name: str = None):
-        async with ClientSession(
-            headers=UPLOAD_IMAGE_HEADERS,
-            connector=connector
-        ) as session:
-            async with session.options(UPLOAD_IMAGE_URL) as response:
-                await raise_for_status(response)
+    async def upload_images(connector: BaseConnector, images: ImagesType) -> list:
+        async def upload_image(image: bytes, image_name: str = None):
+            async with ClientSession(
+                headers=UPLOAD_IMAGE_HEADERS,
+                connector=connector
+            ) as session:
+                image = to_bytes(image)
 
-            headers = {
-                "size": str(len(image)),
-                "x-goog-upload-command": "start"
-            }
-            data = f"File name: {image_name}" if image_name else None
-            async with session.post(
-                UPLOAD_IMAGE_URL, headers=headers, data=data
-            ) as response:
-                await raise_for_status(response)
-                upload_url = response.headers["X-Goog-Upload-Url"]
+                async with session.options(UPLOAD_IMAGE_URL) as response:
+                    await raise_for_status(response)
 
-            async with session.options(upload_url, headers=headers) as response:
-                await raise_for_status(response)
+                headers = {
+                    "size": str(len(image)),
+                    "x-goog-upload-command": "start"
+                }
+                data = f"File name: {image_name}" if image_name else None
+                async with session.post(
+                    UPLOAD_IMAGE_URL, headers=headers, data=data
+                ) as response:
+                    await raise_for_status(response)
+                    upload_url = response.headers["X-Goog-Upload-Url"]
 
-            headers["x-goog-upload-command"] = "upload, finalize"
-            headers["X-Goog-Upload-Offset"] = "0"
-            async with session.post(
-                upload_url, headers=headers, data=image
-            ) as response:
-                await raise_for_status(response)
-                return await response.text()
+                async with session.options(upload_url, headers=headers) as response:
+                    await raise_for_status(response)
+
+                headers["x-goog-upload-command"] = "upload, finalize"
+                headers["X-Goog-Upload-Offset"] = "0"
+                async with session.post(
+                    upload_url, headers=headers, data=image
+                ) as response:
+                    await raise_for_status(response)
+                    return [await response.text(), image_name]
+        return await asyncio.gather(*[upload_image(image, image_name) for image, image_name in images])
 
     @classmethod
     async def fetch_snlm0e(cls, session: ClientSession, cookies: Cookies):

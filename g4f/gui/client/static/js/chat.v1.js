@@ -343,11 +343,18 @@ const handle_ask = async () => {
     let message_index = await add_message(window.conversation_id, "user", message);
     let message_id = get_message_id();
 
-    if (imageInput.dataset.src) URL.revokeObjectURL(imageInput.dataset.src);
+    if (imageInput.dataset.objects) {
+        imageInput.dataset.objects.split(" ").forEach((object)=>URL.revokeObjectURL(object))
+        delete imageInput.dataset.objects;
+    }
     const input = imageInput && imageInput.files.length > 0 ? imageInput : cameraInput
-    if (input.files.length > 0) imageInput.dataset.src = URL.createObjectURL(input.files[0]);
-    else delete imageInput.dataset.src
-
+    images = [];
+    if (input.files.length > 0) {
+        for (const file of input.files) {
+            images.push(URL.createObjectURL(file));
+        }
+        imageInput.dataset.objects = images.join(" ");
+    }
     message_box.innerHTML += `
         <div class="message" data-index="${message_index}">
             <div class="user">
@@ -358,10 +365,7 @@ const handle_ask = async () => {
             <div class="content" id="user_${message_id}"> 
                 <div class="content_inner">
                 ${markdown_render(message)}
-                ${imageInput.dataset.src
-                    ? '<img src="' + imageInput.dataset.src + '" alt="Image upload">'
-                    : ''
-                }
+                ${images.map((object)=>'<img src="' + object + '" alt="Image upload">').join("")}
                 </div>
                 <div class="count">
                     ${count_words_and_tokens(message, get_selected_model()?.value)}
@@ -602,10 +606,11 @@ const ask_gpt = async (message_id, message_index = -1, regenerate = false, provi
     }
     try {
         const input = imageInput && imageInput.files.length > 0 ? imageInput : cameraInput;
-        const file = input && input.files.length > 0 ? input.files[0] : null;
+        const files = input && input.files.length > 0 ? input.files : null;
         const auto_continue = document.getElementById("auto_continue")?.checked;
         const download_images = document.getElementById("download_images")?.checked;
         let api_key = get_api_key_by_provider(provider);
+        const ignored = Array.from(settings.querySelectorAll("input.provider:not(:checked)")).map((el)=>el.value);
         await api("conversation", {
             id: message_id,
             conversation_id: window.conversation_id,
@@ -616,7 +621,8 @@ const ask_gpt = async (message_id, message_index = -1, regenerate = false, provi
             auto_continue: auto_continue,
             download_images: download_images,
             api_key: api_key,
-        }, file, message_id);
+            ignored: ignored,
+        }, files, message_id);
         if (!error_storage[message_id]) {
             html = markdown_render(message_storage[message_id]);
             content_map.inner.innerHTML = html;
@@ -771,6 +777,7 @@ const set_conversation = async (conversation_id) => {
 const new_conversation = async () => {
     history.pushState({}, null, `/chat/`);
     window.conversation_id = uuid();
+    document.title = window.title || document.title;
 
     await clear_conversation();
     if (systemPrompt) {
@@ -789,6 +796,8 @@ const load_conversation = async (conversation_id, scroll=true) => {
     if (!conversation) {
         return;
     }
+
+    document.title = conversation.new_title ? `g4f - ${conversation.new_title}` : document.title;
 
     if (systemPrompt) {
         systemPrompt.value = conversation.system || "";
@@ -1210,6 +1219,7 @@ function count_tokens(model, text) {
     if (window.GPTTokenizer_cl100k_base) {
         return GPTTokenizer_cl100k_base.encode(text).length;
     }
+    return 0;
 }
 
 function count_words(text) {
@@ -1249,6 +1259,10 @@ systemPrompt.addEventListener("input", function() {
 });
 
 window.addEventListener('load', async function() {
+    await safe_load_conversation(window.conversation_id, false);
+});
+
+window.addEventListener('DOMContentLoaded', async function() {
     await on_load();
     if (window.conversation_id == "{{chat_id}}") {
         window.conversation_id = uuid();
@@ -1302,7 +1316,6 @@ async function on_api() {
     let prompt_lock = false;
     messageInput.addEventListener("keydown", async (evt) => {
         if (prompt_lock) return;
-
         // If not mobile and not shift enter
         if (!window.matchMedia("(pointer:coarse)").matches && evt.keyCode === 13 && !evt.shiftKey) {
             evt.preventDefault();
@@ -1354,7 +1367,7 @@ async function on_api() {
                 option.innerHTML = `
                     <div class="field">
                         <span class="label">Enable ${provider.label}</span>
-                        <input id="Provider${provider.name}" type="checkbox" name="Provider${provider.name}" checked="">
+                        <input id="Provider${provider.name}" type="checkbox" name="Provider${provider.name}" value="${provider.name}" class="provider" checked="">
                         <label for="Provider${provider.name}" class="toogle" title="Remove provider from dropdown"></label>
                     </div>`;
                 option.querySelector("input").addEventListener("change", (event) => load_provider_option(event.target, provider.name));
@@ -1422,7 +1435,10 @@ async function load_version() {
     let new_version = document.querySelector(".new_version");
     if (new_version) return;
     const versions = await api("version");
-    document.title = 'g4f - ' + versions["version"];
+    window.title = 'g4f - ' + versions["version"];
+    if (document.title == "g4f - gui") {
+        document.title = window.title;
+    }
     let text = "version ~ "
     if (versions["version"] != versions["latest_version"]) {
         let release_url = 'https://github.com/xtekky/gpt4free/releases/latest';
@@ -1445,9 +1461,9 @@ setTimeout(load_version, 100);
 [imageInput, cameraInput].forEach((el) => {
     el.addEventListener('click', async () => {
         el.value = '';
-        if (imageInput.dataset.src) {
-            URL.revokeObjectURL(imageInput.dataset.src);
-            delete imageInput.dataset.src
+        if (imageInput.dataset.objects) {
+            imageInput.dataset.objects.split(" ").forEach((object) => URL.revokeObjectURL(object));
+            delete imageInput.dataset.objects
         }
     });
 });
@@ -1521,7 +1537,7 @@ function get_selected_model() {
     }
 }
 
-async function api(ressource, args=null, file=null, message_id=null) {
+async function api(ressource, args=null, files=null, message_id=null) {
     let api_key;
     if (ressource == "models" && args) {
         api_key = get_api_key_by_provider(args);
@@ -1535,9 +1551,11 @@ async function api(ressource, args=null, file=null, message_id=null) {
     if (ressource == "conversation") {
         let body = JSON.stringify(args);
         headers.accept = 'text/event-stream';
-        if (file !== null) {
+        if (files !== null) {
             const formData = new FormData();
-            formData.append('file', file);
+            for (const file of files) {
+                formData.append('files[]', file)
+            }
             formData.append('json', body);
             body = formData;
         } else {

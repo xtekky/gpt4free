@@ -62,7 +62,6 @@ class GithubCopilot(AsyncGeneratorProvider, ProviderModelMixin):
             if conversation is not None:
                 conversation_id = conversation.conversation_id
             if conversation_id is None:
-                print(headers)
                 async with session.post("https://api.individual.githubcopilot.com/github/chat/threads", headers=headers) as response:
                     await raise_for_status(response)
                     conversation_id = (await response.json()).get("thread_id")
