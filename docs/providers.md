@@ -17,8 +17,8 @@
 | -------- | ---- |
 | **Website** | [blackbox.ai](https://www.blackbox.ai) | 
 | **Status** | ![Active](https://img.shields.io/badge/Active-brightgreen) |
-| **Models** | gpt-4, gpt-4o, llama-3.1-8b, llama-3.1-70b, llama-3.1-405b, gemini-pro, gemini-flash, claude-3.5-sonnet, blackboxai, blackboxai-pro (41)|
-| **Image Models (Image Generation)** | flux |
+| **Models** | gpt-4, gpt-4o, llama-3.1-8b, llama-3.1-70b, llama-3.1-405b, gemini-pro, gemini-flash, claude-3.5-sonnet, blackboxai, blackboxai-pro, llama-3.3-70b, mixtral-7b, deepseek-chat, dbrx-instruct, llama-3.1-405b, qwq-32b, hermes-2-dpo (46)|
+| **Image Models (Image Generation)** | flux (2)|
 | **Vision (Image Upload)** | ✔️ |
 | **Authentication** | ❌ | 
 | **Streaming** | ✔️ |

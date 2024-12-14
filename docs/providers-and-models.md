@@ -22,7 +22,7 @@ This document provides an overview of various AI providers and models, including
 |----------|-------------|--------------|---------------|--------|--------|------|------|
 |[api.airforce](https://api.airforce)|`g4f.Provider.Airforce`|`phi-2, gpt-4, gpt-4o-mini, gpt-4o, gpt-4-turbo, o1-mini, openchat-3.5, deepseek-coder, hermes-2-dpo, hermes-2-pro, openhermes-2.5, lfm-40b, german-7b, llama-2-7b, llama-3.1-70b, neural-7b, zephyr-7b, evil,`|`sdxl, flux-pro, flux, flux-realism, flux-anime, flux-3d, flux-disney, flux-pixel, flux-4o, any-dark, midjourney, dall-e-3`|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌+✔|
 |[amigochat.io](https://amigochat.io/chat/)|`g4f.Provider.AmigoChat`|✔|✔|❌|✔|![Error](https://img.shields.io/badge/RateLimit-f48d37)|❌|
-|[blackbox.ai](https://www.blackbox.ai)|`g4f.Provider.Blackbox`|`blackboxai, gpt-4, gpt-4o, gemini-pro, claude-3.5-sonnet, blackboxai-pro, llama-3.1-8b, llama-3.1-70b, llama-3.1-405b`|`flux`|`blackboxai, gpt-4o, gemini-pro, gemini-flash, llama-3.1-8b, llama-3.1-70b, llama-3.1-405b`|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌|
+|[blackbox.ai](https://www.blackbox.ai)|`g4f.Provider.Blackbox`|`blackboxai, gpt-4, gpt-4o, gemini-pro, claude-3.5-sonnet, blackboxai-pro, llama-3.1-8b, llama-3.1-70b, llama-3.1-405b, llama-3.3-70b, mixtral-7b, deepseek-chat, dbrx-instruct, qwq-32b, hermes-2-dpo`|`flux`|`blackboxai, gpt-4o, gemini-pro, gemini-flash, llama-3.1-8b, llama-3.1-70b, llama-3.1-405b`|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[blackbox.ai](https://www.blackbox.ai)|`g4f.Provider.Blackbox2`|`llama-3.1-70b`|`flux`|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[chatgpt.com](https://chatgpt.com)|`g4f.Provider.ChatGpt`|✔|❌|❌|✔|![Error](https://img.shields.io/badge/HTTPError-f48d37)|❌|
 |[chatgpt.es](https://chatgpt.es)|`g4f.Provider.ChatGptEs`|`gpt-4, gpt-4o, gpt-4o-mini`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌|
@@ -97,7 +97,8 @@ This document provides an overview of various AI providers and models, including
 |llama-3.1-70b|Meta Llama|12+ Providers|[ai.meta.com](https://ai.meta.com/blog/meta-llama-3-1/)|
 |llama-3.1-405b|Meta Llama|1+ Providers|[ai.meta.com](https://ai.meta.com/blog/meta-llama-3-1/)|
 |llama-3.2-11b|Meta Llama|2+ Providers|[ai.meta.com](https://ai.meta.com/blog/llama-3-2-connect-2024-vision-edge-mobile-devices/)|
-|llama-3.3-70b|Meta Llama|3+ Providers|[llama.com/]()|
+|llama-3.3-70b|Meta Llama|4+ Providers|[llama.com/]()|
+|mixtral-7b|Mistral AI|1+ Providers|[mistral.ai](https://mistral.ai/news/mixtral-of-experts/)|
 |mixtral-8x7b|Mistral AI|1+ Providers|[mistral.ai](https://mistral.ai/news/mixtral-of-experts/)|
 |mistral-nemo|Mistral AI|3+ Providers|[huggingface.co](https://huggingface.co/mistralai/Mistral-Nemo-Instruct-2407)|
 |mistral-large|Mistral AI|1+ Providers|[mistral.ai](https://mistral.ai/news/mistral-large-2407/)|
@@ -122,8 +123,9 @@ This document provides an overview of various AI providers and models, including
 |qwen-2-72b|Qwen|1+ Providers|[huggingface.co](https://huggingface.co/Qwen/Qwen2-72B)|
 |qwen-2.5-72b|Qwen|2+ Providers|[huggingface.co](https://huggingface.co/Qwen/Qwen2.5-72B-Instruct)|
 |qwen-2.5-coder-32b|Qwen|4+ Providers|[huggingface.co](https://huggingface.co/Qwen/Qwen2.5-Coder-32B)|
-|qwq-32b|Qwen|3+ Providers|[qwen2.org](https://qwen2.org/qwq-32b-preview/)|
+|qwq-32b|Qwen|4+ Providers|[qwen2.org](https://qwen2.org/qwq-32b-preview/)|
 |pi|Inflection|1+ Providers|[inflection.ai](https://inflection.ai/blog/inflection-2-5)|
+|deepseek-chat|DeepSeek|1+ Providers|[huggingface.co](https://huggingface.co/deepseek-ai/deepseek-llm-67b-chat)|
 |deepseek-coder|DeepSeek|1+ Providers|[huggingface.co](https://huggingface.co/deepseek-ai/DeepSeek-Coder-V2-Instruct)|
 |wizardlm-2-8x22b|WizardLM|1+ Providers|[huggingface.co](https://huggingface.co/alpindale/WizardLM-2-8x22B)|
 |openchat-3.5|OpenChat|1+ Providers|[huggingface.co](https://huggingface.co/openchat/openchat_3.5)|
@@ -137,6 +139,7 @@ This document provides an overview of various AI providers and models, including
 |zephyr-7b|HuggingFaceH4|1+ Providers|[huggingface.co](https://huggingface.co/HuggingFaceH4/zephyr-7b-beta)|
 |neural-7b|Inferless|1+ Providers|[huggingface.co](https://huggingface.co/Intel/neural-chat-7b-v3-1)|
 |p1|PollinationsAI|1+ Providers|[]( )|
+|dbrx-instruct|Databricks|1+ Providers|[huggingface.co](https://huggingface.co/databricks/dbrx-instruct)|
 |evil|Evil Mode - Experimental|2+ Providers|[]( )|
 |midijourney||1+ Providers|[]( )|
 |turbo||1+ Providers|[]( )|

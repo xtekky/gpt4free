@@ -196,10 +196,16 @@ llama_3_2_11b = Model(
 llama_3_3_70b = Model(
     name          = "llama-3.3-70b",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider([HuggingChat, HuggingFace, PerplexityLabs])
+    best_provider = IterListProvider([Blackbox, HuggingChat, HuggingFace, PerplexityLabs])
 )
 
 ### Mistral ###
+mixtral_7b = Model(
+    name          = "mixtral-7b",
+    base_provider = "Mistral",
+    best_provider = Blackbox
+)
+
 mixtral_8x7b = Model(
     name          = "mixtral-8x7b",
     base_provider = "Mistral",
@@ -222,7 +228,7 @@ mistral_large = Model(
 hermes_2_dpo = Model(
     name          = "hermes-2-dpo",
     base_provider = "NousResearch",
-    best_provider = Airforce
+    best_provider = IterListProvider([Blackbox, Airforce])
 )
 
 hermes_2_pro = Model(
@@ -369,7 +375,7 @@ qwen_2_5_coder_32b = Model(
 qwq_32b = Model(
     name = 'qwq-32b',
     base_provider = 'Qwen',
-    best_provider = IterListProvider([DeepInfraChat, HuggingChat, HuggingFace])
+    best_provider = IterListProvider([DeepInfraChat, Blackbox, HuggingChat, HuggingFace])
 )
 
 ### Inflection ###
@@ -380,6 +386,12 @@ pi = Model(
 )
 
 ### DeepSeek ###
+deepseek_chat = Model(
+    name = 'deepseek-chat',
+    base_provider = 'DeepSeek',
+    best_provider = Blackbox
+)
+
 deepseek_coder = Model(
     name = 'deepseek-coder',
     base_provider = 'DeepSeek',
@@ -471,6 +483,13 @@ p1 = Model(
     name = 'p1',
     base_provider = 'PollinationsAI',
     best_provider = PollinationsAI
+)
+
+### Databricks ### 
+dbrx_instruct = Model(
+    name = 'dbrx-instruct',
+    base_provider = 'Databricks',
+    best_provider = Blackbox
 )
 
 ### Uncensored AI ### 
@@ -665,6 +684,7 @@ class ModelUtils:
         'llama-3.3-70b': llama_3_3_70b,
                 
         ### Mistral ###
+        'mixtral-7b': mixtral_7b,
         'mixtral-8x7b': mixtral_8x7b,
         'mistral-nemo': mistral_nemo,
         'mistral-large': mistral_large,
@@ -761,6 +781,9 @@ class ModelUtils:
         
         ### PollinationsAI ###   
         'p1': p1,
+        
+        ### Databricks ###   
+        'dbrx-instruct': dbrx_instruct,
         
         ### Uncensored AI ###   
         'evil': evil,
