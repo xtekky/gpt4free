@@ -267,7 +267,6 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
             "trendingAgentMode": cls.trendingAgentMode.get(model, {}) if model in cls.trendingAgentMode else {},
             "userId": None,
             "userSelectedModel": model if model in cls.userSelectedModel else None,
-            "userSelectedModel": None,
             "userSystemPrompt": None,
             "validated": validated_value,
             "visitFromDelta": False,
