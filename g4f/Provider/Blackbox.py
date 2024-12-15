@@ -212,9 +212,9 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         proxy: str = None,
         web_search: bool = False,
         images: ImagesType = None,
-        top_p: float = 0.9,
-        temperature: float = 0.5,
-        max_tokens: int = 1024,
+        top_p: float = None,
+        temperature: float = None,
+        max_tokens: int = None,
         **kwargs
     ) -> AsyncResult:
         message_id = cls.generate_id()
