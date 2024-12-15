@@ -503,7 +503,7 @@ async function add_message_chunk(message, message_id) {
     } else if (message.type == "error") {
         error_storage[message_id] = message.error
         console.error(message.error);
-        content_map.inner.innerHTML += `<p><strong>An error occured:</strong> ${message.error}</p>`;
+        content_map.inner.innerHTML += markdown_render(`**An error occured:** ${message.error}`);
         let p = document.createElement("p");
         p.innerText = message.error;
         log_storage.appendChild(p);
@@ -609,7 +609,7 @@ const ask_gpt = async (message_id, message_index = -1, regenerate = false, provi
         const files = input && input.files.length > 0 ? input.files : null;
         const auto_continue = document.getElementById("auto_continue")?.checked;
         const download_images = document.getElementById("download_images")?.checked;
-        let api_key = get_api_key_by_provider(provider);
+        const api_key = get_api_key_by_provider(provider);
         const ignored = Array.from(settings.querySelectorAll("input.provider:not(:checked)")).map((el)=>el.value);
         await api("conversation", {
             id: message_id,
@@ -635,7 +635,7 @@ const ask_gpt = async (message_id, message_index = -1, regenerate = false, provi
         console.error(e);
         if (e.name != "AbortError") {
             error_storage[message_id] = true;
-            content_map.inner.innerHTML += `<p><strong>An error occured:</strong> ${e}</p>`;
+            content_map.inner.innerHTML += markdown_render(`**An error occured:** ${e}`);
         }
     }
     delete controller_storage[message_id];
@@ -771,7 +771,6 @@ const set_conversation = async (conversation_id) => {
     await load_conversation(conversation_id);
     load_conversations();
     hide_sidebar();
-    log_storage.classList.add("hidden");
 };
 
 const new_conversation = async () => {
@@ -785,7 +784,6 @@ const new_conversation = async () => {
     }
     load_conversations();
     hide_sidebar();
-    log_storage.classList.add("hidden");
     say_hello();
 };
 
@@ -1104,10 +1102,10 @@ async function hide_sidebar() {
 
 window.addEventListener('popstate', hide_sidebar, false);
 
-sidebar_button.addEventListener("click", (event) => {
+sidebar_button.addEventListener("click", async () => {
     settings.classList.add("hidden");
     if (sidebar.classList.contains("shown")) {
-        hide_sidebar();
+        await hide_sidebar();
     } else {
         sidebar.classList.add("shown");
         sidebar_button.classList.add("rotated");
@@ -1365,11 +1363,10 @@ async function on_api() {
                 option = document.createElement("div");
                 option.classList.add("field");
                 option.innerHTML = `
-                    <div class="field">
-                        <span class="label">Enable ${provider.label}</span>
-                        <input id="Provider${provider.name}" type="checkbox" name="Provider${provider.name}" value="${provider.name}" class="provider" checked="">
-                        <label for="Provider${provider.name}" class="toogle" title="Remove provider from dropdown"></label>
-                    </div>`;
+                    <span class="label">Enable ${provider.label}</span>
+                    <input id="Provider${provider.name}" type="checkbox" name="Provider${provider.name}" value="${provider.name}" class="provider" checked="">
+                    <label for="Provider${provider.name}" class="toogle" title="Remove provider from dropdown"></label>
+                `;
                 option.querySelector("input").addEventListener("change", (event) => load_provider_option(event.target, provider.name));
                 settings.querySelector(".paper").appendChild(option);
                 provider_options[provider.name] = option;
@@ -1405,7 +1402,7 @@ async function on_api() {
     });
     document.querySelector(".slide-systemPrompt")?.addEventListener("click", () => {
         hide_systemPrompt.click();
-        let checked = hide_systemPrompt.checked;
+        const checked = hide_systemPrompt.checked;
         systemPrompt.classList[checked ? "add": "remove"]("hidden");
         slide_systemPrompt_icon.classList[checked ? "remove": "add"]("fa-angles-up");
         slide_systemPrompt_icon.classList[checked ? "add": "remove"]("fa-angles-down");
@@ -1599,8 +1596,9 @@ function get_api_key_by_provider(provider) {
     let api_key = null;
     if (provider) {
         api_key = document.getElementById(`${provider}-api_key`)?.value || null;
-        if (api_key == null)
+        if (api_key == null) {
             api_key = document.querySelector(`.${provider}-api_key`)?.value || null;
+        }
     }
     return api_key;
 }

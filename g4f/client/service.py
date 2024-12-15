@@ -26,7 +26,8 @@ def get_model_and_provider(model    : Union[Model, str],
                            stream   : bool,
                            ignored  : list[str] = None,
                            ignore_working: bool = False,
-                           ignore_stream: bool = False) -> tuple[str, ProviderType]:
+                           ignore_stream: bool = False,
+                           logging: bool = True) -> tuple[str, ProviderType]:
     """
     Retrieves the model and provider based on input parameters.
 
@@ -92,10 +93,11 @@ def get_model_and_provider(model    : Union[Model, str],
     if not ignore_stream and not provider.supports_stream and stream:
         raise StreamNotSupportedError(f'{provider_name} does not support "stream" argument')
 
-    if model:
-        debug.log(f'Using {provider_name} provider and {model} model')
-    else:
-        debug.log(f'Using {provider_name} provider')
+    if logging:
+        if model:
+            debug.log(f'Using {provider_name} provider and {model} model')
+        else:
+            debug.log(f'Using {provider_name} provider')
 
     debug.last_provider = provider
     debug.last_model = model
