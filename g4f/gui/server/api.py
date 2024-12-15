@@ -130,7 +130,8 @@ class Api:
         model, provider_handler = get_model_and_provider(
             kwargs.get("model"), provider,
             stream=True,
-            ignore_stream=True
+            ignore_stream=True,
+            logging=False
         )
         first = True
         try:
