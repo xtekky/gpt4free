@@ -95,6 +95,7 @@ class Blackbox2(AsyncGeneratorProvider, ProviderModelMixin):
         cls,
         model: str,
         messages: Messages,
+        prompt: str = None,
         proxy: str = None,
         max_retries: int = 3,
         delay: int = 1,
@@ -107,7 +108,7 @@ class Blackbox2(AsyncGeneratorProvider, ProviderModelMixin):
             async for result in cls._generate_text(model, messages, proxy, max_retries, delay):
                 yield result
         elif model in cls.image_models:
-            prompt = messages[-1]["content"] if messages else kwargs.get('prompt')
+            prompt = messages[-1]["content"]
             async for result in cls._generate_image(model, prompt, proxy):
                 yield result
         else:
