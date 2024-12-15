@@ -271,7 +271,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
             "userSystemPrompt": None,
             "validated": validated_value,
             "visitFromDelta": False,
-            "webSearchModePrompt": web_search,
+            "webSearchModePrompt": False,
             "webSearchMode": web_search
         }
 
