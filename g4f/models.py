@@ -76,8 +76,9 @@ default = Model(
         DeepInfraChat,
         Airforce, 
         Cloudflare,
-        Mhystical,
         PollinationsAI,
+        ChatGptEs,
+        ChatGpt,
     ])
 )
 
@@ -195,10 +196,16 @@ llama_3_2_11b = Model(
 llama_3_3_70b = Model(
     name          = "llama-3.3-70b",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider([HuggingChat, HuggingFace, PerplexityLabs])
+    best_provider = IterListProvider([Blackbox, HuggingChat, HuggingFace, PerplexityLabs])
 )
 
 ### Mistral ###
+mixtral_7b = Model(
+    name          = "mixtral-7b",
+    base_provider = "Mistral",
+    best_provider = Blackbox
+)
+
 mixtral_8x7b = Model(
     name          = "mixtral-8x7b",
     base_provider = "Mistral",
@@ -221,7 +228,7 @@ mistral_large = Model(
 hermes_2_dpo = Model(
     name          = "hermes-2-dpo",
     base_provider = "NousResearch",
-    best_provider = Airforce
+    best_provider = IterListProvider([Blackbox, Airforce])
 )
 
 hermes_2_pro = Model(
@@ -368,7 +375,7 @@ qwen_2_5_coder_32b = Model(
 qwq_32b = Model(
     name = 'qwq-32b',
     base_provider = 'Qwen',
-    best_provider = IterListProvider([DeepInfraChat, HuggingChat, HuggingFace])
+    best_provider = IterListProvider([DeepInfraChat, Blackbox, HuggingChat, HuggingFace])
 )
 
 ### Inflection ###
@@ -379,6 +386,12 @@ pi = Model(
 )
 
 ### DeepSeek ###
+deepseek_chat = Model(
+    name = 'deepseek-chat',
+    base_provider = 'DeepSeek',
+    best_provider = Blackbox
+)
+
 deepseek_coder = Model(
     name = 'deepseek-coder',
     base_provider = 'DeepSeek',
@@ -461,6 +474,20 @@ neural_7b = Model(
     name = 'neural-7b',
     base_provider = 'Inferless',
     best_provider = Airforce
+)
+
+### Databricks ### 
+dbrx_instruct = Model(
+    name = 'dbrx-instruct',
+    base_provider = 'Databricks',
+    best_provider = Blackbox
+)
+
+### PollinationsAI ### 
+p1 = Model(
+    name = 'p1',
+    base_provider = 'PollinationsAI',
+    best_provider = PollinationsAI
 )
 
 ### Uncensored AI ### 
@@ -654,6 +681,7 @@ class ModelUtils:
         llama_3_3_70b.name: llama_3_3_70b,
                 
         ### Mistral ###
+        mixtral_7b.name: mixtral_7b,
         mixtral_8x7b.name: mixtral_8x7b,
         mistral_nemo.name: mistral_nemo,
         mistral_large.name: mistral_large,
@@ -728,6 +756,7 @@ class ModelUtils:
         sonar_chat.name: sonar_chat,
         
         ### DeepSeek ###
+        deepseek_chat.name: deepseek_chat,
         deepseek_coder.name: deepseek_coder,
 
         ### TheBloke ###   
@@ -747,6 +776,12 @@ class ModelUtils:
         
         ### Inferless ###   
         neural_7b.name: neural_7b,
+        
+        ### Databricks ###   
+        dbrx_instruct.name: dbrx_instruct,
+        
+        ### PollinationsAI ### 
+        p1.name: p1,
         
         ### Uncensored AI ###   
         evil.name: evil,

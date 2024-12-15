@@ -35,7 +35,14 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
     userSelectedModel = ['gpt-4o', 'gemini-pro', 'claude-sonnet-3.5', 'blackboxai-pro']
 
     agentMode = {
-        'ImageGeneration': {'mode': True, 'id': "ImageGenerationLV45LJp", 'name': "Image Generation"}
+        'ImageGeneration': {'mode': True, 'id': "ImageGenerationLV45LJp", 'name': "Image Generation"},
+        'meta-llama/Llama-3.3-70B-Instruct-Turbo': {'mode': True, 'id': "meta-llama/Llama-3.3-70B-Instruct-Turbo", 'name': "Meta-Llama-3.3-70B-Instruct-Turbo"},
+        'mistralai/Mistral-7B-Instruct-v0.2': {'mode': True, 'id': "mistralai/Mistral-7B-Instruct-v0.2", 'name': "Mistral-(7B)-Instruct-v0.2"},
+        'deepseek-ai/deepseek-llm-67b-chat': {'mode': True, 'id': "deepseek-ai/deepseek-llm-67b-chat", 'name': "DeepSeek-LLM-Chat-(67B)"},
+        'databricks/dbrx-instruct': {'mode': True, 'id': "databricks/dbrx-instruct", 'name': "DBRX-Instruct"},
+        'meta-llama/Meta-Llama-3.1-405B-Instruct-Lite-Pro': {'mode': True, 'id': "meta-llama/Meta-Llama-3.1-405B-Instruct-Lite-Pro", 'name': "Meta-Llama-3.1-405B-Instruct-Turbo"}, #
+        'Qwen/QwQ-32B-Preview': {'mode': True, 'id': "Qwen/QwQ-32B-Preview", 'name': "Qwen-QwQ-32B-Preview"},
+        'NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO': {'mode': True, 'id': "NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO", 'name': "Nous-Hermes-2-Mixtral-8x7B-DPO"}
     }
 
     trendingAgentMode = {
@@ -102,6 +109,13 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         "gpt-4": "gpt-4o",
         "gemini-flash": "gemini-1.5-flash",
         "claude-3.5-sonnet": "claude-sonnet-3.5",
+        "llama-3.3-70b": "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+        "mixtral-7b": "mistralai/Mistral-7B-Instruct-v0.2",
+        "deepseek-chat": "deepseek-ai/deepseek-llm-67b-chat",
+        "dbrx-instruct": "databricks/dbrx-instruct",
+        "llama-3.1-405b": "meta-llama/Meta-Llama-3.1-405B-Instruct-Lite-Pro",
+        "qwq-32b": "Qwen/QwQ-32B-Preview",
+        "hermes-2-dpo": "NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO",
         
         ### image ###
         "flux": "ImageGeneration",
@@ -198,9 +212,9 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         proxy: str = None,
         web_search: bool = False,
         images: ImagesType = None,
-        top_p: float = 0.9,
-        temperature: float = 0.5,
-        max_tokens: int = 1024,
+        top_p: float = None,
+        temperature: float = None,
+        max_tokens: int = None,
         **kwargs
     ) -> AsyncResult:
         message_id = cls.generate_id()
@@ -233,30 +247,31 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         }
 
         data = {
-            "messages": messages,
-            "id": message_id,
-            "previewToken": None,
-            "userId": None,
-            "codeModelMode": True,
             "agentMode": cls.agentMode.get(model, {}) if model in cls.agentMode else {},
-            "trendingAgentMode": cls.trendingAgentMode.get(model, {}) if model in cls.trendingAgentMode else {},
-            "isMicMode": False,
-            "userSystemPrompt": None,
-            "maxTokens": max_tokens,
-            "playgroundTopP": top_p,
-            "playgroundTemperature": temperature,
-            "isChromeExt": False,
-            "githubToken": None,
             "clickedAnswer2": False,
             "clickedAnswer3": False,
             "clickedForceWebSearch": False,
-            "visitFromDelta": False,
-            "mobileClient": False,
-            "userSelectedModel": model if model in cls.userSelectedModel else None,
-            "webSearchMode": web_search,
-            "validated": validated_value,
+            "codeModelMode": True,
+            "deepSearchMode": False,
+            "githubToken": None,
+            "id": message_id,
             "imageGenerationMode": False,
-            "webSearchModePrompt": web_search
+            "isChromeExt": False,
+            "isMicMode": False,
+            "maxTokens": max_tokens,
+            "messages": messages,
+            "mobileClient": False,
+            "playgroundTemperature": temperature,
+            "playgroundTopP": top_p,
+            "previewToken": None,
+            "trendingAgentMode": cls.trendingAgentMode.get(model, {}) if model in cls.trendingAgentMode else {},
+            "userId": None,
+            "userSelectedModel": model if model in cls.userSelectedModel else None,
+            "userSystemPrompt": None,
+            "validated": validated_value,
+            "visitFromDelta": False,
+            "webSearchModePrompt": False,
+            "webSearchMode": web_search
         }
 
         async with ClientSession(headers=headers) as session:

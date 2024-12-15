@@ -2,12 +2,16 @@ from __future__ import annotations
 
 import random
 import asyncio
+import re
+import json
+from pathlib import Path
 from aiohttp import ClientSession
 from typing import AsyncGenerator
 
 from ..typing import AsyncResult, Messages
 from ..image import ImageResponse
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from ..cookies import get_cookies_dir
 
 from .. import debug
 
@@ -29,22 +33,83 @@ class Blackbox2(AsyncGeneratorProvider, ProviderModelMixin):
     models = [*chat_models, *image_models]
 
     @classmethod
+    def _get_cache_file(cls) -> Path:
+        """Returns the path to the cache file."""
+        dir = Path(get_cookies_dir())
+        dir.mkdir(exist_ok=True)
+        return dir / 'blackbox2.json'
+
+    @classmethod
+    def _load_cached_license(cls) -> str | None:
+        """Loads the license key from the cache."""
+        cache_file = cls._get_cache_file()
+        if cache_file.exists():
+            try:
+                with open(cache_file, 'r') as f:
+                    data = json.load(f)
+                    return data.get('license_key')
+            except Exception as e:
+                debug.log(f"Error reading cache file: {e}")
+        return None
+
+    @classmethod
+    def _save_cached_license(cls, license_key: str):
+        """Saves the license key to the cache."""
+        cache_file = cls._get_cache_file()
+        try:
+            with open(cache_file, 'w') as f:
+                json.dump({'license_key': license_key}, f)
+        except Exception as e:
+            debug.log(f"Error writing to cache file: {e}")
+
+    @classmethod
+    async def _get_license_key(cls, session: ClientSession) -> str:
+        """Gets the license key from the cache or from JavaScript files."""
+        cached_license = cls._load_cached_license()
+        if cached_license:
+            return cached_license
+
+        try:
+            async with session.get(cls.url) as response:
+                html = await response.text()
+                js_files = re.findall(r'static/chunks/\d{4}-[a-fA-F0-9]+\.js', html)
+                
+                license_pattern = re.compile(r'j="(\d{6}-\d{6}-\d{6}-\d{6}-\d{6})"')
+                
+                for js_file in js_files:
+                    js_url = f"{cls.url}/_next/{js_file}"
+                    async with session.get(js_url) as js_response:
+                        js_content = await js_response.text()
+                        if license_match := license_pattern.search(js_content):
+                            license_key = license_match.group(1)
+                            cls._save_cached_license(license_key)
+                            return license_key
+                
+                raise ValueError("License key not found")
+        except Exception as e:
+            debug.log(f"Error getting license key: {str(e)}")
+            raise
+
+    @classmethod
     async def create_async_generator(
         cls,
         model: str,
         messages: Messages,
+        prompt: str = None,
         proxy: str = None,
         max_retries: int = 3,
         delay: int = 1,
+        max_tokens: int = None,
         **kwargs
-    ) -> AsyncResult:
+    ) -> AsyncGenerator[str, None]:
         if not model:
             model = cls.default_model
+            
         if model in cls.chat_models:
-            async for result in cls._generate_text(model, messages, proxy, max_retries, delay):
+            async for result in cls._generate_text(model, messages, proxy, max_retries, delay, max_tokens):
                 yield result
         elif model in cls.image_models:
-            prompt = messages[-1]["content"] if prompt is None else prompt
+            prompt = messages[-1]["content"]
             async for result in cls._generate_image(model, prompt, proxy):
                 yield result
         else:
@@ -57,17 +122,21 @@ class Blackbox2(AsyncGeneratorProvider, ProviderModelMixin):
         messages: Messages, 
         proxy: str = None, 
         max_retries: int = 3, 
-        delay: int = 1
-    ) -> AsyncGenerator:
+        delay: int = 1,
+        max_tokens: int = None,
+    ) -> AsyncGenerator[str, None]:
         headers = cls._get_headers()
-        api_endpoint = cls.api_endpoints[model]
-
-        data = {
-            "messages": messages,
-            "max_tokens": None
-        }
 
         async with ClientSession(headers=headers) as session:
+            license_key = await cls._get_license_key(session)
+            api_endpoint = cls.api_endpoints[model]
+            
+            data = {
+                "messages": messages,
+                "max_tokens": max_tokens,
+                "validated": license_key
+            }
+
             for attempt in range(max_retries):
                 try:
                     async with session.post(api_endpoint, json=data, proxy=proxy) as response:
@@ -92,7 +161,7 @@ class Blackbox2(AsyncGeneratorProvider, ProviderModelMixin):
         model: str, 
         prompt: str, 
         proxy: str = None
-    ) -> AsyncGenerator:
+    ) -> AsyncGenerator[ImageResponse, None]:
         headers = cls._get_headers()
         api_endpoint = cls.api_endpoints[model]
 
@@ -116,7 +185,6 @@ class Blackbox2(AsyncGeneratorProvider, ProviderModelMixin):
             'accept-language': 'en-US,en;q=0.9',
             'content-type': 'text/plain;charset=UTF-8',
             'origin': 'https://www.blackbox.ai',
-            'priority': 'u=1, i',
             'referer': 'https://www.blackbox.ai',
             'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
         }
