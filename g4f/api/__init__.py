@@ -84,6 +84,11 @@ def create_app():
     if not AppConfig.ignore_cookie_files:
         read_cookie_files()
 
+    if AppConfig.ignored_providers:
+        for provider in AppConfig.ignored_providers:
+            if provider in ProviderUtils.convert:
+                ProviderUtils.convert[provider].working = False
+
     return app
 
 def create_app_debug():
@@ -151,7 +156,7 @@ class ErrorResponseMessageModel(BaseModel):
 
 class FileResponseModel(BaseModel):
     filename: str
-    
+
 class ErrorResponse(Response):
     media_type = "application/json"
 
@@ -182,12 +187,6 @@ class AppConfig:
     def set_config(cls, **data):
         for key, value in data.items():
             setattr(cls, key, value)
-
-list_ignored_providers: list[str] = None
-
-def set_list_ignored_providers(ignored: list[str]):
-    global list_ignored_providers
-    list_ignored_providers = ignored
 
 class Api:
     def __init__(self, app: FastAPI) -> None:

@@ -2,16 +2,15 @@ from __future__ import annotations
 
 import os
 import logging
-from typing import Union, Optional
+from typing import Union, Optional, Coroutine
 
 from . import debug, version
 from .models import Model
 from .client import Client, AsyncClient
 from .typing import Messages, CreateResult, AsyncResult, ImageType
-from .errors import StreamNotSupportedError, ModelNotAllowedError
+from .errors import StreamNotSupportedError
 from .cookies import get_cookies, set_cookies
 from .providers.types import ProviderType
-from .providers.base_provider import AsyncGeneratorProvider
 from .client.service import get_model_and_provider, get_last_provider
 
 #Configure "g4f" logger
@@ -30,14 +29,13 @@ class ChatCompletion:
                stream   : bool = False,
                image    : ImageType = None,
                image_name: Optional[str] = None,
-               ignored: list[str] = None, 
                ignore_working: bool = False,
                ignore_stream: bool = False,
                **kwargs) -> Union[CreateResult, str]:
         model, provider = get_model_and_provider(
             model, provider, stream,
-            ignored, ignore_working,
-            ignore_stream or kwargs.get("ignore_stream_and_auth")
+            ignore_working,
+            ignore_stream
         )
         if image is not None:
             kwargs["images"] = [(image, image_name)]
@@ -55,10 +53,9 @@ class ChatCompletion:
                      messages : Messages,
                      provider : Union[ProviderType, str, None] = None,
                      stream   : bool = False,
-                     ignored  : list[str] = None,
                      ignore_working: bool = False,
-                     **kwargs) -> Union[AsyncResult, str]:
-        model, provider = get_model_and_provider(model, provider, False, ignored, ignore_working)
+                     **kwargs) -> Union[AsyncResult, Coroutine[str]]:
+        model, provider = get_model_and_provider(model, provider, False, ignore_working)
 
         if stream:
             if hasattr(provider, "create_async_generator"):

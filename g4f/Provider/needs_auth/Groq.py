@@ -6,9 +6,10 @@ from ...typing import AsyncResult, Messages
 class Groq(OpenaiAPI):
     label = "Groq"
     url = "https://console.groq.com/playground"
+    api_base = "https://api.groq.com/openai/v1"
     working = True
     default_model = "mixtral-8x7b-32768"
-    models = [
+    fallback_models = [
         "distil-whisper-large-v3-en",
         "gemma2-9b-it",
         "gemma-7b-it",
@@ -35,7 +36,7 @@ class Groq(OpenaiAPI):
         cls,
         model: str,
         messages: Messages,
-        api_base: str = "https://api.groq.com/openai/v1",
+        api_base: str = api_base,
         **kwargs
     ) -> AsyncResult:
         return super().create_async_generator(

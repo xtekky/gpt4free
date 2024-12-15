@@ -34,6 +34,7 @@ class IterListProvider(BaseRetryProvider):
         model: str,
         messages: Messages,
         stream: bool = False,
+        ignored: list[str] = [],
         **kwargs,
     ) -> CreateResult:
         """
@@ -50,7 +51,7 @@ class IterListProvider(BaseRetryProvider):
         exceptions = {}
         started: bool = False
 
-        for provider in self.get_providers(stream):
+        for provider in self.get_providers(stream, ignored):
             self.last_provider = provider
             debug.log(f"Using {provider.__name__} provider")
             try:
@@ -62,8 +63,7 @@ class IterListProvider(BaseRetryProvider):
                     return
             except Exception as e:
                 exceptions[provider.__name__] = e
-                if debug.logging:
-                    print(f"{provider.__name__}: {e.__class__.__name__}: {e}")
+                debug.log(f"{provider.__name__}: {e.__class__.__name__}: {e}")
                 if started:
                     raise e
 
@@ -73,6 +73,7 @@ class IterListProvider(BaseRetryProvider):
         self,
         model: str,
         messages: Messages,
+        ignored: list[str] = [],
         **kwargs,
     ) -> str:
         """
@@ -87,7 +88,7 @@ class IterListProvider(BaseRetryProvider):
         """
         exceptions = {}
 
-        for provider in self.get_providers(False):
+        for provider in self.get_providers(False, ignored):
             self.last_provider = provider
             debug.log(f"Using {provider.__name__} provider")
             try:
@@ -99,28 +100,22 @@ class IterListProvider(BaseRetryProvider):
                     return chunk
             except Exception as e:
                 exceptions[provider.__name__] = e
-                if debug.logging:
-                    print(f"{provider.__name__}: {e.__class__.__name__}: {e}")
+                debug.log(f"{provider.__name__}: {e.__class__.__name__}: {e}")
 
         raise_exceptions(exceptions)
-
-    def get_providers(self, stream: bool) -> list[ProviderType]:
-        providers = [p for p in self.providers if p.supports_stream] if stream else self.providers
-        if self.shuffle:
-            random.shuffle(providers)
-        return providers
 
     async def create_async_generator(
         self,
         model: str,
         messages: Messages,
         stream: bool = True,
+        ignored: list[str] = [],
         **kwargs
     ) -> AsyncResult:
         exceptions = {}
         started: bool = False
 
-        for provider in self.get_providers(stream):
+        for provider in self.get_providers(stream, ignored):
             self.last_provider = provider
             debug.log(f"Using {provider.__name__} provider")
             try:
@@ -150,6 +145,12 @@ class IterListProvider(BaseRetryProvider):
                     raise e
 
         raise_exceptions(exceptions)
+
+    def get_providers(self, stream: bool, ignored: list[str]) -> list[ProviderType]:
+        providers = [p for p in self.providers if (p.supports_stream or not stream) and p.__name__ not in ignored]
+        if self.shuffle:
+            random.shuffle(providers)
+        return providers
 
 class RetryProvider(IterListProvider):
     def __init__(
@@ -304,7 +305,7 @@ def raise_exceptions(exceptions: dict) -> None:
     """
     if exceptions:
         raise RetryProviderError("RetryProvider failed:\n" + "\n".join([
-            f"{p}: {exception.__class__.__name__}: {exception}" for p, exception in exceptions.items()
+            f"{p}: {type(exception).__name__}: {exception}" for p, exception in exceptions.items()
         ]))
 
     raise RetryNoProviderError("No provider found")

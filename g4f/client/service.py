@@ -24,7 +24,6 @@ def convert_to_provider(provider: str) -> ProviderType:
 def get_model_and_provider(model    : Union[Model, str], 
                            provider : Union[ProviderType, str, None], 
                            stream   : bool,
-                           ignored  : list[str] = None,
                            ignore_working: bool = False,
                            ignore_stream: bool = False,
                            logging: bool = True) -> tuple[str, ProviderType]:
@@ -58,7 +57,7 @@ def get_model_and_provider(model    : Union[Model, str],
     if isinstance(model, str):
         if model in ModelUtils.convert:
             model = ModelUtils.convert[model]
-    
+
     if not provider:
         if not model:
             model = default
@@ -66,7 +65,7 @@ def get_model_and_provider(model    : Union[Model, str],
         elif isinstance(model, str):
             if model in ProviderUtils.convert:
                 provider = ProviderUtils.convert[model]
-                model = provider.default_model if hasattr(provider, "default_model") else ""
+                model = getattr(provider, "default_model", "")
             else:
                 raise ModelNotFoundError(f'Model not found: {model}')
         elif isinstance(model, Model):
@@ -87,8 +86,6 @@ def get_model_and_provider(model    : Union[Model, str],
     if isinstance(provider, BaseRetryProvider):
         if not ignore_working:
             provider.providers = [p for p in provider.providers if p.working]
-        if ignored:
-            provider.providers = [p for p in provider.providers if p.__name__ not in ignored]
 
     if not ignore_stream and not provider.supports_stream and stream:
         raise StreamNotSupportedError(f'{provider_name} does not support "stream" argument')

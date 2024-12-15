@@ -97,6 +97,7 @@ class Blackbox2(AsyncGeneratorProvider, ProviderModelMixin):
         messages: Messages,
         prompt: str = None,
         proxy: str = None,
+        prompt: str = None,
         max_retries: int = 3,
         delay: int = 1,
         max_tokens: int = None,

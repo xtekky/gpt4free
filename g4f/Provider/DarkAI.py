@@ -4,37 +4,25 @@ import json
 from aiohttp import ClientSession
 
 from ..typing import AsyncResult, Messages
+from ..requests.raise_for_status import raise_for_status
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from .helper import format_prompt
-
 
 class DarkAI(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://darkai.foundation/chat"
     api_endpoint = "https://darkai.foundation/chat"
     working = True
     supports_stream = True
-    supports_system_message = True
-    supports_message_history = True
-    
+
     default_model = 'llama-3-70b'
     models = [
          'gpt-4o', # Uncensored
          'gpt-3.5-turbo', # Uncensored
          default_model,
     ]
-    
     model_aliases = {
         "llama-3.1-70b": "llama-3-70b",
     }
-
-    @classmethod
-    def get_model(cls, model: str) -> str:
-        if model in cls.models:
-            return model
-        elif model in cls.model_aliases:
-            return cls.model_aliases[model]
-        else:
-            return cls.default_model
 
     @classmethod
     async def create_async_generator(
@@ -45,7 +33,7 @@ class DarkAI(AsyncGeneratorProvider, ProviderModelMixin):
         **kwargs
     ) -> AsyncResult:
         model = cls.get_model(model)
-        
+
         headers = {
             "accept": "text/event-stream",
             "content-type": "application/json",
@@ -58,24 +46,24 @@ class DarkAI(AsyncGeneratorProvider, ProviderModelMixin):
                 "model": model,
             }
             async with session.post(cls.api_endpoint, json=data, proxy=proxy) as response:
-                response.raise_for_status()
-                full_text = ""
-                async for chunk in response.content:
-                    if chunk:
+                await raise_for_status(response)
+                first = True
+                async for line in response.content:
+                    if line:
                         try:
-                            chunk_str = chunk.decode().strip()
-                            if chunk_str.startswith('data: '):
-                                chunk_data = json.loads(chunk_str[6:])
+                            line_str = line.decode().strip()
+                            if line_str.startswith('data: '):
+                                chunk_data = json.loads(line_str[6:])
                                 if chunk_data['event'] == 'text-chunk':
-                                    full_text += chunk_data['data']['text']
+                                    chunk = chunk_data['data']['text']
+                                    if first:
+                                        chunk = chunk.lstrip()
+                                    if chunk:
+                                        first = False
+                                        yield chunk
                                 elif chunk_data['event'] == 'stream-end':
-                                    if full_text:
-                                        yield full_text.strip()
                                     return
                         except json.JSONDecodeError:
                             pass
                         except Exception:
                             pass
-                
-                if full_text:
-                    yield full_text.strip()
