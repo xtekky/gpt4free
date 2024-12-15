@@ -29,8 +29,8 @@ async def raise_for_status_async(response: Union[StreamResponse, ClientResponse]
     elif response.status == 403 and is_openai(message):
         raise ResponseStatusError(f"Response {response.status}: OpenAI Bot detected")
     elif not response.ok:
-        if "<html>" in message:
-            message = "HTML content"
+        if message is None and response.headers.get("content-type") == "text/html":
+            message = "Bad gateway" if response.status == 502 else "HTML content"
         raise ResponseStatusError(f"Response {response.status}: {message}")
 
 def raise_for_status(response: Union[Response, StreamResponse, ClientResponse, RequestsResponse], message: str = None):
@@ -42,4 +42,6 @@ def raise_for_status(response: Union[Response, StreamResponse, ClientResponse, R
     elif response.status_code == 403 and is_cloudflare(response.text):
         raise CloudflareError(f"Response {response.status_code}: Cloudflare detected")
     elif not response.ok:
+        if message is None and response.headers.get("content-type") == "text/html":
+            message = "Bad gateway" if response.status_code == 502 else "HTML content"
         raise ResponseStatusError(f"Response {response.status_code}: {response.text if message is None else message}")

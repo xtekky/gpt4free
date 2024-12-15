@@ -44,6 +44,8 @@ class arkReq:
         self.userAgent = userAgent
 
 def get_har_files():
+    if not os.access(get_cookies_dir(), os.R_OK):
+        raise NoValidHarFileError("har_and_cookies dir is not readable")
     harPath = []
     for root, _, files in os.walk(get_cookies_dir()):
         for file in files:

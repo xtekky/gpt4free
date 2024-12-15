@@ -47,7 +47,7 @@ class Copilot(AbstractProvider, ProviderModelMixin):
 
     websocket_url = "wss://copilot.microsoft.com/c/api/chat?api-version=2"
     conversation_url = f"{url}/c/api/conversations"
-    
+
     _access_token: str = None
     _cookies: CookieJar = None
 
@@ -94,20 +94,20 @@ class Copilot(AbstractProvider, ProviderModelMixin):
         ) as session:
             if cls._access_token is not None:
                 cls._cookies = session.cookies.jar
-            if cls._access_token is None:
-                try:
-                    url = "https://copilot.microsoft.com/cl/eus-sc/collect"
-                    headers = {
-                        "Accept": "application/x-clarity-gzip",
-                        "referrer": "https://copilot.microsoft.com/onboarding"
-                    }
-                    response = session.post(url, headers=headers, data=get_clarity())
-                    clarity_token = json.loads(response.text.split(" ", maxsplit=1)[-1])[0]["value"]
-                    debug.log(f"Copilot: Clarity Token: ...{clarity_token[-12:]}")
-                except Exception as e:
-                    debug.log(f"Copilot: {e}")
-            else:
-                clarity_token = None
+            # if cls._access_token is None:
+            #     try:
+            #         url = "https://copilot.microsoft.com/cl/eus-sc/collect"
+            #         headers = {
+            #             "Accept": "application/x-clarity-gzip",
+            #             "referrer": "https://copilot.microsoft.com/onboarding"
+            #         }
+            #         response = session.post(url, headers=headers, data=get_clarity())
+            #         clarity_token = json.loads(response.text.split(" ", maxsplit=1)[-1])[0]["value"]
+            #         debug.log(f"Copilot: Clarity Token: ...{clarity_token[-12:]}")
+            #     except Exception as e:
+            #         debug.log(f"Copilot: {e}")
+            # else:
+            #     clarity_token = None
             response = session.get("https://copilot.microsoft.com/c/api/user")
             raise_for_status(response)
             user = response.json().get('firstName')
@@ -121,6 +121,14 @@ class Copilot(AbstractProvider, ProviderModelMixin):
                 if return_conversation:
                     yield Conversation(conversation_id)
                 prompt = format_prompt(messages)
+                if len(prompt) > 10000:
+                    if len(messages) > 6:
+                        prompt = format_prompt(messages[:3]+messages[-3:])
+                    elif len(messages) > 2:
+                        prompt = format_prompt(messages[:2]+messages[-1:])
+                    if len(prompt) > 10000:
+                        prompt = messages[-1]["content"]
+                    debug.log(f"Copilot: Trim messages to: {len(prompt)}")
                 debug.log(f"Copilot: Created conversation: {conversation_id}")
             else:
                 conversation_id = conversation.conversation_id
@@ -138,14 +146,15 @@ class Copilot(AbstractProvider, ProviderModelMixin):
                     )
                     raise_for_status(response)
                     uploaded_images.append({"type":"image", "url": response.json().get("url")})
+                    break
 
             wss = session.ws_connect(cls.websocket_url)
-            if clarity_token is not None:
-                wss.send(json.dumps({
-                    "event": "challengeResponse",
-                    "token": clarity_token,
-                    "method":"clarity"
-                }).encode(), CurlWsFlag.TEXT)
+            # if clarity_token is not None:
+            #     wss.send(json.dumps({
+            #         "event": "challengeResponse",
+            #         "token": clarity_token,
+            #         "method":"clarity"
+            #     }).encode(), CurlWsFlag.TEXT)
             wss.send(json.dumps({
                 "event": "send",
                 "conversationId": conversation_id,

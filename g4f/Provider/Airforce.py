@@ -5,8 +5,10 @@ import requests
 from aiohttp import ClientSession
 from typing import List
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
+
 from ..typing import AsyncResult, Messages
 from ..image import ImageResponse
+from ..requests.raise_for_status import raise_for_status
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 
 from .. import debug
@@ -32,7 +34,7 @@ class Airforce(AsyncGeneratorProvider, ProviderModelMixin):
     api_endpoint_imagine2 = "https://api.airforce/imagine2"
 
     working = True
-    supports_stream = False
+    supports_stream = True
     supports_system_message = True
     supports_message_history = True
 
@@ -87,7 +89,7 @@ class Airforce(AsyncGeneratorProvider, ProviderModelMixin):
                 debug.log(f"Error fetching text models: {e}")
 
         return cls.models
-        
+
     @classmethod
     async def check_api_key(cls, api_key: str) -> bool:
         """
@@ -95,12 +97,11 @@ class Airforce(AsyncGeneratorProvider, ProviderModelMixin):
         """
         if not api_key or api_key == "null":
             return True  # No restrictions if no key.
-        
+
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
             "Accept": "*/*",
         }
-        
         try:
             async with ClientSession(headers=headers) as session:
                 async with session.get(f"https://api.airforce/check?key={api_key}") as response:
@@ -195,11 +196,13 @@ class Airforce(AsyncGeneratorProvider, ProviderModelMixin):
             "Content-Type": "application/json",
             "Authorization": f"Bearer {api_key}",
         }
-        full_message = "\n".join([msg['content'] for msg in messages])
-        message_chunks = split_message(full_message, max_length=1000)
 
+        final_messages = []
+        for message in messages:
+            message_chunks = split_message(message["content"], max_length=1000)
+            final_messages.extend([{"role": message["role"], "content": chunk} for chunk in message_chunks])
         data = {
-            "messages": [{"role": "user", "content": chunk} for chunk in message_chunks],
+            "messages": final_messages,
             "model": model,
             "max_tokens": max_tokens,
             "temperature": temperature,
@@ -209,10 +212,9 @@ class Airforce(AsyncGeneratorProvider, ProviderModelMixin):
 
         async with ClientSession(headers=headers) as session:
             async with session.post(cls.api_endpoint_completions, json=data, proxy=proxy) as response:
-                response.raise_for_status()
+                await raise_for_status(response)
 
                 if stream:
-                    buffer = []  # Buffer to collect partial responses
                     async for line in response.content:
                         line = line.decode('utf-8').strip()
                         if line.startswith('data: '):
@@ -222,12 +224,11 @@ class Airforce(AsyncGeneratorProvider, ProviderModelMixin):
                                 if 'choices' in chunk and chunk['choices']:
                                     delta = chunk['choices'][0].get('delta', {})
                                     if 'content' in delta:
-                                        buffer.append(delta['content'])
+                                        chunk = cls._filter_response(delta['content'])
+                                        if chunk:
+                                            yield chunk
                             except json.JSONDecodeError:
                                 continue
-                    # Combine the buffered response and filter it
-                    filtered_response = cls._filter_response(''.join(buffer))
-                    yield filtered_response
                 else:
                     # Non-streaming response
                     result = await response.json()

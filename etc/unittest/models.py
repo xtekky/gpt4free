@@ -27,3 +27,8 @@ class TestProviderHasModel(unittest.IsolatedAsyncioTestCase):
                 return
         if self.cache[provider.__name__]:
             self.assertIn(model, self.cache[provider.__name__], provider.__name__)
+
+    async def test_all_providers_working(self):
+        for model, providers in __models__.values():
+            for provider in providers:
+                self.assertTrue(provider.working, f"{provider.__name__} in {model.name}")
