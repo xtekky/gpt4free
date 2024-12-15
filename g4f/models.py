@@ -76,8 +76,9 @@ default = Model(
         DeepInfraChat,
         Airforce, 
         Cloudflare,
-        Mhystical,
         PollinationsAI,
+        ChatGptEs,
+        ChatGpt,
     ])
 )
 
