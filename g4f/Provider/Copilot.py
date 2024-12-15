@@ -123,11 +123,12 @@ class Copilot(AbstractProvider, ProviderModelMixin):
                 prompt = format_prompt(messages)
                 if len(prompt) > 10000:
                     if len(messages) > 6:
-                        prompt = format_prompt(messages[:3]+messages[-3:])
-                    elif len(messages) > 2:
-                        prompt = format_prompt(messages[:2]+messages[-1:])
+                        prompt = format_prompt(messages[:3] + messages[-3:])
                     if len(prompt) > 10000:
-                        prompt = messages[-1]["content"]
+                        if len(messages) > 2:
+                            prompt = format_prompt(messages[:2] + messages[-1:])
+                        if len(prompt) > 10000:
+                            prompt = messages[-1]["content"]
                     debug.log(f"Copilot: Trim messages to: {len(prompt)}")
                 debug.log(f"Copilot: Created conversation: {conversation_id}")
             else:

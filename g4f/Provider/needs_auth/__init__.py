@@ -26,3 +26,4 @@ from .Replicate         import Replicate
 from .Theb              import Theb
 from .ThebApi           import ThebApi
 from .WhiteRabbitNeo    import WhiteRabbitNeo
+from .xAI               import xAI

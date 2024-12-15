@@ -34,6 +34,7 @@ class Blackbox2(AsyncGeneratorProvider, ProviderModelMixin):
         model: str,
         messages: Messages,
         proxy: str = None,
+        prompt: str = None,
         max_retries: int = 3,
         delay: int = 1,
         **kwargs
