@@ -6,7 +6,7 @@ import re
 import json
 from pathlib import Path
 from aiohttp import ClientSession
-from typing import AsyncGenerator, AsyncIterator
+from typing import AsyncGenerator
 
 from ..typing import AsyncResult, Messages
 from ..image import ImageResponse
@@ -99,13 +99,14 @@ class Blackbox2(AsyncGeneratorProvider, ProviderModelMixin):
         proxy: str = None,
         max_retries: int = 3,
         delay: int = 1,
+        max_tokens: int = None,
         **kwargs
     ) -> AsyncGenerator[str, None]:
         if not model:
             model = cls.default_model
             
         if model in cls.chat_models:
-            async for result in cls._generate_text(model, messages, proxy, max_retries, delay):
+            async for result in cls._generate_text(model, messages, proxy, max_retries, delay, max_tokens):
                 yield result
         elif model in cls.image_models:
             prompt = messages[-1]["content"]
@@ -121,7 +122,8 @@ class Blackbox2(AsyncGeneratorProvider, ProviderModelMixin):
         messages: Messages, 
         proxy: str = None, 
         max_retries: int = 3, 
-        delay: int = 1
+        delay: int = 1,
+        max_tokens: int = None,
     ) -> AsyncGenerator[str, None]:
         headers = cls._get_headers()
 
@@ -131,7 +133,7 @@ class Blackbox2(AsyncGeneratorProvider, ProviderModelMixin):
             
             data = {
                 "messages": messages,
-                "max_tokens": None,
+                "max_tokens": max_tokens,
                 "validated": license_key
             }
 
