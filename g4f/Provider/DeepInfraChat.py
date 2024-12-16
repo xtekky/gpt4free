@@ -7,6 +7,7 @@ class DeepInfraChat(OpenaiAPI):
     label = "DeepInfra Chat"
     url = "https://deepinfra.com/chat"
     working = True
+    api_base = "https://api.deepinfra.com/v1/openai"
 
     default_model = 'meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo'
     models = [
@@ -34,7 +35,6 @@ class DeepInfraChat(OpenaiAPI):
         model: str,
         messages: Messages,
         proxy: str = None,
-        api_base: str = "https://api.deepinfra.com/v1/openai",
         **kwargs
     ) -> AsyncResult:
         headers = {
@@ -46,4 +46,4 @@ class DeepInfraChat(OpenaiAPI):
             'X-Deepinfra-Source': 'web-page',
             'accept': 'text/event-stream',
         }
-        return super().create_async_generator(model, messages, proxy, api_base=api_base, headers=headers, **kwargs)
+        return super().create_async_generator(model, messages, proxy, headers=headers, **kwargs)

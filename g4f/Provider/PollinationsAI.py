@@ -15,16 +15,14 @@ from .helper import format_prompt
 class PollinationsAI(OpenaiAPI):
     label = "Pollinations AI"
     url = "https://pollinations.ai"
-    
     working = True
     needs_auth = False
     supports_stream = True
-    
+    api_base = "https://text.pollinations.ai/openai"
+
     default_model = "openai"
-    
     additional_models_image = ["midjourney", "dall-e-3"]
     additional_models_text = ["sur", "sur-mistral", "claude"]
-    
     model_aliases = {
         "gpt-4o": "openai",
         "mistral-nemo": "mistral",
@@ -66,7 +64,6 @@ class PollinationsAI(OpenaiAPI):
         model: str,
         messages: Messages,
         prompt: str = None,
-        api_base: str = "https://text.pollinations.ai/openai",
         api_key: str = None,
         proxy: str = None,
         seed: str = None,
@@ -76,25 +73,28 @@ class PollinationsAI(OpenaiAPI):
     ) -> AsyncResult:
         model = cls.get_model(model)
         if model in cls.image_models:
-            async for response in cls._generate_image(model, messages, prompt, seed, width, height):
+            async for response in cls._generate_image(model, messages, prompt, proxy, seed, width, height):
                 yield response
         elif model in cls.models:
-            async for response in cls._generate_text(model, messages, api_base, api_key, proxy, **kwargs):
+            async for response in cls._generate_text(model, messages, api_key, proxy, **kwargs):
                 yield response
         else:
             raise ValueError(f"Unknown model: {model}")
 
     @classmethod
-    async def _generate_image(cls, model: str, messages: Messages, prompt: str = None, seed: str = None, width: int = 1024, height: int = 1024):
+    async def _generate_image(cls, model: str, messages: Messages, prompt: str = None, proxy: str = None, seed: str = None, width: int = 1024, height: int = 1024):
         if prompt is None:
             prompt = messages[-1]["content"]
         if seed is None:
             seed = random.randint(0, 100000)
         image = f"https://image.pollinations.ai/prompt/{quote(prompt)}?width={width}&height={height}&seed={int(seed)}&nofeed=true&nologo=true&model={quote(model)}"
+        async with ClientSession(connector=get_connector(proxy=proxy), headers=cls.headers) as session:
+            async with session.get(image) as response:
+                await raise_for_status(response)
         yield ImageResponse(image, prompt)
 
     @classmethod
-    async def _generate_text(cls, model: str, messages: Messages, api_base: str, api_key: str = None, proxy: str = None, **kwargs):
+    async def _generate_text(cls, model: str, messages: Messages, api_key: str = None, proxy: str = None, **kwargs):
         if api_key is None:
             async with ClientSession(connector=get_connector(proxy=proxy), headers=cls.headers) as session:
                 prompt = format_prompt(messages)
@@ -104,6 +104,6 @@ class PollinationsAI(OpenaiAPI):
                         yield line.decode(errors="ignore")
         else:
             async for chunk in super().create_async_generator(
-                model, messages, api_base=api_base, proxy=proxy, **kwargs
+                model, messages, proxy=proxy, **kwargs
             ):
                 yield chunk

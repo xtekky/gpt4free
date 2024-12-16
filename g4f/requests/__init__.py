@@ -151,14 +151,14 @@ async def get_args_from_nodriver(
     else:
         await browser.cookies.set_all(get_cookie_params_from_dict(cookies, url=url, domain=domain))
     page = await browser.get(url)
-    for c in await browser.cookies.get_all():
-        if c.domain.endswith(domain):
-            cookies[c.name] = c.value
+    for c in await page.send(nodriver.cdp.network.get_cookies([url])):
+        cookies[c.name] = c.value
     user_agent = await page.evaluate("window.navigator.userAgent")
     await page.wait_for("body:not(.no-js)", timeout=timeout)
     await page.close()
     browser.stop()
     return {
+        "impersonate": "chrome",
         "cookies": cookies,
         "headers": {
             **DEFAULT_HEADERS,

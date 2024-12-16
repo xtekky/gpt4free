@@ -93,8 +93,9 @@ body {
     height: 100vh;
 }
 
-a:-webkit-any-link {
-    color: var(--accent);
+body:not(.white) a:link,
+body:not(.white) a:visited{
+    color: var(--colour-3);
 }
 
 .row {
@@ -380,7 +381,6 @@ body.white .gradient{
 .message .content_inner a:visited{
     font-size: 15px;
     line-height: 1.3;
-    color: var(--colour-3);
 }
 .message .content_inner pre{
     white-space: pre-wrap;

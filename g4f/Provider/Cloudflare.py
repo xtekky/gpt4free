@@ -79,9 +79,9 @@ class Cloudflare(AsyncGeneratorProvider, ProviderModelMixin):
                 cls._args["cookies"] = merge_cookies(cls._args["cookies"] , response)
                 try:
                     await raise_for_status(response)
-                except ResponseStatusError as e:
+                except ResponseStatusError:
                     cls._args = None
-                    raise e
+                    raise
                 async for line in response.iter_lines():
                     if line.startswith(b'data: '):
                         if line == b'data: [DONE]':

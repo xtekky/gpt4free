@@ -31,6 +31,7 @@ class ThebApi(OpenaiAPI):
     label = "TheB.AI API"
     url = "https://theb.ai"
     working = True
+    api_base = "https://api.theb.ai/v1"
     needs_auth = True
     default_model = "gpt-3.5-turbo"
     models = list(models)
@@ -40,7 +41,6 @@ class ThebApi(OpenaiAPI):
         cls,
         model: str,
         messages: Messages,
-        api_base: str = "https://api.theb.ai/v1",
         temperature: float = 1,
         top_p: float = 1,
         **kwargs
@@ -58,4 +58,4 @@ class ThebApi(OpenaiAPI):
                 "top_p": top_p,
             }
         }
-        return super().create_async_generator(model, messages, api_base=api_base, extra_data=data, **kwargs)
+        return super().create_async_generator(model, messages, extra_data=data, **kwargs)

@@ -31,7 +31,7 @@ class Ollama(OpenaiAPI):
         api_base: str = None,
         **kwargs
     ) -> AsyncResult:
-        if not api_base:
+        if api_base is None:
             host = os.getenv("OLLAMA_HOST", "localhost")
             port = os.getenv("OLLAMA_PORT", "11434")
             api_base: str = f"http://{host}:{port}/v1"

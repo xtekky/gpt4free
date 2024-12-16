@@ -25,7 +25,6 @@ class Cerebras(OpenaiAPI):
         cls,
         model: str,
         messages: Messages,
-        api_base: str = api_base,
         api_key: str = None,
         cookies: Cookies = None,
         **kwargs
@@ -41,7 +40,6 @@ class Cerebras(OpenaiAPI):
                         api_key = data.get("user", {}).get("demoApiKey")
         async for chunk in super().create_async_generator(
             model, messages,
-            api_base=api_base,
             impersonate="chrome",
             api_key=api_key,
             headers={
