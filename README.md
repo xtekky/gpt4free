@@ -39,10 +39,24 @@ docker pull hlohaus789/g4f
 
 Is your site on this repository and you want to take it down? Send an email to takedown@g4f.ai with proof it is yours and it will be removed as fast as possible. To prevent reproduction please secure your API. 😉
 
-## 🚀 Preview
-**Take a look at our GUI on the mobile device. We connect to ChatGPT and generate an image.** 
+## 🚀 GPT4Free on HuggingFace
 
-[![Preview image](https://github.com/user-attachments/assets/9da24a87-a591-4da4-a80f-8fc7c222c92f)](https://github.com/user-attachments/assets/56c02389-61b1-4849-be7d-50b173b84ce6)
+[![HuggingSpace](https://github.com/user-attachments/assets/1d859e8a-d6fa-416f-a213-ccc26aa11e90)](https://huggingface.co/spaces/roxky/g4f)
+
+Explore our GPT4Free project on HuggingFace Spaces by clicking the link below:
+
+- [Visit GPT4Free on HuggingFace](https://huggingface.co/spaces/roxky/g4f)
+
+If you would like to create your own copy of this space, you can duplicate it using the following link:
+
+- [Duplicate GPT4Free Space](https://huggingface.co/spaces/roxky/g4f?duplicate=true)
+
+### Access Information
+
+To access the space, please use the following login credentials:
+
+- **Username:** any
+- **Password:** gpt4free
 
 ## 📚 Table of Contents
    - [🆕 What's New](#-whats-new)
