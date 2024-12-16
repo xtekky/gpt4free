@@ -6,7 +6,7 @@ import re
 import json
 from pathlib import Path
 from aiohttp import ClientSession
-from typing import AsyncGenerator
+from typing import AsyncIterator
 
 from ..typing import AsyncResult, Messages
 from ..image import ImageResponse
@@ -21,12 +21,12 @@ class Blackbox2(AsyncGeneratorProvider, ProviderModelMixin):
         "llama-3.1-70b": "https://www.blackbox.ai/api/improve-prompt",
         "flux": "https://www.blackbox.ai/api/image-generator"
     }
-    
+
     working = True
     supports_system_message = True
     supports_message_history = True
     supports_stream = False
-       
+
     default_model = 'llama-3.1-70b'
     chat_models = ['llama-3.1-70b']
     image_models = ['flux']
@@ -97,15 +97,14 @@ class Blackbox2(AsyncGeneratorProvider, ProviderModelMixin):
         messages: Messages,
         prompt: str = None,
         proxy: str = None,
-        prompt: str = None,
         max_retries: int = 3,
         delay: int = 1,
         max_tokens: int = None,
         **kwargs
-    ) -> AsyncGenerator[str, None]:
+    ) -> AsyncResult:
         if not model:
             model = cls.default_model
-            
+
         if model in cls.chat_models:
             async for result in cls._generate_text(model, messages, proxy, max_retries, delay, max_tokens):
                 yield result
@@ -125,13 +124,13 @@ class Blackbox2(AsyncGeneratorProvider, ProviderModelMixin):
         max_retries: int = 3, 
         delay: int = 1,
         max_tokens: int = None,
-    ) -> AsyncGenerator[str, None]:
+    ) -> AsyncIterator[str]:
         headers = cls._get_headers()
 
         async with ClientSession(headers=headers) as session:
             license_key = await cls._get_license_key(session)
             api_endpoint = cls.api_endpoints[model]
-            
+
             data = {
                 "messages": messages,
                 "max_tokens": max_tokens,
@@ -162,7 +161,7 @@ class Blackbox2(AsyncGeneratorProvider, ProviderModelMixin):
         model: str, 
         prompt: str, 
         proxy: str = None
-    ) -> AsyncGenerator[ImageResponse, None]:
+    ) -> AsyncIterator[ImageResponse]:
         headers = cls._get_headers()
         api_endpoint = cls.api_endpoints[model]
 
@@ -170,11 +169,11 @@ class Blackbox2(AsyncGeneratorProvider, ProviderModelMixin):
             data = {
                 "query": prompt
             }
-            
+
             async with session.post(api_endpoint, headers=headers, json=data, proxy=proxy) as response:
                 response.raise_for_status()
                 response_data = await response.json()
-                
+
                 if 'markdown' in response_data:
                     image_url = response_data['markdown'].split('(')[1].split(')')[0]
                     yield ImageResponse(images=image_url, alt=prompt)

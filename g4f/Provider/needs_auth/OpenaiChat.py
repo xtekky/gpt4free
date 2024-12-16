@@ -504,7 +504,7 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
         await cls.login()
         async with StreamSession(
             impersonate="chrome",
-            timeout=900
+            timeout=0
         ) as session:
             async with session.get(
                 f"{cls.url}/backend-api/synthesize",

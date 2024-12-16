@@ -14,7 +14,7 @@ class DeepInfra(OpenaiAPI):
     default_model = "meta-llama/Meta-Llama-3.1-70B-Instruct"
 
     @classmethod
-    def get_models(cls):
+    def get_models(cls, **kwargs):
         if not cls.models:
             url = 'https://api.deepinfra.com/models/featured'
             models = requests.get(url).json()

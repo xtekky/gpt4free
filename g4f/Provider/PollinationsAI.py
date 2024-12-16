@@ -40,7 +40,7 @@ class PollinationsAI(OpenaiAPI):
     }
     
     @classmethod
-    def get_models(cls):
+    def get_models(cls, **kwargs):
         if not hasattr(cls, 'image_models'):
             cls.image_models = []
         if not cls.image_models:

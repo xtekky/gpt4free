@@ -1293,6 +1293,7 @@ const load_provider_option = (input, provider_name) => {
         providerSelect.querySelectorAll(`option[data-parent="${provider_name}"]`).forEach(
             (el) => el.removeAttribute("disabled")
         );
+        settings.querySelector(`.field:has(#${provider_name}-api_key)`)?.classList.remove("hidden");
     } else {
         modelSelect.querySelectorAll(`option[data-providers*="${provider_name}"]`).forEach(
             (el) => {
@@ -1307,6 +1308,7 @@ const load_provider_option = (input, provider_name) => {
         providerSelect.querySelectorAll(`option[data-parent="${provider_name}"]`).forEach(
             (el) => el.setAttribute("disabled", "disabled")
         );
+        settings.querySelector(`.field:has(#${provider_name}-api_key)`)?.classList.add("hidden");
     }
 };
 

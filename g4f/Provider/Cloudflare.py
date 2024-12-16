@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import asyncio
 import json
-import uuid
 
 from ..typing import AsyncResult, Messages, Cookies
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin, get_running_loop
@@ -37,18 +36,16 @@ class Cloudflare(AsyncGeneratorProvider, ProviderModelMixin):
         if not cls.models:
             if cls._args is None:
                 get_running_loop(check_nested=True)
-                args = get_args_from_nodriver(cls.url, cookies={
-                    '__cf_bm': uuid.uuid4().hex,
-                })
+                args = get_args_from_nodriver(cls.url)
                 cls._args = asyncio.run(args)
             with Session(**cls._args) as session:
                 response = session.get(cls.models_url)
                 cls._args["cookies"] = merge_cookies(cls._args["cookies"] , response)
                 try:
                     raise_for_status(response)
-                except ResponseStatusError as e:
+                except ResponseStatusError:
                     cls._args = None
-                    raise e
+                    raise
                 json_data = response.json()
                 cls.models = [model.get("name") for model in json_data.get("models")]
         return cls.models
@@ -64,9 +61,9 @@ class Cloudflare(AsyncGeneratorProvider, ProviderModelMixin):
         timeout: int = 300,
         **kwargs
     ) -> AsyncResult:
-        model = cls.get_model(model)
         if cls._args is None:
             cls._args = await get_args_from_nodriver(cls.url, proxy, timeout, cookies)
+        model = cls.get_model(model)
         data = {
             "messages": messages,
             "lora": None,

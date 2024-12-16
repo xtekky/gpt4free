@@ -23,13 +23,13 @@ class OpenaiAPI(AsyncGeneratorProvider, ProviderModelMixin):
     fallback_models = []
 
     @classmethod
-    def get_models(cls, api_key: str = None):
+    def get_models(cls, api_key: str = None, api_base: str = api_base) -> list[str]:
         if not cls.models:
             try:
                 headers = {}
                 if api_key is not None:
                     headers["authorization"] = f"Bearer {api_key}"
-                response = requests.get(f"{cls.api_base}/models", headers=headers)
+                response = requests.get(f"{api_base}/models", headers=headers)
                 raise_for_status(response)
                 data = response.json()
                 cls.models = [model.get("id") for model in data.get("data")]
@@ -82,7 +82,7 @@ class OpenaiAPI(AsyncGeneratorProvider, ProviderModelMixin):
         ) as session:
             data = filter_none(
                 messages=messages,
-                model=cls.get_model(model),
+                model=cls.get_model(model, api_key=api_key, api_base=api_base),
                 temperature=temperature,
                 max_tokens=max_tokens,
                 top_p=top_p,
