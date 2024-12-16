@@ -24,7 +24,6 @@ from .Provider import (
     HuggingFace,
     Liaobots,
     Airforce,
-    Mhystical,
     MetaAI,
     MicrosoftDesigner,
     OpenaiChat,
@@ -68,7 +67,6 @@ default = Model(
     best_provider = IterListProvider([
         DDG,
         Pizzagpt,
-        ReplicateHome,
         Blackbox2,
         Blackbox,
         Copilot,
@@ -78,7 +76,7 @@ default = Model(
         Cloudflare,
         PollinationsAI,
         ChatGptEs,
-        ChatGpt,
+        OpenaiChat,
     ])
 )
 
