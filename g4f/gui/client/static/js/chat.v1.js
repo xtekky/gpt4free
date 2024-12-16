@@ -513,21 +513,7 @@ async function add_message_chunk(message, message_id) {
         content_map.inner.innerHTML = markdown_render(message.preview);
     } else if (message.type == "content") {
         message_storage[message_id] += message.content;
-        html = markdown_render(message_storage[message_id]);
-        let lastElement, lastIndex = null;
-        for (element of ['</p>', '</code></pre>', '</p>\n</li>\n</ol>', '</li>\n</ol>', '</li>\n</ul>']) {
-            const index = html.lastIndexOf(element)
-            if (index - element.length > lastIndex) {
-                lastElement = element;
-                lastIndex = index;
-            }
-        }
-        if (lastIndex) {
-            html = html.substring(0, lastIndex) + '<span class="cursor"></span>' + lastElement;
-        }
-        content_map.inner.innerHTML = html;
-        content_map.count.innerText = count_words_and_tokens(message_storage[message_id], provider_storage[message_id]?.model);
-        highlight(content_map.inner);
+        update_message(content_map, message_id);
         content_map.inner.style.height = "";
     } else if (message.type == "log") {
         let p = document.createElement("p");
@@ -535,16 +521,6 @@ async function add_message_chunk(message, message_id) {
         log_storage.appendChild(p);
     } else if (message.type == "synthesize") {
         synthesize_storage[message_id] = message.synthesize;
-    }
-    let scroll_down = ()=>{
-        if (message_box.scrollTop >= message_box.scrollHeight - message_box.clientHeight - 100) {
-            window.scrollTo(0, 0);
-            message_box.scrollTo({ top: message_box.scrollHeight, behavior: "auto" });
-        }
-    }
-    if (!content_map.container.classList.contains("regenerate")) {
-        scroll_down();
-        setTimeout(scroll_down, 200);
     }
 }
 
@@ -1232,6 +1208,36 @@ function count_words_and_tokens(text, model) {
     text = filter_message(text);
     return `(${count_words(text)} words, ${count_chars(text)} chars, ${count_tokens(model, text)} tokens)`;
 }
+
+function update_message(content_map, message_id) {
+    content_map.inner.dataset.timeout = setTimeout(() => {
+        html = markdown_render(message_storage[message_id]);
+        let lastElement, lastIndex = null;
+        for (element of ['</p>', '</code></pre>', '</p>\n</li>\n</ol>', '</li>\n</ol>', '</li>\n</ul>']) {
+            const index = html.lastIndexOf(element)
+            if (index - element.length > lastIndex) {
+                lastElement = element;
+                lastIndex = index;
+            }
+        }
+        if (lastIndex) {
+            html = html.substring(0, lastIndex) + '<span class="cursor"></span>' + lastElement;
+        }
+        if (error_storage[message_id]) {
+            content_map.inner.innerHTML += markdown_render(`**An error occured:** ${error_storage[message_id]}`);
+        }
+        content_map.inner.innerHTML = html;
+        content_map.count.innerText = count_words_and_tokens(message_storage[message_id], provider_storage[message_id]?.model);
+        highlight(content_map.inner);
+        if (!content_map.container.classList.contains("regenerate")) {
+            if (message_box.scrollTop >= message_box.scrollHeight - message_box.clientHeight - 200) {
+                window.scrollTo(0, 0);
+                message_box.scrollTo({ top: message_box.scrollHeight, behavior: "auto" });
+            }
+        }
+        if (content_map.inner.dataset.timeout) clearTimeout(content_map.inner.dataset.timeout);
+    }, 100);
+};
 
 let countFocus = messageInput;
 let timeoutId;

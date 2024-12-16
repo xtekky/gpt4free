@@ -158,7 +158,7 @@ class Airforce(AsyncGeneratorProvider, ProviderModelMixin):
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:133.0) Gecko/20100101 Firefox/133.0",
             "Accept": "image/avif,image/webp,image/png,image/svg+xml,image/*;q=0.8,*/*;q=0.5",
             "Accept-Language": "en-US,en;q=0.5",
-            "Accept-Encoding": "gzip, deflate, br, zstd",
+            "Accept-Encoding": "gzip, deflate, br",
             "Content-Type": "application/json",
             "Authorization": f"Bearer {api_key}",
         }
@@ -192,7 +192,7 @@ class Airforce(AsyncGeneratorProvider, ProviderModelMixin):
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:133.0) Gecko/20100101 Firefox/133.0",
             "Accept": "application/json, text/event-stream",
             "Accept-Language": "en-US,en;q=0.5",
-            "Accept-Encoding": "gzip, deflate, br, zstd",
+            "Accept-Encoding": "gzip, deflate, br",
             "Content-Type": "application/json",
             "Authorization": f"Bearer {api_key}",
         }

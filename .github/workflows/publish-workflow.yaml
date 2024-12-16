@@ -57,19 +57,19 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GHCR_PAT }}
 
-      - name: Build and push armv7 image
-        uses: docker/build-push-action@v5
-        with:
-            context: .
-            file: docker/Dockerfile-armv7
-            platforms: linux/arm/v7
-            push: true
-            tags: |
-              hlohaus789/g4f:latest-armv7
-              hlohaus789/g4f:${{ github.ref_name }}-armv7
-            labels: ${{ steps.metadata.outputs.labels }}
-            build-args: |
-              G4F_VERSION=${{ github.ref_name }}
+      # - name: Build and push armv7 image
+      #   uses: docker/build-push-action@v5
+      #   with:
+      #       context: .
+      #       file: docker/Dockerfile-armv7
+      #       platforms: linux/arm/v7
+      #       push: true
+      #       tags: |
+      #         hlohaus789/g4f:latest-armv7
+      #         hlohaus789/g4f:${{ github.ref_name }}-armv7
+      #       labels: ${{ steps.metadata.outputs.labels }}
+      #       build-args: |
+      #         G4F_VERSION=${{ github.ref_name }}
 
       - name: Build and push small images
         uses: docker/build-push-action@v5

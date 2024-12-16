@@ -438,7 +438,7 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
                     async for line in response.iter_lines():
                         async for chunk in cls.iter_messages_line(session, line, conversation):
                             yield chunk
-                if not history_disabled and RequestConfig.access_token is not None:
+                if not history_disabled and cls._api_key is not None:
                     yield SynthesizeData(cls.__name__, {
                         "conversation_id": conversation.conversation_id,
                         "message_id": conversation.message_id,

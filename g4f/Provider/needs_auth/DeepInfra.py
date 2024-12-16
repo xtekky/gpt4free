@@ -8,6 +8,7 @@ class DeepInfra(OpenaiAPI):
     label = "DeepInfra"
     url = "https://deepinfra.com"
     working = True
+    api_base = "https://api.deepinfra.com/v1/openai",
     needs_auth = True
     supports_stream = True
     supports_message_history = True
@@ -27,7 +28,6 @@ class DeepInfra(OpenaiAPI):
         model: str,
         messages: Messages,
         stream: bool,
-        api_base: str = "https://api.deepinfra.com/v1/openai",
         temperature: float = 0.7,
         max_tokens: int = 1028,
         **kwargs
@@ -50,7 +50,6 @@ class DeepInfra(OpenaiAPI):
         return super().create_async_generator(
             model, messages,
             stream=stream,
-            api_base=api_base,
             temperature=temperature,
             max_tokens=max_tokens,
             headers=headers,

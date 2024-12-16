@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from .OpenaiAPI import OpenaiAPI
 from .HuggingChat import HuggingChat
-from ...typing import AsyncResult, Messages
 
 class HuggingFaceAPI(OpenaiAPI):
     label = "HuggingFace (Inference API)"
@@ -14,16 +13,3 @@ class HuggingFaceAPI(OpenaiAPI):
     models = [
         *HuggingChat.models
     ]
-
-    @classmethod
-    def create_async_generator(
-        cls,
-        model: str,
-        messages: Messages,
-        api_base: str = api_base,
-        max_tokens: int = 500,
-        **kwargs
-    ) -> AsyncResult:
-        return super().create_async_generator(
-            model, messages, api_base=api_base, max_tokens=max_tokens, **kwargs
-        )

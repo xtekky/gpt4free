@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-from ..base_provider import ProviderModelMixin
 from ..Copilot import Copilot
 
-class CopilotAccount(Copilot, ProviderModelMixin):
+class CopilotAccount(Copilot):
     needs_auth = True
     parent = "Copilot"
     default_model = "Copilot"
