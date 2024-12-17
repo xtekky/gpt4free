@@ -352,7 +352,10 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
                     json={"p": get_requirements_token(RequestConfig.proof_token) if RequestConfig.proof_token else None},
                     headers=cls._headers
                 ) as response:
-                    cls._update_request_args(session)
+                    if response.status == 401:
+                        cls._headers = cls._api_key = None
+                    else:
+                        cls._update_request_args(session)
                     await raise_for_status(response)
                     chat_requirements = await response.json()
                     need_turnstile = chat_requirements.get("turnstile", {}).get("required", False)
@@ -525,7 +528,7 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
             cls._set_api_key(RequestConfig.access_token)
         except NoValidHarFileError:
             if has_nodriver:
-                if RequestConfig.access_token is None:
+                if cls._api_key is None:
                     await cls.nodriver_auth(proxy)
             else:
                 raise
@@ -545,7 +548,7 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
                 if "OpenAI-Sentinel-Turnstile-Token" in event.request.headers:
                     RequestConfig.turnstile_token = event.request.headers["OpenAI-Sentinel-Turnstile-Token"]
                 if "Authorization" in event.request.headers:
-                    RequestConfig.access_token = event.request.headers["Authorization"].split()[-1]
+                    cls._set_api_key(event.request.headers["Authorization"].split()[-1])
             elif event.request.url == arkose_url:
                 RequestConfig.arkose_request = arkReq(
                     arkURL=event.request.url,
@@ -560,13 +563,13 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
         user_agent = await page.evaluate("window.navigator.userAgent")
         await page.select("#prompt-textarea", 240)
         while True:
-            if RequestConfig.access_token:
+            if cls._api_key is not None:
                 break
             body = await page.evaluate("JSON.stringify(window.__remixContext)")
             if body:
                 match = re.search(r'"accessToken":"(.*?)"', body)
                 if match:
-                    RequestConfig.access_token = match.group(1)
+                    cls._set_api_key(match.group(1))
                     break
             await asyncio.sleep(1)
         while True:
@@ -578,7 +581,6 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
             RequestConfig.cookies[c.name] = c.value
         await page.close()
         cls._create_request_args(RequestConfig.cookies, RequestConfig.headers, user_agent=user_agent)
-        cls._set_api_key(RequestConfig.access_token)
 
     @staticmethod
     def get_default_headers() -> dict:

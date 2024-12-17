@@ -30,6 +30,7 @@ class Api:
             "providers": [
                 getattr(provider, "parent", provider.__name__)
                 for provider in providers
+                if provider.working
             ]
         }
         for model, providers in models.__models__.values()]
