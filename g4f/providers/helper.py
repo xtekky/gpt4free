@@ -25,7 +25,7 @@ def format_prompt(messages: Messages, add_special_tokens=False) -> str:
     ])
     return f"{formatted}\nAssistant:"
 
-def format_prompt_max_lenght(messages: Messages, max_lenght: int) -> str:
+def format_prompt_max_length(messages: Messages, max_lenght: int) -> str:
     prompt = format_prompt(messages)
     start = len(prompt)
     if start > max_lenght:
