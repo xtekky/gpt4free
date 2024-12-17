@@ -74,6 +74,7 @@ body:not(.white) a:visited{
 .gradient {
     position: absolute;
     z-index: -1;
+    left: 50%;
     border-radius: 50%;
     background: radial-gradient(circle at center, var(--accent), var(--gradient));
     width: var(--size);
@@ -272,7 +273,7 @@ body.white .gradient{
 }
 
 .message.regenerate {
-    background-color: var(--colour-6);
+    background-color: rgba(0, 0, 0, 0.5);
 }
 
 .white .message.regenerate {
