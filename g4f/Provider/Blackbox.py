@@ -165,7 +165,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
                     page_content = await response.text()
                     js_files = re.findall(r'static/chunks/\d{4}-[a-fA-F0-9]+\.js', page_content)
 
-                key_pattern = re.compile(r'w="([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})"')
+                key_pattern = re.compile(r'p="([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})"')
 
                 for js_file in js_files:
                     js_url = f"{cls.url}/_next/{js_file}"
@@ -240,6 +240,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
 
         headers = {
             'accept': '*/*',
+            'accept-language': 'en-US,en;q=0.9',
             'content-type': 'application/json',
             'origin': cls.url,
             'referer': f'{cls.url}/',
