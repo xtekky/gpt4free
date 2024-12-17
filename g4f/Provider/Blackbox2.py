@@ -74,7 +74,7 @@ class Blackbox2(AsyncGeneratorProvider, ProviderModelMixin):
                 html = await response.text()
                 js_files = re.findall(r'static/chunks/\d{4}-[a-fA-F0-9]+\.js', html)
                 
-                license_pattern = re.compile(r'j="(\d{6}-\d{6}-\d{6}-\d{6}-\d{6})"')
+                license_pattern = re.compile(r'v="(\d{6}-\d{6}-\d{6}-\d{6}-\d{6})"')
                 
                 for js_file in js_files:
                     js_url = f"{cls.url}/_next/{js_file}"
