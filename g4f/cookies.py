@@ -59,6 +59,7 @@ DOMAINS = [
     "chat.reka.ai",
     "chatgpt.com",
     ".cerebras.ai",
+    "github.com",
 ]
 
 if has_browser_cookie3 and os.environ.get('DBUS_SESSION_BUS_ADDRESS') == "/dev/null":

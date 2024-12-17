@@ -33,7 +33,6 @@
     --scrollbar-thumb: var(--blur-bg);
     --button-hover: var(--colour-5);
     --top: 50%;
-    --right: 0;
     --size: 70vw;
     --blur: 35vw; /* Half of 70vw */
     --opacity: 0.3;
@@ -73,13 +72,12 @@ body:not(.white) a:visited{
 .gradient {
     position: absolute;
     z-index: -1;
-    left: 50%;
+    left: 70vw;
     border-radius: 50%;
     background: radial-gradient(circle at center, var(--accent), var(--gradient));
     width: var(--size);
     height: var(--size);
     top: var(--top);
-    right: var(--right);
     transform: translate(-50%, -50%);
     filter: blur(var(--blur)) opacity(var(--opacity));
     animation: zoom_gradient 6s infinite alternate;
@@ -600,7 +598,8 @@ body.white .gradient{
 
 .file-label:has(> input:valid),
 .file-label.selected,
-.micro-label.recognition {
+.micro-label.recognition,
+#search.active a i {
     color: var(--accent);
 }
 
@@ -716,7 +715,7 @@ select {
     outline: none;
     padding: 8px 16px;
     appearance: none;
-    width: 160px;
+    width: 132px;
 }
 
 .buttons button {
@@ -816,7 +815,7 @@ select:hover,
         width: 200px;
     }
     .field {
-        padding-right: 15px
+        padding-right: 8px
     }
     .message {
         flex-direction: row;
@@ -1003,7 +1002,7 @@ ul {
     .buttons {
         align-items: flex-start;
         flex-wrap: wrap;
-        gap: 10px;
+        gap: 8px;
     }
 
     .mobile-sidebar {

@@ -20,6 +20,8 @@ const settings          = document.querySelector(".settings");
 const chat              = document.querySelector(".conversation");
 const album             = document.querySelector(".images");
 const log_storage       = document.querySelector(".log");
+const switchInput       = document.getElementById("switch");
+const searchButton      = document.getElementById("search");
 
 const optionElementsSelector = ".settings input, .settings textarea, #model, #model2, #provider";
 
@@ -591,7 +593,7 @@ const ask_gpt = async (message_id, message_index = -1, regenerate = false, provi
             id: message_id,
             conversation_id: window.conversation_id,
             model: model,
-            web_search: document.getElementById("switch").checked,
+            web_search: switchInput.checked,
             provider: provider,
             messages: messages,
             auto_continue: auto_continue,
@@ -1434,6 +1436,9 @@ async function on_api() {
             }
         });
     }
+
+    const method = switchInput.checked ? "add" : "remove";
+    searchButton.classList[method]("active");
 }
 
 async function load_version() {
@@ -1640,6 +1645,7 @@ async function load_provider_models(providerIndex=null) {
     }
 };
 providerSelect.addEventListener("change", () => load_provider_models());
+
 document.getElementById("pin").addEventListener("click", async () => {
     const pin_container = document.getElementById("pin_container");
     let selected_provider = providerSelect.options[providerSelect.selectedIndex];
@@ -1665,6 +1671,14 @@ document.getElementById("pin").addEventListener("click", async () => {
         }
         pin_container.appendChild(pinned);
     }
+});
+
+switchInput.addEventListener("change", () => {
+    const method = switchInput.checked ? "add" : "remove";
+    searchButton.classList[method]("active");
+});
+searchButton.addEventListener("click", async () => {
+    switchInput.click();
 });
 
 function save_storage() {
