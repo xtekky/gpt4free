@@ -30,6 +30,7 @@ class Api:
             "providers": [
                 getattr(provider, "parent", provider.__name__)
                 for provider in providers
+                if provider.working
             ]
         }
         for model, providers in models.__models__.values()]
@@ -178,9 +179,9 @@ class Api:
         }
 
     def handle_provider(self, provider_handler, model):
-        if isinstance(provider_handler, IterListProvider):
+        if isinstance(provider_handler, IterListProvider) and provider_handler.last_provider is not None:
             provider_handler = provider_handler.last_provider
-        if issubclass(provider_handler, ProviderModelMixin) and provider_handler.last_model is not None:
+        if hasattr(provider_handler, "last_model") and provider_handler.last_model is not None:
             model = provider_handler.last_model
         return self._format_json("provider", {**provider_handler.get_dict(), "model": model})
 

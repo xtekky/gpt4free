@@ -4,6 +4,7 @@ import random
 import string
 
 from ..typing import Messages, Cookies
+from .. import debug
 
 def format_prompt(messages: Messages, add_special_tokens=False) -> str:
     """
@@ -23,6 +24,20 @@ def format_prompt(messages: Messages, add_special_tokens=False) -> str:
         for message in messages
     ])
     return f"{formatted}\nAssistant:"
+
+def format_prompt_max_length(messages: Messages, max_lenght: int) -> str:
+    prompt = format_prompt(messages)
+    start = len(prompt)
+    if start > max_lenght:
+        if len(messages) > 6:
+            prompt = format_prompt(messages[:3] + messages[-3:])
+        if len(prompt) > max_lenght:
+            if len(messages) > 2:
+                prompt = format_prompt([m for m in messages if m["role"] == "system"] + messages[-1:])
+            if len(prompt) > max_lenght:
+                prompt = messages[-1]["content"]
+        debug.log(f"Messages trimmed from: {start} to: {len(prompt)}")
+    return prompt
 
 def get_random_string(length: int = 10) -> str:
     """

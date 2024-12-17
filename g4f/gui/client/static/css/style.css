@@ -1,36 +1,5 @@
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap");
 
-.adsbox {
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    background-color: var(--blur-bg);
-    height: 100%;
-    width: 100%;
-    border-radius: var(--border-radius-1);
-    border: 1px solid var(--blur-border);
-}
-
-.ads {
-    align-items: center;
-    margin: auto;
-    display: flex;
-    flex-direction: column;
-    gap: var(--inner-gap);
-    max-width: 200px;
-    padding: var(--section-gap);
-    overflow: none;
-    flex-shrink: 0;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-}
- 
-@media screen and (max-width: 728px) {
-    .ads {
-        display: none;
-    }
-}
-
 /* :root {
     --colour-1: #ffffff;
     --colour-2: #000000;
@@ -55,7 +24,6 @@
     --colour-6: #242424;
 
     --accent: #8b3dff;
-    --gradient: var(--accent);
     --blur-bg: #16101b66;
     --blur-border: #84719040;
     --user-input: #ac87bb;
@@ -64,9 +32,12 @@
     --scrollbar: var(--colour-3);
     --scrollbar-thumb: var(--blur-bg);
     --button-hover: var(--colour-5);
-}
-
-:root {
+    --top: 50%;
+    --size: 70vw;
+    --blur: 35vw; /* Half of 70vw */
+    --opacity: 0.3;
+    --gradient: rgba(22, 16, 27, 0.4); /* Transparent dark color */
+    --background: #16101b; /* Background color */
     --font-1: "Inter", sans-serif;
     --section-gap: 25px;
     --inner-gap: 15px;
@@ -88,7 +59,7 @@ body {
 }
 
 body {
-    background: var(--colour-1);
+    background: var(--background);
     color: var(--colour-3);
     height: 100vh;
 }
@@ -96,6 +67,29 @@ body {
 body:not(.white) a:link,
 body:not(.white) a:visited{
     color: var(--colour-3);
+}
+
+.gradient {
+    position: absolute;
+    z-index: -1;
+    left: 70vw;
+    border-radius: 50%;
+    background: radial-gradient(circle at center, var(--accent), var(--gradient));
+    width: var(--size);
+    height: var(--size);
+    top: var(--top);
+    transform: translate(-50%, -50%);
+    filter: blur(var(--blur)) opacity(var(--opacity));
+    animation: zoom_gradient 6s infinite alternate;
+}
+
+@keyframes zoom_gradient {
+    0% {
+        transform: translate(-50%, -50%) scale(1);
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(1.2);
+    }
 }
 
 .row {
@@ -158,6 +152,7 @@ body:not(.white) a:visited{
     overflow: auto;
     overflow-wrap: break-word;
     padding-bottom: 10px;
+    background-color: transparent;
 }
 
 .conversation .user-input {
@@ -177,29 +172,6 @@ body:not(.white) a:visited{
 
 .conversation .user-input input::placeholder {
     color: var(--user-input)
-}
-
-.gradient:nth-child(1) {
-    --top: 0;
-    --right: 0;
-    --size: 70vw;
-    --blur: calc(0.5 * var(--size));
-    --opacity: 0.3;
-    animation: zoom_gradient 6s infinite;
-}
-
-.gradient {
-    position: absolute;
-    z-index: -1;
-    border-radius: calc(0.5 * var(--size));
-    background-color: var(--accent);
-    background: radial-gradient(circle at center, var(--gradient), var(--gradient));
-    width: 70vw;
-    height: 70vw;
-    top: 50%;
-    right: 0;
-    transform: translateY(-50%);
-    filter: blur(calc(0.5 * 70vw)) opacity(var(--opacity));
 }
 
 body.white .gradient{
@@ -299,7 +271,7 @@ body.white .gradient{
 }
 
 .message.regenerate {
-    background-color: var(--colour-6);
+    background-color: rgba(0, 0, 0, 0.2);
 }
 
 .white .message.regenerate {
@@ -626,7 +598,8 @@ body.white .gradient{
 
 .file-label:has(> input:valid),
 .file-label.selected,
-.micro-label.recognition {
+.micro-label.recognition,
+#search.active a i {
     color: var(--accent);
 }
 
@@ -742,7 +715,7 @@ select {
     outline: none;
     padding: 8px 16px;
     appearance: none;
-    width: 160px;
+    width: 132px;
 }
 
 .buttons button {
@@ -842,7 +815,7 @@ select:hover,
         width: 200px;
     }
     .field {
-        padding-right: 15px
+        padding-right: 8px
     }
     .message {
         flex-direction: row;
@@ -1029,7 +1002,7 @@ ul {
     .buttons {
         align-items: flex-start;
         flex-wrap: wrap;
-        gap: 12px;
+        gap: 8px;
     }
 
     .mobile-sidebar {
@@ -1172,13 +1145,13 @@ ul {
 .white {
     --blur-bg: transparent;
     --accent: #007bff;
-    --gradient: #ccc;
     --conversations: #0062cc;
     --colour-1: #ffffff;
     --colour-3: #212529;
     --scrollbar: var(--colour-1);
-    --scrollbar-thumb: var(--gradient);
+    --scrollbar-thumb: #ccc;
     --button-hover: var(--colour-4);
+    --background: transparent;
 }
 
 .white .message .assistant .fa-xmark {

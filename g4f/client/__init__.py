@@ -16,7 +16,6 @@ from ..errors import NoImageResponseError
 from ..providers.retry_provider import IterListProvider
 from ..providers.asyncio import to_sync_generator, async_generator_to_list
 from ..Provider.needs_auth import BingCreateImages, OpenaiAccount
-from ..image import to_bytes
 from .stubs import ChatCompletion, ChatCompletionChunk, Image, ImagesResponse
 from .image_models import ImageModels
 from .types import IterResponse, ImageProvider, Client as BaseClient
@@ -59,7 +58,7 @@ def iter_response(
         elif isinstance(chunk, BaseConversation):
             yield chunk
             continue
-        elif isinstance(chunk, SynthesizeData) or chunk is None:
+        elif isinstance(chunk, SynthesizeData) or not chunk:
             continue
 
         chunk = str(chunk)
@@ -122,7 +121,7 @@ async def async_iter_response(
             elif isinstance(chunk, BaseConversation):
                 yield chunk
                 continue
-            elif isinstance(chunk, SynthesizeData) or chunk is None:
+            elif isinstance(chunk, SynthesizeData) or not chunk:
                 continue
 
             chunk = str(chunk)
@@ -214,6 +213,8 @@ class Completions:
         stop = [stop] if isinstance(stop, str) else stop
         if image is not None:
             kwargs["images"] = [(image, image_name)]
+        if ignore_stream:
+            kwargs["ignore_stream"] = True
         response = provider.create_completion(
             model,
             messages,
@@ -330,7 +331,6 @@ class Images:
         model: str,
         prompt: str,
         prompt_prefix: str = "Generate a image: ",
-        image: ImageType = None,
         **kwargs
     ) -> ImageResponse:
         messages = [{"role": "user", "content": f"{prompt_prefix}{prompt}"}]
@@ -341,7 +341,6 @@ class Images:
                 messages,
                 stream=True,
                 prompt=prompt,
-                image=image,
                 **kwargs
             ):
                 if isinstance(item, ImageResponse):
@@ -353,7 +352,6 @@ class Images:
                 messages,
                 True,
                 prompt=prompt,
-                image=image,
                 **kwargs
             ):
                 if isinstance(item, ImageResponse):
@@ -389,20 +387,22 @@ class Images:
         if proxy is None:
             proxy = self.client.proxy
         prompt = "create a variation of this image"
+        if image is not None:
+            kwargs["images"] = [(image, None)]
 
         e = None
         response = None
         if isinstance(provider_handler, IterListProvider):
             for provider in provider_handler.providers:
                 try:
-                    response = await self._generate_image_response(provider, provider.__name__, model, prompt, image=image, **kwargs)
+                    response = await self._generate_image_response(provider, provider.__name__, model, prompt, **kwargs)
                     if response is not None:
                         provider_name = provider.__name__
                         break
                 except Exception as e:
                     debug.log(f"Image provider {provider.__name__}: {e}")
         else:
-            response = await self._generate_image_response(provider_handler, provider_name, model, prompt, image=image, **kwargs)
+            response = await self._generate_image_response(provider_handler, provider_name, model, prompt, **kwargs)
 
         if isinstance(response, ImageResponse):
             return await self._process_image_response(response, response_format, proxy, model, provider_name)
@@ -494,6 +494,8 @@ class AsyncCompletions:
         stop = [stop] if isinstance(stop, str) else stop
         if image is not None:
             kwargs["images"] = [(image, image_name)]
+        if ignore_stream:
+            kwargs["ignore_stream"] = True
         if hasattr(provider, "create_async_generator"):
             create_handler = provider.create_async_generator
         else:

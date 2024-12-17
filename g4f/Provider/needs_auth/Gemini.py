@@ -207,7 +207,7 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
         ) as session:
             if not cls._snlm0e:
                 await cls.fetch_snlm0e(session, cls._cookies) if cls._cookies else None
-            inner_data = json.dumps([None, params["text"], "de-DE", None, 2])
+            inner_data = json.dumps([None, params["text"], "en-US", None, 2])
             async with session.post(
                 "https://gemini.google.com/_/BardChatUi/data/batchexecute",
                 data={
@@ -334,8 +334,11 @@ async def iter_filter_base64(response_iter: AsyncIterator[bytes]) -> AsyncIterat
 
 async def iter_base64_decode(response_iter: AsyncIterator[bytes]) -> AsyncIterator[bytes]:
     buffer = b""
+    rest = 0
     async for chunk in response_iter:
         chunk = buffer + chunk
         rest = len(chunk) % 4
         buffer = chunk[-rest:]
         yield base64.b64decode(chunk[:-rest])
+    if rest > 0:
+        yield base64.b64decode(buffer+rest*b"=")

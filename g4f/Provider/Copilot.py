@@ -18,7 +18,7 @@ except ImportError:
     has_nodriver = False
 
 from .base_provider import AbstractProvider, ProviderModelMixin, BaseConversation
-from .helper import format_prompt
+from .helper import format_prompt_max_length
 from ..typing import CreateResult, Messages, ImagesType
 from ..errors import MissingRequirementsError, NoValidHarFileError
 from ..requests.raise_for_status import raise_for_status
@@ -120,16 +120,7 @@ class Copilot(AbstractProvider, ProviderModelMixin):
                 conversation_id = response.json().get("id")
                 if return_conversation:
                     yield Conversation(conversation_id)
-                prompt = format_prompt(messages)
-                if len(prompt) > 10000:
-                    if len(messages) > 6:
-                        prompt = format_prompt(messages[:3] + messages[-3:])
-                    if len(prompt) > 10000:
-                        if len(messages) > 2:
-                            prompt = format_prompt(messages[:2] + messages[-1:])
-                        if len(prompt) > 10000:
-                            prompt = messages[-1]["content"]
-                    debug.log(f"Copilot: Trim messages to: {len(prompt)}")
+                prompt = format_prompt_max_length(messages, 10000)
                 debug.log(f"Copilot: Created conversation: {conversation_id}")
             else:
                 conversation_id = conversation.conversation_id

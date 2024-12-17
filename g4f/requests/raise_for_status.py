@@ -23,25 +23,36 @@ def is_openai(text: str) -> bool:
 async def raise_for_status_async(response: Union[StreamResponse, ClientResponse], message: str = None):
     if response.status in (429, 402):
         raise RateLimitError(f"Response {response.status}: Rate limit reached")
-    message = await response.text() if not response.ok and message is None else message
-    if response.status == 403 and is_cloudflare(message):
+    if response.ok:
+        return
+    text = await response.text()
+    if response.status == 403 and is_cloudflare(text):
         raise CloudflareError(f"Response {response.status}: Cloudflare detected")
-    elif response.status == 403 and is_openai(message):
+    elif response.status == 403 and is_openai(text):
         raise ResponseStatusError(f"Response {response.status}: OpenAI Bot detected")
-    elif not response.ok:
-        if message is None and response.headers.get("content-type") == "text/html":
-            message = "Bad gateway" if response.status == 502 else "HTML content"
+    elif response.status == 502:
+        raise ResponseStatusError(f"Response {response.status}: Bad gateway")
+    elif message is not None:
+        raise ResponseStatusError(f"Response {response.status}: {message}")
+    else:
+        message =  "HTML content" if response.headers.get("content-type").startswith("text/html") else text
         raise ResponseStatusError(f"Response {response.status}: {message}")
 
 def raise_for_status(response: Union[Response, StreamResponse, ClientResponse, RequestsResponse], message: str = None):
     if hasattr(response, "status"):
         return raise_for_status_async(response, message)
-
+    if response.ok:
+        return
     if response.status_code in (429, 402):
         raise RateLimitError(f"Response {response.status_code}: Rate limit reached")
     elif response.status_code == 403 and is_cloudflare(response.text):
         raise CloudflareError(f"Response {response.status_code}: Cloudflare detected")
-    elif not response.ok:
-        if message is None and response.headers.get("content-type") == "text/html":
-            message = "Bad gateway" if response.status_code == 502 else "HTML content"
-        raise ResponseStatusError(f"Response {response.status_code}: {response.text if message is None else message}")
+    elif response.status == 403 and is_openai(response.text):
+        raise ResponseStatusError(f"Response {response.status}: OpenAI Bot detected")
+    elif message is not None:
+        raise ResponseStatusError(f"Response {response.status}: {message}")
+    elif response.status_code == 502:
+        raise ResponseStatusError(f"Response {response.status}: Bad gateway")
+    else:
+        message = "HTML content" if response.headers.get("content-type").startswith("text/html") else response.text
+        raise ResponseStatusError(f"Response {response.status_code}: {message}")

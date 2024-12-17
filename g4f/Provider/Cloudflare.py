@@ -5,8 +5,8 @@ import json
 
 from ..typing import AsyncResult, Messages, Cookies
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin, get_running_loop
-from ..requests import Session, StreamSession, get_args_from_nodriver, raise_for_status, merge_cookies
-from ..errors import ResponseStatusError
+from ..requests import Session, StreamSession, get_args_from_nodriver, raise_for_status, merge_cookies, DEFAULT_HEADERS
+from ..errors import ResponseStatusError, MissingRequirementsError
 
 class Cloudflare(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Cloudflare AI"
@@ -62,7 +62,10 @@ class Cloudflare(AsyncGeneratorProvider, ProviderModelMixin):
         **kwargs
     ) -> AsyncResult:
         if cls._args is None:
-            cls._args = await get_args_from_nodriver(cls.url, proxy, timeout, cookies)
+            try:
+                cls._args = await get_args_from_nodriver(cls.url, proxy, timeout, cookies)
+            except MissingRequirementsError:
+                cls._args = {"headers": DEFAULT_HEADERS, cookies: {}}
         model = cls.get_model(model)
         data = {
             "messages": messages,

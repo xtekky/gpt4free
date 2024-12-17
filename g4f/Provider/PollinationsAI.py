@@ -10,7 +10,7 @@ from ..image import ImageResponse
 from ..requests.raise_for_status import raise_for_status
 from ..requests.aiohttp import get_connector
 from .needs_auth.OpenaiAPI import OpenaiAPI
-from .helper import format_prompt
+from .helper import format_prompt_max_length
 
 class PollinationsAI(OpenaiAPI):
     label = "Pollinations AI"
@@ -97,7 +97,7 @@ class PollinationsAI(OpenaiAPI):
     async def _generate_text(cls, model: str, messages: Messages, api_key: str = None, proxy: str = None, **kwargs):
         if api_key is None:
             async with ClientSession(connector=get_connector(proxy=proxy), headers=cls.headers) as session:
-                prompt = format_prompt(messages)
+                prompt = format_prompt_max_length(messages, 5000)
                 async with session.get(f"https://text.pollinations.ai/{quote(prompt)}?model={quote(model)}") as response:
                     await raise_for_status(response)
                     async for line in response.content.iter_any():
