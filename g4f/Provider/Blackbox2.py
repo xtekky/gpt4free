@@ -64,7 +64,6 @@ class Blackbox2(AsyncGeneratorProvider, ProviderModelMixin):
 
     @classmethod
     async def _get_license_key(cls, session: ClientSession) -> str:
-        """Gets the license key from the cache or from JavaScript files."""
         cached_license = cls._load_cached_license()
         if cached_license:
             return cached_license
@@ -73,18 +72,26 @@ class Blackbox2(AsyncGeneratorProvider, ProviderModelMixin):
             async with session.get(cls.url) as response:
                 html = await response.text()
                 js_files = re.findall(r'static/chunks/\d{4}-[a-fA-F0-9]+\.js', html)
-                
-                license_pattern = re.compile(r'j="(\d{6}-\d{6}-\d{6}-\d{6}-\d{6})"')
-                
+
+                license_format = r'["\'](\d{6}-\d{6}-\d{6}-\d{6}-\d{6})["\']'
+
+                def is_valid_context(text_around):
+                    return any(char + '=' in text_around for char in 'abcdefghijklmnopqrstuvwxyz')
+
                 for js_file in js_files:
                     js_url = f"{cls.url}/_next/{js_file}"
                     async with session.get(js_url) as js_response:
                         js_content = await js_response.text()
-                        if license_match := license_pattern.search(js_content):
-                            license_key = license_match.group(1)
-                            cls._save_cached_license(license_key)
-                            return license_key
-                
+                        for match in re.finditer(license_format, js_content):
+                            start = max(0, match.start() - 10)
+                            end = min(len(js_content), match.end() + 10)
+                            context = js_content[start:end]
+
+                            if is_valid_context(context):
+                                license_key = match.group(1)
+                                cls._save_cached_license(license_key)
+                                return license_key
+
                 raise ValueError("License key not found")
         except Exception as e:
             debug.log(f"Error getting license key: {str(e)}")

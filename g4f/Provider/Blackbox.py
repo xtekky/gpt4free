@@ -150,7 +150,6 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
 
     @classmethod
     async def fetch_validated(cls):
-        # Let's try to load the value from the cache first
         cached_value = cls._load_cached_value()
         if cached_value:
             return cached_value
@@ -165,19 +164,25 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
                     page_content = await response.text()
                     js_files = re.findall(r'static/chunks/\d{4}-[a-fA-F0-9]+\.js', page_content)
 
-                key_pattern = re.compile(r'w="([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})"')
+                    uuid_format = r'["\']([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})["\']'
 
-                for js_file in js_files:
-                    js_url = f"{cls.url}/_next/{js_file}"
-                    async with session.get(js_url) as js_response:
-                        if js_response.status == 200:
-                            js_content = await js_response.text()
-                            match = key_pattern.search(js_content)
-                            if match:
-                                validated_value = match.group(1)
-                                # Save the new value to the cache file
-                                cls._save_cached_value(validated_value)
-                                return validated_value
+                    def is_valid_context(text_around):
+                        return any(char + '=' in text_around for char in 'abcdefghijklmnopqrstuvwxyz')
+
+                    for js_file in js_files:
+                        js_url = f"{cls.url}/_next/{js_file}"
+                        async with session.get(js_url) as js_response:
+                            if js_response.status == 200:
+                                js_content = await js_response.text()
+                                for match in re.finditer(uuid_format, js_content):
+                                    start = max(0, match.start() - 10)
+                                    end = min(len(js_content), match.end() + 10)
+                                    context = js_content[start:end]
+                                    
+                                    if is_valid_context(context):
+                                        validated_value = match.group(1)
+                                        cls._save_cached_value(validated_value)
+                                        return validated_value
             except Exception as e:
                 print(f"Error fetching validated value: {e}")
 
@@ -240,6 +245,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
 
         headers = {
             'accept': '*/*',
+            'accept-language': 'en-US,en;q=0.9',
             'content-type': 'application/json',
             'origin': cls.url,
             'referer': f'{cls.url}/',
