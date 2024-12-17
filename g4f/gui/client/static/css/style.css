@@ -24,7 +24,6 @@
     --colour-6: #242424;
 
     --accent: #8b3dff;
-    --gradient: var(--accent);
     --blur-bg: #16101b66;
     --blur-border: #84719040;
     --user-input: #ac87bb;
@@ -155,6 +154,7 @@ body:not(.white) a:visited{
     overflow: auto;
     overflow-wrap: break-word;
     padding-bottom: 10px;
+    background-color: transparent;
 }
 
 .conversation .user-input {
@@ -273,7 +273,7 @@ body.white .gradient{
 }
 
 .message.regenerate {
-    background-color: rgba(0, 0, 0, 0.5);
+    background-color: rgba(0, 0, 0, 0.2);
 }
 
 .white .message.regenerate {
@@ -1003,7 +1003,7 @@ ul {
     .buttons {
         align-items: flex-start;
         flex-wrap: wrap;
-        gap: 12px;
+        gap: 10px;
     }
 
     .mobile-sidebar {

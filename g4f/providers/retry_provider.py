@@ -34,6 +34,7 @@ class IterListProvider(BaseRetryProvider):
         model: str,
         messages: Messages,
         stream: bool = False,
+        ignore_stream: bool = False,
         ignored: list[str] = [],
         **kwargs,
     ) -> CreateResult:
@@ -51,7 +52,7 @@ class IterListProvider(BaseRetryProvider):
         exceptions = {}
         started: bool = False
 
-        for provider in self.get_providers(stream, ignored):
+        for provider in self.get_providers(stream and not ignore_stream, ignored):
             self.last_provider = provider
             debug.log(f"Using {provider.__name__} provider")
             try:
@@ -109,13 +110,14 @@ class IterListProvider(BaseRetryProvider):
         model: str,
         messages: Messages,
         stream: bool = True,
+        ignore_stream: bool = False,
         ignored: list[str] = [],
         **kwargs
     ) -> AsyncResult:
         exceptions = {}
         started: bool = False
 
-        for provider in self.get_providers(stream, ignored):
+        for provider in self.get_providers(stream and not ignore_stream, ignored):
             self.last_provider = provider
             debug.log(f"Using {provider.__name__} provider")
             try:

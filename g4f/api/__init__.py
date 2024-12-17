@@ -26,7 +26,6 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials, HTTPBasic
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.responses import FileResponse
-from pydantic import BaseModel, Field
 from typing import Union, Optional, List
 try:
     from typing import Annotated
@@ -40,11 +39,16 @@ from g4f.client import AsyncClient, ChatCompletion, ImagesResponse, convert_to_p
 from g4f.providers.response import BaseConversation
 from g4f.client.helper import filter_none
 from g4f.image import is_accepted_format, is_data_uri_an_image, images_dir
-from g4f.typing import Messages
-from g4f.errors import ProviderNotFoundError, ModelNotFoundError, MissingAuthError
+from g4f.errors import ProviderNotFoundError, ModelNotFoundError, MissingAuthError, NoValidHarFileError
 from g4f.cookies import read_cookie_files, get_cookies_dir
 from g4f.Provider import ProviderType, ProviderUtils, __providers__
 from g4f.gui import get_gui_app
+from .stubs import (
+    ChatCompletionsConfig, ImageGenerationConfig,
+    ProviderResponseModel, ModelResponseModel,
+    ErrorResponseModel, ProviderResponseDetailModel,
+    FileResponseModel
+)
 
 logger = logging.getLogger(__name__)
 
@@ -64,18 +68,10 @@ def create_app():
 
     api = Api(app)
 
-    if AppConfig.gui:
-        @app.get("/")
-        async def home():
-            return HTMLResponse(f'g4f v-{g4f.version.utils.current_version}:<br><br>'
-                                'Start to chat: <a href="/chat/">/chat/</a><br>'
-                                'Open Swagger UI at: '
-                                '<a href="/docs">/docs</a>')
-
     api.register_routes()
     api.register_authorization()
     api.register_validation_exception_handler()
-
+ 
     if AppConfig.gui:
         gui_app = WSGIMiddleware(get_gui_app())
         app.mount("/", gui_app)
@@ -99,63 +95,6 @@ def create_app_with_gui_and_debug():
     g4f.debug.logging = True
     AppConfig.gui = True
     return create_app()
-
-class ChatCompletionsConfig(BaseModel):
-    messages: Messages = Field(examples=[[{"role": "system", "content": ""}, {"role": "user", "content": ""}]])
-    model: str = Field(default="")
-    provider: Optional[str] = None
-    stream: bool = False
-    image: Optional[str] = None
-    image_name: Optional[str] = None
-    images: Optional[list[tuple[str, str]]] = None
-    temperature: Optional[float] = None
-    max_tokens: Optional[int] = None
-    stop: Union[list[str], str, None] = None
-    api_key: Optional[str] = None
-    web_search: Optional[bool] = None
-    proxy: Optional[str] = None
-    conversation_id: Optional[str] = None
-    history_disabled: Optional[bool] = None
-    auto_continue: Optional[bool] = None
-    timeout: Optional[int] = None
-
-class ImageGenerationConfig(BaseModel):
-    prompt: str
-    model: Optional[str] = None
-    provider: Optional[str] = None
-    response_format: Optional[str] = None
-    api_key: Optional[str] = None
-    proxy: Optional[str] = None
-
-class ProviderResponseModel(BaseModel):
-    id: str
-    object: str = "provider"
-    created: int
-    url: Optional[str]
-    label: Optional[str]
-
-class ProviderResponseDetailModel(ProviderResponseModel):
-    models: list[str]
-    image_models: list[str]
-    vision_models: list[str]
-    params: list[str]
-
-class ModelResponseModel(BaseModel):
-    id: str
-    object: str = "model"
-    created: int
-    owned_by: Optional[str]
-
-class ErrorResponseModel(BaseModel):
-    error: ErrorResponseMessageModel
-    model: Optional[str] = None
-    provider: Optional[str] = None
-
-class ErrorResponseMessageModel(BaseModel):
-    message: str
-
-class FileResponseModel(BaseModel):
-    filename: str
 
 class ErrorResponse(Response):
     media_type = "application/json"
@@ -198,7 +137,7 @@ class Api:
     security = HTTPBearer(auto_error=False)
     basic_security = HTTPBasic()
 
-    async def get_username(self, request: Request):
+    async def get_username(self, request: Request) -> str:
         credentials = await self.basic_security(request)
         current_password_bytes = credentials.password.encode()
         is_correct_password = secrets.compare_digest(
@@ -222,13 +161,13 @@ class Api:
                     user_g4f_api_key = await self.get_g4f_api_key(request)
                 except HTTPException:
                     user_g4f_api_key = None
-                if request.url.path.startswith("/v1"):
+                path = request.url.path
+                if path.startswith("/v1"):
                     if user_g4f_api_key is None:
                         return ErrorResponse.from_message("G4F API key required", HTTP_401_UNAUTHORIZED)
                     if not secrets.compare_digest(AppConfig.g4f_api_key, user_g4f_api_key):
                         return ErrorResponse.from_message("Invalid G4F API key", HTTP_403_FORBIDDEN)
                 else:
-                    path = request.url.path
                     if user_g4f_api_key is not None and path.startswith("/images/"):
                         if not secrets.compare_digest(AppConfig.g4f_api_key, user_g4f_api_key):
                             return ErrorResponse.from_message("Invalid G4F API key", HTTP_403_FORBIDDEN)
@@ -261,6 +200,8 @@ class Api:
     def register_routes(self):
         @self.app.get("/")
         async def read_root():
+            if AppConfig.gui:
+                return RedirectResponse("/chat/", 302)
             return RedirectResponse("/v1", 302)
 
         @self.app.get("/v1")
@@ -336,6 +277,7 @@ class Api:
                         except ValueError as e:
                             example = json.dumps({"images": [["data:image/jpeg;base64,...", "filename"]]})
                             return ErrorResponse.from_message(f'The image you send must be a data URI. Example: {example}', status_code=HTTP_422_UNPROCESSABLE_ENTITY)
+
                 # Create the completion response
                 response = self.client.chat.completions.create(
                     **filter_none(
@@ -379,7 +321,7 @@ class Api:
             except (ModelNotFoundError, ProviderNotFoundError) as e:
                 logger.exception(e)
                 return ErrorResponse.from_exception(e, config, HTTP_404_NOT_FOUND)
-            except MissingAuthError as e:
+            except (MissingAuthError, NoValidHarFileError) as e:
                 logger.exception(e)
                 return ErrorResponse.from_exception(e, config, HTTP_401_UNAUTHORIZED)
             except Exception as e:
@@ -392,7 +334,6 @@ class Api:
             HTTP_404_NOT_FOUND: {"model": ErrorResponseModel},
             HTTP_500_INTERNAL_SERVER_ERROR: {"model": ErrorResponseModel},
         }
-
         @self.app.post("/v1/images/generate", responses=responses)
         @self.app.post("/v1/images/generations", responses=responses)
         async def generate_image(
