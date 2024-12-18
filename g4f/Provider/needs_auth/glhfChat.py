@@ -18,6 +18,8 @@ class glhfChat(AsyncGeneratorProvider, ProviderModelMixin):
     supports_message_history = True
     
     default_model = 'hf:Qwen/Qwen2.5-Coder-32B-Instruct'
+
+    # glhf.chat supports all public models on HuggingFace that you have loaded on your account
     models = [
         'hf:Qwen/Qwen2.5-Coder-32B-Instruct',
         'hf:meta-llama/Llama-3.1-405B-Instruct',
