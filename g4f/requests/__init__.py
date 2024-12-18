@@ -8,7 +8,7 @@ try:
     from .curl_cffi import StreamResponse, StreamSession, FormData
     has_curl_cffi = True
 except ImportError:
-    from typing import Type as Session, Type as Response
+    from typing import Type as Response
     from .aiohttp import StreamResponse, StreamSession, FormData
     has_curl_cffi = False
 try:
@@ -37,6 +37,11 @@ from ..webdriver import bypass_cloudflare, get_driver_cookies
 from ..errors import MissingRequirementsError
 from ..typing import Cookies
 from .defaults import DEFAULT_HEADERS, WEBVIEW_HAEDERS
+
+if not has_curl_cffi:
+    class Session:
+        def __init__(self, **kwargs):
+            raise MissingRequirementsError('Install "curl_cffi" package | pip install -U curl_cffi')
 
 async def get_args_from_webview(url: str) -> dict:
     if not has_webview:

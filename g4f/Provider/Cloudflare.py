@@ -3,15 +3,9 @@ from __future__ import annotations
 import asyncio
 import json
 
-try:
-    import nodriver
-    has_nodriver = True
-except ImportError:
-    has_nodriver = False
-
 from ..typing import AsyncResult, Messages, Cookies
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin, get_running_loop
-from ..requests import Session, StreamSession, get_args_from_nodriver, raise_for_status, merge_cookies, DEFAULT_HEADERS
+from ..requests import Session, StreamSession, get_args_from_nodriver, raise_for_status, merge_cookies, DEFAULT_HEADERS, has_nodriver, has_curl_cffi
 from ..errors import ResponseStatusError
 
 class Cloudflare(AsyncGeneratorProvider, ProviderModelMixin):
@@ -45,6 +39,8 @@ class Cloudflare(AsyncGeneratorProvider, ProviderModelMixin):
                     get_running_loop(check_nested=True)
                     args = get_args_from_nodriver(cls.url)
                     cls._args = asyncio.run(args)
+                elif not has_curl_cffi:
+                    return cls.models
                 else:
                     cls._args = {"headers": DEFAULT_HEADERS, "cookies": {}}
             with Session(**cls._args) as session:

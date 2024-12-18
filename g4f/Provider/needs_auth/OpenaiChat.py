@@ -637,7 +637,7 @@ class Conversation(BaseConversation):
 def get_cookies(
         urls: list[str]  = None
     ):
-    params = dict()
+    params = {}
     if urls is not None:
         params['urls'] = [i for i in urls]
     cmd_dict = {
