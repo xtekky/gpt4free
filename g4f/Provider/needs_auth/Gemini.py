@@ -81,7 +81,7 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
         browser = await get_nodriver(proxy=proxy, user_data_dir="gemini")
         login_url = os.environ.get("G4F_LOGIN_URL")
         if login_url:
-            yield f"Please login: [Google Gemini]({login_url})\n\n"
+            yield f"[Login to {cls.label}]({login_url})\n\n"
         page = await browser.get(f"{cls.url}/app")
         await page.select("div.ql-editor.textarea", 240)
         cookies = {}

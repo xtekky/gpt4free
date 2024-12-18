@@ -601,6 +601,7 @@ const ask_gpt = async (message_id, message_index = -1, regenerate = false, provi
             api_key: api_key,
             ignored: ignored,
         }, files, message_id);
+        if (content_map.inner.dataset.timeout) clearTimeout(content_map.inner.dataset.timeout);
         if (!error_storage[message_id]) {
             html = markdown_render(message_storage[message_id]);
             content_map.inner.innerHTML = html;
@@ -629,10 +630,9 @@ const ask_gpt = async (message_id, message_index = -1, regenerate = false, provi
             regenerate
         );
         await safe_load_conversation(window.conversation_id, message_index == -1);
-    } else {
-        let cursorDiv = message_el.querySelector(".cursor");
-        if (cursorDiv) cursorDiv.parentNode.removeChild(cursorDiv);
     }
+    let cursorDiv = message_el.querySelector(".cursor");
+    if (cursorDiv) cursorDiv.parentNode.removeChild(cursorDiv);
     if (message_index == -1) {
         await scroll_to_bottom();
     }

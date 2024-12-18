@@ -5,8 +5,8 @@ import json
 
 from ..typing import AsyncResult, Messages, Cookies
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin, get_running_loop
-from ..requests import Session, StreamSession, get_args_from_nodriver, raise_for_status, merge_cookies, DEFAULT_HEADERS
-from ..errors import ResponseStatusError, MissingRequirementsError
+from ..requests import Session, StreamSession, get_args_from_nodriver, raise_for_status, merge_cookies, DEFAULT_HEADERS, has_nodriver, has_curl_cffi
+from ..errors import ResponseStatusError
 
 class Cloudflare(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Cloudflare AI"
@@ -35,17 +35,21 @@ class Cloudflare(AsyncGeneratorProvider, ProviderModelMixin):
     def get_models(cls) -> str:
         if not cls.models:
             if cls._args is None:
-                get_running_loop(check_nested=True)
-                args = get_args_from_nodriver(cls.url)
-                cls._args = asyncio.run(args)
+                if has_nodriver:
+                    get_running_loop(check_nested=True)
+                    args = get_args_from_nodriver(cls.url)
+                    cls._args = asyncio.run(args)
+                elif not has_curl_cffi:
+                    return cls.models
+                else:
+                    cls._args = {"headers": DEFAULT_HEADERS, "cookies": {}}
             with Session(**cls._args) as session:
                 response = session.get(cls.models_url)
-                cls._args["cookies"] = merge_cookies(cls._args["cookies"] , response)
+                cls._args["cookies"] = merge_cookies(cls._args["cookies"], response)
                 try:
                     raise_for_status(response)
                 except ResponseStatusError:
-                    cls._args = None
-                    raise
+                    return cls.models
                 json_data = response.json()
                 cls.models = [model.get("name") for model in json_data.get("models")]
         return cls.models
@@ -62,10 +66,10 @@ class Cloudflare(AsyncGeneratorProvider, ProviderModelMixin):
         **kwargs
     ) -> AsyncResult:
         if cls._args is None:
-            try:
+            if has_nodriver:
                 cls._args = await get_args_from_nodriver(cls.url, proxy, timeout, cookies)
-            except MissingRequirementsError:
-                cls._args = {"headers": DEFAULT_HEADERS, cookies: {}}
+            else:
+                cls._args = {"headers": DEFAULT_HEADERS, "cookies": {}}
         model = cls.get_model(model)
         data = {
             "messages": messages,

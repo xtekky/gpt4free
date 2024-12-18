@@ -81,6 +81,7 @@ body:not(.white) a:visited{
     transform: translate(-50%, -50%);
     filter: blur(var(--blur)) opacity(var(--opacity));
     animation: zoom_gradient 6s infinite alternate;
+    display: none;
 }
 
 @keyframes zoom_gradient {
@@ -116,6 +117,8 @@ body:not(.white) a:visited{
     font-weight: 500;
     background-color: rgba(0, 0, 0, 0.5);
     color: var(--colour-3);
+    border: var(--colour-1) 1px solid;
+    border-radius: var(--border-radius-1);
 }
 
 .white .new_version {
@@ -172,10 +175,6 @@ body:not(.white) a:visited{
 
 .conversation .user-input input::placeholder {
     color: var(--user-input)
-}
-
-body.white .gradient{
-    display: none;
 }
 
 .conversations {
@@ -825,6 +824,9 @@ select:hover,
     }
     .count_total {
         padding-left: 98px;
+    }
+    body:not(.white) .gradient{
+        display: block;
     }
 }
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import json
 import asyncio
 import base64
@@ -76,10 +77,13 @@ class Copilot(AbstractProvider, ProviderModelMixin):
                     cls._access_token, cls._cookies = readHAR(cls.url)
                 except NoValidHarFileError as h:
                     debug.log(f"Copilot: {h}")
-                    try:
+                    if has_nodriver:
+                        login_url = os.environ.get("G4F_LOGIN_URL")
+                        if login_url:
+                            yield f"[Login to {cls.label}]({login_url})\n\n"
                         get_running_loop(check_nested=True)
                         cls._access_token, cls._cookies = asyncio.run(get_access_token_and_cookies(cls.url, proxy))
-                    except MissingRequirementsError:
+                    else:
                         raise h
             debug.log(f"Copilot: Access token: {cls._access_token[:7]}...{cls._access_token[-5:]}")
             websocket_url = f"{websocket_url}&accessToken={quote(cls._access_token)}"

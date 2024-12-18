@@ -181,7 +181,7 @@ class Api:
     def handle_provider(self, provider_handler, model):
         if isinstance(provider_handler, IterListProvider) and provider_handler.last_provider is not None:
             provider_handler = provider_handler.last_provider
-        if hasattr(provider_handler, "last_model") and provider_handler.last_model is not None:
+        if not model and hasattr(provider_handler, "last_model") and provider_handler.last_model is not None:
             model = provider_handler.last_model
         return self._format_json("provider", {**provider_handler.get_dict(), "model": model})
 
