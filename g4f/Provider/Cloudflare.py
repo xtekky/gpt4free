@@ -49,8 +49,7 @@ class Cloudflare(AsyncGeneratorProvider, ProviderModelMixin):
                 try:
                     raise_for_status(response)
                 except ResponseStatusError:
-                    cls._args = None
-                    raise
+                    return cls.models
                 json_data = response.json()
                 cls.models = [model.get("name") for model in json_data.get("models")]
         return cls.models
