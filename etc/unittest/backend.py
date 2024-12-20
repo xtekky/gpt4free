@@ -58,21 +58,23 @@ class TestBackendApi(unittest.TestCase):
         if not has_search:
             self.skipTest("DuckDuckGo search is not installed")
 
-        from g4f.gui.server.internet import search
+        from g4f.gui.server.internet import search, SearchResults
         try:
             # Perform search query
             result = asyncio.run(search("Hello"))
             
-            # Check results
-            self.assertIsInstance(result, list)
-            self.assertTrue(len(result) >= 4)
+            # Check if result is SearchResults instance
+            self.assertIsInstance(result, SearchResults)
+            
+            # Check if results exist
+            self.assertTrue(len(result.results) >= 4)
             
             # Verify result structure
-            if result:
-                first_result = result[0]
-                self.assertIn('title', first_result)
-                self.assertIn('link', first_result)
-                self.assertIn('snippet', first_result)
+            if result.results:
+                first_result = result.results[0]
+                self.assertTrue(hasattr(first_result, 'title'))
+                self.assertTrue(hasattr(first_result, 'url'))
+                self.assertTrue(hasattr(first_result, 'snippet'))
                 
         except DuckDuckGoSearchException as e:
             self.skipTest(f"DuckDuckGo search error: {str(e)}")
