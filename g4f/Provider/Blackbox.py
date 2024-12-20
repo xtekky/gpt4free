@@ -6,8 +6,7 @@ import string
 import json
 import re
 import aiohttp
-
-import json
+import asyncio
 from pathlib import Path
 
 from ..typing import AsyncResult, Messages, ImagesType
@@ -16,10 +15,15 @@ from ..image import ImageResponse, to_data_uri
 from ..cookies import get_cookies_dir
 from .helper import format_prompt
 
+from .. import debug
+
 class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Blackbox AI"
     url = "https://www.blackbox.ai"
-    api_endpoint = "https://www.blackbox.ai/api/chat"
+    api_endpoints = {
+        "main": "https://www.blackbox.ai/api/chat",
+        "alternative": "https://api.blackbox.ai/api/chat"
+    }
 
     working = True
     supports_stream = True
@@ -36,6 +40,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
 
     agentMode = {
         'ImageGeneration': {'mode': True, 'id': "ImageGenerationLV45LJp", 'name': "Image Generation"},
+        #
         'meta-llama/Llama-3.3-70B-Instruct-Turbo': {'mode': True, 'id': "meta-llama/Llama-3.3-70B-Instruct-Turbo", 'name': "Meta-Llama-3.3-70B-Instruct-Turbo"},
         'mistralai/Mistral-7B-Instruct-v0.2': {'mode': True, 'id': "mistralai/Mistral-7B-Instruct-v0.2", 'name': "Mistral-(7B)-Instruct-v0.2"},
         'deepseek-ai/deepseek-llm-67b-chat': {'mode': True, 'id': "deepseek-ai/deepseek-llm-67b-chat", 'name': "DeepSeek-LLM-Chat-(67B)"},
@@ -220,90 +225,139 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         top_p: float = None,
         temperature: float = None,
         max_tokens: int = None,
+        max_retries: int = 3,
+        delay: int = 1,
         **kwargs
     ) -> AsyncResult:
-        message_id = cls.generate_id()
-        messages = cls.add_prefix_to_messages(messages, model)
-        validated_value = await cls.fetch_validated()
-        formatted_message = format_prompt(messages)
-        model = cls.get_model(model)
-        
-        messages = [{"id": message_id, "content": formatted_message, "role": "user"}]
+        async def process_request():
+            for outer_attempt in range(2):
+                message_id = cls.generate_id()
+                messages_with_prefix = cls.add_prefix_to_messages(messages, model)
+                endpoints = [cls.api_endpoints["main"], cls.api_endpoints["alternative"]] # Let's try the main endpoint first, then the alternative one
+                validated_value = await cls.fetch_validated()
+                
+                if not validated_value:
+                    raise RuntimeError("Failed to get validated value")
+                    
+                formatted_message = format_prompt(messages_with_prefix)
+                current_model = cls.get_model(model)
+                
+                current_messages = [{"id": message_id, "content": formatted_message, "role": "user"}]
 
-        if images is not None:
-            messages[-1]['data'] = {
-                "imagesData": [
-                    {
-                        "filePath": f"MultipleFiles/{image_name}",
-                        "contents": to_data_uri(image)
+                if images is not None:
+                    current_messages[-1]['data'] = {
+                        "imagesData": [
+                            {
+                                "filePath": f"MultipleFiles/{image_name}",
+                                "contents": to_data_uri(image)
+                            }
+                            for image, image_name in images
+                        ],
+                        "fileText": "",
+                        "title": ""
                     }
-                    for image, image_name in images
-                ],
-                "fileText": "",
-                "title": ""
-            }
 
-        headers = {
-            'accept': '*/*',
-            'accept-language': 'en-US,en;q=0.9',
-            'content-type': 'application/json',
-            'origin': cls.url,
-            'referer': f'{cls.url}/',
-            'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
-        }
+                headers = {
+                    'accept': '*/*',
+                    'accept-language': 'en-US,en;q=0.9',
+                    'content-type': 'application/json',
+                    'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
+                }
+                
+                endpoint_headers = {
+                    cls.api_endpoints["main"]: {
+                        'origin': 'https://www.blackbox.ai',
+                        'referer': 'https://www.blackbox.ai/'
+				    },
+				    cls.api_endpoints["alternative"]: {
+				        'origin': 'https://api.blackbox.ai',    
+				        'referer': 'https://api.blackbox.ai/'
+				    }
+                }
+                
 
-        data = {
-            "agentMode": cls.agentMode.get(model, {}) if model in cls.agentMode else {},
-            "clickedAnswer2": False,
-            "clickedAnswer3": False,
-            "clickedForceWebSearch": False,
-            "codeModelMode": True,
-            "deepSearchMode": False,
-            "githubToken": None,
-            "id": message_id,
-            "imageGenerationMode": False,
-            "isChromeExt": False,
-            "isMicMode": False,
-            "maxTokens": max_tokens,
-            "messages": messages,
-            "mobileClient": False,
-            "playgroundTemperature": temperature,
-            "playgroundTopP": top_p,
-            "previewToken": None,
-            "trendingAgentMode": cls.trendingAgentMode.get(model, {}) if model in cls.trendingAgentMode else {},
-            "userId": None,
-            "userSelectedModel": model if model in cls.userSelectedModel else None,
-            "userSystemPrompt": None,
-            "validated": validated_value,
-            "visitFromDelta": False,
-            "webSearchModePrompt": False,
-            "webSearchMode": web_search
-        }
+                data = {
+                    "agentMode": cls.agentMode.get(model, {}) if model in cls.agentMode else {},
+                    "clickedAnswer2": False,
+                    "clickedAnswer3": False,
+                    "clickedForceWebSearch": False,
+                    "codeModelMode": True,
+                    "deepSearchMode": False,
+                    "githubToken": None,
+                    "id": message_id,
+                    "imageGenerationMode": False,
+                    "isChromeExt": False,
+                    "isMicMode": False,
+                    "maxTokens": max_tokens,
+                    "messages": current_messages,
+                    "mobileClient": False,
+                    "playgroundTemperature": temperature,
+                    "playgroundTopP": top_p,
+                    "previewToken": None,
+                    "trendingAgentMode": cls.trendingAgentMode.get(model, {}) if model in cls.trendingAgentMode else {},
+                    "userId": None,
+                    "userSelectedModel": model if model in cls.userSelectedModel else None,
+                    "userSystemPrompt": None,
+                    "validated": validated_value,
+                    "visitFromDelta": False,
+                    "webSearchModePrompt": False,
+                    "webSearchMode": web_search
+                }
 
-        async with ClientSession(headers=headers) as session:
-            async with session.post(cls.api_endpoint, json=data, proxy=proxy) as response:
-                response.raise_for_status()
-                response_text = await response.text()
+                for attempt in range(max_retries):
+                    for endpoint in endpoints:
+                        current_headers = headers.copy()
+                        current_headers.update(endpoint_headers[endpoint])
+                        try:
+                            async with ClientSession(headers=current_headers) as session:
+                                async with session.post(endpoint, json=data, proxy=proxy) as response:
+                                    response.raise_for_status()
+                                    response_text = await response.text()
 
-                if model in cls.image_models:
-                    image_matches = re.findall(r'!\[.*?\]\((https?://[^\)]+)\)', response_text)
-                    if image_matches:
-                        image_url = image_matches[0]
-                        yield ImageResponse(image_url, prompt)
-                        return
+                                    if "replace" in response_text and "api.blackbox.ai" in response_text:
+                                        debug.log(f"Switching to alternative endpoint...")
+                                        continue  # Let's try an alternative endpoint
 
-                response_text = re.sub(r'Generated by BLACKBOX.AI, try unlimited chat https://www.blackbox.ai', '', response_text, flags=re.DOTALL)
-                response_text = re.sub(r'and for API requests replace  https://www.blackbox.ai with https://api.blackbox.ai', '', response_text, flags=re.DOTALL)
+                                    if current_model in cls.image_models:
+                                        image_matches = re.findall(r'!\[.*?\]\((https?://[^\)]+)\)', response_text)
+                                        if image_matches:
+                                            yield ImageResponse(image_matches[0], prompt)
+                                            return
 
-                json_match = re.search(r'\$~~~\$(.*?)\$~~~\$', response_text, re.DOTALL)
-                if json_match:
-                    search_results = json.loads(json_match.group(1))
-                    answer = response_text.split('$~~~$')[-1].strip()
+                                    response_text = re.sub(r'Generated by BLACKBOX\.AI.*?blackbox\.ai', '', response_text, flags=re.DOTALL)
+                                    response_text = response_text.strip()
 
-                    formatted_response = f"{answer}\n\n**Source:**"
-                    for i, result in enumerate(search_results, 1):
-                        formatted_response += f"\n{i}. {result['title']}: {result['link']}"
+                                    if not response_text:
+                                        raise ValueError("Empty response received")
 
-                    yield formatted_response
-                else:
-                    yield response_text.strip()
+                                    json_match = re.search(r'\$~~~\$(.*?)\$~~~\$', response_text, re.DOTALL)
+                                    if json_match:
+                                        search_results = json.loads(json_match.group(1))
+                                        answer = response_text.split('$~~~$')[-1].strip()
+
+                                        formatted_response = f"{answer}\n\n**Source:**"
+                                        for i, result in enumerate(search_results, 1):
+                                            formatted_response += f"\n{i}. {result['title']}: {result['link']}"
+
+                                        yield formatted_response
+                                    else:
+                                        yield response_text
+                                    return
+
+                        except Exception as e:
+                            debug.log(f"Error with endpoint {endpoint}: {str(e)}")
+                            continue
+
+                    # If all endpoints failed
+                    if attempt == max_retries - 1:
+                        if outer_attempt == 0:
+                            break
+                        else:
+                            raise RuntimeError("Failed with all endpoints after retries")
+                    else:
+                        wait_time = delay * (2 ** attempt) + random.uniform(0, 1)
+                        debug.log(f"Attempt {attempt + 1} failed. Retrying in {wait_time:.2f} seconds...")
+                        await asyncio.sleep(wait_time)
+
+        async for chunk in process_request():
+            yield chunk
