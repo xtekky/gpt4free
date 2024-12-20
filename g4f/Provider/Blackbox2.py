@@ -6,7 +6,7 @@ import re
 import json
 from pathlib import Path
 from aiohttp import ClientSession
-from typing import AsyncIterator
+from typing import AsyncIterator, Optional
 
 from ..typing import AsyncResult, Messages
 from ..image import ImageResponse
@@ -14,6 +14,7 @@ from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..cookies import get_cookies_dir
 
 from .. import debug
+
 
 class Blackbox2(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://www.blackbox.ai"
@@ -25,7 +26,6 @@ class Blackbox2(AsyncGeneratorProvider, ProviderModelMixin):
     working = True
     supports_system_message = True
     supports_message_history = True
-    supports_stream = False
 
     default_model = 'llama-3.1-70b'
     chat_models = ['llama-3.1-70b']
@@ -40,136 +40,159 @@ class Blackbox2(AsyncGeneratorProvider, ProviderModelMixin):
         return dir / 'blackbox2.json'
 
     @classmethod
-    def _load_cached_license(cls) -> str | None:
-        """Loads the license key from the cache."""
+    def _load_cached_value(cls) -> str | None:
         cache_file = cls._get_cache_file()
         if cache_file.exists():
             try:
                 with open(cache_file, 'r') as f:
                     data = json.load(f)
-                    return data.get('license_key')
+                    return data.get('validated_value')
             except Exception as e:
                 debug.log(f"Error reading cache file: {e}")
         return None
 
     @classmethod
-    def _save_cached_license(cls, license_key: str):
-        """Saves the license key to the cache."""
+    def _save_cached_value(cls, value: str):
         cache_file = cls._get_cache_file()
         try:
             with open(cache_file, 'w') as f:
-                json.dump({'license_key': license_key}, f)
+                json.dump({'validated_value': value}, f)
         except Exception as e:
             debug.log(f"Error writing to cache file: {e}")
 
     @classmethod
-    async def _get_license_key(cls, session: ClientSession) -> str:
-        cached_license = cls._load_cached_license()
-        if cached_license:
-            return cached_license
+    async def fetch_validated(cls) -> Optional[str]:
+        """
+        Asynchronously retrieves the validated value from cache or website.
 
-        try:
-            async with session.get(cls.url) as response:
-                html = await response.text()
-                js_files = re.findall(r'static/chunks/\d{4}-[a-fA-F0-9]+\.js', html)
+        :return: The validated value or None if retrieval fails.
+        """
+        cached_value = cls._load_cached_value()
+        if cached_value:
+            return cached_value
 
-                license_format = r'["\'](\d{6}-\d{6}-\d{6}-\d{6}-\d{6})["\']'
+        js_file_pattern = r'static/chunks/\d{4}-[a-fA-F0-9]+\.js'
+        v_pattern = r'v\s*=\s*[\'"]([0-9a-fA-F-]{36})[\'"]'
 
-                def is_valid_context(text_around):
-                    return any(char + '=' in text_around for char in 'abcdefghijklmnopqrstuvwxyz')
+        def is_valid_context(text: str) -> bool:
+            """Checks if the context is valid."""
+            return any(char + '=' in text for char in 'abcdefghijklmnopqrstuvwxyz')
+
+        async with ClientSession() as session:
+            try:
+                async with session.get(cls.url) as response:
+                    if response.status != 200:
+                        debug.log("Failed to download the page.")
+                        return cached_value
+
+                    page_content = await response.text()
+                    js_files = re.findall(js_file_pattern, page_content)
 
                 for js_file in js_files:
                     js_url = f"{cls.url}/_next/{js_file}"
                     async with session.get(js_url) as js_response:
-                        js_content = await js_response.text()
-                        for match in re.finditer(license_format, js_content):
-                            start = max(0, match.start() - 10)
-                            end = min(len(js_content), match.end() + 10)
-                            context = js_content[start:end]
+                        if js_response.status == 200:
+                            js_content = await js_response.text()
+                            for match in re.finditer(v_pattern, js_content):
+                                start = max(0, match.start() - 50)
+                                end = min(len(js_content), match.end() + 50)
+                                context = js_content[start:end]
 
-                            if is_valid_context(context):
-                                license_key = match.group(1)
-                                cls._save_cached_license(license_key)
-                                return license_key
+                                if is_valid_context(context):
+                                    validated_value = match.group(1)
+                                    cls._save_cached_value(validated_value)
+                                    return validated_value
+            except Exception as e:
+                debug.log(f"Error while retrieving validated_value: {e}")
 
-                raise ValueError("License key not found")
-        except Exception as e:
-            debug.log(f"Error getting license key: {str(e)}")
-            raise
+        return cached_value
 
     @classmethod
     async def create_async_generator(
         cls,
         model: str,
         messages: Messages,
+        proxy: str = None,
         prompt: str = None,
+        **kwargs
+    ) -> AsyncIterator[str | ImageResponse]:
+        """
+        Creates an async generator for text or image generation.
+        """
+        if model in cls.chat_models:
+            async for text in cls._generate_text(model, messages, proxy=proxy, **kwargs):
+                yield text
+        elif model in cls.image_models:
+            prompt = messages[-1]['content']
+            async for image in cls._generate_image(model, prompt, proxy=proxy, **kwargs):
+                yield image
+        else:
+            raise ValueError(f"Model {model} not supported")
+
+    @classmethod
+    async def _generate_text(
+        cls,
+        model: str,
+        messages: Messages,
         proxy: str = None,
         max_retries: int = 3,
         delay: int = 1,
         max_tokens: int = None,
         **kwargs
-    ) -> AsyncResult:
-        if not model:
-            model = cls.default_model
-
-        if model in cls.chat_models:
-            async for result in cls._generate_text(model, messages, proxy, max_retries, delay, max_tokens):
-                yield result
-        elif model in cls.image_models:
-            prompt = messages[-1]["content"]
-            async for result in cls._generate_image(model, prompt, proxy):
-                yield result
-        else:
-            raise ValueError(f"Unsupported model: {model}")
-
-    @classmethod
-    async def _generate_text(
-        cls, 
-        model: str, 
-        messages: Messages, 
-        proxy: str = None, 
-        max_retries: int = 3, 
-        delay: int = 1,
-        max_tokens: int = None,
     ) -> AsyncIterator[str]:
         headers = cls._get_headers()
 
-        async with ClientSession(headers=headers) as session:
-            license_key = await cls._get_license_key(session)
-            api_endpoint = cls.api_endpoints[model]
+        for outer_attempt in range(2):  # Add outer loop for retrying with a new key
+            validated_value = await cls.fetch_validated()
+            if not validated_value:
+                raise RuntimeError("Failed to get validated value")
 
-            data = {
-                "messages": messages,
-                "max_tokens": max_tokens,
-                "validated": license_key
-            }
+            async with ClientSession(headers=headers) as session:
+                api_endpoint = cls.api_endpoints[model]
 
-            for attempt in range(max_retries):
-                try:
-                    async with session.post(api_endpoint, json=data, proxy=proxy) as response:
-                        response.raise_for_status()
-                        response_data = await response.json()
-                        if 'prompt' in response_data:
-                            yield response_data['prompt']
-                            return
+                data = {
+                    "messages": messages,
+                    "max_tokens": max_tokens,
+                    "validated": validated_value
+                }
+
+                for attempt in range(max_retries):
+                    try:
+                        async with session.post(api_endpoint, json=data, proxy=proxy) as response:
+                            response.raise_for_status()
+                            response_data = await response.json()
+
+                            if response_data.get('status') == 200 and 'prompt' in response_data:
+                                yield response_data['prompt']
+                                return  # Successful execution
+                            else:
+                                raise KeyError("Invalid response format or missing 'prompt' key")
+                    except Exception as e:
+                        if attempt == max_retries - 1:
+                            if outer_attempt == 0:  # If this is the first attempt with this key
+                                # Remove the cached key and try to get a new one
+                                cls._save_cached_value("")
+                                debug.log("Invalid key, trying to get a new one...")
+                                break  # Exit the inner loop to get a new key
+                            else:
+                                raise RuntimeError(f"Error after all attempts: {str(e)}")
                         else:
-                            raise KeyError("'prompt' key not found in the response")
-                except Exception as e:
-                    if attempt == max_retries - 1:
-                        raise RuntimeError(f"Error after {max_retries} attempts: {str(e)}")
-                    else:
-                        wait_time = delay * (2 ** attempt) + random.uniform(0, 1)
-                        debug.log(f"Attempt {attempt + 1} failed. Retrying in {wait_time:.2f} seconds...")
-                        await asyncio.sleep(wait_time)
+                            wait_time = delay * (2 ** attempt) + random.uniform(0, 1)
+                            debug.log(f"Attempt {attempt + 1} failed. Retrying in {wait_time:.2f} seconds...")
+                            await asyncio.sleep(wait_time)
 
     @classmethod
     async def _generate_image(
-        cls, 
-        model: str, 
-        prompt: str, 
-        proxy: str = None
+        cls,
+        model: str,
+        prompt: str,
+        proxy: str = None,
+        **kwargs
     ) -> AsyncIterator[ImageResponse]:
-        headers = cls._get_headers()
+        headers = {
+            **cls._get_headers()
+        }
+
         api_endpoint = cls.api_endpoints[model]
 
         async with ClientSession(headers=headers) as session:
@@ -177,13 +200,19 @@ class Blackbox2(AsyncGeneratorProvider, ProviderModelMixin):
                 "query": prompt
             }
 
-            async with session.post(api_endpoint, headers=headers, json=data, proxy=proxy) as response:
+            async with session.post(api_endpoint, json=data, proxy=proxy) as response:
                 response.raise_for_status()
                 response_data = await response.json()
 
                 if 'markdown' in response_data:
-                    image_url = response_data['markdown'].split('(')[1].split(')')[0]
-                    yield ImageResponse(images=image_url, alt=prompt)
+                    # Extract URL from markdown format: ![](url)
+                    image_url = re.search(r'\!\[\]\((.*?)\)', response_data['markdown'])
+                    if image_url:
+                        yield ImageResponse(images=[image_url.group(1)], alt=prompt)
+                    else:
+                        raise ValueError("Could not extract image URL from markdown")
+                else:
+                    raise KeyError("'markdown' key not found in response")
 
     @staticmethod
     def _get_headers() -> dict:
@@ -195,3 +224,33 @@ class Blackbox2(AsyncGeneratorProvider, ProviderModelMixin):
             'referer': 'https://www.blackbox.ai',
             'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
         }
+
+    @classmethod
+    async def create_async(
+        cls,
+        model: str,
+        messages: Messages,
+        proxy: str = None,
+        **kwargs
+    ) -> AsyncResult:
+        """
+        Creates an async response for the provider.
+
+        Args:
+            model: The model to use
+            messages: The messages to process
+            proxy: Optional proxy to use
+            **kwargs: Additional arguments
+
+        Returns:
+            AsyncResult: The response from the provider
+        """
+        if model in cls.chat_models:
+            async for text in cls._generate_text(model, messages, proxy=proxy, **kwargs):
+                return text
+        elif model in cls.image_models:
+            prompt = messages[-1]['content']
+            async for image in cls._generate_image(model, prompt, proxy=proxy, **kwargs):
+                return image
+        else:
+            raise ValueError(f"Model {model} not supported")
