@@ -58,7 +58,7 @@ class TestBackendApi(unittest.TestCase):
         async with AsyncDDGS() as ddgs:
             results = await ddgs.atext(
                 keywords=query,
-                max_results=5,
+                max_results=2,
                 backend='api'
             )
             return results or []
@@ -70,7 +70,7 @@ class TestBackendApi(unittest.TestCase):
 
         try:
             # Direct test of DuckDuckGo search
-            results = asyncio.run(self.async_search("Python programming"))
+            results = asyncio.run(self.async_search("Hello"))
             
             # Basic validation of results
             self.assertIsInstance(results, list)
