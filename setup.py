@@ -25,6 +25,7 @@ EXTRA_REQUIRE = {
         "curl_cffi>=0.6.2",
         "certifi",
         "browser_cookie3",         # get_cookies
+        "duckduckgo-search>=5.0"  ,# internet.search
         "beautifulsoup4",          # internet.search and bing.create_images
         "platformdirs",
         "aiohttp_socks",           # proxy
@@ -39,6 +40,7 @@ EXTRA_REQUIRE = {
     'slim': [
         "curl_cffi>=0.6.2",
         "certifi",
+        "duckduckgo-search>=5.0"  ,# internet.search
         "beautifulsoup4",          # internet.search and bing.create_images
         "aiohttp_socks",           # proxy
         "pillow",                  # image
@@ -73,10 +75,12 @@ EXTRA_REQUIRE = {
     "gui": [
         "werkzeug", "flask",
         "beautifulsoup4", "pillow",
+        "duckduckgo-search>=5.0",
         "browser_cookie3",
     ],
     "search": [
         "beautifulsoup4", "pillow",
+        "duckduckgo-search>=5.0",
     ],
     "local": [
         "gpt4all"

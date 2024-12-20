@@ -1,13 +1,11 @@
 from __future__ import annotations
 
-from aiohttp import ClientSession, ClientTimeout
+from aiohttp import ClientSession
 from bs4 import BeautifulSoup
 import asyncio
-import logging
-import urllib.parse
 import re
+from duckduckgo_search import AsyncDDGS
 
-# Logging
 from ... import debug
 
 class SearchResultEntry:
@@ -43,10 +41,6 @@ async def fetch_html(session: ClientSession, url: str) -> str:
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
     }
     
-    # Fix DuckDuckGo redirect URLs
-    if url.startswith('//'):
-        url = 'https:' + url
-    
     try:
         async with session.get(url, headers=headers, allow_redirects=True) as response:
             if response.status == 200:
@@ -55,91 +49,85 @@ async def fetch_html(session: ClientSession, url: str) -> str:
         debug.log(f"Error fetching {url}: {e}")
     return None
 
-def extract_search_results(html: str) -> list:
-    soup = BeautifulSoup(html, 'html.parser')
-    results = []
-    
-    # Search for results on the page
-    for result in soup.select('.result'):
-        try:
-            title = result.select_one('.result__title').get_text(strip=True)
-            url = result.select_one('.result__url')['href']
-            snippet = result.select_one('.result__snippet').get_text(strip=True)
-            
-            results.append({
-                'title': title,
-                'url': url,
-                'snippet': snippet
-            })
-        except Exception as e:
-            debug.log(f"Error parsing result: {e}")
-            continue
-            
-    return results
-
-async def search_duckduckgo(query: str, max_results: int = 5) -> list:
-    encoded_query = urllib.parse.quote(query)
-    url = f"https://html.duckduckgo.com/html/?q={encoded_query}"
-    
-    async with ClientSession() as session:
-        html = await fetch_html(session, url)
-        if html:
-            results = extract_search_results(html)
-            return results[:max_results]
-    return []
-
 def clean_text(text: str, max_words: int = None) -> str:
-    # Remove extra spaces and line breaks
     text = re.sub(r'\s+', ' ', text).strip()
-    
     if max_words:
         words = text.split()
         text = ' '.join(words[:max_words])
-    
     return text
 
 async def search(query: str, n_results: int = 5, max_words: int = 2500) -> SearchResults:
     try:
-        # Get the search results
-        results = await search_duckduckgo(query, n_results)
-        
-        if not results:
-            debug.log("No search results found")
-            return SearchResults([], 0)
-
-        # Create result objects
-        search_entries = []
-        total_words = 0
-
-        async with ClientSession() as session:
-            for result in results:
-                entry = SearchResultEntry(
-                    title=result['title'],
-                    url=result['url'],
-                    snippet=result['snippet']
+        async with AsyncDDGS() as ddgs:
+            results = await ddgs.atext(
+                keywords=query,
+                max_results=n_results,
+                backend='lite'
+            )
+            
+            if not results:
+                results = await ddgs.atext(
+                    keywords=query,
+                    max_results=n_results,
+                    backend='api'
                 )
                 
-                # Get the text of the page
-                html = await fetch_html(session, result['url'])
-                if html:
-                    soup = BeautifulSoup(html, 'html.parser')
-                    # Getting the main content
-                    content = ' '.join(p.get_text() for p in soup.select('p'))
-                    content = clean_text(content, max_words // n_results)
-                    entry.text = content
-                    total_words += len(content.split())
-                
-                search_entries.append(entry)
+            if not results:
+                debug.log("No search results found")
+                return SearchResults([], 0)
 
-        return SearchResults(search_entries, total_words)
+            search_entries = []
+            total_words = 0
+
+            async with ClientSession() as session:
+                for result in results:
+                    url = result.get('link') or result.get('url') or result.get('href', '')
+                    
+                    entry = SearchResultEntry(
+                        title=result.get('title', ''),
+                        url=url,
+                        snippet=result.get('body', '') or result.get('snippet', '') or result.get('text', '')
+                    )
+                    
+                    if entry.url:
+                        html = await fetch_html(session, entry.url)
+                        if html:
+                            soup = BeautifulSoup(html, 'html.parser')
+                            text_elements = soup.select('p, article, .content, .main-content')
+                            content = ' '.join(elem.get_text() for elem in text_elements)
+                            content = clean_text(content, max_words // n_results)
+                            entry.text = content
+                            total_words += len(content.split())
+                    
+                    search_entries.append(entry)
+
+            return SearchResults(search_entries, total_words)
 
     except Exception as e:
-        debug.log(f"Search error: {e}")
+        debug.log(f"Search error: {str(e)}")
+        try:
+            async with AsyncDDGS() as ddgs:
+                results = await ddgs.atext(
+                    keywords=query,
+                    max_results=n_results,
+                    backend='api'
+                )
+                if results:
+                    search_entries = [
+                        SearchResultEntry(
+                            title=r.get('title', ''),
+                            url=r.get('link', ''),
+                            snippet=r.get('body', ''),
+                            text=None
+                        ) for r in results
+                    ]
+                    return SearchResults(search_entries, 0)
+        except Exception as e2:
+            debug.log(f"Alternative search error: {str(e2)}")
         return SearchResults([], 0)
 
 def get_search_message(prompt: str, n_results: int = 5, max_words: int = 2500) -> str:
     try:
-        # Add a request log
         debug.log(f"Web search: '{prompt.strip()[:50]}...'")
         
         search_results = asyncio.run(search(prompt, n_results, max_words))
