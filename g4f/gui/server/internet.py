@@ -99,53 +99,81 @@ async def fetch_and_scrape(session: ClientSession, url: str, max_words: int = No
 async def search(query: str, n_results: int = 5, max_words: int = 2500, add_text: bool = True) -> SearchResults:
     if not has_requirements:
         raise MissingRequirementsError('Install "duckduckgo-search" and "beautifulsoup4" package | pip install -U g4f[search]')
-    with DDGS() as ddgs:
-        results = []
-        for result in ddgs.text(
-                query,
-                region="wt-wt",
-                safesearch="moderate",
-                timelimit="y",
-                max_results=n_results,
-            ):
-            results.append(SearchResultEntry(
-                result["title"],
-                result["href"],
-                result["body"]
-            ))
+    
+    try:
+        with DDGS() as ddgs:
+            results = []
+            # Спробуємо спочатку основний метод пошуку
+            try:
+                search_results = ddgs.text(
+                    query,
+                    region="wt-wt", 
+                    safesearch="moderate",
+                    timelimit="y",
+                    max_results=n_results,
+                    backend="api" # Явно вказуємо API бекенд
+                )
+            except Exception as e:
+                # Якщо основний метод не спрацював, спробуємо альтернативний
+                search_results = ddgs.text(
+                    query,
+                    region="wt-wt",
+                    safesearch="moderate", 
+                    timelimit="y",
+                    max_results=n_results,
+                    backend="html" # Використовуємо HTML бекенд як запасний варіант
+                )
+            
+            for result in search_results:
+                results.append(SearchResultEntry(
+                    result["title"],
+                    result["href"],
+                    result["body"]
+                ))
 
-        if add_text:
-            requests = []
-            async with ClientSession(timeout=ClientTimeout(5)) as session:
-                for entry in results:
-                    requests.append(fetch_and_scrape(session, entry.url, int(max_words / (n_results - 1))))
-                texts = await asyncio.gather(*requests)
+            if not results:
+                raise ValueError("No search results found")
 
-        formatted_results = []
-        used_words = 0
-        left_words = max_words
-        for i, entry in enumerate(results):
             if add_text:
-                entry.text = texts[i]
-            if left_words:
-                left_words -= entry.title.count(" ") + 5
-                if entry.text:
-                    left_words -= entry.text.count(" ")
-                else:
-                    left_words -= entry.snippet.count(" ")
-                if 0 > left_words:
-                    break
-            used_words = max_words - left_words
-            formatted_results.append(entry)
+                requests = []
+                async with ClientSession(timeout=ClientTimeout(5)) as session:
+                    for entry in results:
+                        requests.append(fetch_and_scrape(session, entry.url, int(max_words / (n_results - 1))))
+                    texts = await asyncio.gather(*requests)
 
-        return SearchResults(formatted_results, used_words)
+            formatted_results = []
+            used_words = 0
+            left_words = max_words
+            for i, entry in enumerate(results):
+                if add_text:
+                    entry.text = texts[i]
+                if left_words:
+                    left_words -= entry.title.count(" ") + 5
+                    if entry.text:
+                        left_words -= entry.text.count(" ")
+                    else:
+                        left_words -= entry.snippet.count(" ")
+                    if 0 > left_words:
+                        break
+                used_words = max_words - left_words
+                formatted_results.append(entry)
+
+            return SearchResults(formatted_results, used_words)
+
+    except Exception as e:
+        debug.log(f"Search error: {e.__class__.__name__}: {e}")
+        # Повертаємо порожній результат у випадку помилки
+        return SearchResults([], 0)
 
 def get_search_message(prompt, n_results: int = 5, max_words: int = 2500) -> str:
     try:
         search_results = asyncio.run(search(prompt, n_results, max_words))
+        if not search_results.results:
+            debug.log(f"No search results found for: {prompt}")
+            return prompt
+            
         message = f"""
 {search_results}
-
 
 Instruction: Using the provided web search results, to write a comprehensive reply to the user request.
 Make sure to add the sources of cites using [[Number]](Url) notation after the reference. Example: [[0]](http://google.com)
