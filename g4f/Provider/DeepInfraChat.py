@@ -1,23 +1,20 @@
 from __future__ import annotations
-
-from aiohttp import ClientSession, ClientResponseError
 import json
+
+from aiohttp import ClientSession
+
 from ..typing import AsyncResult, Messages
-from .needs_auth import OpenaiAPI
+from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 
-
-class DeepInfraChat(OpenaiAPI):
-    url = "https://deepinfra.com/chat"
+class DeepInfraChat(AsyncGeneratorProvider, ProviderModelMixin):
+    url = "https://deepinfra.com"
     api_endpoint = "https://api.deepinfra.com/v1/openai/chat/completions"
-    
-    api_base = "https://api.deepinfra.com/v1/openai"
-    
     working = True
     needs_auth = False
     supports_stream = True
     supports_system_message = True
     supports_message_history = True
-
+    
     default_model = 'meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo'
     models = [
         'meta-llama/Llama-3.3-70B-Instruct',
@@ -50,39 +47,41 @@ class DeepInfraChat(OpenaiAPI):
         proxy: str = None,
         **kwargs
     ) -> AsyncResult:
+        model = cls.get_model(model)
+        
         headers = {
             'Accept-Language': 'en-US,en;q=0.9',
             'Content-Type': 'application/json',
             'Origin': 'https://deepinfra.com',
             'Referer': 'https://deepinfra.com/',
-            'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
             'X-Deepinfra-Source': 'web-page',
             'accept': 'text/event-stream',
         }
         
-        data = {
-            'model': model,
-            'messages': messages,
-            'stream': True
-        }
-
         async with ClientSession(headers=headers) as session:
+            data = {
+                "model": model,
+                "messages": messages,
+                "stream": True
+            }
+            
             async with session.post(cls.api_endpoint, json=data, proxy=proxy) as response:
                 response.raise_for_status()
-                async for line in response.content:
-                    if line:
-                        decoded_line = line.decode('utf-8').strip()
-                        if decoded_line.startswith('data:'):
-                            json_part = decoded_line[5:].strip()
-                            if json_part == '[DONE]':
-                                break
-                            try:
-                                data = json.loads(json_part)
-                                choices = data.get('choices', [])
-                                if choices:
-                                    delta = choices[0].get('delta', {})
-                                    content = delta.get('content', '')
-                                    if content:
-                                        yield content
-                            except json.JSONDecodeError:
-                                print(f"JSON decode error: {json_part}")
+                async for chunk in response.content:
+                    if chunk:
+                        chunk_text = chunk.decode()
+                        try:
+                            # Handle streaming response
+                            if chunk_text.startswith("data: "):
+                                if chunk_text.strip() == "data: [DONE]":
+                                    continue
+                                chunk_data = json.loads(chunk_text[6:])
+                                if content := chunk_data["choices"][0]["delta"].get("content"):
+                                    yield content
+                            # Handle non-streaming response
+                            else:
+                                chunk_data = json.loads(chunk_text)
+                                if content := chunk_data["choices"][0]["message"].get("content"):
+                                    yield content
+                        except (json.JSONDecodeError, KeyError):
+                            continue
