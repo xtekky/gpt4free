@@ -35,6 +35,7 @@ This document provides an overview of various AI providers and models, including
 |[chat10.free2gpt.xyz](https://chat10.free2gpt.xyz)|`g4f.Provider.Free2GPT`|`mistral-7b`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[freegptsnav.aifree.site](https://freegptsnav.aifree.site)|`g4f.Provider.FreeGpt`|`gemini-pro`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[app.giz.ai/assistant](https://app.giz.ai/assistant)|`g4f.Provider.GizAI`|`gemini-flash`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌|
+|[hf.space](https://hf.space)|`g4f.Provider.HuggingSpace`|❌|`flux-dev, flux-schnell`|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[liaobots.work](https://liaobots.work)|`g4f.Provider.Liaobots`|`grok-beta, gpt-4o-mini, gpt-4o, gpt-4, o1-preview, o1-mini, claude-3-opus, claude-3.5-sonnet, claude-3-sonnet, gemini-flash, gemini-pro`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[mhystical.cc](https://mhystical.cc)|`g4f.Provider.Mhystical`|`gpt-4`|❌|❌|✔|![Error](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[labs.perplexity.ai](https://labs.perplexity.ai)|`g4f.Provider.PerplexityLabs`|`sonar-online, sonar-chat, llama-3.3-70b, llama-3.1-8b, llama-3.1-70b, lfm-40b`|❌|❌|✔|![Error](https://img.shields.io/badge/Active-brightgreen)|❌|
@@ -165,7 +166,7 @@ This document provides an overview of various AI providers and models, including
 |flux-disney|Flux AI|1+ Providers|[]( )|
 |flux-pixel|Flux AI|1+ Providers|[]( )|
 |flux-4o|Flux AI|1+ Providers|[]( )|
-|flux-schnell|Black Forest Labs|2+ Providers|[huggingface.co](https://huggingface.co/black-forest-labs/FLUX.1-schnell)|
+|flux-schnell|Black Forest Labs|1+ Providers|[huggingface.co](https://huggingface.co/black-forest-labs/FLUX.1-schnell)|
 |dall-e-3|OpenAI|5+ Providers|[openai.com](https://openai.com/index/dall-e/)|
 |midjourney|Midjourney|2+ Providers|[docs.midjourney.com](https://docs.midjourney.com/docs/model-versions)|
 |any-dark||2+ Providers|[]( )|
