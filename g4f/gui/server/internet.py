@@ -43,20 +43,22 @@ def clean_text(text: str, max_words: int = None) -> str:
         text = ' '.join(words[:max_words])
     return text
 
-async def search(query: str, n_results: int = 5, max_words: int = 2500) -> SearchResults:
+async def search(query: str, n_results: int = 5, max_words: int = 2500, region: str = "wt-wt") -> SearchResults:
     try:
         async with AsyncDDGS() as ddgs:
             results = await ddgs.atext(
                 keywords=query,
                 max_results=n_results,
-                backend='lite'
+                backend='lite',
+                region=region
             )
             
             if not results:
                 results = await ddgs.atext(
                     keywords=query,
                     max_results=n_results,
-                    backend='api'
+                    backend='api',
+                    region=region
                 )
                 
             if not results:
@@ -101,7 +103,8 @@ async def search(query: str, n_results: int = 5, max_words: int = 2500) -> Searc
                 results = await ddgs.atext(
                     keywords=query,
                     max_results=n_results,
-                    backend='api'
+                    backend='api',
+                    region=region
                 )
                 if results:
                     search_entries = [
@@ -117,11 +120,11 @@ async def search(query: str, n_results: int = 5, max_words: int = 2500) -> Searc
             debug.log(f"Alternative search error: {str(e2)}")
         return SearchResults([], 0)
 
-def get_search_message(prompt: str, n_results: int = 5, max_words: int = 2500) -> str:
+def get_search_message(prompt: str, n_results: int = 5, max_words: int = 2500, region: str = "wt-wt") -> str:
     try:
         debug.log(f"Web search: '{prompt.strip()[:50]}...'")
         
-        search_results = asyncio.run(search(prompt, n_results, max_words))
+        search_results = asyncio.run(search(prompt, n_results, max_words, region))
         
         if not search_results or len(search_results) == 0:
             debug.log("No search results found")
