@@ -11,7 +11,6 @@ from ...errors import MissingRequirementsError
 from ... import debug
 
 import asyncio
-import random
 
 class SearchResults():
     def __init__(self, results: list, used_words: int):
@@ -44,258 +43,109 @@ class SearchResultEntry():
         self.snippet = snippet
         self.text = text
 
-async def fetch_and_scrape(session: ClientSession, url: str, max_words: int = None) -> str:
-    user_agents = [
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:120.0) Gecko/20100101 Firefox/120.0',
-        'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-    ]
-    
-    def get_headers(user_agent: str) -> dict:
-        return {
-            'User-Agent': user_agent,
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.5,uk;q=0.3',
-            'Accept-Encoding': 'gzip, deflate, br',
-            'DNT': '1',
-            'Connection': 'keep-alive',
-            'Upgrade-Insecure-Requests': '1',
-            'Cache-Control': 'no-cache',
-        }
-
-    async def try_fetch(attempt: int = 0) -> str:
-        try:
-            current_user_agent = random.choice(user_agents)
-            headers = get_headers(current_user_agent)
-            
-            if attempt > 0:
-                await asyncio.sleep(1 + attempt)
-
-            async with session.get(
-                url,
-                headers=headers,
-                allow_redirects=True,
-                timeout=ClientTimeout(total=10 + (attempt * 2)),
-                ssl=False
-            ) as response:
-                if response.status == 200:
-                    content_type = response.headers.get('Content-Type', '')
-                    encoding = None
-                    
-                    if 'charset=' in content_type:
-                        encoding = content_type.split('charset=')[-1].strip()
-                    
-                    try:
-                        html = await response.text(encoding=encoding if encoding else 'utf-8')
-                        return scrape_text(html, max_words)
-                    except UnicodeDecodeError:
-                        for enc in ['utf-8', 'cp1251', 'iso-8859-1']:
-                            try:
-                                html = await response.text(encoding=enc)
-                                return scrape_text(html, max_words)
-                            except UnicodeDecodeError:
-                                continue
-                        return None
-                
-                elif response.status == 403 and attempt < 3:
-                    return await try_fetch(attempt + 1)
-                else:
-                    debug.log(f"Failed to fetch {url}: HTTP {response.status}")
-                    return None
-                    
-        except asyncio.TimeoutError:
-            if attempt < 3:
-                return await try_fetch(attempt + 1)
-            debug.log(f"Timeout fetching {url}")
-            return None
-        except Exception as e:
-            debug.log(f"Failed to fetch {url}: {str(e)}")
-            return None
-
-    return await try_fetch()
+    def set_text(self, text: str):
+        self.text = text
 
 def scrape_text(html: str, max_words: int = None) -> str:
     soup = BeautifulSoup(html, "html.parser")
-    
-    for element in soup.find_all(['script', 'style', 'nav', 'header', 'footer', 'iframe']):
-        element.decompose()
-        
-    content_selectors = [
-        "main", "article", ".main-content", "#content", ".content", "body"
-    ]
-    
-    content = None
-    for selector in content_selectors:
-        content = soup.select_one(selector)
-        if content:
+    for selector in [
+            "main",
+            ".main-content-wrapper",
+            ".main-content",
+            ".emt-container-inner",
+            ".content-wrapper",
+            "#content",
+            "#mainContent",
+        ]:
+        select = soup.select_one(selector)
+        if select:
+            soup = select
             break
-            
-    if not content:
-        content = soup
-        
-    text_elements = content.find_all(['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'])
-    
-    clean_text = []
-    word_count = 0
-    
-    for element in text_elements:
-        text = element.get_text().strip()
-        if len(text) < 10:
-            continue
-            
-        text = ' '.join(text.split())
-        words = text.split()
-        
-        if max_words and (word_count + len(words)) > max_words:
-            remaining = max_words - word_count
-            if remaining > 0:
-                clean_text.append(' '.join(words[:remaining]))
-            break
-            
-        clean_text.append(text)
-        word_count += len(words)
-        
-        if max_words and word_count >= max_words:
-            break
-            
-    return '\n'.join(clean_text)
+    # Zdnet
+    for remove in [".c-globalDisclosure"]:
+        select = soup.select_one(remove)
+        if select:
+            select.extract()
+    clean_text = ""
+    for paragraph in soup.select("p, h1, h2, h3, h4, h5, h6"):
+        text = paragraph.get_text()
+        for line in text.splitlines():
+            words = []
+            for word in line.replace("\t", " ").split(" "):
+                if word:
+                    words.append(word)
+            count = len(words)
+            if not count:
+                continue
+            if max_words:
+                max_words -= count
+                if max_words <= 0:
+                    break
+            if clean_text:
+                clean_text += "\n"
+            clean_text += " ".join(words)
+
+    return clean_text
+
+async def fetch_and_scrape(session: ClientSession, url: str, max_words: int = None) -> str:
+    try:
+        async with session.get(url) as response:
+            if response.status == 200:
+                html = await response.text()
+                return scrape_text(html, max_words)
+    except:
+        return
 
 async def search(query: str, n_results: int = 5, max_words: int = 2500, add_text: bool = True) -> SearchResults:
     if not has_requirements:
         raise MissingRequirementsError('Install "duckduckgo-search" and "beautifulsoup4" package | pip install -U g4f[search]')
-    
-    def perform_search(ddgs, backend: str) -> list:
-        try:
-            max_results = max(n_results * 4, 20)
-            
-            # Changed search parameters depending on the backend
-            if backend == "html":
-                return list(ddgs.text(
-                    query,
-                    region="wt-wt",
-                    safesearch="moderate",
-                    backend=backend,
-                    max_results=max_results
-                ))
-            elif backend == "lite":
-                return list(ddgs.text(
-                    query,
-                    region="wt-wt",
-                    safesearch="moderate",
-                    backend=backend,
-                    max_results=max_results
-                ))
-            else:  # api backend
-                try:
-                    return list(ddgs.text(
-                        query,
-                        region="wt-wt",
-                        safesearch="moderate",
-                        timelimit="y",
-                        backend="api",
-                        max_results=max_results
-                    ))
-                except ValueError:
-                    # If the API returns an error, let's try without timelimit
-                    return list(ddgs.text(
-                        query,
-                        region="wt-wt",
-                        safesearch="moderate",
-                        backend="api",
-                        max_results=max_results
-                    ))
-        except Exception as e:
-            debug.log(f"Search failed with backend {backend}: {str(e)}")
-            return []
+    with DDGS() as ddgs:
+        results = []
+        for result in ddgs.text(
+                query,
+                region="wt-wt",
+                safesearch="moderate",
+                timelimit="y",
+                max_results=n_results,
+            ):
+            results.append(SearchResultEntry(
+                result["title"],
+                result["href"],
+                result["body"]
+            ))
 
-    try:
-        with DDGS() as ddgs:
-            all_results = []
-            seen_urls = set()
-            
-            # Backend order changed, HTML first
-            for backend in ["html", "lite", "api"]:
-                if len(all_results) >= n_results:
-                    break
-                    
-                search_results = await asyncio.get_event_loop().run_in_executor(
-                    None,
-                    lambda: perform_search(ddgs, backend)
-                )
-                
-                # Processing of results
-                for result in search_results:
-                    if not isinstance(result, dict):
-                        continue
-                        
-                    url = result.get("href", "").strip()
-                    if not url or not url.startswith(("http://", "https://")):
-                        continue
-                        
-                    if url in seen_urls:
-                        continue
-                        
-                    seen_urls.add(url)
-                    all_results.append(SearchResultEntry(
-                        result.get("title", "").strip(),
-                        url,
-                        result.get("body", "").strip() or result.get("snippet", "").strip()
-                    ))
-                    
-                    if len(all_results) >= max(n_results, 4):
-                        break
+        if add_text:
+            requests = []
+            async with ClientSession(timeout=ClientTimeout(5)) as session:
+                for entry in results:
+                    requests.append(fetch_and_scrape(session, entry.url, int(max_words / (n_results - 1))))
+                texts = await asyncio.gather(*requests)
 
-            if not all_results:
-                debug.log("No search results found")
-                return SearchResults([], 0)
-
-            results = all_results[:max(n_results, 4)]
-
+        formatted_results = []
+        used_words = 0
+        left_words = max_words
+        for i, entry in enumerate(results):
             if add_text:
-                async with ClientSession(timeout=ClientTimeout(15)) as session:
-                    texts = await asyncio.gather(*[
-                        fetch_and_scrape(session, entry.url, int(max_words / len(results)))
-                        for entry in results
-                    ], return_exceptions=True)
-
-                    for i, text_or_error in enumerate(texts):
-                        if isinstance(text_or_error, Exception):
-                            texts[i] = None
-                        else:
-                            texts[i] = text_or_error
-
-            formatted_results = []
-            used_words = 0
-            
-            for i, entry in enumerate(results):
-                if add_text and texts[i]:
-                    entry.text = texts[i]
-                
-                title_words = len(entry.title.split()) + 5
-                content_words = len(entry.text.split()) if entry.text else len(entry.snippet.split())
-                words_to_subtract = title_words + content_words
-                
-                used_words += words_to_subtract
-                formatted_results.append(entry)
-                
-                if len(formatted_results) >= max(n_results, 4):
+                entry.text = texts[i]
+            if left_words:
+                left_words -= entry.title.count(" ") + 5
+                if entry.text:
+                    left_words -= entry.text.count(" ")
+                else:
+                    left_words -= entry.snippet.count(" ")
+                if 0 > left_words:
                     break
+            used_words = max_words - left_words
+            formatted_results.append(entry)
 
-            return SearchResults(formatted_results, used_words)
-
-    except Exception as e:
-        debug.log(f"Search error: {e.__class__.__name__}: {e}")
-        return SearchResults([], 0)
+        return SearchResults(formatted_results, used_words)
 
 def get_search_message(prompt, n_results: int = 5, max_words: int = 2500) -> str:
     try:
         search_results = asyncio.run(search(prompt, n_results, max_words))
-        if not search_results or len(search_results) == 0:
-            return prompt
-            
         message = f"""
 {search_results}
+
 
 Instruction: Using the provided web search results, to write a comprehensive reply to the user request.
 Make sure to add the sources of cites using [[Number]](Url) notation after the reference. Example: [[0]](http://google.com)
