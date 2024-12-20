@@ -10,6 +10,7 @@ from .selenium         import *
 from .needs_auth       import *
 from .not_working      import *
 from .local            import *
+from .hf_space         import *
 
 from .Airforce         import Airforce
 from .AmigoChat        import AmigoChat
@@ -22,10 +23,10 @@ from .Copilot          import Copilot
 from .DarkAI           import DarkAI
 from .DDG              import DDG
 from .DeepInfraChat    import DeepInfraChat
-from .Flux             import Flux
 from .Free2GPT         import Free2GPT
 from .FreeGpt          import FreeGpt
 from .GizAI            import GizAI
+from .HuggingSpace     import HuggingSpace
 from .Liaobots         import Liaobots
 from .Mhystical        import Mhystical
 from .PerplexityLabs   import PerplexityLabs
