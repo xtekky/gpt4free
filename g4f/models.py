@@ -15,12 +15,13 @@ from .Provider import (
     DarkAI,
     DDG,
     DeepInfraChat,
-    Flux,
     GigaChat,
     Gemini,
     GeminiPro,
     HuggingChat,
     HuggingFace,
+    HuggingFace,
+    HuggingSpace,
     Liaobots,
     Mhystical,
     Airforce,
@@ -195,7 +196,7 @@ llama_3_2_11b = Model(
 llama_3_3_70b = Model(
     name          = "llama-3.3-70b",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider([Blackbox, HuggingChat, HuggingFace, PerplexityLabs])
+    best_provider = IterListProvider([Blackbox, DeepInfraChat, HuggingChat, HuggingFace, PerplexityLabs])
 )
 
 ### Mistral ###
@@ -561,7 +562,13 @@ flux_pro = ImageModel(
 flux_dev = ImageModel(
     name = 'flux-dev',
     base_provider = 'Flux AI',
-    best_provider = IterListProvider([Flux, HuggingChat, HuggingFace])
+    best_provider = IterListProvider([HuggingSpace, HuggingChat, HuggingFace])
+)
+
+flux_schnell = ImageModel(
+    name = 'flux-schnell',
+    base_provider = 'Flux AI',
+    best_provider = HuggingSpace
 )
 
 flux_realism = ImageModel(
@@ -806,6 +813,7 @@ class ModelUtils:
         flux.name: flux,
         flux_pro.name: flux_pro,
         flux_dev.name: flux_dev,
+        flux_schnell.name: flux_schnell,
         flux_realism.name: flux_realism,
         flux_cablyai.name: flux_cablyai,
         flux_anime.name: flux_anime,
