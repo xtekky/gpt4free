@@ -167,23 +167,24 @@ async def search(query: str, n_results: int = 5, max_words: int = 2500, add_text
     
     def perform_search(ddgs, backend: str) -> list:
         try:
-            # For HTML backend, we need different parameters
+            # Збільшуємо кількість запитуваних результатів
+            max_results = max(n_results * 3, 15)  # Збільшено множник
+            
             if backend == "html":
                 return list(ddgs.text(
-                    query,  # keywords as first positional argument
+                    query,
                     region="wt-wt",
                     safesearch="moderate",
                     backend=backend,
-                    max_results=max(n_results * 2, 10)
+                    max_results=max_results
                 ))
-            # For API backend
             return list(ddgs.text(
-                query,  # keywords as first positional argument
+                query,
                 region="wt-wt",
                 safesearch="moderate",
                 timelimit="y",
                 backend=backend,
-                max_results=max(n_results * 2, 10)
+                max_results=max_results
             ))
         except Exception as e:
             debug.log(f"Search failed with backend {backend}: {str(e)}")
@@ -191,38 +192,35 @@ async def search(query: str, n_results: int = 5, max_words: int = 2500, add_text
 
     try:
         with DDGS() as ddgs:
-            results = []
+            all_results = []
             
-            # Try HTML backend first since API is failing
+            # Спробуємо всі бекенди для накопичення результатів
             for backend in ["html", "lite", "api"]:
                 search_results = await asyncio.get_event_loop().run_in_executor(
                     None,
                     lambda: perform_search(ddgs, backend)
                 )
                 
-                # Process valid results
+                # Обробляємо результати
                 for result in search_results:
                     if isinstance(result, dict) and "title" in result and "href" in result:
-                        # Skip results with empty or invalid URLs
-                        if not result.get("href") or not result["href"].startswith(("http://", "https://")):
-                            continue
-                        
-                        results.append(SearchResultEntry(
-                            result.get("title", "").strip(),
-                            result.get("href", "").strip(),
-                            result.get("body", "").strip() or result.get("snippet", "").strip()
-                        ))
-                
-                # If we have enough results, break
-                if len(results) >= n_results:
-                    break
+                        url = result.get("href", "").strip()
+                        # Перевіряємо URL та чи нема дублікатів
+                        if (url and url.startswith(("http://", "https://")) and 
+                            not any(existing.url == url for existing in all_results)):
+                            
+                            all_results.append(SearchResultEntry(
+                                result.get("title", "").strip(),
+                                url,
+                                result.get("body", "").strip() or result.get("snippet", "").strip()
+                            ))
 
-            if not results:
+            if not all_results:
                 debug.log("No search results found")
                 return SearchResults([], 0)
 
-            # Limit to requested number of results
-            results = results[:n_results]
+            # Обмежуємо кількість результатів
+            results = all_results[:n_results]
 
             if add_text:
                 async with ClientSession(timeout=ClientTimeout(10)) as session:
@@ -246,6 +244,12 @@ async def search(query: str, n_results: int = 5, max_words: int = 2500, add_text
                     left_words -= words_to_subtract
                     used_words += words_to_subtract
                     formatted_results.append(entry)
+
+            # Якщо все ще недостатньо результатів, додаємо результати без тексту
+            while len(formatted_results) < min(n_results, 4) and results:
+                entry = results[len(formatted_results)]
+                formatted_results.append(entry)
+                used_words += len(entry.title.split()) + len(entry.snippet.split()) + 5
 
             return SearchResults(formatted_results, used_words)
 
