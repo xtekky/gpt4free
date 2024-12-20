@@ -1,24 +1,24 @@
 from __future__ import annotations
 
-from aiohttp import ClientSession
-from bs4 import BeautifulSoup
-import asyncio
-import re
-from duckduckgo_search import AsyncDDGS
-
+from aiohttp import ClientSession, ClientTimeout
+try:
+    from duckduckgo_search import DDGS
+    from bs4 import BeautifulSoup
+    has_requirements = True
+except ImportError:
+    has_requirements = False
+from ...errors import MissingRequirementsError
 from ... import debug
 
-class SearchResultEntry:
-    def __init__(self, title: str, url: str, snippet: str, text: str = None):
-        self.title = title
-        self.url = url
-        self.snippet = snippet
-        self.text = text
+import asyncio
 
-class SearchResults:
+class SearchResults():
     def __init__(self, results: list, used_words: int):
         self.results = results
         self.used_words = used_words
+
+    def __iter__(self):
+        yield from self.results
 
     def __str__(self):
         search = ""
@@ -36,112 +36,153 @@ class SearchResults:
     def __len__(self) -> int:
         return len(self.results)
 
-def clean_text(text: str, max_words: int = None) -> str:
-    text = re.sub(r'\s+', ' ', text).strip()
-    if max_words:
-        words = text.split()
-        text = ' '.join(words[:max_words])
-    return text
+class SearchResultEntry():
+    def __init__(self, title: str, url: str, snippet: str, text: str = None):
+        self.title = title
+        self.url = url
+        self.snippet = snippet
+        self.text = text
 
-async def search(query: str, n_results: int = 5, max_words: int = 2500, region: str = "wt-wt") -> SearchResults:
+    def set_text(self, text: str):
+        self.text = text
+
+def scrape_text(html: str, max_words: int = None) -> str:
+    soup = BeautifulSoup(html, "html.parser")
+    for selector in [
+            "main",
+            ".main-content-wrapper",
+            ".main-content",
+            ".emt-container-inner",
+            ".content-wrapper",
+            "#content",
+            "#mainContent",
+        ]:
+        select = soup.select_one(selector)
+        if select:
+            soup = select
+            break
+    # Zdnet
+    for remove in [".c-globalDisclosure"]:
+        select = soup.select_one(remove)
+        if select:
+            select.extract()
+    clean_text = ""
+    for paragraph in soup.select("p, h1, h2, h3, h4, h5, h6"):
+        text = paragraph.get_text()
+        for line in text.splitlines():
+            words = []
+            for word in line.replace("\t", " ").split(" "):
+                if word:
+                    words.append(word)
+            count = len(words)
+            if not count:
+                continue
+            if max_words:
+                max_words -= count
+                if max_words <= 0:
+                    break
+            if clean_text:
+                clean_text += "\n"
+            clean_text += " ".join(words)
+
+    return clean_text
+
+async def fetch_and_scrape(session: ClientSession, url: str, max_words: int = None) -> str:
     try:
-        async with AsyncDDGS() as ddgs:
-            results = await ddgs.atext(
-                keywords=query,
-                max_results=n_results,
-                backend='lite',
-                region=region
-            )
-            
-            if not results:
-                results = await ddgs.atext(
-                    keywords=query,
+        async with session.get(url) as response:
+            if response.status == 200:
+                html = await response.text()
+                return scrape_text(html, max_words)
+    except:
+        return
+
+async def search(query: str, n_results: int = 5, max_words: int = 2500, add_text: bool = True) -> SearchResults:
+    if not has_requirements:
+        raise MissingRequirementsError('Install "duckduckgo-search" and "beautifulsoup4" package | pip install -U g4f[search]')
+    
+    try:
+        with DDGS() as ddgs:
+            results = []
+            # Try first with API backend
+            try:
+                search_results = ddgs.text(
+                    query,
+                    region="wt-wt",
+                    safesearch="moderate",
+                    timelimit="y",
                     max_results=n_results,
-                    backend='api',
-                    region=region
+                    backend="api"
                 )
-                
+            except:
+                # Fallback to HTML backend if API fails
+                search_results = ddgs.text(
+                    query,
+                    region="wt-wt", 
+                    safesearch="moderate",
+                    timelimit="y",
+                    max_results=n_results,
+                    backend="html"
+                )
+            
+            # Convert results
+            for result in search_results:
+                if isinstance(result, dict) and "title" in result and "href" in result:
+                    results.append(SearchResultEntry(
+                        result.get("title", ""),
+                        result.get("href", ""),
+                        result.get("body", "") or result.get("snippet", "")
+                    ))
+
             if not results:
-                debug.log("No search results found")
                 return SearchResults([], 0)
 
-            search_entries = []
-            total_words = 0
+            if add_text:
+                requests = []
+                async with ClientSession(timeout=ClientTimeout(5)) as session:
+                    for entry in results:
+                        requests.append(fetch_and_scrape(session, entry.url, int(max_words / (n_results - 1))))
+                    texts = await asyncio.gather(*requests)
 
-            for result in results:
-                url = result.get('link') or result.get('url') or result.get('href', '')
-                
-                entry = SearchResultEntry(
-                    title=result.get('title', ''),
-                    url=url,
-                    snippet=result.get('body', '') or result.get('snippet', '') or result.get('text', '')
-                )
-                
-                if entry.url:
-                    try:
-                        # Використовуємо метод request
-                        response = ddgs.client.request('GET', url)
-                        if response and response.content:
-                            html_text = response.content.decode('utf-8', errors='ignore')
-                            soup = BeautifulSoup(html_text, 'html.parser')
-                            text_elements = soup.select('p, article, .content, .main-content')
-                            content = ' '.join(elem.get_text() for elem in text_elements)
-                            content = clean_text(content, max_words // n_results)
-                            entry.text = content
-                            total_words += len(content.split())
-                    except Exception as e:
-                        debug.log(f"Error fetching content from {url}: {e}")
-                
-                search_entries.append(entry)
+            formatted_results = []
+            used_words = 0
+            left_words = max_words
+            for i, entry in enumerate(results):
+                if add_text:
+                    entry.text = texts[i]
+                if left_words:
+                    left_words -= len(entry.title.split()) + 5
+                    if entry.text:
+                        left_words -= len(entry.text.split())
+                    else:
+                        left_words -= len(entry.snippet.split())
+                    if left_words < 0:
+                        break
+                used_words = max_words - left_words
+                formatted_results.append(entry)
 
-            return SearchResults(search_entries, total_words)
+            return SearchResults(formatted_results, used_words)
 
     except Exception as e:
-        debug.log(f"Search error: {str(e)}")
-        try:
-            async with AsyncDDGS() as ddgs:
-                results = await ddgs.atext(
-                    keywords=query,
-                    max_results=n_results,
-                    backend='api',
-                    region=region
-                )
-                if results:
-                    search_entries = [
-                        SearchResultEntry(
-                            title=r.get('title', ''),
-                            url=r.get('link', ''),
-                            snippet=r.get('body', ''),
-                            text=None
-                        ) for r in results
-                    ]
-                    return SearchResults(search_entries, 0)
-        except Exception as e2:
-            debug.log(f"Alternative search error: {str(e2)}")
+        debug.log(f"Search error: {e.__class__.__name__}: {e}")
         return SearchResults([], 0)
 
-def get_search_message(prompt: str, n_results: int = 5, max_words: int = 2500, region: str = "wt-wt") -> str:
+def get_search_message(prompt, n_results: int = 5, max_words: int = 2500) -> str:
     try:
-        debug.log(f"Web search: '{prompt.strip()[:50]}...'")
-        
-        search_results = asyncio.run(search(prompt, n_results, max_words, region))
-        
+        search_results = asyncio.run(search(prompt, n_results, max_words))
         if not search_results or len(search_results) == 0:
-            debug.log("No search results found")
             return prompt
-
+            
         message = f"""
 {search_results}
 
-Instruction: Using the provided web search results, write a comprehensive reply to the user request.
-Make sure to add the sources of cites using [[Number]](Url) notation after the reference.
+Instruction: Using the provided web search results, to write a comprehensive reply to the user request.
+Make sure to add the sources of cites using [[Number]](Url) notation after the reference. Example: [[0]](http://google.com)
 
 User request:
 {prompt}
 """
-        debug.log(f"Search completed: {len(search_results)} results, {search_results.used_words} words")
+        debug.log(f"Web search: '{prompt.strip()[:50]}...' {search_results.used_words} Words")
         return message
-
     except Exception as e:
-        debug.log(f"Error in get_search_message: {e}")
+        debug.log(f"Couldn't do web search: {e.__class__.__name__}: {e}")
         return prompt
