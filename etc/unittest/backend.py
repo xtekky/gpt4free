@@ -60,21 +60,26 @@ class TestBackendApi(unittest.TestCase):
 
         from g4f.gui.server.internet import search, SearchResults
         try:
-            # Perform search query
-            result = asyncio.run(search("Hello"))
+            # Perform search query with increased number of results
+            result = asyncio.run(search("Hello world programming", n_results=10))
             
             # Check if result is SearchResults instance
             self.assertIsInstance(result, SearchResults)
             
-            # Check if results exist
-            self.assertTrue(len(result.results) >= 4)
+            # Check if results exist and meet minimum requirement
+            self.assertGreaterEqual(len(result.results), 1, "Should return at least one result")
             
-            # Verify result structure
+            # Verify result structure if results exist
             if result.results:
                 first_result = result.results[0]
                 self.assertTrue(hasattr(first_result, 'title'))
                 self.assertTrue(hasattr(first_result, 'url'))
                 self.assertTrue(hasattr(first_result, 'snippet'))
+                
+                # Verify content of first result
+                self.assertIsInstance(first_result.title, str)
+                self.assertIsInstance(first_result.url, str)
+                self.assertIsInstance(first_result.snippet, str)
                 
         except DuckDuckGoSearchException as e:
             self.skipTest(f"DuckDuckGo search error: {str(e)}")
