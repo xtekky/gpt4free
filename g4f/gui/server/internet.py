@@ -103,7 +103,7 @@ async def search(query: str, n_results: int = 5, max_words: int = 2500, add_text
     try:
         with DDGS() as ddgs:
             results = []
-            # Спробуємо спочатку основний метод пошуку
+            # Let's try the basic search method first
             try:
                 search_results = ddgs.text(
                     query,
@@ -111,17 +111,17 @@ async def search(query: str, n_results: int = 5, max_words: int = 2500, add_text
                     safesearch="moderate",
                     timelimit="y",
                     max_results=n_results,
-                    backend="api" # Явно вказуємо API бекенд
+                    backend="api" # Explicitly specify the backend API
                 )
             except Exception as e:
-                # Якщо основний метод не спрацював, спробуємо альтернативний
+                # If the main method does not work, let's try an alternative one
                 search_results = ddgs.text(
                     query,
                     region="wt-wt",
                     safesearch="moderate", 
                     timelimit="y",
                     max_results=n_results,
-                    backend="html" # Використовуємо HTML бекенд як запасний варіант
+                    backend="html" # Use the HTML backend as a fallback
                 )
             
             for result in search_results:
@@ -162,7 +162,7 @@ async def search(query: str, n_results: int = 5, max_words: int = 2500, add_text
 
     except Exception as e:
         debug.log(f"Search error: {e.__class__.__name__}: {e}")
-        # Повертаємо порожній результат у випадку помилки
+        # Return an empty result in case of an error
         return SearchResults([], 0)
 
 def get_search_message(prompt, n_results: int = 5, max_words: int = 2500) -> str:
