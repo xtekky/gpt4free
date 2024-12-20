@@ -36,8 +36,8 @@ class TestBackendApi(unittest.TestCase):
     def test_search(self):
         from g4f.gui.server.internet import search
         try:
-            result = asyncio.run(search("Hello"))
+            result = asyncio.run(search("Hello", n_results=2, max_words=500))
+            self.assertIsNotNone(result)
+            self.assertTrue(len(result.results) > 0)
         except Exception as e:
             self.skipTest(f"Search failed: {str(e)}")
-        self.assertTrue(len(result) >= 0)  # Changed from 4 to 0 as results may vary
-        self.assertIsNotNone(result)
