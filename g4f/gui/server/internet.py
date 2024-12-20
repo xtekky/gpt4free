@@ -43,30 +43,20 @@ def clean_text(text: str, max_words: int = None) -> str:
         text = ' '.join(words[:max_words])
     return text
 
-async def search(
-    query: str, 
-    n_results: int = 5, 
-    max_words: int = 2500,
-    safesearch: str = "moderate",
-    region: str = "wt-wt"
-) -> SearchResults:
+async def search(query: str, n_results: int = 5, max_words: int = 2500) -> SearchResults:
     try:
         async with AsyncDDGS() as ddgs:
             results = await ddgs.atext(
                 keywords=query,
                 max_results=n_results,
-                backend='lite',
-                safesearch=safesearch,
-                region=region
+                backend='lite'
             )
             
             if not results:
                 results = await ddgs.atext(
                     keywords=query,
                     max_results=n_results,
-                    backend='api',
-                    safesearch=safesearch,
-                    region=region
+                    backend='api'
                 )
                 
             if not results:
@@ -87,6 +77,7 @@ async def search(
                 
                 if entry.url:
                     try:
+                        # Використовуємо метод request
                         response = ddgs.client.request('GET', url)
                         if response and response.content:
                             html_text = response.content.decode('utf-8', errors='ignore')
@@ -110,9 +101,7 @@ async def search(
                 results = await ddgs.atext(
                     keywords=query,
                     max_results=n_results,
-                    backend='api',
-                    safesearch=safesearch,
-                    region=region
+                    backend='api'
                 )
                 if results:
                     search_entries = [
@@ -128,23 +117,11 @@ async def search(
             debug.log(f"Alternative search error: {str(e2)}")
         return SearchResults([], 0)
 
-def get_search_message(
-    prompt: str, 
-    n_results: int = 5, 
-    max_words: int = 2500,
-    safesearch: str = "moderate",
-    region: str = "wt-wt"
-) -> str:
+def get_search_message(prompt: str, n_results: int = 5, max_words: int = 2500) -> str:
     try:
         debug.log(f"Web search: '{prompt.strip()[:50]}...'")
         
-        search_results = asyncio.run(search(
-            prompt, 
-            n_results, 
-            max_words,
-            safesearch,
-            region
-        ))
+        search_results = asyncio.run(search(prompt, n_results, max_words))
         
         if not search_results or len(search_results) == 0:
             debug.log("No search results found")
