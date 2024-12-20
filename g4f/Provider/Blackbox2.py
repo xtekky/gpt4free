@@ -28,7 +28,7 @@ class Blackbox2(AsyncGeneratorProvider, ProviderModelMixin):
     supports_message_history = True
 
     default_model = 'llama-3.1-70b'
-    chat_models = ['llama-3.1-70b']
+    chat_models = [default_model]
     image_models = ['flux']
     models = [*chat_models, *image_models]
 
