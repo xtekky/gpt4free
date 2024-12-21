@@ -148,6 +148,7 @@ class Blackbox2(AsyncGeneratorProvider, ProviderModelMixin):
                 raise RuntimeError("Failed to get validated value")
 
             async with ClientSession(headers=headers) as session:
+                print(headers)
                 api_endpoint = cls.api_endpoints[model]
 
                 data = {
@@ -196,6 +197,7 @@ class Blackbox2(AsyncGeneratorProvider, ProviderModelMixin):
         api_endpoint = cls.api_endpoints[model]
 
         async with ClientSession(headers=headers) as session:
+            print(headers)
             data = {
                 "query": prompt
             }
@@ -219,7 +221,8 @@ class Blackbox2(AsyncGeneratorProvider, ProviderModelMixin):
         return {
             'accept': '*/*',
             'accept-language': 'en-US,en;q=0.9',
-            'content-type': 'text/plain;charset=UTF-8',
+            'authorization': f'Bearer 56c8eeff9971269d7a7e625ff88e8a83a34a556003a5c87c289ebe9a3d8a3d2c',
+            'content-type': 'application/json',
             'origin': 'https://www.blackbox.ai',
             'referer': 'https://www.blackbox.ai',
             'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
