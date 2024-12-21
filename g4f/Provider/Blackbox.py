@@ -20,10 +20,7 @@ from .. import debug
 class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Blackbox AI"
     url = "https://www.blackbox.ai"
-    api_endpoints = {
-        "main": "https://www.blackbox.ai/api/chat",
-        "alternative": "https://api.blackbox.ai/api/chat"
-    }
+    api_endpoint = "https://www.blackbox.ai/api/chat"
 
     working = True
     supports_stream = True
@@ -34,7 +31,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
     default_vision_model = default_model
     default_image_model = 'flux' 
     image_models = ['ImageGeneration', 'repomap']
-    vision_models = [default_model, 'gpt-4o', 'gemini-pro', 'gemini-1.5-flash', 'llama-3.1-8b', 'llama-3.1-70b', 'llama-3.1-405b']
+    vision_models = [default_vision_model, 'gpt-4o', 'gemini-pro', 'gemini-1.5-flash', 'llama-3.1-8b', 'llama-3.1-70b', 'llama-3.1-405b']
 
     userSelectedModel = ['gpt-4o', 'gemini-pro', 'claude-sonnet-3.5', 'blackboxai-pro']
 
@@ -125,7 +122,6 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         ### image ###
         "flux": "ImageGeneration",
     }
-
     @classmethod
     def _get_cache_file(cls) -> Path:
         dir = Path(get_cookies_dir())
@@ -222,138 +218,115 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         proxy: str = None,
         web_search: bool = False,
         images: ImagesType = None,
-        top_p: float = None,
-        temperature: float = None,
+        top_p: float = 0.9,
+        temperature: float = 0.5,
         max_tokens: int = None,
         max_retries: int = 3,
         delay: int = 1,
         **kwargs
     ) -> AsyncResult:
         async def process_request():
-            for outer_attempt in range(2):
-                message_id = cls.generate_id()
-                messages_with_prefix = cls.add_prefix_to_messages(messages, model)
-                endpoints = [cls.api_endpoints["main"], cls.api_endpoints["alternative"]] # Let's try the main endpoint first, then the alternative one
-                validated_value = await cls.fetch_validated()
-                
-                if not validated_value:
-                    raise RuntimeError("Failed to get validated value")
-                    
-                formatted_message = format_prompt(messages_with_prefix)
-                current_model = cls.get_model(model)
-                
-                current_messages = [{"id": message_id, "content": formatted_message, "role": "user"}]
+            messages_with_prefix = cls.add_prefix_to_messages(messages, model)
+            validated_value = await cls.fetch_validated()
+            
+            if not validated_value:
+                raise RuntimeError("Failed to get validated value")
+            
+            formatted_message = format_prompt(messages_with_prefix)
+            current_model = cls.get_model(model)
+            
+            first_message = next((msg for msg in messages if msg['role'] == 'user'), None)
+            chat_id = cls.generate_id()
+            current_messages = [{"id": chat_id, "content": formatted_message, "role": "user"}]
 
-                if images is not None:
-                    current_messages[-1]['data'] = {
-                        "imagesData": [
-                            {
-                                "filePath": f"MultipleFiles/{image_name}",
-                                "contents": to_data_uri(image)
-                            }
-                            for image, image_name in images
-                        ],
-                        "fileText": "",
-                        "title": ""
-                    }
-
-                headers = {
-                    'accept': '*/*',
-                    'accept-language': 'en-US,en;q=0.9',
-                    'content-type': 'application/json',
-                    'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
-                }
-                
-                endpoint_headers = {
-                    cls.api_endpoints["main"]: {
-                        'origin': 'https://www.blackbox.ai',
-                        'referer': 'https://www.blackbox.ai/'
-				    },
-				    cls.api_endpoints["alternative"]: {
-				        'origin': 'https://api.blackbox.ai',    
-				        'referer': 'https://api.blackbox.ai/'
-				    }
-                }
-                
-
-                data = {
-                    "agentMode": cls.agentMode.get(model, {}) if model in cls.agentMode else {},
-                    "clickedAnswer2": False,
-                    "clickedAnswer3": False,
-                    "clickedForceWebSearch": False,
-                    "codeModelMode": True,
-                    "deepSearchMode": False,
-                    "githubToken": None,
-                    "id": message_id,
-                    "imageGenerationMode": False,
-                    "isChromeExt": False,
-                    "isMicMode": False,
-                    "maxTokens": max_tokens,
-                    "messages": current_messages,
-                    "mobileClient": False,
-                    "playgroundTemperature": temperature,
-                    "playgroundTopP": top_p,
-                    "previewToken": None,
-                    "trendingAgentMode": cls.trendingAgentMode.get(model, {}) if model in cls.trendingAgentMode else {},
-                    "userId": None,
-                    "userSelectedModel": model if model in cls.userSelectedModel else None,
-                    "userSystemPrompt": None,
-                    "validated": validated_value,
-                    "visitFromDelta": False,
-                    "webSearchModePrompt": False,
-                    "webSearchMode": web_search
+            if images is not None:
+                current_messages[-1]['data'] = {
+                    "imagesData": [
+                        {
+                            "filePath": f"/{image_name}",
+                            "contents": to_data_uri(image)
+                        }
+                        for image, image_name in images
+                    ],
+                    "fileText": "",
+                    "title": ""
                 }
 
-                for attempt in range(max_retries):
-                    for endpoint in endpoints:
-                        current_headers = headers.copy()
-                        current_headers.update(endpoint_headers[endpoint])
-                        try:
-                            async with ClientSession(headers=current_headers) as session:
-                                async with session.post(endpoint, json=data, proxy=proxy) as response:
-                                    response.raise_for_status()
-                                    response_text = await response.text()
+            headers = {
+                'accept': '*/*',
+                'accept-language': 'en-US,en;q=0.9',
+                'content-type': 'application/json',
+                'origin': 'https://www.blackbox.ai',
+                'referer': 'https://www.blackbox.ai/',
+                'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
+            }
 
-                                    if "replace" in response_text and "api.blackbox.ai" in response_text:
-                                        debug.log(f"Switching to alternative endpoint...")
-                                        continue  # Let's try an alternative endpoint
+            data = {
+                "agentMode": cls.agentMode.get(model, {}) if model in cls.agentMode else {},
+                "clickedAnswer2": False,
+                "clickedAnswer3": False,
+                "clickedForceWebSearch": False,
+                "codeModelMode": True,
+                "deepSearchMode": False,
+                "domains": None,
+                "githubToken": None,
+                "id": chat_id,
+                "imageGenerationMode": False,
+                "isChromeExt": False,
+                "isMicMode": False,
+                "maxTokens": max_tokens,
+                "messages": current_messages,
+                "mobileClient": False,
+                "playgroundTemperature": temperature,
+                "playgroundTopP": top_p,
+                "previewToken": None,
+                "trendingAgentMode": cls.trendingAgentMode.get(model, {}) if model in cls.trendingAgentMode else {},
+                "userId": None,
+                "userSelectedModel": model if model in cls.userSelectedModel else None,
+                "userSystemPrompt": None,
+                "validated": validated_value,
+                "visitFromDelta": False,
+                "webSearchModePrompt": False,
+                "webSearchMode": web_search
+            }
 
-                                    if current_model in cls.image_models:
-                                        image_matches = re.findall(r'!\[.*?\]\((https?://[^\)]+)\)', response_text)
-                                        if image_matches:
-                                            yield ImageResponse(image_matches[0], prompt)
-                                            return
+            for attempt in range(max_retries):
+                try:
+                    async with ClientSession(headers=headers) as session:
+                        async with session.post(cls.api_endpoint, json=data, proxy=proxy) as response:
+                            response.raise_for_status()
+                            response_text = await response.text()
 
-                                    response_text = re.sub(r'Generated by BLACKBOX\.AI.*?blackbox\.ai', '', response_text, flags=re.DOTALL)
-                                    response_text = response_text.strip()
-
-                                    if not response_text:
-                                        raise ValueError("Empty response received")
-
-                                    json_match = re.search(r'\$~~~\$(.*?)\$~~~\$', response_text, re.DOTALL)
-                                    if json_match:
-                                        search_results = json.loads(json_match.group(1))
-                                        answer = response_text.split('$~~~$')[-1].strip()
-
-                                        formatted_response = f"{answer}\n\n**Source:**"
-                                        for i, result in enumerate(search_results, 1):
-                                            formatted_response += f"\n{i}. {result['title']}: {result['link']}"
-
-                                        yield formatted_response
-                                    else:
-                                        yield response_text
+                            if current_model in cls.image_models:
+                                image_matches = re.findall(r'!\[.*?\]\((https?://[^\)]+)\)', response_text)
+                                if image_matches:
+                                    yield ImageResponse(image_matches[0], prompt)
                                     return
 
-                        except Exception as e:
-                            debug.log(f"Error with endpoint {endpoint}: {str(e)}")
-                            continue
+                            response_text = re.sub(r'Generated by BLACKBOX\.AI.*?blackbox\.ai', '', response_text, flags=re.DOTALL)
+                            response_text = response_text.strip()
 
-                    # If all endpoints failed
+                            if not response_text:
+                                raise ValueError("Empty response received")
+
+                            json_match = re.search(r'\$~~~\$(.*?)\$~~~\$', response_text, re.DOTALL)
+                            if json_match:
+                                search_results = json.loads(json_match.group(1))
+                                answer = response_text.split('$~~~$')[-1].strip()
+
+                                formatted_response = f"{answer}\n\n**Source:**"
+                                for i, result in enumerate(search_results, 1):
+                                    formatted_response += f"\n{i}. {result['title']}: {result['link']}"
+
+                                yield formatted_response
+                            else:
+                                yield response_text
+                            return
+
+                except Exception as e:
+                    debug.log(f"Error: {str(e)}")
                     if attempt == max_retries - 1:
-                        if outer_attempt == 0:
-                            break
-                        else:
-                            raise RuntimeError("Failed with all endpoints after retries")
+                        raise RuntimeError("Failed after all retries")
                     else:
                         wait_time = delay * (2 ** attempt) + random.uniform(0, 1)
                         debug.log(f"Attempt {attempt + 1} failed. Retrying in {wait_time:.2f} seconds...")
