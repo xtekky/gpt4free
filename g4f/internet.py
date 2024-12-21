@@ -7,8 +7,8 @@ try:
     has_requirements = True
 except ImportError:
     has_requirements = False
-from ...errors import MissingRequirementsError
-from ... import debug
+from .errors import MissingRequirementsError
+from . import debug
 
 import asyncio
 

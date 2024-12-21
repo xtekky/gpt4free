@@ -21,6 +21,7 @@ from .image_models import ImageModels
 from .types import IterResponse, ImageProvider, Client as BaseClient
 from .service import get_model_and_provider, get_last_provider, convert_to_provider
 from .helper import find_stop, filter_json, filter_none, safe_aclose, to_async_iterator
+from ..internet import get_search_message
 from .. import debug
 
 ChatCompletionResponseType = Iterator[Union[ChatCompletion, ChatCompletionChunk, BaseConversation]]
@@ -179,10 +180,18 @@ class Client(BaseClient):
         self.chat: Chat = Chat(self, provider)
         self.images: Images = Images(self, image_provider)
 
+class WebSearch:
+    def __init__(self):
+        pass
+        
+    def get_search_message(self, prompt: str) -> str:
+        return get_search_message(prompt)
+
 class Completions:
     def __init__(self, client: Client, provider: Optional[ProviderType] = None):
         self.client: Client = client
         self.provider: ProviderType = provider
+        self.web_search = WebSearch()
 
     def create(
         self,
@@ -200,8 +209,13 @@ class Completions:
         ignored: Optional[list[str]] = None,
         ignore_working: Optional[bool] = False,
         ignore_stream: Optional[bool] = False,
+        web_search: Optional[bool] = False,
         **kwargs
     ) -> IterResponse:
+        if web_search:
+            prompt = messages[-1]["content"]
+            messages[-1]["content"] = self.web_search.get_search_message(prompt)
+            
         model, provider = get_model_and_provider(
             model,
             self.provider if provider is None else provider,

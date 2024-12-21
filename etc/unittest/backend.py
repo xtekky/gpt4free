@@ -48,7 +48,7 @@ class TestBackendApi(unittest.TestCase):
 
     def test_search(self):
         """Test search functionality"""
-        from g4f.gui.server.internet import search
+        from g4f.internet import search
         try:
             # Perform search with specific parameters
             result = asyncio.run(search(
