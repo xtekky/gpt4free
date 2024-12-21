@@ -32,8 +32,7 @@ docker pull hlohaus789/g4f
    - **For comprehensive details on new features and updates, please refer to our** [Releases](https://github.com/xtekky/gpt4free/releases) **page**
    - **Installation Guide for Windows (.exe):** 💻 [Installation Guide for Windows (.exe)](#installation-guide-for-windows-exe)
    - **Join our Telegram Channel:** 📨 [telegram.me/g4f_channel](https://telegram.me/g4f_channel)
-   - **Join our Discord Group:** 💬🆕️ [discord.gg/qXA4Wf4Fsm](https://discord.gg/qXA4Wf4Fsm)
-
+   - **Join our Discord Group:** 💬🆕️ [https://discord.gg/5E39JUWUFa](https://discord.gg/5E39JUWUFa)
 
 ## 🔻 Site Takedown
 
