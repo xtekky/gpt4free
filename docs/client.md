@@ -8,6 +8,7 @@
    - [Initializing the Client](#initializing-the-client)
    - [Creating Chat Completions](#creating-chat-completions)
    - [Configuration](#configuration)
+   - [Explanation of Parameters](#explanation-of-parameters)
    - [Usage Examples](#usage-examples)
    - [Text Completions](#text-completions)
    - [Streaming Completions](#streaming-completions)
