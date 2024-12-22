@@ -203,7 +203,7 @@ client = Client()
 response = client.chat.completions.create(
     model="gpt-4o-mini",
     messages=[{"role": "user", "content": "Hello"}],
-    # Add any other necessary parameters
+    web_search = False
 )
 print(response.choices[0].message.content)
 ```
@@ -221,7 +221,6 @@ response = client.images.generate(
     model="flux",
     prompt="a white siamese cat",
     response_format="url"
-    # Add any other necessary parameters
 )
 
 image_url = response.data[0].url

@@ -84,6 +84,30 @@ client = Client(
 )
 ```
 
+## Explanation of Parameters
+**When using the G4F to create chat completions or perform related tasks, you can configure the following parameters:**
+- **`model`**:  
+  Specifies the AI model to be used for the task. Examples include `"gpt-4o"` for GPT-4 Optimized or `"gpt-4o-mini"` for a lightweight version. The choice of model determines the quality and speed of the response. Always ensure the selected model is supported by the provider.
+
+- **`messages`**:  
+  A list of dictionaries representing the conversation context. Each dictionary contains two keys:  
+  - `role`: Defines the role of the message sender, such as `"user"` (input from the user) or `"system"` (instructions to the AI).  
+  - `content`: The actual text of the message.  
+  Example:
+  ```python
+  [
+      {"role": "system", "content": "You are a helpful assistant."},
+      {"role": "user", "content": "What day is it today?"}
+  ]
+  ```
+
+- **`web_search`**:  
+  (Optional) A Boolean flag indicating whether to enable internet-based search capabilities for the task. If True, the system performs a web search using the DuckDuckGo search engine to retrieve up-to-date information. This is particularly useful for obtaining real-time or specific details not contained within the model's training.
+
+- **`provider`**:  
+  Specifies the backend provider for the API. Examples include `g4f.Provider.Blackbox` or `g4f.Provider.OpenaiChat`. Each provider may support a different subset of models and features, so select one that matches your requirements.
+
+
 ## Usage Examples
 ### Text Completions
 **Generate text completions using the `ChatCompletions` endpoint:** 
@@ -99,7 +123,8 @@ response = client.chat.completions.create(
             "role": "user",
             "content": "Say this is a test"
         }
-    ]
+    ],
+    web_search = False
     # Add any other necessary parameters
 )
 
