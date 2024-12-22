@@ -91,10 +91,10 @@ client = Client(
   Specifies the AI model to be used for the task. Examples include `"gpt-4o"` for GPT-4 Optimized or `"gpt-4o-mini"` for a lightweight version. The choice of model determines the quality and speed of the response. Always ensure the selected model is supported by the provider.
 
 - **`messages`**:  
-  A list of dictionaries representing the conversation context. Each dictionary contains two keys:  
-  - `role`: Defines the role of the message sender, such as `"user"` (input from the user) or `"system"` (instructions to the AI).  
-  - `content`: The actual text of the message.  
-  Example:
+  **A list of dictionaries representing the conversation context. Each dictionary contains two keys:**
+      - `role`: Defines the role of the message sender, such as `"user"` (input from the user) or `"system"` (instructions to the AI).  
+      - `content`: The actual text of the message.  
+  **Example:**
   ```python
   [
       {"role": "system", "content": "You are a helpful assistant."},
