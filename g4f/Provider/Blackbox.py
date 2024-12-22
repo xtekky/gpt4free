@@ -122,6 +122,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         ### image ###
         "flux": "ImageGeneration",
     }
+    
     @classmethod
     def _get_cache_file(cls) -> Path:
         dir = Path(get_cookies_dir())
@@ -152,42 +153,58 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
     @classmethod
     async def fetch_validated(cls):
         cached_value = cls._load_cached_value()
+        
+        async with aiohttp.ClientSession() as session:
+            # Let's try both URLs
+            urls_to_try = [
+                "https://www.blackbox.ai",
+                "https://api.blackbox.ai"
+            ]
+            
+            for base_url in urls_to_try:
+                try:
+                    async with session.get(base_url) as response:
+                        if response.status != 200:
+                            continue
+                        
+                        page_content = await response.text()
+                        js_files = re.findall(r'static/chunks/\d{4}-[a-fA-F0-9]+\.js', page_content)
+                        
+                        if not js_files:
+                            js_files = re.findall(r'static/js/[a-zA-Z0-9-]+\.js', page_content)
+
+                        uuid_format = r'["\']([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})["\']'
+
+                        def is_valid_context(text_around):
+                            return any(char + '=' in text_around for char in 'abcdefghijklmnopqrstuvwxyz')
+
+                        for js_file in js_files:
+                            js_url = f"{base_url}/_next/{js_file}"
+                            try:
+                                async with session.get(js_url) as js_response:
+                                    if js_response.status == 200:
+                                        js_content = await js_response.text()
+                                        for match in re.finditer(uuid_format, js_content):
+                                            start = max(0, match.start() - 10)
+                                            end = min(len(js_content), match.end() + 10)
+                                            context = js_content[start:end]
+                                            
+                                            if is_valid_context(context):
+                                                validated_value = match.group(1)
+                                                cls._save_cached_value(validated_value)
+                                                return validated_value
+                            except Exception:
+                                continue
+                                
+                except Exception as e:
+                    print(f"Error trying {base_url}: {e}")
+                    continue
+
+        # If we failed to get a new validated_value, we return the cached one
         if cached_value:
             return cached_value
-
-        async with aiohttp.ClientSession() as session:
-            try:
-                async with session.get(cls.url) as response:
-                    if response.status != 200:
-                        print("Failed to load the page.")
-                        return cached_value
-                    
-                    page_content = await response.text()
-                    js_files = re.findall(r'static/chunks/\d{4}-[a-fA-F0-9]+\.js', page_content)
-
-                    uuid_format = r'["\']([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})["\']'
-
-                    def is_valid_context(text_around):
-                        return any(char + '=' in text_around for char in 'abcdefghijklmnopqrstuvwxyz')
-
-                    for js_file in js_files:
-                        js_url = f"{cls.url}/_next/{js_file}"
-                        async with session.get(js_url) as js_response:
-                            if js_response.status == 200:
-                                js_content = await js_response.text()
-                                for match in re.finditer(uuid_format, js_content):
-                                    start = max(0, match.start() - 10)
-                                    end = min(len(js_content), match.end() + 10)
-                                    context = js_content[start:end]
-                                    
-                                    if is_valid_context(context):
-                                        validated_value = match.group(1)
-                                        cls._save_cached_value(validated_value)
-                                        return validated_value
-            except Exception as e:
-                print(f"Error fetching validated value: {e}")
-
-        return cached_value
+            
+        raise RuntimeError("Failed to get validated value from both URLs")
 
     @staticmethod
     def generate_id(length=7):
@@ -303,7 +320,9 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
                                     yield ImageResponse(image_matches[0], prompt)
                                     return
 
-                            response_text = re.sub(r'Generated by BLACKBOX\.AI.*?blackbox\.ai', '', response_text, flags=re.DOTALL)
+                            response_text = re.sub(r'Generated by BLACKBOX.AI, try unlimited chat https://www.blackbox.ai', '', response_text, flags=re.DOTALL)
+                            response_text = re.sub(r'and for API requests replace  https://www.blackbox.ai with https://api.blackbox.ai', '', response_text, flags=re.DOTALL)
+
                             response_text = response_text.strip()
 
                             if not response_text:
