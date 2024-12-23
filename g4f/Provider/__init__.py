@@ -15,7 +15,7 @@ from .hf_space         import *
 from .Airforce         import Airforce
 from .AmigoChat        import AmigoChat
 from .Blackbox         import Blackbox
-from .Blackbox2        import Blackbox2
+from .BlackboxAgent    import BlackboxAgent
 from .ChatGpt          import ChatGpt
 from .ChatGptEs        import ChatGptEs
 from .Cloudflare       import Cloudflare

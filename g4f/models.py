@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from .Provider import IterListProvider, ProviderType
 from .Provider import (
     Blackbox,
-    Blackbox2,
+    BlackboxAgent,
     BingCreateImages,
     ChatGpt,
     ChatGptEs,
@@ -68,7 +68,7 @@ default = Model(
     best_provider = IterListProvider([
         DDG,
         Pizzagpt,
-        Blackbox2,
+        BlackboxAgent,
         Blackbox,
         Copilot,
         DeepInfraChat,
@@ -170,7 +170,7 @@ llama_3_1_8b = Model(
 llama_3_1_70b = Model(
     name          = "llama-3.1-70b",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider([DDG, DeepInfraChat, Blackbox, Blackbox2, TeachAnything, PollinationsAI, DarkAI, Airforce, RubiksAI, PerplexityLabs])
+    best_provider = IterListProvider([DDG, DeepInfraChat, Blackbox, BlackboxAgent, TeachAnything, PollinationsAI, DarkAI, Airforce, RubiksAI, PerplexityLabs])
 )
 
 llama_3_1_405b = Model(
@@ -550,7 +550,7 @@ playground_v2_5 = ImageModel(
 flux = ImageModel(
     name = 'flux',
     base_provider = 'Flux AI',
-    best_provider = IterListProvider([Blackbox, Blackbox2, PollinationsAI, Airforce])
+    best_provider = IterListProvider([Blackbox, BlackboxAgent, PollinationsAI, Airforce])
 )
 
 flux_pro = ImageModel(
