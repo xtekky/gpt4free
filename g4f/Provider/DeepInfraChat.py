@@ -7,7 +7,7 @@ from ..typing import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 
 class DeepInfraChat(AsyncGeneratorProvider, ProviderModelMixin):
-    url = "https://deepinfra.com"
+    url = "https://deepinfra.com/chat"
     api_endpoint = "https://api.deepinfra.com/v1/openai/chat/completions"
     working = True
     needs_auth = False
