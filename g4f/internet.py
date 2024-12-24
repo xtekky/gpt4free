@@ -103,25 +103,19 @@ async def search(query: str, n_results: int = 5, max_words: int = 2500, add_text
     try:
         with DDGS() as ddgs:
             results = []
-            # Let's try the basic search method first
             try:
                 search_results = ddgs.text(
                     query,
                     region="wt-wt", 
                     safesearch="moderate",
                     timelimit="y",
-                    max_results=n_results,
-                    backend="api" # Explicitly specify the backend API
+                    max_results=n_results
                 )
             except Exception as e:
-                # If the main method does not work, let's try an alternative one
+                # If the main method does not work, let's try with just the basic parameters
                 search_results = ddgs.text(
                     query,
-                    region="wt-wt",
-                    safesearch="moderate", 
-                    timelimit="y",
-                    max_results=n_results,
-                    backend="html" # Use the HTML backend as a fallback
+                    max_results=n_results
                 )
             
             for result in search_results:
