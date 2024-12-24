@@ -212,11 +212,7 @@ class Completions:
         web_search: Optional[bool] = False,
         **kwargs
     ) -> IterResponse:
-        if web_search:
-            prompt = messages[-1]["content"]
-            messages[-1]["content"] = self.web_search.get_search_message(prompt)
-            
-        model, provider = get_model_and_provider(
+        model, provider_handler = get_model_and_provider(
             model,
             self.provider if provider is None else provider,
             stream,
@@ -224,12 +220,25 @@ class Completions:
             ignore_working,
             ignore_stream,
         )
+
+        # Handle web search exactly like in GUI
+        do_web_search = web_search
+        if do_web_search and provider_handler:
+            if hasattr(provider_handler, "get_parameters"):
+                if "web_search" in provider_handler.get_parameters():
+                    kwargs['web_search'] = True
+                    do_web_search = False
+        
+        if do_web_search:
+            messages[-1]["content"] = get_search_message(messages[-1]["content"])
+
         stop = [stop] if isinstance(stop, str) else stop
         if image is not None:
             kwargs["images"] = [(image, image_name)]
         if ignore_stream:
             kwargs["ignore_stream"] = True
-        response = provider.create_completion(
+
+        response = provider_handler.create_completion(
             model,
             messages,
             stream=stream,
@@ -241,21 +250,18 @@ class Completions:
             ),
             **kwargs
         )
-        if asyncio.iscoroutinefunction(provider.create_completion):
-            # Run the asynchronous function in an event loop
+
+        if asyncio.iscoroutinefunction(provider_handler.create_completion):
             response = asyncio.run(response)
         if stream and hasattr(response, '__aiter__'):
-            # It's an async generator, wrap it into a sync iterator
             response = to_sync_generator(response)
         elif hasattr(response, '__aiter__'):
-            # If response is an async generator, collect it into a list
             response = asyncio.run(async_generator_to_list(response))
+
         response = iter_response(response, stream, response_format, max_tokens, stop)
         response = iter_append_model_and_provider(response)
-        if stream:
-            return response
-        else:
-            return next(response)
+        
+        return response if stream else next(response)
 
 class Chat:
     completions: Completions
@@ -478,8 +484,9 @@ class AsyncCompletions:
     def __init__(self, client: AsyncClient, provider: Optional[ProviderType] = None):
         self.client: AsyncClient = client
         self.provider: ProviderType = provider
+        self.web_search = WebSearch()
 
-    def create(
+    async def create(
         self,
         messages: Messages,
         model: str,
@@ -495,9 +502,10 @@ class AsyncCompletions:
         ignored: Optional[list[str]] = None,
         ignore_working: Optional[bool] = False,
         ignore_stream: Optional[bool] = False,
+        web_search: Optional[bool] = False,
         **kwargs
     ) -> Union[Coroutine[ChatCompletion], AsyncIterator[ChatCompletionChunk, BaseConversation]]:
-        model, provider = get_model_and_provider(
+        model, provider_handler = get_model_and_provider(
             model,
             self.provider if provider is None else provider,
             stream,
@@ -505,6 +513,19 @@ class AsyncCompletions:
             ignore_working,
             ignore_stream,
         )
+
+        # Handle web search exactly like in GUI
+        do_web_search = web_search
+        if do_web_search and provider_handler:
+            if hasattr(provider_handler, "get_parameters"):
+                if "web_search" in provider_handler.get_parameters():
+                    kwargs['web_search'] = True
+                    do_web_search = False
+        
+        if do_web_search:
+            from ...internet import get_search_message
+            messages[-1]["content"] = get_search_message(messages[-1]["content"])
+
         stop = [stop] if isinstance(stop, str) else stop
         if image is not None:
             kwargs["images"] = [(image, image_name)]
