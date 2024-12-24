@@ -21,6 +21,7 @@ from .image_models import ImageModels
 from .types import IterResponse, ImageProvider, Client as BaseClient
 from .service import get_model_and_provider, get_last_provider, convert_to_provider
 from .helper import find_stop, filter_json, filter_none, safe_aclose, to_async_iterator
+from ..internet import get_search_message
 from .. import debug
 
 ChatCompletionResponseType = Iterator[Union[ChatCompletion, ChatCompletionChunk, BaseConversation]]
@@ -200,6 +201,7 @@ class Completions:
         ignored: Optional[list[str]] = None,
         ignore_working: Optional[bool] = False,
         ignore_stream: Optional[bool] = False,
+        web_search: Optional[bool] = False,
         **kwargs
     ) -> IterResponse:
         model, provider = get_model_and_provider(
@@ -210,6 +212,18 @@ class Completions:
             ignore_working,
             ignore_stream,
         )
+        
+        # Handle web search exactly like in GUI
+        do_web_search = web_search
+        if do_web_search and provider:
+            if hasattr(provider, "get_parameters"):
+                if "web_search" in provider.get_parameters():
+                    kwargs['web_search'] = True
+                    do_web_search = False
+        
+        if do_web_search:
+            messages[-1]["content"] = get_search_message(messages[-1]["content"])
+        
         stop = [stop] if isinstance(stop, str) else stop
         if image is not None:
             kwargs["images"] = [(image, image_name)]
@@ -481,6 +495,7 @@ class AsyncCompletions:
         ignored: Optional[list[str]] = None,
         ignore_working: Optional[bool] = False,
         ignore_stream: Optional[bool] = False,
+        web_search: Optional[bool] = False,
         **kwargs
     ) -> Union[Coroutine[ChatCompletion], AsyncIterator[ChatCompletionChunk, BaseConversation]]:
         model, provider = get_model_and_provider(
@@ -491,6 +506,18 @@ class AsyncCompletions:
             ignore_working,
             ignore_stream,
         )
+        
+        # Handle web search exactly like in GUI
+        do_web_search = web_search
+        if do_web_search and provider:
+            if hasattr(provider, "get_parameters"):
+                if "web_search" in provider.get_parameters():
+                    kwargs['web_search'] = True
+                    do_web_search = False
+        
+        if do_web_search:
+            messages[-1]["content"] = get_search_message(messages[-1]["content"])
+        
         stop = [stop] if isinstance(stop, str) else stop
         if image is not None:
             kwargs["images"] = [(image, image_name)]

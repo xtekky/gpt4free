@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from aiohttp import ClientSession
 import asyncio
+import random
 
 from ..typing import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
@@ -13,10 +14,11 @@ class Prodia(AsyncGeneratorProvider, ProviderModelMixin):
     working = True
     
     default_model = 'absolutereality_v181.safetensors [3d9d4d2b]'
+    default_image_model = default_model
     image_models = [
         '3Guofeng3_v34.safetensors [50f420de]',
         'absolutereality_V16.safetensors [37db0fc3]',
-        default_model,
+        default_image_model,
         'amIReal_V41.safetensors [0a8a2e61]',
         'analog-diffusion-1.0.ckpt [9ca13f02]',
         'aniverse_v30.safetensors [579e6f85]',
@@ -78,7 +80,7 @@ class Prodia(AsyncGeneratorProvider, ProviderModelMixin):
         'shoninsBeautiful_v10.safetensors [25d8c546]',
         'theallys-mix-ii-churned.safetensors [5d9225a4]',
         'timeless-1.0.ckpt [7c4971d4]',
-        'toonyou_beta6.safetensors [980f6b15]',
+        'toonyou_beta6.safetensors [980f6b15]'
     ]
     models = [*image_models]
 
@@ -100,12 +102,15 @@ class Prodia(AsyncGeneratorProvider, ProviderModelMixin):
         negative_prompt: str = "",
         steps: str = 20, # 1-25
         cfg: str = 7, # 0-20
-        seed: str = "-1",
+        seed: Optional[int] = None,
         sampler: str = "DPM++ 2M Karras", # "Euler", "Euler a", "Heun", "DPM++ 2M Karras", "DPM++ SDE Karras", "DDIM"
         aspect_ratio: str = "square", # "square", "portrait", "landscape"
         **kwargs
     ) -> AsyncResult:
         model = cls.get_model(model)
+        
+        if seed is None:
+            seed = random.randint(0, 10000)
         
         headers = {
             "accept": "*/*",
