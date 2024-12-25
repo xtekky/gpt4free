@@ -216,8 +216,13 @@ class Completions:
         # Handle web search exactly like in GUI
         do_web_search = web_search
         if do_web_search and provider:
-            if hasattr(provider, "get_parameters"):
-                if "web_search" in provider.get_parameters():
+            if isinstance(provider, str):
+                provider_handler = convert_to_provider(provider)
+            else:
+                provider_handler = provider
+            
+            if hasattr(provider_handler, "get_parameters"):
+                if "web_search" in provider_handler.get_parameters():
                     kwargs['web_search'] = True
                     do_web_search = False
         
@@ -510,8 +515,13 @@ class AsyncCompletions:
         # Handle web search exactly like in GUI
         do_web_search = web_search
         if do_web_search and provider:
-            if hasattr(provider, "get_parameters"):
-                if "web_search" in provider.get_parameters():
+            if isinstance(provider, str):
+                provider_handler = convert_to_provider(provider)
+            else:
+                provider_handler = provider
+            
+            if hasattr(provider_handler, "get_parameters"):
+                if "web_search" in provider_handler.get_parameters():
                     kwargs['web_search'] = True
                     do_web_search = False
         
