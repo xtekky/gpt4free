@@ -5,6 +5,7 @@ import random
 import requests
 from typing import Optional
 from aiohttp import ClientSession
+from urllib.parse import quote
 
 from ..requests.raise_for_status import raise_for_status
 from ..typing import AsyncResult, Messages
@@ -33,7 +34,7 @@ class PollinationsAI(OpenaiAPI):
     default_image_model = "flux"
     
     image_models = []
-    models = []
+    text_models = []
     
     additional_models_image = ["midjourney", "dall-e-3"]
     additional_models_text = ["sur", "sur-mistral", "claude"]
@@ -75,6 +76,11 @@ class PollinationsAI(OpenaiAPI):
         return cls.text_models + cls.image_models
 
     @classmethod
+    def get_model(cls, model: str) -> str:
+        """Convert model alias to actual model name"""
+        return cls.model_aliases.get(model, model)
+
+    @classmethod
     async def create_async_generator(
         cls,
         model: str,
@@ -100,7 +106,10 @@ class PollinationsAI(OpenaiAPI):
     ) -> AsyncResult:
         model = cls.get_model(model)
         
-        # Check if models
+        # Ensure models are loaded
+        if not cls.image_models or not cls.text_models:
+            cls.get_models()
+        
         # Image generation
         if model in cls.image_models:
             async for result in cls._generate_image(
@@ -150,7 +159,6 @@ class PollinationsAI(OpenaiAPI):
         if seed is None:
             seed = random.randint(0, 10000)
 
-		
         headers = {
             'Accept': '*/*',
             'Accept-Language': 'en-US,en;q=0.9',
@@ -170,13 +178,15 @@ class PollinationsAI(OpenaiAPI):
         params = {k: v for k, v in params.items() if v is not None}
 
         async with ClientSession(headers=headers) as session:
-            prompt = quote(messages[-1]["content"])
+            # Use the last message's content as the prompt if no specific prompt provided
+            prompt_text = prompt if prompt else messages[-1]["content"]
+            encoded_prompt = quote(prompt_text)
             param_string = "&".join(f"{k}={v}" for k, v in params.items())
-            url = f"{cls.image_api_endpoint}/prompt/{prompt}?{param_string}"
+            url = f"{cls.image_api_endpoint}/prompt/{encoded_prompt}?{param_string}"
 
             async with session.head(url, proxy=proxy) as response:
                 if response.status == 200:
-                    image_response = ImageResponse(images=url, alt=messages[-1]["content"])
+                    image_response = ImageResponse(images=[url], alt=prompt_text)
                     yield image_response
 
     @classmethod
@@ -193,7 +203,7 @@ class PollinationsAI(OpenaiAPI):
         stream: bool
     ) -> AsyncResult:
         if api_key is None:
-            api_key = "dummy"  # Default value if api_key is not provided
+            api_key = "dummy"
             
         headers = {
             "accept": "*/*",
@@ -219,10 +229,31 @@ class PollinationsAI(OpenaiAPI):
                 response.raise_for_status()
                 async for chunk in response.content:
                     if chunk:
-                        decoded_chunk = chunk.decode()
                         try:
-                            json_response = json.loads(decoded_chunk)
-                            content = json_response['choices'][0]['message']['content']
-                            yield content
-                        except json.JSONDecodeError:
-                            yield decoded_chunk
+                            decoded_chunk = chunk.decode('utf-8').strip()
+                            # Skip empty lines
+                            if not decoded_chunk:
+                                continue
+                                
+                            # Handle SSE format
+                            if decoded_chunk.startswith('data: '):
+                                decoded_chunk = decoded_chunk[6:]
+                                
+                            # Skip heartbeat messages
+                            if decoded_chunk == '[DONE]':
+                                continue
+                                
+                            try:
+                                json_response = json.loads(decoded_chunk)
+                                if isinstance(json_response, dict):
+                                    if 'choices' in json_response:
+                                        content = json_response['choices'][0]['message']['content']
+                                        yield content
+                                    elif 'content' in json_response:
+                                        yield json_response['content']
+                            except json.JSONDecodeError:
+                                # If it's not JSON, yield the raw chunk
+                                yield decoded_chunk
+                        except Exception as e:
+                            print(f"Error processing chunk: {e}")
+                            continue
