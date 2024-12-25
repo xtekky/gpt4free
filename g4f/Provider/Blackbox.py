@@ -13,6 +13,7 @@ from ..typing import AsyncResult, Messages, ImagesType
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..image import ImageResponse, to_data_uri
 from ..cookies import get_cookies_dir
+from ..internet import get_search_message
 from .helper import format_prompt
 
 from .. import debug
@@ -32,6 +33,8 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
     default_image_model = 'flux' 
     image_models = ['ImageGeneration', 'repomap']
     vision_models = [default_vision_model, 'gpt-4o', 'gemini-pro', 'gemini-1.5-flash', 'llama-3.1-8b', 'llama-3.1-70b', 'llama-3.1-405b']
+    
+    web_search_models = ['blackboxai', 'meta-llama/Llama-3.3-70B-Instruct-Turbo', 'meta-llama/Meta-Llama-3.1-405B-Instruct-Lite-Pro']
 
     userSelectedModel = ['gpt-4o', 'gemini-pro', 'claude-sonnet-3.5', 'blackboxai-pro']
 
@@ -242,6 +245,21 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         delay: int = 1,
         **kwargs
     ) -> AsyncResult:
+
+        use_internal_search = web_search and model in cls.web_search_models
+        
+        if web_search and not use_internal_search:
+            
+            def run_search():
+                return get_search_message(messages[-1]["content"])
+                
+            import concurrent.futures
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                messages[-1]["content"] = await asyncio.get_event_loop().run_in_executor(
+                    executor, run_search
+                )
+            web_search = False
+        
         async def process_request():
             messages_with_prefix = cls.add_prefix_to_messages(messages, model)
             validated_value = await cls.fetch_validated()
@@ -304,7 +322,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
                 "validated": validated_value,
                 "visitFromDelta": False,
                 "webSearchModePrompt": False,
-                "webSearchMode": web_search
+                "webSearchMode": use_internal_search
             }
 
             for attempt in range(max_retries):
