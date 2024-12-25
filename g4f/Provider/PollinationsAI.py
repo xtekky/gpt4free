@@ -34,7 +34,7 @@ class PollinationsAI(OpenaiAPI):
     default_image_model = "flux"
     
     image_models = []
-    text_models = []
+    models = []
     
     additional_models_image = ["midjourney", "dall-e-3"]
     additional_models_text = ["sur", "sur-mistral", "claude"]
