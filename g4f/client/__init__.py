@@ -5,6 +5,7 @@ import time
 import random
 import string
 import asyncio
+import aiohttp
 import base64
 from typing import Union, AsyncIterator, Iterator, Coroutine, Optional
 
@@ -443,24 +444,30 @@ class Images:
         if response_format == "url":
             # Return original URLs without saving locally
             images = [Image.model_construct(url=image, revised_prompt=response.alt) for image in response.get_list()]
+        elif response_format == "b64_json":
+            # For b64_json, directly encode the image data without saving locally
+            images = []
+            for image_url in response.get_list():
+                # If the response already contains base64 data, use it directly
+                if isinstance(image_url, bytes):
+                    image_data = base64.b64encode(image_url).decode()
+                else:
+                    # Otherwise, get the image data from the URL
+                    async with aiohttp.ClientSession() as session:
+                        async with session.get(image_url, proxy=proxy) as resp:
+                            image_data = base64.b64encode(await resp.read()).decode()
+                images.append(Image.model_construct(b64_json=image_data, revised_prompt=response.alt))
         else:
-            # Save locally for None (default) case
+            # Save locally only for default case (None)
             images = await copy_images(response.get_list(), response.get("cookies"), proxy)
-            if response_format == "b64_json":
-                async def process_image_item(image_file: str) -> Image:
-                    with open(os.path.join(images_dir, os.path.basename(image_file)), "rb") as file:
-                        image_data = base64.b64encode(file.read()).decode()
-                        return Image.model_construct(b64_json=image_data, revised_prompt=response.alt)
-                images = await asyncio.gather(*[process_image_item(image) for image in images])
-            else:
-                images = [Image.model_construct(url=f"/images/{os.path.basename(image)}", revised_prompt=response.alt) for image in images]
+            images = [Image.model_construct(url=f"/images/{os.path.basename(image)}", revised_prompt=response.alt) for image in images]
+        
         return ImagesResponse.model_construct(
             created=int(time.time()),
             data=images,
             model=last_provider.get("model") if model is None else model,
             provider=last_provider.get("name") if provider is None else provider
         )
-
 
 class AsyncClient(BaseClient):
     def __init__(
