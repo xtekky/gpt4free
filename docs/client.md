@@ -268,7 +268,7 @@ response = client.chat.completions.create(
     messages=[
         {
             "role": "user",
-            "content": "What are on this image?"
+            "content": "What's in this image?"
         }
     ],
     image=image
