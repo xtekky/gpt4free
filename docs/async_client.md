@@ -59,8 +59,7 @@ response = await client.chat.completions.create(
             "role": "user",
             "content": "Say this is a test"
         }
-    ],
-    web_search = False
+    ]
      # Add other parameters as needed
 )
 ```
@@ -122,7 +121,8 @@ async def main():
                 "role": "user",
                 "content": "Say this is a test"
             }
-        ]
+        ],
+        web_search = False
     )
     
     print(response.choices[0].message.content)
