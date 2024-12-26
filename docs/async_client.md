@@ -164,13 +164,15 @@ import g4f
 import requests
 import asyncio
 from g4f.client import AsyncClient
+from g4f.Provider.CopilotAccount import CopilotAccount
 
 async def main():
     client = AsyncClient(
-        provider=g4f.Provider.CopilotAccount
+        provider=CopilotAccount
     )
 
     image = requests.get("https://raw.githubusercontent.com/xtekky/gpt4free/refs/heads/main/docs/images/cat.jpeg", stream=True).raw
+    # Or: image = open("docs/images/cat.jpeg", "rb")
 
     response = await client.chat.completions.create(
         model=g4f.models.default,

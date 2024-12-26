@@ -260,7 +260,7 @@ client = Client(
     provider=GeminiPro
 )
 
-image = requests.get("https://raw.githubusercontent.com/xtekky/gpt4free/refs/heads/main/docs/cat.jpeg", stream=True).raw
+image = requests.get("https://raw.githubusercontent.com/xtekky/gpt4free/refs/heads/main/docs/images/cat.jpeg", stream=True).raw
 # Or: image = open("docs/images/cat.jpeg", "rb")
 
 response = client.chat.completions.create(
