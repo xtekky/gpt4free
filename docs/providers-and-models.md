@@ -26,6 +26,7 @@ This document provides an overview of various AI providers and models, including
 |[blackbox.ai](https://www.blackbox.ai)|`g4f.Provider.BlackboxCreateAgent`|`llama-3.1-70b`|`flux`|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[chatgpt.com](https://chatgpt.com)|`g4f.Provider.ChatGpt`|✔|❌|❌|✔|![Error](https://img.shields.io/badge/HTTPError-f48d37)|❌|
 |[chatgpt.es](https://chatgpt.es)|`g4f.Provider.ChatGptEs`|`gpt-4, gpt-4o, gpt-4o-mini`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌|
+|[claudeson.net](https://claudeson.net)|`g4f.Provider.ClaudeSon`|`claude-3.5-sonnet`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[playground.ai.cloudflare.com](https://playground.ai.cloudflare.com)|`g4f.Provider.Cloudflare`|`llama-2-7b, llama-3-8b, llama-3.1-8b, llama-3.2-1b, qwen-1.5-7b`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[copilot.microsoft.com](https://copilot.microsoft.com)|`g4f.Provider.Copilot`|`gpt-4`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[darkai.foundation](https://darkai.foundation)|`g4f.Provider.DarkAI`|`gpt-3.5-turbo, gpt-4o, llama-3.1-70b`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌|

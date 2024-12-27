@@ -9,6 +9,7 @@ from .Provider import (
     BingCreateImages,
     ChatGpt,
     ChatGptEs,
+    ClaudeSon,
     Cloudflare,
     Copilot,
     CopilotAccount,
@@ -71,6 +72,7 @@ default = Model(
         Blackbox,
         Copilot,
         DeepInfraChat,
+        ClaudeSon,
         Airforce, 
         Cloudflare,
         PollinationsAI,
@@ -308,7 +310,7 @@ claude_3_haiku = Model(
 claude_3_5_sonnet = Model(
     name          = 'claude-3.5-sonnet',
     base_provider = 'Anthropic',
-    best_provider = IterListProvider([Blackbox, PollinationsAI, Liaobots])
+    best_provider = IterListProvider([Blackbox, ClaudeSon, PollinationsAI, Liaobots])
 )
 
 ### Reka AI ###

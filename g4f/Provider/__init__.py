@@ -18,6 +18,7 @@ from .Blackbox             import Blackbox
 from .BlackboxCreateAgent  import BlackboxCreateAgent
 from .ChatGpt              import ChatGpt
 from .ChatGptEs            import ChatGptEs
+from .ClaudeSon            import ClaudeSon
 from .Cloudflare           import Cloudflare
 from .Copilot              import Copilot
 from .DarkAI               import DarkAI
