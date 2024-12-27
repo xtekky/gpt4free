@@ -93,20 +93,6 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         'builder Agent': {'mode': True, 'id': "builder Agent"},
     }
     
-    additional_prefixes = {
-        'gpt-4o': '@GPT-4o',
-        'gemini-pro': '@Gemini-PRO',
-        'claude-sonnet-3.5': '@Claude-Sonnet-3.5'
-    }
-    
-    model_prefixes = {
-        **{
-            mode: f"@{value['id']}" for mode, value in trendingAgentMode.items() 
-            if mode not in ["gemini-1.5-flash", "llama-3.1-8b", "llama-3.1-70b", "llama-3.1-405b", "repomap"]
-        },
-        **additional_prefixes
-    }
-
     models = list(dict.fromkeys([default_model, *userSelectedModel, *list(agentMode.keys()), *list(trendingAgentMode.keys())]))
 
     model_aliases = {
@@ -141,7 +127,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
                     data = json.load(f)
                     return data.get('validated_value')
             except Exception as e:
-                print(f"Error reading cache file: {e}")
+                debug.log(f"Error reading cache file: {e}")
         return None
 
     @classmethod
@@ -151,7 +137,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
             with open(cache_file, 'w') as f:
                 json.dump({'validated_value': value}, f)
         except Exception as e:
-            print(f"Error writing to cache file: {e}")
+            debug.log(f"Error writing to cache file: {e}")
 
     @classmethod
     async def fetch_validated(cls):
@@ -200,7 +186,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
                                 continue
                                 
                 except Exception as e:
-                    print(f"Error trying {base_url}: {e}")
+                    debug.log(f"Error trying {base_url}: {e}")
                     continue
 
         # If we failed to get a new validated_value, we return the cached one
@@ -213,21 +199,6 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
     def generate_id(length=7):
         characters = string.ascii_letters + string.digits
         return ''.join(random.choice(characters) for _ in range(length))
-
-    @classmethod
-    def add_prefix_to_messages(cls, messages: Messages, model: str) -> Messages:
-        prefix = cls.model_prefixes.get(model, "")
-        if not prefix:
-            return messages
-
-        new_messages = []
-        for message in messages:
-            new_message = message.copy()
-            if message['role'] == 'user':
-                new_message['content'] = (prefix + " " + message['content']).strip()
-            new_messages.append(new_message)
-
-        return new_messages
 
     @classmethod
     async def create_async_generator(
@@ -261,13 +232,12 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
             web_search = False
         
         async def process_request():
-            messages_with_prefix = cls.add_prefix_to_messages(messages, model)
             validated_value = await cls.fetch_validated()
             
             if not validated_value:
                 raise RuntimeError("Failed to get validated value")
             
-            formatted_message = format_prompt(messages_with_prefix)
+            formatted_message = format_prompt(messages)
             current_model = cls.get_model(model)
             
             first_message = next((msg for msg in messages if msg['role'] == 'user'), None)
