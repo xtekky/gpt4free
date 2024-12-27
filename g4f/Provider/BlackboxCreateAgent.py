@@ -16,7 +16,7 @@ from ..cookies import get_cookies_dir
 from .. import debug
 
 
-class BlackboxAgent(AsyncGeneratorProvider, ProviderModelMixin):
+class BlackboxCreateAgent(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://www.blackbox.ai"
     api_endpoints = {
         "llama-3.1-70b": "https://www.blackbox.ai/api/improve-prompt",
