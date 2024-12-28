@@ -296,7 +296,7 @@ class Images:
         if proxy is None:
             proxy = self.client.proxy
 
-        e = None
+        error = None
         response = None
         if isinstance(provider_handler, IterListProvider):
             for provider in provider_handler.providers:
@@ -306,6 +306,7 @@ class Images:
                         provider_name = provider.__name__
                         break
                 except Exception as e:
+                    error = e
                     debug.log(f"Image provider {provider.__name__}: {e}")
         else:
             response = await self._generate_image_response(provider_handler, provider_name, model, prompt, **kwargs)
@@ -319,8 +320,8 @@ class Images:
                 provider_name
             )
         if response is None:
-            if e is not None:
-                raise e
+            if error is not None:
+                raise error
             raise NoImageResponseError(f"No image response from {provider_name}")
         raise NoImageResponseError(f"Unexpected response type: {type(response)}")
 
@@ -390,7 +391,7 @@ class Images:
         if image is not None:
             kwargs["images"] = [(image, None)]
 
-        e = None
+        error = None
         response = None
         if isinstance(provider_handler, IterListProvider):
             for provider in provider_handler.providers:
@@ -400,6 +401,7 @@ class Images:
                         provider_name = provider.__name__
                         break
                 except Exception as e:
+                    error = e
                     debug.log(f"Image provider {provider.__name__}: {e}")
         else:
             response = await self._generate_image_response(provider_handler, provider_name, model, prompt, **kwargs)
@@ -407,8 +409,8 @@ class Images:
         if isinstance(response, ImageResponse):
             return await self._process_image_response(response, response_format, proxy, model, provider_name)
         if response is None:
-            if e is not None:
-                raise e
+            if error is not None:
+                raise error
             raise NoImageResponseError(f"No image response from {provider_name}")
         raise NoImageResponseError(f"Unexpected response type: {type(response)}")
 

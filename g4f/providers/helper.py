@@ -3,7 +3,7 @@ from __future__ import annotations
 import random
 import string
 
-from ..typing import Messages, Cookies
+from ..typing import Messages, Cookies, AsyncIterator, Iterator
 from .. import debug
 
 def format_prompt(messages: Messages, add_special_tokens=False) -> str:
@@ -72,6 +72,15 @@ def filter_none(**kwargs) -> dict:
         for key, value in kwargs.items()
         if value is not None
     }
+
+async def async_concat_chunks(chunks: AsyncIterator) -> str:
+    return concat_chunks([chunk async for chunk in chunks])
+
+def concat_chunks(chunks: Iterator) -> str:
+    return "".join([
+        str(chunk) for chunk in chunks
+        if chunk and not isinstance(chunk, Exception)
+    ])
 
 def format_cookies(cookies: Cookies) -> str:
     return "; ".join([f"{k}={v}" for k, v in cookies.items()])

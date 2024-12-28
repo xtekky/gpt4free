@@ -8,19 +8,19 @@ try:
 except ImportError:
     has_curl_cffi = False
 
+from ..base_provider import ProviderModelMixin, AbstractProvider
+from ..helper import format_prompt
 from ...typing import CreateResult, Messages, Cookies
 from ...errors import MissingRequirementsError
 from ...requests.raise_for_status import raise_for_status
+from ...providers.response import JsonConversation, ImageResponse, Sources
 from ...cookies import get_cookies
-from ...image import ImageResponse
-from ..base_provider import ProviderModelMixin, AbstractProvider, BaseConversation
-from ..helper import format_prompt
 from ... import debug
 
-class Conversation(BaseConversation):
+class Conversation(JsonConversation):
     def __init__(self, conversation_id: str, message_id: str):
-        self.conversation_id = conversation_id
-        self.message_id = message_id
+        self.conversation_id: str = conversation_id
+        self.message_id: str = message_id
 
 class HuggingChat(AbstractProvider, ProviderModelMixin):
     url = "https://huggingface.co/chat"
@@ -152,33 +152,35 @@ class HuggingChat(AbstractProvider, ProviderModelMixin):
         raise_for_status(response)
 
         full_response = ""
+        sources = None
         for line in response.iter_lines():
             if not line:
                 continue
             try:
                 line = json.loads(line)
             except json.JSONDecodeError as e:
-                print(f"Failed to decode JSON: {line}, error: {e}")
+                debug.log(f"Failed to decode JSON: {line}, error: {e}")
                 continue
-            
             if "type" not in line:
                 raise RuntimeError(f"Response: {line}")
-            
             elif line["type"] == "stream":
                 token = line["token"].replace('\u0000', '')
                 full_response += token
                 if stream:
                     yield token
-            
             elif line["type"] == "finalAnswer":
                 break
             elif line["type"] == "file":
                 url = f"https://huggingface.co/chat/conversation/{conversation.conversation_id}/output/{line['sha']}"
                 yield ImageResponse(url, alt=messages[-1]["content"], options={"cookies": cookies})
+            elif line["type"] == "webSearch" and "sources" in line:
+                sources = Sources(line["sources"])
 
-        full_response = full_response.replace('<|im_end|', '').replace('\u0000', '').strip()
+        full_response = full_response.replace('<|im_end|', '').strip()
         if not stream:
             yield full_response
+        if sources is not None:
+            yield sources
 
     @classmethod
     def create_conversation(cls, session: Session, model: str):

@@ -72,7 +72,7 @@ class PollinationsAI(OpenaiAPI):
         **kwargs
     ) -> AsyncResult:
         model = cls.get_model(model)
-        if model in cls.image_models:
+        if cls.get_models() and model in cls.image_models:
             async for response in cls._generate_image(model, messages, prompt, proxy, seed, width, height):
                 yield response
         elif model in cls.models:

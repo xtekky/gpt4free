@@ -48,6 +48,7 @@ class HuggingFace(AsyncGeneratorProvider, ProviderModelMixin):
         max_new_tokens: int = 1024,
         temperature: float = 0.7,
         prompt: str = None,
+        extra_data: dict = {},
         **kwargs
     ) -> AsyncResult:
         try:
@@ -73,16 +74,16 @@ class HuggingFace(AsyncGeneratorProvider, ProviderModelMixin):
         if api_key is not None:
             headers["Authorization"] = f"Bearer {api_key}"
         payload = None
-        if model in cls.image_models:
+        if cls.get_models() and model in cls.image_models:
             stream = False
             prompt = messages[-1]["content"] if prompt is None else prompt
-            payload = {"inputs": prompt, "parameters": {"seed": random.randint(0, 2**32)}}
+            payload = {"inputs": prompt, "parameters": {"seed": random.randint(0, 2**32), **extra_data}}
         else:
             params = {
                 "return_full_text": False,
                 "max_new_tokens": max_new_tokens,
                 "temperature": temperature,
-                **kwargs
+                **extra_data
             }
         async with StreamSession(
             headers=headers,

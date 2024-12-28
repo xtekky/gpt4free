@@ -31,6 +31,7 @@ let controller_storage = {};
 let content_storage = {};
 let error_storage = {};
 let synthesize_storage = {};
+let title_storage = {};
 
 messageInput.addEventListener("blur", () => {
     window.scrollTo(0, 0);
@@ -423,13 +424,13 @@ stop_generating.addEventListener("click", async () => {
     let key;
     for (key in controller_storage) {
         if (!controller_storage[key].signal.aborted) {
-            controller_storage[key].abort();
             let message = message_storage[key];
             if (message) {
                 content_storage[key].inner.innerHTML += " [aborted]";
                 message_storage[key] += " [aborted]";
                 console.log(`aborted ${window.conversation_id} #${key}`);
             }
+            controller_storage[key].abort();
         }
     }
     await load_conversation(window.conversation_id, false);
@@ -491,7 +492,14 @@ const prepare_messages = (messages, message_index = -1) => {
 async function add_message_chunk(message, message_id) {
     content_map = content_storage[message_id];
     if (message.type == "conversation") {
-        console.info("Conversation used:", message.conversation)
+        const conversation = await get_conversation(window.conversation_id);
+        if (!conversation.data) {
+            conversation.data = {};
+        }
+        for (const [key, value] of Object.entries(message.conversation)) {
+            conversation.data[key] = value;
+        }
+        await save_conversation(conversation_id, conversation);
     } else if (message.type == "provider") {
         provider_storage[message_id] = message.provider;
         content_map.content.querySelector('.provider').innerHTML = `
@@ -503,6 +511,7 @@ async function add_message_chunk(message, message_id) {
     } else if (message.type == "message") {
         console.error(message.message)
     } else if (message.type == "error") {
+        if (content_map.inner.dataset.timeout) clearTimeout(content_map.inner.dataset.timeout);
         error_storage[message_id] = message.error
         console.error(message.error);
         content_map.inner.innerHTML += markdown_render(`**An error occured:** ${message.error}`);
@@ -512,6 +521,9 @@ async function add_message_chunk(message, message_id) {
     } else if (message.type == "preview") {
         if (content_map.inner.clientHeight > 200)
             content_map.inner.style.height = content_map.inner.clientHeight + "px";
+        if (img = content_map.inner.querySelector("img"))
+            if (!img.complete)
+                return;
         content_map.inner.innerHTML = markdown_render(message.preview);
     } else if (message.type == "content") {
         message_storage[message_id] += message.content;
@@ -523,6 +535,10 @@ async function add_message_chunk(message, message_id) {
         log_storage.appendChild(p);
     } else if (message.type == "synthesize") {
         synthesize_storage[message_id] = message.synthesize;
+    } else if (message.type == "title") {
+        title_storage[message_id] = message.title;
+    } else if (message.type == "login") {
+        update_message(content_map, message_id, message.login);
     }
 }
 
@@ -531,12 +547,12 @@ const ask_gpt = async (message_id, message_index = -1, regenerate = false, provi
         model = get_selected_model()?.value || null;
         provider = providerSelect.options[providerSelect.selectedIndex].value;
     }
-    let messages = await get_messages(window.conversation_id);
-    messages = prepare_messages(messages, message_index);
+    let conversation = await get_conversation(window.conversation_id);
+    messages = prepare_messages(conversation.items, message_index);
     message_storage[message_id] = "";
     stop_generating.classList.remove("stop_generating-hidden");
 
-    if (message_index == -1) {
+    if (message_index == -1 && !regenerate) {
         await scroll_to_bottom();
     }
 
@@ -579,7 +595,7 @@ const ask_gpt = async (message_id, message_index = -1, regenerate = false, provi
         inner: content_el.querySelector('.content_inner'),
         count: content_el.querySelector('.count'),
     }
-    if (message_index == -1) {
+    if (message_index == -1 && !regenerate) {
         await scroll_to_bottom();
     }
     try {
@@ -592,6 +608,7 @@ const ask_gpt = async (message_id, message_index = -1, regenerate = false, provi
         await api("conversation", {
             id: message_id,
             conversation_id: window.conversation_id,
+            conversation: conversation.data && provider in conversation.data ? conversation.data[provider] : null,
             model: model,
             web_search: switchInput.checked,
             provider: provider,
@@ -618,18 +635,21 @@ const ask_gpt = async (message_id, message_index = -1, regenerate = false, provi
         }
     }
     delete controller_storage[message_id];
-    if (!error_storage[message_id] && message_storage[message_id]) {
+    if (message_storage[message_id]) {
         const message_provider = message_id in provider_storage ? provider_storage[message_id] : null;
         await add_message(
             window.conversation_id,
             "assistant",
-            message_storage[message_id],
+            message_storage[message_id] + (error_storage[message_id] ? " [error]" : ""),
             message_provider,
             message_index,
             synthesize_storage[message_id],
-            regenerate
+            regenerate,
+            title_storage[message_id]
         );
-        await safe_load_conversation(window.conversation_id, message_index == -1);
+        if (!error_storage[message_id]) {
+            await safe_load_conversation(window.conversation_id, message_index == -1);
+        }
     }
     let cursorDiv = message_el.querySelector(".cursor");
     if (cursorDiv) cursorDiv.parentNode.removeChild(cursorDiv);
@@ -696,6 +716,7 @@ const show_option = async (conversation_id) => {
         const input_el = document.createElement("input");
         input_el.value = title_el.innerText;
         input_el.classList.add("convo-title");
+        input_el.onclick = (e) => e.stopPropagation()
         input_el.onfocus = () => trash_el.style.display = "none";
         input_el.onchange = () => set_conversation_title(conversation_id, input_el.value);
         left_el.removeChild(title_el);
@@ -718,7 +739,6 @@ const hide_option = async (conversation_id) => {
         const span_el = document.createElement("span");
         span_el.innerText = input_el.value;
         span_el.classList.add("convo-title");
-        span_el.onclick = () => set_conversation(conversation_id);
         left_el.removeChild(input_el);
         left_el.appendChild(span_el);
     }
@@ -772,8 +792,11 @@ const load_conversation = async (conversation_id, scroll=true) => {
     if (!conversation) {
         return;
     }
-
-    document.title = conversation.new_title ? `g4f - ${conversation.new_title}` : document.title;
+    let title = conversation.title || conversation.new_title;
+    title = title ? `${title} - g4f` : window.title;
+    if (title) {
+        document.title = title;
+    }
 
     if (systemPrompt) {
         systemPrompt.value = conversation.system || "";
@@ -956,10 +979,21 @@ const add_message = async (
     provider = null,
     message_index = -1,
     synthesize_data = null,
-    regenerate = false
+    regenerate = false,
+    title = null
 ) => {
     const conversation = await get_conversation(conversation_id);
-    if (!conversation) return;
+    if (!conversation) {
+        return;
+    }
+    if (title) {
+        conversation.title = title;
+    } else if (!conversation.title) {
+        let new_value = content.trim();
+        let new_lenght = new_value.indexOf("\n");
+        new_lenght = new_lenght > 200 || new_lenght < 0 ? 200 : new_lenght;
+        conversation.title = new_value.substring(0, new_lenght);
+    }
     const new_message = {
         role: role,
         content: content,
@@ -988,6 +1022,15 @@ const add_message = async (
     return conversation.items.length - 1;
 };
 
+const escapeHtml = (unsafe) => {
+    return unsafe.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#039;');
+}
+
+const toLocaleDateString = (date) => {
+    date = new Date(date);
+    return date.toLocaleString('en-GB', {dateStyle: 'short', timeStyle: 'short', monthStyle: 'short'}).replace("/" + date.getFullYear(), "");
+}
+
 const load_conversations = async () => {
     let conversations = [];
     for (let i = 0; i < appStorage.length; i++) {
@@ -998,32 +1041,14 @@ const load_conversations = async () => {
     }
     conversations.sort((a, b) => (b.updated||0)-(a.updated||0));
 
-    await clear_conversations();
-
-    let html = "";
+    let html = [];
     conversations.forEach((conversation) => {
-        if (conversation?.items.length > 0 && !conversation.new_title) {
-            let new_value = (conversation.items[0]["content"]).trim();
-            let new_lenght = new_value.indexOf("\n");
-            new_lenght = new_lenght > 200 || new_lenght < 0 ? 200 : new_lenght;
-            conversation.new_title = new_value.substring(0, new_lenght);
-            appStorage.setItem(
-                `conversation:${conversation.id}`,
-                JSON.stringify(conversation)
-            );
-        }
-        let updated = "";
-        if (conversation.updated) {
-            const date = new Date(conversation.updated);
-            updated = date.toLocaleString('en-GB', {dateStyle: 'short', timeStyle: 'short', monthStyle: 'short'});
-            updated = updated.replace("/" + date.getFullYear(), "")
-        }
-        html += `
+        html.push(`
             <div class="convo" id="convo-${conversation.id}">
-                <div class="left">
+                <div class="left" onclick="set_conversation('${conversation.id}')">
                     <i class="fa-regular fa-comments"></i>
-                    <span class="datetime" onclick="set_conversation('${conversation.id}')">${updated}</span>
-                    <span class="convo-title" onclick="set_conversation('${conversation.id}')">${conversation.new_title}</span>
+                    <span class="datetime">${conversation.updated ? toLocaleDateString(conversation.updated) : ""}</span>
+                    <span class="convo-title">${escapeHtml(conversation.new_title ? conversation.new_title : conversation.title)}</span>
                 </div>
                 <i onclick="show_option('${conversation.id}')" class="fa-solid fa-ellipsis-vertical" id="conv-${conversation.id}"></i>
                 <div id="cho-${conversation.id}" class="choise" style="display:none;">
@@ -1031,9 +1056,10 @@ const load_conversations = async () => {
                     <i onclick="hide_option('${conversation.id}')" class="fa-regular fa-x"></i>
                 </div>
             </div>
-        `;
+        `);
     });
-    box_conversations.innerHTML += html;
+    await clear_conversations();
+    box_conversations.innerHTML += html.join("");
 };
 
 const hide_input = document.querySelector(".toolbar .hide-input");
@@ -1211,9 +1237,15 @@ function count_words_and_tokens(text, model) {
     return `(${count_words(text)} words, ${count_chars(text)} chars, ${count_tokens(model, text)} tokens)`;
 }
 
-function update_message(content_map, message_id) {
+function update_message(content_map, message_id, content = null) {
     content_map.inner.dataset.timeout = setTimeout(() => {
-        html = markdown_render(message_storage[message_id]);
+        let cleared = false;
+        if (content_map.inner.dataset.timeout) {
+            content_map.inner.dataset.timeout = clearTimeout(content_map.inner.dataset.timeout);
+            cleared = true;
+        }
+        if (!content) content = message_storage[message_id];
+        html = markdown_render(content);
         let lastElement, lastIndex = null;
         for (element of ['</p>', '</code></pre>', '</p>\n</li>\n</ol>', '</li>\n</ol>', '</li>\n</ul>']) {
             const index = html.lastIndexOf(element)
@@ -1237,7 +1269,9 @@ function update_message(content_map, message_id) {
                 message_box.scrollTo({ top: message_box.scrollHeight, behavior: "auto" });
             }
         }
-        if (content_map.inner.dataset.timeout) clearTimeout(content_map.inner.dataset.timeout);
+        if (content_map.inner.dataset.timeout && !cleared){
+            content_map.inner.dataset.timeout = clearTimeout(content_map.inner.dataset.timeout);
+        }
     }, 100);
 };
 

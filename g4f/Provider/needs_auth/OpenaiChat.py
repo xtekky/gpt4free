@@ -9,24 +9,23 @@ import base64
 import time
 import requests
 import random
-from typing import AsyncIterator
+from typing import AsyncIterator, Iterator, Optional, Generator, Dict, List
 from copy import copy
 
 try:
     import nodriver
-    from nodriver.cdp.network import get_response_body
     has_nodriver = True
 except ImportError:
     has_nodriver = False
 
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from ...typing import AsyncResult, Messages, Cookies, ImagesType, AsyncIterator
+from ...typing import AsyncResult, Messages, Cookies, ImagesType
 from ...requests.raise_for_status import raise_for_status
-from ...requests import StreamSession
+from ...requests import StreamSession, Session
 from ...requests import get_nodriver
 from ...image import ImageResponse, ImageRequest, to_image, to_bytes, is_accepted_format
 from ...errors import MissingAuthError, NoValidHarFileError
-from ...providers.response import BaseConversation, FinishReason, SynthesizeData
+from ...providers.response import JsonConversation, FinishReason, SynthesizeData, Sources, TitleGeneration, RequestLogin, quote_url
 from ..helper import format_cookies
 from ..openai.har_file import get_request_config
 from ..openai.har_file import RequestConfig, arkReq, arkose_url, start_url, conversation_url, backend_url, backend_anon_url
@@ -106,15 +105,30 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
     _expires: int = None
 
     @classmethod
-    def get_models(cls):
+    def get_models(cls, proxy: str = None, timeout: int = 180) -> List[str]:
         if not cls.models:
-            try:
-                response = requests.get(f"{cls.url}/backend-anon/models")
-                response.raise_for_status()
-                data = response.json()
-                cls.models = [model.get("slug") for model in data.get("models")]
-            except Exception:
-                cls.models = cls.fallback_models
+            # try:
+            #     headers = {
+            #         **(cls.get_default_headers() if cls._headers is None else cls._headers),
+            #         "accept":  "application/json",
+            #     }
+            #     with Session(
+            #         proxy=proxy,
+            #         impersonate="chrome",
+            #         timeout=timeout,
+            #         headers=headers
+            #     ) as session:
+            #         response = session.get(
+            #              f"{cls.url}/backend-anon/models"
+            #             if cls._api_key is None else
+            #             f"{cls.url}/backend-api/models"
+            #         )
+            #         raise_for_status(response)
+            #         data = response.json()
+            #         cls.models = [model.get("slug") for model in data.get("models")]
+            # except Exception as e:
+            #     debug.log(f"OpenaiChat: Failed to get models: {type(e).__name__}: {e}")
+            cls.models = cls.fallback_models
         return cls.models
 
     @classmethod
@@ -199,13 +213,12 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
         """
         # Create a message object with the user role and the content
         messages = [{
+            "id": str(uuid.uuid4()),
             "author": {"role": message["role"]},
             "content": {"content_type": "text", "parts": [message["content"]]},
-            "id": str(uuid.uuid4()),
-            "create_time": int(time.time()),
-            "metadata": {"serialization_metadata": {"custom_symbol_offsets": []}, "system_hints": system_hints},
+            "metadata": {"serialization_metadata": {"custom_symbol_offsets": []}, **({"system_hints": system_hints} if system_hints else {})},
+            "create_time": time.time(),
         } for message in messages]
-
         # Check if there is an image response
         if image_requests:
             # Change content in last user message
@@ -236,24 +249,6 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
 
     @classmethod
     async def get_generated_image(cls, session: StreamSession, headers: dict, element: dict, prompt: str = None) -> ImageResponse:
-        """
-        Retrieves the image response based on the message content.
-
-        This method processes the message content to extract image information and retrieves the 
-        corresponding image from the backend API. It then returns an ImageResponse object containing 
-        the image URL and the prompt used to generate the image.
-
-        Args:
-            session (StreamSession): The StreamSession object used for making HTTP requests.
-            headers (dict): HTTP headers to be used for the request.
-            line (dict): A dictionary representing the line of response that contains image information.
-
-        Returns:
-            ImageResponse: An object containing the image URL and the prompt, or None if no image is found.
-
-        Raises:
-            RuntimeError: If there'san error in downloading the image, including issues with the HTTP request or response.
-        """
         try:
             prompt = element["metadata"]["dalle"]["prompt"]
             file_id = element["asset_pointer"].split("file-service://", 1)[1]
@@ -347,6 +342,7 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
             if cls._api_key is None:
                 auto_continue = False
             conversation.finish_reason = None
+            sources = Sources([])
             while conversation.finish_reason is None:
                 async with session.post(
                     f"{cls.url}/backend-anon/sentinel/chat-requirements"
@@ -387,11 +383,11 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
                 )]
                 data = {
                     "action": action,
-                    "messages": None,
                     "parent_message_id": conversation.message_id,
                     "model": model,
                     "timezone_offset_min":-60,
                     "timezone":"Europe/Berlin",
+                    "suggestions":[],
                     "history_and_training_disabled": history_disabled and not auto_continue and not return_conversation or not cls.needs_auth,
                     "conversation_mode":{"kind":"primary_assistant","plugin_ids":None},
                     "force_paragen":False,
@@ -433,17 +429,40 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
                     headers=headers
                 ) as response:
                     cls._update_request_args(session)
-                    if response.status == 403 and max_retries > 0:
+                    if response.status in (403, 404) and max_retries > 0:
                         max_retries -= 1
                         debug.log(f"Retry: Error {response.status}: {await response.text()}")
+                        conversation.conversation_id = None
                         await asyncio.sleep(5)
                         continue
                     await raise_for_status(response)
-                    if return_conversation:
-                        yield conversation
+                    buffer = u""
                     async for line in response.iter_lines():
-                        async for chunk in cls.iter_messages_line(session, line, conversation):
-                            yield chunk
+                        async for chunk in cls.iter_messages_line(session, line, conversation, sources):
+                            if isinstance(chunk, str):
+                                chunk = chunk.replace("\ue203", "").replace("\ue204", "").replace("\ue206", "")
+                                buffer += chunk
+                                if buffer.find(u"\ue200") != -1:
+                                    if buffer.find(u"\ue201") != -1:
+                                        buffer = buffer.replace("\ue200", "").replace("\ue202", "\n").replace("\ue201", "")
+                                        buffer = buffer.replace("navlist\n", "#### ")
+                                        def replacer(match):
+                                            link = None
+                                            if len(sources.list) > int(match.group(1)):
+                                                link = sources.list[int(match.group(1))]["url"]
+                                                return f"[[{int(match.group(1))+1}]]({link})"
+                                            return f" [{int(match.group(1))+1}]"
+                                        buffer = re.sub(r'(?:cite\nturn0search|cite\nturn0news|turn0news)(\d+)', replacer, buffer)
+                                    else:
+                                        continue
+                                yield buffer
+                                buffer = ""
+                            else:
+                                yield chunk
+                if sources.list:
+                    yield sources
+                if return_conversation:
+                    yield conversation
                 if not history_disabled and cls._api_key is not None:
                     yield SynthesizeData(cls.__name__, {
                         "conversation_id": conversation.conversation_id,
@@ -459,7 +478,7 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
             yield FinishReason(conversation.finish_reason)
 
     @classmethod
-    async def iter_messages_line(cls, session: StreamSession, line: bytes, fields: Conversation) -> AsyncIterator:
+    async def iter_messages_line(cls, session: StreamSession, line: bytes, fields: Conversation, sources: Sources) -> AsyncIterator:
         if not line.startswith(b"data: "):
             return
         elif line.startswith(b"data: [DONE]"):
@@ -470,15 +489,26 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
             line = json.loads(line[6:])
         except:
             return
-        if isinstance(line, dict) and "v" in line:
+        if not isinstance(line, dict):
+            return
+        if "type" in line:
+            if line["type"] == "title_generation":
+                yield TitleGeneration(line["title"])
+        if "v" in line:
             v = line.get("v")
             if isinstance(v, str) and fields.is_recipient:
                 if "p" not in line or line.get("p") == "/message/content/parts/0":
                     yield v
-            elif isinstance(v, list) and fields.is_recipient:
+            elif isinstance(v, list):
                 for m in v:
-                    if m.get("p") == "/message/content/parts/0":
+                    if m.get("p") == "/message/content/parts/0" and fields.is_recipient:
                         yield m.get("v")
+                    elif m.get("p") == "/message/metadata/search_result_groups":
+                        for entry in [p.get("entries") for p in m.get("v")]:
+                            for link in entry:
+                                sources.add_source(link)
+                    elif re.match(r"^/message/metadata/content_references/\d+$", m.get("p")):
+                        sources.add_source(m.get("v"))
                     elif m.get("p") == "/message/metadata":
                         fields.finish_reason = m.get("v", {}).get("finish_details", {}).get("type")
                         break
@@ -529,14 +559,15 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
         try:
             await get_request_config(proxy)
             cls._create_request_args(RequestConfig.cookies, RequestConfig.headers)
-            if RequestConfig.access_token is not None:
-                cls._set_api_key(RequestConfig.access_token)
+            if RequestConfig.access_token is not None or cls.needs_auth:
+                if not cls._set_api_key(RequestConfig.access_token):
+                    raise NoValidHarFileError(f"Access token is not valid: {RequestConfig.access_token}")
         except NoValidHarFileError:
             if has_nodriver:
                 if cls._api_key is None:
                     login_url = os.environ.get("G4F_LOGIN_URL")
                     if login_url:
-                        yield f"[Login to {cls.label}]({login_url})\n\n"
+                        yield RequestLogin(cls.label, login_url)
                     await cls.nodriver_auth(proxy)
             else:
                 raise
@@ -563,7 +594,7 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
                     arkBx=None,
                     arkHeader=event.request.headers,
                     arkBody=event.request.post_data,
-                    userAgent=event.request.headers.get("user-agent")
+                    userAgent=event.request.headers.get("User-Agent")
                 )
         await page.send(nodriver.cdp.network.enable())
         page.add_handler(nodriver.cdp.network.RequestWillBeSent, on_request)
@@ -585,14 +616,13 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
                 break
             await asyncio.sleep(1)
         RequestConfig.data_build = await page.evaluate("document.documentElement.getAttribute('data-build')")
-        for c in await page.send(get_cookies([cls.url])):
-            RequestConfig.cookies[c["name"]] = c["value"]
+        RequestConfig.cookies = await page.send(get_cookies([cls.url]))
         await page.close()
         cls._create_request_args(RequestConfig.cookies, RequestConfig.headers, user_agent=user_agent)
         cls._set_api_key(cls._api_key)
 
     @staticmethod
-    def get_default_headers() -> dict:
+    def get_default_headers() -> Dict[str, str]:
         return {
             **DEFAULT_HEADERS,
             "content-type": "application/json",
@@ -609,22 +639,30 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
     @classmethod
     def _update_request_args(cls, session: StreamSession):
         for c in session.cookie_jar if hasattr(session, "cookie_jar") else session.cookies.jar:
-            cls._cookies[c.key if hasattr(c, "key") else c.name] = c.value
+            cls._cookies[getattr(c, "key", getattr(c, "name", ""))] = c.value
         cls._update_cookie_header()
 
     @classmethod
     def _set_api_key(cls, api_key: str):
-        cls._api_key = api_key
-        cls._expires = int(time.time()) + 60 * 60 * 4
         if api_key:
-            cls._headers["authorization"] = f"Bearer {api_key}"
+            exp = api_key.split(".")[1]
+            exp = (exp + "=" * (4 - len(exp) % 4)).encode()
+            cls._expires = json.loads(base64.b64decode(exp)).get("exp")
+            debug.log(f"OpenaiChat: API key expires at\n {cls._expires} we have:\n {time.time()}")
+            if time.time() > cls._expires:
+                debug.log(f"OpenaiChat: API key is expired")
+            else:
+                cls._api_key = api_key
+                cls._headers["authorization"] = f"Bearer {api_key}"
+                return True
+        return False
 
     @classmethod
     def _update_cookie_header(cls):
         if cls._cookies:
             cls._headers["cookie"] = format_cookies(cls._cookies)
 
-class Conversation(BaseConversation):
+class Conversation(JsonConversation):
     """
     Class to encapsulate response fields.
     """
@@ -633,10 +671,10 @@ class Conversation(BaseConversation):
         self.message_id = message_id
         self.finish_reason = finish_reason
         self.is_recipient = False
-        
+
 def get_cookies(
-        urls: list[str]  = None
-    ):
+    urls: Optional[Iterator[str]] = None
+) -> Generator[Dict, Dict, Dict[str, str]]:
     params = {}
     if urls is not None:
         params['urls'] = [i for i in urls]
@@ -645,4 +683,4 @@ def get_cookies(
         'params': params,
     }
     json = yield cmd_dict
-    return json['cookies']
+    return {c["name"]: c["value"] for c in json['cookies']} if 'cookies' in json else {}

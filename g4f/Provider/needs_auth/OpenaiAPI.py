@@ -4,9 +4,10 @@ import json
 import requests
 
 from ..helper import filter_none
-from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin, FinishReason
+from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ...typing import Union, Optional, AsyncResult, Messages, ImagesType
 from ...requests import StreamSession, raise_for_status
+from ...providers.response import FinishReason
 from ...errors import MissingAuthError, ResponseError
 from ...image import to_data_uri
 from ... import debug
