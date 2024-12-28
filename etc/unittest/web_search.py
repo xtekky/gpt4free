@@ -44,7 +44,7 @@ class TestIterListProvider(unittest.IsolatedAsyncioTestCase):
         ]
         try:
             response = await client.chat.completions.create([{"content": "", "role": "user"}], "", tool_calls=tool_calls)
-            self.assertIn("Instruction: Using the provided web search results", response.choices[0].message.content)
+            self.assertIn("Using the provided web search results", response.choices[0].message.content)
         except DuckDuckGoSearchException as e:
             self.skipTest(f'DuckDuckGoSearchException: {e}')
 
@@ -63,7 +63,7 @@ class TestIterListProvider(unittest.IsolatedAsyncioTestCase):
         ]
         try:
             response = await client.chat.completions.create([{"content": "", "role": "user"}], "", tool_calls=tool_calls)
-            self.assertIn("Instruction: Using the provided web search results", response.choices[0].message.content)
+            self.assertIn("Using the provided web search results", response.choices[0].message.content)
         except DuckDuckGoSearchException as e:
             self.skipTest(f'DuckDuckGoSearchException: {e}')
 
@@ -84,6 +84,6 @@ class TestIterListProvider(unittest.IsolatedAsyncioTestCase):
         ]
         try:
             response = await client.chat.completions.create([{"content": "", "role": "user"}], "", tool_calls=tool_calls)
-            self.assertIn("Instruction: Using the provided web search results", response.choices[0].message.content)
+            self.assertIn("Using the provided web search results", response.choices[0].message.content)
         except DuckDuckGoSearchException as e:
             self.skipTest(f'DuckDuckGoSearchException: {e}')
