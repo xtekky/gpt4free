@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import os
 import re
+import io
 import time
 import uuid
-from io import BytesIO
 import base64
 import asyncio
+from io import BytesIO
+from pathlib import Path
 from aiohttp import ClientSession, ClientError
 try:
     from PIL.Image import open as open_image, new as new_image
@@ -17,7 +19,7 @@ except ImportError:
 
 from .typing import ImageType, Union, Image, Optional, Cookies
 from .errors import MissingRequirementsError
-from .providers.response import ResponseType
+from .providers.response import ImageResponse, ImagePreview
 from .requests.aiohttp import get_connector
 from . import debug
 
@@ -33,15 +35,6 @@ EXTENSIONS_MAP: dict[str, str] = {
 # Define the directory for generated images
 images_dir = "./generated_images"
 
-def fix_url(url: str) -> str:
-    """ replace ' ' by '+' (to be markdown compliant)"""
-    return url.replace(" ","+")
-
-def fix_title(title: str) -> str:
-    if title:
-        return title.replace("\n", "").replace('"', '')
-    return ""
-
 def to_image(image: ImageType, is_svg: bool = False) -> Image:
     """
     Converts the input image to a PIL Image object.
@@ -55,7 +48,7 @@ def to_image(image: ImageType, is_svg: bool = False) -> Image:
     if not has_requirements:
         raise MissingRequirementsError('Install "pillow" package for images')
 
-    if isinstance(image, str):
+    if isinstance(image, str) and image.startswith("data:"):
         is_data_uri_an_image(image)
         image = extract_data_uri(image)
 
@@ -203,47 +196,6 @@ def process_image(image: Image, new_width: int, new_height: int) -> Image:
         image = image.convert("RGB")
     return image
 
-def to_base64_jpg(image: Image, compression_rate: float) -> str:
-    """
-    Converts the given image to a base64-encoded string.
-
-    Args:
-        image (Image.Image): The image to convert.
-        compression_rate (float): The compression rate (0.0 to 1.0).
-
-    Returns:
-        str: The base64-encoded image.
-    """
-    output_buffer = BytesIO()
-    image.save(output_buffer, format="JPEG", quality=int(compression_rate * 100))
-    return base64.b64encode(output_buffer.getvalue()).decode()
-
-def format_images_markdown(images: Union[str, list], alt: str, preview: Union[str, list] = None) -> str:
-    """
-    Formats the given images as a markdown string.
-
-    Args:
-        images: The images to format.
-        alt (str): The alt for the images.
-        preview (str, optional): The preview URL format. Defaults to "{image}?w=200&h=200".
-
-    Returns:
-        str: The formatted markdown string.
-    """
-    if isinstance(images, list) and len(images) == 1:
-        images = images[0]
-    if isinstance(images, str):
-        result = f"[![{fix_title(alt)}]({fix_url(preview.replace('{image}', images) if preview else images)})]({fix_url(images)})"
-    else:
-        if not isinstance(preview, list):
-            preview = [preview.replace('{image}', image) if preview else image for image in images]
-        result = "\n".join(
-            f"[![#{idx+1} {fix_title(alt)}]({fix_url(preview[idx])})]({fix_url(image)})"
-            for idx, image in enumerate(images)
-        )
-    start_flag = "<!-- generated images start -->\n"
-    end_flag = "<!-- generated images end -->\n"
-    return f"\n{start_flag}{result}\n{end_flag}\n"
 
 def to_bytes(image: ImageType) -> bytes:
     """
@@ -257,7 +209,7 @@ def to_bytes(image: ImageType) -> bytes:
     """
     if isinstance(image, bytes):
         return image
-    elif isinstance(image, str):
+    elif isinstance(image, str) and image.startswith("data:"):
         is_data_uri_an_image(image)
         return extract_data_uri(image)
     elif isinstance(image, Image):
@@ -265,8 +217,15 @@ def to_bytes(image: ImageType) -> bytes:
         image.save(bytes_io, image.format)
         image.seek(0)
         return bytes_io.getvalue()
+    elif isinstance(image, (str, os.PathLike)):
+        return Path(image).read_bytes()
+    elif isinstance(image, Path):
+        return image.read_bytes()
     else:
-        image.seek(0)
+        try:
+            image.seek(0)
+        except (AttributeError, io.UnsupportedOperation):
+            pass
         return image.read()
 
 def to_data_uri(image: ImageType) -> str:
@@ -313,33 +272,6 @@ async def copy_images(
             return f"/images/{os.path.basename(new_target)}"
 
         return await asyncio.gather(*[copy_image(image) for image in images])
-
-class ImageResponse(ResponseType):
-    def __init__(
-        self,
-        images: Union[str, list],
-        alt: str,
-        options: dict = {}
-    ):
-        self.images = images
-        self.alt = alt
-        self.options = options
-
-    def __str__(self) -> str:
-        return format_images_markdown(self.images, self.alt, self.get("preview"))
-
-    def get(self, key: str):
-        return self.options.get(key)
-
-    def get_list(self) -> list[str]:
-        return [self.images] if isinstance(self.images, str) else self.images
-
-class ImagePreview(ImageResponse):
-    def __str__(self):
-        return ""
-
-    def to_string(self):
-        return super().__str__()
 
 class ImageDataResponse():
     def __init__(

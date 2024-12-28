@@ -18,18 +18,19 @@ try:
 except ImportError:
     has_nodriver = False
 
-from .base_provider import AbstractProvider, ProviderModelMixin, BaseConversation
+from .base_provider import AbstractProvider, ProviderModelMixin
 from .helper import format_prompt_max_length
+from .openai.har_file import get_headers, get_har_files
 from ..typing import CreateResult, Messages, ImagesType
 from ..errors import MissingRequirementsError, NoValidHarFileError
 from ..requests.raise_for_status import raise_for_status
+from ..providers.response import JsonConversation, RequestLogin
 from ..providers.asyncio import get_running_loop
-from .openai.har_file import get_headers, get_har_files
 from ..requests import get_nodriver
 from ..image import ImageResponse, to_bytes, is_accepted_format
 from .. import debug
 
-class Conversation(BaseConversation):
+class Conversation(JsonConversation):
     conversation_id: str
 
     def __init__(self, conversation_id: str):
@@ -80,7 +81,7 @@ class Copilot(AbstractProvider, ProviderModelMixin):
                     if has_nodriver:
                         login_url = os.environ.get("G4F_LOGIN_URL")
                         if login_url:
-                            yield f"[Login to {cls.label}]({login_url})\n\n"
+                            yield RequestLogin(cls.label, login_url)
                         get_running_loop(check_nested=True)
                         cls._access_token, cls._cookies = asyncio.run(get_access_token_and_cookies(cls.url, proxy))
                     else:

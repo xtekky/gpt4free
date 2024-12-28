@@ -21,21 +21,23 @@ def is_openai(text: str) -> bool:
     return "<p>Unable to load site</p>" in text or 'id="challenge-error-text"' in text
 
 async def raise_for_status_async(response: Union[StreamResponse, ClientResponse], message: str = None):
-    if response.status in (429, 402):
-        raise RateLimitError(f"Response {response.status}: Rate limit reached")
     if response.ok:
         return
     text = await response.text()
+    if message is None:
+        message =  "HTML content" if response.headers.get("content-type").startswith("text/html") else text
+    if message == "HTML content":
+        if response.status == 520:
+            message = "Unknown error (Cloudflare)"
+        elif response.status in (429, 402):
+            message = "Rate limit"
     if response.status == 403 and is_cloudflare(text):
         raise CloudflareError(f"Response {response.status}: Cloudflare detected")
     elif response.status == 403 and is_openai(text):
         raise ResponseStatusError(f"Response {response.status}: OpenAI Bot detected")
     elif response.status == 502:
         raise ResponseStatusError(f"Response {response.status}: Bad gateway")
-    elif message is not None:
-        raise ResponseStatusError(f"Response {response.status}: {message}")
     else:
-        message =  "HTML content" if response.headers.get("content-type").startswith("text/html") else text
         raise ResponseStatusError(f"Response {response.status}: {message}")
 
 def raise_for_status(response: Union[Response, StreamResponse, ClientResponse, RequestsResponse], message: str = None):
@@ -43,16 +45,19 @@ def raise_for_status(response: Union[Response, StreamResponse, ClientResponse, R
         return raise_for_status_async(response, message)
     if response.ok:
         return
-    if response.status_code in (429, 402):
-        raise RateLimitError(f"Response {response.status_code}: Rate limit reached")
-    elif response.status_code == 403 and is_cloudflare(response.text):
-        raise CloudflareError(f"Response {response.status_code}: Cloudflare detected")
-    elif response.status == 403 and is_openai(response.text):
-        raise ResponseStatusError(f"Response {response.status}: OpenAI Bot detected")
-    elif message is not None:
-        raise ResponseStatusError(f"Response {response.status}: {message}")
-    elif response.status_code == 502:
-        raise ResponseStatusError(f"Response {response.status}: Bad gateway")
-    else:
+    if message is None:
         message = "HTML content" if response.headers.get("content-type").startswith("text/html") else response.text
+    if message == "HTML content":
+        if response.status_code == 520:
+            message = "Unknown error (Cloudflare)"
+        elif response.status_code in (429, 402):
+            message = "Rate limit"
+        raise RateLimitError(f"Response {response.status_code}: {message}")
+    if response.status_code == 403 and is_cloudflare(response.text):
+        raise CloudflareError(f"Response {response.status_code}: Cloudflare detected")
+    elif response.status_code == 403 and is_openai(response.text):
+        raise ResponseStatusError(f"Response {response.status_code}: OpenAI Bot detected")
+    elif response.status_code == 502:
+        raise ResponseStatusError(f"Response {response.status_code}: Bad gateway")
+    else:
         raise ResponseStatusError(f"Response {response.status_code}: {message}")

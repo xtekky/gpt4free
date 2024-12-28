@@ -97,10 +97,19 @@ To access the space, please use the following login credentials:
 
 1. **Install Docker:** Begin by [downloading and installing Docker](https://docs.docker.com/get-docker/).
 
-2. **Set Up the Container:**
+2. **Check Directories:**
+
+Before running the container, make sure the necessary data directories exist or can be created. For example, you can create and set ownership on these directories by running:
+
+```bash
+mkdir -p ${PWD}/har_and_cookies ${PWD}/generated_images
+chown -R 1000:1000 ${PWD}/har_and_cookies ${PWD}/generated_images
+```
+
+3. **Set Up the Container:**
    Use the following commands to pull the latest image and start the container:
 
-```sh
+```bash
 docker pull hlohaus789/g4f
 docker run \
   -p 8080:8080 -p 1337:1337 -p 7900:7900 \
@@ -110,7 +119,9 @@ docker run \
   hlohaus789/g4f:latest
 ```
 
-To run the slim docker image. Use this command:
+##### Running the Slim Docker Image
+
+Use the following command to run the Slim Docker image. This command also updates the `g4f` package at startup and installs any additional dependencies:
 
 ```bash
 docker run \
@@ -122,14 +133,13 @@ docker run \
   && pip install -U g4f[slim] \
   && python -m g4f --debug
 ```
-It also updates the `g4f` package at startup and installs any new required dependencies.
 
-3. **Access the Client:**
+4. **Access the Client:**
 
    - To use the included client, navigate to: [http://localhost:8080/chat/](http://localhost:8080/chat/) or [http://localhost:1337/chat/](http://localhost:1337/chat/)
    - Or set the API base for your client to: [http://localhost:1337/v1](http://localhost:1337/v1)
 
-4. **(Optional) Provider Login:**
+5. **(Optional) Provider Login:**
    If required, you can access the container's desktop here: http://localhost:7900/?autoconnect=1&resize=scale&password=secret for provider login purposes.
 
 #### Installation Guide for Windows (.exe)

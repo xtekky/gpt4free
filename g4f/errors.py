@@ -37,13 +37,13 @@ class MissingAuthError(Exception):
 class NoImageResponseError(Exception):
     ...
 
-class RateLimitError(Exception):
-    ...
-
 class ResponseError(Exception):
     ...
 
 class ResponseStatusError(Exception):
+    ...
+
+class RateLimitError(ResponseStatusError):
     ...
 
 class NoValidHarFileError(Exception):

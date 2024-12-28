@@ -14,7 +14,7 @@ from g4f.image import ImagePreview, ImageResponse, copy_images, ensure_images_di
 from g4f.Provider import ProviderType, __providers__, __map__
 from g4f.providers.base_provider import ProviderModelMixin
 from g4f.providers.retry_provider import IterListProvider
-from g4f.providers.response import BaseConversation, FinishReason, SynthesizeData
+from g4f.providers.response import BaseConversation, JsonConversation, FinishReason, SynthesizeData, TitleGeneration, RequestLogin
 from g4f.client.service import convert_to_provider
 from g4f import debug
 
@@ -97,15 +97,18 @@ class Api:
                     kwargs['web_search'] = True
                     do_web_search = False
         if do_web_search:
-            from .internet import get_search_message
+            from ...web_search import get_search_message
             messages[-1]["content"] = get_search_message(messages[-1]["content"])
         if json_data.get("auto_continue"):
             kwargs['auto_continue'] = True
-
-        conversation_id = json_data.get("conversation_id")
-        if conversation_id and provider:
-            if provider in conversations and conversation_id in conversations[provider]:
-                kwargs["conversation"] = conversations[provider][conversation_id]
+        conversation = json_data.get("conversation")
+        if conversation is not None:
+            kwargs["conversation"] = JsonConversation(**conversation)
+        else:
+            conversation_id = json_data.get("conversation_id")
+            if conversation_id and provider:
+                if provider in conversations and conversation_id in conversations[provider]:
+                    kwargs["conversation"] = conversations[provider][conversation_id]
 
         if json_data.get("ignored"):
             kwargs["ignored"] = json_data["ignored"]
@@ -146,7 +149,12 @@ class Api:
                         if provider not in conversations:
                             conversations[provider] = {}
                         conversations[provider][conversation_id] = chunk
-                        yield self._format_json("conversation", conversation_id)
+                        if isinstance(chunk, JsonConversation):
+                            yield self._format_json("conversation", {
+                                provider: chunk.to_dict()
+                            })
+                        else:
+                            yield self._format_json("conversation_id", conversation_id)
                 elif isinstance(chunk, Exception):
                     logger.exception(chunk)
                     yield self._format_json("message", get_error_message(chunk))
@@ -160,6 +168,10 @@ class Api:
                     yield self._format_json("content", str(images))
                 elif isinstance(chunk, SynthesizeData):
                     yield self._format_json("synthesize", chunk.to_json())
+                elif isinstance(chunk, TitleGeneration):
+                    yield self._format_json("title", chunk.title)
+                elif isinstance(chunk, RequestLogin):
+                    yield self._format_json("login", str(chunk))
                 elif not isinstance(chunk, FinishReason):
                     yield self._format_json("content", str(chunk))
                 if debug.logs:

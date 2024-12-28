@@ -4,9 +4,10 @@ import json
 import requests
 
 from ..helper import filter_none
-from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin, FinishReason
+from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ...typing import Union, Optional, AsyncResult, Messages, ImagesType
 from ...requests import StreamSession, raise_for_status
+from ...providers.response import FinishReason, ToolCalls, Usage
 from ...errors import MissingAuthError, ResponseError
 from ...image import to_data_uri
 from ... import debug
@@ -50,6 +51,7 @@ class OpenaiAPI(AsyncGeneratorProvider, ProviderModelMixin):
         timeout: int = 120,
         images: ImagesType = None,
         api_key: str = None,
+        api_endpoint: str = None,
         api_base: str = None,
         temperature: float = None,
         max_tokens: int = None,
@@ -58,6 +60,7 @@ class OpenaiAPI(AsyncGeneratorProvider, ProviderModelMixin):
         stream: bool = False,
         headers: dict = None,
         impersonate: str = None,
+        tools: Optional[list] = None,
         extra_data: dict = {},
         **kwargs
     ) -> AsyncResult:
@@ -92,16 +95,23 @@ class OpenaiAPI(AsyncGeneratorProvider, ProviderModelMixin):
                 top_p=top_p,
                 stop=stop,
                 stream=stream,
+                tools=tools,
                 **extra_data
             )
-            async with session.post(f"{api_base.rstrip('/')}/chat/completions", json=data) as response:
+            if api_endpoint is None:
+                api_endpoint = f"{api_base.rstrip('/')}/chat/completions"
+            async with session.post(api_endpoint, json=data) as response:
                 await raise_for_status(response)
                 if not stream:
                     data = await response.json()
                     cls.raise_error(data)
                     choice = data["choices"][0]
-                    if "content" in choice["message"]:
+                    if "content" in choice["message"] and choice["message"]["content"]:
                         yield choice["message"]["content"].strip()
+                    elif "tool_calls" in choice["message"]:
+                        yield ToolCalls(choice["message"]["tool_calls"])
+                    if "usage" in data:
+                        yield Usage(**data["usage"])
                     finish = cls.read_finish_reason(choice)
                     if finish is not None:
                         yield finish

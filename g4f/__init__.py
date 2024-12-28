@@ -11,6 +11,7 @@ from .typing import Messages, CreateResult, AsyncResult, ImageType
 from .errors import StreamNotSupportedError
 from .cookies import get_cookies, set_cookies
 from .providers.types import ProviderType
+from .providers.helper import concat_chunks
 from .client.service import get_model_and_provider, get_last_provider
 
 #Configure "g4f" logger
@@ -48,7 +49,7 @@ class ChatCompletion:
 
         result = provider.create_completion(model, messages, stream=stream, **kwargs)
 
-        return result if stream else ''.join([str(chunk) for chunk in result if chunk])
+        return result if stream else concat_chunks(result)
 
     @staticmethod
     def create_async(model    : Union[Model, str],

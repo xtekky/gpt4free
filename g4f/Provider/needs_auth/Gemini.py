@@ -17,8 +17,9 @@ except ImportError:
 
 from ... import debug
 from ...typing import Messages, Cookies, ImagesType, AsyncResult, AsyncIterator
-from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin, BaseConversation, SynthesizeData
+from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..helper import format_prompt, get_cookies
+from ...providers.response import JsonConversation, SynthesizeData, RequestLogin
 from ...requests.raise_for_status import raise_for_status
 from ...requests.aiohttp import get_connector
 from ...requests import get_nodriver
@@ -81,7 +82,7 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
         browser = await get_nodriver(proxy=proxy, user_data_dir="gemini")
         login_url = os.environ.get("G4F_LOGIN_URL")
         if login_url:
-            yield f"[Login to {cls.label}]({login_url})\n\n"
+            yield RequestLogin(cls.label, login_url)
         page = await browser.get(f"{cls.url}/app")
         await page.select("div.ql-editor.textarea", 240)
         cookies = {}
@@ -305,37 +306,37 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
         if sid_match:
             cls._sid = sid_match.group(1)
 
-class Conversation(BaseConversation):
+class Conversation(JsonConversation):
     def __init__(self,
-        conversation_id: str = "",
-        response_id: str = "",
-        choice_id: str = ""
+        conversation_id: str,
+        response_id: str,
+        choice_id: str
     ) -> None:
         self.conversation_id = conversation_id
         self.response_id = response_id
         self.choice_id = choice_id
 
-async def iter_filter_base64(response_iter: AsyncIterator[bytes]) -> AsyncIterator[bytes]:
+async def iter_filter_base64(chunks: AsyncIterator[bytes]) -> AsyncIterator[bytes]:
     search_for = b'[["wrb.fr","XqA3Ic","[\\"'
     end_with = b'\\'
     is_started = False
-    async for chunk in response_iter:
+    async for chunk in chunks:
         if is_started:
             if end_with in chunk:
-                yield chunk.split(end_with, 1).pop(0)
+                yield chunk.split(end_with, 1, maxsplit=1).pop(0)
                 break
             else:
                 yield chunk
         elif search_for in chunk:
             is_started = True
-            yield chunk.split(search_for, 1).pop()
+            yield chunk.split(search_for, 1, maxsplit=1).pop()
         else:
-            raise RuntimeError(f"Response: {chunk}")
+            raise ValueError(f"Response: {chunk}")
 
-async def iter_base64_decode(response_iter: AsyncIterator[bytes]) -> AsyncIterator[bytes]:
+async def iter_base64_decode(chunks: AsyncIterator[bytes]) -> AsyncIterator[bytes]:
     buffer = b""
     rest = 0
-    async for chunk in response_iter:
+    async for chunk in chunks:
         chunk = buffer + chunk
         rest = len(chunk) % 4
         buffer = chunk[-rest:]

@@ -6,20 +6,22 @@ import random
 import string
 import asyncio
 import base64
+import json
 from typing import Union, AsyncIterator, Iterator, Coroutine, Optional
 
 from ..image import ImageResponse, copy_images, images_dir
 from ..typing import Messages, ImageType
-from ..providers.types import ProviderType
-from ..providers.response import ResponseType, FinishReason, BaseConversation, SynthesizeData
+from ..providers.types import ProviderType, BaseRetryProvider
+from ..providers.response import ResponseType, FinishReason, BaseConversation, SynthesizeData, ToolCalls, Usage
 from ..errors import NoImageResponseError
 from ..providers.retry_provider import IterListProvider
 from ..providers.asyncio import to_sync_generator, async_generator_to_list
+from ..web_search import get_search_message, do_search
 from ..Provider.needs_auth import BingCreateImages, OpenaiAccount
 from .stubs import ChatCompletion, ChatCompletionChunk, Image, ImagesResponse
 from .image_models import ImageModels
 from .types import IterResponse, ImageProvider, Client as BaseClient
-from .service import get_model_and_provider, get_last_provider, convert_to_provider
+from .service import get_model_and_provider, convert_to_provider
 from .helper import find_stop, filter_json, filter_none, safe_aclose, to_async_iterator
 from .. import debug
 
@@ -35,6 +37,47 @@ except NameError:
         except StopAsyncIteration:
             raise StopIteration
 
+def validate_arguments(data: dict):
+    if "arguments" in data:
+        if isinstance(data["arguments"], str):
+            data["arguments"] = json.loads(data["arguments"])
+        if not isinstance(data["arguments"], dict):
+            raise ValueError("Tool function arguments must be a dictionary or a json string")
+        else:
+            return filter_none(**data["arguments"])
+    else:
+        return {}
+
+async def async_iter_run_tools(async_iter_callback, model, messages, tool_calls: Optional[list] = None, **kwargs):
+    if tool_calls is not None:
+        for tool in tool_calls:
+            if tool.get("type") == "function":
+                if tool.get("function", {}).get("name") == "search_tool":
+                    tool["function"]["arguments"] = validate_arguments(tool["function"])
+                    messages = messages.copy()
+                    messages[-1]["content"] = await do_search(
+                        messages[-1]["content"],
+                        **tool["function"]["arguments"]
+                    )
+    response = async_iter_callback(model=model, messages=messages, **kwargs)
+    if not hasattr(response, "__aiter__"):
+        response = to_async_iterator(response)
+    async for chunk in response:
+        yield chunk
+
+def iter_run_tools(iter_callback, model, messages, tool_calls: Optional[list] = None, **kwargs):
+    if tool_calls is not None:
+        for tool in tool_calls:
+            if tool.get("type") == "function":
+                if tool.get("function", {}).get("name") == "search_tool":
+                    tool["function"]["arguments"] = validate_arguments(tool["function"])
+                    messages[-1]["content"] = get_search_message(
+                        messages[-1]["content"],
+                        raise_search_exceptions=True,
+                        **tool["function"]["arguments"]
+                    )
+    return iter_callback(model=model, messages=messages, **kwargs)
+
 # Synchronous iter_response function
 def iter_response(
     response: Union[Iterator[Union[str, ResponseType]]],
@@ -45,6 +88,8 @@ def iter_response(
 ) -> ChatCompletionResponseType:
     content = ""
     finish_reason = None
+    tool_calls = None
+    usage = None
     completion_id = ''.join(random.choices(string.ascii_letters + string.digits, k=28))
     idx = 0
 
@@ -55,6 +100,12 @@ def iter_response(
         if isinstance(chunk, FinishReason):
             finish_reason = chunk.reason
             break
+        elif isinstance(chunk, ToolCalls):
+            tool_calls = chunk.get_list()
+            continue
+        elif isinstance(chunk, Usage):
+            usage = chunk.get_dict()
+            continue
         elif isinstance(chunk, BaseConversation):
             yield chunk
             continue
@@ -88,18 +139,21 @@ def iter_response(
         if response_format is not None and "type" in response_format:
             if response_format["type"] == "json_object":
                 content = filter_json(content)
-        yield ChatCompletion.model_construct(content, finish_reason, completion_id, int(time.time()))
+        yield ChatCompletion.model_construct(content, finish_reason, completion_id, int(time.time()), **filter_none(
+            tool_calls=tool_calls,
+            usage=usage
+        ))
 
 # Synchronous iter_append_model_and_provider function
-def iter_append_model_and_provider(response: ChatCompletionResponseType) -> ChatCompletionResponseType:
-    last_provider = None
-
+def iter_append_model_and_provider(response: ChatCompletionResponseType, last_model: str, last_provider: ProviderType) -> ChatCompletionResponseType:
+    if isinstance(last_provider, BaseRetryProvider):
+        last_provider = last_provider.last_provider
     for chunk in response:
         if isinstance(chunk, (ChatCompletion, ChatCompletionChunk)):
-            last_provider = get_last_provider(True) if last_provider is None else last_provider
-            chunk.model = last_provider.get("model")
-            chunk.provider = last_provider.get("name")
-            yield chunk
+            if last_provider is not None:
+                chunk.model = getattr(last_provider, "last_model", last_model)
+                chunk.provider = last_provider.__name__
+        yield chunk
 
 async def async_iter_response(
     response: AsyncIterator[Union[str, ResponseType]],
@@ -155,15 +209,20 @@ async def async_iter_response(
         await safe_aclose(response)
 
 async def async_iter_append_model_and_provider(
-        response: AsyncChatCompletionResponseType
+        response: AsyncChatCompletionResponseType,
+        last_model: str,
+        last_provider: ProviderType
     ) -> AsyncChatCompletionResponseType:
     last_provider = None
     try:
+        if isinstance(last_provider, BaseRetryProvider):
+            if last_provider is not None:
+                last_provider = last_provider.last_provider
         async for chunk in response:
             if isinstance(chunk, (ChatCompletion, ChatCompletionChunk)):
-                last_provider = get_last_provider(True) if last_provider is None else last_provider
-                chunk.model = last_provider.get("model")
-                chunk.provider = last_provider.get("name")
+                if last_provider is not None:
+                    chunk.model = getattr(last_provider, "last_model", last_model)
+                    chunk.provider = last_provider.__name__
             yield chunk
     finally:
         await safe_aclose(response)
@@ -215,7 +274,9 @@ class Completions:
             kwargs["images"] = [(image, image_name)]
         if ignore_stream:
             kwargs["ignore_stream"] = True
-        response = provider.create_completion(
+
+        response = iter_run_tools(
+            provider.create_completion,
             model,
             messages,
             stream=stream,
@@ -237,7 +298,7 @@ class Completions:
             # If response is an async generator, collect it into a list
             response = asyncio.run(async_generator_to_list(response))
         response = iter_response(response, stream, response_format, max_tokens, stop)
-        response = iter_append_model_and_provider(response)
+        response = iter_append_model_and_provider(response, model, provider)
         if stream:
             return response
         else:
@@ -296,7 +357,7 @@ class Images:
         if proxy is None:
             proxy = self.client.proxy
 
-        e = None
+        error = None
         response = None
         if isinstance(provider_handler, IterListProvider):
             for provider in provider_handler.providers:
@@ -306,6 +367,7 @@ class Images:
                         provider_name = provider.__name__
                         break
                 except Exception as e:
+                    error = e
                     debug.log(f"Image provider {provider.__name__}: {e}")
         else:
             response = await self._generate_image_response(provider_handler, provider_name, model, prompt, **kwargs)
@@ -313,14 +375,14 @@ class Images:
         if isinstance(response, ImageResponse):
             return await self._process_image_response(
                 response,
-                response_format,
-                proxy,
                 model,
-                provider_name
+                provider_name,
+                response_format,
+                proxy
             )
         if response is None:
-            if e is not None:
-                raise e
+            if error is not None:
+                raise error
             raise NoImageResponseError(f"No image response from {provider_name}")
         raise NoImageResponseError(f"Unexpected response type: {type(response)}")
 
@@ -390,7 +452,7 @@ class Images:
         if image is not None:
             kwargs["images"] = [(image, None)]
 
-        e = None
+        error = None
         response = None
         if isinstance(provider_handler, IterListProvider):
             for provider in provider_handler.providers:
@@ -400,27 +462,27 @@ class Images:
                         provider_name = provider.__name__
                         break
                 except Exception as e:
+                    error = e
                     debug.log(f"Image provider {provider.__name__}: {e}")
         else:
             response = await self._generate_image_response(provider_handler, provider_name, model, prompt, **kwargs)
 
         if isinstance(response, ImageResponse):
-            return await self._process_image_response(response, response_format, proxy, model, provider_name)
+            return await self._process_image_response(response, model, provider_name, response_format, proxy)
         if response is None:
-            if e is not None:
-                raise e
+            if error is not None:
+                raise error
             raise NoImageResponseError(f"No image response from {provider_name}")
         raise NoImageResponseError(f"Unexpected response type: {type(response)}")
 
     async def _process_image_response(
         self,
         response: ImageResponse,
+        model: str,
+        provider: str,
         response_format: Optional[str] = None,
-        proxy: str = None,
-        model: Optional[str] = None,
-        provider: Optional[str] = None
+        proxy: str = None
     ) -> ImagesResponse:
-        last_provider = get_last_provider(True)
         if response_format == "url":
             # Return original URLs without saving locally
             images = [Image.model_construct(url=image, revised_prompt=response.alt) for image in response.get_list()]
@@ -438,8 +500,8 @@ class Images:
         return ImagesResponse.model_construct(
             created=int(time.time()),
             data=images,
-            model=last_provider.get("model") if model is None else model,
-            provider=last_provider.get("name") if provider is None else provider
+            model=model,
+            provider=provider
         )
 
 
@@ -500,7 +562,8 @@ class AsyncCompletions:
             create_handler = provider.create_async_generator
         else:
             create_handler = provider.create_completion
-        response = create_handler(
+        response = async_iter_run_tools(
+            create_handler,
             model,
             messages,
             stream=stream,
@@ -512,11 +575,8 @@ class AsyncCompletions:
             ),
             **kwargs
         )
-
-        if not hasattr(response, "__aiter__"):
-            response = to_async_iterator(response)
         response = async_iter_response(response, stream, response_format, max_tokens, stop)
-        response = async_iter_append_model_and_provider(response)
+        response = async_iter_append_model_and_provider(response, model, provider)
         return response if stream else anext(response)
 
 class AsyncImages(Images):

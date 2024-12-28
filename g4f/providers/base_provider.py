@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import sys
 import asyncio
 
 from asyncio import AbstractEventLoop
@@ -11,19 +10,10 @@ from inspect import signature, Parameter
 from ..typing import CreateResult, AsyncResult, Messages
 from .types import BaseProvider
 from .asyncio import get_running_loop, to_sync_generator
-from .response import FinishReason, BaseConversation, SynthesizeData
+from .response import BaseConversation
+from .helper import concat_chunks, async_concat_chunks
 from ..errors import ModelNotSupportedError
 from .. import debug
-
-# Set Windows event loop policy for better compatibility with asyncio and curl_cffi
-if sys.platform == 'win32':
-    try:
-        from curl_cffi import aio
-        if not hasattr(aio, "_get_selector"):
-            if isinstance(asyncio.get_event_loop_policy(), asyncio.WindowsProactorEventLoopPolicy):
-                asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-    except ImportError:
-        pass
 
 class AbstractProvider(BaseProvider):
     """
@@ -36,6 +26,7 @@ class AbstractProvider(BaseProvider):
         model: str,
         messages: Messages,
         *,
+        timeout: int = None,
         loop: AbstractEventLoop = None,
         executor: ThreadPoolExecutor = None,
         **kwargs
@@ -57,13 +48,11 @@ class AbstractProvider(BaseProvider):
         loop = loop or asyncio.get_running_loop()
 
         def create_func() -> str:
-            chunks = [str(chunk) for chunk in cls.create_completion(model, messages, False, **kwargs) if chunk]
-            if chunks:
-                return "".join(chunks)
+            return concat_chunks(cls.create_completion(model, messages, False, **kwargs))
 
         return await asyncio.wait_for(
             loop.run_in_executor(executor, create_func),
-            timeout=kwargs.get("timeout")
+            timeout=timeout
         )
 
     @classmethod
@@ -205,10 +194,7 @@ class AsyncGeneratorProvider(AsyncProvider):
         Returns:
             str: The created result as a string.
         """
-        return "".join([
-            str(chunk) async for chunk in cls.create_async_generator(model, messages, stream=False, **kwargs) 
-            if chunk and not isinstance(chunk, (Exception, FinishReason, BaseConversation, SynthesizeData))
-        ])
+        return await async_concat_chunks(cls.create_async_generator(model, messages, stream=False, **kwargs))
 
     @staticmethod
     @abstractmethod

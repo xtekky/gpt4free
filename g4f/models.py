@@ -120,6 +120,12 @@ gpt_4o_mini = Model(
 )
 
 # o1
+o1 = Model(
+    name          = 'o1',
+    base_provider = 'OpenAI',
+    best_provider = OpenaiAccount
+)
+
 o1_preview = Model(
     name          = 'o1-preview',
     base_provider = 'OpenAI',
@@ -655,6 +661,7 @@ class ModelUtils:
         gpt_4o_mini.name: gpt_4o_mini,
         
         # o1
+        o1.name: o1,
         o1_preview.name: o1_preview,
         o1_mini.name: o1_mini,
 
@@ -828,11 +835,12 @@ class ModelUtils:
 __models__  = {
     model.name: (model, providers)
         for model, providers in [
-            (model, model.best_provider.providers
+            (model, [provider for provider in model.best_provider.providers if provider.working]
                 if isinstance(model.best_provider, IterListProvider)
                 else [model.best_provider]
-                if model.best_provider is not None
+                if model.best_provider is not None and model.best_provider.working
                 else [])
         for model in ModelUtils.convert.values()]
+        if providers
     }
 _all_models = list(__models__.keys())

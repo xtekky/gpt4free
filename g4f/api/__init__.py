@@ -6,7 +6,7 @@ import uvicorn
 import secrets
 import os
 import shutil
-
+from email.utils import formatdate
 import os.path
 from fastapi import FastAPI, Response, Request, UploadFile, Depends
 from fastapi.middleware.wsgi import WSGIMiddleware
@@ -22,23 +22,21 @@ from starlette.status import (
     HTTP_403_FORBIDDEN,
     HTTP_500_INTERNAL_SERVER_ERROR,
 )
+from starlette.staticfiles import NotModifiedResponse
 from fastapi.encoders import jsonable_encoder
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials, HTTPBasic
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.responses import FileResponse
+from starlette._compat import md5_hexdigest
+from types import SimpleNamespace
 from typing import Union, Optional, List
-try:
-    from typing import Annotated
-except ImportError:
-    class Annotated:
-        pass
 
 import g4f
 import g4f.debug
 from g4f.client import AsyncClient, ChatCompletion, ImagesResponse, convert_to_provider
 from g4f.providers.response import BaseConversation
 from g4f.client.helper import filter_none
-from g4f.image import is_accepted_format, is_data_uri_an_image, images_dir
+from g4f.image import is_data_uri_an_image, images_dir
 from g4f.errors import ProviderNotFoundError, ModelNotFoundError, MissingAuthError, NoValidHarFileError
 from g4f.cookies import read_cookie_files, get_cookies_dir
 from g4f.Provider import ProviderType, ProviderUtils, __providers__
@@ -47,7 +45,7 @@ from .stubs import (
     ChatCompletionsConfig, ImageGenerationConfig,
     ProviderResponseModel, ModelResponseModel,
     ErrorResponseModel, ProviderResponseDetailModel,
-    FileResponseModel
+    FileResponseModel, Annotated
 )
 
 logger = logging.getLogger(__name__)
@@ -445,16 +443,33 @@ class Api:
             HTTP_200_OK: {"content": {"image/*": {}}},
             HTTP_404_NOT_FOUND: {}
         })
-        async def get_image(filename):
+        async def get_image(filename, request: Request):
             target = os.path.join(images_dir, filename)
-
+            ext = os.path.splitext(filename).pop()
+            stat_result = SimpleNamespace()
+            stat_result.st_size = 0
+            if os.path.isfile(target):
+                stat_result.st_size = os.stat(target).st_size
+            stat_result.st_mtime = int(f"{filename.split('_')[0]}")
+            response = FileResponse(
+                target,
+                media_type=f"image/{ext.replace('jpg', 'jepg')}",
+                headers={
+                    "content-length": str(stat_result.st_size),
+                    "last-modified": formatdate(stat_result.st_mtime, usegmt=True),
+                    "etag": f'"{md5_hexdigest(filename.encode(), usedforsecurity=False)}"'
+                },
+            )
+            try:
+                if_none_match = request.headers["if-none-match"]
+                etag = response.headers["etag"]
+                if etag in [tag.strip(" W/") for tag in if_none_match.split(",")]:
+                    return NotModifiedResponse(response.headers)
+            except KeyError:
+                pass
             if not os.path.isfile(target):
-                return Response(status_code=404)
-
-            with open(target, "rb") as f:
-                content_type = is_accepted_format(f.read(12))
-
-            return FileResponse(target, media_type=content_type)
+                return Response(status_code=HTTP_404_NOT_FOUND)
+            return response
 
 def format_exception(e: Union[Exception, str], config: Union[ChatCompletionsConfig, ImageGenerationConfig] = None, image: bool = False) -> str:
     last_provider = {} if not image else g4f.get_last_provider(True)

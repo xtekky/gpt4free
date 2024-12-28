@@ -2,7 +2,11 @@ from __future__ import annotations
 
 from pydantic import BaseModel, Field
 from typing import Union, Optional
-
+try:
+    from typing import Annotated
+except ImportError:
+    class Annotated:
+        pass
 from g4f.typing import Messages
 
 class ChatCompletionsConfig(BaseModel):
@@ -23,6 +27,16 @@ class ChatCompletionsConfig(BaseModel):
     history_disabled: Optional[bool] = None
     auto_continue: Optional[bool] = None
     timeout: Optional[int] = None
+    tool_calls: list = Field(default=[], examples=[[
+		{
+			"function": {
+				"arguments": {"query":"search query", "max_results":5, "max_words": 2500, "backend": "api", "add_text": True, "timeout": 5},
+				"name": "search_tool"
+			},
+			"type": "function"
+		}
+	]])
+    tools: list = None
 
 class ImageGenerationConfig(BaseModel):
     prompt: str
