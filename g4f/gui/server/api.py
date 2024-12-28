@@ -151,7 +151,7 @@ class Api:
                         conversations[provider][conversation_id] = chunk
                         if isinstance(chunk, JsonConversation):
                             yield self._format_json("conversation", {
-                                provider: chunk.to_dict()
+                                provider: chunk.get_dict()
                             })
                         else:
                             yield self._format_json("conversation_id", conversation_id)
@@ -167,7 +167,7 @@ class Api:
                         images = ImageResponse(images, chunk.alt)
                     yield self._format_json("content", str(images))
                 elif isinstance(chunk, SynthesizeData):
-                    yield self._format_json("synthesize", chunk.to_json())
+                    yield self._format_json("synthesize", chunk.get_dict())
                 elif isinstance(chunk, TitleGeneration):
                     yield self._format_json("title", chunk.title)
                 elif isinstance(chunk, RequestLogin):
