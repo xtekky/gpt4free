@@ -102,7 +102,7 @@ async def fetch_and_scrape(session: ClientSession, url: str, max_words: int = No
     except ClientError:
         return
 
-async def search(query: str, max_results: int = 5, max_words: int = 2500, backend: str = "api", add_text: bool = True, timeout: int = 5, region: str = "wt-wt") -> SearchResults:
+async def search(query: str, max_results: int = 5, max_words: int = 2500, backend: str = "auto", add_text: bool = True, timeout: int = 5, region: str = "wt-wt") -> SearchResults:
     if not has_requirements:
         raise MissingRequirementsError('Install "duckduckgo-search" and "beautifulsoup4" package | pip install -U g4f[search]')
     with DDGS() as ddgs:
@@ -113,7 +113,7 @@ async def search(query: str, max_results: int = 5, max_words: int = 2500, backen
                 safesearch="moderate",
                 timelimit="y",
                 max_results=max_results,
-                backend=backend,
+                backend=backend,  # Changed from 'api' to 'auto'
             ):
             results.append(SearchResultEntry(
                 result["title"],

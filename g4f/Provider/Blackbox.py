@@ -8,6 +8,7 @@ import re
 import aiohttp
 import asyncio
 from pathlib import Path
+import concurrent.futures
 
 from ..typing import AsyncResult, Messages, ImagesType
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
@@ -224,7 +225,6 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
             def run_search():
                 return get_search_message(messages[-1]["content"])
                 
-            import concurrent.futures
             with concurrent.futures.ThreadPoolExecutor() as executor:
                 messages[-1]["content"] = await asyncio.get_event_loop().run_in_executor(
                     executor, run_search
