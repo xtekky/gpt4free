@@ -5,17 +5,17 @@ from dataclasses import dataclass
 from .Provider import IterListProvider, ProviderType
 from .Provider import (
     Blackbox,
-    Blackbox2,
+    BlackboxCreateAgent,
     BingCreateImages,
     ChatGpt,
     ChatGptEs,
+    ClaudeSon,
     Cloudflare,
     Copilot,
     CopilotAccount,
     DarkAI,
     DDG,
     DeepInfraChat,
-    Flux,
     GigaChat,
     Gemini,
     GeminiPro,
@@ -36,6 +36,11 @@ from .Provider import (
     ReplicateHome,
     RubiksAI,
     TeachAnything,
+    
+    ## HuggingSpace ##
+    BlackForestLabsFlux1Dev,
+    BlackForestLabsFlux1Schnell,
+    VoodoohopFlux1Schnell,
 )
 
 @dataclass(unsafe_hash=True)
@@ -67,7 +72,7 @@ default = Model(
     best_provider = IterListProvider([
         DDG,
         Pizzagpt,
-        Blackbox2,
+        BlackboxCreateAgent,
         Blackbox,
         Copilot,
         DeepInfraChat,
@@ -175,7 +180,7 @@ llama_3_1_8b = Model(
 llama_3_1_70b = Model(
     name          = "llama-3.1-70b",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider([DDG, DeepInfraChat, Blackbox, Blackbox2, TeachAnything, PollinationsAI, DarkAI, Airforce, RubiksAI, PerplexityLabs])
+    best_provider = IterListProvider([DDG, DeepInfraChat, Blackbox, BlackboxCreateAgent, TeachAnything, PollinationsAI, DarkAI, Airforce, RubiksAI, PerplexityLabs])
 )
 
 llama_3_1_405b = Model(
@@ -313,7 +318,7 @@ claude_3_haiku = Model(
 claude_3_5_sonnet = Model(
     name          = 'claude-3.5-sonnet',
     base_provider = 'Anthropic',
-    best_provider = IterListProvider([Blackbox, PollinationsAI, Liaobots])
+    best_provider = IterListProvider([Blackbox, PollinationsAI, ClaudeSon, Liaobots])
 )
 
 ### Reka AI ###
@@ -555,7 +560,7 @@ playground_v2_5 = ImageModel(
 flux = ImageModel(
     name = 'flux',
     base_provider = 'Flux AI',
-    best_provider = IterListProvider([Blackbox, Blackbox2, PollinationsAI, Airforce])
+    best_provider = IterListProvider([Blackbox, BlackboxCreateAgent, PollinationsAI, Airforce])
 )
 
 flux_pro = ImageModel(
@@ -567,7 +572,13 @@ flux_pro = ImageModel(
 flux_dev = ImageModel(
     name = 'flux-dev',
     base_provider = 'Flux AI',
-    best_provider = IterListProvider([Flux, HuggingChat, HuggingFace])
+    best_provider = IterListProvider([BlackForestLabsFlux1Dev, HuggingChat, HuggingFace])
+)
+
+flux_schnell = ImageModel(
+    name = 'flux-schnell',
+    base_provider = 'Flux AI',
+    best_provider = IterListProvider([BlackForestLabsFlux1Schnell, VoodoohopFlux1Schnell])
 )
 
 flux_realism = ImageModel(
@@ -813,6 +824,7 @@ class ModelUtils:
         flux.name: flux,
         flux_pro.name: flux_pro,
         flux_dev.name: flux_dev,
+        flux_schnell.name: flux_schnell,
         flux_realism.name: flux_realism,
         flux_cablyai.name: flux_cablyai,
         flux_anime.name: flux_anime,

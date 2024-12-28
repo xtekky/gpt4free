@@ -6,15 +6,17 @@ import string
 import json
 import re
 import aiohttp
-
-import json
+import asyncio
 from pathlib import Path
 
 from ..typing import AsyncResult, Messages, ImagesType
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..image import ImageResponse, to_data_uri
 from ..cookies import get_cookies_dir
+from ..web_search import get_search_message
 from .helper import format_prompt
+
+from .. import debug
 
 class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Blackbox AI"
@@ -30,12 +32,15 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
     default_vision_model = default_model
     default_image_model = 'flux' 
     image_models = ['ImageGeneration', 'repomap']
-    vision_models = [default_model, 'gpt-4o', 'gemini-pro', 'gemini-1.5-flash', 'llama-3.1-8b', 'llama-3.1-70b', 'llama-3.1-405b']
+    vision_models = [default_vision_model, 'gpt-4o', 'gemini-pro', 'gemini-1.5-flash', 'llama-3.1-8b', 'llama-3.1-70b', 'llama-3.1-405b']
+    
+    web_search_models = ['blackboxai', 'meta-llama/Llama-3.3-70B-Instruct-Turbo', 'meta-llama/Meta-Llama-3.1-405B-Instruct-Lite-Pro']
 
     userSelectedModel = ['gpt-4o', 'gemini-pro', 'claude-sonnet-3.5', 'blackboxai-pro']
 
     agentMode = {
         'ImageGeneration': {'mode': True, 'id': "ImageGenerationLV45LJp", 'name': "Image Generation"},
+        #
         'meta-llama/Llama-3.3-70B-Instruct-Turbo': {'mode': True, 'id': "meta-llama/Llama-3.3-70B-Instruct-Turbo", 'name': "Meta-Llama-3.3-70B-Instruct-Turbo"},
         'mistralai/Mistral-7B-Instruct-v0.2': {'mode': True, 'id': "mistralai/Mistral-7B-Instruct-v0.2", 'name': "Mistral-(7B)-Instruct-v0.2"},
         'deepseek-ai/deepseek-llm-67b-chat': {'mode': True, 'id': "deepseek-ai/deepseek-llm-67b-chat", 'name': "DeepSeek-LLM-Chat-(67B)"},
@@ -88,20 +93,6 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         'builder Agent': {'mode': True, 'id': "builder Agent"},
     }
     
-    additional_prefixes = {
-        'gpt-4o': '@GPT-4o',
-        'gemini-pro': '@Gemini-PRO',
-        'claude-sonnet-3.5': '@Claude-Sonnet-3.5'
-    }
-    
-    model_prefixes = {
-        **{
-            mode: f"@{value['id']}" for mode, value in trendingAgentMode.items() 
-            if mode not in ["gemini-1.5-flash", "llama-3.1-8b", "llama-3.1-70b", "llama-3.1-405b", "repomap"]
-        },
-        **additional_prefixes
-    }
-
     models = list(dict.fromkeys([default_model, *userSelectedModel, *list(agentMode.keys()), *list(trendingAgentMode.keys())]))
 
     model_aliases = {
@@ -120,7 +111,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         ### image ###
         "flux": "ImageGeneration",
     }
-
+    
     @classmethod
     def _get_cache_file(cls) -> Path:
         dir = Path(get_cookies_dir())
@@ -136,7 +127,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
                     data = json.load(f)
                     return data.get('validated_value')
             except Exception as e:
-                print(f"Error reading cache file: {e}")
+                debug.log(f"Error reading cache file: {e}")
         return None
 
     @classmethod
@@ -146,67 +137,68 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
             with open(cache_file, 'w') as f:
                 json.dump({'validated_value': value}, f)
         except Exception as e:
-            print(f"Error writing to cache file: {e}")
+            debug.log(f"Error writing to cache file: {e}")
 
     @classmethod
     async def fetch_validated(cls):
         cached_value = cls._load_cached_value()
+        
+        async with aiohttp.ClientSession() as session:
+            # Let's try both URLs
+            urls_to_try = [
+                "https://www.blackbox.ai",
+                "https://api.blackbox.ai"
+            ]
+            
+            for base_url in urls_to_try:
+                try:
+                    async with session.get(base_url) as response:
+                        if response.status != 200:
+                            continue
+                        
+                        page_content = await response.text()
+                        js_files = re.findall(r'static/chunks/\d{4}-[a-fA-F0-9]+\.js', page_content)
+                        
+                        if not js_files:
+                            js_files = re.findall(r'static/js/[a-zA-Z0-9-]+\.js', page_content)
+
+                        uuid_format = r'["\']([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})["\']'
+
+                        def is_valid_context(text_around):
+                            return any(char + '=' in text_around for char in 'abcdefghijklmnopqrstuvwxyz')
+
+                        for js_file in js_files:
+                            js_url = f"{base_url}/_next/{js_file}"
+                            try:
+                                async with session.get(js_url) as js_response:
+                                    if js_response.status == 200:
+                                        js_content = await js_response.text()
+                                        for match in re.finditer(uuid_format, js_content):
+                                            start = max(0, match.start() - 10)
+                                            end = min(len(js_content), match.end() + 10)
+                                            context = js_content[start:end]
+                                            
+                                            if is_valid_context(context):
+                                                validated_value = match.group(1)
+                                                cls._save_cached_value(validated_value)
+                                                return validated_value
+                            except Exception:
+                                continue
+                                
+                except Exception as e:
+                    debug.log(f"Error trying {base_url}: {e}")
+                    continue
+
+        # If we failed to get a new validated_value, we return the cached one
         if cached_value:
             return cached_value
-
-        async with aiohttp.ClientSession() as session:
-            try:
-                async with session.get(cls.url) as response:
-                    if response.status != 200:
-                        print("Failed to load the page.")
-                        return cached_value
-                    
-                    page_content = await response.text()
-                    js_files = re.findall(r'static/chunks/\d{4}-[a-fA-F0-9]+\.js', page_content)
-
-                    uuid_format = r'["\']([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})["\']'
-
-                    def is_valid_context(text_around):
-                        return any(char + '=' in text_around for char in 'abcdefghijklmnopqrstuvwxyz')
-
-                    for js_file in js_files:
-                        js_url = f"{cls.url}/_next/{js_file}"
-                        async with session.get(js_url) as js_response:
-                            if js_response.status == 200:
-                                js_content = await js_response.text()
-                                for match in re.finditer(uuid_format, js_content):
-                                    start = max(0, match.start() - 10)
-                                    end = min(len(js_content), match.end() + 10)
-                                    context = js_content[start:end]
-                                    
-                                    if is_valid_context(context):
-                                        validated_value = match.group(1)
-                                        cls._save_cached_value(validated_value)
-                                        return validated_value
-            except Exception as e:
-                print(f"Error fetching validated value: {e}")
-
-        return cached_value
+            
+        raise RuntimeError("Failed to get validated value from both URLs")
 
     @staticmethod
     def generate_id(length=7):
         characters = string.ascii_letters + string.digits
         return ''.join(random.choice(characters) for _ in range(length))
-
-    @classmethod
-    def add_prefix_to_messages(cls, messages: Messages, model: str) -> Messages:
-        prefix = cls.model_prefixes.get(model, "")
-        if not prefix:
-            return messages
-
-        new_messages = []
-        for message in messages:
-            new_message = message.copy()
-            if message['role'] == 'user':
-                new_message['content'] = (prefix + " " + message['content']).strip()
-            new_messages.append(new_message)
-
-        return new_messages
 
     @classmethod
     async def create_async_generator(
@@ -217,93 +209,135 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         proxy: str = None,
         web_search: bool = False,
         images: ImagesType = None,
-        top_p: float = None,
-        temperature: float = None,
+        top_p: float = 0.9,
+        temperature: float = 0.5,
         max_tokens: int = None,
+        max_retries: int = 3,
+        delay: int = 1,
         **kwargs
     ) -> AsyncResult:
-        message_id = cls.generate_id()
-        messages = cls.add_prefix_to_messages(messages, model)
-        validated_value = await cls.fetch_validated()
-        formatted_message = format_prompt(messages)
-        model = cls.get_model(model)
-        
-        messages = [{"id": message_id, "content": formatted_message, "role": "user"}]
 
-        if images is not None:
-            messages[-1]['data'] = {
-                "imagesData": [
-                    {
-                        "filePath": f"MultipleFiles/{image_name}",
-                        "contents": to_data_uri(image)
-                    }
-                    for image, image_name in images
-                ],
-                "fileText": "",
-                "title": ""
+        use_internal_search = web_search and model in cls.web_search_models
+        
+        if web_search and not use_internal_search:
+            
+            def run_search():
+                return get_search_message(messages[-1]["content"])
+                
+            import concurrent.futures
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                messages[-1]["content"] = await asyncio.get_event_loop().run_in_executor(
+                    executor, run_search
+                )
+            web_search = False
+        
+        async def process_request():
+            validated_value = await cls.fetch_validated()
+            
+            if not validated_value:
+                raise RuntimeError("Failed to get validated value")
+            
+            formatted_message = format_prompt(messages)
+            current_model = cls.get_model(model)
+            
+            first_message = next((msg for msg in messages if msg['role'] == 'user'), None)
+            chat_id = cls.generate_id()
+            current_messages = [{"id": chat_id, "content": formatted_message, "role": "user"}]
+
+            if images is not None:
+                current_messages[-1]['data'] = {
+                    "imagesData": [
+                        {
+                            "filePath": f"/{image_name}",
+                            "contents": to_data_uri(image)
+                        }
+                        for image, image_name in images
+                    ],
+                    "fileText": "",
+                    "title": ""
+                }
+
+            headers = {
+                'accept': '*/*',
+                'accept-language': 'en-US,en;q=0.9',
+                'content-type': 'application/json',
+                'origin': 'https://www.blackbox.ai',
+                'referer': 'https://www.blackbox.ai/',
+                'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
             }
 
-        headers = {
-            'accept': '*/*',
-            'accept-language': 'en-US,en;q=0.9',
-            'content-type': 'application/json',
-            'origin': cls.url,
-            'referer': f'{cls.url}/',
-            'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
-        }
+            data = {
+                "agentMode": cls.agentMode.get(model, {}) if model in cls.agentMode else {},
+                "clickedAnswer2": False,
+                "clickedAnswer3": False,
+                "clickedForceWebSearch": False,
+                "codeModelMode": True,
+                "deepSearchMode": False,
+                "domains": None,
+                "githubToken": None,
+                "id": chat_id,
+                "imageGenerationMode": False,
+                "isChromeExt": False,
+                "isMicMode": False,
+                "maxTokens": max_tokens,
+                "messages": current_messages,
+                "mobileClient": False,
+                "playgroundTemperature": temperature,
+                "playgroundTopP": top_p,
+                "previewToken": None,
+                "trendingAgentMode": cls.trendingAgentMode.get(model, {}) if model in cls.trendingAgentMode else {},
+                "userId": None,
+                "userSelectedModel": model if model in cls.userSelectedModel else None,
+                "userSystemPrompt": None,
+                "validated": validated_value,
+                "visitFromDelta": False,
+                "webSearchModePrompt": False,
+                "webSearchMode": use_internal_search
+            }
 
-        data = {
-            "agentMode": cls.agentMode.get(model, {}) if model in cls.agentMode else {},
-            "clickedAnswer2": False,
-            "clickedAnswer3": False,
-            "clickedForceWebSearch": False,
-            "codeModelMode": True,
-            "deepSearchMode": False,
-            "githubToken": None,
-            "id": message_id,
-            "imageGenerationMode": False,
-            "isChromeExt": False,
-            "isMicMode": False,
-            "maxTokens": max_tokens,
-            "messages": messages,
-            "mobileClient": False,
-            "playgroundTemperature": temperature,
-            "playgroundTopP": top_p,
-            "previewToken": None,
-            "trendingAgentMode": cls.trendingAgentMode.get(model, {}) if model in cls.trendingAgentMode else {},
-            "userId": None,
-            "userSelectedModel": model if model in cls.userSelectedModel else None,
-            "userSystemPrompt": None,
-            "validated": validated_value,
-            "visitFromDelta": False,
-            "webSearchModePrompt": False,
-            "webSearchMode": web_search
-        }
+            for attempt in range(max_retries):
+                try:
+                    async with ClientSession(headers=headers) as session:
+                        async with session.post(cls.api_endpoint, json=data, proxy=proxy) as response:
+                            response.raise_for_status()
+                            response_text = await response.text()
 
-        async with ClientSession(headers=headers) as session:
-            async with session.post(cls.api_endpoint, json=data, proxy=proxy) as response:
-                response.raise_for_status()
-                response_text = await response.text()
+                            if current_model in cls.image_models:
+                                image_matches = re.findall(r'!\[.*?\]\((https?://[^\)]+)\)', response_text)
+                                if image_matches:
+                                    yield ImageResponse(image_matches[0], prompt)
+                                    return
 
-                if model in cls.image_models:
-                    image_matches = re.findall(r'!\[.*?\]\((https?://[^\)]+)\)', response_text)
-                    if image_matches:
-                        image_url = image_matches[0]
-                        yield ImageResponse(image_url, prompt)
-                        return
+                            response_text = re.sub(r'Generated by BLACKBOX.AI, try unlimited chat https://www.blackbox.ai', '', response_text, flags=re.DOTALL)
+                            response_text = re.sub(r'and for API requests replace  https://www.blackbox.ai with https://api.blackbox.ai', '', response_text, flags=re.DOTALL)
 
-                response_text = re.sub(r'Generated by BLACKBOX.AI, try unlimited chat https://www.blackbox.ai', '', response_text, flags=re.DOTALL)
-                response_text = re.sub(r'and for API requests replace  https://www.blackbox.ai with https://api.blackbox.ai', '', response_text, flags=re.DOTALL)
+                            response_text = response_text.strip()
 
-                json_match = re.search(r'\$~~~\$(.*?)\$~~~\$', response_text, re.DOTALL)
-                if json_match:
-                    search_results = json.loads(json_match.group(1))
-                    answer = response_text.split('$~~~$')[-1].strip()
+                            if not response_text:
+                                raise ValueError("Empty response received")
 
-                    formatted_response = f"{answer}\n\n**Source:**"
-                    for i, result in enumerate(search_results, 1):
-                        formatted_response += f"\n{i}. {result['title']}: {result['link']}"
+                            json_match = re.search(r'\$~~~\$(.*?)\$~~~\$', response_text, re.DOTALL)
+                            if json_match:
+                                search_results = json.loads(json_match.group(1))
+                                answer = response_text.split('$~~~$')[-1].strip()
 
-                    yield formatted_response
-                else:
-                    yield response_text.strip()
+                                formatted_response = f"{answer}\n\n**Source:**"
+                                for i, result in enumerate(search_results, 1):
+                                    formatted_response += f"\n{i}. {result['title']}: {result['link']}"
+
+                                yield formatted_response
+                            else:
+                                yield response_text
+                            return
+
+                except Exception as e:
+                    debug.log(f"Error: {str(e)}")
+                    if attempt == max_retries - 1:
+                        raise RuntimeError("Failed after all retries")
+                    else:
+                        wait_time = delay * (2 ** attempt) + random.uniform(0, 1)
+                        debug.log(f"Attempt {attempt + 1} failed. Retrying in {wait_time:.2f} seconds...")
+                        await asyncio.sleep(wait_time)
+
+        async for chunk in process_request():
+            yield chunk

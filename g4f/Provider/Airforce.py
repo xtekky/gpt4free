@@ -4,7 +4,6 @@ import re
 import requests
 from aiohttp import ClientSession
 from typing import List
-from requests.packages.urllib3.exceptions import InsecureRequestWarning
 
 from ..typing import AsyncResult, Messages
 from ..image import ImageResponse
@@ -12,8 +11,6 @@ from ..requests.raise_for_status import raise_for_status
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 
 from .. import debug
-
-requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
  
 def split_message(message: str, max_length: int = 1000) -> List[str]:
     """Splits the message into parts up to (max_length)."""
@@ -29,7 +26,7 @@ def split_message(message: str, max_length: int = 1000) -> List[str]:
     return chunks
 
 class Airforce(AsyncGeneratorProvider, ProviderModelMixin):
-    url = "https://llmplayground.net"
+    url = "https://api.airforce"
     api_endpoint_completions = "https://api.airforce/chat/completions"
     api_endpoint_imagine2 = "https://api.airforce/imagine2"
 
@@ -40,6 +37,9 @@ class Airforce(AsyncGeneratorProvider, ProviderModelMixin):
 
     default_model = "gpt-4o-mini"
     default_image_model = "flux"
+    
+    models = []
+    image_models = []
     
     hidden_models = {"Flux-1.1-Pro"}
     additional_models_imagine = ["flux-1.1-pro", "midjourney", "dall-e-3"]
@@ -54,7 +54,10 @@ class Airforce(AsyncGeneratorProvider, ProviderModelMixin):
         "lfm-40b": "lfm-40b-moe",
         "german-7b": "discolm-german-7b-v1",
         "llama-2-7b": "llama-2-7b-chat-int8",
+        "llama-3.1-70b": "llama-3.1-70b-chat",
+        "llama-3.1-8b": "llama-3.1-8b-chat",
         "llama-3.1-70b": "llama-3.1-70b-turbo",
+        "llama-3.1-8b": "llama-3.1-8b-turbo",
         "neural-7b": "neural-chat-7b-v3-1",
         "zephyr-7b": "zephyr-7b-beta",
         "evil": "any-uncensored",
@@ -66,29 +69,51 @@ class Airforce(AsyncGeneratorProvider, ProviderModelMixin):
 
     @classmethod
     def get_models(cls):
+        """Get available models with error handling"""
         if not cls.image_models:
             try:
-                url = "https://api.airforce/imagine2/models"
-                response = requests.get(url, verify=False)
+                response = requests.get(
+                    f"{cls.url}/imagine2/models",
+                    headers={
+                        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+                    }
+                )
                 response.raise_for_status()
                 cls.image_models = response.json()
-                cls.image_models.extend(cls.additional_models_imagine)
+                if isinstance(cls.image_models, list):
+                    cls.image_models.extend(cls.additional_models_imagine)
+                else:
+                    cls.image_models = cls.additional_models_imagine.copy()
             except Exception as e:
                 debug.log(f"Error fetching image models: {e}")
+                cls.image_models = cls.additional_models_imagine.copy()
 
         if not cls.models:
             try:
-                url = "https://api.airforce/models"
-                response = requests.get(url, verify=False)
+                response = requests.get(
+                    f"{cls.url}/models",
+                    headers={
+                        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+                    }
+                )
                 response.raise_for_status()
                 data = response.json()
-                cls.models = [model['id'] for model in data['data']]
-                cls.models.extend(cls.image_models)
-                cls.models = [model for model in cls.models if model not in cls.hidden_models]
+                if isinstance(data, dict) and 'data' in data:
+                    cls.models = [model['id'] for model in data['data']]
+                    cls.models.extend(cls.image_models)
+                    cls.models = [model for model in cls.models if model not in cls.hidden_models]
+                else:
+                    cls.models = list(cls.model_aliases.keys())
             except Exception as e:
                 debug.log(f"Error fetching text models: {e}")
+                cls.models = list(cls.model_aliases.keys())
 
-        return cls.models
+        return cls.models or list(cls.model_aliases.keys())
+
+    @classmethod
+    def get_model(cls, model: str) -> str:
+        """Get the actual model name from alias"""
+        return cls.model_aliases.get(model, model)
 
     @classmethod
     async def check_api_key(cls, api_key: str) -> bool:
