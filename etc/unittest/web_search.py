@@ -3,8 +3,15 @@ from __future__ import annotations
 import json
 import unittest
 
+try:
+    from duckduckgo_search import DDGS
+    from duckduckgo_search.exceptions import DuckDuckGoSearchException
+    from bs4 import BeautifulSoup
+    has_requirements = True
+except ImportError:
+    has_requirements = False
+
 from g4f.client import AsyncClient
-from g4f.web_search import DuckDuckGoSearchException, has_requirements
 from .mocks import YieldProviderMock
 
 DEFAULT_MESSAGES = [{'role': 'user', 'content': 'Hello'}]
