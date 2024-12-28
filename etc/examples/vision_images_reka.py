@@ -18,7 +18,7 @@ completion = client.chat.completions.create(
         }
     ],
     stream = True,
-    image = open("test.png", "rb") # open("path", "rb"), do not use .read(), etc. it must be a file object
+    image = open("docs/images/cat.jpeg", "rb") # open("path", "rb"), do not use .read(), etc. it must be a file object
 )
 
 for message in completion:

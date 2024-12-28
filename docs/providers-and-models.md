@@ -20,12 +20,13 @@ This document provides an overview of various AI providers and models, including
 ### Providers Free
 | Website | Provider | Text Models | Image Models | Vision Models | Stream | Status | Auth |
 |----------|-------------|--------------|---------------|--------|--------|------|------|
-|[api.airforce](https://api.airforce)|`g4f.Provider.Airforce`|`phi-2, gpt-4, gpt-4o-mini, gpt-4o, gpt-4-turbo, o1-mini, openchat-3.5, deepseek-coder, hermes-2-dpo, hermes-2-pro, openhermes-2.5, lfm-40b, german-7b, llama-2-7b, llama-3.1-70b, neural-7b, zephyr-7b, evil,`|`sdxl, flux-pro, flux, flux-realism, flux-anime, flux-3d, flux-disney, flux-pixel, flux-4o, any-dark, midjourney, dall-e-3`|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌+✔|
+|[api.airforce](https://api.airforce)|`g4f.Provider.Airforce`|`phi-2, gpt-4, gpt-4o-mini, gpt-4o, gpt-4-turbo, o1-mini, openchat-3.5, deepseek-coder, hermes-2-dpo, hermes-2-pro, openhermes-2.5, lfm-40b, german-7b, llama-2-7b, llama-3.1-8b, llama-3.1-70b, neural-7b, zephyr-7b, evil,`|`sdxl, flux-pro, flux, flux-realism, flux-anime, flux-3d, flux-disney, flux-pixel, flux-4o, any-dark, midjourney, dall-e-3`|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌+✔|
 |[amigochat.io](https://amigochat.io/chat/)|`g4f.Provider.AmigoChat`|✔|✔|❌|✔|![Error](https://img.shields.io/badge/RateLimit-f48d37)|❌|
 |[blackbox.ai](https://www.blackbox.ai)|`g4f.Provider.Blackbox`|`blackboxai, gpt-4, gpt-4o, gemini-pro, claude-3.5-sonnet, blackboxai-pro, llama-3.1-8b, llama-3.1-70b, llama-3.1-405b, llama-3.3-70b, mixtral-7b, deepseek-chat, dbrx-instruct, qwq-32b, hermes-2-dpo`|`flux`|`blackboxai, gpt-4o, gemini-pro, gemini-flash, llama-3.1-8b, llama-3.1-70b, llama-3.1-405b`|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌|
-|[blackbox.ai](https://www.blackbox.ai)|`g4f.Provider.Blackbox2`|`llama-3.1-70b`|`flux`|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌|
+|[blackbox.ai](https://www.blackbox.ai)|`g4f.Provider.BlackboxCreateAgent`|`llama-3.1-70b`|`flux`|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[chatgpt.com](https://chatgpt.com)|`g4f.Provider.ChatGpt`|✔|❌|❌|✔|![Error](https://img.shields.io/badge/HTTPError-f48d37)|❌|
 |[chatgpt.es](https://chatgpt.es)|`g4f.Provider.ChatGptEs`|`gpt-4, gpt-4o, gpt-4o-mini`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌|
+|[claudeson.net](https://claudeson.net)|`g4f.Provider.ClaudeSon`|`claude-3.5-sonnet`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[playground.ai.cloudflare.com](https://playground.ai.cloudflare.com)|`g4f.Provider.Cloudflare`|`llama-2-7b, llama-3-8b, llama-3.1-8b, llama-3.2-1b, qwen-1.5-7b`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[copilot.microsoft.com](https://copilot.microsoft.com)|`g4f.Provider.Copilot`|`gpt-4`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[darkai.foundation](https://darkai.foundation)|`g4f.Provider.DarkAI`|`gpt-3.5-turbo, gpt-4o, llama-3.1-70b`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌|
@@ -47,6 +48,11 @@ This document provides an overview of various AI providers and models, including
 |[teach-anything.com](https://www.teach-anything.com)|`g4f.Provider.TeachAnything`|`llama-3.1-70b`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[you.com](https://you.com)|`g4f.Provider.You`|✔|✔|✔|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌|
 
+---
+### Providers Free [HuggingSpace](https://hf.space)
+|[black-forest-labs-flux-1-dev.hf.space](https://black-forest-labs-flux-1-dev.hf.space)|`g4f.Provider.BlackForestLabsFlux1Dev`|❌|`flux-dev`|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌|
+|[black-forest-labs-flux-1-schnell.hf.space](https://black-forest-labs-flux-1-schnell.hf.space)|`g4f.Provider.BlackForestLabsFlux1Schnell`|❌|`flux-schnell`|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌|
+|[voodoohop-flux-1-schnell.hf.space](https://voodoohop-flux-1-schnell.hf.space)|`g4f.Provider.VoodoohopFlux1Schnell`|❌|`flux-schnell`|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌|
 
 ---
 ### Providers Needs Auth
@@ -165,7 +171,7 @@ This document provides an overview of various AI providers and models, including
 |flux-disney|Flux AI|1+ Providers|[]( )|
 |flux-pixel|Flux AI|1+ Providers|[]( )|
 |flux-4o|Flux AI|1+ Providers|[]( )|
-|flux-schnell|Black Forest Labs|2+ Providers|[huggingface.co](https://huggingface.co/black-forest-labs/FLUX.1-schnell)|
+|flux-schnell|Black Forest Labs|1+ Providers|[huggingface.co](https://huggingface.co/black-forest-labs/FLUX.1-schnell)|
 |dall-e-3|OpenAI|5+ Providers|[openai.com](https://openai.com/index/dall-e/)|
 |midjourney|Midjourney|2+ Providers|[docs.midjourney.com](https://docs.midjourney.com/docs/model-versions)|
 |any-dark||2+ Providers|[]( )|

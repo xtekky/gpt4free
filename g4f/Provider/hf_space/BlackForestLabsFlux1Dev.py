@@ -3,15 +3,16 @@ from __future__ import annotations
 import json
 from aiohttp import ClientSession
 
-from ..typing import AsyncResult, Messages
-from ..image import ImageResponse, ImagePreview
-from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from ...typing import AsyncResult, Messages
+from ...image import ImageResponse, ImagePreview
+from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
 
-class Flux(AsyncGeneratorProvider, ProviderModelMixin):
-    label = "Flux (HuggingSpace)"
+class BlackForestLabsFlux1Dev(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://black-forest-labs-flux-1-dev.hf.space"
     api_endpoint = "/gradio_api/call/infer"
+
     working = True
+    
     default_model = 'flux-dev'
     models = [default_model]
     image_models = [default_model]
