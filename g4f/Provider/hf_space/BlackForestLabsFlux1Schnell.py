@@ -13,6 +13,8 @@ class BlackForestLabsFlux1Schnell(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://black-forest-labs-flux-1-schnell.hf.space"
     api_endpoint = "https://black-forest-labs-flux-1-schnell.hf.space/call/infer"
     
+    working = True
+    
     default_model = "flux-schnell"
     default_image_model = default_model
     image_models = [default_image_model]

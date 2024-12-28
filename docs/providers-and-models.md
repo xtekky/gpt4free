@@ -36,7 +36,6 @@ This document provides an overview of various AI providers and models, including
 |[chat10.free2gpt.xyz](https://chat10.free2gpt.xyz)|`g4f.Provider.Free2GPT`|`mistral-7b`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[freegptsnav.aifree.site](https://freegptsnav.aifree.site)|`g4f.Provider.FreeGpt`|`gemini-pro`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[app.giz.ai/assistant](https://app.giz.ai/assistant)|`g4f.Provider.GizAI`|`gemini-flash`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌|
-|[hf.space](https://hf.space)|`g4f.Provider.HuggingSpace`|❌|`flux-dev, flux-schnell`|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[liaobots.work](https://liaobots.work)|`g4f.Provider.Liaobots`|`grok-beta, gpt-4o-mini, gpt-4o, gpt-4, o1-preview, o1-mini, claude-3-opus, claude-3.5-sonnet, claude-3-sonnet, gemini-flash, gemini-pro`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[mhystical.cc](https://mhystical.cc)|`g4f.Provider.Mhystical`|`gpt-4`|❌|❌|✔|![Error](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[labs.perplexity.ai](https://labs.perplexity.ai)|`g4f.Provider.PerplexityLabs`|`sonar-online, sonar-chat, llama-3.3-70b, llama-3.1-8b, llama-3.1-70b, lfm-40b`|❌|❌|✔|![Error](https://img.shields.io/badge/Active-brightgreen)|❌|
@@ -49,6 +48,11 @@ This document provides an overview of various AI providers and models, including
 |[teach-anything.com](https://www.teach-anything.com)|`g4f.Provider.TeachAnything`|`llama-3.1-70b`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[you.com](https://you.com)|`g4f.Provider.You`|✔|✔|✔|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌|
 
+---
+### Providers Free [HuggingSpace](https://hf.space)
+|[black-forest-labs-flux-1-dev.hf.space](https://black-forest-labs-flux-1-dev.hf.space)|`g4f.Provider.BlackForestLabsFlux1Dev`|❌|`flux-dev`|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌|
+|[black-forest-labs-flux-1-schnell.hf.space](https://black-forest-labs-flux-1-schnell.hf.space)|`g4f.Provider.BlackForestLabsFlux1Schnell`|❌|`flux-schnell`|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌|
+|[voodoohop-flux-1-schnell.hf.space](https://voodoohop-flux-1-schnell.hf.space)|`g4f.Provider.VoodoohopFlux1Schnell`|❌|`flux-schnell`|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌|
 
 ---
 ### Providers Needs Auth
