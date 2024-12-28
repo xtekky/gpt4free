@@ -71,10 +71,36 @@ class ResponseType:
     def __str__(self) -> str:
         pass
 
+class JsonMixin:
+    def __init__(self, **kwargs) -> None:
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+
+    def get_dict(self):
+        return {
+            key: value
+            for key, value in self.__dict__.items()
+            if not key.startswith("__")
+        }
+
 class FinishReason():
     def __init__(self, reason: str):
         self.reason = reason
 
+    def __str__(self) -> str:
+        return ""
+
+class ToolCalls(ResponseType):
+    def __init__(self, list: list):
+        self.list = list
+
+    def __str__(self) -> str:
+        return ""
+
+    def get_list(self) -> list:
+        return self.list
+
+class Usage(ResponseType, JsonMixin):
     def __str__(self) -> str:
         return ""
 
@@ -108,27 +134,13 @@ class BaseConversation(ResponseType):
     def __str__(self) -> str:
         return ""
 
-class JsonConversation(BaseConversation):
-    def __init__(self, **kwargs) -> None:
-        for key, value in kwargs.items():
-            setattr(self, key, value)
+class JsonConversation(BaseConversation, JsonMixin):
+    pass
 
-    def to_dict(self):
-        return {
-            key: value
-            for key, value in self.__dict__.items()
-            if not key.startswith("__")
-        }
-
-class SynthesizeData(ResponseType):
+class SynthesizeData(ResponseType, JsonMixin):
     def __init__(self, provider: str, data: dict):
         self.provider = provider
         self.data = data
-
-    def to_json(self) -> dict:
-        return {
-            **self.__dict__
-        }
 
     def __str__(self) -> str:
         return ""

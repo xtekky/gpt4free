@@ -97,7 +97,7 @@ class Api:
                     kwargs['web_search'] = True
                     do_web_search = False
         if do_web_search:
-            from .internet import get_search_message
+            from ...web_search import get_search_message
             messages[-1]["content"] = get_search_message(messages[-1]["content"])
         if json_data.get("auto_continue"):
             kwargs['auto_continue'] = True

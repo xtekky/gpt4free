@@ -1,12 +1,7 @@
 from __future__ import annotations
 
-import json
-import logging
-from aiohttp import ClientSession
 from ..typing import AsyncResult, Messages
-from ..requests.raise_for_status import raise_for_status
-from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from .helper import format_prompt
+from .needs_auth.OpenaiAPI import OpenaiAPI
 
 """
     Mhystical.cc
@@ -19,39 +14,31 @@ from .helper import format_prompt
 
 """
 
-logger = logging.getLogger(__name__)
-
-class Mhystical(AsyncGeneratorProvider, ProviderModelMixin):
+class Mhystical(OpenaiAPI):
     url = "https://api.mhystical.cc"
     api_endpoint = "https://api.mhystical.cc/v1/completions"
     working = True
+    needs_auth = False
     supports_stream = False  # Set to False, as streaming is not specified in ChatifyAI
     supports_system_message = False
-    supports_message_history = True
     
     default_model = 'gpt-4'
     models = [default_model]
-    model_aliases = {}
 
     @classmethod
-    def get_model(cls, model: str) -> str:
-        if model in cls.models:
-            return model
-        elif model in cls.model_aliases:
-            return cls.model_aliases.get(model, cls.default_model)
-        else:
-            return cls.default_model
+    def get_model(cls, model: str, **kwargs) -> str:
+        cls.last_model = cls.default_model
+        return cls.default_model
 
     @classmethod
-    async def create_async_generator(
+    def create_async_generator(
         cls,
         model: str,
         messages: Messages,
-        proxy: str = None,
+        stream: bool = False,
         **kwargs
     ) -> AsyncResult:
         model = cls.get_model(model)
-        
         headers = {
             "x-api-key": "mhystical",
             "Content-Type": "application/json",
@@ -61,24 +48,11 @@ class Mhystical(AsyncGeneratorProvider, ProviderModelMixin):
             "referer": f"{cls.url}/",
             "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36"
         }
-        
-        async with ClientSession(headers=headers) as session:
-            data = {
-                "model": model,
-                "messages": [{"role": "user", "content": format_prompt(messages)}]
-            }
-            async with session.post(cls.api_endpoint, json=data, headers=headers, proxy=proxy) as response:
-                await raise_for_status(response)
-                response_text = await response.text()
-                filtered_response = cls.filter_response(response_text)
-                yield filtered_response
-
-    @staticmethod
-    def filter_response(response_text: str) -> str:
-        try:
-            json_response = json.loads(response_text)
-            message_content = json_response["choices"][0]["message"]["content"]
-            return message_content
-        except (KeyError, IndexError, json.JSONDecodeError) as e:
-            logger.error("Error parsing response: %s", e)
-            return "Error: Failed to parse response from API."
+        return super().create_async_generator(
+            model=model,
+            messages=messages,
+            stream=cls.supports_stream,
+            api_endpoint=cls.api_endpoint,
+            headers=headers,
+            **kwargs
+        )

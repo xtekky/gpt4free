@@ -1,9 +1,12 @@
 from __future__ import annotations
 
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, Any
 from time import time
 
 from .helper import filter_none
+
+ToolCalls = Optional[List[Dict[str, Any]]]
+Usage = Optional[Dict[str, int]]
 
 try:
     from pydantic import BaseModel, Field
@@ -57,10 +60,11 @@ class ChatCompletionChunk(BaseModel):
 class ChatCompletionMessage(BaseModel):
     role: str
     content: str
+    tool_calls: ToolCalls
 
     @classmethod
-    def model_construct(cls, content: str):
-        return super().model_construct(role="assistant", content=content)
+    def model_construct(cls, content: str, tool_calls: ToolCalls = None):
+        return super().model_construct(role="assistant", content=content, **filter_none(tool_calls=tool_calls))
 
 class ChatCompletionChoice(BaseModel):
     index: int
@@ -78,11 +82,11 @@ class ChatCompletion(BaseModel):
     model: str
     provider: Optional[str]
     choices: List[ChatCompletionChoice]
-    usage: Dict[str, int] = Field(examples=[{
+    usage: Usage = Field(default={
         "prompt_tokens": 0, #prompt_tokens,
         "completion_tokens": 0, #completion_tokens,
         "total_tokens": 0, #prompt_tokens + completion_tokens,
-    }])
+    })
 
     @classmethod
     def model_construct(
@@ -90,7 +94,9 @@ class ChatCompletion(BaseModel):
         content: str,
         finish_reason: str,
         completion_id: str = None,
-        created: int = None
+        created: int = None,
+        tool_calls: ToolCalls = None,
+        usage: Usage = None
     ):
         return super().model_construct(
             id=f"chatcmpl-{completion_id}" if completion_id else None,
@@ -99,14 +105,10 @@ class ChatCompletion(BaseModel):
             model=None,
             provider=None,
             choices=[ChatCompletionChoice.model_construct(
-                ChatCompletionMessage.model_construct(content),
-                finish_reason
+                ChatCompletionMessage.model_construct(content, tool_calls),
+                finish_reason,
             )],
-            usage={
-                "prompt_tokens": 0, #prompt_tokens,
-                "completion_tokens": 0, #completion_tokens,
-                "total_tokens": 0, #prompt_tokens + completion_tokens,
-            }
+            **filter_none(usage=usage)
         )
 
 class ChatCompletionDelta(BaseModel):

@@ -222,12 +222,11 @@ def to_bytes(image: ImageType) -> bytes:
     elif isinstance(image, Path):
         return image.read_bytes()
     else:
-        fp = open(image, "rb")
         try:
-            fp.seek(0)
+            image.seek(0)
         except (AttributeError, io.UnsupportedOperation):
             pass
-        return fp.read()
+        return image.read()
 
 def to_data_uri(image: ImageType) -> str:
     if not isinstance(image, str):

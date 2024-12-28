@@ -30,11 +30,6 @@ from starlette.responses import FileResponse
 from starlette._compat import md5_hexdigest
 from types import SimpleNamespace
 from typing import Union, Optional, List
-try:
-    from typing import Annotated
-except ImportError:
-    class Annotated:
-        pass
 
 import g4f
 import g4f.debug
@@ -50,7 +45,7 @@ from .stubs import (
     ChatCompletionsConfig, ImageGenerationConfig,
     ProviderResponseModel, ModelResponseModel,
     ErrorResponseModel, ProviderResponseDetailModel,
-    FileResponseModel
+    FileResponseModel, Annotated
 )
 
 logger = logging.getLogger(__name__)
