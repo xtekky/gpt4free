@@ -7,7 +7,10 @@ from concurrent.futures import ThreadPoolExecutor
 from abc import abstractmethod
 from inspect import signature, Parameter
 from typing import Optional, _GenericAlias
-from types import NoneType
+try:
+    from types import NoneType
+except ImportError:
+    NoneType = type(None)
 
 from ..typing import CreateResult, AsyncResult, Messages
 from .types import BaseProvider
