@@ -8,6 +8,7 @@ import re
 import aiohttp
 import asyncio
 from pathlib import Path
+import concurrent.futures
 
 from ..typing import AsyncResult, Messages, ImagesType
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
@@ -220,15 +221,24 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         use_internal_search = web_search and model in cls.web_search_models
         
         if web_search and not use_internal_search:
-            
-            def run_search():
-                return get_search_message(messages[-1]["content"])
+            try:
+                # Create a timeout for web search
+                async def run_search():
+                    with concurrent.futures.ThreadPoolExecutor() as executor:
+                        return await asyncio.get_event_loop().run_in_executor(
+                            executor,
+                            lambda: get_search_message(messages[-1]["content"])
+                        )
                 
-            import concurrent.futures
-            with concurrent.futures.ThreadPoolExecutor() as executor:
-                messages[-1]["content"] = await asyncio.get_event_loop().run_in_executor(
-                    executor, run_search
-                )
+                # Set a timeout of 10 seconds for web search
+                search_result = await asyncio.wait_for(run_search(), timeout=10.0)
+                messages[-1]["content"] = search_result
+                
+            except asyncio.TimeoutError:
+                debug.log("Web search timed out, proceeding with original message")
+            except Exception as e:
+                debug.log(f"Web search failed: {str(e)}, proceeding with original message")
+            
             web_search = False
         
         async def process_request():

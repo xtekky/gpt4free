@@ -37,7 +37,7 @@ class BlackboxCreateAgent(AsyncGeneratorProvider, ProviderModelMixin):
         """Returns the path to the cache file."""
         dir = Path(get_cookies_dir())
         dir.mkdir(exist_ok=True)
-        return dir / 'blackbox2.json'
+        return dir / 'blackbox_create_agent.json'
 
     @classmethod
     def _load_cached_value(cls) -> str | None:

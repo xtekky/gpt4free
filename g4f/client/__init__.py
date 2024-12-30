@@ -5,6 +5,7 @@ import time
 import random
 import string
 import asyncio
+import aiohttp
 import base64
 import json
 from typing import Union, AsyncIterator, Iterator, Coroutine, Optional
@@ -486,17 +487,21 @@ class Images:
         if response_format == "url":
             # Return original URLs without saving locally
             images = [Image.model_construct(url=image, revised_prompt=response.alt) for image in response.get_list()]
+        elif response_format == "b64_json":
+            # Convert URLs directly to base64 without saving
+            async def get_b64_from_url(url: str) -> Image:
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(url, proxy=proxy) as resp:
+                        if resp.status == 200:
+                            image_data = await resp.read()
+                            b64_data = base64.b64encode(image_data).decode()
+                            return Image.model_construct(b64_json=b64_data, revised_prompt=response.alt)
+            images = await asyncio.gather(*[get_b64_from_url(image) for image in response.get_list()])
         else:
             # Save locally for None (default) case
             images = await copy_images(response.get_list(), response.get("cookies"), proxy)
-            if response_format == "b64_json":
-                async def process_image_item(image_file: str) -> Image:
-                    with open(os.path.join(images_dir, os.path.basename(image_file)), "rb") as file:
-                        image_data = base64.b64encode(file.read()).decode()
-                        return Image.model_construct(b64_json=image_data, revised_prompt=response.alt)
-                images = await asyncio.gather(*[process_image_item(image) for image in images])
-            else:
-                images = [Image.model_construct(url=f"/images/{os.path.basename(image)}", revised_prompt=response.alt) for image in images]
+            images = [Image.model_construct(url=f"/images/{os.path.basename(image)}", revised_prompt=response.alt) for image in images]
+        
         return ImagesResponse.model_construct(
             created=int(time.time()),
             data=images,
