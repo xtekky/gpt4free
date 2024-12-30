@@ -32,7 +32,8 @@ class HuggingChat(AbstractProvider, ProviderModelMixin):
     default_model = "Qwen/Qwen2.5-72B-Instruct"
     default_image_model = "black-forest-labs/FLUX.1-dev"
     image_models = [    
-        "black-forest-labs/FLUX.1-dev"
+        "black-forest-labs/FLUX.1-dev",
+        "black-forest-labs/FLUX.1-schnell",
     ]
     models = [
         default_model,
@@ -59,9 +60,10 @@ class HuggingChat(AbstractProvider, ProviderModelMixin):
         "hermes-3": "NousResearch/Hermes-3-Llama-3.1-8B",
         "mistral-nemo": "mistralai/Mistral-Nemo-Instruct-2407",
         "phi-3.5-mini": "microsoft/Phi-3.5-mini-instruct",
-        
+
         ### Image ###
         "flux-dev": "black-forest-labs/FLUX.1-dev",
+        "flux-schnell": "black-forest-labs/FLUX.1-schnell",
     }
 
     @classmethod

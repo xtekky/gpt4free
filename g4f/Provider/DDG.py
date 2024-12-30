@@ -9,7 +9,6 @@ from .base_provider import AsyncGeneratorProvider, ProviderModelMixin, BaseConve
 from .helper import format_prompt
 from ..requests.aiohttp import get_connector
 from ..requests.raise_for_status import raise_for_status
-from .. import debug
 
 MODELS = [
     {"model":"gpt-4o","modelName":"GPT-4o","modelVariant":None,"modelStyleId":"gpt-4o-mini","createdBy":"OpenAI","moderationLevel":"HIGH","isAvailable":1,"inputCharLimit":16e3,"settingId":"4"},

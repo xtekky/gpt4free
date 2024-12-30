@@ -6,6 +6,8 @@ from asyncio import AbstractEventLoop
 from concurrent.futures import ThreadPoolExecutor
 from abc import abstractmethod
 from inspect import signature, Parameter
+from typing import Optional, _GenericAlias
+from types import NoneType
 
 from ..typing import CreateResult, AsyncResult, Messages
 from .types import BaseProvider
@@ -14,6 +16,46 @@ from .response import BaseConversation
 from .helper import concat_chunks, async_concat_chunks
 from ..errors import ModelNotSupportedError
 from .. import debug
+
+SAFE_PARAMETERS = [
+    "model", "messages", "stream", "timeout",
+    "proxy", "images", "response_format",
+    "prompt", "tools", "conversation",
+    "history_disabled", "auto_continue",
+    "temperature",  "top_k", "top_p",
+    "frequency_penalty", "presence_penalty",
+    "max_tokens", "max_new_tokens", "stop",
+    "api_key", "seed", "width", "height",
+    "proof_token", "max_retries"
+]
+
+BASIC_PARAMETERS = {
+    "model": "",
+    "messages": [],
+    "provider": None,
+    "stream": False,
+    "timeout": 0,
+    "response_format": None,
+    "max_tokens": None,
+    "stop": None,
+    "web_search": False,
+}
+
+PARAMETER_EXAMPLES = {
+    "proxy": "http://user:password@127.0.0.1:3128",
+    "temperature": 1,
+    "top_k": 1,
+    "top_p": 1,
+    "frequency_penalty": 1,
+    "presence_penalty": 1,
+    "messages": [{"role": "system", "content": ""}, {"role": "user", "content": ""}],
+    "images": [["data:image/jpeg;base64,...", "filename.jpg"]],
+    "response_format": {"type": "json_object"},
+    "conversation": {"conversation_id": "550e8400-e29b-11d4-a716-...", "message_id": "550e8400-e29b-11d4-a716-..."},
+    "max_new_tokens": 1024,
+    "max_tokens": 4096,
+    "seed": 42,
+}
 
 class AbstractProvider(BaseProvider):
     """
@@ -56,13 +98,56 @@ class AbstractProvider(BaseProvider):
         )
 
     @classmethod
-    def get_parameters(cls) -> dict[str, Parameter]:
-        return {name: parameter for name, parameter in signature(
+    def get_parameters(cls, as_json: bool = False) -> dict[str, Parameter]:
+        params = {name: parameter for name, parameter in signature(
             cls.create_async_generator if issubclass(cls, AsyncGeneratorProvider) else
             cls.create_async if issubclass(cls, AsyncProvider) else
             cls.create_completion
-        ).parameters.items() if name not in ["kwargs", "model", "messages"]
+        ).parameters.items() if name in SAFE_PARAMETERS
             and (name != "stream" or cls.supports_stream)}
+        if as_json:
+            def get_type_as_var(annotation: type, key: str):
+                if key == "model":
+                    return getattr(cls, "default_model", "")
+                elif key == "stream":
+                    return cls.supports_stream
+                elif key in PARAMETER_EXAMPLES:
+                    if key == "messages" and not cls.supports_system_message:
+                        return [PARAMETER_EXAMPLES[key][-1]]
+                    return PARAMETER_EXAMPLES[key]
+                if isinstance(annotation, type):
+                    if issubclass(annotation, int):
+                        return 0
+                    elif issubclass(annotation, float):
+                        return 0.0
+                    elif issubclass(annotation, bool):
+                        return False
+                    elif issubclass(annotation, str):
+                        return ""
+                    elif issubclass(annotation, dict):
+                        return {}
+                    elif issubclass(annotation, list):
+                        return []
+                    elif issubclass(annotation, BaseConversation):
+                        return {}
+                    elif issubclass(annotation, NoneType):
+                        return {}
+                elif annotation is None:
+                    return None
+                elif isinstance(annotation, _GenericAlias) and annotation.__origin__ is Optional:
+                    return get_type_as_var(annotation.__args__[0])
+                else:
+                    return str(annotation)
+            return { name: (
+                param.default
+                if isinstance(param, Parameter) and param.default is not Parameter.empty and param.default is not None
+                else get_type_as_var(param.annotation if isinstance(param, Parameter) else type(param), name)
+            ) for name, param in {
+                **BASIC_PARAMETERS,
+                **{"provider": cls.__name__},
+                **params
+            }.items()}
+        return params
 
     @classmethod
     @property
@@ -78,13 +163,14 @@ class AbstractProvider(BaseProvider):
         """
 
         def get_type_name(annotation: type) -> str:
-            return annotation.__name__ if hasattr(annotation, "__name__") else str(annotation)
+            return getattr(annotation, "__name__", str(annotation)) if annotation is not Parameter.empty else ""
 
         args = ""
         for name, param in cls.get_parameters().items():
             args += f"\n    {name}"
-            args += f": {get_type_name(param.annotation)}" if param.annotation is not Parameter.empty else ""
-            default_value = f'"{param.default}"' if isinstance(param.default, str) else param.default
+            args += f": {get_type_name(param.annotation)}"
+            default_value = getattr(cls, "default_model", "") if name == "model" else param.default
+            default_value = f'"{default_value}"' if isinstance(default_value, str) else default_value
             args += f" = {default_value}" if param.default is not Parameter.empty else ""
             args += ","
 

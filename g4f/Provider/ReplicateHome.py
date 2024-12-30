@@ -16,8 +16,6 @@ class ReplicateHome(AsyncGeneratorProvider, ProviderModelMixin):
     api_endpoint = "https://homepage.replicate.com/api/prediction"
     working = True
     supports_stream = True
-    supports_system_message = True
-    supports_message_history = True
     
     default_model = 'google-deepmind/gemma-2b-it'
     default_image_model = 'stability-ai/stable-diffusion-3'

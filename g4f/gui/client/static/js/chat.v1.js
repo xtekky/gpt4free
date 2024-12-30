@@ -32,6 +32,8 @@ let content_storage = {};
 let error_storage = {};
 let synthesize_storage = {};
 let title_storage = {};
+let parameters_storage = {};
+let finish_storage = {};
 
 messageInput.addEventListener("blur", () => {
     window.scrollTo(0, 0);
@@ -132,16 +134,20 @@ class HtmlRenderPlugin {
     }
 }
 
-hljs.addPlugin(new CopyButtonPlugin());
-hljs.addPlugin(new HtmlRenderPlugin())
 let typesetPromise = Promise.resolve();
 const highlight = (container) => {
-    container.querySelectorAll('code:not(.hljs').forEach((el) => {
-        if (el.className != "hljs") {
-            hljs.highlightElement(el);
+    if (window.hljs) {
+        hljs.addPlugin(new HtmlRenderPlugin())
+        if (window.CopyButtonPlugin) {
+            hljs.addPlugin(new CopyButtonPlugin());
         }
-    });
-    if (window.MathJax) {
+        container.querySelectorAll('code:not(.hljs').forEach((el) => {
+            if (el.className != "hljs") {
+                hljs.highlightElement(el);
+            }
+        });
+    }
+    if (window.MathJax && window.MathJax.typesetPromise) {
         typesetPromise = typesetPromise.then(
             () => MathJax.typesetPromise([container])
         ).catch(
@@ -150,12 +156,43 @@ const highlight = (container) => {
     }
 }
 
+const get_message_el = (el) => {
+    let message_el = el;
+    while(!("index" in message_el.dataset) && message_el.parentElement) {
+        message_el = message_el.parentElement;
+    }
+    return message_el;
+}
+
 const register_message_buttons = async () => {
+    document.querySelectorAll(".message .content .provider").forEach(async (el) => {
+        if (!("click" in el.dataset)) {
+            el.dataset.click = "true";
+            const provider_forms = document.querySelector(".provider_forms");
+            const provider_form = provider_forms.querySelector(`#${el.dataset.provider}-form`);
+            const provider_link = el.querySelector("a");
+            provider_link?.addEventListener("click", async (event) => {
+                event.preventDefault();
+                if (provider_form) {
+                    provider_form.classList.remove("hidden");
+                    provider_forms.classList.remove("hidden");
+                    chat.classList.add("hidden");
+                }
+                return false;
+            });
+            document.getElementById("close_provider_forms").addEventListener("click", async () => {
+                provider_form.classList.add("hidden");
+                provider_forms.classList.add("hidden");
+                chat.classList.remove("hidden");
+            });
+        }
+    });
+
     document.querySelectorAll(".message .fa-xmark").forEach(async (el) => {
         if (!("click" in el.dataset)) {
             el.dataset.click = "true";
             el.addEventListener("click", async () => {
-                const message_el = el.parentElement.parentElement;
+                const message_el = get_message_el(el);
                 await remove_message(window.conversation_id, message_el.dataset.index);
                 await safe_load_conversation(window.conversation_id, false);
             });
@@ -166,7 +203,7 @@ const register_message_buttons = async () => {
         if (!("click" in el.dataset)) {
             el.dataset.click = "true";
             el.addEventListener("click", async () => {
-                const message_el = el.parentElement.parentElement.parentElement;
+                let message_el = get_message_el(el);
                 const copyText = await get_message(window.conversation_id, message_el.dataset.index);
                 try {        
                     if (!navigator.clipboard) {
@@ -188,7 +225,7 @@ const register_message_buttons = async () => {
         if (!("click" in el.dataset)) {
             el.dataset.click = "true";
             el.addEventListener("click", async () => {
-                const message_el = el.parentElement.parentElement.parentElement;
+                const message_el = get_message_el(el);
                 let audio;
                 if (message_el.dataset.synthesize_url) {
                     el.classList.add("active");
@@ -206,106 +243,59 @@ const register_message_buttons = async () => {
                     audio.play();
                     return;
                 }
-                let playlist = [];
-                function play_next() {
-                    const next = playlist.shift();
-                    if (next && el.dataset.do_play) {
-                        next.play();
-                    }
-                }
-                if (el.dataset.stopped) {
-                    el.classList.remove("blink")
-                    delete el.dataset.stopped;
-                    return;
-                }
-                if (el.dataset.running) {
-                    el.dataset.stopped = true;
-                    el.classList.add("blink")
-                    playlist = [];
-                    return;
-                }
-                el.dataset.running = true;
-                el.classList.add("blink")
-                el.classList.add("active")
-
-                let speechText = await get_message(window.conversation_id, message_el.dataset.index);
-
-                speechText = speechText.replaceAll(/([^0-9])\./gm, "$1.;");
-                speechText = speechText.replaceAll("?", "?;");
-                speechText = speechText.replaceAll(/\[(.+)\]\(.+\)/gm, "($1)");
-                speechText = speechText.replaceAll(/```[a-z]+/gm, "");
-                speechText = filter_message(speechText.replaceAll("`", "").replaceAll("#", ""))
-                const lines = speechText.trim().split(/\n|;/).filter(v => count_words(v));
-
-                window.onSpeechResponse = (url) => {
-                    if (!el.dataset.stopped) {
-                        el.classList.remove("blink")
-                    }
-                    if (url) {
-                        var sound = document.createElement('audio');
-                        sound.controls = 'controls';
-                        sound.src = url;
-                        sound.type = 'audio/wav';
-                        sound.onended = function() {
-                            el.dataset.do_play = true;
-                            setTimeout(play_next, 1000);
-                        };
-                        sound.onplay = function() {
-                            delete el.dataset.do_play;
-                        };
-                        var container = document.createElement('div');
-                        container.classList.add("audio");
-                        container.appendChild(sound);
-                        content_el.appendChild(container);
-                        if (!el.dataset.stopped) {
-                            playlist.push(sound);
-                            if (el.dataset.do_play) {
-                                play_next();
-                            }
-                        }
-                    }
-                    let line = lines.length > 0 ? lines.shift() : null;
-                    if (line && !el.dataset.stopped) {
-                        handleGenerateSpeech(line);
-                    } else {
-                        el.classList.remove("active");
-                        el.classList.remove("blink");
-                        delete el.dataset.running;
-                    }
-                }
-                el.dataset.do_play = true;
-                let line = lines.shift();
-                handleGenerateSpeech(line);
             });
         }
     });
-    document.querySelectorAll(".message .fa-rotate").forEach(async (el) => {
+
+    document.querySelectorAll(".message .regenerate_button").forEach(async (el) => {
         if (!("click" in el.dataset)) {
             el.dataset.click = "true";
             el.addEventListener("click", async () => {
-                const message_el = el.parentElement.parentElement.parentElement;
+                const message_el = get_message_el(el);
                 el.classList.add("clicked");
                 setTimeout(() => el.classList.remove("clicked"), 1000);
                 await ask_gpt(get_message_id(), message_el.dataset.index);
             });
         }
     });
-    document.querySelectorAll(".message .fa-whatsapp").forEach(async (el) => {
-        if (!el.parentElement.href) {
-            const text = el.parentElement.parentElement.parentElement.innerText;
-            el.parentElement.href = `https://wa.me/?text=${encodeURIComponent(text)}`;
+
+    document.querySelectorAll(".message .continue_button").forEach(async (el) => {
+        if (!("click" in el.dataset)) {
+            el.dataset.click = "true";
+            el.addEventListener("click", async () => {
+                if (!el.disabled) {
+                    el.disabled = true;
+                    const message_el = get_message_el(el);
+                    el.classList.add("clicked");
+                    setTimeout(() => {el.classList.remove("clicked"); el.disabled = false}, 1000);
+                    await ask_gpt(get_message_id(), message_el.dataset.index, false, null, null, "continue");
+                }
+            });
         }
     });
+
+    document.querySelectorAll(".message .fa-whatsapp").forEach(async (el) => {
+        if (!("click" in el.dataset)) {
+            el.dataset.click = "true";
+            el.addEventListener("click", async () => {
+                const text = get_message_el(el).innerText;
+                window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+            });
+        }
+    });
+
     document.querySelectorAll(".message .fa-print").forEach(async (el) => {
         if (!("click" in el.dataset)) {
             el.dataset.click = "true";
             el.addEventListener("click", async () => {
-                const message_el = el.parentElement.parentElement.parentElement;
+                const message_el = get_message_el(el);
                 el.classList.add("clicked");
                 message_box.scrollTop = 0;
                 message_el.classList.add("print");
-                setTimeout(() => el.classList.remove("clicked"), 1000);
-                setTimeout(() => message_el.classList.remove("print"), 1000);
+                setTimeout(() => {
+                    el.classList.remove("clicked");
+                    message_el.classList.remove("print");
+                }, 1000);
                 window.print()
             })
         }
@@ -411,10 +401,9 @@ regenerate_button.addEventListener("click", async () => {
     setTimeout(()=>regenerate_button.classList.remove("regenerate-hidden"), 3000);
     const all_pinned = document.querySelectorAll(".buttons button.pinned")
     if (all_pinned.length > 0) {
-        all_pinned.forEach((el) => ask_gpt(get_message_id(), -1, true, el.dataset.provider, el.dataset.model));
+        all_pinned.forEach((el) => ask_gpt(get_message_id(), -1, true, el.dataset.provider, el.dataset.model, "variant"));
     } else {
-        await hide_message(window.conversation_id);
-        await ask_gpt(get_message_id());
+        await ask_gpt(get_message_id(), -1, true, null, null, "variant");
     }
 });
 
@@ -443,22 +432,42 @@ document.querySelector(".media_player .fa-x").addEventListener("click", ()=>{
     media_player.removeChild(audio);
 });
 
-const prepare_messages = (messages, message_index = -1) => {
+const prepare_messages = (messages, message_index = -1, do_continue = false) => {
+    messages = [ ...messages ]
     if (message_index != null) {
+        // Removes messages after selected
         if (message_index >= 0) {
             messages = messages.filter((_, index) => message_index >= index);
         }
         // Removes none user messages at end
-        let last_message;
-        while (last_message = messages.pop()) {
-            if (last_message["role"] == "user") {
-                messages.push(last_message);
-                break;
+        if (!do_continue) {
+            let last_message;
+            while (last_message = messages.pop()) {
+                if (last_message["role"] == "user") {
+                    messages.push(last_message);
+                    break;
+                }
             }
         }
     }
-
+    // Combine messages with same role
+    let last_message;
     let new_messages = [];
+    messages.forEach((message) => {
+        message_copy = { ...message };
+        if (last_message) {
+            if (last_message["role"] == message["role"]) {
+                message_copy["content"] = last_message["content"] + message_copy["content"];
+                new_messages.pop();
+            }
+        }
+        last_message = message_copy;
+        new_messages.push(last_message);
+    });
+    messages = new_messages;
+
+    // Insert system prompt as first message
+    new_messages = [];
     if (systemPrompt?.value) {
         new_messages.push({
             "role": "system",
@@ -478,10 +487,16 @@ const prepare_messages = (messages, message_index = -1) => {
     messages.forEach((new_message) => {
         // Include only not regenerated messages
         if (new_message && !new_message.regenerate) {
+            // Copy message first
+            new_message = { ...new_message };
             // Remove generated images from history
             new_message.content = filter_message(new_message.content);
+            // Remove internal fields
             delete new_message.provider;
             delete new_message.synthesize;
+            delete new_message.finish;
+            delete new_message.conversation;
+            // Append message to new messages
             new_messages.push(new_message)
         }
     });
@@ -489,7 +504,133 @@ const prepare_messages = (messages, message_index = -1) => {
     return new_messages;
 }
 
-async function add_message_chunk(message, message_id) {
+async function load_provider_parameters(provider) {
+    let form_id = `${provider}-form`;
+    if (!parameters_storage[provider]) {
+        parameters_storage[provider] = JSON.parse(appStorage.getItem(form_id));
+    }
+    if (parameters_storage[provider]) {
+        let provider_forms = document.querySelector(".provider_forms");
+        let form_el = document.createElement("form");
+        form_el.id = form_id;
+        form_el.classList.add("hidden");
+        appStorage.setItem(form_el.id, JSON.stringify(parameters_storage[provider]));
+        let old_form = message_box.querySelector(`#${provider}-form`);
+        if (old_form) {
+            provider_forms.removeChild(old_form);
+        }
+        Object.entries(parameters_storage[provider]).forEach(([key, value]) => {
+            let el_id = `${provider}-${key}`;
+            let saved_value = appStorage.getItem(el_id);
+            let input_el;
+            let field_el;
+            if (typeof value == "boolean") {
+                field_el = document.createElement("div");
+                field_el.classList.add("field");
+                if (saved_value) {
+                    field_el.classList.add("saved");
+                    saved_value = saved_value == "true";
+                } else {
+                    saved_value = value;
+                }
+                field_el.innerHTML = `<span class="label">${key}:</span>
+                <input type="checkbox" id="${el_id}" name="${provider}[${key}]">
+                <label for="${el_id}" class="toogle" title=""></label>
+                <i class="fa-solid fa-xmark"></i>`;
+                form_el.appendChild(field_el);
+                input_el = field_el.querySelector("input");
+                input_el.checked = saved_value;
+                input_el.dataset.checked = value ? "true" : "false";
+                input_el.onchange = () => {
+                    field_el.classList.add("saved");
+                    appStorage.setItem(el_id, input_el.checked ? "true" : "false");
+                }
+            } else if (typeof value == "string" || typeof value == "object"|| typeof value == "number") {
+                field_el = document.createElement("div");
+                field_el.classList.add("field");
+                field_el.classList.add("box");
+                if (typeof value == "object") {
+                    value = JSON.stringify(value, null, 4);
+                }
+                if (saved_value) {
+                    field_el.classList.add("saved");
+                } else {
+                    saved_value = value;
+                }
+                let placeholder;
+                if (key in ["api_key", "proof_token"]) {
+                    placeholder = value.length >= 22 ? (value.substring(0, 10) + "*".repeat(8) + value.substring(value.length-10)) : value;
+                } else {
+                    placeholder = value;
+                }
+                field_el.innerHTML = `<label for="${el_id}" title="">${key}:</label>`;
+                if (Number.isInteger(value)) {
+                    field_el.innerHTML += `<input type="range" id="${el_id}" name="${provider}[${key}]" value="${escapeHtml(value)}" class="slider" min="0" max="4096" step="1"/><output>${escapeHtml(value)}</output>`;
+                    field_el.innerHTML += `<i class="fa-solid fa-xmark"></i>`;
+                } else if (typeof value == "number") {
+                    field_el.innerHTML += `<input type="range" id="${el_id}" name="${provider}[${key}]" value="${escapeHtml(value)}" class="slider" min="0" max="2" step="0.1"/><output>${escapeHtml(value)}</output>`;
+                    field_el.innerHTML += `<i class="fa-solid fa-xmark"></i>`;
+                } else {
+                    field_el.innerHTML += `<textarea id="${el_id}" name="${provider}[${key}]"></textarea>`;
+                    field_el.innerHTML += `<i class="fa-solid fa-xmark"></i>`;
+                    input_el = field_el.querySelector("textarea");
+                    input_el.dataset.text = value;
+                    input_el.placeholder = placeholder;
+                    if (!key in ["api_key", "proof_token"]) {
+                        input_el.innerHTML = saved_value;
+                    } else {
+                        input_el.dataset.saved_value = saved_value;
+                    }
+                    input_el.oninput = () => {
+                        field_el.classList.add("saved");
+                        appStorage.setItem(el_id, input_el.value);
+                        input_el.dataset.saved_value = input_el.value;
+                    };
+                    input_el.onfocus = () => {
+                        if (input_el.dataset.saved_value) {
+                            input_el.innerHTML = input_el.dataset.saved_value;
+                        }
+                        input_el.style.removeProperty("height");
+                        input_el.style.height = (input_el.scrollHeight) + "px";
+                    }
+                    input_el.onblur = () => {
+                        input_el.style.removeProperty("height");
+                        if (key in ["api_key", "proof_token"]) {
+                            input_el.value = "";
+                        }
+                    }
+                }
+                if (!input_el) {
+                    input_el = field_el.querySelector("input");
+                    input_el.dataset.value = value;
+                    input_el.value = saved_value;
+                    input_el.oninput = () => {
+                        input_el.nextElementSibling.value = input_el.value;
+                        field_el.classList.add("saved");
+                        appStorage.setItem(input_el.id, input_el.value);
+                    };
+                }
+            }
+            form_el.appendChild(field_el);
+            let xmark_el = field_el.querySelector(".fa-xmark");
+            xmark_el.onclick = () => {
+                if (input_el.dataset.checked) {
+                    input_el.checked = input_el.dataset.checked == "true";
+                } else if (input_el.dataset.value) {
+                    input_el.value = input_el.dataset.value;
+                    input_el.nextElementSibling.value = input_el.dataset.value;
+                } else if (input_el.dataset.text) {
+                    input_el.innerHTML = input_el.dataset.text;
+                }
+                appStorage.removeItem(el_id);
+                field_el.classList.remove("saved");
+            }
+        });
+        provider_forms.prepend(form_el);
+    }
+}
+
+async function add_message_chunk(message, message_id, provider) {
     content_map = content_storage[message_id];
     if (message.type == "conversation") {
         const conversation = await get_conversation(window.conversation_id);
@@ -502,16 +643,18 @@ async function add_message_chunk(message, message_id) {
         await save_conversation(conversation_id, conversation);
     } else if (message.type == "provider") {
         provider_storage[message_id] = message.provider;
-        content_map.content.querySelector('.provider').innerHTML = `
+        let provider_el = content_map.content.querySelector('.provider');
+        provider_el.innerHTML = `
             <a href="${message.provider.url}" target="_blank">
                 ${message.provider.label ? message.provider.label : message.provider.name}
             </a>
             ${message.provider.model ? ' with ' + message.provider.model : ''}
-        `
+        `;
     } else if (message.type == "message") {
         console.error(message.message)
     } else if (message.type == "error") {
-        if (content_map.inner.dataset.timeout) clearTimeout(content_map.inner.dataset.timeout);
+        content_map.update_timeouts.forEach((timeoutId)=>clearTimeout(timeoutId));
+        content_map.update_timeouts = [];
         error_storage[message_id] = message.error
         console.error(message.error);
         content_map.inner.innerHTML += markdown_render(`**An error occured:** ${message.error}`);
@@ -539,16 +682,28 @@ async function add_message_chunk(message, message_id) {
         title_storage[message_id] = message.title;
     } else if (message.type == "login") {
         update_message(content_map, message_id, message.login);
+    } else if (message.type == "login") {
+        update_message(content_map, message_id, message.login);
+    } else if (message.type == "finish") {
+        finish_storage[message_id] = message.finish;
+    } else if (message.type == "parameters") {
+        if (!parameters_storage[provider]) {
+            parameters_storage[provider] = {};
+        }
+        Object.entries(message.parameters).forEach(([key, value]) => {
+            parameters_storage[provider][key] = value;
+        });
+        await load_provider_parameters(provider);
     }
 }
 
-const ask_gpt = async (message_id, message_index = -1, regenerate = false, provider = null, model = null) => {
+const ask_gpt = async (message_id, message_index = -1, regenerate = false, provider = null, model = null, action = null) => {
     if (!model && !provider) {
         model = get_selected_model()?.value || null;
         provider = providerSelect.options[providerSelect.selectedIndex].value;
     }
     let conversation = await get_conversation(window.conversation_id);
-    messages = prepare_messages(conversation.items, message_index);
+    messages = prepare_messages(conversation.items, message_index, action=="continue");
     message_storage[message_id] = "";
     stop_generating.classList.remove("stop_generating-hidden");
 
@@ -571,7 +726,7 @@ const ask_gpt = async (message_id, message_index = -1, regenerate = false, provi
             <i class="fa-regular fa-phone-arrow-down-left"></i>
         </div>
         <div class="content" id="gpt_${message_id}">
-            <div class="provider"></div>
+            <div class="provider" data-provider="${provider}"></div>
             <div class="content_inner"><span class="cursor"></span></div>
             <div class="count"></div>
         </div>
@@ -594,6 +749,7 @@ const ask_gpt = async (message_id, message_index = -1, regenerate = false, provi
         content: content_el,
         inner: content_el.querySelector('.content_inner'),
         count: content_el.querySelector('.count'),
+        update_timeouts: [],
     }
     if (message_index == -1 && !regenerate) {
         await scroll_to_bottom();
@@ -601,7 +757,6 @@ const ask_gpt = async (message_id, message_index = -1, regenerate = false, provi
     try {
         const input = imageInput && imageInput.files.length > 0 ? imageInput : cameraInput;
         const files = input && input.files.length > 0 ? input.files : null;
-        const auto_continue = document.getElementById("auto_continue")?.checked;
         const download_images = document.getElementById("download_images")?.checked;
         const api_key = get_api_key_by_provider(provider);
         const ignored = Array.from(settings.querySelectorAll("input.provider:not(:checked)")).map((el)=>el.value);
@@ -613,12 +768,13 @@ const ask_gpt = async (message_id, message_index = -1, regenerate = false, provi
             web_search: switchInput.checked,
             provider: provider,
             messages: messages,
-            auto_continue: auto_continue,
+            action: action,
             download_images: download_images,
             api_key: api_key,
             ignored: ignored,
         }, files, message_id);
-        if (content_map.inner.dataset.timeout) clearTimeout(content_map.inner.dataset.timeout);
+        content_map.update_timeouts.forEach((timeoutId)=>clearTimeout(timeoutId));
+        content_map.update_timeouts = [];
         if (!error_storage[message_id]) {
             html = markdown_render(message_storage[message_id]);
             content_map.inner.innerHTML = html;
@@ -645,8 +801,11 @@ const ask_gpt = async (message_id, message_index = -1, regenerate = false, provi
             message_index,
             synthesize_storage[message_id],
             regenerate,
-            title_storage[message_id]
+            title_storage[message_id],
+            finish_storage[message_id],
+            action=="continue"
         );
+        delete message_storage[message_id];
         if (!error_storage[message_id]) {
             await safe_load_conversation(window.conversation_id, message_index == -1);
         }
@@ -802,22 +961,30 @@ const load_conversation = async (conversation_id, scroll=true) => {
         systemPrompt.value = conversation.system || "";
     }
 
-    let elements = "";
+    let elements = [];
     let last_model = null;
-    for (i in messages) {
-        let item = messages[i];
+    let providers = [];
+    let buffer = "";
+    messages.forEach((item, i) => {
+        if (item.continue) {
+            elements.pop();
+        } else {
+            buffer = "";
+        }
+        buffer += item.content;
         last_model = item.provider?.model;
+        providers.push(item.provider?.name);
         let next_i = parseInt(i) + 1;
         let next_provider = item.provider ? item.provider : (messages.length > next_i ? messages[next_i].provider : null);
         let provider_label = item.provider?.label ? item.provider.label : item.provider?.name;
         let provider_link = item.provider?.name ? `<a href="${item.provider.url}" target="_blank">${provider_label}</a>` : "";
         let provider = provider_link ? `
-            <div class="provider">
+            <div class="provider" data-provider="${item.provider.name}">
                 ${provider_link}
                 ${item.provider.model ? ' with ' + item.provider.model : ''}
             </div>
         ` : "";
-        let synthesize_params = {text: item.content}
+        let synthesize_params = {text: buffer}
         let synthesize_provider = "Gemini";
         if (item.synthesize) {
             synthesize_params = item.synthesize.data
@@ -826,7 +993,27 @@ const load_conversation = async (conversation_id, scroll=true) => {
         synthesize_params = (new URLSearchParams(synthesize_params)).toString();
         let synthesize_url = `/backend-api/v2/synthesize/${synthesize_provider}?${synthesize_params}`;
 
-        elements += `
+        let add_buttons = [];
+        // Always add regenerate button
+        add_buttons.push(`<button class="regenerate_button">
+            <span>Regenerate</span>
+            <i class="fa-solid fa-rotate"></i>
+        </button>`);
+        // Add continue button if possible
+        if (item.finish && item.finish.actions) {
+            item.finish.actions.forEach((action) => {
+                if (action == "continue") {
+                    if (messages.length >= i - 1) {
+                        add_buttons.push(`<button class="continue_button">
+                            <span>Continue</span>
+                            <i class="fa-solid fa-wand-magic-sparkles"></i>
+                        </button>`);
+                    }
+                }
+            });
+        }
+
+        elements.push(`
             <div class="message${item.regenerate ? " regenerate": ""}" data-index="${i}" data-synthesize_url="${synthesize_url}">
                 <div class="${item.role}">
                     ${item.role == "assistant" ? gpt_image : user_image}
@@ -838,19 +1025,21 @@ const load_conversation = async (conversation_id, scroll=true) => {
                 </div>
                 <div class="content">
                     ${provider}
-                    <div class="content_inner">${markdown_render(item.content)}</div>
+                    <div class="content_inner">${markdown_render(buffer)}</div>
                     <div class="count">
-                        ${count_words_and_tokens(item.content, next_provider?.model)}
+                        ${count_words_and_tokens(buffer, next_provider?.model)}
+                        <span>
                         <i class="fa-solid fa-volume-high"></i>
                         <i class="fa-regular fa-clipboard"></i>
                         <a><i class="fa-brands fa-whatsapp"></i></a>
                         <i class="fa-solid fa-print"></i>
-                        <i class="fa-solid fa-rotate"></i>
+                        </span>
+                        ${add_buttons.join("")}
                     </div>
                 </div>
             </div>
-        `;
-    }
+        `);
+    });
 
     if (window.GPTTokenizer_cl100k_base) {
         const filtered = prepare_messages(messages, null);
@@ -858,12 +1047,15 @@ const load_conversation = async (conversation_id, scroll=true) => {
             last_model = last_model?.startsWith("gpt-3") ? "gpt-3.5-turbo" : "gpt-4"
             let count_total = GPTTokenizer_cl100k_base?.encodeChat(filtered, last_model).length
             if (count_total > 0) {
-                elements += `<div class="count_total">(${count_total} tokens used)</div>`;
+                elements.push(`<div class="count_total">(${count_total} tokens used)</div>`);
             }
         }
     }
 
-    message_box.innerHTML = elements;
+    message_box.innerHTML = elements.join("");
+    [...new Set(providers)].forEach(async (provider) => {
+        await load_provider_parameters(provider);
+    });
     register_message_buttons();
     highlight(message_box);
     regenerate_button.classList.remove("regenerate-hidden");
@@ -937,19 +1129,6 @@ async function save_system_message() {
         await save_conversation(window.conversation_id, conversation);
     }
 }
-const hide_message = async (conversation_id, message_index =- 1) => {
-    const conversation = await get_conversation(conversation_id)
-    if (!conversation) return;
-    message_index = message_index == -1 ? conversation.items.length - 1 : message_index
-    const last_message = message_index in conversation.items ? conversation.items[message_index] : null;
-    if (last_message !== null) {
-        if (last_message["role"] == "assistant") {
-            last_message["regenerate"] = true;
-        }
-        conversation.items[message_index] = last_message;
-    }
-    await save_conversation(conversation_id, conversation);
-};
 
 const remove_message = async (conversation_id, index) => {
     const conversation = await get_conversation(conversation_id);
@@ -980,7 +1159,9 @@ const add_message = async (
     message_index = -1,
     synthesize_data = null,
     regenerate = false,
-    title = null
+    title = null,
+    finish = null,
+    do_continue = false
 ) => {
     const conversation = await get_conversation(conversation_id);
     if (!conversation) {
@@ -1005,6 +1186,12 @@ const add_message = async (
     if (regenerate) {
         new_message.regenerate = true;
     }
+    if (finish) {
+        new_message.finish = finish;
+    }
+    if (do_continue) {
+        new_message.continue = true;
+    }
     if (message_index == -1) {
          conversation.items.push(new_message);
     } else {
@@ -1012,7 +1199,6 @@ const add_message = async (
         conversation.items.forEach((item, index)=>{
             new_messages.push(item);
             if (index == message_index) {
-                new_message.regenerate = true;
                 new_messages.push(new_message);
             }
         });
@@ -1023,7 +1209,7 @@ const add_message = async (
 };
 
 const escapeHtml = (unsafe) => {
-    return unsafe.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#039;');
+    return unsafe+"".replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#039;');
 }
 
 const toLocaleDateString = (date) => {
@@ -1238,12 +1424,7 @@ function count_words_and_tokens(text, model) {
 }
 
 function update_message(content_map, message_id, content = null) {
-    content_map.inner.dataset.timeout = setTimeout(() => {
-        let cleared = false;
-        if (content_map.inner.dataset.timeout) {
-            content_map.inner.dataset.timeout = clearTimeout(content_map.inner.dataset.timeout);
-            cleared = true;
-        }
+    content_map.update_timeouts.push(setTimeout(() => {
         if (!content) content = message_storage[message_id];
         html = markdown_render(content);
         let lastElement, lastIndex = null;
@@ -1269,10 +1450,9 @@ function update_message(content_map, message_id, content = null) {
                 message_box.scrollTo({ top: message_box.scrollHeight, behavior: "auto" });
             }
         }
-        if (content_map.inner.dataset.timeout && !cleared){
-            content_map.inner.dataset.timeout = clearTimeout(content_map.inner.dataset.timeout);
-        }
-    }, 100);
+        content_map.update_timeouts.forEach((timeoutId)=>clearTimeout(timeoutId));
+        content_map.update_timeouts = [];
+    }, 100));
 };
 
 let countFocus = messageInput;
@@ -1611,13 +1791,13 @@ async function api(ressource, args=null, files=null, message_id=null) {
             headers: headers,
             body: body,
         });
-        return read_response(response, message_id);
+        return read_response(response, message_id, args.provider || null);
     }
     response = await fetch(url, {headers: headers});
     return await response.json();
 }
 
-async function read_response(response, message_id) {
+async function read_response(response, message_id, provider) {
     const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
     let buffer = ""
     while (true) {
@@ -1630,7 +1810,7 @@ async function read_response(response, message_id) {
                 continue;
             }
             try {
-                add_message_chunk(JSON.parse(buffer + line), message_id);
+                add_message_chunk(JSON.parse(buffer + line), message_id, provider);
                 buffer = "";
             } catch {
                 buffer += line

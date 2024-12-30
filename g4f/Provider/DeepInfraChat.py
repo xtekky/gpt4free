@@ -1,9 +1,10 @@
 from __future__ import annotations
-import json
 
+import json
 from aiohttp import ClientSession
 
 from ..typing import AsyncResult, Messages
+from ..requests.raise_for_status import raise_for_status
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 
 class DeepInfraChat(AsyncGeneratorProvider, ProviderModelMixin):
@@ -14,7 +15,7 @@ class DeepInfraChat(AsyncGeneratorProvider, ProviderModelMixin):
     supports_stream = True
     supports_system_message = True
     supports_message_history = True
-    
+
     default_model = 'meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo'
     models = [
         'meta-llama/Llama-3.3-70B-Instruct',
@@ -48,7 +49,7 @@ class DeepInfraChat(AsyncGeneratorProvider, ProviderModelMixin):
         **kwargs
     ) -> AsyncResult:
         model = cls.get_model(model)
-        
+
         headers = {
             'Accept-Language': 'en-US,en;q=0.9',
             'Content-Type': 'application/json',
@@ -57,31 +58,31 @@ class DeepInfraChat(AsyncGeneratorProvider, ProviderModelMixin):
             'X-Deepinfra-Source': 'web-page',
             'accept': 'text/event-stream',
         }
-        
         async with ClientSession(headers=headers) as session:
             data = {
                 "model": model,
                 "messages": messages,
                 "stream": True
             }
-            
             async with session.post(cls.api_endpoint, json=data, proxy=proxy) as response:
-                response.raise_for_status()
+                await raise_for_status(response)
                 async for chunk in response.content:
                     if chunk:
-                        chunk_text = chunk.decode()
+                        chunk_text = chunk.decode(errors="ignore")
                         try:
                             # Handle streaming response
                             if chunk_text.startswith("data: "):
                                 if chunk_text.strip() == "data: [DONE]":
                                     continue
                                 chunk_data = json.loads(chunk_text[6:])
-                                if content := chunk_data["choices"][0]["delta"].get("content"):
+                                content = chunk_data["choices"][0]["delta"].get("content")
+                                if content:
                                     yield content
                             # Handle non-streaming response
                             else:
                                 chunk_data = json.loads(chunk_text)
-                                if content := chunk_data["choices"][0]["message"].get("content"):
+                                content = chunk_data["choices"][0]["message"].get("content")
+                                if content:
                                     yield content
                         except (json.JSONDecodeError, KeyError):
                             continue

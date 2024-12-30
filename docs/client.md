@@ -1,4 +1,3 @@
-
 # G4F Client API Guide
 
 ## Table of Contents
@@ -14,6 +13,7 @@
    - [Streaming Completions](#streaming-completions)
    - [Image Generation](#image-generation)
    - [Creating Image Variations](#creating-image-variations)
+   - [Search Tool Support](#search-tool-support)
    - [Advanced Usage](#advanced-usage)
    - [Using a List of Providers with RetryProvider](#using-a-list-of-providers-with-retryprovider)
    - [Using a Vision Model](#using-a-vision-model)
@@ -22,7 +22,10 @@
 ## Introduction
 Welcome to the G4F Client API, a cutting-edge tool for seamlessly integrating advanced AI capabilities into your Python applications. This guide is designed to facilitate your transition from using the OpenAI client to the G4F Client, offering enhanced features while maintaining compatibility with the existing OpenAI API.
 
+---
+
 ## Getting Started
+
 ### Switching to G4F Client
 **To begin using the G4F Client, simply update your import statement in your Python code:**
 
@@ -38,6 +41,8 @@ from g4f.client import Client as OpenAI
 
 The G4F Client preserves the same familiar API interface as OpenAI, ensuring a smooth transition process.
 
+---
+
 ## Initializing the Client
 To utilize the G4F Client, create a new instance. **Below is an example showcasing custom providers:**
 ```python
@@ -50,6 +55,8 @@ client = Client(
     # Add any other necessary parameters
 )
 ```
+
+---
 
 ## Creating Chat Completions
 **Here’s an improved example of creating chat completions:**
@@ -85,6 +92,8 @@ client = Client(
 )
 ```
 
+---
+
 ## Explanation of Parameters
 **When using the G4F to create chat completions or perform related tasks, you can configure the following parameters:**
 - **`model`**:  
@@ -102,14 +111,28 @@ client = Client(
   ]
   ```
 
-- **`web_search`**:  
-  (Optional) A Boolean flag indicating whether to enable internet-based search capabilities for the task. If True, the system performs a web search using the DuckDuckGo search engine to retrieve up-to-date information. This is particularly useful for obtaining real-time or specific details not contained within the model's training.
+- **`provider`**:
+*(Optional)* Specifies the backend provider for the API. Examples include `g4f.Provider.Blackbox` or `g4f.Provider.OpenaiChat`. Each provider may support a different subset of models and features, so select one that matches your requirements.
 
-- **`provider`**:  
-  Specifies the backend provider for the API. Examples include `g4f.Provider.Blackbox` or `g4f.Provider.OpenaiChat`. Each provider may support a different subset of models and features, so select one that matches your requirements.
+- **`web_search`** (Optional):  
+  Boolean flag indicating whether to enable internet-based search capabilities. This is useful for obtaining real-time or specific details not included in the model’s training data.
 
+#### Providers Limitation
+The `web_search` argument is **limited to specific providers**, including:
+  - ChatGPT
+  - HuggingChat
+  - Blackbox
+  - RubiksAI
+
+If your chosen provider does not support `web_search`, it will not function as expected.  
+
+**Alternative Solution:**  
+Instead of relying on the `web_search` argument, you can use the more versatile **Search Tool Support**, which allows for highly customizable web search operations. The search tool enables you to define parameters such as query, number of results, word limit, and timeout, offering greater control over search capabilities.
+
+---
 
 ## Usage Examples
+
 ### Text Completions
 **Generate text completions using the `ChatCompletions` endpoint:** 
 ```python
@@ -125,7 +148,6 @@ response = client.chat.completions.create(
             "content": "Say this is a test"
         }
     ],
-    web_search = False
     # Add any other necessary parameters
 )
 
@@ -154,6 +176,73 @@ for chunk in stream:
     if chunk.choices[0].delta.content:
         print(chunk.choices[0].delta.content or "", end="")
 ```
+
+---
+
+## Search Tool Support
+
+The **Search Tool Support** feature enables triggering a web search during chat completions. This is useful for retrieving real-time or specific data, offering a more flexible solution than `web_search`.
+
+**Example Usage**:
+```python
+from g4f.client import Client
+
+client = Client()
+
+tool_calls = [
+    {
+        "function": {
+            "arguments": {
+                "query": "Latest advancements in AI",
+                "max_results": 5,
+                "max_words": 2500,
+                "backend": "api",
+                "add_text": True,
+                "timeout": 5
+            },
+            "name": "search_tool"
+        },
+        "type": "function"
+    }
+]
+
+response = client.chat.completions.create(
+    model="gpt-4",
+    messages=[
+        {"role": "user", "content": "Tell me about recent advancements in AI."}
+    ],
+    tool_calls=tool_calls
+)
+
+print(response.choices[0].message.content)
+```
+
+**Parameters for `search_tool`:**
+- **`query`**: The search query string.
+- **`max_results`**: Number of search results to retrieve.
+- **`max_words`**: Maximum number of words in the response.
+- **`backend`**: The backend used for search (e.g., `"api"`).
+- **`add_text`**: Whether to include text snippets in the response.
+- **`timeout`**: Maximum time (in seconds) for the search operation.
+
+**Advantages of Search Tool Support:**
+- Works with any provider, irrespective of `web_search` support.
+- Offers more customization and control over the search process.
+- Bypasses provider-specific limitations.
+
+### Streaming Completions
+```python
+stream = client.chat.completions.create(
+    model="gpt-4",
+    messages=[{"role": "user", "content": "Say this is a test"}],
+    stream=True,
+)
+
+for chunk in stream:
+    print(chunk.choices[0].delta.content or "", end="")
+```
+
+---
 
 ### Image Generation
 **The `response_format` parameter is optional and can have the following values:**
@@ -216,6 +305,8 @@ image_url = response.data[0].url
 
 print(f"Generated image URL: {image_url}")
 ```
+
+---
 
 ## Advanced Usage
 

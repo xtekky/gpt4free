@@ -10,7 +10,7 @@ from .selenium         import *
 from .needs_auth       import *
 from .not_working      import *
 from .local            import *
-from .hf_space         import *
+from .hf_space         import HuggingSpace
 
 from .Airforce             import Airforce
 from .AmigoChat            import AmigoChat

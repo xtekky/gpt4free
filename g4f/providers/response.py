@@ -83,9 +83,10 @@ class JsonMixin:
             if not key.startswith("__")
         }
 
-class FinishReason():
-    def __init__(self, reason: str):
+class FinishReason(ResponseType, JsonMixin):
+    def __init__(self, reason: str, actions: list[str] = None) -> None:
         self.reason = reason
+        self.actions = actions
 
     def __str__(self) -> str:
         return ""
@@ -179,3 +180,6 @@ class ImagePreview(ImageResponse):
 
     def to_string(self):
         return super().__str__()
+
+class Parameters(ResponseType, JsonMixin):
+    pass

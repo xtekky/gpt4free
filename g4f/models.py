@@ -36,11 +36,7 @@ from .Provider import (
     ReplicateHome,
     RubiksAI,
     TeachAnything,
-    
-    ## HuggingSpace ##
-    BlackForestLabsFlux1Dev,
-    BlackForestLabsFlux1Schnell,
-    VoodoohopFlux1Schnell,
+    HuggingSpace,
 )
 
 @dataclass(unsafe_hash=True)
@@ -572,13 +568,13 @@ flux_pro = ImageModel(
 flux_dev = ImageModel(
     name = 'flux-dev',
     base_provider = 'Flux AI',
-    best_provider = IterListProvider([BlackForestLabsFlux1Dev, HuggingChat, HuggingFace])
+    best_provider = IterListProvider([HuggingSpace, HuggingChat, HuggingFace])
 )
 
 flux_schnell = ImageModel(
     name = 'flux-schnell',
     base_provider = 'Flux AI',
-    best_provider = IterListProvider([BlackForestLabsFlux1Schnell, VoodoohopFlux1Schnell])
+    best_provider = IterListProvider([HuggingSpace, HuggingFace])
 )
 
 flux_realism = ImageModel(

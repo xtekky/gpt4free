@@ -34,7 +34,7 @@ from typing import Union, Optional, List
 import g4f
 import g4f.debug
 from g4f.client import AsyncClient, ChatCompletion, ImagesResponse, convert_to_provider
-from g4f.providers.response import BaseConversation
+from g4f.providers.response import BaseConversation, JsonConversation
 from g4f.client.helper import filter_none
 from g4f.image import is_data_uri_an_image, images_dir
 from g4f.errors import ProviderNotFoundError, ModelNotFoundError, MissingAuthError, NoValidHarFileError
@@ -257,7 +257,10 @@ class Api:
                     config.api_key = credentials.credentials
 
                 conversation = return_conversation = None
-                if config.conversation_id is not None and config.provider is not None:
+                if conversation is not None:
+                    conversation = JsonConversation(**conversation)
+                    return_conversation = True
+                elif config.conversation_id is not None and config.provider is not None:
                     return_conversation = True
                     if config.conversation_id in self.conversations:
                         if config.provider in self.conversations[config.conversation_id]:
@@ -445,7 +448,7 @@ class Api:
         })
         async def get_image(filename, request: Request):
             target = os.path.join(images_dir, filename)
-            ext = os.path.splitext(filename).pop()
+            ext = os.path.splitext(filename)[1]
             stat_result = SimpleNamespace()
             stat_result.st_size = 0
             if os.path.isfile(target):

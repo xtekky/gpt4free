@@ -6,7 +6,7 @@ import string
 from ..typing import Messages, Cookies, AsyncIterator, Iterator
 from .. import debug
 
-def format_prompt(messages: Messages, add_special_tokens=False) -> str:
+def format_prompt(messages: Messages, add_special_tokens: bool = False, do_continue: bool = False) -> str:
     """
     Format a series of messages into a single string, optionally adding special tokens.
 
@@ -23,6 +23,8 @@ def format_prompt(messages: Messages, add_special_tokens=False) -> str:
         f'{message["role"].capitalize()}: {message["content"]}'
         for message in messages
     ])
+    if do_continue:
+        return formatted
     return f"{formatted}\nAssistant:"
 
 def format_prompt_max_length(messages: Messages, max_lenght: int) -> str:

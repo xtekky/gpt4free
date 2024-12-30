@@ -36,7 +36,6 @@
         import llamaTokenizer from "llama-tokenizer-js"
     </script>
     <script src="https://cdn.jsdelivr.net/npm/gpt-tokenizer/dist/cl100k_base.js" async></script>
-    <script src="/static/js/text_to_speech/index.js" async></script>
     <script type="module" async>
         import PhotoSwipeLightbox from 'https://cdn.jsdelivr.net/npm/photoswipe/dist/photoswipe-lightbox.esm.js';
         const lightbox = new PhotoSwipeLightbox({
@@ -137,11 +136,6 @@
                 <input type="checkbox" id="download_images" checked/>
                 <label for="download_images" class="toogle" title="Download and save generated images to /generated_images"></label>
             </div>
-            <div class="field">
-                <span class="label">Auto continue in ChatGPT</span>
-                <input id="auto_continue" type="checkbox" name="auto_continue" checked/>
-                <label for="auto_continue" class="toogle" title="Continue large responses in OpenAI ChatGPT"></label>
-            </div>
             <div class="field box">
                 <label for="message-input-height" class="label" title="">Input max. height</label>
                 <input type="number" id="message-input-height" value="200"/>
@@ -211,6 +205,14 @@
                 <button id="showLog">
                     <i class="fa-solid fa-terminal"></i>
                     <a href="" onclick="return false;">Show log</a>
+                </button>
+            </div>
+        </div>
+        <div class="provider_forms hidden">
+            <div class="bottom_buttons">
+                <button id="close_provider_forms">
+                    <i class="fa-regular fa-circle-xmark"></i>
+                    <a href="" onclick="return false;">Close</a>
                 </button>
             </div>
         </div>

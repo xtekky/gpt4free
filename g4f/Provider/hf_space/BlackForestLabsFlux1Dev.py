@@ -5,6 +5,7 @@ from aiohttp import ClientSession
 
 from ...typing import AsyncResult, Messages
 from ...image import ImageResponse, ImagePreview
+from ...errors import ResponseError
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
 
 class BlackForestLabsFlux1Dev(AsyncGeneratorProvider, ProviderModelMixin):
@@ -12,14 +13,24 @@ class BlackForestLabsFlux1Dev(AsyncGeneratorProvider, ProviderModelMixin):
     api_endpoint = "/gradio_api/call/infer"
 
     working = True
-    
+
     default_model = 'flux-dev'
     models = [default_model]
     image_models = [default_model]
 
     @classmethod
     async def create_async_generator(
-        cls, model: str, messages: Messages, prompt: str = None, api_key: str = None, proxy: str = None, **kwargs
+        cls, model: str, messages: Messages,
+        prompt: str = None,
+        api_key: str = None, 
+        proxy: str = None,
+        width: int = 1024,
+        height: int = 1024,
+        guidance_scale: float = 3.5,
+        num_inference_steps: int = 28,
+        seed: int = 0,
+        randomize_seed: bool = True,
+        **kwargs
     ) -> AsyncResult:
         headers = {
             "Content-Type": "application/json",
@@ -30,7 +41,7 @@ class BlackForestLabsFlux1Dev(AsyncGeneratorProvider, ProviderModelMixin):
         async with ClientSession(headers=headers) as session:
             prompt = messages[-1]["content"] if prompt is None else prompt
             data = {
-                "data": [prompt, 0, True, 1024, 1024, 3.5, 28]
+                "data": [prompt, seed, randomize_seed, width, height, guidance_scale, num_inference_steps]
             }
             async with session.post(f"{cls.url}{cls.api_endpoint}", json=data, proxy=proxy) as response:
                 response.raise_for_status()
@@ -43,7 +54,7 @@ class BlackForestLabsFlux1Dev(AsyncGeneratorProvider, ProviderModelMixin):
                             event = chunk[7:].decode(errors="replace").strip()
                         if chunk.startswith(b"data: "):
                             if event == "error":
-                                raise RuntimeError(f"GPU token limit exceeded: {chunk.decode(errors='replace')}")
+                                raise ResponseError(f"GPU token limit exceeded: {chunk.decode(errors='replace')}")
                             if event in ("complete", "generating"):
                                 try:
                                     data = json.loads(chunk[6:])

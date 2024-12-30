@@ -37,7 +37,7 @@ except NameError:
         except StopAsyncIteration:
             raise StopIteration
 
-def validate_arguments(data: dict):
+def validate_arguments(data: dict) -> dict:
     if "arguments" in data:
         if isinstance(data["arguments"], str):
             data["arguments"] = json.loads(data["arguments"])
@@ -503,7 +503,6 @@ class Images:
             model=model,
             provider=provider
         )
-
 
 class AsyncClient(BaseClient):
     def __init__(

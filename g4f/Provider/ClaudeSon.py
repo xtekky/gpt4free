@@ -3,18 +3,15 @@ from __future__ import annotations
 from aiohttp import ClientSession
 
 from ..typing import AsyncResult, Messages
+from ..requests.raise_for_status import raise_for_status
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from .helper import format_prompt
-
 
 class ClaudeSon(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://claudeson.net"
     api_endpoint = "https://claudeson.net/api/coze/chat"
     working = True
-    
-    supports_system_message = True
-    supports_message_history = True
-    
+
     default_model = 'claude-3.5-sonnet'
     models = [default_model]
 
@@ -40,7 +37,7 @@ class ClaudeSon(AsyncGeneratorProvider, ProviderModelMixin):
                 "type": "company"
             }
             async with session.post(cls.api_endpoint, json=data, proxy=proxy) as response:
-                response.raise_for_status()
+                await raise_for_status(response)
                 async for chunk in response.content:
                     if chunk:
-                        yield chunk.decode()
+                        yield chunk.decode(errors="ignore")

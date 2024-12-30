@@ -230,6 +230,18 @@ body:not(.white) a:visited{
     width: 14px;
 }
 
+.provider_forms {
+    overflow: auto;
+    width: 100%;
+}
+
+#close_provider_forms {
+    max-width: 210px;
+    margin-left: auto;
+    margin-right: 8px;
+    margin-bottom: 8px;
+}
+
 .convo-title {
     color: var(--colour-3);
     font-size: 14px;
@@ -309,7 +321,6 @@ body:not(.white) a:visited{
     right: 0;
     height: 60%;
     width: 60%;
-    background: var(--colour-3);
     filter: blur(10px) opacity(0.5);
     z-index: 10000;
 }
@@ -397,7 +408,8 @@ body:not(.white) a:visited{
 .message .count .fa-clipboard,
 .message .count .fa-volume-high,
 .message .count .fa-rotate,
-.message .count .fa-print {
+.message .count .fa-print,
+.message .count .fa-whatsapp {
     z-index: 1000;
     cursor: pointer;
 }
@@ -410,7 +422,9 @@ body:not(.white) a:visited{
 .message .count .fa-clipboard.clicked,
 .message .count .fa-print.clicked,
 .message .count .fa-rotate.clicked,
-.message .count .fa-volume-high.active {
+.message .count .fa-volume-high.active,
+.message .continue_button.clicked,
+.message .regenerate_button.clicked {
     color: var(--accent);
 }
 
@@ -431,6 +445,12 @@ body:not(.white) a:visited{
 
 .message .content .count {
     font-size: 12px;
+    display: flex;
+    flex-direction: row;
+}
+
+.message .content .count span {
+    padding: 0 4px;
 }
 
 .media_player {
@@ -510,7 +530,7 @@ body:not(.white) a:visited{
     right: 0;
 }
 
-.stop_generating button, .toolbar .regenerate button{
+.stop_generating button, .toolbar .regenerate button, button.regenerate_button, button.continue_button {
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     background-color: var(--blur-bg);
@@ -533,8 +553,24 @@ body:not(.white) a:visited{
     right: auto;
 }
 
-.toolbar .regenerate span {
+.toolbar .regenerate span, .regenerate_button span, .continue_button span {
     display: none;
+}
+
+.regenerate_button span, .continue_button span {
+    position: absolute;
+    height: 20px;
+    width: 100px;
+    transition: all 0.1s;
+    background: var(--colour-5);
+    margin-top: -30px;
+    z-index: 1005;
+    padding: 6px;
+}
+
+.regenerate_button:hover span, .continue_button:hover span {
+    display: block;
+    transition: all 0.3s;
 }
 
 @media only screen and (min-width: 40em) {
@@ -621,15 +657,24 @@ label[for="camera"] {
     }
 }
 
+#messages form {
+    position: absolute;
+    width: 100%;
+    background: var(--colour-5);
+    z-index: 2000;
+}
+
 .buttons input[type="checkbox"],
-.settings input[type="checkbox"] {
+.settings input[type="checkbox"],
+form input[type="checkbox"] {
     height: 0;
     width: 0;
     display: none;
 }
 
 .buttons label,
-.settings label.toogle {
+.settings label.toogle,
+form label.toogle {
     cursor: pointer;
     text-indent: -9999px;
     width: 50px;
@@ -647,7 +692,8 @@ label[for="camera"] {
 }
 
 .buttons label:after,
-.settings label.toogle:after {
+.settings label.toogle:after,
+form label.toogle:after {
     content: "";
     position: absolute;
     top: 50%;
@@ -661,7 +707,8 @@ label[for="camera"] {
 }
 
 .buttons input:checked+label,
-.settings input:checked+label {
+.settings input:checked+label,
+form input:checked+label {
     background: var(--accent);
 }
 
@@ -676,7 +723,8 @@ label[for="camera"] {
 }
 
 .buttons input:checked+label:after,
-.settings input:checked+label:after {
+.settings input:checked+label:after,
+form input:checked+label:after {
     left: calc(100% - 5px - 20px);
 }
 
@@ -691,7 +739,6 @@ label[for="camera"] {
 .field {
     height: fit-content;
     display: flex;
-    align-items: center;
     gap: var(--inner-gap);
 }
 
@@ -699,7 +746,6 @@ label[for="camera"] {
     font-size: 14px;
     color: var(--colour-3);
 }
-
 
 select {
     border-radius: 8px;
@@ -717,7 +763,30 @@ select {
     width: 132px;
 }
 
-.buttons button {
+.slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 20px;
+    background: var(--accent);
+    outline: none;
+    transition: opacity .2s;
+    border-radius: 10px;
+}
+
+.slider::-moz-range-thumb:hover {
+    background: var(--colour-2);
+}
+
+.slider::-moz-range-thumb {
+    width: 25px;
+    height: 25px;
+    background: var(--colour-3);
+    cursor: pointer;
+    border-radius: 25px;
+}
+
+.buttons button, button.regenerate_button, button.continue_button {
     border-radius: 8px;
     backdrop-filter: blur(20px);
     cursor: pointer;
@@ -725,6 +794,13 @@ select {
     border: 1px solid var(--blur-border);
     color: var(--colour-3);
     padding: 8px;
+}
+
+button.regenerate_button, button.continue_button {
+    display: flex;
+    margin-top: -8px;
+    margin-left: 2px;
+    backdrop-filter: none;
 }
 
 .buttons button.pinned span {
@@ -754,7 +830,7 @@ select:hover,
     display: none;
 }
 
-#systemPrompt, .settings textarea {
+#systemPrompt, .settings textarea, form textarea {
     font-size: 15px;
     width: 100%;
     color: var(--colour-3);
@@ -1181,21 +1257,32 @@ ul {
     border: 1px solid #e4d4ffc9;
 }
 
-.settings textarea {
-    height: 19px;
-    min-height: 19px;
+.settings textarea, form textarea {
+    height: 20px;
+    min-height: 20px;
     padding: 0;
 }
 
-.settings .field.box {
+form .field .fa-xmark {
+    line-height: 20px;
+    cursor: pointer;
+    margin-left: auto;
+    margin-right: 16px;
+    margin-top: 0;
+}
+
+form .field.saved .fa-xmark {
+    color: var(--accent)
+}
+
+.settings .field, form .field {
     padding: var(--inner-gap) var(--inner-gap) var(--inner-gap) 0;
 }
 
-.settings, .log {
+.settings, .log, form {
     width: 100%;
-    display: flex;
-    flex-direction: column;
     overflow: auto;
+    height: 100%;
 }
 
 .log {
@@ -1211,16 +1298,16 @@ ul {
     min-width: 400px;
 }
 
-.settings .field {
+.settings .field, form .field {
     margin: var(--inner-gap) 0;
 }
 
-.settings textarea {
+.settings textarea, form textarea {
     background-color: transparent;
     border: none;
 }
 
-.settings input {
+.settings input, form input {
     background-color: transparent;
     padding: 2px;
     border: none;
@@ -1229,14 +1316,18 @@ ul {
     color: var(--colour-3);
 }
 
-.settings input:focus {
+.settings input:focus, form input:focus {
     outline: none;
 }
 
-.settings .label {
+.settings .label, form .label, .settings label, form label {
     font-size: 15px;
     margin-left: var(--inner-gap);
+}
+
+.settings .label, form .label {
     white-space:nowrap;
+    line-height: 30px;
 }
 
 ::-webkit-scrollbar-track {

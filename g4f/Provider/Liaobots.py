@@ -192,7 +192,6 @@ class Liaobots(AsyncGeneratorProvider, ProviderModelMixin):
         cls,
         model: str,
         messages: Messages,
-        auth: str = None,
         proxy: str = None,
         connector: BaseConnector = None,
         **kwargs

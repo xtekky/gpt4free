@@ -98,11 +98,17 @@ client = AsyncClient(
   ]
   ```
 
-- **`web_search`**:  
-  (Optional) A Boolean flag indicating whether to enable internet-based search capabilities for the task. If True, the system performs a web search using the DuckDuckGo search engine to retrieve up-to-date information. This is particularly useful for obtaining real-time or specific details not contained within the model's training.
 
-- **`provider`**:  
-  Specifies the backend provider for the API. Examples include `g4f.Provider.Blackbox` or `g4f.Provider.OpenaiChat`. Each provider may support a different subset of models and features, so select one that matches your requirements.
+- **`web_search`**:
+*(Optional)* A Boolean flag indicating whether to enable internet-based search capabilities. If set to **True**, the system performs a web search using the provider’s native method to retrieve up-to-date information. This is especially useful for obtaining real-time or specific details not included in the model’s training data.
+  -  **Providers Supporting** `web_search`:
+  - ChatGPT  
+  - HuggingChat  
+  - Blackbox  
+  - RubiksAI
+
+- **`provider`**:
+*(Optional)* Specifies the backend provider for the API. Examples include `g4f.Provider.Blackbox` or `g4f.Provider.OpenaiChat`. Each provider may support a different subset of models and features, so select one that matches your requirements.
 
 ## Usage Examples
 ### Text Completions

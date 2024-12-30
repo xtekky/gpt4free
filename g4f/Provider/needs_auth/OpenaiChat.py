@@ -7,7 +7,6 @@ import uuid
 import json
 import base64
 import time
-import requests
 import random
 from typing import AsyncIterator, Iterator, Optional, Generator, Dict, List
 from copy import copy
@@ -21,11 +20,12 @@ except ImportError:
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ...typing import AsyncResult, Messages, Cookies, ImagesType
 from ...requests.raise_for_status import raise_for_status
-from ...requests import StreamSession, Session
+from ...requests import StreamSession
 from ...requests import get_nodriver
 from ...image import ImageResponse, ImageRequest, to_image, to_bytes, is_accepted_format
 from ...errors import MissingAuthError, NoValidHarFileError
-from ...providers.response import JsonConversation, FinishReason, SynthesizeData, Sources, TitleGeneration, RequestLogin, quote_url
+from ...providers.response import JsonConversation, FinishReason, SynthesizeData
+from ...providers.response import Sources, TitleGeneration, RequestLogin, Parameters
 from ..helper import format_cookies
 from ..openai.har_file import get_request_config
 from ..openai.har_file import RequestConfig, arkReq, arkose_url, start_url, conversation_url, backend_url, backend_anon_url
@@ -272,13 +272,11 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
         messages: Messages,
         proxy: str = None,
         timeout: int = 180,
-        cookies: Cookies = None,
         auto_continue: bool = False,
         history_disabled: bool = False,
         action: str = "next",
         conversation_id: str = None,
         conversation: Conversation = None,
-        parent_id: str = None,
         images: ImagesType = None,
         return_conversation: bool = False,
         max_retries: int = 3,
@@ -294,12 +292,10 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
             proxy (str): Proxy to use for requests.
             timeout (int): Timeout for requests.
             api_key (str): Access token for authentication.
-            cookies (dict): Cookies to use for authentication.
             auto_continue (bool): Flag to automatically continue the conversation.
             history_disabled (bool): Flag to disable history and training.
             action (str): Type of action ('next', 'continue', 'variant').
             conversation_id (str): ID of the conversation.
-            parent_id (str): ID of the parent message.
             images (ImagesType): Images to include in the conversation.
             return_conversation (bool): Flag to include response fields in the output.
             **kwargs: Additional keyword arguments.
@@ -311,7 +307,7 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
             RuntimeError: If an error occurs during processing.
         """
         if cls.needs_auth:
-            async for message in cls.login(proxy):
+            async for message in cls.login(proxy, **kwargs):
                 yield message
         async with StreamSession(
             proxy=proxy,
@@ -321,11 +317,12 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
             image_requests = None
             if not cls.needs_auth:
                 if cls._headers is None:
-                    cls._create_request_args(cookies)
+                    cls._create_request_args(cls._cookies)
                     async with session.get(cls.url, headers=INIT_HEADERS) as response:
                         cls._update_request_args(session)
                         await raise_for_status(response)
             else:
+                print(cls._headers)
                 async with session.get(cls.url, headers=cls._headers) as response:
                     cls._update_request_args(session)
                     await raise_for_status(response)
@@ -336,7 +333,7 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
                     debug.log(f"{e.__class__.__name__}: {e}")
             model = cls.get_model(model)
             if conversation is None:
-                conversation = Conversation(conversation_id, str(uuid.uuid4()) if parent_id is None else parent_id)
+                conversation = Conversation(conversation_id, str(uuid.uuid4()))
             else:
                 conversation = copy(conversation)
             if cls._api_key is None:
@@ -363,7 +360,7 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
 
                 if need_arkose and RequestConfig.arkose_token is None:
                     await get_request_config(proxy)
-                    cls._create_request_args(RequestConfig,cookies, RequestConfig.headers)
+                    cls._create_request_args(RequestConfig.cookies, RequestConfig.headers)
                     cls._set_api_key(RequestConfig.access_token)
                     if RequestConfig.arkose_token is None:
                         raise MissingAuthError("No arkose token found in .har file")
@@ -407,6 +404,8 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
                     data["conversation_id"] = conversation.conversation_id
                     debug.log(f"OpenaiChat: Use conversation: {conversation.conversation_id}")
                 if action != "continue":
+                    data["parent_message_id"] = conversation.parent_message_id
+                    conversation.parent_message_id = None
                     messages = messages if conversation_id is None else [messages[-1]]
                     data["messages"] = cls.create_messages(messages, image_requests, ["search"] if web_search else None)
                 headers = {
@@ -475,7 +474,16 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
                     await asyncio.sleep(5)
                 else:
                     break
-            yield FinishReason(conversation.finish_reason)
+                yield Parameters(**{
+                    "action": "continue" if conversation.finish_reason == "max_tokens" else "variant",
+                    "conversation": conversation.get_dict(),
+                    "proof_token": RequestConfig.proof_token,
+                    "cookies": cls._cookies,
+                    "headers": cls._headers,
+                    "web_search": web_search,
+                })
+            actions = ["variant", "continue"] if conversation.finish_reason == "max_tokens" else ["variant"]
+            yield FinishReason(conversation.finish_reason, actions=actions)
 
     @classmethod
     async def iter_messages_line(cls, session: StreamSession, line: bytes, fields: Conversation, sources: Sources) -> AsyncIterator:
@@ -530,6 +538,8 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
                             if image_response is not None:
                                 yield image_response
                     if m.get("author", {}).get("role") == "assistant":
+                        if fields.parent_message_id is None:
+                            fields.parent_message_id = v.get("message", {}).get("id")
                         fields.message_id = v.get("message", {}).get("id")
             return
         if "error" in line and line.get("error"):
@@ -553,24 +563,49 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
                     yield chunk
 
     @classmethod
-    async def login(cls, proxy: str = None) -> AsyncIterator[str]:
-        if cls._expires is not None and cls._expires < time.time():
+    async def login(
+        cls,
+        proxy: str = None,
+        api_key: str = None,
+        proof_token: str = None,
+        cookies: Cookies = None,
+        headers: dict = None,
+        **kwargs
+    ) -> AsyncIterator[str]:
+        if cls._expires is not None and (cls._expires - 60*10) < time.time():
             cls._headers = cls._api_key = None
-        try:
-            await get_request_config(proxy)
+        if cls._headers is None or headers is not None:
+            cls._headers = {} if headers is None else headers
+        if proof_token is not None:
+            RequestConfig.proof_token = proof_token
+        if cookies is not None:
+            RequestConfig.cookies = cookies
+        if api_key is not None:
             cls._create_request_args(RequestConfig.cookies, RequestConfig.headers)
-            if RequestConfig.access_token is not None or cls.needs_auth:
-                if not cls._set_api_key(RequestConfig.access_token):
-                    raise NoValidHarFileError(f"Access token is not valid: {RequestConfig.access_token}")
-        except NoValidHarFileError:
-            if has_nodriver:
-                if cls._api_key is None:
-                    login_url = os.environ.get("G4F_LOGIN_URL")
-                    if login_url:
-                        yield RequestLogin(cls.label, login_url)
-                    await cls.nodriver_auth(proxy)
-            else:
-                raise
+            cls._set_api_key(api_key)
+        else:
+            try:
+                await get_request_config(proxy)
+                cls._create_request_args(RequestConfig.cookies, RequestConfig.headers)
+                print(RequestConfig.access_token)
+                if RequestConfig.access_token is not None or cls.needs_auth:
+                    if not cls._set_api_key(RequestConfig.access_token):
+                        raise NoValidHarFileError(f"Access token is not valid: {RequestConfig.access_token}")
+            except NoValidHarFileError:
+                if has_nodriver:
+                    if cls._api_key is None:
+                        login_url = os.environ.get("G4F_LOGIN_URL")
+                        if login_url:
+                            yield RequestLogin(cls.label, login_url)
+                        await cls.nodriver_auth(proxy)
+                else:
+                    raise
+        yield Parameters(**{
+            "api_key": cls._api_key,
+            "proof_token": RequestConfig.proof_token,
+            "cookies": RequestConfig.cookies,
+            "headers": RequestConfig.headers
+        })
 
     @classmethod
     async def nodriver_auth(cls, proxy: str = None):
@@ -666,11 +701,12 @@ class Conversation(JsonConversation):
     """
     Class to encapsulate response fields.
     """
-    def __init__(self, conversation_id: str = None, message_id: str = None, finish_reason: str = None):
+    def __init__(self, conversation_id: str = None, message_id: str = None, finish_reason: str = None, parent_message_id: str = None):
         self.conversation_id = conversation_id
         self.message_id = message_id
         self.finish_reason = finish_reason
         self.is_recipient = False
+        self.parent_message_id = message_id if parent_message_id is None else parent_message_id
 
 def get_cookies(
     urls: Optional[Iterator[str]] = None
