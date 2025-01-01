@@ -5,7 +5,7 @@ import asyncio
 from unittest.mock import MagicMock
 from g4f.errors import MissingRequirementsError
 try:
-    from g4f.gui.server.backend import Backend_Api
+    from g4f.gui.server.backend_api import Backend_Api
     has_requirements = True
 except:
     has_requirements = False

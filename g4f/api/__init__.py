@@ -41,11 +41,12 @@ from g4f.errors import ProviderNotFoundError, ModelNotFoundError, MissingAuthErr
 from g4f.cookies import read_cookie_files, get_cookies_dir
 from g4f.Provider import ProviderType, ProviderUtils, __providers__
 from g4f.gui import get_gui_app
+from g4f.tools.files import supports_filename, get_streaming
 from .stubs import (
     ChatCompletionsConfig, ImageGenerationConfig,
     ProviderResponseModel, ModelResponseModel,
     ErrorResponseModel, ProviderResponseDetailModel,
-    FileResponseModel, Annotated
+    FileResponseModel, UploadResponseModel, Annotated
 )
 
 logger = logging.getLogger(__name__)
@@ -423,6 +424,40 @@ class Api:
                         file.file.close()
                 read_cookie_files()
             return response_data
+
+        @self.app.get("/v1/files/{bucket_id}", responses={
+            HTTP_200_OK: {"content": {
+                "text/event-stream": {"schema": {"type": "string"}},
+                "text/plain": {"schema": {"type": "string"}},
+            }},
+            HTTP_404_NOT_FOUND: {"model": ErrorResponseModel},
+        })
+        def read_files(request: Request, bucket_id: str, delete_files: bool = True, refine_chunks_with_spacy: bool = False):
+            bucket_dir = os.path.join(get_cookies_dir(), bucket_id)
+            event_stream = "text/event-stream" in request.headers.get("accept", "")
+            if not os.path.isdir(bucket_dir):
+                return ErrorResponse.from_message("Bucket dir not found", 404)
+            return StreamingResponse(get_streaming(bucket_dir, delete_files, refine_chunks_with_spacy, event_stream), media_type="text/plain")
+
+        @self.app.post("/v1/files/{bucket_id}", responses={
+            HTTP_200_OK: {"model": UploadResponseModel}
+        })
+        def upload_files(bucket_id: str, files: List[UploadFile]):
+            bucket_dir = os.path.join(get_cookies_dir(), bucket_id)
+            os.makedirs(bucket_dir, exist_ok=True)
+            filenames = []
+            for file in files:
+                try:
+                    filename = os.path.basename(file.filename)
+                    if file and supports_filename(filename):
+                        with open(os.path.join(bucket_dir, filename), 'wb') as f:
+                            shutil.copyfileobj(file.file, f)
+                        filenames.append(filename)
+                finally:
+                    file.file.close()
+            with open(os.path.join(bucket_dir, "files.txt"), 'w') as f:
+                [f.write(f"{filename}\n") for filename in filenames]
+            return {"bucket_id": bucket_id, "url": f"/v1/files/{bucket_id}", "files": filenames}
 
         @self.app.get("/v1/synthesize/{provider}", responses={
             HTTP_200_OK: {"content": {"audio/*": {}}},

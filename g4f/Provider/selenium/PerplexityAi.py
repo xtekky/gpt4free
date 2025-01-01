@@ -12,7 +12,6 @@ except ImportError:
 from ...typing import CreateResult, Messages
 from ..base_provider import AbstractProvider
 from ..helper import format_prompt
-from ...webdriver import WebDriver, WebDriverSession, element_send_text
 
 class PerplexityAi(AbstractProvider):
     url = "https://www.perplexity.ai"
@@ -28,7 +27,7 @@ class PerplexityAi(AbstractProvider):
         stream: bool,
         proxy: str = None,
         timeout: int = 120,
-        webdriver: WebDriver = None,
+        webdriver = None,
         virtual_display: bool = True,
         copilot: bool = False,
         **kwargs

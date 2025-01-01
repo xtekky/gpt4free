@@ -4,8 +4,6 @@ from aiohttp import ClientSession
 
 from ...typing import AsyncResult, Messages
 from ..base_provider import AsyncGeneratorProvider
-from ...requests import get_args_from_browser
-from ...webdriver import WebDriver
 
 class Aura(AsyncGeneratorProvider):
     url = "https://openchat.team"
@@ -19,7 +17,7 @@ class Aura(AsyncGeneratorProvider):
         proxy: str = None,
         temperature: float = 0.5,
         max_tokens: int = 8192,
-        webdriver: WebDriver = None,
+        webdriver = None,
         **kwargs
     ) -> AsyncResult:
         args = get_args_from_browser(cls.url, webdriver, proxy)

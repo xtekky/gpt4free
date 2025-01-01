@@ -7,17 +7,17 @@ from typing import Iterator
 from flask import send_from_directory
 from inspect import signature
 
-from g4f import version, models
-from g4f import ChatCompletion, get_model_and_provider
-from g4f.errors import VersionNotFoundError
-from g4f.image import ImagePreview, ImageResponse, copy_images, ensure_images_dir, images_dir
-from g4f.Provider import ProviderUtils, __providers__
-from g4f.providers.base_provider import ProviderModelMixin
-from g4f.providers.retry_provider import IterListProvider
-from g4f.providers.response import BaseConversation, JsonConversation, FinishReason
-from g4f.providers.response import SynthesizeData, TitleGeneration, RequestLogin, Parameters
-from g4f.client.service import convert_to_provider
-from g4f import debug
+from ...errors import VersionNotFoundError
+from ...image import ImagePreview, ImageResponse, copy_images, ensure_images_dir, images_dir
+from ...tools.run_tools import iter_run_tools
+from ...Provider import ProviderUtils, __providers__
+from ...providers.base_provider import ProviderModelMixin
+from ...providers.retry_provider import IterListProvider
+from ...providers.response import BaseConversation, JsonConversation, FinishReason
+from ...providers.response import SynthesizeData, TitleGeneration, RequestLogin, Parameters
+from ... import version, models
+from ... import ChatCompletion, get_model_and_provider
+from ... import debug
 
 logger = logging.getLogger(__name__)
 conversations: dict[dict[str, BaseConversation]] = {}
@@ -90,16 +90,28 @@ class Api:
         api_key = json_data.get("api_key")
         if api_key is not None:
             kwargs["api_key"] = api_key
+        kwargs["tool_calls"] = [{
+            "function": {
+                "name": "bucket_tool"
+            },
+            "type": "function"
+        }]
         do_web_search = json_data.get('web_search')
         if do_web_search and provider:
-            provider_handler = convert_to_provider(provider)
-            if hasattr(provider_handler, "get_parameters"):
-                if "web_search" in provider_handler.get_parameters():
-                    kwargs['web_search'] = True
-                    do_web_search = False
-        if do_web_search:
-            from ...web_search import get_search_message
-            messages[-1]["content"] = get_search_message(messages[-1]["content"])
+            kwargs["tool_calls"].append({
+                "function": {
+                    "name": "safe_search_tool"
+                },
+                "type": "function"
+            })
+        action = json_data.get('action')
+        if action == "continue":
+            kwargs["tool_calls"].append({
+                "function": {
+                    "name": "continue_tool"
+                },
+                "type": "function"
+            })
         conversation = json_data.get("conversation")
         if conversation is not None:
             kwargs["conversation"] = JsonConversation(**conversation)
@@ -139,7 +151,7 @@ class Api:
             logging=False
         )
         params = {
-            **provider_handler.get_parameters(as_json=True),
+            **(provider_handler.get_parameters(as_json=True) if hasattr(provider_handler, "get_parameters") else {}),
             "model": model,
             "messages": kwargs.get("messages"),
             "web_search": kwargs.get("web_search")
@@ -153,7 +165,7 @@ class Api:
         yield self._format_json("parameters", params)
         first = True
         try:
-            result = ChatCompletion.create(**{**kwargs, "model": model, "provider": provider_handler})
+            result = iter_run_tools(ChatCompletion.create, **{**kwargs, "model": model, "provider": provider_handler})
             for chunk in result:
                 if first:
                     first = False

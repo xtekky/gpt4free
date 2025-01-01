@@ -180,7 +180,7 @@ def read_cookie_files(dirPath: str = None):
             except json.JSONDecodeError:
                 # Error: not a json file!
                 continue
-            if not isinstance(cookieFile, list):
+            if not isinstance(cookieFile, list) or not isinstance(cookieFile[0], dict) or "domain" not in cookieFile[0]:
                 continue
             debug.log(f"Read cookie file: {path}")
             new_cookies = {}
