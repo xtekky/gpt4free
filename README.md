@@ -243,7 +243,8 @@ print(f"Generated image URL: {image_url}")
       - **Requests API from G4F:** [/docs/requests](docs/requests.md)
       - **Client API from G4F:** [/docs/client](docs/client.md)
       - **AsyncClient API from G4F:** [/docs/async_client](docs/async_client.md)
-   
+      - **File API from G4F:** [/docs/file](docs/file.md)
+
    - **Legacy:**
       - **Legacy API with python modules:** [/docs/legacy](docs/legacy.md)
 

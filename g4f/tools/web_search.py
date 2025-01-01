@@ -1,6 +1,13 @@
 from __future__ import annotations
 
 from aiohttp import ClientSession, ClientTimeout, ClientError
+import json
+import hashlib
+from pathlib import Path
+from urllib.parse import urlparse
+import datetime
+import asyncio
+
 try:
     from duckduckgo_search import DDGS
     from duckduckgo_search.exceptions import DuckDuckGoSearchException
@@ -8,10 +15,16 @@ try:
     has_requirements = True
 except ImportError:
     has_requirements = False
-from .errors import MissingRequirementsError
-from . import debug
+try:
+    import spacy
+    has_spacy = True
+except:
+    has_spacy = False
 
-import asyncio
+from typing import Iterator
+from ..cookies import get_cookies_dir
+from ..errors import MissingRequirementsError
+from .. import debug
 
 DEFAULT_INSTRUCTIONS = """
 Using the provided web search results, to write a comprehensive reply to the user request.
@@ -52,8 +65,9 @@ class SearchResultEntry():
     def set_text(self, text: str):
         self.text = text
 
-def scrape_text(html: str, max_words: int = None) -> str:
-    soup = BeautifulSoup(html, "html.parser")
+def scrape_text(html: str, max_words: int = None) -> Iterator[str]:
+    source = BeautifulSoup(html, "html.parser")
+    soup = source
     for selector in [
             "main",
             ".main-content-wrapper",
@@ -72,14 +86,10 @@ def scrape_text(html: str, max_words: int = None) -> str:
         select = soup.select_one(remove)
         if select:
             select.extract()
-    clean_text = ""
-    for paragraph in soup.select("p, h1, h2, h3, h4, h5, h6"):
-        text = paragraph.get_text()
-        for line in text.splitlines():
-            words = []
-            for word in line.replace("\t", " ").split(" "):
-                if word:
-                    words.append(word)
+
+    for paragraph in soup.select("p, table, ul, h1, h2, h3, h4, h5, h6"):
+        for line in paragraph.text.splitlines():
+            words = [word for word in line.replace("\t", " ").split(" ") if word]
             count = len(words)
             if not count:
                 continue
@@ -87,18 +97,29 @@ def scrape_text(html: str, max_words: int = None) -> str:
                 max_words -= count
                 if max_words <= 0:
                     break
-            if clean_text:
-                clean_text += "\n"
-            clean_text += " ".join(words)
+            yield " ".join(words) + "\n"
 
-    return clean_text
+    canonical_link = source.find("link", rel="canonical")
+    if canonical_link and "href" in canonical_link.attrs:
+        link = canonical_link["href"]
+        domain = urlparse(link).netloc
+        yield f"\nSource: [{domain}]({link})"
 
 async def fetch_and_scrape(session: ClientSession, url: str, max_words: int = None) -> str:
     try:
+        bucket_dir: Path = Path(get_cookies_dir()) / ".scrape_cache" / "fetch_and_scrape"
+        bucket_dir.mkdir(parents=True, exist_ok=True)
+        md5_hash = hashlib.md5(url.encode()).hexdigest()
+        cache_file = bucket_dir / f"{url.split('/')[3]}.{datetime.date.today()}.{md5_hash}.txt"
+        if cache_file.exists():
+            return cache_file.read_text()
         async with session.get(url) as response:
             if response.status == 200:
                 html = await response.text()
-                return scrape_text(html, max_words)
+                text = "".join(scrape_text(html, max_words))
+                with open(cache_file, "w") as f:
+                    f.write(text)
+                return text
     except ClientError:
         return
 
@@ -113,7 +134,7 @@ async def search(query: str, max_results: int = 5, max_words: int = 2500, backen
                 safesearch="moderate",
                 timelimit="y",
                 max_results=max_results,
-                backend=backend,  # Changed from 'api' to 'auto'
+                backend=backend,
             ):
             results.append(SearchResultEntry(
                 result["title"],
@@ -149,8 +170,20 @@ async def search(query: str, max_results: int = 5, max_words: int = 2500, backen
 
 async def do_search(prompt: str, query: str = None, instructions: str = DEFAULT_INSTRUCTIONS, **kwargs) -> str:
     if query is None:
-        query = prompt
-    search_results = await search(query, **kwargs)
+        query = spacy_get_keywords(prompt)
+    json_bytes = json.dumps({"query": query, **kwargs}, sort_keys=True).encode()
+    md5_hash = hashlib.md5(json_bytes).hexdigest()
+    bucket_dir: Path = Path(get_cookies_dir()) / ".scrape_cache" / "web_search"
+    bucket_dir.mkdir(parents=True, exist_ok=True)
+    cache_file = bucket_dir / f"{query[:20]}.{md5_hash}.txt"
+    if cache_file.exists():
+        with open(cache_file, "r") as f:
+            search_results = f.read()
+    else:
+        search_results = await search(query, **kwargs)
+        with open(cache_file, "w") as f:
+            f.write(str(search_results))
+
     new_prompt = f"""
 {search_results}
 
@@ -170,3 +203,37 @@ def get_search_message(prompt: str, raise_search_exceptions=False, **kwargs) -> 
             raise e
         debug.log(f"Couldn't do web search: {e.__class__.__name__}: {e}")
         return prompt
+
+def spacy_get_keywords(text: str):
+    if not has_spacy:
+        return text
+
+    # Load the spaCy language model
+    nlp = spacy.load("en_core_web_sm")
+
+    # Process the query
+    doc = nlp(text)
+
+    # Extract keywords based on POS and named entities
+    keywords = []
+    for token in doc:
+        # Filter for nouns, proper nouns, and adjectives
+        if token.pos_ in {"NOUN", "PROPN", "ADJ"} and not token.is_stop:
+            keywords.append(token.lemma_)
+
+    # Add named entities as keywords
+    for ent in doc.ents:
+        keywords.append(ent.text)
+
+    # Remove duplicates and print keywords
+    keywords = list(set(keywords))
+    #print("Keyword:", keywords)
+
+    #keyword_freq = Counter(keywords)
+    #keywords = keyword_freq.most_common()
+    #print("Keyword Frequencies:", keywords)
+
+    keywords = [chunk.text for chunk in doc.noun_chunks if not chunk.root.is_stop]
+    #print("Phrases:", keywords)
+
+    return keywords

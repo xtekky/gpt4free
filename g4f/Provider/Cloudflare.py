@@ -5,8 +5,10 @@ import json
 
 from ..typing import AsyncResult, Messages, Cookies
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin, get_running_loop
-from ..requests import Session, StreamSession, get_args_from_nodriver, raise_for_status, merge_cookies, DEFAULT_HEADERS, has_nodriver, has_curl_cffi
-from ..errors import ResponseStatusError
+from ..requests import Session, StreamSession, get_args_from_nodriver, raise_for_status, merge_cookies
+from ..requests import DEFAULT_HEADERS, has_nodriver, has_curl_cffi
+from ..providers.response import FinishReason
+from ..errors import ResponseStatusError, ModelNotFoundError
 
 class Cloudflare(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Cloudflare AI"
@@ -70,7 +72,10 @@ class Cloudflare(AsyncGeneratorProvider, ProviderModelMixin):
                 cls._args = await get_args_from_nodriver(cls.url, proxy, timeout, cookies)
             else:
                 cls._args = {"headers": DEFAULT_HEADERS, "cookies": {}}
-        model = cls.get_model(model)
+        try:
+            model = cls.get_model(model)
+        except ModelNotFoundError:
+            pass
         data = {
             "messages": messages,
             "lora": None,
@@ -89,6 +94,7 @@ class Cloudflare(AsyncGeneratorProvider, ProviderModelMixin):
                 except ResponseStatusError:
                     cls._args = None
                     raise
+                reason = None
                 async for line in response.iter_lines():
                     if line.startswith(b'data: '):
                         if line == b'data: [DONE]':
@@ -97,5 +103,10 @@ class Cloudflare(AsyncGeneratorProvider, ProviderModelMixin):
                             content = json.loads(line[6:].decode())
                             if content.get("response") and content.get("response") != '</s>':
                                 yield content['response']
+                                reason = "max_tokens"
+                            elif content.get("response") == '':
+                                reason = "stop"
                         except Exception:
                             continue
+                if reason is not None:
+                    yield FinishReason(reason)

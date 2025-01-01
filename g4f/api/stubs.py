@@ -66,6 +66,10 @@ class ModelResponseModel(BaseModel):
     created: int
     owned_by: Optional[str]
 
+class UploadResponseModel(BaseModel):
+    bucket_id: str
+    url: str
+
 class ErrorResponseModel(BaseModel):
     error: ErrorResponseMessageModel
     model: Optional[str] = None

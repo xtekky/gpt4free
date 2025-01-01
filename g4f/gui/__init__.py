@@ -1,9 +1,9 @@
 from ..errors import MissingRequirementsError
 
 try:
-    from .server.app     import app
     from .server.website import Website
-    from .server.backend import Backend_Api
+    from .server.backend_api import Backend_Api
+    from .server.app import create_app
     import_error = None
 except ImportError as e:
     import_error = e
@@ -11,6 +11,7 @@ except ImportError as e:
 def get_gui_app():
     if import_error is not None:
         raise MissingRequirementsError(f'Install "gui" requirements | pip install -U g4f[gui]\n{import_error}')
+    app = create_app()
 
     site = Website(app)
     for route in site.routes:
@@ -36,7 +37,7 @@ def run_gui(host: str = '0.0.0.0', port: int = 8080, debug: bool = False) -> Non
         'debug': debug
     }
 
-    get_gui_app()
+    app = get_gui_app()
 
     print(f"Running on port {config['port']}")
     app.run(**config)

@@ -84,6 +84,16 @@ EXTRA_REQUIRE = {
     ],
     "local": [
         "gpt4all"
+    ],
+    "files": [
+        "spacy",
+        "filesplit",
+        "beautifulsoup4",
+        "pypdf2",
+        "docx",
+        "odfpy",
+        "ebooklib",
+        "openpyxl",
     ]
 }
 

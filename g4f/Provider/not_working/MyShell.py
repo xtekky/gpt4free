@@ -5,7 +5,6 @@ import time, json
 from ...typing import CreateResult, Messages
 from ..base_provider import AbstractProvider
 from ..helper import format_prompt
-from ...webdriver import WebDriver, WebDriverSession, bypass_cloudflare
 
 class MyShell(AbstractProvider):
     url = "https://app.myshell.ai/chat"
@@ -21,7 +20,7 @@ class MyShell(AbstractProvider):
         stream: bool,
         proxy: str = None,
         timeout: int = 120,
-        webdriver: WebDriver = None,
+        webdriver = None,
         **kwargs
     ) -> CreateResult:
         with WebDriverSession(webdriver, "", proxy=proxy) as driver:
