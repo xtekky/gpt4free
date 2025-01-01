@@ -4,7 +4,6 @@ import time, json, time
 
 from ...typing import CreateResult, Messages
 from ..base_provider import AbstractProvider
-from ...webdriver import WebDriver, WebDriverSession
 
 class TalkAi(AbstractProvider):
     url = "https://talkai.info"
@@ -19,7 +18,7 @@ class TalkAi(AbstractProvider):
         messages: Messages,
         stream: bool,
         proxy: str = None,
-        webdriver: WebDriver = None,
+        webdriver = None,
         **kwargs
     ) -> CreateResult:
         with WebDriverSession(webdriver, "", virtual_display=True, proxy=proxy) as driver:

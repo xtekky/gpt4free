@@ -102,22 +102,15 @@ class HuggingFace(AsyncGeneratorProvider, ProviderModelMixin):
                     if "config" in model_data and "model_type" in model_data["config"]:
                         model_type = model_data["config"]["model_type"]
                     debug.log(f"Model type: {model_type}")
-                    if model_type in ("gpt2", "gpt_neo", "gemma", "gemma2"):
-                        inputs = format_prompt(messages, do_continue=do_continue)
-                    elif model_type in ("mistral"):
-                        inputs = format_prompt_mistral(messages, do_continue)
-                    elif "config" in model_data and "tokenizer_config" in model_data["config"] and "eos_token" in model_data["config"]["tokenizer_config"]:
-                        eos_token = model_data["config"]["tokenizer_config"]["eos_token"]
-                        if eos_token in ("<|endoftext|>", "<eos>", "</s>"):
-                            inputs = format_prompt_custom(messages, eos_token, do_continue)
-                        elif eos_token == "<|im_end|>":
-                            inputs = format_prompt_qwen(messages, do_continue)
-                        elif eos_token == "<|eot_id|>":
-                            inputs = format_prompt_llama(messages, do_continue)
+                    inputs = get_inputs(messages, model_data, model_type, do_continue)
+                    debug.log(f"Inputs len: {len(inputs)}")
+                    if len(inputs) > 4096:
+                        if len(messages) > 6:
+                            messages = messages[:3] + messages[-3:]
                         else:
-                            inputs = format_prompt(messages, do_continue=do_continue)
-                    else:
-                        inputs = format_prompt(messages, do_continue=do_continue)
+                            messages = [m for m in messages if m["role"] == "system"] + [messages[-1]]
+                        inputs = get_inputs(messages, model_data, model_type, do_continue)
+                        debug.log(f"New len: {len(inputs)}")
                     if model_type == "gpt2" and max_new_tokens >= 1024:
                         params["max_new_tokens"] = 512
                 payload = {"inputs": inputs, "parameters": params, "stream": stream}
@@ -188,3 +181,22 @@ def format_prompt_custom(messages: Messages, end_token: str = "</s>", do_continu
     if do_continue:
         return prompt[:-len(end_token + "\n")]
     return prompt
+
+def get_inputs(messages: Messages, model_data: dict, model_type: str, do_continue: bool = False) -> str:
+    if model_type in ("gpt2", "gpt_neo", "gemma", "gemma2"):
+        inputs = format_prompt(messages, do_continue=do_continue)
+    elif model_type in ("mistral"):
+        inputs = format_prompt_mistral(messages, do_continue)
+    elif "config" in model_data and "tokenizer_config" in model_data["config"] and "eos_token" in model_data["config"]["tokenizer_config"]:
+        eos_token = model_data["config"]["tokenizer_config"]["eos_token"]
+        if eos_token in ("<|endoftext|>", "<eos>", "</s>"):
+            inputs = format_prompt_custom(messages, eos_token, do_continue)
+        elif eos_token == "<|im_end|>":
+            inputs = format_prompt_qwen(messages, do_continue)
+        elif eos_token == "<|eot_id|>":
+            inputs = format_prompt_llama(messages, do_continue)
+        else:
+            inputs = format_prompt(messages, do_continue=do_continue)
+    else:
+        inputs = format_prompt(messages, do_continue=do_continue)
+    return inputs

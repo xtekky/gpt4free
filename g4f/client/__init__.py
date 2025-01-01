@@ -7,7 +7,6 @@ import string
 import asyncio
 import aiohttp
 import base64
-import json
 from typing import Union, AsyncIterator, Iterator, Coroutine, Optional
 
 from ..image import ImageResponse, copy_images, images_dir
@@ -17,13 +16,13 @@ from ..providers.response import ResponseType, FinishReason, BaseConversation, S
 from ..errors import NoImageResponseError
 from ..providers.retry_provider import IterListProvider
 from ..providers.asyncio import to_sync_generator, async_generator_to_list
-from ..web_search import get_search_message, do_search
 from ..Provider.needs_auth import BingCreateImages, OpenaiAccount
+from ..tools.run_tools import async_iter_run_tools, iter_run_tools
 from .stubs import ChatCompletion, ChatCompletionChunk, Image, ImagesResponse
 from .image_models import ImageModels
 from .types import IterResponse, ImageProvider, Client as BaseClient
 from .service import get_model_and_provider, convert_to_provider
-from .helper import find_stop, filter_json, filter_none, safe_aclose, to_async_iterator
+from .helper import find_stop, filter_json, filter_none, safe_aclose
 from .. import debug
 
 ChatCompletionResponseType = Iterator[Union[ChatCompletion, ChatCompletionChunk, BaseConversation]]
@@ -37,47 +36,6 @@ except NameError:
             return await aiter.__anext__()
         except StopAsyncIteration:
             raise StopIteration
-
-def validate_arguments(data: dict) -> dict:
-    if "arguments" in data:
-        if isinstance(data["arguments"], str):
-            data["arguments"] = json.loads(data["arguments"])
-        if not isinstance(data["arguments"], dict):
-            raise ValueError("Tool function arguments must be a dictionary or a json string")
-        else:
-            return filter_none(**data["arguments"])
-    else:
-        return {}
-
-async def async_iter_run_tools(async_iter_callback, model, messages, tool_calls: Optional[list] = None, **kwargs):
-    if tool_calls is not None:
-        for tool in tool_calls:
-            if tool.get("type") == "function":
-                if tool.get("function", {}).get("name") == "search_tool":
-                    tool["function"]["arguments"] = validate_arguments(tool["function"])
-                    messages = messages.copy()
-                    messages[-1]["content"] = await do_search(
-                        messages[-1]["content"],
-                        **tool["function"]["arguments"]
-                    )
-    response = async_iter_callback(model=model, messages=messages, **kwargs)
-    if not hasattr(response, "__aiter__"):
-        response = to_async_iterator(response)
-    async for chunk in response:
-        yield chunk
-
-def iter_run_tools(iter_callback, model, messages, tool_calls: Optional[list] = None, **kwargs):
-    if tool_calls is not None:
-        for tool in tool_calls:
-            if tool.get("type") == "function":
-                if tool.get("function", {}).get("name") == "search_tool":
-                    tool["function"]["arguments"] = validate_arguments(tool["function"])
-                    messages[-1]["content"] = get_search_message(
-                        messages[-1]["content"],
-                        raise_search_exceptions=True,
-                        **tool["function"]["arguments"]
-                    )
-    return iter_callback(model=model, messages=messages, **kwargs)
 
 # Synchronous iter_response function
 def iter_response(
@@ -131,7 +89,8 @@ def iter_response(
             break
 
         idx += 1
-
+    if usage is None:
+        usage = Usage(prompt_tokens=0, completion_tokens=idx, total_tokens=idx).get_dict()
     finish_reason = "stop" if finish_reason is None else finish_reason
 
     if stream:

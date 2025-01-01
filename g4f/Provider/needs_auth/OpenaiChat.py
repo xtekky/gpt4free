@@ -404,7 +404,7 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
                     data["conversation_id"] = conversation.conversation_id
                     debug.log(f"OpenaiChat: Use conversation: {conversation.conversation_id}")
                 if action != "continue":
-                    data["parent_message_id"] = conversation.parent_message_id
+                    data["parent_message_id"] = getattr(conversation, "parent_message_id", conversation.message_id)
                     conversation.parent_message_id = None
                     messages = messages if conversation_id is None else [messages[-1]]
                     data["messages"] = cls.create_messages(messages, image_requests, ["search"] if web_search else None)
@@ -604,7 +604,6 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
             "api_key": cls._api_key,
             "proof_token": RequestConfig.proof_token,
             "cookies": RequestConfig.cookies,
-            "headers": RequestConfig.headers
         })
 
     @classmethod
@@ -636,6 +635,8 @@ class OpenaiChat(AsyncGeneratorProvider, ProviderModelMixin):
         page = await browser.get(cls.url)
         user_agent = await page.evaluate("window.navigator.userAgent")
         await page.select("#prompt-textarea", 240)
+        await page.evaluate("document.getElementById('prompt-textarea').innerText = 'Hello'")
+        await page.evaluate("document.querySelector('[data-testid=\"send-button\"]').click()")
         while True:
             if cls._api_key is not None:
                 break

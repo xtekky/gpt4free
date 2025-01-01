@@ -5,7 +5,6 @@ import time
 from ...typing import CreateResult, Messages
 from ..base_provider import AbstractProvider
 from ..helper import format_prompt
-from ...webdriver import WebDriver, WebDriverSession, element_send_text
 
 models = {
     "meta-llama/Llama-2-7b-chat-hf": {"name": "Llama-2-7b"},
@@ -22,7 +21,7 @@ models = {
 
 class Poe(AbstractProvider):
     url = "https://poe.com"
-    working = True
+    working = False
     needs_auth = True
     supports_stream = True
     

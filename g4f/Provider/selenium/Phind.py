@@ -6,7 +6,6 @@ from urllib.parse import quote
 from ...typing import CreateResult, Messages
 from ..base_provider import AbstractProvider
 from ..helper import format_prompt
-from ...webdriver import WebDriver, WebDriverSession
 
 class Phind(AbstractProvider):
     url = "https://www.phind.com"
@@ -22,7 +21,7 @@ class Phind(AbstractProvider):
         stream: bool,
         proxy: str = None,
         timeout: int = 120,
-        webdriver: WebDriver = None,
+        webdriver = None,
         creative_mode: bool = None,
         **kwargs
     ) -> CreateResult:

@@ -14,7 +14,7 @@ from ..typing import AsyncResult, Messages, ImagesType
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..image import ImageResponse, to_data_uri
 from ..cookies import get_cookies_dir
-from ..web_search import get_search_message
+from ..tools.web_search import get_search_message
 from .helper import format_prompt
 
 from .. import debug
