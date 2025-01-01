@@ -4,7 +4,10 @@ from aiohttp import ClientSession, ClientTimeout, ClientError
 import json
 import hashlib
 from pathlib import Path
-from collections import Counter
+from urllib.parse import urlparse
+import datetime
+import asyncio
+
 try:
     from duckduckgo_search import DDGS
     from duckduckgo_search.exceptions import DuckDuckGoSearchException
@@ -17,12 +20,11 @@ try:
     has_spacy = True
 except:
     has_spacy = False
+
 from typing import Iterator
 from ..cookies import get_cookies_dir
 from ..errors import MissingRequirementsError
 from .. import debug
-
-import asyncio
 
 DEFAULT_INSTRUCTIONS = """
 Using the provided web search results, to write a comprehensive reply to the user request.
@@ -64,7 +66,8 @@ class SearchResultEntry():
         self.text = text
 
 def scrape_text(html: str, max_words: int = None) -> Iterator[str]:
-    soup = BeautifulSoup(html, "html.parser")
+    source = BeautifulSoup(html, "html.parser")
+    soup = source
     for selector in [
             "main",
             ".main-content-wrapper",
@@ -96,12 +99,18 @@ def scrape_text(html: str, max_words: int = None) -> Iterator[str]:
                     break
             yield " ".join(words) + "\n"
 
+    canonical_link = source.find("link", rel="canonical")
+    if canonical_link and "href" in canonical_link.attrs:
+        link = canonical_link["href"]
+        domain = urlparse(link).netloc
+        yield f"\nSource: [{domain}]({link})"
+
 async def fetch_and_scrape(session: ClientSession, url: str, max_words: int = None) -> str:
     try:
         bucket_dir: Path = Path(get_cookies_dir()) / ".scrape_cache" / "fetch_and_scrape"
         bucket_dir.mkdir(parents=True, exist_ok=True)
         md5_hash = hashlib.md5(url.encode()).hexdigest()
-        cache_file = bucket_dir / f"{url.split('/')[3]}.{md5_hash}.txt"
+        cache_file = bucket_dir / f"{url.split('/')[3]}.{datetime.date.today()}.{md5_hash}.txt"
         if cache_file.exists():
             return cache_file.read_text()
         async with session.get(url) as response:

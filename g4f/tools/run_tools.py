@@ -12,6 +12,10 @@ from .web_search import do_search, get_search_message
 from .files import read_bucket, get_bucket_dir
 from .. import debug
 
+BUCKET_INSTRUCTIONS = """
+Instruction: Make sure to add the sources of cites using [[domain]](Url) notation after the reference. Example: [[a-z0-9.]](http://example.com)
+"""
+
 def validate_arguments(data: dict) -> dict:
     if "arguments" in data:
         if isinstance(data["arguments"], str):
@@ -36,7 +40,7 @@ async def async_iter_run_tools(async_iter_callback, model, messages, tool_calls:
                     )
                 elif tool.get("function", {}).get("name") == "continue":
                     last_line = messages[-1]["content"].strip().splitlines()[-1]
-                    content = f"Continue writing the story after this line start with a plus sign if you begin a new word.\n{last_line}"
+                    content = f"Continue after this line.\n{last_line}"
                     messages.append({"role": "user", "content": content})
     response = async_iter_callback(model=model, messages=messages, **kwargs)
     if not hasattr(response, "__aiter__"):
@@ -73,7 +77,7 @@ def iter_run_tools(
                 elif tool.get("function", {}).get("name") == "continue_tool":
                     if provider not in ("OpenaiAccount", "HuggingFace"):
                         last_line = messages[-1]["content"].strip().splitlines()[-1]
-                        content = f"continue after this line:\n{last_line}"
+                        content = f"Continue after this line:\n{last_line}"
                         messages.append({"role": "user", "content": content})
                     else:
                         # Enable provider native continue
@@ -82,6 +86,14 @@ def iter_run_tools(
                 elif tool.get("function", {}).get("name") == "bucket_tool":
                     def on_bucket(match):
                         return "".join(read_bucket(get_bucket_dir(match.group(1))))
-                    messages[-1]["content"] = re.sub(r'{"bucket_id":"([^"]*)"}', on_bucket, messages[-1]["content"])
+                    has_bucket = False
+                    for message in messages:
+                        if "content" in message and isinstance(message["content"], str):
+                            new_message_content = re.sub(r'{"bucket_id":"([^"]*)"}', on_bucket, message["content"])
+                            if new_message_content != message["content"]:
+                                has_bucket = True
+                                message["content"] = new_message_content
+                    if has_bucket and isinstance(messages[-1]["content"], str):
+                        messages[-1]["content"] += BUCKET_INSTRUCTIONS
                     print(messages[-1])
     return iter_callback(model=model, messages=messages, provider=provider, **kwargs)

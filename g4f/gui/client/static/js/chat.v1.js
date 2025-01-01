@@ -59,6 +59,10 @@ if (window.markdownit) {
         return markdown.render(content
             .replaceAll(/<!-- generated images start -->|<!-- generated images end -->/gm, "")
             .replaceAll(/<img data-prompt="[^>]+">/gm, "")
+            .replaceAll(/{"bucket_id":"([^"]+)"}/gm, (match, p1) => {
+                size = appStorage.getItem(`bucket:${p1}`);
+                return `**Bucket:** [[${p1}]](/backend-api/v2/files/${p1})${size ? ` (${formatFileSize(size)})` : ""}`;
+            })
         )
             .replaceAll("<a href=", '<a target="_blank" href=')
             .replaceAll('<code>', '<code class="language-plaintext">')
@@ -1802,16 +1806,18 @@ function formatFileSize(bytes) {
 async function upload_files(fileInput) {
     const paperclip = document.querySelector(".user-input .fa-paperclip");
     const bucket_id = uuid();
+    delete fileInput.dataset.text;
+    paperclip.classList.add("blink");
 
     const formData = new FormData();
     Array.from(fileInput.files).forEach(file => {
         formData.append('files[]', file);
     });
-    paperclip.classList.add("blink");
     await fetch("/backend-api/v2/files/" + bucket_id, {
         method: 'POST',
         body: formData
     });
+
     let do_refine = document.getElementById("refine").checked;
     function connectToSSE(url) {
         const eventSource = new EventSource(url);
@@ -1819,21 +1825,25 @@ async function upload_files(fileInput) {
             const data = JSON.parse(event.data);
             if (data.error) {
                 inputCount.innerText = `Error: ${data.error.message}`;
+                paperclip.classList.remove("blink");
+                fileInput.value = "";
             } else if (data.action == "load") {
                 inputCount.innerText = `Read data: ${formatFileSize(data.size)}`;
             } else if (data.action == "refine") {
                 inputCount.innerText = `Refine data: ${formatFileSize(data.size)}`;
+            } else if (data.action == "download") {
+                inputCount.innerText = `Download: ${data.count} files`;
             } else if (data.action == "done") {
                 if (do_refine) {
                     do_refine = false;
                     connectToSSE(`/backend-api/v2/files/${bucket_id}?refine_chunks_with_spacy=true`);
                     return;
                 }
+                appStorage.setItem(`bucket:${bucket_id}`, data.size);
                 inputCount.innerText = "Files are loaded successfully";
                 messageInput.value += (messageInput.value ? "\n" : "") + JSON.stringify({bucket_id: bucket_id}) + "\n";
                 paperclip.classList.remove("blink");
                 fileInput.value = "";
-                delete fileInput.dataset.text;
             }
         };
         eventSource.onerror = (event) => {
