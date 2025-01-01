@@ -42,6 +42,19 @@ async def async_iter_run_tools(async_iter_callback, model, messages, tool_calls:
                     last_line = messages[-1]["content"].strip().splitlines()[-1]
                     content = f"Continue after this line.\n{last_line}"
                     messages.append({"role": "user", "content": content})
+                elif tool.get("function", {}).get("name") == "bucket_tool":
+                    def on_bucket(match):
+                        return "".join(read_bucket(get_bucket_dir(match.group(1))))
+                    has_bucket = False
+                    for message in messages:
+                        if "content" in message and isinstance(message["content"], str):
+                            new_message_content = re.sub(r'{"bucket_id":"([^"]*)"}', on_bucket, message["content"])
+                            if new_message_content != message["content"]:
+                                has_bucket = True
+                                message["content"] = new_message_content
+                    if has_bucket and isinstance(messages[-1]["content"], str):
+                        messages[-1]["content"] += BUCKET_INSTRUCTIONS
+
     response = async_iter_callback(model=model, messages=messages, **kwargs)
     if not hasattr(response, "__aiter__"):
         response = to_async_iterator(response)
@@ -95,5 +108,5 @@ def iter_run_tools(
                                 message["content"] = new_message_content
                     if has_bucket and isinstance(messages[-1]["content"], str):
                         messages[-1]["content"] += BUCKET_INSTRUCTIONS
-                    print(messages[-1])
+
     return iter_callback(model=model, messages=messages, provider=provider, **kwargs)
