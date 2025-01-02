@@ -192,7 +192,9 @@ Instruction: {instructions}
 User request:
 {prompt}
 """
-    debug.log(f"Web search: '{query.strip()[:50]}...' {len(search_results.results)} Results {search_results.used_words} Words")
+    debug.log(f"Web search: '{query.strip()[:50]}...'")
+    if isinstance(search_results, SearchResults):
+        debug.log(f"with {len(search_results.results)} Results {search_results.used_words} Words")
     return new_prompt
 
 def get_search_message(prompt: str, raise_search_exceptions=False, **kwargs) -> str:

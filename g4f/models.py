@@ -98,26 +98,26 @@ gpt_35_turbo = Model(
 gpt_4 = Model(
     name          = 'gpt-4',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([DDG, Blackbox, ChatGptEs, PollinationsAI, Copilot, OpenaiChat, Liaobots, Airforce, Mhystical])
+    best_provider = IterListProvider([DDG, Blackbox, ChatGptEs, PollinationsAI, Copilot, OpenaiChat, Liaobots, Mhystical])
 )
 
 gpt_4_turbo = Model(
     name          = 'gpt-4-turbo',
     base_provider = 'OpenAI',
-    best_provider = Airforce
+    best_provider = None
 )
 
 # gpt-4o
 gpt_4o = Model(
     name          = 'gpt-4o',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([Blackbox, ChatGptEs, PollinationsAI, DarkAI, ChatGpt, Airforce, Liaobots, OpenaiChat])
+    best_provider = IterListProvider([Blackbox, ChatGptEs, PollinationsAI, DarkAI, ChatGpt, Liaobots, OpenaiChat])
 )
 
 gpt_4o_mini = Model(
     name          = 'gpt-4o-mini',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([DDG, ChatGptEs, Pizzagpt, ChatGpt, Airforce, RubiksAI, Liaobots, OpenaiChat])
+    best_provider = IterListProvider([DDG, ChatGptEs, Pizzagpt, ChatGpt, RubiksAI, Liaobots, OpenaiChat])
 )
 
 # o1
@@ -136,7 +136,7 @@ o1_preview = Model(
 o1_mini = Model(
     name          = 'o1-mini',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([Liaobots, Airforce])
+    best_provider = IterListProvider([Liaobots])
 )
 
 ### GigaChat ###
