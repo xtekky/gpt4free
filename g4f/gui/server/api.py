@@ -64,7 +64,6 @@ class Api:
             "parent": getattr(provider, "parent", None),
             "image": getattr(provider, "image_models", None) is not None,
             "vision": getattr(provider, "default_vision_model", None) is not None,
-            "webdriver": "webdriver" in provider.get_parameters(),
             "auth": provider.needs_auth,
         } for provider in __providers__ if provider.working]
 

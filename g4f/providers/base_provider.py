@@ -17,7 +17,7 @@ from .types import BaseProvider
 from .asyncio import get_running_loop, to_sync_generator
 from .response import BaseConversation
 from .helper import concat_chunks, async_concat_chunks
-from ..errors import ModelNotSupportedError
+from ..errors import ModelNotSupportedError, ResponseError
 from .. import debug
 
 SAFE_PARAMETERS = [
@@ -33,15 +33,14 @@ SAFE_PARAMETERS = [
 ]
 
 BASIC_PARAMETERS = {
+    "provider": None,
     "model": "",
     "messages": [],
-    "provider": None,
     "stream": False,
     "timeout": 0,
     "response_format": None,
     "max_tokens": None,
     "stop": None,
-    "web_search": False,
 }
 
 PARAMETER_EXAMPLES = {
@@ -109,12 +108,8 @@ class AbstractProvider(BaseProvider):
         ).parameters.items() if name in SAFE_PARAMETERS
             and (name != "stream" or cls.supports_stream)}
         if as_json:
-            def get_type_as_var(annotation: type, key: str):
-                if key == "model":
-                    return getattr(cls, "default_model", "")
-                elif key == "stream":
-                    return cls.supports_stream
-                elif key in PARAMETER_EXAMPLES:
+            def get_type_as_var(annotation: type, key: str, default):
+                if key in PARAMETER_EXAMPLES:
                     if key == "messages" and not cls.supports_system_message:
                         return [PARAMETER_EXAMPLES[key][-1]]
                     return PARAMETER_EXAMPLES[key]
@@ -137,18 +132,21 @@ class AbstractProvider(BaseProvider):
                         return {}
                 elif annotation is None:
                     return None
-                elif isinstance(annotation, _GenericAlias) and annotation.__origin__ is Optional:
-                    return get_type_as_var(annotation.__args__[0])
+                elif annotation == "str" or annotation == "list[str]":
+                    return default
+                elif isinstance(annotation, _GenericAlias):
+                    if annotation.__origin__ is Optional:
+                        return get_type_as_var(annotation.__args__[0])
                 else:
                     return str(annotation)
             return { name: (
                 param.default
                 if isinstance(param, Parameter) and param.default is not Parameter.empty and param.default is not None
-                else get_type_as_var(param.annotation if isinstance(param, Parameter) else type(param), name)
+                else get_type_as_var(param.annotation, name, param.default) if isinstance(param, Parameter) else param
             ) for name, param in {
                 **BASIC_PARAMETERS,
-                **{"provider": cls.__name__},
-                **params
+                **params,
+                **{"provider": cls.__name__, "stream": cls.supports_stream, "model": getattr(cls, "default_model", "")},
             }.items()}
         return params
 
@@ -335,3 +333,17 @@ class ProviderModelMixin:
         cls.last_model = model
         debug.last_model = model
         return model
+
+class RaiseErrorMixin():
+
+    @staticmethod
+    def raise_error(data: dict):
+        if "error_message" in data:
+            raise ResponseError(data["error_message"])
+        elif "error" in data:
+            if "code" in data["error"]:
+                raise ResponseError(f'Error {data["error"]["code"]}: {data["error"]["message"]}')
+            elif "message" in data["error"]:
+                raise ResponseError(data["error"]["message"])
+            else:
+                raise ResponseError(data["error"])

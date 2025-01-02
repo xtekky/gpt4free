@@ -518,6 +518,7 @@ const prepare_messages = (messages, message_index = -1, do_continue = false) => 
             delete new_message.synthesize;
             delete new_message.finish;
             delete new_message.conversation;
+            delete new_message.continue;
             // Append message to new messages
             new_messages.push(new_message)
         }
@@ -541,6 +542,7 @@ async function load_provider_parameters(provider) {
         if (old_form) {
             provider_forms.removeChild(old_form);
         }
+        console.log(provider, parameters_storage[provider]);
         Object.entries(parameters_storage[provider]).forEach(([key, value]) => {
             let el_id = `${provider}-${key}`;
             let saved_value = appStorage.getItem(el_id);
@@ -571,7 +573,7 @@ async function load_provider_parameters(provider) {
                 field_el = document.createElement("div");
                 field_el.classList.add("field");
                 field_el.classList.add("box");
-                if (typeof value == "object") {
+                if (typeof value == "object" && value != null) {
                     value = JSON.stringify(value, null, 4);
                 }
                 if (saved_value) {
@@ -580,14 +582,15 @@ async function load_provider_parameters(provider) {
                     saved_value = value;
                 }
                 let placeholder;
-                if (key in ["api_key", "proof_token"]) {
-                    placeholder = value.length >= 22 ? (value.substring(0, 10) + "*".repeat(8) + value.substring(value.length-10)) : value;
+                if (["api_key", "proof_token"].includes(key)) {
+                    placeholder = saved_value && saved_value.length >= 22 ? (saved_value.substring(0, 12) + "*".repeat(12) + saved_value.substring(saved_value.length-12)) : value;
                 } else {
-                    placeholder = value;
+                    placeholder = value == null ? "null" : value;
                 }
                 field_el.innerHTML = `<label for="${el_id}" title="">${key}:</label>`;
-                if (Number.isInteger(value)) {
-                    field_el.innerHTML += `<input type="range" id="${el_id}" name="${provider}[${key}]" value="${escapeHtml(value)}" class="slider" min="0" max="4096" step="1"/><output>${escapeHtml(value)}</output>`;
+                if (Number.isInteger(value) && value != 1) {
+                    max = value >= 4096 ? 8192 : 4096;
+                    field_el.innerHTML += `<input type="range" id="${el_id}" name="${provider}[${key}]" value="${escapeHtml(value)}" class="slider" min="0" max="${max}" step="1"/><output>${escapeHtml(value)}</output>`;
                     field_el.innerHTML += `<i class="fa-solid fa-xmark"></i>`;
                 } else if (typeof value == "number") {
                     field_el.innerHTML += `<input type="range" id="${el_id}" name="${provider}[${key}]" value="${escapeHtml(value)}" class="slider" min="0" max="2" step="0.1"/><output>${escapeHtml(value)}</output>`;
@@ -596,10 +599,12 @@ async function load_provider_parameters(provider) {
                     field_el.innerHTML += `<textarea id="${el_id}" name="${provider}[${key}]"></textarea>`;
                     field_el.innerHTML += `<i class="fa-solid fa-xmark"></i>`;
                     input_el = field_el.querySelector("textarea");
-                    input_el.dataset.text = value;
+                    if (value != null) {
+                        input_el.dataset.text = value;
+                    }
                     input_el.placeholder = placeholder;
-                    if (!key in ["api_key", "proof_token"]) {
-                        input_el.innerHTML = saved_value;
+                    if (!["api_key", "proof_token"].includes(key)) {
+                        input_el.value = saved_value;
                     } else {
                         input_el.dataset.saved_value = saved_value;
                     }
@@ -610,14 +615,16 @@ async function load_provider_parameters(provider) {
                     };
                     input_el.onfocus = () => {
                         if (input_el.dataset.saved_value) {
-                            input_el.innerHTML = input_el.dataset.saved_value;
+                            input_el.value = input_el.dataset.saved_value;
+                        } else if (["api_key", "proof_token"].includes(key)) {
+                            input_el.value = input_el.dataset.text;
                         }
                         input_el.style.removeProperty("height");
                         input_el.style.height = (input_el.scrollHeight) + "px";
                     }
                     input_el.onblur = () => {
                         input_el.style.removeProperty("height");
-                        if (key in ["api_key", "proof_token"]) {
+                        if (["api_key", "proof_token"].includes(key)) {
                             input_el.value = "";
                         }
                     }
@@ -642,13 +649,14 @@ async function load_provider_parameters(provider) {
                     input_el.value = input_el.dataset.value;
                     input_el.nextElementSibling.value = input_el.dataset.value;
                 } else if (input_el.dataset.text) {
-                    input_el.innerHTML = input_el.dataset.text;
+                    input_el.value = input_el.dataset.text;
                 }
+                delete input_el.dataset.saved_value;
                 appStorage.removeItem(el_id);
                 field_el.classList.remove("saved");
             }
         });
-        provider_forms.prepend(form_el);
+        provider_forms.appendChild(form_el);
     }
 }
 
@@ -1073,7 +1081,7 @@ const load_conversation = async (conversation_id, scroll=true) => {
                     reason = "stop"
                 }
             }
-            if (reason == "max_tokens" || reason == "error") {
+            if (reason == "length" || reason == "max_tokens" || reason == "error") {
                 actions.push("continue")
             }
         }
@@ -1405,22 +1413,23 @@ function open_settings() {
 const register_settings_storage = async () => {
     const optionElements = document.querySelectorAll(optionElementsSelector);
     optionElements.forEach((element) => {
+        element.name = element.name || element.id;
         if (element.type == "textarea") {
             element.addEventListener('input', async (event) => {
-                appStorage.setItem(element.id, element.value);
+                appStorage.setItem(element.name, element.value);
             });
         } else {
             element.addEventListener('change', async (event) => {
                 switch (element.type) {
                     case "checkbox":
-                        appStorage.setItem(element.id, element.checked);
+                        appStorage.setItem(element.name, element.checked);
                         break;
                     case "select-one":
-                        appStorage.setItem(element.id, element.selectedIndex);
+                        appStorage.setItem(element.name, element.value);
                         break;
                     case "text":
                     case "number":
-                        appStorage.setItem(element.id, element.value);
+                        appStorage.setItem(element.name, element.value);
                         break;
                     default:
                         console.warn("Unresolved element type");
@@ -1433,7 +1442,8 @@ const register_settings_storage = async () => {
 const load_settings_storage = async () => {
     const optionElements = document.querySelectorAll(optionElementsSelector);
     optionElements.forEach((element) => {
-        if (!(value = appStorage.getItem(element.id))) {
+        element.name = element.name || element.id;
+        if (!(value = appStorage.getItem(element.name))) {
             return;
         }
         if (value) {
@@ -1442,7 +1452,7 @@ const load_settings_storage = async () => {
                     element.checked = value === "true";
                     break;
                 case "select-one":
-                    element.selectedIndex = parseInt(value);
+                    element.value = value;
                     break;
                 case "text":
                 case "number":
@@ -1683,7 +1693,7 @@ async function on_api() {
         console.error(e)
         // Redirect to show basic authenfication
         if (document.location.pathname == "/chat/") {
-            document.location.href = `/chat/error`;
+            //document.location.href = `/chat/error`;
         }
     }
     register_settings_storage();
@@ -1951,7 +1961,10 @@ async function api(ressource, args=null, files=null, message_id=null) {
         return read_response(response, message_id, args.provider || null);
     }
     response = await fetch(url, {headers: headers});
-    return await response.json();
+    if (response.status == 200) {
+        return await response.json();
+    }
+    console.error(response);
 }
 
 async function read_response(response, message_id, provider) {
@@ -1987,19 +2000,19 @@ function get_api_key_by_provider(provider) {
     return api_key;
 }
 
-async function load_provider_models(providerIndex=null) {
-    if (!providerIndex) {
-        providerIndex = providerSelect.selectedIndex;
+async function load_provider_models(provider=null) {
+    if (!provider) {
+        provider = providerSelect.value;
     }
     modelProvider.innerHTML = '';
-    const provider = providerSelect.options[providerIndex].value;
+    modelProvider.name = `model[${provider}]`;
     if (!provider) {
         modelProvider.classList.add("hidden");
         modelSelect.classList.remove("hidden");
         return;
     }
     const models = await api('models', provider);
-    if (models.length > 0) {
+    if (models && models.length > 0) {
         modelSelect.classList.add("hidden");
         modelProvider.classList.remove("hidden");
         models.forEach((model) => {
@@ -2010,6 +2023,10 @@ async function load_provider_models(providerIndex=null) {
             option.selected = model.default;
             modelProvider.appendChild(option);
         });
+        let value = appStorage.getItem(modelProvider.name);
+        if (value) {
+            modelProvider.value = value;
+        }
     } else {
         modelProvider.classList.add("hidden");
         modelSelect.classList.remove("hidden");

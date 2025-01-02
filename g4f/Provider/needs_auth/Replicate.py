@@ -25,7 +25,7 @@ class Replicate(AsyncGeneratorProvider, ProviderModelMixin):
         proxy: str = None,
         timeout: int = 180,
         system_prompt: str = None,
-        max_new_tokens: int = None,
+        max_tokens: int = None,
         temperature: float = None,
         top_p: float = None,
         top_k: float = None,
@@ -55,7 +55,7 @@ class Replicate(AsyncGeneratorProvider, ProviderModelMixin):
                     "prompt": format_prompt(messages),
                     **filter_none(
                         system_prompt=system_prompt,
-                        max_new_tokens=max_new_tokens,
+                        max_new_tokens=max_tokens,
                         temperature=temperature,
                         top_p=top_p,
                         top_k=top_k,

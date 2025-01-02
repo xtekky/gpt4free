@@ -16,8 +16,6 @@ async def test_async(provider: ProviderType):
         return False
     messages = [{"role": "user", "content": "Hello Assistant!"}]
     try:
-        if "webdriver" in provider.get_parameters():
-            return False
         response = await asyncio.wait_for(ChatCompletion.create_async(
             model=models.default,
             messages=messages,
