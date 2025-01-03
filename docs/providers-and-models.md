@@ -22,7 +22,7 @@ This document provides an overview of various AI providers and models, including
 |----------|-------------|--------------|---------------|--------|--------|------|------|
 |[api.airforce](https://api.airforce)|`g4f.Provider.Airforce`|`phi-2, openchat-3.5, deepseek-coder, hermes-2-dpo, hermes-2-pro, openhermes-2.5, lfm-40b, german-7b, llama-2-7b, llama-3.1-8b, llama-3.1-70b, neural-7b, zephyr-7b, evil,`|`sdxl, flux-pro, flux, flux-realism, flux-anime, flux-3d, flux-disney, flux-pixel, flux-4o, any-dark, midjourney, dall-e-3`|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌+✔|
 |[amigochat.io](https://amigochat.io/chat/)|`g4f.Provider.AmigoChat`|✔|✔|❌|✔|![Error](https://img.shields.io/badge/RateLimit-f48d37)|❌|
-|[blackbox.ai](https://www.blackbox.ai)|`g4f.Provider.Blackbox`|`blackboxai, gpt-4, gpt-4o, gemini-pro, claude-3.5-sonnet, blackboxai-pro, llama-3.1-8b, llama-3.1-70b, llama-3.3-70b, mixtral-7b, deepseek-chat, dbrx-instruct, qwq-32b, hermes-2-dpo`|`flux`|`blackboxai, gpt-4o, gemini-pro, gemini-flash, llama-3.1-8b, llama-3.1-70b, llama-3.1-405b`|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌|
+|[blackbox.ai](https://www.blackbox.ai)|`g4f.Provider.Blackbox`|`blackboxai, gpt-4, gpt-4o, gemini-1.5-pro, claude-3.5-sonnet, blackboxai-pro, llama-3.1-8b, llama-3.1-70b, llama-3.3-70b, mixtral-7b, deepseek-chat, dbrx-instruct, qwq-32b, hermes-2-dpo`|`flux`|`blackboxai, gpt-4o, gemini-1.5-pro, gemini-1.5-flash, llama-3.1-8b, llama-3.1-70b, llama-3.1-405b`|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[blackbox.ai](https://www.blackbox.ai)|`g4f.Provider.BlackboxCreateAgent`|`llama-3.1-70b`|`flux`|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[chatgpt.com](https://chatgpt.com)|`g4f.Provider.ChatGpt`|✔|❌|❌|✔|![Error](https://img.shields.io/badge/HTTPError-f48d37)|❌|
 |[chatgpt.es](https://chatgpt.es)|`g4f.Provider.ChatGptEs`|`gpt-4, gpt-4o, gpt-4o-mini`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌|
@@ -34,9 +34,9 @@ This document provides an overview of various AI providers and models, including
 |[deepinfra.com/chat](https://deepinfra.com/chat)|`g4f.Provider.DeepInfraChat`|`llama-3.1-8b, llama-3.1-70b, qwq-32b, wizardlm-2-8x22b, qwen-2-72b, qwen-2.5-coder-32b, nemotron-70b`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[black-forest-labs-flux-1-dev.hf.space](https://black-forest-labs-flux-1-dev.hf.space)|`g4f.Provider.Flux`|❌|`flux-dev`|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[chat10.free2gpt.xyz](https://chat10.free2gpt.xyz)|`g4f.Provider.Free2GPT`|`mistral-7b`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌|
-|[freegptsnav.aifree.site](https://freegptsnav.aifree.site)|`g4f.Provider.FreeGpt`|`gemini-pro`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌|
-|[app.giz.ai/assistant](https://app.giz.ai/assistant)|`g4f.Provider.GizAI`|`gemini-flash`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌|
-|[liaobots.work](https://liaobots.work)|`g4f.Provider.Liaobots`|`grok-beta, gpt-4o-mini, gpt-4o, gpt-4, o1-preview, o1-mini, claude-3-opus, claude-3.5-sonnet, claude-3-sonnet, gemini-flash, gemini-pro`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌|
+|[freegptsnav.aifree.site](https://freegptsnav.aifree.site)|`g4f.Provider.FreeGpt`|`gemini-1.5-pro`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌|
+|[app.giz.ai/assistant](https://app.giz.ai/assistant)|`g4f.Provider.GizAI`|`gemini-1.5-flash`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌|
+|[liaobots.work](https://liaobots.work)|`g4f.Provider.Liaobots`|`grok-2, gpt-4o-mini, gpt-4o, gpt-4, o1-preview, o1-mini, claude-3-opus, claude-3.5-sonnet, claude-3-sonnet, gemini-1.5-flash, gemini-1.5-pro, gemini-2.0-flash, gemini-2.0-flash-thinking`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[mhystical.cc](https://mhystical.cc)|`g4f.Provider.Mhystical`|`gpt-4`|❌|❌|✔|![Error](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[labs.perplexity.ai](https://labs.perplexity.ai)|`g4f.Provider.PerplexityLabs`|`sonar-online, sonar-chat, llama-3.3-70b, llama-3.1-8b, llama-3.1-70b, lfm-40b`|❌|❌|✔|![Error](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[pi.ai/talk](https://pi.ai/talk)|`g4f.Provider.Pi`|`pi`|❌|❌|✔|![Error](https://img.shields.io/badge/Active-brightgreen)|❌|
@@ -64,7 +64,7 @@ This document provides an overview of various AI providers and models, including
 |[deepinfra.com](https://deepinfra.com)|`g4f.Provider.DeepInfra`|✔|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|✔|
 |[deepinfra.com](https://deepinfra.com)|`g4f.Provider.DeepInfraImage`|❌|✔|❌|❌|![](https://img.shields.io/badge/Active-brightgreen)|✔|
 |[gemini.google.com](https://gemini.google.com)|`g4f.Provider.Gemini`|`gemini`|`gemini`|`gemini`|❌|![](https://img.shields.io/badge/Active-brightgreen)|✔|
-|[ai.google.dev](https://ai.google.dev)|`g4f.Provider.GeminiPro`|`gemini-pro`|❌|`gemini-pro`|❌|![](https://img.shields.io/badge/Active-brightgreen)|✔|
+|[ai.google.dev](https://ai.google.dev)|`g4f.Provider.GeminiPro`|`gemini-1.5-flash, gemini-1.5-pro, gemini-2.0-flash`|❌|`gemini-1.5-pro`|❌|![](https://img.shields.io/badge/Active-brightgreen)|✔|
 |[github.com/copilot](https://github.com/copilot)|`g4f.Provider.GithubCopilot`|✔|❌|❌|❌|![](https://img.shields.io/badge/Active-brightgreen)|✔|
 |[glhf.chat](https://glhf.chat)|`g4f.Provider.GlhfChat`|✔|❌|❌|❌|![](https://img.shields.io/badge/Active-brightgreen)|✔|
 |[console.groq.com/playground](https://console.groq.com/playground)|`g4f.Provider.Groq`|✔|❌|✔|❌|![](https://img.shields.io/badge/Active-brightgreen)|✔|
@@ -118,8 +118,10 @@ This document provides an overview of various AI providers and models, including
 |phi-2|Microsoft|1+ Providers|[huggingface.co](https://huggingface.co/microsoft/phi-2)|
 |phi-3.5-mini|Microsoft|2+ Providers|[huggingface.co](https://huggingface.co/microsoft/Phi-3.5-mini-instruct)|
 |gemini|Google DeepMind|1+ Providers|[deepmind.google](http://deepmind.google/technologies/gemini/)|
-|gemini-flash|Google DeepMind|4+ Providers|[deepmind.google](https://deepmind.google/technologies/gemini/flash/)|
-|gemini-pro|Google DeepMind|4+ Providers|[deepmind.google](https://deepmind.google/technologies/gemini/pro/)|
+|gemini-1.5-flash|Google DeepMind|4+ Providers|[deepmind.google](https://deepmind.google/technologies/gemini/flash/)|
+|gemini-1.5-pro|Google DeepMind|4+ Providers|[deepmind.google](https://deepmind.google/technologies/gemini/pro/)|
+|gemini-2.0-flash|Google DeepMind|2+ Providers|[deepmind.google](https://deepmind.google/technologies/gemini/flash/)|
+|gemini-2.0-flash-thinking|Google DeepMind|1+ Providers|[deepmind.google](https://ai.google.dev/gemini-api/docs/thinking-mode)|
 |gemma-2b|Google|1+ Providers|[huggingface.co](https://huggingface.co/google/gemma-2b)|
 |claude-3-haiku|Anthropic|1+ Providers|[anthropic.com](https://www.anthropic.com/news/claude-3-haiku)|
 |claude-3-sonnet|Anthropic|1+ Providers|[anthropic.com](https://www.anthropic.com/news/claude-3-family)|
@@ -140,7 +142,7 @@ This document provides an overview of various AI providers and models, including
 |deepseek-coder|DeepSeek|1+ Providers|[huggingface.co](https://huggingface.co/deepseek-ai/DeepSeek-Coder-V2-Instruct)|
 |wizardlm-2-8x22b|WizardLM|1+ Providers|[huggingface.co](https://huggingface.co/alpindale/WizardLM-2-8x22B)|
 |openchat-3.5|OpenChat|1+ Providers|[huggingface.co](https://huggingface.co/openchat/openchat_3.5)|
-|grok-beta|x.ai|1+ Providers|[x.ai](https://x.ai/blog/grok-2)|
+|grok-2|x.ai|1+ Providers|[x.ai](https://x.ai/blog/grok-2)|
 |sonar-online|Perplexity AI|1+ Providers|[docs.perplexity.ai](https://docs.perplexity.ai/)|
 |sonar-chat|Perplexity AI|1+ Providers|[docs.perplexity.ai](https://docs.perplexity.ai/)|
 |nemotron-70b|Nvidia|3+ Providers|[build.nvidia.com](https://build.nvidia.com/nvidia/llama-3_1-nemotron-70b-instruct)|

@@ -151,7 +151,8 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
     model_aliases = {
         ### chat ###
         "gpt-4": "gpt-4o",
-        "gemini-flash": "gemini-1.5-flash",
+        "gemini-1.5-flash": "gemini-1.5-flash",
+        "gemini-1.5-pro": "gemini-pro",
         "claude-3.5-sonnet": "claude-sonnet-3.5",
         "llama-3.3-70b": "meta-llama/Llama-3.3-70B-Instruct-Turbo",
         "mixtral-7b": "mistralai/Mistral-7B-Instruct-v0.2",

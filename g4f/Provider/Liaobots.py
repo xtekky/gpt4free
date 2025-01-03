@@ -18,8 +18,8 @@ models = {
         "tokenLimit": 7800,
         "context": "8K",
     },
-    "gpt-4o-2024-08-06": {
-        "id": "gpt-4o-2024-08-06",
+    "gpt-4o-2024-11-20": {
+        "id": "gpt-4o-2024-11-20",
         "name": "GPT-4o",
         "model": "ChatGPT",
         "provider": "OpenAI",
@@ -54,9 +54,9 @@ models = {
         "tokenLimit": 100000,
         "context": "128K",
     },
-    "grok-beta": {
-        "id": "grok-beta",
-        "name": "Grok-Beta",
+    "grok-2": {
+        "id": "grok-2",
+        "name": "Grok-2",
         "model": "Grok",
         "provider": "x.ai",
         "maxLength": 400000,
@@ -99,7 +99,7 @@ models = {
         "tokenLimit": 200000,
         "context": "200K",
     },
-  "claude-3-opus-20240229-t": {
+    "claude-3-opus-20240229-t": {
         "id": "claude-3-opus-20240229-t",
         "name": "Claude-3-Opus-T",
         "model": "Claude",
@@ -109,13 +109,31 @@ models = {
         "context": "200K",
     },
     "claude-3-5-sonnet-20241022-t": {
-        "id": "claude-3-5-sonnet-20241022-t", 
+        "id": "claude-3-5-sonnet-20241022-t",
         "name": "Claude-3.5-Sonnet-V2-T",
         "model": "Claude",
         "provider": "Anthropic",
         "maxLength": 800000,
         "tokenLimit": 200000,
         "context": "200K",
+    },
+    "gemini-2.0-flash-exp": {
+        "id": "gemini-2.0-flash-exp",
+        "name": "Gemini-2.0-Flash-Exp",
+        "model": "Gemini",
+        "provider": "Google",
+        "maxLength": 4000000,
+        "tokenLimit": 1000000,
+        "context": "1024K",
+    },
+    "gemini-2.0-flash-thinking-exp": {
+        "id": "gemini-2.0-flash-thinking-exp",
+        "name": "Gemini-2.0-Flash-Thinking-Exp",
+        "model": "Gemini",
+        "provider": "Google",
+        "maxLength": 4000000,
+        "tokenLimit": 1000000,
+        "context": "1024K",
     },
     "gemini-1.5-flash-002": {
         "id": "gemini-1.5-flash-002",
@@ -128,15 +146,14 @@ models = {
     },
     "gemini-1.5-pro-002": {
         "id": "gemini-1.5-pro-002",
-        "name": "Gemini-1.5-Pro-1M", 
+        "name": "Gemini-1.5-Pro-1M",
         "model": "Gemini",
         "provider": "Google",
         "maxLength": 4000000,
         "tokenLimit": 1000000,
         "context": "1024K",
-    }
+    },
 }
-
 
 class Liaobots(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://liaobots.site"
@@ -144,13 +161,13 @@ class Liaobots(AsyncGeneratorProvider, ProviderModelMixin):
     supports_message_history = True
     supports_system_message = True
     
-    default_model = "gpt-4o-2024-08-06"
+    default_model = "gpt-4o-2024-11-20"
     models = list(models.keys())
     model_aliases = {
         "gpt-4o-mini": "gpt-4o-mini-free",
-        "gpt-4o": "gpt-4o-2024-08-06",
+        "gpt-4o": default_model,
         "gpt-4o-mini": "gpt-4o-mini-2024-07-18",
-        "gpt-4": "gpt-4o-2024-08-06",
+        "gpt-4": default_model,
         
         "o1-preview": "o1-preview-2024-09-12",
         "o1-mini": "o1-mini-2024-09-12",
@@ -162,8 +179,10 @@ class Liaobots(AsyncGeneratorProvider, ProviderModelMixin):
         "claude-3-opus": "claude-3-opus-20240229-t",
         "claude-3.5-sonnet": "claude-3-5-sonnet-20241022-t",
         
-        "gemini-flash": "gemini-1.5-flash-002",
-        "gemini-pro": "gemini-1.5-pro-002"
+        "gemini-2.0-flash": "gemini-2.0-flash-exp",
+        "gemini-2.0-flash-thinking": "gemini-2.0-flash-thinking-exp",
+        "gemini-1.5-flash": "gemini-1.5-flash-002",
+        "gemini-1.5-pro": "gemini-1.5-pro-002"
     }
     
     _auth_code = ""

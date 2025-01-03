@@ -252,22 +252,36 @@ phi_3_5_mini = Model(
 
 ### Google DeepMind ###
 # gemini
-gemini_pro = Model(
-    name          = 'gemini-pro',
-    base_provider = 'Google DeepMind',
-    best_provider = IterListProvider([Blackbox, Gemini, GeminiPro, Liaobots])
-)
-
-gemini_flash = Model(
-    name          = 'gemini-flash',
-    base_provider = 'Google DeepMind',
-    best_provider = IterListProvider([Blackbox, Gemini, GeminiPro, Liaobots])
-)
-
 gemini = Model(
     name          = 'gemini',
-    base_provider = 'Google DeepMind',
+    base_provider = 'Google',
     best_provider = Gemini
+)
+
+# gemini-1.5
+gemini_1_5_pro = Model(
+    name          = 'gemini-1.5-pro',
+    base_provider = 'Google DeepMind',
+    best_provider = IterListProvider([Blackbox, Gemini, GeminiPro, Liaobots])
+)
+
+gemini_1_5_flash = Model(
+    name          = 'gemini-1.5-flash',
+    base_provider = 'Google DeepMind',
+    best_provider = IterListProvider([Blackbox, Gemini, GeminiPro, Liaobots])
+)
+
+# gemini-2.0
+gemini_2_0_flash = Model(
+    name          = 'gemini-2.0-flash',
+    base_provider = 'Google DeepMind',
+    best_provider = IterListProvider([GeminiPro, Liaobots])
+)
+
+gemini_2_0_flash_thinking = Model(
+    name          = 'gemini-2.0-flash-thinking',
+    base_provider = 'Google DeepMind',
+    best_provider = Liaobots
 )
 
 # gemma
@@ -696,8 +710,14 @@ class ModelUtils:
         ### Google ###
         # gemini
         gemini.name: gemini,
-        gemini_pro.name: gemini_pro,
-        gemini_flash.name: gemini_flash,
+        
+        # gemini-1.5
+        gemini_1_5_pro.name: gemini_1_5_pro,
+        gemini_1_5_flash.name: gemini_1_5_flash,
+        
+        # gemini-2.0
+        gemini_2_0_flash.name: gemini_2_0_flash,
+        gemini_2_0_flash_thinking.name: gemini_2_0_flash_thinking,
 
         # gemma
         gemma_2b.name: gemma_2b,
