@@ -4,6 +4,7 @@ from aiohttp import ClientSession, ClientTimeout, ClientError
 import json
 from ..typing import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from .helper import format_prompt
 
 class DDG(AsyncGeneratorProvider, ProviderModelMixin):
     label = "DuckDuckGo AI Chat"
@@ -67,7 +68,7 @@ class DDG(AsyncGeneratorProvider, ProviderModelMixin):
 
             payload = {
                 "model": model,
-                "messages": messages,
+                "messages": [{"role": "user", "content": format_prompt(messages)}],
             }
 
             try:
