@@ -1,6 +1,5 @@
 from .gigachat          import *
 
-from .Anthropic         import Anthropic
 from .BingCreateImages  import BingCreateImages
 from .Cerebras          import Cerebras
 from .CopilotAccount    import CopilotAccount
@@ -9,7 +8,7 @@ from .DeepInfraImage    import DeepInfraImage
 from .Gemini            import Gemini
 from .GeminiPro         import GeminiPro
 from .GithubCopilot     import GithubCopilot
-from .glhfChat          import glhfChat
+from .GlhfChat          import GlhfChat
 from .Groq              import Groq
 from .HuggingChat       import HuggingChat
 from .HuggingFace       import HuggingFace

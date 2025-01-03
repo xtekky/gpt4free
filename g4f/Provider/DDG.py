@@ -1,25 +1,10 @@
 from __future__ import annotations
 
+from aiohttp import ClientSession, ClientTimeout, ClientError
 import json
-import aiohttp
-from aiohttp import ClientSession, BaseConnector
-
 from ..typing import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin, BaseConversation
 from .helper import format_prompt
-from ..requests.aiohttp import get_connector
-from ..requests.raise_for_status import raise_for_status
-
-MODELS = [
-    {"model":"gpt-4o","modelName":"GPT-4o","modelVariant":None,"modelStyleId":"gpt-4o-mini","createdBy":"OpenAI","moderationLevel":"HIGH","isAvailable":1,"inputCharLimit":16e3,"settingId":"4"},
-    {"model":"gpt-4o-mini","modelName":"GPT-4o","modelVariant":"mini","modelStyleId":"gpt-4o-mini","createdBy":"OpenAI","moderationLevel":"HIGH","isAvailable":0,"inputCharLimit":16e3,"settingId":"3"},
-    {"model":"claude-3-5-sonnet-20240620","modelName":"Claude 3.5","modelVariant":"Sonnet","modelStyleId":"claude-3-haiku","createdBy":"Anthropic","moderationLevel":"HIGH","isAvailable":1,"inputCharLimit":16e3,"settingId":"7"},
-    {"model":"claude-3-opus-20240229","modelName":"Claude 3","modelVariant":"Opus","modelStyleId":"claude-3-haiku","createdBy":"Anthropic","moderationLevel":"HIGH","isAvailable":1,"inputCharLimit":16e3,"settingId":"2"},
-    {"model":"claude-3-haiku-20240307","modelName":"Claude 3","modelVariant":"Haiku","modelStyleId":"claude-3-haiku","createdBy":"Anthropic","moderationLevel":"HIGH","isAvailable":0,"inputCharLimit":16e3,"settingId":"1"},
-    {"model":"meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo","modelName":"Llama 3.1","modelVariant":"70B","modelStyleId":"llama-3","createdBy":"Meta","moderationLevel":"MEDIUM","isAvailable":0,"isOpenSource":0,"inputCharLimit":16e3,"settingId":"5"},
-    {"model":"mistralai/Mixtral-8x7B-Instruct-v0.1","modelName":"Mixtral","modelVariant":"8x7B","modelStyleId":"mixtral","createdBy":"Mistral AI","moderationLevel":"LOW","isAvailable":0,"isOpenSource":0,"inputCharLimit":16e3,"settingId":"6"},
-    {"model":"Qwen/Qwen2.5-Coder-32B-Instruct","modelName":"Qwen 2.5 Coder","modelVariant":"32B","modelStyleId":"qwen","createdBy":"Alibaba Cloud","moderationLevel":"LOW","isAvailable":0,"isOpenSource":1,"inputCharLimit":16e3,"settingId":"90"}
-]
 
 class Conversation(BaseConversation):
     vqd: str = None
@@ -32,32 +17,45 @@ class DDG(AsyncGeneratorProvider, ProviderModelMixin):
     label = "DuckDuckGo AI Chat"
     url = "https://duckduckgo.com/aichat"
     api_endpoint = "https://duckduckgo.com/duckchat/v1/chat"
+
     working = True
+    needs_auth = False
     supports_stream = True
     supports_system_message = True
     supports_message_history = True
 
     default_model = "gpt-4o-mini"
-    models = [model.get("model") for model in MODELS]
+    models = [default_model, "claude-3-haiku-20240307", "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo", "mistralai/Mixtral-8x7B-Instruct-v0.1"]
+
     model_aliases = {
+        "gpt-4": "gpt-4o-mini",
         "claude-3-haiku": "claude-3-haiku-20240307",
         "llama-3.1-70b": "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo",
         "mixtral-8x7b": "mistralai/Mixtral-8x7B-Instruct-v0.1",
-        "gpt-4": "gpt-4o-mini",
     }
 
     @classmethod
-    async def get_vqd(cls, proxy: str, connector: BaseConnector = None):
-        status_url = "https://duckduckgo.com/duckchat/v1/status"
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
-            'Accept': 'text/event-stream',
-            'x-vqd-accept': '1'
-        }
-        async with aiohttp.ClientSession(connector=get_connector(connector, proxy)) as session:
-            async with session.get(status_url, headers=headers) as response:
-                await raise_for_status(response)
-                return response.headers.get("x-vqd-4")
+    async def fetch_vqd(cls, session: ClientSession) -> str:
+        """
+        Fetches the required VQD token for the chat session.
+
+        Args:
+            session (ClientSession): The active HTTP session.
+
+        Returns:
+            str: The VQD token.
+
+        Raises:
+            Exception: If the token cannot be fetched.
+        """
+        async with session.get("https://duckduckgo.com/duckchat/v1/status", headers={"x-vqd-accept": "1"}) as response:
+            if response.status == 200:
+                vqd = response.headers.get("x-vqd-4", "")
+                if not vqd:
+                    raise Exception("Failed to fetch VQD token: Empty token.")
+                return vqd
+            else:
+                raise Exception(f"Failed to fetch VQD token: {response.status} {await response.text()}")
 
     @classmethod
     async def create_async_generator(
@@ -67,66 +65,48 @@ class DDG(AsyncGeneratorProvider, ProviderModelMixin):
         conversation: Conversation = None,
         return_conversation: bool = False,
         proxy: str = None,
-        connector: BaseConnector = None,
         **kwargs
     ) -> AsyncResult:
-        model = cls.get_model(model)
-
-        is_new_conversation = False
-        if conversation is None:
-            conversation = Conversation(model)
-            is_new_conversation = True
-
-        if conversation.vqd is None:
-            conversation.vqd = await cls.get_vqd(proxy, connector)
-        if not conversation.vqd:
-            raise Exception("Failed to obtain VQD token")
-
         headers = {
-            'accept': 'text/event-stream',
-            'content-type': 'application/json',
-            'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
-            'x-vqd-4': conversation.vqd,
+            "Content-Type": "application/json",
         }
+        async with ClientSession(headers=headers, timeout=ClientTimeout(total=30)) as session:
+            # Fetch VQD token
+            if conversation is None:
+                conversation = Conversation(model)
 
-        async with ClientSession(headers=headers, connector=get_connector(connector, proxy)) as session:
-            if is_new_conversation:
-                conversation.message_history = [{"role": "user", "content": format_prompt(messages)}]
-            else:
-                if len(messages) >= 2:
-                    conversation.message_history = [
-                        *conversation.message_history,
-                        messages[-2],
-                        messages[-1]
-                    ]
-                elif len(messages) == 1:
-                    conversation.message_history = [
-                        *conversation.message_history,
-                        messages[-1]
-                    ]
+            if conversation.vqd is None:
+                conversation.vqd = await cls.fetch_vqd(session)
+
+            headers["x-vqd-4"] = conversation.vqd
 
             if return_conversation:
                 yield conversation
 
-            data = {
+            if len(messages) >= 2:
+                conversation.message_history.extend([messages[-2], messages[-1]])
+            elif len(messages) == 1:
+                conversation.message_history.append(messages[-1])
+
+            payload = {
                 "model": conversation.model,
-                "messages": conversation.message_history
+                "messages": conversation.message_history,
             }
 
-            async with session.post(cls.api_endpoint, json=data) as response:
-                conversation.vqd = response.headers.get("x-vqd-4")
-                await raise_for_status(response)
-
-                async for line in response.content:
-                    if line:
-                        decoded_line = line.decode('utf-8')
-                        if decoded_line.startswith('data: '):
-                            json_str = decoded_line[6:]
-                            if json_str == '[DONE]':
-                                break
+            try:
+                async with session.post(cls.api_endpoint, headers=headers, json=payload, proxy=proxy) as response:
+                    conversation.vqd = response.headers.get("x-vqd-4")
+                    response.raise_for_status()
+                    async for line in response.content:
+                        line = line.decode("utf-8").strip()
+                        if line.startswith("data:"):
                             try:
-                                json_data = json.loads(json_str)
-                                if 'message' in json_data:
-                                    yield json_data['message']
+                                message = json.loads(line[5:].strip())
+                                if "message" in message:
+                                    yield message["message"]
                             except json.JSONDecodeError:
-                                pass
+                                continue
+            except ClientError as e:
+                raise Exception(f"HTTP ClientError occurred: {e}")
+            except asyncio.TimeoutError:
+                raise Exception("Request timed out.")

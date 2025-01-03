@@ -46,7 +46,6 @@ class Airforce(AsyncGeneratorProvider, ProviderModelMixin):
     additional_models_imagine = ["flux-1.1-pro", "midjourney", "dall-e-3"]
     model_aliases = {
         # Alias mappings for models
-        "gpt-4": "gpt-4o",
         "openchat-3.5": "openchat-3.5-0106",
         "deepseek-coder": "deepseek-coder-6.7b-instruct",
         "hermes-2-dpo": "Nous-Hermes-2-Mixtral-8x7B-DPO",

@@ -2,10 +2,9 @@ from __future__ import annotations
 
 from .OpenaiAPI import OpenaiAPI
 
-class glhfChat(OpenaiAPI):
-    label = "glhf.chat"
+class GlhfChat(OpenaiAPI):
+    label = "GlhfChat"
     url = "https://glhf.chat"
-    login_url = "https://glhf.chat/users/settings/api"
     api_base = "https://glhf.chat/api/openai/v1"
     working = True
     model_aliases = {

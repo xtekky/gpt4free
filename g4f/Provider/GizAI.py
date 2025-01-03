@@ -18,7 +18,7 @@ class GizAI(AsyncGeneratorProvider, ProviderModelMixin):
     
     default_model = 'chat-gemini-flash'
     models = [default_model]
-    model_aliases = {"gemini-flash": "chat-gemini-flash",}
+    model_aliases = {"gemini-1.5-flash": "chat-gemini-flash",}
 
     @classmethod
     def get_model(cls, model: str) -> str:
