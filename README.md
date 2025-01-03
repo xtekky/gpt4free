@@ -50,12 +50,6 @@ If you would like to create your own copy of this space, you can duplicate it us
 
 - [Duplicate GPT4Free Space](https://huggingface.co/spaces/roxky/g4f?duplicate=true)
 
-### Access Information
-
-To access the space, please use the following login credentials:
-
-- **Username:** any
-- **Password:** gpt4free
 
 ## 📚 Table of Contents
    - [🆕 What's New](#-whats-new)
