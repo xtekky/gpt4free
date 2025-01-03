@@ -175,6 +175,7 @@
             }
         }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/markdown-it@13.0.1/dist/markdown-it.min.js"></script>
 </head>
 <body>
     <iframe id="background"></iframe>
@@ -206,12 +207,24 @@
             <p>Powered by the G4F framework</p>
         </div>
 
-        <iframe id="stream-widget" class="stream" data-src="/backend-api/v2/create?prompt=Create of overview of the news in plain text&stream=1&web_search=news in " class="" frameborder="0"></iframe>
+        <iframe id="stream-widget" class="stream" frameborder="0"></iframe>
     </div>
     <script>
-        const iframe = document.getElementById('stream-widget');
-        iframe.src = iframe.dataset.src + navigator.language;
+        const iframe = document.getElementById('stream-widget');""
+        let search = (navigator.language == "de" ? "news in deutschland" : navigator.language == "en" ? "world news" : navigator.language);
+        if (Math.floor(Math.random() * 6) % 2 == 0) {
+            search = "xtekky/gpt4free releases";
+        }
+        const url = "/backend-api/v2/create?prompt=Create of overview of the news in plain text&stream=1&web_search=" + search;
+        iframe.src = url;
         setTimeout(()=>iframe.classList.add('show'), 3000);
+        iframe.onload = () => {
+            const iframeDocument = iframe.contentDocument || iframe.contentWindow.document;
+            const iframeBody = iframeDocument.querySelector("body");
+            const iframeContent = iframeDocument.querySelector("pre");
+            const markdown = window.markdownit();
+            iframeBody.innerHTML = markdown.render(iframeContent.innerHTML);
+        }
 
         (async () => {
             const prompt = `

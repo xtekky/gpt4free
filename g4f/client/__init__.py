@@ -15,14 +15,14 @@ from ..providers.types import ProviderType, BaseRetryProvider
 from ..providers.response import ResponseType, FinishReason, BaseConversation, SynthesizeData, ToolCalls, Usage
 from ..errors import NoImageResponseError
 from ..providers.retry_provider import IterListProvider
-from ..providers.asyncio import to_sync_generator, async_generator_to_list
+from ..providers.asyncio import to_sync_generator
 from ..Provider.needs_auth import BingCreateImages, OpenaiAccount
 from ..tools.run_tools import async_iter_run_tools, iter_run_tools
 from .stubs import ChatCompletion, ChatCompletionChunk, Image, ImagesResponse
 from .image_models import ImageModels
 from .types import IterResponse, ImageProvider, Client as BaseClient
 from .service import get_model_and_provider, convert_to_provider
-from .helper import find_stop, filter_json, filter_none, safe_aclose, to_async_iterator
+from .helper import find_stop, filter_json, filter_none, safe_aclose
 from .. import debug
 
 ChatCompletionResponseType = Iterator[Union[ChatCompletion, ChatCompletionChunk, BaseConversation]]
@@ -236,7 +236,7 @@ class Completions:
             kwargs["ignore_stream"] = True
 
         response = iter_run_tools(
-            provider.create_authed if hasattr(provider, "create_authed") else provider.create_completion,
+            provider.get_create_function(),
             model,
             messages,
             stream=stream,
@@ -248,12 +248,9 @@ class Completions:
             ),
             **kwargs
         )
-        if stream and hasattr(response, '__aiter__'):
-            # It's an async generator, wrap it into a sync iterator
-            response = to_sync_generator(response)
-        elif hasattr(response, '__aiter__'):
-            # If response is an async generator, collect it into a list
-            response = asyncio.run(async_generator_to_list(response))
+        if not hasattr(response, '__iter__'):
+            response = [response]
+
         response = iter_response(response, stream, response_format, max_tokens, stop)
         response = iter_append_model_and_provider(response, model, provider)
         if stream:
@@ -526,14 +523,8 @@ class AsyncCompletions:
             kwargs["images"] = [(image, image_name)]
         if ignore_stream:
             kwargs["ignore_stream"] = True
-        if hasattr(provider, "create_async_authed_generator"):
-            create_handler = provider.create_async_authed_generator
-        if hasattr(provider, "create_async_generator"):
-            create_handler = provider.create_async_generator
-        else:
-            create_handler = provider.create_completion
         response = async_iter_run_tools(
-            create_handler,
+            provider.get_async_create_function(),
             model,
             messages,
             stream=stream,
@@ -545,8 +536,6 @@ class AsyncCompletions:
             ),
             **kwargs
         )
-        if not hasattr(response, '__aiter__'):
-            response = to_async_iterator(response)
         response = async_iter_response(response, stream, response_format, max_tokens, stop)
         response = async_iter_append_model_and_provider(response, model, provider)
         return response if stream else anext(response)

@@ -2111,8 +2111,10 @@ if (SpeechRecognition) {
         microLabel.classList.add("recognition");
         startValue = messageInput.value;
         lastDebounceTranscript = "";
+        messageInput.readOnly = true;
     };
     recognition.onend = function() {
+        messageInput.readOnly = false;
         messageInput.focus();
     };
     recognition.onresult = function(event) {
@@ -2138,7 +2140,7 @@ if (SpeechRecognition) {
         }
     };
 
-    microLabel.addEventListener("click", () => {
+    microLabel.addEventListener("click", (e) => {
         if (microLabel.classList.contains("recognition")) {
             recognition.stop();
             microLabel.classList.remove("recognition");
