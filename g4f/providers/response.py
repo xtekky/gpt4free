@@ -105,6 +105,10 @@ class Usage(ResponseType, JsonMixin):
     def __str__(self) -> str:
         return ""
 
+class AuthResult(JsonMixin):
+    def __str__(self) -> str:
+        return ""
+
 class TitleGeneration(ResponseType):
     def __init__(self, title: str) -> None:
         self.title = title
@@ -182,4 +186,5 @@ class ImagePreview(ImageResponse):
         return super().__str__()
 
 class Parameters(ResponseType, JsonMixin):
-    pass
+    def __str__(self):
+        return ""

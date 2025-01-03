@@ -246,6 +246,8 @@ class BlackboxCreateAgent(AsyncGeneratorProvider, ProviderModelMixin):
         Returns:
             AsyncResult: The response from the provider
         """
+        if not model:
+            model = cls.default_model
         if model in cls.chat_models:
             async for text in cls._generate_text(model, messages, proxy=proxy, **kwargs):
                 return text

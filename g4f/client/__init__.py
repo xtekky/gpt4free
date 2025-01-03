@@ -7,9 +7,9 @@ import string
 import asyncio
 import aiohttp
 import base64
-from typing import Union, AsyncIterator, Iterator, Coroutine, Optional
+from typing import Union, AsyncIterator, Iterator, Awaitable, Optional
 
-from ..image import ImageResponse, copy_images, images_dir
+from ..image import ImageResponse, copy_images
 from ..typing import Messages, ImageType
 from ..providers.types import ProviderType, BaseRetryProvider
 from ..providers.response import ResponseType, FinishReason, BaseConversation, SynthesizeData, ToolCalls, Usage
@@ -22,7 +22,7 @@ from .stubs import ChatCompletion, ChatCompletionChunk, Image, ImagesResponse
 from .image_models import ImageModels
 from .types import IterResponse, ImageProvider, Client as BaseClient
 from .service import get_model_and_provider, convert_to_provider
-from .helper import find_stop, filter_json, filter_none, safe_aclose
+from .helper import find_stop, filter_json, filter_none, safe_aclose, to_async_iterator
 from .. import debug
 
 ChatCompletionResponseType = Iterator[Union[ChatCompletion, ChatCompletionChunk, BaseConversation]]
@@ -220,7 +220,7 @@ class Completions:
         ignore_working: Optional[bool] = False,
         ignore_stream: Optional[bool] = False,
         **kwargs
-    ) -> IterResponse:
+    ) -> ChatCompletion:
         model, provider = get_model_and_provider(
             model,
             self.provider if provider is None else provider,
@@ -236,7 +236,7 @@ class Completions:
             kwargs["ignore_stream"] = True
 
         response = iter_run_tools(
-            provider.create_completion,
+            provider.create_authed if hasattr(provider, "create_authed") else provider.create_completion,
             model,
             messages,
             stream=stream,
@@ -248,9 +248,6 @@ class Completions:
             ),
             **kwargs
         )
-        if asyncio.iscoroutinefunction(provider.create_completion):
-            # Run the asynchronous function in an event loop
-            response = asyncio.run(response)
         if stream and hasattr(response, '__aiter__'):
             # It's an async generator, wrap it into a sync iterator
             response = to_sync_generator(response)
@@ -263,6 +260,14 @@ class Completions:
             return response
         else:
             return next(response)
+
+    def stream(
+        self,
+        messages: Messages,
+        model: str,
+        **kwargs
+    ) -> IterResponse:
+        return self.create(messages, model, stream=True, **kwargs)
 
 class Chat:
     completions: Completions
@@ -507,7 +512,7 @@ class AsyncCompletions:
         ignore_working: Optional[bool] = False,
         ignore_stream: Optional[bool] = False,
         **kwargs
-    ) -> Union[Coroutine[ChatCompletion], AsyncIterator[ChatCompletionChunk, BaseConversation]]:
+    ) -> Awaitable[ChatCompletion]:
         model, provider = get_model_and_provider(
             model,
             self.provider if provider is None else provider,
@@ -521,6 +526,8 @@ class AsyncCompletions:
             kwargs["images"] = [(image, image_name)]
         if ignore_stream:
             kwargs["ignore_stream"] = True
+        if hasattr(provider, "create_async_authed_generator"):
+            create_handler = provider.create_async_authed_generator
         if hasattr(provider, "create_async_generator"):
             create_handler = provider.create_async_generator
         else:
@@ -538,9 +545,19 @@ class AsyncCompletions:
             ),
             **kwargs
         )
+        if not hasattr(response, '__aiter__'):
+            response = to_async_iterator(response)
         response = async_iter_response(response, stream, response_format, max_tokens, stop)
         response = async_iter_append_model_and_provider(response, model, provider)
         return response if stream else anext(response)
+
+    def stream(
+        self,
+        messages: Messages,
+        model: str,
+        **kwargs
+    ) -> AsyncIterator[ChatCompletionChunk, BaseConversation]:
+        return self.create(messages, model, stream=True, **kwargs)
 
 class AsyncImages(Images):
     def __init__(self, client: AsyncClient, provider: Optional[ProviderType] = None):

@@ -4,7 +4,7 @@ import json
 import requests
 
 from ..helper import filter_none
-from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
 from ...typing import Union, Optional, AsyncResult, Messages, ImagesType
 from ...requests import StreamSession, raise_for_status
 from ...providers.response import FinishReason, ToolCalls, Usage
@@ -12,9 +12,10 @@ from ...errors import MissingAuthError, ResponseError
 from ...image import to_data_uri
 from ... import debug
 
-class OpenaiAPI(AsyncGeneratorProvider, ProviderModelMixin):
+class OpenaiAPI(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin):
     label = "OpenAI API"
     url = "https://platform.openai.com"
+    login_url = "https://platform.openai.com/settings/organization/api-keys"
     api_base = "https://api.openai.com/v1"
     working = True
     needs_auth = True
@@ -140,18 +141,6 @@ class OpenaiAPI(AsyncGeneratorProvider, ProviderModelMixin):
     def read_finish_reason(choice: dict) -> Optional[FinishReason]:
         if "finish_reason" in choice and choice["finish_reason"] is not None:
             return FinishReason(choice["finish_reason"])
-
-    @staticmethod
-    def raise_error(data: dict):
-        if "error_message" in data:
-            raise ResponseError(data["error_message"])
-        elif "error" in data:
-            if "code" in data["error"]:
-                raise ResponseError(f'Error {data["error"]["code"]}: {data["error"]["message"]}')
-            elif "message" in data["error"]:
-                raise ResponseError(data["error"]["message"])
-            else:
-                raise ResponseError(data["error"])
 
     @classmethod
     def get_headers(cls, stream: bool, api_key: str = None, headers: dict = None) -> dict:

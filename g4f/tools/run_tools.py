@@ -40,7 +40,7 @@ async def async_iter_run_tools(async_iter_callback, model, messages, tool_calls:
                     )
                 elif tool.get("function", {}).get("name") == "continue":
                     last_line = messages[-1]["content"].strip().splitlines()[-1]
-                    content = f"Continue after this line.\n{last_line}"
+                    content = f"Carry on from this point:\n{last_line}"
                     messages.append({"role": "user", "content": content})
                 elif tool.get("function", {}).get("name") == "bucket_tool":
                     def on_bucket(match):
@@ -90,7 +90,7 @@ def iter_run_tools(
                 elif tool.get("function", {}).get("name") == "continue_tool":
                     if provider not in ("OpenaiAccount", "HuggingFace"):
                         last_line = messages[-1]["content"].strip().splitlines()[-1]
-                        content = f"Continue after this line:\n{last_line}"
+                        content = f"Carry on from this point:\n{last_line}"
                         messages.append({"role": "user", "content": content})
                     else:
                         # Enable provider native continue

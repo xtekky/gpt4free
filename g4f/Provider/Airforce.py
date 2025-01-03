@@ -35,7 +35,7 @@ class Airforce(AsyncGeneratorProvider, ProviderModelMixin):
     supports_system_message = True
     supports_message_history = True
 
-    default_model = "gpt-4o-mini"
+    default_model = "llama-3.1-70b-chat"
     default_image_model = "flux"
     
     models = []
@@ -113,7 +113,7 @@ class Airforce(AsyncGeneratorProvider, ProviderModelMixin):
     @classmethod
     def get_model(cls, model: str) -> str:
         """Get the actual model name from alias"""
-        return cls.model_aliases.get(model, model)
+        return cls.model_aliases.get(model, model or cls.default_model)
 
     @classmethod
     async def check_api_key(cls, api_key: str) -> bool:
@@ -162,6 +162,9 @@ class Airforce(AsyncGeneratorProvider, ProviderModelMixin):
         """
         Filters the full response to remove system errors and other unwanted text.
         """
+        if "Model not found or too long input. Or any other error (xD)" in response:
+            raise ValueError(response)
+
         filtered_response = re.sub(r"\[ERROR\] '\w{8}-\w{4}-\w{4}-\w{4}-\w{12}'", '', response)  # any-uncensored
         filtered_response = re.sub(r'<\|im_end\|>', '', filtered_response)  # remove <|im_end|> token
         filtered_response = re.sub(r'</s>', '', filtered_response)  # neural-chat-7b-v3-1  

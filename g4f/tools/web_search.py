@@ -5,6 +5,7 @@ import json
 import hashlib
 from pathlib import Path
 from urllib.parse import urlparse
+from datetime import datetime
 import datetime
 import asyncio
 
@@ -65,7 +66,7 @@ class SearchResultEntry():
     def set_text(self, text: str):
         self.text = text
 
-def scrape_text(html: str, max_words: int = None) -> Iterator[str]:
+def scrape_text(html: str, max_words: int = None, add_source=True) -> Iterator[str]:
     source = BeautifulSoup(html, "html.parser")
     soup = source
     for selector in [
@@ -87,7 +88,7 @@ def scrape_text(html: str, max_words: int = None) -> Iterator[str]:
         if select:
             select.extract()
 
-    for paragraph in soup.select("p, table, ul, h1, h2, h3, h4, h5, h6"):
+    for paragraph in soup.select("p, table:not(:has(p)), ul:not(:has(p)), h1, h2, h3, h4, h5, h6"):
         for line in paragraph.text.splitlines():
             words = [word for word in line.replace("\t", " ").split(" ") if word]
             count = len(words)
@@ -99,24 +100,25 @@ def scrape_text(html: str, max_words: int = None) -> Iterator[str]:
                     break
             yield " ".join(words) + "\n"
 
-    canonical_link = source.find("link", rel="canonical")
-    if canonical_link and "href" in canonical_link.attrs:
-        link = canonical_link["href"]
-        domain = urlparse(link).netloc
-        yield f"\nSource: [{domain}]({link})"
+    if add_source:
+        canonical_link = source.find("link", rel="canonical")
+        if canonical_link and "href" in canonical_link.attrs:
+            link = canonical_link["href"]
+            domain = urlparse(link).netloc
+            yield f"\nSource: [{domain}]({link})"
 
-async def fetch_and_scrape(session: ClientSession, url: str, max_words: int = None) -> str:
+async def fetch_and_scrape(session: ClientSession, url: str, max_words: int = None, add_source: bool = False) -> str:
     try:
         bucket_dir: Path = Path(get_cookies_dir()) / ".scrape_cache" / "fetch_and_scrape"
         bucket_dir.mkdir(parents=True, exist_ok=True)
         md5_hash = hashlib.md5(url.encode()).hexdigest()
-        cache_file = bucket_dir / f"{url.split('/')[3]}.{datetime.date.today()}.{md5_hash}.txt"
+        cache_file = bucket_dir / f"{url.split('?')[0].split('//')[1].replace('/', '+')[:16]}.{datetime.date.today()}.{md5_hash}.txt"
         if cache_file.exists():
             return cache_file.read_text()
         async with session.get(url) as response:
             if response.status == 200:
                 html = await response.text()
-                text = "".join(scrape_text(html, max_words))
+                text = "".join(scrape_text(html, max_words, add_source))
                 with open(cache_file, "w") as f:
                     f.write(text)
                 return text
@@ -136,6 +138,8 @@ async def search(query: str, max_results: int = 5, max_words: int = 2500, backen
                 max_results=max_results,
                 backend=backend,
             ):
+            if ".google.com" in result["href"]:
+                continue
             results.append(SearchResultEntry(
                 result["title"],
                 result["href"],
@@ -146,7 +150,7 @@ async def search(query: str, max_results: int = 5, max_words: int = 2500, backen
             requests = []
             async with ClientSession(timeout=ClientTimeout(timeout)) as session:
                 for entry in results:
-                    requests.append(fetch_and_scrape(session, entry.url, int(max_words / (max_results - 1))))
+                    requests.append(fetch_and_scrape(session, entry.url, int(max_words / (max_results - 1)), False))
                 texts = await asyncio.gather(*requests)
 
         formatted_results = []
@@ -173,7 +177,7 @@ async def do_search(prompt: str, query: str = None, instructions: str = DEFAULT_
         query = spacy_get_keywords(prompt)
     json_bytes = json.dumps({"query": query, **kwargs}, sort_keys=True).encode()
     md5_hash = hashlib.md5(json_bytes).hexdigest()
-    bucket_dir: Path = Path(get_cookies_dir()) / ".scrape_cache" / "web_search"
+    bucket_dir: Path = Path(get_cookies_dir()) / ".scrape_cache" / f"web_search:{datetime.date.today()}"
     bucket_dir.mkdir(parents=True, exist_ok=True)
     cache_file = bucket_dir / f"{query[:20]}.{md5_hash}.txt"
     if cache_file.exists():
@@ -192,7 +196,9 @@ Instruction: {instructions}
 User request:
 {prompt}
 """
-    debug.log(f"Web search: '{query.strip()[:50]}...' {len(search_results.results)} Results {search_results.used_words} Words")
+    debug.log(f"Web search: '{query.strip()[:50]}...'")
+    if isinstance(search_results, SearchResults):
+        debug.log(f"with {len(search_results.results)} Results {search_results.used_words} Words")
     return new_prompt
 
 def get_search_message(prompt: str, raise_search_exceptions=False, **kwargs) -> str:

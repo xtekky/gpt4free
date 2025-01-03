@@ -239,7 +239,7 @@ body:not(.white) a:visited{
     max-width: 210px;
     margin-left: auto;
     margin-right: 8px;
-    margin-bottom: 8px;
+    margin-top: 12px;
 }
 
 .convo-title {
@@ -530,6 +530,7 @@ body:not(.white) a:visited{
     z-index: 100000;
     top: 0;
     right: 0;
+    animation: show_popup 0.4s;
 }
 
 .stop_generating button, .toolbar .regenerate button, button.regenerate_button, button.continue_button, button.options_button {
@@ -545,7 +546,6 @@ body:not(.white) a:visited{
     align-items: center;
     gap: 12px;
     cursor: pointer;
-    animation: show_popup 0.4s;
     height: 28px;
 }
 
@@ -712,6 +712,8 @@ form label.toogle {
     position: relative;
     overflow: hidden;
     transition: 0.33s;
+    min-width: 60px;
+    margin-left: 0;
 }
 
 .buttons label:after,
@@ -1280,10 +1282,16 @@ ul {
     border: 1px solid #e4d4ffc9;
 }
 
-.settings textarea, form textarea {
+form textarea {
     height: 20px;
     min-height: 20px;
     padding: 0;
+}
+
+.settings textarea {
+    height: 30px;
+    min-height: 30px;
+    padding: 6px;
 }
 
 form .field .fa-xmark {
@@ -1346,6 +1354,7 @@ form .field.saved .fa-xmark {
 .settings .label, form .label, .settings label, form label {
     font-size: 15px;
     margin-left: var(--inner-gap);
+    min-width: 120px;
 }
 
 .settings .label, form .label {

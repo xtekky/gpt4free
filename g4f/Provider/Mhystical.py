@@ -15,7 +15,8 @@ from .needs_auth.OpenaiAPI import OpenaiAPI
 """
 
 class Mhystical(OpenaiAPI):
-    url = "https://api.mhystical.cc"
+    label = "Mhystical"
+    url = "https://mhystical.cc"
     api_endpoint = "https://api.mhystical.cc/v1/completions"
     working = True
     needs_auth = False

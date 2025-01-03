@@ -1,0 +1,230 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>G4F GUI</title>
+    <style>
+        :root {
+            --colour-1: #000000;
+            --colour-2: #ccc;
+            --colour-3: #e4d4ff;
+            --colour-4: #f0f0f0;
+            --colour-5: #181818;
+            --colour-6: #242424;
+            --accent: #8b3dff;
+            --gradient: #1a1a1a;
+            --background: #16101b;
+            --size: 70vw;
+            --top: 50%;
+            --blur: 40px;
+            --opacity: 0.6;
+        }
+
+        @import url("https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap");
+
+        .gradient {
+            position: absolute;
+            z-index: -1;
+            left: 50vw;
+            border-radius: 50%;
+            background: radial-gradient(circle at center, var(--accent), var(--gradient));
+            width: var(--size);
+            height: var(--size);
+            top: var(--top);
+            transform: translate(-50%, -50%);
+            filter: blur(var(--blur)) opacity(var(--opacity));
+            animation: zoom_gradient 6s infinite alternate;
+            display: none;
+            max-height: 100%;
+            transition: max-height 0.25s ease-in;
+        }
+
+        .gradient.hidden {
+            max-height: 0;
+            transition: max-height 0.15s ease-out;
+        }
+
+        @media only screen and (min-width: 40em) {
+            body .gradient{
+                display: block;
+            }
+        }
+
+        @keyframes zoom_gradient {
+            0% {
+                transform: translate(-50%, -50%) scale(1);
+            }
+            100% {
+                transform: translate(-50%, -50%) scale(1.2);
+            }
+        }
+
+        /* Body and text color */
+        body {
+            background: var(--background);
+            color: var(--colour-3);
+            font-family: "Inter", sans-serif;
+            height: 100vh;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            font-weight: bold;
+        }
+
+        /* Container for the main content */
+        .container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            text-align: center;
+            z-index: 1;
+        }
+
+        header {
+            font-size: 3rem;
+            text-transform: uppercase;
+            margin: 20px;
+            color: var(--colour-4);
+        }
+
+        iframe {
+            background: transparent;
+            width: 100%;
+            border: none;
+        }
+
+        #background {
+            height: 100%;
+            position: absolute;
+            z-index: -1;
+        }
+
+        iframe.stream {
+            max-height: 0;
+            transition: max-height 0.15s ease-out;
+        }
+
+        iframe.stream.show {
+            max-height: 1000px;
+            height: 1000px;
+            transition: max-height 0.25s ease-in;
+            background: rgba(255,255,255,0.7);
+            border-top: 2px solid rgba(255,255,255,0.5);
+        }
+
+        .description {
+            font-size: 1.2rem;
+            margin-bottom: 30px;
+            color: var(--colour-2);
+        }    return app
+
+
+        .input-field {
+            width: 80%;
+            max-width: 400px;
+            padding: 12px;
+            margin: 10px 0;
+            border: 2px solid var(--colour-6);
+            background-color: var(--colour-5);
+            color: var(--colour-3);
+            border-radius: 8px;
+            font-size: 1.1rem;
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .button {
+            background-color: var(--accent);
+            color: var(--colour-3);
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            margin-top: 15px;
+            width: 100%;
+            max-width: 400px;
+            font-weight: bold;
+        }
+
+        .button:hover {
+            background-color: #7a2ccd;
+        }
+
+        .footer {
+            margin-top: 30px;
+            font-size: 0.9rem;
+            color: var(--colour-2);
+        }
+
+        /* Animation for the gradient circle */
+        @keyframes zoom_gradient {
+            0% {
+                transform: translate(-50%, -50%) scale(1);
+            }
+            100% {
+                transform: translate(-50%, -50%) scale(1.5);
+            }
+        }
+    </style>
+</head>
+<body>
+    <iframe id="background"></iframe>
+
+    <!-- Gradient Background Circle -->
+    <div class="gradient"></div>
+
+    <!-- Main Content -->
+    <div class="container">
+        <header>
+            G4F GUI
+        </header>
+        <div class="description">
+            Welcome to the G4F GUI! <br>
+            Your AI assistant is ready to assist you.
+        </div>
+
+        <!-- Input and Button -->
+        <form action="/chat/">
+            <!--
+                <input type="text" name="prompt" class="input-field" placeholder="Enter your query...">
+            -->
+            <button class="button">Open Chat</button>
+        </form>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p>&copy; 2025 G4F. All Rights Reserved.</p>
+            <p>Powered by the G4F framework</p>
+        </div>
+
+        <iframe id="stream-widget" class="stream" data-src="/backend-api/v2/create?prompt=Create of overview of the news in plain text&stream=1&web_search=news in " class="" frameborder="0"></iframe>
+    </div>
+    <script>
+        const iframe = document.getElementById('stream-widget');
+        iframe.src = iframe.dataset.src + navigator.language;
+        setTimeout(()=>iframe.classList.add('show'), 5000);
+
+        (async () => {
+            const prompt = `
+                Today is ${new Date().toJSON().slice(0, 10)}.
+                Create a single-page HTML screensaver reflecting the current season (based on the date).
+                For example, if it's Spring, it might use floral patterns or pastel colors.
+                Avoid using any text. Consider a subtle animation or transition effect.`;
+            const response = await fetch(`/backend-api/v2/create?prompt=${prompt}&filter_markdown=html`)
+            const text = await response.text()
+            background.src = `data:text/html;charset=utf-8,${encodeURIComponent(text)}`;
+            const gradient = document.querySelector('.gradient');
+            gradient.classList.add('hidden');
+        })();
+    </script>
+</body>
+</html>

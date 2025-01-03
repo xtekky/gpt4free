@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import random
 import requests
+from urllib.parse import quote
 from typing import Optional
 from aiohttp import ClientSession
 
@@ -170,7 +171,7 @@ class PollinationsAI(OpenaiAPI):
         params = {k: v for k, v in params.items() if v is not None}
 
         async with ClientSession(headers=headers) as session:
-            prompt = quote(messages[-1]["content"])
+            prompt = quote(messages[-1]["content"] if prompt is None else prompt)
             param_string = "&".join(f"{k}={v}" for k, v in params.items())
             url = f"{cls.image_api_endpoint}/prompt/{prompt}?{param_string}"
 

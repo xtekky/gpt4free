@@ -1,5 +1,6 @@
 from .gigachat          import *
 
+from .Anthropic         import Anthropic
 from .BingCreateImages  import BingCreateImages
 from .Cerebras          import Cerebras
 from .CopilotAccount    import CopilotAccount
