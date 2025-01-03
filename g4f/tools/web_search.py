@@ -4,7 +4,7 @@ from aiohttp import ClientSession, ClientTimeout, ClientError
 import json
 import hashlib
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import urlparse, quote_plus
 from datetime import datetime
 import datetime
 import asyncio
@@ -177,15 +177,15 @@ async def do_search(prompt: str, query: str = None, instructions: str = DEFAULT_
         query = spacy_get_keywords(prompt)
     json_bytes = json.dumps({"query": query, **kwargs}, sort_keys=True).encode()
     md5_hash = hashlib.md5(json_bytes).hexdigest()
-    bucket_dir: Path = Path(get_cookies_dir()) / ".scrape_cache" / f"web_search:{datetime.date.today()}"
+    bucket_dir: Path = Path(get_cookies_dir()) / ".scrape_cache" / f"web_search" / f"{datetime.date.today()}"
     bucket_dir.mkdir(parents=True, exist_ok=True)
-    cache_file = bucket_dir / f"{query[:20]}.{md5_hash}.txt"
+    cache_file = bucket_dir / f"{quote_plus(query[:20])}.{md5_hash}.txt"
     if cache_file.exists():
-        with open(cache_file, "r") as f:
+        with cache_file.open("r") as f:
             search_results = f.read()
     else:
         search_results = await search(query, **kwargs)
-        with open(cache_file, "w") as f:
+        with cache_file.open("w") as f:
             f.write(str(search_results))
 
     new_prompt = f"""

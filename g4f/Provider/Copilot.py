@@ -138,7 +138,6 @@ class Copilot(AbstractProvider, ProviderModelMixin):
                 if prompt is None:
                     prompt = messages[-1]["content"]
                 debug.log(f"Copilot: Use conversation: {conversation_id}")
-            yield Parameters(**{"conversation": conversation.get_dict(), "user": user, "prompt": prompt})
 
             uploaded_images = []
             if images is not None:
@@ -200,6 +199,7 @@ class Copilot(AbstractProvider, ProviderModelMixin):
                 if not is_started:
                     raise RuntimeError(f"Invalid response: {last_msg}")
             finally:
+                yield Parameters(**{"conversation": conversation.get_dict(), "user": user, "prompt": prompt})
                 yield Parameters(**{"cookies": {c.name: c.value for c in session.cookies.jar}})
 
 async def get_access_token_and_cookies(url: str, proxy: str = None, target: str = "ChatAI",):
