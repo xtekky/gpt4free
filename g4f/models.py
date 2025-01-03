@@ -72,7 +72,7 @@ default = Model(
         Blackbox,
         Copilot,
         DeepInfraChat,
-        Airforce, 
+        Airforce,
         Cloudflare,
         PollinationsAI,
         ChatGptEs,

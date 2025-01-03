@@ -5,5 +5,6 @@ from .OpenaiAPI import OpenaiAPI
 class xAI(OpenaiAPI):
     label = "xAI"
     url = "https://console.x.ai"
+    login_url = "https://console.x.ai"
     api_base = "https://api.x.ai/v1"
     working = True

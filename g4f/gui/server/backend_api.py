@@ -14,9 +14,12 @@ from werkzeug.utils import secure_filename
 from ...image import is_allowed_extension, to_image
 from ...client.service import convert_to_provider
 from ...providers.asyncio import to_sync_generator
+from ...client.helper import filter_markdown
 from ...tools.files import supports_filename, get_streaming, get_bucket_dir, get_buckets
+from ...tools.run_tools import iter_run_tools
 from ...errors import ProviderNotFoundError
 from ...cookies import get_cookies_dir
+from ... import ChatCompletion
 from .api import Api
 
 logger = logging.getLogger(__name__)
@@ -100,6 +103,44 @@ class Backend_Api(Api):
                 'methods': ['GET']
             }
         }
+
+        @app.route('/backend-api/v2/create', methods=['GET', 'POST'])
+        def create():
+            try:
+                tool_calls = [{
+                    "function": {
+                        "name": "bucket_tool"
+                    },
+                    "type": "function"
+                }]
+                web_search = request.args.get("web_search")
+                if web_search:
+                    tool_calls.append({
+                        "function": {
+                            "name": "search_tool",
+                            "arguments": {"query": web_search, "instructions": ""} if web_search != "true" else {}
+                        },
+                        "type": "function"
+                    })
+                do_filter_markdown = request.args.get("filter_markdown")
+                response = iter_run_tools(
+                    ChatCompletion.create,
+                    model=request.args.get("model"),
+                    messages=[{"role": "user", "content": request.args.get("prompt")}],
+                    provider=request.args.get("provider", None),
+                    stream=not do_filter_markdown,
+                    ignore_stream=not request.args.get("stream"),
+                    tool_calls=tool_calls,
+                )
+                if do_filter_markdown:
+                    return Response(filter_markdown(response, do_filter_markdown), mimetype='text/plain')
+                def cast_str():
+                    for chunk in response:
+                        yield str(chunk)
+                return Response(cast_str(), mimetype='text/plain')
+            except Exception as e:
+                logger.exception(e)
+                return jsonify({"error": {"message": f"{type(e).__name__}: {e}"}}), 500
 
         @app.route('/backend-api/v2/buckets', methods=['GET'])
         def list_buckets():

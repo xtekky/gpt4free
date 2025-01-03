@@ -16,6 +16,7 @@ from ... import debug
 class GeminiPro(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Google Gemini API"
     url = "https://ai.google.dev"
+    login_url = "https://aistudio.google.com/u/0/apikey"
     api_base = "https://generativelanguage.googleapis.com/v1beta"
 
     working = True

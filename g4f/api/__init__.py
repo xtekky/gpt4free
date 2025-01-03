@@ -197,11 +197,10 @@ class Api:
             )
 
     def register_routes(self):
-        @self.app.get("/")
-        async def read_root():
-            if AppConfig.gui:
-                return RedirectResponse("/chat/", 302)
-            return RedirectResponse("/v1", 302)
+        if not AppConfig.gui:
+            @self.app.get("/")
+            async def read_root():
+                return RedirectResponse("/v1", 302)
 
         @self.app.get("/v1")
         async def read_root_v1():

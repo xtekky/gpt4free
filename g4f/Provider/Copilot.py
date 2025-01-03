@@ -127,8 +127,8 @@ class Copilot(AbstractProvider, ProviderModelMixin):
                 response = session.post(cls.conversation_url)
                 raise_for_status(response)
                 conversation_id = response.json().get("id")
+                conversation = Conversation(conversation_id)
                 if return_conversation:
-                    conversation = Conversation(conversation_id)
                     yield conversation
                 if prompt is None:
                     prompt = format_prompt_max_length(messages, 10000)

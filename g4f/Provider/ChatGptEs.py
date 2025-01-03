@@ -80,4 +80,6 @@ class ChatGptEs(AsyncGeneratorProvider, ProviderModelMixin):
             async with session.post(cls.api_endpoint, headers=headers, data=payload) as response:
                 response.raise_for_status()
                 result = await response.json()
+                if "Du musst das Kästchen anklicken!" in result['data']:
+                    raise ValueError(result['data'])
                 yield result['data']

@@ -5,8 +5,10 @@ import asyncio
 from asyncio import AbstractEventLoop
 from concurrent.futures import ThreadPoolExecutor
 from abc import abstractmethod
+import json
 from inspect import signature, Parameter
-from typing import Optional, _GenericAlias
+from typing import Optional, Awaitable, _GenericAlias
+from pathlib import Path
 try:
     from types import NoneType
 except ImportError:
@@ -15,9 +17,10 @@ except ImportError:
 from ..typing import CreateResult, AsyncResult, Messages
 from .types import BaseProvider
 from .asyncio import get_running_loop, to_sync_generator
-from .response import BaseConversation
+from .response import BaseConversation, AuthResult
 from .helper import concat_chunks, async_concat_chunks
-from ..errors import ModelNotSupportedError, ResponseError
+from ..cookies import get_cookies_dir
+from ..errors import ModelNotSupportedError, ResponseError, MissingAuthError
 from .. import debug
 
 SAFE_PARAMETERS = [
@@ -98,7 +101,7 @@ class AbstractProvider(BaseProvider):
             loop.run_in_executor(executor, create_func),
             timeout=timeout
         )
-
+    
     @classmethod
     def get_parameters(cls, as_json: bool = False) -> dict[str, Parameter]:
         params = {name: parameter for name, parameter in signature(
@@ -308,6 +311,12 @@ class AsyncGeneratorProvider(AsyncProvider):
         """
         raise NotImplementedError()
 
+    create_authed = create_completion
+
+    create_authed_async = create_async
+
+    create_async_authed = create_async_generator
+
 class ProviderModelMixin:
     default_model: str = None
     models: list[str] = []
@@ -347,3 +356,98 @@ class RaiseErrorMixin():
                 raise ResponseError(data["error"]["message"])
             else:
                 raise ResponseError(data["error"])
+
+class AuthedMixin():
+
+    @classmethod
+    def on_auth(cls, **kwargs) -> Optional[AuthResult]:
+       if "api_key" not in kwargs:
+           raise MissingAuthError(f"API key is required for {cls.__name__}")
+       return None
+
+    @classmethod
+    def create_authed(
+        cls,
+        model: str,
+        messages: Messages,
+        **kwargs
+    ) -> CreateResult:
+        auth_result = {}
+        cache_file = Path(get_cookies_dir()) / f"auth_{cls.__name__}.json"
+        if cache_file.exists():
+            with cache_file.open("r") as f:
+                auth_result = json.load(f)
+            return cls.create_completion(model, messages, **kwargs, **auth_result)
+        auth_result = cls.on_auth(**kwargs)
+        try:
+            return cls.create_completion(model, messages, **kwargs)
+        finally:
+            cache_file.parent.mkdir(parents=True, exist_ok=True)
+            cache_file.write_text(json.dumps(auth_result.get_dict()))
+
+class AsyncAuthedMixin(AuthedMixin):
+    @classmethod
+    async def create_async_authed(
+        cls,
+        model: str,
+        messages: Messages,
+        **kwargs
+    ) -> str:
+        cache_file = Path(get_cookies_dir()) / f"auth_{cls.__name__}.json"
+        if cache_file.exists():
+            auth_result = {}
+            with cache_file.open("r") as f:
+                auth_result = json.load(f)
+            return cls.create_completion(model, messages, **kwargs, **auth_result)
+        auth_result = cls.on_auth(**kwargs)
+        try:
+            return await cls.create_async(model, messages, **kwargs)
+        finally:
+            if auth_result is not None:
+                cache_file.parent.mkdir(parents=True, exist_ok=True)
+                cache_file.write_text(json.dumps(auth_result.get_dict()))
+
+class AsyncAuthedGeneratorMixin(AsyncAuthedMixin):
+
+    @classmethod
+    async def create_async_authed(
+        cls,
+        model: str,
+        messages: Messages,
+        **kwargs
+    ) -> str:
+        cache_file = Path(get_cookies_dir()) / f"auth_{cls.__name__}.json"
+        if cache_file.exists():
+            auth_result = {}
+            with cache_file.open("r") as f:
+                auth_result = json.load(f)
+            return cls.create_completion(model, messages, **kwargs, **auth_result)
+        auth_result = cls.on_auth(**kwargs)
+        try:
+            return await async_concat_chunks(cls.create_async_generator(model, messages, stream=False, **kwargs))
+        finally:
+            if auth_result is not None:
+                cache_file.parent.mkdir(parents=True, exist_ok=True)
+                cache_file.write_text(json.dumps(auth_result.get_dict()))
+
+    @classmethod
+    def create_async_authed_generator(
+        cls,
+        model: str,
+        messages: Messages,
+        stream: bool = True,
+        **kwargs
+    ) -> Awaitable[AsyncResult]:
+        cache_file = Path(get_cookies_dir()) / f"auth_{cls.__name__}.json"
+        if cache_file.exists():
+            auth_result = {}
+            with cache_file.open("r") as f:
+                auth_result = json.load(f)
+            return cls.create_completion(model, messages, **kwargs, **auth_result)
+        auth_result = cls.on_auth(**kwargs)
+        try:
+            return cls.create_async_generator(model, messages, stream=stream, **kwargs)
+        finally:
+            if auth_result is not None:
+                cache_file.parent.mkdir(parents=True, exist_ok=True)
+                cache_file.write_text(json.dumps(auth_result.get_dict()))

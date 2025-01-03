@@ -137,14 +137,13 @@ class HtmlRenderPlugin {
         }
     }
 }
-
+if (window.hljs) {
+    hljs.addPlugin(new HtmlRenderPlugin())
+    hljs.addPlugin(new CopyButtonPlugin());
+}
 let typesetPromise = Promise.resolve();
 const highlight = (container) => {
     if (window.hljs) {
-        hljs.addPlugin(new HtmlRenderPlugin())
-        if (window.CopyButtonPlugin) {
-            hljs.addPlugin(new CopyButtonPlugin());
-        }
         container.querySelectorAll('code:not(.hljs').forEach((el) => {
             if (el.className != "hljs") {
                 hljs.highlightElement(el);
@@ -542,7 +541,6 @@ async function load_provider_parameters(provider) {
         if (old_form) {
             provider_forms.removeChild(old_form);
         }
-        console.log(provider, parameters_storage[provider]);
         Object.entries(parameters_storage[provider]).forEach(([key, value]) => {
             let el_id = `${provider}-${key}`;
             let saved_value = appStorage.getItem(el_id);
@@ -1012,8 +1010,9 @@ const load_conversation = async (conversation_id, scroll=true) => {
         let lines = buffer.trim().split("\n");
         let lastLine = lines[lines.length - 1];
         let newContent = item.content;
-        if (newContent.startsWith("```\n")) {
-            newContent = item.content.substring(4);
+        if (newContent.startsWith("```")) {
+            const index = str.indexOf("\n");
+            newContent = newContent.substring(index);
         }
         if (newContent.startsWith(lastLine)) {
             newContent = newContent.substring(lastLine.length);
@@ -1763,7 +1762,7 @@ async function load_version() {
         new_version = document.createElement("div");
         new_version.classList.add("new_version");
         const link = `<a href="${release_url}" target="_blank" title="${title}">v${versions["latest_version"]}</a>`;
-        new_version.innerHTML = `g4f ${link}&nbsp;&nbsp;🆕`;
+        new_version.innerHTML = `G4F ${link}&nbsp;&nbsp;🆕`;
         new_version.addEventListener("click", ()=>new_version.parentElement.removeChild(new_version));
         document.body.appendChild(new_version);
     } else {

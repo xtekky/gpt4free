@@ -10,6 +10,7 @@ from ...cookies import get_cookies
 class Cerebras(OpenaiAPI):
     label = "Cerebras Inference"
     url = "https://inference.cerebras.ai/"
+    login_url = "https://cloud.cerebras.ai"
     api_base = "https://api.cerebras.ai/v1"
     working = True
     default_model = "llama3.1-70b"

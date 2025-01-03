@@ -70,8 +70,7 @@ def read_json(text: str) -> dict:
     try:
         return json.loads(text.strip())
     except json.JSONDecodeError:
-        print("No valid json:", text)
-        return {}
+        raise RuntimeError(f"Invalid JSON: {text}")
 
 def read_text(text: str) -> str:
     """
@@ -86,7 +85,8 @@ def read_text(text: str) -> str:
     match = re.search(r"```(markdown|)\n(?P<text>[\S\s]+?)\n```", text)
     if match:
         return match.group("text")
-    return text
+    else:
+        raise RuntimeError(f"Invalid markdown: {text}")
 
 def get_ai_response(prompt: str, as_json: bool = True) -> Union[dict, str]:
     """
@@ -197,6 +197,7 @@ def create_review_prompt(pull: PullRequest, diff: str):
     return f"""Your task is to review a pull request. Instructions:
 - Write in name of g4f copilot. Don't use placeholder.
 - Write the review in GitHub Markdown format.
+- Enclose your response in backticks ```response```
 - Thank the author for contributing to the project.
 
 Pull request author: {pull.user.name}

@@ -9,7 +9,7 @@ class Website:
         self.app = app
         self.routes = {
             '/': {
-                'function': redirect_home,
+                'function': self._home,
                 'methods': ['GET', 'POST']
             },
             '/chat/': {
@@ -41,3 +41,6 @@ class Website:
 
     def _index(self):
         return render_template('index.html', chat_id=str(uuid.uuid4()))
+
+    def _home(self):
+        return render_template('home.html')

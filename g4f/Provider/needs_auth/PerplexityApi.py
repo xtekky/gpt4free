@@ -5,6 +5,7 @@ from .OpenaiAPI import OpenaiAPI
 class PerplexityApi(OpenaiAPI):
     label = "Perplexity API"
     url = "https://www.perplexity.ai"
+    login_url = "https://www.perplexity.ai/settings/api"
     working = True
     api_base = "https://api.perplexity.ai"
     default_model = "llama-3-sonar-large-32k-online"

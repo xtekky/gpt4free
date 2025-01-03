@@ -5,6 +5,7 @@ from .OpenaiAPI import OpenaiAPI
 class Groq(OpenaiAPI):
     label = "Groq"
     url = "https://console.groq.com/playground"
+    login_url = "https://console.groq.com/keys"
     api_base = "https://api.groq.com/openai/v1"
     working = True
     default_model = "mixtral-8x7b-32768"

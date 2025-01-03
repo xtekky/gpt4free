@@ -5,6 +5,22 @@ import logging
 
 from typing import AsyncIterator, Iterator, AsyncGenerator, Optional
 
+def filter_markdown(text: str, allowd_types=None, default=None) -> str:
+    """
+    Parses code block from a string.
+
+    Args:
+        text (str): A string containing a code block.
+
+    Returns:
+        dict: A dictionary parsed from the code block.
+    """
+    match = re.search(r"```(.+)\n(?P<code>[\S\s]+?)(\n```|$)", text)
+    if match:
+        if allowd_types is None or match.group(1) in allowd_types:
+            return match.group("code")
+    return default
+
 def filter_json(text: str) -> str:
     """
     Parses JSON code block from a string.
@@ -15,10 +31,7 @@ def filter_json(text: str) -> str:
     Returns:
         dict: A dictionary parsed from the JSON code block.
     """
-    match = re.search(r"```(json|)\n(?P<code>[\S\s]+?)\n```", text)
-    if match:
-        return match.group("code")
-    return text
+    return filter_markdown(text, ["", "json"], text)
 
 def find_stop(stop: Optional[list[str]], content: str, chunk: str = None):
     first = -1
