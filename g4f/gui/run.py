@@ -1,6 +1,8 @@
 from .gui_parser import gui_parser
 from ..cookies import read_cookie_files
-from g4f.gui import run_gui
+from ..gui import run_gui
+from ..Provider import ProviderUtils
+
 import g4f.cookies
 import g4f.debug
 
@@ -13,6 +15,11 @@ def run_gui_args(args):
     port = args.port
     debug = args.debug
     g4f.cookies.browsers = [g4f.cookies[browser] for browser in args.cookie_browsers]
+    if args.ignored_providers:
+        for provider in args.ignored_providers:
+            if provider in ProviderUtils.convert:
+                ProviderUtils.convert[provider].working = False
+
     run_gui(host, port, debug)
 
 if __name__ == "__main__":
