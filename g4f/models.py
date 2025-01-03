@@ -68,7 +68,6 @@ default = Model(
     best_provider = IterListProvider([
         DDG,
         Pizzagpt,
-        BlackboxCreateAgent,
         Blackbox,
         Copilot,
         DeepInfraChat,
@@ -78,7 +77,7 @@ default = Model(
         ChatGptEs,
         OpenaiChat,
         Mhystical,
-        RubiksAI,
+        ClaudeSon,
     ])
 )
 
@@ -99,12 +98,6 @@ gpt_4 = Model(
     name          = 'gpt-4',
     base_provider = 'OpenAI',
     best_provider = IterListProvider([DDG, Blackbox, ChatGptEs, PollinationsAI, Copilot, OpenaiChat, Liaobots, Mhystical])
-)
-
-gpt_4_turbo = Model(
-    name          = 'gpt-4-turbo',
-    base_provider = 'OpenAI',
-    best_provider = None
 )
 
 # gpt-4o
@@ -136,7 +129,7 @@ o1_preview = Model(
 o1_mini = Model(
     name          = 'o1-mini',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([Liaobots])
+    best_provider = Liaobots
 )
 
 ### GigaChat ###
@@ -177,12 +170,6 @@ llama_3_1_70b = Model(
     name          = "llama-3.1-70b",
     base_provider = "Meta Llama",
     best_provider = IterListProvider([DDG, DeepInfraChat, Blackbox, BlackboxCreateAgent, TeachAnything, PollinationsAI, DarkAI, Airforce, RubiksAI, PerplexityLabs])
-)
-
-llama_3_1_405b = Model(
-    name          = "llama-3.1-405b",
-    base_provider = "Meta Llama",
-    best_provider = Blackbox
 )
 
 # llama 3.2
@@ -661,7 +648,6 @@ class ModelUtils:
 
         # gpt-4
         gpt_4.name: gpt_4,
-        gpt_4_turbo.name: gpt_4_turbo,
         
         # gpt-4o
         gpt_4o.name: gpt_4o,
@@ -684,7 +670,6 @@ class ModelUtils:
         # llama-3.1
         llama_3_1_8b.name: llama_3_1_8b,
         llama_3_1_70b.name: llama_3_1_70b,
-        llama_3_1_405b.name: llama_3_1_405b,
 
         # llama-3.2
         llama_3_2_1b.name: llama_3_2_1b,
