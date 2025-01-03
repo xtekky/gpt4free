@@ -323,13 +323,13 @@ async def iter_filter_base64(chunks: AsyncIterator[bytes]) -> AsyncIterator[byte
     async for chunk in chunks:
         if is_started:
             if end_with in chunk:
-                yield chunk.split(end_with, 1, maxsplit=1).pop(0)
+                yield chunk.split(end_with, maxsplit=1).pop(0)
                 break
             else:
                 yield chunk
         elif search_for in chunk:
             is_started = True
-            yield chunk.split(search_for, 1, maxsplit=1).pop()
+            yield chunk.split(search_for, maxsplit=1).pop()
         else:
             raise ValueError(f"Response: {chunk}")
 

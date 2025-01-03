@@ -564,7 +564,7 @@ body:not(.white) a:visited{
     height: 20px;
     width: 100px;
     transition: all 0.1s;
-    background: var(--colour-5);
+    background: var(--button-hover);
     margin-top: -30px;
     z-index: 1005;
     padding: 6px;
@@ -683,7 +683,7 @@ label[for="camera"] {
 #messages form {
     position: absolute;
     width: 100%;
-    background: var(--colour-5);
+    background: var(--button-hover);
     z-index: 2000;
 }
 
@@ -1354,7 +1354,7 @@ form .field.saved .fa-xmark {
 .settings .label, form .label, .settings label, form label {
     font-size: 15px;
     margin-left: var(--inner-gap);
-    min-width: 120px;
+    min-width: 200px;
 }
 
 .settings .label, form .label {

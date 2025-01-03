@@ -122,7 +122,7 @@ async def fetch_and_scrape(session: ClientSession, url: str, max_words: int = No
                 with open(cache_file, "w") as f:
                     f.write(text)
                 return text
-    except ClientError:
+    except (ClientError, asyncio.TimeoutError):
         return
 
 async def search(query: str, max_results: int = 5, max_words: int = 2500, backend: str = "auto", add_text: bool = True, timeout: int = 5, region: str = "wt-wt") -> SearchResults:
@@ -138,7 +138,7 @@ async def search(query: str, max_results: int = 5, max_words: int = 2500, backen
                 max_results=max_results,
                 backend=backend,
             ):
-            if ".google.com" in result["href"]:
+            if ".google." in result["href"]:
                 continue
             results.append(SearchResultEntry(
                 result["title"],

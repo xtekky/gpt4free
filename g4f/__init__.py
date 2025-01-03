@@ -11,7 +11,7 @@ from .typing import Messages, CreateResult, AsyncResult, ImageType
 from .errors import StreamNotSupportedError
 from .cookies import get_cookies, set_cookies
 from .providers.types import ProviderType
-from .providers.helper import concat_chunks
+from .providers.helper import concat_chunks, async_concat_chunks
 from .client.service import get_model_and_provider
 
 #Configure "g4f" logger
@@ -47,8 +47,7 @@ class ChatCompletion:
         if ignore_stream:
             kwargs["ignore_stream"] = True
 
-        create_method = provider.create_authed if hasattr(provider, "create_authed") else provider.create_completion
-        result = create_method(model, messages, stream=stream, **kwargs)
+        result = provider.get_create_function()(model, messages, stream=stream, **kwargs)
 
         return result if stream else concat_chunks(result)
 
@@ -72,11 +71,10 @@ class ChatCompletion:
         if ignore_stream:
             kwargs["ignore_stream"] = True
 
-        if stream:
-            if hasattr(provider, "create_async_authed_generator"):
-                return provider.create_async_authed_generator(model, messages, **kwargs)
-            elif hasattr(provider, "create_async_generator"):
-                return provider.create_async_generator(model, messages, **kwargs)
-            raise StreamNotSupportedError(f'{provider.__name__} does not support "stream" argument in "create_async"')
+        result = provider.get_async_create_function()(model, messages, stream=stream, **kwargs)
 
-        return provider.create_async(model, messages, **kwargs)
+        if not stream:
+            if hasattr(result, "__aiter__"):
+                result = async_concat_chunks(result)
+
+        return result

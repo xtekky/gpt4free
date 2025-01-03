@@ -111,7 +111,7 @@ class HuggingFace(AsyncGeneratorProvider, ProviderModelMixin):
                             messages = [m for m in messages if m["role"] == "system"] + [messages[-1]]
                         inputs = get_inputs(messages, model_data, model_type, do_continue)
                         debug.log(f"New len: {len(inputs)}")
-                    if model_type == "gpt2" and max_new_tokens >= 1024:
+                    if model_type == "gpt2" and max_tokens >= 1024:
                         params["max_new_tokens"] = 512
                 payload = {"inputs": inputs, "parameters": params, "stream": stream}
 

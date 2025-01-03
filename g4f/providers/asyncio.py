@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from asyncio import AbstractEventLoop, runners
-from typing import Optional, Callable, AsyncGenerator, Generator
+from typing import Optional, Callable, AsyncIterator, Iterator
 
 from ..errors import NestAsyncioError
 
@@ -37,10 +37,14 @@ def get_running_loop(check_nested: bool) -> Optional[AbstractEventLoop]:
 async def await_callback(callback: Callable):
     return await callback()
 
-async def async_generator_to_list(generator: AsyncGenerator) -> list:
+async def async_generator_to_list(generator: AsyncIterator) -> list:
     return [item async for item in generator]
 
-def to_sync_generator(generator: AsyncGenerator) -> Generator:
+def to_sync_generator(generator: AsyncIterator, stream: bool = True) -> Iterator:
+    if not stream:
+        yield from asyncio.run(async_generator_to_list(generator))
+        return
+
     loop = get_running_loop(check_nested=False)
     new_loop = False
     if loop is None:
@@ -63,3 +67,18 @@ def to_sync_generator(generator: AsyncGenerator) -> Generator:
             finally:
                 asyncio.set_event_loop(None)
                 loop.close()
+
+# Helper function to convert a synchronous iterator to an async iterator
+async def to_async_iterator(iterator: Iterator) -> AsyncIterator:
+    if isinstance(iterator, str):
+        yield iterator
+    elif hasattr(iterator, "__await__"):
+        yield await iterator
+    elif hasattr(iterator, "__aiter__"):
+        async for item in iterator:
+            yield item
+    elif hasattr(iterator, "__iter__"):
+        for item in iterator:
+            yield item
+    else:
+        yield iterator

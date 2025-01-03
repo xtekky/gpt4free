@@ -63,8 +63,3 @@ async def safe_aclose(generator: AsyncGenerator) -> None:
             await generator.aclose()
     except Exception as e:
         logging.warning(f"Error while closing generator: {e}")
-
-# Helper function to convert a synchronous iterator to an async iterator
-async def to_async_iterator(iterator: Iterator) -> AsyncIterator:
-    for item in iterator:
-        yield item

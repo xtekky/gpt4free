@@ -26,50 +26,26 @@ class BaseProvider(ABC):
     supports_system_message: bool = False
     params: str
 
-    @classmethod
     @abstractmethod
-    def create_completion(
-        cls,
-        model: str,
-        messages: Messages,
-        stream: bool,
-        **kwargs
-    ) -> CreateResult:
+    def get_create_function() -> callable:
         """
-        Create a completion with the given parameters.
-
-        Args:
-            model (str): The model to use.
-            messages (Messages): The messages to process.
-            stream (bool): Whether to use streaming.
-            **kwargs: Additional keyword arguments.
+        Get the create function for the provider.
 
         Returns:
-            CreateResult: The result of the creation process.
+            callable: The create function.
         """
         raise NotImplementedError()
 
-    @classmethod
     @abstractmethod
-    async def create_async(
-        cls,
-        model: str,
-        messages: Messages,
-        **kwargs
-    ) -> str:
+    def get_async_create_function() -> callable:
         """
-        Asynchronously create a completion with the given parameters.
-
-        Args:
-            model (str): The model to use.
-            messages (Messages): The messages to process.
-            **kwargs: Additional keyword arguments.
+        Get the async create function for the provider.
 
         Returns:
-            str: The result of the creation process.
+            callable: The create function.
         """
         raise NotImplementedError()
-    
+
     @classmethod
     def get_dict(cls) -> Dict[str, str]:
         """
