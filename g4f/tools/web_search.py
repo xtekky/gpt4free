@@ -112,7 +112,7 @@ async def fetch_and_scrape(session: ClientSession, url: str, max_words: int = No
         bucket_dir: Path = Path(get_cookies_dir()) / ".scrape_cache" / "fetch_and_scrape"
         bucket_dir.mkdir(parents=True, exist_ok=True)
         md5_hash = hashlib.md5(url.encode()).hexdigest()
-        cache_file = bucket_dir / f"{url.split('?')[0].split('//')[1].replace('/', '+')}.{datetime.date.today()}.{md5_hash}.txt"
+        cache_file = bucket_dir / f"{url.split('?')[0].split('//')[1].replace('/', '+')[:16]}.{datetime.date.today()}.{md5_hash}.txt"
         if cache_file.exists():
             return cache_file.read_text()
         async with session.get(url) as response:
