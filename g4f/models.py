@@ -421,8 +421,8 @@ openchat_3_5 = Model(
 
 
 ### x.ai ###
-grok_beta = Model(
-    name = 'grok-beta',
+grok_2 = Model(
+    name = 'grok-2',
     base_provider = 'x.ai',
     best_provider = Liaobots
 )
@@ -767,7 +767,7 @@ class ModelUtils:
         openchat_3_5.name: openchat_3_5,
 
         ### x.ai ###
-        grok_beta.name: grok_beta,
+        grok_2.name: grok_2,
 
         ### Perplexity AI ###
         sonar_online.name: sonar_online,
