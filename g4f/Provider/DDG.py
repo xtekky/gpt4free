@@ -3,8 +3,15 @@ from __future__ import annotations
 from aiohttp import ClientSession, ClientTimeout, ClientError
 import json
 from ..typing import AsyncResult, Messages
-from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from .base_provider import AsyncGeneratorProvider, ProviderModelMixin, BaseConversation
 from .helper import format_prompt
+
+class Conversation(BaseConversation):
+    vqd: str = None
+    message_history: Messages = []
+
+    def __init__(self, model: str):
+        self.model = model
 
 class DDG(AsyncGeneratorProvider, ProviderModelMixin):
     label = "DuckDuckGo AI Chat"
@@ -55,6 +62,8 @@ class DDG(AsyncGeneratorProvider, ProviderModelMixin):
         cls,
         model: str,
         messages: Messages,
+        conversation: Conversation = None,
+        return_conversation: bool = False,
         proxy: str = None,
         **kwargs
     ) -> AsyncResult:
@@ -63,16 +72,30 @@ class DDG(AsyncGeneratorProvider, ProviderModelMixin):
         }
         async with ClientSession(headers=headers, timeout=ClientTimeout(total=30)) as session:
             # Fetch VQD token
-            vqd = await cls.fetch_vqd(session)
-            headers["x-vqd-4"] = vqd
+            if conversation is None:
+                conversation = Conversation(model)
+
+            if conversation.vqd is None:
+                conversation.vqd = await cls.fetch_vqd(session)
+
+            headers["x-vqd-4"] = conversation.vqd
+
+            if return_conversation:
+                yield conversation
+
+            if len(messages) >= 2:
+                conversation.message_history.extend([messages[-2], messages[-1]])
+            elif len(messages) == 1:
+                conversation.message_history.append(messages[-1])
 
             payload = {
-                "model": model,
-                "messages": [{"role": "user", "content": format_prompt(messages)}],
+                "model": conversation.model,
+                "messages": conversation.message_history,
             }
 
             try:
                 async with session.post(cls.api_endpoint, headers=headers, json=payload, proxy=proxy) as response:
+                    conversation.vqd = response.headers.get("x-vqd-4")
                     response.raise_for_status()
                     async for line in response.content:
                         line = line.decode("utf-8").strip()
