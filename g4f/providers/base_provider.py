@@ -269,7 +269,7 @@ class AsyncProvider(AbstractProvider):
     def get_async_create_function(cls) -> callable:
         return cls.create_async
 
-class AsyncGeneratorProvider(AsyncProvider):
+class AsyncGeneratorProvider(AbstractProvider):
     """
     Provides asynchronous generator functionality for streaming results.
     """
@@ -396,6 +396,10 @@ class AsyncAuthedProvider(AsyncGeneratorProvider):
         return cls.create_async_generator
 
     @classmethod
+    def get_cache_file(cls) -> Path:
+        return Path(get_cookies_dir()) / f"auth_{cls.parent if hasattr(cls, 'parent') else cls.__name__}.json"
+
+    @classmethod
     def create_completion(
         cls,
         model: str,
@@ -404,18 +408,24 @@ class AsyncAuthedProvider(AsyncGeneratorProvider):
     ) -> CreateResult:
         try:
             auth_result = AuthResult()
-            cache_file = Path(get_cookies_dir()) / f"auth_{cls.parent if hasattr(cls, 'parent') else cls.__name__}.json"
+            cache_file = cls.get_cache_file()
             if cache_file.exists():
                 with cache_file.open("r") as f:
                     auth_result = AuthResult(**json.load(f))
             else:
                 auth_result = cls.on_auth(**kwargs)
-            return to_sync_generator(cls.create_authed(model, messages, auth_result, **kwargs))
+                if hasattr(auth_result, "_iter__"):
+                    for chunk in auth_result:
+                        if isinstance(chunk, AsyncResult):
+                            auth_result = chunk
+                        else:
+                            yield chunk
+            yield from to_sync_generator(cls.create_authed(model, messages, auth_result, **kwargs))
         except (MissingAuthError, NoValidHarFileError):
             if cache_file.exists():
                 cache_file.unlink()
             auth_result = cls.on_auth(**kwargs)
-            return to_sync_generator(cls.create_authed(model, messages, auth_result, **kwargs))
+            yield from to_sync_generator(cls.create_authed(model, messages, auth_result, **kwargs))
         finally:
                 cache_file.parent.mkdir(parents=True, exist_ok=True)
                 cache_file.write_text(json.dumps(auth_result.get_dict()))
@@ -434,6 +444,12 @@ class AsyncAuthedProvider(AsyncGeneratorProvider):
                     auth_result = AuthResult(**json.load(f))
             else:
                 auth_result = await cls.on_auth_async(**kwargs)
+                if hasattr(auth_result, "_aiter__"):
+                    async for chunk in auth_result:
+                        if isinstance(chunk, AsyncResult):
+                            auth_result = chunk
+                        else:
+                            yield chunk
             response = to_async_iterator(cls.create_authed(model, messages, **kwargs, auth_result=auth_result))
             async for chunk in response:
                 yield chunk

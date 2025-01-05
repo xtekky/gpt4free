@@ -103,17 +103,29 @@
             z-index: -1;
         }
 
-        iframe.stream {
+        .stream-widget {
             max-height: 0;
             transition: max-height 0.15s ease-out;
+            color: var(--colour-5);
+            overflow: scroll;
+            text-align: left;
         }
 
-        iframe.stream.show {
+        .stream-widget.show {
             max-height: 1000px;
             height: 1000px;
             transition: max-height 0.25s ease-in;
             background: rgba(255,255,255,0.7);
             border-top: 2px solid rgba(255,255,255,0.5);
+            padding: 20px;
+        }
+
+        .stream-widget img {
+            max-width: 320px;
+        }
+
+        #stream-container {
+            width: 100%;
         }
 
         .description {
@@ -207,32 +219,87 @@
             <p>Powered by the G4F framework</p>
         </div>
 
-        <iframe id="stream-widget" class="stream" frameborder="0"></iframe>
+        <iframe class="stream-widget" frameborder="0"></iframe>
     </div>
     <script>
-        const iframe = document.getElementById('stream-widget');""
-        let search = (navigator.language == "de" ? "news in deutschland" : navigator.language == "en" ? "world news" : navigator.language);
-        if (Math.floor(Math.random() * 6) % 2 == 0) {
+        const iframe = document.querySelector('.stream-widget');
+        const rand_idx = Math.floor(Math.random() * 9)
+        if (rand_idx < 3) {
             search = "xtekky/gpt4free releases";
+        } else if (rand_idx < 5) {
+            search = "developer news";
+        } else {
+            search = (navigator.language == "de" ? "news in deutsch" : navigator.language == "en" ? "world news" : `news in ${navigator.language}`);
         }
-        const url = "/backend-api/v2/create?prompt=Create of overview of the news in plain text&stream=1&web_search=" + search;
+        const summary_prompt = "Give a summary of the provided text in ```markdown``` format. Add maybe one or more images.";
+        const url = `/backend-api/v2/create?prompt=${summary_prompt}&stream=1&web_search=${search}`;
         iframe.src = url;
-        setTimeout(()=>iframe.classList.add('show'), 3000);
+        const message = "Loading...";
+        setTimeout(()=>{
+            iframe.classList.add('show');
+            const iframeDocument = iframe.contentDocument || iframe.contentWindow?.document;
+            if (iframeDocument) {
+                const iframeBody = iframeDocument.querySelector("body");
+                if (iframeBody) {
+                    iframeBody.innerHTML = message + iframeBody.innerHTML;
+                }
+            } else {
+                iframe.parentElement.removeChild(iframe);
+            }
+        }, 1000);
+
+        function filterMarkdown(text, allowedTypes = null, defaultValue = null) {
+            const match = text.match(/```(.+)\n(?<code>[\s\S]+?)(\n```|$)/);
+            if (match) {
+                const [, type, code] = match;
+                if (!allowedTypes || allowedTypes.includes(type)) {
+                    return code;
+                }
+            }
+            return defaultValue;
+        }
+
+        let scroll_to_bottom_callback = () => {
+            const i = document.querySelector(".stream-widget");
+            if (!i.contentWindow || !i.contentDocument) {
+                return;
+            }
+            clientHeight = i.contentDocument.body.scrollHeight;
+            i.contentWindow.scrollTo(0, clientHeight);
+            if (clientHeight - i.contentWindow.scrollY < 2 * clientHeight) {
+                setTimeout(scroll_to_bottom_callback, 1000);
+            }
+        };
+        setTimeout(scroll_to_bottom_callback, 1000);
+
         iframe.onload = () => {
             const iframeDocument = iframe.contentDocument || iframe.contentWindow.document;
-            const iframeBody = iframeDocument.querySelector("body");
             const iframeContent = iframeDocument.querySelector("pre");
+            let iframeText = iframeContent.innerHTML;
             const markdown = window.markdownit();
-            iframeBody.innerHTML = markdown.render(iframeContent.innerHTML);
+            const iframeContainer = document.querySelector(".container");
+            iframe.remove()
+            if (iframeText.indexOf('"error"') < 0) {
+                iframeContainer.innerHTML += `<div class="stream-widget show">${markdown.render(filterMarkdown(iframeText, "markdown", iframeText))}</div>`;
+            }
+            scroll_to_bottom_callback = () => null;
         }
 
         (async () => {
-            const prompt = `
+            const today = new Date().toJSON().slice(0, 10);
+            const max = 100;
+            const cache_id = Math.floor(Math.random() * max);
+            let prompt;
+            if (cache_id % 2 == 0) {
+                prompt = `
                 Today is ${new Date().toJSON().slice(0, 10)}.
                 Create a single-page HTML screensaver reflecting the current season (based on the date).
-                For example, if it's Spring, it might use floral patterns or pastel colors.
-                Avoid using any text. Consider a subtle animation or transition effect.`;
-            const response = await fetch(`/backend-api/v2/create?prompt=${prompt}&filter_markdown=html`)
+                Avoid using any text.`;
+            } else {
+                prompt = `Create a single-page HTML screensaver. Avoid using any text.`;
+                const response = await fetch(`/backend-api/v2/create?prompt=${prompt}&filter_markdown=html&cache=${cache_id}`);
+            }
+            const response = await fetch(`/backend-api/v2/create?prompt=${prompt}&filter_markdown=html&cache=${cache_id}`);
             const text = await response.text()
             background.src = `data:text/html;charset=utf-8,${encodeURIComponent(text)}`;
             const gradient = document.querySelector('.gradient');

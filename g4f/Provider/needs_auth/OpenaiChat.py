@@ -105,11 +105,11 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
     _expires: int = None
 
     @classmethod
-    async def on_auth_async(cls, **kwargs) -> AuthResult:
+    async def on_auth_async(cls, **kwargs) -> AsyncIterator:
         if cls.needs_auth:
-            async for _ in cls.login():
-                pass
-        return AuthResult(
+            async for chunk in cls.login():
+                yield chunk
+        yield AuthResult(
             api_key=cls._api_key,
             cookies=cls._cookies or RequestConfig.cookies or {},
             headers=cls._headers or RequestConfig.headers or cls.get_default_headers(),
@@ -174,7 +174,8 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                 "use_case":	"multimodal"
             }
             # Post the image data to the service and get the image data
-            async with session.post(f"{cls.url}/backend-api/files", json=data, headers=auth_result.headers) as response:
+            headers = auth_result.headers if hasattr(auth_result, "headers") else None
+            async with session.post(f"{cls.url}/backend-api/files", json=data, headers=headers) as response:
                 cls._update_request_args(auth_result, session)
                 await raise_for_status(response, "Create file failed")
                 image_data = {
@@ -360,7 +361,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                     f"{cls.url}/backend-anon/sentinel/chat-requirements"
                     if cls._api_key is None else
                     f"{cls.url}/backend-api/sentinel/chat-requirements",
-                    json={"p": None if auth_result.proof_token is None else get_requirements_token(auth_result.proof_token)},
+                    json={"p": None if not getattr(auth_result, "proof_token") else get_requirements_token(auth_result.proof_token)},
                     headers=cls._headers
                 ) as response:
                     if response.status == 401:
@@ -386,7 +387,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                     proofofwork = generate_proof_token(
                         **chat_requirements["proofofwork"],
                         user_agent=auth_result.headers.get("user-agent"),
-                        proof_token=auth_result.proof_token
+                        proof_token=getattr(auth_result, "proof_token")
                     )
                 [debug.log(text) for text in (
                     #f"Arkose: {'False' if not need_arkose else auth_result.arkose_token[:12]+'...'}",

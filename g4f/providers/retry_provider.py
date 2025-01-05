@@ -58,10 +58,11 @@ class IterListProvider(BaseRetryProvider):
                     for chunk in response:
                         if chunk:
                             yield chunk
-                            started = True
+                            if isinstance(chunk, str):
+                                started = True
                 elif response:
                     yield response
-                    started = True
+                    return
                 if started:
                     return
             except Exception as e:
@@ -93,7 +94,8 @@ class IterListProvider(BaseRetryProvider):
                     async for chunk in response:
                         if chunk:
                             yield chunk
-                            started = True
+                            if isinstance(chunk, str):
+                                started = True
                 elif response:
                     response = await response
                     if response:

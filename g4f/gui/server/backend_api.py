@@ -9,6 +9,8 @@ import shutil
 from flask import Flask, Response, request, jsonify
 from typing import Generator
 from pathlib import Path
+from urllib.parse import quote_plus
+from hashlib import sha256
 from werkzeug.utils import secure_filename
 
 from ...image import is_allowed_extension, to_image
@@ -123,15 +125,30 @@ class Backend_Api(Api):
                         "type": "function"
                     })
                 do_filter_markdown = request.args.get("filter_markdown")
-                response = iter_run_tools(
-                    ChatCompletion.create,
-                    model=request.args.get("model"),
-                    messages=[{"role": "user", "content": request.args.get("prompt")}],
-                    provider=request.args.get("provider", None),
-                    stream=not do_filter_markdown,
-                    ignore_stream=not request.args.get("stream"),
-                    tool_calls=tool_calls,
-                )
+                cache_id = request.args.get('cache')
+                parameters = {
+                    "model": request.args.get("model"),
+                    "messages": [{"role": "user", "content": request.args.get("prompt")}],
+                    "provider": request.args.get("provider", None),
+                    "stream": not do_filter_markdown and not cache_id,
+                    "ignore_stream": not request.args.get("stream"),
+                    "tool_calls": tool_calls,
+                }
+                if cache_id:
+                    cache_id = sha256(cache_id.encode() + json.dumps(parameters, sort_keys=True).encode()).hexdigest()
+                    cache_dir = Path(get_cookies_dir()) / ".scrape_cache" / "create"
+                    cache_file = cache_dir / f"{quote_plus(request.args.get('prompt').strip()[:20])}.{cache_id}.txt"
+                    if cache_file.exists():
+                        with cache_file.open("r") as f:
+                            response = f.read()
+                    else:
+                        response = iter_run_tools(ChatCompletion.create, **parameters)
+                        cache_dir.mkdir(parents=True, exist_ok=True)
+                        with cache_file.open("w") as f:
+                            f.write(response)
+                else:
+                    response = iter_run_tools(ChatCompletion.create, **parameters)
+
                 if do_filter_markdown:
                     return Response(filter_markdown(response, do_filter_markdown), mimetype='text/plain')
                 def cast_str():

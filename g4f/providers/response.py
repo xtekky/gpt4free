@@ -19,7 +19,9 @@ def quote_url(url: str) -> str:
 
 def quote_title(title: str) -> str:
     if title:
-        return title.replace("\n", "").replace('"', '')
+        title = title.strip()
+        title = " ".join(title.split())
+        return title.replace('[', '').replace(']', '')
     return ""
 
 def format_link(url: str, title: str = None) -> str:
