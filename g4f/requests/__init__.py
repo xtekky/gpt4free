@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from urllib.parse import urlparse
 from typing import Iterator
 from http.cookies import Morsel
@@ -20,6 +21,7 @@ except ImportError:
 try:
     import nodriver
     from nodriver.cdp.network import CookieParam
+    from nodriver.core.config import find_chrome_executable
     from nodriver import Browser
     has_nodriver = True
 except ImportError:
@@ -95,6 +97,8 @@ async def get_args_from_nodriver(
         cookies[c.name] = c.value
     user_agent = await page.evaluate("window.navigator.userAgent")
     await page.wait_for("body:not(.no-js)", timeout=timeout)
+    for c in await page.send(nodriver.cdp.network.get_cookies([url])):
+        cookies[c.name] = c.value
     await page.close()
     browser.stop()
     return {
@@ -114,13 +118,21 @@ def merge_cookies(cookies: Iterator[Morsel], response: Response) -> Cookies:
     for cookie in response.cookies.jar:
         cookies[cookie.name] = cookie.value
 
-async def get_nodriver(proxy: str = None, user_data_dir = "nodriver", **kwargs)-> Browser:
+async def get_nodriver(proxy: str = None, user_data_dir = "nodriver", browser_executable_path=None, **kwargs)-> Browser:
     if not has_nodriver:
         raise MissingRequirementsError('Install "nodriver" package | pip install -U nodriver')
     user_data_dir = user_config_dir(f"g4f-{user_data_dir}") if has_platformdirs else None
+    if browser_executable_path is None:
+        try:
+            browser_executable_path = find_chrome_executable()
+        except FileNotFoundError:
+            # Default to Edge if Chrome is not found
+            if os.path.exists("C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"):
+                browser_executable_path = "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"
     debug.log(f"Open nodriver with user_dir: {user_data_dir}")
     return await nodriver.start(
         user_data_dir=user_data_dir,
         browser_args=None if proxy is None else [f"--proxy-server={proxy}"],
+        browser_executable_path=browser_executable_path,
         **kwargs
     )

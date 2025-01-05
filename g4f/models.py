@@ -213,8 +213,7 @@ mistral_nemo = Model(
 
 mistral_large = Model(
     name          = "mistral-large",
-    base_provider = "Mistral",
-    best_provider = PollinationsAI
+    base_provider = "Mistral"
 )
 
 ### NousResearch ###
@@ -348,7 +347,6 @@ command_r_plus = Model(
 command_r = Model(
     name = 'command-r',
     base_provider = 'CohereForAI',
-    best_provider = PollinationsAI
 )
 
 ### Qwen ###

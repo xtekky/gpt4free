@@ -1,14 +1,18 @@
 from __future__ import annotations
 
-from aiohttp import ClientSession, ClientTimeout, ClientError
+import asyncio
+from aiohttp import ClientSession, ClientTimeout, ClientError, ClientResponseError
 import json
+
 from ..typing import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin, BaseConversation
-from .helper import format_prompt
+from ..providers.response import FinishReason
+from .. import debug
 
 class Conversation(BaseConversation):
     vqd: str = None
     message_history: Messages = []
+    cookies: dict = {}
 
     def __init__(self, model: str):
         self.model = model
@@ -65,20 +69,24 @@ class DDG(AsyncGeneratorProvider, ProviderModelMixin):
         conversation: Conversation = None,
         return_conversation: bool = False,
         proxy: str = None,
+        headers: dict = {
+            "Content-Type": "application/json",
+        },
+        cookies: dict = None,
+        max_retries: int = 3,
         **kwargs
     ) -> AsyncResult:
-        headers = {
-            "Content-Type": "application/json",
-        }
-        async with ClientSession(headers=headers, timeout=ClientTimeout(total=30)) as session:
+        if cookies is None and conversation is not None:
+            cookies = conversation.cookies
+        async with ClientSession(headers=headers, cookies=cookies, timeout=ClientTimeout(total=30)) as session:
             # Fetch VQD token
             if conversation is None:
                 conversation = Conversation(model)
-
-            if conversation.vqd is None:
+                conversation.cookies = session.cookie_jar
                 conversation.vqd = await cls.fetch_vqd(session)
 
-            headers["x-vqd-4"] = conversation.vqd
+            if conversation.vqd is not None:
+                headers["x-vqd-4"] = conversation.vqd
 
             if return_conversation:
                 yield conversation
@@ -97,15 +105,33 @@ class DDG(AsyncGeneratorProvider, ProviderModelMixin):
                 async with session.post(cls.api_endpoint, headers=headers, json=payload, proxy=proxy) as response:
                     conversation.vqd = response.headers.get("x-vqd-4")
                     response.raise_for_status()
+                    reason = None
                     async for line in response.content:
                         line = line.decode("utf-8").strip()
                         if line.startswith("data:"):
                             try:
                                 message = json.loads(line[5:].strip())
-                                if "message" in message:
-                                    yield message["message"]
+                                if "message" in message and message["message"]:
+                                    yield message["message"] 
+                                    reason = "max_tokens"
+                                elif message.get("message") == '':
+                                    reason = "stop"
                             except json.JSONDecodeError:
                                 continue
+                    if reason is not None:
+                        yield FinishReason(reason)
+            except ClientResponseError as e:
+                if e.code in (400, 429) and max_retries > 0:
+                    debug.log(f"Retry: max_retries={max_retries}, wait={512 - max_retries * 48}: {e}")
+                    await asyncio.sleep(512 - max_retries * 48)
+                    is_started = False
+                    async for chunk in cls.create_async_generator(model, messages, conversation, return_conversation, max_retries=max_retries-1, **kwargs):
+                        if chunk:
+                            yield chunk
+                            is_started = True
+                    if is_started:
+                        return
+                raise e
             except ClientError as e:
                 raise Exception(f"HTTP ClientError occurred: {e}")
             except asyncio.TimeoutError:

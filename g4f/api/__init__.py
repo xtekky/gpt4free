@@ -41,7 +41,7 @@ from g4f.errors import ProviderNotFoundError, ModelNotFoundError, MissingAuthErr
 from g4f.cookies import read_cookie_files, get_cookies_dir
 from g4f.Provider import ProviderType, ProviderUtils, __providers__
 from g4f.gui import get_gui_app
-from g4f.tools.files import supports_filename, get_streaming
+from g4f.tools.files import supports_filename, get_async_streaming
 from .stubs import (
     ChatCompletionsConfig, ImageGenerationConfig,
     ProviderResponseModel, ModelResponseModel,
@@ -436,7 +436,8 @@ class Api:
             event_stream = "text/event-stream" in request.headers.get("accept", "")
             if not os.path.isdir(bucket_dir):
                 return ErrorResponse.from_message("Bucket dir not found", 404)
-            return StreamingResponse(get_streaming(bucket_dir, delete_files, refine_chunks_with_spacy, event_stream), media_type="text/plain")
+            return StreamingResponse(get_async_streaming(bucket_dir, delete_files, refine_chunks_with_spacy, event_stream),
+                                     media_type="text/event-stream" if event_stream else "text/plain")
 
         @self.app.post("/v1/files/{bucket_id}", responses={
             HTTP_200_OK: {"model": UploadResponseModel}

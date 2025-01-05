@@ -511,7 +511,9 @@ const prepare_messages = (messages, message_index = -1, do_continue = false) => 
         // Include only not regenerated messages
         if (new_message && !new_message.regenerate) {
             // Remove generated images from history
-            new_message.content = filter_message(new_message.content);
+            if (new_message.content) {
+                new_message.content = filter_message(new_message.content);
+            }
             // Remove internal fields
             delete new_message.provider;
             delete new_message.synthesize;
@@ -658,7 +660,7 @@ async function load_provider_parameters(provider) {
     }
 }
 
-async function add_message_chunk(message, message_id, provider) {
+async function add_message_chunk(message, message_id, provider, scroll) {
     content_map = content_storage[message_id];
     if (message.type == "conversation") {
         const conversation = await get_conversation(window.conversation_id);
@@ -698,7 +700,7 @@ async function add_message_chunk(message, message_id, provider) {
         content_map.inner.innerHTML = markdown_render(message.preview);
     } else if (message.type == "content") {
         message_storage[message_id] += message.content;
-        update_message(content_map, message_id);
+        update_message(content_map, message_id, null, scroll);
         content_map.inner.style.height = "";
     } else if (message.type == "log") {
         let p = document.createElement("p");
@@ -709,9 +711,7 @@ async function add_message_chunk(message, message_id, provider) {
     } else if (message.type == "title") {
         title_storage[message_id] = message.title;
     } else if (message.type == "login") {
-        update_message(content_map, message_id, message.login);
-    } else if (message.type == "login") {
-        update_message(content_map, message_id, message.login);
+        update_message(content_map, message_id, message.login, scroll);
     } else if (message.type == "finish") {
         finish_storage[message_id] = message.finish;
     } else if (message.type == "parameters") {
@@ -734,8 +734,12 @@ const ask_gpt = async (message_id, message_index = -1, regenerate = false, provi
     messages = prepare_messages(conversation.items, message_index, action=="continue");
     message_storage[message_id] = "";
     stop_generating.classList.remove("stop_generating-hidden");
+    let scroll = true;
+    if (message_index > 0 && parseInt(message_index, 10) + 1 < conversation.items.length) {
+        scroll = false;
+    }
 
-    if (message_index == -1) {
+    if (scroll) {
         await lazy_scroll_to_bottom();
     }
 
@@ -780,7 +784,7 @@ const ask_gpt = async (message_id, message_index = -1, regenerate = false, provi
         update_timeouts: [],
         message_index: message_index,
     }
-    if (message_index == -1) {
+    if (scroll) {
         await lazy_scroll_to_bottom();
     }
     try {
@@ -801,7 +805,7 @@ const ask_gpt = async (message_id, message_index = -1, regenerate = false, provi
             download_images: download_images,
             api_key: api_key,
             ignored: ignored,
-        }, files, message_id);
+        }, files, message_id, scroll);
         content_map.update_timeouts.forEach((timeoutId)=>clearTimeout(timeoutId));
         content_map.update_timeouts = [];
         if (!error_storage[message_id]) {
@@ -836,12 +840,12 @@ const ask_gpt = async (message_id, message_index = -1, regenerate = false, provi
         );
         delete message_storage[message_id];
         if (!error_storage[message_id]) {
-            await safe_load_conversation(window.conversation_id, message_index == -1);
+            await safe_load_conversation(window.conversation_id, scroll);
         }
     }
     let cursorDiv = message_el.querySelector(".cursor");
     if (cursorDiv) cursorDiv.parentNode.removeChild(cursorDiv);
-    if (message_index == -1) {
+    if (scroll) {
         await lazy_scroll_to_bottom();
     }
     await safe_remove_cancel_button();
@@ -856,7 +860,7 @@ async function scroll_to_bottom() {
 }
 
 async function lazy_scroll_to_bottom() {
-    if (message_box.scrollHeight - message_box.scrollTop < 2 * message_box.clientHeight) {
+    if (document.querySelector("#input-count input").checked) {
         await scroll_to_bottom();
     }
 }
@@ -1013,6 +1017,8 @@ const load_conversation = async (conversation_id, scroll=true) => {
         if (newContent.startsWith("```")) {
             const index = str.indexOf("\n");
             newContent = newContent.substring(index);
+        } else if (newContent.startsWith("...")) {
+            newContent = " " + newContent.substring(3);
         }
         if (newContent.startsWith(lastLine)) {
             newContent = newContent.substring(lastLine.length);
@@ -1054,7 +1060,7 @@ const load_conversation = async (conversation_id, scroll=true) => {
         if (item.finish && item.finish.actions) {
             actions = item.finish.actions
         }
-        if (!("continue" in actions)) {
+        if (item.role == "assistant" && !actions.includes("continue")) {
             let reason = "stop";
             // Read finish reason from conversation
             if (item.finish && item.finish.reason) {
@@ -1067,7 +1073,7 @@ const load_conversation = async (conversation_id, scroll=true) => {
                 reason = "error";
                 // Has an even number of start or end code tags
             } else if (buffer.split("```").length - 1 % 2 === 1) {
-                reason = "error";
+                reason = "length";
                 // Has a end token at the end
             } else if (lastLine.endsWith("```") || lastLine.endsWith(".") || lastLine.endsWith("?") || lastLine.endsWith("!")
               || lastLine.endsWith('"') || lastLine.endsWith("'") || lastLine.endsWith(")")
@@ -1152,7 +1158,7 @@ const load_conversation = async (conversation_id, scroll=true) => {
     highlight(message_box);
     regenerate_button.classList.remove("regenerate-hidden");
 
-    if (scroll) {
+    if (scroll && document.querySelector("#input-count input").checked) {
         message_box.scrollTo({ top: message_box.scrollHeight, behavior: "smooth" });
 
         setTimeout(() => {
@@ -1517,7 +1523,7 @@ function count_words_and_tokens(text, model) {
     return `(${count_words(text)} words, ${count_chars(text)} chars, ${count_tokens(model, text)} tokens)`;
 }
 
-function update_message(content_map, message_id, content = null) {
+function update_message(content_map, message_id, content = null, scroll = true) {
     content_map.update_timeouts.push(setTimeout(() => {
         if (!content) content = message_storage[message_id];
         html = markdown_render(content);
@@ -1538,7 +1544,7 @@ function update_message(content_map, message_id, content = null) {
         content_map.inner.innerHTML = html;
         content_map.count.innerText = count_words_and_tokens(message_storage[message_id], provider_storage[message_id]?.model);
         highlight(content_map.inner);
-        if (content_map.message_index == -1) {
+        if (scroll) {
             lazy_scroll_to_bottom();
         }
         content_map.update_timeouts.forEach((timeoutId)=>clearTimeout(timeoutId));
@@ -1890,7 +1896,7 @@ fileInput.addEventListener('change', async (event) => {
                     fileInput.value = "";
                     inputCount.innerText = `${count} Conversations were imported successfully`;
                 } else {
-                    is_cookie_file = false;
+                    is_cookie_file = data.api_key;
                     if (Array.isArray(data)) {
                         data.forEach((item) => {
                             if (item.domain && item.name && item.value) {
@@ -1927,7 +1933,7 @@ function get_selected_model() {
     }
 }
 
-async function api(ressource, args=null, files=null, message_id=null) {
+async function api(ressource, args=null, files=null, message_id=null, scroll=true) {
     let api_key;
     if (ressource == "models" && args) {
         api_key = get_api_key_by_provider(args);
@@ -1957,7 +1963,7 @@ async function api(ressource, args=null, files=null, message_id=null) {
             headers: headers,
             body: body,
         });
-        return read_response(response, message_id, args.provider || null);
+        return read_response(response, message_id, args.provider || null, scroll);
     }
     response = await fetch(url, {headers: headers});
     if (response.status == 200) {
@@ -1966,7 +1972,7 @@ async function api(ressource, args=null, files=null, message_id=null) {
     console.error(response);
 }
 
-async function read_response(response, message_id, provider) {
+async function read_response(response, message_id, provider, scroll) {
     const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
     let buffer = ""
     while (true) {
@@ -1979,7 +1985,7 @@ async function read_response(response, message_id, provider) {
                 continue;
             }
             try {
-                add_message_chunk(JSON.parse(buffer + line), message_id, provider);
+                add_message_chunk(JSON.parse(buffer + line), message_id, provider, scroll);
                 buffer = "";
             } catch {
                 buffer += line
@@ -2106,6 +2112,7 @@ if (SpeechRecognition) {
     recognition.maxAlternatives = 1;
 
     let startValue;
+    let buffer;
     let lastDebounceTranscript;
     recognition.onstart = function() {
         microLabel.classList.add("recognition");
@@ -2114,6 +2121,7 @@ if (SpeechRecognition) {
         messageInput.readOnly = true;
     };
     recognition.onend = function() {
+        messageInput.value = `${startValue ? startValue + "\n" : ""}${buffer}`;
         messageInput.readOnly = false;
         messageInput.focus();
     };
@@ -2131,18 +2139,17 @@ if (SpeechRecognition) {
             lastDebounceTranscript = transcript;
         }
         if (transcript) {
-            messageInput.value = `${startValue ? startValue+"\n" : ""}${transcript.trim()}`;
+            inputCount.innerText = transcript;
             if (isFinal) {
-                startValue = messageInput.value;
+                buffer = `${buffer ? buffer + "\n" : ""}${transcript.trim()}`;
             }
-            messageInput.style.height = messageInput.scrollHeight  + "px";
-            messageInput.scrollTop = messageInput.scrollHeight;
         }
     };
 
     microLabel.addEventListener("click", (e) => {
         if (microLabel.classList.contains("recognition")) {
             recognition.stop();
+            messageInput.value = `${startValue ? startValue + "\n" : ""}${buffer}`;
             microLabel.classList.remove("recognition");
         } else {
             const lang = document.getElementById("recognition-language")?.value;

@@ -471,57 +471,88 @@ async def download_urls(
                 await asyncio.sleep(delay)
             new_urls = next_urls
 
+def get_downloads_urls(bucket_dir: Path, delete_files: bool = False) -> Iterator[str]:
+    download_file = bucket_dir / DOWNLOADS_FILE
+    if download_file.exists():
+        with download_file.open('r') as f:
+            data = json.load(f) 
+        if delete_files:
+            download_file.unlink()
+        if isinstance(data, list):
+            for item in data:
+                if "url" in item:
+                    yield item["url"]
+
+def read_and_download_urls(bucket_dir: Path, event_stream: bool = False) -> Iterator[str]:
+    urls = get_downloads_urls(bucket_dir)
+    if urls:
+        count = 0
+        with open(os.path.join(bucket_dir, FILE_LIST), 'w') as f:
+            for filename in to_sync_generator(download_urls(bucket_dir, urls)):
+                f.write(f"{filename}\n")
+                if event_stream:
+                    count += 1
+                    yield f'data: {json.dumps({"action": "download", "count": count})}\n\n'
+
+async def async_read_and_download_urls(bucket_dir: Path, event_stream: bool = False) -> Iterator[str]:
+    urls = get_downloads_urls(bucket_dir)
+    if urls:
+        count = 0
+        with open(os.path.join(bucket_dir, FILE_LIST), 'w') as f:
+            async for filename in download_urls(bucket_dir, urls):
+                f.write(f"{filename}\n")
+                if event_stream:
+                    count += 1
+                    yield f'data: {json.dumps({"action": "download", "count": count})}\n\n'
+
+def stream_chunks(bucket_dir: Path, delete_files: bool = False, refine_chunks_with_spacy: bool = False, event_stream: bool = False) -> Iterator[str]:
+    size = 0
+    if refine_chunks_with_spacy:
+        for chunk in stream_read_parts_and_refine(bucket_dir, delete_files):
+            if event_stream:
+                size += len(chunk)
+                yield f'data: {json.dumps({"action": "refine", "size": size})}\n\n'
+            else:
+                yield chunk
+    else:
+        streaming = stream_read_files(bucket_dir, get_filenames(bucket_dir), delete_files)
+        streaming = cache_stream(streaming, bucket_dir)
+        for chunk in streaming:
+            if event_stream:
+                size += len(chunk)
+                yield f'data: {json.dumps({"action": "load", "size": size})}\n\n'
+            else:
+                yield chunk
+        files_txt = os.path.join(bucket_dir, FILE_LIST)
+        if delete_files and os.path.exists(files_txt):
+            for filename in get_filenames(bucket_dir):
+                if os.path.exists(os.path.join(bucket_dir, filename)):
+                    os.remove(os.path.join(bucket_dir, filename))
+            os.remove(files_txt)
+            if event_stream:
+                yield f'data: {json.dumps({"action": "delete_files"})}\n\n'
+    if event_stream:
+        yield f'data: {json.dumps({"action": "done", "size": size})}\n\n'
+
 def get_streaming(bucket_dir: str, delete_files = False, refine_chunks_with_spacy = False, event_stream: bool = False) -> Iterator[str]:
     bucket_dir = Path(bucket_dir)
     bucket_dir.mkdir(parents=True, exist_ok=True)
     try:
-        download_file = bucket_dir / DOWNLOADS_FILE
-        if download_file.exists():
-            urls = []
-            with download_file.open('r') as f:
-                data = json.load(f)
-            download_file.unlink()
-            if isinstance(data, list):
-                for item in data:
-                    if "url" in item:
-                        urls.append(item["url"])
-            if urls:
-                count = 0
-                with open(os.path.join(bucket_dir, FILE_LIST), 'w') as f:
-                    for filename in to_sync_generator(download_urls(bucket_dir, urls)):
-                        f.write(f"{filename}\n")
-                        if event_stream:
-                            count += 1
-                            yield f'data: {json.dumps({"action": "download", "count": count})}\n\n'
-
-        if refine_chunks_with_spacy:
-            size = 0
-            for chunk in stream_read_parts_and_refine(bucket_dir, delete_files):
-                if event_stream:
-                    size += len(chunk)
-                    yield f'data: {json.dumps({"action": "refine", "size": size})}\n\n'
-                else:
-                    yield chunk
-        else:
-            streaming = stream_read_files(bucket_dir, get_filenames(bucket_dir), delete_files)
-            streaming = cache_stream(streaming, bucket_dir)
-            size = 0
-            for chunk in streaming:
-                if event_stream:
-                    size += len(chunk)
-                    yield f'data: {json.dumps({"action": "load", "size": size})}\n\n'
-                else:
-                    yield chunk
-            files_txt = os.path.join(bucket_dir, FILE_LIST)
-            if delete_files and os.path.exists(files_txt):
-                for filename in get_filenames(bucket_dir):
-                    if os.path.exists(os.path.join(bucket_dir, filename)):
-                        os.remove(os.path.join(bucket_dir, filename))
-                os.remove(files_txt)
-                if event_stream:
-                    yield f'data: {json.dumps({"action": "delete_files"})}\n\n'
+        yield from read_and_download_urls(bucket_dir, event_stream)
+        yield from stream_chunks(bucket_dir, delete_files, refine_chunks_with_spacy, event_stream)
+    except Exception as e:
         if event_stream:
-            yield f'data: {json.dumps({"action": "done", "size": size})}\n\n'
+            yield f'data: {json.dumps({"error": {"message": str(e)}})}\n\n'
+        raise e
+
+async def get_async_streaming(bucket_dir: str, delete_files = False, refine_chunks_with_spacy = False, event_stream: bool = False) -> Iterator[str]:
+    bucket_dir = Path(bucket_dir)
+    bucket_dir.mkdir(parents=True, exist_ok=True)
+    try:
+        async for chunk in async_read_and_download_urls(bucket_dir, event_stream):
+            yield chunk
+        for chunk in stream_chunks(bucket_dir, delete_files, refine_chunks_with_spacy, event_stream):
+            yield chunk
     except Exception as e:
         if event_stream:
             yield f'data: {json.dumps({"error": {"message": str(e)}})}\n\n'
