@@ -734,10 +734,11 @@ const ask_gpt = async (message_id, message_index = -1, regenerate = false, provi
     messages = prepare_messages(conversation.items, message_index, action=="continue");
     message_storage[message_id] = "";
     stop_generating.classList.remove("stop_generating-hidden");
-    const scroll = true;
-    if (message_index > 0 && message_index + 1 < messages.length) {
+    let scroll = true;
+    if (message_index > 0 && parseInt(message_index, 10) + 1 < conversation.items.length) {
         scroll = false;
     }
+
     if (scroll) {
         await lazy_scroll_to_bottom();
     }
@@ -1157,7 +1158,7 @@ const load_conversation = async (conversation_id, scroll=true) => {
     highlight(message_box);
     regenerate_button.classList.remove("regenerate-hidden");
 
-    if (document.querySelector("#input-count input").checked) {
+    if (scroll && document.querySelector("#input-count input").checked) {
         message_box.scrollTo({ top: message_box.scrollHeight, behavior: "smooth" });
 
         setTimeout(() => {

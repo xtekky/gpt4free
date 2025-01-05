@@ -25,7 +25,7 @@ EXTRA_REQUIRE = {
         "curl_cffi>=0.6.2",
         "certifi",
         "browser_cookie3",         # get_cookies
-        "duckduckgo-search>=5.0"  ,# internet.search
+        "duckduckgo-search>=5.0",  # internet.search
         "beautifulsoup4",          # internet.search and bing.create_images
         "platformdirs",
         "aiohttp_socks",           # proxy
@@ -36,6 +36,11 @@ EXTRA_REQUIRE = {
         "uvicorn",                 # api
         "nodriver",
         "python-multipart",
+        "pypdf2", # files
+        "docx",
+        "odfpy",
+        "ebooklib",
+        "openpyxl",
     ],
     'slim': [
         "curl_cffi>=0.6.2",
@@ -49,22 +54,17 @@ EXTRA_REQUIRE = {
         "fastapi",                 # api
         "uvicorn",                 # api
         "python-multipart",
+        "pypdf2", # files
+        "docx",
     ],
     "image": [
         "pillow",
         "cairosvg",
         "beautifulsoup4"
     ],
-    "webdriver": [
-        "platformdirs",
-        "undetected-chromedriver>=3.5.5",
-        "setuptools",
-        "selenium-wire"
-    ],
     "webview": [
-        "webview",
+        "pywebview",
         "platformdirs",
-        "plyer",
         "cryptography"
     ],
     "api": [
@@ -87,7 +87,6 @@ EXTRA_REQUIRE = {
     ],
     "files": [
         "spacy",
-        "filesplit",
         "beautifulsoup4",
         "pypdf2",
         "docx",

@@ -16,7 +16,8 @@ brotli
 beautifulsoup4
 aiohttp_socks
 pywebview
-plyer
 cryptography
 nodriver
 python-multipart
+pypdf2
+docx

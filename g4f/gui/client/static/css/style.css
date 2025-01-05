@@ -1126,8 +1126,12 @@ ul {
         display: flex;
     }
 
-    #systemPrompt {
-        padding-left: 48px;
+    #systemPrompt::placeholder {
+        text-align: center;
+    }
+
+    .settings h3 {
+        text-align: center;
     }
 }
 

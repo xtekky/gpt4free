@@ -78,7 +78,7 @@ RUN pip install --break-system-packages --upgrade pip \
   && pip install --break-system-packages \
     undetected-chromedriver selenium-wire \
   && pip uninstall -y --break-system-packages \
-    pywebview plyer
+    pywebview
 
 # Copy the entire package into the container.
 ADD --chown=$G4F_USER:$G4F_USER g4f $G4F_DIR/g4f
