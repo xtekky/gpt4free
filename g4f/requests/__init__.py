@@ -127,8 +127,9 @@ async def get_nodriver(proxy: str = None, user_data_dir = "nodriver", browser_ex
             browser_executable_path = find_chrome_executable()
         except FileNotFoundError:
             # Default to Edge if Chrome is not found
-            if os.path.exists("C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"):
-                browser_executable_path = "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"
+            browser_executable_path = "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe"
+            if not os.path.exists(browser_executable_path):
+                browser_executable_path = None
     debug.log(f"Open nodriver with user_dir: {user_data_dir}")
     return await nodriver.start(
         user_data_dir=user_data_dir,

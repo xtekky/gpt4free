@@ -487,7 +487,7 @@ def read_and_download_urls(bucket_dir: Path, event_stream: bool = False) -> Iter
     urls = get_downloads_urls(bucket_dir)
     if urls:
         count = 0
-        with open(os.path.join(bucket_dir, FILE_LIST), 'w') as f:
+        with open(os.path.join(bucket_dir, FILE_LIST), 'a') as f:
             for filename in to_sync_generator(download_urls(bucket_dir, urls)):
                 f.write(f"{filename}\n")
                 if event_stream:
@@ -498,7 +498,7 @@ async def async_read_and_download_urls(bucket_dir: Path, event_stream: bool = Fa
     urls = get_downloads_urls(bucket_dir)
     if urls:
         count = 0
-        with open(os.path.join(bucket_dir, FILE_LIST), 'w') as f:
+        with open(os.path.join(bucket_dir, FILE_LIST), 'a') as f:
             async for filename in download_urls(bucket_dir, urls):
                 f.write(f"{filename}\n")
                 if event_stream:

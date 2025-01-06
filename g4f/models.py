@@ -74,7 +74,6 @@ default = Model(
         Airforce,
         Cloudflare,
         PollinationsAI,
-        ChatGptEs,
         OpenaiChat,
         Mhystical,
         ClaudeSon,
@@ -104,13 +103,13 @@ gpt_4 = Model(
 gpt_4o = Model(
     name          = 'gpt-4o',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([Blackbox, ChatGptEs, PollinationsAI, DarkAI, ChatGpt, Liaobots, OpenaiChat])
+    best_provider = IterListProvider([Blackbox, PollinationsAI, DarkAI, ChatGpt, Liaobots, OpenaiChat])
 )
 
 gpt_4o_mini = Model(
     name          = 'gpt-4o-mini',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([DDG, ChatGptEs, Pizzagpt, ChatGpt, RubiksAI, Liaobots, OpenaiChat])
+    best_provider = IterListProvider([DDG, Pizzagpt, ChatGpt, RubiksAI, Liaobots, OpenaiChat])
 )
 
 # o1
