@@ -3,7 +3,7 @@ from __future__ import annotations
 from ..typing import Union, Messages
 from ..locals.provider import LocalProvider
 from ..locals.models import get_models
-from ..client.client import iter_response, filter_none
+from ..client import iter_response, filter_none
 from ..client.types import IterResponse
 
 class LocalClient():

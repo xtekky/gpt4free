@@ -692,6 +692,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
         if hasattr(auth_result, "cookies"):
             for c in session.cookie_jar if hasattr(session, "cookie_jar") else session.cookies.jar:
                 auth_result.cookies[getattr(c, "key", getattr(c, "name", ""))] = c.value
+            cls._cookies = auth_result.cookies
         cls._update_cookie_header()
 
     @classmethod
