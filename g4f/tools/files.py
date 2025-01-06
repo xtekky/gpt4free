@@ -353,7 +353,7 @@ async def get_filename(response: ClientResponse) -> str:
             sha256_hash = hashlib.sha256(url.encode()).digest()
             base32_encoded = base64.b32encode(sha256_hash).decode()
             url_hash = base32_encoded[:24].lower()
-            return f"{parsed_url.netloc} {parsed_url.path[1:].replace('/', '_')} {url_hash}{extension}"
+            return f"{parsed_url.netloc}+{parsed_url.path[1:].replace('/', '_')}+{url_hash}{extension}"
 
     return None
 
@@ -494,7 +494,7 @@ def read_and_download_urls(bucket_dir: Path, event_stream: bool = False) -> Iter
                     count += 1
                     yield f'data: {json.dumps({"action": "download", "count": count})}\n\n'
 
-async def async_read_and_download_urls(bucket_dir: Path, event_stream: bool = False) -> Iterator[str]:
+async def async_read_and_download_urls(bucket_dir: Path, event_stream: bool = False) -> AsyncIterator[str]:
     urls = get_downloads_urls(bucket_dir)
     if urls:
         count = 0

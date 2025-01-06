@@ -351,7 +351,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                 conversation = Conversation(conversation_id, str(uuid.uuid4()), getattr(auth_result, "cookies", {}).get("oai-did"))
             else:
                 conversation = copy(conversation)
-            if getattr(auth_result, "cookies", {}).get("oai-did") != conversation.user_id:
+            if getattr(auth_result, "cookies", {}).get("oai-did") != getattr(conversation, "user_id", None):
                 conversation = Conversation(None, str(uuid.uuid4()))
             if cls._api_key is None:
                 auto_continue = False
@@ -587,7 +587,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
         cookies: Cookies = None,
         headers: dict = None,
         **kwargs
-    ) -> AsyncIterator[str]:
+    ) -> AsyncIterator:
         if cls._expires is not None and (cls._expires - 60*10) < time.time():
             cls._headers = cls._api_key = None
         if cls._headers is None or headers is not None:
