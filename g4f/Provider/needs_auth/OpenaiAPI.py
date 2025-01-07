@@ -8,7 +8,7 @@ from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin, RaiseErr
 from ...typing import Union, Optional, AsyncResult, Messages, ImagesType
 from ...requests import StreamSession, raise_for_status
 from ...providers.response import FinishReason, ToolCalls, Usage
-from ...errors import MissingAuthError, ResponseError
+from ...errors import MissingAuthError
 from ...image import to_data_uri
 from ... import debug
 

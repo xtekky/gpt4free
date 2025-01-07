@@ -73,7 +73,7 @@ class DDG(AsyncGeneratorProvider, ProviderModelMixin):
             "Content-Type": "application/json",
         },
         cookies: dict = None,
-        max_retries: int = 3,
+        max_retries: int = 0,
         **kwargs
     ) -> AsyncResult:
         if cookies is None and conversation is not None:

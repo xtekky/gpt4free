@@ -432,7 +432,7 @@ class Api:
             HTTP_404_NOT_FOUND: {"model": ErrorResponseModel},
         })
         def read_files(request: Request, bucket_id: str, delete_files: bool = True, refine_chunks_with_spacy: bool = False):
-            bucket_dir = os.path.join(get_cookies_dir(), bucket_id)
+            bucket_dir = os.path.join(get_cookies_dir(), "buckets", bucket_id)
             event_stream = "text/event-stream" in request.headers.get("accept", "")
             if not os.path.isdir(bucket_dir):
                 return ErrorResponse.from_message("Bucket dir not found", 404)
@@ -443,7 +443,7 @@ class Api:
             HTTP_200_OK: {"model": UploadResponseModel}
         })
         def upload_files(bucket_id: str, files: List[UploadFile]):
-            bucket_dir = os.path.join(get_cookies_dir(), bucket_id)
+            bucket_dir = os.path.join(get_cookies_dir(), "buckets", bucket_id)
             os.makedirs(bucket_dir, exist_ok=True)
             filenames = []
             for file in files:

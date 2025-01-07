@@ -73,7 +73,6 @@ For scenarios where you want to receive partial responses or stream data as it's
 ```python
 import requests
 import json
-from queue import Queue
 
 def fetch_response(url, model, messages):
     """
@@ -87,7 +86,7 @@ def fetch_response(url, model, messages):
     Returns:
         requests.Response: The streamed response object.
     """
-    payload = {"model": model, "messages": messages}
+    payload = {"model": model, "messages": messages, "stream": True}
     headers = {
         "Content-Type": "application/json",
         "Accept": "text/event-stream",
@@ -99,7 +98,7 @@ def fetch_response(url, model, messages):
         )
     return response
 
-def process_stream(response, output_queue):
+def process_stream(response):
     """
     Processes the streamed response and extracts messages.
 
@@ -111,37 +110,31 @@ def process_stream(response, output_queue):
         if line:
             line = line.decode("utf-8")
             if line == "data: [DONE]":
+                print("\n\nConversation completed.")
                 break
             if line.startswith("data: "):
                 try:
                     data = json.loads(line[6:])
-                    message = data.get("message", "")
+                    message = data.get("choices", [{}])[0].get("delta", {}).get("content")
                     if message:
-                        output_queue.put(message)
-                except json.JSONDecodeError:
+                        print(message, end="", flush=True)
+                except json.JSONDecodeError as e:
+                    print(f"Error decoding JSON: {e}")
                     continue
 
 # Define the API endpoint
-chat_url = "http://localhost/v1/chat/completions"
+chat_url = "http://localhost:8080/v1/chat/completions"
 
 # Define the payload
-model = "gpt-4o"
-messages = [{"role": "system", "content": "Hello, how are you?"}]
-
-# Initialize the queue to store output messages
-output_queue = Queue()
+model = ""
+messages = [{"role": "user", "content": "Hello, how are you?"}]
 
 try:
     # Fetch the streamed response
     response = fetch_response(chat_url, model, messages)
     
     # Process the streamed response
-    process_stream(response, output_queue)
-    
-    # Retrieve messages from the queue
-    while not output_queue.empty():
-        msg = output_queue.get()
-        print(msg)
+    process_stream(response)
 
 except Exception as e:
     print(f"An error occurred: {e}")
@@ -150,23 +143,21 @@ except Exception as e:
 **Explanation:**
 - **`fetch_response` Function:**
   - Sends a POST request to the streaming chat completions endpoint with the specified model and messages.
-  - Sets the `Accept` header to `text/event-stream` to enable streaming.
+  - Sets `stream` parameter to `true` to enable streaming.
   - Raises an exception if the request fails.
 
 - **`process_stream` Function:**
   - Iterates over each line in the streamed response.
   - Decodes the line and checks for the termination signal `"data: [DONE]"`.
   - Parses lines that start with `"data: "` to extract the message content.
-  - Enqueues the extracted messages into `output_queue` for further processing.
 
 - **Main Execution:**
   - Defines the API endpoint, model, and messages.
-  - Initializes a `Queue` to store incoming messages.
   - Fetches and processes the streamed response.
-  - Retrieves and prints messages from the queue.
+  - Retrieves and prints messages.
 
 **Usage Tips:**
-- Ensure your local server supports streaming and the `Accept` header appropriately.
+- Ensure your local server supports streaming.
 - Adjust the `chat_url` if your local server runs on a different port or path.
 - Use threading or asynchronous programming for handling streams in real-time applications.
 
@@ -286,7 +277,7 @@ async def fetch_response_async(url, model, messages, output_queue):
         messages (list): A list of message dictionaries.
         output_queue (Queue): A queue to store the extracted messages.
     """
-    payload = {"model": model, "messages": messages}
+    payload = {"model": model, "messages": messages, "stream": True}
     headers = {
         "Content-Type": "application/json",
         "Accept": "text/event-stream",
@@ -305,7 +296,7 @@ async def fetch_response_async(url, model, messages, output_queue):
                 if decoded_line.startswith("data: "):
                     try:
                         data = json.loads(decoded_line[6:])
-                        message = data.get("message", "")
+                        message = data.get("choices", [{}])[0].get("delta", {}).get("content")
                         if message:
                             output_queue.put(message)
                     except json.JSONDecodeError:

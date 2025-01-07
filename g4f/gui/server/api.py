@@ -13,7 +13,7 @@ from ...tools.run_tools import iter_run_tools
 from ...Provider import ProviderUtils, __providers__
 from ...providers.base_provider import ProviderModelMixin
 from ...providers.retry_provider import IterListProvider
-from ...providers.response import BaseConversation, JsonConversation, FinishReason
+from ...providers.response import BaseConversation, JsonConversation, FinishReason, Usage
 from ...providers.response import SynthesizeData, TitleGeneration, RequestLogin, Parameters
 from ... import version, models
 from ... import ChatCompletion, get_model_and_provider
@@ -65,6 +65,7 @@ class Api:
             "image": getattr(provider, "image_models", None) is not None,
             "vision": getattr(provider, "default_vision_model", None) is not None,
             "auth": provider.needs_auth,
+            "login_url": getattr(provider, "login_url", None),
         } for provider in __providers__ if provider.working]
 
     @staticmethod
@@ -201,6 +202,8 @@ class Api:
                     yield self._format_json("parameters", chunk.get_dict())
                 elif isinstance(chunk, FinishReason):
                     yield self._format_json("finish", chunk.get_dict())
+                elif isinstance(chunk, Usage):
+                    yield self._format_json("usage", chunk.get_dict())
                 else:
                     yield self._format_json("content", str(chunk))
                 if debug.logs:

@@ -34,6 +34,7 @@ let synthesize_storage = {};
 let title_storage = {};
 let parameters_storage = {};
 let finish_storage = {};
+let usage_storage = {};
 
 messageInput.addEventListener("blur", () => {
     window.scrollTo(0, 0);
@@ -60,7 +61,7 @@ if (window.markdownit) {
             .replaceAll(/<!-- generated images start -->|<!-- generated images end -->/gm, "")
             .replaceAll(/<img data-prompt="[^>]+">/gm, "")
             .replaceAll(/{"bucket_id":"([^"]+)"}/gm, (match, p1) => {
-                size = appStorage.getItem(`bucket:${p1}`);
+                size = parseInt(appStorage.getItem(`bucket:${p1}`), 10);
                 return `**Bucket:** [[${p1}]](/backend-api/v2/files/${p1})${size ? ` (${formatFileSize(size)})` : ""}`;
             })
         )
@@ -449,7 +450,7 @@ document.querySelector(".media_player .fa-x").addEventListener("click", ()=>{
     media_player.removeChild(audio);
 });
 
-const prepare_messages = (messages, message_index = -1, do_continue = false) => {
+const prepare_messages = (messages, message_index = -1, do_continue = false, do_filter = true) => {
     messages = [ ...messages ]
     if (message_index != null) {
         // Removes messages after selected
@@ -493,7 +494,7 @@ const prepare_messages = (messages, message_index = -1, do_continue = false) => 
     }
 
     // Remove history, if it's selected
-    if (document.getElementById('history')?.checked) {
+    if (document.getElementById('history')?.checked && do_filter) {
         if (message_index == null) {
             messages = [messages.pop(), messages.pop()];
         } else {
@@ -509,7 +510,7 @@ const prepare_messages = (messages, message_index = -1, do_continue = false) => 
             delete new_message.regenerate;
         }
         // Include only not regenerated messages
-        if (new_message && !new_message.regenerate) {
+        if (new_message) {
             // Remove generated images from history
             if (new_message.content) {
                 new_message.content = filter_message(new_message.content);
@@ -518,10 +519,15 @@ const prepare_messages = (messages, message_index = -1, do_continue = false) => 
             delete new_message.provider;
             delete new_message.synthesize;
             delete new_message.finish;
+            delete new_message.usage;
             delete new_message.conversation;
             delete new_message.continue;
             // Append message to new messages
-            new_messages.push(new_message)
+            if (do_filter && !new_message.regenerate) {
+                new_messages.push(new_message)
+            } else if (!do_filter) {
+                new_messages.push(new_message)
+            }
         }
     });
 
@@ -714,6 +720,8 @@ async function add_message_chunk(message, message_id, provider, scroll) {
         update_message(content_map, message_id, message.login, scroll);
     } else if (message.type == "finish") {
         finish_storage[message_id] = message.finish;
+    } else if (message.type == "usage") {
+        usage_storage[message_id] = message.usage;
     } else if (message.type == "parameters") {
         if (!parameters_storage[provider]) {
             parameters_storage[provider] = {};
@@ -836,6 +844,7 @@ const ask_gpt = async (message_id, message_index = -1, regenerate = false, provi
             regenerate,
             title_storage[message_id],
             finish_storage[message_id],
+            usage_storage[message_id],
             action=="continue"
         );
         delete message_storage[message_id];
@@ -983,6 +992,50 @@ const new_conversation = async () => {
     say_hello();
 };
 
+function merge_messages(message1, message2) {
+    let newContent = message2;
+    // Remove start tokens
+    if (newContent.startsWith("```")) {
+        const index = newContent.indexOf("\n");
+        if (index != -1) {
+            newContent = newContent.substring(index);
+        }
+    } else if (newContent.startsWith("...")) {
+        newContent = " " + newContent.substring(3);
+    } else {
+        // Remove duplicate lines
+        let lines = message1.trim().split("\n");
+        let lastLine = lines[lines.length - 1];
+        let foundLastLine = newContent.indexOf(lastLine + "\n");
+        if (foundLastLine != -1) {
+            foundLastLine += 1;
+        } else {
+            foundLastLine = newContent.indexOf(lastLine);
+        }
+        if (foundLastLine != -1) {
+            newContent = newContent.substring(foundLastLine + lastLine.length);
+        }
+        // Remove duplicate words
+        if (foundLastLine == -1 && newContent.indexOf(" ") > 0) {
+            let words = message1.trim().split(" ");
+            let lastWord = words[words.length - 1];
+            if (newContent.startsWith(lastWord)) {
+                newContent = newContent.substring(lastWord.length);
+            }
+        }
+    }
+    return message1 + newContent;
+}
+
+// console.log(merge_messages("Hello", "Hello,\nhow are you?"));
+// console.log(merge_messages("Hello", "Hello, how are you?"));
+// console.log(merge_messages("Hello", "Hello,\nhow are you?"));
+// console.log(merge_messages("Hello,\n", "Hello,\nhow are you?"));
+// console.log(merge_messages("Hello,\n", "how are you?"));
+// console.log(merge_messages("1 != 2", "1 != 2;"));
+// console.log(merge_messages("1 != 2", "```python\n1 != 2;"));
+// console.log(merge_messages("1 != 2;\n1 != 3;\n", "1 != 2;\n1 != 3;\n"));
+
 const load_conversation = async (conversation_id, scroll=true) => {
     let conversation = await get_conversation(conversation_id);
     let messages = conversation?.items || [];
@@ -1004,6 +1057,8 @@ const load_conversation = async (conversation_id, scroll=true) => {
     let last_model = null;
     let providers = [];
     let buffer = "";
+    let completion_tokens = 0;
+
     messages.forEach((item, i) => {
         if (item.continue) {
             elements.pop();
@@ -1011,25 +1066,7 @@ const load_conversation = async (conversation_id, scroll=true) => {
             buffer = "";
         }
         buffer = buffer.replace(/ \[aborted\]$/g, "").replace(/ \[error\]$/g, "");
-        let lines = buffer.trim().split("\n");
-        let lastLine = lines[lines.length - 1];
-        let newContent = item.content;
-        if (newContent.startsWith("```")) {
-            const index = str.indexOf("\n");
-            newContent = newContent.substring(index);
-        } else if (newContent.startsWith("...")) {
-            newContent = " " + newContent.substring(3);
-        }
-        if (newContent.startsWith(lastLine)) {
-            newContent = newContent.substring(lastLine.length);
-        } else {
-            let words = buffer.trim().split(" ");
-            let lastWord = words[words.length - 1];
-            if (newContent.startsWith(lastWord)) {
-                newContent = newContent.substring(lastWord.length);
-            }
-        }
-        buffer += newContent;
+        buffer += merge_messages(buffer, item.content);
         last_model = item.provider?.model;
         providers.push(item.provider?.name);
         let next_i = parseInt(i) + 1;
@@ -1055,11 +1092,12 @@ const load_conversation = async (conversation_id, scroll=true) => {
         const objectUrl = URL.createObjectURL(file);
 
         let add_buttons = [];
-        // Add continue button if possible
+        // Find buttons to add
         actions = ["variant"]
         if (item.finish && item.finish.actions) {
             actions = item.finish.actions
         }
+        // Add continue button if possible
         if (item.role == "assistant" && !actions.includes("continue")) {
             let reason = "stop";
             // Read finish reason from conversation
@@ -1071,20 +1109,9 @@ const load_conversation = async (conversation_id, scroll=true) => {
             // Has a stop or error token at the end
             if (lastLine.endsWith("[aborted]") || lastLine.endsWith("[error]")) {
                 reason = "error";
-                // Has an even number of start or end code tags
-            } else if (buffer.split("```").length - 1 % 2 === 1) {
+            // Has an even number of start or end code tags
+            } else if (reason = "stop" && buffer.split("```").length - 1 % 2 === 1) {
                 reason = "length";
-                // Has a end token at the end
-            } else if (lastLine.endsWith("```") || lastLine.endsWith(".") || lastLine.endsWith("?") || lastLine.endsWith("!")
-              || lastLine.endsWith('"') || lastLine.endsWith("'") || lastLine.endsWith(")")
-              || lastLine.endsWith(">") || lastLine.endsWith("]") || lastLine.endsWith("}") ) {
-                reason = "stop"
-            } else {
-                // Has an emoji at the end
-                const regex = /\p{Emoji}$/u;
-                if (regex.test(lastLine)) {
-                    reason = "stop"
-                }
             }
             if (reason == "length" || reason == "max_tokens" || reason == "error") {
                 actions.push("continue")
@@ -1117,6 +1144,13 @@ const load_conversation = async (conversation_id, scroll=true) => {
             }
         }
 
+        if (!item.continue) {
+            completion_tokens = 0;
+        }
+        completion_tokens += item.usage?.completion_tokens ? item.usage.completion_tokens : 0;
+        let next_usage = messages.length > next_i ? messages[next_i].usage : null;
+        let prompt_tokens = next_usage?.prompt_tokens ? next_usage?.prompt_tokens : 0
+
         elements.push(`
             <div class="message${item.regenerate ? " regenerate": ""}" data-index="${i}" data-object_url="${objectUrl}" data-synthesize_url="${synthesize_url}">
                 <div class="${item.role}">
@@ -1131,7 +1165,7 @@ const load_conversation = async (conversation_id, scroll=true) => {
                     ${provider}
                     <div class="content_inner">${markdown_render(buffer)}</div>
                     <div class="count">
-                        ${count_words_and_tokens(buffer, next_provider?.model)}
+                        ${count_words_and_tokens(buffer, next_provider?.model, completion_tokens, prompt_tokens)}
                         ${add_buttons.join("")}
                     </div>
                 </div>
@@ -1140,8 +1174,11 @@ const load_conversation = async (conversation_id, scroll=true) => {
     });
 
     if (window.GPTTokenizer_cl100k_base) {
-        const filtered = prepare_messages(messages, null);
+        const filtered = prepare_messages(messages, null, true, false);
         if (filtered.length > 0) {
+            if (GPTTokenizer_o200k_base && last_model?.startsWith("gpt-4o") || last_model?.startsWith("o1")) {
+                return GPTTokenizer_o200k_base?.encodeChat(filtered, last_model).length;
+            }
             last_model = last_model?.startsWith("gpt-3") ? "gpt-3.5-turbo" : "gpt-4"
             let count_total = GPTTokenizer_cl100k_base?.encodeChat(filtered, last_model).length
             if (count_total > 0) {
@@ -1259,6 +1296,7 @@ const add_message = async (
     regenerate = false,
     title = null,
     finish = null,
+    usage = null,
     do_continue = false
 ) => {
     const conversation = await get_conversation(conversation_id);
@@ -1286,6 +1324,9 @@ const add_message = async (
     }
     if (finish) {
         new_message.finish = finish;
+    }
+    if (usage) {
+        new_message.usage = usage;
     }
     if (do_continue) {
         new_message.continue = true;
@@ -1493,7 +1534,7 @@ const say_hello = async () => {
     }
 }
 
-function count_tokens(model, text) {
+function count_tokens(model, text, prompt_tokens = 0) {
     if (model) {
         if (window.llamaTokenizer)
         if (model.startsWith("llama") || model.startsWith("codellama")) {
@@ -1504,10 +1545,16 @@ function count_tokens(model, text) {
             return mistralTokenizer.encode(text).length;
         }
     }
-    if (window.GPTTokenizer_cl100k_base) {
-        return GPTTokenizer_cl100k_base.encode(text).length;
+    if (window.GPTTokenizer_cl100k_base && window.GPTTokenizer_o200k_base) {
+        if (model?.startsWith("gpt-4o") || model?.startsWith("o1")) {
+            return GPTTokenizer_o200k_base?.encode(text, model).length;
+        } else {
+            model = model?.startsWith("gpt-3") ? "gpt-3.5-turbo" : "gpt-4"
+            return GPTTokenizer_cl100k_base?.encode(text, model).length;
+        }
+    } else {
+        return prompt_tokens;
     }
-    return 0;
 }
 
 function count_words(text) {
@@ -1518,9 +1565,9 @@ function count_chars(text) {
     return text.match(/[^\s\p{P}]/gu)?.length || 0;
 }
 
-function count_words_and_tokens(text, model) {
+function count_words_and_tokens(text, model, completion_tokens, prompt_tokens) {
     text = filter_message(text);
-    return `(${count_words(text)} words, ${count_chars(text)} chars, ${count_tokens(model, text)} tokens)`;
+    return `(${count_words(text)} words, ${count_chars(text)} chars, ${completion_tokens ? completion_tokens : count_tokens(model, text, prompt_tokens)} tokens)`;
 }
 
 function update_message(content_map, message_id, content = null, scroll = true) {
@@ -1553,16 +1600,12 @@ function update_message(content_map, message_id, content = null, scroll = true) 
 };
 
 let countFocus = messageInput;
-let timeoutId;
 const count_input = async () => {
-    if (timeoutId) clearTimeout(timeoutId);
-    timeoutId = setTimeout(() => {
-        if (countFocus.value) {
-            inputCount.innerText = count_words_and_tokens(countFocus.value, get_selected_model()?.value);
-        } else {
-            inputCount.innerText = "";
-        }
-    }, 100);
+    if (countFocus.value) {
+        inputCount.innerText = count_words_and_tokens(countFocus.value, get_selected_model()?.value);
+    } else {
+        inputCount.innerText = "";
+    }
 };
 messageInput.addEventListener("keyup", count_input);
 systemPrompt.addEventListener("keyup", count_input);
@@ -1667,6 +1710,7 @@ async function on_api() {
         });
         providers = await api("providers")
         providers.sort((a, b) => a.label.localeCompare(b.label));
+        let login_urls = {};
         providers.forEach((provider) => {
             let option = document.createElement("option");
             option.value = provider.name;
@@ -1680,6 +1724,36 @@ async function on_api() {
                 option.dataset.parent = provider.parent;
             providerSelect.appendChild(option);
 
+            if (provider.login_url) {
+                if (!login_urls[provider.name]) {
+                    login_urls[provider.name] = [provider.label, provider.login_url, []];
+                } else {
+                    login_urls[provider.name][0] = provider.label;
+                    login_urls[provider.name][1] = provider.login_url;
+                }
+            } else if (provider.parent) {
+                if (!login_urls[provider.parent]) {
+                    login_urls[provider.parent] = [provider.label, provider.login_url, [provider.name]];
+                } else {
+                    login_urls[provider.parent][2].push(provider.name);
+                }
+            }
+        });
+        for (let [name, [label, login_url, childs]] of Object.entries(login_urls)) {
+            if (!login_url) {
+                continue;
+            }
+            option = document.createElement("div");
+            option.classList.add("field", "box", "hidden");
+            childs = childs.map((child)=>`${child}-api_key`).join(" ");
+            option.innerHTML = `
+                <label for="${name}-api_key" class="label" title="">${label}:</label>
+                <textarea id="${name}-api_key" name="${name}[api_key]" class="${childs}" placeholder="api_key"></textarea>
+                <a href="${login_url}" target="_blank" title="Login to ${label}">Get API key</a>
+            `;
+            settings.querySelector(".paper").appendChild(option);
+        }
+        providers.forEach((provider) => {
             if (!provider.parent) {
                 option = document.createElement("div");
                 option.classList.add("field");
@@ -2115,15 +2189,19 @@ if (SpeechRecognition) {
     let buffer;
     let lastDebounceTranscript;
     recognition.onstart = function() {
-        microLabel.classList.add("recognition");
         startValue = messageInput.value;
         lastDebounceTranscript = "";
         messageInput.readOnly = true;
+        buffer = "";
     };
     recognition.onend = function() {
         messageInput.value = `${startValue ? startValue + "\n" : ""}${buffer}`;
-        messageInput.readOnly = false;
-        messageInput.focus();
+        if (!microLabel.classList.contains("recognition")) {
+            recognition.start();
+        } else {
+            messageInput.readOnly = false;
+            messageInput.focus();
+        }
     };
     recognition.onresult = function(event) {
         if (!event.results) {
@@ -2148,10 +2226,11 @@ if (SpeechRecognition) {
 
     microLabel.addEventListener("click", (e) => {
         if (microLabel.classList.contains("recognition")) {
+            microLabel.classList.remove("recognition");
             recognition.stop();
             messageInput.value = `${startValue ? startValue + "\n" : ""}${buffer}`;
-            microLabel.classList.remove("recognition");
         } else {
+            microLabel.classList.add("recognition");
             const lang = document.getElementById("recognition-language")?.value;
             recognition.lang = lang || navigator.language;
             recognition.start();

@@ -36,6 +36,7 @@ class ChatCompletionChunk(BaseModel):
     model: str
     provider: Optional[str]
     choices: List[ChatCompletionDeltaChoice]
+    usage: Usage
 
     @classmethod
     def model_construct(
@@ -43,7 +44,8 @@ class ChatCompletionChunk(BaseModel):
         content: str,
         finish_reason: str,
         completion_id: str = None,
-        created: int = None
+        created: int = None,
+        usage: Usage = None
     ):
         return super().model_construct(
             id=f"chatcmpl-{completion_id}" if completion_id else None,
@@ -54,7 +56,8 @@ class ChatCompletionChunk(BaseModel):
             choices=[ChatCompletionDeltaChoice.model_construct(
                 ChatCompletionDelta.model_construct(content),
                 finish_reason
-            )]
+            )],
+            **filter_none(usage=usage)
         )
 
 class ChatCompletionMessage(BaseModel):

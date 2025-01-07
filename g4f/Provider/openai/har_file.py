@@ -32,7 +32,7 @@ class RequestConfig:
     arkose_token: str = None
     headers: dict = {}
     cookies: dict = {}
-    data_build: str = "prod-697873d7e78bb14df6e13af3a91fa237cc4db415"
+    data_build: str = "prod-db8e51e8414e068257091cf5003a62d3d4ee6ed0"
 
 class arkReq:
     def __init__(self, arkURL, arkBx, arkHeader, arkBody, arkCookies, userAgent):

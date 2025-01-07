@@ -7,12 +7,12 @@ from urllib.parse import quote
 from typing import Optional
 from aiohttp import ClientSession
 
+from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..requests.raise_for_status import raise_for_status
 from ..typing import AsyncResult, Messages
 from ..image import ImageResponse
-from .needs_auth.OpenaiAPI import OpenaiAPI
 
-class PollinationsAI(OpenaiAPI):
+class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Pollinations AI"
     url = "https://pollinations.ai"
     
@@ -21,21 +21,21 @@ class PollinationsAI(OpenaiAPI):
     supports_stream = True
     supports_system_message = True
     supports_message_history = True
-    
+
     # API endpoints base
     api_base = "https://text.pollinations.ai/openai"
-    
+
     # API endpoints
     text_api_endpoint = "https://text.pollinations.ai"
     image_api_endpoint = "https://image.pollinations.ai"
-    
+
     # Models configuration
     default_model = "openai"
     default_image_model = "flux"
-    
+
     image_models = []
     models = []
-    
+
     additional_models_image = ["midjourney", "dall-e-3"]
     additional_models_text = ["sur", "sur-mistral", "claude"]
     model_aliases = {
@@ -100,7 +100,7 @@ class PollinationsAI(OpenaiAPI):
         **kwargs
     ) -> AsyncResult:
         model = cls.get_model(model)
-        
+
         # Check if models
         # Image generation
         if model in cls.image_models:
@@ -151,7 +151,6 @@ class PollinationsAI(OpenaiAPI):
         if seed is None:
             seed = random.randint(0, 10000)
 
-		
         headers = {
             'Accept': '*/*',
             'Accept-Language': 'en-US,en;q=0.9',
@@ -177,7 +176,7 @@ class PollinationsAI(OpenaiAPI):
 
             async with session.head(url, proxy=proxy) as response:
                 if response.status == 200:
-                    image_response = ImageResponse(images=url, alt=messages[-1]["content"])
+                    image_response = ImageResponse(images=url, alt=messages[-1]["content"] if prompt is None else prompt)
                     yield image_response
 
     @classmethod
@@ -195,7 +194,7 @@ class PollinationsAI(OpenaiAPI):
     ) -> AsyncResult:
         if api_key is None:
             api_key = "dummy"  # Default value if api_key is not provided
-            
+
         headers = {
             "accept": "*/*",
             "accept-language": "en-US,en;q=0.9",
@@ -215,7 +214,7 @@ class PollinationsAI(OpenaiAPI):
                 "jsonMode": False,
                 "stream": stream
             }
-            
+
             async with session.post(cls.text_api_endpoint, json=data, proxy=proxy) as response:
                 response.raise_for_status()
                 async for chunk in response.content:

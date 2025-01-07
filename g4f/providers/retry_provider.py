@@ -4,6 +4,7 @@ import random
 
 from ..typing import Type, List, CreateResult, Messages, AsyncResult
 from .types import BaseProvider, BaseRetryProvider, ProviderType
+from .response import ImageResponse
 from .. import debug
 from ..errors import RetryProviderError, RetryNoProviderError
 
@@ -54,15 +55,11 @@ class IterListProvider(BaseRetryProvider):
             debug.log(f"Using {provider.__name__} provider")
             try:
                 response = provider.get_create_function()(model, messages, stream=stream, **kwargs)
-                if hasattr(response, "__iter__"):
-                    for chunk in response:
-                        if chunk:
-                            yield chunk
-                            if isinstance(chunk, str):
-                                started = True
-                elif response:
-                    yield response
-                    return
+                for chunk in response:
+                    if chunk:
+                        yield chunk
+                        if isinstance(chunk, str) or isinstance(chunk, ImageResponse):
+                            started = True
                 if started:
                     return
             except Exception as e:
@@ -94,7 +91,7 @@ class IterListProvider(BaseRetryProvider):
                     async for chunk in response:
                         if chunk:
                             yield chunk
-                            if isinstance(chunk, str):
+                            if isinstance(chunk, str) or isinstance(chunk, ImageResponse):
                                 started = True
                 elif response:
                     response = await response
@@ -171,14 +168,10 @@ class RetryProvider(IterListProvider):
                     if debug.logging:
                         print(f"Using {provider.__name__} provider (attempt {attempt + 1})")
                     response = provider.get_create_function()(model, messages, stream=stream, **kwargs)
-                    if hasattr(response, "__iter__"):
-                        for chunk in response:
-                            if chunk:
-                                yield chunk
-                                started = True
-                    elif response:
-                        yield response
-                        started = True
+                    for chunk in response:
+                        if isinstance(chunk, str) or isinstance(chunk, ImageResponse):
+                            yield chunk
+                            started = True
                     if started:
                         return
                 except Exception as e:
@@ -210,7 +203,7 @@ class RetryProvider(IterListProvider):
                     response = provider.get_async_create_function()(model, messages, stream=stream, **kwargs)
                     if hasattr(response, "__aiter__"):
                         async for chunk in response:
-                            if chunk:
+                            if isinstance(chunk, str) or isinstance(chunk, ImageResponse):
                                 yield chunk
                                 started = True
                     else:

@@ -5,6 +5,7 @@ from .Cerebras          import Cerebras
 from .CopilotAccount    import CopilotAccount
 from .DeepInfra         import DeepInfra
 from .DeepInfraImage    import DeepInfraImage
+from .DeepSeek          import DeepSeek
 from .Gemini            import Gemini
 from .GeminiPro         import GeminiPro
 from .GithubCopilot     import GithubCopilot

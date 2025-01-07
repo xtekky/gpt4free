@@ -7,6 +7,7 @@ from .OpenaiAPI import OpenaiAPI
 class DeepInfra(OpenaiAPI):
     label = "DeepInfra"
     url = "https://deepinfra.com"
+    login_url = "https://deepinfra.com/dash/api_keys"
     working = True
     api_base = "https://api.deepinfra.com/v1/openai",
     needs_auth = True

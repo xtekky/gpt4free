@@ -85,6 +85,9 @@ class JsonMixin:
             if not key.startswith("__")
         }
 
+    def reset(self):
+        self.__dict__ = {}
+
 class FinishReason(ResponseType, JsonMixin):
     def __init__(self, reason: str, actions: list[str] = None) -> None:
         self.reason = reason

@@ -63,7 +63,7 @@ def iter_response(
             tool_calls = chunk.get_list()
             continue
         elif isinstance(chunk, Usage):
-            usage = chunk.get_dict()
+            usage = chunk
             continue
         elif isinstance(chunk, BaseConversation):
             yield chunk
@@ -90,19 +90,23 @@ def iter_response(
 
         idx += 1
     if usage is None:
-        usage = Usage(prompt_tokens=0, completion_tokens=idx, total_tokens=idx).get_dict()
+        usage = Usage(prompt_tokens=0, completion_tokens=idx, total_tokens=idx)
+
     finish_reason = "stop" if finish_reason is None else finish_reason
 
     if stream:
-        yield ChatCompletionChunk.model_construct(None, finish_reason, completion_id, int(time.time()))
+        yield ChatCompletionChunk.model_construct(
+            None, finish_reason, completion_id, int(time.time()),
+            usage=usage.get_dict()
+        )
     else:
         if response_format is not None and "type" in response_format:
             if response_format["type"] == "json_object":
                 content = filter_json(content)
-        yield ChatCompletion.model_construct(content, finish_reason, completion_id, int(time.time()), **filter_none(
-            tool_calls=tool_calls,
-            usage=usage
-        ))
+        yield ChatCompletion.model_construct(
+            content, finish_reason, completion_id, int(time.time()),
+            usage=usage.get_dict(), **filter_none(tool_calls=tool_calls)
+        )
 
 # Synchronous iter_append_model_and_provider function
 def iter_append_model_and_provider(response: ChatCompletionResponseType, last_model: str, last_provider: ProviderType) -> ChatCompletionResponseType:
@@ -126,6 +130,8 @@ async def async_iter_response(
     finish_reason = None
     completion_id = ''.join(random.choices(string.ascii_letters + string.digits, k=28))
     idx = 0
+    tool_calls = None
+    usage = None
 
     try:
         async for chunk in response:
@@ -134,6 +140,12 @@ async def async_iter_response(
                 break
             elif isinstance(chunk, BaseConversation):
                 yield chunk
+                continue
+            elif isinstance(chunk, ToolCalls):
+                tool_calls = chunk.get_list()
+                continue
+            elif isinstance(chunk, Usage):
+                usage = chunk
                 continue
             elif isinstance(chunk, SynthesizeData) or not chunk:
                 continue
@@ -158,13 +170,22 @@ async def async_iter_response(
 
         finish_reason = "stop" if finish_reason is None else finish_reason
 
+        if usage is None:
+            usage = Usage(prompt_tokens=0, completion_tokens=idx, total_tokens=idx)
+
         if stream:
-            yield ChatCompletionChunk.model_construct(None, finish_reason, completion_id, int(time.time()))
+            yield ChatCompletionChunk.model_construct(
+                None, finish_reason, completion_id, int(time.time()),
+                usage=usage.get_dict()
+            )
         else:
             if response_format is not None and "type" in response_format:
                 if response_format["type"] == "json_object":
                     content = filter_json(content)
-            yield ChatCompletion.model_construct(content, finish_reason, completion_id, int(time.time()))
+            yield ChatCompletion.model_construct(
+                content, finish_reason, completion_id, int(time.time()),
+                usage=usage.get_dict(), **filter_none(tool_calls=tool_calls)
+            )
     finally:
         await safe_aclose(response)
 

@@ -1312,6 +1312,10 @@ form textarea {
     padding: 6px;
 }
 
+.field a {
+    text-wrap: nowrap;
+}
+
 form .field .fa-xmark {
     line-height: 20px;
     cursor: pointer;

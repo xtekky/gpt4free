@@ -385,7 +385,10 @@ class AsyncAuthedProvider(AsyncGeneratorProvider):
 
     @classmethod
     def on_auth(cls, **kwargs) -> AuthResult:
-        return asyncio.run(cls.on_auth_async(**kwargs))
+        auth_result = cls.on_auth_async(**kwargs)
+        if hasattr(auth_result, "__aiter__"):
+            return to_sync_generator(auth_result)
+        return asyncio.run(auth_result)
 
     @classmethod
     def get_create_function(cls) -> callable:
@@ -414,22 +417,35 @@ class AsyncAuthedProvider(AsyncGeneratorProvider):
                     auth_result = AuthResult(**json.load(f))
             else:
                 auth_result = cls.on_auth(**kwargs)
-                if hasattr(auth_result, "_iter__"):
-                    for chunk in auth_result:
-                        if isinstance(chunk, AsyncResult):
-                            auth_result = chunk
-                        else:
-                            yield chunk
+            try:
+                for chunk in auth_result:
+                    if hasattr(chunk, "get_dict"):
+                        auth_result = chunk
+                    else:
+                        yield chunk
+            except TypeError:
+                pass
             yield from to_sync_generator(cls.create_authed(model, messages, auth_result, **kwargs))
         except (MissingAuthError, NoValidHarFileError):
-            if cache_file.exists():
-                cache_file.unlink()
             auth_result = cls.on_auth(**kwargs)
+            try:
+                for chunk in auth_result:
+                    if hasattr(chunk, "get_dict"):
+                        auth_result = chunk
+                    else:
+                        yield chunk
+            except TypeError:
+                pass
             yield from to_sync_generator(cls.create_authed(model, messages, auth_result, **kwargs))
         finally:
-                cache_file.parent.mkdir(parents=True, exist_ok=True)
-                cache_file.write_text(json.dumps(auth_result.get_dict()))
+                if hasattr(auth_result, "get_dict"):
+                    data = auth_result.get_dict()
+                    cache_file.parent.mkdir(parents=True, exist_ok=True)
+                    cache_file.write_text(json.dumps(data))
+                elif cache_file.exists():
+                    cache_file.unlink()
 
+    @classmethod
     async def create_async_generator(
         cls,
         model: str,
@@ -443,24 +459,36 @@ class AsyncAuthedProvider(AsyncGeneratorProvider):
                 with cache_file.open("r") as f:
                     auth_result = AuthResult(**json.load(f))
             else:
-                auth_result = await cls.on_auth_async(**kwargs)
+                auth_result = cls.on_auth_async(**kwargs)
                 if hasattr(auth_result, "_aiter__"):
                     async for chunk in auth_result:
                         if isinstance(chunk, AsyncResult):
                             auth_result = chunk
                         else:
                             yield chunk
+                else:
+                    auth_result = await auth_result
             response = to_async_iterator(cls.create_authed(model, messages, **kwargs, auth_result=auth_result))
             async for chunk in response:
                 yield chunk
         except (MissingAuthError, NoValidHarFileError):
             if cache_file.exists():
                 cache_file.unlink()
-            auth_result = await cls.on_auth_async(**kwargs)
+            auth_result = cls.on_auth_async(**kwargs)
+            if hasattr(auth_result, "_aiter__"):
+                async for chunk in auth_result:
+                    if isinstance(chunk, AsyncResult):
+                        auth_result = chunk
+                    else:
+                        yield chunk
+            else:
+                auth_result = await auth_result
             response = to_async_iterator(cls.create_authed(model, messages, **kwargs, auth_result=auth_result))
             async for chunk in response:
                 yield chunk
         finally:
-            if auth_result is not None:
+            if hasattr(auth_result, "get_dict"):
                 cache_file.parent.mkdir(parents=True, exist_ok=True)
                 cache_file.write_text(json.dumps(auth_result.get_dict()))
+            elif cache_file.exists():
+                cache_file.unlink()
