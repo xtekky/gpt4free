@@ -6,7 +6,6 @@ from ..typing import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from .helper import format_prompt
 
-
 class GizAI(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://app.giz.ai/assistant"
     api_endpoint = "https://app.giz.ai/api/data/users/inferenceServer.infer"

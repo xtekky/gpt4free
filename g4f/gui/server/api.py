@@ -65,6 +65,7 @@ class Api:
             "image": getattr(provider, "image_models", None) is not None,
             "vision": getattr(provider, "default_vision_model", None) is not None,
             "auth": provider.needs_auth,
+            "login_url": getattr(provider, "login_url", None),
         } for provider in __providers__ if provider.working]
 
     @staticmethod

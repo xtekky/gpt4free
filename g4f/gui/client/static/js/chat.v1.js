@@ -1710,6 +1710,7 @@ async function on_api() {
         });
         providers = await api("providers")
         providers.sort((a, b) => a.label.localeCompare(b.label));
+        let login_urls = {};
         providers.forEach((provider) => {
             let option = document.createElement("option");
             option.value = provider.name;
@@ -1723,6 +1724,36 @@ async function on_api() {
                 option.dataset.parent = provider.parent;
             providerSelect.appendChild(option);
 
+            if (provider.login_url) {
+                if (!login_urls[provider.name]) {
+                    login_urls[provider.name] = [provider.label, provider.login_url, []];
+                } else {
+                    login_urls[provider.name][0] = provider.label;
+                    login_urls[provider.name][1] = provider.login_url;
+                }
+            } else if (provider.parent) {
+                if (!login_urls[provider.parent]) {
+                    login_urls[provider.parent] = [provider.label, provider.login_url, [provider.name]];
+                } else {
+                    login_urls[provider.parent][2].push(provider.name);
+                }
+            }
+        });
+        for (let [name, [label, login_url, childs]] of Object.entries(login_urls)) {
+            if (!login_url) {
+                continue;
+            }
+            option = document.createElement("div");
+            option.classList.add("field", "box", "hidden");
+            childs = childs.map((child)=>`${child}-api_key`).join(" ");
+            option.innerHTML = `
+                <label for="${name}-api_key" class="label" title="">${label}:</label>
+                <textarea id="${name}-api_key" name="${name}[api_key]" class="${childs}" placeholder="api_key"></textarea>
+                <a href="${login_url}" target="_blank" title="Login to ${label}">Get API key</a>
+            `;
+            settings.querySelector(".paper").appendChild(option);
+        }
+        providers.forEach((provider) => {
             if (!provider.parent) {
                 option = document.createElement("div");
                 option.classList.add("field");

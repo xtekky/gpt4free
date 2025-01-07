@@ -168,7 +168,7 @@ llama_3_1_8b = Model(
 llama_3_1_70b = Model(
     name          = "llama-3.1-70b",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider([DDG, DeepInfraChat, Blackbox, BlackboxCreateAgent, TeachAnything, PollinationsAI, DarkAI, Airforce, RubiksAI, PerplexityLabs])
+    best_provider = IterListProvider([DDG, DeepInfraChat, Blackbox, BlackboxCreateAgent, TeachAnything, DarkAI, Airforce, RubiksAI, PerplexityLabs])
 )
 
 # llama 3.2
