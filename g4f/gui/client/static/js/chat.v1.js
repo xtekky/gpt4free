@@ -994,29 +994,47 @@ const new_conversation = async () => {
 
 function merge_messages(message1, message2) {
     let newContent = message2;
+    // Remove start tokens
     if (newContent.startsWith("```")) {
-        const index = str.indexOf("\n");
-        newContent = newContent.substring(index);
+        const index = newContent.indexOf("\n");
+        if (index != -1) {
+            newContent = newContent.substring(index);
+        }
     } else if (newContent.startsWith("...")) {
         newContent = " " + newContent.substring(3);
-    }
-    // Remove duplicate words
-    if (newContent.indexOf(" ") > 0) {
-        let words = message1.trim().split(" ");
-        let lastWord = words[words.length - 1];
-        if (newContent.startsWith(lastWord)) {
-            newContent = newContent.substring(lastWord.length);
+    } else {
+        // Remove duplicate lines
+        let lines = message1.trim().split("\n");
+        let lastLine = lines[lines.length - 1];
+        let foundLastLine = newContent.indexOf(lastLine + "\n");
+        if (foundLastLine != -1) {
+            foundLastLine += 1;
+        } else {
+            foundLastLine = newContent.indexOf(lastLine);
         }
-    }
-    // Remove duplicate lines
-    let lines = message1.trim().split("\n");
-    let lastLine = lines[lines.length - 1];
-    while (newContent && lastLine && newContent.startsWith(lastLine)) {
-        newContent = newContent.substring(lastLine.length);
-        lastLine = lines[lines.length - 1];
+        if (foundLastLine != -1) {
+            newContent = newContent.substring(foundLastLine + lastLine.length);
+        }
+        // Remove duplicate words
+        if (foundLastLine == -1 && newContent.indexOf(" ") > 0) {
+            let words = message1.trim().split(" ");
+            let lastWord = words[words.length - 1];
+            if (newContent.startsWith(lastWord)) {
+                newContent = newContent.substring(lastWord.length);
+            }
+        }
     }
     return message1 + newContent;
 }
+
+// console.log(merge_messages("Hello", "Hello,\nhow are you?"));
+// console.log(merge_messages("Hello", "Hello, how are you?"));
+// console.log(merge_messages("Hello", "Hello,\nhow are you?"));
+// console.log(merge_messages("Hello,\n", "Hello,\nhow are you?"));
+// console.log(merge_messages("Hello,\n", "how are you?"));
+// console.log(merge_messages("1 != 2", "1 != 2;"));
+// console.log(merge_messages("1 != 2", "```python\n1 != 2;"));
+// console.log(merge_messages("1 != 2;\n1 != 3;\n", "1 != 2;\n1 != 3;\n"));
 
 const load_conversation = async (conversation_id, scroll=true) => {
     let conversation = await get_conversation(conversation_id);
@@ -1039,7 +1057,6 @@ const load_conversation = async (conversation_id, scroll=true) => {
     let last_model = null;
     let providers = [];
     let buffer = "";
-    let last_usage = null;
     let completion_tokens = 0;
 
     messages.forEach((item, i) => {
@@ -1051,7 +1068,6 @@ const load_conversation = async (conversation_id, scroll=true) => {
         buffer = buffer.replace(/ \[aborted\]$/g, "").replace(/ \[error\]$/g, "");
         buffer += merge_messages(buffer, item.content);
         last_model = item.provider?.model;
-        last_usage = item.usage;
         providers.push(item.provider?.name);
         let next_i = parseInt(i) + 1;
         let next_provider = item.provider ? item.provider : (messages.length > next_i ? messages[next_i].provider : null);
