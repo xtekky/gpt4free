@@ -153,7 +153,6 @@ This document provides an overview of various AI providers and models, including
 |german-7b|TheBloke|1+ Providers|[huggingface.co](https://huggingface.co/TheBloke/DiscoLM_German_7b_v1-GGUF)|
 |zephyr-7b|HuggingFaceH4|1+ Providers|[huggingface.co](https://huggingface.co/HuggingFaceH4/zephyr-7b-beta)|
 |neural-7b|Inferless|1+ Providers|[huggingface.co](https://huggingface.co/Intel/neural-chat-7b-v3-1)|
-|p1|PollinationsAI|1+ Providers|[]( )|
 |dbrx-instruct|Databricks|1+ Providers|[huggingface.co](https://huggingface.co/databricks/dbrx-instruct)|
 |p1|PollinationsAI|1+ Providers|[]()|
 |evil|Evil Mode - Experimental|2+ Providers|[]( )|
