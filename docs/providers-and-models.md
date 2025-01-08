@@ -50,6 +50,8 @@ This document provides an overview of various AI providers and models, including
 
 ---
 ### Providers Free [HuggingSpace](https://hf.space)
+| Website | Provider | Text Models | Image Models | Vision Models | Stream | Status | Auth |
+|----------|-------------|--------------|---------------|--------|--------|------|------|
 |[black-forest-labs-flux-1-dev.hf.space](https://black-forest-labs-flux-1-dev.hf.space)|`g4f.Provider.BlackForestLabsFlux1Dev`|❌|`flux-dev`|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[black-forest-labs-flux-1-schnell.hf.space](https://black-forest-labs-flux-1-schnell.hf.space)|`g4f.Provider.BlackForestLabsFlux1Schnell`|❌|`flux-schnell`|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[voodoohop-flux-1-schnell.hf.space](https://voodoohop-flux-1-schnell.hf.space)|`g4f.Provider.VoodoohopFlux1Schnell`|❌|`flux-schnell`|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌|
