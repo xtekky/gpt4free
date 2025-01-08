@@ -91,9 +91,10 @@ def scrape_text(html: str, max_words: int = None, add_source=True, count_images:
 
     image_select = "img[alt][src^=http]:not([alt=''])"
     image_link_select = f"a:has({image_select})"
+    yield_words = []
     for paragraph in soup.select(f"h1, h2, h3, h4, h5, h6, p, table:not(:has(p)), ul:not(:has(p)), {image_link_select}"):
-        image = paragraph.select_one(image_select)
         if count_images > 0:
+            image = paragraph.select_one(image_select)
             if image:
                 title = paragraph.get("title") or paragraph.text
                 if title:
@@ -104,15 +105,19 @@ def scrape_text(html: str, max_words: int = None, add_source=True, count_images:
                 continue
 
         for line in paragraph.text.splitlines():
-            words = [word for word in line.replace("\t", " ").split(" ") if word]
+            words = [word for word in line.split() if word]
             count = len(words)
             if not count:
+                continue
+            words = " ".join(words)
+            if words in yield_words:
                 continue
             if max_words:
                 max_words -= count
                 if max_words <= 0:
                     break
-            yield " ".join(words) + "\n"
+            yield words + "\n"
+            yield_words.append(words)
 
     if add_source:
         canonical_link = source.find("link", rel="canonical")
@@ -126,7 +131,7 @@ async def fetch_and_scrape(session: ClientSession, url: str, max_words: int = No
         bucket_dir: Path = Path(get_cookies_dir()) / ".scrape_cache" / "fetch_and_scrape"
         bucket_dir.mkdir(parents=True, exist_ok=True)
         md5_hash = hashlib.md5(url.encode()).hexdigest()
-        cache_file = bucket_dir / f"{url.split('?')[0].split('//')[1].replace('/', '+')[:16]}.{datetime.date.today()}.{md5_hash}.cache"
+        cache_file = bucket_dir / f"{quote_plus(url.split('?')[0].split('//')[1].replace('/', ' ')[:48])}.{datetime.date.today()}.{md5_hash[:16]}.cache"
         if cache_file.exists():
             return cache_file.read_text()
         async with session.get(url) as response:
@@ -173,7 +178,7 @@ async def search(query: str, max_results: int = 5, max_words: int = 2500, backen
         for i, entry in enumerate(results):
             if add_text:
                 entry.text = texts[i]
-            if left_words:
+            if max_words:
                 left_words -= entry.title.count(" ") + 5
                 if entry.text:
                     left_words -= entry.text.count(" ")
@@ -202,13 +207,19 @@ async def do_search(prompt: str, query: str = None, instructions: str = DEFAULT_
         if search_results.results:
             with cache_file.open("w") as f:
                 f.write(str(search_results))
-
-    new_prompt = f"""
+    if instructions:
+        new_prompt = f"""
 {search_results}
 
 Instruction: {instructions}
 
 User request:
+{prompt}
+"""
+    else:
+        new_prompt = f"""
+{search_results}
+
 {prompt}
 """
     debug.log(f"Web search: '{query.strip()[:50]}...'")

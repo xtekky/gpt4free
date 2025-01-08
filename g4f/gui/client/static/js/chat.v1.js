@@ -44,6 +44,14 @@ messageInput.addEventListener("focus", () => {
     document.documentElement.scrollTop = document.documentElement.scrollHeight;
 });
 
+// Check if site's storage has been marked as persistent
+(async () => {
+    if (window.localStorage && navigator.storage && navigator.storage.persist) {
+        const isPersisted = await navigator.storage.persisted();
+        console.log(`Persisted storage granted: ${isPersisted}`);
+    }    
+})();
+
 appStorage = window.localStorage || {
     setItem: (key, value) => self[key] = value,
     getItem: (key) => self[key],
@@ -1110,7 +1118,7 @@ const load_conversation = async (conversation_id, scroll=true) => {
             if (lastLine.endsWith("[aborted]") || lastLine.endsWith("[error]")) {
                 reason = "error";
             // Has an even number of start or end code tags
-            } else if (reason = "stop" && buffer.split("```").length - 1 % 2 === 1) {
+            } else if (reason == "stop" && buffer.split("```").length - 1 % 2 === 1) {
                 reason = "length";
             }
             if (reason == "length" || reason == "max_tokens" || reason == "error") {

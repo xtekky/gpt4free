@@ -7,12 +7,14 @@ from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from .BlackForestLabsFlux1Dev        import BlackForestLabsFlux1Dev
 from .BlackForestLabsFlux1Schnell    import BlackForestLabsFlux1Schnell
 from .VoodoohopFlux1Schnell          import VoodoohopFlux1Schnell
+from .StableDiffusion35Large         import StableDiffusion35Large
+from .Qwen_QVQ_72B                   import Qwen_QVQ_72B
 
 class HuggingSpace(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://huggingface.co/spaces"
     working = True
     default_model = BlackForestLabsFlux1Dev.default_model
-    providers = [BlackForestLabsFlux1Dev, BlackForestLabsFlux1Schnell, VoodoohopFlux1Schnell]
+    providers = [BlackForestLabsFlux1Dev, BlackForestLabsFlux1Schnell, VoodoohopFlux1Schnell, StableDiffusion35Large, Qwen_QVQ_72B]
 
     @classmethod
     def get_parameters(cls, **kwargs) -> dict:
