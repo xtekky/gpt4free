@@ -34,7 +34,7 @@ class Jmuz(OpenaiAPI):
             model: str,
             messages: Messages,
             stream: bool = False,
-            aoi_key: str = None,
+            api_key: str = None,
             api_base: str = None,
             **kwargs
     ) -> AsyncResult:
