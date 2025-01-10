@@ -1,18 +1,22 @@
 from __future__ import annotations
 
-from ...typing import AsyncResult, Messages
+from ...typing import AsyncResult, Messages, ImagesType
 from ...errors import ResponseError
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
 
 from .BlackForestLabsFlux1Dev        import BlackForestLabsFlux1Dev
 from .BlackForestLabsFlux1Schnell    import BlackForestLabsFlux1Schnell
 from .VoodoohopFlux1Schnell          import VoodoohopFlux1Schnell
+from .StableDiffusion35Large         import StableDiffusion35Large
+from .Qwen_QVQ_72B                   import Qwen_QVQ_72B
 
 class HuggingSpace(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://huggingface.co/spaces"
+    parent = "HuggingFace"
     working = True
     default_model = BlackForestLabsFlux1Dev.default_model
-    providers = [BlackForestLabsFlux1Dev, BlackForestLabsFlux1Schnell, VoodoohopFlux1Schnell]
+    default_vision_model = Qwen_QVQ_72B.default_model
+    providers = [BlackForestLabsFlux1Dev, BlackForestLabsFlux1Schnell, VoodoohopFlux1Schnell, StableDiffusion35Large, Qwen_QVQ_72B]
 
     @classmethod
     def get_parameters(cls, **kwargs) -> dict:
@@ -33,8 +37,10 @@ class HuggingSpace(AsyncGeneratorProvider, ProviderModelMixin):
 
     @classmethod
     async def create_async_generator(
-        cls, model: str, messages: Messages, **kwargs
+        cls, model: str, messages: Messages, images: ImagesType = None, **kwargs
     ) -> AsyncResult:
+        if not model and images is not None:
+            model = cls.default_vision_model
         is_started = False
         for provider in cls.providers:
             if model in provider.model_aliases:

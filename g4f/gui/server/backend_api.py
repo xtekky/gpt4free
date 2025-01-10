@@ -120,7 +120,7 @@ class Backend_Api(Api):
                     tool_calls.append({
                         "function": {
                             "name": "search_tool",
-                            "arguments": {"query": web_search, "instructions": ""} if web_search != "true" else {}
+                            "arguments": {"query": web_search, "instructions": "", "max_words": 1000} if web_search != "true" else {}
                         },
                         "type": "function"
                     })
@@ -173,7 +173,7 @@ class Backend_Api(Api):
         @app.route('/backend-api/v2/files/<bucket_id>', methods=['GET', 'DELETE'])
         def manage_files(bucket_id: str):
             bucket_id = secure_filename(bucket_id)
-            bucket_dir = get_bucket_dir(secure_filename(bucket_id))
+            bucket_dir = get_bucket_dir(bucket_id)
 
             if not os.path.isdir(bucket_dir):
                 return jsonify({"error": {"message": "Bucket directory not found"}}), 404
@@ -231,7 +231,7 @@ class Backend_Api(Api):
                 if not file_data:
                     return jsonify({"error": {"message": "No file data received"}}), 400
 
-                with open(str(file_path), 'wb') as f:
+                with file_path.open('wb') as f:
                     f.write(file_data)
 
                 return jsonify({"message": f"File '{filename}' uploaded successfully to bucket '{bucket_id}'"}), 201

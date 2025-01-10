@@ -26,13 +26,14 @@ from .. import debug
 SAFE_PARAMETERS = [
     "model", "messages", "stream", "timeout",
     "proxy", "images", "response_format",
-    "prompt", "tools", "conversation",
+    "prompt", "negative_prompt", "tools", "conversation",
     "history_disabled", "auto_continue",
     "temperature",  "top_k", "top_p",
     "frequency_penalty", "presence_penalty",
     "max_tokens", "max_new_tokens", "stop",
     "api_key", "api_base", "seed", "width", "height",
-    "proof_token", "max_retries"
+    "proof_token", "max_retries", "web_search",
+    "guidance_scale", "num_inference_steps", "randomize_seed",
 ]
 
 BASIC_PARAMETERS = {
