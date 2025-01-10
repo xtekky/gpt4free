@@ -5,6 +5,7 @@ from .needs_auth.OpenaiAPI import OpenaiAPI
 
 class Jmuz(OpenaiAPI):
     label = "Jmuz"
+    login_url = None
     api_base = "https://jmuz.me/gpt/api/v2"
     api_key = "prod"
 
@@ -33,6 +34,8 @@ class Jmuz(OpenaiAPI):
             model: str,
             messages: Messages,
             stream: bool = False,
+            api_key: str = None,
+            api_base: str = None,
             **kwargs
     ) -> AsyncResult:
         model = cls.get_model(model)

@@ -743,7 +743,7 @@ const ask_gpt = async (message_id, message_index = -1, regenerate = false, provi
     message_storage[message_id] = "";
     stop_generating.classList.remove("stop_generating-hidden");
     let scroll = true;
-    if (message_index > 0 && parseInt(message_index, 10) + 1 < conversation.items.length) {
+    if (message_index >= 0 && parseInt(message_index) + 1 < conversation.items.length) {
         scroll = false;
     }
 
@@ -1110,7 +1110,7 @@ const load_conversation = async (conversation_id, scroll=true) => {
             if (lastLine.endsWith("[aborted]") || lastLine.endsWith("[error]")) {
                 reason = "error";
             // Has an even number of start or end code tags
-            } else if (reason = "stop" && buffer.split("```").length - 1 % 2 === 1) {
+            } else if (reason == "stop" && buffer.split("```").length - 1 % 2 === 1) {
                 reason = "length";
             }
             if (reason == "length" || reason == "max_tokens" || reason == "error") {
@@ -1724,18 +1724,18 @@ async function on_api() {
                 option.dataset.parent = provider.parent;
             providerSelect.appendChild(option);
 
-            if (provider.login_url) {
+            if (provider.parent) {
+                if (!login_urls[provider.parent]) {
+                    login_urls[provider.parent] = [provider.label, provider.login_url, [provider.name]];
+                } else {
+                    login_urls[provider.parent][2].push(provider.name);
+                }
+            } else if (provider.login_url) {
                 if (!login_urls[provider.name]) {
                     login_urls[provider.name] = [provider.label, provider.login_url, []];
                 } else {
                     login_urls[provider.name][0] = provider.label;
                     login_urls[provider.name][1] = provider.login_url;
-                }
-            } else if (provider.parent) {
-                if (!login_urls[provider.parent]) {
-                    login_urls[provider.parent] = [provider.label, provider.login_url, [provider.name]];
-                } else {
-                    login_urls[provider.parent][2].push(provider.name);
                 }
             }
         });
@@ -1746,9 +1746,10 @@ async function on_api() {
             option = document.createElement("div");
             option.classList.add("field", "box", "hidden");
             childs = childs.map((child)=>`${child}-api_key`).join(" ");
+            console.log(childs);
             option.innerHTML = `
                 <label for="${name}-api_key" class="label" title="">${label}:</label>
-                <textarea id="${name}-api_key" name="${name}[api_key]" class="${childs}" placeholder="api_key"></textarea>
+                <input type="text" id="${name}-api_key" name="${name}[api_key]" class="${childs}" placeholder="api_key"/>
                 <a href="${login_url}" target="_blank" title="Login to ${label}">Get API key</a>
             `;
             settings.querySelector(".paper").appendChild(option);

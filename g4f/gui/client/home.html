@@ -5,6 +5,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>G4F GUI</title>
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/img/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16x16.png">
+    <link rel="manifest" href="/static/img/site.webmanifest">
     <style>
         :root {
             --colour-1: #000000;
@@ -287,7 +291,7 @@
 
         (async () => {
             const today = new Date().toJSON().slice(0, 10);
-            const max = 100;
+            const max = 5;
             const cache_id = Math.floor(Math.random() * max);
             let prompt;
             if (cache_id % 2 == 0) {

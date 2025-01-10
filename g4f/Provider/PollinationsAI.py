@@ -170,13 +170,13 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         params = {k: v for k, v in params.items() if v is not None}
 
         async with ClientSession(headers=headers) as session:
-            prompt = quote(messages[-1]["content"] if prompt is None else prompt)
+            prompt = messages[-1]["content"] if prompt is None else prompt
             param_string = "&".join(f"{k}={v}" for k, v in params.items())
-            url = f"{cls.image_api_endpoint}/prompt/{prompt}?{param_string}"
+            url = f"{cls.image_api_endpoint}/prompt/{quote(prompt)}?{param_string}"
 
             async with session.head(url, proxy=proxy) as response:
                 if response.status == 200:
-                    image_response = ImageResponse(images=url, alt=messages[-1]["content"] if prompt is None else prompt)
+                    image_response = ImageResponse(images=url, alt=prompt)
                     yield image_response
 
     @classmethod
@@ -225,4 +225,4 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                             content = json_response['choices'][0]['message']['content']
                             yield content
                         except json.JSONDecodeError:
-                            yield decoded_chunk
+                            pass
