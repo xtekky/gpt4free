@@ -4,4 +4,138 @@
   License: ~ MIT (or more permissive) [via base16-schemes-source]
   Maintainer: @highlightjs/core-team
   Version: 2021.09.0
-*/pre code.hljs{display:block;overflow-x:auto;padding:1em}code.hljs{padding:3px 5px}.hljs{color:#e9e9f4;background:#282936}.hljs ::selection,.hljs::selection{background-color:#4d4f68;color:#e9e9f4}.hljs-comment{color:#626483}.hljs-tag{color:#62d6e8}.hljs-operator,.hljs-punctuation,.hljs-subst{color:#e9e9f4}.hljs-operator{opacity:.7}.hljs-bullet,.hljs-deletion,.hljs-name,.hljs-selector-tag,.hljs-template-variable,.hljs-variable{color:#ea51b2}.hljs-attr,.hljs-link,.hljs-literal,.hljs-number,.hljs-symbol,.hljs-variable.constant_{color:#b45bcf}.hljs-class .hljs-title,.hljs-title,.hljs-title.class_{color:#00f769}.hljs-strong{font-weight:700;color:#00f769}.hljs-addition,.hljs-code,.hljs-string,.hljs-title.class_.inherited__{color:#ebff87}.hljs-built_in,.hljs-doctag,.hljs-keyword.hljs-atrule,.hljs-quote,.hljs-regexp{color:#a1efe4}.hljs-attribute,.hljs-function .hljs-title,.hljs-section,.hljs-title.function_,.ruby .hljs-property{color:#62d6e8}.diff .hljs-meta,.hljs-keyword,.hljs-template-tag,.hljs-type{color:#b45bcf}.hljs-emphasis{color:#b45bcf;font-style:italic}.hljs-meta,.hljs-meta .hljs-keyword,.hljs-meta .hljs-string{color:#00f769}.hljs-meta .hljs-keyword,.hljs-meta-keyword{font-weight:700}
+*/
+
+/* Ensure code blocks are properly displayed */
+pre code.hljs {
+    display: block;
+    overflow-x: auto;
+    padding: 1em;
+}
+
+code.hljs {
+    padding: 3px 5px;
+}
+
+/* Base styles for syntax highlighting */
+.hljs {
+    color: #e9e9f4; /* Light gray text */
+    background: #282936; /* Dark purple background */
+}
+
+/* Selection highlight */
+.hljs ::selection,
+.hljs::selection {
+    background-color: #4d4f68; /* Darker purple for selection */
+    color: #e9e9f4; /* Light gray text for selection */
+}
+
+/* Comments */
+.hljs-comment {
+    color: #626483; /* Grayish blue for comments */
+}
+
+/* Tags (e.g., HTML tags) */
+.hljs-tag {
+    color: #62d6e8; /* Cyan for tags */
+}
+
+/* Operators and punctuation */
+.hljs-operator,
+.hljs-punctuation,
+.hljs-subst {
+    color: #e9e9f4; /* Light gray for operators */
+}
+
+.hljs-operator {
+    opacity: 0.7; /* Slightly transparent operators */
+}
+
+/* Bullets, deletions, names, selectors, template variables */
+.hljs-bullet,
+.hljs-deletion,
+.hljs-name,
+.hljs-selector-tag,
+.hljs-template-variable,
+.hljs-variable {
+    color: #ea51b2; /* Pink for variables and selectors */
+}
+
+/* Attributes, links, literals, numbers, symbols */
+.hljs-attr,
+.hljs-link,
+.hljs-literal,
+.hljs-number,
+.hljs-symbol,
+.hljs-variable.constant_ {
+    color: #b45bcf; /* Purple for constants and numbers */
+}
+
+/* Class titles and headings */
+.hljs-class .hljs-title,
+.hljs-title,
+.hljs-title.class_ {
+    color: #00f769; /* Green for class titles */
+}
+
+/* Strong emphasis (bold) */
+.hljs-strong {
+    font-weight: 700;
+    color: #00f769; /* Green for bold text */
+}
+
+/* Additions, code, strings, inherited titles */
+.hljs-addition,
+.hljs-code,
+.hljs-string,
+.hljs-title.class_.inherited__ {
+    color: #ebff87; /* Yellow for strings and additions */
+}
+
+/* Built-in functions, doctags, keywords, quotes, regex */
+.hljs-built_in,
+.hljs-doctag,
+.hljs-keyword.hljs-atrule,
+.hljs-quote,
+.hljs-regexp {
+    color: #a1efe4; /* Light cyan for built-ins and regex */
+}
+
+/* Attributes, function titles, sections */
+.hljs-attribute,
+.hljs-function .hljs-title,
+.hljs-section,
+.hljs-title.function_,
+.ruby .hljs-property {
+    color: #62d6e8; /* Cyan for function titles */
+}
+
+/* Keywords, template tags, types */
+.hljs-keyword,
+.hljs-template-tag,
+.hljs-type {
+    color: #b45bcf; /* Purple for keywords and types */
+}
+
+/* Emphasis (italic) */
+.hljs-emphasis {
+    color: #b45bcf; /* Purple for italic text */
+    font-style: italic;
+}
+
+/* Meta information */
+.hljs-meta,
+.hljs-meta .hljs-keyword,
+.hljs-meta .hljs-string {
+    color: #00f769; /* Green for meta information */
+}
+
+.hljs-meta .hljs-keyword,
+.hljs-meta-keyword {
+    font-weight: 700; /* Bold for meta keywords */
+}
+
+/* Diff meta information */
+.diff .hljs-meta {
+    color: #b45bcf; /* Purple for diff meta */
+}
