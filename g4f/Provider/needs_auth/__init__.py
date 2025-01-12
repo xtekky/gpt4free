@@ -25,7 +25,6 @@ from .Poe               import Poe
 from .Raycast           import Raycast
 from .Reka              import Reka
 from .Replicate         import Replicate
-from .Theb              import Theb
 from .ThebApi           import ThebApi
 from .WhiteRabbitNeo    import WhiteRabbitNeo
 from .xAI               import xAI

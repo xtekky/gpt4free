@@ -15,7 +15,7 @@ const inputCount        = document.getElementById("input-count").querySelector("
 const providerSelect    = document.getElementById("provider");
 const modelSelect       = document.getElementById("model");
 const modelProvider     = document.getElementById("model2");
-const systemPrompt      = document.getElementById("systemPrompt");
+const chatPrompt        = document.getElementById("chatPrompt");
 const settings          = document.querySelector(".settings");
 const chat              = document.querySelector(".conversation");
 const album             = document.querySelector(".images");
@@ -486,10 +486,10 @@ const prepare_messages = (messages, message_index = -1, do_continue = false, do_
 
     // Insert system prompt as first message
     new_messages = [];
-    if (systemPrompt?.value) {
+    if (chatPrompt?.value) {
         new_messages.push({
             "role": "system",
-            "content": systemPrompt.value
+            "content": chatPrompt.value
         });
     }
 
@@ -625,7 +625,6 @@ async function load_provider_parameters(provider) {
                         } else if (["api_key", "proof_token"].includes(key)) {
                             input_el.value = input_el.dataset.text;
                         }
-                        input_el.style.removeProperty("height");
                         input_el.style.height = (input_el.scrollHeight) + "px";
                     }
                     input_el.onblur = () => {
@@ -822,7 +821,6 @@ const ask_gpt = async (message_id, message_index = -1, regenerate = false, provi
             highlight(content_map.inner);
             if (imageInput) imageInput.value = "";
             if (cameraInput) cameraInput.value = "";
-            if (fileInput) fileInput.value = "";
         }
     } catch (e) {
         console.error(e);
@@ -984,8 +982,8 @@ const new_conversation = async () => {
     document.title = window.title || document.title;
 
     await clear_conversation();
-    if (systemPrompt) {
-        systemPrompt.value = "";
+    if (chatPrompt) {
+        chatPrompt.value = document.getElementById("systemPrompt")?.value;
     }
     load_conversations();
     hide_sidebar();
@@ -1002,6 +1000,8 @@ function merge_messages(message1, message2) {
         }
     } else if (newContent.startsWith("...")) {
         newContent = " " + newContent.substring(3);
+    } else if (newContent.startsWith(message1)) {
+        newContent = newContent.substring(message1.length);
     } else {
         // Remove duplicate lines
         let lines = message1.trim().split("\n");
@@ -1014,9 +1014,8 @@ function merge_messages(message1, message2) {
         }
         if (foundLastLine != -1) {
             newContent = newContent.substring(foundLastLine + lastLine.length);
-        }
-        // Remove duplicate words
-        if (foundLastLine == -1 && newContent.indexOf(" ") > 0) {
+        } // Remove duplicate words
+        else if (newContent.indexOf(" ") > 0) {
             let words = message1.trim().split(" ");
             let lastWord = words[words.length - 1];
             if (newContent.startsWith(lastWord)) {
@@ -1049,8 +1048,8 @@ const load_conversation = async (conversation_id, scroll=true) => {
         document.title = title;
     }
 
-    if (systemPrompt) {
-        systemPrompt.value = conversation.system || "";
+    if (chatPrompt) {
+        chatPrompt.value = conversation.system || "";
     }
 
     let elements = [];
@@ -1066,7 +1065,8 @@ const load_conversation = async (conversation_id, scroll=true) => {
             buffer = "";
         }
         buffer = buffer.replace(/ \[aborted\]$/g, "").replace(/ \[error\]$/g, "");
-        buffer += merge_messages(buffer, item.content);
+        new_content = item.content.replace(/ \[aborted\]$/g, "").replace(/ \[error\]$/g, "");
+        buffer += merge_messages(buffer, new_content);
         last_model = item.provider?.model;
         providers.push(item.provider?.name);
         let next_i = parseInt(i) + 1;
@@ -1182,7 +1182,7 @@ const load_conversation = async (conversation_id, scroll=true) => {
             last_model = last_model?.startsWith("gpt-3") ? "gpt-3.5-turbo" : "gpt-4"
             let count_total = GPTTokenizer_cl100k_base?.encodeChat(filtered, last_model).length
             if (count_total > 0) {
-                elements.push(`<div class="count_total">(${count_total} tokens used)</div>`);
+                elements.push(`<div class="count_total">(${count_total} total tokens)</div>`);
             }
         }
     }
@@ -1243,7 +1243,7 @@ async function add_conversation(conversation_id) {
             id: conversation_id,
             title: "",
             added: Date.now(),
-            system: systemPrompt?.value,
+            system: chatPrompt?.value,
             items: [],
         });
     }
@@ -1260,7 +1260,7 @@ async function save_system_message() {
     }
     const conversation = await get_conversation(window.conversation_id);
     if (conversation) {
-        conversation.system = systemPrompt?.value;
+        conversation.system = chatPrompt?.value;
         await save_conversation(window.conversation_id, conversation);
     }
 }
@@ -1433,6 +1433,8 @@ window.addEventListener('popstate', hide_sidebar, false);
 
 sidebar_button.addEventListener("click", async () => {
     settings.classList.add("hidden");
+    let provider_forms = document.querySelectorAll(".provider_forms from");
+    Array.from(provider_forms).forEach((form) => form.classList.add("hidden"));
     if (sidebar.classList.contains("shown")) {
         await hide_sidebar();
     } else {
@@ -1459,27 +1461,42 @@ function open_settings() {
 const register_settings_storage = async () => {
     const optionElements = document.querySelectorAll(optionElementsSelector);
     optionElements.forEach((element) => {
-        element.name = element.name || element.id;
         if (element.type == "textarea") {
             element.addEventListener('input', async (event) => {
-                appStorage.setItem(element.name, element.value);
+                appStorage.setItem(element.id, element.value);
             });
         } else {
             element.addEventListener('change', async (event) => {
                 switch (element.type) {
                     case "checkbox":
-                        appStorage.setItem(element.name, element.checked);
+                        appStorage.setItem(element.id, element.checked);
                         break;
                     case "select-one":
-                        appStorage.setItem(element.name, element.value);
+                        appStorage.setItem(element.id, element.value);
                         break;
                     case "text":
                     case "number":
-                        appStorage.setItem(element.name, element.value);
+                        appStorage.setItem(element.id, element.value);
                         break;
                     default:
                         console.warn("Unresolved element type");
                 }
+            });
+        }
+        if (element.id.endsWith("-api_key")) {
+            element.addEventListener('focus', async (event) => {
+                if (element.dataset.value) {
+                    element.value = element.dataset.value
+                }
+            });
+            element.addEventListener('blur', async (event) => {
+                element.dataset.value = element.value;
+                if (element.value) {
+                    element.placeholder = element.value && element.value.length >= 22 ? (element.value.substring(0, 12)+"*".repeat(12)+element.value.substring(element.value.length-12)) : "*".repeat(element.value.length);
+                } else if (element.placeholder != "api_key") {
+                    element.placeholder = "";
+                }
+                element.value = ""
             });
         }
     });
@@ -1488,8 +1505,11 @@ const register_settings_storage = async () => {
 const load_settings_storage = async () => {
     const optionElements = document.querySelectorAll(optionElementsSelector);
     optionElements.forEach((element) => {
-        element.name = element.name || element.id;
-        if (!(value = appStorage.getItem(element.name))) {
+        if (element.name && element.name != element.id && (value = appStorage.getItem(element.name))) {
+            appStorage.setItem(element.id, value);
+            appStorage.removeItem(element.name);
+        }
+        if (!(value = appStorage.getItem(element.id))) {
             return;
         }
         if (value) {
@@ -1503,8 +1523,12 @@ const load_settings_storage = async () => {
                 case "text":
                 case "number":
                 case "textarea":
-                    element.value = value;
-                    break;
+                    if (element.id.endsWith("-api_key")) {
+                        element.placeholder = value && value.length >= 22 ? (value.substring(0, 12)+"*".repeat(12)+value.substring(value.length-12)) : "*".repeat(value.length);
+                        element.dataset.value = value;
+                    } else {
+                        element.value = value;
+                    }
                 default:
                     console.warn("Unresolved element type");
             }
@@ -1608,12 +1632,12 @@ const count_input = async () => {
     }
 };
 messageInput.addEventListener("keyup", count_input);
-systemPrompt.addEventListener("keyup", count_input);
-systemPrompt.addEventListener("focus", function() {
-    countFocus = systemPrompt;
+chatPrompt.addEventListener("keyup", count_input);
+chatPrompt.addEventListener("focus", function() {
+    countFocus = chatPrompt;
     count_input();
 });
-systemPrompt.addEventListener("input", function() {
+chatPrompt.addEventListener("input", function() {
     countFocus = messageInput;
     count_input();
 });
@@ -1636,6 +1660,7 @@ async function on_load() {
         load_conversation(window.conversation_id);
     } else {
         say_hello()
+        chatPrompt.value = document.getElementById("systemPrompt")?.value || "";
     }
     load_conversations();
 }
@@ -1746,7 +1771,6 @@ async function on_api() {
             option = document.createElement("div");
             option.classList.add("field", "box", "hidden");
             childs = childs.map((child)=>`${child}-api_key`).join(" ");
-            console.log(childs);
             option.innerHTML = `
                 <label for="${name}-api_key" class="label" title="">${label}:</label>
                 <input type="text" id="${name}-api_key" name="${name}[api_key]" class="${childs}" placeholder="api_key"/>
@@ -1785,21 +1809,21 @@ async function on_api() {
     const hide_systemPrompt = document.getElementById("hide-systemPrompt")
     const slide_systemPrompt_icon = document.querySelector(".slide-systemPrompt i");
     if (hide_systemPrompt.checked) {
-        systemPrompt.classList.add("hidden");
+        chatPrompt.classList.add("hidden");
         slide_systemPrompt_icon.classList.remove("fa-angles-up");
         slide_systemPrompt_icon.classList.add("fa-angles-down");
     }
     hide_systemPrompt.addEventListener('change', async (event) => {
         if (event.target.checked) {
-            systemPrompt.classList.add("hidden");
+            chatPrompt.classList.add("hidden");
         } else {
-            systemPrompt.classList.remove("hidden");
+            chatPrompt.classList.remove("hidden");
         }
     });
     document.querySelector(".slide-systemPrompt")?.addEventListener("click", () => {
         hide_systemPrompt.click();
         const checked = hide_systemPrompt.checked;
-        systemPrompt.classList[checked ? "add": "remove"]("hidden");
+        chatPrompt.classList[checked ? "add": "remove"]("hidden");
         slide_systemPrompt_icon.classList[checked ? "remove": "add"]("fa-angles-up");
         slide_systemPrompt_icon.classList[checked ? "add": "remove"]("fa-angles-down");
     });
@@ -1993,7 +2017,7 @@ fileInput.addEventListener('change', async (event) => {
     }
 });
 
-systemPrompt?.addEventListener("input", async () => {
+chatPrompt?.addEventListener("input", async () => {
     await save_system_message();
 });
 
@@ -2072,9 +2096,12 @@ async function read_response(response, message_id, provider, scroll) {
 function get_api_key_by_provider(provider) {
     let api_key = null;
     if (provider) {
-        api_key = document.getElementById(`${provider}-api_key`)?.value || null;
+        api_key = document.getElementById(`${provider}-api_key`)?.id || null;
         if (api_key == null) {
-            api_key = document.querySelector(`.${provider}-api_key`)?.value || null;
+            api_key = document.querySelector(`.${provider}-api_key`)?.id || null;
+        }
+        if (api_key) {
+            api_key = appStorage.getItem(api_key);
         }
     }
     return api_key;
