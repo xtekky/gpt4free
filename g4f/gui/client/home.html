@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -10,50 +9,127 @@
     <link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16x16.png">
     <link rel="manifest" href="/static/img/site.webmanifest">
     <style>
+        /* Windows Vista Pro Plus Design */
         :root {
-            --colour-1: #000000;
-            --colour-2: #ccc;
-            --colour-3: #e4d4ff;
-            --colour-4: #f0f0f0;
-            --colour-5: #181818;
-            --colour-6: #242424;
-            --accent: #8b3dff;
-            --gradient: #1a1a1a;
-            --background: #16101b;
-            --size: 70vw;
-            --top: 50%;
-            --blur: 40px;
-            --opacity: 0.6;
+            --colour-1: #ffffff; /* White */
+            --colour-2: #e5e5e5; /* Light Gray */
+            --colour-3: #333333; /* Dark Gray */
+            --colour-4: #0078d7; /* Vista Blue */
+            --colour-5: #005a9e; /* Darker Blue */
+            --colour-6: #1a1a1a; /* Almost Black */
+
+            --accent: #0078d7; /* Vista Blue */
+            --blur-bg: rgba(255, 255, 255, 0.7); /* Glass effect background */
+            --blur-border: rgba(0, 0, 0, 0.1); /* Subtle border */
+            --user-input: #ffffff; /* White for input fields */
+            --conversations: #0078d7; /* Vista Blue for conversation highlights */
+            --conversations-hover: rgba(0, 120, 215, 0.3); /* Hover effect */
+            --scrollbar: #e5e5e5; /* Light Gray for scrollbar */
+            --scrollbar-thumb: #0078d7; /* Vista Blue for scrollbar thumb */
+            --button-hover: #005a9e; /* Darker Blue for button hover */
+            --background: linear-gradient(to bottom, #e5f1fb, #c7e3ff); /* Vista-inspired gradient */
+            --font-1: "Inter", sans-serif; /* Modern font */
+            --section-gap: 20px; /* Spacing between sections */
+            --inner-gap: 10px; /* Inner spacing */
+            --border-radius-1: 8px; /* Rounded corners */
         }
 
-        @import url("https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap");
+        /* Global Reset */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: var(--font-1);
+        }
 
+        /* Body Styling */
+        body {
+            background: var(--background);
+            color: var(--colour-3);
+            height: 100vh;
+            overflow: hidden;
+            font-weight: 500;
+        }
+
+        /* Glass Effect Containers */
+        .box {
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            background-color: var(--blur-bg);
+            border-radius: var(--border-radius-1);
+            border: 1px solid var(--blur-border);
+            padding: var(--section-gap);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Buttons */
+        button {
+            background: linear-gradient(to bottom, var(--accent), var(--colour-5));
+            color: var(--colour-1);
+            border: none;
+            border-radius: var(--border-radius-1);
+            padding: 10px 20px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        button:hover {
+            background: linear-gradient(to bottom, var(--colour-5), var(--accent));
+        }
+
+        /* Input Fields */
+        .input-field {
+            background: var(--blur-bg);
+            border: 1px solid var(--blur-border);
+            border-radius: var(--border-radius-1);
+            padding: 10px;
+            color: var(--colour-3);
+            font-size: 14px;
+            width: 100%;
+            transition: border-color 0.3s ease;
+        }
+
+        .input-field:focus {
+            border-color: var(--accent);
+            outline: none;
+        }
+
+        /* Header and Footer */
+        header {
+            font-size: 2.5rem;
+            color: var(--colour-4);
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .footer {
+            margin-top: var(--section-gap);
+            font-size: 0.9rem;
+            color: var(--colour-3);
+        }
+
+        .footer a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* Gradient Background Animation */
         .gradient {
             position: absolute;
             z-index: -1;
-            left: 50vw;
+            left: 50%;
+            top: 50%;
+            width: 70vw;
+            height: 70vw;
             border-radius: 50%;
-            background: radial-gradient(circle at center, var(--accent), var(--gradient));
-            width: var(--size);
-            height: var(--size);
-            top: var(--top);
+            background: radial-gradient(circle at center, var(--accent), rgba(0, 120, 215, 0.3));
             transform: translate(-50%, -50%);
-            filter: blur(var(--blur)) opacity(var(--opacity));
+            filter: blur(35vw) opacity(0.3);
             animation: zoom_gradient 6s infinite alternate;
-            display: none;
-            max-height: 100%;
-            transition: max-height 0.25s ease-in;
-        }
-
-        .gradient.hidden {
-            max-height: 0;
-            transition: max-height 0.15s ease-out;
-        }
-
-        @media only screen and (min-width: 40em) {
-            body .gradient{
-                display: block;
-            }
         }
 
         @keyframes zoom_gradient {
@@ -65,130 +141,22 @@
             }
         }
 
-        /* Body and text color */
-        body {
-            background: var(--background);
-            color: var(--colour-3);
-            font-family: "Inter", sans-serif;
-            height: 100vh;
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
-            font-weight: bold;
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar {
+            width: 8px;
         }
 
-        /* Container for the main content */
-        .container {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            height: 100%;
-            text-align: center;
-            z-index: 1;
+        ::-webkit-scrollbar-track {
+            background: var(--scrollbar);
         }
 
-        header {
-            font-size: 3rem;
-            text-transform: uppercase;
-            margin: 20px;
-            color: var(--colour-4);
+        ::-webkit-scrollbar-thumb {
+            background: var(--scrollbar-thumb);
+            border-radius: 4px;
         }
 
-        iframe {
-            background: transparent;
-            width: 100%;
-            border: none;
-        }
-
-        #background {
-            height: 100%;
-            position: absolute;
-            z-index: -1;
-        }
-
-        .stream-widget {
-            max-height: 0;
-            transition: max-height 0.15s ease-out;
-            color: var(--colour-5);
-            overflow: scroll;
-            text-align: left;
-        }
-
-        .stream-widget.show {
-            max-height: 1000px;
-            height: 1000px;
-            transition: max-height 0.25s ease-in;
-            background: rgba(255,255,255,0.7);
-            border-top: 2px solid rgba(255,255,255,0.5);
-            padding: 20px;
-        }
-
-        .stream-widget img {
-            max-width: 320px;
-        }
-
-        #stream-container {
-            width: 100%;
-        }
-
-        .description {
-            font-size: 1.2rem;
-            margin-bottom: 30px;
-            color: var(--colour-2);
-        }    return app
-
-
-        .input-field {
-            width: 80%;
-            max-width: 400px;
-            padding: 12px;
-            margin: 10px 0;
-            border: 2px solid var(--colour-6);
-            background-color: var(--colour-5);
-            color: var(--colour-3);
-            border-radius: 8px;
-            font-size: 1.1rem;
-        }
-
-        .input-field:focus {
-            outline: none;
-            border-color: var(--accent);
-        }
-
-        .button {
-            background-color: var(--accent);
-            color: var(--colour-3);
-            border: none;
-            padding: 15px 30px;
-            font-size: 1.1rem;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-            margin-top: 15px;
-            width: 100%;
-            max-width: 400px;
-            font-weight: bold;
-        }
-
-        .button:hover {
-            background-color: #7a2ccd;
-        }
-
-        .footer {
-            margin-top: 30px;
-            font-size: 0.9rem;
-            color: var(--colour-2);
-        }
-
-        /* Animation for the gradient circle */
-        @keyframes zoom_gradient {
-            0% {
-                transform: translate(-50%, -50%) scale(1);
-            }
-            100% {
-                transform: translate(-50%, -50%) scale(1.5);
-            }
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--accent);
         }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/markdown-it@13.0.1/dist/markdown-it.min.js"></script>
@@ -211,9 +179,6 @@
 
         <!-- Input and Button -->
         <form action="/chat/">
-            <!--
-                <input type="text" name="prompt" class="input-field" placeholder="Enter your query...">
-            -->
             <button class="button">Open Chat</button>
         </form>
 
@@ -227,7 +192,7 @@
     </div>
     <script>
         const iframe = document.querySelector('.stream-widget');
-        const rand_idx = Math.floor(Math.random() * 9)
+        const rand_idx = Math.floor(Math.random() * 9);
         if (rand_idx < 3) {
             search = "xtekky/gpt4free releases";
         } else if (rand_idx < 5) {
@@ -239,7 +204,7 @@
         const url = `/backend-api/v2/create?prompt=${summary_prompt}&stream=1&web_search=${search}`;
         iframe.src = url;
         const message = "Loading...";
-        setTimeout(()=>{
+        setTimeout(() => {
             iframe.classList.add('show');
             const iframeDocument = iframe.contentDocument || iframe.contentWindow?.document;
             if (iframeDocument) {
@@ -282,12 +247,12 @@
             let iframeText = iframeContent.innerHTML;
             const markdown = window.markdownit();
             const iframeContainer = document.querySelector(".container");
-            iframe.remove()
+            iframe.remove();
             if (iframeText.indexOf('"error"') < 0) {
                 iframeContainer.innerHTML += `<div class="stream-widget show">${markdown.render(filterMarkdown(iframeText, "markdown", iframeText))}</div>`;
             }
             scroll_to_bottom_callback = () => null;
-        }
+        };
 
         (async () => {
             const today = new Date().toJSON().slice(0, 10);
@@ -304,7 +269,7 @@
                 const response = await fetch(`/backend-api/v2/create?prompt=${prompt}&filter_markdown=html&cache=${cache_id}`);
             }
             const response = await fetch(`/backend-api/v2/create?prompt=${prompt}&filter_markdown=html&cache=${cache_id}`);
-            const text = await response.text()
+            const text = await response.text();
             background.src = `data:text/html;charset=utf-8,${encodeURIComponent(text)}`;
             const gradient = document.querySelector('.gradient');
             gradient.classList.add('hidden');
