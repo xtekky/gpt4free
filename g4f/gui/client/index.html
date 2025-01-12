@@ -20,6 +20,157 @@
     <script src="https://cdn.jsdelivr.net/npm/markdown-it@13.0.1/dist/markdown-it.min.js"></script>
     <link rel="stylesheet" href="/static/css/dracula.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/photoswipe/dist/photoswipe.css">
+    <style>
+        /* Windows Vista Pro Plus Design */
+        :root {
+            --colour-1: #ffffff; /* White */
+            --colour-2: #e5e5e5; /* Light Gray */
+            --colour-3: #333333; /* Dark Gray */
+            --colour-4: #0078d7; /* Vista Blue */
+            --colour-5: #005a9e; /* Darker Blue */
+            --colour-6: #1a1a1a; /* Almost Black */
+
+            --accent: #0078d7; /* Vista Blue */
+            --blur-bg: rgba(255, 255, 255, 0.7); /* Glass effect background */
+            --blur-border: rgba(0, 0, 0, 0.1); /* Subtle border */
+            --user-input: #ffffff; /* White for input fields */
+            --conversations: #0078d7; /* Vista Blue for conversation highlights */
+            --conversations-hover: rgba(0, 120, 215, 0.3); /* Hover effect */
+            --scrollbar: #e5e5e5; /* Light Gray for scrollbar */
+            --scrollbar-thumb: #0078d7; /* Vista Blue for scrollbar thumb */
+            --button-hover: #005a9e; /* Darker Blue for button hover */
+            --background: linear-gradient(to bottom, #e5f1fb, #c7e3ff); /* Vista-inspired gradient */
+            --font-1: "Inter", sans-serif; /* Modern font */
+            --section-gap: 20px; /* Spacing between sections */
+            --inner-gap: 10px; /* Inner spacing */
+            --border-radius-1: 8px; /* Rounded corners */
+        }
+
+        /* Global Reset */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: var(--font-1);
+        }
+
+        /* Body Styling */
+        body {
+            background: var(--background);
+            color: var(--colour-3);
+            height: 100vh;
+            overflow: hidden;
+            font-weight: 500;
+        }
+
+        /* Glass Effect Containers */
+        .box {
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            background-color: var(--blur-bg);
+            border-radius: var(--border-radius-1);
+            border: 1px solid var(--blur-border);
+            padding: var(--section-gap);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Buttons */
+        button {
+            background: linear-gradient(to bottom, var(--accent), var(--colour-5));
+            color: var(--colour-1);
+            border: none;
+            border-radius: var(--border-radius-1);
+            padding: 10px 20px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        button:hover {
+            background: linear-gradient(to bottom, var(--colour-5), var(--accent));
+        }
+
+        /* Input Fields */
+        .input-field {
+            background: var(--blur-bg);
+            border: 1px solid var(--blur-border);
+            border-radius: var(--border-radius-1);
+            padding: 10px;
+            color: var(--colour-3);
+            font-size: 14px;
+            width: 100%;
+            transition: border-color 0.3s ease;
+        }
+
+        .input-field:focus {
+            border-color: var(--accent);
+            outline: none;
+        }
+
+        /* Header and Footer */
+        header {
+            font-size: 2.5rem;
+            color: var(--colour-4);
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .footer {
+            margin-top: var(--section-gap);
+            font-size: 0.9rem;
+            color: var(--colour-3);
+        }
+
+        .footer a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* Gradient Background Animation */
+        .gradient {
+            position: absolute;
+            z-index: -1;
+            left: 50%;
+            top: 50%;
+            width: 70vw;
+            height: 70vw;
+            border-radius: 50%;
+            background: radial-gradient(circle at center, var(--accent), rgba(0, 120, 215, 0.3));
+            transform: translate(-50%, -50%);
+            filter: blur(35vw) opacity(0.3);
+            animation: zoom_gradient 6s infinite alternate;
+        }
+
+        @keyframes zoom_gradient {
+            0% {
+                transform: translate(-50%, -50%) scale(1);
+            }
+            100% {
+                transform: translate(-50%, -50%) scale(1.2);
+            }
+        }
+
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--scrollbar);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--scrollbar-thumb);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--accent);
+        }
+    </style>
     <script>
         MathJax = {
             chtml: {
@@ -111,56 +262,56 @@
         </div>
         <div class="settings hidden">
             <div class="paper">
-            <h3>Settings</h3>
-            <div class="field">
-                <span class="label">Enable Dark Mode</span>
-                <input type="checkbox" id="darkMode" checked />
-                <label for="darkMode" class="toogle" title=""></label>
-            </div>
-            <div class="field">
-                <span class="label">Web Access with DuckDuckGo</span>
-                <input type="checkbox" id="switch" />
-                <label for="switch" class="toogle" title="Add the pages of the first 5 search results to the query."></label>
-            </div>
-            <div class="field">
-                <span class="label">Disable Conversation History</span>
-                <input type="checkbox" id="history" />
-                <label for="history" class="toogle" title="To improve the reaction time or if you have trouble with large conversations."></label>
-            </div>
-            <div class="field">
-                <span class="label">Hide System-prompt</span>
-                <input type="checkbox" id="hide-systemPrompt" />
-                <label for="hide-systemPrompt" class="toogle" title="For more space on phones"></label>
-            </div>
-            <div class="field">
-                <span class="label">Download generated images</span>
-                <input type="checkbox" id="download_images" checked/>
-                <label for="download_images" class="toogle" title="Download and save generated images to /generated_images"></label>
-            </div>
-            <div class="field">
-                <span class="label">Refine files with spaCy</span>
-                <input type="checkbox" id="refine"/>
-                <label for="refine" class="toogle" title=""></label>
-            </div>
-            <div class="field box">
-                <label for="systemPrompt" class="label" title="">Default for System prompt</label>
-                <textarea id="systemPrompt" placeholder="You are a helpful assistant."></textarea>
-            </div>
-            <div class="field box">
-                <label for="message-input-height" class="label" title="">Input max. height</label>
-                <input type="number" id="message-input-height" value="200"/>
-            </div>
-            <div class="field box">
-                <label for="recognition-language" class="label" title="">Speech recognition language</label>
-                <input type="text" id="recognition-language" value="" placeholder="navigator.language"/>
-                <script>
-                    document.getElementById('recognition-language').placeholder = navigator.language;
-                </script>
-            </div>
-            <div class="field box hidden">
-                <label for="BingCreateImages-api_key" class="label" title="">Microsoft Designer in Bing:</label>
-                <input type="text" id="BingCreateImages-api_key" name="BingCreateImages[api_key]" placeholder="&quot;_U&quot; cookie"/>
-            </div>
+                <h3>Settings</h3>
+                <div class="field">
+                    <span class="label">Enable Dark Mode</span>
+                    <input type="checkbox" id="darkMode" checked />
+                    <label for="darkMode" class="toogle" title=""></label>
+                </div>
+                <div class="field">
+                    <span class="label">Web Access with DuckDuckGo</span>
+                    <input type="checkbox" id="switch" />
+                    <label for="switch" class="toogle" title="Add the pages of the first 5 search results to the query."></label>
+                </div>
+                <div class="field">
+                    <span class="label">Disable Conversation History</span>
+                    <input type="checkbox" id="history" />
+                    <label for="history" class="toogle" title="To improve the reaction time or if you have trouble with large conversations."></label>
+                </div>
+                <div class="field">
+                    <span class="label">Hide System-prompt</span>
+                    <input type="checkbox" id="hide-systemPrompt" />
+                    <label for="hide-systemPrompt" class="toogle" title="For more space on phones"></label>
+                </div>
+                <div class="field">
+                    <span class="label">Download generated images</span>
+                    <input type="checkbox" id="download_images" checked/>
+                    <label for="download_images" class="toogle" title="Download and save generated images to /generated_images"></label>
+                </div>
+                <div class="field">
+                    <span class="label">Refine files with spaCy</span>
+                    <input type="checkbox" id="refine"/>
+                    <label for="refine" class="toogle" title=""></label>
+                </div>
+                <div class="field box">
+                    <label for="systemPrompt" class="label" title="">Default for System prompt</label>
+                    <textarea id="systemPrompt" placeholder="You are a helpful assistant."></textarea>
+                </div>
+                <div class="field box">
+                    <label for="message-input-height" class="label" title="">Input max. height</label>
+                    <input type="number" id="message-input-height" value="200"/>
+                </div>
+                <div class="field box">
+                    <label for="recognition-language" class="label" title="">Speech recognition language</label>
+                    <input type="text" id="recognition-language" value="" placeholder="navigator.language"/>
+                    <script>
+                        document.getElementById('recognition-language').placeholder = navigator.language;
+                    </script>
+                </div>
+                <div class="field box hidden">
+                    <label for="BingCreateImages-api_key" class="label" title="">Microsoft Designer in Bing:</label>
+                    <input type="text" id="BingCreateImages-api_key" name="BingCreateImages[api_key]" placeholder="&quot;_U&quot; cookie"/>
+                </div>
             </div>
             <div class="bottom_buttons">
                 <button onclick="delete_conversations()">
@@ -247,33 +398,33 @@
                         </a>
                     </button>
                 </div>
-               <div class="field">
-                  <select name="model" id="model">
-                     <option value="">Model: Default</option>
-                     <option value="gpt-4">gpt-4</option>
-                     <option value="gpt-4o">gpt-4o</option>
-                     <option value="gpt-4o-mini">gpt-4o-mini</option>
-                     <option value="llama-3.1-70b">llama-3.1-70b</option>
-                     <option value="llama-3.1-405b">llama-3.1-405b</option>
-                     <option value="mixtral-8x7b">mixtral-8x7b</option>
-                     <option value="gemini-pro">gemini-pro</option>
-                     <option value="gemini-flash">gemini-flash</option>
-                     <option value="claude-3.5-sonnet">claude-3.5-sonnet</option>
-                     <option value="flux">flux (Image Generation)</option>
-                     <option value="dall-e-3">dall-e-3 (Image Generation)</option>
-                     <option disabled="disabled">----</option>
-                  </select>
-                  <select name="model2" id="model2" class="hidden"></select>
-               </div>
-               <div class="field">
-                  <select name="provider" id="provider">
-                     <option value="">Provider: Auto</option>
-                     <option value="OpenaiChat">OpenAI ChatGPT</option>
-                     <option value="Copilot">Microsoft Copilot</option>
-                     <option value="Gemini">Google Gemini</option>
-                     <option value="DDG">DuckDuckGo AI Chat</option>
-                     <option value="Blackbox">Blackbox AI</option>
-                     <option disabled="disabled">----</option>
+                <div class="field">
+                    <select name="model" id="model">
+                        <option value="">Model: Default</option>
+                        <option value="gpt-4">gpt-4</option>
+                        <option value="gpt-4o">gpt-4o</option>
+                        <option value="gpt-4o-mini">gpt-4o-mini</option>
+                        <option value="llama-3.1-70b">llama-3.1-70b</option>
+                        <option value="llama-3.1-405b">llama-3.1-405b</option>
+                        <option value="mixtral-8x7b">mixtral-8x7b</option>
+                        <option value="gemini-pro">gemini-pro</option>
+                        <option value="gemini-flash">gemini-flash</option>
+                        <option value="claude-3.5-sonnet">claude-3.5-sonnet</option>
+                        <option value="flux">flux (Image Generation)</option>
+                        <option value="dall-e-3">dall-e-3 (Image Generation)</option>
+                        <option disabled="disabled">----</option>
+                    </select>
+                    <select name="model2" id="model2" class="hidden"></select>
+                </div>
+                <div class="field">
+                    <select name="provider" id="provider">
+                        <option value="">Provider: Auto</option>
+                        <option value="OpenaiChat">OpenAI ChatGPT</option>
+                        <option value="Copilot">Microsoft Copilot</option>
+                        <option value="Gemini">Google Gemini</option>
+                        <option value="DDG">DuckDuckGo AI Chat</option>
+                        <option value="Blackbox">Blackbox AI</option>
+                        <option disabled="disabled">----</option>
                     </select>
                 </div>
                 <div class="field">
