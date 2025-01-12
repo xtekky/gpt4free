@@ -1,15 +1,23 @@
 from __future__ import annotations
 
-from aiohttp import ClientSession, ClientTimeout, ClientError
+from aiohttp import ClientSession, ClientTimeout
 import json
 import asyncio
 import random
 
-from ..typing import AsyncResult, Messages
+from ..typing import AsyncResult, Messages, Cookies
 from ..requests.raise_for_status import raise_for_status
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from .helper import format_prompt
+from ..providers.response import FinishReason, JsonConversation
 
+class Conversation(JsonConversation):
+    vqd: str = None
+    message_history: Messages = []
+    cookies: dict = {}
+
+    def __init__(self, model: str):
+        self.model = model
 
 class DDG(AsyncGeneratorProvider, ProviderModelMixin):
     label = "DuckDuckGo AI Chat"
@@ -74,42 +82,54 @@ class DDG(AsyncGeneratorProvider, ProviderModelMixin):
         messages: Messages,
         proxy: str = None,
         timeout: int = 30,
+        cookies: Cookies = None,
+        conversation: Conversation = None,
+        return_conversation: bool = False,
         **kwargs
     ) -> AsyncResult:      
         model = cls.get_model(model)
-        
-        async with ClientSession(timeout=ClientTimeout(total=timeout)) as session:
-            try:
-                # Fetch VQD token with retries
-                vqd = await cls.fetch_vqd(session)
-
-                headers = {
-                    "accept": "text/event-stream",
-                    "content-type": "application/json",
-                    "x-vqd-4": vqd,
-                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"
-                }
-                
-                data = {
-                    "model": model,
-                    "messages": [{"role": "user", "content": format_prompt(messages)}],
-                }
-                
-                async with session.post(cls.api_endpoint, json=data, headers=headers, proxy=proxy) as response:
-                    await raise_for_status(response)
-                    async for line in response.content:
-                        line = line.decode("utf-8").strip()
-                        if line.startswith("data:"):
-                            try:
-                                message = json.loads(line[5:].strip())
-                                if "message" in message:
+        if cookies is None and conversation is not None:
+            cookies = conversation.cookies
+        async with ClientSession(timeout=ClientTimeout(total=timeout), cookies=cookies) as session:
+            # Fetch VQD token
+            if conversation is None:
+                conversation = Conversation(model)
+                conversation.vqd = await cls.fetch_vqd(session)
+                conversation.message_history = [{"role": "user", "content": format_prompt(messages)}]
+            else:
+                conversation.message_history.append(messages[-1])
+            headers = {
+                "accept": "text/event-stream",
+                "content-type": "application/json",
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+                "x-vqd-4": conversation.vqd,
+            }
+            data = {
+                "model": model,
+                "messages": conversation.message_history,
+            }
+            async with session.post(cls.api_endpoint, json=data, headers=headers, proxy=proxy) as response:
+                await raise_for_status(response)
+                reason = None
+                full_message = ""
+                async for line in response.content:
+                    line = line.decode("utf-8").strip()
+                    if line.startswith("data:"):
+                        try:
+                            message = json.loads(line[5:].strip())
+                            if "message" in message:
+                                if message["message"]:
                                     yield message["message"]
-                            except json.JSONDecodeError:
-                                continue
-
-            except ClientError as e:
-                raise Exception(f"HTTP ClientError occurred: {e}")
-            except asyncio.TimeoutError:
-                raise Exception("Request timed out.")
-            except Exception as e:
-                raise Exception(f"An error occurred: {str(e)}")
+                                    full_message += message["message"]
+                                    reason = "length"
+                                else:
+                                    reason = "stop"
+                        except json.JSONDecodeError:
+                            continue
+                if return_conversation:
+                    conversation.message_history.append({"role": "assistant", "content": full_message})
+                    conversation.vqd = response.headers.get("x-vqd-4", conversation.vqd)
+                    conversation.cookies = {n: c.value for n, c in session.cookie_jar.filter_cookies(cls.url).items()}
+                    yield conversation
+                if reason is not None:
+                    yield FinishReason(reason)

@@ -48,7 +48,7 @@ class ImageLabs(AsyncGeneratorProvider, ProviderModelMixin):
         }
         
         async with ClientSession(headers=headers) as session:
-            prompt = messages[-1]["content"]
+            prompt = messages[-1]["content"] if prompt is None else prompt
             
             # Generate image
             payload = {

@@ -46,4 +46,6 @@ class Pizzagpt(AsyncGeneratorProvider, ProviderModelMixin):
                 response_json = await response.json()
                 content = response_json.get("answer", response_json).get("content")
                 if content:
+                    if "misuse detected. please get in touch" in content:
+                        raise ValueError(content)
                     yield content

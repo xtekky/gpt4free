@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import os
 import re
-import json
 
 from aiohttp import ClientSession
 
@@ -22,12 +21,6 @@ class ChatGptt(AsyncGeneratorProvider, ProviderModelMixin):
     
     default_model = 'gpt-4o'
     models = ['gpt-4', default_model, 'gpt-4o-mini']
-
-    @classmethod
-    def get_model(cls, model: str) -> str:
-        if model in cls.models:
-            return model
-        return cls.model_aliases[model]
 
     @classmethod
     async def create_async_generator(
@@ -64,7 +57,7 @@ class ChatGptt(AsyncGeneratorProvider, ProviderModelMixin):
                 'wpaicg_chat_history': None
             }
 
-            async with session.post(cls.api_endpoint, headers=headers, data=payload) as response:
+            async with session.post(cls.api_endpoint, headers=headers, data=payload, proxy=proxy) as response:
                 await raise_for_status(response)
                 result = await response.json()
                 yield result['data']

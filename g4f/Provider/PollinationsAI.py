@@ -11,14 +11,13 @@ from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..requests.raise_for_status import raise_for_status
 from ..typing import AsyncResult, Messages
 from ..image import ImageResponse
-from .helper import format_prompt
 
 class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Pollinations AI"
     url = "https://pollinations.ai"
     
     working = True
-    supports_stream = True
+    supports_stream = False
     supports_system_message = True
     supports_message_history = True
 
@@ -172,9 +171,9 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         params = {k: v for k, v in params.items() if v is not None}
 
         async with ClientSession(headers=headers) as session:
-            prompt = quote(messages[-1]["content"] if prompt is None else prompt)
+            prompt = messages[-1]["content"] if prompt is None else prompt
             param_string = "&".join(f"{k}={v}" for k, v in params.items())
-            url = f"{cls.image_api_endpoint}/prompt/{prompt}?{param_string}"
+            url = f"{cls.image_api_endpoint}/prompt/{quote(prompt)}?{param_string}"
 
             async with session.head(url, proxy=proxy) as response:
                 if response.status == 200:
