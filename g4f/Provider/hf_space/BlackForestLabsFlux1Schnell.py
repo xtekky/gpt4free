@@ -15,11 +15,11 @@ class BlackForestLabsFlux1Schnell(AsyncGeneratorProvider, ProviderModelMixin):
     
     working = True
     
-    default_model = "flux-schnell"
+    default_model = "black-forest-labs-flux-1-schnell"
     default_image_model = default_model
     image_models = [default_image_model]
-    models = [*image_models]
-    model_aliases = {"flux-schnell-black-forest-labs": default_model}
+    models = image_models
+    model_aliases = {"flux-schnell": default_model}
 
     @classmethod
     async def create_async_generator(
@@ -36,6 +36,8 @@ class BlackForestLabsFlux1Schnell(AsyncGeneratorProvider, ProviderModelMixin):
         **kwargs
     ) -> AsyncResult:
 
+        model = cls.get_model(model)
+        
         width = max(32, width - (width % 8))
         height = max(32, height - (height % 8))
 

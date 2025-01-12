@@ -14,9 +14,11 @@ class StableDiffusion35Large(AsyncGeneratorProvider, ProviderModelMixin):
 
     working = True
 
-    default_model = 'stable-diffusion-3.5-large'
-    models = [default_model]
+    default_model = 'stabilityai-stable-diffusion-3-5-large'
+    default_image_model = default_model
     image_models = [default_model]
+    models = image_models
+    model_aliases = {"sd-3.5": default_model}
 
     @classmethod
     async def create_async_generator(

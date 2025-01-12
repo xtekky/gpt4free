@@ -9,14 +9,17 @@ from .BlackForestLabsFlux1Schnell    import BlackForestLabsFlux1Schnell
 from .VoodoohopFlux1Schnell          import VoodoohopFlux1Schnell
 from .StableDiffusion35Large         import StableDiffusion35Large
 from .Qwen_QVQ_72B                   import Qwen_QVQ_72B
+from .Qwen_Qwen_2_72B_Instruct       import Qwen_Qwen_2_72B_Instruct
 
 class HuggingSpace(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://huggingface.co/spaces"
     parent = "HuggingFace"
+    
     working = True
+    
     default_model = BlackForestLabsFlux1Dev.default_model
     default_vision_model = Qwen_QVQ_72B.default_model
-    providers = [BlackForestLabsFlux1Dev, BlackForestLabsFlux1Schnell, VoodoohopFlux1Schnell, StableDiffusion35Large, Qwen_QVQ_72B]
+    providers = [BlackForestLabsFlux1Dev, BlackForestLabsFlux1Schnell, VoodoohopFlux1Schnell, StableDiffusion35Large, Qwen_QVQ_72B, Qwen_Qwen_2_72B_Instruct]
 
     @classmethod
     def get_parameters(cls, **kwargs) -> dict:

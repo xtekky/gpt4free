@@ -10,18 +10,18 @@ from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 class DeepInfraChat(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://deepinfra.com/chat"
     api_endpoint = "https://api.deepinfra.com/v1/openai/chat/completions"
+
     working = True
-    needs_auth = False
     supports_stream = True
     supports_system_message = True
     supports_message_history = True
 
-    default_model = 'meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo'
+    default_model = 'meta-llama/Llama-3.3-70B-Instruct-Turbo'
     models = [
         'meta-llama/Llama-3.3-70B-Instruct',
         'meta-llama/Meta-Llama-3.1-8B-Instruct',
-        'meta-llama/Llama-3.3-70B-Instruct-Turbo',
         default_model,
+        'meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo',
         'Qwen/QwQ-32B-Preview',
         'microsoft/WizardLM-2-8x22B',
         'Qwen/Qwen2.5-72B-Instruct',

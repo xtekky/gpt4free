@@ -1,33 +1,27 @@
 from __future__ import annotations
 
-import asyncio
-from aiohttp import ClientSession, ClientTimeout, ClientError, ClientResponseError
+from aiohttp import ClientSession, ClientTimeout, ClientError
 import json
+import asyncio
+import random
 
 from ..typing import AsyncResult, Messages
-from .base_provider import AsyncGeneratorProvider, ProviderModelMixin, BaseConversation
-from ..providers.response import FinishReason
-from .. import debug
+from ..requests.raise_for_status import raise_for_status
+from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from .helper import format_prompt
 
-class Conversation(BaseConversation):
-    vqd: str = None
-    message_history: Messages = []
-    cookies: dict = {}
-
-    def __init__(self, model: str):
-        self.model = model
 
 class DDG(AsyncGeneratorProvider, ProviderModelMixin):
     label = "DuckDuckGo AI Chat"
     url = "https://duckduckgo.com/aichat"
     api_endpoint = "https://duckduckgo.com/duckchat/v1/chat"
-
+    status_url = "https://duckduckgo.com/duckchat/v1/status"
+    
     working = True
-    needs_auth = False
     supports_stream = True
     supports_system_message = True
     supports_message_history = True
-
+    
     default_model = "gpt-4o-mini"
     models = [default_model, "claude-3-haiku-20240307", "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo", "mistralai/Mixtral-8x7B-Instruct-v0.1"]
 
@@ -39,100 +33,83 @@ class DDG(AsyncGeneratorProvider, ProviderModelMixin):
     }
 
     @classmethod
-    async def fetch_vqd(cls, session: ClientSession) -> str:
+    async def fetch_vqd(cls, session: ClientSession, max_retries: int = 3) -> str:
         """
-        Fetches the required VQD token for the chat session.
-
-        Args:
-            session (ClientSession): The active HTTP session.
-
-        Returns:
-            str: The VQD token.
-
-        Raises:
-            Exception: If the token cannot be fetched.
+        Fetches the required VQD token for the chat session with retries.
         """
-        async with session.get("https://duckduckgo.com/duckchat/v1/status", headers={"x-vqd-accept": "1"}) as response:
-            if response.status == 200:
-                vqd = response.headers.get("x-vqd-4", "")
-                if not vqd:
-                    raise Exception("Failed to fetch VQD token: Empty token.")
-                return vqd
-            else:
-                raise Exception(f"Failed to fetch VQD token: {response.status} {await response.text()}")
+        headers = {
+            "accept": "text/event-stream",
+            "content-type": "application/json",
+            "x-vqd-accept": "1",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"
+        }
+
+        for attempt in range(max_retries):
+            try:
+                async with session.get(cls.status_url, headers=headers) as response:
+                    if response.status == 200:
+                        vqd = response.headers.get("x-vqd-4", "")
+                        if vqd:
+                            return vqd
+                    elif response.status == 429:
+                        if attempt < max_retries - 1:
+                            wait_time = random.uniform(1, 3) * (attempt + 1)
+                            await asyncio.sleep(wait_time)
+                            continue
+                    response_text = await response.text()
+                    raise Exception(f"Failed to fetch VQD token: {response.status} {response_text}")
+            except Exception as e:
+                if attempt < max_retries - 1:
+                    wait_time = random.uniform(1, 3) * (attempt + 1)
+                    await asyncio.sleep(wait_time)
+                else:
+                    raise Exception(f"Failed to fetch VQD token after {max_retries} attempts: {str(e)}")
+        
+        raise Exception("Failed to fetch VQD token: Maximum retries exceeded")
 
     @classmethod
     async def create_async_generator(
         cls,
         model: str,
         messages: Messages,
-        conversation: Conversation = None,
-        return_conversation: bool = False,
         proxy: str = None,
-        headers: dict = {
-            "Content-Type": "application/json",
-        },
-        cookies: dict = None,
-        max_retries: int = 0,
+        timeout: int = 30,
         **kwargs
-    ) -> AsyncResult:
-        if cookies is None and conversation is not None:
-            cookies = conversation.cookies
-        async with ClientSession(headers=headers, cookies=cookies, timeout=ClientTimeout(total=30)) as session:
-            # Fetch VQD token
-            if conversation is None:
-                conversation = Conversation(model)
-                conversation.cookies = session.cookie_jar
-                conversation.vqd = await cls.fetch_vqd(session)
-
-            if conversation.vqd is not None:
-                headers["x-vqd-4"] = conversation.vqd
-
-            if return_conversation:
-                yield conversation
-
-            if len(messages) >= 2:
-                conversation.message_history.extend([messages[-2], messages[-1]])
-            elif len(messages) == 1:
-                conversation.message_history.append(messages[-1])
-
-            payload = {
-                "model": conversation.model,
-                "messages": conversation.message_history,
-            }
-
+    ) -> AsyncResult:      
+        model = cls.get_model(model)
+        
+        async with ClientSession(timeout=ClientTimeout(total=timeout)) as session:
             try:
-                async with session.post(cls.api_endpoint, headers=headers, json=payload, proxy=proxy) as response:
-                    conversation.vqd = response.headers.get("x-vqd-4")
-                    response.raise_for_status()
-                    reason = None
+                # Fetch VQD token with retries
+                vqd = await cls.fetch_vqd(session)
+
+                headers = {
+                    "accept": "text/event-stream",
+                    "content-type": "application/json",
+                    "x-vqd-4": vqd,
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"
+                }
+                
+                data = {
+                    "model": model,
+                    "messages": [{"role": "user", "content": format_prompt(messages)}],
+                }
+                
+                async with session.post(cls.api_endpoint, json=data, headers=headers, proxy=proxy) as response:
+                    await raise_for_status(response)
                     async for line in response.content:
                         line = line.decode("utf-8").strip()
                         if line.startswith("data:"):
                             try:
                                 message = json.loads(line[5:].strip())
-                                if "message" in message and message["message"]:
-                                    yield message["message"] 
-                                    reason = "max_tokens"
-                                elif message.get("message") == '':
-                                    reason = "stop"
+                                if "message" in message:
+                                    yield message["message"]
                             except json.JSONDecodeError:
                                 continue
-                    if reason is not None:
-                        yield FinishReason(reason)
-            except ClientResponseError as e:
-                if e.code in (400, 429) and max_retries > 0:
-                    debug.log(f"Retry: max_retries={max_retries}, wait={512 - max_retries * 48}: {e}")
-                    await asyncio.sleep(512 - max_retries * 48)
-                    is_started = False
-                    async for chunk in cls.create_async_generator(model, messages, conversation, return_conversation, max_retries=max_retries-1, **kwargs):
-                        if chunk:
-                            yield chunk
-                            is_started = True
-                    if is_started:
-                        return
-                raise e
+
             except ClientError as e:
                 raise Exception(f"HTTP ClientError occurred: {e}")
             except asyncio.TimeoutError:
                 raise Exception("Request timed out.")
+            except Exception as e:
+                raise Exception(f"An error occurred: {str(e)}")

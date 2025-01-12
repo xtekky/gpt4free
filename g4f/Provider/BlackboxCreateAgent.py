@@ -72,7 +72,7 @@ class BlackboxCreateAgent(AsyncGeneratorProvider, ProviderModelMixin):
             return cached_value
 
         js_file_pattern = r'static/chunks/\d{4}-[a-fA-F0-9]+\.js'
-        v_pattern = r'j\s*=\s*[\'"]([0-9a-fA-F-]{36})[\'"]'
+        v_pattern = r'L\s*=\s*[\'"]([0-9a-fA-F-]{36})[\'"]'
 
         def is_valid_context(text: str) -> bool:
             """Checks if the context is valid."""

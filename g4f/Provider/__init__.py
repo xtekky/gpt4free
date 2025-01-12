@@ -14,10 +14,14 @@ from .hf_space         import HuggingSpace
 
 from .Airforce             import Airforce
 from .AmigoChat            import AmigoChat
+from .AutonomousAI         import AutonomousAI
 from .Blackbox             import Blackbox
 from .BlackboxCreateAgent  import BlackboxCreateAgent
+from .CablyAI              import CablyAI
+from .ChatGLM              import ChatGLM
 from .ChatGpt              import ChatGpt
 from .ChatGptEs            import ChatGptEs
+from .ChatGptt             import ChatGptt
 from .ClaudeSon            import ClaudeSon
 from .Cloudflare           import Cloudflare
 from .Copilot              import Copilot
@@ -27,6 +31,7 @@ from .DeepInfraChat        import DeepInfraChat
 from .Free2GPT             import Free2GPT
 from .FreeGpt              import FreeGpt
 from .GizAI                import GizAI
+from .ImageLabs            import ImageLabs
 from .Jmuz                 import Jmuz
 from .Liaobots             import Liaobots
 from .Mhystical            import Mhystical

@@ -36,7 +36,7 @@ class HuggingChat(AbstractProvider, ProviderModelMixin):
         "black-forest-labs/FLUX.1-schnell",
     ]
     models = [
-        default_model,
+        'Qwen/Qwen2.5-Coder-32B-Instruct',
         'meta-llama/Llama-3.3-70B-Instruct',
         'CohereForAI/c4ai-command-r-plus-08-2024',
         'Qwen/QwQ-32B-Preview',
@@ -46,11 +46,10 @@ class HuggingChat(AbstractProvider, ProviderModelMixin):
         'NousResearch/Hermes-3-Llama-3.1-8B',
         'mistralai/Mistral-Nemo-Instruct-2407',
         'microsoft/Phi-3.5-mini-instruct',
-        *image_models
-    ]
+    ] + image_models
     model_aliases = {
         ### Chat ###
-        "qwen-2.5-72b": "Qwen/Qwen2.5-72B-Instruct",
+        "qwen-2.5-72b": "Qwen/Qwen2.5-Coder-32B-Instruct",
         "llama-3.3-70b": "meta-llama/Llama-3.3-70B-Instruct",
         "command-r-plus": "CohereForAI/c4ai-command-r-plus-08-2024",
         "qwq-32b": "Qwen/QwQ-32B-Preview",

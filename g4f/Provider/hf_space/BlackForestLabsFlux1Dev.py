@@ -14,13 +14,17 @@ class BlackForestLabsFlux1Dev(AsyncGeneratorProvider, ProviderModelMixin):
 
     working = True
 
-    default_model = 'flux-dev'
-    models = [default_model]
-    image_models = [default_model]
+    default_model = 'black-forest-labs-flux-1-dev'
+    default_image_model = default_model
+    image_models = [default_image_model]
+    models = image_models
+    model_aliases = {"flux-dev": default_model}
 
     @classmethod
     async def create_async_generator(
-        cls, model: str, messages: Messages,
+        cls, 
+        model: str, 
+        messages: Messages,
         prompt: str = None,
         api_key: str = None, 
         proxy: str = None,
@@ -32,6 +36,7 @@ class BlackForestLabsFlux1Dev(AsyncGeneratorProvider, ProviderModelMixin):
         randomize_seed: bool = True,
         **kwargs
     ) -> AsyncResult:
+        model = cls.get_model(model)
         headers = {
             "Content-Type": "application/json",
             "Accept": "application/json",

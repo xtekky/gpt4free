@@ -16,8 +16,9 @@ class Qwen_QVQ_72B(AsyncGeneratorProvider, ProviderModelMixin):
 
     working = True
 
-    default_model = "Qwen/QwQ-32B-Preview"
+    default_model = "qwen-qvq-72b-preview"
     models = [default_model]
+    model_aliases = {"qwq-32b": default_model}
 
     @classmethod
     async def create_async_generator(
@@ -37,7 +38,7 @@ class Qwen_QVQ_72B(AsyncGeneratorProvider, ProviderModelMixin):
                 data = FormData()
                 data_bytes = to_bytes(images[0][0])
                 data.add_field("files", data_bytes, content_type=is_accepted_format(data_bytes), filename=images[0][1])
-                url = f"https://qwen-qvq-72b-preview.hf.space/gradio_api/upload?upload_id={get_random_string()}"
+                url = f"{cls.url}/gradio_api/upload?upload_id={get_random_string()}"
                 async with session.post(url, data=data, proxy=proxy) as response:
                     await raise_for_status(response)
                     image = await response.json()

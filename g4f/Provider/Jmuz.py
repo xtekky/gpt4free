@@ -5,6 +5,7 @@ from .needs_auth.OpenaiAPI import OpenaiAPI
 
 class Jmuz(OpenaiAPI):
     label = "Jmuz"
+    url = "https://jmuz.me"
     login_url = None
     api_base = "https://jmuz.me/gpt/api/v2"
     api_key = "prod"
@@ -15,7 +16,12 @@ class Jmuz(OpenaiAPI):
     supports_system_message = False
 
     default_model = 'gpt-4o'
-
+    model_aliases = {
+        "gemini": "gemini-exp",
+        "deepseek-chat": "deepseek-2.5",
+        "qwq-32b": "qwq-32b-preview"
+    }
+    
     @classmethod
     def get_models(cls):
         if not cls.models:
