@@ -859,19 +859,22 @@ select:hover,
     display: none;
 }
 
-#systemPrompt, .settings textarea, form textarea {
+#chatPrompt{
+    min-height: 59px;
+    height: 59px;
+    resize: vertical;
+    padding: var(--inner-gap) var(--section-gap);
+}
+
+#systemPrompt, #chatPrompt, .settings textarea, form textarea {
     font-size: 15px;
     width: 100%;
     color: var(--colour-3);
-    height: 59px;
     outline: none;
-    padding: var(--inner-gap) var(--section-gap);
-    resize: vertical;
-    min-height: 59px;
     transition: max-height 0.15s ease-out;
 }
 
-#systemPrompt:focus {
+#systemPrompt:focus, #chatPrompt:focus {
     min-height: 200px;
     max-height: 1000px;
     transition: max-height 0.25s ease-in;
@@ -940,7 +943,7 @@ select:hover,
     body:not(.white) .gradient{
         display: block;
     }
-    .settings .label, form .label, .settings label, form label {
+    .settings .label:not([for="systemPrompt"]), form .label {
         min-width: 200px;
     }
 }
@@ -1126,8 +1129,8 @@ ul {
         display: flex;
     }
 
-    #systemPrompt::placeholder {
-        text-align: center;
+    #chatPrompt {
+        padding-left: 60px;
     }
 
     .settings h3 {
@@ -1423,7 +1426,7 @@ form .field.saved .fa-xmark {
 }
 
 @media print {
-    #systemPrompt:placeholder-shown,
+    #chatPrompt:placeholder-shown,
     .conversations,
     .conversation .user-input,
     .conversation .buttons,
