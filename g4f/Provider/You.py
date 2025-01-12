@@ -10,7 +10,7 @@ from .helper import format_prompt
 from ..image import ImageResponse, ImagePreview, EXTENSIONS_MAP, to_bytes, is_accepted_format
 from ..requests import StreamSession, FormData, raise_for_status, get_nodriver
 from ..cookies import get_cookies
-from ..errors import MissingRequirementsError
+from ..errors import MissingRequirementsError, ResponseError
 from .. import debug
 
 class You(AsyncGeneratorProvider, ProviderModelMixin):
@@ -23,18 +23,19 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
     models = [
         default_model,
         "gpt-4o",
+        "gpt-4o-mini",
         "gpt-4-turbo",
-        "gpt-4",
+        "grok-2",
         "claude-3.5-sonnet",
+        "claude-3.5-haiku",
         "claude-3-opus",
         "claude-3-sonnet",
         "claude-3-haiku",
-        "claude-2",
+        "llama-3.3-70b",
         "llama-3.1-70b",
         "llama-3",
         "gemini-1-5-flash",
         "gemini-1-5-pro",
-        "gemini-1-0-pro",
         "databricks-dbrx-instruct",
         "command-r",
         "command-r-plus",
@@ -105,19 +106,14 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
                 "conversationTurnId": str(uuid.uuid4()),
                 "chatId": str(uuid.uuid4()),
             }
-            params = {
-                "userFiles": upload,
-                "selectedChatMode": chat_mode,
-            }
             if chat_mode == "custom":
                 if debug.logging:
                     print(f"You model: {model}")
-                params["selectedAiModel"] = model.replace("-", "_")
+                data["selectedAiModel"] = model.replace("-", "_")
 
-            async with (session.post if chat_mode == "default" else session.get)(
+            async with session.get(
                 f"{cls.url}/api/streamingSearch",
-                data=data if chat_mode == "default" else None,
-                params=params if chat_mode == "default" else data,
+                params=data,
                 headers=headers,
                 cookies=cookies
             ) as response:
@@ -126,9 +122,13 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
                     if line.startswith(b'event: '):
                         event = line[7:].decode()
                     elif line.startswith(b'data: '):
+                        if event == "error":
+                            raise ResponseError(line[6:])
                         if event in ["youChatUpdate", "youChatToken"]:
                             data = json.loads(line[6:])
                         if event == "youChatToken" and event in data and data[event]:
+                            if data[event].startswith("#### You\'ve hit your free quota for the Model Agent. For more usage of the Model Agent, learn more at:"):
+                                continue
                             yield data[event]
                         elif event == "youChatUpdate" and "t" in data and data["t"]:
                             if chat_mode == "create":

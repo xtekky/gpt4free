@@ -143,12 +143,19 @@
                 <label for="refine" class="toogle" title=""></label>
             </div>
             <div class="field box">
+                <label for="systemPrompt" class="label" title="">Default for System prompt</label>
+                <textarea id="systemPrompt" placeholder="You are a helpful assistant."></textarea>
+            </div>
+            <div class="field box">
                 <label for="message-input-height" class="label" title="">Input max. height</label>
                 <input type="number" id="message-input-height" value="200"/>
             </div>
             <div class="field box">
                 <label for="recognition-language" class="label" title="">Speech recognition language</label>
                 <input type="text" id="recognition-language" value="" placeholder="navigator.language"/>
+                <script>
+                    document.getElementById('recognition-language').placeholder = navigator.language;
+                </script>
             </div>
             <div class="field box hidden">
                 <label for="BingCreateImages-api_key" class="label" title="">Microsoft Designer in Bing:</label>
@@ -179,7 +186,7 @@
             </div>
         </div>
         <div class="conversation">
-            <textarea id="systemPrompt" class="box" placeholder="System prompt"></textarea>
+            <textarea id="chatPrompt" class="box" placeholder="System prompt"></textarea>
             <div id="messages" class="box"></div>
             <button class="slide-systemPrompt">
                 <i class="fa-solid fa-angles-up"></i>
