@@ -6,8 +6,8 @@ import json
 
 from ..typing import AsyncResult, Messages
 from ..requests.raise_for_status import raise_for_status
+from ..providers.response import FinishReason
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from .helper import format_prompt
 
 class AutonomousAI(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://www.autonomous.ai/anon/"
@@ -32,7 +32,6 @@ class AutonomousAI(AsyncGeneratorProvider, ProviderModelMixin):
         "qwen-2.5-coder-32b": "qwen_coder",
         "hermes-3": "hermes",
         "llama-3.2-90b": "vision",
-        "llama-3.3-70b": "summary"
     }
 
     @classmethod
@@ -57,12 +56,8 @@ class AutonomousAI(AsyncGeneratorProvider, ProviderModelMixin):
         }
 
         async with ClientSession(headers=headers) as session:
-            prompt = format_prompt(messages)
-            
-            # Encode message
-            message = [{"role": "user", "content": prompt}]
-            message_json = json.dumps(message)
-            encoded_message = base64.b64encode(message_json.encode('utf-8')).decode('utf-8')
+            message_json = json.dumps(messages)
+            encoded_message = base64.b64encode(message_json.encode()).decode(errors="ignore")
             
             data = {
                 "messages": encoded_message,
@@ -84,7 +79,9 @@ class AutonomousAI(AsyncGeneratorProvider, ProviderModelMixin):
                             chunk_data = json.loads(chunk_str.replace("data: ", ""))
                             if "choices" in chunk_data and chunk_data["choices"]:
                                 delta = chunk_data["choices"][0].get("delta", {})
-                                if "content" in delta:
+                                if "content" in delta and delta["content"]:
                                     yield delta["content"]
+                            if "finish_reason" in chunk_data and chunk_data["finish_reason"]:
+                                yield FinishReason(chunk_data["finish_reason"])
                         except json.JSONDecodeError:
                             continue

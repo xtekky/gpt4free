@@ -136,6 +136,7 @@ class OpenaiAPI(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin):
                             finish = cls.read_finish_reason(choice)
                             if finish is not None:
                                 yield finish
+                                break
 
     @staticmethod
     def read_finish_reason(choice: dict) -> Optional[FinishReason]:

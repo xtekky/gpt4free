@@ -8,7 +8,6 @@ from aiohttp import ClientSession
 from ..typing import AsyncResult, Messages
 from ..requests.raise_for_status import raise_for_status
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from .helper import format_prompt
 
 class ChatGLM(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://chatglm.cn"
@@ -17,7 +16,7 @@ class ChatGLM(AsyncGeneratorProvider, ProviderModelMixin):
     working = True
     supports_stream = True
     supports_system_message = False
-    supports_message_history = True
+    supports_message_history = False
     
     default_model = "all-tools-230b"
     models = [default_model]
@@ -47,7 +46,6 @@ class ChatGLM(AsyncGeneratorProvider, ProviderModelMixin):
         }
         
         async with ClientSession(headers=headers) as session:
-            prompt = format_prompt(messages)
             data = {
                 "assistant_id": "65940acff94777010aa6b796",
                 "conversation_id": "",
@@ -62,17 +60,19 @@ class ChatGLM(AsyncGeneratorProvider, ProviderModelMixin):
                 },
                 "messages": [
                     {
-                        "role": "user",
+                        "role": message["role"],
                         "content": [
                             {
                                 "type": "text",
-                                "text": prompt
+                                "text": message["content"]
                             }
                         ]
                     }
+                    for message in messages
                 ]
             }
             
+            yield_text = 0
             async with session.post(cls.api_endpoint, json=data, proxy=proxy) as response:
                 await raise_for_status(response)
                 async for chunk in response.content:
@@ -85,8 +85,9 @@ class ChatGLM(AsyncGeneratorProvider, ProviderModelMixin):
                                 if parts:
                                     content = parts[0].get('content', [])
                                     if content:
-                                        text = content[0].get('text', '')
+                                        text = content[0].get('text', '')[yield_text:]
                                         if text:
                                             yield text
+                                            yield_text += len(text)
                             except json.JSONDecodeError:
                                 pass

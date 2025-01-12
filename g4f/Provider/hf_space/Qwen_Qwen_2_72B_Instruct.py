@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 import aiohttp
 import json
 import uuid
@@ -9,7 +8,7 @@ import re
 from ...typing import AsyncResult, Messages
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..helper import format_prompt
-
+from ... import debug
 
 class Qwen_Qwen_2_72B_Instruct(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://qwen-qwen2-72b-instruct.hf.space"
@@ -49,10 +48,12 @@ class Qwen_Qwen_2_72B_Instruct(AsyncGeneratorProvider, ProviderModelMixin):
         }
 
         # Prepare the prompt
+        system_prompt = "\n".join([message["content"] for message in messages if message["role"] == "system"])
+        messages = [message for message in messages if message["role"] != "system"]
         prompt = format_prompt(messages)
 
         payload_join = {
-            "data": [prompt, [], ""],
+            "data": [prompt, [], system_prompt],
             "event_data": None,
             "fn_index": 0,
             "trigger_id": 11,
@@ -87,7 +88,7 @@ class Qwen_Qwen_2_72B_Instruct(AsyncGeneratorProvider, ProviderModelMixin):
                     if decoded_line.startswith('data: '):
                         try:
                             json_data = json.loads(decoded_line[6:])
-                            
+
                             # Look for generation stages
                             if json_data.get('msg') == 'process_generating':
                                 if 'output' in json_data and 'data' in json_data['output']:
@@ -97,10 +98,10 @@ class Qwen_Qwen_2_72B_Instruct(AsyncGeneratorProvider, ProviderModelMixin):
                                             if isinstance(item, list) and len(item) > 1:
                                                 fragment = str(item[1])
                                                 # Ignore [0, 1] type fragments and duplicates
-                                                if not re.match(r'^\[.*\]$', fragment) and fragment not in full_response:
+                                                if not re.match(r'^\[.*\]$', fragment) and not full_response.endswith(fragment):
                                                     full_response += fragment
                                                     yield fragment
-                            
+
                             # Check for completion
                             if json_data.get('msg') == 'process_completed':
                                 # Final check to ensure we get the complete response
@@ -117,8 +118,6 @@ class Qwen_Qwen_2_72B_Instruct(AsyncGeneratorProvider, ProviderModelMixin):
                                         if final_full_response:
                                             yield final_full_response
                                 break
-                        
+
                         except json.JSONDecodeError:
-                            print("Could not parse JSON:", decoded_line)
-                        except Exception as e:
-                            print(f"Error processing response: {e}")
+                            debug.log("Could not parse JSON:", decoded_line)

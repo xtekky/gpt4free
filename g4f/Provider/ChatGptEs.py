@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import os
 import re
-import json
 
 from aiohttp import ClientSession
 
@@ -17,19 +16,13 @@ class ChatGptEs(AsyncGeneratorProvider, ProviderModelMixin):
     
     working = True
     supports_stream = True
-    supports_system_message = True
-    supports_message_history = True
+    supports_system_message = False
+    supports_message_history = False
     
     default_model = 'gpt-4o'
     models = ['gpt-4', default_model, 'gpt-4o-mini']
     
     SYSTEM_PROMPT = "Your default language is English. Always respond in English unless the user's message is in a different language. If the user's message is not in English, respond in the language of the user's message. Maintain this language behavior throughout the conversation unless explicitly instructed otherwise. User input:"
-
-    @classmethod
-    def get_model(cls, model: str) -> str:
-        if model in cls.models:
-            return model
-        return cls.model_aliases[model]
 
     @classmethod
     async def create_async_generator(
@@ -68,10 +61,9 @@ class ChatGptEs(AsyncGeneratorProvider, ProviderModelMixin):
                 'wpaicg_chat_client_id': os.urandom(5).hex(),
                 'wpaicg_chat_history': None
             }
-            print(payload['message'])
 
             async with session.post(cls.api_endpoint, headers=headers, data=payload) as response:
-                response.raise_for_status()
+                await raise_for_status(response)
                 result = await response.json()
                 if "Du musst das Kästchen anklicken!" in result['data']:
                     raise ValueError(result['data'])
