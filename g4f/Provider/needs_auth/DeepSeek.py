@@ -12,3 +12,4 @@ class DeepSeek(OpenaiAPI):
     supports_stream = True
     supports_message_history = True
     default_model = "deepseek-chat"
+    models = [default_model]

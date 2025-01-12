@@ -31,7 +31,7 @@ class Airforce(AsyncGeneratorProvider, ProviderModelMixin):
     api_endpoint_completions = "https://api.airforce/chat/completions"
     api_endpoint_imagine2 = "https://api.airforce/imagine2"
 
-    working = True
+    working = False
     supports_stream = True
     supports_system_message = True
     supports_message_history = True
@@ -116,29 +116,6 @@ class Airforce(AsyncGeneratorProvider, ProviderModelMixin):
         return cls.model_aliases.get(model, model or cls.default_model)
 
     @classmethod
-    async def check_api_key(cls, api_key: str) -> bool:
-        """
-        Always returns True to allow all models.
-        """
-        if not api_key or api_key == "null":
-            return True  # No restrictions if no key.
-
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
-            "Accept": "*/*",
-        }
-        try:
-            async with ClientSession(headers=headers) as session:
-                async with session.get(f"https://api.airforce/check?key={api_key}") as response:
-                    if response.status == 200:
-                        data = await response.json()
-                        return data.get('info') in ['Sponsor key', 'Premium key']
-                    return False
-        except Exception as e:
-            print(f"Error checking API key: {str(e)}")
-            return False
-
-    @classmethod
     def _filter_content(cls, part_response: str) -> str:
         """
         Filters out unwanted content from the partial response.
@@ -177,7 +154,6 @@ class Airforce(AsyncGeneratorProvider, ProviderModelMixin):
         cls,
         model: str,
         prompt: str,
-        api_key: str,
         size: str,
         seed: int,
         proxy: str = None
@@ -188,7 +164,6 @@ class Airforce(AsyncGeneratorProvider, ProviderModelMixin):
             "Accept-Language": "en-US,en;q=0.5",
             "Accept-Encoding": "gzip, deflate, br",
             "Content-Type": "application/json",
-            "Authorization": f"Bearer {api_key}",
         }
         params = {"model": model, "prompt": prompt, "size": size, "seed": seed}
 
@@ -210,7 +185,6 @@ class Airforce(AsyncGeneratorProvider, ProviderModelMixin):
         temperature: float,
         top_p: float,
         stream: bool,
-        api_key: str,
         proxy: str = None
     ) -> AsyncResult:
         """
@@ -222,7 +196,6 @@ class Airforce(AsyncGeneratorProvider, ProviderModelMixin):
             "Accept-Language": "en-US,en;q=0.5",
             "Accept-Encoding": "gzip, deflate, br",
             "Content-Type": "application/json",
-            "Authorization": f"Bearer {api_key}",
         }
 
         final_messages = []
@@ -286,22 +259,18 @@ class Airforce(AsyncGeneratorProvider, ProviderModelMixin):
         temperature: float = 1,
         top_p: float = 1,
         stream: bool = True,
-        api_key: str = None,
         size: str = "1:1",
         seed: int = None,
         **kwargs
     ) -> AsyncResult:
-        if not await cls.check_api_key(api_key):
-            pass
-
         model = cls.get_model(model)
         if model in cls.image_models:
             if prompt is None:
                 prompt = messages[-1]['content']
             if seed is None:
                 seed = random.randint(0, 10000)
-            async for result in cls.generate_image(model, prompt, api_key, size, seed, proxy):
+            async for result in cls.generate_image(model, prompt, size, seed, proxy):
                 yield result
         else:
-            async for result in cls.generate_text(model, messages, max_tokens, temperature, top_p, stream, api_key, proxy):
+            async for result in cls.generate_text(model, messages, max_tokens, temperature, top_p, stream, proxy):
                 yield result

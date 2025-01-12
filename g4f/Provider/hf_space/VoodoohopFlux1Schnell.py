@@ -12,13 +12,14 @@ from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
 class VoodoohopFlux1Schnell(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://voodoohop-flux-1-schnell.hf.space"
     api_endpoint = "https://voodoohop-flux-1-schnell.hf.space/call/infer"
+    
     working = True
 
-    default_model = "flux-schnell"
+    default_model = "voodoohop-flux-1-schnell"
     default_image_model = default_model
     image_models = [default_image_model]
-    models = [*image_models]
-    model_aliases = {"flux-schnell-voodoohop": default_model}
+    models = image_models
+    model_aliases = {"flux-schnell": default_model}
 
     @classmethod
     async def create_async_generator(
