@@ -246,7 +246,6 @@ class Completions:
             model,
             self.provider if provider is None else provider,
             stream,
-            ignored,
             ignore_working,
             ignore_stream,
         )
@@ -535,7 +534,6 @@ class AsyncCompletions:
             model,
             self.provider if provider is None else provider,
             stream,
-            ignored,
             ignore_working,
             ignore_stream,
         )

@@ -144,12 +144,17 @@ class Api:
         debug.log = decorated_log
         proxy = os.environ.get("G4F_PROXY")
         provider = kwargs.get("provider")
-        model, provider_handler = get_model_and_provider(
-            kwargs.get("model"), provider,
-            stream=True,
-            ignore_stream=True,
-            logging=False
-        )
+        try:
+            model, provider_handler = get_model_and_provider(
+                kwargs.get("model"), provider,
+                stream=True,
+                ignore_stream=True,
+                logging=False
+            )
+        except Exception as e:
+            logger.exception(e)
+            yield self._format_json('error', get_error_message(e))
+            return
         params = {
             **(provider_handler.get_parameters(as_json=True) if hasattr(provider_handler, "get_parameters") else {}),
             "model": model,

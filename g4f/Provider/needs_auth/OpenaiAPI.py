@@ -36,7 +36,7 @@ class OpenaiAPI(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin):
                 response = requests.get(f"{api_base}/models", headers=headers)
                 raise_for_status(response)
                 data = response.json()
-                cls.models = [model.get("id") for model in data.get("data")]
+                cls.models = [model.get("id") for model in (data.get("data") if isinstance(data, dict) else data)]
                 cls.models.sort()
             except Exception as e:
                 debug.log(e)

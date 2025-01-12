@@ -3,6 +3,7 @@ from .gigachat          import *
 from .BingCreateImages  import BingCreateImages
 from .Cerebras          import Cerebras
 from .CopilotAccount    import CopilotAccount
+from .Custom            import Custom
 from .DeepInfra         import DeepInfra
 from .DeepInfraImage    import DeepInfraImage
 from .DeepSeek          import DeepSeek
