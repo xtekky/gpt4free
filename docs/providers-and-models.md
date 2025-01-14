@@ -53,7 +53,6 @@ This document provides an overview of various AI providers and models, including
 |[pizzagpt.it](https://www.pizzagpt.it)|`g4f.Provider.Pizzagpt`|`gpt-4o-mini`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[pollinations.ai](https://pollinations.ai)|`g4f.Provider.PollinationsAI`|`gpt-4o, mistral-large, mistral-nemo, llama-3.3-70b, gpt-4, qwen-2-72b, qwen-2.5-coder-32b, claude-3.5-sonnet, command-r, deepseek-chat, llama-3.2-3b, evil, p1, turbo, unity, midijourney, rtist`|`flux, flux-realism, flux-cablyai, flux-anime, flux-3d, any-dark, flux-pro, midjourney, dall-e-3`|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[app.prodia.com](https://app.prodia.com)|`g4f.Provider.Prodia`|❌|✔|❌|❌|![](https://img.shields.io/badge/Active-brightgreen)|❌|
-|[replicate.com](https://replicate.com)|`g4f.Provider.ReplicateHome`|`gemma-2b`|`sd-3, sdxl, playground-v2.5`|❌|❌|![](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[rubiks.ai](https://rubiks.ai)|`g4f.Provider.RubiksAI`|`gpt-4o-mini, llama-3.1-70b`|❌|❌|✔|![Error](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[teach-anything.com](https://www.teach-anything.com)|`g4f.Provider.TeachAnything`|`llama-3.1-70b`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[you.com](https://you.com)|`g4f.Provider.You`|✔|✔|✔|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌|
@@ -143,7 +142,6 @@ This document provides an overview of various AI providers and models, including
 |gemini-1.5-pro|Google DeepMind|7+ Providers|[deepmind.google](https://deepmind.google/technologies/gemini/pro/)|
 |gemini-2.0-flash|Google DeepMind|2+ Providers|[deepmind.google](https://deepmind.google/technologies/gemini/flash/)|
 |gemini-2.0-flash-thinking|Google DeepMind|1+ Providers|[deepmind.google](https://ai.google.dev/gemini-api/docs/thinking-mode)|
-|gemma-2b|Google|1+ Providers|[huggingface.co](https://huggingface.co/google/gemma-2b)|
 |claude-3-haiku|Anthropic|2+ Providers|[anthropic.com](https://www.anthropic.com/news/claude-3-haiku)|
 |claude-3-sonnet|Anthropic|1+ Providers|[anthropic.com](https://www.anthropic.com/news/claude-3-family)|
 |claude-3-opus|Anthropic|2+ Providers|[anthropic.com](https://www.anthropic.com/news/claude-3-family)|
@@ -187,11 +185,9 @@ This document provides an overview of various AI providers and models, including
 ### Image Models
 | Model | Base Provider | Providers | Website |
 |-------|---------------|-----------|---------|
-|sdxl|Stability AI|2+ Providers|[huggingface.co](https://huggingface.co/docs/diffusers/en/using-diffusers/sdxl)|
+|sdxl|Stability AI|1+ Providers|[huggingface.co](https://huggingface.co/docs/diffusers/en/using-diffusers/sdxl)|
 |sdxl-lora|Stability AI|1+ Providers|[huggingface.co](https://huggingface.co/blog/lcm_lora)|
-|sd-3|Stability AI|1+ Providers|[huggingface.co](https://huggingface.co/docs/diffusers/main/en/api/pipelines/stable_diffusion/stable_diffusion_3)|
 |sd-3.5|Stability AI|1+ Providers|[huggingface.co](https://huggingface.co/stabilityai/stable-diffusion-3.5-large)|
-|playground-v2.5|Playground AI|1+ Providers|[huggingface.co](https://huggingface.co/playgroundai/playground-v2.5-1024px-aesthetic)|
 |flux|Black Forest Labs|4+ Providers|[github.com/black-forest-labs/flux](https://github.com/black-forest-labs/flux)|
 |flux-pro|Black Forest Labs|2+ Providers|[github.com/black-forest-labs/flux](https://github.com/black-forest-labs/flux)|
 |flux-dev|Black Forest Labs|3+ Providers|[huggingface.co](https://huggingface.co/black-forest-labs/FLUX.1-dev)|

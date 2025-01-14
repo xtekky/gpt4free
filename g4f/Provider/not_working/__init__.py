@@ -12,6 +12,7 @@ from .FreeNetfly        import FreeNetfly
 from .Koala             import Koala
 from .MagickPen         import MagickPen
 from .MyShell           import MyShell
+from .ReplicateHome     import ReplicateHome
 from .RobocodersAPI     import RobocodersAPI
 from .Theb              import Theb
 from .Upstage           import Upstage

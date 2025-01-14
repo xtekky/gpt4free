@@ -40,7 +40,6 @@ from .Provider import (
     Pizzagpt,
     PollinationsAI,
     Reka,
-    ReplicateHome,
     RubiksAI,
     TeachAnything,
     Yqcloud,
@@ -312,12 +311,6 @@ gemini_2_0_flash_thinking = Model(
     best_provider = Liaobots
 )
 
-# gemma
-gemma_2b = Model(
-    name          = 'gemma-2b',
-    base_provider = 'Google',
-    best_provider = ReplicateHome
-)
 
 ### Anthropic ###
 # claude 3
@@ -585,14 +578,8 @@ rtist = Model(
 sdxl = ImageModel(
     name = 'sdxl',
     base_provider = 'Stability AI',
-    best_provider = IterListProvider([ReplicateHome, Airforce])
+    best_provider = Airforce
     
-)
-
-sd_3 = ImageModel(
-    name = 'sd-3',
-    base_provider = 'Stability AI',
-    best_provider = ReplicateHome
 )
 
 sd_3_5 = ImageModel(
@@ -601,12 +588,6 @@ sd_3_5 = ImageModel(
     best_provider = HuggingSpace
 )
 
-### Playground ###
-playground_v2_5 = ImageModel(
-    name = 'playground-v2.5',
-    base_provider = 'Playground AI',
-    best_provider = ReplicateHome
-)
 
 ### Flux AI ###
 flux = ImageModel(
@@ -777,8 +758,6 @@ class ModelUtils:
         gemini_2_0_flash.name: gemini_2_0_flash,
         gemini_2_0_flash_thinking.name: gemini_2_0_flash_thinking,
 
-        # gemma
-        gemma_2b.name: gemma_2b,
 
         ### Anthropic ###
         # claude 3
@@ -881,11 +860,7 @@ class ModelUtils:
 
         ### Stability AI ###
         sdxl.name: sdxl,
-        sd_3.name: sd_3,
         sd_3_5.name: sd_3_5,
-
-        ### Playground ###
-        playground_v2_5.name: playground_v2_5,
 
         ### Flux AI ###
         flux.name: flux,
