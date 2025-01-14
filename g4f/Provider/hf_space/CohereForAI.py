@@ -28,6 +28,7 @@ class CohereForAI(AsyncGeneratorProvider, ProviderModelMixin):
     model_aliases = {
         "command-r-plus": "command-r-plus-08-2024",
         "command-r": "command-r-08-2024",
+        "command-r7b": "command-r7b-12-2024",
 
     }
 
