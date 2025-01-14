@@ -43,7 +43,6 @@ class HuggingChat(AbstractProvider, ProviderModelMixin):
         'nvidia/Llama-3.1-Nemotron-70B-Instruct-HF',
         'Qwen/Qwen2.5-Coder-32B-Instruct',
         'meta-llama/Llama-3.2-11B-Vision-Instruct',
-        'NousResearch/Hermes-3-Llama-3.1-8B',
         'mistralai/Mistral-Nemo-Instruct-2407',
         'microsoft/Phi-3.5-mini-instruct',
     ] + image_models
@@ -56,7 +55,6 @@ class HuggingChat(AbstractProvider, ProviderModelMixin):
         "nemotron-70b": "nvidia/Llama-3.1-Nemotron-70B-Instruct-HF",
         "qwen-2.5-coder-32b": "Qwen/Qwen2.5-Coder-32B-Instruct",
         "llama-3.2-11b": "meta-llama/Llama-3.2-11B-Vision-Instruct",
-        "hermes-3": "NousResearch/Hermes-3-Llama-3.1-8B",
         "mistral-nemo": "mistralai/Mistral-Nemo-Instruct-2407",
         "phi-3.5-mini": "microsoft/Phi-3.5-mini-instruct",
 

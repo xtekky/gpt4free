@@ -3,15 +3,15 @@ from __future__ import annotations
 import json
 from aiohttp import ClientSession
 
-from ..typing import AsyncResult, Messages
-from ..requests.raise_for_status import raise_for_status
-from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from ...typing import AsyncResult, Messages
+from ...requests.raise_for_status import raise_for_status
+from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
 
 class DeepInfraChat(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://deepinfra.com/chat"
     api_endpoint = "https://api.deepinfra.com/v1/openai/chat/completions"
 
-    working = True
+    working = False
     supports_stream = True
     supports_system_message = True
     supports_message_history = True

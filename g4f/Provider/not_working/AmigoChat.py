@@ -3,11 +3,11 @@ from __future__ import annotations
 import json
 import uuid
 
-from ..typing import AsyncResult, Messages
-from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from ..image import ImageResponse
-from ..requests import StreamSession, raise_for_status
-from ..errors import ResponseStatusError
+from ...typing import AsyncResult, Messages
+from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from ...image import ImageResponse
+from ...requests import StreamSession, raise_for_status
+from ...errors import ResponseStatusError
 
 MODELS = {
     'chat': {
@@ -76,7 +76,8 @@ class AmigoChat(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://amigochat.io/chat/"
     chat_api_endpoint = "https://api.amigochat.io/v1/chat/completions"
     image_api_endpoint = "https://api.amigochat.io/v1/images/generations"
-    working = True
+    
+    working = False
     supports_stream = True
     supports_system_message = True
     supports_message_history = True

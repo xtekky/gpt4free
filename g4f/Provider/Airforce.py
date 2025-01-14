@@ -31,7 +31,7 @@ class Airforce(AsyncGeneratorProvider, ProviderModelMixin):
     api_endpoint_completions = "https://api.airforce/chat/completions"
     api_endpoint_imagine2 = "https://api.airforce/imagine2"
 
-    working = False
+    working = True
     supports_stream = True
     supports_system_message = True
     supports_message_history = True
