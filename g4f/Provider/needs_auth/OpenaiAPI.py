@@ -23,7 +23,6 @@ class OpenaiAPI(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin):
     supports_system_message = True
     default_model = ""
     fallback_models = []
-    sort_models = True
 
     @classmethod
     def get_models(cls, api_key: str = None, api_base: str = None) -> list[str]:
@@ -37,11 +36,8 @@ class OpenaiAPI(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin):
                 response = requests.get(f"{api_base}/models", headers=headers)
                 raise_for_status(response)
                 data = response.json()
-                data = data.get("data") if isinstance(data, dict) else data
-                cls.image_models = [model.get("id") for model in data if model.get("image")]
-                cls.models = [model.get("id") for model in data]
-                if cls.sort_models:
-                    cls.models.sort()
+                cls.models = [model.get("id") for model in (data.get("data") if isinstance(data, dict) else data)]
+                cls.models.sort()
             except Exception as e:
                 debug.log(e)
                 cls.models = cls.fallback_models

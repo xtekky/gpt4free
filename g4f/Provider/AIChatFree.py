@@ -5,19 +5,21 @@ from hashlib import sha256
 
 from aiohttp import BaseConnector, ClientSession
 
-from ...errors import RateLimitError
-from ...requests import raise_for_status
-from ...requests.aiohttp import get_connector
-from ...typing import AsyncResult, Messages
-from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from ..errors import RateLimitError
+from ..requests import raise_for_status
+from ..requests.aiohttp import get_connector
+from ..typing import AsyncResult, Messages
+from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 
 
 class AIChatFree(AsyncGeneratorProvider, ProviderModelMixin):
-    url = "https://aichatfree.info/"
-    working = False
+    url = "https://aichatfree.info"
+    
+    working = True
     supports_stream = True
     supports_message_history = True
-    default_model = 'gemini-pro'
+    
+    default_model = 'gemini-1.5-pro'
 
     @classmethod
     async def create_async_generator(
@@ -36,11 +38,6 @@ class AIChatFree(AsyncGeneratorProvider, ProviderModelMixin):
             "Content-Type": "text/plain;charset=UTF-8",
             "Referer": f"{cls.url}/",
             "Origin": cls.url,
-            "Sec-Fetch-Dest": "empty",
-            "Sec-Fetch-Mode": "cors",
-            "Sec-Fetch-Site": "same-origin",
-            "Connection": "keep-alive",
-            "TE": "trailers",
         }
         async with ClientSession(
             connector=get_connector(connector, proxy), headers=headers

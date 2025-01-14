@@ -4,7 +4,9 @@ from dataclasses import dataclass
 
 from .Provider import IterListProvider, ProviderType
 from .Provider import (
+    AIChatFree,
     Airforce,
+    AIUncensored,
     AutonomousAI,
     Blackbox,
     BlackboxCreateAgent,
@@ -27,6 +29,7 @@ from .Provider import (
     HuggingChat,
     HuggingFace,
     HuggingSpace,
+    GPROChat,
     Jmuz,
     Liaobots,
     Mhystical,
@@ -36,11 +39,13 @@ from .Provider import (
     OpenaiAccount,
     PerplexityLabs,
     Pi,
+    Pizzagpt,
     PollinationsAI,
     Reka,
     ReplicateHome,
     RubiksAI,
     TeachAnything,
+    Yqcloud,
 )
 
 @dataclass(unsafe_hash=True)
@@ -71,6 +76,7 @@ default = Model(
     base_provider = "",
     best_provider = IterListProvider([
         DDG,
+        Pizzagpt,
         Blackbox,
         Copilot,
         ChatGptEs,
@@ -80,6 +86,8 @@ default = Model(
         CablyAI,
         OpenaiChat,
         DarkAI,
+        Yqcloud,
+        AIUncensored,
         ClaudeSon,
         DeepInfraChat,
         Airforce,
@@ -103,7 +111,7 @@ gpt_35_turbo = Model(
 gpt_4 = Model(
     name          = 'gpt-4',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([DDG, Blackbox, Jmuz, ChatGptEs, ChatGptt, PollinationsAI, Copilot, OpenaiChat, Liaobots, Mhystical])
+    best_provider = IterListProvider([DDG, Blackbox, Jmuz, ChatGptEs, ChatGptt, PollinationsAI, Copilot, Yqcloud, OpenaiChat, Liaobots, Mhystical])
 )
 
 # gpt-4o
@@ -116,7 +124,7 @@ gpt_4o = Model(
 gpt_4o_mini = Model(
     name          = 'gpt-4o-mini',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([DDG, ChatGptEs, ChatGptt, Jmuz, ChatGpt, RubiksAI, Liaobots, OpenaiChat])
+    best_provider = IterListProvider([DDG, Pizzagpt, ChatGptEs, ChatGptt, Jmuz, ChatGpt, RubiksAI, Liaobots, OpenaiChat])
 )
 
 # o1
@@ -257,7 +265,7 @@ hermes_2_pro = Model(
 hermes_3 = Model(
     name          = "hermes-3",
     base_provider = "NousResearch",
-    best_provider = IterListProvider([AutonomousAI, HuggingChat, HuggingFace])
+    best_provider = IterListProvider([AutonomousAI, AIUncensored])
 )
 
 
@@ -286,7 +294,7 @@ gemini = Model(
 gemini_1_5_pro = Model(
     name          = 'gemini-1.5-pro',
     base_provider = 'Google DeepMind',
-    best_provider = IterListProvider([Blackbox, Jmuz, Gemini, GeminiPro, Liaobots])
+    best_provider = IterListProvider([Blackbox, Jmuz, GPROChat, AIChatFree, Gemini, GeminiPro, Liaobots])
 )
 
 gemini_1_5_flash = Model(

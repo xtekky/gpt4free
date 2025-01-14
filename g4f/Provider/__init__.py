@@ -12,7 +12,9 @@ from .not_working      import *
 from .local            import *
 from .hf_space         import HuggingSpace
 
+from .AIChatFree           import AIChatFree
 from .Airforce             import Airforce
+from .AIUncensored         import AIUncensored
 from .AmigoChat            import AmigoChat
 from .AutonomousAI         import AutonomousAI
 from .Blackbox             import Blackbox
@@ -31,6 +33,7 @@ from .DeepInfraChat        import DeepInfraChat
 from .Free2GPT             import Free2GPT
 from .FreeGpt              import FreeGpt
 from .GizAI                import GizAI
+from .GPROChat             import GPROChat
 from .ImageLabs            import ImageLabs
 from .Jmuz                 import Jmuz
 from .Liaobots             import Liaobots
@@ -44,6 +47,7 @@ from .ReplicateHome        import ReplicateHome
 from .RubiksAI             import RubiksAI
 from .TeachAnything        import TeachAnything
 from .You                  import You
+from .Yqcloud              import Yqcloud
 
 import sys
 

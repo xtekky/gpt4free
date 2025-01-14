@@ -5,7 +5,7 @@ import json
 import asyncio
 import random
 
-from ..typing import AsyncResult, Messages, Cookies
+from ..typing import AsyncResult, Messages
 from ..requests.raise_for_status import raise_for_status
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from .helper import format_prompt
@@ -14,7 +14,6 @@ from ..providers.response import FinishReason, JsonConversation
 class Conversation(JsonConversation):
     vqd: str = None
     message_history: Messages = []
-    cookies: dict = {}
 
     def __init__(self, model: str):
         self.model = model
@@ -82,15 +81,12 @@ class DDG(AsyncGeneratorProvider, ProviderModelMixin):
         messages: Messages,
         proxy: str = None,
         timeout: int = 30,
-        cookies: Cookies = None,
         conversation: Conversation = None,
         return_conversation: bool = False,
         **kwargs
     ) -> AsyncResult:      
         model = cls.get_model(model)
-        if cookies is None and conversation is not None:
-            cookies = conversation.cookies
-        async with ClientSession(timeout=ClientTimeout(total=timeout), cookies=cookies) as session:
+        async with ClientSession(timeout=ClientTimeout(total=timeout)) as session:
             # Fetch VQD token
             if conversation is None:
                 conversation = Conversation(model)
@@ -129,7 +125,6 @@ class DDG(AsyncGeneratorProvider, ProviderModelMixin):
                 if return_conversation:
                     conversation.message_history.append({"role": "assistant", "content": full_message})
                     conversation.vqd = response.headers.get("x-vqd-4", conversation.vqd)
-                    conversation.cookies = {n: c.value for n, c in session.cookie_jar.filter_cookies(cls.url).items()}
                     yield conversation
                 if reason is not None:
                     yield FinishReason(reason)

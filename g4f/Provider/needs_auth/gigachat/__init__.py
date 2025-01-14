@@ -1,2 +1,0 @@
-from .GigaChat                import GigaChat
-
