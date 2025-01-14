@@ -3,12 +3,14 @@ from __future__ import annotations
 import base64
 import json
 import requests
+from typing import Optional
 from aiohttp import ClientSession, BaseConnector
 
 from ...typing import AsyncResult, Messages, ImagesType
 from ...image import to_bytes, is_accepted_format
 from ...errors import MissingAuthError
 from ...requests.raise_for_status import raise_for_status
+from ...providers.response import Usage, FinishReason
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..helper import get_connector
 from ... import debug
@@ -62,6 +64,7 @@ class GeminiPro(AsyncGeneratorProvider, ProviderModelMixin):
         api_base: str = api_base,
         use_auth_header: bool = False,
         images: ImagesType = None,
+        tools: Optional[list] = None,
         connector: BaseConnector = None,
         **kwargs
     ) -> AsyncResult:
@@ -104,7 +107,10 @@ class GeminiPro(AsyncGeneratorProvider, ProviderModelMixin):
                     "maxOutputTokens": kwargs.get("max_tokens"),
                     "topP": kwargs.get("top_p"),
                     "topK": kwargs.get("top_k"),
-                }
+                },
+                 "tools": [{
+                    "functionDeclarations": tools
+                 }] if tools else None
             }
             system_prompt = "\n".join(
                 message["content"]
@@ -128,6 +134,15 @@ class GeminiPro(AsyncGeneratorProvider, ProviderModelMixin):
                                 data = b"".join(lines)
                                 data = json.loads(data)
                                 yield data["candidates"][0]["content"]["parts"][0]["text"]
+                                if "finishReason" in data["candidates"][0]:
+                                    yield FinishReason(data["candidates"][0]["finishReason"].lower())
+                                usage = data.get("usageMetadata")
+                                if usage:
+                                    yield Usage(
+                                        prompt_tokens=usage.get("promptTokenCount"),
+                                        completion_tokens=usage.get("candidatesTokenCount"),
+                                        total_tokens=usage.get("totalTokenCount")
+                                    )
                             except:
                                 data = data.decode(errors="ignore") if isinstance(data, bytes) else data
                                 raise RuntimeError(f"Read chunk failed: {data}")
