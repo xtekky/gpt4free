@@ -65,7 +65,7 @@ This document provides an overview of various AI providers and models, including
 |----------|-------------|--------------|---------------|--------|--------|------|------|
 |[black-forest-labs-flux-1-dev.hf.space](https://black-forest-labs-flux-1-dev.hf.space)|`g4f.Provider.BlackForestLabsFlux1Dev`|❌|`flux-dev`|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[black-forest-labs-flux-1-schnell.hf.space](https://black-forest-labs-flux-1-schnell.hf.space)|`g4f.Provider.BlackForestLabsFlux1Schnell`|❌|`flux-schnell`|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌|
-|[cohereforai-c4ai-command.hf.space](https://cohereforai-c4ai-command.hf.space)|`g4f.Provider.CohereForAI`|`command-r, command-r-plus`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌|
+|[cohereforai-c4ai-command.hf.space](https://cohereforai-c4ai-command.hf.space)|`g4f.Provider.CohereForAI`|`command-r, command-r-plus, command-r7b`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[qwen-qvq-72b-preview.hf.space](https://qwen-qvq-72b-preview.hf.space)|`g4f.Provider.Qwen_QVQ_72B`|`qwen-2.5-72b`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[qwen-qwen2-72b-instruct.hf.space](https://qwen-qwen2-72b-instruct.hf.space)|`g4f.Provider.Qwen_Qwen_2_72B_Instruct`|`qwen-2.5-72b`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[stabilityai-stable-diffusion-3-5-large.hf.space](https://stabilityai-stable-diffusion-3-5-large.hf.space)|`g4f.Provider.StableDiffusion35Large`|❌|`sd-3.5`|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌|
@@ -78,8 +78,7 @@ This document provides an overview of various AI providers and models, including
 |[console.anthropic.com](https://console.anthropic.com)|`g4f.Provider.Anthropic`|✔|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|✔|
 |[bing.com/images/create](https://www.bing.com/images/create)|`g4f.Provider.BingCreateImages`|❌|`dall-e-3`|❌|❌|![](https://img.shields.io/badge/Active-brightgreen)|✔|
 |[inference.cerebras.ai](https://inference.cerebras.ai/)|`g4f.Provider.Cerebras`|✔|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌|
-|[deepinfra.com](https://deepinfra.com)|`g4f.Provider.DeepInfra`|✔|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|✔|
-|[deepinfra.com](https://deepinfra.com)|`g4f.Provider.DeepInfraImage`|✔|❌|❌|❌|![](https://img.shields.io/badge/Active-brightgreen)|✔|
+|[deepinfra.com](https://deepinfra.com)|`g4f.Provider.DeepInfra`|✔|✔|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|✔|
 |[platform.deepseek.com](https://platform.deepseek.com)|`g4f.Provider.DeepSeek`|✔|❌|❌|❌|![](https://img.shields.io/badge/Active-brightgreen)|✔|
 |[gemini.google.com](https://gemini.google.com)|`g4f.Provider.Gemini`|`gemini`|`gemini`|`gemini`|❌|![](https://img.shields.io/badge/Active-brightgreen)|✔|
 |[ai.google.dev](https://ai.google.dev)|`g4f.Provider.GeminiPro`|`gemini-1.5-flash, gemini-1.5-pro, gemini-2.0-flash`|❌|`gemini-1.5-pro`|❌|![](https://img.shields.io/badge/Active-brightgreen)|✔|
@@ -122,10 +121,10 @@ This document provides an overview of various AI providers and models, including
 |meta-ai|Meta|1+ Providers|[ai.meta.com](https://ai.meta.com/)|
 |llama-2-7b|Meta Llama|2+ Providers|[huggingface.co](https://huggingface.co/meta-llama/Llama-2-7b)|
 |llama-3-8b|Meta Llama|1+ Providers|[ai.meta.com](https://ai.meta.com/blog/meta-llama-3/)|
-|llama-3.1-8b|Meta Llama|6+ Providers|[ai.meta.com](https://ai.meta.com/blog/meta-llama-3-1/)|
-|llama-3.1-70b|Meta Llama|10+ Providers|[ai.meta.com](https://ai.meta.com/blog/meta-llama-3-1/)|
+|llama-3.1-8b|Meta Llama|5+ Providers|[ai.meta.com](https://ai.meta.com/blog/meta-llama-3-1/)|
+|llama-3.1-70b|Meta Llama|9+ Providers|[ai.meta.com](https://ai.meta.com/blog/meta-llama-3-1/)|
 |llama-3.1-405b|Meta Llama|2+ Providers|[huggingface.co](https://huggingface.co/meta-llama/Llama-3.1-405B)|
-|llama-3.2-1b|Meta Llama|2+ Providers|[huggingface.co](https://huggingface.co/meta-llama/Llama-3.2-1B)|
+|llama-3.2-1b|Meta Llama|1+ Providers|[huggingface.co](https://huggingface.co/meta-llama/Llama-3.2-1B)|
 |llama-3.2-3b|Meta Llama|1+ Providers|[huggingface.co](https://huggingface.co/meta-llama/Llama-3.2-3B)|
 |llama-3.2-11b|Meta Llama|3+ Providers|[ai.meta.com](https://ai.meta.com/blog/llama-3-2-connect-2024-vision-edge-mobile-devices/)|
 |llama-3.2-90b|Meta Llama|2+ Providers|[huggingface.co](https://huggingface.co/meta-llama/Llama-3.2-90B-Vision)|
@@ -148,26 +147,27 @@ This document provides an overview of various AI providers and models, including
 |claude-3-haiku|Anthropic|2+ Providers|[anthropic.com](https://www.anthropic.com/news/claude-3-haiku)|
 |claude-3-sonnet|Anthropic|1+ Providers|[anthropic.com](https://www.anthropic.com/news/claude-3-family)|
 |claude-3-opus|Anthropic|2+ Providers|[anthropic.com](https://www.anthropic.com/news/claude-3-family)|
-|claude-3.5-sonnet|Anthropic|5+ Providers|[anthropic.com](https://www.anthropic.com/news/claude-3-5-sonnet)|
+|claude-3.5-sonnet|Anthropic|4+ Providers|[anthropic.com](https://www.anthropic.com/news/claude-3-5-sonnet)|
 |reka-core|Reka AI|1+ Providers|[reka.ai](https://www.reka.ai/ourmodels)|
 |blackboxai|Blackbox AI|1+ Providers|[docs.blackbox.chat](https://docs.blackbox.chat/blackbox-ai-1)|
 |blackboxai-pro|Blackbox AI|1+ Providers|[docs.blackbox.chat](https://docs.blackbox.chat/blackbox-ai-1)|
-|command-r-plus|CohereForAI|1+ Providers|[docs.cohere.com](https://docs.cohere.com/docs/command-r-plus)|
-|command-r|CohereForAI|1+ Providers|[docs.cohere.com](https://docs.cohere.com/docs/command-r-plus)|
+|command-r|CohereForAI|2+ Providers|[docs.cohere.com](https://docs.cohere.com/docs/command-r-plus)
+|command-r-plus|CohereForAI|2+ Providers|[docs.cohere.com](https://docs.cohere.com/docs/command-r-plus)
+|command-r7b|CohereForAI|1+ Providers|[huggingface.co](https://huggingface.co/CohereForAI/c4ai-command-r7b-12-2024)|
 |qwen-1.5-7b|Qwen|1+ Providers|[huggingface.co](https://huggingface.co/Qwen/Qwen1.5-7B)|
 |qwen-2-72b|Qwen|2+ Providers|[huggingface.co](https://huggingface.co/Qwen/Qwen2-72B)|
 |qwen-2.5-72b|Qwen|2+ Providers|[huggingface.co](https://huggingface.co/Qwen/Qwen2.5-72B-Instruct)|
 |qwen-2.5-coder-32b|Qwen|4+ Providers|[huggingface.co](https://huggingface.co/Qwen/Qwen2.5-Coder-32B)|
-|qwq-32b|Qwen|5+ Providers|[qwen2.org](https://qwen2.org/qwq-32b-preview/)|
+|qwq-32b|Qwen|4+ Providers|[qwen2.org](https://qwen2.org/qwq-32b-preview/)|
 |pi|Inflection|1+ Providers|[inflection.ai](https://inflection.ai/blog/inflection-2-5)|
 |deepseek-chat|DeepSeek|3+ Providers|[huggingface.co](https://huggingface.co/deepseek-ai/deepseek-llm-67b-chat)|
 |deepseek-coder|DeepSeek|1+ Providers|[huggingface.co](https://huggingface.co/deepseek-ai/DeepSeek-Coder-V2-Instruct)|
-|wizardlm-2-8x22b|WizardLM|2+ Providers|[huggingface.co](https://huggingface.co/alpindale/WizardLM-2-8x22B)|
+|wizardlm-2-8x22b|WizardLM|1+ Providers|[huggingface.co](https://huggingface.co/alpindale/WizardLM-2-8x22B)|
 |openchat-3.5|OpenChat|1+ Providers|[huggingface.co](https://huggingface.co/openchat/openchat_3.5)|
 |grok-2|x.ai|1+ Providers|[x.ai](https://x.ai/blog/grok-2)|
 |sonar-online|Perplexity AI|1+ Providers|[docs.perplexity.ai](https://docs.perplexity.ai/)|
 |sonar-chat|Perplexity AI|1+ Providers|[docs.perplexity.ai](https://docs.perplexity.ai/)|
-|nemotron-70b|Nvidia|3+ Providers|[build.nvidia.com](https://build.nvidia.com/nvidia/llama-3_1-nemotron-70b-instruct)|
+|nemotron-70b|Nvidia|2+ Providers|[build.nvidia.com](https://build.nvidia.com/nvidia/llama-3_1-nemotron-70b-instruct)|
 |openhermes-2.5|Teknium|1+ Providers|[huggingface.co](https://huggingface.co/datasets/teknium/OpenHermes-2.5)|
 |lfm-40b|Liquid|2+ Providers|[liquid.ai](https://www.liquid.ai/liquid-foundation-models)|
 |german-7b|TheBloke|1+ Providers|[huggingface.co](https://huggingface.co/TheBloke/DiscoLM_German_7b_v1-GGUF)|

@@ -368,16 +368,22 @@ blackboxai_pro = Model(
 )
 
 ### CohereForAI ###
-command_r_plus = Model(
-    name = 'command-r-plus',
-    base_provider = 'CohereForAI',
-    best_provider = HuggingChat
-)
-
 command_r = Model(
     name = 'command-r',
     base_provider = 'CohereForAI',
-    best_provider = PollinationsAI
+    best_provider = IterListProvider([HuggingSpace, PollinationsAI])
+)
+
+command_r_plus = Model(
+    name = 'command-r-plus',
+    base_provider = 'CohereForAI',
+    best_provider = IterListProvider([HuggingSpace, HuggingChat])
+)
+
+command_r7b = Model(
+    name = 'command-r7b',
+    base_provider = 'CohereForAI',
+    best_provider = HuggingSpace
 )
 
 ### Qwen ###
@@ -392,7 +398,7 @@ qwen_1_5_7b = Model(
 qwen_2_72b = Model(
     name = 'qwen-2-72b',
     base_provider = 'Qwen',
-    best_provider = IterListProvider([PollinationsAI])
+    best_provider = PollinationsAI
 )
 
 # qwen 2.5
@@ -791,8 +797,9 @@ class ModelUtils:
         blackboxai_pro.name: blackboxai_pro,
 
         ### CohereForAI ###
-        command_r_plus.name: command_r_plus,
         command_r.name: command_r,
+        command_r_plus.name: command_r_plus,
+        command_r7b.name: command_r7b,
 
         ### GigaChat ###
         gigachat.name: gigachat,
