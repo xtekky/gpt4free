@@ -23,21 +23,25 @@ class HuggingFace(AsyncGeneratorProvider, ProviderModelMixin):
     default_model = HuggingChat.default_model
     default_image_model = HuggingChat.default_image_model
     model_aliases = HuggingChat.model_aliases
+    extra_models = [
+        "meta-llama/Llama-3.2-11B-Vision-Instruct",
+        "nvidia/Llama-3.1-Nemotron-70B-Instruct-HF",
+        "NousResearch/Hermes-3-Llama-3.1-8B",
+    ]
 
     @classmethod
     def get_models(cls) -> list[str]:
         if not cls.models:
             url = "https://huggingface.co/api/models?inference=warm&pipeline_tag=text-generation"
             models = [model["id"] for model in requests.get(url).json()]
-            models.append("meta-llama/Llama-3.2-11B-Vision-Instruct")
-            models.append("nvidia/Llama-3.1-Nemotron-70B-Instruct-HF")
+            models.extend(cls.extra_models)
             models.sort()
             if not cls.image_models:
                 url = "https://huggingface.co/api/models?pipeline_tag=text-to-image"
                 cls.image_models = [model["id"] for model in requests.get(url).json() if model["trendingScore"] >= 20]
                 cls.image_models.sort()
                 models.extend(cls.image_models)
-            cls.models = models
+            cls.models = list(set(models))
         return cls.models
 
     @classmethod

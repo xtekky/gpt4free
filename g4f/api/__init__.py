@@ -215,12 +215,16 @@ class Api:
             HTTP_200_OK: {"model": List[ModelResponseModel]},
         })
         async def models():
-            return [{
-                'id': model_id,
-                'object': 'model',
-                'created': 0,
-                'owned_by': model.base_provider
-            } for model_id, model in g4f.models.ModelUtils.convert.items()]
+            return {
+                "object": "list",
+                "data": [{
+                    "id": model_id,
+                    "object": "model",
+                    "created": 0,
+                    "owned_by": model.base_provider,
+                    "image": isinstance(model, g4f.models.ImageModel),
+                } for model_id, model in g4f.models.ModelUtils.convert.items()]
+            }
 
         @self.app.get("/v1/models/{model_name}", responses={
             HTTP_200_OK: {"model": ModelResponseModel},
