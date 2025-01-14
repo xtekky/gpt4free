@@ -16,13 +16,11 @@ from .Provider import (
     ChatGpt,
     ChatGptEs,
     ChatGptt,
-    ClaudeSon,
     Cloudflare,
     Copilot,
     CopilotAccount,
     DarkAI,
     DDG,
-    DeepInfraChat,
     GigaChat,
     Gemini,
     GeminiPro,
@@ -88,8 +86,6 @@ default = Model(
         DarkAI,
         Yqcloud,
         AIUncensored,
-        ClaudeSon,
-        DeepInfraChat,
         Airforce,
         Cloudflare,
     ])
@@ -177,13 +173,13 @@ llama_3_8b = Model(
 llama_3_1_8b = Model(
     name          = "llama-3.1-8b",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider([Blackbox, Jmuz, DeepInfraChat, Cloudflare, Airforce, PerplexityLabs])
+    best_provider = IterListProvider([Blackbox, Jmuz, Cloudflare, Airforce, PerplexityLabs])
 )
 
 llama_3_1_70b = Model(
     name          = "llama-3.1-70b",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider([DDG, Jmuz, Blackbox, DeepInfraChat, BlackboxCreateAgent, TeachAnything, DarkAI, Airforce, RubiksAI, PerplexityLabs])
+    best_provider = IterListProvider([DDG, Jmuz, Blackbox, BlackboxCreateAgent, TeachAnything, DarkAI, Airforce, RubiksAI, PerplexityLabs])
 )
 
 llama_3_1_405b = Model(
@@ -348,7 +344,7 @@ claude_3_opus = Model(
 claude_3_5_sonnet = Model(
     name          = 'claude-3.5-sonnet',
     base_provider = 'Anthropic',
-    best_provider = IterListProvider([Blackbox, PollinationsAI, Jmuz, ClaudeSon, Liaobots])
+    best_provider = IterListProvider([Blackbox, PollinationsAI, Jmuz, Liaobots])
 )
 
 ### Reka AI ###
@@ -396,7 +392,7 @@ qwen_1_5_7b = Model(
 qwen_2_72b = Model(
     name = 'qwen-2-72b',
     base_provider = 'Qwen',
-    best_provider = IterListProvider([PollinationsAI, DeepInfraChat])
+    best_provider = IterListProvider([PollinationsAI])
 )
 
 # qwen 2.5
@@ -409,13 +405,13 @@ qwen_2_5_72b = Model(
 qwen_2_5_coder_32b = Model(
     name = 'qwen-2.5-coder-32b',
     base_provider = 'Qwen',
-    best_provider = IterListProvider([Jmuz, PollinationsAI, AutonomousAI, DeepInfraChat, HuggingChat])
+    best_provider = IterListProvider([Jmuz, PollinationsAI, AutonomousAI, HuggingChat])
 )
 
 qwq_32b = Model(
     name = 'qwq-32b',
     base_provider = 'Qwen',
-    best_provider = IterListProvider([Blackbox, Jmuz, HuggingSpace, DeepInfraChat, HuggingChat])
+    best_provider = IterListProvider([Blackbox, Jmuz, HuggingSpace, HuggingChat])
 )
 
 ### Inflection ###
@@ -442,7 +438,7 @@ deepseek_coder = Model(
 wizardlm_2_8x22b = Model(
     name = 'wizardlm-2-8x22b',
     base_provider = 'WizardLM',
-    best_provider = IterListProvider([Jmuz, DeepInfraChat])
+    best_provider = Jmuz
 )
 
 ### OpenChat ###
@@ -477,7 +473,7 @@ sonar_chat = Model(
 nemotron_70b = Model(
     name = 'nemotron-70b',
     base_provider = 'Nvidia',
-    best_provider = IterListProvider([DeepInfraChat, HuggingChat, HuggingFace])
+    best_provider = IterListProvider([HuggingChat, HuggingFace])
 )
 
 ### Teknium ### 

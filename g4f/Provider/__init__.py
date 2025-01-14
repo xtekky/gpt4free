@@ -15,7 +15,6 @@ from .hf_space         import HuggingSpace
 from .AIChatFree           import AIChatFree
 from .Airforce             import Airforce
 from .AIUncensored         import AIUncensored
-from .AmigoChat            import AmigoChat
 from .AutonomousAI         import AutonomousAI
 from .Blackbox             import Blackbox
 from .BlackboxCreateAgent  import BlackboxCreateAgent
@@ -24,12 +23,10 @@ from .ChatGLM              import ChatGLM
 from .ChatGpt              import ChatGpt
 from .ChatGptEs            import ChatGptEs
 from .ChatGptt             import ChatGptt
-from .ClaudeSon            import ClaudeSon
 from .Cloudflare           import Cloudflare
 from .Copilot              import Copilot
 from .DarkAI               import DarkAI
 from .DDG                  import DDG
-from .DeepInfraChat        import DeepInfraChat
 from .Free2GPT             import Free2GPT
 from .FreeGpt              import FreeGpt
 from .GizAI                import GizAI
