@@ -143,7 +143,7 @@
                 <label for="refine" class="toogle" title=""></label>
             </div>
             <div class="field box">
-                <label for="systemPrompt" class="label" title="">Default for System prompt</label>
+                <label for="systemPrompt" class="label" title="">System prompt</label>
                 <textarea id="systemPrompt" placeholder="You are a helpful assistant."></textarea>
             </div>
             <div class="field box">
@@ -156,6 +156,14 @@
                 <script>
                     document.getElementById('recognition-language').placeholder = navigator.language;
                 </script>
+            </div>
+            <div class="field box">
+                <label for="Custom-api_base" class="label" title="">Custom Provider (Base Url):</label>
+                <input type="text" id="Custom-api_base" name="Custom[api_base]" placeholder="http://localhost:8080/v1"/>
+            </div>
+            <div class="field box hidden">
+                <label for="Custom-api_key" class="label" title="">Custom Provider:</label>
+                <input type="text" id="Custom-api_key" name="Custom[api_key]" placeholder="api_key"/>
             </div>
             <div class="field box hidden">
                 <label for="BingCreateImages-api_key" class="label" title="">Microsoft Designer in Bing:</label>
@@ -254,10 +262,7 @@
                      <option value="gpt-4o">gpt-4o</option>
                      <option value="gpt-4o-mini">gpt-4o-mini</option>
                      <option value="llama-3.1-70b">llama-3.1-70b</option>
-                     <option value="llama-3.1-405b">llama-3.1-405b</option>
                      <option value="mixtral-8x7b">mixtral-8x7b</option>
-                     <option value="gemini-pro">gemini-pro</option>
-                     <option value="gemini-flash">gemini-flash</option>
                      <option value="claude-3.5-sonnet">claude-3.5-sonnet</option>
                      <option value="flux">flux (Image Generation)</option>
                      <option value="dall-e-3">dall-e-3 (Image Generation)</option>

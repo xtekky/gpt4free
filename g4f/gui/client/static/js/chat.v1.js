@@ -351,11 +351,6 @@ const handle_ask = async () => {
     await count_input()
     await add_conversation(window.conversation_id);
 
-    if ("text" in fileInput.dataset) {
-        message += '\n```' + fileInput.dataset.type + '\n'; 
-        message += fileInput.dataset.text;
-        message += '\n```'
-    }
     let message_index = await add_message(window.conversation_id, "user", message);
     let message_id = get_message_id();
 
@@ -799,6 +794,7 @@ const ask_gpt = async (message_id, message_index = -1, regenerate = false, provi
         const files = input && input.files.length > 0 ? input.files : null;
         const download_images = document.getElementById("download_images")?.checked;
         const api_key = get_api_key_by_provider(provider);
+        const api_base = provider == "Custom" ? document.getElementById(`${provider}-api_base`).value : null;
         const ignored = Array.from(settings.querySelectorAll("input.provider:not(:checked)")).map((el)=>el.value);
         await api("conversation", {
             id: message_id,
@@ -811,6 +807,7 @@ const ask_gpt = async (message_id, message_index = -1, regenerate = false, provi
             action: action,
             download_images: download_images,
             api_key: api_key,
+            api_base: api_base,
             ignored: ignored,
         }, files, message_id, scroll);
         content_map.update_timeouts.forEach((timeoutId)=>clearTimeout(timeoutId));
@@ -1066,7 +1063,7 @@ const load_conversation = async (conversation_id, scroll=true) => {
         }
         buffer = buffer.replace(/ \[aborted\]$/g, "").replace(/ \[error\]$/g, "");
         new_content = item.content.replace(/ \[aborted\]$/g, "").replace(/ \[error\]$/g, "");
-        buffer += merge_messages(buffer, new_content);
+        buffer = merge_messages(buffer, new_content);
         last_model = item.provider?.model;
         providers.push(item.provider?.name);
         let next_i = parseInt(i) + 1;
@@ -1176,9 +1173,6 @@ const load_conversation = async (conversation_id, scroll=true) => {
     if (window.GPTTokenizer_cl100k_base) {
         const filtered = prepare_messages(messages, null, true, false);
         if (filtered.length > 0) {
-            if (GPTTokenizer_o200k_base && last_model?.startsWith("gpt-4o") || last_model?.startsWith("o1")) {
-                return GPTTokenizer_o200k_base?.encodeChat(filtered, last_model).length;
-            }
             last_model = last_model?.startsWith("gpt-3") ? "gpt-3.5-turbo" : "gpt-4"
             let count_total = GPTTokenizer_cl100k_base?.encodeChat(filtered, last_model).length
             if (count_total > 0) {
@@ -1890,7 +1884,6 @@ setTimeout(load_version, 100);
 
 fileInput.addEventListener('click', async (event) => {
     fileInput.value = '';
-    delete fileInput.dataset.text;
 });
 
 async function upload_cookies() {
@@ -1920,7 +1913,6 @@ function formatFileSize(bytes) {
 async function upload_files(fileInput) {
     const paperclip = document.querySelector(".user-input .fa-paperclip");
     const bucket_id = uuid();
-    delete fileInput.dataset.text;
     paperclip.classList.add("blink");
 
     const formData = new FormData();
@@ -1980,8 +1972,7 @@ fileInput.addEventListener('change', async (event) => {
         if (type == "json") {
             const reader = new FileReader();
             reader.addEventListener('load', async (event) => {
-                fileInput.dataset.text = event.target.result;
-                const data = JSON.parse(fileInput.dataset.text);
+                const data = JSON.parse(event.target.result);
                 if (data.options && "g4f" in data.options) {
                     let count = 0;
                     Object.keys(data).forEach(key => {
@@ -1990,7 +1981,6 @@ fileInput.addEventListener('change', async (event) => {
                             count += 1;
                         }
                     });
-                    delete fileInput.dataset.text;
                     await load_conversations();
                     fileInput.value = "";
                     inputCount.innerText = `${count} Conversations were imported successfully`;
@@ -2012,8 +2002,6 @@ fileInput.addEventListener('change', async (event) => {
             });
             reader.readAsText(fileInput.files[0]);
         }
-    } else {
-        delete fileInput.dataset.text;
     }
 });
 
@@ -2033,16 +2021,19 @@ function get_selected_model() {
 }
 
 async function api(ressource, args=null, files=null, message_id=null, scroll=true) {
-    let api_key;
+    const headers = {};
     if (ressource == "models" && args) {
         api_key = get_api_key_by_provider(args);
+        if (api_key) {
+            headers.x_api_key = api_key;
+        }
+        api_base = args == "Custom" ? document.getElementById(`${args}-api_base`).value : null;
+        if (api_base) {
+            headers.x_api_base = api_base;
+        }
         ressource = `${ressource}/${args}`;
     }
     const url = `/backend-api/v2/${ressource}`;
-    const headers = {};
-    if (api_key) {
-        headers.x_api_key = api_key;
-    }
     if (ressource == "conversation") {
         let body = JSON.stringify(args);
         headers.accept = 'text/event-stream';
@@ -2224,7 +2215,7 @@ if (SpeechRecognition) {
     };
     recognition.onend = function() {
         messageInput.value = `${startValue ? startValue + "\n" : ""}${buffer}`;
-        if (!microLabel.classList.contains("recognition")) {
+        if (microLabel.classList.contains("recognition")) {
             recognition.start();
         } else {
             messageInput.readOnly = false;
