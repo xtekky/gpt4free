@@ -148,7 +148,7 @@ response = client.chat.completions.create(
             "content": "Say this is a test"
         }
     ],
-    # Add any other necessary parameters
+    web_search = False
 )
 
 print(response.choices[0].message.content)
