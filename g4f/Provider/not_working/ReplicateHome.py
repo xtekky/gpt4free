@@ -4,17 +4,18 @@ import json
 import asyncio
 from aiohttp import ClientSession, ContentTypeError
 
-from ..typing import AsyncResult, Messages
-from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from ..requests.aiohttp import get_connector
-from ..requests.raise_for_status import raise_for_status
-from .helper import format_prompt
-from ..image import ImageResponse
+from ...typing import AsyncResult, Messages
+from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from ...requests.aiohttp import get_connector
+from ...requests.raise_for_status import raise_for_status
+from ..helper import format_prompt
+from ...image import ImageResponse
 
 class ReplicateHome(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://replicate.com"
     api_endpoint = "https://homepage.replicate.com/api/prediction"
-    working = True
+    
+    working = False
     supports_stream = True
     
     default_model = 'google-deepmind/gemma-2b-it'

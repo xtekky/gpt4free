@@ -5,13 +5,16 @@ from aiohttp import ClientSession
 from ..typing import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from .helper import format_prompt
-
+from ..providers.response import FinishReason
 
 class Pizzagpt(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://www.pizzagpt.it"
     api_endpoint = "/api/chatx-completion"
+    
     working = False
+    
     default_model = 'gpt-4o-mini'
+    models = [default_model]
 
     @classmethod
     async def create_async_generator(
@@ -27,12 +30,6 @@ class Pizzagpt(AsyncGeneratorProvider, ProviderModelMixin):
             "content-type": "application/json",
             "origin": cls.url,
             "referer": f"{cls.url}/en",
-            "sec-ch-ua": '"Chromium";v="127", "Not)A;Brand";v="99"',
-            "sec-ch-ua-mobile": "?0",
-            "sec-ch-ua-platform": '"Linux"',
-            "sec-fetch-dest": "empty",
-            "sec-fetch-mode": "cors",
-            "sec-fetch-site": "same-origin",
             "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36",
             "x-secret": "Marinara"
         }
@@ -49,3 +46,4 @@ class Pizzagpt(AsyncGeneratorProvider, ProviderModelMixin):
                     if "Misuse detected. please get in touch" in content:
                         raise ValueError(content)
                     yield content
+                    yield FinishReason("stop")

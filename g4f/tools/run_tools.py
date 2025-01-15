@@ -28,6 +28,16 @@ def validate_arguments(data: dict) -> dict:
         return {}
 
 async def async_iter_run_tools(async_iter_callback, model, messages, tool_calls: Optional[list] = None, **kwargs):
+    # Handle web_search from kwargs
+    if kwargs.get('web_search'):
+        try:
+            messages = messages.copy()
+            messages[-1]["content"] = await do_search(messages[-1]["content"])
+        except Exception as e:
+            debug.log(f"Couldn't do web search: {e.__class__.__name__}: {e}")
+            # Keep web_search in kwargs for provider native support
+            pass
+
     if tool_calls is not None:
         for tool in tool_calls:
             if tool.get("type") == "function":
@@ -67,6 +77,16 @@ def iter_run_tools(
     tool_calls: Optional[list] = None,
     **kwargs
 ) -> AsyncIterator:
+    # Handle web_search from kwargs
+    if kwargs.get('web_search'):
+        try:
+            messages = messages.copy()
+            messages[-1]["content"] = asyncio.run(do_search(messages[-1]["content"]))
+        except Exception as e:
+            debug.log(f"Couldn't do web search: {e.__class__.__name__}: {e}")
+            # Keep web_search in kwargs for provider native support
+            pass
+
     if tool_calls is not None:
         for tool in tool_calls:
             if tool.get("type") == "function":
@@ -77,14 +97,6 @@ def iter_run_tools(
                         raise_search_exceptions=True,
                         **tool["function"]["arguments"]
                     )
-                elif tool.get("function", {}).get("name") == "safe_search_tool":
-                    tool["function"]["arguments"] = validate_arguments(tool["function"])
-                    try:
-                        messages[-1]["content"] = asyncio.run(do_search(messages[-1]["content"], **tool["function"]["arguments"]))
-                    except Exception as e:
-                        debug.log(f"Couldn't do web search: {e.__class__.__name__}: {e}")
-                        # Enable provider native web search
-                        kwargs["web_search"] = True
                 elif tool.get("function", {}).get("name") == "continue_tool":
                     if provider not in ("OpenaiAccount", "HuggingFace"):
                         last_line = messages[-1]["content"].strip().splitlines()[-1]
