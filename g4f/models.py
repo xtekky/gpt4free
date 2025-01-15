@@ -37,7 +37,6 @@ from .Provider import (
     OpenaiAccount,
     PerplexityLabs,
     Pi,
-    Pizzagpt,
     PollinationsAI,
     Reka,
     RubiksAI,
@@ -73,7 +72,6 @@ default = Model(
     base_provider = "",
     best_provider = IterListProvider([
         DDG,
-        Pizzagpt,
         Blackbox,
         Copilot,
         ChatGptEs,
@@ -119,7 +117,7 @@ gpt_4o = Model(
 gpt_4o_mini = Model(
     name          = 'gpt-4o-mini',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([DDG, Pizzagpt, ChatGptEs, ChatGptt, Jmuz, ChatGpt, RubiksAI, Liaobots, OpenaiChat])
+    best_provider = IterListProvider([DDG, ChatGptEs, ChatGptt, Jmuz, ChatGpt, RubiksAI, Liaobots, OpenaiChat])
 )
 
 # o1
