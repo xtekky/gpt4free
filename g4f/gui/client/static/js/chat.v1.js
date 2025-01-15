@@ -421,18 +421,18 @@ regenerate_button.addEventListener("click", async () => {
 });
 
 stop_generating.addEventListener("click", async () => {
-    stop_generating.classList.add("stop_generating-hidden");
     regenerate_button.classList.remove("regenerate-hidden");
+    stop_generating.classList.add("stop_generating-hidden");
     let key;
     for (key in controller_storage) {
         if (!controller_storage[key].signal.aborted) {
+            console.log(`aborted ${window.conversation_id} #${key}`);
+            controller_storage[key].abort();
             let message = message_storage[key];
             if (message) {
                 content_storage[key].inner.innerHTML += " [aborted]";
                 message_storage[key] += " [aborted]";
-                console.log(`aborted ${window.conversation_id} #${key}`);
             }
-            controller_storage[key].abort();
         }
     }
     await load_conversation(window.conversation_id, false);
@@ -727,6 +727,13 @@ async function add_message_chunk(message, message_id, provider, scroll) {
     }
 }
 
+function is_stopped() {
+    if (stop_generating.classList.contains('stop_generating-hidden')) {
+        return true;
+    }
+    return false;
+}
+
 const ask_gpt = async (message_id, message_index = -1, regenerate = false, provider = null, model = null, action = null) => {
     if (!model && !provider) {
         model = get_selected_model()?.value || null;
@@ -826,13 +833,12 @@ const ask_gpt = async (message_id, message_index = -1, regenerate = false, provi
             content_map.inner.innerHTML += markdown_render(`**An error occured:** ${e}`);
         }
     }
-    delete controller_storage[message_id];
     if (message_storage[message_id]) {
         const message_provider = message_id in provider_storage ? provider_storage[message_id] : null;
         await add_message(
             window.conversation_id,
             "assistant",
-            message_storage[message_id] + (error_storage[message_id] ? " [error]" : ""),
+            message_storage[message_id] + (error_storage[message_id] ? " [error]" : "") + (stop_generating.classList.contains('stop_generating-hidden') ? " [aborted]" : ""),
             message_provider,
             message_index,
             synthesize_storage[message_id],
@@ -842,6 +848,7 @@ const ask_gpt = async (message_id, message_index = -1, regenerate = false, provi
             usage_storage[message_id],
             action=="continue"
         );
+        delete controller_storage[message_id];
         delete message_storage[message_id];
         if (!error_storage[message_id]) {
             await safe_load_conversation(window.conversation_id, scroll);
@@ -961,7 +968,7 @@ const delete_conversation = async (conversation_id) => {
 
 const set_conversation = async (conversation_id) => {
     try {
-        history.pushState({}, null, `/chat/${conversation_id}`);
+        add_url_to_history(`/chat/${conversation_id}`);
     } catch (e) {
         console.error(e);
     }
@@ -1242,7 +1249,7 @@ async function add_conversation(conversation_id) {
         });
     }
     try {
-        history.pushState({}, null, `/chat/${conversation_id}`);
+        add_url_to_history(`/chat/${conversation_id}`);
     } catch (e) {
         console.error(e);
     }
@@ -1371,7 +1378,7 @@ const load_conversations = async () => {
                 </div>
                 <i onclick="show_option('${conversation.id}')" class="fa-solid fa-ellipsis-vertical" id="conv-${conversation.id}"></i>
                 <div id="cho-${conversation.id}" class="choise" style="display:none;">
-                    <i onclick="delete_conversation('${conversation.id}')" class="fa-regular fa-trash"></i>
+                    <i onclick="delete_conversation('${conversation.id}')" class="fa-solid fa-trash"></i>
                     <i onclick="hide_option('${conversation.id}')" class="fa-regular fa-x"></i>
                 </div>
             </div>
@@ -1434,17 +1441,23 @@ sidebar_button.addEventListener("click", async () => {
     } else {
         sidebar.classList.add("shown");
         sidebar_button.classList.add("rotated");
-        history.pushState({}, null, "/menu/");
+        add_url_to_history("/menu/");
     }
     window.scrollTo(0, 0);
 });
+
+function add_url_to_history(url) {
+    if (!window?.pywebview) {
+        history.pushState({}, null, url);
+    }
+}
 
 function open_settings() {
     if (settings.classList.contains("hidden")) {
         chat.classList.add("hidden");
         sidebar.classList.remove("shown");
         settings.classList.remove("hidden");
-        history.pushState({}, null, "/settings/");
+        add_url_to_history("/settings/");
     } else {
         settings.classList.add("hidden");
         chat.classList.remove("hidden");
@@ -1523,8 +1536,9 @@ const load_settings_storage = async () => {
                     } else {
                         element.value = value;
                     }
+                    break;
                 default:
-                    console.warn("Unresolved element type");
+                    console.warn("`Unresolved element type:", element.type);
             }
         }
     });
@@ -1644,17 +1658,29 @@ window.addEventListener('DOMContentLoaded', async function() {
     await on_load();
     if (window.conversation_id == "{{chat_id}}") {
         window.conversation_id = uuid();
+    } else {
+        await on_api();
     }
+});
+
+window.addEventListener('pywebviewready', async function() {
     await on_api();
 });
 
 async function on_load() {
     count_input();
-    if (/\/chat\/.+/.test(window.location.href)) {
+    if (/\/chat\/[^?]+/.test(window.location.href)) {
         load_conversation(window.conversation_id);
     } else {
-        say_hello()
         chatPrompt.value = document.getElementById("systemPrompt")?.value || "";
+        let chat_url = new URL(window.location.href)
+        let chat_params = new URLSearchParams(chat_url.search);
+        if (chat_params.get("prompt")) {
+            messageInput.value = chat_params.get("prompt");
+            await handle_ask();
+        } else {
+            say_hello()
+        }
     }
     load_conversations();
 }
@@ -1694,6 +1720,7 @@ const load_provider_option = (input, provider_name) => {
 };
 
 async function on_api() {
+    load_version();
     let prompt_lock = false;
     messageInput.addEventListener("keydown", async (evt) => {
         if (prompt_lock) return;
@@ -1718,82 +1745,75 @@ async function on_api() {
     });
     messageInput.focus();
     let provider_options = [];
-    try {
-        models = await api("models");
-        models.forEach((model) => {
-            let option = document.createElement("option");
-            option.value = model.name;
-            option.text = model.name + (model.image ? " (Image Generation)" : "");
-            option.dataset.providers = model.providers.join(" ");
-            modelSelect.appendChild(option);
-        });
-        providers = await api("providers")
-        providers.sort((a, b) => a.label.localeCompare(b.label));
-        let login_urls = {};
-        providers.forEach((provider) => {
-            let option = document.createElement("option");
-            option.value = provider.name;
-            option.dataset.label = provider.label;
-            option.text = provider.label
-                + (provider.vision ? " (Image Upload)" : "")
-                + (provider.image ? " (Image Generation)" : "")
-                + (provider.webdriver ? " (Webdriver)" : "")
-                + (provider.auth ? " (Auth)" : "");
-            if (provider.parent)
-                option.dataset.parent = provider.parent;
-            providerSelect.appendChild(option);
+    models = await api("models");
+    models.forEach((model) => {
+        let option = document.createElement("option");
+        option.value = model.name;
+        option.text = model.name + (model.image ? " (Image Generation)" : "");
+        option.dataset.providers = model.providers.join(" ");
+        modelSelect.appendChild(option);
+    });
+    providers = await api("providers")
+    providers.sort((a, b) => a.label.localeCompare(b.label));
+    let login_urls = {};
+    providers.forEach((provider) => {
+        let option = document.createElement("option");
+        option.value = provider.name;
+        option.dataset.label = provider.label;
+        option.text = provider.label
+            + (provider.vision ? " (Image Upload)" : "")
+            + (provider.image ? " (Image Generation)" : "")
+            + (provider.webdriver ? " (Webdriver)" : "")
+            + (provider.auth ? " (Auth)" : "");
+        if (provider.parent)
+            option.dataset.parent = provider.parent;
+        providerSelect.appendChild(option);
 
-            if (provider.parent) {
-                if (!login_urls[provider.parent]) {
-                    login_urls[provider.parent] = [provider.label, provider.login_url, [provider.name]];
-                } else {
-                    login_urls[provider.parent][2].push(provider.name);
-                }
-            } else if (provider.login_url) {
-                if (!login_urls[provider.name]) {
-                    login_urls[provider.name] = [provider.label, provider.login_url, []];
-                } else {
-                    login_urls[provider.name][0] = provider.label;
-                    login_urls[provider.name][1] = provider.login_url;
-                }
+        if (provider.parent) {
+            if (!login_urls[provider.parent]) {
+                login_urls[provider.parent] = [provider.label, provider.login_url, [provider.name]];
+            } else {
+                login_urls[provider.parent][2].push(provider.name);
             }
-        });
-        for (let [name, [label, login_url, childs]] of Object.entries(login_urls)) {
-            if (!login_url) {
-                continue;
+        } else if (provider.login_url) {
+            if (!login_urls[provider.name]) {
+                login_urls[provider.name] = [provider.label, provider.login_url, []];
+            } else {
+                login_urls[provider.name][0] = provider.label;
+                login_urls[provider.name][1] = provider.login_url;
             }
-            option = document.createElement("div");
-            option.classList.add("field", "box", "hidden");
-            childs = childs.map((child)=>`${child}-api_key`).join(" ");
-            option.innerHTML = `
-                <label for="${name}-api_key" class="label" title="">${label}:</label>
-                <input type="text" id="${name}-api_key" name="${name}[api_key]" class="${childs}" placeholder="api_key"/>
-                <a href="${login_url}" target="_blank" title="Login to ${label}">Get API key</a>
-            `;
-            settings.querySelector(".paper").appendChild(option);
         }
-        providers.forEach((provider) => {
-            if (!provider.parent) {
-                option = document.createElement("div");
-                option.classList.add("field");
-                option.innerHTML = `
-                    <span class="label">Enable ${provider.label}</span>
-                    <input id="Provider${provider.name}" type="checkbox" name="Provider${provider.name}" value="${provider.name}" class="provider" checked="">
-                    <label for="Provider${provider.name}" class="toogle" title="Remove provider from dropdown"></label>
-                `;
-                option.querySelector("input").addEventListener("change", (event) => load_provider_option(event.target, provider.name));
-                settings.querySelector(".paper").appendChild(option);
-                provider_options[provider.name] = option;
-            }
-        });
-        await load_provider_models(appStorage.getItem("provider"));
-    } catch (e) {
-        console.error(e)
-        // Redirect to show basic authenfication
-        if (document.location.pathname == "/chat/") {
-            //document.location.href = `/chat/error`;
+    });
+    for (let [name, [label, login_url, childs]] of Object.entries(login_urls)) {
+        if (!login_url) {
+            continue;
         }
+        option = document.createElement("div");
+        option.classList.add("field", "box", "hidden");
+        childs = childs.map((child)=>`${child}-api_key`).join(" ");
+        option.innerHTML = `
+            <label for="${name}-api_key" class="label" title="">${label}:</label>
+            <input type="text" id="${name}-api_key" name="${name}[api_key]" class="${childs}" placeholder="api_key"/>
+            <a href="${login_url}" target="_blank" title="Login to ${label}">Get API key</a>
+        `;
+        settings.querySelector(".paper").appendChild(option);
     }
+    providers.forEach((provider) => {
+        if (!provider.parent) {
+            option = document.createElement("div");
+            option.classList.add("field");
+            option.innerHTML = `
+                <span class="label">Enable ${provider.label}</span>
+                <input id="Provider${provider.name}" type="checkbox" name="Provider${provider.name}" value="${provider.name}" class="provider" checked="">
+                <label for="Provider${provider.name}" class="toogle" title="Remove provider from dropdown"></label>
+            `;
+            option.querySelector("input").addEventListener("change", (event) => load_provider_option(event.target, provider.name));
+            settings.querySelector(".paper").appendChild(option);
+            provider_options[provider.name] = option;
+        }
+    });
+    await load_provider_models(appStorage.getItem("provider"))
+
     register_settings_storage();
     await load_settings_storage()
     Object.entries(provider_options).forEach(
@@ -1870,7 +1890,6 @@ async function load_version() {
     document.getElementById("version_text").innerHTML = text
     setTimeout(load_version, 1000 * 60 * 60); // 1 hour
 }
-setTimeout(load_version, 100);
 
 [imageInput, cameraInput].forEach((el) => {
     el.addEventListener('click', async () => {
@@ -1884,6 +1903,20 @@ setTimeout(load_version, 100);
 
 fileInput.addEventListener('click', async (event) => {
     fileInput.value = '';
+});
+
+cameraInput?.addEventListener("click", (e) => {
+    if (window?.pywebview) {
+        e.preventDefault();
+        pywebview.api.take_picture();
+    }
+});
+
+imageInput?.addEventListener("click", (e) => {
+    if (window?.pywebview) {
+        e.preventDefault();
+        pywebview.api.choose_image();
+    }
 });
 
 async function upload_cookies() {
@@ -2021,6 +2054,18 @@ function get_selected_model() {
 }
 
 async function api(ressource, args=null, files=null, message_id=null, scroll=true) {
+    if (window?.pywebview) {
+        if (args !== null) {
+            if (ressource == "conversation") {
+                return pywebview.api[`get_${ressource}`](args, message_id, scroll);
+            }
+            if (ressource == "models") {
+                ressource = "provider_models";
+            }
+            return pywebview.api[`get_${ressource}`](args);
+        }
+        return pywebview.api[`get_${ressource}`]();
+    }
     const headers = {};
     if (ressource == "models" && args) {
         api_key = get_api_key_by_provider(args);
@@ -2033,7 +2078,7 @@ async function api(ressource, args=null, files=null, message_id=null, scroll=tru
         }
         ressource = `${ressource}/${args}`;
     }
-    const url = `/backend-api/v2/${ressource}`;
+    const url = new URL(`/backend-api/v2/${ressource}`, window?.location || "http://localhost:8080");
     if (ressource == "conversation") {
         let body = JSON.stringify(args);
         headers.accept = 'text/event-stream';

@@ -32,6 +32,7 @@ from types import SimpleNamespace
 from typing import Union, Optional, List
 
 import g4f
+import g4f.Provider
 import g4f.debug
 from g4f.client import AsyncClient, ChatCompletion, ImagesResponse, convert_to_provider
 from g4f.providers.response import BaseConversation, JsonConversation
@@ -223,7 +224,18 @@ class Api:
                     "created": 0,
                     "owned_by": model.base_provider,
                     "image": isinstance(model, g4f.models.ImageModel),
-                } for model_id, model in g4f.models.ModelUtils.convert.items()]
+                    "provider": False,
+                } for model_id, model in g4f.models.ModelUtils.convert.items()] +
+                [{
+                    "id": provider_name,
+                    "object": "model",
+                    "created": 0,
+                    "owned_by": getattr(provider, "label", None),
+                    "image": bool(getattr(provider, "image_models", False)),
+                    "provider": True,
+                } for provider_name, provider in g4f.Provider.ProviderUtils.convert.items()
+                    if provider.working and provider_name != "Custom"
+                ]
             }
 
         @self.app.get("/v1/models/{model_name}", responses={

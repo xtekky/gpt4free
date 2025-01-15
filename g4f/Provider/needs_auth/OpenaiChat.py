@@ -382,7 +382,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                 #     if auth_result.arkose_token is None:
                 #         raise MissingAuthError("No arkose token found in .har file")
                 if "proofofwork" in chat_requirements:
-                    if getattr(auth_result, "proof_token") is None:
+                    if getattr(auth_result, "proof_token", None) is None:
                         auth_result.proof_token = get_config(auth_result.headers.get("user-agent"))
                     proofofwork = generate_proof_token(
                         **chat_requirements["proofofwork"],
@@ -444,12 +444,9 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                     headers=headers
                 ) as response:
                     cls._update_request_args(auth_result, session)
-                    if response.status in (403, 404) and max_retries > 0:
-                        max_retries -= 1
-                        debug.log(f"Retry: Error {response.status}: {await response.text()}")
-                        conversation.conversation_id = None
-                        await asyncio.sleep(5)
-                        continue
+                    if response.status == 403:
+                        auth_result.proof_token = None
+                        RequestConfig.proof_token = None
                     await raise_for_status(response)
                     buffer = u""
                     async for line in response.iter_lines():

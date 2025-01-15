@@ -88,10 +88,10 @@ class Api:
         provider = json_data.get('provider')
         messages = json_data.get('messages')
         api_key = json_data.get("api_key")
-        if api_key is not None:
+        if api_key:
             kwargs["api_key"] = api_key
         api_base = json_data.get("api_base")
-        if api_base is not None:
+        if api_base:
             kwargs["api_base"] = api_base
         kwargs["tool_calls"] = [{
             "function": {
