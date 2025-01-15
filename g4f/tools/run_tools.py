@@ -65,8 +65,18 @@ def iter_run_tools(
     messages: Messages,
     provider: Optional[str] = None,
     tool_calls: Optional[list] = None,
+    web_search: bool = False,
     **kwargs
 ) -> AsyncIterator:
+    # If web_search is True, enable safe search directly
+    if web_search:
+        try:
+            messages[-1]["content"] = asyncio.run(do_search(messages[-1]["content"]))
+        except Exception as e:
+            debug.log(f"Couldn't do web search: {e.__class__.__name__}: {e}")
+            # Enable provider native web search
+            kwargs["web_search"] = True
+
     if tool_calls is not None:
         for tool in tool_calls:
             if tool.get("type") == "function":
@@ -77,14 +87,6 @@ def iter_run_tools(
                         raise_search_exceptions=True,
                         **tool["function"]["arguments"]
                     )
-                elif tool.get("function", {}).get("name") == "safe_search_tool":
-                    tool["function"]["arguments"] = validate_arguments(tool["function"])
-                    try:
-                        messages[-1]["content"] = asyncio.run(do_search(messages[-1]["content"], **tool["function"]["arguments"]))
-                    except Exception as e:
-                        debug.log(f"Couldn't do web search: {e.__class__.__name__}: {e}")
-                        # Enable provider native web search
-                        kwargs["web_search"] = True
                 elif tool.get("function", {}).get("name") == "continue_tool":
                     if provider not in ("OpenaiAccount", "HuggingFace"):
                         last_line = messages[-1]["content"].strip().splitlines()[-1]
