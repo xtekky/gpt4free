@@ -29,10 +29,12 @@ def validate_arguments(data: dict) -> dict:
 
 async def async_iter_run_tools(async_iter_callback, model, messages, tool_calls: Optional[list] = None, **kwargs):
     # Handle web_search from kwargs
-    if kwargs.get('web_search'):
+    web_search = kwargs.get('web_search')
+    if web_search:
         try:
             messages = messages.copy()
-            messages[-1]["content"] = await do_search(messages[-1]["content"])
+            web_search = web_search if isinstance(web_search, str) and web_search != "true" else None
+            messages[-1]["content"] = await do_search(messages[-1]["content"], web_search)
         except Exception as e:
             debug.log(f"Couldn't do web search: {e.__class__.__name__}: {e}")
             # Keep web_search in kwargs for provider native support
@@ -78,10 +80,12 @@ def iter_run_tools(
     **kwargs
 ) -> AsyncIterator:
     # Handle web_search from kwargs
-    if kwargs.get('web_search'):
+    web_search = kwargs.get('web_search')
+    if web_search:
         try:
             messages = messages.copy()
-            messages[-1]["content"] = asyncio.run(do_search(messages[-1]["content"]))
+            web_search = web_search if isinstance(web_search, str) and web_search != "true" else None
+            messages[-1]["content"] = asyncio.run(do_search(messages[-1]["content"], web_search))
         except Exception as e:
             debug.log(f"Couldn't do web search: {e.__class__.__name__}: {e}")
             # Keep web_search in kwargs for provider native support

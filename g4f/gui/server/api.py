@@ -99,14 +99,9 @@ class Api:
             },
             "type": "function"
         }]
-        do_web_search = json_data.get('web_search')
-        if do_web_search and provider:
-            kwargs["tool_calls"].append({
-                "function": {
-                    "name": "safe_search_tool"
-                },
-                "type": "function"
-            })
+        web_search = json_data.get('web_search')
+        if web_search:
+            kwargs["web_search"] = web_search
         action = json_data.get('action')
         if action == "continue":
             kwargs["tool_calls"].append({

@@ -36,6 +36,9 @@ EXTRA_REQUIRE = {
         "uvicorn",                 # api
         "nodriver",
         "python-multipart",
+        "pywebview",
+        "plyer",
+        "setuptools",
         "pypdf2", # files
         "docx",
         "odfpy",
