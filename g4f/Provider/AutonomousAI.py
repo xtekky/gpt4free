@@ -32,6 +32,7 @@ class AutonomousAI(AsyncGeneratorProvider, ProviderModelMixin):
         "qwen-2.5-coder-32b": "qwen_coder",
         "hermes-3": "hermes",
         "llama-3.2-90b": "vision",
+        "llama-3.2-70b": "summary",
     }
 
     @classmethod

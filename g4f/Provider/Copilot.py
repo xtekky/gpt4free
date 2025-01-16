@@ -39,12 +39,15 @@ class Conversation(JsonConversation):
 class Copilot(AbstractProvider, ProviderModelMixin):
     label = "Microsoft Copilot"
     url = "https://copilot.microsoft.com"
+    
     working = True
     supports_stream = True
+    
     default_model = "Copilot"
     models = [default_model]
     model_aliases = {
-        "gpt-4": "Copilot",
+        "gpt-4": default_model,
+        "gpt-4o": default_model,
     }
 
     websocket_url = "wss://copilot.microsoft.com/c/api/chat?api-version=2"

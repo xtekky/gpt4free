@@ -9,7 +9,6 @@ from .Provider import (
     AIUncensored,
     AutonomousAI,
     Blackbox,
-    BlackboxCreateAgent,
     BingCreateImages,
     CablyAI,
     ChatGLM,
@@ -39,7 +38,6 @@ from .Provider import (
     Pi,
     PollinationsAI,
     Reka,
-    RubiksAI,
     TeachAnything,
     Yqcloud,
 )
@@ -104,20 +102,20 @@ gpt_35_turbo = Model(
 gpt_4 = Model(
     name          = 'gpt-4',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([DDG, Blackbox, Jmuz, ChatGptEs, ChatGptt, PollinationsAI, Copilot, Yqcloud, OpenaiChat, Liaobots, Mhystical])
+    best_provider = IterListProvider([DDG, Blackbox, Jmuz, ChatGptEs, ChatGptt, PollinationsAI, Yqcloud, Copilot, OpenaiChat, Liaobots, Mhystical])
 )
 
 # gpt-4o
 gpt_4o = Model(
     name          = 'gpt-4o',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([Blackbox, ChatGptt, Jmuz, ChatGptEs, PollinationsAI, DarkAI, ChatGpt, Liaobots, OpenaiChat])
+    best_provider = IterListProvider([Blackbox, ChatGptt, Jmuz, ChatGptEs, PollinationsAI, DarkAI, Copilot, ChatGpt, Liaobots, OpenaiChat])
 )
 
 gpt_4o_mini = Model(
     name          = 'gpt-4o-mini',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([DDG, ChatGptEs, ChatGptt, Jmuz, ChatGpt, RubiksAI, Liaobots, OpenaiChat])
+    best_provider = IterListProvider([DDG, ChatGptEs, ChatGptt, Jmuz, ChatGpt, Liaobots, OpenaiChat])
 )
 
 # o1
@@ -176,7 +174,7 @@ llama_3_1_8b = Model(
 llama_3_1_70b = Model(
     name          = "llama-3.1-70b",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider([DDG, Jmuz, Blackbox, BlackboxCreateAgent, TeachAnything, DarkAI, Airforce, RubiksAI, PerplexityLabs])
+    best_provider = IterListProvider([DDG, Jmuz, Blackbox, TeachAnything, DarkAI, Airforce, PerplexityLabs])
 )
 
 llama_3_1_405b = Model(
@@ -204,10 +202,16 @@ llama_3_2_11b = Model(
     best_provider = IterListProvider([Jmuz, HuggingChat, HuggingFace])
 )
 
+llama_3_2_70b = Model(
+    name          = "llama-3.2-70b",
+    base_provider = "Meta Llama",
+    best_provider = AutonomousAI
+)
+
 llama_3_2_90b = Model(
     name          = "llama-3.2-90b",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider([AutonomousAI, Jmuz])
+    best_provider = AutonomousAI
 )
 
 # llama 3.3
@@ -327,7 +331,7 @@ claude_3_sonnet = Model(
 claude_3_opus = Model(
     name          = 'claude-3-opus',
     base_provider = 'Anthropic',
-    best_provider = IterListProvider([Jmuz, Liaobots])
+    best_provider = Liaobots
 )
 
 
@@ -396,19 +400,26 @@ qwen_2_72b = Model(
 qwen_2_5_72b = Model(
     name = 'qwen-2.5-72b',
     base_provider = 'Qwen',
-    best_provider = IterListProvider([Jmuz, HuggingSpace])
+    best_provider = HuggingSpace
 )
 
 qwen_2_5_coder_32b = Model(
     name = 'qwen-2.5-coder-32b',
     base_provider = 'Qwen',
-    best_provider = IterListProvider([Jmuz, PollinationsAI, AutonomousAI, HuggingChat])
+    best_provider = IterListProvider([PollinationsAI, AutonomousAI, HuggingChat])
 )
 
+# qwq/qvq
 qwq_32b = Model(
     name = 'qwq-32b',
     base_provider = 'Qwen',
-    best_provider = IterListProvider([Blackbox, Jmuz, HuggingSpace, HuggingChat])
+    best_provider = IterListProvider([Blackbox, Jmuz, HuggingChat])
+)
+
+qvq_72b = Model(
+    name = 'qvq-72b',
+    base_provider = 'Qwen',
+    best_provider = HuggingSpace
 )
 
 ### Inflection ###
@@ -422,7 +433,7 @@ pi = Model(
 deepseek_chat = Model(
     name = 'deepseek-chat',
     base_provider = 'DeepSeek',
-    best_provider = IterListProvider([Blackbox, Jmuz, PollinationsAI])
+    best_provider = IterListProvider([Blackbox, PollinationsAI])
 )
 
 deepseek_coder = Model(
@@ -591,7 +602,7 @@ sd_3_5 = ImageModel(
 flux = ImageModel(
     name = 'flux',
     base_provider = 'Flux AI',
-    best_provider = IterListProvider([Blackbox, BlackboxCreateAgent, PollinationsAI, Airforce])
+    best_provider = IterListProvider([Blackbox, PollinationsAI, Airforce])
 )
 
 flux_pro = ImageModel(
@@ -609,7 +620,7 @@ flux_dev = ImageModel(
 flux_schnell = ImageModel(
     name = 'flux-schnell',
     base_provider = 'Flux AI',
-    best_provider = IterListProvider([HuggingSpace, HuggingFace])
+    best_provider = IterListProvider([HuggingSpace, HuggingChat, HuggingFace])
 )
 
 flux_realism = ImageModel(
@@ -724,6 +735,7 @@ class ModelUtils:
         llama_3_2_1b.name: llama_3_2_1b,
         llama_3_2_3b.name: llama_3_2_3b,
         llama_3_2_11b.name: llama_3_2_11b,
+        llama_3_2_70b.name: llama_3_2_70b,
         llama_3_2_90b.name: llama_3_2_90b,
         
         # llama-3.3
@@ -791,7 +803,10 @@ class ModelUtils:
         # qwen 2.5
         qwen_2_5_72b.name: qwen_2_5_72b,
         qwen_2_5_coder_32b.name: qwen_2_5_coder_32b,
+        
+        # qwq/qvq
         qwq_32b.name: qwq_32b,
+        qvq_72b.name: qvq_72b,
 
         ### Inflection ###
         pi.name: pi,

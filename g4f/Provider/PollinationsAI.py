@@ -26,7 +26,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
 
     # API endpoints
     text_api_endpoint = "https://text.pollinations.ai/"
-    image_api_endpoint = "https://image.pollinations.ai/"
+    image_api_endpoint = "https://image.pollinations.ai"
 
     # Models configuration
     default_model = "openai"

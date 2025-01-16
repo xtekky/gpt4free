@@ -11,7 +11,7 @@ class PerplexityApi(OpenaiAPI):
     default_model = "llama-3-sonar-large-32k-online"
     models = [
         "llama-3-sonar-small-32k-chat",
-        "llama-3-sonar-small-32k-online",
+        default_model,
         "llama-3-sonar-large-32k-chat",
         "llama-3-sonar-large-32k-online",
         "llama-3-8b-instruct",

@@ -14,5 +14,6 @@ from .MagickPen         import MagickPen
 from .MyShell           import MyShell
 from .ReplicateHome     import ReplicateHome
 from .RobocodersAPI     import RobocodersAPI
+from .RubiksAI          import RubiksAI
 from .Theb              import Theb
 from .Upstage           import Upstage
