@@ -79,7 +79,6 @@ default = Model(
         CablyAI,
         OpenaiChat,
         DarkAI,
-        Yqcloud,
         AIUncensored,
         Airforce,
         Cloudflare,
