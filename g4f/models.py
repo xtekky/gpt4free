@@ -286,6 +286,13 @@ gemini = Model(
     best_provider = IterListProvider([Jmuz, Gemini])
 )
 
+# gemini-exp
+gemini_exp = Model(
+    name          = 'gemini-exp',
+    base_provider = 'Google',
+    best_provider = Jmuz
+)
+
 # gemini-1.5
 gemini_1_5_pro = Model(
     name          = 'gemini-1.5-pro',
@@ -758,6 +765,9 @@ class ModelUtils:
         ### Google ###
         # gemini
         gemini.name: gemini,
+        
+        # gemini-exp
+        gemini_exp.name: gemini_exp,
         
         # gemini-1.5
         gemini_1_5_pro.name: gemini_1_5_pro,
