@@ -144,8 +144,8 @@ from g4f.client import AsyncClient
 
 async def main():
     client = AsyncClient()
-
-    stream = client.chat.completions.create(
+    
+    stream = await client.chat.completions.create(
         model="gpt-4",
         messages=[
             {
