@@ -20,6 +20,7 @@ from .Provider import (
     CopilotAccount,
     DarkAI,
     DDG,
+    DeepInfraChat,
     GigaChat,
     Gemini,
     GeminiPro,
@@ -72,6 +73,7 @@ default = Model(
         DDG,
         Blackbox,
         Copilot,
+        DeepInfraChat,
         ChatGptEs,
         ChatGptt,
         PollinationsAI,
@@ -167,7 +169,7 @@ llama_3_8b = Model(
 llama_3_1_8b = Model(
     name          = "llama-3.1-8b",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider([Blackbox, Jmuz, Cloudflare, Airforce, PerplexityLabs])
+    best_provider = IterListProvider([Blackbox, DeepInfraChat, Jmuz, Cloudflare, Airforce, PerplexityLabs])
 )
 
 llama_3_1_70b = Model(
@@ -217,7 +219,7 @@ llama_3_2_90b = Model(
 llama_3_3_70b = Model(
     name          = "llama-3.3-70b",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider([Blackbox, PollinationsAI, AutonomousAI, Jmuz, HuggingChat, HuggingFace, PerplexityLabs])
+    best_provider = IterListProvider([Blackbox, DeepInfraChat, PollinationsAI, AutonomousAI, Jmuz, HuggingChat, HuggingFace, PerplexityLabs])
 )
 
 ### Mistral ###
@@ -266,6 +268,7 @@ hermes_3 = Model(
 
 
 ### Microsoft ###
+# phi
 phi_2 = Model(
     name          = "phi-2",
     base_provider = "Microsoft",
@@ -276,6 +279,19 @@ phi_3_5_mini = Model(
     name          = "phi-3.5-mini",
     base_provider = "Microsoft",
     best_provider = IterListProvider([HuggingChat, HuggingFace])
+)
+
+# wizardlm
+wizardlm_2_7b = Model(
+    name = 'wizardlm-2-7b',
+    base_provider = 'Microsoft',
+    best_provider = DeepInfraChat
+)
+
+wizardlm_2_8x22b = Model(
+    name = 'wizardlm-2-8x22b',
+    base_provider = 'Microsoft',
+    best_provider = IterListProvider([DeepInfraChat, Jmuz])
 )
 
 ### Google DeepMind ###
@@ -399,7 +415,7 @@ qwen_1_5_7b = Model(
 qwen_2_72b = Model(
     name = 'qwen-2-72b',
     base_provider = 'Qwen',
-    best_provider = PollinationsAI
+    best_provider = IterListProvider([DeepInfraChat, PollinationsAI])
 )
 
 # qwen 2.5
@@ -412,14 +428,14 @@ qwen_2_5_72b = Model(
 qwen_2_5_coder_32b = Model(
     name = 'qwen-2.5-coder-32b',
     base_provider = 'Qwen',
-    best_provider = IterListProvider([PollinationsAI, AutonomousAI, HuggingChat])
+    best_provider = IterListProvider([DeepInfraChat, PollinationsAI, AutonomousAI, HuggingChat])
 )
 
 # qwq/qvq
 qwq_32b = Model(
     name = 'qwq-32b',
     base_provider = 'Qwen',
-    best_provider = IterListProvider([Blackbox, Jmuz, HuggingChat])
+    best_provider = IterListProvider([Blackbox, DeepInfraChat, Jmuz, HuggingChat])
 )
 
 qvq_72b = Model(
@@ -446,13 +462,6 @@ deepseek_coder = Model(
     name = 'deepseek-coder',
     base_provider = 'DeepSeek',
     best_provider = Airforce
-)
-
-### WizardLM ###
-wizardlm_2_8x22b = Model(
-    name = 'wizardlm-2-8x22b',
-    base_provider = 'WizardLM',
-    best_provider = Jmuz
 )
 
 ### OpenChat ###
@@ -487,7 +496,7 @@ sonar_chat = Model(
 nemotron_70b = Model(
     name = 'nemotron-70b',
     base_provider = 'Nvidia',
-    best_provider = IterListProvider([HuggingChat, HuggingFace])
+    best_provider = IterListProvider([DeepInfraChat, HuggingChat, HuggingFace])
 )
 
 ### Teknium ### 
@@ -759,8 +768,13 @@ class ModelUtils:
         hermes_3.name: hermes_3,
                 
         ### Microsoft ###
+        # phi
         phi_2.name: phi_2,
         phi_3_5_mini.name: phi_3_5_mini,
+        
+        # wizardlm
+        wizardlm_2_7b.name: wizardlm_2_7b,
+        wizardlm_2_8x22b.name: wizardlm_2_8x22b,
 
         ### Google ###
         # gemini
@@ -819,9 +833,6 @@ class ModelUtils:
 
         ### Inflection ###
         pi.name: pi,
-
-        ### WizardLM ###
-        wizardlm_2_8x22b.name: wizardlm_2_8x22b,
 
         ### OpenChat ###
         openchat_3_5.name: openchat_3_5,

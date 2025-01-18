@@ -26,6 +26,7 @@ from .Cloudflare           import Cloudflare
 from .Copilot              import Copilot
 from .DarkAI               import DarkAI
 from .DDG                  import DDG
+from .DeepInfraChat        import DeepInfraChat
 from .Free2GPT             import Free2GPT
 from .FreeGpt              import FreeGpt
 from .GizAI                import GizAI
