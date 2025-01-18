@@ -570,7 +570,7 @@ class AsyncCompletions:
         messages: Messages,
         model: str,
         **kwargs
-    ) -> AsyncIterator[ChatCompletionChunk]:
+    ) -> AsyncIterator[ChatCompletionChunk, BaseConversation]:
         return self.create(messages, model, stream=True, **kwargs)
 
 class AsyncImages(Images):
