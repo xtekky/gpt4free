@@ -529,7 +529,7 @@ class AsyncCompletions:
         ignore_working: Optional[bool] = False,
         ignore_stream: Optional[bool] = False,
         **kwargs
-    ) -> Union[ChatCompletion, AsyncIterator[ChatCompletionChunk]]:
+    ) -> Awaitable[ChatCompletion, AsyncIterator[ChatCompletionChunk]]:
         model, provider = get_model_and_provider(
             model,
             self.provider if provider is None else provider,
