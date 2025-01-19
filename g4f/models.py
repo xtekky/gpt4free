@@ -4,12 +4,12 @@ from dataclasses import dataclass
 
 from .Provider import IterListProvider, ProviderType
 from .Provider import (
+    ### not needs auth ###
     AIChatFree,
     Airforce,
     AIUncensored,
     AutonomousAI,
     Blackbox,
-    BingCreateImages,
     CablyAI,
     ChatGLM,
     ChatGpt,
@@ -17,30 +17,33 @@ from .Provider import (
     ChatGptt,
     Cloudflare,
     Copilot,
-    CopilotAccount,
     DarkAI,
     DDG,
     DeepInfraChat,
-    GigaChat,
-    Gemini,
-    GeminiPro,
-    HuggingChat,
-    HuggingFace,
     HuggingSpace,
     GPROChat,
     Jmuz,
     Liaobots,
     Mhystical,
-    MetaAI,
-    MicrosoftDesigner,
-    OpenaiChat,
-    OpenaiAccount,
     PerplexityLabs,
     Pi,
     PollinationsAI,
-    Reka,
     TeachAnything,
     Yqcloud,
+    
+    ### needs auth ###
+    BingCreateImages,
+    CopilotAccount,
+    Gemini,
+    GeminiPro,
+    GigaChat,
+    HuggingChat,
+    HuggingFace,
+    MetaAI,
+    MicrosoftDesigner,
+    OpenaiAccount,
+    OpenaiChat,
+    Reka,
 )
 
 @dataclass(unsafe_hash=True)
