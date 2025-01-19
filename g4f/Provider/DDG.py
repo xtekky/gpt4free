@@ -184,10 +184,12 @@ class DDG(AsyncGeneratorProvider, ProviderModelMixin):
                                 n: c.value 
                                 for n, c in session.cookie_jar.filter_cookies(cls.url).items()
                             }
-                            yield conversation
                             
                         if reason is not None:
                             yield FinishReason(reason)
+                            
+                        if return_conversation:
+                            yield conversation
                             
                 except asyncio.TimeoutError as e:
                     raise TimeoutException(f"Request timed out: {str(e)}")
