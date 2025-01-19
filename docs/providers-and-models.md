@@ -76,7 +76,7 @@ This document provides an overview of various AI providers and models, including
 |[inference.cerebras.ai](https://inference.cerebras.ai/)|`g4f.Provider.Cerebras`|✔ _**(3+)**_|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[inference.cerebras.ai](https://inference.cerebras.ai/)|`g4f.Provider.CopilotAccount`|✔ _**(1+)**_|✔ _**(1+)**_|✔ _**(1+)**_|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[deepinfra.com](https://deepinfra.com)|`g4f.Provider.DeepInfra`|✔ _**(17+)**_|✔ _**(6+)**_|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|✔|
-|[platform.deepseek.com](https://platform.deepseek.com)|`g4f.Provider.DeepSeek`|✔_**(1+)**_|❌|❌|❌|![](https://img.shields.io/badge/Active-brightgreen)|✔|
+|[platform.deepseek.com](https://platform.deepseek.com)|`g4f.Provider.DeepSeek`|✔ _**(1+)**_|❌|❌|❌|![](https://img.shields.io/badge/Active-brightgreen)|✔|
 |[gemini.google.com](https://gemini.google.com)|`g4f.Provider.Gemini`|`gemini, gemini-1.5-flash, gemini-1.5-pro`|`gemini`|`gemini`|❌|![](https://img.shields.io/badge/Active-brightgreen)|✔|
 |[ai.google.dev](https://ai.google.dev)|`g4f.Provider.GeminiPro`|`gemini-1.5-flash, gemini-1.5-pro, gemini-2.0-flash`|❌|`gemini-1.5-pro`|❌|![](https://img.shields.io/badge/Active-brightgreen)|✔|
 |[developers.sber.ru/gigachat](https://developers.sber.ru/gigachat)|`g4f.Provider.GigaChat`|✔ _**(3+)**_|❌|❌|❌|![](https://img.shields.io/badge/Active-brightgreen)|✔|
