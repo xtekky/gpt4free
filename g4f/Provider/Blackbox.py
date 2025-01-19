@@ -2,13 +2,11 @@ from __future__ import annotations
 
 from aiohttp import ClientSession
 
-from pathlib import Path
 import re
 import json
 import random
 import string
-
-
+from pathlib import Path
 
 from ..typing import AsyncResult, Messages, ImagesType
 from ..requests.raise_for_status import raise_for_status
@@ -39,7 +37,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
     default_model = "blackboxai"
     default_vision_model = default_model
     default_image_model = 'ImageGeneration' 
-    image_models = [default_image_model]
+    image_models = [default_image_model, "ImageGeneration2"]
     vision_models = [default_vision_model, 'gpt-4o', 'gemini-pro', 'gemini-1.5-flash', 'llama-3.1-8b', 'llama-3.1-70b', 'llama-3.1-405b']
     
     userSelectedModel = ['gpt-4o', 'gemini-pro', 'claude-sonnet-3.5', 'blackboxai-pro']
@@ -98,7 +96,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         'builder Agent': {'mode': True, 'id': "builder Agent"},
     }
     
-    models = list(dict.fromkeys([default_model, *userSelectedModel, *list(agentMode.keys()), *list(trendingAgentMode.keys())]))
+    models = list(dict.fromkeys([default_model, *userSelectedModel, *image_models, *list(agentMode.keys()), *list(trendingAgentMode.keys())]))
 
     model_aliases = {
         ### chat ###
@@ -115,6 +113,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         
         ### image ###
         "flux": "ImageGeneration",
+        "flux": "ImageGeneration2",
     }
 
     @classmethod
@@ -215,6 +214,31 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         }
         
         async with ClientSession(headers=headers) as session:
+            if model == "ImageGeneration2":
+                prompt = messages[-1]["content"]
+                data = {
+                    "query": prompt,
+                    "agentMode": True
+                }
+                headers['content-type'] = 'text/plain;charset=UTF-8'
+                
+                async with session.post(
+                    "https://www.blackbox.ai/api/image-generator",
+                    json=data,
+                    proxy=proxy,
+                    headers=headers
+                ) as response:
+                    await raise_for_status(response)
+                    response_json = await response.json()
+                    
+                    if "markdown" in response_json:
+                        image_url_match = re.search(r'!\[.*?\]\((.*?)\)', response_json["markdown"])
+                        if image_url_match:
+                            image_url = image_url_match.group(1)
+                            yield ImageResponse(images=[image_url], alt=prompt)
+                            yield FinishReason("stop")
+                            return
+
             if conversation is None:
                 conversation = Conversation(model)
                 conversation.validated_value = await cls.fetch_validated()
