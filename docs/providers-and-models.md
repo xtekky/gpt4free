@@ -7,7 +7,7 @@ This document provides an overview of various AI providers and models, including
 
 ## Table of Contents
   - [Providers](#providers)
-    - [Free](#providers-free)
+    - [Not Needs Auth](#providers-not-needs-auth)
     - [HuggingSpace](#providers-huggingspace)
     - [Needs Auth](#providers-needs-auth)
   - [Models](#models)
@@ -18,7 +18,7 @@ This document provides an overview of various AI providers and models, including
 ---
 ## Providers
 
-### Providers Free
+### Providers Not Needs Auth
 | Website | Provider | Text Models | Image Models | Vision (Image Upload) | Stream | Status | Auth |
 |----------|-------------|--------------|---------------|--------|--------|------|------|
 |[aichatfree.info](https://aichatfree.info)|`g4f.Provider.AIChatFree`|`gemini-1.5-pro` _**(1+)**_|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌|
@@ -45,6 +45,7 @@ This document provides an overview of various AI providers and models, including
 |[jmuz.me](https://jmuz.me)|`g4f.Provider.Jmuz`|`gpt-4o, gpt-4, gpt-4o-mini, claude-3.5-sonnet, gemini-1.5-pro, gemini-1.5-flash, gemini-exp, llama-3.1-405b, llama-3.1-70b, llama-3.1-8b, llama-3.2-11b, llama-3.3-70b, qwq-32b-preview, mixtral-8x7b` _**(7+)**_|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[liaobots.work](https://liaobots.work)|`g4f.Provider.Liaobots`|`grok-2, gpt-4o-mini, gpt-4o, gpt-4, o1-preview, o1-mini, claude-3-opus, claude-3.5-sonnet, claude-3-sonnet, gemini-1.5-flash, gemini-1.5-pro, gemini-2.0-flash, gemini-2.0-flash-thinking`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[mhystical.cc](https://mhystical.cc)|`g4f.Provider.Mhystical`|`gpt-4`|❌|❌|✔|![Error](https://img.shields.io/badge/Active-brightgreen)|❌|
+|[oi-vscode-server.onrender.com](https://oi-vscode-server.onrender.com)|`g4f.Provider.OIVSCode`|`gpt-4o-mini`|❌|`gpt-4o-mini`|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[labs.perplexity.ai](https://labs.perplexity.ai)|`g4f.Provider.PerplexityLabs`|`sonar-online, sonar-chat, llama-3.3-70b, llama-3.1-8b, llama-3.1-70b, lfm-40b`|❌|❌|✔|![Error](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[pi.ai/talk](https://pi.ai/talk)|`g4f.Provider.Pi`|`pi`|❌|❌|✔|![Error](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[pizzagpt.it](https://www.pizzagpt.it)|`g4f.Provider.Pizzagpt`|`gpt-4o-mini`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌|

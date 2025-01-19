@@ -25,6 +25,7 @@ from .Provider import (
     Jmuz,
     Liaobots,
     Mhystical,
+    OIVSCode,
     PerplexityLabs,
     Pi,
     PollinationsAI,
@@ -82,9 +83,10 @@ default = Model(
         PollinationsAI,
         Jmuz,
         CablyAI,
-        OpenaiChat,
+        OIVSCode,
         DarkAI,
         AIUncensored,
+        OpenaiChat,
         Airforce,
         Cloudflare,
     ])
@@ -119,7 +121,7 @@ gpt_4o = Model(
 gpt_4o_mini = Model(
     name          = 'gpt-4o-mini',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([DDG, ChatGptEs, ChatGptt, Jmuz, PollinationsAI, ChatGpt, Liaobots, OpenaiChat])
+    best_provider = IterListProvider([DDG, ChatGptEs, ChatGptt, Jmuz, PollinationsAI, OIVSCode, ChatGpt, Liaobots, OpenaiChat])
 )
 
 # o1

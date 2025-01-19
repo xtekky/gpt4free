@@ -35,6 +35,7 @@ from .ImageLabs            import ImageLabs
 from .Jmuz                 import Jmuz
 from .Liaobots             import Liaobots
 from .Mhystical            import Mhystical
+from .OIVSCode             import OIVSCode
 from .PerplexityLabs       import PerplexityLabs
 from .Pi                   import Pi
 from .Pizzagpt             import Pizzagpt
