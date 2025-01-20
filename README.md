@@ -69,10 +69,7 @@ If you would like to create your own copy of this space, you can duplicate it us
       - [Interference API](#interference-api)
       - [Local Inference](docs/local.md)
       - [Configuration](#configuration)
-      -  [Full Documentation for Python API](#full-documentation-for-python-api)
-         - [Requests API from G4F](docs/requests.md)
-         - [Client API from G4F](docs/client.md)
-         - [AsyncClient API from G4F](docs/async_client.md)
+      - [Full Documentation for Python API](#full-documentation-for-python-api)
    - [🚀 Providers and Models](docs/providers-and-models.md)
    - [🔗 Powered by gpt4free](#-powered-by-gpt4free)
    - [🤝 Contribute](#-contribute)
@@ -234,9 +231,9 @@ print(f"Generated image URL: {image_url}")
 
 #### **Full Documentation for Python API**
    - **New:**
-      - **Requests API from G4F:** [/docs/requests](docs/requests.md)
       - **Client API from G4F:** [/docs/client](docs/client.md)
       - **AsyncClient API from G4F:** [/docs/async_client](docs/async_client.md)
+      - **Requests API from G4F:** [/docs/requests](docs/requests.md)
       - **File API from G4F:** [/docs/file](docs/file.md)
 
    - **Legacy:**
