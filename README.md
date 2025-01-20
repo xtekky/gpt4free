@@ -118,8 +118,8 @@ Explore the [Visit GPT4Free on HuggingFace Space](https://huggingface.co/spaces/
 	```
  
 5. **Access the Client Interface:**
-   - To use the included client, navigate to: [http://localhost:8080/chat/](http://localhost:8080/chat/) or [http://localhost:1337/chat/](http://localhost:1337/chat/)
-   - Or set the API base for your client to: [http://localhost:1337/v1](http://localhost:1337/v1)
+   - **To use the included client, navigate to:** [http://localhost:8080/chat/](http://localhost:8080/chat/) or [http://localhost:1337/chat/](http://localhost:1337/chat/)
+   - **Or set the API base for your client to:** [http://localhost:1337/v1](http://localhost:1337/v1)
 
 6. **(Optional) Provider Login:**
    If required, you can access the container's desktop here: http://localhost:7900/?autoconnect=1&resize=scale&password=secret for provider login purposes.
@@ -147,8 +147,7 @@ By following these steps, you should be able to successfully install and run the
 pip install -U g4f[all]
 ```
 
-How do I install only parts or do disable parts?
-Use partial requirements: [/docs/requirements](docs/requirements.md)
+How do I install only parts or do disable parts? **Use partial requirements:** [/docs/requirements](docs/requirements.md)
 
 #### Install from Source:
 ```bash
@@ -157,8 +156,7 @@ cd gpt4free
 pip install -r requirements.txt
 ```
 
-How do I load the project using git and installing the project requirements?
-Read this tutorial and follow it step by step: [/docs/git](docs/git.md)
+How do I load the project using git and installing the project requirements? **Read this tutorial and follow it step by step:** [/docs/git](docs/git.md)
 
 ---
 
