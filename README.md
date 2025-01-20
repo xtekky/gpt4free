@@ -124,6 +124,8 @@ Explore the [Visit GPT4Free on HuggingFace Space](https://huggingface.co/spaces/
 6. **(Optional) Provider Login:**
    If required, you can access the container's desktop here: http://localhost:7900/?autoconnect=1&resize=scale&password=secret for provider login purposes.
 
+---
+
 ### Windows Guide (.exe)
 To ensure the seamless operation of our application, please follow the instructions below. These steps are designed to guide you through the installation process on Windows operating systems.
 
@@ -135,6 +137,7 @@ To ensure the seamless operation of our application, please follow the instructi
 
 By following these steps, you should be able to successfully install and run the application on your Windows system. If you encounter any issues during the installation process, please refer to our Issue Tracker or try to get contact over Discord for assistance.
 
+---
 
 ### Python Installation
 
