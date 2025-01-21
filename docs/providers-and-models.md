@@ -49,7 +49,7 @@ This document provides an overview of various AI providers and models, including
 |[labs.perplexity.ai](https://labs.perplexity.ai)|`g4f.Provider.PerplexityLabs`|`sonar-online, sonar-chat, llama-3.3-70b, llama-3.1-8b, llama-3.1-70b, lfm-40b`|❌|❌|✔|![Error](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[pi.ai/talk](https://pi.ai/talk)|`g4f.Provider.Pi`|`pi`|❌|❌|✔|![Error](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[pizzagpt.it](https://www.pizzagpt.it)|`g4f.Provider.Pizzagpt`|`gpt-4o-mini`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌|
-|[pollinations.ai](https://pollinations.ai)|`g4f.Provider.PollinationsAI`|`gpt-4o, mistral-large, mistral-nemo, llama-3.3-70b, gpt-4, qwen-2-72b, qwen-2.5-coder-32b, claude-3.5-sonnet, command-r, deepseek-chat, llama-3.2-3b, evil, p1, turbo, unity, midijourney, rtist`|`flux, flux-realism, flux-cablyai, flux-anime, flux-3d, any-dark, flux-pro, midjourney, dall-e-3`|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌|
+|[pollinations.ai](https://pollinations.ai)|`g4f.Provider.PollinationsAI`|`gpt-4o, mistral-large, mistral-nemo, llama-3.3-70b, gpt-4, qwen-2-72b, qwen-2.5-coder-32b, claude-3.5-sonnet, claude-3.5-haiku, command-r, deepseek-chat, llama-3.1-8b, evil, p1, turbo, unity, midijourney, rtist`|`flux, flux-realism, flux-cablyai, flux-anime, flux-3d, any-dark, flux-pro, midjourney, dall-e-3`|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[app.prodia.com](https://app.prodia.com)|`g4f.Provider.Prodia`|❌|✔ _**(46)**_|❌|❌|![](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[teach-anything.com](https://www.teach-anything.com)|`g4f.Provider.TeachAnything`|`llama-3.1-70b`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[you.com](https://you.com)|`g4f.Provider.You`|✔|✔|✔|✔|![](https://img.shields.io/badge/Active-brightgreen)|❌|
@@ -119,11 +119,10 @@ This document provides an overview of various AI providers and models, including
 |meta-ai|Meta|1+ Providers|[ai.meta.com](https://ai.meta.com/)|
 |llama-2-7b|Meta Llama|2+ Providers|[huggingface.co](https://huggingface.co/meta-llama/Llama-2-7b)|
 |llama-3-8b|Meta Llama|1+ Providers|[ai.meta.com](https://ai.meta.com/blog/meta-llama-3/)|
-|llama-3.1-8b|Meta Llama|5+ Providers|[ai.meta.com](https://ai.meta.com/blog/meta-llama-3-1/)|
+|llama-3.1-8b|Meta Llama|6+ Providers|[ai.meta.com](https://ai.meta.com/blog/meta-llama-3-1/)|
 |llama-3.1-70b|Meta Llama|9+ Providers|[ai.meta.com](https://ai.meta.com/blog/meta-llama-3-1/)|
 |llama-3.1-405b|Meta Llama|2+ Providers|[huggingface.co](https://huggingface.co/meta-llama/Llama-3.1-405B)|
 |llama-3.2-1b|Meta Llama|1+ Providers|[huggingface.co](https://huggingface.co/meta-llama/Llama-3.2-1B)|
-|llama-3.2-3b|Meta Llama|1+ Providers|[huggingface.co](https://huggingface.co/meta-llama/Llama-3.2-3B)|
 |llama-3.2-11b|Meta Llama|3+ Providers|[ai.meta.com](https://ai.meta.com/blog/llama-3-2-connect-2024-vision-edge-mobile-devices/)|
 |llama-3.2-70b|Meta Llama|1+ Providers|[ai.meta.com](https://ai.meta.com/blog/llama-3-2-connect-2024-vision-edge-mobile-devices/)|
 |llama-3.2-90b|Meta Llama|2+ Providers|[huggingface.co](https://huggingface.co/meta-llama/Llama-3.2-90B-Vision)|
@@ -147,6 +146,7 @@ This document provides an overview of various AI providers and models, including
 |claude-3-haiku|Anthropic|2+ Providers|[anthropic.com](https://www.anthropic.com/news/claude-3-haiku)|
 |claude-3-sonnet|Anthropic|1+ Providers|[anthropic.com](https://www.anthropic.com/news/claude-3-family)|
 |claude-3-opus|Anthropic|2+ Providers|[anthropic.com](https://www.anthropic.com/news/claude-3-family)|
+|claude-3.5-haiku|Anthropic|1+ Providers|[anthropic.com](https://www.anthropic.com/news/claude-3-5-sonnet)|
 |claude-3.5-sonnet|Anthropic|4+ Providers|[anthropic.com](https://www.anthropic.com/news/claude-3-5-sonnet)|
 |reka-core|Reka AI|1+ Providers|[reka.ai](https://www.reka.ai/ourmodels)|
 |blackboxai|Blackbox AI|1+ Providers|[docs.blackbox.chat](https://docs.blackbox.chat/blackbox-ai-1)|

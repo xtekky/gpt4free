@@ -174,7 +174,7 @@ llama_3_8b = Model(
 llama_3_1_8b = Model(
     name          = "llama-3.1-8b",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider([Blackbox, DeepInfraChat, Jmuz, Cloudflare, Airforce, PerplexityLabs])
+    best_provider = IterListProvider([Blackbox, DeepInfraChat, Jmuz, PollinationsAI, Cloudflare, Airforce, PerplexityLabs])
 )
 
 llama_3_1_70b = Model(
@@ -194,12 +194,6 @@ llama_3_2_1b = Model(
     name          = "llama-3.2-1b",
     base_provider = "Meta Llama",
     best_provider = Cloudflare
-)
-
-llama_3_2_3b = Model(
-    name          = "llama-3.2-3b",
-    base_provider = "Meta Llama",
-    best_provider = PollinationsAI
 )
 
 llama_3_2_11b = Model(
@@ -363,6 +357,12 @@ claude_3_opus = Model(
 
 
 # claude 3.5
+claude_3_5_sonnet = Model(
+    name          = 'claude-3.5-haiku',
+    base_provider = 'Anthropic',
+    best_provider = PollinationsAI
+)
+
 claude_3_5_sonnet = Model(
     name          = 'claude-3.5-sonnet',
     base_provider = 'Anthropic',
@@ -753,7 +753,6 @@ class ModelUtils:
 
         # llama-3.2
         llama_3_2_1b.name: llama_3_2_1b,
-        llama_3_2_3b.name: llama_3_2_3b,
         llama_3_2_11b.name: llama_3_2_11b,
         llama_3_2_70b.name: llama_3_2_70b,
         llama_3_2_90b.name: llama_3_2_90b,

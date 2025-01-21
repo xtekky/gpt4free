@@ -36,7 +36,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
     models = []
 
     additional_models_image = ["midjourney", "dall-e-3"]
-    additional_models_text = ["claude", "karma", "command-r", "llamalight", "mistral-large", "sur-mistral"]
+    additional_models_text = ["claude", "karma", "command-r", "llamalight", "mistral-large", "sur-mistral", "claude-email"]
     model_aliases = {
         "gpt-4o-mini": default_model,
         "gpt-4o": "openai-large",
@@ -47,10 +47,11 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         #"": "karma",
         #"": "sur-mistral",
         "gpt-4": "searchgpt",
-        "claude-3.5-sonnet": "claude-hybridspace",
+        "claude-3.5-haiku": "claude-hybridspace",
+        "claude-3.5-sonnet": "claude-email",
         "gpt-4": "claude",
         "deepseek-chat": "deepseek",
-        "llama-3.2-3b": "llamalight", 
+        "llama-3.1-8b": "llamalight", 
     }
 
     @classmethod
