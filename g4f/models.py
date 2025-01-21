@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 from .Provider import IterListProvider, ProviderType
 from .Provider import (
-    ### not needs auth ###
+    ### no auth required ###
     AIChatFree,
     Airforce,
     AIUncensored,

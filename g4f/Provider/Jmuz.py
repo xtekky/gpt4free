@@ -5,6 +5,8 @@ from .needs_auth.OpenaiAPI import OpenaiAPI
 
 class Jmuz(OpenaiAPI):
     label = "Jmuz"
+    url = "https://discord.gg/qXfu24JmsB"
+    login_url = None
     api_base = "https://jmuz.me/gpt/api/v2"
     api_key = "prod"
 

@@ -11,6 +11,8 @@ from .FreeNetfly        import FreeNetfly
 from .Koala             import Koala
 from .MagickPen         import MagickPen
 from .MyShell           import MyShell
+from .Poe               import Poe
+from .Raycast           import Raycast
 from .ReplicateHome     import ReplicateHome
 from .RobocodersAPI     import RobocodersAPI
 from .RubiksAI          import RubiksAI
