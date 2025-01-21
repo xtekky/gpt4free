@@ -581,11 +581,6 @@ midijourney = Model(
     base_provider = 'Other',
     best_provider = PollinationsAI
 )
-turbo = Model(
-    name = 'turbo',
-    base_provider = 'Other',
-    best_provider = PollinationsAI
-)
 
 unity = Model(
     name = 'unity',
@@ -608,7 +603,12 @@ sdxl = ImageModel(
     name = 'sdxl',
     base_provider = 'Stability AI',
     best_provider = Airforce
-    
+)
+
+sd_turbo = ImageModel(
+    name = 'sd-turbo',
+    base_provider = 'Stability AI',
+    best_provider = PollinationsAI
 )
 
 sd_3_5 = ImageModel(
@@ -616,7 +616,6 @@ sd_3_5 = ImageModel(
     base_provider = 'Stability AI',
     best_provider = HuggingSpace
 )
-
 
 ### Flux AI ###
 flux = ImageModel(
@@ -888,7 +887,6 @@ class ModelUtils:
         
         ### Other ###
         midijourney.name: midijourney,
-        turbo.name: turbo,
         unity.name: unity,
         rtist.name: rtist,
         
@@ -898,6 +896,7 @@ class ModelUtils:
 
         ### Stability AI ###
         sdxl.name: sdxl,
+        sd_turbo.name: sd_turbo,
         sd_3_5.name: sd_3_5,
 
         ### Flux AI ###
