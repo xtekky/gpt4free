@@ -357,7 +357,7 @@ claude_3_opus = Model(
 
 
 # claude 3.5
-claude_3_5_sonnet = Model(
+claude_3_5_haiku = Model(
     name          = 'claude-3.5-haiku',
     base_provider = 'Anthropic',
     best_provider = PollinationsAI
@@ -803,6 +803,7 @@ class ModelUtils:
         claude_3_haiku.name: claude_3_haiku,
 
         # claude 3.5
+        claude_3_5_haiku.name: claude_3_5_haiku,
         claude_3_5_sonnet.name: claude_3_5_sonnet,
 
         ### Reka AI ###
