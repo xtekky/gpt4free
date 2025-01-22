@@ -1,5 +1,6 @@
 
 
+
 ![248433934-7886223b-c1d1-4260-82aa-da5741f303bb](https://github.com/xtekky/gpt4free/assets/98614666/ea012c87-76e0-496a-8ac4-e2de090cc6c9)
 
 <a href="https://trendshift.io/repositories/1692" target="_blank"><img src="https://trendshift.io/api/badge/repositories/1692" alt="xtekky%2Fgpt4free | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
@@ -49,7 +50,7 @@ Is your site on this repository and you want to take it down? Send an email to t
 - Seamless integration with multiple AI providers.
 - Comprehensive text and image generation support.
 
-Explore the [Visit GPT4Free on HuggingFace Space](https://huggingface.co/spaces/roxky/g4f) for a hosted version or [Duplicate GPT4Free Space](https://huggingface.co/spaces/roxky/g4f?duplicate=true) it for personal use.
+> Explore the [Visit GPT4Free on HuggingFace Space](https://huggingface.co/spaces/roxky/g4f) for a hosted version or [Duplicate GPT4Free Space](https://huggingface.co/spaces/roxky/g4f?duplicate=true) it for personal use.
 
 ---
 
@@ -148,7 +149,7 @@ By following these steps, you should be able to successfully install and run the
 pip install -U g4f[all]
 ```
 
-How do I install only parts or do disable parts? **Use partial requirements:** [/docs/requirements](docs/requirements.md)
+> How do I install only parts or do disable parts? **Use partial requirements:** [/docs/requirements](docs/requirements.md)
 
 #### Install from Source:
 ```bash
@@ -157,7 +158,7 @@ cd gpt4free
 pip install -r requirements.txt
 ```
 
-How do I load the project using git and installing the project requirements? **Read this tutorial and follow it step by step:** [/docs/git](docs/git.md)
+> How do I load the project using git and installing the project requirements? **Read this tutorial and follow it step by step:** [/docs/git](docs/git.md)
 
 ---
 
@@ -206,7 +207,7 @@ run_gui()
 python -m g4f.cli gui -port 8080 -debug
 ```
 
-**Learn More About the GUI:** For detailed instructions on how to set up, configure, and use the GPT4Free GUI, refer to the [GUI Documentation](docs/gui.md) . This guide includes step-by-step details on provider selection, managing conversations, using advanced features like speech recognition, and more.
+> **Learn More About the GUI:** For detailed instructions on how to set up, configure, and use the GPT4Free GUI, refer to the [GUI Documentation](docs/gui.md) . This guide includes step-by-step details on provider selection, managing conversations, using advanced features like speech recognition, and more.
 
 ---
 
