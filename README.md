@@ -56,20 +56,20 @@ Explore the [Visit GPT4Free on HuggingFace Space](https://huggingface.co/spaces/
 ## 📚 Table of Contents
    - [🆕 What's New](#-whats-new)
    - [📚 Table of Contents](#-table-of-contents)
-   - [🛠️ Getting Started](#-getting-started)
-      - [Installation](#installation)
-         - [Using Docker](#using-docker)
-         - [Windows Guide (.exe)](#windows-guide-exe)
-         - [Python Installation](#python-installation)
+   - [⚡ Getting Started](#-getting-started)
+      - [🛠 Installation](#-installation)
+         - [🐳 Using Docker](#-using-docker)
+         - [🪟 Windows Guide (.exe)](#-windows-guide-exe)
+         - [🐍 Python Installation](#-python-installation)
   - [💡 Usage](#-usage)
-     - [Text Generation](#text-generation)
-     - [Image Generation](#image-generation)
-     - [Web Interface](#web-interface)
-     - [Local Inference](docs/local.md)
-     - [Interference API](#interference-api)
-     - [Configuration](docs/configuration.md)
-     - [Run on Smartphone](#run-on-smartphone)
-     - [Full Documentation for Python API](#full-documentation-for-python-api)
+     - [📝 Text Generation](#-text-generation)
+     - [🎨 Image Generation](#-image-generation)
+     - [🌐 Web Interface](#-web-interface)
+     - [🖥️ Local Inference](docs/local.md)
+     - [🤖 Interference API](#-interference-api)
+     - [🛠️ Configuration](docs/configuration.md)
+     - [📱 Run on Smartphone](#-run-on-smartphone)
+     - [📘 Full Documentation for Python API](#-full-documentation-for-python-api)
   - [🚀 Providers and Models](docs/providers-and-models.md)
   - [🔗 Powered by gpt4free](#-powered-by-gpt4free)
   - [🤝 Contribute](#-contribute)
@@ -82,13 +82,11 @@ Explore the [Visit GPT4Free on HuggingFace Space](https://huggingface.co/spaces/
 
 ---
 
-## 🛠️ Getting Started
+## ⚡️ Getting Started
 
-## Installation
+## 🛠 Installation
 
-### Using Docker
-
-#### Quick Start:
+### 🐳 Using Docker
 1. **Install Docker:** [Download and install Docker](https://docs.docker.com/get-docker/).
 2. **Set Up Directories:** Before running the container, make sure the necessary data directories exist or can be created. For example, you can create and set ownership on these directories by running:
    ```bash
@@ -126,7 +124,7 @@ Explore the [Visit GPT4Free on HuggingFace Space](https://huggingface.co/spaces/
 
 ---
 
-### Windows Guide (.exe)
+### 🪟 Windows Guide (.exe)
 To ensure the seamless operation of our application, please follow the instructions below. These steps are designed to guide you through the installation process on Windows operating systems.
 
 **Installation Steps:**
@@ -139,7 +137,7 @@ By following these steps, you should be able to successfully install and run the
 
 ---
 
-### Python Installation
+### 🐍 Python Installation
 
 #### Prerequisites:
 1. Install Python 3.10+ from [python.org](https://www.python.org/downloads/).
@@ -165,7 +163,7 @@ How do I load the project using git and installing the project requirements? **R
 
 ## 💡 Usage
 
-### Text Generation
+### 📝 Text Generation
 ```python
 from g4f.client import Client
 
@@ -181,7 +179,7 @@ print(response.choices[0].message.content)
 Hello! How can I assist you today?
 ```
 
-### Image Generation
+### 🎨  Image Generation
 ```python
 from g4f.client import Client
 
@@ -196,7 +194,7 @@ print(f"Generated image URL: {response.data[0].url}")
 ```
 [![Image with cat](/docs/images/cat.jpeg)](docs/client.md)
 
-### Web Interface
+### 🌐 Web Interface
 **Run the GUI using Python:**
 ```python
 from g4f.gui import run_gui
@@ -212,12 +210,7 @@ python -m g4f.cli gui -port 8080 -debug
 
 ---
 
-### Run on Smartphone
-Run the Web UI on your smartphone for easy access on the go. Check out the dedicated guide to learn how to set up and use the GUI on your mobile device: [Run on Smartphone Guide](docs/guides/phone.md)
-
----
-
-### Interference API
+### 🤖 Interference API
 
 The **Interference API** enables seamless integration with OpenAI's services through G4F, allowing you to deploy efficient AI solutions.
 
@@ -229,7 +222,12 @@ This API is designed for straightforward implementation and enhanced compatibili
 
 ---
 
-#### **Full Documentation for Python API**
+### 📱 Run on Smartphone
+Run the Web UI on your smartphone for easy access on the go. Check out the dedicated guide to learn how to set up and use the GUI on your mobile device: [Run on Smartphone Guide](docs/guides/phone.md)
+
+---
+
+#### **📘 Full Documentation for Python API**
    - **Client API from G4F:** [/docs/client](docs/client.md)
    - **AsyncClient API from G4F:** [/docs/async_client](docs/async_client.md)
    - **Requests API from G4F:** [/docs/requests](docs/requests.md)
