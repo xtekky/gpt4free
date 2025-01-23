@@ -41,7 +41,7 @@ This document provides an overview of various AI providers and models, including
 |[api.airforce](https://api.airforce)|No auth required|`g4f.Provider.Airforce`|`phi-2, openchat-3.5, deepseek-coder, hermes-2-dpo, hermes-2-pro, openhermes-2.5, lfm-40b, german-7b, llama-2-7b, llama-3.1-8b, llama-3.1-70b, neural-7b, zephyr-7b, evil` _**(7+)**_|`sdxl, flux-pro, flux, flux-realism, flux-anime, flux-3d, flux-disney, flux-pixel, flux-4o, any-dark, midjourney, dall-e-3`|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
 |[aiuncensored.info/ai_uncensored](https://www.aiuncensored.info/ai_uncensored)|Optional API key|`g4f.Provider.AIUncensored`|`hermes-3`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
 |[autonomous.ai](https://www.autonomous.ai/anon/)|No auth required|`g4f.Provider.AutonomousAI`|`llama-3.3-70b, qwen-2.5-coder-32b, hermes-3, llama-3.2-90b, llama-3.3-70b, llama-3-2-70b`|✔|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
-|[blackbox.ai](https://www.blackbox.ai)|No auth required|`g4f.Provider.Blackbox`|`blackboxai, gpt-4, gpt-4o, gemini-1.5-flash, gemini-1.5-pro, claude-3.5-sonnet, blackboxai-pro, llama-3.1-8b, llama-3.1-70b, llama-3-1-405b, llama-3.3-70b, mixtral-7b, deepseek-chat, dbrx-instruct, qwq-32b, hermes-2-dpo` _**(+31)**_|`flux`|`blackboxai, gpt-4o, gemini-1.5-pro, gemini-1.5-flash, llama-3.1-8b, llama-3.1-70b, llama-3.1-405b`|✔|![](https://img.shields.io/badge/Active-brightgreen)|
+|[blackbox.ai](https://www.blackbox.ai)|No auth required|`g4f.Provider.Blackbox`|`blackboxai, gpt-4, gpt-4o, gemini-1.5-flash, gemini-1.5-pro, claude-3.5-sonnet, blackboxai-pro, llama-3.1-8b, llama-3.1-70b, llama-3-1-405b, llama-3.3-70b, mixtral-7b, deepseek-chat, dbrx-instruct, qwq-32b, hermes-2-dpo, deepseek-r1` _**(+31)**_|`flux`|`blackboxai, gpt-4o, gemini-1.5-pro, gemini-1.5-flash, llama-3.1-8b, llama-3.1-70b, llama-3.1-405b`|✔|![](https://img.shields.io/badge/Active-brightgreen)|
 |[cablyai.com](https://cablyai.com)|No auth required|`g4f.Provider.CablyAI`|`cably-80b`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
 |[chatglm.cn](https://chatglm.cn)|No auth required|`g4f.Provider.ChatGLM`|`glm-4`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
 |[chatgpt.com](https://chatgpt.com)|No auth required|`g4f.Provider.ChatGpt`|✔ _**(+7)**_|❌|❌|✔|![Error](https://img.shields.io/badge/HTTPError-f48d37)|
@@ -177,6 +177,7 @@ This document provides an overview of various AI providers and models, including
 |pi|Inflection|1+ Providers|[inflection.ai](https://inflection.ai/blog/inflection-2-5)|
 |deepseek-chat|DeepSeek|3+ Providers|[huggingface.co](https://huggingface.co/deepseek-ai/deepseek-llm-67b-chat)|
 |deepseek-coder|DeepSeek|1+ Providers|[huggingface.co](https://huggingface.co/deepseek-ai/DeepSeek-Coder-V2-Instruct)|
+|deepseek-r1|DeepSeek|1+ Providers|[api-docs.deepseek.com](https://api-docs.deepseek.com/news/news250120)|
 |openchat-3.5|OpenChat|1+ Providers|[huggingface.co](https://huggingface.co/openchat/openchat_3.5)|
 |grok-2|x.ai|1+ Providers|[x.ai](https://x.ai/blog/grok-2)|
 |sonar-online|Perplexity AI|1+ Providers|[docs.perplexity.ai](https://docs.perplexity.ai/)|

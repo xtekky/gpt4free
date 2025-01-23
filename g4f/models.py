@@ -469,6 +469,12 @@ deepseek_coder = Model(
     best_provider = Airforce
 )
 
+deepseek_r1 = Model(
+    name = 'deepseek-r1',
+    base_provider = 'DeepSeek',
+    best_provider = Blackbox
+)
+
 ### OpenChat ###
 openchat_3_5 = Model(
     name = 'openchat-3.5',
@@ -851,6 +857,7 @@ class ModelUtils:
         ### DeepSeek ###
         deepseek_chat.name: deepseek_chat,
         deepseek_coder.name: deepseek_coder,
+        deepseek_r1.name: deepseek_r1,
 
         ### TheBloke ###   
         german_7b.name: german_7b,
