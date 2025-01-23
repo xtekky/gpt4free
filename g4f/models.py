@@ -472,7 +472,7 @@ deepseek_coder = Model(
 deepseek_r1 = Model(
     name = 'deepseek-r1',
     base_provider = 'DeepSeek',
-    best_provider = Blackbox
+    best_provider = IterListProvider([Blackbox, HuggingChat, HuggingFace])
 )
 
 ### OpenChat ###
