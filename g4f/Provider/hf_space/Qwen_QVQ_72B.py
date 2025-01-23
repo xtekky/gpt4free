@@ -18,6 +18,7 @@ class Qwen_QVQ_72B(AsyncGeneratorProvider, ProviderModelMixin):
 
     default_model = "qwen-qvq-72b-preview"
     models = [default_model]
+    vision_models = models
     model_aliases = {"qwq-32b": default_model}
 
     @classmethod

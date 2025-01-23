@@ -89,9 +89,8 @@ class JsonMixin:
         self.__dict__ = {}
 
 class FinishReason(ResponseType, JsonMixin):
-    def __init__(self, reason: str, actions: list[str] = None) -> None:
+    def __init__(self, reason: str) -> None:
         self.reason = reason
-        self.actions = actions
 
     def __str__(self) -> str:
         return ""
@@ -120,6 +119,14 @@ class TitleGeneration(ResponseType):
 
     def __str__(self) -> str:
         return ""
+
+class Reasoning(ResponseType):
+    def __init__(self, token: str = None, status: str = None) -> None:
+        self.token = token
+        self.status = status
+
+    def __str__(self) -> str:
+        return "" if self.token is None else self.token
 
 class Sources(ResponseType):
     def __init__(self, sources: list[dict[str, str]]) -> None:

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import re
+import requests
 
 try:
     from curl_cffi.requests import Session, CurlMime
@@ -13,14 +15,13 @@ from ..helper import format_prompt
 from ...typing import CreateResult, Messages, Cookies
 from ...errors import MissingRequirementsError
 from ...requests.raise_for_status import raise_for_status
-from ...providers.response import JsonConversation, ImageResponse, Sources
+from ...providers.response import JsonConversation, ImageResponse, Sources, TitleGeneration, Reasoning
 from ...cookies import get_cookies
 from ... import debug
 
 class Conversation(JsonConversation):
-    def __init__(self, conversation_id: str, message_id: str):
-        self.conversation_id: str = conversation_id
-        self.message_id: str = message_id
+    def __init__(self, models: dict):
+        self.models: dict = models
 
 class HuggingChat(AbstractProvider, ProviderModelMixin):
     url = "https://huggingface.co/chat"
@@ -32,11 +33,11 @@ class HuggingChat(AbstractProvider, ProviderModelMixin):
     default_model = "Qwen/Qwen2.5-72B-Instruct"
     default_image_model = "black-forest-labs/FLUX.1-dev"
     image_models = [    
-        "black-forest-labs/FLUX.1-dev",
+       default_image_model,
         "black-forest-labs/FLUX.1-schnell",
     ]
-    models = [
-        'Qwen/Qwen2.5-Coder-32B-Instruct',
+    fallback_models = [
+        default_model,
         'meta-llama/Llama-3.3-70B-Instruct',
         'CohereForAI/c4ai-command-r-plus-08-2024',
         'Qwen/QwQ-32B-Preview',
@@ -64,11 +65,32 @@ class HuggingChat(AbstractProvider, ProviderModelMixin):
     }
 
     @classmethod
+    def get_models(cls):
+        if not cls.models:
+            try:
+                text = requests.get(cls.url).text
+                text = re.sub(r',parameters:{[^}]+?}', '', text)
+                text = re.search(r'models:(\[.+?\]),oldModels:', text).group(1)
+                text = text.replace('void 0', 'null')
+                def add_quotation_mark(match):
+                    return f'{match.group(1)}"{match.group(2)}":'
+                text = re.sub(r'([{,])([A-Za-z0-9_]+?):', add_quotation_mark, text)
+                models = json.loads(text)
+                cls.text_models = [model["id"] for model in models] 
+                cls.models = cls.text_models + cls.image_models
+                cls.vision_models = [model["id"] for model in models if model["multimodal"]]
+            except Exception as e:
+                debug.log(f"HuggingChat: Error reading models: {type(e).__name__}: {e}")
+                cls.models = [*cls.fallback_models]
+        return cls.models
+
+    @classmethod
     def create_completion(
         cls,
         model: str,
         messages: Messages,
         stream: bool,
+        prompt: str = None,
         return_conversation: bool = False,
         conversation: Conversation = None,
         web_search: bool = False,
@@ -99,22 +121,26 @@ class HuggingChat(AbstractProvider, ProviderModelMixin):
             'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
         }
 
-        if conversation is None:
+        if conversation is None or not hasattr(conversation, "models"):
+            conversation = Conversation({})
+
+        if model not in conversation.models:
             conversationId = cls.create_conversation(session, model)
             messageId = cls.fetch_message_id(session, conversationId)
-            conversation = Conversation(conversationId, messageId)
+            conversation.models[model] = {"conversationId": conversationId, "messageId": messageId}
             if return_conversation:
                 yield conversation
             inputs = format_prompt(messages)
         else:
-            conversation.message_id = cls.fetch_message_id(session, conversation.conversation_id)
+            conversationId = conversation.models[model]["conversationId"]
+            conversation.models[model]["message_id"] = cls.fetch_message_id(session, conversationId)
             inputs = messages[-1]["content"]
 
-        debug.log(f"Use conversation: {conversation.conversation_id} Use message: {conversation.message_id}")
+        debug.log(f"Use model {model}: {json.dumps(conversation.models[model])}")
 
         settings = {
             "inputs": inputs,
-            "id": conversation.message_id,
+            "id": conversation.models[model]["message_id"],
             "is_retry": False,
             "is_continue": False,
             "web_search": web_search,
@@ -128,7 +154,7 @@ class HuggingChat(AbstractProvider, ProviderModelMixin):
             'origin': 'https://huggingface.co',
             'pragma': 'no-cache',
             'priority': 'u=1, i',
-            'referer': f'https://huggingface.co/chat/conversation/{conversation.conversation_id}',
+            'referer': f'https://huggingface.co/chat/conversation/{conversationId}',
             'sec-ch-ua': '"Not)A;Brand";v="99", "Google Chrome";v="127", "Chromium";v="127"',
             'sec-ch-ua-mobile': '?0',
             'sec-ch-ua-platform': '"macOS"',
@@ -142,7 +168,7 @@ class HuggingChat(AbstractProvider, ProviderModelMixin):
         data.addpart('data', data=json.dumps(settings, separators=(',', ':')))
 
         response = session.post(
-            f'https://huggingface.co/chat/conversation/{conversation.conversation_id}',
+            f'https://huggingface.co/chat/conversation/{conversationId}',
             cookies=session.cookies,
             headers=headers,
             multipart=data,
@@ -170,10 +196,17 @@ class HuggingChat(AbstractProvider, ProviderModelMixin):
             elif line["type"] == "finalAnswer":
                 break
             elif line["type"] == "file":
-                url = f"https://huggingface.co/chat/conversation/{conversation.conversation_id}/output/{line['sha']}"
-                yield ImageResponse(url, alt=messages[-1]["content"], options={"cookies": cookies})
+                url = f"https://huggingface.co/chat/conversation/{conversationId}/output/{line['sha']}"
+                prompt = messages[-1]["content"] if prompt is None else prompt
+                yield ImageResponse(url, alt=prompt, options={"cookies": cookies})
             elif line["type"] == "webSearch" and "sources" in line:
                 sources = Sources(line["sources"])
+            elif line["type"] == "title":
+                yield TitleGeneration(line["title"])
+            elif line["type"] == "reasoning":
+                yield Reasoning(line.get("token"), line.get("status"))
+            else:
+                pass #print(line)
 
         full_response = full_response.replace('<|im_end|', '').strip()
         if not stream:

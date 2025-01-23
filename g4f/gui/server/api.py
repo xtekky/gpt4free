@@ -13,7 +13,7 @@ from ...tools.run_tools import iter_run_tools
 from ...Provider import ProviderUtils, __providers__
 from ...providers.base_provider import ProviderModelMixin
 from ...providers.retry_provider import IterListProvider
-from ...providers.response import BaseConversation, JsonConversation, FinishReason, Usage
+from ...providers.response import BaseConversation, JsonConversation, FinishReason, Usage, Reasoning
 from ...providers.response import SynthesizeData, TitleGeneration, RequestLogin, Parameters
 from ... import version, models
 from ... import ChatCompletion, get_model_and_provider
@@ -207,6 +207,8 @@ class Api:
                     yield self._format_json("finish", chunk.get_dict())
                 elif isinstance(chunk, Usage):
                     yield self._format_json("usage", chunk.get_dict())
+                elif isinstance(chunk, Reasoning):
+                    yield self._format_json("reasoning", token=chunk.token, status=chunk.status)
                 else:
                     yield self._format_json("content", str(chunk))
                 if debug.logs:
@@ -219,10 +221,15 @@ class Api:
         if first:
             yield self.handle_provider(provider_handler, model)
 
-    def _format_json(self, response_type: str, content):
+    def _format_json(self, response_type: str, content = None, **kwargs):
+        if content is not None:
+            return {
+                'type': response_type,
+                response_type: content,
+            }
         return {
             'type': response_type,
-            response_type: content
+            **kwargs
         }
 
     def handle_provider(self, provider_handler, model):

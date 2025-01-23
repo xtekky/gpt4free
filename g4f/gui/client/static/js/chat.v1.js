@@ -35,6 +35,7 @@ let title_storage = {};
 let parameters_storage = {};
 let finish_storage = {};
 let usage_storage = {};
+let reasoning_storage = {}
 
 messageInput.addEventListener("blur", () => {
     window.scrollTo(0, 0);
@@ -68,6 +69,17 @@ if (window.markdownit) {
             .replaceAll("<a href=", '<a target="_blank" href=')
             .replaceAll('<code>', '<code class="language-plaintext">')
     }
+}
+
+function render_reasoning(reasoning, final = false) {
+    return `<div class="reasoning_body">
+        <div class="reasoning_title">
+           <strong>Reasoning <i class="fa-solid fa-brain"></i>:</strong> ${escapeHtml(reasoning.status)}
+        </div>
+        <div class="reasoning_text${final ? " final hidden" : ""}">
+        ${markdown_render(reasoning.text)}
+        </div>
+    </div>`;
 }
 
 function filter_message(text) {
@@ -169,7 +181,7 @@ const get_message_el = (el) => {
 }
 
 const register_message_buttons = async () => {
-    document.querySelectorAll(".message .content .provider").forEach(async (el) => {
+    message_box.querySelectorAll(".message .content .provider").forEach(async (el) => {
         if (!("click" in el.dataset)) {
             el.dataset.click = "true";
             const provider_forms = document.querySelector(".provider_forms");
@@ -192,7 +204,7 @@ const register_message_buttons = async () => {
         }
     });
 
-    document.querySelectorAll(".message .fa-xmark").forEach(async (el) => {
+    message_box.querySelectorAll(".message .fa-xmark").forEach(async (el) => {
         if (!("click" in el.dataset)) {
             el.dataset.click = "true";
             el.addEventListener("click", async () => {
@@ -203,7 +215,7 @@ const register_message_buttons = async () => {
         }
     });
 
-    document.querySelectorAll(".message .fa-clipboard").forEach(async (el) => {
+    message_box.querySelectorAll(".message .fa-clipboard").forEach(async (el) => {
         if (!("click" in el.dataset)) {
             el.dataset.click = "true";
             el.addEventListener("click", async () => {
@@ -226,7 +238,7 @@ const register_message_buttons = async () => {
         }
     });
 
-    document.querySelectorAll(".message .fa-file-export").forEach(async (el) => {
+    message_box.querySelectorAll(".message .fa-file-export").forEach(async (el) => {
         if (!("click" in el.dataset)) {
             el.dataset.click = "true";
             el.addEventListener("click", async () => {
@@ -244,7 +256,7 @@ const register_message_buttons = async () => {
         }
     });
 
-    document.querySelectorAll(".message .fa-volume-high").forEach(async (el) => {
+    message_box.querySelectorAll(".message .fa-volume-high").forEach(async (el) => {
         if (!("click" in el.dataset)) {
             el.dataset.click = "true";
             el.addEventListener("click", async () => {
@@ -270,7 +282,7 @@ const register_message_buttons = async () => {
         }
     });
 
-    document.querySelectorAll(".message .regenerate_button").forEach(async (el) => {
+    message_box.querySelectorAll(".message .regenerate_button").forEach(async (el) => {
         if (!("click" in el.dataset)) {
             el.dataset.click = "true";
             el.addEventListener("click", async () => {
@@ -282,7 +294,7 @@ const register_message_buttons = async () => {
         }
     });
 
-    document.querySelectorAll(".message .continue_button").forEach(async (el) => {
+    message_box.querySelectorAll(".message .continue_button").forEach(async (el) => {
         if (!("click" in el.dataset)) {
             el.dataset.click = "true";
             el.addEventListener("click", async () => {
@@ -297,7 +309,7 @@ const register_message_buttons = async () => {
         }
     });
 
-    document.querySelectorAll(".message .fa-whatsapp").forEach(async (el) => {
+    message_box.querySelectorAll(".message .fa-whatsapp").forEach(async (el) => {
         if (!("click" in el.dataset)) {
             el.dataset.click = "true";
             el.addEventListener("click", async () => {
@@ -307,7 +319,7 @@ const register_message_buttons = async () => {
         }
     });
 
-    document.querySelectorAll(".message .fa-print").forEach(async (el) => {
+    message_box.querySelectorAll(".message .fa-print").forEach(async (el) => {
         if (!("click" in el.dataset)) {
             el.dataset.click = "true";
             el.addEventListener("click", async () => {
@@ -320,6 +332,16 @@ const register_message_buttons = async () => {
                     message_el.classList.remove("print");
                 }, 1000);
                 window.print()
+            })
+        }
+    });
+
+    message_box.querySelectorAll(".message .reasoning_title").forEach(async (el) => {
+        if (!("click" in el.dataset)) {
+            el.dataset.click = "true";
+            el.addEventListener("click", async () => {
+                let text_el = el.parentElement.querySelector(".reasoning_text");
+                text_el.classList[text_el.classList.contains("hidden") ? "remove" : "add"]("hidden");
             })
         }
     });
@@ -469,7 +491,7 @@ const prepare_messages = (messages, message_index = -1, do_continue = false, do_
     messages.forEach((message) => {
         message_copy = { ...message };
         if (last_message) {
-            if (last_message["role"] == message["role"]) {
+            if (last_message["role"] == message["role"] &&  message["role"] == "assistant") {
                 message_copy["content"] = last_message["content"] + message_copy["content"];
                 new_messages.pop();
             }
@@ -515,6 +537,7 @@ const prepare_messages = (messages, message_index = -1, do_continue = false, do_
             delete new_message.synthesize;
             delete new_message.finish;
             delete new_message.usage;
+            delete new_message.reasoning;
             delete new_message.conversation;
             delete new_message.continue;
             // Append message to new messages
@@ -711,11 +734,21 @@ async function add_message_chunk(message, message_id, provider, scroll) {
     } else if (message.type == "title") {
         title_storage[message_id] = message.title;
     } else if (message.type == "login") {
-        update_message(content_map, message_id, message.login, scroll);
+        update_message(content_map, message_id, markdown_render(message.login), scroll);
     } else if (message.type == "finish") {
         finish_storage[message_id] = message.finish;
     } else if (message.type == "usage") {
         usage_storage[message_id] = message.usage;
+    } else if (message.type == "reasoning") {
+        if (!reasoning_storage[message_id]) {
+            reasoning_storage[message_id] = message;
+            reasoning_storage[message_id].text = "";
+        } else if (message.status) {
+            reasoning_storage[message_id].status = message.status;
+        } else if (message.token) {
+            reasoning_storage[message_id].text += message.token;
+        }
+        update_message(content_map, message_id, render_reasoning(reasoning_storage[message_id]), scroll);
     } else if (message.type == "parameters") {
         if (!parameters_storage[provider]) {
             parameters_storage[provider] = {};
@@ -846,6 +879,7 @@ const ask_gpt = async (message_id, message_index = -1, regenerate = false, provi
             title_storage[message_id],
             finish_storage[message_id],
             usage_storage[message_id],
+            reasoning_storage[message_id],
             action=="continue"
         );
         delete controller_storage[message_id];
@@ -1042,6 +1076,7 @@ function merge_messages(message1, message2) {
 const load_conversation = async (conversation_id, scroll=true) => {
     let conversation = await get_conversation(conversation_id);
     let messages = conversation?.items || [];
+    console.debug("Conversation:", conversation)
 
     if (!conversation) {
         return;
@@ -1098,11 +1133,8 @@ const load_conversation = async (conversation_id, scroll=true) => {
         let add_buttons = [];
         // Find buttons to add
         actions = ["variant"]
-        if (item.finish && item.finish.actions) {
-            actions = item.finish.actions
-        }
         // Add continue button if possible
-        if (item.role == "assistant" && !actions.includes("continue")) {
+        if (item.role == "assistant") {
             let reason = "stop";
             // Read finish reason from conversation
             if (item.finish && item.finish.reason) {
@@ -1167,7 +1199,10 @@ const load_conversation = async (conversation_id, scroll=true) => {
                 </div>
                 <div class="content">
                     ${provider}
-                    <div class="content_inner">${markdown_render(buffer)}</div>
+                    <div class="content_inner">
+                        ${item.reasoning ? render_reasoning(item.reasoning, true): ""}
+                        ${markdown_render(buffer)}
+                    </div>
                     <div class="count">
                         ${count_words_and_tokens(buffer, next_provider?.model, completion_tokens, prompt_tokens)}
                         ${add_buttons.join("")}
@@ -1298,6 +1333,7 @@ const add_message = async (
     title = null,
     finish = null,
     usage = null,
+    reasoning = null,
     do_continue = false
 ) => {
     const conversation = await get_conversation(conversation_id);
@@ -1328,6 +1364,9 @@ const add_message = async (
     }
     if (usage) {
         new_message.usage = usage;
+    }
+    if (reasoning) {
+        new_message.reasoning = reasoning;
     }
     if (do_continue) {
         new_message.continue = true;
@@ -1604,23 +1643,24 @@ function count_words_and_tokens(text, model, completion_tokens, prompt_tokens) {
 
 function update_message(content_map, message_id, content = null, scroll = true) {
     content_map.update_timeouts.push(setTimeout(() => {
-        if (!content) content = message_storage[message_id];
-        html = markdown_render(content);
-        let lastElement, lastIndex = null;
-        for (element of ['</p>', '</code></pre>', '</p>\n</li>\n</ol>', '</li>\n</ol>', '</li>\n</ul>']) {
-            const index = html.lastIndexOf(element)
-            if (index - element.length > lastIndex) {
-                lastElement = element;
-                lastIndex = index;
+        if (!content) {
+            content = markdown_render(message_storage[message_id]);
+            let lastElement, lastIndex = null;
+            for (element of ['</p>', '</code></pre>', '</p>\n</li>\n</ol>', '</li>\n</ol>', '</li>\n</ul>']) {
+                const index = content.lastIndexOf(element)
+                if (index - element.length > lastIndex) {
+                    lastElement = element;
+                    lastIndex = index;
+                }
+            }
+            if (lastIndex) {
+                content = content.substring(0, lastIndex) + '<span class="cursor"></span>' + lastElement;
             }
         }
-        if (lastIndex) {
-            html = html.substring(0, lastIndex) + '<span class="cursor"></span>' + lastElement;
-        }
+        content_map.inner.innerHTML = content;
         if (error_storage[message_id]) {
             content_map.inner.innerHTML += markdown_render(`**An error occured:** ${error_storage[message_id]}`);
         }
-        content_map.inner.innerHTML = html;
         content_map.count.innerText = count_words_and_tokens(message_storage[message_id], provider_storage[message_id]?.model);
         highlight(content_map.inner);
         if (scroll) {
@@ -2132,9 +2172,9 @@ async function read_response(response, message_id, provider, scroll) {
 function get_api_key_by_provider(provider) {
     let api_key = null;
     if (provider) {
-        api_key = document.getElementById(`${provider}-api_key`)?.id || null;
+        api_key = document.querySelector(`.${provider}-api_key`)?.id || null;
         if (api_key == null) {
-            api_key = document.querySelector(`.${provider}-api_key`)?.id || null;
+            api_key = document.getElementById(`${provider}-api_key`)?.id || null;
         }
         if (api_key) {
             api_key = appStorage.getItem(api_key);

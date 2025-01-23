@@ -25,7 +25,7 @@ async def raise_for_status_async(response: Union[StreamResponse, ClientResponse]
         return
     text = await response.text()
     if message is None:
-        message = "HTML content" if response.headers.get("content-type").startswith("text/html") else text
+        message = "HTML content" if response.headers.get("content-type", "").startswith("text/html") else text
     if message == "HTML content":
         if response.status == 520:
             message = "Unknown error (Cloudflare)"
@@ -46,7 +46,7 @@ def raise_for_status(response: Union[Response, StreamResponse, ClientResponse, R
     if response.ok:
         return
     if message is None:
-        message = "HTML content" if response.headers.get("content-type").startswith("text/html") else response.text
+        message = "HTML content" if response.headers.get("content-type", "").startswith("text/html") else response.text
     if message == "HTML content":
         if response.status_code == 520:
             message = "Unknown error (Cloudflare)"
