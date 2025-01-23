@@ -17,7 +17,11 @@ class Jmuz(OpenaiAPI):
 
     default_model = "gpt-4o"
     model_aliases = {
-        "qwq-32b": "qwq-32b-preview"
+        "qwq-32b": "qwq-32b-preview",
+        "gemini-1.5-flash": "gemini-flash",
+        "gemini-1.5-pro": "gemini-pro",
+        "gemini-2.0-flash-thinking": "gemini-thinking",
+        "deepseek-chat": "deepseek-v3",
     }
 
     @classmethod

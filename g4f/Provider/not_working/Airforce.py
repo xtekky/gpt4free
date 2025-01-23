@@ -5,13 +5,13 @@ import requests
 from aiohttp import ClientSession
 from typing import List
 
-from ..typing import AsyncResult, Messages
-from ..image import ImageResponse
-from ..providers.response import FinishReason, Usage
-from ..requests.raise_for_status import raise_for_status
-from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from ...typing import AsyncResult, Messages
+from ...image import ImageResponse
+from ...providers.response import FinishReason, Usage
+from ...requests.raise_for_status import raise_for_status
+from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
 
-from .. import debug
+from ... import debug
  
 def split_message(message: str, max_length: int = 1000) -> List[str]:
     """Splits the message into parts up to (max_length)."""
@@ -31,7 +31,7 @@ class Airforce(AsyncGeneratorProvider, ProviderModelMixin):
     api_endpoint_completions = "https://api.airforce/chat/completions"
     api_endpoint_imagine2 = "https://api.airforce/imagine2"
 
-    working = True
+    working = False
     supports_stream = True
     supports_system_message = True
     supports_message_history = True

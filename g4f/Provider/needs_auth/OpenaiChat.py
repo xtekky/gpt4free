@@ -95,7 +95,9 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
     supports_message_history = True
     supports_system_message = True
     default_model = "auto"
-    fallback_models = [default_model, "gpt-4", "gpt-4o", "gpt-4o-mini", "gpt-4o-canmore", "o1", "o1-preview", "o1-mini"]
+    default_image_model = "dall-e-3"
+    image_models = [default_image_model]
+    fallback_models = [default_model, "gpt-4", "gpt-4o", "gpt-4o-mini", "gpt-4o-canmore", "o1", "o1-preview", "o1-mini"] +image_models
     vision_models = fallback_models
     synthesize_content_type = "audio/mpeg"
 

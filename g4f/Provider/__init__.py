@@ -13,7 +13,6 @@ from .local            import *
 from .hf_space         import HuggingSpace
 
 from .AIChatFree           import AIChatFree
-from .Airforce             import Airforce
 from .AIUncensored         import AIUncensored
 from .AutonomousAI         import AutonomousAI
 from .Blackbox             import Blackbox

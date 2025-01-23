@@ -38,6 +38,7 @@ class HuggingSpace(AsyncGeneratorProvider, ProviderModelMixin):
             models = []
             for provider in cls.providers:
                 models.extend(provider.get_models(**kwargs))
+                models.extend(provider.model_aliases.keys())
             models = list(set(models))
             models.sort()
             cls.models = models
