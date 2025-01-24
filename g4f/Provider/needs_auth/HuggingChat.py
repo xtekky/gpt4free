@@ -4,6 +4,7 @@ import json
 import re
 import os
 import requests
+import base64
 from typing import AsyncIterator
 
 try:
@@ -14,8 +15,9 @@ except ImportError:
 
 from ..base_provider import ProviderModelMixin, AsyncAuthedProvider, AuthResult
 from ..helper import format_prompt
-from ...typing import AsyncResult, Messages, Cookies
+from ...typing import AsyncResult, Messages, Cookies, ImagesType
 from ...errors import MissingRequirementsError, MissingAuthError, ResponseError
+from ...image import to_bytes
 from ...requests import get_args_from_nodriver, DEFAULT_HEADERS
 from ...requests.raise_for_status import raise_for_status
 from ...providers.response import JsonConversation, ImageResponse, Sources, TitleGeneration, Reasoning, RequestLogin
@@ -116,6 +118,7 @@ class HuggingChat(AsyncAuthedProvider, ProviderModelMixin):
         messages: Messages,
         auth_result: AuthResult,
         prompt: str = None,
+        images: ImagesType = None,
         return_conversation: bool = False,
         conversation: Conversation = None,
         web_search: bool = False,
@@ -172,6 +175,13 @@ class HuggingChat(AsyncAuthedProvider, ProviderModelMixin):
 
         data = CurlMime()
         data.addpart('data', data=json.dumps(settings, separators=(',', ':')))
+        if images is not None:
+            for image, filename in images:
+                data.addpart(
+                    "files",
+                    filename=f"base64;{filename}",
+                    data=base64.b64encode(to_bytes(image))
+                )
 
         response = session.post(
             f'https://huggingface.co/chat/conversation/{conversationId}',
@@ -207,8 +217,6 @@ class HuggingChat(AsyncAuthedProvider, ProviderModelMixin):
                 yield TitleGeneration(line["title"])
             elif line["type"] == "reasoning":
                 yield Reasoning(line.get("token"), line.get("status"))
-            else:
-                pass #print(line)
 
         if sources is not None:
             yield sources
