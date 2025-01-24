@@ -237,7 +237,6 @@ class Completions:
         max_tokens: Optional[int] = None,
         stop: Optional[Union[list[str], str]] = None,
         api_key: Optional[str] = None,
-        ignored: Optional[list[str]] = None,
         ignore_working: Optional[bool] = False,
         ignore_stream: Optional[bool] = False,
         **kwargs
@@ -268,8 +267,6 @@ class Completions:
             ),
             **kwargs
         )
-        if not hasattr(response, '__iter__'):
-            response = [response]
 
         response = iter_response(response, stream, response_format, max_tokens, stop)
         response = iter_append_model_and_provider(response, model, provider)
@@ -471,7 +468,7 @@ class Images:
         elif response_format == "b64_json":
             # Convert URLs directly to base64 without saving
             async def get_b64_from_url(url: str) -> Image:
-                async with aiohttp.ClientSession() as session:
+                async with aiohttp.ClientSession(cookies=response.get("cookies")) as session:
                     async with session.get(url, proxy=proxy) as resp:
                         if resp.status == 200:
                             image_data = await resp.read()
@@ -512,7 +509,7 @@ class AsyncCompletions:
         self.client: AsyncClient = client
         self.provider: ProviderType = provider
 
-    async def create(
+    def create(
         self,
         messages: Messages,
         model: str,
@@ -525,11 +522,10 @@ class AsyncCompletions:
         max_tokens: Optional[int] = None,
         stop: Optional[Union[list[str], str]] = None,
         api_key: Optional[str] = None,
-        ignored: Optional[list[str]] = None,
         ignore_working: Optional[bool] = False,
         ignore_stream: Optional[bool] = False,
         **kwargs
-    ) -> Awaitable[ChatCompletion, AsyncIterator[ChatCompletionChunk]]:
+    ) -> Awaitable[ChatCompletion]:
         model, provider = get_model_and_provider(
             model,
             self.provider if provider is None else provider,
@@ -556,14 +552,14 @@ class AsyncCompletions:
             ),
             **kwargs
         )
-        
+
         response = async_iter_response(response, stream, response_format, max_tokens, stop)
         response = async_iter_append_model_and_provider(response, model, provider)
-        
+
         if stream:
             return response
         else:
-            return await anext(response)
+            return anext(response)
 
     def stream(
         self,

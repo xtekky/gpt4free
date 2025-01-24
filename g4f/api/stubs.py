@@ -21,6 +21,7 @@ class ChatCompletionsConfig(BaseModel):
     max_tokens: Optional[int] = None
     stop: Union[list[str], str, None] = None
     api_key: Optional[str] = None
+    api_base: str = None
     web_search: Optional[bool] = None
     proxy: Optional[str] = None
     conversation_id: Optional[str] = None
@@ -31,13 +32,14 @@ class ChatCompletionsConfig(BaseModel):
     tool_calls: list = Field(default=[], examples=[[
 		{
 			"function": {
-				"arguments": {"query":"search query", "max_results":5, "max_words": 2500, "backend": "api", "add_text": True, "timeout": 5},
+				"arguments": {"query":"search query", "max_results":5, "max_words": 2500, "backend": "auto", "add_text": True, "timeout": 5},
 				"name": "search_tool"
 			},
 			"type": "function"
 		}
 	]])
     tools: list = None
+    response_format: Optional[dict] = None
 
 class ImageGenerationConfig(BaseModel):
     prompt: str

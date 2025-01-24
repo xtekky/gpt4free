@@ -149,8 +149,8 @@ from g4f.client import AsyncClient
 
 async def main():
     client = AsyncClient()
-    
-    stream = await client.chat.completions.create(
+
+    stream = client.chat.completions.stream(
         model="gpt-4",
         messages=[
             {
@@ -158,10 +158,9 @@ async def main():
                 "content": "Say this is a test"
             }
         ],
-        stream=True,
         web_search = False
     )
-    
+
     async for chunk in stream:
         if chunk.choices and chunk.choices[0].delta.content:
             print(chunk.choices[0].delta.content, end="")
@@ -366,7 +365,7 @@ async def main():
                     "query": "Latest advancements in AI",
                     "max_results": 5,
                     "max_words": 2500,
-                    "backend": "api",
+                    "backend": "auto",
                     "add_text": True,
                     "timeout": 5
                 },

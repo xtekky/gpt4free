@@ -11,18 +11,10 @@ from ..requests.raise_for_status import raise_for_status
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from .helper import format_prompt
 from ..providers.response import FinishReason, JsonConversation
+from ..errors import ModelNotSupportedError, ResponseStatusError, RateLimitError, TimeoutError, ConversationLimitError
 
 class DuckDuckGoSearchException(Exception):
     """Base exception class for duckduckgo_search."""
-
-class RatelimitException(DuckDuckGoSearchException):
-    """Raised for rate limit exceeded errors during API requests."""
-
-class TimeoutException(DuckDuckGoSearchException):
-    """Raised for timeout errors during API requests."""
-
-class ConversationLimitException(DuckDuckGoSearchException):
-    """Raised for conversation limit during API requests to AI endpoint."""
 
 class Conversation(JsonConversation):
     vqd: str = None
@@ -61,7 +53,7 @@ class DDG(AsyncGeneratorProvider, ProviderModelMixin):
         if model in cls.model_aliases:
             model = cls.model_aliases[model]
         if model not in cls.models:
-            raise ValueError(f"Model {model} not supported. Available models: {cls.models}")
+            raise ModelNotSupportedError(f"Model {model} not supported. Available models: {cls.models}")
         return model
 
     @classmethod
@@ -88,25 +80,20 @@ class DDG(AsyncGeneratorProvider, ProviderModelMixin):
             try:
                 await cls.sleep()
                 async with session.get(cls.status_url, headers=headers) as response:
-                    if response.status == 200:
-                        vqd = response.headers.get("x-vqd-4", "")
-                        if vqd:
-                            return vqd
-                    elif response.status == 429:
-                        if attempt < max_retries - 1:
-                            wait_time = random.uniform(1, 3) * (attempt + 1)
-                            await asyncio.sleep(wait_time)
-                            continue
+                    await raise_for_status(response)
+                    vqd = response.headers.get("x-vqd-4", "")
+                    if vqd:
+                        return vqd
                     response_text = await response.text()
-                    raise Exception(f"Failed to fetch VQD token: {response.status} {response_text}")
-            except Exception as e:
+                    raise RuntimeError(f"Failed to fetch VQD token: {response.status} {response_text}")
+            except ResponseStatusError as e:
                 if attempt < max_retries - 1:
                     wait_time = random.uniform(1, 3) * (attempt + 1)
                     await asyncio.sleep(wait_time)
                 else:
-                    raise Exception(f"Failed to fetch VQD token after {max_retries} attempts: {str(e)}")
-        
-        raise Exception("Failed to fetch VQD token: Maximum retries exceeded")
+                    raise RuntimeError(f"Failed to fetch VQD token after {max_retries} attempts: {str(e)}")
+
+        raise RuntimeError("Failed to fetch VQD token: Maximum retries exceeded")
 
     @classmethod
     async def create_async_generator(
@@ -121,10 +108,10 @@ class DDG(AsyncGeneratorProvider, ProviderModelMixin):
         **kwargs
     ) -> AsyncResult:
         model = cls.validate_model(model)
-        
+
         if cookies is None and conversation is not None:
             cookies = conversation.cookies
-            
+
         try:
             async with ClientSession(timeout=ClientTimeout(total=timeout), cookies=cookies) as session:
                 if conversation is None:
@@ -140,67 +127,56 @@ class DDG(AsyncGeneratorProvider, ProviderModelMixin):
                     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
                     "x-vqd-4": conversation.vqd,
                 }
-                
+
                 data = {
                     "model": model,
                     "messages": conversation.message_history,
                 }
 
                 await cls.sleep()
-                try:
-                    async with session.post(cls.api_endpoint, json=data, headers=headers, proxy=proxy) as response:
-                        await raise_for_status(response)
-                        reason = None
-                        full_message = ""
-                        
-                        async for line in response.content:
-                            line = line.decode("utf-8").strip()
-                            if line.startswith("data:"):
-                                try:
-                                    message = json.loads(line[5:].strip())
-                                    
-                                    if "action" in message and message["action"] == "error":
-                                        error_type = message.get("type", "")
-                                        if message.get("status") == 429:
-                                            if error_type == "ERR_CONVERSATION_LIMIT":
-                                                raise ConversationLimitException(error_type)
-                                            raise RatelimitException(error_type)
-                                        raise DuckDuckGoSearchException(error_type)
-                                        
-                                    if "message" in message:
-                                        if message["message"]:
-                                            yield message["message"]
-                                            full_message += message["message"]
-                                            reason = "length"
-                                        else:
-                                            reason = "stop"
-                                except json.JSONDecodeError:
-                                    continue
+                async with session.post(cls.api_endpoint, json=data, headers=headers, proxy=proxy) as response:
+                    await raise_for_status(response)
+                    reason = None
+                    full_message = ""
 
-                        if return_conversation:
-                            conversation.message_history.append({"role": "assistant", "content": full_message})
-                            conversation.vqd = response.headers.get("x-vqd-4", conversation.vqd)
-                            conversation.cookies = {
-                                n: c.value 
-                                for n, c in session.cookie_jar.filter_cookies(cls.url).items()
-                            }
-                            
-                        if reason is not None:
-                            yield FinishReason(reason)
-                            
-                        if return_conversation:
-                            yield conversation
-                            
-                except asyncio.TimeoutError as e:
-                    raise TimeoutException(f"Request timed out: {str(e)}")
-                except Exception as e:
-                    if "time" in str(e).lower():
-                        raise TimeoutException(f"Request timed out: {str(e)}")
-                    raise DuckDuckGoSearchException(f"Request failed: {str(e)}")
-                    
-        except Exception as e:
-            if isinstance(e, (RatelimitException, TimeoutException, ConversationLimitException)):
-                raise
-            if "time" in str(e).lower():
-                raise TimeoutException(f"Request timed out: {str(e)}")
-            raise DuckDuckGoSearchException(f"Request failed: {str(e)}")
+                    async for line in response.content:
+                        line = line.decode("utf-8").strip()
+
+                        if line.startswith("data:"):
+                            try:
+                                message = json.loads(line[5:].strip())
+                            except json.JSONDecodeError:
+                                continue
+
+                            if "action" in message and message["action"] == "error":
+                                error_type = message.get("type", "")
+                                if message.get("status") == 429:
+                                    if error_type == "ERR_CONVERSATION_LIMIT":
+                                        raise ConversationLimitError(error_type)
+                                    raise RateLimitError(error_type)
+                                raise DuckDuckGoSearchException(error_type)
+
+                            if "message" in message:
+                                if message["message"]:
+                                    yield message["message"]
+                                    full_message += message["message"]
+                                    reason = "length"
+                                else:
+                                    reason = "stop"
+
+                    if return_conversation:
+                        conversation.message_history.append({"role": "assistant", "content": full_message})
+                        conversation.vqd = response.headers.get("x-vqd-4", conversation.vqd)
+                        conversation.cookies = {
+                            n: c.value 
+                            for n, c in session.cookie_jar.filter_cookies(cls.url).items()
+                        }
+
+                    if reason is not None:
+                        yield FinishReason(reason)
+    
+                    if return_conversation:
+                        yield conversation
+
+        except asyncio.TimeoutError as e:
+            raise TimeoutError(f"Request timed out: {str(e)}")

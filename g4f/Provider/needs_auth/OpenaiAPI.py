@@ -140,6 +140,8 @@ class OpenaiAPI(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin):
                                 if delta:
                                     first = False
                                     yield delta
+                            if "usage" in data and data["usage"]:
+                                yield Usage(**data["usage"])
                             if "finish_reason" in choice and choice["finish_reason"] is not None:
                                 yield FinishReason(choice["finish_reason"])
                                 break
