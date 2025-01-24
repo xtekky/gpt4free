@@ -33,12 +33,18 @@ class HuggingSpace(AsyncGeneratorProvider, ProviderModelMixin):
     def get_models(cls, **kwargs) -> list[str]:
         if not cls.models:
             models = []
+            image_models = []
+            vision_models = []
             for provider in cls.providers:
                 models.extend(provider.get_models(**kwargs))
                 models.extend(provider.model_aliases.keys())
+                image_models.extend(provider.image_models)
+                vision_models.extend(provider.vision_models)
             models = list(set(models))
             models.sort()
             cls.models = models
+            cls.image_models = list(set(image_models))
+            cls.vision_models = list(set(vision_models))
         return cls.models
 
     @classmethod

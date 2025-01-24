@@ -495,8 +495,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                     "headers": cls._headers,
                     "web_search": web_search,
                 })
-            actions = ["variant", "continue"] if conversation.finish_reason == "max_tokens" else ["variant"]
-            yield FinishReason(conversation.finish_reason, actions=actions)
+            yield FinishReason(conversation.finish_reason)
 
     @classmethod
     async def iter_messages_line(cls, session: StreamSession, line: bytes, fields: Conversation, sources: Sources) -> AsyncIterator:

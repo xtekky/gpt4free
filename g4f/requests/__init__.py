@@ -78,25 +78,22 @@ async def get_args_from_nodriver(
     url: str,
     proxy: str = None,
     timeout: int = 120,
+    wait_for: str = None,
     cookies: Cookies = None
 ) -> dict:
-    if not has_nodriver:
-        raise MissingRequirementsError('Install "nodriver" package | pip install -U nodriver')
+    browser = await get_nodriver(proxy=proxy)
     if debug.logging:
         print(f"Open nodriver with url: {url}")
-    browser = await nodriver.start(
-        browser_args=None if proxy is None else [f"--proxy-server={proxy}"],
-    )
     domain = urlparse(url).netloc
     if cookies is None:
         cookies = {}
     else:
         await browser.cookies.set_all(get_cookie_params_from_dict(cookies, url=url, domain=domain))
     page = await browser.get(url)
-    for c in await page.send(nodriver.cdp.network.get_cookies([url])):
-        cookies[c.name] = c.value
     user_agent = await page.evaluate("window.navigator.userAgent")
     await page.wait_for("body:not(.no-js)", timeout=timeout)
+    if wait_for is not None:
+        await page.wait_for(wait_for, timeout=timeout)
     for c in await page.send(nodriver.cdp.network.get_cookies([url])):
         cookies[c.name] = c.value
     await page.close()
@@ -120,13 +117,13 @@ def merge_cookies(cookies: Iterator[Morsel], response: Response) -> Cookies:
 
 async def get_nodriver(proxy: str = None, user_data_dir = "nodriver", browser_executable_path=None, **kwargs)-> Browser:
     if not has_nodriver:
-        raise MissingRequirementsError('Install "nodriver" package | pip install -U nodriver')
+        raise MissingRequirementsError('Install "nodriver" and "platformdirs" package | pip install -U nodriver platformdirs')
     user_data_dir = user_config_dir(f"g4f-{user_data_dir}") if has_platformdirs else None
     if browser_executable_path is None:
         try:
             browser_executable_path = find_chrome_executable()
         except FileNotFoundError:
-            # Default to Edge if Chrome is not found
+            # Default to Edge if Chrome is not available.
             browser_executable_path = "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe"
             if not os.path.exists(browser_executable_path):
                 browser_executable_path = None
