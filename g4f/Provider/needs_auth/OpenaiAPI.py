@@ -147,7 +147,7 @@ class OpenaiAPI(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin):
                                 break
                 else:
                     await raise_for_status(response)
-                    raise ResponseError(f"Not supported content-type: {response.headers.get("content-type")}")
+                    raise ResponseError(f"Not supported content-type: {response.headers.get('content-type')}")
 
     @classmethod
     def get_headers(cls, stream: bool, api_key: str = None, headers: dict = None) -> dict:
