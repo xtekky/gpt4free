@@ -92,7 +92,7 @@ class HuggingChat(AsyncAuthedProvider, ProviderModelMixin):
     @classmethod
     async def on_auth_async(cls, cookies: Cookies = None, proxy: str = None, **kwargs) -> AsyncIterator:
         if cookies is None:
-            cookies = get_cookies("huggingface.co")
+            cookies = get_cookies("huggingface.co", single_browser=True)
         if "hf-chat" in cookies:
             yield AuthResult(
                 cookies=cookies,
@@ -158,21 +158,9 @@ class HuggingChat(AsyncAuthedProvider, ProviderModelMixin):
 
         headers = {
             'accept': '*/*',
-            'accept-language': 'en',
-            'cache-control': 'no-cache',
             'origin': 'https://huggingface.co',
-            'pragma': 'no-cache',
-            'priority': 'u=1, i',
             'referer': f'https://huggingface.co/chat/conversation/{conversationId}',
-            'sec-ch-ua': '"Not)A;Brand";v="99", "Google Chrome";v="127", "Chromium";v="127"',
-            'sec-ch-ua-mobile': '?0',
-            'sec-ch-ua-platform': '"macOS"',
-            'sec-fetch-dest': 'empty',
-            'sec-fetch-mode': 'cors',
-            'sec-fetch-site': 'same-origin',
-            'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
         }
-
         data = CurlMime()
         data.addpart('data', data=json.dumps(settings, separators=(',', ':')))
         if images is not None:
@@ -185,7 +173,6 @@ class HuggingChat(AsyncAuthedProvider, ProviderModelMixin):
 
         response = session.post(
             f'https://huggingface.co/chat/conversation/{conversationId}',
-            cookies=session.cookies,
             headers=headers,
             multipart=data,
             stream=True
@@ -210,7 +197,7 @@ class HuggingChat(AsyncAuthedProvider, ProviderModelMixin):
             elif line["type"] == "file":
                 url = f"https://huggingface.co/chat/conversation/{conversationId}/output/{line['sha']}"
                 prompt = messages[-1]["content"] if prompt is None else prompt
-                yield ImageResponse(url, alt=prompt, options={"cookies": cookies})
+                yield ImageResponse(url, alt=prompt, options={"cookies": auth_result.cookies})
             elif line["type"] == "webSearch" and "sources" in line:
                 sources = Sources(line["sources"])
             elif line["type"] == "title":

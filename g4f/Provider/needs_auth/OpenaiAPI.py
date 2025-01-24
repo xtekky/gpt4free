@@ -108,10 +108,10 @@ class OpenaiAPI(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin):
             if api_endpoint is None:
                 api_endpoint = f"{api_base.rstrip('/')}/chat/completions"
             async with session.post(api_endpoint, json=data) as response:
-                await raise_for_status(response)
-                if not stream:
+                if not stream or response.headers.get("content-type") == "application/json":
                     data = await response.json()
                     cls.raise_error(data)
+                    await raise_for_status(response)
                     choice = data["choices"][0]
                     if "content" in choice["message"] and choice["message"]["content"]:
                         yield choice["message"]["content"].strip()
@@ -123,6 +123,7 @@ class OpenaiAPI(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin):
                         yield FinishReason(choice["finish_reason"])
                         return
                 else:
+                    await raise_for_status(response)
                     first = True
                     async for line in response.iter_lines():
                         if line.startswith(b"data: "):
