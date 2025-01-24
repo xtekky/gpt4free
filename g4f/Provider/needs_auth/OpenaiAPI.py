@@ -8,7 +8,7 @@ from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin, RaiseErr
 from ...typing import Union, Optional, AsyncResult, Messages, ImagesType
 from ...requests import StreamSession, raise_for_status
 from ...providers.response import FinishReason, ToolCalls, Usage
-from ...errors import MissingAuthError
+from ...errors import MissingAuthError, ResponseError
 from ...image import to_data_uri
 from ... import debug
 
@@ -108,7 +108,7 @@ class OpenaiAPI(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin):
             if api_endpoint is None:
                 api_endpoint = f"{api_base.rstrip('/')}/chat/completions"
             async with session.post(api_endpoint, json=data) as response:
-                if not stream or response.headers.get("content-type") == "application/json":
+                if response.headers.get("content-type", None if stream else "application/json") == "application/json":
                     data = await response.json()
                     cls.raise_error(data)
                     await raise_for_status(response)
@@ -122,7 +122,7 @@ class OpenaiAPI(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin):
                     if "finish_reason" in choice and choice["finish_reason"] is not None:
                         yield FinishReason(choice["finish_reason"])
                         return
-                else:
+                elif response.headers.get("content-type", "text/event-stream" if stream else None) == "text/event-stream":
                     await raise_for_status(response)
                     first = True
                     async for line in response.iter_lines():
@@ -145,6 +145,9 @@ class OpenaiAPI(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin):
                             if "finish_reason" in choice and choice["finish_reason"] is not None:
                                 yield FinishReason(choice["finish_reason"])
                                 break
+                else:
+                    await raise_for_status(response)
+                    raise ResponseError(f"Not supported content-type: {response.headers.get("content-type")}")
 
     @classmethod
     def get_headers(cls, stream: bool, api_key: str = None, headers: dict = None) -> dict:
