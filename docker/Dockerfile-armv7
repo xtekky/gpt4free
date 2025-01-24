@@ -49,7 +49,7 @@ RUN pip install --no-cache-dir -r requirements-min.txt \
     --global-option=build_ext \
     --global-option=-j8 \
     pydantic==${PYDANTIC_VERSION}
-RUN cat requirements-slim.txt | xargs -n 1 pip install --no-cache-dir || true 
+RUN cat requirements-slim.txt | xargs -n 1 timeout 5m pip install --no-cache-dir || true 
 
 # Remove build packages
 RUN pip uninstall --yes \
