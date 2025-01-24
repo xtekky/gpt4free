@@ -79,3 +79,5 @@ class Jmuz(OpenaiAPI):
                     started = True
                     yield buffer
                     buffer = ""
+            else:
+                yield chunk
