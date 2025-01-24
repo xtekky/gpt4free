@@ -839,7 +839,7 @@ const ask_gpt = async (message_id, message_index = -1, regenerate = false, provi
         await api("conversation", {
             id: message_id,
             conversation_id: window.conversation_id,
-            conversation: conversation.data && provider in conversation.data ? conversation.data[provider] : null,
+            conversation: provider && conversation.data && provider in conversation.data ? conversation.data[provider] : null,
             model: model,
             web_search: switchInput.checked,
             provider: provider,

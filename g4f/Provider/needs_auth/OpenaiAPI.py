@@ -108,7 +108,8 @@ class OpenaiAPI(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin):
             if api_endpoint is None:
                 api_endpoint = f"{api_base.rstrip('/')}/chat/completions"
             async with session.post(api_endpoint, json=data) as response:
-                if response.headers.get("content-type", None if stream else "application/json") == "application/json":
+                content_type = response.headers.get("content-type", "text/event-stream" if stream else "application/json")
+                if content_type.startswith("application/json"):
                     data = await response.json()
                     cls.raise_error(data)
                     await raise_for_status(response)
@@ -122,7 +123,7 @@ class OpenaiAPI(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin):
                     if "finish_reason" in choice and choice["finish_reason"] is not None:
                         yield FinishReason(choice["finish_reason"])
                         return
-                elif response.headers.get("content-type", "text/event-stream" if stream else None) == "text/event-stream":
+                elif content_type.startswith("text/event-stream"):
                     await raise_for_status(response)
                     first = True
                     async for line in response.iter_lines():
@@ -147,7 +148,7 @@ class OpenaiAPI(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin):
                                 break
                 else:
                     await raise_for_status(response)
-                    raise ResponseError(f"Not supported content-type: {response.headers.get('content-type')}")
+                    raise ResponseError(f"Not supported content-type: {content_type}")
 
     @classmethod
     def get_headers(cls, stream: bool, api_key: str = None, headers: dict = None) -> dict:

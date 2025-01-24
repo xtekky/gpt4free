@@ -8,6 +8,7 @@ import os
 import shutil
 from email.utils import formatdate
 import os.path
+import hashlib
 from fastapi import FastAPI, Response, Request, UploadFile, Depends
 from fastapi.middleware.wsgi import WSGIMiddleware
 from fastapi.responses import StreamingResponse, RedirectResponse, HTMLResponse, JSONResponse
@@ -27,7 +28,6 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials, HTTPBasic
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.responses import FileResponse
-from starlette._compat import md5_hexdigest
 from types import SimpleNamespace
 from typing import Union, Optional, List
 
@@ -511,7 +511,7 @@ class Api:
                 headers={
                     "content-length": str(stat_result.st_size),
                     "last-modified": formatdate(stat_result.st_mtime, usegmt=True),
-                    "etag": f'"{md5_hexdigest(filename.encode(), usedforsecurity=False)}"'
+                    "etag": f'"{hashlib.md5(filename.encode()).hexdigest()}"'
                 },
             )
             try:
