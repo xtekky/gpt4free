@@ -34,9 +34,18 @@ docker pull hlohaus789/g4f
 ```
 
 ## 🆕 What's New
-   - **For comprehensive details on new features and updates, please refer to our** [Releases](https://github.com/xtekky/gpt4free/releases) **page**
-   - **Join our Telegram Channel:** 📨 [telegram.me/g4f_channel](https://telegram.me/g4f_channel)
-   - **Join our Discord Group:** 💬🆕️ [https://discord.gg/5E39JUWUFa](https://discord.gg/5E39JUWUFa)
+
+- **Explore the latest features and updates**  
+  Find comprehensive details on our [Releases Page](https://github.com/xtekky/gpt4free/releases).  
+
+- **Stay updated with our Telegram Channel** 📨  
+  Join us at [telegram.me/g4f_channel](https://telegram.me/g4f_channel).  
+
+- **Get support in our Discord Community** 🤝💻  
+  Reach out for help in our [Support Group: discord.gg/qXA4Wf4Fsm](https://discord.gg/qXA4Wf4Fsm).  
+
+- **Subscribe to our Discord News Channel** 💬🆕️  
+  Stay informed about updates via our [News Channel: discord.gg/5E39JUWUFa](https://discord.gg/5E39JUWUFa).  
 
 ## 🔻 Site Takedown
 
@@ -218,6 +227,7 @@ The **Interference API** enables seamless integration with OpenAI's services thr
 - **Documentation**: [Interference API Docs](docs/interference-api.md)
 - **Endpoint**: `http://localhost:1337/v1`
 - **Swagger UI**: Explore the OpenAPI documentation via Swagger UI at `http://localhost:1337/docs`
+- **Provider Selection**: [How to Specify a Provider?](docs/selecting_a_provider.md)
 
 This API is designed for straightforward implementation and enhanced compatibility with other OpenAI integrations.
 

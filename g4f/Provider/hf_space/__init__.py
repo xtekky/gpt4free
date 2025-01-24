@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import random
+
 from ...typing import AsyncResult, Messages, ImagesType
 from ...errors import ResponseError
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
@@ -15,15 +17,13 @@ from .StableDiffusion35Large         import StableDiffusion35Large
 class HuggingSpace(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://huggingface.co/spaces"
     parent = "HuggingFace"
-    
+
     working = True
-    
+
     default_model = Qwen_Qwen_2_72B_Instruct.default_model
     default_image_model = BlackForestLabsFlux1Dev.default_model
     default_vision_model = Qwen_QVQ_72B.default_model
     providers = [BlackForestLabsFlux1Dev, BlackForestLabsFlux1Schnell, VoodoohopFlux1Schnell, CohereForAI, Qwen_QVQ_72B, Qwen_Qwen_2_72B_Instruct, StableDiffusion35Large]
-    
-    
 
     @classmethod
     def get_parameters(cls, **kwargs) -> dict:
@@ -57,6 +57,7 @@ class HuggingSpace(AsyncGeneratorProvider, ProviderModelMixin):
         if not model and images is not None:
             model = cls.default_vision_model
         is_started = False
+        random.shuffle(cls.providers)
         for provider in cls.providers:
             if model in provider.model_aliases:
                 async for chunk in provider.create_async_generator(provider.model_aliases[model], messages, **kwargs):

@@ -4,6 +4,7 @@ from ..typing import AsyncResult, Messages
 from .needs_auth import OpenaiAPI
 
 class DeepInfraChat(OpenaiAPI):
+    label = __name__
     url = "https://deepinfra.com/chat"
     login_url = None
     needs_auth = False

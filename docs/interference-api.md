@@ -10,9 +10,9 @@
    - [Basic Usage](#basic-usage)
    - [With OpenAI Library](#with-openai-library)
    - [With Requests Library](#with-requests-library)
+   - [Selecting a Provider](#selecting-a-provider)
    - [Key Points](#key-points)
    - [Conclusion](#conclusion)
-  
 
 ## Introduction
 The G4F Interference API is a powerful tool that allows you to serve other OpenAI integrations using G4F (Gpt4free). It acts as a proxy, translating requests intended for the OpenAI API into requests compatible with G4F providers. This guide will walk you through the process of setting up, running, and using the Interference API effectively.
@@ -148,6 +148,12 @@ for choice in json_response:
     print(choice.get('message', {}).get('content', ''))
 
 ```
+
+## Selecting a Provider
+
+**Provider Selection**: [How to Specify a Provider?](docs/selecting_a_provider.md)
+
+Selecting the right provider is a key step in configuring the G4F Interference API to suit your needs. Refer to the guide linked above for detailed instructions on choosing and specifying a provider.
 
 ## Key Points
    - The Interference API translates OpenAI API requests into G4F provider requests.
