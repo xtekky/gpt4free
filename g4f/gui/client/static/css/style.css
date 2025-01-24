@@ -376,6 +376,29 @@ body:not(.white) a:visited{
     display: flex;
 }
 
+.message .reasoning_text.final:not(.hidden), .message .reasoning_title {
+    margin-bottom: var(--inner-gap);
+    padding-bottom: var(--inner-gap);
+    border-bottom: 1px solid var(--colour-3);
+    overflow: hidden;
+}
+
+.message .reasoning_text.final {
+    max-height: 1000px;
+    transition: max-height 0.25s ease-in;
+}
+
+.message .reasoning_text.final.hidden {
+    transition: max-height 0.15s ease-out;
+    max-height: 0;
+    display: block;
+    overflow: hidden;
+}
+
+.message .reasoning_title {
+    cursor: pointer;
+}
+
 .message .user i {
     position: absolute;
     bottom: -6px;

@@ -9,15 +9,19 @@ from ...typing import AsyncResult, Messages
 class Ollama(OpenaiAPI):
     label = "Ollama"
     url = "https://ollama.com"
+    login_url = None
     needs_auth = False
     working = True
 
     @classmethod
-    def get_models(cls):
+    def get_models(cls, api_base: str = None, **kwargs):
         if not cls.models:
-            host = os.getenv("OLLAMA_HOST", "127.0.0.1")
-            port = os.getenv("OLLAMA_PORT", "11434")
-            url = f"http://{host}:{port}/api/tags"
+            if api_base is None:
+                host = os.getenv("OLLAMA_HOST", "127.0.0.1")
+                port = os.getenv("OLLAMA_PORT", "11434")
+                url = f"http://{host}:{port}/api/tags"
+            else:
+                url = api_base.replace("/v1", "/api/tags")
             models = requests.get(url).json()["models"]
             cls.models = [model["name"] for model in models]
             cls.default_model = cls.models[0]

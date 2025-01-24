@@ -143,7 +143,7 @@ class HuggingFace(AsyncGeneratorProvider, ProviderModelMixin):
                             else:
                                 is_special = True
                     debug.log(f"Special token: {is_special}")
-                    yield FinishReason("stop" if is_special else "length", actions=["variant"] if is_special else ["continue", "variant"])
+                    yield FinishReason("stop" if is_special else "length")
                 else:
                     if response.headers["content-type"].startswith("image/"):
                         base64_data = base64.b64encode(b"".join([chunk async for chunk in response.iter_content()]))

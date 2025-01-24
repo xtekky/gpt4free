@@ -73,10 +73,11 @@ class OpenaiAPI(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin):
             raise MissingAuthError('Add a "api_key"')
         if api_base is None:
             api_base = cls.api_base
-        if images is not None:
+        if images is not None and messages:
             if not model and hasattr(cls, "default_vision_model"):
                 model = cls.default_vision_model
-            messages[-1]["content"] = [
+            last_message = messages[-1].copy()
+            last_message["content"] = [
                 *[{
                     "type": "image_url",
                     "image_url": {"url": to_data_uri(image)}
@@ -86,6 +87,7 @@ class OpenaiAPI(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin):
                     "text": messages[-1]["content"]
                 }
             ]
+            messages[-1] = last_message
         async with StreamSession(
             proxy=proxy,
             headers=cls.get_headers(stream, api_key, headers),
@@ -106,10 +108,10 @@ class OpenaiAPI(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin):
             if api_endpoint is None:
                 api_endpoint = f"{api_base.rstrip('/')}/chat/completions"
             async with session.post(api_endpoint, json=data) as response:
-                await raise_for_status(response)
-                if not stream:
+                if not stream or response.headers.get("content-type") == "application/json":
                     data = await response.json()
                     cls.raise_error(data)
+                    await raise_for_status(response)
                     choice = data["choices"][0]
                     if "content" in choice["message"] and choice["message"]["content"]:
                         yield choice["message"]["content"].strip()
@@ -117,10 +119,11 @@ class OpenaiAPI(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin):
                         yield ToolCalls(choice["message"]["tool_calls"])
                     if "usage" in data:
                         yield Usage(**data["usage"])
-                    finish = cls.read_finish_reason(choice)
-                    if finish is not None:
-                        yield finish
+                    if "finish_reason" in choice and choice["finish_reason"] is not None:
+                        yield FinishReason(choice["finish_reason"])
+                        return
                 else:
+                    await raise_for_status(response)
                     first = True
                     async for line in response.iter_lines():
                         if line.startswith(b"data: "):
@@ -137,15 +140,9 @@ class OpenaiAPI(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin):
                                 if delta:
                                     first = False
                                     yield delta
-                            finish = cls.read_finish_reason(choice)
-                            if finish is not None:
-                                yield finish
+                            if "finish_reason" in choice and choice["finish_reason"] is not None:
+                                yield FinishReason(choice["finish_reason"])
                                 break
-
-    @staticmethod
-    def read_finish_reason(choice: dict) -> Optional[FinishReason]:
-        if "finish_reason" in choice and choice["finish_reason"] is not None:
-            return FinishReason(choice["finish_reason"])
 
     @classmethod
     def get_headers(cls, stream: bool, api_key: str = None, headers: dict = None) -> dict:

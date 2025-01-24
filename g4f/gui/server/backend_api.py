@@ -309,7 +309,7 @@ class Backend_Api(Api):
             return "Provider not found", 404
         return models
 
-    def _format_json(self, response_type: str, content) -> str:
+    def _format_json(self, response_type: str, content = None, **kwargs) -> str:
         """
         Formats and returns a JSON response.
 
@@ -320,4 +320,4 @@ class Backend_Api(Api):
         Returns:
             str: A JSON formatted string.
         """
-        return json.dumps(super()._format_json(response_type, content)) + "\n"
+        return json.dumps(super()._format_json(response_type, content, **kwargs)) + "\n"
