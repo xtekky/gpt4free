@@ -15,11 +15,11 @@ class Cerebras(OpenaiAPI):
     working = True
     default_model = "llama3.1-70b"
     models = [
-        "llama3.1-70b",
+        default_model,
         "llama3.1-8b",
         "llama-3.3-70b"
     ]
-    model_aliases = {"llama-3.1-70b": "llama3.1-70b", "llama-3.1-8b": "llama3.1-8b"}
+    model_aliases = {"llama-3.1-70b": default_model, "llama-3.1-8b": "llama3.1-8b"}
 
     @classmethod
     async def create_async_generator(

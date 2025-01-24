@@ -10,6 +10,7 @@ class HuggingFaceAPI(OpenaiAPI):
     url = "https://api-inference.huggingface.com"
     api_base = "https://api-inference.huggingface.co/v1"
     working = True
+
     default_model = "meta-llama/Llama-3.2-11B-Vision-Instruct"
     default_vision_model = default_model
 

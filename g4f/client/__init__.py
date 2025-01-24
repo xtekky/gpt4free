@@ -512,7 +512,7 @@ class AsyncCompletions:
         self.client: AsyncClient = client
         self.provider: ProviderType = provider
 
-    def create(
+    async def create(
         self,
         messages: Messages,
         model: str,
@@ -529,7 +529,7 @@ class AsyncCompletions:
         ignore_working: Optional[bool] = False,
         ignore_stream: Optional[bool] = False,
         **kwargs
-    ) -> Awaitable[ChatCompletion]:
+    ) -> Awaitable[ChatCompletion, AsyncIterator[ChatCompletionChunk]]:
         model, provider = get_model_and_provider(
             model,
             self.provider if provider is None else provider,
@@ -542,6 +542,7 @@ class AsyncCompletions:
             kwargs["images"] = [(image, image_name)]
         if ignore_stream:
             kwargs["ignore_stream"] = True
+            
         response = async_iter_run_tools(
             provider.get_async_create_function(),
             model,
@@ -555,9 +556,14 @@ class AsyncCompletions:
             ),
             **kwargs
         )
+        
         response = async_iter_response(response, stream, response_format, max_tokens, stop)
         response = async_iter_append_model_and_provider(response, model, provider)
-        return response if stream else anext(response)
+        
+        if stream:
+            return response
+        else:
+            return await anext(response)
 
     def stream(
         self,

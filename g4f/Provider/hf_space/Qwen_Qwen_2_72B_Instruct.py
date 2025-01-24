@@ -21,7 +21,7 @@ class Qwen_Qwen_2_72B_Instruct(AsyncGeneratorProvider, ProviderModelMixin):
     
     default_model = "qwen-qwen2-72b-instruct"
     models = [default_model]
-    model_aliases = {"qwen-2.5-72b": default_model}
+    model_aliases = {"qwen-2-72b": default_model}
 
     @classmethod
     async def create_async_generator(

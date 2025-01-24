@@ -47,11 +47,15 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         "llama-3.3-70b": "llama",
         "mistral-nemo": "mistral",
         #"": "karma",
+        #"": "sur-mistral",
         "gpt-4": "searchgpt",
+        "claude-3.5-haiku": "claude-hybridspace",
+        "claude-3.5-sonnet": "claude-email",
         "gpt-4": "claude",
-        "claude-3.5-sonnet": "sur",
         "deepseek-chat": "deepseek",
-        "llama-3.2-3b": "llamalight", 
+        "llama-3.1-8b": "llamalight", 
+        ### Image Models ###
+        "sd-turbo": "turbo", 
     }
     text_models = []
 

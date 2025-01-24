@@ -1,14 +1,12 @@
 from __future__ import annotations
 
-from aiohttp import ClientSession, TCPConnector, ClientTimeout
+from aiohttp import ClientSession
 
-from pathlib import Path
 import re
 import json
 import random
 import string
-
-
+from pathlib import Path
 
 from ..typing import AsyncResult, Messages, ImagesType
 from ..requests.raise_for_status import raise_for_status
@@ -32,15 +30,14 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
     api_endpoint = "https://www.blackbox.ai/api/chat"
     
     working = True
-    needs_auth = True
-    supports_stream = False
-    supports_system_message = False
+    supports_stream = True
+    supports_system_message = True
     supports_message_history = True
     
     default_model = "blackboxai"
     default_vision_model = default_model
     default_image_model = 'ImageGeneration' 
-    image_models = [default_image_model]
+    image_models = [default_image_model, "ImageGeneration2"]
     vision_models = [default_vision_model, 'gpt-4o', 'gemini-pro', 'gemini-1.5-flash', 'llama-3.1-8b', 'llama-3.1-70b', 'llama-3.1-405b']
     
     userSelectedModel = ['gpt-4o', 'gemini-pro', 'claude-sonnet-3.5', 'blackboxai-pro']
@@ -48,12 +45,13 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
     agentMode = {
         'ImageGeneration': {'mode': True, 'id': "ImageGenerationLV45LJp", 'name': "Image Generation"},
         #
-        'meta-llama/Llama-3.3-70B-Instruct-Turbo': {'mode': True, 'id': "meta-llama/Llama-3.3-70B-Instruct-Turbo", 'name': "Meta-Llama-3.3-70B-Instruct-Turbo"},
-        'mistralai/Mistral-7B-Instruct-v0.2': {'mode': True, 'id': "mistralai/Mistral-7B-Instruct-v0.2", 'name': "Mistral-(7B)-Instruct-v0.2"},
-        'deepseek-ai/deepseek-llm-67b-chat': {'mode': True, 'id': "deepseek-ai/deepseek-llm-67b-chat", 'name': "DeepSeek-LLM-Chat-(67B)"},
-        'databricks/dbrx-instruct': {'mode': True, 'id': "databricks/dbrx-instruct", 'name': "DBRX-Instruct"},
-        'Qwen/QwQ-32B-Preview': {'mode': True, 'id': "Qwen/QwQ-32B-Preview", 'name': "Qwen-QwQ-32B-Preview"},
-        'NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO': {'mode': True, 'id': "NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO", 'name': "Nous-Hermes-2-Mixtral-8x7B-DPO"}
+        'Meta-Llama-3.3-70B-Instruct-Turbo': {'mode': True, 'id': "meta-llama/Llama-3.3-70B-Instruct-Turbo", 'name': "Meta-Llama-3.3-70B-Instruct-Turbo"},
+        'Mistral-(7B)-Instruct-v0.': {'mode': True, 'id': "mistralai/Mistral-7B-Instruct-v0.2", 'name': "Mistral-(7B)-Instruct-v0.2"},
+        'DeepSeek-LLM-Chat-(67B)': {'mode': True, 'id': "deepseek-ai/deepseek-llm-67b-chat", 'name': "DeepSeek-LLM-Chat-(67B)"},
+        'DBRX-Instruct': {'mode': True, 'id': "databricks/dbrx-instruct", 'name': "DBRX-Instruct"},
+        'Qwen-QwQ-32B-Preview': {'mode': True, 'id': "Qwen/QwQ-32B-Preview", 'name': "Qwen-QwQ-32B-Preview"},
+        'Nous-Hermes-2-Mixtral-8x7B-DPO': {'mode': True, 'id': "NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO", 'name': "Nous-Hermes-2-Mixtral-8x7B-DPO"},
+        'DeepSeek-R1': {'mode': True, 'id': "deepseek-reasoner", 'name': "DeepSeek-R1"}
     }
 
     trendingAgentMode = {
@@ -99,7 +97,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         'builder Agent': {'mode': True, 'id': "builder Agent"},
     }
     
-    models = list(dict.fromkeys([default_model, *userSelectedModel, *list(agentMode.keys()), *list(trendingAgentMode.keys())]))
+    models = list(dict.fromkeys([default_model, *userSelectedModel, *image_models, *list(agentMode.keys()), *list(trendingAgentMode.keys())]))
 
     model_aliases = {
         ### chat ###
@@ -107,15 +105,17 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         "gemini-1.5-flash": "gemini-1.5-flash",
         "gemini-1.5-pro": "gemini-pro",
         "claude-3.5-sonnet": "claude-sonnet-3.5",
-        "llama-3.3-70b": "meta-llama/Llama-3.3-70B-Instruct-Turbo",
-        "mixtral-7b": "mistralai/Mistral-7B-Instruct-v0.2",
-        "deepseek-chat": "deepseek-ai/deepseek-llm-67b-chat",
-        "dbrx-instruct": "databricks/dbrx-instruct",
-        "qwq-32b": "Qwen/QwQ-32B-Preview",
-        "hermes-2-dpo": "NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO",
+        "llama-3.3-70b": "Meta-Llama-3.3-70B-Instruct-Turbo",
+        "mixtral-7b": "Mistral-(7B)-Instruct-v0.",
+        "deepseek-chat": "DeepSeek-LLM-Chat-(67B)",
+        "dbrx-instruct": "DBRX-Instruct",
+        "qwq-32b": "Qwen-QwQ-32B-Preview",
+        "hermes-2-dpo": "Nous-Hermes-2-Mixtral-8x7B-DPO",
+        "deepseek-r1": "DeepSeek-R1",
         
         ### image ###
         "flux": "ImageGeneration",
+        "flux": "ImageGeneration2",
     }
 
     @classmethod
@@ -215,10 +215,31 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
             'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
         }
         
-        connector = TCPConnector(limit=10, ttl_dns_cache=300)
-        timeout = ClientTimeout(total=30)
-        
-        async with ClientSession(headers=headers, connector=connector, timeout=timeout) as session:
+        async with ClientSession(headers=headers) as session:
+            if model == "ImageGeneration2":
+                prompt = messages[-1]["content"]
+                data = {
+                    "query": prompt,
+                    "agentMode": True
+                }
+                headers['content-type'] = 'text/plain;charset=UTF-8'
+                
+                async with session.post(
+                    "https://www.blackbox.ai/api/image-generator",
+                    json=data,
+                    proxy=proxy,
+                    headers=headers
+                ) as response:
+                    await raise_for_status(response)
+                    response_json = await response.json()
+                    
+                    if "markdown" in response_json:
+                        image_url_match = re.search(r'!\[.*?\]\((.*?)\)', response_json["markdown"])
+                        if image_url_match:
+                            image_url = image_url_match.group(1)
+                            yield ImageResponse(images=[image_url], alt=prompt)
+                            return
+
             if conversation is None:
                 conversation = Conversation(model)
                 conversation.validated_value = await cls.fetch_validated()
@@ -312,8 +333,14 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
                             yield text_to_yield
                             full_response = text_to_yield
 
-                if return_conversation:
-                    conversation.message_history.append({"role": "assistant", "content": full_response})
-                    yield conversation
-                
-                yield FinishReason("stop")
+                    if full_response:
+                        if max_tokens and len(full_response) >= max_tokens:
+                            reason = "length"
+                        else:
+                            reason = "stop"
+                        
+                        if return_conversation:
+                            conversation.message_history.append({"role": "assistant", "content": full_response})
+                            yield conversation
+                        
+                        yield FinishReason(reason)

@@ -17,11 +17,11 @@ class Jmuz(OpenaiAPI):
 
     default_model = "gpt-4o"
     model_aliases = {
-        "gemini": "gemini-exp",
-        "gemini-1.5-pro": "gemini-pro",
-        "gemini-1.5-flash": "gemini-thinking",
-        "deepseek-chat": "deepseek-v3",
         "qwq-32b": "qwq-32b-preview",
+        "gemini-1.5-flash": "gemini-flash",
+        "gemini-1.5-pro": "gemini-pro",
+        "gemini-2.0-flash-thinking": "gemini-thinking",
+        "deepseek-chat": "deepseek-v3",
     }
 
     @classmethod
@@ -35,9 +35,7 @@ class Jmuz(OpenaiAPI):
             cls,
             model: str,
             messages: Messages,
-            stream: bool = False,
-            api_key: str = None,
-            api_base: str = None,
+            stream: bool = True,
             **kwargs
     ) -> AsyncResult:
         model = cls.get_model(model)
@@ -45,9 +43,9 @@ class Jmuz(OpenaiAPI):
             "Authorization": f"Bearer {cls.api_key}",
             "Content-Type": "application/json",
             "accept": "*/*",
-            "cache-control": "no-cache",
             "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36"
         }
+
         started = False
         buffer = ""
         async for chunk in super().create_async_generator(

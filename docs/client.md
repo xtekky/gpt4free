@@ -1,3 +1,5 @@
+
+
 # G4F Client API Guide
 
 ## Table of Contents
@@ -11,10 +13,12 @@
    - [Usage Examples](#usage-examples)
    - [Text Completions](#text-completions)
    - [Streaming Completions](#streaming-completions)
+   - [Using a Vision Model](#using-a-vision-model)
    - [Image Generation](#image-generation)
    - [Creating Image Variations](#creating-image-variations)
-   - [Search Tool Support](#search-tool-support)
    - [Advanced Usage](#advanced-usage)
+   - [Conversation Memory](#conversation-memory)
+   - [Search Tool Support](#search-tool-support)
    - [Using a List of Providers with RetryProvider](#using-a-list-of-providers-with-retryprovider)
    - [Using a Vision Model](#using-a-vision-model)
    - [Command-line Chat Program](#command-line-chat-program)
@@ -170,76 +174,46 @@ stream = client.chat.completions.create(
         }
     ],
     stream=True,
+    web_search = False
 )
 
 for chunk in stream:
     if chunk.choices[0].delta.content:
         print(chunk.choices[0].delta.content or "", end="")
 ```
-
 ---
 
-## Search Tool Support
-
-The **Search Tool Support** feature enables triggering a web search during chat completions. This is useful for retrieving real-time or specific data, offering a more flexible solution than `web_search`.
-
-**Example Usage**:
+### Using a Vision Model
+**Analyze an image and generate a description:**
 ```python
+import g4f
+import requests
+
 from g4f.client import Client
+from g4f.Provider.GeminiPro import GeminiPro
 
-client = Client()
+# Initialize the GPT client with the desired provider and api key
+client = Client(
+    api_key="your_api_key_here",
+    provider=GeminiPro
+)
 
-tool_calls = [
-    {
-        "function": {
-            "arguments": {
-                "query": "Latest advancements in AI",
-                "max_results": 5,
-                "max_words": 2500,
-                "backend": "api",
-                "add_text": True,
-                "timeout": 5
-            },
-            "name": "search_tool"
-        },
-        "type": "function"
-    }
-]
+image = requests.get("https://raw.githubusercontent.com/xtekky/gpt4free/refs/heads/main/docs/images/cat.jpeg", stream=True).raw
+# Or: image = open("docs/images/cat.jpeg", "rb")
 
 response = client.chat.completions.create(
-    model="gpt-4",
+    model=g4f.models.default,
     messages=[
-        {"role": "user", "content": "Tell me about recent advancements in AI."}
+        {
+            "role": "user",
+            "content": "What's in this image?"
+        }
     ],
-    tool_calls=tool_calls
+    image=image
+    # Add any other necessary parameters
 )
 
 print(response.choices[0].message.content)
-```
-
-**Parameters for `search_tool`:**
-- **`query`**: The search query string.
-- **`max_results`**: Number of search results to retrieve.
-- **`max_words`**: Maximum number of words in the response.
-- **`backend`**: The backend used for search (e.g., `"api"`).
-- **`add_text`**: Whether to include text snippets in the response.
-- **`timeout`**: Maximum time (in seconds) for the search operation.
-
-**Advantages of Search Tool Support:**
-- Works with any provider, irrespective of `web_search` support.
-- Offers more customization and control over the search process.
-- Bypasses provider-specific limitations.
-
-### Streaming Completions
-```python
-stream = client.chat.completions.create(
-    model="gpt-4",
-    messages=[{"role": "user", "content": "Say this is a test"}],
-    stream=True,
-)
-
-for chunk in stream:
-    print(chunk.choices[0].delta.content or "", end="")
 ```
 
 ---
@@ -310,6 +284,144 @@ print(f"Generated image URL: {image_url}")
 
 ## Advanced Usage
 
+### Conversation Memory
+To maintain a coherent conversation, it's important to store the context or history of the dialogue. This can be achieved by appending both the user's inputs and the bot's responses to a messages list. This allows the model to reference past exchanges when generating responses.
+
+**The conversation history consists of messages with different roles:**
+- `system`: Initial instructions that define the AI's behavior
+- `user`: Messages from the user
+- `assistant`: Responses from the AI
+
+**The following example demonstrates how to implement conversation memory with the G4F:**
+```python
+from g4f.client import Client
+
+class Conversation:
+    def __init__(self):
+        self.client = Client()
+        self.history = [
+            {
+                "role": "system",
+                "content": "You are a helpful assistant."
+            }
+        ]
+    
+    def add_message(self, role, content):
+        self.history.append({
+            "role": role,
+            "content": content
+        })
+    
+    def get_response(self, user_message):
+        # Add user message to history
+        self.add_message("user", user_message)
+        
+        # Get response from AI
+        response = self.client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=self.history,
+            web_search=False
+        )
+        
+        # Add AI response to history
+        assistant_response = response.choices[0].message.content
+        self.add_message("assistant", assistant_response)
+        
+        return assistant_response
+
+def main():
+    conversation = Conversation()
+    
+    print("=" * 50)
+    print("G4F Chat started (type 'exit' to end)".center(50))
+    print("=" * 50)
+    print("\nAI: Hello! How can I assist you today?")
+    
+    while True:
+        user_input = input("\nYou: ")
+        
+        if user_input.lower() == 'exit':
+            print("\nGoodbye!")
+            break
+            
+        response = conversation.get_response(user_input)
+        print("\nAI:", response)
+
+if __name__ == "__main__":
+    main()
+```
+
+**Key Features:**
+- Maintains conversation context through a message history
+- Includes system instructions for AI behavior
+- Automatically stores both user inputs and AI responses
+- Simple and clean implementation using a class-based approach
+
+**Usage Example:**
+```python
+conversation = Conversation()
+response = conversation.get_response("Hello, how are you?")
+print(response)
+```
+
+**Note:**
+The conversation history grows with each interaction. For long conversations, you might want to implement a method to limit the history size or clear old messages to manage token usage.
+
+---
+
+## Search Tool Support
+
+The **Search Tool Support** feature enables triggering a web search during chat completions. This is useful for retrieving real-time or specific data, offering a more flexible solution than `web_search`.
+
+**Example Usage**:
+```python
+from g4f.client import Client
+
+client = Client()
+
+tool_calls = [
+    {
+        "function": {
+            "arguments": {
+                "query": "Latest advancements in AI",
+                "max_results": 5,
+                "max_words": 2500,
+                "backend": "api",
+                "add_text": True,
+                "timeout": 5
+            },
+            "name": "search_tool"
+        },
+        "type": "function"
+    }
+]
+
+response = client.chat.completions.create(
+    model="gpt-4",
+    messages=[
+        {"role": "user", "content": "Tell me about recent advancements in AI."}
+    ],
+    tool_calls=tool_calls
+)
+
+print(response.choices[0].message.content)
+```
+
+**Parameters for `search_tool`:**
+- **`query`**: The search query string.
+- **`max_results`**: Number of search results to retrieve.
+- **`max_words`**: Maximum number of words in the response.
+- **`backend`**: The backend used for search (e.g., `"api"`).
+- **`add_text`**: Whether to include text snippets in the response.
+- **`timeout`**: Maximum time (in seconds) for the search operation.
+
+**Advantages of Search Tool Support:**
+- Works with any provider, irrespective of `web_search` support.
+- Offers more customization and control over the search process.
+- Bypasses provider-specific limitations.
+
+---
+
 ### Using a List of Providers with RetryProvider
 ```python
 from g4f.client import Client
@@ -335,40 +447,6 @@ response = client.chat.completions.create(
 
 print(response.choices[0].message.content)
 ```
-  
-### Using a Vision Model
-**Analyze an image and generate a description:**
-```python
-import g4f
-import requests
-
-from g4f.client import Client
-from g4f.Provider.GeminiPro import GeminiPro
-
-# Initialize the GPT client with the desired provider and api key
-client = Client(
-    api_key="your_api_key_here",
-    provider=GeminiPro
-)
-
-image = requests.get("https://raw.githubusercontent.com/xtekky/gpt4free/refs/heads/main/docs/images/cat.jpeg", stream=True).raw
-# Or: image = open("docs/images/cat.jpeg", "rb")
-
-response = client.chat.completions.create(
-    model=g4f.models.default,
-    messages=[
-        {
-            "role": "user",
-            "content": "What's in this image?"
-        }
-    ],
-    image=image
-    # Add any other necessary parameters
-)
-
-print(response.choices[0].message.content)
-```
-
   
 ## Command-line Chat Program
 **Here's an example of a simple command-line chat program using the G4F Client:**

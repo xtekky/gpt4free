@@ -8,9 +8,9 @@ from urllib.parse import urlencode
 
 from aiohttp import ClientSession
 
-from ..typing import AsyncResult, Messages
-from .base_provider import AsyncGeneratorProvider, ProviderModelMixin, Sources
-from ..requests.raise_for_status import raise_for_status
+from ...typing import AsyncResult, Messages
+from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin, Sources
+from ...requests.raise_for_status import raise_for_status
 
 class RubiksAI(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Rubiks AI"

@@ -19,6 +19,8 @@ class Mhystical(OpenaiAPI):
     url = "https://mhystical.cc"
     api_endpoint = "https://api.mhystical.cc/v1/completions"
     login_url = "https://mhystical.cc/dashboard"
+    api_key = "mhystical"
+    
     working = True
     needs_auth = False
     supports_stream = False  # Set to False, as streaming is not specified in ChatifyAI
@@ -38,12 +40,11 @@ class Mhystical(OpenaiAPI):
         model: str,
         messages: Messages,
         stream: bool = False,
-        api_key: str = "mhystical",
+        api_key: str = None,
         **kwargs
     ) -> AsyncResult:
-        model = cls.get_model(model)
         headers = {
-            "x-api-key": api_key,
+            "x-api-key": cls.api_key,
             "Content-Type": "application/json",
             "accept": "*/*",
             "cache-control": "no-cache",

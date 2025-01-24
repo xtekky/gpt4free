@@ -3,15 +3,15 @@ from __future__ import annotations
 import json
 from aiohttp import ClientSession
 
-from ...typing import AsyncResult, Messages
-from ...requests.raise_for_status import raise_for_status
-from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from ..typing import AsyncResult, Messages
+from ..requests.raise_for_status import raise_for_status
+from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 
 class DeepInfraChat(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://deepinfra.com/chat"
     api_endpoint = "https://api.deepinfra.com/v1/openai/chat/completions"
 
-    working = False
+    working = True
     supports_stream = True
     supports_system_message = True
     supports_message_history = True
@@ -24,6 +24,7 @@ class DeepInfraChat(AsyncGeneratorProvider, ProviderModelMixin):
         'meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo',
         'Qwen/QwQ-32B-Preview',
         'microsoft/WizardLM-2-8x22B',
+        'microsoft/WizardLM-2-7B',
         'Qwen/Qwen2.5-72B-Instruct',
         'Qwen/Qwen2.5-Coder-32B-Instruct',
         'nvidia/Llama-3.1-Nemotron-70B-Instruct',
@@ -35,6 +36,7 @@ class DeepInfraChat(AsyncGeneratorProvider, ProviderModelMixin):
         "llama-3.1-70b": "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo",
         "qwq-32b": "Qwen/QwQ-32B-Preview",
         "wizardlm-2-8x22b": "microsoft/WizardLM-2-8x22B",
+        "wizardlm-2-7b": "microsoft/WizardLM-2-7B",
         "qwen-2-72b": "Qwen/Qwen2.5-72B-Instruct",
         "qwen-2.5-coder-32b": "Qwen/Qwen2.5-Coder-32B-Instruct",
         "nemotron-70b": "nvidia/Llama-3.1-Nemotron-70B-Instruct",

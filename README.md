@@ -1,12 +1,17 @@
 
 
+
 ![248433934-7886223b-c1d1-4260-82aa-da5741f303bb](https://github.com/xtekky/gpt4free/assets/98614666/ea012c87-76e0-496a-8ac4-e2de090cc6c9)
 
 <a href="https://trendshift.io/repositories/1692" target="_blank"><img src="https://trendshift.io/api/badge/repositories/1692" alt="xtekky%2Fgpt4free | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
 
 ---
 
-<p align="center"><strong>Written by <a href="https://github.com/xtekky">@xtekky</a></strong></p>
+<p align="center">
+  <span style="background: linear-gradient(45deg, #12c2e9, #c471ed, #f64f59); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+    <strong>Written by <a href="https://github.com/xtekky">@xtekky</a></strong>
+  </span>
+</p>
 
 <div id="top"></div>
 
@@ -30,7 +35,6 @@ docker pull hlohaus789/g4f
 
 ## 🆕 What's New
    - **For comprehensive details on new features and updates, please refer to our** [Releases](https://github.com/xtekky/gpt4free/releases) **page**
-   - **Installation Guide for Windows (.exe):** 💻 [Installation Guide for Windows (.exe)](#installation-guide-for-windows-exe)
    - **Join our Telegram Channel:** 📨 [telegram.me/g4f_channel](https://telegram.me/g4f_channel)
    - **Join our Discord Group:** 💬🆕️ [https://discord.gg/5E39JUWUFa](https://discord.gg/5E39JUWUFa)
 
@@ -39,166 +43,128 @@ docker pull hlohaus789/g4f
 Is your site on this repository and you want to take it down? Send an email to takedown@g4f.ai with proof it is yours and it will be removed as fast as possible. To prevent reproduction please secure your API. 😉
 
 ## 🚀 GPT4Free on HuggingFace
-
 [![HuggingSpace](https://github.com/user-attachments/assets/1d859e8a-d6fa-416f-a213-ccc26aa11e90)](https://huggingface.co/spaces/roxky/g4f)
+**Is a proof-of-concept API package for multi-provider AI requests. It showcases features such as:**
 
-Explore our GPT4Free project on HuggingFace Spaces by clicking the link below:
+- Load balancing and request flow control.
+- Seamless integration with multiple AI providers.
+- Comprehensive text and image generation support.
 
-- [Visit GPT4Free on HuggingFace](https://huggingface.co/spaces/roxky/g4f)
+> Explore the [Visit GPT4Free on HuggingFace Space](https://huggingface.co/spaces/roxky/g4f) for a hosted version or [Duplicate GPT4Free Space](https://huggingface.co/spaces/roxky/g4f?duplicate=true) it for personal use.
 
-If you would like to create your own copy of this space, you can duplicate it using the following link:
-
-- [Duplicate GPT4Free Space](https://huggingface.co/spaces/roxky/g4f?duplicate=true)
-
+---
 
 ## 📚 Table of Contents
    - [🆕 What's New](#-whats-new)
    - [📚 Table of Contents](#-table-of-contents)
-   - [🛠️ Getting Started](#-getting-started)
-      - [Docker Container Guide](#docker-container-guide)
-      - [Installation Guide for Windows (.exe)](#installation-guide-for-windows-exe)
-   - [Use python](#use-python)
-      - [Prerequisites](#prerequisites)
-      - [Install using PyPI package](#install-using-pypi-package)
-      - [Install from source](#install-from-source)
-   - [Install using Docker](#install-using-docker)
-   - [💡 Usage](#-usage)
-      - [Text Generation](#text-generation)
-      - [Image Generation](#image-generation)
-      - [Web UI](#web-ui)
-      - [Interference API](#interference-api)
-      - [Local Inference](docs/local.md)
-      - [Configuration](#configuration)
-      -  [Full Documentation for Python API](#full-documentation-for-python-api)
-         - [Requests API from G4F](docs/requests.md)
-         - [Client API from G4F](docs/client.md)
-         - [AsyncClient API from G4F](docs/async_client.md)
-   - [🚀 Providers and Models](docs/providers-and-models.md)
-   - [🔗 Powered by gpt4free](#-powered-by-gpt4free)
-   - [🤝 Contribute](#-contribute)
-      - [How do i create a new Provider?](#guide-how-do-i-create-a-new-provider)
-      - [How can AI help me with writing code?](#guide-how-can-ai-help-me-with-writing-code)
+   - [⚡ Getting Started](#-getting-started)
+      - [🛠 Installation](#-installation)
+         - [🐳 Using Docker](#-using-docker)
+         - [🪟 Windows Guide (.exe)](#-windows-guide-exe)
+         - [🐍 Python Installation](#-python-installation)
+  - [💡 Usage](#-usage)
+     - [📝 Text Generation](#-text-generation)
+     - [🎨 Image Generation](#-image-generation)
+     - [🌐 Web Interface](#-web-interface)
+     - [🖥️ Local Inference](docs/local.md)
+     - [🤖 Interference API](#-interference-api)
+     - [🛠️ Configuration](docs/configuration.md)
+     - [📱 Run on Smartphone](#-run-on-smartphone)
+     - [📘 Full Documentation for Python API](#-full-documentation-for-python-api)
+  - [🚀 Providers and Models](docs/providers-and-models.md)
+  - [🔗 Powered by gpt4free](#-powered-by-gpt4free)
+  - [🤝 Contribute](#-contribute)
+     - [How do i create a new Provider?](#guide-how-do-i-create-a-new-provider)
+     - [How can AI help me with writing code?](#guide-how-can-ai-help-me-with-writing-code)
    - [🙌 Contributors](#-contributors)
    - [©️ Copyright](#-copyright)
-   - [⭐ Star History](#-star-history)
-   - [📄 License](#-license)
+  - [⭐ Star History](#-star-history)
+  - [📄 License](#-license)
 
-## 🛠️ Getting Started
+---
 
-#### Docker Container Guide
+## ⚡️ Getting Started
 
-##### Getting Started Quickly:
+## 🛠 Installation
 
-1. **Install Docker:** Begin by [downloading and installing Docker](https://docs.docker.com/get-docker/).
+### 🐳 Using Docker
+1. **Install Docker:** [Download and install Docker](https://docs.docker.com/get-docker/).
+2. **Set Up Directories:** Before running the container, make sure the necessary data directories exist or can be created. For example, you can create and set ownership on these directories by running:
+   ```bash
+   mkdir -p ${PWD}/har_and_cookies ${PWD}/generated_images
+   chown -R 1000:1000 ${PWD}/har_and_cookies ${PWD}/generated_images
+   ```
+3. **Run the Docker Container:** Use the following commands to pull the latest image and start the container:
+   ```bash
+   docker pull hlohaus789/g4f
+   docker run -p 8080:8080 -p 1337:1337 -p 7900:7900 \
+     --shm-size="2g" \
+     -v ${PWD}/har_and_cookies:/app/har_and_cookies \
+     -v ${PWD}/generated_images:/app/generated_images \
+     hlohaus789/g4f:latest
+   ```
 
-2. **Check Directories:**
+4. **Running the Slim Docker Image:** Use the following command to run the Slim Docker image. This command also updates the `g4f` package at startup and installs any additional dependencies:
+	```bash
+	docker run \
+	  -p 1337:1337 \
+	  -v ${PWD}/har_and_cookies:/app/har_and_cookies \
+	  -v ${PWD}/generated_images:/app/generated_images \
+	  hlohaus789/g4f:latest-slim \
+	  rm -r -f /app/g4f/ \
+	  && pip install -U g4f[slim] \
+	  && python -m g4f --debug
+	```
+ 
+5. **Access the Client Interface:**
+   - **To use the included client, navigate to:** [http://localhost:8080/chat/](http://localhost:8080/chat/) or [http://localhost:1337/chat/](http://localhost:1337/chat/)
+   - **Or set the API base for your client to:** [http://localhost:1337/v1](http://localhost:1337/v1)
 
-Before running the container, make sure the necessary data directories exist or can be created. For example, you can create and set ownership on these directories by running:
-
-```bash
-mkdir -p ${PWD}/har_and_cookies ${PWD}/generated_images
-chown -R 1000:1000 ${PWD}/har_and_cookies ${PWD}/generated_images
-```
-
-3. **Set Up the Container:**
-   Use the following commands to pull the latest image and start the container:
-
-```bash
-docker pull hlohaus789/g4f
-docker run \
-  -p 8080:8080 -p 1337:1337 -p 7900:7900 \
-  --shm-size="2g" \
-  -v ${PWD}/har_and_cookies:/app/har_and_cookies \
-  -v ${PWD}/generated_images:/app/generated_images \
-  hlohaus789/g4f:latest
-```
-
-##### Running the Slim Docker Image
-
-Use the following command to run the Slim Docker image. This command also updates the `g4f` package at startup and installs any additional dependencies:
-
-```bash
-docker run \
-  -p 1337:1337 \
-  -v ${PWD}/har_and_cookies:/app/har_and_cookies \
-  -v ${PWD}/generated_images:/app/generated_images \
-  hlohaus789/g4f:latest-slim \
-  rm -r -f /app/g4f/ \
-  && pip install -U g4f[slim] \
-  && python -m g4f --debug
-```
-
-4. **Access the Client:**
-
-   - To use the included client, navigate to: [http://localhost:8080/chat/](http://localhost:8080/chat/) or [http://localhost:1337/chat/](http://localhost:1337/chat/)
-   - Or set the API base for your client to: [http://localhost:1337/v1](http://localhost:1337/v1)
-
-5. **(Optional) Provider Login:**
+6. **(Optional) Provider Login:**
    If required, you can access the container's desktop here: http://localhost:7900/?autoconnect=1&resize=scale&password=secret for provider login purposes.
 
-#### Installation Guide for Windows (.exe)
+---
 
+### 🪟 Windows Guide (.exe)
 To ensure the seamless operation of our application, please follow the instructions below. These steps are designed to guide you through the installation process on Windows operating systems.
 
-### Installation Steps
-
+**Installation Steps:**
 1. **Download the Application**: Visit our [releases page](https://github.com/xtekky/gpt4free/releases/tag/0.4.0.6) and download the most recent version of the application, named `g4f.exe.zip`.
 2. **File Placement**: After downloading, locate the `.zip` file in your Downloads folder. Unpack it to a directory of your choice on your system, then execute the `g4f.exe` file to run the app.
-3. **Open GUI**: The app starts a web server with the GUI. Open your favorite browser and navigate to `http://localhost:8080/chat/` to access the application interface.
+3. **Open GUI**: The app starts a web server with the GUI. Open your favorite browser and navigate to [http://localhost:8080/chat/](http://localhost:8080/chat/) to access the application interface.
 4. **Firewall Configuration (Hotfix)**: Upon installation, it may be necessary to adjust your Windows Firewall settings to allow the application to operate correctly. To do this, access your Windows Firewall settings and allow the application.
 
 By following these steps, you should be able to successfully install and run the application on your Windows system. If you encounter any issues during the installation process, please refer to our Issue Tracker or try to get contact over Discord for assistance.
 
 ---
 
-### Learn More About the GUI
+### 🐍 Python Installation
 
-For detailed instructions on how to set up, configure, and use the GPT4Free GUI, refer to the **GUI Documentation**:
+#### Prerequisites:
+1. Install Python 3.10+ from [python.org](https://www.python.org/downloads/).
+2. Install Google Chrome for certain providers.
 
-- [GUI Documentation](docs/gui.md)
-
-This guide includes step-by-step details on provider selection, managing conversations, using advanced features like speech recognition, and more.
-
----
-
-### Use Your Smartphone
-
-Run the Web UI on your smartphone for easy access on the go. Check out the dedicated guide to learn how to set up and use the GUI on your mobile device:
-
-- [Run on Smartphone Guide](docs/guides/phone.md)
-
----
-
-### Use python
-
-##### Prerequisites:
-
-1. [Download and install Python](https://www.python.org/downloads/) (Version 3.10+ is recommended).
-2. [Install Google Chrome](https://www.google.com/chrome/) for providers with webdriver
-
-##### Install using PyPI package:
-
-```
+#### Install with PyPI:
+```bash
 pip install -U g4f[all]
 ```
 
-How do I install only parts or do disable parts?
-Use partial requirements: [/docs/requirements](docs/requirements.md)
+> How do I install only parts or do disable parts? **Use partial requirements:** [/docs/requirements](docs/requirements.md)
 
-##### Install from source:
+#### Install from Source:
+```bash
+git clone https://github.com/xtekky/gpt4free.git
+cd gpt4free
+pip install -r requirements.txt
+```
 
-How do I load the project using git and installing the project requirements?
-Read this tutorial and follow it step by step: [/docs/git](docs/git.md)
+> How do I load the project using git and installing the project requirements? **Read this tutorial and follow it step by step:** [/docs/git](docs/git.md)
 
-##### Install using Docker:
-
-How do I build and run composer image from source?
-Use docker-compose: [/docs/docker](docs/docker.md)
+---
 
 ## 💡 Usage
 
-#### Text Generation
-
+### 📝 Text Generation
 ```python
 from g4f.client import Client
 
@@ -206,16 +172,15 @@ client = Client()
 response = client.chat.completions.create(
     model="gpt-4o-mini",
     messages=[{"role": "user", "content": "Hello"}],
-    web_search = False
+    web_search=False
 )
 print(response.choices[0].message.content)
 ```
-
 ```
 Hello! How can I assist you today?
 ```
 
-#### Image Generation
+### 🎨  Image Generation
 ```python
 from g4f.client import Client
 
@@ -226,37 +191,27 @@ response = client.images.generate(
     response_format="url"
 )
 
-image_url = response.data[0].url
-print(f"Generated image URL: {image_url}")
+print(f"Generated image URL: {response.data[0].url}")
 ```
-
 [![Image with cat](/docs/images/cat.jpeg)](docs/client.md)
 
-#### **Full Documentation for Python API**
-   - **New:**
-      - **Requests API from G4F:** [/docs/requests](docs/requests.md)
-      - **Client API from G4F:** [/docs/client](docs/client.md)
-      - **AsyncClient API from G4F:** [/docs/async_client](docs/async_client.md)
-      - **File API from G4F:** [/docs/file](docs/file.md)
-
-   - **Legacy:**
-      - **Legacy API with python modules:** [/docs/legacy](docs/legacy.md)
-
-#### Web UI
-
-**To start the web interface, type the following codes in python:**
-
+### 🌐 Web Interface
+**Run the GUI using Python:**
 ```python
 from g4f.gui import run_gui
 
 run_gui()
 ```
-or execute the following command:
+**Or, run via CLI:**
 ```bash
 python -m g4f.cli gui -port 8080 -debug
 ```
 
-### Interference API
+> **Learn More About the GUI:** For detailed instructions on how to set up, configure, and use the GPT4Free GUI, refer to the [GUI Documentation](docs/gui.md) . This guide includes step-by-step details on provider selection, managing conversations, using advanced features like speech recognition, and more.
+
+---
+
+### 🤖 Interference API
 
 The **Interference API** enables seamless integration with OpenAI's services through G4F, allowing you to deploy efficient AI solutions.
 
@@ -266,99 +221,21 @@ The **Interference API** enables seamless integration with OpenAI's services thr
 
 This API is designed for straightforward implementation and enhanced compatibility with other OpenAI integrations.
 
-### Configuration
+---
 
-#### Authentication
+### 📱 Run on Smartphone
+Run the Web UI on your smartphone for easy access on the go. Check out the dedicated guide to learn how to set up and use the GUI on your mobile device: [Run on Smartphone Guide](docs/guides/phone.md)
 
-Refer to the [G4F Authentication Setup Guide](docs/authentication.md) for detailed instructions on setting up authentication.
+---
 
-#### Cookies
-
-Cookies are essential for using Meta AI and Microsoft Designer to create images.
-Additionally, cookies are required for the Google Gemini and WhiteRabbitNeo Provider.
-From Bing, ensure you have the "\_U" cookie, and from Google, all cookies starting with "\_\_Secure-1PSID" are needed.
-
-You can pass these cookies directly to the create function or set them using the `set_cookies` method before running G4F:
-
-```python
-from g4f.cookies import set_cookies
-
-set_cookies(".bing.com", {
-  "_U": "cookie value"
-})
-
-set_cookies(".google.com", {
-  "__Secure-1PSID": "cookie value"
-})
-```
-
-#### Using .har and Cookie Files
-
-You can place `.har` and cookie files `.json` in the default `./har_and_cookies` directory. To export a cookie file, use the [EditThisCookie Extension](https://chromewebstore.google.com/detail/editthiscookie/fngmhnnpilhplaeedifhccceomclgfbg) available on the Chrome Web Store.
-
-#### Creating .har Files to Capture Cookies
-
-To capture cookies, you can also create `.har` files. For more details, refer to the next section.
-
-#### Changing the Cookies Directory and Loading Cookie Files in Python
-
-You can change the cookies directory and load cookie files in your Python environment. To set the cookies directory relative to your Python file, use the following code:
-
-```python
-import os.path
-from g4f.cookies import set_cookies_dir, read_cookie_files
-
-import g4f.debug
-g4f.debug.logging = True
-
-cookies_dir = os.path.join(os.path.dirname(__file__), "har_and_cookies")
-set_cookies_dir(cookies_dir)
-read_cookie_files(cookies_dir)
-```
-
-### Debug Mode
-
-If you enable debug mode, you will see logs similar to the following:
-
-```
-Read .har file: ./har_and_cookies/you.com.har
-Cookies added: 10 from .you.com
-Read cookie file: ./har_and_cookies/google.json
-Cookies added: 16 from .google.com
-```
-
-#### .HAR File for OpenaiChat Provider
-
-##### Generating a .HAR File
-
-To utilize the OpenaiChat provider, a .har file is required from https://chatgpt.com/. Follow the steps below to create a valid .har file:
-
-1. Navigate to https://chatgpt.com/ using your preferred web browser and log in with your credentials.
-2. Access the Developer Tools in your browser. This can typically be done by right-clicking the page and selecting "Inspect," or by pressing F12 or Ctrl+Shift+I (Cmd+Option+I on a Mac).
-3. With the Developer Tools open, switch to the "Network" tab.
-4. Reload the website to capture the loading process within the Network tab.
-5. Initiate an action in the chat which can be captured in the .har file.
-6. Right-click any of the network activities listed and select "Save all as HAR with content" to export the .har file.
-
-##### Storing the .HAR File
-
-- Place the exported .har file in the `./har_and_cookies` directory if you are using Docker. Alternatively, if you are using Python from a terminal, you can store it in a `./har_and_cookies` directory within your current working directory.
-
-> **Note:** Ensure that your .har file is stored securely, as it may contain sensitive information.
-
-#### Using Proxy
-
-If you want to hide or change your IP address for the providers, you can set a proxy globally via an environment variable:
-
-**- On macOS and Linux:**
-```bash
-export G4F_PROXY="http://host:port"
-```
-
-**- On Windows:**
-```bash
-set G4F_PROXY=http://host:port
-```
+#### **📘 Full Documentation for Python API**
+   - **Client API from G4F:** [/docs/client](docs/client.md)
+   - **AsyncClient API from G4F:** [/docs/async_client](docs/async_client.md)
+   - **Requests API from G4F:** [/docs/requests](docs/requests.md)
+   - **File API from G4F:** [/docs/file](docs/file.md)
+   - **Legacy API with python modules:** [/docs/legacy](docs/legacy.md)
+      
+---
 
 ## 🔗 Powered by gpt4free
 
@@ -818,6 +695,8 @@ set G4F_PROXY=http://host:port
   </tbody>
 </table>
 
+
+
 ## 🤝 Contribute
 We welcome contributions from the community. Whether you're adding new providers or features, or simply fixing typos and making small improvements, your input is valued. Creating a pull request is all it takes – our co-pilot will handle the code review process. Once all changes have been addressed, we'll merge the pull request into the main branch and release the updates at a later time.
 
@@ -827,7 +706,9 @@ We welcome contributions from the community. Whether you're adding new providers
 ###### Guide: How can AI help me with writing code?
    - **Read:** [AI Assistance Guide](docs/guides/help_me.md)
 
-## 🙌 Contributors
+
+
+## Contributors
 A list of all contributors is available [here](https://github.com/xtekky/gpt4free/graphs/contributors)
 
 <a href="https://github.com/xtekky" target="_blank"><img src="https://avatars.githubusercontent.com/u/98614666?v=4&s=45" width="45" title="xtekky"></a>
@@ -946,6 +827,7 @@ A list of all contributors is available [here](https://github.com/xtekky/gpt4fre
 
 _Having input implies that the AI's code generation utilized it as one of many sources._
 
+
 ## ©️ Copyright
 
 This program is licensed under the [GNU GPL v3](https://www.gnu.org/licenses/gpl-3.0.txt)
@@ -967,11 +849,13 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ```
 
+
 ## ⭐ Star History
 
 <a href="https://github.com/xtekky/gpt4free/stargazers">
         <img width="500" alt="Star History Chart" src="https://api.star-history.com/svg?repos=xtekky/gpt4free&type=Date">
 </a>
+
 
 ## 📄 License
 

@@ -12,7 +12,7 @@ class Raycast(AbstractProvider):
     url                     = "https://raycast.com"
     supports_stream         = True
     needs_auth              = True
-    working                 = True
+    working                 = False
 
     models = [
         "gpt-3.5-turbo",

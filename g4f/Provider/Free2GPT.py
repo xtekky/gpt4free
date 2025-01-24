@@ -17,6 +17,7 @@ class Free2GPT(AsyncGeneratorProvider, ProviderModelMixin):
     working = True
     supports_message_history = True
     default_model = 'mistral-7b'
+    models = [default_model]
 
     @classmethod
     async def create_async_generator(

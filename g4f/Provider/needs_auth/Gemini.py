@@ -60,13 +60,11 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
     working = True
     
     default_model = 'gemini'
-    image_models = ["gemini"]
-    default_vision_model = "gemini"
-    models = ["gemini", "gemini-1.5-flash", "gemini-1.5-pro"]
-    model_aliases = {
-        "gemini-flash": "gemini-1.5-flash",
-        "gemini-pro": "gemini-1.5-pro",
-    }
+    default_image_model = default_model
+    default_vision_model = default_model
+    image_models = [default_image_model]
+    models = [default_model, "gemini-1.5-flash", "gemini-1.5-pro"]
+
     synthesize_content_type = "audio/vnd.wav"
     
     _cookies: Cookies = None

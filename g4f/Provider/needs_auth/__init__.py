@@ -1,3 +1,4 @@
+from .Anthropic         import Anthropic
 from .BingCreateImages  import BingCreateImages
 from .Cerebras          import Cerebras
 from .CopilotAccount    import CopilotAccount
@@ -20,8 +21,6 @@ from .OpenaiAccount     import OpenaiAccount
 from .OpenaiAPI         import OpenaiAPI
 from .OpenaiChat        import OpenaiChat
 from .PerplexityApi     import PerplexityApi
-from .Poe               import Poe
-from .Raycast           import Raycast
 from .Reka              import Reka
 from .Replicate         import Replicate
 from .ThebApi           import ThebApi
