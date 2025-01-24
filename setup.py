@@ -48,11 +48,11 @@ EXTRA_REQUIRE = {
     'slim': [
         "curl_cffi>=0.6.2",
         "certifi",
+        "browser_cookie3",
         "duckduckgo-search>=5.0"  ,# internet.search
         "beautifulsoup4",          # internet.search and bing.create_images
         "aiohttp_socks",           # proxy
         "pillow",                  # image
-        "cairosvg",                # svg image
         "werkzeug", "flask",       # gui
         "fastapi",                 # api
         "uvicorn",                 # api
@@ -68,7 +68,8 @@ EXTRA_REQUIRE = {
     "webview": [
         "pywebview",
         "platformdirs",
-        "cryptography"
+        "plyer",
+        "cryptography",
     ],
     "api": [
         "loguru", "fastapi",
@@ -79,10 +80,10 @@ EXTRA_REQUIRE = {
         "werkzeug", "flask",
         "beautifulsoup4", "pillow",
         "duckduckgo-search>=5.0",
-        "browser_cookie3",
     ],
     "search": [
-        "beautifulsoup4", "pillow",
+        "beautifulsoup4",
+        "pillow",
         "duckduckgo-search>=5.0",
     ],
     "local": [
