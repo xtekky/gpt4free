@@ -386,7 +386,7 @@ tool_calls = [
                 "query": "Latest advancements in AI",
                 "max_results": 5,
                 "max_words": 2500,
-                "backend": "api",
+                "backend": "auto",
                 "add_text": True,
                 "timeout": 5
             },
