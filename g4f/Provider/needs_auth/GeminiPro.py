@@ -23,6 +23,7 @@ class GeminiPro(AsyncGeneratorProvider, ProviderModelMixin):
 
     working = True
     supports_message_history = True
+    supports_system_message = True
     needs_auth = True
 
     default_model = "gemini-1.5-pro"
@@ -39,7 +40,8 @@ class GeminiPro(AsyncGeneratorProvider, ProviderModelMixin):
     def get_models(cls, api_key: str = None, api_base: str = api_base) -> list[str]:
         if not cls.models:
             try:
-                response = requests.get(f"{api_base}/models?key={api_key}")
+                url = f"{cls.api_base if not api_base else api_base}/models"
+                response = requests.get(url, params={"key": api_key})
                 raise_for_status(response)
                 data = response.json()
                 cls.models = [
@@ -50,7 +52,7 @@ class GeminiPro(AsyncGeneratorProvider, ProviderModelMixin):
                 cls.models.sort()
             except Exception as e:
                 debug.log(e)
-                cls.models = cls.fallback_models
+                return cls.fallback_models
         return cls.models
 
     @classmethod

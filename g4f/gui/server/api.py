@@ -62,7 +62,7 @@ class Api:
             "name": provider.__name__,
             "label": provider.label if hasattr(provider, "label") else provider.__name__,
             "parent": getattr(provider, "parent", None),
-            "image": getattr(provider, "image_models", None) is not None,
+            "image": bool(getattr(provider, "image_models", False)),
             "vision": getattr(provider, "default_vision_model", None) is not None,
             "auth": provider.needs_auth,
             "login_url": getattr(provider, "login_url", None),
@@ -157,7 +157,6 @@ class Api:
             **(provider_handler.get_parameters(as_json=True) if hasattr(provider_handler, "get_parameters") else {}),
             "model": model,
             "messages": kwargs.get("messages"),
-            "web_search": kwargs.get("web_search")
         }
         if isinstance(kwargs.get("conversation"), JsonConversation):
             params["conversation"] = kwargs.get("conversation").get_dict()
