@@ -104,7 +104,7 @@ def scrape_text(html: str, max_words: int = None, add_source=True, count_images:
                     count_images -= 1
                 continue
 
-        for line in paragraph.text.splitlines():
+        for line in paragraph.get_text(" ").splitlines():
             words = [word for word in line.split() if word]
             count = len(words)
             if not count:
@@ -136,7 +136,7 @@ async def fetch_and_scrape(session: ClientSession, url: str, max_words: int = No
             return cache_file.read_text()
         async with session.get(url) as response:
             if response.status == 200:
-                html = await response.text()
+                html = await response.text(errors="replace")
                 text = "".join(scrape_text(html, max_words, add_source))
                 with open(cache_file, "w") as f:
                     f.write(text)
