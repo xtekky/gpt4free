@@ -32,6 +32,8 @@ RUN if [ "$G4F_VERSION" = "" ] ; then \
 
 # Install Python3, pip, remove OpenJDK 11, clean up
 RUN apt-get -qqy update \
+  && apt-get -qqy upgrade \
+  && apt-get -qyy autoremove \
   && apt-get -qqy install python3 python-is-python3 pip \
   && apt-get -qyy remove openjdk-11-jre-headless \
   && apt-get -qyy autoremove \
