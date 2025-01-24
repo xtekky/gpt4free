@@ -38,9 +38,9 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
     default_model = "openai"
     default_image_model = "flux"
     default_vision_model = "gpt-4o"
-    extra_image_models = ["midjourney", "dall-e-3"]
+    extra_image_models = ["midjourney", "dall-e-3", "flux-pro", "flux-realism", "flux-cablyai", "flux-anime", "flux-3d"]
     vision_models = [default_vision_model, "gpt-4o-mini"]
-    extra_text_models = [*vision_models, "claude", "karma", "command-r", "llamalight", "mistral-large", "sur", "sur-mistral"]
+    extra_text_models = [*vision_models, "claude", "karma", "command-r", "llamalight", "mistral-large", "sur", "sur-mistral", "any-dark"]
     model_aliases = {
         "qwen-2-72b": "qwen",
         "qwen-2.5-coder-32b": "qwen-coder",
