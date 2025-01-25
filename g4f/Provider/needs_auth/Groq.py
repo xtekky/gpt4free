@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-from .OpenaiAPI import OpenaiAPI
+from .OpenaiTemplate import OpenaiTemplate
 
-class Groq(OpenaiAPI):
-    label = "Groq"
+class Groq(OpenaiTemplate):
     url = "https://console.groq.com/playground"
     login_url = "https://console.groq.com/keys"
     api_base = "https://api.groq.com/openai/v1"
     working = True
+    needs_auth = True
     default_model = "mixtral-8x7b-32768"
     fallback_models = [
         "distil-whisper-large-v3-en",

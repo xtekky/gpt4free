@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from ...typing import CreateResult, Messages
 from ..helper import filter_none
-from .OpenaiAPI import OpenaiAPI
+from .OpenaiTemplate import OpenaiTemplate
 
 models = {
     "theb-ai": "TheB.AI",
@@ -19,13 +19,14 @@ models = {
     "qwen-2-72b": "Qwen"
 }
 
-class ThebApi(OpenaiAPI):
+class ThebApi(OpenaiTemplate):
     label = "TheB.AI API"
     url = "https://theb.ai"
     login_url = "https://beta.theb.ai/home"
-    working = True
     api_base = "https://api.theb.ai/v1"
+    working = True
     needs_auth = True
+
     default_model = "theb-ai"
     fallback_models = list(models)
 

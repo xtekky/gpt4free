@@ -473,6 +473,8 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                                 buffer = ""
                             else:
                                 yield chunk
+                        if conversation.finish_reason is not None:
+                            break
                 if sources.list:
                     yield sources
                 if return_conversation:

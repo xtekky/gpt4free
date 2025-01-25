@@ -1,31 +1,18 @@
 from __future__ import annotations
 
 from ..typing import AsyncResult, Messages
-from .needs_auth.OpenaiAPI import OpenaiAPI
+from .needs_auth.OpenaiTemplate import OpenaiTemplate
 
-"""
-    Mhystical.cc
-    ~~~~~~~~~~~~
-    Author: NoelP.dev
-    Last Updated: 2024-05-11
-    
-    Author Site: https://noelp.dev
-    Provider Site: https://mhystical.cc
-
-"""
-
-class Mhystical(OpenaiAPI):
-    label = "Mhystical"
+class Mhystical(OpenaiTemplate):
     url = "https://mhystical.cc"
     api_endpoint = "https://api.mhystical.cc/v1/completions"
     login_url = "https://mhystical.cc/dashboard"
     api_key = "mhystical"
-    
+
     working = True
-    needs_auth = False
     supports_stream = False  # Set to False, as streaming is not specified in ChatifyAI
     supports_system_message = False
-    
+
     default_model = 'gpt-4'
     models = [default_model]
 

@@ -22,9 +22,10 @@ try:
     import nodriver
     from nodriver.cdp.network import CookieParam
     from nodriver.core.config import find_chrome_executable
-    from nodriver import Browser
+    from nodriver import Browser, Tab
     has_nodriver = True
 except ImportError:
+    from typing import Type as Tab
     has_nodriver = False
 try:
     from platformdirs import user_config_dir
@@ -79,6 +80,7 @@ async def get_args_from_nodriver(
     proxy: str = None,
     timeout: int = 120,
     wait_for: str = None,
+    callback: callable = None,
     cookies: Cookies = None
 ) -> dict:
     browser = await get_nodriver(proxy=proxy)
@@ -94,6 +96,8 @@ async def get_args_from_nodriver(
     await page.wait_for("body:not(.no-js)", timeout=timeout)
     if wait_for is not None:
         await page.wait_for(wait_for, timeout=timeout)
+    if callback is not None:
+        await callback(page)
     for c in await page.send(nodriver.cdp.network.get_cookies([url])):
         cookies[c.name] = c.value
     await page.close()
@@ -106,7 +110,7 @@ async def get_args_from_nodriver(
             "user-agent": user_agent,
             "referer": url,
         },
-        "proxy": proxy
+        "proxy": proxy,
     }
 
 def merge_cookies(cookies: Iterator[Morsel], response: Response) -> Cookies:

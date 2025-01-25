@@ -1,19 +1,12 @@
 from __future__ import annotations
 
 from ..typing import AsyncResult, Messages
-from .needs_auth import OpenaiAPI
+from .needs_auth.OpenaiTemplate import OpenaiTemplate
 
-class DeepInfraChat(OpenaiAPI):
-    label = __name__
+class DeepInfraChat(OpenaiTemplate):
     url = "https://deepinfra.com/chat"
-    login_url = None
-    needs_auth = False
     api_base = "https://api.deepinfra.com/v1/openai"
-
     working = True
-    supports_stream = True
-    supports_system_message = True
-    supports_message_history = True
 
     default_model = 'meta-llama/Llama-3.3-70B-Instruct-Turbo'
     models = [
