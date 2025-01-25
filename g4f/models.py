@@ -391,7 +391,7 @@ blackboxai_pro = Model(
 command_r = Model(
     name = 'command-r',
     base_provider = 'CohereForAI',
-    best_provider = IterListProvider([HuggingSpace, PollinationsAI])
+    best_provider = HuggingSpace
 )
 
 command_r_plus = Model(
@@ -418,7 +418,7 @@ qwen_1_5_7b = Model(
 qwen_2_72b = Model(
     name = 'qwen-2-72b',
     base_provider = 'Qwen',
-    best_provider = IterListProvider([PollinationsAI, HuggingSpace])
+    best_provider = HuggingSpace
 )
 
 # qwen 2.5
@@ -756,7 +756,7 @@ class ModelUtils:
         #############
 
         ### Stability AI ###
-        sdxl_turbo.name: sd_turbo,
+        sdxl_turbo.name: sdxl_turbo,
         sd_3_5.name: sd_3_5,
 
         ### Flux AI ###
