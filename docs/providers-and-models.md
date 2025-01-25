@@ -40,7 +40,7 @@ This document provides an overview of various AI providers and models, including
 |[aichatfree.info](https://aichatfree.info)|No auth required|`g4f.Provider.AIChatFree`|`gemini-1.5-pro` _**(1+)**_|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
 |[aiuncensored.info/ai_uncensored](https://www.aiuncensored.info/ai_uncensored)|Optional API key|`g4f.Provider.AIUncensored`|`hermes-3`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
 |[autonomous.ai](https://www.autonomous.ai/anon/)|No auth required|`g4f.Provider.AutonomousAI`|`llama-3.3-70b, qwen-2.5-coder-32b, hermes-3, llama-3.2-90b, llama-3.3-70b, llama-3-2-70b`|✔|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
-|[blackbox.ai](https://www.blackbox.ai)|No auth required|`g4f.Provider.Blackbox`|`blackboxai, gpt-4, gpt-4o, gemini-1.5-flash, gemini-1.5-pro, claude-3.5-sonnet, blackboxai-pro, llama-3.1-8b, llama-3.1-70b, llama-3-1-405b, llama-3.3-70b, mixtral-7b, deepseek-chat, dbrx-instruct, qwq-32b, hermes-2-dpo, deepseek-r1` _**(+31)**_|`flux, flux-pro`|`blackboxai, gpt-4o, gemini-1.5-pro, gemini-1.5-flash, llama-3.1-8b, llama-3.1-70b, llama-3.1-405b, deepseek-r1`|✔|![](https://img.shields.io/badge/Active-brightgreen)|
+|[blackbox.ai](https://www.blackbox.ai)|No auth required|`g4f.Provider.Blackbox`|`blackboxai, gpt-4, gpt-4o, gemini-1.5-flash, gemini-1.5-pro, claude-3.5-sonnet, blackboxai-pro, llama-3.1-8b, llama-3.1-70b, llama-3-1-405b, llama-3.3-70b, mixtral-7b, deepseek-chat, dbrx-instruct, qwq-32b, hermes-2-dpo, deepseek-r1` _**(+31)**_|`flux`|`blackboxai, gpt-4o, gemini-1.5-pro, gemini-1.5-flash, llama-3.1-8b, llama-3.1-70b, llama-3.1-405b, deepseek-r1`|✔|![](https://img.shields.io/badge/Active-brightgreen)|
 |[cablyai.com](https://cablyai.com)|No auth required|`g4f.Provider.CablyAI`|`cably-80b`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
 |[chatglm.cn](https://chatglm.cn)|No auth required|`g4f.Provider.ChatGLM`|`glm-4`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
 |[chatgpt.com](https://chatgpt.com)|No auth required|`g4f.Provider.ChatGpt`|✔ _**(+7)**_|❌|❌|✔|![Error](https://img.shields.io/badge/HTTPError-f48d37)|
@@ -193,7 +193,7 @@ This document provides an overview of various AI providers and models, including
 |sdxl-turbo|Stability AI|2+ Providers|[huggingface.co](https://huggingface.co/stabilityai/sdxl-turbo)|
 |sd-3.5|Stability AI|1+ Providers|[huggingface.co](https://huggingface.co/stabilityai/stable-diffusion-3.5-large)|
 |flux|Black Forest Labs|2+ Providers|[github.com/black-forest-labs/flux](https://github.com/black-forest-labs/flux)|
-|flux-pro|Black Forest Labs|2+ Providers|[huggingface.co](https://huggingface.co/enhanceaiteam/FLUX.1-Pro)|
+|flux-pro|Black Forest Labs|1+ Providers|[huggingface.co](https://huggingface.co/enhanceaiteam/FLUX.1-Pro)|
 |flux-dev|Black Forest Labs|3+ Providers|[huggingface.co](https://huggingface.co/black-forest-labs/FLUX.1-dev)|
 |flux-schnell|Black Forest Labs|3+ Providers|[huggingface.co](https://huggingface.co/black-forest-labs/FLUX.1-schnell)|
 |dall-e-3|OpenAI|5+ Providers|[openai.com](https://openai.com/index/dall-e/)|
