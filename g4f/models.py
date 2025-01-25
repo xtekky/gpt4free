@@ -21,6 +21,7 @@ from .Provider import (
     DeepInfraChat,
     HuggingSpace,
     GPROChat,
+    ImageLabs,
     Jmuz,
     Liaobots,
     Mhystical,
@@ -261,12 +262,6 @@ mistral_nemo = Model(
     best_provider = IterListProvider([PollinationsAI, HuggingChat, HuggingFace])
 )
 
-mistral_large = Model(
-    name          = "mistral-large",
-    base_provider = "Mistral",
-    best_provider = PollinationsAI
-)
-
 ### NousResearch ###
 hermes_2_dpo = Model(
     name          = "hermes-2-dpo",
@@ -318,16 +313,16 @@ gemini_exp = Model(
 )
 
 # gemini-1.5
-gemini_1_5_pro = Model(
-    name          = 'gemini-1.5-pro',
-    base_provider = 'Google DeepMind',
-    best_provider = IterListProvider([Blackbox, Jmuz, GPROChat, AIChatFree, Gemini, GeminiPro, Liaobots])
-)
-
 gemini_1_5_flash = Model(
     name          = 'gemini-1.5-flash',
     base_provider = 'Google DeepMind',
     best_provider = IterListProvider([Blackbox, Jmuz, Gemini, GeminiPro, Liaobots])
+)
+
+gemini_1_5_pro = Model(
+    name          = 'gemini-1.5-pro',
+    base_provider = 'Google DeepMind',
+    best_provider = IterListProvider([Blackbox, Jmuz, GPROChat, AIChatFree, Gemini, GeminiPro, Liaobots])
 )
 
 # gemini-2.0
@@ -366,16 +361,10 @@ claude_3_opus = Model(
 
 
 # claude 3.5
-claude_3_5_haiku = Model(
-    name          = 'claude-3.5-haiku',
-    base_provider = 'Anthropic',
-    best_provider = PollinationsAI
-)
-
 claude_3_5_sonnet = Model(
     name          = 'claude-3.5-sonnet',
     base_provider = 'Anthropic',
-    best_provider = IterListProvider([Blackbox, PollinationsAI, Jmuz, Liaobots])
+    best_provider = IterListProvider([Blackbox, Jmuz, Liaobots])
 )
 
 ### Reka AI ###
@@ -402,7 +391,7 @@ blackboxai_pro = Model(
 command_r = Model(
     name = 'command-r',
     base_provider = 'CohereForAI',
-    best_provider = IterListProvider([HuggingSpace, PollinationsAI])
+    best_provider = HuggingSpace
 )
 
 command_r_plus = Model(
@@ -429,14 +418,14 @@ qwen_1_5_7b = Model(
 qwen_2_72b = Model(
     name = 'qwen-2-72b',
     base_provider = 'Qwen',
-    best_provider = IterListProvider([DeepInfraChat, PollinationsAI, HuggingSpace])
+    best_provider = HuggingSpace
 )
 
 # qwen 2.5
 qwen_2_5_72b = Model(
     name = 'qwen-2.5-72b',
     base_provider = 'Qwen',
-    best_provider = Jmuz
+    best_provider = IterListProvider([DeepInfraChat, PollinationsAI, Jmuz])
 )
 
 qwen_2_5_coder_32b = Model(
@@ -475,7 +464,7 @@ deepseek_chat = Model(
 deepseek_r1 = Model(
     name = 'deepseek-r1',
     base_provider = 'DeepSeek',
-    best_provider = IterListProvider([Blackbox, Jmuz, HuggingChat, HuggingFace])
+    best_provider = IterListProvider([Blackbox, Jmuz, PollinationsAI, HuggingChat, HuggingFace])
 )
 
 ### x.ai ###
@@ -554,34 +543,16 @@ evil = Model(
     best_provider = PollinationsAI
 )
 
-### Other ###
-midijourney = Model(
-    name = 'midijourney',
-    base_provider = 'Other',
-    best_provider = PollinationsAI
-)
-
-unity = Model(
-    name = 'unity',
-    base_provider = 'Other',
-    best_provider = PollinationsAI
-)
-
-rtist = Model(
-    name = 'rtist',
-    base_provider = 'Other',
-    best_provider = PollinationsAI
-)
 
 #############
 ### Image ###
 #############
 
 ### Stability AI ###
-sd_turbo = ImageModel(
-    name = 'sd-turbo',
+sdxl_turbo = ImageModel(
+    name = 'sdxl-turbo',
     base_provider = 'Stability AI',
-    best_provider = PollinationsAI
+    best_provider = IterListProvider([PollinationsAI, ImageLabs])
 )
 
 sd_3_5 = ImageModel(
@@ -590,24 +561,31 @@ sd_3_5 = ImageModel(
     best_provider = HuggingSpace
 )
 
-### Flux AI ###
+### Black Forest Labs ###
 flux = ImageModel(
     name = 'flux',
-    base_provider = 'Flux AI',
+    base_provider = 'Black Forest Labs',
     best_provider = IterListProvider([Blackbox, PollinationsAI, HuggingSpace])
+)
+
+flux_pro = ImageModel(
+    name = 'flux-pro',
+    base_provider = 'Black Forest Labs',
+    best_provider = PollinationsAI
 )
 
 flux_dev = ImageModel(
     name = 'flux-dev',
-    base_provider = 'Flux AI',
+    base_provider = 'Black Forest Labs',
     best_provider = IterListProvider([HuggingSpace, HuggingChat, HuggingFace])
 )
 
 flux_schnell = ImageModel(
     name = 'flux-schnell',
-    base_provider = 'Flux AI',
+    base_provider = 'Black Forest Labs',
     best_provider = IterListProvider([HuggingSpace, HuggingChat, HuggingFace])
 )
+
 
 ### OpenAI ###
 dall_e_3 = ImageModel(
@@ -682,7 +660,6 @@ class ModelUtils:
         mixtral_7b.name: mixtral_7b,
         mixtral_8x7b.name: mixtral_8x7b,
         mistral_nemo.name: mistral_nemo,
-        mistral_large.name: mistral_large,
 
         ### NousResearch ###
         hermes_2_dpo.name: hermes_2_dpo,
@@ -719,7 +696,6 @@ class ModelUtils:
         claude_3_haiku.name: claude_3_haiku,
 
         # claude 3.5
-        claude_3_5_haiku.name: claude_3_5_haiku,
         claude_3_5_sonnet.name: claude_3_5_sonnet,
 
         ### Reka AI ###
@@ -775,21 +751,17 @@ class ModelUtils:
         mini_max.name: mini_max, ## MiniMax
         evil.name: evil, ### Uncensored AI ###
         
-        ### Other ###
-        midijourney.name: midijourney,
-        unity.name: unity,
-        rtist.name: rtist,
-        
         #############
         ### Image ###
         #############
 
         ### Stability AI ###
-        sd_turbo.name: sd_turbo,
+        sdxl_turbo.name: sdxl_turbo,
         sd_3_5.name: sd_3_5,
 
         ### Flux AI ###
         flux.name: flux,
+        flux_pro.name: flux_pro,
         flux_dev.name: flux_dev,
         flux_schnell.name: flux_schnell,
 

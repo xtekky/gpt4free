@@ -4,7 +4,7 @@ from ..typing import AsyncResult, Messages
 from .needs_auth import OpenaiAPI
 
 class CablyAI(OpenaiAPI):
-    label = __name__
+    label = "CablyAI"
     url = "https://cablyai.com"
     login_url = None
     needs_auth = False

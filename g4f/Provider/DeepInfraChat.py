@@ -4,6 +4,7 @@ from ..typing import AsyncResult, Messages
 from .needs_auth.OpenaiTemplate import OpenaiTemplate
 
 class DeepInfraChat(OpenaiTemplate):
+    label = "DeepInfraChat"
     url = "https://deepinfra.com/chat"
     api_base = "https://api.deepinfra.com/v1/openai"
     working = True
@@ -29,7 +30,7 @@ class DeepInfraChat(OpenaiTemplate):
         "qwq-32b": "Qwen/QwQ-32B-Preview",
         "wizardlm-2-8x22b": "microsoft/WizardLM-2-8x22B",
         "wizardlm-2-7b": "microsoft/WizardLM-2-7B",
-        "qwen-2-72b": "Qwen/Qwen2.5-72B-Instruct",
+        "qwen-2.5-72b": "Qwen/Qwen2.5-72B-Instruct",
         "qwen-2.5-coder-32b": "Qwen/Qwen2.5-Coder-32B-Instruct",
         "nemotron-70b": "nvidia/Llama-3.1-Nemotron-70B-Instruct",
     }

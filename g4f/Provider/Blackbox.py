@@ -38,7 +38,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
     default_vision_model = default_model
     default_image_model = 'ImageGeneration' 
     image_models = [default_image_model, "ImageGeneration2"]
-    vision_models = [default_vision_model, 'gpt-4o', 'gemini-pro', 'gemini-1.5-flash', 'llama-3.1-8b', 'llama-3.1-70b', 'llama-3.1-405b']
+    vision_models = [default_vision_model, 'gpt-4o', 'gemini-pro', 'gemini-1.5-flash', 'llama-3.1-8b', 'llama-3.1-70b', 'llama-3.1-405b', 'deepseek-r1']
     
     userSelectedModel = ['gpt-4o', 'gemini-pro', 'claude-sonnet-3.5', 'blackboxai-pro']
 
