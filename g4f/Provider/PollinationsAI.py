@@ -38,24 +38,35 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
     default_model = "openai"
     default_image_model = "flux"
     default_vision_model = "gpt-4o"
-    extra_image_models = ["midjourney", "dall-e-3", "flux-pro", "flux-realism", "flux-cablyai", "flux-anime", "flux-3d"]
+    extra_image_models = ["midjourney", "dall-e-3", "flux-pro"]
     vision_models = [default_vision_model, "gpt-4o-mini"]
-    extra_text_models = [*vision_models, "claude", "claude-email", "karma", "command-r", "llamalight", "mistral-large", "sur", "sur-mistral", "any-dark"]
+    extra_text_models = ["claude", "claude-email", "deepseek-reasoner"] + vision_models
     model_aliases = {
-        "qwen-2-72b": "qwen",
+        ### Text Models ###
+        "gpt-4o-mini": "openai",
+        "gpt-4": "openai-large",
+        "gpt-4o": "openai-large",
+        "qwen-2.5-72b": "qwen",
         "qwen-2.5-coder-32b": "qwen-coder",
         "llama-3.3-70b": "llama",
         "mistral-nemo": "mistral",
-        #"": "karma",
-        #"": "sur-mistral",
-        "gpt-4": "searchgpt",
-        "claude-3.5-haiku": "claude-hybridspace",
-        "claude-3.5-sonnet": "claude-email",
-        "gpt-4": "claude",
+        #"mistral-nemo": "unity", # bug with image url response
+        #"gpt-4o-mini": "midijourney", # bug with the answer
+        "gpt-4o-mini": "rtist",
+        "gpt-4o": "searchgpt",
+        #"mistral-nemo": "evil",
+        "gpt-4o-mini": "p1",
         "deepseek-chat": "deepseek",
-        "llama-3.1-8b": "llamalight", 
+        "deepseek-chat": "claude-hybridspace",
+        "llama-3.1-8b": "llamalight",
+        "gpt-4o-vision": "gpt-4o",
+        "gpt-4o-mini-vision": "gpt-4o-mini",
+        "gpt-4o-mini": "claude",
+        "deepseek-chat": "claude-email",
+        "deepseek-r1": "deepseek-reasoner",
+        
         ### Image Models ###
-        "sd-turbo": "turbo", 
+        "sdxl-turbo": "turbo", 
     }
     text_models = []
 

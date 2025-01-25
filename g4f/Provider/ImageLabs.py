@@ -22,6 +22,7 @@ class ImageLabs(AsyncGeneratorProvider, ProviderModelMixin):
     default_image_model = default_model
     image_models = [default_image_model]
     models = image_models
+    model_aliases = {"sdxl-turbo": default_model}
 
     @classmethod
     async def create_async_generator(
