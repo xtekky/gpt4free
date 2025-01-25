@@ -46,7 +46,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         'ImageGeneration': {'mode': True, 'id': "ImageGenerationLV45LJp", 'name': "Image Generation"},
         #
         'Meta-Llama-3.3-70B-Instruct-Turbo': {'mode': True, 'id': "meta-llama/Llama-3.3-70B-Instruct-Turbo", 'name': "Meta-Llama-3.3-70B-Instruct-Turbo"},
-        'Mistral-(7B)-Instruct-v0.': {'mode': True, 'id': "mistralai/Mistral-7B-Instruct-v0.2", 'name': "Mistral-(7B)-Instruct-v0.2"},
+        'Mistral-(7B)-Instruct-v0.2': {'mode': True, 'id': "mistralai/Mistral-7B-Instruct-v0.2", 'name': "Mistral-(7B)-Instruct-v0.2"},
         'DeepSeek-LLM-Chat-(67B)': {'mode': True, 'id': "deepseek-ai/deepseek-llm-67b-chat", 'name': "DeepSeek-LLM-Chat-(67B)"},
         'DBRX-Instruct': {'mode': True, 'id': "databricks/dbrx-instruct", 'name': "DBRX-Instruct"},
         'Qwen-QwQ-32B-Preview': {'mode': True, 'id': "Qwen/QwQ-32B-Preview", 'name': "Qwen-QwQ-32B-Preview"},
@@ -106,7 +106,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         "gemini-1.5-pro": "gemini-pro",
         "claude-3.5-sonnet": "claude-sonnet-3.5",
         "llama-3.3-70b": "Meta-Llama-3.3-70B-Instruct-Turbo",
-        "mixtral-7b": "Mistral-(7B)-Instruct-v0.",
+        "mixtral-7b": "Mistral-(7B)-Instruct-v0.2",
         "deepseek-chat": "DeepSeek-LLM-Chat-(67B)",
         "dbrx-instruct": "DBRX-Instruct",
         "qwq-32b": "Qwen-QwQ-32B-Preview",
