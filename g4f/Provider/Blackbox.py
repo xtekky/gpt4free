@@ -38,9 +38,9 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
     default_vision_model = default_model
     default_image_model = 'ImageGeneration' 
     image_models = [default_image_model, "ImageGeneration2"]
-    vision_models = [default_vision_model, 'gpt-4o', 'gemini-pro', 'gemini-1.5-flash', 'llama-3.1-8b', 'llama-3.1-70b', 'llama-3.1-405b', 'DeepSeek-R1']
+    vision_models = [default_vision_model, 'gpt-4o', 'gemini-pro', 'gemini-1.5-flash', 'llama-3.1-8b', 'llama-3.1-70b', 'llama-3.1-405b']
     
-    userSelectedModel = ['gpt-4o', 'gemini-pro', 'claude-sonnet-3.5', 'blackboxai-pro']
+    userSelectedModel = ['gpt-4o', 'gemini-pro', 'claude-sonnet-3.5', 'deepseek-r1', 'deepseek-v3', 'blackboxai-pro']
 
     agentMode = {
         'ImageGeneration': {'mode': True, 'id': "ImageGenerationLV45LJp", 'name': "Image Generation"},
@@ -51,7 +51,6 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         'DBRX-Instruct': {'mode': True, 'id': "databricks/dbrx-instruct", 'name': "DBRX-Instruct"},
         'Qwen-QwQ-32B-Preview': {'mode': True, 'id': "Qwen/QwQ-32B-Preview", 'name': "Qwen-QwQ-32B-Preview"},
         'Nous-Hermes-2-Mixtral-8x7B-DPO': {'mode': True, 'id': "NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO", 'name': "Nous-Hermes-2-Mixtral-8x7B-DPO"},
-        'DeepSeek-R1': {'mode': True, 'id': "deepseek-reasoner", 'name': "DeepSeek-R1"}
     }
 
     trendingAgentMode = {
@@ -111,7 +110,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         "dbrx-instruct": "DBRX-Instruct",
         "qwq-32b": "Qwen-QwQ-32B-Preview",
         "hermes-2-dpo": "Nous-Hermes-2-Mixtral-8x7B-DPO",
-        "deepseek-r1": "DeepSeek-R1",
+        "deepseek-chat": "deepseek-v3",
         
         ### image ###
         "flux": "ImageGeneration",
@@ -203,6 +202,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         max_tokens: int = None,
         conversation: Conversation = None,
         return_conversation: bool = False,
+        deepSearchMode: bool = False,
         **kwargs
     ) -> AsyncResult:      
         model = cls.get_model(model)
