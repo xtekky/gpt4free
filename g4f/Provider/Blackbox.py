@@ -116,6 +116,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         ### image ###
         "flux": "ImageGeneration",
         "flux": "ImageGeneration2",
+        "flux-pro": "ImageGeneration2",
     }
 
     @classmethod
