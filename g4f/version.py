@@ -86,7 +86,7 @@ class VersionUtils:
         except CalledProcessError:
             pass
 
-        raise VersionNotFoundError("Version not found")
+        return None
 
     @property
     def latest_version(self) -> str:
