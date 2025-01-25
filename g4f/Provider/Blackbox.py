@@ -202,7 +202,6 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         max_tokens: int = None,
         conversation: Conversation = None,
         return_conversation: bool = False,
-        deepSearchMode: bool = False,
         **kwargs
     ) -> AsyncResult:      
         model = cls.get_model(model)
@@ -286,7 +285,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
                 "validated": conversation.validated_value,
                 "imageGenerationMode": False,
                 "webSearchModePrompt": False,
-                "deepSearchMode": False,
+                "deepSearchMode": True,
                 "domains": None,
                 "vscodeClient": False,
                 "codeInterpreterMode": False,
