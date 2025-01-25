@@ -98,7 +98,7 @@ Is your site on this repository and you want to take it down? Send an email to t
 
 ### 🐳 Using Docker
 1. **Install Docker:** [Download and install Docker](https://docs.docker.com/get-docker/).
-2. **Set Up Directories:** Before running the container, make sure the necessary data directories exist or can be created. For example, you can create and set ownership on these directories by running:
+2. **Set Up Directories:** Before running the container, make sure the necessary data directories exist or can be created. For example, you can create and set ownership on these directories by running: (Only x64)
 ```bash
    mkdir -p ${PWD}/har_and_cookies ${PWD}/generated_images
    sudo chown -R 1200:1201 ${PWD}/har_and_cookies ${PWD}/generated_images
@@ -113,7 +113,7 @@ Is your site on this repository and you want to take it down? Send an email to t
      hlohaus789/g4f:latest
 ```
 
-4. **Running the Slim Docker Image:** And use the following commands to run the Slim Docker image. This command also updates the `g4f` package at startup and installs any additional dependencies:
+4. **Running the Slim Docker Image:** And use the following commands to run the Slim Docker image. This command also updates the `g4f` package at startup and installs any additional dependencies: (x64 and arm64)
 ```bash
   mkdir -p ${PWD}/har_and_cookies ${PWD}/generated_images
   chown -R 1000:1000 ${PWD}/har_and_cookies ${PWD}/generated_images
