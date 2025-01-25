@@ -425,7 +425,6 @@ class AsyncAuthedProvider(AsyncGeneratorProvider):
             else:
                 auth_result = cls.on_auth(**kwargs)
                 for chunk in auth_result:
-                    print(hasattr(chunk, "get_dict"))
                     if hasattr(chunk, "get_dict"):
                         auth_result = chunk
                     else:

@@ -534,8 +534,8 @@ class AsyncCompletions:
             self.provider if provider is None else provider,
             stream,
             ignore_working,
-            ignore_stream,,
-            has_images="images" in kwargs
+            ignore_stream,
+            has_images="images" in kwargs,
         )
         stop = [stop] if isinstance(stop, str) else stop
         if ignore_stream:
