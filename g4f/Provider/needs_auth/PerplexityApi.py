@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from .OpenaiAPI import OpenaiAPI
+from .OpenaiTemplate import OpenaiTemplate
 
-class PerplexityApi(OpenaiAPI):
+class PerplexityApi(OpenaiTemplate):
     label = "Perplexity API"
     url = "https://www.perplexity.ai"
     login_url = "https://www.perplexity.ai/settings/api"
     working = True
+    needs_auth = True
     api_base = "https://api.perplexity.ai"
     default_model = "llama-3-sonar-large-32k-online"
     models = [

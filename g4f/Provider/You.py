@@ -76,12 +76,15 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
                 cookies = get_cookies(".you.com")
             except MissingRequirementsError:
                 browser = await get_nodriver(proxy=proxy)
-                page = await browser.get(cls.url)
-                await page.wait_for('[data-testid="user-profile-button"]', timeout=900)
-                cookies = {}
-                for c in await page.send(nodriver.cdp.network.get_cookies([cls.url])):
-                    cookies[c.name] = c.value
-                await page.close()
+                try:
+                    page = await browser.get(cls.url)
+                    await page.wait_for('[data-testid="user-profile-button"]', timeout=900)
+                    cookies = {}
+                    for c in await page.send(nodriver.cdp.network.get_cookies([cls.url])):
+                        cookies[c.name] = c.value
+                    await page.close()
+                finally:
+                    browser.stop()
         async with StreamSession(
             proxy=proxy,
             impersonate="chrome",

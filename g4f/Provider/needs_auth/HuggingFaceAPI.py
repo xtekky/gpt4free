@@ -1,15 +1,16 @@
 from __future__ import annotations
 
-from .OpenaiAPI import OpenaiAPI
+from .OpenaiTemplate import OpenaiTemplate
 from .HuggingChat import HuggingChat
 from ...providers.types import Messages
 
-class HuggingFaceAPI(OpenaiAPI):
+class HuggingFaceAPI(OpenaiTemplate):
     label = "HuggingFace (Inference API)"
     parent = "HuggingFace"
     url = "https://api-inference.huggingface.com"
     api_base = "https://api-inference.huggingface.co/v1"
     working = True
+    needs_auth = True
 
     default_model = "meta-llama/Llama-3.2-11B-Vision-Instruct"
     default_vision_model = default_model

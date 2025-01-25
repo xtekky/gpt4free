@@ -6,11 +6,11 @@ from ..providers.base_provider  import AsyncProvider, AsyncGeneratorProvider
 from ..providers.create_images  import CreateImagesProvider
 
 from .deprecated       import *
-from .selenium         import *
 from .needs_auth       import *
 from .not_working      import *
 from .local            import *
 from .hf_space         import HuggingSpace
+from .mini_max         import HailuoAI, MiniMax
 
 from .AIChatFree           import AIChatFree
 from .AIUncensored         import AIUncensored

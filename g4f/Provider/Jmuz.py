@@ -1,18 +1,13 @@
 from __future__ import annotations
 
 from ..typing import AsyncResult, Messages
-from .needs_auth.OpenaiAPI import OpenaiAPI
+from .needs_auth.OpenaiTemplate import OpenaiTemplate
 
-class Jmuz(OpenaiAPI):
-    label = "Jmuz"
+class Jmuz(OpenaiTemplate):
     url = "https://discord.gg/Ew6JzjA2NR"
-    login_url = None
     api_base = "https://jmuz.me/gpt/api/v2"
     api_key = "prod"
-
     working = True
-    needs_auth = False
-    supports_stream = True
     supports_system_message = False
 
     default_model = "gpt-4o"

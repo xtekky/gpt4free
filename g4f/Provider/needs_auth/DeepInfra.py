@@ -4,22 +4,17 @@ import requests
 from ...typing import AsyncResult, Messages
 from ...requests import StreamSession, raise_for_status
 from ...image import ImageResponse
-from .OpenaiAPI import OpenaiAPI
-from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from .OpenaiTemplate import OpenaiTemplate
 
-class DeepInfra(OpenaiAPI, AsyncGeneratorProvider, ProviderModelMixin):
-    label = "DeepInfra"
+class DeepInfra(OpenaiTemplate):
     url = "https://deepinfra.com"
     login_url = "https://deepinfra.com/dash/api_keys"
-    working = True
     api_base = "https://api.deepinfra.com/v1/openai"
+    working = True
     needs_auth = True
-    supports_stream = True
-    supports_message_history = True
+
     default_model = "meta-llama/Meta-Llama-3.1-70B-Instruct"
     default_image_model = "stabilityai/sd3.5"
-    models = []
-    image_models = []
 
     @classmethod
     def get_models(cls, **kwargs):
@@ -38,7 +33,7 @@ class DeepInfra(OpenaiAPI, AsyncGeneratorProvider, ProviderModelMixin):
                     cls.image_models.append(model['model_name'])
             
             cls.models.extend(cls.image_models)
-        
+
         return cls.models
 
     @classmethod
@@ -48,15 +43,24 @@ class DeepInfra(OpenaiAPI, AsyncGeneratorProvider, ProviderModelMixin):
         return cls.image_models
 
     @classmethod
-    def create_async_generator(
+    async def create_async_generator(
         cls,
         model: str,
         messages: Messages,
         stream: bool,
+        prompt: str = None,
         temperature: float = 0.7,
         max_tokens: int = 1028,
         **kwargs
     ) -> AsyncResult:
+        if model in cls.get_image_models():
+            yield cls.create_async_image(
+                messages[-1]["content"] if prompt is None else prompt,
+                model,
+                **kwargs
+            )
+            return
+
         headers = {
             'Accept-Encoding': 'gzip, deflate, br',
             'Accept-Language': 'en-US',
@@ -65,14 +69,15 @@ class DeepInfra(OpenaiAPI, AsyncGeneratorProvider, ProviderModelMixin):
             'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
             'X-Deepinfra-Source': 'web-embed',
         }
-        return super().create_async_generator(
+        async for chunk in super().create_async_generator(
             model, messages,
             stream=stream,
             temperature=temperature,
             max_tokens=max_tokens,
             headers=headers,
             **kwargs
-        )
+        ):
+            yield chunk
 
     @classmethod
     async def create_async_image(
@@ -119,13 +124,3 @@ class DeepInfra(OpenaiAPI, AsyncGeneratorProvider, ProviderModelMixin):
                     raise RuntimeError(f"Response: {data}")
                 images = images[0] if len(images) == 1 else images
                 return ImageResponse(images, prompt)
-
-    @classmethod
-    async def create_async_image_generator(
-        cls,
-        model: str,
-        messages: Messages,
-        prompt: str = None,
-        **kwargs
-    ) -> AsyncResult:
-        yield await cls.create_async_image(messages[-1]["content"] if prompt is None else prompt, model, **kwargs)

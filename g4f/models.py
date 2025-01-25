@@ -37,8 +37,10 @@ from .Provider import (
     Gemini,
     GeminiPro,
     GigaChat,
+    HailuoAI,
     HuggingChat,
     HuggingFace,
+    HuggingFaceAPI,
     MetaAI,
     MicrosoftDesigner,
     OpenaiAccount,
@@ -70,7 +72,7 @@ class ImageModel(Model):
 
 ### Default ###
 default = Model(
-    name          = "",
+    name = "",
     base_provider = "",
     best_provider = IterListProvider([
         DDG,
@@ -88,6 +90,21 @@ default = Model(
         OpenaiChat,
         Cloudflare,
     ])
+)
+
+default_vision = Model(
+    name = "",
+    base_provider = "",
+    best_provider = IterListProvider([
+        Blackbox,
+        PollinationsAI,
+        HuggingSpace,
+        GeminiPro,
+        HuggingFaceAPI,
+        CopilotAccount,
+        OpenaiAccount,
+        Gemini,
+    ], shuffle=False)
 )
 
 ############
@@ -523,6 +540,13 @@ glm_4 = Model(
     best_provider = ChatGLM
 )
 
+### MiniMax
+mini_max = Model(
+    name = "MiniMax",
+    base_provider = "MiniMax",
+    best_provider = HailuoAI
+)
+
 ### Uncensored AI ### 
 evil = Model(
     name = 'evil',
@@ -570,7 +594,7 @@ sd_3_5 = ImageModel(
 flux = ImageModel(
     name = 'flux',
     base_provider = 'Flux AI',
-    best_provider = IterListProvider([Blackbox, PollinationsAI])
+    best_provider = IterListProvider([Blackbox, PollinationsAI, HuggingSpace])
 )
 
 flux_dev = ImageModel(
@@ -742,26 +766,14 @@ class ModelUtils:
         deepseek_chat.name: deepseek_chat,
         deepseek_r1.name: deepseek_r1,
 
-        ### Nvidia ###   
-        nemotron_70b.name: nemotron_70b,
-        
-        ### Liquid ### 
-        lfm_40b.name: lfm_40b,
-        
-        ### Databricks ###   
-        dbrx_instruct.name: dbrx_instruct,
-        
-        ### PollinationsAI ### 
-        p1.name: p1,
-        
-        ### CablyAI ### 
-        cably_80b.name: cably_80b,
-        
-        ### THUDM ### 
-        glm_4.name: glm_4,
-        
-        ### Uncensored AI ###   
-        evil.name: evil,
+        nemotron_70b.name: nemotron_70b, ### Nvidia ###
+        lfm_40b.name: lfm_40b, ### Liquid ### 
+        dbrx_instruct.name: dbrx_instruct, ### Databricks ###
+        p1.name: p1, ### PollinationsAI ### 
+        cably_80b.name: cably_80b, ### CablyAI ###
+        glm_4.name: glm_4, ### THUDM ###
+        mini_max.name: mini_max, ## MiniMax
+        evil.name: evil, ### Uncensored AI ###
         
         ### Other ###
         midijourney.name: midijourney,

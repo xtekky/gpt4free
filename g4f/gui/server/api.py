@@ -147,7 +147,8 @@ class Api:
                 kwargs.get("model"), provider,
                 stream=True,
                 ignore_stream=True,
-                logging=False
+                logging=False,
+                has_images="images" in kwargs,
             )
         except Exception as e:
             logger.exception(e)
