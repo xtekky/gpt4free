@@ -50,7 +50,7 @@ This document provides an overview of various AI providers and models, including
 |[copilot.microsoft.com](https://copilot.microsoft.com)|Optional API key|`g4f.Provider.Copilot`|`gpt-4, gpt-4o`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
 |[darkai.foundation](https://darkai.foundation)|No auth required|`g4f.Provider.DarkAI`|`gpt-3.5-turbo, gpt-4o, llama-3.1-70b`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
 |[duckduckgo.com/aichat](https://duckduckgo.com/aichat)|No auth required|`g4f.Provider.DDG`|`gpt-4, gpt-4o-mini, claude-3-haiku, llama-3.1-70b, mixtral-8x7b`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
-|[deepinfra.com/chat](https://deepinfra.com/chat)|No auth required|`g4f.Provider.DeepInfraChat`|`llama-3.1-8b, llama-3.1-70b, qwq-32b, wizardlm-2-8x22b, wizardlm-2-7b, qwen-2.5-72b, qwen-2.5-coder-32b, nemotron-70b`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
+|[deepinfra.com/chat](https://deepinfra.com/chat)|No auth required|`g4f.Provider.DeepInfraChat`|`llama-3.1-8b, llama-3.1-70b, deepseek-chat, qwq-32b, wizardlm-2-8x22b, wizardlm-2-7b, qwen-2.5-72b, qwen-2.5-coder-32b, nemotron-70b`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
 |[chat10.free2gpt.xyz](https://chat10.free2gpt.xyz)|No auth required|`g4f.Provider.Free2GPT`|`mistral-7b`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
 |[freegptsnav.aifree.site](https://freegptsnav.aifree.site)|No auth required|`g4f.Provider.FreeGpt`|`gemini-1.5-pro`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
 |[app.giz.ai/assistant](https://app.giz.ai/assistant)|No auth required|`g4f.Provider.GizAI`|`gemini-1.5-flash`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
@@ -172,7 +172,7 @@ This document provides an overview of various AI providers and models, including
 |qwq-32b|Qwen|4+ Providers|[huggingface.co](https://huggingface.co/Qwen/QwQ-32B-Preview)|
 |qvq-72b|Qwen|1+ Providers|[huggingface.co](https://huggingface.co/Qwen/QVQ-72B-Preview)|
 |pi|Inflection|1+ Providers|[inflection.ai](https://inflection.ai/blog/inflection-2-5)|
-|deepseek-chat|DeepSeek|3+ Providers|[huggingface.co](https://huggingface.co/deepseek-ai/deepseek-llm-67b-chat)|
+|deepseek-chat|DeepSeek|4+ Providers|[huggingface.co](https://huggingface.co/deepseek-ai/deepseek-llm-67b-chat)|
 |deepseek-r1|DeepSeek|5+ Providers|[api-docs.deepseek.com](https://api-docs.deepseek.com/news/news250120)|
 |grok-2|x.ai|1+ Providers|[x.ai](https://x.ai/blog/grok-2)|
 |sonar-online|Perplexity AI|1+ Providers|[docs.perplexity.ai](https://docs.perplexity.ai/)|
