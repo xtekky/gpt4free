@@ -285,7 +285,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
                 "validated": conversation.validated_value,
                 "imageGenerationMode": False,
                 "webSearchModePrompt": False,
-                "deepSearchMode": True,
+                "deepSearchMode": False,
                 "domains": None,
                 "vscodeClient": False,
                 "codeInterpreterMode": False,
