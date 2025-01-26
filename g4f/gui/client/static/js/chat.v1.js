@@ -2209,7 +2209,7 @@ async function api(ressource, args=null, files=null, message_id=null, scroll=tru
         return pywebview.api[`get_${ressource}`]();
     }
     const headers = {};
-    const url = new URL(`/backend-api/v2/${ressource}`, window?.location || "http://localhost:8080");
+    let url = `/backend-api/v2/${ressource}`;
     let response;
     if (ressource == "models" && args) {
         api_key = get_api_key_by_provider(args);
@@ -2220,7 +2220,7 @@ async function api(ressource, args=null, files=null, message_id=null, scroll=tru
         if (api_base) {
             headers.x_api_base = api_base;
         }
-        ressource = `${ressource}/${args}`;
+        url = `/backend-api/v2/${ressource}/${args}`;
     } else if (ressource == "conversation") {
         let body = JSON.stringify(args);
         headers.accept = 'text/event-stream';
