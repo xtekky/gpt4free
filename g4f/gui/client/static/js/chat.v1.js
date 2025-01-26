@@ -1533,7 +1533,7 @@ async function hide_sidebar() {
     chat.classList.remove("hidden");
     log_storage.classList.add("hidden");
     await hide_settings();
-    if (window.location.pathname == "/menu/" || window.location.pathname == "/settings/") {
+    if (window.location.pathname.endsWith("/menu/") || window.location.pathname.endsWith("/settings/")) {
         history.back();
     }
 }
@@ -1550,10 +1550,7 @@ sidebar_button.addEventListener("click", async () => {
     if (sidebar.classList.contains("shown")) {
         await hide_sidebar();
     } else {
-        sidebar.classList.add("shown");
-        sidebar_button.classList.add("rotated");
-        await hide_settings();
-        add_url_to_history("/menu/");
+        await show_menu();
     }
     window.scrollTo(0, 0);
 });
@@ -1564,12 +1561,19 @@ function add_url_to_history(url) {
     }
 }
 
+async function show_menu() {
+    sidebar.classList.add("shown");
+    sidebar_button.classList.add("rotated");
+    await hide_settings();
+    add_url_to_history("/chat/menu/");
+}
+
 function open_settings() {
     if (settings.classList.contains("hidden")) {
         chat.classList.add("hidden");
         sidebar.classList.remove("shown");
         settings.classList.remove("hidden");
-        add_url_to_history("/settings/");
+        add_url_to_history("/chat/settings/");
     } else {
         settings.classList.add("hidden");
         chat.classList.remove("hidden");
@@ -1782,7 +1786,9 @@ window.addEventListener('pywebviewready', async function() {
 
 async function on_load() {
     count_input();
-    if (/\/chat\/[^?]+/.test(window.location.href)) {
+    if (/\/settings\//.test(window.location.href)) {
+        open_settings();
+    } else if (/\/chat\/[^?]+/.test(window.location.href)) {
         load_conversation(window.conversation_id);
     } else {
         chatPrompt.value = document.getElementById("systemPrompt")?.value || "";
@@ -1878,7 +1884,7 @@ async function on_api() {
         }
         providerSelect.innerHTML = '<option value="" selected>Demo Mode</option>'
         document.getElementById("pin").disabled = true;
-        document.getElementById("refine")?.parentElement.remove();
+        document.getElementById("refine")?.parentElement.classList.add("hidden")
         const track_usage = document.getElementById("track_usage");
         track_usage.checked = true;
         track_usage.disabled = true;
@@ -2099,7 +2105,7 @@ async function upload_files(fileInput) {
         body: formData
     });
 
-    let do_refine = document.getElementById("refine").checked;
+    let do_refine = document.getElementById("refine")?.checked;
     function connectToSSE(url) {
         const eventSource = new EventSource(url);
         eventSource.onmessage = (event) => {
@@ -2417,7 +2423,18 @@ function save_storage() {
 }
 
 function import_memory() {
+    if (!appStorage.getItem("mem0-api_key")) {
+        return;
+    }
     hide_sidebar();
+
+    let count = 0;
+    let user_id = appStorage.getItem("user") || appStorage.getItem("mem0-user_id");
+    if (!user_id) {
+        user_id = uuid();
+        appStorage.setItem("mem0-user_id", user_id);
+    }
+    inputCount.innerText = `Start importing to Mem0...`;
     let conversations = [];
     for (let i = 0; i < appStorage.length; i++) {
         if (appStorage.key(i).startsWith("conversation:")) {
@@ -2426,17 +2443,21 @@ function import_memory() {
         }
     }
     conversations.sort((a, b) => (a.updated||0)-(b.updated||0));
-    let count = 0;
-    conversations.forEach(async (conversation)=>{
-        let body = JSON.stringify(conversation);
-        response = await fetch("/backend-api/v2/memory", {
-            method: 'POST',
-            body: body,
-            headers: {"content-type": "application/json"}
-        });
-        const result = await response.json();
-        count += result.count;
-        inputCount.innerText = `${count} Messages are imported`;
+    conversations.forEach(async (conversation, i)=>{
+        setTimeout(async ()=>{
+            let body = JSON.stringify(conversation);
+            response = await fetch(`/backend-api/v2/memory/${user_id}`, {
+                method: 'POST',
+                body: body,
+                headers: {
+                    "content-type": "application/json",
+                    "x_api_key": appStorage.getItem("mem0-api_key")
+                }
+            });
+            const result = await response.json();
+            count += result.count;
+            inputCount.innerText = `${count} Messages were imported`;
+        }, (i+1)*1000);
     });
 }
 

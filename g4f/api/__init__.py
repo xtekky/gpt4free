@@ -245,6 +245,25 @@ class Api:
                 ]
             }
 
+        @self.app.get("/{provider}/models", responses={
+            HTTP_200_OK: {"model": List[ModelResponseModel]},
+        })
+        async def models(provider: str):
+            if provider not in ProviderUtils.convert:
+                return ErrorResponse.from_message("The provider does not exist.", 404)
+            provider: ProviderType = ProviderUtils.convert[provider]
+            return {
+                "object": "list",
+                "data": [{
+                    "id": model,
+                    "object": "model",
+                    "created": 0,
+                    "owned_by": getattr(provider, "label", provider.__name__),
+                    "image": model in getattr(provider, "image_models", []),
+                    "image": model in getattr(provider, "vision_models", []),
+                } for model in provider.get_models() if hasattr(provider, "get_models")]
+            }
+
         @self.app.get("/v1/models/{model_name}", responses={
             HTTP_200_OK: {"model": ModelResponseModel},
             HTTP_404_NOT_FOUND: {"model": ErrorResponseModel},
@@ -351,6 +370,20 @@ class Api:
             except Exception as e:
                 logger.exception(e)
                 return ErrorResponse.from_exception(e, config, HTTP_500_INTERNAL_SERVER_ERROR)
+
+        @self.app.post("/{provider}/chat/completions", responses={
+            HTTP_200_OK: {"model": ChatCompletion},
+            HTTP_401_UNAUTHORIZED: {"model": ErrorResponseModel},
+            HTTP_404_NOT_FOUND: {"model": ErrorResponseModel},
+            HTTP_422_UNPROCESSABLE_ENTITY: {"model": ErrorResponseModel},
+            HTTP_500_INTERNAL_SERVER_ERROR: {"model": ErrorResponseModel},
+        })
+        async def provider_chat_completions(
+            provider: str,
+            config: ChatCompletionsConfig,
+            credentials: Annotated[HTTPAuthorizationCredentials, Depends(Api.security)] = None,
+        ):
+            return await chat_completions(config, credentials, provider)
 
         responses = {
             HTTP_200_OK: {"model": ImagesResponse},

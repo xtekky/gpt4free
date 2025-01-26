@@ -162,6 +162,19 @@
                     document.getElementById('recognition-language').placeholder = navigator.language;
                 </script>
             </div>
+            <div class="field mem0 hidden">
+                <span class="label">Enable Memory with Mem0</span>
+                <input type="checkbox" id="mem0"/>
+                <label for="mem0" class="toogle" title=""></label>
+                <button onclick="import_memory()">
+                    <i class="fa-solid fa-arrow-up-from-bracket"></i>
+                    <span>Import Messages to Mem0</span>
+                </button>
+            </div>
+            <div class="field box hidden">
+                <label for="mem0-api_key" class="label" title="">Mem0 API:</label>
+                <input type="text" id="mem0-api_key" name="mem0[api_key]" placeholder="api_key"/>
+            </div>
             <div class="field box">
                 <label for="Custom-api_base" class="label" title="">Custom Provider (Base Url):</label>
                 <input type="text" id="Custom-api_base" name="Custom[api_base]" placeholder="http://localhost:8080/v1"/>
@@ -187,12 +200,6 @@
                 <button id="showLog">
                     <i class="fa-solid fa-terminal"></i>
                     <a href="" onclick="return false;">Show log</a>
-                </button>
-            </div>
-            <div class="bottom_buttons memory hidden">
-                <button onclick="import_memory()">
-                    <i class="fa-solid fa-arrow-up-from-bracket"></i>
-                    <a href="" onclick="return false;">Import Messages to Memory</a>
                 </button>
             </div>
         </div>

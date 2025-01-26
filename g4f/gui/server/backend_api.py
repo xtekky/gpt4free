@@ -171,16 +171,16 @@ class Backend_Api(Api):
                 f.write(f"{json.dumps(request.json)}\n")
             return {}
 
-        @app.route('/backend-api/v2/memory', methods=['POST'])
-        def add_memory():
+        @app.route('/backend-api/v2/memory/<user_id>', methods=['POST'])
+        def add_memory(user_id: str):
             api_key = request.headers.get("x_api_key")
             json_data = request.json
             from mem0 import MemoryClient
             client = MemoryClient(api_key=api_key)
             client.add(
                 [{"role": item["role"], "content": item["content"]} for item in json_data.get("items")],
-                user_id="user",
-                metadata={"conversation_id": json_data.get("id"), "title": json_data.get("title")}
+                user_id=user_id,
+                metadata={"conversation_id": json_data.get("id")}
             )
             return {"count": len(json_data.get("items"))}
 
@@ -189,13 +189,19 @@ class Backend_Api(Api):
             api_key = request.headers.get("x_api_key")
             from mem0 import MemoryClient
             client = MemoryClient(api_key=api_key)
-            if request.args.search:
+            if request.args.get("search"):
                 return client.search(
-                    request.args.search,
+                    request.args.get("search"),
                     user_id=user_id,
-                    metadata=json.loads(request.args.metadata) if request.args.metadata else None
+                    filters=json.loads(request.args.get("filters", "null")),
+                    metadata=json.loads(request.args.get("metadata", "null"))
                 )
-            return {}
+            return client.get_all(
+                user_id=user_id,
+                page=request.args.get("page", 1),
+                page_size=request.args.get("page_size", 100),
+                filters=json.loads(request.args.get("filters", "null")),
+            )
 
         self.routes = {
             '/backend-api/v2/version': {
