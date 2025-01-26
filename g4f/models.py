@@ -781,7 +781,7 @@ demo_models = {
     command_r_plus.name: [command_r_plus, [HuggingSpace]],
     command_r7b.name: [command_r7b, [HuggingSpace]],
     gemma_2_27b.name: [gemma_2_27b, [HuggingFaceAPI]],
-    qwen_2_72b.name: [qwen_2_72b, [HuggingFaceAPI]],
+    qwen_2_72b.name: [qwen_2_72b, [HuggingSpace]],
     qwen_2_5_coder_32b.name: [qwen_2_5_coder_32b, [HuggingFace]],
     qwq_32b.name: [qwq_32b, [HuggingFace]],
     llama_3_3_70b.name: [llama_3_3_70b, [HuggingFace]],

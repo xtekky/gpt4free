@@ -31,6 +31,7 @@ class Jmuz(OpenaiTemplate):
             model: str,
             messages: Messages,
             stream: bool = True,
+            api_key: str = None, # Remove api_key from kwargs
             **kwargs
     ) -> AsyncResult:
         model = cls.get_model(model)
