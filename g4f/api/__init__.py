@@ -73,7 +73,7 @@ def create_app():
     api.register_validation_exception_handler()
  
     if AppConfig.gui:
-        gui_app = WSGIMiddleware(get_gui_app())
+        gui_app = WSGIMiddleware(get_gui_app(AppConfig.demo))
         app.mount("/", gui_app)
 
     # Read cookie files if not ignored
@@ -94,6 +94,12 @@ def create_app_debug():
 def create_app_with_gui_and_debug():
     g4f.debug.logging = True
     AppConfig.gui = True
+    return create_app()
+
+def create_app_with_demo_and_debug():
+    g4f.debug.logging = True
+    AppConfig.gui = True
+    AppConfig.demo = True
     return create_app()
 
 class ErrorResponse(Response):
@@ -121,6 +127,7 @@ class AppConfig:
     image_provider: str = None
     proxy: str = None
     gui: bool = False
+    demo: bool = False
 
     @classmethod
     def set_config(cls, **data):
@@ -156,18 +163,18 @@ class Api:
             print(f"Register authentication key: {''.join(['*' for _ in range(len(AppConfig.g4f_api_key))])}")
         @self.app.middleware("http")
         async def authorization(request: Request, call_next):
-            if AppConfig.g4f_api_key is not None:
+            if AppConfig.g4f_api_key is not None or AppConfig.demo:
                 try:
                     user_g4f_api_key = await self.get_g4f_api_key(request)
                 except HTTPException:
                     user_g4f_api_key = None
                 path = request.url.path
-                if path.startswith("/v1"):
+                if path.startswith("/v1") or (AppConfig.demo and path == '/backend-api/v2/upload_cookies'):
                     if user_g4f_api_key is None:
                         return ErrorResponse.from_message("G4F API key required", HTTP_401_UNAUTHORIZED)
                     if not secrets.compare_digest(AppConfig.g4f_api_key, user_g4f_api_key):
                         return ErrorResponse.from_message("Invalid G4F API key", HTTP_403_FORBIDDEN)
-                else:
+                elif not AppConfig.demo:
                     if user_g4f_api_key is not None and path.startswith("/images/"):
                         if not secrets.compare_digest(AppConfig.g4f_api_key, user_g4f_api_key):
                             return ErrorResponse.from_message("Invalid G4F API key", HTTP_403_FORBIDDEN)
@@ -562,7 +569,9 @@ def run_api(
         host, port = bind.split(":")
     if port is None:
         port = DEFAULT_PORT
-    if AppConfig.gui and debug:
+    if AppConfig.demo and debug:
+        method = "create_app_with_demo_and_debug"
+    elif AppConfig.gui and debug:
         method = "create_app_with_gui_and_debug"
     else:
         method = "create_app_debug" if debug else "create_app"

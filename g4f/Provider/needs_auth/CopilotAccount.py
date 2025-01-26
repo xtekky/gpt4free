@@ -4,6 +4,7 @@ from ..Copilot import Copilot
 
 class CopilotAccount(Copilot):
     needs_auth = True
+    use_nodriver = True
     parent = "Copilot"
     default_model = "Copilot"
     default_vision_model = default_model

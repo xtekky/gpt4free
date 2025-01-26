@@ -58,6 +58,7 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
     
     needs_auth = True
     working = True
+    use_nodriver = True
     
     default_model = 'gemini'
     default_image_model = default_model

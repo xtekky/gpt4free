@@ -36,6 +36,7 @@ let parameters_storage = {};
 let finish_storage = {};
 let usage_storage = {};
 let reasoning_storage = {}
+let is_demo = false;
 
 messageInput.addEventListener("blur", () => {
     window.scrollTo(0, 0);
@@ -360,7 +361,7 @@ const delete_conversations = async () => {
     await new_conversation();
 };
 
-const handle_ask = async () => {
+const handle_ask = async (do_ask_gpt = true) => {
     messageInput.style.height = "82px";
     messageInput.focus();
     await scroll_to_bottom();
@@ -376,17 +377,19 @@ const handle_ask = async () => {
     let message_index = await add_message(window.conversation_id, "user", message);
     let message_id = get_message_id();
 
-    if (imageInput.dataset.objects) {
-        imageInput.dataset.objects.split(" ").forEach((object)=>URL.revokeObjectURL(object))
-        delete imageInput.dataset.objects;
-    }
-    const input = imageInput && imageInput.files.length > 0 ? imageInput : cameraInput
-    images = [];
-    if (input.files.length > 0) {
-        for (const file of input.files) {
-            images.push(URL.createObjectURL(file));
+    let images = [];
+    if (do_ask_gpt) {
+        if (imageInput.dataset.objects) {
+            imageInput.dataset.objects.split(" ").forEach((object)=>URL.revokeObjectURL(object))
+            delete imageInput.dataset.objects;
         }
-        imageInput.dataset.objects = images.join(" ");
+        const input = imageInput && imageInput.files.length > 0 ? imageInput : cameraInput
+        if (input.files.length > 0) {
+            for (const file of input.files) {
+                images.push(URL.createObjectURL(file));
+            }
+            imageInput.dataset.objects = images.join(" ");
+        }
     }
     message_box.innerHTML += `
         <div class="message" data-index="${message_index}">
@@ -407,18 +410,21 @@ const handle_ask = async () => {
         </div>
     `;
     highlight(message_box);
-
-    const all_pinned = document.querySelectorAll(".buttons button.pinned")
-    if (all_pinned.length > 0) {
-        all_pinned.forEach((el, idx) => ask_gpt(
-            idx == 0 ? message_id : get_message_id(),
-            -1,
-            idx != 0,
-            el.dataset.provider,
-            el.dataset.model
-        ));
+    if (do_ask_gpt) {
+        const all_pinned = document.querySelectorAll(".buttons button.pinned")
+        if (all_pinned.length > 0) {
+            all_pinned.forEach((el, idx) => ask_gpt(
+                idx == 0 ? message_id : get_message_id(),
+                -1,
+                idx != 0,
+                el.dataset.provider,
+                el.dataset.model
+            ));
+        } else {
+            await ask_gpt(message_id);
+        }
     } else {
-        await ask_gpt(message_id);
+        await lazy_scroll_to_bottom();
     }
 };
 
@@ -449,11 +455,14 @@ stop_generating.addEventListener("click", async () => {
     for (key in controller_storage) {
         if (!controller_storage[key].signal.aborted) {
             console.log(`aborted ${window.conversation_id} #${key}`);
-            controller_storage[key].abort();
-            let message = message_storage[key];
-            if (message) {
-                content_storage[key].inner.innerHTML += " [aborted]";
-                message_storage[key] += " [aborted]";
+            try {
+                controller_storage[key].abort();
+            } finally {
+                let message = message_storage[key];
+                if (message) {
+                    content_storage[key].inner.innerHTML += " [aborted]";
+                    message_storage[key] += " [aborted]";
+                }
             }
         }
     }
@@ -485,7 +494,7 @@ const prepare_messages = (messages, message_index = -1, do_continue = false, do_
             }
         }
     }
-    // Combine messages with same role
+    // Combine assistant messages
     let last_message;
     let new_messages = [];
     messages.forEach((message) => {
@@ -502,21 +511,25 @@ const prepare_messages = (messages, message_index = -1, do_continue = false, do_
     messages = new_messages;
 
     // Insert system prompt as first message
-    new_messages = [];
+    let final_messages = [];
     if (chatPrompt?.value) {
-        new_messages.push({
+        final_messages.push({
             "role": "system",
             "content": chatPrompt.value
         });
     }
 
-    // Remove history, if it's selected
-    if (document.getElementById('history')?.checked && do_filter) {
-        if (message_index == null) {
-            messages = [messages.pop(), messages.pop()];
-        } else {
-            messages = [messages.pop()];
+    // Remove history, only add new user messages
+    let filtered_messages = [];
+    // The message_index is null on count total tokens
+    if (document.getElementById('history')?.checked && do_filter && message_index != null) {
+        while (last_message = messages.pop()) {
+            if (last_message["role"] == "user") {
+                filtered_messages.push(last_message);
+                break;
+            }
         }
+        messages = filtered_messages.reverse();
     }
 
     messages.forEach((new_message, i) => {
@@ -683,7 +696,7 @@ async function load_provider_parameters(provider) {
     }
 }
 
-async function add_message_chunk(message, message_id, provider, scroll) {
+async function add_message_chunk(message, message_id, provider, scroll, finish_message=null) {
     content_map = content_storage[message_id];
     if (message.type == "conversation") {
         const conversation = await get_conversation(window.conversation_id);
@@ -737,6 +750,9 @@ async function add_message_chunk(message, message_id, provider, scroll) {
         update_message(content_map, message_id, markdown_render(message.login), scroll);
     } else if (message.type == "finish") {
         finish_storage[message_id] = message.finish;
+        if (finish_message) {
+            await finish_message();
+        }
     } else if (message.type == "usage") {
         usage_storage[message_id] = message.usage;
     } else if (message.type == "reasoning") {
@@ -829,11 +845,102 @@ const ask_gpt = async (message_id, message_index = -1, regenerate = false, provi
     if (scroll) {
         await lazy_scroll_to_bottom();
     }
+    async function finish_message() {
+        content_map.update_timeouts.forEach((timeoutId)=>clearTimeout(timeoutId));
+        content_map.update_timeouts = [];
+        if (!error_storage[message_id] && message_storage[message_id]) {
+            html = markdown_render(message_storage[message_id]);
+            content_map.inner.innerHTML = html;
+            highlight(content_map.inner);
+            if (imageInput) imageInput.value = "";
+            if (cameraInput) cameraInput.value = "";
+        }
+        if (message_storage[message_id]) {
+            const message_provider = message_id in provider_storage ? provider_storage[message_id] : null;
+            let usage;
+            if (usage_storage[message_id]) {
+                usage = usage_storage[message_id];
+                delete usage_storage[message_id];
+            }
+            // Calculate usage if we have no usage result jet
+            if (document.getElementById("track_usage").checked && !usage && window.GPTTokenizer_cl100k_base) {
+                const prompt_token_model = model?.startsWith("gpt-3") ? "gpt-3.5-turbo" : "gpt-4"
+                const prompt_tokens = GPTTokenizer_cl100k_base?.encodeChat(messages, prompt_token_model).length;
+                const completion_tokens = count_tokens(message_provider?.model, message_storage[message_id]);
+                usage = {
+                    model: message_provider?.model,
+                    provider: message_provider?.name,
+                    prompt_tokens: prompt_tokens,
+                    completion_tokens: completion_tokens,
+                    total_tokens: prompt_tokens + completion_tokens
+                }
+            }
+            // It is not regenerated, if it is the first response to a new question
+            if (regenerate && message_index == -1) {
+                let conversation = await get_conversation(window.conversation_id);
+                regenerate = conversation.items[conversation.items.length-1]["role"] != "user";
+            }
+            // Create final message content
+            const final_message = message_storage[message_id]
+                                + (error_storage[message_id] ? " [error]" : "")
+                                + (stop_generating.classList.contains('stop_generating-hidden') ? " [aborted]" : "")
+            // Save message in local storage
+            await add_message(
+                window.conversation_id,
+                "assistant",
+                final_message,
+                message_provider,
+                message_index,
+                synthesize_storage[message_id],
+                regenerate,
+                title_storage[message_id],
+                finish_storage[message_id],
+                usage,
+                reasoning_storage[message_id],
+                action=="continue"
+            );
+            delete message_storage[message_id];
+            // Send usage to the server
+            if (document.getElementById("track_usage").checked) {
+                const user = localStorage.getItem("user");
+                if (user) {
+                    usage = {user: user, ...usage};
+                }
+                api("usage", usage);
+            }
+        }
+        // Update controller storage
+        if (controller_storage[message_id]) {
+            delete controller_storage[message_id];
+        }
+        // Reload conversation if no error
+        if (!error_storage[message_id]) {
+            await safe_load_conversation(window.conversation_id, scroll);
+        }
+        let cursorDiv = message_el.querySelector(".cursor");
+        if (cursorDiv) cursorDiv.parentNode.removeChild(cursorDiv);
+        if (scroll) {
+            await lazy_scroll_to_bottom();
+        }
+        await safe_remove_cancel_button();
+        await register_message_buttons();
+        await load_conversations();
+        regenerate_button.classList.remove("regenerate-hidden");
+    }
     try {
+        let api_key;
+        if (is_demo && provider != "Custom") {
+            api_key = localStorage.getItem("HuggingFace-api_key");
+            if (!api_key) {
+                location.href = "/";
+                return;
+            }
+        } else {
+            api_key = get_api_key_by_provider(provider);
+        }
         const input = imageInput && imageInput.files.length > 0 ? imageInput : cameraInput;
         const files = input && input.files.length > 0 ? input.files : null;
         const download_images = document.getElementById("download_images")?.checked;
-        const api_key = get_api_key_by_provider(provider);
         const api_base = provider == "Custom" ? document.getElementById(`${provider}-api_base`).value : null;
         const ignored = Array.from(settings.querySelectorAll("input.provider:not(:checked)")).map((el)=>el.value);
         await api("conversation", {
@@ -849,54 +956,15 @@ const ask_gpt = async (message_id, message_index = -1, regenerate = false, provi
             api_key: api_key,
             api_base: api_base,
             ignored: ignored,
-        }, files, message_id, scroll);
-        content_map.update_timeouts.forEach((timeoutId)=>clearTimeout(timeoutId));
-        content_map.update_timeouts = [];
-        if (!error_storage[message_id]) {
-            html = markdown_render(message_storage[message_id]);
-            content_map.inner.innerHTML = html;
-            highlight(content_map.inner);
-            if (imageInput) imageInput.value = "";
-            if (cameraInput) cameraInput.value = "";
-        }
+        }, files, message_id, scroll, finish_message);
     } catch (e) {
         console.error(e);
         if (e.name != "AbortError") {
             error_storage[message_id] = true;
             content_map.inner.innerHTML += markdown_render(`**An error occured:** ${e}`);
         }
+        await finish_message();
     }
-    if (message_storage[message_id]) {
-        const message_provider = message_id in provider_storage ? provider_storage[message_id] : null;
-        await add_message(
-            window.conversation_id,
-            "assistant",
-            message_storage[message_id] + (error_storage[message_id] ? " [error]" : "") + (stop_generating.classList.contains('stop_generating-hidden') ? " [aborted]" : ""),
-            message_provider,
-            message_index,
-            synthesize_storage[message_id],
-            regenerate,
-            title_storage[message_id],
-            finish_storage[message_id],
-            usage_storage[message_id],
-            reasoning_storage[message_id],
-            action=="continue"
-        );
-        delete controller_storage[message_id];
-        delete message_storage[message_id];
-        if (!error_storage[message_id]) {
-            await safe_load_conversation(window.conversation_id, scroll);
-        }
-    }
-    let cursorDiv = message_el.querySelector(".cursor");
-    if (cursorDiv) cursorDiv.parentNode.removeChild(cursorDiv);
-    if (scroll) {
-        await lazy_scroll_to_bottom();
-    }
-    await safe_remove_cancel_button();
-    await register_message_buttons();
-    await load_conversations();
-    regenerate_button.classList.remove("regenerate-hidden");
 };
 
 async function scroll_to_bottom() {
@@ -1464,22 +1532,27 @@ async function hide_sidebar() {
     settings.classList.add("hidden");
     chat.classList.remove("hidden");
     log_storage.classList.add("hidden");
+    await hide_settings();
     if (window.location.pathname == "/menu/" || window.location.pathname == "/settings/") {
         history.back();
     }
 }
 
-window.addEventListener('popstate', hide_sidebar, false);
-
-sidebar_button.addEventListener("click", async () => {
+async function hide_settings() {
     settings.classList.add("hidden");
     let provider_forms = document.querySelectorAll(".provider_forms from");
     Array.from(provider_forms).forEach((form) => form.classList.add("hidden"));
+}
+
+window.addEventListener('popstate', hide_sidebar, false);
+
+sidebar_button.addEventListener("click", async () => {
     if (sidebar.classList.contains("shown")) {
         await hide_sidebar();
     } else {
         sidebar.classList.add("shown");
         sidebar_button.classList.add("rotated");
+        await hide_settings();
         add_url_to_history("/menu/");
     }
     window.scrollTo(0, 0);
@@ -1776,12 +1849,15 @@ async function on_api() {
             messageInput.style.height = messageInput.scrollHeight  + "px";
         }
     });
-    sendButton.addEventListener(`click`, async () => {
+    sendButton.querySelector(".fa-paper-plane").addEventListener(`click`, async () => {
         console.log("clicked send");
         if (prompt_lock) return;
         prompt_lock = true;
         setTimeout(()=>prompt_lock=false, 3000);
         await handle_ask();
+    });
+    sendButton.querySelector(".fa-square-plus").addEventListener(`click`, async () => {
+        await handle_ask(false);
     });
     messageInput.focus();
     let provider_options = [];
@@ -1789,70 +1865,96 @@ async function on_api() {
     models.forEach((model) => {
         let option = document.createElement("option");
         option.value = model.name;
-        option.text = model.name + (model.image ? " (Image Generation)" : "");
+        option.text = model.name + (model.image ? " (Image Generation)" : "") + (model.vision ? " (Image Upload)" : "");
         option.dataset.providers = model.providers.join(" ");
         modelSelect.appendChild(option);
+        is_demo = model.demo;
     });
-    providers = await api("providers")
-    providers.sort((a, b) => a.label.localeCompare(b.label));
-    let login_urls = {};
-    providers.forEach((provider) => {
-        let option = document.createElement("option");
-        option.value = provider.name;
-        option.dataset.label = provider.label;
-        option.text = provider.label
-            + (provider.vision ? " (Image Upload)" : "")
-            + (provider.image ? " (Image Generation)" : "")
-            + (provider.webdriver ? " (Webdriver)" : "")
-            + (provider.auth ? " (Auth)" : "");
-        if (provider.parent)
-            option.dataset.parent = provider.parent;
-        providerSelect.appendChild(option);
-
-        if (provider.parent) {
-            if (!login_urls[provider.parent]) {
-                login_urls[provider.parent] = [provider.label, provider.login_url, [provider.name]];
-            } else {
-                login_urls[provider.parent][2].push(provider.name);
-            }
-        } else if (provider.login_url) {
-            if (!login_urls[provider.name]) {
-                login_urls[provider.name] = [provider.label, provider.login_url, []];
-            } else {
-                login_urls[provider.name][0] = provider.label;
-                login_urls[provider.name][1] = provider.login_url;
-            }
+    let login_urls;
+    if (is_demo) {
+        if (!localStorage.getItem("user")) {
+            location.href = "/";
+            return;
         }
-    });
+        providerSelect.innerHTML = '<option value="" selected>Demo Mode</option>'
+        document.getElementById("pin").disabled = true;
+        document.getElementById("refine")?.parentElement.remove();
+        const track_usage = document.getElementById("track_usage");
+        track_usage.checked = true;
+        track_usage.disabled = true;
+        Array.from(modelSelect.querySelectorAll(':not([data-providers])')).forEach((option)=>{
+            if (!option.disabled && option.value) {
+                option.remove();
+            }
+        });
+        login_urls = {
+            "Custom": ["Custom Provider", "", []],
+            "HuggingFace": ["HuggingFace", "", []],
+        };
+    } else {
+        providers = await api("providers")
+        providers.sort((a, b) => a.label.localeCompare(b.label));
+        login_urls = {};
+        providers.forEach((provider) => {
+            let option = document.createElement("option");
+            option.value = provider.name;
+            option.dataset.label = provider.label;
+            option.text = provider.label
+                + (provider.vision ? " (Image Upload)" : "")
+                + (provider.image ? " (Image Generation)" : "")
+                + (provider.nodriver ? " (Browser)" : "")
+                + (!provider.nodriver && provider.auth ? " (Auth)" : "");
+            if (provider.parent)
+                option.dataset.parent = provider.parent;
+            providerSelect.appendChild(option);
+
+            if (provider.parent) {
+                if (!login_urls[provider.parent]) {
+                    login_urls[provider.parent] = [provider.label, provider.login_url, [provider.name]];
+                } else {
+                    login_urls[provider.parent][2].push(provider.name);
+                }
+            } else if (provider.login_url) {
+                if (!login_urls[provider.name]) {
+                    login_urls[provider.name] = [provider.label, provider.login_url, []];
+                } else {
+                    login_urls[provider.name][0] = provider.label;
+                    login_urls[provider.name][1] = provider.login_url;
+                }
+            }
+        });
+        providers.forEach((provider) => {
+            if (!provider.parent) {
+                option = document.createElement("div");
+                option.classList.add("field");
+                option.innerHTML = `
+                    <span class="label">Enable ${provider.label}</span>
+                    <input id="Provider${provider.name}" type="checkbox" name="Provider${provider.name}" value="${provider.name}" class="provider" checked="">
+                    <label for="Provider${provider.name}" class="toogle" title="Remove provider from dropdown"></label>
+                `;
+                option.querySelector("input").addEventListener("change", (event) => load_provider_option(event.target, provider.name));
+                settings.querySelector(".paper").appendChild(option);
+                provider_options[provider.name] = option;
+            }
+        });
+        await load_provider_models(appStorage.getItem("provider"))
+    }
     for (let [name, [label, login_url, childs]] of Object.entries(login_urls)) {
-        if (!login_url) {
+        if (!login_url && !is_demo) {
             continue;
         }
         option = document.createElement("div");
-        option.classList.add("field", "box", "hidden");
+        option.classList.add("field", "box");
+        if (!is_demo) {
+            option.classList.add("hidden");
+        }
         childs = childs.map((child)=>`${child}-api_key`).join(" ");
         option.innerHTML = `
             <label for="${name}-api_key" class="label" title="">${label}:</label>
-            <input type="text" id="${name}-api_key" name="${name}[api_key]" class="${childs}" placeholder="api_key"/>
-            <a href="${login_url}" target="_blank" title="Login to ${label}">Get API key</a>
-        `;
+            <input type="text" id="${name}-api_key" name="${name}[api_key]" class="${childs}" placeholder="api_key" autocomplete="off"/>
+        ` + (login_url ? `<a href="${login_url}" target="_blank" title="Login to ${label}">Get API key</a>` : "");
         settings.querySelector(".paper").appendChild(option);
     }
-    providers.forEach((provider) => {
-        if (!provider.parent) {
-            option = document.createElement("div");
-            option.classList.add("field");
-            option.innerHTML = `
-                <span class="label">Enable ${provider.label}</span>
-                <input id="Provider${provider.name}" type="checkbox" name="Provider${provider.name}" value="${provider.name}" class="provider" checked="">
-                <label for="Provider${provider.name}" class="toogle" title="Remove provider from dropdown"></label>
-            `;
-            option.querySelector("input").addEventListener("change", (event) => load_provider_option(event.target, provider.name));
-            settings.querySelector(".paper").appendChild(option);
-            provider_options[provider.name] = option;
-        }
-    });
-    await load_provider_models(appStorage.getItem("provider"))
 
     register_settings_storage();
     await load_settings_storage()
@@ -2093,7 +2195,7 @@ function get_selected_model() {
     }
 }
 
-async function api(ressource, args=null, files=null, message_id=null, scroll=true) {
+async function api(ressource, args=null, files=null, message_id=null, scroll=true, finish_message=null) {
     if (window?.pywebview) {
         if (args !== null) {
             if (ressource == "conversation") {
@@ -2107,6 +2209,8 @@ async function api(ressource, args=null, files=null, message_id=null, scroll=tru
         return pywebview.api[`get_${ressource}`]();
     }
     const headers = {};
+    const url = new URL(`/backend-api/v2/${ressource}`, window?.location || "http://localhost:8080");
+    let response;
     if (ressource == "models" && args) {
         api_key = get_api_key_by_provider(args);
         if (api_key) {
@@ -2117,9 +2221,7 @@ async function api(ressource, args=null, files=null, message_id=null, scroll=tru
             headers.x_api_base = api_base;
         }
         ressource = `${ressource}/${args}`;
-    }
-    const url = new URL(`/backend-api/v2/${ressource}`, window?.location || "http://localhost:8080");
-    if (ressource == "conversation") {
+    } else if (ressource == "conversation") {
         let body = JSON.stringify(args);
         headers.accept = 'text/event-stream';
         if (files !== null) {
@@ -2138,16 +2240,52 @@ async function api(ressource, args=null, files=null, message_id=null, scroll=tru
             headers: headers,
             body: body,
         });
-        return read_response(response, message_id, args.provider || null, scroll);
+        // On Ratelimit
+        if (response.status == 429) {
+            // They are still pending requests?
+            for (let key in controller_storage) {
+                if (!controller_storage[key].signal.aborted) {
+                    console.error(response);
+                    await finish_message();
+                    return;
+                }
+            }
+            setTimeout(async () => {
+                response = await fetch(url, {
+                    method: 'POST',
+                    signal: controller_storage[message_id].signal,
+                    headers: headers,
+                    body: body,
+                });
+                if (response.status != 200) {
+                    console.error(response);
+                }
+                await read_response(response, message_id, args.provider || null, scroll, finish_message);
+                await finish_message();
+            }, 20000) // Wait 20 secounds on rate limit
+        } else {
+            await read_response(response, message_id, args.provider || null, scroll, finish_message);
+            await finish_message();
+            return;
+        }
+    } else if (args) {
+        headers['content-type'] = 'application/json';
+        response = await fetch(url, {
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify(args),
+        });
     }
-    response = await fetch(url, {headers: headers});
-    if (response.status == 200) {
-        return await response.json();
+    if (!response) {
+        response = await fetch(url, {headers: headers});
     }
-    console.error(response);
+    if (response.status != 200) {
+        console.error(response);
+    }
+    return await response.json();
 }
 
-async function read_response(response, message_id, provider, scroll) {
+async function read_response(response, message_id, provider, scroll, finish_message) {
     const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
     let buffer = ""
     while (true) {
@@ -2160,7 +2298,7 @@ async function read_response(response, message_id, provider, scroll) {
                 continue;
             }
             try {
-                add_message_chunk(JSON.parse(buffer + line), message_id, provider, scroll);
+                add_message_chunk(JSON.parse(buffer + line), message_id, provider, scroll, finish_message);
                 buffer = "";
             } catch {
                 buffer += line
@@ -2276,6 +2414,30 @@ function save_storage() {
         elem.click();        
         document.body.removeChild(elem);
     }
+}
+
+function import_memory() {
+    hide_sidebar();
+    let conversations = [];
+    for (let i = 0; i < appStorage.length; i++) {
+        if (appStorage.key(i).startsWith("conversation:")) {
+            let conversation = appStorage.getItem(appStorage.key(i));
+            conversations.push(JSON.parse(conversation));
+        }
+    }
+    conversations.sort((a, b) => (a.updated||0)-(b.updated||0));
+    let count = 0;
+    conversations.forEach(async (conversation)=>{
+        let body = JSON.stringify(conversation);
+        response = await fetch("/backend-api/v2/memory", {
+            method: 'POST',
+            body: body,
+            headers: {"content-type": "application/json"}
+        });
+        const result = await response.json();
+        count += result.count;
+        inputCount.innerText = `${count} Messages are imported`;
+    });
 }
 
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;

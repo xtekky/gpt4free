@@ -1,0 +1,258 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>G4F DEMO</title>
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/img/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16x16.png">
+    <link rel="manifest" href="/static/img/site.webmanifest">
+    <style>
+        :root {
+            --colour-1: #000000;
+            --colour-2: #ccc;
+            --colour-3: #e4d4ff;
+            --colour-4: #f0f0f0;
+            --colour-5: #181818;
+            --colour-6: #242424;
+            --accent: #8b3dff;
+            --gradient: #1a1a1a;
+            --background: #16101b;
+            --size: 70vw;
+            --top: 50%;
+            --blur: 40px;
+            --opacity: 0.6;
+        }
+
+        @import url("https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap");
+
+        .gradient {
+            position: absolute;
+            z-index: -1;
+            left: 50vw;
+            border-radius: 50%;
+            background: radial-gradient(circle at center, var(--accent), var(--gradient));
+            width: var(--size);
+            height: var(--size);
+            top: var(--top);
+            transform: translate(-50%, -50%);
+            filter: blur(var(--blur)) opacity(var(--opacity));
+            animation: zoom_gradient 6s infinite alternate;
+            display: none;
+            max-height: 100%;
+            transition: max-height 0.25s ease-in;
+        }
+
+        .gradient.hidden {
+            max-height: 0;
+            transition: max-height 0.15s ease-out;
+        }
+
+        @media only screen and (min-width: 40em) {
+            body .gradient{
+                display: block;
+            }
+        }
+
+        @keyframes zoom_gradient {
+            0% {
+                transform: translate(-50%, -50%) scale(1);
+            }
+            100% {
+                transform: translate(-50%, -50%) scale(1.2);
+            }
+        }
+
+        /* Body and text color */
+        body {
+            background: var(--background);
+            color: var(--colour-3);
+            font-family: "Inter", sans-serif;
+            height: 100vh;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            font-weight: bold;
+        }
+
+        /* Container for the main content */
+        .container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            text-align: center;
+            z-index: 1;
+        }
+
+        header {
+            font-size: 3rem;
+            text-transform: uppercase;
+            margin: 20px;
+            color: var(--colour-4);
+        }
+
+        iframe {
+            background: transparent;
+            width: 100%;
+            border: none;
+        }
+
+        #background {
+            height: 100%;
+            position: absolute;
+            z-index: -1;
+        }
+
+        .description, form a {
+            font-size: 1.2rem;
+            margin-bottom: 30px;
+            color: var(--colour-2);
+        }
+
+        .input-field {
+            width: 80%;
+            max-width: 400px;
+            padding: 12px;
+            margin: 10px 0;
+            border: 2px solid var(--colour-6);
+            background-color: var(--colour-5);
+            color: var(--colour-3);
+            border-radius: 8px;
+            font-size: 1.1rem;
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .button {
+            background-color: var(--accent);
+            color: var(--colour-3);
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            margin-top: 15px;
+            width: 100%;
+            max-width: 400px;
+            font-weight: bold;
+        }
+
+        .button:hover {
+            background-color: #7a2ccd;
+        }
+
+        .footer {
+            margin-top: 30px;
+            font-size: 0.9rem;
+            color: var(--colour-2);
+        }
+
+        /* Animation for the gradient circle */
+        @keyframes zoom_gradient {
+            0% {
+                transform: translate(-50%, -50%) scale(1);
+            }
+            100% {
+                transform: translate(-50%, -50%) scale(1.5);
+            }
+        }
+    </style>
+    <script src="https://unpkg.com/es-module-shims@1.7.0/dist/es-module-shims.js"></script>
+    <script type="importmap">
+        {
+            "imports": {
+                "@huggingface/hub": "https://cdn.jsdelivr.net/npm/@huggingface/hub@0.21.0/+esm"
+            }
+        }
+    </script>
+</head>
+<body>
+    <iframe id="background"></iframe>
+
+    <!-- Gradient Background Circle -->
+    <div class="gradient"></div>
+
+    <!-- Main Content -->
+    <div class="container">
+        <header>
+            G4F DEMO
+        </header>
+        <div class="description">
+            Welcome to the G4F Web UI! <br>
+            Your AI assistant is ready to assist you.
+        </div>
+
+        <!-- Input and Button -->
+        <form action="/chat/">
+            <input type="text" name="token" class="input-field" placeholder="Enter an Access Token..." autocomplete="off">
+            <button class="button">Submit</button>
+            <p>
+                <a href="https://huggingface.co/settings/tokens" target="_blank">Get Access Token</a>
+            </p>
+        </form>
+        <script type="module">
+            import * as hub from "@huggingface/hub";
+
+            const form = document.querySelector("form");
+            const input = document.querySelector('form input[name="token"]');
+            async function check_access_token() {
+                const accessToken = input.value || localStorage.getItem("HuggingFace-api_key");
+                let user;
+                try {
+                    user = await hub.whoAmI({accessToken: accessToken});
+                } catch(e) {
+                    console.log(e);
+                    input.setCustomValidity("Invalid Access Token.");
+                    return;
+                }
+                localStorage.setItem("HuggingFace-api_key", accessToken);
+                localStorage.setItem("HuggingFace-user", JSON.stringify(user));
+                localStorage.setItem("user", user.name);
+                location.href = "/chat/";
+            }
+            input.addEventListener("input", () => check_access_token());
+            input.addEventListener("click", () => check_access_token());
+            form.addEventListener("submit", async (event) => {
+                event.preventDefault();
+                check_access_token();
+            });
+        </script>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p>&copy; 2025 G4F. All Rights Reserved.</p>
+            <p>Powered by the G4F framework</p>
+        </div>
+    </div>
+    <script>
+        (async () => {
+            const today = new Date().toJSON().slice(0, 10);
+            const max = 5;
+            const cache_id = Math.floor(Math.random() * max);
+            let prompt;
+            if (cache_id % 2 == 0) {
+                prompt = `
+                Today is ${new Date().toJSON().slice(0, 10)}.
+                Create a single-page HTML screensaver reflecting the current season (based on the date).
+                Avoid using any text.`;
+            } else {
+                prompt = `Create a single-page HTML screensaver. Avoid using any text.`;
+                const response = await fetch(`/backend-api/v2/create?prompt=${prompt}&filter_markdown=html&cache=${cache_id}`);
+            }
+            const response = await fetch(`/backend-api/v2/create?prompt=${prompt}&filter_markdown=html&cache=${cache_id}`);
+            const text = await response.text()
+            background.src = `data:text/html;charset=utf-8,${encodeURIComponent(text)}`;
+            const gradient = document.querySelector('.gradient');
+            gradient.classList.add('hidden');
+        })();
+    </script>
+</body>
+</html>

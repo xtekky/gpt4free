@@ -21,6 +21,7 @@ class MicrosoftDesigner(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Microsoft Designer"
     url = "https://designer.microsoft.com"
     working = True
+    use_nodriver = True
     needs_auth = True
     default_image_model = "dall-e-3"
     image_models = [default_image_model, "1024x1024", "1024x1792", "1792x1024"]

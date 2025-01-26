@@ -142,6 +142,11 @@
                 <input type="checkbox" id="refine"/>
                 <label for="refine" class="toogle" title=""></label>
             </div>
+            <div class="field">
+                <span class="label">Track usage</span>
+                <input type="checkbox" id="track_usage"/>
+                <label for="track_usage" class="toogle" title=""></label>
+            </div>
             <div class="field box">
                 <label for="systemPrompt" class="label" title="">System prompt</label>
                 <textarea id="systemPrompt" placeholder="You are a helpful assistant."></textarea>
@@ -182,6 +187,12 @@
                 <button id="showLog">
                     <i class="fa-solid fa-terminal"></i>
                     <a href="" onclick="return false;">Show log</a>
+                </button>
+            </div>
+            <div class="bottom_buttons memory hidden">
+                <button onclick="import_memory()">
+                    <i class="fa-solid fa-arrow-up-from-bracket"></i>
+                    <a href="" onclick="return false;">Import Messages to Memory</a>
                 </button>
             </div>
         </div>
@@ -228,7 +239,7 @@
                     <textarea id="message-input" placeholder="Ask a question" cols="30" rows="10"
                         style="white-space: pre-wrap;resize: none;"></textarea>
                     <label class="file-label image-label" for="image" title="">
-                        <input type="file" id="image" name="image" accept="image/*" required multiple/>
+                        <input type="file" id="image" name="image" accept="image/*" required multiple capture="filesystem"/>
                         <i class="fa-regular fa-image"></i>
                     </label>
                     <label class="file-label image-label" for="camera">
@@ -243,6 +254,7 @@
                         <i class="fa-solid fa-microphone-slash"></i>
                     </label>
                     <div id="send-button">
+                        <i class="fa-solid fa-square-plus"></i>
                         <i class="fa-regular fa-paper-plane"></i>
                     </div>
                 </div>

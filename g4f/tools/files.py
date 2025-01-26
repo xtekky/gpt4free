@@ -225,9 +225,9 @@ def cache_stream(stream: Iterator[str], bucket_dir: Path) -> Iterator[str]:
         for chunk in read_path_chunked(cache_file):
             yield chunk
         return
-    with open(tmp_file, "w") as f:
+    with open(tmp_file, "wb") as f:
         for chunk in stream:
-            f.write(chunk)
+            f.write(chunk.encode(errors="replace"))
             yield chunk
     tmp_file.rename(cache_file)
 

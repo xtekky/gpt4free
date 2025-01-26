@@ -69,7 +69,6 @@ class Copilot(AbstractProvider, ProviderModelMixin):
         conversation: BaseConversation = None,
         return_conversation: bool = False,
         api_key: str = None,
-        web_search: bool = False,
         **kwargs
     ) -> CreateResult:
         if not has_curl_cffi:

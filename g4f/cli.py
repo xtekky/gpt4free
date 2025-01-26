@@ -12,7 +12,7 @@ def get_api_parser():
     api_parser.add_argument("--bind", default=None, help="The bind string. (Default: 0.0.0.0:1337)")
     api_parser.add_argument("--port", "-p", default=None, help="Change the port of the server.")
     api_parser.add_argument("--debug", "-d", action="store_true", help="Enable verbose logging.")
-    api_parser.add_argument("--gui", "-g", default=None, action="store_true", help="Add gui to the api.")
+    api_parser.add_argument("--gui", "-g", default=None, action="store_true", help="Start also the gui.")
     api_parser.add_argument("--model", default=None, help="Default model for chat completion. (incompatible with --reload and --workers)")
     api_parser.add_argument("--provider", choices=[provider.__name__ for provider in Provider.__providers__ if provider.working],
                             default=None, help="Default provider for chat completion. (incompatible with --reload and --workers)")
@@ -28,6 +28,7 @@ def get_api_parser():
     api_parser.add_argument("--cookie-browsers", nargs="+", choices=[browser.__name__ for browser in g4f.cookies.browsers],
                             default=[], help="List of browsers to access or retrieve cookies from. (incompatible with --reload and --workers)")
     api_parser.add_argument("--reload", action="store_true", help="Enable reloading.")
+    api_parser.add_argument("--demo", action="store_true", help="Enable demo mode.")
     return api_parser
 
 def main():
@@ -57,6 +58,7 @@ def run_api_args(args):
         proxy=args.proxy,
         model=args.model,
         gui=args.gui,
+        demo=args.demo,
     )
     if args.cookie_browsers:
         g4f.cookies.browsers = [g4f.cookies[browser] for browser in args.cookie_browsers]

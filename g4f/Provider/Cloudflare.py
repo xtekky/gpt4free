@@ -15,9 +15,10 @@ from ..errors import ResponseStatusError, ModelNotFoundError
 class Cloudflare(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Cloudflare AI"
     url = "https://playground.ai.cloudflare.com"
+    working = True
+    use_nodriver = True
     api_endpoint = "https://playground.ai.cloudflare.com/api/inference"
     models_url = "https://playground.ai.cloudflare.com/api/models"
-    working = True
     supports_stream = True
     supports_system_message = True
     supports_message_history = True
