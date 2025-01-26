@@ -169,7 +169,7 @@ class Api:
                 except HTTPException:
                     user_g4f_api_key = None
                 path = request.url.path
-                if path.startswith("/v1") or (AppConfig.demo and path == '/backend-api/v2/upload_cookies'):
+                if path.startswith("/v1") or path.startswith("/api/") or (AppConfig.demo and path == '/backend-api/v2/upload_cookies'):
                     if user_g4f_api_key is None:
                         return ErrorResponse.from_message("G4F API key required", HTTP_401_UNAUTHORIZED)
                     if not secrets.compare_digest(AppConfig.g4f_api_key, user_g4f_api_key):
@@ -245,13 +245,19 @@ class Api:
                 ]
             }
 
-        @self.app.get("/{provider}/models", responses={
+        @self.app.get("/api/{provider}/models", responses={
             HTTP_200_OK: {"model": List[ModelResponseModel]},
         })
-        async def models(provider: str):
+        async def models(provider: str, credentials: Annotated[HTTPAuthorizationCredentials, Depends(Api.security)] = None):
             if provider not in ProviderUtils.convert:
                 return ErrorResponse.from_message("The provider does not exist.", 404)
             provider: ProviderType = ProviderUtils.convert[provider]
+            if not hasattr(provider, "get_models"):
+                models = []
+            elif credentials is not None:
+                models = provider.get_models(api_key=credentials.credentials)
+            else:
+                models = provider.get_models()
             return {
                 "object": "list",
                 "data": [{
@@ -260,8 +266,8 @@ class Api:
                     "created": 0,
                     "owned_by": getattr(provider, "label", provider.__name__),
                     "image": model in getattr(provider, "image_models", []),
-                    "image": model in getattr(provider, "vision_models", []),
-                } for model in provider.get_models() if hasattr(provider, "get_models")]
+                    "vision": model in getattr(provider, "vision_models", []),
+                } for model in models]
             }
 
         @self.app.get("/v1/models/{model_name}", responses={
@@ -371,7 +377,7 @@ class Api:
                 logger.exception(e)
                 return ErrorResponse.from_exception(e, config, HTTP_500_INTERNAL_SERVER_ERROR)
 
-        @self.app.post("/{provider}/chat/completions", responses={
+        @self.app.post("/api/{provider}/chat/completions", responses={
             HTTP_200_OK: {"model": ChatCompletion},
             HTTP_401_UNAUTHORIZED: {"model": ErrorResponseModel},
             HTTP_404_NOT_FOUND: {"model": ErrorResponseModel},
