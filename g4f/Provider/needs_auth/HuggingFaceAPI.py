@@ -19,9 +19,9 @@ class HuggingFaceAPI(OpenaiTemplate):
 
     @classmethod
     def get_models(cls, **kwargs):
-        HuggingChat.get_models()
-        cls.models = HuggingChat.text_models
-        cls.vision_models = HuggingChat.vision_models
+        if not cls.models:
+            HuggingChat.get_models()
+            cls.models = list(set(HuggingChat.text_models + cls.vision_models))
         return cls.models
 
     @classmethod
