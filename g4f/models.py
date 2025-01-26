@@ -771,22 +771,22 @@ class ModelUtils:
     }
 
 demo_models = {
-    gpt_4o.name: [gpt_4o, [PollinationsAI]],
+    gpt_4o.name: [gpt_4o, [PollinationsAI, Blackbox]],
     "default": [llama_3_2_11b, [HuggingFaceAPI]],
     qwen_2_vl_7b.name: [qwen_2_vl_7b, [HuggingFaceAPI]],
-    qvq_72b.name: [qvq_72b, [HuggingSpace]],
+    qvq_72b.name: [qvq_72b, [HuggingSpace, HuggingFaceAPI]],
     deepseek_r1.name: [deepseek_r1, [HuggingFace, HuggingFaceAPI]],
-    claude_3_haiku.name: [claude_3_haiku, [DDG]],
+    claude_3_haiku.name: [claude_3_haiku, [DDG, Jmuz]],
     command_r.name: [command_r, [HuggingSpace]],
     command_r_plus.name: [command_r_plus, [HuggingSpace]],
     command_r7b.name: [command_r7b, [HuggingSpace]],
     gemma_2_27b.name: [gemma_2_27b, [HuggingFaceAPI]],
-    qwen_2_72b.name: [qwen_2_72b, [HuggingFace]],
+    qwen_2_72b.name: [qwen_2_72b, [HuggingFaceAPI]],
     qwen_2_5_coder_32b.name: [qwen_2_5_coder_32b, [HuggingFace]],
     qwq_32b.name: [qwq_32b, [HuggingFace]],
     llama_3_3_70b.name: [llama_3_3_70b, [HuggingFace]],
-    sd_3_5.name: [sd_3_5, [HuggingSpace]],
-    flux_dev.name: [flux_dev, [HuggingSpace]],
+    sd_3_5.name: [sd_3_5, [HuggingSpace, HuggingFace]],
+    flux_dev.name: [flux_dev, [HuggingSpace, HuggingFace]],
     flux_schnell.name: [flux_schnell, [HuggingFace]],
 }
 

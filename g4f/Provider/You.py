@@ -75,6 +75,8 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
             try:
                 cookies = get_cookies(".you.com")
             except MissingRequirementsError:
+                pass
+            if not cookies or "afUserId" not in cookies:
                 browser = await get_nodriver(proxy=proxy)
                 try:
                     page = await browser.get(cls.url)

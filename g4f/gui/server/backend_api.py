@@ -7,6 +7,7 @@ import logging
 import asyncio
 import shutil
 import random
+import datetime
 from flask import Flask, Response, request, jsonify
 from typing import Generator
 from pathlib import Path
@@ -61,7 +62,7 @@ class Backend_Api(Api):
         """
         self.app: Flask = app
 
-        if has_flask_limiter:
+        if has_flask_limiter and app.demo:
             limiter = Limiter(
                 get_remote_address,
                 app=app,
@@ -71,8 +72,8 @@ class Backend_Api(Api):
         else:
             class Dummy():
                 def limit(self, value):
-                    def callback(v):
-                        return v
+                    def callback(value):
+                        return value
                     return callback
             limiter = Dummy()
 
@@ -111,7 +112,7 @@ class Backend_Api(Api):
             for model, providers in models.demo_models.values()]
 
         @app.route('/backend-api/v2/conversation', methods=['POST'])
-        @limiter.limit("4 per minute")
+        @limiter.limit("4 per minute") # 1 request in 15 seconds
         def handle_conversation():
             """
             Handles conversation requests and streams responses back.
@@ -150,6 +151,41 @@ class Backend_Api(Api):
                 mimetype='text/event-stream'
             )
 
+        @app.route('/backend-api/v2/usage', methods=['POST'])
+        def add_usage():
+            cache_dir = Path(get_cookies_dir()) / ".usage"
+            cache_file = cache_dir / f"{datetime.date.today()}.jsonl"
+            cache_dir.mkdir(parents=True, exist_ok=True)
+            with cache_file.open("a" if cache_file.exists() else "w") as f:
+                f.write(f"{json.dumps(request.json)}\n")
+            return {}
+
+        @app.route('/backend-api/v2/memory', methods=['POST'])
+        def add_memory():
+            api_key = request.headers.get("x_api_key")
+            json_data = request.json
+            from mem0 import MemoryClient
+            client = MemoryClient(api_key=api_key)
+            client.add(
+                [{"role": item["role"], "content": item["content"]} for item in json_data.get("items")],
+                user_id="user",
+                metadata={"conversation_id": json_data.get("id"), "title": json_data.get("title")}
+            )
+            return {"count": len(json_data.get("items"))}
+
+        @app.route('/backend-api/v2/memory/<user_id>', methods=['GET'])
+        def read_memory(user_id: str):
+            api_key = request.headers.get("x_api_key")
+            from mem0 import MemoryClient
+            client = MemoryClient(api_key=api_key)
+            if request.args.search:
+                return client.search(
+                    request.args.search,
+                    user_id=user_id,
+                    metadata=json.loads(request.args.metadata) if request.args.metadata else None
+                )
+            return {}
+
         self.routes = {
             '/backend-api/v2/version': {
                 'function': self.get_version,
@@ -158,10 +194,6 @@ class Backend_Api(Api):
             '/backend-api/v2/synthesize/<provider>': {
                 'function': self.handle_synthesize,
                 'methods': ['GET']
-            },
-            '/backend-api/v2/upload_cookies': {
-                'function': self.upload_cookies,
-                'methods': ['POST']
             },
             '/images/<path:name>': {
                 'function': self.serve_images,
@@ -301,17 +333,18 @@ class Backend_Api(Api):
             except Exception as e:
                 return jsonify({"error": {"message": f"Error uploading file: {str(e)}"}}), 500
 
-    def upload_cookies(self):
-        file = None
-        if "file" in request.files:
-            file = request.files['file']
-            if file.filename == '':
-                return 'No selected file', 400
-        if file and file.filename.endswith(".json") or file.filename.endswith(".har"):
-            filename = secure_filename(file.filename)
-            file.save(os.path.join(get_cookies_dir(), filename))
-            return "File saved", 200
-        return 'Not supported file', 400
+        @app.route('/backend-api/v2/upload_cookies', methods=['POST'])
+        def upload_cookies(self):
+            file = None
+            if "file" in request.files:
+                file = request.files['file']
+                if file.filename == '':
+                    return 'No selected file', 400
+            if file and file.filename.endswith(".json") or file.filename.endswith(".har"):
+                filename = secure_filename(file.filename)
+                file.save(os.path.join(get_cookies_dir(), filename))
+                return "File saved", 200
+            return 'Not supported file', 400
 
     def handle_synthesize(self, provider: str):
         try:

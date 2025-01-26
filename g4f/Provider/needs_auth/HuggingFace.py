@@ -102,6 +102,8 @@ class HuggingFace(AsyncGeneratorProvider, ProviderModelMixin):
         ) as session:
             if payload is None:
                 async with session.get(f"https://huggingface.co/api/models/{model}") as response:
+                    if response.status == 404:
+                        raise ModelNotSupportedError(f"Model is not supported: {model} in: {cls.__name__}")
                     await raise_for_status(response)
                     model_data = await response.json()
                     model_type = None
@@ -172,6 +174,14 @@ def format_prompt_qwen(messages: Messages, do_continue: bool = False) -> str:
         return prompt[:-len("\n<|im_end|>\n")]
     return prompt
 
+def format_prompt_qwen2(messages: Messages, do_continue: bool = False) -> str:
+    prompt = "".join([
+        f"\u003C｜{message['role'].capitalize()}｜\u003E{message['content']}\u003C｜end▁of▁sentence｜\u003E" for message in messages
+    ]) + ("" if do_continue else "\u003C｜Assistant｜\u003E")
+    if do_continue:
+        return prompt[:-len("\u003C｜Assistant｜\u003E")]
+    return prompt
+
 def format_prompt_llama(messages: Messages, do_continue: bool = False) -> str:
     prompt = "<|begin_of_text|>" + "".join([
         f"<|start_header_id|>{message['role']}<|end_header_id|>\n\n{message['content']}\n<|eot_id|>\n" for message in messages
@@ -199,6 +209,8 @@ def get_inputs(messages: Messages, model_data: dict, model_type: str, do_continu
             inputs = format_prompt_custom(messages, eos_token, do_continue)
         elif eos_token == "<|im_end|>":
             inputs = format_prompt_qwen(messages, do_continue)
+        elif "content" in eos_token and eos_token["content"] == "\u003C｜end▁of▁sentence｜\u003E":
+            inputs = format_prompt_qwen2(messages, do_continue)
         elif eos_token == "<|eot_id|>":
             inputs = format_prompt_llama(messages, do_continue)
         else:

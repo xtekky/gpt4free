@@ -169,7 +169,7 @@ class Api:
                 except HTTPException:
                     user_g4f_api_key = None
                 path = request.url.path
-                if path.startswith("/v1"):
+                if path.startswith("/v1") or (AppConfig.demo and path == '/backend-api/v2/upload_cookies'):
                     if user_g4f_api_key is None:
                         return ErrorResponse.from_message("G4F API key required", HTTP_401_UNAUTHORIZED)
                     if not secrets.compare_digest(AppConfig.g4f_api_key, user_g4f_api_key):

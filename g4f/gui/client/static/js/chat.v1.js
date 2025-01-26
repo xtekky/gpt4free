@@ -361,7 +361,7 @@ const delete_conversations = async () => {
     await new_conversation();
 };
 
-const handle_ask = async () => {
+const handle_ask = async (do_ask_gpt = true) => {
     messageInput.style.height = "82px";
     messageInput.focus();
     await scroll_to_bottom();
@@ -377,17 +377,19 @@ const handle_ask = async () => {
     let message_index = await add_message(window.conversation_id, "user", message);
     let message_id = get_message_id();
 
-    if (imageInput.dataset.objects) {
-        imageInput.dataset.objects.split(" ").forEach((object)=>URL.revokeObjectURL(object))
-        delete imageInput.dataset.objects;
-    }
-    const input = imageInput && imageInput.files.length > 0 ? imageInput : cameraInput
-    images = [];
-    if (input.files.length > 0) {
-        for (const file of input.files) {
-            images.push(URL.createObjectURL(file));
+    let images = [];
+    if (do_ask_gpt) {
+        if (imageInput.dataset.objects) {
+            imageInput.dataset.objects.split(" ").forEach((object)=>URL.revokeObjectURL(object))
+            delete imageInput.dataset.objects;
         }
-        imageInput.dataset.objects = images.join(" ");
+        const input = imageInput && imageInput.files.length > 0 ? imageInput : cameraInput
+        if (input.files.length > 0) {
+            for (const file of input.files) {
+                images.push(URL.createObjectURL(file));
+            }
+            imageInput.dataset.objects = images.join(" ");
+        }
     }
     message_box.innerHTML += `
         <div class="message" data-index="${message_index}">
@@ -408,18 +410,21 @@ const handle_ask = async () => {
         </div>
     `;
     highlight(message_box);
-
-    const all_pinned = document.querySelectorAll(".buttons button.pinned")
-    if (all_pinned.length > 0) {
-        all_pinned.forEach((el, idx) => ask_gpt(
-            idx == 0 ? message_id : get_message_id(),
-            -1,
-            idx != 0,
-            el.dataset.provider,
-            el.dataset.model
-        ));
+    if (do_ask_gpt) {
+        const all_pinned = document.querySelectorAll(".buttons button.pinned")
+        if (all_pinned.length > 0) {
+            all_pinned.forEach((el, idx) => ask_gpt(
+                idx == 0 ? message_id : get_message_id(),
+                -1,
+                idx != 0,
+                el.dataset.provider,
+                el.dataset.model
+            ));
+        } else {
+            await ask_gpt(message_id);
+        }
     } else {
-        await ask_gpt(message_id);
+        await lazy_scroll_to_bottom();
     }
 };
 
@@ -450,11 +455,14 @@ stop_generating.addEventListener("click", async () => {
     for (key in controller_storage) {
         if (!controller_storage[key].signal.aborted) {
             console.log(`aborted ${window.conversation_id} #${key}`);
-            controller_storage[key].abort();
-            let message = message_storage[key];
-            if (message) {
-                content_storage[key].inner.innerHTML += " [aborted]";
-                message_storage[key] += " [aborted]";
+            try {
+                controller_storage[key].abort();
+            } finally {
+                let message = message_storage[key];
+                if (message) {
+                    content_storage[key].inner.innerHTML += " [aborted]";
+                    message_storage[key] += " [aborted]";
+                }
             }
         }
     }
@@ -486,7 +494,7 @@ const prepare_messages = (messages, message_index = -1, do_continue = false, do_
             }
         }
     }
-    // Combine messages with same role
+    // Combine assistant messages
     let last_message;
     let new_messages = [];
     messages.forEach((message) => {
@@ -503,21 +511,25 @@ const prepare_messages = (messages, message_index = -1, do_continue = false, do_
     messages = new_messages;
 
     // Insert system prompt as first message
-    new_messages = [];
+    let final_messages = [];
     if (chatPrompt?.value) {
-        new_messages.push({
+        final_messages.push({
             "role": "system",
             "content": chatPrompt.value
         });
     }
 
-    // Remove history, if it's selected
-    if (document.getElementById('history')?.checked && do_filter) {
-        if (message_index == null) {
-            messages = [messages.pop(), messages.pop()];
-        } else {
-            messages = [messages.pop()];
+    // Remove history, only add new user messages
+    let filtered_messages = [];
+    // The message_index is null on count total tokens
+    if (document.getElementById('history')?.checked && do_filter && message_index != null) {
+        while (last_message = messages.pop()) {
+            if (last_message["role"] == "user") {
+                filtered_messages.push(last_message);
+                break;
+            }
         }
+        messages = filtered_messages.reverse();
     }
 
     messages.forEach((new_message, i) => {
@@ -845,28 +857,63 @@ const ask_gpt = async (message_id, message_index = -1, regenerate = false, provi
         }
         if (message_storage[message_id]) {
             const message_provider = message_id in provider_storage ? provider_storage[message_id] : null;
+            let usage;
+            if (usage_storage[message_id]) {
+                usage = usage_storage[message_id];
+                delete usage_storage[message_id];
+            }
+            // Calculate usage if we have no usage result jet
+            if (document.getElementById("track_usage").checked && !usage && window.GPTTokenizer_cl100k_base) {
+                const prompt_token_model = model?.startsWith("gpt-3") ? "gpt-3.5-turbo" : "gpt-4"
+                const prompt_tokens = GPTTokenizer_cl100k_base?.encodeChat(messages, prompt_token_model).length;
+                const completion_tokens = count_tokens(message_provider?.model, message_storage[message_id]);
+                usage = {
+                    model: message_provider?.model,
+                    provider: message_provider?.name,
+                    prompt_tokens: prompt_tokens,
+                    completion_tokens: completion_tokens,
+                    total_tokens: prompt_tokens + completion_tokens
+                }
+            }
+            // It is not regenerated, if it is the first response to a new question
+            if (regenerate && message_index == -1) {
+                let conversation = await get_conversation(window.conversation_id);
+                regenerate = conversation.items[conversation.items.length-1]["role"] != "user";
+            }
+            // Create final message content
+            const final_message = message_storage[message_id]
+                                + (error_storage[message_id] ? " [error]" : "")
+                                + (stop_generating.classList.contains('stop_generating-hidden') ? " [aborted]" : "")
+            // Save message in local storage
             await add_message(
                 window.conversation_id,
                 "assistant",
-                message_storage[message_id] + (error_storage[message_id] ? " [error]" : "") + (stop_generating.classList.contains('stop_generating-hidden') ? " [aborted]" : ""),
+                final_message,
                 message_provider,
                 message_index,
                 synthesize_storage[message_id],
                 regenerate,
                 title_storage[message_id],
                 finish_storage[message_id],
-                usage_storage[message_id],
+                usage,
                 reasoning_storage[message_id],
                 action=="continue"
             );
             delete message_storage[message_id];
-        }
-        if (controller_storage[message_id]) {
-            if (!controller_storage[message_id].signal.aborted) {
-                controller_storage[message_id].abort();
+            // Send usage to the server
+            if (document.getElementById("track_usage").checked) {
+                const user = localStorage.getItem("user");
+                if (user) {
+                    usage = {user: user, ...usage};
+                }
+                api("usage", usage);
             }
+        }
+        // Update controller storage
+        if (controller_storage[message_id]) {
             delete controller_storage[message_id];
         }
+        // Reload conversation if no error
         if (!error_storage[message_id]) {
             await safe_load_conversation(window.conversation_id, scroll);
         }
@@ -1485,22 +1532,27 @@ async function hide_sidebar() {
     settings.classList.add("hidden");
     chat.classList.remove("hidden");
     log_storage.classList.add("hidden");
+    await hide_settings();
     if (window.location.pathname == "/menu/" || window.location.pathname == "/settings/") {
         history.back();
     }
 }
 
-window.addEventListener('popstate', hide_sidebar, false);
-
-sidebar_button.addEventListener("click", async () => {
+async function hide_settings() {
     settings.classList.add("hidden");
     let provider_forms = document.querySelectorAll(".provider_forms from");
     Array.from(provider_forms).forEach((form) => form.classList.add("hidden"));
+}
+
+window.addEventListener('popstate', hide_sidebar, false);
+
+sidebar_button.addEventListener("click", async () => {
     if (sidebar.classList.contains("shown")) {
         await hide_sidebar();
     } else {
         sidebar.classList.add("shown");
         sidebar_button.classList.add("rotated");
+        await hide_settings();
         add_url_to_history("/menu/");
     }
     window.scrollTo(0, 0);
@@ -1797,12 +1849,15 @@ async function on_api() {
             messageInput.style.height = messageInput.scrollHeight  + "px";
         }
     });
-    sendButton.addEventListener(`click`, async () => {
+    sendButton.querySelector(".fa-paper-plane").addEventListener(`click`, async () => {
         console.log("clicked send");
         if (prompt_lock) return;
         prompt_lock = true;
         setTimeout(()=>prompt_lock=false, 3000);
         await handle_ask();
+    });
+    sendButton.querySelector(".fa-square-plus").addEventListener(`click`, async () => {
+        await handle_ask(false);
     });
     messageInput.focus();
     let provider_options = [];
@@ -1817,13 +1872,16 @@ async function on_api() {
     });
     let login_urls;
     if (is_demo) {
-        if (!localStorage.getItem("HuggingFace-api_key")) {
+        if (!localStorage.getItem("user")) {
             location.href = "/";
             return;
         }
-        providerSelect.innerHTML = '<option value="" selected>Demo Modus</option>'
-        document.getElementById("pin")?.remove();
+        providerSelect.innerHTML = '<option value="" selected>Demo Mode</option>'
+        document.getElementById("pin").disabled = true;
         document.getElementById("refine")?.parentElement.remove();
+        const track_usage = document.getElementById("track_usage");
+        track_usage.checked = true;
+        track_usage.disabled = true;
         Array.from(modelSelect.querySelectorAll(':not([data-providers])')).forEach((option)=>{
             if (!option.disabled && option.value) {
                 option.remove();
@@ -1844,8 +1902,8 @@ async function on_api() {
             option.text = provider.label
                 + (provider.vision ? " (Image Upload)" : "")
                 + (provider.image ? " (Image Generation)" : "")
-                + (provider.webdriver ? " (Webdriver)" : "")
-                + (provider.auth ? " (Auth)" : "");
+                + (provider.nodriver ? " (Browser)" : "")
+                + (!provider.nodriver && provider.auth ? " (Auth)" : "");
             if (provider.parent)
                 option.dataset.parent = provider.parent;
             providerSelect.appendChild(option);
@@ -2151,6 +2209,8 @@ async function api(ressource, args=null, files=null, message_id=null, scroll=tru
         return pywebview.api[`get_${ressource}`]();
     }
     const headers = {};
+    const url = new URL(`/backend-api/v2/${ressource}`, window?.location || "http://localhost:8080");
+    let response;
     if (ressource == "models" && args) {
         api_key = get_api_key_by_provider(args);
         if (api_key) {
@@ -2161,9 +2221,7 @@ async function api(ressource, args=null, files=null, message_id=null, scroll=tru
             headers.x_api_base = api_base;
         }
         ressource = `${ressource}/${args}`;
-    }
-    const url = new URL(`/backend-api/v2/${ressource}`, window?.location || "http://localhost:8080");
-    if (ressource == "conversation") {
+    } else if (ressource == "conversation") {
         let body = JSON.stringify(args);
         headers.accept = 'text/event-stream';
         if (files !== null) {
@@ -2210,8 +2268,17 @@ async function api(ressource, args=null, files=null, message_id=null, scroll=tru
             await finish_message();
             return;
         }
+    } else if (args) {
+        headers['content-type'] = 'application/json';
+        response = await fetch(url, {
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify(args),
+        });
     }
-    response = await fetch(url, {headers: headers});
+    if (!response) {
+        response = await fetch(url, {headers: headers});
+    }
     if (response.status != 200) {
         console.error(response);
     }
@@ -2349,7 +2416,8 @@ function save_storage() {
     }
 }
 
-function add_memory() {
+function import_memory() {
+    hide_sidebar();
     let conversations = [];
     for (let i = 0; i < appStorage.length; i++) {
         if (appStorage.key(i).startsWith("conversation:")) {
@@ -2357,7 +2425,8 @@ function add_memory() {
             conversations.push(JSON.parse(conversation));
         }
     }
-    conversations.sort((a, b) => (b.updated||0)-(a.updated||0));
+    conversations.sort((a, b) => (a.updated||0)-(b.updated||0));
+    let count = 0;
     conversations.forEach(async (conversation)=>{
         let body = JSON.stringify(conversation);
         response = await fetch("/backend-api/v2/memory", {
@@ -2365,6 +2434,9 @@ function add_memory() {
             body: body,
             headers: {"content-type": "application/json"}
         });
+        const result = await response.json();
+        count += result.count;
+        inputCount.innerText = `${count} Messages are imported`;
     });
 }
 

@@ -32,6 +32,7 @@ class HuggingChat(AsyncAuthedProvider, ProviderModelMixin):
     url = "https://huggingface.co/chat"
     
     working = True
+    use_nodriver = True
     supports_stream = True
     needs_auth = True
     
@@ -68,10 +69,11 @@ class HuggingChat(AsyncAuthedProvider, ProviderModelMixin):
         ### Image ###
         "flux-dev": "black-forest-labs/FLUX.1-dev",
         "flux-schnell": "black-forest-labs/FLUX.1-schnell",
-        ### API ###
+        ### Used in other providers ###
         "qwen-2-vl-7b": "Qwen/Qwen2-VL-7B-Instruct",
         "gemma-2-27b": "google/gemma-2-27b-it",
-        "qvq-72b": "Qwen/QVQ-72B-Preview"
+        "qwen-2-72b": "Qwen/Qwen2-72B-Instruct",
+        "qvq-72b": "Qwen/QVQ-72B-Preview",
     }
 
     @classmethod

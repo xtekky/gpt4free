@@ -7,9 +7,11 @@ from .base_provider import AsyncGeneratorProvider, format_prompt
 from ..requests import StreamSession, get_args_from_nodriver, raise_for_status, merge_cookies
 
 class Pi(AsyncGeneratorProvider):
-    url             = "https://pi.ai/talk"
-    working         = True
+    url = "https://pi.ai/talk"
+    working = True
+    use_nodriver = True
     supports_stream = True
+    use_nodriver = True
     default_model = "pi"
     models = [default_model]
     _headers: dict = None
