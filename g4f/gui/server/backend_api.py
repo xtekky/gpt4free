@@ -8,7 +8,7 @@ import asyncio
 import shutil
 import random
 import datetime
-from flask import Flask, Response, request, jsonify
+from flask import Flask, Response, request, jsonify, render_template
 from typing import Generator
 from pathlib import Path
 from urllib.parse import quote_plus
@@ -69,13 +69,16 @@ class Backend_Api(Api):
                 default_limits=["200 per day", "50 per hour"],
                 storage_uri="memory://",
             )
+
+        if has_flask_limiter and app.demo:
+            @app.route('/', methods=['GET'])
+            @limiter.exempt
+            def home():
+                return render_template('demo.html')
         else:
-            class Dummy():
-                def limit(self, value):
-                    def callback(value):
-                        return value
-                    return callback
-            limiter = Dummy()
+            @app.route('/', methods=['GET'])
+            def home():
+                return render_template('home.html')
 
         @app.route('/backend-api/v2/models', methods=['GET'])
         def jsonify_models(**kwargs):
@@ -111,8 +114,6 @@ class Backend_Api(Api):
             }
             for model, providers in models.demo_models.values()]
 
-        @app.route('/backend-api/v2/conversation', methods=['POST'])
-        @limiter.limit("4 per minute") # 1 request in 15 seconds
         def handle_conversation():
             """
             Handles conversation requests and streams responses back.
@@ -150,6 +151,16 @@ class Backend_Api(Api):
                 ),
                 mimetype='text/event-stream'
             )
+
+        if has_flask_limiter and app.demo:
+            @app.route('/backend-api/v2/conversation', methods=['POST'])
+            @limiter.limit("4 per minute") # 1 request in 15 seconds
+            def _handle_conversation():
+                return handle_conversation()
+        else:
+            @app.route('/backend-api/v2/conversation', methods=['POST'])
+            def _handle_conversation():
+                return handle_conversation()
 
         @app.route('/backend-api/v2/usage', methods=['POST'])
         def add_usage():

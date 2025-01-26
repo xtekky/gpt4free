@@ -74,6 +74,7 @@ class HuggingChat(AsyncAuthedProvider, ProviderModelMixin):
         "gemma-2-27b": "google/gemma-2-27b-it",
         "qwen-2-72b": "Qwen/Qwen2-72B-Instruct",
         "qvq-72b": "Qwen/QVQ-72B-Preview",
+        "sd-3.5": "stabilityai/stable-diffusion-3.5-large",
     }
 
     @classmethod
