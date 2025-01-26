@@ -65,10 +65,13 @@ class HuggingChat(AsyncAuthedProvider, ProviderModelMixin):
         "llama-3.2-11b": "meta-llama/Llama-3.2-11B-Vision-Instruct",
         "mistral-nemo": "mistralai/Mistral-Nemo-Instruct-2407",
         "phi-3.5-mini": "microsoft/Phi-3.5-mini-instruct",
-
         ### Image ###
         "flux-dev": "black-forest-labs/FLUX.1-dev",
         "flux-schnell": "black-forest-labs/FLUX.1-schnell",
+        ### API ###
+        "qwen-2-vl-7b": "Qwen/Qwen2-VL-7B-Instruct",
+        "gemma-2-27b": "google/gemma-2-27b-it",
+        "qvq-72b": "Qwen/QVQ-72B-Preview"
     }
 
     @classmethod

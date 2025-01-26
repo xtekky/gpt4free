@@ -28,6 +28,7 @@ def get_api_parser():
     api_parser.add_argument("--cookie-browsers", nargs="+", choices=[browser.__name__ for browser in g4f.cookies.browsers],
                             default=[], help="List of browsers to access or retrieve cookies from. (incompatible with --reload and --workers)")
     api_parser.add_argument("--reload", action="store_true", help="Enable reloading.")
+    api_parser.add_argument("--demo", action="store_true", help="Enable demo modus.")
     return api_parser
 
 def main():
@@ -57,6 +58,7 @@ def run_api_args(args):
         proxy=args.proxy,
         model=args.model,
         gui=args.gui,
+        demo=args.demo,
     )
     if args.cookie_browsers:
         g4f.cookies.browsers = [g4f.cookies[browser] for browser in args.cookie_browsers]

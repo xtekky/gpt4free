@@ -8,10 +8,11 @@ try:
 except ImportError as e:
     import_error = e
 
-def get_gui_app():
+def get_gui_app(demo: bool = False):
     if import_error is not None:
         raise MissingRequirementsError(f'Install "gui" requirements | pip install -U g4f[gui]\n{import_error}')
     app = create_app()
+    app.demo = demo
 
     site = Website(app)
     for route in site.routes:

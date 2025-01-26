@@ -1,16 +1,15 @@
 from __future__ import annotations
 
 from ..typing import AsyncResult, Messages
-from .needs_auth import OpenaiAPI
+from .needs_auth.OpenaiTemplate import OpenaiTemplate
 
-class CablyAI(OpenaiAPI):
-    label = "CablyAI"
+class CablyAI(OpenaiTemplate):
     url = "https://cablyai.com"
     login_url = None
     needs_auth = False
     api_base = "https://cablyai.com/v1"
     working = True
-    
+
     default_model = "Cably-80B"
     models = [default_model]
     model_aliases = {"cably-80b": default_model}

@@ -9,7 +9,7 @@ class Website:
         self.app = app
         self.routes = {
             '/': {
-                'function': self._home,
+                'function': self._demo if app.demo else self._home,
                 'methods': ['GET', 'POST']
             },
             '/chat/': {
@@ -44,3 +44,6 @@ class Website:
 
     def _home(self):
         return render_template('home.html')
+
+    def _demo(self):
+        return render_template('demo.html')

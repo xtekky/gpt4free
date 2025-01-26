@@ -71,6 +71,9 @@ class Model:
 class ImageModel(Model):
     pass
 
+class VisionModel(Model):
+    pass
+
 ### Default ###
 default = Model(
     name = "",
@@ -128,7 +131,7 @@ gpt_4 = Model(
 )
 
 # gpt-4o
-gpt_4o = Model(
+gpt_4o = VisionModel(
     name          = 'gpt-4o',
     base_provider = 'OpenAI',
     best_provider = IterListProvider([Blackbox, ChatGptt, Jmuz, ChatGptEs, PollinationsAI, DarkAI, Copilot, ChatGpt, Liaobots, OpenaiChat])
@@ -218,7 +221,7 @@ llama_3_2_1b = Model(
     best_provider = Cloudflare
 )
 
-llama_3_2_11b = Model(
+llama_3_2_11b = VisionModel(
     name          = "llama-3.2-11b",
     base_provider = "Meta Llama",
     best_provider = IterListProvider([Jmuz, HuggingChat, HuggingFace])
@@ -338,6 +341,11 @@ gemini_2_0_flash_thinking = Model(
     best_provider = Liaobots
 )
 
+gemma_2_27b = Model(
+    name          = 'gemma-2-27b',
+    base_provider = 'Google DeepMind',
+    best_provider = HuggingFace
+)
 
 ### Anthropic ###
 # claude 3
@@ -407,27 +415,26 @@ command_r7b = Model(
 )
 
 ### Qwen ###
-# qwen 1_5
 qwen_1_5_7b = Model(
     name = 'qwen-1.5-7b',
     base_provider = 'Qwen',
     best_provider = Cloudflare
 )
-
-# qwen 2
 qwen_2_72b = Model(
     name = 'qwen-2-72b',
     base_provider = 'Qwen',
     best_provider = HuggingSpace
 )
-
-# qwen 2.5
+qwen_2_vl_7b = VisionModel(
+    name = "qwen-2-vl-7b",
+    base_provider = 'Qwen',
+    best_provider = HuggingFaceAPI
+)
 qwen_2_5_72b = Model(
     name = 'qwen-2.5-72b',
     base_provider = 'Qwen',
     best_provider = IterListProvider([DeepInfraChat, PollinationsAI, Jmuz])
 )
-
 qwen_2_5_coder_32b = Model(
     name = 'qwen-2.5-coder-32b',
     base_provider = 'Qwen',
@@ -441,7 +448,7 @@ qwq_32b = Model(
     best_provider = IterListProvider([Blackbox, DeepInfraChat, Jmuz, HuggingChat])
 )
 
-qvq_72b = Model(
+qvq_72b = VisionModel(
     name = 'qvq-72b',
     base_provider = 'Qwen',
     best_provider = HuggingSpace
@@ -674,20 +681,15 @@ class ModelUtils:
         wizardlm_2_8x22b.name: wizardlm_2_8x22b,
 
         ### Google ###
-        # gemini
+        ### Gemini
         gemini.name: gemini,
-        
-        # gemini-exp
         gemini_exp.name: gemini_exp,
-        
-        # gemini-1.5
         gemini_1_5_pro.name: gemini_1_5_pro,
         gemini_1_5_flash.name: gemini_1_5_flash,
-        
-        # gemini-2.0
         gemini_2_0_flash.name: gemini_2_0_flash,
         gemini_2_0_flash_thinking.name: gemini_2_0_flash_thinking,
-
+        ### Gemma
+        gemma_2_27b.name: gemma_2_27b,
 
         ### Anthropic ###
         # claude 3
@@ -714,16 +716,12 @@ class ModelUtils:
         gigachat.name: gigachat,
 
         ### Qwen ###
-        # qwen 1_5
         qwen_1_5_7b.name: qwen_1_5_7b,
-        
-        # qwen 2
         qwen_2_72b.name: qwen_2_72b,
-        
-        # qwen 2.5
+        qwen_2_vl_7b.name: qwen_2_vl_7b,
         qwen_2_5_72b.name: qwen_2_5_72b,
         qwen_2_5_coder_32b.name: qwen_2_5_coder_32b,
-        
+
         # qwq/qvq
         qwq_32b.name: qwq_32b,
         qvq_72b.name: qvq_72b,
@@ -771,6 +769,26 @@ class ModelUtils:
         ### Midjourney ###
         midjourney.name: midjourney,
     }
+
+demo_models = {
+    gpt_4o.name: [gpt_4o, [PollinationsAI]],
+    "default": [llama_3_2_11b, [HuggingFaceAPI]],
+    qwen_2_vl_7b.name: [qwen_2_vl_7b, [HuggingFaceAPI]],
+    qvq_72b.name: [qvq_72b, [HuggingSpace]],
+    deepseek_r1.name: [deepseek_r1, [HuggingFace, HuggingFaceAPI]],
+    claude_3_haiku.name: [claude_3_haiku, [DDG]],
+    command_r.name: [command_r, [HuggingSpace]],
+    command_r_plus.name: [command_r_plus, [HuggingSpace]],
+    command_r7b.name: [command_r7b, [HuggingSpace]],
+    gemma_2_27b.name: [gemma_2_27b, [HuggingFaceAPI]],
+    qwen_2_72b.name: [qwen_2_72b, [HuggingFace]],
+    qwen_2_5_coder_32b.name: [qwen_2_5_coder_32b, [HuggingFace]],
+    qwq_32b.name: [qwq_32b, [HuggingFace]],
+    llama_3_3_70b.name: [llama_3_3_70b, [HuggingFace]],
+    sd_3_5.name: [sd_3_5, [HuggingSpace]],
+    flux_dev.name: [flux_dev, [HuggingSpace]],
+    flux_schnell.name: [flux_schnell, [HuggingFace]],
+}
 
 # Create a list of all models and his providers
 __models__  = {

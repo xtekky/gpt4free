@@ -14,6 +14,8 @@ class HuggingFaceAPI(OpenaiTemplate):
 
     default_model = "meta-llama/Llama-3.2-11B-Vision-Instruct"
     default_vision_model = default_model
+    vision_models = [default_vision_model, "Qwen/Qwen2-VL-7B-Instruct"]
+    model_aliases = HuggingChat.model_aliases
 
     @classmethod
     def get_models(cls, **kwargs):
@@ -28,9 +30,13 @@ class HuggingFaceAPI(OpenaiTemplate):
         model: str,
         messages: Messages,
         api_base: str = None,
+        max_tokens: int = 2048,
         **kwargs
     ):
         if api_base is None:
-            api_base = f"https://api-inference.huggingface.co/models/{model}/v1"
-        async for chunk in super().create_async_generator(model, messages, api_base=api_base, **kwargs):
+            model_name = model
+            if model in cls.model_aliases:
+                model_name = cls.model_aliases[model]
+            api_base = f"https://api-inference.huggingface.co/models/{model_name}/v1"
+        async for chunk in super().create_async_generator(model, messages, api_base=api_base, max_tokens=max_tokens, **kwargs):
             yield chunk

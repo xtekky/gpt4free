@@ -7,7 +7,7 @@ from aiohttp import ClientSession, FormData
 
 from ...typing import AsyncResult, Messages
 from ..base_provider import AsyncAuthedProvider, ProviderModelMixin, format_prompt
-from ..mini_max.crypt import CallbackResults, get_browser_callback, generate_yy_header
+from ..mini_max.crypt import CallbackResults, get_browser_callback, generate_yy_header, get_body_to_yy
 from ...requests import get_args_from_nodriver, raise_for_status
 from ...providers.response import AuthResult, JsonConversation, RequestLogin, TitleGeneration
 from ... import debug
@@ -71,7 +71,7 @@ class HailuoAI(AsyncAuthedProvider, ProviderModelMixin):
                 data.add_field(name, str(value))
             headers = {
                 "token": token,
-                "yy": generate_yy_header(auth_result.path_and_query, form_data, "POST", timestamp)
+                "yy": generate_yy_header(auth_result.path_and_query, get_body_to_yy(form_data), timestamp)
             }
             async with session.post(f"{cls.url}{path_and_query}", data=data, headers=headers) as response:
                 await raise_for_status(response)

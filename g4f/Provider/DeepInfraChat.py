@@ -4,7 +4,6 @@ from ..typing import AsyncResult, Messages
 from .needs_auth.OpenaiTemplate import OpenaiTemplate
 
 class DeepInfraChat(OpenaiTemplate):
-    label = "DeepInfraChat"
     url = "https://deepinfra.com/chat"
     api_base = "https://api.deepinfra.com/v1/openai"
     working = True

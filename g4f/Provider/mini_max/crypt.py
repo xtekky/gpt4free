@@ -22,27 +22,17 @@ def hash_function(base_string: str) -> str:
     """
     return hashlib.md5(base_string.encode()).hexdigest()
 
-def generate_yy_header(has_search_params_path: str, body: dict, method: str, time: int) -> str:
+def generate_yy_header(has_search_params_path: str, body_to_yy: dict, time: int) -> str:
     """
     Python equivalent of the generateYYHeader function.
     """
-    body_to_yy=get_body_to_yy(body)
-
-    if method and method.lower() == 'post':
-        s = body or {}
-    else:
-        s = {}
-
-    s = json.dumps(s, ensure_ascii=True, sort_keys=True)
-    if body_to_yy:
-        s = body_to_yy
     # print("Encoded Path:", quote(has_search_params_path, ""))
     # print("Stringified Body:", s)
     # print("Hashed Time:", hash_function(str(time)))
 
     encoded_path = quote(has_search_params_path, "")
     time_hash = hash_function(str(time))
-    combined_string = f"{encoded_path}_{s}{time_hash}ooui"
+    combined_string = f"{encoded_path}_{body_to_yy}{time_hash}ooui"
 
     # print("Combined String:", combined_string)
     # print("Hashed Combined String:", hash_function(combined_string))
@@ -55,6 +45,9 @@ def get_body_to_yy(l):
 
     # print("bodyToYY:", M)
     return M
+
+def get_body_json(s):
+    return json.dumps(s, ensure_ascii=True, sort_keys=True)
 
 async def get_browser_callback(auth_result: CallbackResults):
     async def callback(page: Tab):

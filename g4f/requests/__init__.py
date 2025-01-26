@@ -25,7 +25,7 @@ try:
     import nodriver
     from nodriver.cdp.network import CookieParam
     from nodriver.core.config import find_chrome_executable
-    from nodriver import Browser, Tab
+    from nodriver import Browser, Tab, util
     has_nodriver = True
 except ImportError:
     from typing import Type as Tab
@@ -158,12 +158,18 @@ async def get_nodriver(
                     break
     lock_file.write_text(str(time.time()))
     debug.log(f"Open nodriver with user_dir: {user_data_dir}")
-    browser = await nodriver.start(
-        user_data_dir=user_data_dir,
-        browser_args=None if proxy is None else [f"--proxy-server={proxy}"],
-        browser_executable_path=browser_executable_path,
-        **kwargs
-    )
+    try:
+        browser = await nodriver.start(
+            user_data_dir=user_data_dir,
+            browser_args=None if proxy is None else [f"--proxy-server={proxy}"],
+            browser_executable_path=browser_executable_path,
+            **kwargs
+        )
+    except:
+        if util.get_registered_instances():
+            browser = util.get_registered_instances()[-1]
+        else:
+            raise
     stop = browser.stop
     def on_stop():
         try:

@@ -28,6 +28,7 @@ class Api:
         return [{
             "name": model.name,
             "image": isinstance(model, models.ImageModel),
+            "vision": isinstance(model, models.VisionModel),
             "providers": [
                 getattr(provider, "parent", provider.__name__)
                 for provider in providers
@@ -84,7 +85,7 @@ class Api:
         return send_from_directory(os.path.abspath(images_dir), name)
 
     def _prepare_conversation_kwargs(self, json_data: dict, kwargs: dict):
-        model = json_data.get('model') or models.default
+        model = json_data.get('model')
         provider = json_data.get('provider')
         messages = json_data.get('messages')
         api_key = json_data.get("api_key")
@@ -180,7 +181,7 @@ class Api:
                         conversations[provider][conversation_id] = chunk
                         if isinstance(chunk, JsonConversation):
                             yield self._format_json("conversation", {
-                                provider: chunk.get_dict()
+                                provider.__name__ if isinstance(provider, type) else provider: chunk.get_dict()
                             })
                         else:
                             yield self._format_json("conversation_id", conversation_id)
