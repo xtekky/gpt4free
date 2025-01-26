@@ -465,7 +465,7 @@ pi = Model(
 deepseek_chat = Model(
     name = 'deepseek-chat',
     base_provider = 'DeepSeek',
-    best_provider = IterListProvider([Blackbox, Jmuz, PollinationsAI])
+    best_provider = IterListProvider([Blackbox, DeepInfraChat, Jmuz, PollinationsAI])
 )
 
 deepseek_r1 = Model(
