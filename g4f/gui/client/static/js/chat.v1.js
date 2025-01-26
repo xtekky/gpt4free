@@ -36,6 +36,7 @@ let parameters_storage = {};
 let finish_storage = {};
 let usage_storage = {};
 let reasoning_storage = {}
+let is_demo = false;
 
 messageInput.addEventListener("blur", () => {
     window.scrollTo(0, 0);
@@ -683,7 +684,7 @@ async function load_provider_parameters(provider) {
     }
 }
 
-async function add_message_chunk(message, message_id, provider, scroll) {
+async function add_message_chunk(message, message_id, provider, scroll, finish_message=null) {
     content_map = content_storage[message_id];
     if (message.type == "conversation") {
         const conversation = await get_conversation(window.conversation_id);
@@ -737,6 +738,9 @@ async function add_message_chunk(message, message_id, provider, scroll) {
         update_message(content_map, message_id, markdown_render(message.login), scroll);
     } else if (message.type == "finish") {
         finish_storage[message_id] = message.finish;
+        if (finish_message) {
+            await finish_message();
+        }
     } else if (message.type == "usage") {
         usage_storage[message_id] = message.usage;
     } else if (message.type == "reasoning") {
@@ -829,11 +833,67 @@ const ask_gpt = async (message_id, message_index = -1, regenerate = false, provi
     if (scroll) {
         await lazy_scroll_to_bottom();
     }
+    async function finish_message() {
+        content_map.update_timeouts.forEach((timeoutId)=>clearTimeout(timeoutId));
+        content_map.update_timeouts = [];
+        if (!error_storage[message_id] && message_storage[message_id]) {
+            html = markdown_render(message_storage[message_id]);
+            content_map.inner.innerHTML = html;
+            highlight(content_map.inner);
+            if (imageInput) imageInput.value = "";
+            if (cameraInput) cameraInput.value = "";
+        }
+        if (message_storage[message_id]) {
+            const message_provider = message_id in provider_storage ? provider_storage[message_id] : null;
+            await add_message(
+                window.conversation_id,
+                "assistant",
+                message_storage[message_id] + (error_storage[message_id] ? " [error]" : "") + (stop_generating.classList.contains('stop_generating-hidden') ? " [aborted]" : ""),
+                message_provider,
+                message_index,
+                synthesize_storage[message_id],
+                regenerate,
+                title_storage[message_id],
+                finish_storage[message_id],
+                usage_storage[message_id],
+                reasoning_storage[message_id],
+                action=="continue"
+            );
+            delete message_storage[message_id];
+        }
+        if (controller_storage[message_id]) {
+            if (!controller_storage[message_id].signal.aborted) {
+                controller_storage[message_id].abort();
+            }
+            delete controller_storage[message_id];
+        }
+        if (!error_storage[message_id]) {
+            await safe_load_conversation(window.conversation_id, scroll);
+        }
+        let cursorDiv = message_el.querySelector(".cursor");
+        if (cursorDiv) cursorDiv.parentNode.removeChild(cursorDiv);
+        if (scroll) {
+            await lazy_scroll_to_bottom();
+        }
+        await safe_remove_cancel_button();
+        await register_message_buttons();
+        await load_conversations();
+        regenerate_button.classList.remove("regenerate-hidden");
+    }
     try {
+        let api_key;
+        if (is_demo && provider != "Custom") {
+            api_key = localStorage.getItem("HuggingFace-api_key");
+            if (!api_key) {
+                location.href = "/";
+                return;
+            }
+        } else {
+            api_key = get_api_key_by_provider(provider);
+        }
         const input = imageInput && imageInput.files.length > 0 ? imageInput : cameraInput;
         const files = input && input.files.length > 0 ? input.files : null;
         const download_images = document.getElementById("download_images")?.checked;
-        const api_key = get_api_key_by_provider(provider);
         const api_base = provider == "Custom" ? document.getElementById(`${provider}-api_base`).value : null;
         const ignored = Array.from(settings.querySelectorAll("input.provider:not(:checked)")).map((el)=>el.value);
         await api("conversation", {
@@ -849,54 +909,15 @@ const ask_gpt = async (message_id, message_index = -1, regenerate = false, provi
             api_key: api_key,
             api_base: api_base,
             ignored: ignored,
-        }, files, message_id, scroll);
-        content_map.update_timeouts.forEach((timeoutId)=>clearTimeout(timeoutId));
-        content_map.update_timeouts = [];
-        if (!error_storage[message_id]) {
-            html = markdown_render(message_storage[message_id]);
-            content_map.inner.innerHTML = html;
-            highlight(content_map.inner);
-            if (imageInput) imageInput.value = "";
-            if (cameraInput) cameraInput.value = "";
-        }
+        }, files, message_id, scroll, finish_message);
     } catch (e) {
         console.error(e);
         if (e.name != "AbortError") {
             error_storage[message_id] = true;
             content_map.inner.innerHTML += markdown_render(`**An error occured:** ${e}`);
         }
+        await finish_message();
     }
-    if (message_storage[message_id]) {
-        const message_provider = message_id in provider_storage ? provider_storage[message_id] : null;
-        await add_message(
-            window.conversation_id,
-            "assistant",
-            message_storage[message_id] + (error_storage[message_id] ? " [error]" : "") + (stop_generating.classList.contains('stop_generating-hidden') ? " [aborted]" : ""),
-            message_provider,
-            message_index,
-            synthesize_storage[message_id],
-            regenerate,
-            title_storage[message_id],
-            finish_storage[message_id],
-            usage_storage[message_id],
-            reasoning_storage[message_id],
-            action=="continue"
-        );
-        delete controller_storage[message_id];
-        delete message_storage[message_id];
-        if (!error_storage[message_id]) {
-            await safe_load_conversation(window.conversation_id, scroll);
-        }
-    }
-    let cursorDiv = message_el.querySelector(".cursor");
-    if (cursorDiv) cursorDiv.parentNode.removeChild(cursorDiv);
-    if (scroll) {
-        await lazy_scroll_to_bottom();
-    }
-    await safe_remove_cancel_button();
-    await register_message_buttons();
-    await load_conversations();
-    regenerate_button.classList.remove("regenerate-hidden");
 };
 
 async function scroll_to_bottom() {
@@ -1789,70 +1810,93 @@ async function on_api() {
     models.forEach((model) => {
         let option = document.createElement("option");
         option.value = model.name;
-        option.text = model.name + (model.image ? " (Image Generation)" : "");
+        option.text = model.name + (model.image ? " (Image Generation)" : "") + (model.vision ? " (Image Upload)" : "");
         option.dataset.providers = model.providers.join(" ");
         modelSelect.appendChild(option);
+        is_demo = model.demo;
     });
-    providers = await api("providers")
-    providers.sort((a, b) => a.label.localeCompare(b.label));
-    let login_urls = {};
-    providers.forEach((provider) => {
-        let option = document.createElement("option");
-        option.value = provider.name;
-        option.dataset.label = provider.label;
-        option.text = provider.label
-            + (provider.vision ? " (Image Upload)" : "")
-            + (provider.image ? " (Image Generation)" : "")
-            + (provider.webdriver ? " (Webdriver)" : "")
-            + (provider.auth ? " (Auth)" : "");
-        if (provider.parent)
-            option.dataset.parent = provider.parent;
-        providerSelect.appendChild(option);
-
-        if (provider.parent) {
-            if (!login_urls[provider.parent]) {
-                login_urls[provider.parent] = [provider.label, provider.login_url, [provider.name]];
-            } else {
-                login_urls[provider.parent][2].push(provider.name);
-            }
-        } else if (provider.login_url) {
-            if (!login_urls[provider.name]) {
-                login_urls[provider.name] = [provider.label, provider.login_url, []];
-            } else {
-                login_urls[provider.name][0] = provider.label;
-                login_urls[provider.name][1] = provider.login_url;
-            }
+    let login_urls;
+    if (is_demo) {
+        if (!localStorage.getItem("HuggingFace-api_key")) {
+            location.href = "/";
+            return;
         }
-    });
+        providerSelect.innerHTML = '<option value="" selected>Demo Modus</option>'
+        document.getElementById("pin")?.remove();
+        document.getElementById("refine")?.parentElement.remove();
+        Array.from(modelSelect.querySelectorAll(':not([data-providers])')).forEach((option)=>{
+            if (!option.disabled && option.value) {
+                option.remove();
+            }
+        });
+        login_urls = {
+            "Custom": ["Custom Provider", "", []],
+            "HuggingFace": ["HuggingFace", "", []],
+        };
+    } else {
+        providers = await api("providers")
+        providers.sort((a, b) => a.label.localeCompare(b.label));
+        login_urls = {};
+        providers.forEach((provider) => {
+            let option = document.createElement("option");
+            option.value = provider.name;
+            option.dataset.label = provider.label;
+            option.text = provider.label
+                + (provider.vision ? " (Image Upload)" : "")
+                + (provider.image ? " (Image Generation)" : "")
+                + (provider.webdriver ? " (Webdriver)" : "")
+                + (provider.auth ? " (Auth)" : "");
+            if (provider.parent)
+                option.dataset.parent = provider.parent;
+            providerSelect.appendChild(option);
+
+            if (provider.parent) {
+                if (!login_urls[provider.parent]) {
+                    login_urls[provider.parent] = [provider.label, provider.login_url, [provider.name]];
+                } else {
+                    login_urls[provider.parent][2].push(provider.name);
+                }
+            } else if (provider.login_url) {
+                if (!login_urls[provider.name]) {
+                    login_urls[provider.name] = [provider.label, provider.login_url, []];
+                } else {
+                    login_urls[provider.name][0] = provider.label;
+                    login_urls[provider.name][1] = provider.login_url;
+                }
+            }
+        });
+        providers.forEach((provider) => {
+            if (!provider.parent) {
+                option = document.createElement("div");
+                option.classList.add("field");
+                option.innerHTML = `
+                    <span class="label">Enable ${provider.label}</span>
+                    <input id="Provider${provider.name}" type="checkbox" name="Provider${provider.name}" value="${provider.name}" class="provider" checked="">
+                    <label for="Provider${provider.name}" class="toogle" title="Remove provider from dropdown"></label>
+                `;
+                option.querySelector("input").addEventListener("change", (event) => load_provider_option(event.target, provider.name));
+                settings.querySelector(".paper").appendChild(option);
+                provider_options[provider.name] = option;
+            }
+        });
+        await load_provider_models(appStorage.getItem("provider"))
+    }
     for (let [name, [label, login_url, childs]] of Object.entries(login_urls)) {
-        if (!login_url) {
+        if (!login_url && !is_demo) {
             continue;
         }
         option = document.createElement("div");
-        option.classList.add("field", "box", "hidden");
+        option.classList.add("field", "box");
+        if (!is_demo) {
+            option.classList.add("hidden");
+        }
         childs = childs.map((child)=>`${child}-api_key`).join(" ");
         option.innerHTML = `
             <label for="${name}-api_key" class="label" title="">${label}:</label>
-            <input type="text" id="${name}-api_key" name="${name}[api_key]" class="${childs}" placeholder="api_key"/>
-            <a href="${login_url}" target="_blank" title="Login to ${label}">Get API key</a>
-        `;
+            <input type="text" id="${name}-api_key" name="${name}[api_key]" class="${childs}" placeholder="api_key" autocomplete="off"/>
+        ` + (login_url ? `<a href="${login_url}" target="_blank" title="Login to ${label}">Get API key</a>` : "");
         settings.querySelector(".paper").appendChild(option);
     }
-    providers.forEach((provider) => {
-        if (!provider.parent) {
-            option = document.createElement("div");
-            option.classList.add("field");
-            option.innerHTML = `
-                <span class="label">Enable ${provider.label}</span>
-                <input id="Provider${provider.name}" type="checkbox" name="Provider${provider.name}" value="${provider.name}" class="provider" checked="">
-                <label for="Provider${provider.name}" class="toogle" title="Remove provider from dropdown"></label>
-            `;
-            option.querySelector("input").addEventListener("change", (event) => load_provider_option(event.target, provider.name));
-            settings.querySelector(".paper").appendChild(option);
-            provider_options[provider.name] = option;
-        }
-    });
-    await load_provider_models(appStorage.getItem("provider"))
 
     register_settings_storage();
     await load_settings_storage()
@@ -2093,7 +2137,7 @@ function get_selected_model() {
     }
 }
 
-async function api(ressource, args=null, files=null, message_id=null, scroll=true) {
+async function api(ressource, args=null, files=null, message_id=null, scroll=true, finish_message=null) {
     if (window?.pywebview) {
         if (args !== null) {
             if (ressource == "conversation") {
@@ -2138,16 +2182,43 @@ async function api(ressource, args=null, files=null, message_id=null, scroll=tru
             headers: headers,
             body: body,
         });
-        return read_response(response, message_id, args.provider || null, scroll);
+        // On Ratelimit
+        if (response.status == 429) {
+            // They are still pending requests?
+            for (let key in controller_storage) {
+                if (!controller_storage[key].signal.aborted) {
+                    console.error(response);
+                    await finish_message();
+                    return;
+                }
+            }
+            setTimeout(async () => {
+                response = await fetch(url, {
+                    method: 'POST',
+                    signal: controller_storage[message_id].signal,
+                    headers: headers,
+                    body: body,
+                });
+                if (response.status != 200) {
+                    console.error(response);
+                }
+                await read_response(response, message_id, args.provider || null, scroll, finish_message);
+                await finish_message();
+            }, 20000) // Wait 20 secounds on rate limit
+        } else {
+            await read_response(response, message_id, args.provider || null, scroll, finish_message);
+            await finish_message();
+            return;
+        }
     }
     response = await fetch(url, {headers: headers});
-    if (response.status == 200) {
-        return await response.json();
+    if (response.status != 200) {
+        console.error(response);
     }
-    console.error(response);
+    return await response.json();
 }
 
-async function read_response(response, message_id, provider, scroll) {
+async function read_response(response, message_id, provider, scroll, finish_message) {
     const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
     let buffer = ""
     while (true) {
@@ -2160,7 +2231,7 @@ async function read_response(response, message_id, provider, scroll) {
                 continue;
             }
             try {
-                add_message_chunk(JSON.parse(buffer + line), message_id, provider, scroll);
+                add_message_chunk(JSON.parse(buffer + line), message_id, provider, scroll, finish_message);
                 buffer = "";
             } catch {
                 buffer += line
@@ -2276,6 +2347,25 @@ function save_storage() {
         elem.click();        
         document.body.removeChild(elem);
     }
+}
+
+function add_memory() {
+    let conversations = [];
+    for (let i = 0; i < appStorage.length; i++) {
+        if (appStorage.key(i).startsWith("conversation:")) {
+            let conversation = appStorage.getItem(appStorage.key(i));
+            conversations.push(JSON.parse(conversation));
+        }
+    }
+    conversations.sort((a, b) => (b.updated||0)-(a.updated||0));
+    conversations.forEach(async (conversation)=>{
+        let body = JSON.stringify(conversation);
+        response = await fetch("/backend-api/v2/memory", {
+            method: 'POST',
+            body: body,
+            headers: {"content-type": "application/json"}
+        });
+    });
 }
 
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;

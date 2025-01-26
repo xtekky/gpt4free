@@ -71,7 +71,9 @@ class Backend_Api(Api):
         else:
             class Dummy():
                 def limit(self, value):
-                    pass
+                    def callback(v):
+                        return v
+                    return callback
             limiter = Dummy()
 
         @app.route('/backend-api/v2/models', methods=['GET'])
