@@ -59,7 +59,7 @@ Is your site on this repository and you want to take it down? Send an email to t
 - Seamless integration with multiple AI providers.
 - Comprehensive text and image generation support.
 
-> Explore the [Visit GPT4Free on HuggingFace Space](https://huggingface.co/spaces/roxky/g4f) for a hosted version or [Duplicate GPT4Free Space](https://huggingface.co/spaces/roxky/g4f?duplicate=true) it for personal use.
+> Explore the [Visit GPT4Free on HuggingFace Space](https://huggingface.co/spaces/roxky/g4f-demo) for a hosted version or [Duplicate GPT4Free Space](https://huggingface.co/spaces/roxky/g4f-demo?duplicate=true) it for personal use.
 
 ---
 
