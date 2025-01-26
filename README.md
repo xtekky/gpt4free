@@ -125,7 +125,7 @@ Is your site on this repository and you want to take it down? Send an email to t
 	  rm -r -f /app/g4f/ \
 	  && pip install -U g4f[slim] \
 	  && python -m g4f --debug
-	```
+```
  
 5. **Access the Client Interface:**
    - **To use the included client, navigate to:** [http://localhost:8080/chat/](http://localhost:8080/chat/)
