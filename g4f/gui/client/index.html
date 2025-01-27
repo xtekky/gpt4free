@@ -25,7 +25,11 @@
             chtml: {
                 scale: 1,
                 displayAlign: 'left'
-            }
+            },
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']]
+            },
         };
     </script>
     <script id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
@@ -147,6 +151,11 @@
                 <input type="checkbox" id="track_usage"/>
                 <label for="track_usage" class="toogle" title=""></label>
             </div>
+            <div class="field">
+                <span class="label">Report errors</span>
+                <input type="checkbox" id="report_error"/>
+                <label for="report_error" class="toogle" title=""></label>
+            </div>
             <div class="field box">
                 <label for="systemPrompt" class="label" title="">System prompt</label>
                 <textarea id="systemPrompt" placeholder="You are a helpful assistant."></textarea>
@@ -158,9 +167,19 @@
             <div class="field box">
                 <label for="recognition-language" class="label" title="">Speech recognition language</label>
                 <input type="text" id="recognition-language" value="" placeholder="navigator.language"/>
-                <script>
-                    document.getElementById('recognition-language').placeholder = navigator.language;
-                </script>
+            </div>
+            <div class="field mem0 hidden">
+                <span class="label">Enable Memory with Mem0</span>
+                <input type="checkbox" id="mem0"/>
+                <label for="mem0" class="toogle" title=""></label>
+                <button onclick="import_memory()">
+                    <i class="fa-solid fa-arrow-up-from-bracket"></i>
+                    <span>Import Messages to Mem0</span>
+                </button>
+            </div>
+            <div class="field box hidden">
+                <label for="mem0-api_key" class="label" title="">Mem0 API:</label>
+                <input type="text" id="mem0-api_key" name="mem0[api_key]" placeholder="api_key"/>
             </div>
             <div class="field box">
                 <label for="Custom-api_base" class="label" title="">Custom Provider (Base Url):</label>
@@ -187,12 +206,6 @@
                 <button id="showLog">
                     <i class="fa-solid fa-terminal"></i>
                     <a href="" onclick="return false;">Show log</a>
-                </button>
-            </div>
-            <div class="bottom_buttons memory hidden">
-                <button onclick="import_memory()">
-                    <i class="fa-solid fa-arrow-up-from-bracket"></i>
-                    <a href="" onclick="return false;">Import Messages to Memory</a>
                 </button>
             </div>
         </div>
@@ -239,7 +252,7 @@
                     <textarea id="message-input" placeholder="Ask a question" cols="30" rows="10"
                         style="white-space: pre-wrap;resize: none;"></textarea>
                     <label class="file-label image-label" for="image" title="">
-                        <input type="file" id="image" name="image" accept="image/*" required multiple capture="filesystem"/>
+                        <input type="file" id="image" name="image" accept="image/*" required/>
                         <i class="fa-regular fa-image"></i>
                     </label>
                     <label class="file-label image-label" for="camera">

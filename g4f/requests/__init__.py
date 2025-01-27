@@ -7,6 +7,7 @@ from urllib.parse import urlparse
 from typing import Iterator
 from http.cookies import Morsel
 from pathlib import Path
+import asyncio
 try:
     from curl_cffi.requests import Session, Response
     from .curl_cffi import StreamResponse, StreamSession, FormData
@@ -17,7 +18,6 @@ except ImportError:
     has_curl_cffi = False
 try:
     import webview
-    import asyncio
     has_webview = True
 except ImportError:
     has_webview = False

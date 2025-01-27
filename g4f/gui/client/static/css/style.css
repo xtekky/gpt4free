@@ -221,12 +221,12 @@ body:not(.white) a:visited{
     background-color: var(--blur-bg);
 }
 
-.conversations i, .bottom_buttons i {
+.conversations i, .bottom_buttons i, .mem0 button i {
     color: var(--conversations);
     cursor: pointer;
 }
 
-.bottom_buttons i {
+.bottom_buttons i, .mem0 button i {
     width: 14px;
 }
 
@@ -998,7 +998,7 @@ select:hover,
     margin: 4px 0;
 }
 
-.bottom_buttons button {
+.bottom_buttons button, .mem0 button {
     padding: 8px 12px;
     display: flex;
     gap: 18px;
@@ -1011,10 +1011,15 @@ select:hover,
     width: 100%;
 }
 
+.mem0 button {
+    width: auto;
+}
+
 .bottom_buttons button a,
 .bottom_buttons button span,
 .bottom_buttons .info a,
-.bottom_buttons .info i {
+.bottom_buttons .info i,
+.mem0 button span {
     color: var(--colour-3);
     font-weight: 500;
 }
@@ -1129,7 +1134,6 @@ ul {
     padding-left: 10px;
     padding-top: 10px;
 }
-
 @media screen and (max-width: 990px) {
     .conversations {
         display: none;

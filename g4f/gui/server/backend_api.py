@@ -68,6 +68,7 @@ class Backend_Api(Api):
                 app=app,
                 default_limits=["200 per day", "50 per hour"],
                 storage_uri="memory://",
+                auto_check=False
             )
 
         if has_flask_limiter and app.demo:
@@ -133,7 +134,7 @@ class Backend_Api(Api):
             else:
                 json_data = request.json
 
-            if app.demo:
+            if app.demo and json_data.get("provider") != "Custom":
                 model = json_data.get("model")
                 if model != "default" and model in models.demo_models:
                     json_data["provider"] = random.choice(models.demo_models[model][1])
@@ -156,6 +157,7 @@ class Backend_Api(Api):
             @app.route('/backend-api/v2/conversation', methods=['POST'])
             @limiter.limit("4 per minute") # 1 request in 15 seconds
             def _handle_conversation():
+                limiter.check()
                 return handle_conversation()
         else:
             @app.route('/backend-api/v2/conversation', methods=['POST'])
@@ -171,16 +173,25 @@ class Backend_Api(Api):
                 f.write(f"{json.dumps(request.json)}\n")
             return {}
 
-        @app.route('/backend-api/v2/memory', methods=['POST'])
-        def add_memory():
+        @app.route('/backend-api/v2/log', methods=['POST'])
+        def add_log():
+            cache_dir = Path(get_cookies_dir()) / ".logging"
+            cache_file = cache_dir / f"{datetime.date.today()}.jsonl"
+            cache_dir.mkdir(parents=True, exist_ok=True)
+            with cache_file.open("a" if cache_file.exists() else "w") as f:
+                f.write(f"{json.dumps(request.json)}\n")
+            return {}
+
+        @app.route('/backend-api/v2/memory/<user_id>', methods=['POST'])
+        def add_memory(user_id: str):
             api_key = request.headers.get("x_api_key")
             json_data = request.json
             from mem0 import MemoryClient
             client = MemoryClient(api_key=api_key)
             client.add(
                 [{"role": item["role"], "content": item["content"]} for item in json_data.get("items")],
-                user_id="user",
-                metadata={"conversation_id": json_data.get("id"), "title": json_data.get("title")}
+                user_id=user_id,
+                metadata={"conversation_id": json_data.get("id")}
             )
             return {"count": len(json_data.get("items"))}
 
@@ -189,13 +200,19 @@ class Backend_Api(Api):
             api_key = request.headers.get("x_api_key")
             from mem0 import MemoryClient
             client = MemoryClient(api_key=api_key)
-            if request.args.search:
+            if request.args.get("search"):
                 return client.search(
-                    request.args.search,
+                    request.args.get("search"),
                     user_id=user_id,
-                    metadata=json.loads(request.args.metadata) if request.args.metadata else None
+                    filters=json.loads(request.args.get("filters", "null")),
+                    metadata=json.loads(request.args.get("metadata", "null"))
                 )
-            return {}
+            return client.get_all(
+                user_id=user_id,
+                page=request.args.get("page", 1),
+                page_size=request.args.get("page_size", 100),
+                filters=json.loads(request.args.get("filters", "null")),
+            )
 
         self.routes = {
             '/backend-api/v2/version': {

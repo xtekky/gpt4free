@@ -42,7 +42,7 @@ class Api:
         if provider in ProviderUtils.convert:
             provider = ProviderUtils.convert[provider]
             if issubclass(provider, ProviderModelMixin):
-                if api_key is not None and "api_key" in signature(provider.get_models).parameters:
+                if "api_key" in signature(provider.get_models).parameters:
                     models = provider.get_models(api_key=api_key, api_base=api_base)
                 else:
                     models = provider.get_models()

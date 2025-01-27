@@ -73,13 +73,14 @@ if (window.markdownit) {
 }
 
 function render_reasoning(reasoning, final = false) {
+    const inner_text = reasoning.text ? `<div class="reasoning_text${final ? " final hidden" : ""}">
+        ${markdown_render(reasoning.text)}
+    </div>` : "";
     return `<div class="reasoning_body">
         <div class="reasoning_title">
            <strong>Reasoning <i class="fa-solid fa-brain"></i>:</strong> ${escapeHtml(reasoning.status)}
         </div>
-        <div class="reasoning_text${final ? " final hidden" : ""}">
-        ${markdown_render(reasoning.text)}
-        </div>
+        ${inner_text}
     </div>`;
 }
 
@@ -342,7 +343,9 @@ const register_message_buttons = async () => {
             el.dataset.click = "true";
             el.addEventListener("click", async () => {
                 let text_el = el.parentElement.querySelector(".reasoning_text");
-                text_el.classList[text_el.classList.contains("hidden") ? "remove" : "add"]("hidden");
+                if (text_el) {
+                    text_el.classList[text_el.classList.contains("hidden") ? "remove" : "add"]("hidden");
+                }
             })
         }
     });
@@ -495,20 +498,21 @@ const prepare_messages = (messages, message_index = -1, do_continue = false, do_
         }
     }
     // Combine assistant messages
-    let last_message;
-    let new_messages = [];
-    messages.forEach((message) => {
-        message_copy = { ...message };
-        if (last_message) {
-            if (last_message["role"] == message["role"] &&  message["role"] == "assistant") {
-                message_copy["content"] = last_message["content"] + message_copy["content"];
-                new_messages.pop();
-            }
-        }
-        last_message = message_copy;
-        new_messages.push(last_message);
-    });
-    messages = new_messages;
+    // let last_message;
+    // let new_messages = [];
+    // messages.forEach((message) => {
+    //     message_copy = { ...message };
+    //     if (last_message) {
+    //         if (last_message["role"] == message["role"] &&  message["role"] == "assistant") {
+    //             message_copy["content"] = last_message["content"] + message_copy["content"];
+    //             new_messages.pop();
+    //         }
+    //     }
+    //     last_message = message_copy;
+    //     new_messages.push(last_message);
+    // });
+    // messages = new_messages;
+    // console.log(2, messages);
 
     // Insert system prompt as first message
     let final_messages = [];
@@ -555,14 +559,15 @@ const prepare_messages = (messages, message_index = -1, do_continue = false, do_
             delete new_message.continue;
             // Append message to new messages
             if (do_filter && !new_message.regenerate) {
-                new_messages.push(new_message)
+                final_messages.push(new_message)
             } else if (!do_filter) {
-                new_messages.push(new_message)
+                final_messages.push(new_message)
             }
         }
     });
+    console.log(4, final_messages);
 
-    return new_messages;
+    return final_messages;
 }
 
 async function load_provider_parameters(provider) {
@@ -727,6 +732,7 @@ async function add_message_chunk(message, message_id, provider, scroll, finish_m
         let p = document.createElement("p");
         p.innerText = message.error;
         log_storage.appendChild(p);
+        await api("log", {...message, provider: provider_storage[message_id]});
     } else if (message.type == "preview") {
         if (content_map.inner.clientHeight > 200)
             content_map.inner.style.height = content_map.inner.clientHeight + "px";
@@ -789,6 +795,9 @@ const ask_gpt = async (message_id, message_index = -1, regenerate = false, provi
         provider = providerSelect.options[providerSelect.selectedIndex].value;
     }
     let conversation = await get_conversation(window.conversation_id);
+    if (!conversation) {
+        return;
+    }
     messages = prepare_messages(conversation.items, message_index, action=="continue");
     message_storage[message_id] = "";
     stop_generating.classList.remove("stop_generating-hidden");
@@ -1533,7 +1542,7 @@ async function hide_sidebar() {
     chat.classList.remove("hidden");
     log_storage.classList.add("hidden");
     await hide_settings();
-    if (window.location.pathname == "/menu/" || window.location.pathname == "/settings/") {
+    if (window.location.pathname.endsWith("/menu/") || window.location.pathname.endsWith("/settings/")) {
         history.back();
     }
 }
@@ -1550,10 +1559,7 @@ sidebar_button.addEventListener("click", async () => {
     if (sidebar.classList.contains("shown")) {
         await hide_sidebar();
     } else {
-        sidebar.classList.add("shown");
-        sidebar_button.classList.add("rotated");
-        await hide_settings();
-        add_url_to_history("/menu/");
+        await show_menu();
     }
     window.scrollTo(0, 0);
 });
@@ -1564,12 +1570,19 @@ function add_url_to_history(url) {
     }
 }
 
+async function show_menu() {
+    sidebar.classList.add("shown");
+    sidebar_button.classList.add("rotated");
+    await hide_settings();
+    add_url_to_history("/chat/menu/");
+}
+
 function open_settings() {
     if (settings.classList.contains("hidden")) {
         chat.classList.add("hidden");
         sidebar.classList.remove("shown");
         settings.classList.remove("hidden");
-        add_url_to_history("/settings/");
+        add_url_to_history("/chat/settings/");
     } else {
         settings.classList.add("hidden");
         chat.classList.remove("hidden");
@@ -1717,7 +1730,11 @@ function count_words_and_tokens(text, model, completion_tokens, prompt_tokens) {
 function update_message(content_map, message_id, content = null, scroll = true) {
     content_map.update_timeouts.push(setTimeout(() => {
         if (!content) {
-            content = markdown_render(message_storage[message_id]);
+            if (reasoning_storage[message_id]) {
+                content = render_reasoning(reasoning_storage[message_id], true) + markdown_render(message_storage[message_id]);
+            } else {
+                content = markdown_render(message_storage[message_id]);
+            }
             let lastElement, lastIndex = null;
             for (element of ['</p>', '</code></pre>', '</p>\n</li>\n</ol>', '</li>\n</ol>', '</li>\n</ul>']) {
                 const index = content.lastIndexOf(element)
@@ -1782,7 +1799,9 @@ window.addEventListener('pywebviewready', async function() {
 
 async function on_load() {
     count_input();
-    if (/\/chat\/[^?]+/.test(window.location.href)) {
+    if (/\/settings\//.test(window.location.href)) {
+        open_settings();
+    } else if (/\/chat\/[^?]+/.test(window.location.href)) {
         load_conversation(window.conversation_id);
     } else {
         chatPrompt.value = document.getElementById("systemPrompt")?.value || "";
@@ -1854,12 +1873,15 @@ async function on_api() {
         if (prompt_lock) return;
         prompt_lock = true;
         setTimeout(()=>prompt_lock=false, 3000);
+        stop_recognition();
         await handle_ask();
     });
     sendButton.querySelector(".fa-square-plus").addEventListener(`click`, async () => {
+        stop_recognition();
         await handle_ask(false);
     });
     messageInput.focus();
+
     let provider_options = [];
     models = await api("models");
     models.forEach((model) => {
@@ -1876,9 +1898,10 @@ async function on_api() {
             location.href = "/";
             return;
         }
-        providerSelect.innerHTML = '<option value="" selected>Demo Mode</option>'
+        providerSelect.innerHTML = '<option value="">Demo Mode</option><option value="Custom">Custom Provider</option>';
+        providerSelect.selectedIndex = 0;
         document.getElementById("pin").disabled = true;
-        document.getElementById("refine")?.parentElement.remove();
+        document.getElementById("refine")?.parentElement.classList.add("hidden")
         const track_usage = document.getElementById("track_usage");
         track_usage.checked = true;
         track_usage.disabled = true;
@@ -2005,6 +2028,7 @@ async function on_api() {
 
     const method = switchInput.checked ? "add" : "remove";
     searchButton.classList[method]("active");
+    document.getElementById('recognition-language').placeholder = get_navigator_language();
 }
 
 async function load_version() {
@@ -2099,7 +2123,7 @@ async function upload_files(fileInput) {
         body: formData
     });
 
-    let do_refine = document.getElementById("refine").checked;
+    let do_refine = document.getElementById("refine")?.checked;
     function connectToSSE(url) {
         const eventSource = new EventSource(url);
         eventSource.onmessage = (event) => {
@@ -2179,6 +2203,10 @@ fileInput.addEventListener('change', async (event) => {
         }
     }
 });
+
+if (!window.matchMedia("(pointer:coarse)").matches) {
+    document.getElementById("image").setAttribute("multiple", "multiple");
+}
 
 chatPrompt?.addEventListener("input", async () => {
     await save_system_message();
@@ -2269,6 +2297,12 @@ async function api(ressource, args=null, files=null, message_id=null, scroll=tru
             return;
         }
     } else if (args) {
+        if (ressource == "log") {
+            if (appStorage.getItem("report_error") != "true") {
+                return;
+            }
+            url = `https://roxky-g4f-demo.hf.space${url}"`;
+        }
         headers['content-type'] = 'application/json';
         response = await fetch(url, {
             method: 'POST',
@@ -2417,7 +2451,18 @@ function save_storage() {
 }
 
 function import_memory() {
+    if (!appStorage.getItem("mem0-api_key")) {
+        return;
+    }
     hide_sidebar();
+
+    let count = 0;
+    let user_id = appStorage.getItem("user") || appStorage.getItem("mem0-user_id");
+    if (!user_id) {
+        user_id = uuid();
+        appStorage.setItem("mem0-user_id", user_id);
+    }
+    inputCount.innerText = `Start importing to Mem0...`;
     let conversations = [];
     for (let i = 0; i < appStorage.length; i++) {
         if (appStorage.key(i).startsWith("conversation:")) {
@@ -2426,21 +2471,33 @@ function import_memory() {
         }
     }
     conversations.sort((a, b) => (a.updated||0)-(b.updated||0));
-    let count = 0;
-    conversations.forEach(async (conversation)=>{
-        let body = JSON.stringify(conversation);
-        response = await fetch("/backend-api/v2/memory", {
+    async function add_conversation_to_memory(i) {
+        if (i > conversations.length - 1) {
+            return;
+        }
+        let body = JSON.stringify(conversations[i]);
+        response = await fetch(`/backend-api/v2/memory/${user_id}`, {
             method: 'POST',
             body: body,
-            headers: {"content-type": "application/json"}
+            headers: {
+                "content-type": "application/json",
+                "x_api_key": appStorage.getItem("mem0-api_key")
+            }
         });
         const result = await response.json();
         count += result.count;
-        inputCount.innerText = `${count} Messages are imported`;
-    });
+        inputCount.innerText = `${count} Messages were imported`;
+        add_conversation_to_memory(i + 1);
+    }
+    add_conversation_to_memory(0)
+}
+
+function get_navigator_language() {
+    return navigator.languages.filter((v)=>v.includes("-"))[0] || navigator.language;
 }
 
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+let stop_recognition = ()=>{};
 if (SpeechRecognition) {
     const mircoIcon = microLabel.querySelector("i");
     mircoIcon.classList.add("fa-microphone");
@@ -2490,15 +2547,22 @@ if (SpeechRecognition) {
         }
     };
 
-    microLabel.addEventListener("click", (e) => {
+    stop_recognition = ()=>{
         if (microLabel.classList.contains("recognition")) {
             microLabel.classList.remove("recognition");
             recognition.stop();
             messageInput.value = `${startValue ? startValue + "\n" : ""}${buffer}`;
-        } else {
+            count_input();
+            return true;
+        }
+        return false;
+    }
+
+    microLabel.addEventListener("click", (e) => {
+        if (!stop_recognition()) {
             microLabel.classList.add("recognition");
             const lang = document.getElementById("recognition-language")?.value;
-            recognition.lang = lang || navigator.language;
+            recognition.lang = lang || get_navigator_language();
             recognition.start();
         }
     });
