@@ -2302,7 +2302,7 @@ async function api(ressource, args=null, files=null, message_id=null, scroll=tru
         }
     } else if (args) {
         if (ressource == "log") {
-            if (appStorage.getItem("report_error") != "true") {
+            if (!document.getElementById("report_error").checked) {
                 return;
             }
             url = `https://roxky-g4f-demo.hf.space${url}`;
