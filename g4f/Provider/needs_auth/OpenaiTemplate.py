@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 import json
+import time
 import requests
 
 from ..helper import filter_none
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
 from ...typing import Union, Optional, AsyncResult, Messages, ImagesType
 from ...requests import StreamSession, raise_for_status
-from ...providers.response import FinishReason, ToolCalls, Usage
+from ...providers.response import FinishReason, ToolCalls, Usage, Reasoning
 from ...errors import MissingAuthError, ResponseError
 from ...image import to_data_uri
 from ... import debug
@@ -121,6 +122,7 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
                 elif content_type.startswith("text/event-stream"):
                     await raise_for_status(response)
                     first = True
+                    is_thinking = 0
                     async for line in response.iter_lines():
                         if line.startswith(b"data: "):
                             chunk = line[6:]
@@ -135,7 +137,17 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
                                     delta = delta.lstrip()
                                 if delta:
                                     first = False
-                                    yield delta
+                                    if is_thinking:
+                                        if "</think>" in delta:
+                                            yield Reasoning(None, f"Finished in {round(time.time()-is_thinking, 2)} seconds")
+                                            is_thinking = 0
+                                        else:
+                                            yield Reasoning(delta)
+                                    elif "<think>" in delta:
+                                        is_thinking = time.time()
+                                        yield Reasoning(None, "Is thinking...")
+                                    else:
+                                        yield delta
                             if "usage" in data and data["usage"]:
                                 yield Usage(**data["usage"])
                             if "finish_reason" in choice and choice["finish_reason"] is not None:

@@ -73,13 +73,14 @@ if (window.markdownit) {
 }
 
 function render_reasoning(reasoning, final = false) {
+    const inner_text = reasoning.text ? `<div class="reasoning_text${final ? " final hidden" : ""}">
+        ${markdown_render(reasoning.text)}
+    </div>` : "";
     return `<div class="reasoning_body">
         <div class="reasoning_title">
            <strong>Reasoning <i class="fa-solid fa-brain"></i>:</strong> ${escapeHtml(reasoning.status)}
         </div>
-        <div class="reasoning_text${final ? " final hidden" : ""}">
-        ${markdown_render(reasoning.text)}
-        </div>
+        ${inner_text}
     </div>`;
 }
 
@@ -342,7 +343,9 @@ const register_message_buttons = async () => {
             el.dataset.click = "true";
             el.addEventListener("click", async () => {
                 let text_el = el.parentElement.querySelector(".reasoning_text");
-                text_el.classList[text_el.classList.contains("hidden") ? "remove" : "add"]("hidden");
+                if (text_el) {
+                    text_el.classList[text_el.classList.contains("hidden") ? "remove" : "add"]("hidden");
+                }
             })
         }
     });
@@ -495,20 +498,21 @@ const prepare_messages = (messages, message_index = -1, do_continue = false, do_
         }
     }
     // Combine assistant messages
-    let last_message;
-    let new_messages = [];
-    messages.forEach((message) => {
-        message_copy = { ...message };
-        if (last_message) {
-            if (last_message["role"] == message["role"] &&  message["role"] == "assistant") {
-                message_copy["content"] = last_message["content"] + message_copy["content"];
-                new_messages.pop();
-            }
-        }
-        last_message = message_copy;
-        new_messages.push(last_message);
-    });
-    messages = new_messages;
+    // let last_message;
+    // let new_messages = [];
+    // messages.forEach((message) => {
+    //     message_copy = { ...message };
+    //     if (last_message) {
+    //         if (last_message["role"] == message["role"] &&  message["role"] == "assistant") {
+    //             message_copy["content"] = last_message["content"] + message_copy["content"];
+    //             new_messages.pop();
+    //         }
+    //     }
+    //     last_message = message_copy;
+    //     new_messages.push(last_message);
+    // });
+    // messages = new_messages;
+    // console.log(2, messages);
 
     // Insert system prompt as first message
     let final_messages = [];
@@ -555,14 +559,15 @@ const prepare_messages = (messages, message_index = -1, do_continue = false, do_
             delete new_message.continue;
             // Append message to new messages
             if (do_filter && !new_message.regenerate) {
-                new_messages.push(new_message)
+                final_messages.push(new_message)
             } else if (!do_filter) {
-                new_messages.push(new_message)
+                final_messages.push(new_message)
             }
         }
     });
+    console.log(4, final_messages);
 
-    return new_messages;
+    return final_messages;
 }
 
 async function load_provider_parameters(provider) {
@@ -1721,7 +1726,11 @@ function count_words_and_tokens(text, model, completion_tokens, prompt_tokens) {
 function update_message(content_map, message_id, content = null, scroll = true) {
     content_map.update_timeouts.push(setTimeout(() => {
         if (!content) {
-            content = markdown_render(message_storage[message_id]);
+            if (reasoning_storage[message_id]) {
+                content = render_reasoning(reasoning_storage[message_id], true) + markdown_render(message_storage[message_id]);
+            } else {
+                content = markdown_render(message_storage[message_id]);
+            }
             let lastElement, lastIndex = null;
             for (element of ['</p>', '</code></pre>', '</p>\n</li>\n</ol>', '</li>\n</ol>', '</li>\n</ul>']) {
                 const index = content.lastIndexOf(element)
@@ -2185,6 +2194,10 @@ fileInput.addEventListener('change', async (event) => {
         }
     }
 });
+
+if (!window.matchMedia("(pointer:coarse)").matches) {
+    document.getElementById("image").setAttribute("multiple", "multiple");
+}
 
 chatPrompt?.addEventListener("input", async () => {
     await save_system_message();
