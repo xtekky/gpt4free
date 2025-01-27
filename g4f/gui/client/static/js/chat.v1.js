@@ -732,6 +732,7 @@ async function add_message_chunk(message, message_id, provider, scroll, finish_m
         let p = document.createElement("p");
         p.innerText = message.error;
         log_storage.appendChild(p);
+        await api("log", {...message, provider: provider_storage[message_id]});
     } else if (message.type == "preview") {
         if (content_map.inner.clientHeight > 200)
             content_map.inner.style.height = content_map.inner.clientHeight + "px";
@@ -794,6 +795,9 @@ const ask_gpt = async (message_id, message_index = -1, regenerate = false, provi
         provider = providerSelect.options[providerSelect.selectedIndex].value;
     }
     let conversation = await get_conversation(window.conversation_id);
+    if (!conversation) {
+        return;
+    }
     messages = prepare_messages(conversation.items, message_index, action=="continue");
     message_storage[message_id] = "";
     stop_generating.classList.remove("stop_generating-hidden");
@@ -1869,12 +1873,15 @@ async function on_api() {
         if (prompt_lock) return;
         prompt_lock = true;
         setTimeout(()=>prompt_lock=false, 3000);
+        stop_recognition();
         await handle_ask();
     });
     sendButton.querySelector(".fa-square-plus").addEventListener(`click`, async () => {
+        stop_recognition();
         await handle_ask(false);
     });
     messageInput.focus();
+
     let provider_options = [];
     models = await api("models");
     models.forEach((model) => {
@@ -1891,7 +1898,8 @@ async function on_api() {
             location.href = "/";
             return;
         }
-        providerSelect.innerHTML = '<option value="" selected>Demo Mode</option>'
+        providerSelect.innerHTML = '<option value="">Demo Mode</option><option value="Custom">Custom Provider</option>';
+        providerSelect.selectedIndex = 0;
         document.getElementById("pin").disabled = true;
         document.getElementById("refine")?.parentElement.classList.add("hidden")
         const track_usage = document.getElementById("track_usage");
@@ -2020,6 +2028,7 @@ async function on_api() {
 
     const method = switchInput.checked ? "add" : "remove";
     searchButton.classList[method]("active");
+    document.getElementById('recognition-language').placeholder = get_navigator_language();
 }
 
 async function load_version() {
@@ -2288,6 +2297,12 @@ async function api(ressource, args=null, files=null, message_id=null, scroll=tru
             return;
         }
     } else if (args) {
+        if (ressource == "log") {
+            if (appStorage.getItem("report_error") != "true") {
+                return;
+            }
+            url = `https://roxky-g4f-demo.hf.space${url}"`;
+        }
         headers['content-type'] = 'application/json';
         response = await fetch(url, {
             method: 'POST',
@@ -2456,25 +2471,33 @@ function import_memory() {
         }
     }
     conversations.sort((a, b) => (a.updated||0)-(b.updated||0));
-    conversations.forEach(async (conversation, i)=>{
-        setTimeout(async ()=>{
-            let body = JSON.stringify(conversation);
-            response = await fetch(`/backend-api/v2/memory/${user_id}`, {
-                method: 'POST',
-                body: body,
-                headers: {
-                    "content-type": "application/json",
-                    "x_api_key": appStorage.getItem("mem0-api_key")
-                }
-            });
-            const result = await response.json();
-            count += result.count;
-            inputCount.innerText = `${count} Messages were imported`;
-        }, (i+1)*1000);
-    });
+    async function add_conversation_to_memory(i) {
+        if (i > conversations.length - 1) {
+            return;
+        }
+        let body = JSON.stringify(conversations[i]);
+        response = await fetch(`/backend-api/v2/memory/${user_id}`, {
+            method: 'POST',
+            body: body,
+            headers: {
+                "content-type": "application/json",
+                "x_api_key": appStorage.getItem("mem0-api_key")
+            }
+        });
+        const result = await response.json();
+        count += result.count;
+        inputCount.innerText = `${count} Messages were imported`;
+        add_conversation_to_memory(i + 1);
+    }
+    add_conversation_to_memory(0)
+}
+
+function get_navigator_language() {
+    return navigator.languages.filter((v)=>v.includes("-"))[0] || navigator.language;
 }
 
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+let stop_recognition = ()=>{};
 if (SpeechRecognition) {
     const mircoIcon = microLabel.querySelector("i");
     mircoIcon.classList.add("fa-microphone");
@@ -2524,15 +2547,22 @@ if (SpeechRecognition) {
         }
     };
 
-    microLabel.addEventListener("click", (e) => {
+    stop_recognition = ()=>{
         if (microLabel.classList.contains("recognition")) {
             microLabel.classList.remove("recognition");
             recognition.stop();
             messageInput.value = `${startValue ? startValue + "\n" : ""}${buffer}`;
-        } else {
+            count_input();
+            return true;
+        }
+        return false;
+    }
+
+    microLabel.addEventListener("click", (e) => {
+        if (!stop_recognition()) {
             microLabel.classList.add("recognition");
             const lang = document.getElementById("recognition-language")?.value;
-            recognition.lang = lang || navigator.language;
+            recognition.lang = lang || get_navigator_language();
             recognition.start();
         }
     });

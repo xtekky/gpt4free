@@ -68,6 +68,7 @@ class Backend_Api(Api):
                 app=app,
                 default_limits=["200 per day", "50 per hour"],
                 storage_uri="memory://",
+                auto_check=False
             )
 
         if has_flask_limiter and app.demo:
@@ -133,7 +134,7 @@ class Backend_Api(Api):
             else:
                 json_data = request.json
 
-            if app.demo:
+            if app.demo and json_data.get("provider") != "Custom":
                 model = json_data.get("model")
                 if model != "default" and model in models.demo_models:
                     json_data["provider"] = random.choice(models.demo_models[model][1])
@@ -156,6 +157,7 @@ class Backend_Api(Api):
             @app.route('/backend-api/v2/conversation', methods=['POST'])
             @limiter.limit("4 per minute") # 1 request in 15 seconds
             def _handle_conversation():
+                limiter.check()
                 return handle_conversation()
         else:
             @app.route('/backend-api/v2/conversation', methods=['POST'])
@@ -165,6 +167,15 @@ class Backend_Api(Api):
         @app.route('/backend-api/v2/usage', methods=['POST'])
         def add_usage():
             cache_dir = Path(get_cookies_dir()) / ".usage"
+            cache_file = cache_dir / f"{datetime.date.today()}.jsonl"
+            cache_dir.mkdir(parents=True, exist_ok=True)
+            with cache_file.open("a" if cache_file.exists() else "w") as f:
+                f.write(f"{json.dumps(request.json)}\n")
+            return {}
+
+        @app.route('/backend-api/v2/log', methods=['POST'])
+        def add_log():
+            cache_dir = Path(get_cookies_dir()) / ".logging"
             cache_file = cache_dir / f"{datetime.date.today()}.jsonl"
             cache_dir.mkdir(parents=True, exist_ok=True)
             with cache_file.open("a" if cache_file.exists() else "w") as f:

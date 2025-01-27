@@ -126,7 +126,7 @@ class Reasoning(ResponseType):
         self.status = status
 
     def __str__(self) -> str:
-        return "" if self.token is None else self.token
+        return f"{self.status}\n" if self.token is None else self.token
 
 class Sources(ResponseType):
     def __init__(self, sources: list[dict[str, str]]) -> None:

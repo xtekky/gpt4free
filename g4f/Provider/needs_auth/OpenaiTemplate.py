@@ -8,7 +8,7 @@ from ..helper import filter_none
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
 from ...typing import Union, Optional, AsyncResult, Messages, ImagesType
 from ...requests import StreamSession, raise_for_status
-from ...providers.response import FinishReason, ToolCalls, Usage, Reasoning
+from ...providers.response import FinishReason, ToolCalls, Usage, Reasoning, ImageResponse
 from ...errors import MissingAuthError, ResponseError
 from ...image import to_data_uri
 from ... import debug
@@ -59,6 +59,7 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
         top_p: float = None,
         stop: Union[str, list[str]] = None,
         stream: bool = False,
+        prompt: str = None,
         headers: dict = None,
         impersonate: str = None,
         tools: Optional[list] = None,
@@ -67,32 +68,47 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
     ) -> AsyncResult:
         if cls.needs_auth and api_key is None:
             raise MissingAuthError('Add a "api_key"')
-        if api_base is None:
-            api_base = cls.api_base
-        if images is not None and messages:
-            if not model and hasattr(cls, "default_vision_model"):
-                model = cls.default_vision_model
-            last_message = messages[-1].copy()
-            last_message["content"] = [
-                *[{
-                    "type": "image_url",
-                    "image_url": {"url": to_data_uri(image)}
-                } for image, _ in images],
-                {
-                    "type": "text",
-                    "text": messages[-1]["content"]
-                }
-            ]
-            messages[-1] = last_message
         async with StreamSession(
             proxy=proxy,
             headers=cls.get_headers(stream, api_key, headers),
             timeout=timeout,
             impersonate=impersonate,
         ) as session:
+            model = cls.get_model(model, api_key=api_key, api_base=api_base)
+            if api_base is None:
+                api_base = cls.api_base
+
+            # Proxy for image generation feature
+            if model in cls.image_models:
+                data = {
+                    "prompt": messages[-1]["content"] if prompt is None else prompt,
+                    "model": model,
+                }
+                async with session.post(f"{api_base.rstrip('/')}/images/generations", json=data) as response:
+                    data = await response.json()
+                    cls.raise_error(data)
+                    await raise_for_status(response)
+                    yield ImageResponse([image["url"] for image in data["data"]], prompt)
+                return
+
+            if images is not None and messages:
+                if not model and hasattr(cls, "default_vision_model"):
+                    model = cls.default_vision_model
+                last_message = messages[-1].copy()
+                last_message["content"] = [
+                    *[{
+                        "type": "image_url",
+                        "image_url": {"url": to_data_uri(image)}
+                    } for image, _ in images],
+                    {
+                        "type": "text",
+                        "text": messages[-1]["content"]
+                    }
+                ]
+                messages[-1] = last_message
             data = filter_none(
                 messages=messages,
-                model=cls.get_model(model, api_key=api_key, api_base=api_base),
+                model=model,
                 temperature=temperature,
                 max_tokens=max_tokens,
                 top_p=top_p,

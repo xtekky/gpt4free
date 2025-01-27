@@ -216,6 +216,7 @@
                 localStorage.setItem("HuggingFace-api_key", accessToken);
                 localStorage.setItem("HuggingFace-user", JSON.stringify(user));
                 localStorage.setItem("user", user.name);
+                localStorage.setItem("report_error", "true")
                 location.href = "/chat/";
             }
             input.addEventListener("input", () => check_access_token());
