@@ -50,6 +50,8 @@ class DDG(AsyncGeneratorProvider, ProviderModelMixin):
     @classmethod 
     def validate_model(cls, model: str) -> str:
         """Validates and returns the correct model name"""
+        if not model:
+            return cls.default_model
         if model in cls.model_aliases:
             model = cls.model_aliases[model]
         if model not in cls.models:

@@ -134,7 +134,7 @@ class Backend_Api(Api):
             else:
                 json_data = request.json
 
-            if app.demo and json_data.get("provider") != "Custom":
+            if app.demo and json_data.get("provider") not in ["Custom", "Feature"]:
                 model = json_data.get("model")
                 if model != "default" and model in models.demo_models:
                     json_data["provider"] = random.choice(models.demo_models[model][1])

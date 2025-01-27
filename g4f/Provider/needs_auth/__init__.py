@@ -3,6 +3,7 @@ from .BingCreateImages  import BingCreateImages
 from .Cerebras          import Cerebras
 from .CopilotAccount    import CopilotAccount
 from .Custom            import Custom
+from .Custom            import Feature
 from .DeepInfra         import DeepInfra
 from .DeepSeek          import DeepSeek
 from .Gemini            import Gemini
