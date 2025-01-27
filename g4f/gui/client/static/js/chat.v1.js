@@ -937,14 +937,16 @@ const ask_gpt = async (message_id, message_index = -1, regenerate = false, provi
     }
     try {
         let api_key;
-        if (is_demo && provider != "Custom") {
+        if (is_demo && provider == "Feature") {
+            api_key = localStorage.getItem("user");
+        } else if (is_demo && provider != "Custom") {
             api_key = localStorage.getItem("HuggingFace-api_key");
-            if (!api_key) {
-                location.href = "/";
-                return;
-            }
         } else {
             api_key = get_api_key_by_provider(provider);
+        }
+        if (is_demo && !api_key && provider != "Custom") {
+            location.href = "/";
+            return;
         }
         const input = imageInput && imageInput.files.length > 0 ? imageInput : cameraInput;
         const files = input && input.files.length > 0 ? input.files : null;
@@ -1897,7 +1899,10 @@ async function on_api() {
             location.href = "/";
             return;
         }
-        providerSelect.innerHTML = '<option value="">Demo Mode</option><option value="Custom">Custom Provider</option>';
+        providerSelect.innerHTML = `
+            <option value="">Demo Mode</option>
+            <option value="Feature">Feature Provider</option>
+            <option value="Custom">Custom Provider</option>`;
         providerSelect.selectedIndex = 0;
         document.getElementById("pin").disabled = true;
         document.getElementById("refine")?.parentElement.classList.add("hidden")
@@ -2297,7 +2302,7 @@ async function api(ressource, args=null, files=null, message_id=null, scroll=tru
         }
     } else if (args) {
         if (ressource == "log") {
-            if (appStorage.getItem("report_error") != "true") {
+            if (!document.getElementById("report_error").checked) {
                 return;
             }
             url = `https://roxky-g4f-demo.hf.space${url}`;

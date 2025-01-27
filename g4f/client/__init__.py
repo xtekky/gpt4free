@@ -542,7 +542,7 @@ class AsyncCompletions:
             kwargs["ignore_stream"] = True
             
         response = async_iter_run_tools(
-            provider.get_async_create_function(),
+            provider,
             model,
             messages,
             stream=stream,

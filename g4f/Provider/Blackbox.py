@@ -239,7 +239,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
                             yield ImageResponse(images=[image_url], alt=prompt)
                             return
 
-            if conversation is None:
+            if conversation is None or not hasattr(conversation, "chat_id"):
                 conversation = Conversation(model)
                 conversation.validated_value = await cls.fetch_validated()
                 conversation.chat_id = cls.generate_chat_id()
