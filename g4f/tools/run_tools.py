@@ -47,7 +47,7 @@ async def async_iter_run_tools(provider: ProviderType, model: str, messages, too
             pass
 
     # Read api_key from config file
-    if provider.needs_auth and "api_key" not in kwargs:
+    if getattr(provider, "needs_auth", False) and "api_key" not in kwargs:
         auth_file = get_api_key_file(provider)
         if auth_file.exists():
             with auth_file.open("r") as f:
