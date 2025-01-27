@@ -545,7 +545,7 @@ const prepare_messages = (messages, message_index = -1, do_continue = false, do_
         }
         // Include only not regenerated messages
         if (new_message) {
-            // Remove generated images from history
+            // Remove generated images from content
             if (new_message.content) {
                 new_message.content = filter_message(new_message.content);
             }
@@ -565,7 +565,6 @@ const prepare_messages = (messages, message_index = -1, do_continue = false, do_
             }
         }
     });
-    console.log(4, final_messages);
 
     return final_messages;
 }
@@ -2301,7 +2300,7 @@ async function api(ressource, args=null, files=null, message_id=null, scroll=tru
             if (appStorage.getItem("report_error") != "true") {
                 return;
             }
-            url = `https://roxky-g4f-demo.hf.space${url}"`;
+            url = `https://roxky-g4f-demo.hf.space${url}`;
         }
         headers['content-type'] = 'application/json';
         response = await fetch(url, {

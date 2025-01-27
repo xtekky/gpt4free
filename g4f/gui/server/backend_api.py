@@ -178,8 +178,9 @@ class Backend_Api(Api):
             cache_dir = Path(get_cookies_dir()) / ".logging"
             cache_file = cache_dir / f"{datetime.date.today()}.jsonl"
             cache_dir.mkdir(parents=True, exist_ok=True)
+            data = {"origin": request.headers.get("origin"), **request.json}
             with cache_file.open("a" if cache_file.exists() else "w") as f:
-                f.write(f"{json.dumps(request.json)}\n")
+                f.write(f"{json.dumps(data)}\n")
             return {}
 
         @app.route('/backend-api/v2/memory/<user_id>', methods=['POST'])
