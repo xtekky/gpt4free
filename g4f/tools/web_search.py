@@ -96,7 +96,7 @@ def scrape_text(html: str, max_words: int = None, add_source=True, count_images:
         if count_images > 0:
             image = paragraph.select_one(image_select)
             if image:
-                title = paragraph.get("title") or paragraph.text
+                title = str(paragraph.get("title", paragraph.text))
                 if title:
                     yield f"!{format_link(image['src'], title)}\n"
                     if max_words is not None:
