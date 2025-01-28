@@ -68,7 +68,8 @@ class Backend_Api(Api):
                 app=app,
                 default_limits=["200 per day", "50 per hour"],
                 storage_uri="memory://",
-                auto_check=False
+                auto_check=False,
+                strategy="moving-window",
             )
 
         if has_flask_limiter and app.demo:
