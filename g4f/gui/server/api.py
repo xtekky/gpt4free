@@ -12,9 +12,9 @@ from ...image import ImagePreview, ImageResponse, copy_images, ensure_images_dir
 from ...tools.run_tools import iter_run_tools
 from ...Provider import ProviderUtils, __providers__
 from ...providers.base_provider import ProviderModelMixin
-from ...providers.retry_provider import IterListProvider
-from ...providers.response import BaseConversation, JsonConversation, FinishReason, Usage, Reasoning
-from ...providers.response import SynthesizeData, TitleGeneration, RequestLogin, Parameters
+from ...providers.retry_provider import BaseRetryProvider
+from ...providers.response import BaseConversation, JsonConversation, FinishReason, Usage, Reasoning, PreviewResponse
+from ...providers.response import SynthesizeData, TitleGeneration, RequestLogin, Parameters, ProviderInfo
 from ... import version, models
 from ... import ChatCompletion, get_model_and_provider
 from ... import debug
@@ -154,42 +154,33 @@ class Api:
             )
         except Exception as e:
             logger.exception(e)
-            yield self._format_json('error', get_error_message(e))
+            yield self._format_json('error', type(e).__name__, message=get_error_message(e))
             return
-        params = {
-            **(provider_handler.get_parameters(as_json=True) if hasattr(provider_handler, "get_parameters") else {}),
-            "model": model,
-            "messages": kwargs.get("messages"),
-        }
-        if isinstance(kwargs.get("conversation"), JsonConversation):
-            params["conversation"] = kwargs.get("conversation").get_dict()
-        else:
-            params["conversation_id"] = conversation_id
-        if kwargs.get("api_key") is not None:
-            params["api_key"] = kwargs["api_key"]
-        yield self._format_json("parameters", params)
-        first = True
+        if not isinstance(provider_handler, BaseRetryProvider):
+            yield self.handle_provider(provider_handler, model)
+            if hasattr(provider_handler, "get_parameters"):
+                yield self._format_json("parameters", provider_handler.get_parameters(as_json=True))
         try:
             result = iter_run_tools(ChatCompletion.create, **{**kwargs, "model": model, "provider": provider_handler})
             for chunk in result:
-                if first:
-                    first = False
-                    yield self.handle_provider(provider_handler, model)
-                if isinstance(chunk, BaseConversation):
+                if isinstance(chunk, ProviderInfo):
+                    yield self.handle_provider(chunk, model)
+                    provider = chunk.name
+                elif isinstance(chunk, BaseConversation):
                     if provider is not None:
                         if provider not in conversations:
                             conversations[provider] = {}
                         conversations[provider][conversation_id] = chunk
                         if isinstance(chunk, JsonConversation):
                             yield self._format_json("conversation", {
-                                provider.__name__ if isinstance(provider, type) else provider: chunk.get_dict()
+                                provider: chunk.get_dict()
                             })
                         else:
                             yield self._format_json("conversation_id", conversation_id)
                 elif isinstance(chunk, Exception):
                     logger.exception(chunk)
-                    yield self._format_json("message", get_error_message(chunk))
-                elif isinstance(chunk, ImagePreview):
+                    yield self._format_json('message', get_error_message(chunk), error=type(chunk).__name__)
+                elif isinstance(chunk, (PreviewResponse, ImagePreview)):
                     yield self._format_json("preview", chunk.to_string())
                 elif isinstance(chunk, ImageResponse):
                     images = chunk
@@ -219,9 +210,11 @@ class Api:
                     debug.logs = []
         except Exception as e:
             logger.exception(e)
-            yield self._format_json('error', get_error_message(e))
-        if first:
-            yield self.handle_provider(provider_handler, model)
+            if debug.logs:
+                for log in debug.logs:
+                    yield self._format_json("log", str(log))
+                debug.logs = []
+            yield self._format_json('error', type(e).__name__, message=get_error_message(e))
 
     def _format_json(self, response_type: str, content = None, **kwargs):
         if content is not None:
@@ -235,11 +228,11 @@ class Api:
         }
 
     def handle_provider(self, provider_handler, model):
-        if isinstance(provider_handler, IterListProvider) and provider_handler.last_provider is not None:
+        if isinstance(provider_handler, BaseRetryProvider) and provider_handler.last_provider is not None:
             provider_handler = provider_handler.last_provider
-        if not model and hasattr(provider_handler, "last_model") and provider_handler.last_model is not None:
-            model = provider_handler.last_model
-        return self._format_json("provider", {**provider_handler.get_dict(), "model": model})
+        if model:
+            return self._format_json("provider", {**provider_handler.get_dict(), "model": model})
+        return self._format_json("provider", provider_handler.get_dict())
 
 def get_error_message(exception: Exception) -> str:
     return f"{type(exception).__name__}: {exception}"

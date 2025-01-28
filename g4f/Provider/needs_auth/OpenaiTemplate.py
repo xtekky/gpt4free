@@ -20,6 +20,7 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
     default_model = ""
     fallback_models = []
     sort_models = True
+    ssl = None
 
     @classmethod
     def get_models(cls, api_key: str = None, api_base: str = None) -> list[str]:
@@ -30,7 +31,7 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
                     api_base = cls.api_base
                 if api_key is not None:
                     headers["authorization"] = f"Bearer {api_key}"
-                response = requests.get(f"{api_base}/models", headers=headers)
+                response = requests.get(f"{api_base}/models", headers=headers, verify=cls.ssl)
                 raise_for_status(response)
                 data = response.json()
                 data = data.get("data") if isinstance(data, dict) else data
@@ -79,12 +80,12 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
                 api_base = cls.api_base
 
             # Proxy for image generation feature
-            if model in cls.image_models:
+            if model and model in cls.image_models:
                 data = {
                     "prompt": messages[-1]["content"] if prompt is None else prompt,
                     "model": model,
                 }
-                async with session.post(f"{api_base.rstrip('/')}/images/generations", json=data) as response:
+                async with session.post(f"{api_base.rstrip('/')}/images/generations", json=data, ssl=cls.ssl) as response:
                     data = await response.json()
                     cls.raise_error(data)
                     await raise_for_status(response)
@@ -119,7 +120,7 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
             )
             if api_endpoint is None:
                 api_endpoint = f"{api_base.rstrip('/')}/chat/completions"
-            async with session.post(api_endpoint, json=data) as response:
+            async with session.post(api_endpoint, json=data, ssl=cls.ssl) as response:
                 content_type = response.headers.get("content-type", "text/event-stream" if stream else "application/json")
                 if content_type.startswith("application/json"):
                     data = await response.json()
@@ -180,7 +181,7 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
             "Content-Type": "application/json",
             **(
                 {"Authorization": f"Bearer {api_key}"}
-                if api_key is not None else {}
+                if api_key else {}
             ),
             **({} if headers is None else headers)
         }

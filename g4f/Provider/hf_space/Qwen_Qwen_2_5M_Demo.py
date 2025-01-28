@@ -13,15 +13,14 @@ from ... import debug
 class Qwen_Qwen_2_5M_Demo(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://qwen-qwen2-5-1m-demo.hf.space"
     api_endpoint = f"{url}/run/predict?__theme=light"
-    
+
     working = True
     supports_stream = True
     supports_system_message = True
     supports_message_history = False
-    
-    default_model = "qwen-qwen2-5m-demo"
+
+    default_model = "qwen-2.5-1m-demo"
     models = [default_model]
-    model_aliases = {"qwen-2-5m": default_model}
 
     @classmethod
     async def create_async_generator(

@@ -197,6 +197,20 @@ class ImagePreview(ImageResponse):
     def to_string(self):
         return super().__str__()
 
+class PreviewResponse(ResponseType):
+    def __init__(self, data: str):
+        self.data = data
+
+    def __str__(self):
+        return ""
+
+    def to_string(self):
+        return self.data
+
 class Parameters(ResponseType, JsonMixin):
+    def __str__(self):
+        return ""
+
+class ProviderInfo(ResponseType, JsonMixin):
     def __str__(self):
         return ""

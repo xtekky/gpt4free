@@ -58,7 +58,6 @@ EXTRA_REQUIRE = {
         "uvicorn",                 # api
         "python-multipart",
         "pypdf2", # files
-        "docx",
     ],
     "image": [
         "pillow",

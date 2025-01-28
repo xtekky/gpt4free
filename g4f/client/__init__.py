@@ -70,6 +70,8 @@ def iter_response(
             continue
         elif isinstance(chunk, SynthesizeData) or not chunk:
             continue
+        elif isinstance(chunk, Exception):
+            continue
 
         chunk = str(chunk)
         content += chunk
@@ -148,6 +150,8 @@ async def async_iter_response(
                 usage = chunk
                 continue
             elif isinstance(chunk, SynthesizeData) or not chunk:
+                continue
+            elif isinstance(chunk, Exception):
                 continue
 
             chunk = str(chunk)

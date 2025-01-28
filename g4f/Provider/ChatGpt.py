@@ -76,7 +76,7 @@ def init_session(user_agent):
 class ChatGpt(AbstractProvider, ProviderModelMixin):
     label = "ChatGpt"
     url = "https://chatgpt.com"
-    working = True
+    working = False
     supports_message_history = True
     supports_system_message = True
     supports_stream = True
