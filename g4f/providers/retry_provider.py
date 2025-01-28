@@ -4,7 +4,7 @@ import random
 
 from ..typing import Type, List, CreateResult, Messages, AsyncResult
 from .types import BaseProvider, BaseRetryProvider, ProviderType
-from .response import ImageResponse
+from .response import ImageResponse, ProviderInfo
 from .. import debug
 from ..errors import RetryProviderError, RetryNoProviderError
 
@@ -53,6 +53,7 @@ class IterListProvider(BaseRetryProvider):
         for provider in self.get_providers(stream and not ignore_stream, ignored):
             self.last_provider = provider
             debug.log(f"Using {provider.__name__} provider")
+            yield ProviderInfo(**provider.get_dict(), model=model if model else getattr(provider, "default_model"))
             try:
                 response = provider.get_create_function()(model, messages, stream=stream, **kwargs)
                 for chunk in response:
@@ -67,6 +68,7 @@ class IterListProvider(BaseRetryProvider):
                 debug.log(f"{provider.__name__}: {e.__class__.__name__}: {e}")
                 if started:
                     raise e
+                yield e
 
         raise_exceptions(exceptions)
 
@@ -85,6 +87,7 @@ class IterListProvider(BaseRetryProvider):
         for provider in self.get_providers(stream and not ignore_stream, ignored):
             self.last_provider = provider
             debug.log(f"Using {provider.__name__} provider")
+            yield ProviderInfo(provider.get_dict())
             try:
                 response = provider.get_async_create_function()(model, messages, stream=stream, **kwargs)
                 if hasattr(response, "__aiter__"):
@@ -105,6 +108,7 @@ class IterListProvider(BaseRetryProvider):
                 debug.log(f"{provider.__name__}: {e.__class__.__name__}: {e}")
                 if started:
                     raise e
+                yield e
 
         raise_exceptions(exceptions)
 

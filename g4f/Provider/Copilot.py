@@ -92,7 +92,6 @@ class Copilot(AbstractProvider, ProviderModelMixin):
                         cls._access_token, cls._cookies = asyncio.run(get_access_token_and_cookies(cls.url, proxy))
                     else:
                         raise h
-            yield Parameters(**{"api_key": cls._access_token, "cookies": cls._cookies if isinstance(cls._cookies, dict) else {c.name: c.value for c in cls._cookies}})
             websocket_url = f"{websocket_url}&accessToken={quote(cls._access_token)}"
             headers = {"authorization": f"Bearer {cls._access_token}"}
 

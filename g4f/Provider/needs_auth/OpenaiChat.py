@@ -98,8 +98,9 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
     default_model = "auto"
     default_image_model = "dall-e-3"
     image_models = [default_image_model]
-    fallback_models = [default_model, "gpt-4", "gpt-4o", "gpt-4o-mini", "gpt-4o-canmore", "o1", "o1-preview", "o1-mini"] +image_models
-    vision_models = fallback_models
+    text_models = [default_model, "gpt-4", "gpt-4o", "gpt-4o-mini", "gpt-4o-canmore", "o1", "o1-preview", "o1-mini"]
+    vision_models = text_models
+    models = text_models + image_models
     synthesize_content_type = "audio/mpeg"
 
     _api_key: str = None
@@ -119,33 +120,6 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
             proof_token=RequestConfig.proof_token,
             turnstile_token=RequestConfig.turnstile_token
         )
-
-    @classmethod
-    def get_models(cls, proxy: str = None, timeout: int = 180) -> List[str]:
-        if not cls.models:
-            # try:
-            #     headers = {
-            #         **(cls.get_default_headers() if cls._headers is None else cls._headers),
-            #         "accept":  "application/json",
-            #     }
-            #     with Session(
-            #         proxy=proxy,
-            #         impersonate="chrome",
-            #         timeout=timeout,
-            #         headers=headers
-            #     ) as session:
-            #         response = session.get(
-            #              f"{cls.url}/backend-anon/models"
-            #             if cls._api_key is None else
-            #             f"{cls.url}/backend-api/models"
-            #         )
-            #         raise_for_status(response)
-            #         data = response.json()
-            #         cls.models = [model.get("slug") for model in data.get("models")]
-            # except Exception as e:
-            #     debug.log(f"OpenaiChat: Failed to get models: {type(e).__name__}: {e}")
-            cls.models = cls.fallback_models
-        return cls.models
 
     @classmethod
     async def upload_images(

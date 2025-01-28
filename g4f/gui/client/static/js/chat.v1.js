@@ -722,12 +722,13 @@ async function add_message_chunk(message, message_id, provider, scroll, finish_m
         `;
     } else if (message.type == "message") {
         console.error(message.message)
+        await api("log", {...message, provider: provider_storage[message_id]});
     } else if (message.type == "error") {
         content_map.update_timeouts.forEach((timeoutId)=>clearTimeout(timeoutId));
         content_map.update_timeouts = [];
-        error_storage[message_id] = message.error
-        console.error(message.error);
-        content_map.inner.innerHTML += markdown_render(`**An error occured:** ${message.error}`);
+        error_storage[message_id] = message.message
+        console.error(message.message);
+        content_map.inner.innerHTML += markdown_render(`**An error occured:** ${message.message}`);
         let p = document.createElement("p");
         p.innerText = message.error;
         log_storage.appendChild(p);
@@ -865,19 +866,23 @@ const ask_gpt = async (message_id, message_index = -1, regenerate = false, provi
         }
         if (message_storage[message_id]) {
             const message_provider = message_id in provider_storage ? provider_storage[message_id] : null;
-            let usage;
+            let usage = {};
             if (usage_storage[message_id]) {
                 usage = usage_storage[message_id];
                 delete usage_storage[message_id];
             }
-            // Calculate usage if we have no usage result jet
-            if (document.getElementById("track_usage").checked && !usage && window.GPTTokenizer_cl100k_base) {
+            usage = {
+                model: message_provider?.model,
+                provider: message_provider?.name,
+                ...usage
+            }
+            // Calculate usage if we don't have it jet
+            if (document.getElementById("track_usage").checked && !usage.prompt_tokens && window.GPTTokenizer_cl100k_base) {
                 const prompt_token_model = model?.startsWith("gpt-3") ? "gpt-3.5-turbo" : "gpt-4"
                 const prompt_tokens = GPTTokenizer_cl100k_base?.encodeChat(messages, prompt_token_model).length;
                 const completion_tokens = count_tokens(message_provider?.model, message_storage[message_id]);
                 usage = {
-                    model: message_provider?.model,
-                    provider: message_provider?.name,
+                    ...usage,
                     prompt_tokens: prompt_tokens,
                     completion_tokens: completion_tokens,
                     total_tokens: prompt_tokens + completion_tokens
@@ -1748,9 +1753,10 @@ function update_message(content_map, message_id, content = null, scroll = true) 
                 content = content.substring(0, lastIndex) + '<span class="cursor"></span>' + lastElement;
             }
         }
-        content_map.inner.innerHTML = content;
         if (error_storage[message_id]) {
-            content_map.inner.innerHTML += markdown_render(`**An error occured:** ${error_storage[message_id]}`);
+            content_map.inner.innerHTML = message + markdown_render(`**An error occured:** ${error_storage[message_id]}`);
+        } else {
+            content_map.inner.innerHTML = content;
         }
         content_map.count.innerText = count_words_and_tokens(message_storage[message_id], provider_storage[message_id]?.model);
         highlight(content_map.inner);

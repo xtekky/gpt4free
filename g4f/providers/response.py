@@ -200,3 +200,7 @@ class ImagePreview(ImageResponse):
 class Parameters(ResponseType, JsonMixin):
     def __str__(self):
         return ""
+
+class ProviderInfo(ResponseType, JsonMixin):
+    def __str__(self):
+        return ""

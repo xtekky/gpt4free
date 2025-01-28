@@ -277,7 +277,8 @@ class Backend_Api(Api):
                     return Response(filter_markdown(response, do_filter_markdown), mimetype='text/plain')
                 def cast_str():
                     for chunk in response:
-                        yield str(chunk)
+                        if not isinstance(chunk, Exception):
+                            yield str(chunk)
                 return Response(cast_str(), mimetype='text/plain')
             except Exception as e:
                 logger.exception(e)

@@ -11,7 +11,6 @@ from .Provider import (
     Blackbox,
     CablyAI,
     ChatGLM,
-    ChatGpt,
     ChatGptEs,
     ChatGptt,
     Cloudflare,
@@ -120,7 +119,7 @@ default_vision = Model(
 gpt_35_turbo = Model(
     name          = 'gpt-3.5-turbo',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([DarkAI, ChatGpt])
+    best_provider = IterListProvider([DarkAI])
 )
 
 # gpt-4
@@ -134,13 +133,13 @@ gpt_4 = Model(
 gpt_4o = VisionModel(
     name          = 'gpt-4o',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([Blackbox, ChatGptt, Jmuz, ChatGptEs, PollinationsAI, DarkAI, Copilot, ChatGpt, Liaobots, OpenaiChat])
+    best_provider = IterListProvider([Blackbox, ChatGptt, Jmuz, ChatGptEs, PollinationsAI, DarkAI, Copilot, Liaobots, OpenaiChat])
 )
 
 gpt_4o_mini = Model(
     name          = 'gpt-4o-mini',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([DDG, ChatGptEs, ChatGptt, Jmuz, PollinationsAI, OIVSCode, ChatGpt, Liaobots, OpenaiChat])
+    best_provider = IterListProvider([DDG, ChatGptEs, ChatGptt, Jmuz, PollinationsAI, OIVSCode, Liaobots, OpenaiChat])
 )
 
 # o1
@@ -440,14 +439,18 @@ qwen_2_5_coder_32b = Model(
     base_provider = 'Qwen',
     best_provider = IterListProvider([DeepInfraChat, PollinationsAI, AutonomousAI, Jmuz, HuggingChat])
 )
+qwen_2_5_1m = Model(
+    name = 'qwen-2.5-1m-demo',
+    base_provider = 'Qwen',
+    best_provider = HuggingSpace
+)
 
-# qwq/qvq
+### qwq/qvq ###
 qwq_32b = Model(
     name = 'qwq-32b',
     base_provider = 'Qwen',
     best_provider = IterListProvider([Blackbox, DeepInfraChat, Jmuz, HuggingChat])
 )
-
 qvq_72b = VisionModel(
     name = 'qvq-72b',
     base_provider = 'Qwen',
@@ -467,7 +470,6 @@ deepseek_chat = Model(
     base_provider = 'DeepSeek',
     best_provider = IterListProvider([Blackbox, DeepInfraChat, Jmuz, PollinationsAI])
 )
-
 deepseek_r1 = Model(
     name = 'deepseek-r1',
     base_provider = 'DeepSeek',
@@ -721,6 +723,7 @@ class ModelUtils:
         qwen_2_vl_7b.name: qwen_2_vl_7b,
         qwen_2_5_72b.name: qwen_2_5_72b,
         qwen_2_5_coder_32b.name: qwen_2_5_coder_32b,
+        qwen_2_5_1m.name: qwen_2_5_1m,
 
         # qwq/qvq
         qwq_32b.name: qwq_32b,

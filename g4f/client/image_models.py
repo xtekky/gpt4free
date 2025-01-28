@@ -1,14 +1,15 @@
 from __future__ import annotations
 
 from ..models import ModelUtils
+from ..Provider import ProviderUtils
 
 class ImageModels():
     def __init__(self, client):
         self.client = client
-        self.models = ModelUtils.convert
 
     def get(self, name, default=None):
-        model = self.models.get(name)
-        if model and model.best_provider:
-            return model.best_provider
+        if name in ModelUtils.convert:
+            return ModelUtils.convert[name].best_provider
+        if name in ProviderUtils.convert:
+            return ProviderUtils.convert[name]
         return default
