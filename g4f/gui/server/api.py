@@ -13,7 +13,7 @@ from ...tools.run_tools import iter_run_tools
 from ...Provider import ProviderUtils, __providers__
 from ...providers.base_provider import ProviderModelMixin
 from ...providers.retry_provider import BaseRetryProvider
-from ...providers.response import BaseConversation, JsonConversation, FinishReason, Usage, Reasoning
+from ...providers.response import BaseConversation, JsonConversation, FinishReason, Usage, Reasoning, PreviewResponse
 from ...providers.response import SynthesizeData, TitleGeneration, RequestLogin, Parameters, ProviderInfo
 from ... import version, models
 from ... import ChatCompletion, get_model_and_provider
@@ -180,7 +180,7 @@ class Api:
                 elif isinstance(chunk, Exception):
                     logger.exception(chunk)
                     yield self._format_json('message', get_error_message(chunk), error=type(chunk).__name__)
-                elif isinstance(chunk, ImagePreview):
+                elif isinstance(chunk, (PreviewResponse, ImagePreview)):
                     yield self._format_json("preview", chunk.to_string())
                 elif isinstance(chunk, ImageResponse):
                     images = chunk
