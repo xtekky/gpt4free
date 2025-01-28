@@ -792,7 +792,7 @@ function is_stopped() {
 const ask_gpt = async (message_id, message_index = -1, regenerate = false, provider = null, model = null, action = null) => {
     if (!model && !provider) {
         model = get_selected_model()?.value || null;
-        provider = providerSelect.options[providerSelect.selectedIndex].value;
+        provider = providerSelect.options[providerSelect.selectedIndex]?.value;
     }
     let conversation = await get_conversation(window.conversation_id);
     if (!conversation) {
@@ -1815,8 +1815,14 @@ async function on_load() {
         let chat_url = new URL(window.location.href)
         let chat_params = new URLSearchParams(chat_url.search);
         if (chat_params.get("prompt")) {
-            messageInput.value = chat_params.get("prompt");
-            await handle_ask();
+            messageInput.value = chat_params.title
+                               + chat_params.title ? "\n\n\n" : ""
+                               + chat_params.prompt
+                               + chat_params.prompt && chat_params.url ? "\n\n\n" : ""
+                               + chat_params.url;
+            messageInput.style.height = messageInput.scrollHeight  + "px";
+            messageInput.focus();
+            //await handle_ask();
         } else {
             say_hello()
         }
@@ -1871,7 +1877,6 @@ async function on_api() {
             setTimeout(()=>prompt_lock=false, 3000);
             await handle_ask();
         } else {
-            messageInput.style.removeProperty("height");
             messageInput.style.height = messageInput.scrollHeight  + "px";
         }
     });
@@ -1970,7 +1975,11 @@ async function on_api() {
                 provider_options[provider.name] = option;
             }
         });
+    }
+    if (appStorage.getItem("provider")) {
         await load_provider_models(appStorage.getItem("provider"))
+    } else {
+        providerSelect.selectedIndex = 0;
     }
     for (let [name, [label, login_url, childs]] of Object.entries(login_urls)) {
         if (!login_url && !is_demo) {
@@ -1990,7 +1999,7 @@ async function on_api() {
     }
 
     register_settings_storage();
-    await load_settings_storage()
+    await load_settings_storage();
     Object.entries(provider_options).forEach(
         ([provider_name, option]) => load_provider_option(option.querySelector("input"), provider_name)
     );
@@ -2156,9 +2165,14 @@ async function upload_files(fileInput) {
                 }
                 appStorage.setItem(`bucket:${bucket_id}`, data.size);
                 inputCount.innerText = "Files are loaded successfully";
-                messageInput.value += (messageInput.value ? "\n" : "") + JSON.stringify({bucket_id: bucket_id}) + "\n";
-                paperclip.classList.remove("blink");
-                fileInput.value = "";
+                if (!messageInput.value) {
+                    messageInput.value = JSON.stringify({bucket_id: bucket_id});
+                    handle_ask(false);
+                } else {
+                    messageInput.value += (messageInput.value ? "\n" : "") + JSON.stringify({bucket_id: bucket_id}) + "\n";
+                    paperclip.classList.remove("blink");
+                    fileInput.value = "";
+                }
             }
         };
         eventSource.onerror = (event) => {

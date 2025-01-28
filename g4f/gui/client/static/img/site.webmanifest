@@ -21,7 +21,9 @@
         "method": "GET",
         "enctype": "application/x-www-form-urlencoded",
         "params": {
-            "title": "prompt"
+            "title": "title",
+            "text": "prompt",
+            "url": "url"
         }
     }
 }
