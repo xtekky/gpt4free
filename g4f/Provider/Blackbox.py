@@ -310,8 +310,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
                         prompt = messages[-1]["content"]
                         yield ImageResponse(images=[image_url], alt=prompt)
                 else:
-                    chunk_text = text_to_yield
-                    if "<think>" in text_to_yield and "</think>" in chunk_text :
+                    if "<think>" in text_to_yield and "</think>" in text_to_yield :
                         chunk_text = text_to_yield.split('<think>', 1)
                         yield chunk_text[0]
                         chunk_text = text_to_yield.split('</think>', 1)
