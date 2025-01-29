@@ -167,7 +167,7 @@ async def get_nodriver(
         )
     except:
         if util.get_registered_instances():
-            browser = util.get_registered_instances()[-1]
+            browser = util.get_registered_instances().pop()
         else:
             raise
     stop = browser.stop

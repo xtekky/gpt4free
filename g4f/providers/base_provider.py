@@ -415,10 +415,10 @@ class AsyncAuthedProvider(AsyncGeneratorProvider):
         model: str,
         messages: Messages,
         **kwargs
-    ) -> CreateResult:
+) -> CreateResult:
+        auth_result = AuthResult()
+        cache_file = cls.get_cache_file()
         try:
-            auth_result = AuthResult()
-            cache_file = cls.get_cache_file()
             if cache_file.exists():
                 with cache_file.open("r") as f:
                     auth_result = AuthResult(**json.load(f))

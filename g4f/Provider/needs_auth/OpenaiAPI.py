@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from . OpenaiTemplate import OpenaiTemplate
+from ..template import OpenaiTemplate
 
 class OpenaiAPI(OpenaiTemplate):
     label = "OpenAI API"

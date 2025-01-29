@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from ...typing import CreateResult, Messages
 from ..helper import filter_none
-from .OpenaiTemplate import OpenaiTemplate
+from ..template import OpenaiTemplate
 
 models = {
     "theb-ai": "TheB.AI",

@@ -6,6 +6,7 @@ from .Custom            import Custom
 from .Custom            import Feature
 from .DeepInfra         import DeepInfra
 from .DeepSeek          import DeepSeek
+from .DeepSeekAPI       import DeepSeekAPI
 from .Gemini            import Gemini
 from .GeminiPro         import GeminiPro
 from .GigaChat          import GigaChat

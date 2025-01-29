@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from ..typing import AsyncResult, Messages
-from .needs_auth.OpenaiTemplate import OpenaiTemplate
+from .template import OpenaiTemplate
 
 class Jmuz(OpenaiTemplate):
     url = "https://discord.gg/Ew6JzjA2NR"

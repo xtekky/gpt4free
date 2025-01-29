@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from ..needs_auth.OpenaiTemplate import OpenaiTemplate
+from ..template import OpenaiTemplate
 
 class MiniMax(OpenaiTemplate):
     label = "MiniMax API"

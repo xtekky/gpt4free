@@ -87,7 +87,7 @@ class IterListProvider(BaseRetryProvider):
         for provider in self.get_providers(stream and not ignore_stream, ignored):
             self.last_provider = provider
             debug.log(f"Using {provider.__name__} provider")
-            yield ProviderInfo(provider.get_dict())
+            yield ProviderInfo(**provider.get_dict())
             try:
                 response = provider.get_async_create_function()(model, messages, stream=stream, **kwargs)
                 if hasattr(response, "__aiter__"):

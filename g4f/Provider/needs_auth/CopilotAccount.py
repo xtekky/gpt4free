@@ -38,7 +38,7 @@ class CopilotAccount(AsyncAuthedProvider, Copilot):
                     raise h
         yield AuthResult(
             api_key=cls._access_token,
-            cookies=cls._cookies,
+            cookies=cls._cookies if isinstance(cls._cookies, dict) else {c.name: c.value for c in cls._cookies},
         )
 
     @classmethod
@@ -49,9 +49,9 @@ class CopilotAccount(AsyncAuthedProvider, Copilot):
         auth_result: AuthResult,
         **kwargs
     ) -> AsyncResult:
-        Copilot._access_token = getattr(auth_result, "api_key")
-        Copilot._cookies = getattr(auth_result, "cookies")
-        Copilot.needs_auth = cls.needs_auth
-        for chunk in Copilot.create_completion(model, messages, **kwargs):
+        cls._access_token = getattr(auth_result, "api_key")
+        cls._cookies = getattr(auth_result, "cookies")
+        cls.needs_auth = cls.needs_auth
+        for chunk in cls.create_completion(model, messages, **kwargs):
             yield chunk
-        auth_result.cookies = Copilot._cookies if isinstance(Copilot._cookies, dict) else {c.name: c.value for c in Copilot._cookies}
+        auth_result.cookies = cls._cookies if isinstance(cls._cookies, dict) else {c.name: c.value for c in cls._cookies}

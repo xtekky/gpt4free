@@ -4,7 +4,7 @@ import requests
 from ...typing import AsyncResult, Messages
 from ...requests import StreamSession, raise_for_status
 from ...image import ImageResponse
-from .OpenaiTemplate import OpenaiTemplate
+from ..template import OpenaiTemplate
 
 class DeepInfra(OpenaiTemplate):
     url = "https://deepinfra.com"
