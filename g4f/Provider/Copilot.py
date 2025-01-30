@@ -22,7 +22,7 @@ from .base_provider import AbstractProvider, ProviderModelMixin
 from .helper import format_prompt_max_length
 from .openai.har_file import get_headers, get_har_files
 from ..typing import CreateResult, Messages, ImagesType
-from ..errors import MissingRequirementsError, NoValidHarFileError
+from ..errors import MissingRequirementsError, NoValidHarFileError, MissingAuthError
 from ..requests.raise_for_status import raise_for_status
 from ..providers.response import BaseConversation, JsonConversation, RequestLogin, Parameters
 from ..providers.asyncio import get_running_loop
@@ -119,6 +119,8 @@ class Copilot(AbstractProvider, ProviderModelMixin):
             # else:
             #     clarity_token = None
             response = session.get("https://copilot.microsoft.com/c/api/user")
+            if response.status_code == 401:
+                raise MissingAuthError("Status 401: Invalid access token")
             raise_for_status(response)
             user = response.json().get('firstName')
             if user is None:

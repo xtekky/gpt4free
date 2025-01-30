@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .OpenaiTemplate import OpenaiTemplate
+from ..template import OpenaiTemplate
 from .HuggingChat import HuggingChat
 from ...providers.types import Messages
 from ... import debug

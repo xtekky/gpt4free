@@ -157,6 +157,8 @@ class Api:
             yield self._format_json('error', type(e).__name__, message=get_error_message(e))
             return
         if not isinstance(provider_handler, BaseRetryProvider):
+            if not provider:
+                provider = provider_handler.__name__
             yield self.handle_provider(provider_handler, model)
             if hasattr(provider_handler, "get_parameters"):
                 yield self._format_json("parameters", provider_handler.get_parameters(as_json=True))
@@ -221,6 +223,7 @@ class Api:
             return {
                 'type': response_type,
                 response_type: content,
+                **kwargs
             }
         return {
             'type': response_type,

@@ -11,6 +11,7 @@ from .not_working      import *
 from .local            import *
 from .hf_space         import HuggingSpace
 from .mini_max         import HailuoAI, MiniMax
+from .template         import OpenaiTemplate, BackendApi
 
 from .AIChatFree           import AIChatFree
 from .AIUncensored         import AIUncensored
@@ -55,6 +56,7 @@ __providers__: list[ProviderType] = [
     if isinstance(provider, type)
     and issubclass(provider, BaseProvider)
 ]
+__providers__ = __providers__ + HuggingSpace.providers
 __all__: list[str] = [
     provider.__name__ for provider in __providers__
 ]

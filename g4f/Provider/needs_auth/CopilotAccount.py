@@ -10,6 +10,9 @@ from ...typing import AsyncResult, Messages
 from ...errors import NoValidHarFileError
 from ... import debug
 
+def cookies_to_dict():
+    return Copilot._cookies if isinstance(Copilot._cookies, dict) else {c.name: c.value for c in Copilot._cookies}
+
 class CopilotAccount(AsyncAuthedProvider, Copilot):
     needs_auth = True
     use_nodriver = True
@@ -24,21 +27,20 @@ class CopilotAccount(AsyncAuthedProvider, Copilot):
 
     @classmethod
     async def on_auth_async(cls, proxy: str = None, **kwargs) -> AsyncIterator:
-        if cls._access_token is None:
-            try:
-                cls._access_token, cls._cookies = readHAR(cls.url)
-            except NoValidHarFileError as h:
-                debug.log(f"Copilot: {h}")
-                if has_nodriver:
-                    login_url = os.environ.get("G4F_LOGIN_URL")
-                    if login_url:
-                        yield RequestLogin(cls.label, login_url)
-                    cls._access_token, cls._cookies = await get_access_token_and_cookies(cls.url, proxy)
-                else:
-                    raise h
+        try:
+            Copilot._access_token, Copilot._cookies = readHAR(cls.url)
+        except NoValidHarFileError as h:
+            debug.log(f"Copilot: {h}")
+            if has_nodriver:
+                login_url = os.environ.get("G4F_LOGIN_URL")
+                if login_url:
+                    yield RequestLogin(cls.label, login_url)
+                Copilot._access_token, Copilot._cookies = await get_access_token_and_cookies(cls.url, proxy)
+            else:
+                raise h
         yield AuthResult(
-            api_key=cls._access_token,
-            cookies=cls._cookies,
+            api_key=Copilot._access_token,
+            cookies=cookies_to_dict()
         )
 
     @classmethod
@@ -54,4 +56,4 @@ class CopilotAccount(AsyncAuthedProvider, Copilot):
         Copilot.needs_auth = cls.needs_auth
         for chunk in Copilot.create_completion(model, messages, **kwargs):
             yield chunk
-        auth_result.cookies = Copilot._cookies if isinstance(Copilot._cookies, dict) else {c.name: c.value for c in Copilot._cookies}
+        auth_result.cookies = cookies_to_dict()

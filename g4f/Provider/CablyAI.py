@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from ..typing import AsyncResult, Messages
-from .needs_auth.OpenaiTemplate import OpenaiTemplate
+from .template import OpenaiTemplate
 
 class CablyAI(OpenaiTemplate):
     url = "https://cablyai.com"

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .needs_auth.OpenaiTemplate import OpenaiTemplate
+from .template import OpenaiTemplate
 
 class OIVSCode(OpenaiTemplate):
     label = "OI VSCode Server"
