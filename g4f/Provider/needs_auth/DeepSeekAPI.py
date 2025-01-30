@@ -14,37 +14,37 @@ from ...typing import AsyncResult, Messages
 try:
     from curl_cffi import requests
     from dsk.api import DeepSeekAPI, AuthenticationError, DeepSeekPOW
+
+    class DeepSeekAPIArgs(DeepSeekAPI):
+        def __init__(self, args: dict):
+            args.pop("headers")
+            self.auth_token = args.pop("api_key")
+            if not self.auth_token or not isinstance(self.auth_token, str):
+                raise AuthenticationError("Invalid auth token provided")
+            self.args = args
+            self.pow_solver = DeepSeekPOW()
+
+        def _make_request(self, method: str, endpoint: str, json_data: dict, pow_required: bool = False):
+            url = f"{self.BASE_URL}{endpoint}"
+            headers = self._get_headers()
+            if pow_required:
+                challenge = self._get_pow_challenge()
+                pow_response = self.pow_solver.solve_challenge(challenge)
+                headers = self._get_headers(pow_response)
+                
+            response = requests.request(
+                method=method,
+                url=url,
+                json=json_data, **{
+                    "headers":headers,
+                    "impersonate":'chrome',
+                    "timeout":None,
+                    **self.args
+                }
+            )
+            return response.json()
 except ImportError:
     pass
-
-class DeepSeekAPIArgs(DeepSeekAPI):
-    def __init__(self, args: dict):
-        args.pop("headers")
-        self.auth_token = args.pop("api_key")
-        if not self.auth_token or not isinstance(self.auth_token, str):
-            raise AuthenticationError("Invalid auth token provided")
-        self.args = args
-        self.pow_solver = DeepSeekPOW()
-
-    def _make_request(self, method: str, endpoint: str, json_data: dict, pow_required: bool = False):
-        url = f"{self.BASE_URL}{endpoint}"
-        headers = self._get_headers()
-        if pow_required:
-            challenge = self._get_pow_challenge()
-            pow_response = self.pow_solver.solve_challenge(challenge)
-            headers = self._get_headers(pow_response)
-            
-        response = requests.request(
-            method=method,
-            url=url,
-            json=json_data, **{
-                "headers":headers,
-                "impersonate":'chrome',
-                "timeout":None,
-                **self.args
-            }
-        )
-        return response.json()
 
 class DeepSeekAPI(AsyncAuthedProvider):
     url = "https://chat.deepseek.com"
