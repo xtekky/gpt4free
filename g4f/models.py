@@ -198,13 +198,13 @@ llama_3_70b = Model(
 llama_3_1_8b = Model(
     name          = "llama-3.1-8b",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider([Blackbox, DeepInfraChat, Jmuz, PollinationsAI, Cloudflare, PerplexityLabs])
+    best_provider = IterListProvider([Blackbox, DeepInfraChat, Jmuz, PollinationsAI, Cloudflare])
 )
 
 llama_3_1_70b = Model(
     name          = "llama-3.1-70b",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider([DDG, Jmuz, Blackbox, TeachAnything, DarkAI, PerplexityLabs])
+    best_provider = IterListProvider([DDG, Jmuz, Blackbox, TeachAnything, DarkAI])
 )
 
 llama_3_1_405b = Model(
@@ -242,7 +242,7 @@ llama_3_2_90b = Model(
 llama_3_3_70b = Model(
     name          = "llama-3.3-70b",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider([Blackbox, DeepInfraChat, PollinationsAI, AutonomousAI, Jmuz, HuggingChat, HuggingFace, PerplexityLabs])
+    best_provider = IterListProvider([Blackbox, DeepInfraChat, PollinationsAI, AutonomousAI, Jmuz, HuggingChat, HuggingFace])
 )
 
 ### Mistral ###
@@ -484,14 +484,14 @@ grok_2 = Model(
 )
 
 ### Perplexity AI ### 
-sonar_online = Model(
-    name = 'sonar-online',
+sonar = Model(
+    name = 'sonar',
     base_provider = 'Perplexity AI',
     best_provider = PerplexityLabs
 )
 
-sonar_chat = Model(
-    name = 'sonar-chat',
+sonar_pro = Model(
+    name = 'sonar-pro',
     base_provider = 'Perplexity AI',
     best_provider = PerplexityLabs
 )
@@ -501,13 +501,6 @@ nemotron_70b = Model(
     name = 'nemotron-70b',
     base_provider = 'Nvidia',
     best_provider = IterListProvider([DeepInfraChat, HuggingChat, HuggingFace])
-)
-
-### Liquid ### 
-lfm_40b = Model(
-    name = 'lfm-40b',
-    base_provider = 'Liquid',
-    best_provider = PerplexityLabs
 )
 
 ### Databricks ### 
@@ -736,15 +729,14 @@ class ModelUtils:
         grok_2.name: grok_2,
 
         ### Perplexity AI ###
-        sonar_online.name: sonar_online,
-        sonar_chat.name: sonar_chat,
+        sonar.name: sonar,
+        sonar_pro.name: sonar_pro,
         
         ### DeepSeek ###
         deepseek_chat.name: deepseek_chat,
         deepseek_r1.name: deepseek_r1,
 
         nemotron_70b.name: nemotron_70b, ### Nvidia ###
-        lfm_40b.name: lfm_40b, ### Liquid ### 
         dbrx_instruct.name: dbrx_instruct, ### Databricks ###
         p1.name: p1, ### PollinationsAI ### 
         cably_80b.name: cably_80b, ### CablyAI ###
