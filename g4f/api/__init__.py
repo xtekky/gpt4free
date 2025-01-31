@@ -9,6 +9,7 @@ import shutil
 from email.utils import formatdate
 import os.path
 import hashlib
+import asyncio
 from fastapi import FastAPI, Response, Request, UploadFile, Depends
 from fastapi.middleware.wsgi import WSGIMiddleware
 from fastapi.responses import StreamingResponse, RedirectResponse, HTMLResponse, JSONResponse
@@ -540,8 +541,9 @@ class Api:
             content_type = getattr(provider_handler, "synthesize_content_type", "application/octet-stream")
             return StreamingResponse(response_data, media_type=content_type)
 
-        @self.app.get("/json/{filename}")
+        @self.app.post("/json/{filename}")
         async def get_json(filename, request: Request):
+            await asyncio.sleep(30)
             return ""
 
         @self.app.get("/images/{filename}", responses={
@@ -580,7 +582,7 @@ class Api:
                 if len(source_url) > 1:
                     source_url = source_url[1]
                     source_url = source_url.replace("%2F", "/").replace("%3A", ":").replace("%3F", "?")
-                    if source_url.startswith("http"):
+                    if source_url.startswith("https://"):
                         await copy_images(
                             [source_url],
                             target=target)
