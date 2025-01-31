@@ -75,16 +75,20 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
             response = requests.get(url)
             raise_for_status(response)
             cls.image_models = response.json()
-            cls.image_models.extend(cls.extra_image_models)
-
+            cls.image_models = list(dict.fromkeys([*cls.image_models, *cls.extra_image_models]))
+        
         if not cls.text_models:
             url = "https://text.pollinations.ai/models"
             response = requests.get(url)
             raise_for_status(response)
-            cls.text_models = [model.get("name") for model in response.json()]
-            cls.text_models.extend(cls.extra_text_models)
-
-        return cls.text_models + cls.image_models
+            original_text_models = [model.get("name") for model in response.json()]
+            combined_text = cls.extra_text_models + [
+                model for model in original_text_models 
+                if model not in cls.extra_text_models
+            ]
+            cls.text_models = list(dict.fromkeys(combined_text))
+        
+        return list(dict.fromkeys([*cls.text_models, *cls.image_models]))
 
     @classmethod
     async def create_async_generator(
@@ -225,7 +229,6 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                 await raise_for_status(response)
                 async for line in response.content:
                     decoded_chunk = line.decode(errors="replace")
-                    print(decoded_chunk)
                     if "data: [DONE]" in decoded_chunk:
                         break
                     try:
