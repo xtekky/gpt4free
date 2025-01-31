@@ -42,7 +42,7 @@ docker pull hlohaus789/g4f
   Join us at [telegram.me/g4f_channel](https://telegram.me/g4f_channel).  
 
 - **Get support in our Discord Community** 🤝💻  
-  Reach out for help in our [Support Group: discord.gg/qXA4Wf4Fsm](https://discord.gg/qXA4Wf4Fsm).  
+  Reach out for help in our [Support Group: https://discord.gg/5E39JUWUFa](https://discord.gg/5E39JUWUFa).  
 
 - **Subscribe to our Discord News Channel** 💬🆕️  
   Stay informed about updates via our [News Channel: discord.gg/5E39JUWUFa](https://discord.gg/5E39JUWUFa).  
