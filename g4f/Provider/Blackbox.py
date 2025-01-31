@@ -197,7 +197,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         
         async with ClientSession(headers=headers) as session:
             if model == "ImageGeneration2":
-                prompt = messages[-1]["content"]
+                prompt = format_image_prompt(messages, prompt)
                 data = {
                     "query": format_image_prompt(messages, prompt),
                     "agentMode": True
@@ -298,7 +298,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
                     image_url_match = re.search(r'!\[.*?\]\((.*?)\)', text_to_yield)
                     if image_url_match:
                         image_url = image_url_match.group(1)
-                        prompt = messages[-1]["content"]
+                        prompt = format_image_prompt(messages, prompt)
                         yield ImageResponse(images=[image_url], alt=prompt)
                 else:
                     if model in cls.reasoning_models and "\n\n\n" in text_to_yield:
