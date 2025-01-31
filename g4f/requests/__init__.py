@@ -87,7 +87,7 @@ async def get_args_from_nodriver(
     callback: callable = None,
     cookies: Cookies = None
 ) -> dict:
-    browser = await get_nodriver(proxy=proxy, timeout=timeout)
+    browser, stop_browser = await get_nodriver(proxy=proxy, timeout=timeout)
     try:
         if debug.logging:
             print(f"Open nodriver with url: {url}")
@@ -117,7 +117,7 @@ async def get_args_from_nodriver(
             "proxy": proxy,
         }
     finally:
-        browser.stop()
+        stop_browser()
 
 def merge_cookies(cookies: Iterator[Morsel], response: Response) -> Cookies:
     if cookies is None:
@@ -170,11 +170,10 @@ async def get_nodriver(
             browser = util.get_registered_instances().pop()
         else:
             raise
-    stop = browser.stop
     def on_stop():
         try:
-            stop()
+            if browser.connection:
+                browser.stop()
         finally:
             lock_file.unlink(missing_ok=True)
-    browser.stop = on_stop
-    return browser
+    return browser, on_stop

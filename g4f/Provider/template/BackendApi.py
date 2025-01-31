@@ -8,11 +8,11 @@ from urllib.parse import quote_plus
 from ...typing import Messages, AsyncResult
 from ...requests import StreamSession
 from ...providers.base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from ...providers.response import ProviderInfo, JsonConversation, PreviewResponse, SynthesizeData, TitleGeneration, RequestLogin
-from ...providers.response import Parameters, FinishReason, Usage, Reasoning
+from ...providers.response import *
+from ...image import get_image_extension
 from ...errors import ModelNotSupportedError
 from ..needs_auth.OpenaiAccount import OpenaiAccount
-from ..needs_auth.HuggingChat import HuggingChat
+from ..hf.HuggingChat import HuggingChat
 from ... import debug
 
 class BackendApi(AsyncGeneratorProvider, ProviderModelMixin):
@@ -98,8 +98,7 @@ class BackendApi(AsyncGeneratorProvider, ProviderModelMixin):
                         yield PreviewResponse(data[data_type])
                     elif data_type == "content":
                         def on_image(match):
-                            extension = match.group(3).split(".")[-1].split("?")[0]
-                            extension = "" if not extension or len(extension) > 4 else f".{extension}"
+                            extension = get_image_extension(match.group(3))
                             filename = f"{int(time.time())}_{quote_plus(match.group(1)[:100], '')}{extension}"
                             download_url = f"/download/{filename}?url={cls.url}{match.group(3)}"
                             return f"[![{match.group(1)}]({download_url})](/images/{filename})"
@@ -119,6 +118,6 @@ class BackendApi(AsyncGeneratorProvider, ProviderModelMixin):
                     elif data_type == "finish":
                         yield FinishReason(data[data_type]["reason"])
                     elif data_type == "log":
-                        debug.log(data[data_type])
+                        yield DebugResponse.from_dict(data[data_type])
                     else:
-                        debug.log(f"Unknown data: ({data_type}) {data}")
+                        yield DebugResponse.from_dict(data)

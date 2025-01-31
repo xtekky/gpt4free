@@ -7,7 +7,7 @@ from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin, BaseConv
 from ...typing import AsyncResult, Messages, Cookies
 from ...requests.raise_for_status import raise_for_status
 from ...requests.aiohttp import get_connector
-from ...providers.helper import format_prompt
+from ...providers.helper import format_prompt, get_last_user_message
 from ...cookies import get_cookies
 
 class Conversation(BaseConversation):
@@ -78,7 +78,7 @@ class GithubCopilot(AsyncGeneratorProvider, ProviderModelMixin):
                     conversation_id = (await response.json()).get("thread_id")
             if return_conversation:
                 yield Conversation(conversation_id)
-                content = messages[-1]["content"]
+                content = get_last_user_message(messages)
             else:
                 content = format_prompt(messages)
             json_data = {

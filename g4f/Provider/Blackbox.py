@@ -13,7 +13,7 @@ from ..requests.raise_for_status import raise_for_status
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..image import ImageResponse, to_data_uri
 from ..cookies import get_cookies_dir
-from .helper import format_prompt
+from .helper import format_prompt, format_image_prompt
 from ..providers.response import FinishReason, JsonConversation, Reasoning
 
 class Conversation(JsonConversation):
@@ -216,9 +216,8 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         
         async with ClientSession(headers=headers) as session:
             if model == "ImageGeneration2":
-                prompt = messages[-1]["content"]
                 data = {
-                    "query": prompt,
+                    "query": format_image_prompt(messages, prompt),
                     "agentMode": True
                 }
                 headers['content-type'] = 'text/plain;charset=UTF-8'
@@ -307,8 +306,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
                     image_url_match = re.search(r'!\[.*?\]\((.*?)\)', text_to_yield)
                     if image_url_match:
                         image_url = image_url_match.group(1)
-                        prompt = messages[-1]["content"]
-                        yield ImageResponse(images=[image_url], alt=prompt)
+                        yield ImageResponse(image_url, format_image_prompt(messages, prompt))
                 else:
                     if "<think>" in text_to_yield and "</think>" in text_to_yield:
                         parts = text_to_yield.split('<think>', 1)

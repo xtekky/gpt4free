@@ -3,12 +3,14 @@ from __future__ import annotations
 import re
 import json
 import asyncio
+import time
 from pathlib import Path
 from typing import Optional, Callable, AsyncIterator
 
 from ..typing import Messages
 from ..providers.helper import filter_none
 from ..providers.asyncio import to_async_iterator
+from ..providers.response import Reasoning
 from ..providers.types import ProviderType
 from ..cookies import get_cookies_dir
 from .web_search import do_search, get_search_message
@@ -147,4 +149,26 @@ def iter_run_tools(
                     if has_bucket and isinstance(messages[-1]["content"], str):
                         messages[-1]["content"] += BUCKET_INSTRUCTIONS
 
-    return iter_callback(model=model, messages=messages, provider=provider, **kwargs)
+    is_thinking = 0
+    for chunk in iter_callback(model=model, messages=messages, provider=provider, **kwargs):
+        if not isinstance(chunk, str):
+            yield chunk
+            continue
+        if "<think>" in chunk:
+            chunk = chunk.split("<think>", 1)
+            yield chunk[0]
+            yield Reasoning(is_thinking="<think>")
+            yield Reasoning(chunk[1])
+            yield Reasoning(None, "Is thinking...")
+            is_thinking = time.time()
+        if "</think>" in chunk:
+            chunk = chunk.split("</think>", 1)
+            yield Reasoning(chunk[0])
+            yield Reasoning(is_thinking="</think>")
+            yield Reasoning(None, f"Finished in {round(time.time()-is_thinking, 2)} seconds")
+            yield chunk[1]
+            is_thinking = 0
+        elif is_thinking:
+            yield Reasoning(chunk)
+        else:
+            yield chunk

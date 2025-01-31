@@ -7,7 +7,7 @@ from urllib.parse import quote_plus
 from typing import Optional
 from aiohttp import ClientSession
 
-from .helper import filter_none
+from .helper import filter_none, format_image_prompt
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..typing import AsyncResult, Messages, ImagesType
 from ..image import to_data_uri
@@ -127,7 +127,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         if model in cls.image_models:
            yield await cls._generate_image(
                 model=model,
-                prompt=messages[-1]["content"] if prompt is None else prompt,
+                prompt=format_image_prompt(messages, prompt),
                 proxy=proxy,
                 width=width,
                 height=height,

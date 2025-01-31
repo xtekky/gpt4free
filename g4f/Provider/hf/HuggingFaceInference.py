@@ -11,37 +11,32 @@ from ...errors import ModelNotFoundError, ModelNotSupportedError, ResponseError
 from ...requests import StreamSession, raise_for_status
 from ...providers.response import FinishReason
 from ...image import ImageResponse
+from ..helper import format_image_prompt
+from .models import default_model, default_image_model, model_aliases, fallback_models
 from ... import debug
 
-from .HuggingChat import HuggingChat
-
-class HuggingFace(AsyncGeneratorProvider, ProviderModelMixin):
+class HuggingFaceInference(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://huggingface.co"
-    login_url = "https://huggingface.co/settings/tokens"
     working = True
-    supports_message_history = True
-    default_model = HuggingChat.default_model
-    default_image_model = HuggingChat.default_image_model
-    model_aliases = HuggingChat.model_aliases
-    extra_models = [
-        "meta-llama/Llama-3.2-11B-Vision-Instruct",
-        "nvidia/Llama-3.1-Nemotron-70B-Instruct-HF",
-        "NousResearch/Hermes-3-Llama-3.1-8B",
-    ]
+
+    default_model = default_model
+    default_image_model = default_image_model
+    model_aliases = model_aliases
 
     @classmethod
     def get_models(cls) -> list[str]:
         if not cls.models:
+            models = fallback_models.copy()
             url = "https://huggingface.co/api/models?inference=warm&pipeline_tag=text-generation"
-            models = [model["id"] for model in requests.get(url).json()]
-            models.extend(cls.extra_models)
-            models.sort()
+            extra_models = [model["id"] for model in requests.get(url).json()]
+            extra_models.sort()
+            models.extend([model for model in extra_models if model not in models])
             if not cls.image_models:
                 url = "https://huggingface.co/api/models?pipeline_tag=text-to-image"
                 cls.image_models = [model["id"] for model in requests.get(url).json() if model["trendingScore"] >= 20]
                 cls.image_models.sort()
-                models.extend(cls.image_models)
-            cls.models = list(set(models))
+                models.extend([model for model in cls.image_models if model not in models])
+            cls.models = models
         return cls.models
 
     @classmethod
@@ -85,7 +80,7 @@ class HuggingFace(AsyncGeneratorProvider, ProviderModelMixin):
         payload = None
         if cls.get_models() and model in cls.image_models:
             stream = False
-            prompt = messages[-1]["content"] if prompt is None else prompt
+            prompt = format_image_prompt(messages, prompt)
             payload = {"inputs": prompt, "parameters": {"seed": random.randint(0, 2**32), **extra_data}}
         else:
             params = {

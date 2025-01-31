@@ -31,7 +31,7 @@ try:
                 challenge = self._get_pow_challenge()
                 pow_response = self.pow_solver.solve_challenge(challenge)
                 headers = self._get_headers(pow_response)
-                
+
             response = requests.request(
                 method=method,
                 url=url,

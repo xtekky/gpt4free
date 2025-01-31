@@ -7,6 +7,7 @@ from ...typing import AsyncResult, Messages
 from ...image import ImageResponse, ImagePreview
 from ...errors import ResponseError
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from ..helper import format_image_prompt
 
 class StableDiffusion35Large(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://stabilityai-stable-diffusion-3-5-large.hf.space"
@@ -42,7 +43,7 @@ class StableDiffusion35Large(AsyncGeneratorProvider, ProviderModelMixin):
         if api_key is not None:
             headers["Authorization"] = f"Bearer {api_key}"
         async with ClientSession(headers=headers) as session:
-            prompt = messages[-1]["content"] if prompt is None else prompt
+            prompt = format_image_prompt(messages, prompt)
             data = {
                 "data": [prompt, negative_prompt, seed, randomize_seed, width, height, guidance_scale, num_inference_steps]
             }

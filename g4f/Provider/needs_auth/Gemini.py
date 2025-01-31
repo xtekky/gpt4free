@@ -25,6 +25,7 @@ from ...requests.aiohttp import get_connector
 from ...requests import get_nodriver
 from ...errors import MissingAuthError
 from ...image import ImageResponse, to_bytes
+from ..helper import get_last_user_message
 from ... import debug
 
 REQUEST_HEADERS = {
@@ -78,7 +79,7 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
             if debug.logging:
                 print("Skip nodriver login in Gemini provider")
             return
-        browser = await get_nodriver(proxy=proxy, user_data_dir="gemini")
+        browser, stop_browser = await get_nodriver(proxy=proxy, user_data_dir="gemini")
         try:
             login_url = os.environ.get("G4F_LOGIN_URL")
             if login_url:
@@ -91,7 +92,7 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
             await page.close()
             cls._cookies = cookies
         finally:
-            browser.stop()
+            stop_browser()
 
     @classmethod
     async def create_async_generator(
@@ -107,7 +108,7 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
         language: str = "en",
         **kwargs
     ) -> AsyncResult:
-        prompt = format_prompt(messages) if conversation is None else messages[-1]["content"]
+        prompt = format_prompt(messages) if conversation is None else get_last_user_message(messages)
         cls._cookies = cookies or cls._cookies or get_cookies(".google.com", False, True)
         base_connector = get_connector(connector, proxy)
 

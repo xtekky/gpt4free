@@ -69,9 +69,13 @@ def to_sync_generator(generator: AsyncIterator, stream: bool = True) -> Iterator
                 loop.close()
 
 # Helper function to convert a synchronous iterator to an async iterator
-async def to_async_iterator(iterator: Iterator) -> AsyncIterator:
-    try:
+async def to_async_iterator(iterator) -> AsyncIterator:
+    if hasattr(iterator, '__aiter__'):
         async for item in iterator:
+            yield item
+        return
+    try:
+        for item in iterator:
             yield item
     except TypeError:
         yield await iterator

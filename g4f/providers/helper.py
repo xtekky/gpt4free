@@ -27,6 +27,23 @@ def format_prompt(messages: Messages, add_special_tokens: bool = False, do_conti
         return formatted
     return f"{formatted}\nAssistant:"
 
+def get_last_user_message(messages: Messages) -> str:
+    user_messages = []
+    last_message = None if len(messages) == 0 else messages[-1]
+    while last_message is not None and messages:
+        last_message = messages.pop()
+        if last_message["role"] == "user":
+            if isinstance(last_message["content"], str):
+                user_messages.append(last_message["content"].strip())
+        else:
+            return "\n".join(user_messages[::-1])
+    return "\n".join(user_messages[::-1])
+
+def format_image_prompt(messages, prompt: str = None) -> str:
+    if prompt is None:
+        return get_last_user_message(messages)
+    return prompt
+
 def format_prompt_max_length(messages: Messages, max_lenght: int) -> str:
     prompt = format_prompt(messages)
     start = len(prompt)

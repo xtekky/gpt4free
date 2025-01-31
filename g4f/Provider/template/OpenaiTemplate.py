@@ -4,11 +4,11 @@ import json
 import time
 import requests
 
-from ..helper import filter_none
+from ..helper import filter_none, format_image_prompt
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
 from ...typing import Union, Optional, AsyncResult, Messages, ImagesType
 from ...requests import StreamSession, raise_for_status
-from ...providers.response import FinishReason, ToolCalls, Usage, Reasoning, ImageResponse
+from ...providers.response import FinishReason, ToolCalls, Usage, ImageResponse
 from ...errors import MissingAuthError, ResponseError
 from ...image import to_data_uri
 from ... import debug
@@ -82,7 +82,7 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
             # Proxy for image generation feature
             if model and model in cls.image_models:
                 data = {
-                    "prompt": messages[-1]["content"] if prompt is None else prompt,
+                    "prompt": format_image_prompt(messages, prompt),
                     "model": model,
                 }
                 async with session.post(f"{api_base.rstrip('/')}/images/generations", json=data, ssl=cls.ssl) as response:
@@ -154,17 +154,7 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
                                     delta = delta.lstrip()
                                 if delta:
                                     first = False
-                                    if is_thinking:
-                                        if "</think>" in delta:
-                                            yield Reasoning(None, f"Finished in {round(time.time()-is_thinking, 2)} seconds")
-                                            is_thinking = 0
-                                        else:
-                                            yield Reasoning(delta)
-                                    elif "<think>" in delta:
-                                        is_thinking = time.time()
-                                        yield Reasoning(None, "Is thinking...")
-                                    else:
-                                        yield delta
+                                    yield delta
                             if "usage" in data and data["usage"]:
                                 yield Usage(**data["usage"])
                             if "finish_reason" in choice and choice["finish_reason"] is not None:

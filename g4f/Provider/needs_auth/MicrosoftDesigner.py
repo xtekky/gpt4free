@@ -14,7 +14,7 @@ from ...requests.aiohttp import get_connector
 from ...requests import get_nodriver
 from ..Copilot import get_headers, get_har_files
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from ..helper import get_random_hex
+from ..helper import get_random_hex, format_image_prompt
 from ... import debug
 
 class MicrosoftDesigner(AsyncGeneratorProvider, ProviderModelMixin):
@@ -39,7 +39,7 @@ class MicrosoftDesigner(AsyncGeneratorProvider, ProviderModelMixin):
         image_size = "1024x1024"
         if model != cls.default_image_model and model in cls.image_models:
             image_size = model
-        yield await cls.generate(messages[-1]["content"] if prompt is None else prompt, image_size, proxy)
+        yield await cls.generate(format_image_prompt(messages, prompt), image_size, proxy)
 
     @classmethod
     async def generate(cls, prompt: str, image_size: str, proxy: str = None) -> ImageResponse:
@@ -143,7 +143,7 @@ def readHAR(url: str) -> tuple[str, str]:
     return api_key, user_agent
 
 async def get_access_token_and_user_agent(url: str, proxy: str = None):
-    browser = await get_nodriver(proxy=proxy, user_data_dir="designer")
+    browser, stop_browser = await get_nodriver(proxy=proxy, user_data_dir="designer")
     try:
         page = await browser.get(url)
         user_agent = await page.evaluate("navigator.userAgent")
@@ -168,4 +168,4 @@ async def get_access_token_and_user_agent(url: str, proxy: str = None):
         await page.close()
         return access_token, user_agent
     finally:
-        browser.stop()
+        stop_browser()

@@ -28,6 +28,7 @@ from ..providers.response import BaseConversation, JsonConversation, RequestLogi
 from ..providers.asyncio import get_running_loop
 from ..requests import get_nodriver
 from ..image import ImageResponse, to_bytes, is_accepted_format
+from .helper import get_last_user_message
 from .. import debug
 
 class Conversation(JsonConversation):
@@ -139,7 +140,7 @@ class Copilot(AbstractProvider, ProviderModelMixin):
             else:
                 conversation_id = conversation.conversation_id
                 if prompt is None:
-                    prompt = messages[-1]["content"]
+                    prompt = get_last_user_message(messages)
                 debug.log(f"Copilot: Use conversation: {conversation_id}")
 
             uploaded_images = []
@@ -206,7 +207,7 @@ class Copilot(AbstractProvider, ProviderModelMixin):
                 yield Parameters(**{"cookies": {c.name: c.value for c in session.cookies.jar}})
 
 async def get_access_token_and_cookies(url: str, proxy: str = None, target: str = "ChatAI",):
-    browser = await get_nodriver(proxy=proxy, user_data_dir="copilot")
+    browser, stop_browser = await get_nodriver(proxy=proxy, user_data_dir="copilot")
     try:
         page = await browser.get(url)
         access_token = None
@@ -233,7 +234,7 @@ async def get_access_token_and_cookies(url: str, proxy: str = None, target: str 
         await page.close()
         return access_token, cookies
     finally:
-        browser.stop()
+        stop_browser()
 
 def readHAR(url: str):
     api_key = None

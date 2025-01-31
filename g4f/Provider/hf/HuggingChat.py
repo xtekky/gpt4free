@@ -14,7 +14,7 @@ except ImportError:
     has_curl_cffi = False
 
 from ..base_provider import ProviderModelMixin, AsyncAuthedProvider, AuthResult
-from ..helper import format_prompt
+from ..helper import format_prompt, format_image_prompt, get_last_user_message
 from ...typing import AsyncResult, Messages, Cookies, ImagesType
 from ...errors import MissingRequirementsError, MissingAuthError, ResponseError
 from ...image import to_bytes
@@ -22,6 +22,7 @@ from ...requests import get_args_from_nodriver, DEFAULT_HEADERS
 from ...requests.raise_for_status import raise_for_status
 from ...providers.response import JsonConversation, ImageResponse, Sources, TitleGeneration, Reasoning, RequestLogin
 from ...cookies import get_cookies
+from .models import default_model, fallback_models, image_models, model_aliases
 from ... import debug
 
 class Conversation(JsonConversation):
@@ -30,52 +31,14 @@ class Conversation(JsonConversation):
 
 class HuggingChat(AsyncAuthedProvider, ProviderModelMixin):
     url = "https://huggingface.co/chat"
-    
+
     working = True
     use_nodriver = True
     supports_stream = True
     needs_auth = True
-    
-    default_model = "Qwen/Qwen2.5-72B-Instruct"
-    default_image_model = "black-forest-labs/FLUX.1-dev"
-    image_models = [    
-       default_image_model,
-        "black-forest-labs/FLUX.1-schnell",
-    ]
-    fallback_models = [
-        default_model,
-        'meta-llama/Llama-3.3-70B-Instruct',
-        'CohereForAI/c4ai-command-r-plus-08-2024',
-        'deepseek-ai/DeepSeek-R1-Distill-Qwen-32B',
-        'Qwen/QwQ-32B-Preview',
-        'nvidia/Llama-3.1-Nemotron-70B-Instruct-HF',
-        'Qwen/Qwen2.5-Coder-32B-Instruct',
-        'meta-llama/Llama-3.2-11B-Vision-Instruct',
-        'mistralai/Mistral-Nemo-Instruct-2407',
-        'microsoft/Phi-3.5-mini-instruct',
-    ] + image_models
-    model_aliases = {
-        ### Chat ###
-        "qwen-2.5-72b": "Qwen/Qwen2.5-Coder-32B-Instruct",
-        "llama-3.3-70b": "meta-llama/Llama-3.3-70B-Instruct",
-        "command-r-plus": "CohereForAI/c4ai-command-r-plus-08-2024",
-        "deepseek-r1": "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B",
-        "qwq-32b": "Qwen/QwQ-32B-Preview",
-        "nemotron-70b": "nvidia/Llama-3.1-Nemotron-70B-Instruct-HF",
-        "qwen-2.5-coder-32b": "Qwen/Qwen2.5-Coder-32B-Instruct",
-        "llama-3.2-11b": "meta-llama/Llama-3.2-11B-Vision-Instruct",
-        "mistral-nemo": "mistralai/Mistral-Nemo-Instruct-2407",
-        "phi-3.5-mini": "microsoft/Phi-3.5-mini-instruct",
-        ### Image ###
-        "flux-dev": "black-forest-labs/FLUX.1-dev",
-        "flux-schnell": "black-forest-labs/FLUX.1-schnell",
-        ### Used in other providers ###
-        "qwen-2-vl-7b": "Qwen/Qwen2-VL-7B-Instruct",
-        "gemma-2-27b": "google/gemma-2-27b-it",
-        "qwen-2-72b": "Qwen/Qwen2-72B-Instruct",
-        "qvq-72b": "Qwen/QVQ-72B-Preview",
-        "sd-3.5": "stabilityai/stable-diffusion-3.5-large",
-    }
+    default_model = default_model
+    model_aliases = model_aliases
+    image_models = image_models
 
     @classmethod
     def get_models(cls):
@@ -94,7 +57,7 @@ class HuggingChat(AsyncAuthedProvider, ProviderModelMixin):
                 cls.vision_models = [model["id"] for model in models if model["multimodal"]]
             except Exception as e:
                 debug.log(f"HuggingChat: Error reading models: {type(e).__name__}: {e}")
-                cls.models = [*cls.fallback_models]
+                cls.models = [*fallback_models]
         return cls.models
 
     @classmethod
@@ -108,9 +71,7 @@ class HuggingChat(AsyncAuthedProvider, ProviderModelMixin):
                 headers=DEFAULT_HEADERS
             )
             return
-        login_url = os.environ.get("G4F_LOGIN_URL")
-        if login_url:
-            yield RequestLogin(cls.__name__, login_url)
+        yield RequestLogin(cls.__name__, os.environ.get("G4F_LOGIN_URL") or "")
         yield AuthResult(
             **await get_args_from_nodriver(
                 cls.url,
@@ -143,6 +104,7 @@ class HuggingChat(AsyncAuthedProvider, ProviderModelMixin):
 
         if model not in conversation.models:
             conversationId = cls.create_conversation(session, model)
+            debug.log(f"Conversation created: {json.dumps(conversationId[8:] + '...')}")
             messageId = cls.fetch_message_id(session, conversationId)
             conversation.models[model] = {"conversationId": conversationId, "messageId": messageId}
             if return_conversation:
@@ -151,9 +113,7 @@ class HuggingChat(AsyncAuthedProvider, ProviderModelMixin):
         else:
             conversationId = conversation.models[model]["conversationId"]
             conversation.models[model]["messageId"] = cls.fetch_message_id(session, conversationId)
-            inputs = messages[-1]["content"]
-
-        debug.log(f"Use: {json.dumps(conversation.models[model])}")
+            inputs = get_last_user_message(messages)
 
         settings = {
             "inputs": inputs,
@@ -204,8 +164,7 @@ class HuggingChat(AsyncAuthedProvider, ProviderModelMixin):
                 break
             elif line["type"] == "file":
                 url = f"https://huggingface.co/chat/conversation/{conversationId}/output/{line['sha']}"
-                prompt = messages[-1]["content"] if prompt is None else prompt
-                yield ImageResponse(url, alt=prompt, options={"cookies": auth_result.cookies})
+                yield ImageResponse(url, format_image_prompt(messages, prompt), options={"cookies": auth_result.cookies})
             elif line["type"] == "webSearch" and "sources" in line:
                 sources = Sources(line["sources"])
             elif line["type"] == "title":
@@ -226,6 +185,8 @@ class HuggingChat(AsyncAuthedProvider, ProviderModelMixin):
         response = session.post('https://huggingface.co/chat/conversation', json=json_data)
         if response.status_code == 401:
             raise MissingAuthError(response.text)
+        if response.status_code == 400:
+            raise ResponseError(f"{response.text}: Model: {model}")
         raise_for_status(response)
         return response.json().get('conversationId')
 

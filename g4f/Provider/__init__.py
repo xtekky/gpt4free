@@ -9,6 +9,7 @@ from .deprecated       import *
 from .needs_auth       import *
 from .not_working      import *
 from .local            import *
+from .hf               import HuggingFace, HuggingChat, HuggingFaceAPI, HuggingFaceInference
 from .hf_space         import HuggingSpace
 from .mini_max         import HailuoAI, MiniMax
 from .template         import OpenaiTemplate, BackendApi
