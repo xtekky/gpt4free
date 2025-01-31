@@ -15,7 +15,6 @@ from .mini_max         import HailuoAI, MiniMax
 from .template         import OpenaiTemplate, BackendApi
 
 from .AIChatFree           import AIChatFree
-from .AIUncensored         import AIUncensored
 from .AutonomousAI         import AutonomousAI
 from .Blackbox             import Blackbox
 from .CablyAI              import CablyAI

@@ -6,7 +6,6 @@ from .Provider import IterListProvider, ProviderType
 from .Provider import (
     ### no auth required ###
     AIChatFree,
-    AIUncensored,
     AutonomousAI,
     Blackbox,
     CablyAI,
@@ -90,7 +89,6 @@ default = Model(
         CablyAI,
         OIVSCode,
         DarkAI,
-        AIUncensored,
         OpenaiChat,
         Cloudflare,
     ])
@@ -120,7 +118,7 @@ default_vision = Model(
 gpt_35_turbo = Model(
     name          = 'gpt-3.5-turbo',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([DarkAI])
+    best_provider = DarkAI
 )
 
 # gpt-4
@@ -281,7 +279,7 @@ hermes_2_dpo = Model(
 hermes_3 = Model(
     name          = "hermes-3",
     base_provider = "NousResearch",
-    best_provider = IterListProvider([AutonomousAI, AIUncensored])
+    best_provider = AutonomousAI
 )
 
 
