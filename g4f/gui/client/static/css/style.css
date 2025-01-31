@@ -971,10 +971,10 @@ select:hover,
     }
 }
 
-.input-box {
+.input-area {
     display: flex;
     align-items: center;
-    cursor: pointer;
+    padding: 10px;
 }
 
 .info {
@@ -1150,6 +1150,7 @@ ul {
         align-items: flex-start;
         flex-wrap: wrap;
         gap: 8px;
+        padding-left: 4px;
     }
 
     .mobile-sidebar {
@@ -1317,17 +1318,18 @@ ul {
     border: 1px dashed #e4d4ffa6;
     border-radius: 4px;
     cursor: pointer;
-    padding-left: 4px;
-    padding-right: 5px;
-    padding-top: 2px;
-    padding-bottom: 2px;
     position: absolute;
     bottom: 8px;
-    right: 8px;
+    right: 4px;
+    padding: 4px;
 }
 
 #send-button:hover {
     border: 1px solid #e4d4ffc9;
+}
+
+#send-button i {
+    padding: 2px;
 }
 
 form textarea {
@@ -1477,7 +1479,13 @@ form .field.saved .fa-xmark {
 
 #message-input {
     height: 90px;
-    margin-left: 20px;
+    flex: 1;
+    padding: 10px;
+    padding-left: 20px;
+    border-radius: 20px;
+    font-size: 14px;
+    margin-right: 10px;
+    outline: none;
     max-height: 200px;
 }
 
