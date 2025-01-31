@@ -1413,6 +1413,49 @@ form .field.saved .fa-xmark {
     line-height: 30px;
 }
 
+.collapsible {
+    border: 1px solid var(--blur-border);
+    border-radius: var(--border-radius-1);
+    overflow: hidden;
+    margin-bottom: 10px;
+}
+
+.collapsible-header {
+    padding: 10px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: var(--blur-bg);
+}
+
+.collapsible-header:hover {
+    background-color: var(--button-hover);
+}
+
+.collapsible-content {
+    padding: 10px;
+}
+
+.collapsible-content.hidden {
+    display: none;
+}
+
+.provider-item {
+    padding: 5px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.fa-chevron-down {
+    transition: transform 0.3s ease;
+}
+
+.collapsible-header.active .fa-chevron-down {
+    transform: rotate(180deg);
+}
+
 ::-webkit-scrollbar-track {
     background: var(--scrollbar);
 }
