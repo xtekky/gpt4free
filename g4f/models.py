@@ -5,8 +5,6 @@ from dataclasses import dataclass
 from .Provider import IterListProvider, ProviderType
 from .Provider import (
     ### no auth required ###
-    AIChatFree,
-    AutonomousAI,
     Blackbox,
     CablyAI,
     ChatGLM,
@@ -231,23 +229,17 @@ llama_3_2_11b = VisionModel(
     best_provider = IterListProvider([Jmuz, HuggingChat, HuggingFace])
 )
 
-llama_3_2_70b = Model(
-    name          = "llama-3.2-70b",
-    base_provider = "Meta Llama",
-    best_provider = AutonomousAI
-)
-
 llama_3_2_90b = Model(
     name          = "llama-3.2-90b",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider([Jmuz, AutonomousAI])
+    best_provider = Jmuz
 )
 
 # llama 3.3
 llama_3_3_70b = Model(
     name          = "llama-3.3-70b",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider([Blackbox, DeepInfraChat, PollinationsAI, AutonomousAI, Jmuz, HuggingChat, HuggingFace])
+    best_provider = IterListProvider([Blackbox, DeepInfraChat, PollinationsAI, Jmuz, HuggingChat, HuggingFace])
 )
 
 ### Mistral ###
@@ -274,12 +266,6 @@ hermes_2_dpo = Model(
     name          = "hermes-2-dpo",
     base_provider = "NousResearch",
     best_provider = Blackbox
-)
-
-hermes_3 = Model(
-    name          = "hermes-3",
-    base_provider = "NousResearch",
-    best_provider = AutonomousAI
 )
 
 
@@ -329,7 +315,7 @@ gemini_1_5_flash = Model(
 gemini_1_5_pro = Model(
     name          = 'gemini-1.5-pro',
     base_provider = 'Google DeepMind',
-    best_provider = IterListProvider([Blackbox, Jmuz, GPROChat, AIChatFree, Gemini, GeminiPro, Liaobots])
+    best_provider = IterListProvider([Blackbox, Jmuz, GPROChat, Gemini, GeminiPro, Liaobots])
 )
 
 # gemini-2.0
@@ -436,7 +422,7 @@ qwen_2_5_72b = Model(
 qwen_2_5_coder_32b = Model(
     name = 'qwen-2.5-coder-32b',
     base_provider = 'Qwen',
-    best_provider = IterListProvider([DeepInfraChat, PollinationsAI, AutonomousAI, Jmuz, HuggingChat])
+    best_provider = IterListProvider([DeepInfraChat, PollinationsAI, Jmuz, HuggingChat])
 )
 qwen_2_5_1m = Model(
     name = 'qwen-2.5-1m-demo',
@@ -665,7 +651,6 @@ class ModelUtils:
         llama_3_2_1b.name: llama_3_2_1b,
         llama_3_2_3b.name: llama_3_2_3b,
         llama_3_2_11b.name: llama_3_2_11b,
-        llama_3_2_70b.name: llama_3_2_70b,
         llama_3_2_90b.name: llama_3_2_90b,
         
         # llama-3.3
@@ -678,7 +663,6 @@ class ModelUtils:
 
         ### NousResearch ###
         hermes_2_dpo.name: hermes_2_dpo,
-        hermes_3.name: hermes_3,
                 
         ### Microsoft ###
         # phi

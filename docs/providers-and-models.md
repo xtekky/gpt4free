@@ -143,21 +143,19 @@ This document provides an overview of various AI providers and models, including
 |llama-3.2-1b|Meta Llama|1+ Providers|[huggingface.co](https://huggingface.co/meta-llama/Llama-3.2-1B)|
 |llama-3.2-3b|Meta Llama|1+ Providers|[huggingface.co](https://huggingface.co/meta-llama/Llama-3.2-3B)|
 |llama-3.2-11b|Meta Llama|3+ Providers|[ai.meta.com](https://ai.meta.com/blog/llama-3-2-connect-2024-vision-edge-mobile-devices/)|
-|llama-3.2-70b|Meta Llama|1+ Providers|[ai.meta.com](https://ai.meta.com/blog/llama-3-2-connect-2024-vision-edge-mobile-devices/)|
-|llama-3.2-90b|Meta Llama|2+ Providers|[huggingface.co](https://huggingface.co/meta-llama/Llama-3.2-90B-Vision)|
-|llama-3.3-70b|Meta Llama|7+ Providers|[ai.meta.com](https://ai.meta.com/blog/llama-3-3/)|
+|llama-3.2-90b|Meta Llama|1+ Providers|[huggingface.co](https://huggingface.co/meta-llama/Llama-3.2-90B-Vision)|
+|llama-3.3-70b|Meta Llama|6+ Providers|[ai.meta.com](https://ai.meta.com/blog/llama-3-3/)|
 |mixtral-7b|Mistral|1+|[mistral.ai](https://mistral.ai/news/mixtral-of-experts/)|
 |mixtral-8x7b|Mistral|2+ Providers|[mistral.ai](https://mistral.ai/news/mixtral-of-experts/)|
 |mistral-nemo|Mistral|3+ Providers|[huggingface.co](https://huggingface.co/mistralai/Mistral-Nemo-Instruct-2407)|
 |hermes-2-dpo|NousResearch|1+ Providers|[huggingface.co](https://huggingface.co/NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO)|
-|hermes-3|NousResearch|1+ Providers|[nousresearch.com](https://nousresearch.com/hermes3/)|
 |phi-3.5-mini|Microsoft|1+ Providers|[huggingface.co](https://huggingface.co/microsoft/Phi-3.5-mini-instruct)|
 |wizardlm-2-7b|Microsoft|1+ Providers|[wizardlm.github.io](https://wizardlm.github.io/WizardLM2/)|
 |wizardlm-2-8x22b|Microsoft|2+ Providers|[wizardlm.github.io](https://wizardlm.github.io/WizardLM2/)|
 |gemini|Google DeepMind|1+|[deepmind.google](http://deepmind.google/technologies/gemini/)|
 |gemini-exp|Google DeepMind|1+ Providers|[blog.google](https://blog.google/feed/gemini-exp-1206/)|
 |gemini-1.5-flash|Google DeepMind|5+ Providers|[deepmind.google](https://deepmind.google/technologies/gemini/flash/)|
-|gemini-1.5-pro|Google DeepMind|7+ Providers|[deepmind.google](https://deepmind.google/technologies/gemini/pro/)|
+|gemini-1.5-pro|Google DeepMind|6+ Providers|[deepmind.google](https://deepmind.google/technologies/gemini/pro/)|
 |gemini-2.0-flash|Google DeepMind|2+ Providers|[deepmind.google](https://deepmind.google/technologies/gemini/flash/)|
 |gemini-2.0-flash-thinking|Google DeepMind|1+ Providers|[ai.google.dev](https://ai.google.dev/gemini-api/docs/thinking-mode)|
 |claude-3-haiku|Anthropic|2+ Providers|[anthropic.com](https://www.anthropic.com/news/claude-3-haiku)|
@@ -174,7 +172,7 @@ This document provides an overview of various AI providers and models, including
 |qwen-2-72b|Qwen|1+ Providers|[huggingface.co](https://huggingface.co/Qwen/Qwen2-72B)|
 |qwen-2-vl-7b|Qwen|1+ Providers|[huggingface.co](https://huggingface.co/Qwen/Qwen2-VL-7B)|
 |qwen-2.5-72b|Qwen|3+ Providers|[huggingface.co](https://huggingface.co/Qwen/Qwen2.5-72B-Instruct)|
-|qwen-2.5-coder-32b|Qwen|5+ Providers|[huggingface.co](https://huggingface.co/Qwen/Qwen2.5-Coder-32B)|
+|qwen-2.5-coder-32b|Qwen|4+ Providers|[huggingface.co](https://huggingface.co/Qwen/Qwen2.5-Coder-32B)|
 |qwen-2.5-1m-demo|Qwen|1+ Providers|[huggingface.co](https://huggingface.co/Qwen/Qwen2.5-1M-Demo)|
 |qwq-32b|Qwen|4+ Providers|[huggingface.co](https://huggingface.co/Qwen/QwQ-32B-Preview)|
 |qvq-72b|Qwen|1+ Providers|[huggingface.co](https://huggingface.co/Qwen/QVQ-72B-Preview)|

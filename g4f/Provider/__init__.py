@@ -14,8 +14,6 @@ from .hf_space         import HuggingSpace
 from .mini_max         import HailuoAI, MiniMax
 from .template         import OpenaiTemplate, BackendApi
 
-from .AIChatFree           import AIChatFree
-from .AutonomousAI         import AutonomousAI
 from .Blackbox             import Blackbox
 from .CablyAI              import CablyAI
 from .ChatGLM              import ChatGLM
