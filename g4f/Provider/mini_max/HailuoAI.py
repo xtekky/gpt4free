@@ -10,6 +10,7 @@ from ..base_provider import AsyncAuthedProvider, ProviderModelMixin, format_prom
 from ..mini_max.crypt import CallbackResults, get_browser_callback, generate_yy_header, get_body_to_yy
 from ...requests import get_args_from_nodriver, raise_for_status
 from ...providers.response import AuthResult, JsonConversation, RequestLogin, TitleGeneration
+from ..helper import get_last_user_message
 from ... import debug
 
 class Conversation(JsonConversation):
@@ -62,7 +63,7 @@ class HailuoAI(AsyncAuthedProvider, ProviderModelMixin):
                 conversation = None
             form_data = {
                 "characterID": 1 if conversation is None else getattr(conversation, "characterID", 1),
-                "msgContent": format_prompt(messages) if conversation is None else messages[-1]["content"],
+                "msgContent": format_prompt(messages) if conversation is None else get_last_user_message(messages),
                 "chatID": 0 if conversation is None else getattr(conversation, "chatID", 0),
                 "searchMode": 0
             }

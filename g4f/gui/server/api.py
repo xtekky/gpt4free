@@ -13,8 +13,8 @@ from ...tools.run_tools import iter_run_tools
 from ...Provider import ProviderUtils, __providers__
 from ...providers.base_provider import ProviderModelMixin
 from ...providers.retry_provider import BaseRetryProvider
-from ...providers.response import BaseConversation, JsonConversation, FinishReason, Usage, Reasoning, PreviewResponse
-from ...providers.response import SynthesizeData, TitleGeneration, RequestLogin, Parameters, ProviderInfo
+from ...providers.helper import format_image_prompt
+from ...providers.response import *
 from ... import version, models
 from ... import ChatCompletion, get_model_and_provider
 from ... import debug
@@ -183,13 +183,14 @@ class Api:
                     logger.exception(chunk)
                     yield self._format_json('message', get_error_message(chunk), error=type(chunk).__name__)
                 elif isinstance(chunk, (PreviewResponse, ImagePreview)):
-                    yield self._format_json("preview", chunk.to_string())
+                    yield self._format_json("preview", chunk.to_string(), images=chunk.images, alt=chunk.alt)
                 elif isinstance(chunk, ImageResponse):
                     images = chunk
-                    if download_images:
-                        images = asyncio.run(copy_images(chunk.get_list(), chunk.get("cookies"), proxy))
+                    if download_images or chunk.get("cookies"):
+                        alt = format_image_prompt(kwargs.get("messages"))
+                        images = asyncio.run(copy_images(chunk.get_list(), chunk.get("cookies"), proxy, alt))
                         images = ImageResponse(images, chunk.alt)
-                    yield self._format_json("content", str(images))
+                    yield self._format_json("content", str(images), images=chunk.get_list(), alt=chunk.alt)
                 elif isinstance(chunk, SynthesizeData):
                     yield self._format_json("synthesize", chunk.get_dict())
                 elif isinstance(chunk, TitleGeneration):
@@ -203,7 +204,11 @@ class Api:
                 elif isinstance(chunk, Usage):
                     yield self._format_json("usage", chunk.get_dict())
                 elif isinstance(chunk, Reasoning):
-                    yield self._format_json("reasoning", token=chunk.token, status=chunk.status)
+                    yield self._format_json("reasoning", token=chunk.token, status=chunk.status, is_thinking=chunk.is_thinking)
+                elif isinstance(chunk, DebugResponse):
+                    yield self._format_json("log", chunk.get_dict())
+                elif isinstance(chunk, Notification):
+                    yield self._format_json("notification", chunk.message)
                 else:
                     yield self._format_json("content", str(chunk))
                 if debug.logs:
@@ -219,6 +224,15 @@ class Api:
             yield self._format_json('error', type(e).__name__, message=get_error_message(e))
 
     def _format_json(self, response_type: str, content = None, **kwargs):
+        # Make sure it get be formated as JSON
+        if content is not None and not isinstance(content, (str, dict)):
+            content = str(content)
+        kwargs = {
+            key: value
+            if value is isinstance(value, (str, dict))
+            else str(value)
+            for key, value in kwargs.items()
+            if isinstance(key, str)}
         if content is not None:
             return {
                 'type': response_type,

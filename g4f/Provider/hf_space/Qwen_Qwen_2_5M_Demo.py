@@ -8,6 +8,7 @@ from ...typing import AsyncResult, Messages
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..helper import format_prompt
 from ...providers.response import JsonConversation, Reasoning
+from ..helper import get_last_user_message
 from ... import debug
 
 class Qwen_Qwen_2_5M_Demo(AsyncGeneratorProvider, ProviderModelMixin):
@@ -41,7 +42,7 @@ class Qwen_Qwen_2_5M_Demo(AsyncGeneratorProvider, ProviderModelMixin):
         if return_conversation:
             yield JsonConversation(session_hash=session_hash)
 
-        prompt = format_prompt(messages) if conversation is None else messages[-1]["content"]
+        prompt = format_prompt(messages) if conversation is None else get_last_user_message(messages)
 
         headers = {
             'accept': '*/*',

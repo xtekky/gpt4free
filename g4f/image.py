@@ -7,6 +7,8 @@ import time
 import uuid
 import base64
 import asyncio
+import hashlib
+from urllib.parse import quote_plus
 from io import BytesIO
 from pathlib import Path
 from aiohttp import ClientSession, ClientError
@@ -239,10 +241,16 @@ def to_data_uri(image: ImageType) -> str:
 def ensure_images_dir():
     os.makedirs(images_dir, exist_ok=True)
 
+def get_image_extension(image: str) -> str:
+    if match := re.search(r"(\.(?:jpe?g|png|webp))[$?&]", image):
+        return match.group(1)
+    return ".jpg"
+
 async def copy_images(
     images: list[str],
     cookies: Optional[Cookies] = None,
     proxy: Optional[str] = None,
+    alt: str = None,
     add_url: bool = True,
     target: str = None,
     ssl: bool = None
@@ -256,7 +264,10 @@ async def copy_images(
     ) as session:
         async def copy_image(image: str, target: str = None) -> str:
             if target is None or len(images) > 1:
-                target = os.path.join(images_dir, f"{int(time.time())}_{str(uuid.uuid4())}")
+                hash = hashlib.sha256(image.encode()).hexdigest()
+                target = f"{quote_plus('+'.join(alt.split()[:10])[:100], '')}_{hash}" if alt else str(uuid.uuid4())
+                target = f"{int(time.time())}_{target}{get_image_extension(image)}"
+                target = os.path.join(images_dir, target)
             try:
                 if image.startswith("data:"):
                     with open(target, "wb") as f:

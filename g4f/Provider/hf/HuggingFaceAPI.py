@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from ..template import OpenaiTemplate
-from .HuggingChat import HuggingChat
+from ..template.OpenaiTemplate import OpenaiTemplate
+from .models import model_aliases
 from ...providers.types import Messages
+from .HuggingChat import HuggingChat
 from ... import debug
 
 class HuggingFaceAPI(OpenaiTemplate):
@@ -16,13 +17,16 @@ class HuggingFaceAPI(OpenaiTemplate):
     default_model = "meta-llama/Llama-3.2-11B-Vision-Instruct"
     default_vision_model = default_model
     vision_models = [default_vision_model, "Qwen/Qwen2-VL-7B-Instruct"]
-    model_aliases = HuggingChat.model_aliases
+    model_aliases = model_aliases
 
     @classmethod
     def get_models(cls, **kwargs):
         if not cls.models:
             HuggingChat.get_models()
-            cls.models = list(set(HuggingChat.text_models + cls.vision_models))
+            cls.models = HuggingChat.text_models.copy()
+            for model in cls.vision_models:
+                if model not in cls.models:
+                    cls.models.append(model)
         return cls.models
 
     @classmethod

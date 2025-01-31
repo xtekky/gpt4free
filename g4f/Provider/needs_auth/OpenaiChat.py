@@ -98,7 +98,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
     default_model = "auto"
     default_image_model = "dall-e-3"
     image_models = [default_image_model]
-    text_models = [default_model, "gpt-4", "gpt-4o", "gpt-4o-mini", "gpt-4o-canmore", "o1", "o1-preview", "o1-mini"]
+    text_models = [default_model, "gpt-4", "gpt-4o", "gpt-4o-mini", "o1", "o1-preview", "o1-mini"]
     vision_models = text_models
     models = text_models + image_models
     synthesize_content_type = "audio/mpeg"
@@ -598,7 +598,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
 
     @classmethod
     async def nodriver_auth(cls, proxy: str = None):
-        browser = await get_nodriver(proxy=proxy)
+        browser, stop_browser = await get_nodriver(proxy=proxy)
         try:
             page = browser.main_tab
             def on_request(event: nodriver.cdp.network.RequestWillBeSent):
@@ -648,7 +648,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
             cls._create_request_args(RequestConfig.cookies, RequestConfig.headers, user_agent=user_agent)
             cls._set_api_key(cls._api_key)
         finally:
-            browser.stop()
+            stop_browser()
 
     @staticmethod
     def get_default_headers() -> Dict[str, str]:

@@ -192,6 +192,8 @@ async def search(query: str, max_results: int = 5, max_words: int = 2500, backen
         return SearchResults(formatted_results, used_words)
 
 async def do_search(prompt: str, query: str = None, instructions: str = DEFAULT_INSTRUCTIONS, **kwargs) -> str:
+    if instructions and instructions in prompt:
+        return prompt # We have already added search results
     if query is None:
         query = spacy_get_keywords(prompt)
     json_bytes = json.dumps({"query": query, **kwargs}, sort_keys=True).encode(errors="ignore")

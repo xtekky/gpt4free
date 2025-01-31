@@ -98,7 +98,7 @@ class Anthropic(OpenaiAPI):
                     "text": messages[-1]["content"]
                 }
             ]
-        system = "\n".join([message for message in messages if message.get("role") == "system"])
+        system = "\n".join([message["content"] for message in messages if message.get("role") == "system"])
         if system:
             messages = [message for message in messages if message.get("role") != "system"]
         else:

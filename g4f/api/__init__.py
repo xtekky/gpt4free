@@ -6,6 +6,7 @@ import uvicorn
 import secrets
 import os
 import shutil
+import time
 from email.utils import formatdate
 import os.path
 import hashlib
@@ -538,6 +539,10 @@ class Api:
             response_data = provider_handler.synthesize({**request.query_params})
             content_type = getattr(provider_handler, "synthesize_content_type", "application/octet-stream")
             return StreamingResponse(response_data, media_type=content_type)
+        
+        @self.app.get("/json/{filename}")
+        async def get_json(filename, request: Request):
+            return ""
 
         @self.app.get("/images/{filename}", response_class=FileResponse, responses={
             HTTP_200_OK: {"content": {"image/*": {}}},
@@ -550,15 +555,18 @@ class Api:
             stat_result.st_size = 0
             if os.path.isfile(target):
                 stat_result.st_size = os.stat(target).st_size
-            stat_result.st_mtime = int(f"{filename.split('_')[0]}")
+            stat_result.st_mtime = int(f"{filename.split('_')[0]}") if filename.startswith("1") else 0
+            headers = {
+                "cache-control": "public, max-age=31536000",
+                "content-type": f"image/{ext.replace('jpg', 'jepg')}",
+                "content-length": str(stat_result.st_size),
+                "last-modified": formatdate(stat_result.st_mtime, usegmt=True),
+                "etag": f'"{hashlib.md5(filename.encode()).hexdigest()}"',
+            }
             response = FileResponse(
                 target,
-                media_type=f"image/{ext.replace('jpg', 'jepg')}",
-                headers={
-                    "content-length": str(stat_result.st_size),
-                    "last-modified": formatdate(stat_result.st_mtime, usegmt=True),
-                    "etag": f'"{hashlib.md5(filename.encode()).hexdigest()}"'
-                },
+                headers=headers,
+                filename=filename,
             )
             try:
                 if_none_match = request.headers["if-none-match"]

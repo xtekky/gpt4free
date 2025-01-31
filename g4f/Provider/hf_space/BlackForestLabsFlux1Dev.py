@@ -7,6 +7,7 @@ from ...typing import AsyncResult, Messages
 from ...image import ImageResponse, ImagePreview
 from ...errors import ResponseError
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from ..helper import format_image_prompt
 
 class BlackForestLabsFlux1Dev(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://black-forest-labs-flux-1-dev.hf.space"
@@ -44,7 +45,7 @@ class BlackForestLabsFlux1Dev(AsyncGeneratorProvider, ProviderModelMixin):
         if api_key is not None:
             headers["Authorization"] = f"Bearer {api_key}"
         async with ClientSession(headers=headers) as session:
-            prompt = messages[-1]["content"] if prompt is None else prompt
+            prompt = format_image_prompt(messages, prompt)
             data = {
                 "data": [prompt, seed, randomize_seed, width, height, guidance_scale, num_inference_steps]
             }
