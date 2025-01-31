@@ -21,10 +21,6 @@ class PerplexityLabs(AsyncGeneratorProvider, ProviderModelMixin):
         "sonar",
         "sonar-reasoning",
     ]
-    model_aliases = {
-        "sonar-online": default_model,
-        "sonar-chat": default_model,
-    }
 
     @classmethod
     async def create_async_generator(

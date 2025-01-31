@@ -13,7 +13,7 @@ from ..typing import AsyncResult, Messages, ImagesType
 from ..image import to_data_uri
 from ..requests.raise_for_status import raise_for_status
 from ..requests.aiohttp import get_connector
-from ..providers.response import ImageResponse, FinishReason, Usage
+from ..providers.response import ImageResponse, FinishReason, Usage, Reasoning
 
 DEFAULT_HEADERS = {
     'Accept': '*/*',
@@ -40,7 +40,8 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
     default_vision_model = "gpt-4o"
     extra_image_models = ["midjourney", "dall-e-3", "flux-pro"]
     vision_models = [default_vision_model, "gpt-4o-mini"]
-    extra_text_models = ["claude", "claude-email", "deepseek-reasoner", "p1"] + vision_models
+    reasoning_models = ['deepseek-reasoner', 'deepseek-r1']
+    extra_text_models = ["claude", "claude-email", "p1"] + vision_models + reasoning_models
     model_aliases = {
         ### Text Models ###
         "gpt-4o-mini": "openai",
@@ -50,11 +51,8 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         "qwen-2.5-coder-32b": "qwen-coder",
         "llama-3.3-70b": "llama",
         "mistral-nemo": "mistral",
-        #"mistral-nemo": "unity", # bug with image url response
-        #"gpt-4o-mini": "midijourney", # bug with the answer
         "gpt-4o-mini": "rtist",
         "gpt-4o": "searchgpt",
-        #"mistral-nemo": "evil",
         "gpt-4o-mini": "p1",
         "deepseek-chat": "deepseek",
         "deepseek-chat": "claude-hybridspace",
@@ -72,24 +70,25 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
 
     @classmethod
     def get_models(cls, **kwargs):
-        # Fetch image models if not cached
         if not cls.image_models:
             url = "https://image.pollinations.ai/models"
             response = requests.get(url)
             raise_for_status(response)
             cls.image_models = response.json()
-            cls.image_models.extend(cls.extra_image_models)
-
-        # Fetch text models if not cached
+            cls.image_models = list(dict.fromkeys([*cls.image_models, *cls.extra_image_models]))
+        
         if not cls.text_models:
             url = "https://text.pollinations.ai/models"
             response = requests.get(url)
             raise_for_status(response)
-            cls.text_models = [model.get("name") for model in response.json()]
-            cls.text_models.extend(cls.extra_text_models)
-
-        # Return combined models
-        return cls.text_models + cls.image_models
+            original_text_models = [model.get("name") for model in response.json()]
+            combined_text = cls.extra_text_models + [
+                model for model in original_text_models 
+                if model not in cls.extra_text_models
+            ]
+            cls.text_models = list(dict.fromkeys(combined_text))
+        
+        return list(dict.fromkeys([*cls.text_models, *cls.image_models]))
 
     @classmethod
     async def create_async_generator(
@@ -97,7 +96,6 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         model: str,
         messages: Messages,
         proxy: str = None,
-        # Image specific parameters
         prompt: str = None,
         width: int = 1024,
         height: int = 1024,
@@ -106,7 +104,6 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         private: bool = False,
         enhance: bool = False,
         safe: bool = False,
-        # Text specific parameters
         images: ImagesType = None,
         temperature: float = None,
         presence_penalty: float = None,
@@ -122,8 +119,6 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         if not cache and seed is None:
             seed = random.randint(0, 100000)
 
-        # Check if models
-        # Image generation
         if model in cls.image_models:
            yield await cls._generate_image(
                 model=model,
@@ -138,7 +133,6 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                 safe=safe
             )
         else:
-            # Text generation
             async for result in cls._generate_text(
                 model=model,
                 messages=messages,
@@ -227,7 +221,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                 "top_p": top_p,
                 "frequency_penalty": frequency_penalty,
                 "jsonMode": jsonMode,
-                "stream": False, # To get more informations like Usage and FinishReason
+                "stream": False,
                 "seed": seed,
                 "cache": cache
             }
@@ -235,24 +229,29 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                 await raise_for_status(response)
                 async for line in response.content:
                     decoded_chunk = line.decode(errors="replace")
-                    # If [DONE].
                     if "data: [DONE]" in decoded_chunk:
                         break
-                    # Processing JSON format
                     try:
-                        # Remove the prefix “data: “ and parse JSON
                         json_str = decoded_chunk.replace("data:", "").strip()
                         data = json.loads(json_str)
                         choice = data["choices"][0]
+                        message = choice.get("message") or choice.get("delta", {})
+                        
+                        # Handle reasoning content
+                        if model in cls.reasoning_models:
+                            if "reasoning_content" in message:
+                                yield Reasoning(status=message["reasoning_content"].strip())
+                        
                         if "usage" in data:
                             yield Usage(**data["usage"])
-                        if "message" in choice and "content" in choice["message"] and choice["message"]["content"]:
-                            yield choice["message"]["content"].replace("\\(", "(").replace("\\)", ")")
-                        elif "delta" in choice and "content" in choice["delta"] and choice["delta"]["content"]:
-                            yield choice["delta"]["content"].replace("\\(", "(").replace("\\)", ")")
-                        if "finish_reason" in choice and choice["finish_reason"] is not None:
+                        content = message.get("content", "")
+                        if content:
+                            yield content.replace("\\(", "(").replace("\\)", ")")
+                        if "finish_reason" in choice and choice["finish_reason"]:
                             yield FinishReason(choice["finish_reason"])
                             break
                     except json.JSONDecodeError:
                         yield decoded_chunk.strip()
-                        continue
+                    except Exception as e:
+                        yield FinishReason("error")
+                        break

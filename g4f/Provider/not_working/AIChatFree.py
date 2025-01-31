@@ -5,17 +5,17 @@ from hashlib import sha256
 
 from aiohttp import BaseConnector, ClientSession
 
-from ..errors import RateLimitError
-from ..requests import raise_for_status
-from ..requests.aiohttp import get_connector
-from ..typing import AsyncResult, Messages
-from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from ...errors import RateLimitError
+from ...requests import raise_for_status
+from ...requests.aiohttp import get_connector
+from ...typing import AsyncResult, Messages
+from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
 
 
 class AIChatFree(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://aichatfree.info"
     
-    working = True
+    working = False
     supports_stream = True
     supports_message_history = True
     

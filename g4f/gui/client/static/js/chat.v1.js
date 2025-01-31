@@ -1961,42 +1961,74 @@ async function on_api() {
                 }
             }
         });
+
+        let providersContainer = document.createElement("div");
+        providersContainer.classList.add("field", "collapsible");
+        providersContainer.innerHTML = `
+            <div class="collapsible-header">
+                <span class="label">Providers (Enable/Disable)</span>
+                <i class="fa-solid fa-chevron-down"></i>
+            </div>
+            <div class="collapsible-content hidden"></div>
+        `;
+        settings.querySelector(".paper").appendChild(providersContainer);
+
         providers.forEach((provider) => {
             if (!provider.parent) {
-                option = document.createElement("div");
-                option.classList.add("field");
+                let option = document.createElement("div");
+                option.classList.add("provider-item");
                 option.innerHTML = `
                     <span class="label">Enable ${provider.label}</span>
                     <input id="Provider${provider.name}" type="checkbox" name="Provider${provider.name}" value="${provider.name}" class="provider" checked="">
                     <label for="Provider${provider.name}" class="toogle" title="Remove provider from dropdown"></label>
                 `;
                 option.querySelector("input").addEventListener("change", (event) => load_provider_option(event.target, provider.name));
-                settings.querySelector(".paper").appendChild(option);
+                providersContainer.querySelector(".collapsible-content").appendChild(option);
                 provider_options[provider.name] = option;
             }
         });
+
+        providersContainer.querySelector(".collapsible-header").addEventListener('click', (e) => {
+            providersContainer.querySelector(".collapsible-content").classList.toggle('hidden');
+            providersContainer.querySelector(".collapsible-header").classList.toggle('active');
+        });
     }
+
     if (appStorage.getItem("provider")) {
         await load_provider_models(appStorage.getItem("provider"))
     } else {
         providerSelect.selectedIndex = 0;
     }
+
+    let providersListContainer = document.createElement("div");
+    providersListContainer.classList.add("field", "collapsible");
+    providersListContainer.innerHTML = `
+        <div class="collapsible-header">
+            <span class="label">Providers API key</span>
+            <i class="fa-solid fa-chevron-down"></i>
+        </div>
+        <div class="collapsible-content hidden"></div>
+    `;
+    settings.querySelector(".paper").appendChild(providersListContainer);
+
     for (let [name, [label, login_url, childs]] of Object.entries(login_urls)) {
         if (!login_url && !is_demo) {
             continue;
         }
-        option = document.createElement("div");
-        option.classList.add("field", "box");
-        if (!is_demo) {
-            option.classList.add("hidden");
-        }
-        childs = childs.map((child)=>`${child}-api_key`).join(" ");
-        option.innerHTML = `
+        let providerBox = document.createElement("div");
+        providerBox.classList.add("field", "box");
+        childs = childs.map((child) => `${child}-api_key`).join(" ");
+        providerBox.innerHTML = `
             <label for="${name}-api_key" class="label" title="">${label}:</label>
             <input type="text" id="${name}-api_key" name="${name}[api_key]" class="${childs}" placeholder="api_key" autocomplete="off"/>
         ` + (login_url ? `<a href="${login_url}" target="_blank" title="Login to ${label}">Get API key</a>` : "");
-        settings.querySelector(".paper").appendChild(option);
+        providersListContainer.querySelector(".collapsible-content").appendChild(providerBox);
     }
+
+    providersListContainer.querySelector(".collapsible-header").addEventListener('click', (e) => {
+        providersListContainer.querySelector(".collapsible-content").classList.toggle('hidden');
+        providersListContainer.querySelector(".collapsible-header").classList.toggle('active');
+    });
 
     register_settings_storage();
     await load_settings_storage();

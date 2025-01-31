@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 from aiohttp import ClientSession
-
 import re
 import json
 import random
 import string
 from pathlib import Path
+from typing import Optional
+from datetime import datetime, timezone
 
 from ..typing import AsyncResult, Messages, ImagesType
 from ..requests.raise_for_status import raise_for_status
@@ -14,7 +15,7 @@ from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..image import ImageResponse, to_data_uri
 from ..cookies import get_cookies_dir
 from .helper import format_prompt, format_image_prompt
-from ..providers.response import FinishReason, JsonConversation, Reasoning
+from ..providers.response import JsonConversation, Reasoning
 
 class Conversation(JsonConversation):
     validated_value: str = None
@@ -38,13 +39,13 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
     default_vision_model = default_model
     default_image_model = 'ImageGeneration' 
     image_models = [default_image_model, "ImageGeneration2"]
-    vision_models = [default_vision_model, 'gpt-4o', 'gemini-pro', 'gemini-1.5-flash', 'llama-3.1-8b', 'llama-3.1-70b', 'llama-3.1-405b']
+    vision_models = [default_vision_model, 'gpt-4o', 'gemini-pro', 'deepseek-v3', 'gemini-1.5-flash', 'llama-3.1-8b', 'llama-3.1-70b', 'llama-3.1-405b']
+    reasoning_models = ['deepseek-r1']
     
     userSelectedModel = ['gpt-4o', 'gemini-pro', 'claude-sonnet-3.5', 'deepseek-r1', 'deepseek-v3', 'blackboxai-pro']
 
     agentMode = {
         'ImageGeneration': {'mode': True, 'id': "ImageGenerationLV45LJp", 'name': "Image Generation"},
-        #
         'Meta-Llama-3.3-70B-Instruct-Turbo': {'mode': True, 'id': "meta-llama/Llama-3.3-70B-Instruct-Turbo", 'name': "Meta-Llama-3.3-70B-Instruct-Turbo"},
         'Mistral-(7B)-Instruct-v0.2': {'mode': True, 'id': "mistralai/Mistral-7B-Instruct-v0.2", 'name': "Mistral-(7B)-Instruct-v0.2"},
         'DeepSeek-LLM-Chat-(67B)': {'mode': True, 'id': "deepseek-ai/deepseek-llm-67b-chat", 'name': "DeepSeek-LLM-Chat-(67B)"},
@@ -58,7 +59,6 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         "llama-3.1-8b": {'mode': True, 'id': "llama-3.1-8b"},
         'llama-3.1-70b': {'mode': True, 'id': "llama-3.1-70b"},
         'llama-3.1-405b': {'mode': True, 'id': "llama-3.1-405"},
-        #
         'Python Agent': {'mode': True, 'id': "Python Agent"},
         'Java Agent': {'mode': True, 'id': "Java Agent"},
         'JavaScript Agent': {'mode': True, 'id': "JavaScript Agent"},
@@ -72,11 +72,8 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         'React Agent': {'mode': True, 'id': "React Agent"},
         'Xcode Agent': {'mode': True, 'id': "Xcode Agent"},
         'AngularJS Agent': {'mode': True, 'id': "AngularJS Agent"},
-        #
         'blackboxai-pro': {'mode': True, 'id': "BLACKBOXAI-PRO"},
-        #
         'repomap': {'mode': True, 'id': "repomap"},
-        #
         'Heroku Agent': {'mode': True, 'id': "Heroku Agent"},
         'Godot Agent': {'mode': True, 'id': "Godot Agent"},
         'Go Agent': {'mode': True, 'id': "Go Agent"},
@@ -96,10 +93,9 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         'builder Agent': {'mode': True, 'id': "builder Agent"},
     }
     
-    models = list(dict.fromkeys([default_model, *userSelectedModel, *image_models, *list(agentMode.keys()), *list(trendingAgentMode.keys())]))
+    models = list(dict.fromkeys([default_model, *userSelectedModel, *reasoning_models, *image_models, *list(agentMode.keys()), *list(trendingAgentMode.keys())]))
 
     model_aliases = {
-        ### chat ###
         "gpt-4": "gpt-4o",
         "gemini-1.5-flash": "gemini-1.5-flash",
         "gemini-1.5-pro": "gemini-pro",
@@ -110,22 +106,11 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         "dbrx-instruct": "DBRX-Instruct",
         "qwq-32b": "Qwen-QwQ-32B-Preview",
         "hermes-2-dpo": "Nous-Hermes-2-Mixtral-8x7B-DPO",
-        "deepseek-chat": "deepseek-v3",
-        
-        ### image ###
         "flux": "ImageGeneration",
-        "flux": "ImageGeneration2",
     }
 
     @classmethod
-    async def fetch_validated(
-        cls,
-        url: str = "https://www.blackbox.ai",
-        force_refresh: bool = False
-    ) -> Optional[str]:
-        """
-        Asynchronously retrieves the validated_value from the specified URL.
-        """
+    async def fetch_validated(cls, url: str = "https://www.blackbox.ai", force_refresh: bool = False) -> Optional[str]:
         cache_file = Path(get_cookies_dir()) / 'blackbox.json'
         
         if not force_refresh and cache_file.exists():
@@ -141,14 +126,12 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         uuid_pattern = r'["\']([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})["\']'
 
         def is_valid_context(text: str) -> bool:
-            """Checks if the context is valid."""
             return any(char + '=' in text for char in 'abcdefghijklmnopqrstuvwxyz')
 
         async with ClientSession() as session:
             try:
                 async with session.get(url) as response:
                     if response.status != 200:
-                        print("Failed to load the page.")
                         return None
 
                     page_content = await response.text()
@@ -167,7 +150,6 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
                                 if is_valid_context(context):
                                     validated_value = match.group(1)
                                     
-                                    # Save to cache
                                     cache_file.parent.mkdir(exist_ok=True)
                                     try:
                                         with open(cache_file, 'w') as f:
@@ -183,10 +165,9 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         return None
 
     @classmethod
-    def generate_chat_id(cls) -> str:
-        """Generate a random chat ID"""
+    def generate_id(cls, length: int = 7) -> str:
         chars = string.ascii_letters + string.digits
-        return ''.join(random.choice(chars) for _ in range(7))
+        return ''.join(random.choice(chars) for _ in range(length))
 
     @classmethod
     async def create_async_generator(
@@ -216,6 +197,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         
         async with ClientSession(headers=headers) as session:
             if model == "ImageGeneration2":
+                prompt = format_image_prompt(messages, prompt)
                 data = {
                     "query": format_image_prompt(messages, prompt),
                     "agentMode": True
@@ -235,18 +217,28 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
                         image_url_match = re.search(r'!\[.*?\]\((.*?)\)', response_json["markdown"])
                         if image_url_match:
                             image_url = image_url_match.group(1)
-                            yield ImageResponse(images=[image_url], alt=prompt)
+                            yield ImageResponse(images=[image_url], alt=format_image_prompt(messages, prompt))
                             return
 
             if conversation is None or not hasattr(conversation, "chat_id"):
                 conversation = Conversation(model)
                 conversation.validated_value = await cls.fetch_validated()
-                conversation.chat_id = cls.generate_chat_id()
+                conversation.chat_id = cls.generate_id()
                 conversation.message_history = []
-            
-            current_messages = [{"id": conversation.chat_id, "content": format_prompt(messages), "role": "user"}]
-            conversation.message_history.extend(messages)
 
+            current_messages = []
+            for i, msg in enumerate(messages):
+                msg_id = conversation.chat_id if i == 0 and msg["role"] == "user" else cls.generate_id()
+                current_msg = {
+                    "id": msg_id,
+                    "content": msg["content"],
+                    "role": msg["role"]
+                }
+                if msg["role"] == "assistant" and i == len(messages)-1:
+                    current_time = datetime.now(timezone.utc).isoformat(timespec='milliseconds').replace('+00:00', 'Z')
+                    current_msg["createdAt"] = current_time
+                current_messages.append(current_msg)
+            
             if images is not None:
                 current_messages[-1]['data'] = {
                     "imagesData": [
@@ -279,6 +271,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
                 "clickedAnswer3": False,
                 "clickedForceWebSearch": False,
                 "visitFromDelta": False,
+                "isMemoryEnabled": False,
                 "mobileClient": False,
                 "userSelectedModel": model if model in cls.userSelectedModel else None,
                 "validated": conversation.validated_value,
@@ -288,6 +281,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
                 "domains": None,
                 "vscodeClient": False,
                 "codeInterpreterMode": False,
+                "customProfile": {"name": "", "occupation": "", "traits": [], "additionalInfo": "", "enableNewChats": False},
                 "webSearchMode": web_search
             }
             
@@ -300,21 +294,36 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
                 if not text_to_yield or text_to_yield.isspace():
                     return
 
-                full_response = ""
-                
                 if model in cls.image_models:
                     image_url_match = re.search(r'!\[.*?\]\((.*?)\)', text_to_yield)
                     if image_url_match:
                         image_url = image_url_match.group(1)
-                        yield ImageResponse(image_url, format_image_prompt(messages, prompt))
+                        prompt = format_image_prompt(messages, prompt)
+                        yield ImageResponse(images=[image_url], alt=prompt)
                 else:
-                    if "<think>" in text_to_yield and "</think>" in text_to_yield:
-                        parts = text_to_yield.split('<think>', 1)
-                        yield parts[0]
-                        reasoning_parts = parts[1].split('</think>', 1)
-                        yield Reasoning(f"<think>{reasoning_parts[0]}</think>")
-                        yield reasoning_parts[1]
-                        full_response = text_to_yield
+                    if model in cls.reasoning_models and "\n\n\n" in text_to_yield:
+                        think_split = text_to_yield.split("\n\n\n", 1)
+                        if len(think_split) > 1:
+                            think_content, answer = think_split[0].strip(), think_split[1].strip()
+                            yield Reasoning(status=think_content)
+                            yield answer
+                        else:
+                            yield text_to_yield
+                    elif "<think>" in text_to_yield:
+                        pre_think, rest = text_to_yield.split('<think>', 1)
+                        think_content, post_think = rest.split('</think>', 1)
+                        
+                        pre_think = pre_think.strip()
+                        think_content = think_content.strip()
+                        post_think = post_think.strip()
+                        
+                        if pre_think:
+                            yield pre_think
+                        if think_content:
+                            yield Reasoning(status=think_content)
+                        if post_think:
+                            yield post_think
+                            
                     elif "Generated by BLACKBOX.AI" in text_to_yield:
                         conversation.validated_value = await cls.fetch_validated(force_refresh=True)
                         if conversation.validated_value:
@@ -327,24 +336,13 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
                                 
                                 if new_text and not new_text.isspace():
                                     yield new_text
-                                    full_response = new_text
                         else:
                             if text_to_yield and not text_to_yield.isspace():
                                 yield text_to_yield
-                                full_response = text_to_yield
                     else:
                         if text_to_yield and not text_to_yield.isspace():
                             yield text_to_yield
-                            full_response = text_to_yield
 
-                    if full_response:
-                        if max_tokens and len(full_response) >= max_tokens:
-                            reason = "length"
-                        else:
-                            reason = "stop"
-
-                        if return_conversation:
-                            conversation.message_history.append({"role": "assistant", "content": full_response})
-                            yield conversation
-                        
-                        yield FinishReason(reason)
+                    if return_conversation:
+                        conversation.message_history.append({"role": "assistant", "content": text_to_yield})
+                        yield conversation

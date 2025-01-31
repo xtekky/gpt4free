@@ -14,9 +14,6 @@ from .hf_space         import HuggingSpace
 from .mini_max         import HailuoAI, MiniMax
 from .template         import OpenaiTemplate, BackendApi
 
-from .AIChatFree           import AIChatFree
-from .AIUncensored         import AIUncensored
-from .AutonomousAI         import AutonomousAI
 from .Blackbox             import Blackbox
 from .CablyAI              import CablyAI
 from .ChatGLM              import ChatGLM
@@ -31,6 +28,7 @@ from .DeepInfraChat        import DeepInfraChat
 from .Free2GPT             import Free2GPT
 from .FreeGpt              import FreeGpt
 from .GizAI                import GizAI
+from .Glider               import Glider
 from .GPROChat             import GPROChat
 from .ImageLabs            import ImageLabs
 from .Jmuz                 import Jmuz
