@@ -41,7 +41,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
     extra_image_models = ["midjourney", "dall-e-3", "flux-pro"]
     vision_models = [default_vision_model, "gpt-4o-mini"]
     reasoning_models = ['deepseek-reasoner', 'deepseek-r1']
-    extra_text_models = ["claude", "claude-email", "deepseek-reasoner", "p1"] + vision_models + reasoning_models
+    extra_text_models = ["claude", "claude-email", "p1"] + vision_models + reasoning_models
     model_aliases = {
         ### Text Models ###
         "gpt-4o-mini": "openai",
