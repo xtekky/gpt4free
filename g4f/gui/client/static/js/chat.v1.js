@@ -489,6 +489,8 @@ document.querySelector(".media_player .fa-x").addEventListener("click", ()=>{
 const prepare_messages = (messages, message_index = -1, do_continue = false, do_filter = true) => {
     messages = [ ...messages ]
     if (message_index != null) {
+        console.debug("Messages Index:", message_index);
+
         // Removes messages after selected
         if (message_index >= 0) {
             messages = messages.filter((_, index) => message_index >= index);
@@ -502,6 +504,7 @@ const prepare_messages = (messages, message_index = -1, do_continue = false, do_
                     break;
                 }
             }
+            console.debug("Messages filtered:", messages);
         }
     }
     // Combine assistant messages
@@ -537,10 +540,14 @@ const prepare_messages = (messages, message_index = -1, do_continue = false, do_
         while (last_message = messages.pop()) {
             if (last_message["role"] == "user") {
                 filtered_messages.push(last_message);
+            } else {
                 break;
             }
         }
         messages = filtered_messages.reverse();
+        if (last_message) {
+            console.debug("History removed:", messages)
+        }
     }
 
     messages.forEach((new_message, i) => {
@@ -572,6 +579,7 @@ const prepare_messages = (messages, message_index = -1, do_continue = false, do_
             }
         }
     });
+    console.debug("Final messages:", final_messages)
 
     return final_messages;
 }
