@@ -156,7 +156,7 @@ class Backend_Api(Api):
 
         if has_flask_limiter and app.demo:
             @app.route('/backend-api/v2/conversation', methods=['POST'])
-            @limiter.limit("4 per minute") # 1 request in 15 seconds
+            @limiter.limit("2 per minute")
             def _handle_conversation():
                 limiter.check()
                 return handle_conversation()
@@ -270,7 +270,8 @@ class Backend_Api(Api):
                         response = iter_run_tools(ChatCompletion.create, **parameters)
                         cache_dir.mkdir(parents=True, exist_ok=True)
                         with cache_file.open("w") as f:
-                            f.write(response)
+                            for chunk in response:
+                                f.write(str(chunk))
                 else:
                     response = iter_run_tools(ChatCompletion.create, **parameters)
 

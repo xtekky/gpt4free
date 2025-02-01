@@ -779,7 +779,7 @@ async function add_message_chunk(message, message_id, provider, scroll, finish_m
     } else if (message.type == "reasoning") {
         if (!reasoning_storage[message_id]) {
             reasoning_storage[message_id] = message;
-            reasoning_storage[message_id].text = "";
+            reasoning_storage[message_id].text = message.token || "";
         } else if (message.status) {
             reasoning_storage[message_id].status = message.status;
         } else if (message.token) {

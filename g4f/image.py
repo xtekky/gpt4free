@@ -242,13 +242,15 @@ def ensure_images_dir():
     os.makedirs(images_dir, exist_ok=True)
 
 def get_image_extension(image: str) -> str:
-    if match := re.search(r"(\.(?:jpe?g|png|webp))[$?&]", image):
-        return match.group(1)
+    match = re.search(r"\.(?:jpe?g|png|webp)", image)
+    if match:
+        return match.group(0)
     return ".jpg"
 
 async def copy_images(
     images: list[str],
     cookies: Optional[Cookies] = None,
+    headers: Optional[dict] = None,
     proxy: Optional[str] = None,
     alt: str = None,
     add_url: bool = True,
@@ -260,7 +262,8 @@ async def copy_images(
     ensure_images_dir()
     async with ClientSession(
         connector=get_connector(proxy=proxy),
-        cookies=cookies
+        cookies=cookies,
+        headers=headers,
     ) as session:
         async def copy_image(image: str, target: str = None) -> str:
             if target is None or len(images) > 1:

@@ -7,24 +7,26 @@ from typing import AsyncIterator
 import asyncio
 
 from ..base_provider import AsyncAuthedProvider
-from ...requests import get_args_from_nodriver
+from ...providers.helper import get_last_user_message
+from ... import requests
+from ...errors import MissingAuthError
+from ...requests import get_args_from_nodriver, get_nodriver
 from ...providers.response import AuthResult, RequestLogin, Reasoning, JsonConversation, FinishReason
 from ...typing import AsyncResult, Messages
-
+from ... import debug
 try:
     from curl_cffi import requests
     from dsk.api import DeepSeekAPI, AuthenticationError, DeepSeekPOW
 
     class DeepSeekAPIArgs(DeepSeekAPI):
         def __init__(self, args: dict):
-            args.pop("headers")
             self.auth_token = args.pop("api_key")
             if not self.auth_token or not isinstance(self.auth_token, str):
                 raise AuthenticationError("Invalid auth token provided")
             self.args = args
             self.pow_solver = DeepSeekPOW()
 
-        def _make_request(self, method: str, endpoint: str, json_data: dict, pow_required: bool = False):
+        def _make_request(self, method: str, endpoint: str, json_data: dict, pow_required: bool = False, **kwargs):
             url = f"{self.BASE_URL}{endpoint}"
             headers = self._get_headers()
             if pow_required:
@@ -36,12 +38,15 @@ try:
                 method=method,
                 url=url,
                 json=json_data, **{
-                    "headers":headers,
-                    "impersonate":'chrome',
+                    **self.args,
+                    "headers": {**headers, **self.args["headers"]},
                     "timeout":None,
-                    **self.args
-                }
+                },
+                **kwargs
             )
+            if response.status_code == 403:
+                raise MissingAuthError()
+            response.raise_for_status()
             return response.json()
 except ImportError:
     pass
@@ -55,6 +60,8 @@ class DeepSeekAPI(AsyncAuthedProvider):
 
     @classmethod
     async def on_auth_async(cls, proxy: str = None, **kwargs) -> AsyncIterator:
+        if not hasattr(cls, "browser"):
+            cls.browser, cls.stop_browser = await get_nodriver()
         yield RequestLogin(cls.__name__, os.environ.get("G4F_LOGIN_URL") or "")
         async def callback(page):
             while True:
@@ -62,7 +69,7 @@ class DeepSeekAPI(AsyncAuthedProvider):
                 cls._access_token = json.loads(await page.evaluate("localStorage.getItem('userToken')") or "{}").get("value")
                 if cls._access_token:
                     break
-        args = await get_args_from_nodriver(cls.url, proxy, callback=callback)
+        args = await get_args_from_nodriver(cls.url, proxy, callback=callback, browser=cls.browser)
         yield AuthResult(
             api_key=cls._access_token,
             **args
@@ -88,7 +95,7 @@ class DeepSeekAPI(AsyncAuthedProvider):
         is_thinking = 0
         for chunk in api.chat_completion(
             conversation.chat_id,
-            messages[-1]["content"],
+            get_last_user_message(messages),
             thinking_enabled=True
         ):
             if chunk['type'] == 'thinking':
@@ -100,6 +107,7 @@ class DeepSeekAPI(AsyncAuthedProvider):
                 if is_thinking:
                     yield Reasoning(None, f"Thought for {time.time() - is_thinking:.2f}s")
                     is_thinking = 0
-                yield chunk['content']
+                if chunk['content']:
+                    yield chunk['content']
             if chunk['finish_reason']:
                 yield FinishReason(chunk['finish_reason'])

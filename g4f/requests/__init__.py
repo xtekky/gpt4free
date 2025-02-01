@@ -28,6 +28,7 @@ try:
     from nodriver import Browser, Tab, util
     has_nodriver = True
 except ImportError:
+    from typing import Type as Browser
     from typing import Type as Tab
     has_nodriver = False
 try:
@@ -85,9 +86,14 @@ async def get_args_from_nodriver(
     timeout: int = 120,
     wait_for: str = None,
     callback: callable = None,
-    cookies: Cookies = None
+    cookies: Cookies = None,
+    browser: Browser = None
 ) -> dict:
-    browser, stop_browser = await get_nodriver(proxy=proxy, timeout=timeout)
+    if browser is None:
+        browser, stop_browser = await get_nodriver(proxy=proxy, timeout=timeout)
+    else:
+        def stop_browser():
+            ...
     try:
         if debug.logging:
             print(f"Open nodriver with url: {url}")

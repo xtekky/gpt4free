@@ -581,7 +581,7 @@ class Api:
                 source_url = str(request.query_params).split("url=", 1)
                 if len(source_url) > 1:
                     source_url = source_url[1]
-                    source_url = source_url.replace("%2F", "/").replace("%3A", ":").replace("%3F", "?")
+                    source_url = source_url.replace("%2F", "/").replace("%3A", ":").replace("%3F", "?").replace("%3D", "=")
                     if source_url.startswith("https://"):
                         await copy_images(
                             [source_url],
