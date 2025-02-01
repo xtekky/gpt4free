@@ -9,7 +9,7 @@ import urllib.parse
 from ...typing import AsyncResult, Messages, Cookies
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..helper import format_prompt, format_image_prompt
-from ...providers.response import JsonConversation, ImageResponse, Notification
+from ...providers.response import JsonConversation, ImageResponse, DebugResponse
 from ...requests.aiohttp import StreamSession, StreamResponse
 from ...requests.raise_for_status import raise_for_status
 from ...cookies import get_cookies
@@ -105,7 +105,7 @@ class Janus_Pro_7B(AsyncGeneratorProvider, ProviderModelMixin):
                         try:
                             json_data = json.loads(decoded_line[6:])
                             if json_data.get('msg') == 'log':
-                                yield Notification(json_data["log"])
+                                yield DebugResponse(log=json_data["log"])
 
                             if json_data.get('msg') == 'process_generating':
                                 if 'output' in json_data and 'data' in json_data['output']:

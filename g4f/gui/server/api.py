@@ -187,8 +187,8 @@ class Api:
                 elif isinstance(chunk, ImageResponse):
                     images = chunk
                     if download_images or chunk.get("cookies"):
-                        alt = format_image_prompt(kwargs.get("messages"))
-                        images = asyncio.run(copy_images(chunk.get_list(), chunk.get("cookies"), proxy, alt))
+                        chunk.alt = chunk.alt or format_image_prompt(kwargs.get("messages"))
+                        images = asyncio.run(copy_images(chunk.get_list(), chunk.get("cookies"), proxy=proxy, alt=chunk.alt))
                         images = ImageResponse(images, chunk.alt)
                     yield self._format_json("content", str(images), images=chunk.get_list(), alt=chunk.alt)
                 elif isinstance(chunk, SynthesizeData):
@@ -204,11 +204,9 @@ class Api:
                 elif isinstance(chunk, Usage):
                     yield self._format_json("usage", chunk.get_dict())
                 elif isinstance(chunk, Reasoning):
-                    yield self._format_json("reasoning", token=chunk.token, status=chunk.status, is_thinking=chunk.is_thinking)
+                    yield self._format_json("reasoning", chunk.get_dict())
                 elif isinstance(chunk, DebugResponse):
-                    yield self._format_json("log", chunk.get_dict())
-                elif isinstance(chunk, Notification):
-                    yield self._format_json("notification", chunk.message)
+                    yield self._format_json("log", chunk.log)
                 else:
                     yield self._format_json("content", str(chunk))
                 if debug.logs:
@@ -224,15 +222,6 @@ class Api:
             yield self._format_json('error', type(e).__name__, message=get_error_message(e))
 
     def _format_json(self, response_type: str, content = None, **kwargs):
-        # Make sure it get be formated as JSON
-        if content is not None and not isinstance(content, (str, dict)):
-            content = str(content)
-        kwargs = {
-            key: value
-            if value is isinstance(value, (str, dict))
-            else str(value)
-            for key, value in kwargs.items()
-            if isinstance(key, str)}
         if content is not None:
             return {
                 'type': response_type,
