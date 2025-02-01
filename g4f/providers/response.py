@@ -71,7 +71,7 @@ def format_images_markdown(images: Union[str, list], alt: str, preview: Union[st
 class ResponseType:
     @abstractmethod
     def __str__(self) -> str:
-        pass
+        raise NotImplementedError
 
 class JsonMixin:
     def __init__(self, **kwargs) -> None:
@@ -143,7 +143,11 @@ class Reasoning(ResponseType):
     def __str__(self) -> str:
         if self.is_thinking is not None:
             return self.is_thinking
-        return f"{self.status}\n" if self.token is None else self.token
+        if self.token is not None:
+            return self.token
+        if self.status is not None:
+            return f"{self.status}\n"
+        return ""
 
 class Sources(ResponseType):
     def __init__(self, sources: list[dict[str, str]]) -> None:
