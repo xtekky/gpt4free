@@ -204,7 +204,7 @@ class Api:
                 elif isinstance(chunk, Usage):
                     yield self._format_json("usage", chunk.get_dict())
                 elif isinstance(chunk, Reasoning):
-                    yield self._format_json("reasoning", chunk.get_dict())
+                    yield self._format_json("reasoning", **chunk.get_dict())
                 elif isinstance(chunk, DebugResponse):
                     yield self._format_json("log", chunk.log)
                 else:
