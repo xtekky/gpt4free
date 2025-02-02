@@ -47,7 +47,7 @@ docker pull hlohaus789/g4f
 Is your site on this repository and you want to take it down? Send an email to takedown@g4f.ai with proof it is yours and it will be removed as fast as possible. To prevent reproduction please secure your API. 😉
 
 ## 🚀 GPT4Free on HuggingFace
-[![HuggingSpace](https://github.com/user-attachments/assets/1d859e8a-d6fa-416f-a213-ccc26aa11e90)](https://huggingface.co/spaces/roxky/g4f)
+[![HuggingSpace](https://github.com/user-attachments/assets/1d859e8a-d6fa-416f-a213-ccc26aa11e90)](https://huggingface.co/spaces/roxky/g4f-demo)
 **Is a proof-of-concept API package for multi-provider AI requests. It showcases features such as:**
 
 - Load balancing and request flow control.
