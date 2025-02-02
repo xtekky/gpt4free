@@ -27,7 +27,7 @@ class DeepInfraChat(OpenaiTemplate):
         "llama-3.1-8b": "meta-llama/Meta-Llama-3.1-8B-Instruct",
         "llama-3.3-70b": "meta-llama/Llama-3.3-70B-Instruct-Turbo",
         "llama-3.1-70b": "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo",
-        "deepseek-chat": "deepseek-ai/DeepSeek-V3",
+        "deepseek-v3": "deepseek-ai/DeepSeek-V3",
         "qwq-32b": "Qwen/QwQ-32B-Preview",
         "wizardlm-2-8x22b": "microsoft/WizardLM-2-8x22B",
         "wizardlm-2-7b": "microsoft/WizardLM-2-7B",

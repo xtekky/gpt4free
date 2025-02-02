@@ -7,17 +7,17 @@ import hashlib
 import json
 import random
 
-from ..typing import AsyncResult, Messages
-from ..requests.raise_for_status import raise_for_status
-from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from .helper import format_prompt
-from ..providers.response import FinishReason
+from ...typing import AsyncResult, Messages
+from ...requests.raise_for_status import raise_for_status
+from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from ..helper import format_prompt
+from ...providers.response import FinishReason
 
 class AIUncensored(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://www.aiuncensored.info/ai_uncensored"
     api_key = "62852b00cb9e44bca86f0ec7e7455dc6"
     
-    working = True
+    working = False
     supports_stream = True
     supports_system_message = True
     supports_message_history = True
