@@ -88,5 +88,6 @@ class PerplexityLabs(AsyncGeneratorProvider, ProviderModelMixin):
                         if data["final"]:
                             yield FinishReason("stop")
                             break
-                    except:
-                        raise RuntimeError(f"Message: {message}")
+                    except Exception as e:
+                        print(f"Error processing message: {message} - {e}")
+                        raise RuntimeError(f"Message: {message}") from e
