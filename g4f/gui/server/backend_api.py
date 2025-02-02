@@ -276,7 +276,7 @@ class Backend_Api(Api):
                     response = iter_run_tools(ChatCompletion.create, **parameters)
 
                 if do_filter_markdown:
-                    return Response(filter_markdown(response, do_filter_markdown), mimetype='text/plain')
+                    return Response(filter_markdown("".join([str(chunk) for chunk in response]), do_filter_markdown), mimetype='text/plain')
                 def cast_str():
                     for chunk in response:
                         if not isinstance(chunk, Exception):

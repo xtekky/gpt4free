@@ -15,6 +15,7 @@ const inputCount        = document.getElementById("input-count").querySelector("
 const providerSelect    = document.getElementById("provider");
 const modelSelect       = document.getElementById("model");
 const modelProvider     = document.getElementById("model2");
+const custom_model      = document.getElementById("model3");
 const chatPrompt        = document.getElementById("chatPrompt");
 const settings          = document.querySelector(".settings");
 const chat              = document.querySelector(".conversation");
@@ -78,16 +79,26 @@ function render_reasoning(reasoning, final = false) {
     </div>` : "";
     return `<div class="reasoning_body">
         <div class="reasoning_title">
-           <strong>Reasoning <i class="fa-solid fa-brain"></i>:</strong> ${escapeHtml(reasoning.status)}
+           <strong>Reasoning <i class="brain">🧠</i>:</strong> ${escapeHtml(reasoning.status)}
         </div>
         ${inner_text}
     </div>`;
+}
+
+function render_reasoning_text(reasoning) {
+    return `Reasoning 🧠: ${reasoning.status}\n\n${reasoning.text}\n\n`;
 }
 
 function filter_message(text) {
     return text.replaceAll(
         /<!-- generated images start -->[\s\S]+<!-- generated images end -->/gm, ""
     ).replace(/ \[aborted\]$/g, "").replace(/ \[error\]$/g, "");
+}
+
+function filter_message_content(text) {
+    return text.replaceAll(
+        /\/\]\(\/generate\//gm, "/](/images/"
+    ).replace(/ \[aborted\]$/g, "").replace(/ \[error\]$/g, "")
 }
 
 function fallback_clipboard (text) {
@@ -182,6 +193,53 @@ const get_message_el = (el) => {
     return message_el;
 }
 
+function register_message_images() {
+    message_box.querySelectorAll(`.loading-indicator`).forEach((el) => el.remove());
+    message_box.querySelectorAll(`.message img:not([alt="your avatar"])`).forEach(async (el) => {
+        if (!el.complete) {
+            const indicator = document.createElement("span");
+            indicator.classList.add("loading-indicator");
+            indicator.innerHTML = `<i class="fas fa-spinner fa-spin"></i>`;
+            el.parentElement.appendChild(indicator);
+            el.onerror = () => {
+                let indexCommand;
+                if ((indexCommand = el.src.indexOf("/generate/")) >= 0) {
+                    indexCommand = indexCommand + "/generate/".length + 1;
+                    let newPath = el.src.substring(indexCommand)
+                    let filename = newPath.replace(/(?:\?.+?|$)/, "");
+                    let seed = Math.floor(Date.now() / 1000);
+                    newPath = `https://image.pollinations.ai/prompt/${newPath}?seed=${seed}&nologo=true`;
+                    let downloadUrl = newPath;
+                    if (document.getElementById("download_images")?.checked) {
+                        downloadUrl = `/images/${filename}?url=${escapeHtml(newPath)}`;
+                    }
+                    const link = document.createElement("a");
+                    link.setAttribute("href", newPath);
+                    const newImg = document.createElement("img");
+                    newImg.src = downloadUrl;
+                    newImg.alt = el.alt;
+                    newImg.onload = () => {
+                        lazy_scroll_to_bottom();
+                        indicator.remove();
+                    }
+                    link.appendChild(newImg);
+                    el.parentElement.appendChild(link);
+                } else {
+                    const span = document.createElement("span");
+                    span.innerHTML = `<i class="fa-solid fa-plug"></i>${escapeHtml(el.alt)}`;
+                    el.parentElement.appendChild(span);
+                }
+                el.remove();
+                indicator.remove();
+            }
+            el.onload = () => {
+                indicator.remove();
+                lazy_scroll_to_bottom();
+            }
+        }
+    });
+}
+
 const register_message_buttons = async () => {
     message_box.querySelectorAll(".message .content .provider").forEach(async (el) => {
         if (!("click" in el.dataset)) {
@@ -243,24 +301,22 @@ const register_message_buttons = async () => {
     message_box.querySelectorAll(".message .fa-file-export").forEach(async (el) => {
         if (!("click" in el.dataset)) {
             el.dataset.click = "true";
+            //
             el.addEventListener("click", async () => {
                 const elem = window.document.createElement('a');
                 let filename = `chat ${new Date().toLocaleString()}.md`.replaceAll(":", "-");
                 const conversation = await get_conversation(window.conversation_id);
                 let buffer = "";
                 conversation.items.forEach(message => {
+                    buffer += render_reasoning_text(message.reasoning);
                     buffer += `${message.role == 'user' ? 'User' : 'Assistant'}: ${message.content.trim()}\n\n\n`;
                 });
-                const file = new File([buffer.trim()], 'message.md', {type: 'text/plain'});
-                const objectUrl = URL.createObjectURL(file);
-                elem.href = objectUrl;
-                elem.download = filename;        
-                document.body.appendChild(elem);
-                elem.click();        
-                document.body.removeChild(elem);
+                var download = document.getElementById("download");
+                download.setAttribute("href", "data:text/markdown;charset=utf-8," + encodeURIComponent(buffer.trim()));
+                download.setAttribute("download", filename);
+                download.click();
                 el.classList.add("clicked");
                 setTimeout(() => el.classList.remove("clicked"), 1000);
-                URL.revokeObjectURL(objectUrl);
             })
         }
     });
@@ -376,7 +432,7 @@ const handle_ask = async (do_ask_gpt = true) => {
     messageInput.focus();
     await scroll_to_bottom();
 
-    let message = messageInput.value;
+    let message = messageInput.value.trim();
     if (message.length <= 0) {
         return;
     }
@@ -755,6 +811,7 @@ async function add_message_chunk(message, message_id, provider, scroll, finish_m
             if (!img.complete)
                 return;
         content_map.inner.innerHTML = markdown_render(message.preview);
+        await register_message_images();
     } else if (message.type == "content") {
         message_storage[message_id] += message.content;
         update_message(content_map, message_id, null, scroll);
@@ -779,7 +836,7 @@ async function add_message_chunk(message, message_id, provider, scroll, finish_m
     } else if (message.type == "reasoning") {
         if (!reasoning_storage[message_id]) {
             reasoning_storage[message_id] = message;
-            reasoning_storage[message_id].text = message.token || "";
+            reasoning_storage[message_id].text = "";
         } else if (message.status) {
             reasoning_storage[message_id].status = message.status;
         } else if (message.token) {
@@ -952,6 +1009,7 @@ const ask_gpt = async (message_id, message_index = -1, regenerate = false, provi
         }
         await safe_remove_cancel_button();
         await register_message_buttons();
+        await register_message_images();
         await load_conversations();
         regenerate_button.classList.remove("regenerate-hidden");
     }
@@ -1201,8 +1259,8 @@ const load_conversation = async (conversation_id, scroll=true) => {
         } else {
             buffer = "";
         }
-        buffer = buffer.replace(/ \[aborted\]$/g, "").replace(/ \[error\]$/g, "");
-        new_content = item.content.replace(/ \[aborted\]$/g, "").replace(/ \[error\]$/g, "");
+        buffer = filter_message_content(buffer);
+        new_content = filter_message_content(item.content);
         buffer = merge_messages(buffer, new_content);
         last_model = item.provider?.model;
         providers.push(item.provider?.name);
@@ -1658,12 +1716,9 @@ const register_settings_storage = async () => {
 const load_settings_storage = async () => {
     const optionElements = document.querySelectorAll(optionElementsSelector);
     optionElements.forEach((element) => {
-        if (element.name && element.name != element.id && (value = appStorage.getItem(element.name))) {
-            appStorage.setItem(element.id, value);
-            appStorage.removeItem(element.name);
-        }
-        if (!(value = appStorage.getItem(element.id))) {
-            return;
+        value = appStorage.getItem(element.id);
+        if (value == null && element.dataset.value) {
+            value = element.dataset.value;
         }
         if (value) {
             switch (element.type) {
@@ -1677,10 +1732,10 @@ const load_settings_storage = async () => {
                 case "number":
                 case "textarea":
                     if (element.id.endsWith("-api_key")) {
-                        element.placeholder = value && value.length >= 22 ? (value.substring(0, 12)+"*".repeat(12)+value.substring(value.length-12)) : "*".repeat(value.length);
+                        element.placeholder = value && value.length >= 22 ? (value.substring(0, 12)+"*".repeat(12)+value.substring(value.length-12)) : "*".repeat(value ? value.length : 0);
                         element.dataset.value = value;
                     } else {
-                        element.value = value;
+                        element.value = value == null ? element.dataset.value : value;
                     }
                     break;
                 default:
@@ -1834,7 +1889,7 @@ async function on_load() {
         let chat_url = new URL(window.location.href)
         let chat_params = new URLSearchParams(chat_url.search);
         if (chat_params.get("prompt")) {
-            messageInput.value = `${chat_params.title}\n${chat_params.prompt}\n${chat_params.url}`.trim();
+            messageInput.value = `${window.location.href}\n`;
             messageInput.style.height = messageInput.scrollHeight  + "px";
             messageInput.focus();
             //await handle_ask();
@@ -2255,7 +2310,9 @@ chatPrompt?.addEventListener("input", async () => {
 });
 
 function get_selected_model() {
-    if (modelProvider.selectedIndex >= 0) {
+    if (custom_model.value) {
+        return custom_model;
+    } else if (modelProvider.selectedIndex >= 0) {
         return modelProvider.options[modelProvider.selectedIndex];
     } else if (modelSelect.selectedIndex >= 0) {
         model = modelSelect.options[modelSelect.selectedIndex];
@@ -2401,17 +2458,31 @@ async function load_provider_models(provider=null) {
     if (!provider) {
         provider = providerSelect.value;
     }
+    if (!custom_model.value) {
+        custom_model.classList.add("hidden");
+    }
+    if (provider == "Custom Model" || custom_model.value) {
+        modelProvider.classList.add("hidden");
+        modelSelect.classList.add("hidden");
+        document.getElementById("model3").classList.remove("hidden");
+        return;
+    }
     modelProvider.innerHTML = '';
     modelProvider.name = `model[${provider}]`;
     if (!provider) {
         modelProvider.classList.add("hidden");
         modelSelect.classList.remove("hidden");
+        document.getElementById("model3").value = "";
+        document.getElementById("model3").classList.remove("hidden");
         return;
     }
     const models = await api('models', provider);
     if (models && models.length > 0) {
         modelSelect.classList.add("hidden");
-        modelProvider.classList.remove("hidden");
+        if (!custom_model.value) {
+            custom_model.classList.add("hidden");
+            modelProvider.classList.remove("hidden");
+        }
         let defaultIndex = 0;
         models.forEach((model, i) => {
             let option = document.createElement('option');
@@ -2423,11 +2494,13 @@ async function load_provider_models(provider=null) {
                 defaultIndex = i;
             }
         });
-        modelProvider.selectedIndex = defaultIndex;
         let value = appStorage.getItem(modelProvider.name);
         if (value) {
             modelProvider.value = value;
         }
+        modelProvider.selectedIndex = defaultIndex;
+    } else if (custom_model.value) {
+        modelSelect.classList.add("hidden");
     } else {
         modelProvider.classList.add("hidden");
         modelSelect.classList.remove("hidden");
@@ -2439,6 +2512,12 @@ providerSelect.addEventListener("change", () => {
 });
 modelSelect.addEventListener("change", () => messageInput.focus());
 modelProvider.addEventListener("change", () =>  messageInput.focus());
+custom_model.addEventListener("change", () => {
+    if (!custom_model.value) {
+        load_provider_models();
+    }
+    messageInput.focus();
+});
 
 document.getElementById("pin").addEventListener("click", async () => {
     const pin_container = document.getElementById("pin_container");

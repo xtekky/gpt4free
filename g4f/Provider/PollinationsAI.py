@@ -13,7 +13,7 @@ from ..typing import AsyncResult, Messages, ImagesType
 from ..image import to_data_uri
 from ..requests.raise_for_status import raise_for_status
 from ..requests.aiohttp import get_connector
-from ..providers.response import ImageResponse, FinishReason, Usage
+from ..providers.response import ImageResponse, ImagePreview, FinishReason, Usage
 
 DEFAULT_HEADERS = {
     'Accept': '*/*',
@@ -125,7 +125,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         # Check if models
         # Image generation
         if model in cls.image_models:
-           yield await cls._generate_image(
+           async for chunk in cls._generate_image(
                 model=model,
                 prompt=format_image_prompt(messages, prompt),
                 proxy=proxy,
@@ -136,7 +136,8 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                 private=private,
                 enhance=enhance,
                 safe=safe
-            )
+            ):
+                yield chunk
         else:
             # Text generation
             async for result in cls._generate_text(
@@ -167,7 +168,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         private: bool,
         enhance: bool,
         safe: bool
-    ) -> ImageResponse:
+    ) -> AsyncResult:
         params = {
             "seed": seed,
             "width": width,
@@ -178,11 +179,16 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
             "enhance": enhance,
             "safe": safe
         }
-        params = {k: json.dumps(v) if isinstance(v, bool) else v for k, v in params.items() if v is not None}
+        params = {k: json.dumps(v) if isinstance(v, bool) else str(v) for k, v in params.items() if v is not None}
+        params = "&".join( "%s=%s" % (key, quote_plus(params[key])) 
+            for key in params.keys())
+        url = f"{cls.image_api_endpoint}prompt/{quote_plus(prompt)}?{params}"
+        yield ImagePreview(url, prompt)
         async with ClientSession(headers=DEFAULT_HEADERS, connector=get_connector(proxy=proxy)) as session:
-            async with session.head(f"{cls.image_api_endpoint}prompt/{quote_plus(prompt)}", params=params) as response:
-                await raise_for_status(response)
-                return ImageResponse(str(response.url), prompt)
+            async with session.head(url) as response:
+                if response.status != 500: # Server is busy
+                    await raise_for_status(response)
+                yield ImageResponse(str(response.url), prompt)
 
     @classmethod
     async def _generate_text(

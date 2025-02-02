@@ -10,6 +10,7 @@ from email.utils import formatdate
 import os.path
 import hashlib
 import asyncio
+from urllib.parse import quote_plus
 from fastapi import FastAPI, Response, Request, UploadFile, Depends
 from fastapi.middleware.wsgi import WSGIMiddleware
 from fastapi.responses import StreamingResponse, RedirectResponse, HTMLResponse, JSONResponse
@@ -176,11 +177,11 @@ class Api:
                         return ErrorResponse.from_message("G4F API key required", HTTP_401_UNAUTHORIZED)
                     if not secrets.compare_digest(AppConfig.g4f_api_key, user_g4f_api_key):
                         return ErrorResponse.from_message("Invalid G4F API key", HTTP_403_FORBIDDEN)
-                elif not AppConfig.demo:
-                    if user_g4f_api_key is not None and path.startswith("/images/"):
+                elif not AppConfig.demo and not path.startswith("/images/"):
+                    if user_g4f_api_key is not None:
                         if not secrets.compare_digest(AppConfig.g4f_api_key, user_g4f_api_key):
                             return ErrorResponse.from_message("Invalid G4F API key", HTTP_403_FORBIDDEN)
-                    elif path.startswith("/backend-api/") or path.startswith("/images/") or path.startswith("/chat/") and path != "/chat/":
+                    elif path.startswith("/backend-api/") or path.startswith("/chat/") and path != "/chat/":
                         try:
                             username = await self.get_username(request)
                         except HTTPException as e:
@@ -551,8 +552,8 @@ class Api:
             HTTP_404_NOT_FOUND: {}
         })
         async def get_image(filename, request: Request):
-            target = os.path.join(images_dir, filename)
-            ext = os.path.splitext(filename)[1]
+            target = os.path.join(images_dir, quote_plus(filename))
+            ext = os.path.splitext(filename)[1][1:]
             stat_result = SimpleNamespace()
             stat_result.st_size = 0
             if os.path.isfile(target):
@@ -560,10 +561,12 @@ class Api:
             stat_result.st_mtime = int(f"{filename.split('_')[0]}") if filename.startswith("1") else 0
             headers = {
                 "cache-control": "public, max-age=31536000",
-                "content-type": f"image/{ext.replace('jpg', 'jpeg')[1:] or 'jpeg'}",
-                "content-length": str(stat_result.st_size),
+                "content-type": f"image/{ext.replace('jpg', 'jpeg') or 'jpeg'}",
                 "last-modified": formatdate(stat_result.st_mtime, usegmt=True),
                 "etag": f'"{hashlib.md5(filename.encode()).hexdigest()}"',
+                **({
+                    "content-length": str(stat_result.st_size),
+                } if stat_result.st_size else {})
             }
             response = FileResponse(
                 target,
@@ -583,10 +586,14 @@ class Api:
                     source_url = source_url[1]
                     source_url = source_url.replace("%2F", "/").replace("%3A", ":").replace("%3F", "?").replace("%3D", "=")
                     if source_url.startswith("https://"):
-                        await copy_images(
-                            [source_url],
-                            target=target)
-                        debug.log(f"Image copied from {source_url}")
+                        try:
+                            await copy_images(
+                                [source_url],
+                                target=target)
+                            debug.log(f"Image copied from {source_url}")
+                        except Exception as e:
+                            debug.log(f"{type(e).__name__}: Download failed:  {source_url}\n{e}")
+                            return RedirectResponse(url=source_url)
             if not os.path.isfile(target):
                 return ErrorResponse.from_message("File not found", HTTP_404_NOT_FOUND)
             async def stream():
