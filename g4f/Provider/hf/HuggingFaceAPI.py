@@ -40,9 +40,6 @@ class HuggingFaceAPI(OpenaiTemplate):
         api_base: str = None,
         max_tokens: int = 2048,
         max_inputs_lenght: int = 10000,
-        impersonate: str = None,
-        proxy: str = None,
-        timeout: int = 300,
         images: ImagesType = None,
         **kwargs
     ):
@@ -53,9 +50,7 @@ class HuggingFaceAPI(OpenaiTemplate):
             api_base = f"https://api-inference.huggingface.co/models/{model_name}/v1"
         if images is not None:
             async with StreamSession(
-                proxy=proxy,
-                timeout=timeout,
-                impersonate=impersonate,
+                timeout=30,
             ) as session:
                 async with session.get(f"https://huggingface.co/api/models/{model}") as response:
                     if response.status == 404:
