@@ -17,7 +17,7 @@
     "background_color": "#ffffff",
     "display": "standalone",
     "share_target": {
-        "action": "/chat/",
+        "action": "/chat/share",
         "method": "GET",
         "enctype": "application/x-www-form-urlencoded",
         "params": {

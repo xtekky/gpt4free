@@ -799,7 +799,7 @@ form input:checked+label:after {
     color: var(--colour-3);
 }
 
-select {
+select, input.model {
     border-radius: 8px;
     backdrop-filter: blur(20px);
     cursor: pointer;
@@ -871,6 +871,7 @@ button.regenerate_button, button.continue_button, button.options_button {
 }
 
 select:hover,
+input.model:hover
 .buttons button:hover,
 .stop_generating button:hover,
 .toolbar .regenerate button:hover,
@@ -948,7 +949,7 @@ select:hover,
 }
 
 @media only screen and (min-width: 40em) {
-    select {
+    select, input.model {
         width: 200px;
     }
     .field {
@@ -1489,7 +1490,7 @@ form .field.saved .fa-xmark {
     max-height: 200px;
 }
 
-.hidden {
+.hidden, input.hidden {
     display: none;
 }
 

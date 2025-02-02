@@ -25,8 +25,9 @@ from ...requests import get_nodriver
 from ...image import ImageResponse, ImageRequest, to_image, to_bytes, is_accepted_format
 from ...errors import MissingAuthError, NoValidHarFileError
 from ...providers.response import JsonConversation, FinishReason, SynthesizeData, AuthResult
-from ...providers.response import Sources, TitleGeneration, RequestLogin, Parameters
+from ...providers.response import Sources, TitleGeneration, RequestLogin, Parameters, Reasoning
 from ..helper import format_cookies
+from ..openai.models import default_model, default_image_model, models, image_models, text_models
 from ..openai.har_file import get_request_config
 from ..openai.har_file import RequestConfig, arkReq, arkose_url, start_url, conversation_url, backend_url, backend_anon_url
 from ..openai.proofofwork import generate_proof_token
@@ -95,12 +96,11 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
     supports_gpt_4 = True
     supports_message_history = True
     supports_system_message = True
-    default_model = "auto"
-    default_image_model = "dall-e-3"
-    image_models = [default_image_model]
-    text_models = [default_model, "gpt-4", "gpt-4o", "gpt-4o-mini", "o1", "o1-preview", "o1-mini"]
+    default_model = default_model
+    default_image_model = default_image_model
+    image_models = image_models
     vision_models = text_models
-    models = text_models + image_models
+    models = models
     synthesize_content_type = "audio/mpeg"
 
     _api_key: str = None
@@ -368,9 +368,11 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                     )
                 [debug.log(text) for text in (
                     #f"Arkose: {'False' if not need_arkose else auth_result.arkose_token[:12]+'...'}",
-                    f"Proofofwork: {'False' if proofofwork is None else proofofwork[:12]+'...'}",
-                    f"AccessToken: {'False' if cls._api_key is None else cls._api_key[:12]+'...'}",
+                    #f"Proofofwork: {'False' if proofofwork is None else proofofwork[:12]+'...'}",
+                    #f"AccessToken: {'False' if cls._api_key is None else cls._api_key[:12]+'...'}",
                 )]
+                if action == "continue" and conversation.message_id is None:
+                    action = "next"
                 data = {
                     "action": action,
                     "parent_message_id": conversation.message_id,
@@ -497,7 +499,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
             v = line.get("v")
             if isinstance(v, str) and fields.is_recipient:
                 if "p" not in line or line.get("p") == "/message/content/parts/0":
-                    yield v
+                    yield Reasoning(token=v) if fields.is_thinking else v
             elif isinstance(v, list):
                 for m in v:
                     if m.get("p") == "/message/content/parts/0" and fields.is_recipient:
@@ -508,6 +510,9 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                                 sources.add_source(link)
                     elif re.match(r"^/message/metadata/content_references/\d+$", m.get("p")):
                         sources.add_source(m.get("v"))
+                    elif m.get("p") == "/message/metadata/finished_text":
+                        fields.is_thinking = False
+                        yield Reasoning(status=m.get("v"))
                     elif m.get("p") == "/message/metadata":
                         fields.finish_reason = m.get("v", {}).get("finish_details", {}).get("type")
                         break
@@ -519,6 +524,9 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                 fields.is_recipient = m.get("recipient", "all") == "all"
                 if fields.is_recipient:
                     c = m.get("content", {})
+                    if c.get("content_type") == "text" and m.get("author", {}).get("role") == "tool" and "initial_text" in m.get("metadata", {}):
+                        fields.is_thinking = True
+                        yield Reasoning(status=c.get("metadata", {}).get("initial_text"))
                     if c.get("content_type") == "multimodal_text":
                         generated_images = []
                         for element in c.get("parts"):
@@ -697,13 +705,14 @@ class Conversation(JsonConversation):
     """
     Class to encapsulate response fields.
     """
-    def __init__(self, conversation_id: str = None, message_id: str = None, user_id: str = None, finish_reason: str = None, parent_message_id: str = None):
+    def __init__(self, conversation_id: str = None, message_id: str = None, user_id: str = None, finish_reason: str = None, parent_message_id: str = None, is_thinking: bool = False):
         self.conversation_id = conversation_id
         self.message_id = message_id
         self.finish_reason = finish_reason
         self.is_recipient = False
         self.parent_message_id = message_id if parent_message_id is None else parent_message_id
         self.user_id = user_id
+        self.is_thinking = is_thinking
 
 def get_cookies(
     urls: Optional[Iterator[str]] = None

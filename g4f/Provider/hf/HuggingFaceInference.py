@@ -78,18 +78,13 @@ class HuggingFaceInference(AsyncGeneratorProvider, ProviderModelMixin):
         if api_key is not None:
             headers["Authorization"] = f"Bearer {api_key}"
         payload = None
-        if cls.get_models() and model in cls.image_models:
-            stream = False
-            prompt = format_image_prompt(messages, prompt)
-            payload = {"inputs": prompt, "parameters": {"seed": random.randint(0, 2**32), **extra_data}}
-        else:
-            params = {
-                "return_full_text": False,
-                "max_new_tokens": max_tokens,
-                "temperature": temperature,
-                **extra_data
-            }
-            do_continue = action == "continue"
+        params = {
+            "return_full_text": False,
+            "max_new_tokens": max_tokens,
+            "temperature": temperature,
+            **extra_data
+        }
+        do_continue = action == "continue"
         async with StreamSession(
             headers=headers,
             proxy=proxy,
@@ -101,22 +96,30 @@ class HuggingFaceInference(AsyncGeneratorProvider, ProviderModelMixin):
                         raise ModelNotSupportedError(f"Model is not supported: {model} in: {cls.__name__}")
                     await raise_for_status(response)
                     model_data = await response.json()
-                    model_type = None
-                    if "config" in model_data and "model_type" in model_data["config"]:
-                        model_type = model_data["config"]["model_type"]
-                    debug.log(f"Model type: {model_type}")
-                    inputs = get_inputs(messages, model_data, model_type, do_continue)
-                    debug.log(f"Inputs len: {len(inputs)}")
-                    if len(inputs) > 4096:
-                        if len(messages) > 6:
-                            messages = messages[:3] + messages[-3:]
-                        else:
-                            messages = [m for m in messages if m["role"] == "system"] + [messages[-1]]
+                    pipeline_tag = model_data.get("pipeline_tag")
+                    if pipeline_tag == "text-to-image":
+                        stream = False
+                        inputs = format_image_prompt(messages, prompt)
+                        payload = {"inputs": inputs, "parameters": {"seed": random.randint(0, 2**32), **extra_data}}
+                    elif pipeline_tag in ("text-generation", "image-text-to-text"):
+                        model_type = None
+                        if "config" in model_data and "model_type" in model_data["config"]:
+                            model_type = model_data["config"]["model_type"]
+                        debug.log(f"Model type: {model_type}")
                         inputs = get_inputs(messages, model_data, model_type, do_continue)
-                        debug.log(f"New len: {len(inputs)}")
-                    if model_type == "gpt2" and max_tokens >= 1024:
-                        params["max_new_tokens"] = 512
-                payload = {"inputs": inputs, "parameters": params, "stream": stream}
+                        debug.log(f"Inputs len: {len(inputs)}")
+                        if len(inputs) > 4096:
+                            if len(messages) > 6:
+                                messages = messages[:3] + messages[-3:]
+                            else:
+                                messages = [m for m in messages if m["role"] == "system"] + [messages[-1]]
+                            inputs = get_inputs(messages, model_data, model_type, do_continue)
+                            debug.log(f"New len: {len(inputs)}")
+                        if model_type == "gpt2" and max_tokens >= 1024:
+                            params["max_new_tokens"] = 512
+                        payload = {"inputs": inputs, "parameters": params, "stream": stream}
+                    else:
+                        raise ModelNotSupportedError(f"Model is not supported: {model} in: {cls.__name__} pipeline_tag: {pipeline_tag}")
 
             async with session.post(f"{api_base.rstrip('/')}/models/{model}", json=payload) as response:
                 if response.status == 404:

@@ -155,16 +155,28 @@ def iter_run_tools(
             yield chunk
             continue
         if "<think>" in chunk:
-            chunk = chunk.split("<think>", 1)
-            yield chunk[0]
-            yield Reasoning(None, "Is thinking...", is_thinking="<think>")
-            yield Reasoning(chunk[1])
+            if chunk != "<think>":
+                chunk = chunk.split("<think>", 1)
+                if len(chunk) > 0 and chunk[0]:
+                    yield chunk[0]
+            yield Reasoning(None, "🤔 Is thinking...", is_thinking="<think>")
+            if chunk != "<think>":
+                if len(chunk) > 1 and chunk[1]:
+                    yield Reasoning(chunk[1])
             is_thinking = time.time()
         if "</think>" in chunk:
-            chunk = chunk.split("</think>", 1)
-            yield Reasoning(chunk[0])
-            yield Reasoning(None, f"Finished in {round(time.time()-is_thinking, 2)} seconds", is_thinking="</think>")
-            yield chunk[1]
+            if chunk != "<think>":
+                chunk = chunk.split("</think>", 1)
+                if len(chunk) > 0 and chunk[0]:
+                    yield Reasoning(chunk[0])
+            is_thinking = time.time() - is_thinking
+            if is_thinking > 1:
+                yield Reasoning(None, f"Thought for {is_thinking:.2f}s", is_thinking="</think>")
+            else:
+                yield Reasoning(None, f"Finished", is_thinking="</think>")
+            if chunk != "<think>":
+                if len(chunk) > 1 and chunk[1]:
+                    yield chunk[1]
             is_thinking = 0
         elif is_thinking:
             yield Reasoning(chunk)
