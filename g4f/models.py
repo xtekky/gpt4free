@@ -13,7 +13,6 @@ from .Provider import (
     ChatGptt,
     Cloudflare,
     Copilot,
-    DarkAI,
     DDG,
     DeepInfraChat,
     HuggingSpace,
@@ -87,7 +86,6 @@ default = Model(
         Jmuz,
         CablyAI,
         OIVSCode,
-        DarkAI,
         OpenaiChat,
         Cloudflare,
     ])
@@ -113,13 +111,6 @@ default_vision = Model(
 ###################
 
 ### OpenAI ###
-# gpt-3.5
-gpt_35_turbo = Model(
-    name          = 'gpt-3.5-turbo',
-    base_provider = 'OpenAI',
-    best_provider = DarkAI
-)
-
 # gpt-4
 gpt_4 = Model(
     name          = 'gpt-4',
@@ -131,7 +122,7 @@ gpt_4 = Model(
 gpt_4o = VisionModel(
     name          = 'gpt-4o',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([ChatGptt, Jmuz, ChatGptEs, PollinationsAI, DarkAI, Copilot, Liaobots, OpenaiChat])
+    best_provider = IterListProvider([ChatGptt, Jmuz, ChatGptEs, PollinationsAI, Copilot, Liaobots, OpenaiChat])
 )
 
 gpt_4o_mini = Model(
@@ -209,7 +200,7 @@ llama_3_1_8b = Model(
 llama_3_1_70b = Model(
     name          = "llama-3.1-70b",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider([DDG, Blackbox, Glider, Jmuz, TeachAnything, DarkAI])
+    best_provider = IterListProvider([DDG, Blackbox, Glider, Jmuz, TeachAnything])
 )
 
 llama_3_1_405b = Model(
@@ -608,12 +599,6 @@ class ModelUtils:
         ############
 
         ### OpenAI ###
-        # gpt-3
-        'gpt-3': gpt_35_turbo,
-
-        # gpt-3.5
-        gpt_35_turbo.name: gpt_35_turbo,
-
         # gpt-4
         gpt_4.name: gpt_4,
         

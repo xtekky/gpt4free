@@ -23,7 +23,6 @@ from .ChatGptEs            import ChatGptEs
 from .ChatGptt             import ChatGptt
 from .Cloudflare           import Cloudflare
 from .Copilot              import Copilot
-from .DarkAI               import DarkAI
 from .DDG                  import DDG
 from .DeepInfraChat        import DeepInfraChat
 from .Free2GPT             import Free2GPT

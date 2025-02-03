@@ -48,7 +48,6 @@ This document provides an overview of various AI providers and models, including
 |[chatgptt.me](https://chatgptt.me)|No auth required|`g4f.Provider.ChatGptt`|`gpt-4, gpt-4o, gpt-4o-mini`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
 |[playground.ai.cloudflare.com](https://playground.ai.cloudflare.com)|[Automatic cookies](https://playground.ai.cloudflare.com)|`g4f.Provider.Cloudflare`|`llama-2-7b, llama-3-8b, llama-3.1-8b, llama-3.2-1b, qwen-1.5-7b`|❌|❌|✔|![Error](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[copilot.microsoft.com](https://copilot.microsoft.com)|Optional API key|`g4f.Provider.Copilot`|`gpt-4, gpt-4o`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
-|[darkai.foundation](https://darkai.foundation)|No auth required|`g4f.Provider.DarkAI`|`gpt-3.5-turbo, gpt-4o, llama-3.1-70b`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
 |[duckduckgo.com/aichat](https://duckduckgo.com/aichat)|No auth required|`g4f.Provider.DDG`|`gpt-4, gpt-4o-mini, claude-3-haiku, llama-3.1-70b, mixtral-8x7b`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
 |[deepinfra.com/chat](https://deepinfra.com/chat)|No auth required|`g4f.Provider.DeepInfraChat`|`llama-3.1-8b, llama-3.1-70b, deepseek-chat, qwq-32b, wizardlm-2-8x22b, wizardlm-2-7b, qwen-2.5-72b, qwen-2.5-coder-32b, nemotron-70b`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
 |[chat10.free2gpt.xyz](https://chat10.free2gpt.xyz)|No auth required|`g4f.Provider.Free2GPT`|`mistral-7b`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
@@ -125,10 +124,8 @@ This document provides an overview of various AI providers and models, including
 ### Text Models
 | Model | Base Provider | Providers | Website |
 |-------|---------------|-----------|---------|
-|gpt-3|OpenAI|1+ Providers|[platform.openai.com](https://platform.openai.com/docs/models/gpt-3-5-turbo)|
-|gpt-3.5-turbo|OpenAI|1+ Providers|[platform.openai.com](https://platform.openai.com/docs/models/gpt-3-5-turbo)|
 |gpt-4|OpenAI|10+ Providers|[platform.openai.com](https://platform.openai.com/docs/models/gpt-4-turbo-and-gpt-4)|
-|gpt-4o|OpenAI|8+ Providers|[platform.openai.com](https://platform.openai.com/docs/models/gpt-4o)|
+|gpt-4o|OpenAI|7+ Providers|[platform.openai.com](https://platform.openai.com/docs/models/gpt-4o)|
 |gpt-4o-mini|OpenAI|9+ Providers|[platform.openai.com](https://platform.openai.com/docs/models/gpt-4o-mini)|
 |o1|OpenAI|1+ Providers|[openai.com](https://openai.com/index/introducing-openai-o1-preview/)|
 |o1-preview|OpenAI|1+ Providers|[openai.com](https://openai.com/index/introducing-openai-o1-preview/)|
@@ -140,7 +137,7 @@ This document provides an overview of various AI providers and models, including
 |llama-3-8b|Meta Llama|2+ Providers|[ai.meta.com](https://ai.meta.com/blog/meta-llama-3/)|
 |llama-3-70b|Meta Llama|1+ Providers|[huggingface.co](https://huggingface.co/meta-llama/Meta-Llama-3-70B)|
 |llama-3.1-8b|Meta Llama|7+ Providers|[ai.meta.com](https://ai.meta.com/blog/meta-llama-3-1/)|
-|llama-3.1-70b|Meta Llama|6+ Providers|[ai.meta.com](https://ai.meta.com/blog/meta-llama-3-1/)|
+|llama-3.1-70b|Meta Llama|5+ Providers|[ai.meta.com](https://ai.meta.com/blog/meta-llama-3-1/)|
 |llama-3.1-405b|Meta Llama|2+ Providers|[huggingface.co](https://huggingface.co/meta-llama/Llama-3.1-405B)|
 |llama-3.2-1b|Meta Llama|1+ Providers|[huggingface.co](https://huggingface.co/meta-llama/Llama-3.2-1B)|
 |llama-3.2-3b|Meta Llama|1+ Providers|[huggingface.co](https://huggingface.co/meta-llama/Llama-3.2-3B)|

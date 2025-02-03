@@ -10,6 +10,7 @@ from .Aura              import Aura
 from .Chatgpt4o         import Chatgpt4o
 from .Chatgpt4Online    import Chatgpt4Online
 from .ChatgptFree       import ChatgptFree
+from .DarkAI            import DarkAI
 from .FlowGpt           import FlowGpt
 from .FreeNetfly        import FreeNetfly
 from .Koala             import Koala
