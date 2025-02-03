@@ -188,8 +188,6 @@ This document provides an overview of various AI providers and models, including
 |sonar-reasoning|Perplexity AI|1+ Providers|[docs.perplexity.ai](https://docs.perplexity.ai/)|
 |nemotron-70b|Nvidia|3+ Providers|[build.nvidia.com](https://build.nvidia.com/nvidia/llama-3_1-nemotron-70b-instruct)|
 |dbrx-instruct|Databricks|2+ Providers|[huggingface.co](https://huggingface.co/databricks/dbrx-instruct)|
-|p1|PollinationsAI|1+ Providers|[pollinations.ai](https://pollinations.ai/)|
-|cably-80b|CablyAI|1+ Providers|[cablyai.com](https://cablyai.com)|
 |glm-4|THUDM|1+ Providers|[github.com/THUDM](https://github.com/THUDM/GLM-4)|
 |mini_max|MiniMax|1+ Providers|[hailuo.ai](https://www.hailuo.ai/)|
 |evil|Evil Mode - Experimental|1+ Providers||

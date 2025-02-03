@@ -516,20 +516,6 @@ dbrx_instruct = Model(
     best_provider = IterListProvider([Blackbox, BlackboxAPI])
 )
 
-### PollinationsAI ### 
-p1 = Model(
-    name = 'p1',
-    base_provider = 'PollinationsAI',
-    best_provider = PollinationsAI
-)
-
-### CablyAI ### 
-cably_80b = Model(
-    name = 'cably-80b',
-    base_provider = 'CablyAI',
-    best_provider = CablyAI
-)
-
 ### THUDM ### 
 glm_4 = Model(
     name = 'glm-4',
@@ -743,8 +729,6 @@ class ModelUtils:
 
         nemotron_70b.name: nemotron_70b, ### Nvidia ###
         dbrx_instruct.name: dbrx_instruct, ### Databricks ###
-        p1.name: p1, ### PollinationsAI ### 
-        cably_80b.name: cably_80b, ### CablyAI ###
         glm_4.name: glm_4, ### THUDM ###
         mini_max.name: mini_max, ## MiniMax
         evil.name: evil, ### Uncensored AI ###
