@@ -20,12 +20,12 @@ class Glider(AsyncGeneratorProvider, ProviderModelMixin):
     supports_message_history = True
     
     default_model = 'chat-llama-3-1-70b'
-    reasoning_models = ['deepseek-ai/DeepSeek-R1']
     models = [
         'chat-llama-3-1-70b',
         'chat-llama-3-1-8b',
         'chat-llama-3-2-3b',
-    ] + reasoning_models
+        'deepseek-ai/DeepSeek-R1'
+    ]
     
     model_aliases = {
         "llama-3.1-70b": "chat-llama-3-1-70b",
@@ -69,9 +69,6 @@ class Glider(AsyncGeneratorProvider, ProviderModelMixin):
             async with session.post(cls.api_endpoint, json=data, proxy=proxy) as response:
                 await raise_for_status(response)
                 
-                is_reasoning = False
-                current_reasoning = ""
-
                 async for chunk in response.content:
                     if not chunk:
                         continue
@@ -82,34 +79,12 @@ class Glider(AsyncGeneratorProvider, ProviderModelMixin):
                         continue
                         
                     if "[DONE]" in text:
-                        if is_reasoning and current_reasoning:
-                            yield Reasoning(status=current_reasoning.strip())
                         yield FinishReason("stop")
                         return
                         
                     try:
                         json_data = json.loads(text[6:])
                         content = json_data["choices"][0].get("delta", {}).get("content", "")
-                        
-                        if model in cls.reasoning_models:
-                            if "<think>" in content:
-                                content = content.replace("<think>", "")
-                                is_reasoning = True
-                                current_reasoning = content
-                                continue
-                                
-                            if "</think>" in content:
-                                content = content.replace("</think>", "")
-                                is_reasoning = False
-                                current_reasoning += content
-                                yield Reasoning(status=current_reasoning.strip())
-                                current_reasoning = ""
-                                continue
-                                
-                            if is_reasoning:
-                                current_reasoning += content
-                                continue
-                                
                         if content:
                             yield content
                             

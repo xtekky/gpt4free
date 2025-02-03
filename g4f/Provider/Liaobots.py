@@ -54,6 +54,33 @@ models = {
         "tokenLimit": 100000,
         "context": "128K",
     },
+    "DeepSeek-R1-Distill-Llama-70b": {
+        "id": "DeepSeek-R1-Distill-Llama-70b",
+        "name": "DeepSeek-R1-70B",
+        "model": "DeepSeek-R1-70B",
+        "provider": "DeepSeek",
+        "maxLength": 400000,
+        "tokenLimit": 100000,
+        "context": "128K",
+    },
+    "DeepSeek-R1": {
+        "id": "DeepSeek-R1",
+        "name": "DeepSeek-R1",
+        "model": "DeepSeek-R1",
+        "provider": "DeepSeek",
+        "maxLength": 400000,
+        "tokenLimit": 100000,
+        "context": "128K",
+    },
+    "DeepSeek-V3": {
+        "id": "DeepSeek-V3",
+        "name": "DeepSeek-V3",
+        "model": "DeepSeek-V3",
+        "provider": "DeepSeek",
+        "maxLength": 400000,
+        "tokenLimit": 100000,
+        "context": "128K",
+    },
     "grok-2": {
         "id": "grok-2",
         "name": "Grok-2",
@@ -171,6 +198,10 @@ class Liaobots(AsyncGeneratorProvider, ProviderModelMixin):
         
         "o1-preview": "o1-preview-2024-09-12",
         "o1-mini": "o1-mini-2024-09-12",
+        
+        "deepseek-r1": "DeepSeek-R1-Distill-Llama-70b",
+        "deepseek-r1": "DeepSeek-R1",
+        "deepseek-v3": "DeepSeek-V3",
         
         "claude-3-opus": "claude-3-opus-20240229",
         "claude-3.5-sonnet": "claude-3-5-sonnet-20240620",

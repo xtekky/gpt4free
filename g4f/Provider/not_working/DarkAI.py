@@ -3,15 +3,16 @@ from __future__ import annotations
 import json
 from aiohttp import ClientSession, ClientTimeout, StreamReader
 
-from ..typing import AsyncResult, Messages
-from ..requests.raise_for_status import raise_for_status
-from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from .helper import format_prompt
+from ...typing import AsyncResult, Messages
+from ...requests.raise_for_status import raise_for_status
+from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from ..helper import format_prompt
 
 class DarkAI(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://darkai.foundation/chat"
     api_endpoint = "https://darkai.foundation/chat"
-    working = True
+    
+    working = False
     supports_stream = True
 
     default_model = 'llama-3-70b'
