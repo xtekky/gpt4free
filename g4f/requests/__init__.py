@@ -137,7 +137,7 @@ async def get_nodriver(
     timeout: int = 120,
     browser_executable_path=None,
     **kwargs
-) -> Browser:
+) -> tuple[Browser, callable]:
     if not has_nodriver:
         raise MissingRequirementsError('Install "nodriver" and "platformdirs" package | pip install -U nodriver platformdirs')
     user_data_dir = user_config_dir(f"g4f-{user_data_dir}") if has_platformdirs else None
