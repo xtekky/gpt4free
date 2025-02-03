@@ -6,6 +6,7 @@ from .Provider import IterListProvider, ProviderType
 from .Provider import (
     ### no auth required ###
     Blackbox,
+    BlackboxAPI,
     CablyAI,
     ChatGLM,
     ChatGptEs,
@@ -123,20 +124,20 @@ gpt_35_turbo = Model(
 gpt_4 = Model(
     name          = 'gpt-4',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([DDG, Blackbox, Jmuz, ChatGptEs, ChatGptt, PollinationsAI, Yqcloud, Copilot, OpenaiChat, Liaobots, Mhystical])
+    best_provider = IterListProvider([DDG, Jmuz, ChatGptEs, ChatGptt, PollinationsAI, Yqcloud, Copilot, OpenaiChat, Liaobots, Mhystical])
 )
 
 # gpt-4o
 gpt_4o = VisionModel(
     name          = 'gpt-4o',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([Blackbox, ChatGptt, Jmuz, ChatGptEs, PollinationsAI, DarkAI, Copilot, Liaobots, OpenaiChat])
+    best_provider = IterListProvider([ChatGptt, Jmuz, ChatGptEs, PollinationsAI, DarkAI, Copilot, Liaobots, OpenaiChat])
 )
 
 gpt_4o_mini = Model(
     name          = 'gpt-4o-mini',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([DDG, ChatGptEs, ChatGptt, Jmuz, PollinationsAI, OIVSCode, Liaobots, OpenaiChat])
+    best_provider = IterListProvider([DDG, ChatGptEs, ChatGptt, Jmuz, PollinationsAI, OIVSCode, CablyAI, Liaobots, OpenaiChat])
 )
 
 # o1
@@ -156,6 +157,13 @@ o1_mini = Model(
     name          = 'o1-mini',
     base_provider = 'OpenAI',
     best_provider = Liaobots
+)
+
+# o3
+o3_mini_low = Model(
+    name          = 'o3-mini-low',
+    base_provider = 'OpenAI',
+    best_provider = CablyAI
 )
 
 ### GigaChat ###
@@ -195,7 +203,7 @@ llama_3_70b = Model(
 llama_3_1_8b = Model(
     name          = "llama-3.1-8b",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider([Blackbox, DeepInfraChat, Glider, Jmuz, PollinationsAI, Cloudflare])
+    best_provider = IterListProvider([Blackbox, DeepInfraChat, Glider, Jmuz, PollinationsAI, CablyAI, Cloudflare])
 )
 
 llama_3_1_70b = Model(
@@ -243,12 +251,6 @@ llama_3_3_70b = Model(
 )
 
 ### Mistral ###
-mixtral_7b = Model(
-    name          = "mixtral-7b",
-    base_provider = "Mistral",
-    best_provider = Blackbox
-)
-
 mixtral_8x7b = Model(
     name          = "mixtral-8x7b",
     base_provider = "Mistral",
@@ -261,11 +263,17 @@ mistral_nemo = Model(
     best_provider = IterListProvider([PollinationsAI, HuggingChat, HuggingFace])
 )
 
+mixtral_small_28b = Model(
+    name          = "mixtral-small-28b",
+    base_provider = "Mistral",
+    best_provider = IterListProvider([Blackbox, BlackboxAPI])
+)
+
 ### NousResearch ###
 hermes_2_dpo = Model(
     name          = "hermes-2-dpo",
     base_provider = "NousResearch",
-    best_provider = Blackbox
+    best_provider = IterListProvider([Blackbox, BlackboxAPI])
 )
 
 
@@ -356,7 +364,7 @@ claude_3_opus = Model(
 claude_3_5_sonnet = Model(
     name          = 'claude-3.5-sonnet',
     base_provider = 'Anthropic',
-    best_provider = IterListProvider([Blackbox, Jmuz, Liaobots])
+    best_provider = IterListProvider([Jmuz, Liaobots])
 )
 
 ### Reka AI ###
@@ -434,7 +442,7 @@ qwen_2_5_1m = Model(
 qwq_32b = Model(
     name = 'qwq-32b',
     base_provider = 'Qwen',
-    best_provider = IterListProvider([Blackbox, DeepInfraChat, Jmuz, HuggingChat])
+    best_provider = IterListProvider([Blackbox, BlackboxAPI, DeepInfraChat, Jmuz, HuggingChat])
 )
 qvq_72b = VisionModel(
     name = 'qvq-72b',
@@ -453,19 +461,19 @@ pi = Model(
 deepseek_chat = Model(
     name = 'deepseek-chat',
     base_provider = 'DeepSeek',
-    best_provider = IterListProvider([Blackbox, Jmuz, PollinationsAI])
+    best_provider = IterListProvider([Blackbox, BlackboxAPI, Jmuz, PollinationsAI])
 )
 
 deepseek_v3 = Model(
     name = 'deepseek-v3',
     base_provider = 'DeepSeek',
-    best_provider = IterListProvider([Blackbox, DeepInfraChat])
+    best_provider = IterListProvider([Blackbox, BlackboxAPI, DeepInfraChat, CablyAI])
 )
 
 deepseek_r1 = Model(
     name = 'deepseek-r1',
     base_provider = 'DeepSeek',
-    best_provider = IterListProvider([Blackbox, Glider, PollinationsAI, Jmuz, HuggingChat, HuggingFace])
+    best_provider = IterListProvider([Blackbox, BlackboxAPI, Glider, PollinationsAI, Jmuz, CablyAI, HuggingChat, HuggingFace])
 )
 
 ### x.ai ###
@@ -505,7 +513,7 @@ nemotron_70b = Model(
 dbrx_instruct = Model(
     name = 'dbrx-instruct',
     base_provider = 'Databricks',
-    best_provider = Blackbox
+    best_provider = IterListProvider([Blackbox, BlackboxAPI])
 )
 
 ### PollinationsAI ### 
@@ -657,9 +665,9 @@ class ModelUtils:
         llama_3_3_70b.name: llama_3_3_70b,
                 
         ### Mistral ###
-        mixtral_7b.name: mixtral_7b,
         mixtral_8x7b.name: mixtral_8x7b,
         mistral_nemo.name: mistral_nemo,
+        mixtral_small_28b.name: mixtral_small_28b,
 
         ### NousResearch ###
         hermes_2_dpo.name: hermes_2_dpo,
