@@ -49,7 +49,7 @@ This document provides an overview of various AI providers and models, including
 |[playground.ai.cloudflare.com](https://playground.ai.cloudflare.com)|[Automatic cookies](https://playground.ai.cloudflare.com)|`g4f.Provider.Cloudflare`|`llama-2-7b, llama-3-8b, llama-3.1-8b, llama-3.2-1b, qwen-1.5-7b`|❌|❌|✔|![Error](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[copilot.microsoft.com](https://copilot.microsoft.com)|Optional API key|`g4f.Provider.Copilot`|`gpt-4, gpt-4o`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
 |[duckduckgo.com/aichat](https://duckduckgo.com/aichat)|No auth required|`g4f.Provider.DDG`|`gpt-4, gpt-4o-mini, claude-3-haiku, llama-3.1-70b, mixtral-8x7b`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
-|[deepinfra.com/chat](https://deepinfra.com/chat)|No auth required|`g4f.Provider.DeepInfraChat`|`llama-3.1-8b, llama-3.1-70b, deepseek-chat, qwq-32b, wizardlm-2-8x22b, wizardlm-2-7b, qwen-2.5-72b, qwen-2.5-coder-32b, nemotron-70b`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
+|[deepinfra.com/chat](https://deepinfra.com/chat)|No auth required|`g4f.Provider.DeepInfraChat`|`llama-3.1-8b, llama-3.2-90b, llama-3.3-70b, deepseek-v3, mixtral-small-28b, deepseek-r1, phi-4, wizardlm-2-8x22b, qwen-2.5-72b`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
 |[chat10.free2gpt.xyz](https://chat10.free2gpt.xyz)|No auth required|`g4f.Provider.Free2GPT`|`mistral-7b`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
 |[freegptsnav.aifree.site](https://freegptsnav.aifree.site)|No auth required|`g4f.Provider.FreeGpt`|`gemini-1.5-pro`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
 |[app.giz.ai/assistant](https://app.giz.ai/assistant)|No auth required|`g4f.Provider.GizAI`|`gemini-1.5-flash`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
@@ -149,7 +149,7 @@ This document provides an overview of various AI providers and models, including
 |mixtral-small-28b|Mistral|2+ Providers|[mistral.ai](https://mistral.ai/news/mixtral-small-28b/)|
 |hermes-2-dpo|NousResearch|2+ Providers|[huggingface.co](https://huggingface.co/NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO)|
 |phi-3.5-mini|Microsoft|1+ Providers|[huggingface.co](https://huggingface.co/microsoft/Phi-3.5-mini-instruct)|
-|wizardlm-2-7b|Microsoft|1+ Providers|[wizardlm.github.io](https://wizardlm.github.io/WizardLM2/)|
+|phi-4|Microsoft|1+ Providers|[techcommunity.microsoft.com](https://techcommunity.microsoft.com/blog/aiplatformblog/introducing-phi-4-microsoft%E2%80%99s-newest-small-language-model-specializing-in-comple/4357090)|
 |wizardlm-2-8x22b|Microsoft|2+ Providers|[wizardlm.github.io](https://wizardlm.github.io/WizardLM2/)|
 |gemini|Google DeepMind|1+|[deepmind.google](http://deepmind.google/technologies/gemini/)|
 |gemini-exp|Google DeepMind|1+ Providers|[blog.google](https://blog.google/feed/gemini-exp-1206/)|

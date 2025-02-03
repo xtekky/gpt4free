@@ -10,30 +10,30 @@ class DeepInfraChat(OpenaiTemplate):
 
     default_model = 'meta-llama/Llama-3.3-70B-Instruct-Turbo'
     models = [
-        'meta-llama/Llama-3.3-70B-Instruct',
         'meta-llama/Meta-Llama-3.1-8B-Instruct',
+        'meta-llama/Llama-3.2-90B-Vision-Instruct',
         default_model,
-        'meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo',
         'deepseek-ai/DeepSeek-V3',
-        'Qwen/QwQ-32B-Preview',
+        'mistralai/Mistral-Small-24B-Instruct-2501',
+        'deepseek-ai/DeepSeek-R1',
+        'deepseek-ai/DeepSeek-R1-Distill-Llama-70B',
+        'deepseek-ai/DeepSeek-R1-Distill-Qwen-32B',
+        'microsoft/phi-4',
         'microsoft/WizardLM-2-8x22B',
-        'microsoft/WizardLM-2-7B',
         'Qwen/Qwen2.5-72B-Instruct',
-        'Qwen/Qwen2.5-Coder-32B-Instruct',
-        'nvidia/Llama-3.1-Nemotron-70B-Instruct',
     ]
     model_aliases = {
-        "llama-3.3-70b": "meta-llama/Llama-3.3-70B-Instruct",
         "llama-3.1-8b": "meta-llama/Meta-Llama-3.1-8B-Instruct",
+        "llama-3.2-90b": "meta-llama/Llama-3.2-90B-Vision-Instruct",
         "llama-3.3-70b": "meta-llama/Llama-3.3-70B-Instruct-Turbo",
-        "llama-3.1-70b": "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo",
         "deepseek-v3": "deepseek-ai/DeepSeek-V3",
-        "qwq-32b": "Qwen/QwQ-32B-Preview",
+        "mixtral-small-28b": "mistralai/Mistral-Small-24B-Instruct-2501",
+        "deepseek-r1": "deepseek-ai/DeepSeek-R1",
+        "deepseek-r1": "deepseek-ai/DeepSeek-R1-Distill-Llama-70B",
+        "deepseek-r1": "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B",
+        "phi-4": "microsoft/phi-4",
         "wizardlm-2-8x22b": "microsoft/WizardLM-2-8x22B",
-        "wizardlm-2-7b": "microsoft/WizardLM-2-7B",
         "qwen-2.5-72b": "Qwen/Qwen2.5-72B-Instruct",
-        "qwen-2.5-coder-32b": "Qwen/Qwen2.5-Coder-32B-Instruct",
-        "nemotron-70b": "nvidia/Llama-3.1-Nemotron-70B-Instruct",
     }
 
     @classmethod
@@ -41,6 +41,10 @@ class DeepInfraChat(OpenaiTemplate):
         cls,
         model: str,
         messages: Messages,
+        stream: bool = True,
+        top_p: float = 0.9,
+        temperature: float = 0.7,
+        max_tokens: int = None,
         headers: dict = {},
         **kwargs
     ) -> AsyncResult:

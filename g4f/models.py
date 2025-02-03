@@ -230,7 +230,7 @@ llama_3_2_11b = VisionModel(
 llama_3_2_90b = Model(
     name          = "llama-3.2-90b",
     base_provider = "Meta Llama",
-    best_provider = Jmuz
+    best_provider = IterListProvider([DeepInfraChat, Jmuz])
 )
 
 # llama 3.3
@@ -256,7 +256,7 @@ mistral_nemo = Model(
 mixtral_small_28b = Model(
     name          = "mixtral-small-28b",
     base_provider = "Mistral",
-    best_provider = IterListProvider([Blackbox, BlackboxAPI])
+    best_provider = IterListProvider([Blackbox, BlackboxAPI, DeepInfraChat])
 )
 
 ### NousResearch ###
@@ -275,13 +275,13 @@ phi_3_5_mini = Model(
     best_provider = HuggingChat
 )
 
-# wizardlm
-wizardlm_2_7b = Model(
-    name = 'wizardlm-2-7b',
-    base_provider = 'Microsoft',
+phi_4 = Model(
+    name          = "phi-4",
+    base_provider = "Microsoft",
     best_provider = DeepInfraChat
 )
 
+# wizardlm
 wizardlm_2_8x22b = Model(
     name = 'wizardlm-2-8x22b',
     base_provider = 'Microsoft',
@@ -420,7 +420,7 @@ qwen_2_5_72b = Model(
 qwen_2_5_coder_32b = Model(
     name = 'qwen-2.5-coder-32b',
     base_provider = 'Qwen',
-    best_provider = IterListProvider([DeepInfraChat, PollinationsAI, Jmuz, HuggingChat])
+    best_provider = IterListProvider([PollinationsAI, Jmuz, HuggingChat])
 )
 qwen_2_5_1m = Model(
     name = 'qwen-2.5-1m-demo',
@@ -432,7 +432,7 @@ qwen_2_5_1m = Model(
 qwq_32b = Model(
     name = 'qwq-32b',
     base_provider = 'Qwen',
-    best_provider = IterListProvider([Blackbox, BlackboxAPI, DeepInfraChat, Jmuz, HuggingChat])
+    best_provider = IterListProvider([Blackbox, BlackboxAPI, Jmuz, HuggingChat])
 )
 qvq_72b = VisionModel(
     name = 'qvq-72b',
@@ -463,7 +463,7 @@ deepseek_v3 = Model(
 deepseek_r1 = Model(
     name = 'deepseek-r1',
     base_provider = 'DeepSeek',
-    best_provider = IterListProvider([Blackbox, BlackboxAPI, Glider, PollinationsAI, Jmuz, CablyAI, Liaobots, HuggingChat, HuggingFace])
+    best_provider = IterListProvider([Blackbox, BlackboxAPI, DeepInfraChat, Glider, PollinationsAI, Jmuz, CablyAI, Liaobots, HuggingChat, HuggingFace])
 )
 
 ### x.ai ###
@@ -496,7 +496,7 @@ sonar_reasoning = Model(
 nemotron_70b = Model(
     name = 'nemotron-70b',
     base_provider = 'Nvidia',
-    best_provider = IterListProvider([DeepInfraChat, HuggingChat, HuggingFace])
+    best_provider = IterListProvider([HuggingChat, HuggingFace])
 )
 
 ### Databricks ### 
@@ -645,9 +645,9 @@ class ModelUtils:
         ### Microsoft ###
         # phi
         phi_3_5_mini.name: phi_3_5_mini,
+        phi_4.name: phi_4,
         
         # wizardlm
-        wizardlm_2_7b.name: wizardlm_2_7b,
         wizardlm_2_8x22b.name: wizardlm_2_8x22b,
 
         ### Google ###
