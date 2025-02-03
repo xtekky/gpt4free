@@ -5,7 +5,7 @@ import time
 import asyncio
 
 from ..typing import AsyncResult, Messages
-from ..image import ImageResponse
+from ..providers.response import ImageResponse
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 
 

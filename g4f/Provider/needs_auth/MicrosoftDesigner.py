@@ -6,7 +6,7 @@ import random
 import asyncio
 import json
 
-from ...image import ImageResponse
+from ...providers.response import ImageResponse
 from ...errors import MissingRequirementsError, NoValidHarFileError
 from ...typing import AsyncResult, Messages
 from ...requests.raise_for_status import raise_for_status

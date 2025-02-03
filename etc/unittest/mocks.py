@@ -1,5 +1,5 @@
 from g4f.providers.base_provider import AbstractProvider, AsyncProvider, AsyncGeneratorProvider
-from g4f.image import ImageResponse
+from g4f.providers.response import ImageResponse
 from g4f.errors import MissingAuthError
 
 class ProviderMock(AbstractProvider):

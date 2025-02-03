@@ -7,8 +7,9 @@ import uuid
 from ..typing import AsyncResult, Messages, ImageType, Cookies
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from .helper import format_prompt
-from ..image import ImageResponse, ImagePreview, EXTENSIONS_MAP, to_bytes, is_accepted_format
+from ..image import EXTENSIONS_MAP, to_bytes, is_accepted_format
 from ..requests import StreamSession, FormData, raise_for_status, get_nodriver
+from ..providers.response import ImagePreview, ImageResponse
 from ..cookies import get_cookies
 from ..errors import MissingRequirementsError, ResponseError
 from .. import debug

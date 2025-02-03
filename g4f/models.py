@@ -765,11 +765,11 @@ class ModelUtils:
 
 demo_models = {
     gpt_4o.name: [gpt_4o, [PollinationsAI, Blackbox]],
-    "default": [llama_3_2_11b, [HuggingFaceAPI]],
+    "default": [llama_3_2_11b, [HuggingFace]],
     qwen_2_vl_7b.name: [qwen_2_vl_7b, [HuggingFaceAPI]],
-    qvq_72b.name: [qvq_72b, [HuggingSpace, HuggingFaceAPI]],
-    deepseek_r1.name: [deepseek_r1, [HuggingFace, HuggingFaceAPI]],
-    claude_3_haiku.name: [claude_3_haiku, [DDG, Jmuz]],
+    qvq_72b.name: [qvq_72b, [HuggingSpace]],
+    deepseek_r1.name: [deepseek_r1, [HuggingFace]],
+    claude_3_5_sonnet.name: [claude_3_5_sonnet, claude_3_5_sonnet.best_provider.providers],
     command_r.name: [command_r, [HuggingSpace]],
     command_r_plus.name: [command_r_plus, [HuggingSpace]],
     command_r7b.name: [command_r7b, [HuggingSpace]],
@@ -779,7 +779,7 @@ demo_models = {
     llama_3_3_70b.name: [llama_3_3_70b, [HuggingFace]],
     sd_3_5.name: [sd_3_5, [HuggingSpace, HuggingFace]],
     flux_dev.name: [flux_dev, [HuggingSpace, HuggingFace]],
-    flux_schnell.name: [flux_schnell, [HuggingFace]],
+    flux_schnell.name: [flux_schnell, [HuggingFace, HuggingSpace, PollinationsAI]],
 }
 
 # Create a list of all models and his providers

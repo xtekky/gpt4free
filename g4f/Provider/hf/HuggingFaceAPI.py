@@ -48,18 +48,19 @@ class HuggingFaceAPI(OpenaiTemplate):
             if model in cls.model_aliases:
                 model_name = cls.model_aliases[model]
             api_base = f"https://api-inference.huggingface.co/models/{model_name}/v1"
-        if images is not None:
-            async with StreamSession(
-                timeout=30,
-            ) as session:
-                async with session.get(f"https://huggingface.co/api/models/{model}") as response:
-                    if response.status == 404:
-                        raise ModelNotSupportedError(f"Model is not supported: {model} in: {cls.__name__}")
-                    await raise_for_status(response)
-                    model_data = await response.json()
-                    pipeline_tag = model_data.get("pipeline_tag")
-                    if pipeline_tag != "image-text-to-text":
-                        raise ModelNotSupportedError(f"Model is not supported: {model} in: {cls.__name__} pipeline_tag={pipeline_tag}")
+        async with StreamSession(
+            timeout=30,
+        ) as session:
+            async with session.get(f"https://huggingface.co/api/models/{model}") as response:
+                if response.status == 404:
+                    raise ModelNotSupportedError(f"Model is not supported: {model} in: {cls.__name__}")
+                await raise_for_status(response)
+                model_data = await response.json()
+                pipeline_tag = model_data.get("pipeline_tag")
+                if images is None and pipeline_tag not in ("text-generation", "image-text-to-text"):
+                    raise ModelNotSupportedError(f"Model is not supported: {model} in: {cls.__name__} pipeline_tag: {pipeline_tag}")
+                elif pipeline_tag != "image-text-to-text":
+                    raise ModelNotSupportedError(f"Model does not support images: {model} in: {cls.__name__} pipeline_tag: {pipeline_tag}")
         start = calculate_lenght(messages)
         if start > max_inputs_lenght:
             if len(messages) > 6:

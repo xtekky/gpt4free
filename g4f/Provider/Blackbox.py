@@ -12,10 +12,10 @@ from datetime import datetime, timezone
 from ..typing import AsyncResult, Messages, ImagesType
 from ..requests.raise_for_status import raise_for_status
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from ..image import ImageResponse, to_data_uri
+from ..image import to_data_uri
 from ..cookies import get_cookies_dir
 from .helper import format_prompt, format_image_prompt
-from ..providers.response import JsonConversation, Reasoning
+from ..providers.response import JsonConversation, ImageResponse
 
 class Conversation(JsonConversation):
     validated_value: str = None

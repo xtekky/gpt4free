@@ -36,7 +36,8 @@ let title_storage = {};
 let parameters_storage = {};
 let finish_storage = {};
 let usage_storage = {};
-let reasoning_storage = {}
+let reasoning_storage = {};
+let generate_storage = {};
 let is_demo = false;
 
 messageInput.addEventListener("blur", () => {
@@ -96,9 +97,13 @@ function filter_message(text) {
 }
 
 function filter_message_content(text) {
+    return text.replace(/ \[aborted\]$/g, "").replace(/ \[error\]$/g, "")
+}
+
+function filter_message_image(text) {
     return text.replaceAll(
-        /\/\]\(\/generate\//gm, "/](/images/"
-    ).replace(/ \[aborted\]$/g, "").replace(/ \[error\]$/g, "")
+        /\]\(\/generate\//gm, "](/images/"
+    )
 }
 
 function fallback_clipboard (text) {
@@ -204,6 +209,7 @@ function register_message_images() {
             el.onerror = () => {
                 let indexCommand;
                 if ((indexCommand = el.src.indexOf("/generate/")) >= 0) {
+                    generate_storage[window.conversation_id] = true;
                     indexCommand = indexCommand + "/generate/".length + 1;
                     let newPath = el.src.substring(indexCommand)
                     let filename = newPath.replace(/(?:\?.+?|$)/, "");
@@ -973,7 +979,7 @@ const ask_gpt = async (message_id, message_index = -1, regenerate = false, provi
             await add_message(
                 window.conversation_id,
                 "assistant",
-                final_message,
+                filter_message_image(final_message),
                 message_provider,
                 message_index,
                 synthesize_storage[message_id],
@@ -999,7 +1005,7 @@ const ask_gpt = async (message_id, message_index = -1, regenerate = false, provi
             delete controller_storage[message_id];
         }
         // Reload conversation if no error
-        if (!error_storage[message_id]) {
+        if (!error_storage[message_id] && !generate_storage[window.conversation_id]) {
             await safe_load_conversation(window.conversation_id, scroll);
         }
         let cursorDiv = message_el.querySelector(".cursor");
@@ -1022,14 +1028,23 @@ const ask_gpt = async (message_id, message_index = -1, regenerate = false, provi
         } else {
             api_key = get_api_key_by_provider(provider);
         }
-        if (is_demo && !api_key && provider != "Custom") {
+        if (is_demo && !api_key) {
+            api_key = localStorage.getItem("HuggingFace-api_key");
+        }
+        if (is_demo && !api_key) {
             location.href = "/";
             return;
         }
         const input = imageInput && imageInput.files.length > 0 ? imageInput : cameraInput;
         const files = input && input.files.length > 0 ? input.files : null;
         const download_images = document.getElementById("download_images")?.checked;
-        const api_base = provider == "Custom" ? document.getElementById(`${provider}-api_base`).value : null;
+        let api_base;
+        if (provider == "Custom") {
+            api_base = document.getElementById("api_base")?.value;
+            if (!api_base) {
+                provider = "";
+            }
+        }
         const ignored = Array.from(settings.querySelectorAll("input.provider:not(:checked)")).map((el)=>el.value);
         await api("conversation", {
             id: message_id,
@@ -1886,6 +1901,10 @@ async function on_load() {
         load_conversation(window.conversation_id);
     } else {
         chatPrompt.value = document.getElementById("systemPrompt")?.value || "";
+        example = document.getElementById("systemPrompt")?.dataset.example || ""
+        if (chatPrompt.value == example) {
+            messageInput.value = "";
+        }
         let chat_url = new URL(window.location.href)
         let chat_params = new URLSearchParams(chat_url.search);
         if (chat_params.get("prompt")) {
@@ -2493,19 +2512,23 @@ async function load_provider_models(provider=null) {
     if (!custom_model.value) {
         custom_model.classList.add("hidden");
     }
-    if (provider == "Custom Model" || custom_model.value) {
+    if (provider.startsWith("Custom") || custom_model.value) {
         modelProvider.classList.add("hidden");
         modelSelect.classList.add("hidden");
-        document.getElementById("model3").classList.remove("hidden");
+        custom_model.classList.remove("hidden");
         return;
     }
     modelProvider.innerHTML = '';
     modelProvider.name = `model[${provider}]`;
     if (!provider) {
         modelProvider.classList.add("hidden");
-        modelSelect.classList.remove("hidden");
-        document.getElementById("model3").value = "";
-        document.getElementById("model3").classList.remove("hidden");
+        if (custom_model.value) {
+            modelSelect.classList.add("hidden");
+            custom_model.classList.remove("hidden");
+        } else {
+            modelSelect.classList.remove("hidden");
+            custom_model.classList.add("hidden");
+        }
         return;
     }
     const models = await api('models', provider);
@@ -2531,11 +2554,9 @@ async function load_provider_models(provider=null) {
             modelProvider.value = value;
         }
         modelProvider.selectedIndex = defaultIndex;
-    } else if (custom_model.value) {
-        modelSelect.classList.add("hidden");
     } else {
         modelProvider.classList.add("hidden");
-        modelSelect.classList.remove("hidden");
+        custom_model.classList.remove("hidden")
     }
 };
 providerSelect.addEventListener("change", () => {

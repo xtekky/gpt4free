@@ -3,7 +3,7 @@ from __future__ import annotations
 import requests
 from ...typing import AsyncResult, Messages
 from ...requests import StreamSession, raise_for_status
-from ...image import ImageResponse
+from ...providers.response import ImageResponse
 from ..template import OpenaiTemplate
 from ..helper import format_image_prompt
 

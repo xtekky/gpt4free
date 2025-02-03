@@ -10,6 +10,7 @@ from ... import debug
 
 class BackendApi(AsyncGeneratorProvider, ProviderModelMixin):
     ssl = None
+    headers = {}
 
     @classmethod
     async def create_async_generator(
@@ -21,7 +22,7 @@ class BackendApi(AsyncGeneratorProvider, ProviderModelMixin):
     ) -> AsyncResult:
         debug.log(f"{cls.__name__}: {api_key}")
         async with StreamSession(
-            headers={"Accept": "text/event-stream"},
+            headers={"Accept": "text/event-stream", **cls.headers},
         ) as session:
             async with session.post(f"{cls.url}/backend-api/v2/conversation", json={
                 "model": model,

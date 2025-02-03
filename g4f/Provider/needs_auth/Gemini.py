@@ -19,12 +19,12 @@ from ... import debug
 from ...typing import Messages, Cookies, ImagesType, AsyncResult, AsyncIterator
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..helper import format_prompt, get_cookies
-from ...providers.response import JsonConversation, SynthesizeData, RequestLogin
+from ...providers.response import JsonConversation, SynthesizeData, RequestLogin, ImageResponse
 from ...requests.raise_for_status import raise_for_status
 from ...requests.aiohttp import get_connector
 from ...requests import get_nodriver
 from ...errors import MissingAuthError
-from ...image import ImageResponse, to_bytes
+from ...image import to_bytes
 from ..helper import get_last_user_message
 from ... import debug
 

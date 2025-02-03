@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from ...cookies import get_cookies
-from ...image import ImageResponse
+from ...providers.response import ImageResponse
 from ...errors import MissingAuthError
 from ...typing import AsyncResult, Messages, Cookies
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin

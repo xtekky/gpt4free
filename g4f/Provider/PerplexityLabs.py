@@ -73,7 +73,6 @@ class PerplexityLabs(AsyncGeneratorProvider, ProviderModelMixin):
                 }
                 await ws.send_str("42" + json.dumps(["perplexity_labs", message_data]))
                 last_message = 0
-                is_thinking = False
                 while True:
                     message = await ws.receive_str()
                     if message == "2":

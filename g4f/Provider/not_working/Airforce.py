@@ -6,8 +6,7 @@ from aiohttp import ClientSession
 from typing import List
 
 from ...typing import AsyncResult, Messages
-from ...image import ImageResponse
-from ...providers.response import FinishReason, Usage
+from ...providers.response import ImageResponse, FinishReason, Usage
 from ...requests.raise_for_status import raise_for_status
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
 

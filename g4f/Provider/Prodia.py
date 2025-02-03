@@ -6,7 +6,7 @@ import random
 
 from ..typing import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from ..image import ImageResponse
+from ..providers.response import ImageResponse
 
 class Prodia(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://app.prodia.com"

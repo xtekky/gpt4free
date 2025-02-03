@@ -9,10 +9,10 @@ import aiohttp
 import base64
 from typing import Union, AsyncIterator, Iterator, Awaitable, Optional
 
-from ..image import ImageResponse, copy_images
+from ..image.copy_images import copy_images
 from ..typing import Messages, ImageType
 from ..providers.types import ProviderType, BaseRetryProvider
-from ..providers.response import ResponseType, FinishReason, BaseConversation, SynthesizeData, ToolCalls, Usage
+from ..providers.response import ResponseType, ImageResponse, FinishReason, BaseConversation, SynthesizeData, ToolCalls, Usage
 from ..errors import NoImageResponseError
 from ..providers.retry_provider import IterListProvider
 from ..providers.asyncio import to_sync_generator

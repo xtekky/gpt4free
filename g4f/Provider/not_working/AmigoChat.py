@@ -5,7 +5,7 @@ import uuid
 
 from ...typing import AsyncResult, Messages
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from ...image import ImageResponse
+from ...providers.response import ImageResponse
 from ...requests import StreamSession, raise_for_status
 from ...errors import ResponseStatusError
 

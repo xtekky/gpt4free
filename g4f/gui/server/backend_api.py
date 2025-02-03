@@ -140,9 +140,9 @@ class Backend_Api(Api):
                 if model != "default" and model in models.demo_models:
                     json_data["provider"] = random.choice(models.demo_models[model][1])
                 else:
-                    json_data["model"] = models.demo_models["default"][0].name
+                    if not model or model == "default":
+                        json_data["model"] = models.demo_models["default"][0].name
                     json_data["provider"] = random.choice(models.demo_models["default"][1])
-
             kwargs = self._prepare_conversation_kwargs(json_data, kwargs)
             return self.app.response_class(
                 self._create_response_stream(

@@ -4,7 +4,6 @@ import os
 import re
 import io
 import base64
-from urllib.parse import quote_plus
 from io import BytesIO
 from pathlib import Path
 try:
@@ -14,9 +13,8 @@ try:
 except ImportError:
     has_requirements = False
 
-from .typing import ImageType, Union, Image, Optional, Cookies
-from .errors import MissingRequirementsError
-from .requests.aiohttp import get_connector
+from ..typing import ImageType, Union, Image
+from ..errors import MissingRequirementsError
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'}
 
@@ -26,9 +24,6 @@ EXTENSIONS_MAP: dict[str, str] = {
     "image/gif": "gif",
     "image/webp": "webp",
 }
-
-# Define the directory for generated images
-images_dir = "./generated_images"
 
 def to_image(image: ImageType, is_svg: bool = False) -> Image:
     """
@@ -190,7 +185,6 @@ def process_image(image: Image, new_width: int, new_height: int) -> Image:
     elif image.mode != "RGB":
         image = image.convert("RGB")
     return image
-
 
 def to_bytes(image: ImageType) -> bytes:
     """

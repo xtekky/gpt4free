@@ -4,7 +4,7 @@ import random
 
 from ...typing import AsyncResult, Messages
 from ...providers.response import ImageResponse
-from ...errors import ModelNotSupportedError
+from ...errors import ModelNotSupportedError, MissingAuthError
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from .HuggingChat import HuggingChat
 from .HuggingFaceAPI import HuggingFaceAPI
@@ -60,6 +60,6 @@ class HuggingFace(AsyncGeneratorProvider, ProviderModelMixin):
         try:
             async for chunk in HuggingFaceAPI.create_async_generator(model, messages, **kwargs):
                 yield chunk
-        except ModelNotSupportedError:
+        except (ModelNotSupportedError, MissingAuthError):
             async for chunk in HuggingFaceInference.create_async_generator(model, messages, **kwargs):
                 yield chunk
