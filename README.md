@@ -93,12 +93,12 @@ Is your site on this repository and you want to take it down? Send an email to t
 
 ### 🐳 Using Docker
 1. **Install Docker:** [Download and install Docker](https://docs.docker.com/get-docker/).
-2. **Set Up Directories:** Before running the container, make sure the necessary data directories exist or can be created. For example, you can create and set ownership on these directories by running: (Only x64)
+2. **Set Up Directories:** Before running the container, make sure the necessary data directories exist or can be created. For example, you can create and set ownership on these directories by running: 
 ```bash
    mkdir -p ${PWD}/har_and_cookies ${PWD}/generated_images
    sudo chown -R 1200:1201 ${PWD}/har_and_cookies ${PWD}/generated_images
 ```
-3. **Run the Docker Container:** Use the following commands to pull the latest image and start the container:
+3. **Run the Docker Container:** Use the following commands to pull the latest image and start the container (Only x64):
 ```bash
    docker pull hlohaus789/g4f
    docker run -p 8080:8080 -p 7900:7900 \
