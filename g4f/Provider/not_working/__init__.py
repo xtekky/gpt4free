@@ -13,6 +13,7 @@ from .ChatgptFree       import ChatgptFree
 from .DarkAI            import DarkAI
 from .FlowGpt           import FlowGpt
 from .FreeNetfly        import FreeNetfly
+from .GPROChat          import GPROChat
 from .Koala             import Koala
 from .MagickPen         import MagickPen
 from .MyShell           import MyShell

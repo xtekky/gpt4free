@@ -17,7 +17,6 @@ from .Provider import (
     DeepInfraChat,
     HuggingSpace,
     Glider,
-    GPROChat,
     ImageLabs,
     Jmuz,
     Liaobots,
@@ -314,7 +313,7 @@ gemini_1_5_flash = Model(
 gemini_1_5_pro = Model(
     name          = 'gemini-1.5-pro',
     base_provider = 'Google DeepMind',
-    best_provider = IterListProvider([Blackbox, Jmuz, GPROChat, Gemini, GeminiPro, Liaobots])
+    best_provider = IterListProvider([Blackbox, Jmuz, Gemini, GeminiPro, Liaobots])
 )
 
 # gemini-2.0
