@@ -73,7 +73,18 @@ def iter_response(
         elif isinstance(chunk, Exception):
             continue
 
-        chunk = str(chunk)
+        if isinstance(chunk, list):
+            chunk = "".join(map(str, chunk))
+        else:
+
+            temp = chunk.__str__()
+            if not isinstance(temp, str):
+                if isinstance(temp, list):
+                    temp = "".join(map(str, temp))
+                else:
+                    temp = repr(chunk)
+            chunk = temp
+            
         content += chunk
 
         if max_tokens is not None and idx + 1 >= max_tokens:
