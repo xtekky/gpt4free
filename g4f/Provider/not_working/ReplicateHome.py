@@ -9,7 +9,7 @@ from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ...requests.aiohttp import get_connector
 from ...requests.raise_for_status import raise_for_status
 from ..helper import format_prompt
-from ...image import ImageResponse
+from ...providers.response import ImageResponse
 
 class ReplicateHome(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://replicate.com"
