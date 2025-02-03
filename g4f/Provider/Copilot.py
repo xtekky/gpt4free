@@ -24,10 +24,10 @@ from .openai.har_file import get_headers, get_har_files
 from ..typing import CreateResult, Messages, ImagesType
 from ..errors import MissingRequirementsError, NoValidHarFileError, MissingAuthError
 from ..requests.raise_for_status import raise_for_status
-from ..providers.response import BaseConversation, JsonConversation, RequestLogin, Parameters
+from ..providers.response import BaseConversation, JsonConversation, RequestLogin, Parameters, ImageResponse
 from ..providers.asyncio import get_running_loop
 from ..requests import get_nodriver
-from ..image import ImageResponse, to_bytes, is_accepted_format
+from ..image import to_bytes, is_accepted_format
 from .helper import get_last_user_message
 from .. import debug
 

@@ -9,14 +9,14 @@ from ...typing import AsyncResult, Messages
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin, format_prompt
 from ...errors import ModelNotFoundError, ModelNotSupportedError, ResponseError
 from ...requests import StreamSession, raise_for_status
-from ...providers.response import FinishReason
-from ...image import ImageResponse
+from ...providers.response import FinishReason, ImageResponse
 from ..helper import format_image_prompt
 from .models import default_model, default_image_model, model_aliases, fallback_models
 from ... import debug
 
 class HuggingFaceInference(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://huggingface.co"
+    parent = "HuggingFace"
     working = True
 
     default_model = default_model

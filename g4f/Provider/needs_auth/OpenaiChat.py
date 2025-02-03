@@ -22,9 +22,9 @@ from ...typing import AsyncResult, Messages, Cookies, ImagesType
 from ...requests.raise_for_status import raise_for_status
 from ...requests import StreamSession
 from ...requests import get_nodriver
-from ...image import ImageResponse, ImageRequest, to_image, to_bytes, is_accepted_format
+from ...image import ImageRequest, to_image, to_bytes, is_accepted_format
 from ...errors import MissingAuthError, NoValidHarFileError
-from ...providers.response import JsonConversation, FinishReason, SynthesizeData, AuthResult
+from ...providers.response import JsonConversation, FinishReason, SynthesizeData, AuthResult, ImageResponse
 from ...providers.response import Sources, TitleGeneration, RequestLogin, Parameters, Reasoning
 from ..helper import format_cookies
 from ..openai.models import default_model, default_image_model, models, image_models, text_models
@@ -526,7 +526,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                     c = m.get("content", {})
                     if c.get("content_type") == "text" and m.get("author", {}).get("role") == "tool" and "initial_text" in m.get("metadata", {}):
                         fields.is_thinking = True
-                        yield Reasoning(status=c.get("metadata", {}).get("initial_text"))
+                        yield Reasoning(status=m.get("metadata", {}).get("initial_text"))
                     if c.get("content_type") == "multimodal_text":
                         generated_images = []
                         for element in c.get("parts"):

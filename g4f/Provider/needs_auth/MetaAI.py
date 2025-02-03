@@ -10,7 +10,7 @@ from aiohttp import ClientSession, BaseConnector
 
 from ...typing import AsyncResult, Messages, Cookies
 from ...requests import raise_for_status, DEFAULT_HEADERS
-from ...image import ImageResponse, ImagePreview
+from ...providers.response import ImageResponse, ImagePreview
 from ...errors import ResponseError
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..helper import format_prompt, get_connector, format_cookies

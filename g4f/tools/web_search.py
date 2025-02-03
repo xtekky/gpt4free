@@ -194,8 +194,10 @@ async def search(query: str, max_results: int = 5, max_words: int = 2500, backen
 async def do_search(prompt: str, query: str = None, instructions: str = DEFAULT_INSTRUCTIONS, **kwargs) -> str:
     if instructions and instructions in prompt:
         return prompt # We have already added search results
+    if prompt.startswith("##") and query is None:
+        return prompt # We have no search query
     if query is None:
-        query = spacy_get_keywords(prompt)
+        query = prompt.strip().splitlines()[0] # Use the first line as the search query
     json_bytes = json.dumps({"query": query, **kwargs}, sort_keys=True).encode(errors="ignore")
     md5_hash = hashlib.md5(json_bytes).hexdigest()
     bucket_dir: Path = Path(get_cookies_dir()) / ".scrape_cache" / f"web_search" / f"{datetime.date.today()}"

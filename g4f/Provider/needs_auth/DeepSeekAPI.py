@@ -48,12 +48,13 @@ try:
                 raise MissingAuthError()
             response.raise_for_status()
             return response.json()
+    has_dsk = True
 except ImportError:
-    pass
+    has_dsk = False
 
 class DeepSeekAPI(AsyncAuthedProvider):
     url = "https://chat.deepseek.com"
-    working = False
+    working = has_dsk
     needs_auth = True
     use_nodriver = True
     _access_token = None
@@ -91,6 +92,7 @@ class DeepSeekAPI(AsyncAuthedProvider):
         if conversation is None:
             chat_id = api.create_chat_session()
             conversation = JsonConversation(chat_id=chat_id)
+        yield conversation
 
         is_thinking = 0
         for chunk in api.chat_completion(

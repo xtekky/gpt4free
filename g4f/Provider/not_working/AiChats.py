@@ -5,7 +5,7 @@ import base64
 from aiohttp import ClientSession
 from ...typing import AsyncResult, Messages
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from ...image import ImageResponse
+from ...providers.response import ImageResponse
 from ..helper import format_prompt
 
 class AiChats(AsyncGeneratorProvider, ProviderModelMixin):

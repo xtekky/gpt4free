@@ -4,7 +4,7 @@ import json
 from aiohttp import ClientSession
 
 from ...typing import AsyncResult, Messages
-from ...image import ImageResponse, ImagePreview
+from ...providers.response import ImageResponse, ImagePreview
 from ...errors import ResponseError
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..helper import format_image_prompt

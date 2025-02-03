@@ -8,7 +8,7 @@ from flask import send_from_directory
 from inspect import signature
 
 from ...errors import VersionNotFoundError
-from ...image import ImagePreview, ImageResponse, copy_images, ensure_images_dir, images_dir
+from ...image.copy_images import copy_images, ensure_images_dir, images_dir
 from ...tools.run_tools import iter_run_tools
 from ...Provider import ProviderUtils, __providers__
 from ...providers.base_provider import ProviderModelMixin
@@ -182,7 +182,9 @@ class Api:
                 elif isinstance(chunk, Exception):
                     logger.exception(chunk)
                     yield self._format_json('message', get_error_message(chunk), error=type(chunk).__name__)
-                elif isinstance(chunk, (PreviewResponse, ImagePreview)):
+                elif isinstance(chunk, PreviewResponse):
+                    yield self._format_json("preview", chunk.to_string())
+                elif isinstance(chunk, ImagePreview):
                     yield self._format_json("preview", chunk.to_string(), images=chunk.images, alt=chunk.alt)
                 elif isinstance(chunk, ImageResponse):
                     images = chunk
@@ -207,6 +209,8 @@ class Api:
                     yield self._format_json("reasoning", **chunk.get_dict())
                 elif isinstance(chunk, DebugResponse):
                     yield self._format_json("log", chunk.log)
+                elif isinstance(chunk, RawResponse):
+                    yield self._format_json(chunk.type, **chunk.get_dict())
                 else:
                     yield self._format_json("content", str(chunk))
                 if debug.logs:
@@ -215,6 +219,8 @@ class Api:
                     debug.logs = []
         except Exception as e:
             logger.exception(e)
+            if debug.logging:
+                debug.log_handler(get_error_message(e))
             if debug.logs:
                 for log in debug.logs:
                     yield self._format_json("log", str(log))
@@ -222,7 +228,7 @@ class Api:
             yield self._format_json('error', type(e).__name__, message=get_error_message(e))
 
     def _format_json(self, response_type: str, content = None, **kwargs):
-        if content is not None:
+        if content is not None and isinstance(response_type, str):
             return {
                 'type': response_type,
                 response_type: content,

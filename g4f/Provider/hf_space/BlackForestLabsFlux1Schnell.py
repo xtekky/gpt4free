@@ -4,7 +4,7 @@ from aiohttp import ClientSession
 import json
 
 from ...typing import AsyncResult, Messages
-from ...image import ImageResponse
+from ...providers.response import ImageResponse
 from ...errors import ResponseError
 from ...requests.raise_for_status import raise_for_status
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
