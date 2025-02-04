@@ -102,6 +102,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
     vision_models = text_models
     models = models
     synthesize_content_type = "audio/mpeg"
+    request_config = RequestConfig()
 
     _api_key: str = None
     _headers: dict = None
@@ -114,11 +115,11 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
             yield chunk
         yield AuthResult(
             api_key=cls._api_key,
-            cookies=cls._cookies or RequestConfig.cookies or {},
-            headers=cls._headers or RequestConfig.headers or cls.get_default_headers(),
+            cookies=cls._cookies or cls.request_config.cookies or {},
+            headers=cls._headers or cls.request_config.headers or cls.get_default_headers(),
             expires=cls._expires,
-            proof_token=RequestConfig.proof_token,
-            turnstile_token=RequestConfig.turnstile_token
+            proof_token=cls.request_config.proof_token,
+            turnstile_token=cls.request_config.turnstile_token
         )
 
     @classmethod
@@ -352,7 +353,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                     need_arkose = chat_requirements.get("arkose", {}).get("required", False) 
                     chat_token = chat_requirements.get("token")  
 
-                # if need_arkose and RequestConfig.arkose_token is None:
+                # if need_arkose and cls.request_config.arkose_token is None:
                 #     await get_request_config(proxy)
                 #     cls._create_request_args(auth_result.cookies, auth_result.headers)
                 #     cls._set_api_key(auth_result.access_token)
@@ -409,8 +410,8 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                     "content-type": "application/json",
                     "openai-sentinel-chat-requirements-token": chat_token,
                 }
-                #if RequestConfig.arkose_token:
-                #    headers["openai-sentinel-arkose-token"] = RequestConfig.arkose_token
+                #if cls.request_config.arkose_token:
+                #    headers["openai-sentinel-arkose-token"] = cls.request_config.arkose_token
                 if proofofwork is not None:
                     headers["openai-sentinel-proof-token"] = proofofwork
                 if need_turnstile and getattr(auth_result, "turnstile_token", None) is not None:
@@ -425,7 +426,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                     cls._update_request_args(auth_result, session)
                     if response.status == 403:
                         auth_result.proof_token = None
-                        RequestConfig.proof_token = None
+                        cls.request_config.proof_token = None
                     await raise_for_status(response)
                     buffer = u""
                     async for line in response.iter_lines():
@@ -471,7 +472,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                 yield Parameters(**{
                     "action": "continue" if conversation.finish_reason == "max_tokens" else "variant",
                     "conversation": conversation.get_dict(),
-                    "proof_token": RequestConfig.proof_token,
+                    "proof_token": cls.request_config.proof_token,
                     "cookies": cls._cookies,
                     "headers": cls._headers,
                     "web_search": web_search,
@@ -576,19 +577,19 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
         if cls._headers is None or headers is not None:
             cls._headers = {} if headers is None else headers
         if proof_token is not None:
-            RequestConfig.proof_token = proof_token
+            cls.request_config.proof_token = proof_token
         if cookies is not None:
-            RequestConfig.cookies = cookies
+            cls.request_config.cookies = cookies
         if api_key is not None:
-            cls._create_request_args(RequestConfig.cookies, RequestConfig.headers)
+            cls._create_request_args(cls.request_config.cookies, cls.request_config.headers)
             cls._set_api_key(api_key)
         else:
             try:
-                await get_request_config(proxy)
-                cls._create_request_args(RequestConfig.cookies, RequestConfig.headers)
-                if RequestConfig.access_token is not None or cls.needs_auth:
-                    if not cls._set_api_key(RequestConfig.access_token):
-                        raise NoValidHarFileError(f"Access token is not valid: {RequestConfig.access_token}")
+                await get_request_config(cls.request_config, proxy)
+                cls._create_request_args(cls.request_config.cookies, cls.request_config.headers)
+                if cls.request_config.access_token is not None or cls.needs_auth:
+                    if not cls._set_api_key(cls.request_config.access_token):
+                        raise NoValidHarFileError(f"Access token is not valid: {cls.request_config.access_token}")
             except NoValidHarFileError:
                 if has_nodriver:
                     if cls._api_key is None:
@@ -600,8 +601,8 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                     raise
         yield Parameters(**{
             "api_key": cls._api_key,
-            "proof_token": RequestConfig.proof_token,
-            "cookies": RequestConfig.cookies,
+            "proof_token": cls.request_config.proof_token,
+            "cookies": cls.request_config.cookies,
         })
 
     @classmethod
@@ -611,18 +612,18 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
             page = browser.main_tab
             def on_request(event: nodriver.cdp.network.RequestWillBeSent):
                 if event.request.url == start_url or event.request.url.startswith(conversation_url):
-                    RequestConfig.headers = event.request.headers
+                    cls.request_config.headers = event.request.headers
                 elif event.request.url in (backend_url, backend_anon_url):
                     if "OpenAI-Sentinel-Proof-Token" in event.request.headers:
-                            RequestConfig.proof_token = json.loads(base64.b64decode(
+                            cls.request_config.proof_token = json.loads(base64.b64decode(
                                 event.request.headers["OpenAI-Sentinel-Proof-Token"].split("gAAAAAB", 1)[-1].encode()
                             ).decode())
                     if "OpenAI-Sentinel-Turnstile-Token" in event.request.headers:
-                        RequestConfig.turnstile_token = event.request.headers["OpenAI-Sentinel-Turnstile-Token"]
+                        cls.request_config.turnstile_token = event.request.headers["OpenAI-Sentinel-Turnstile-Token"]
                     if "Authorization" in event.request.headers:
                         cls._api_key = event.request.headers["Authorization"].split()[-1]
                 elif event.request.url == arkose_url:
-                    RequestConfig.arkose_request = arkReq(
+                    cls.request_config.arkose_request = arkReq(
                         arkURL=event.request.url,
                         arkBx=None,
                         arkHeader=event.request.headers,
@@ -647,13 +648,13 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                         break
                 await asyncio.sleep(1)
             while True:
-                if RequestConfig.proof_token:
+                if cls.request_config.proof_token:
                     break
                 await asyncio.sleep(1)
-            RequestConfig.data_build = await page.evaluate("document.documentElement.getAttribute('data-build')")
-            RequestConfig.cookies = await page.send(get_cookies([cls.url]))
+            cls.request_config.data_build = await page.evaluate("document.documentElement.getAttribute('data-build')")
+            cls.request_config.cookies = await page.send(get_cookies([cls.url]))
             await page.close()
-            cls._create_request_args(RequestConfig.cookies, RequestConfig.headers, user_agent=user_agent)
+            cls._create_request_args(cls.request_config.cookies, cls.request_config.headers, user_agent=user_agent)
             cls._set_api_key(cls._api_key)
         finally:
             stop_browser()

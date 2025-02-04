@@ -56,7 +56,7 @@ def get_har_files():
     harPath.sort(key=lambda x: os.path.getmtime(x))
     return harPath
 
-def readHAR():
+def readHAR(request_config: RequestConfig):
     for path in get_har_files():
         with open(path, 'rb') as file:
             try:
@@ -67,28 +67,28 @@ def readHAR():
             for v in harFile['log']['entries']:
                 v_headers = get_headers(v)
                 if arkose_url == v['request']['url']:
-                    RequestConfig.arkose_request = parseHAREntry(v)
+                    request_config.arkose_request = parseHAREntry(v)
                 elif v['request']['url'].startswith(start_url):
                     try:
                         match = re.search(r'"accessToken":"(.*?)"', v["response"]["content"]["text"])
                         if match:
-                            RequestConfig.access_token = match.group(1)
+                            request_config.access_token = match.group(1)
                     except KeyError:
                         pass
                     try:
                         if "openai-sentinel-proof-token" in v_headers:
-                            RequestConfig.headers = v_headers
-                            RequestConfig.proof_token = json.loads(base64.b64decode(
+                            request_config.headers = v_headers
+                            request_config.proof_token = json.loads(base64.b64decode(
                                 v_headers["openai-sentinel-proof-token"].split("gAAAAAB", 1)[-1].encode()
                             ).decode())
                         if "openai-sentinel-turnstile-token" in v_headers:
-                            RequestConfig.turnstile_token = v_headers["openai-sentinel-turnstile-token"]
+                            request_config.turnstile_token = v_headers["openai-sentinel-turnstile-token"]
                         if "authorization" in v_headers:
-                            RequestConfig.access_token = v_headers["authorization"].split(" ")[1]
-                        RequestConfig.cookies = {c['name']: c['value'] for c in v['request']['cookies']}
+                            request_config.access_token = v_headers["authorization"].split(" ")[1]
+                        request_config.cookies = {c['name']: c['value'] for c in v['request']['cookies']}
                     except Exception as e:
                         debug.log(f"Error on read headers: {e}")
-    if RequestConfig.proof_token is None:
+    if request_config.proof_token is None:
         raise NoValidHarFileError("No proof_token found in .har files")
 
 def get_headers(entry) -> dict:
@@ -153,9 +153,9 @@ def getN() -> str:
     timestamp = str(int(time.time()))
     return base64.b64encode(timestamp.encode()).decode()
 
-async def get_request_config(proxy: str) -> RequestConfig:
-    if RequestConfig.proof_token is None:
-        readHAR()
-    if RequestConfig.arkose_request is not None:
-        RequestConfig.arkose_token = await sendRequest(genArkReq(RequestConfig.arkose_request), proxy)
-    return RequestConfig
+async def get_request_config(request_config: RequestConfig, proxy: str) -> RequestConfig:
+    if request_config.proof_token is None:
+        readHAR(request_config)
+    if request_config.arkose_request is not None:
+        request_config.arkose_token = await sendRequest(genArkReq(request_config.arkose_request), proxy)
+    return request_config
