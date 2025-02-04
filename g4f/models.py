@@ -745,7 +745,6 @@ demo_models = {
     qwen_2_vl_7b.name: [qwen_2_vl_7b, [HuggingFaceAPI]],
     qvq_72b.name: [qvq_72b, [HuggingSpace]],
     deepseek_r1.name: [deepseek_r1, [HuggingFace]],
-    claude_3_5_sonnet.name: [claude_3_5_sonnet, claude_3_5_sonnet.best_provider.providers],
     command_r.name: [command_r, [HuggingSpace]],
     command_r_plus.name: [command_r_plus, [HuggingSpace]],
     command_r7b.name: [command_r7b, [HuggingSpace]],
