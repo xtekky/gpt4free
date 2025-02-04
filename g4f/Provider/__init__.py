@@ -38,6 +38,7 @@ from .PerplexityLabs       import PerplexityLabs
 from .Pi                   import Pi
 from .Pizzagpt             import Pizzagpt
 from .PollinationsAI       import PollinationsAI
+from .PollinationsImage    import PollinationsImage
 from .Prodia               import Prodia
 from .TeachAnything        import TeachAnything
 from .You                  import You

@@ -28,6 +28,15 @@ def get_image_extension(image: str) -> str:
 def ensure_images_dir():
     os.makedirs(images_dir, exist_ok=True)
 
+def get_source_url(image: str, default: str = None) -> str:
+    source_url = image.split("url=", 1)
+    if len(source_url) > 1:
+        source_url = source_url[1]
+        source_url = source_url.replace("%2F", "/").replace("%3A", ":").replace("%3F", "?").replace("%3D", "=")
+        if source_url.startswith("https://"):
+            return source_url
+    return default
+
 async def copy_images(
     images: list[str],
     cookies: Optional[Cookies] = None,
@@ -68,7 +77,7 @@ async def copy_images(
                                     f.write(chunk)
                     except ClientError as e:
                         debug.log(f"copy_images failed: {e.__class__.__name__}: {e}")
-                        return image
+                        return get_source_url(image, image)
                 if "." not in target:
                     with open(target, "rb") as f:
                         extension = is_accepted_format(f.read(12)).split("/")[-1]

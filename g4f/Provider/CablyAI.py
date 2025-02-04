@@ -13,6 +13,7 @@ from ..providers.response import FinishReason, Reasoning
 class CablyAI(AsyncGeneratorProvider, ProviderModelMixin):
     label = "CablyAI"
     url = "https://cablyai.com"
+    login_url = url
     api_endpoint = "https://cablyai.com/v1/chat/completions"
     api_key = "sk-your-openai-api-key"
     
@@ -24,7 +25,7 @@ class CablyAI(AsyncGeneratorProvider, ProviderModelMixin):
     
     default_model = 'gpt-4o-mini'
     reasoning_models = ['deepseek-r1-uncensored']
-    models = [
+    fallback_models = [
         default_model,
         'searchgpt',
         'llama-3.1-8b-instruct',

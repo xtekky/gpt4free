@@ -1959,7 +1959,7 @@ async function on_api() {
     messageInput.addEventListener("keydown", async (evt) => {
         if (prompt_lock) return;
         // If not mobile and not shift enter
-        let do_enter = messageInput.value.endsWith("\n\n");
+        let do_enter = messageInput.value.endsWith("\n\n\n\n");
         if (do_enter || !window.matchMedia("(pointer:coarse)").matches && evt.keyCode === 13 && !evt.shiftKey) {
             evt.preventDefault();
             console.log("pressed enter");
@@ -2447,11 +2447,11 @@ async function api(ressource, args=null, files=null, message_id=null, scroll=tru
             return;
         }
     } else if (args) {
-        if (ressource == "log") {
-            if (!document.getElementById("report_error").checked) {
+        if (ressource in ("log", "usage")) {
+            if (ressource == "log" && !document.getElementById("report_error").checked) {
                 return;
             }
-            url = `https://roxky-g4f-demo.hf.space${url}`;
+            url = `https://roxky-g4f-backup.hf.space${url}`;
         }
         headers['content-type'] = 'application/json';
         response = await fetch(url, {
