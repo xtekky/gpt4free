@@ -2420,27 +2420,11 @@ async function api(ressource, args=null, files=null, message_id=null, scroll=tru
         });
         // On Ratelimit
         if (response.status == 429) {
-            // They are still pending requests?
-            for (let key in controller_storage) {
-                if (!controller_storage[key].signal.aborted) {
-                    console.error(response);
-                    await finish_message();
-                    return;
-                }
-            }
-            setTimeout(async () => {
-                response = await fetch(url, {
-                    method: 'POST',
-                    signal: controller_storage[message_id].signal,
-                    headers: headers,
-                    body: body,
-                });
-                if (response.status != 200) {
-                    console.error(response);
-                }
-                await read_response(response, message_id, args.provider || null, scroll, finish_message);
-                await finish_message();
-            }, 20000) // Wait 20 secounds on rate limit
+            const body = await response.text();
+            const title = body.match(/<title>([^<]+?)<\/title>/)[1];
+            const message = body.match(/<p>([^<]+?)<\/p>/)[1];
+            error_storage[message_id] = `**${title}**\n${message}`;
+            await finish_message();
         } else {
             await read_response(response, message_id, args.provider || null, scroll, finish_message);
             await finish_message();
