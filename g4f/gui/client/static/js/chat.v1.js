@@ -2447,7 +2447,7 @@ async function api(ressource, args=null, files=null, message_id=null, scroll=tru
             return;
         }
     } else if (args) {
-        if (ressource in ("log", "usage")) {
+        if (ressource == "log" ||  ressource == "usage") {
             if (ressource == "log" && !document.getElementById("report_error").checked) {
                 return;
             }
