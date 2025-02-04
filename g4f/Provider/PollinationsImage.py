@@ -7,25 +7,15 @@ from ..typing import AsyncResult, Messages
 from .PollinationsAI import PollinationsAI
 
 class PollinationsImage(PollinationsAI):
-    # From: https://pollinations.ai/static/js/components/FeedImage/ImageEditor.js
-    image_models = [
-        "flux",
-        "flux-pro",
-        "flux-realism",
-        "flux-anime",
-        "flux-3d",
-        "flux-cablyai",
-        "turbo",
-    ]
     default_model = "flux"
     default_vision_model = None
     default_image_model = default_model
 
     @classmethod
     def get_models(cls, **kwargs):
-        if not cls.models:
-            cls.models = list(dict.fromkeys([*cls.image_models, *cls.extra_image_models, *PollinationsAI.extra_image_models]))
-        return cls.models
+        if not cls.image_models:
+            cls.image_models = list(dict.fromkeys([*cls.image_models, *cls.extra_image_models]))
+        return cls.image_models
 
     @classmethod
     async def create_async_generator(

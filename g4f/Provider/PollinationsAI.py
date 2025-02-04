@@ -37,9 +37,18 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
 
     # Models configuration
     default_model = "openai"
-    default_image_model = "flux"
     default_vision_model = "gpt-4o"
-    extra_image_models = ["midjourney", "dall-e-3", "flux-pro"]
+    extra_image_models = [
+        "flux",
+        "flux-pro",
+        "flux-realism",
+        "flux-anime",
+        "flux-3d",
+        "flux-cablyai",
+        "turbo",
+        "midjourney",
+        "dall-e-3",
+    ]
     vision_models = [default_vision_model, "gpt-4o-mini"]
     reasoning_models = ['deepseek-reasoner', 'deepseek-r1']
     extra_text_models = ["claude", "claude-email", "p1"] + vision_models + reasoning_models
@@ -77,7 +86,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
             response = requests.get(url)
             raise_for_status(response)
             new_image_models = response.json()
-            cls.extra_image_models = list(dict.fromkeys([*cls.image_models, *cls.extra_image_models, *new_image_models]))
+            cls.extra_image_models = list(dict.fromkeys([*cls.extra_image_models, *new_image_models]))
         
             url = "https://text.pollinations.ai/models"
             response = requests.get(url)
@@ -123,7 +132,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         if not cache and seed is None:
             seed = random.randint(0, 10000)
 
-        if model in cls.image_models and  model not in cls.extra_image_models:
+        if model in cls.image_models or model in cls.extra_image_models:
            async for chunk in cls._generate_image(
                 model=model,
                 prompt=format_image_prompt(messages, prompt),
