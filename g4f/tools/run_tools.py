@@ -154,7 +154,7 @@ def iter_run_tools(
         if not isinstance(chunk, str):
             yield chunk
             continue
-        if "<think>" in chunk:
+        if "<think>" in chunk and not "`<think>`" in chunk:
             if chunk != "<think>":
                 chunk = chunk.split("<think>", 1)
                 if len(chunk) > 0 and chunk[0]:

@@ -11,6 +11,7 @@ from .helper import filter_none, format_image_prompt
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..typing import AsyncResult, Messages, ImagesType
 from ..image import to_data_uri
+from ..errors import ModelNotFoundError
 from ..requests.raise_for_status import raise_for_status
 from ..requests.aiohttp import get_connector
 from ..providers.response import ImageResponse, ImagePreview, FinishReason, Usage, Reasoning
@@ -64,20 +65,20 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         "deepseek-r1": "deepseek-reasoner",
         
         ### Image Models ###
-        "sdxl-turbo": "turbo", 
+        "sdxl-turbo": "turbo",
+        "flux-schnell": "flux", 
     }
     text_models = []
 
     @classmethod
     def get_models(cls, **kwargs):
-        if not cls.image_models:
+        if not cls.text_models:
             url = "https://image.pollinations.ai/models"
             response = requests.get(url)
             raise_for_status(response)
-            cls.image_models = response.json()
-            cls.image_models = list(dict.fromkeys([*cls.image_models, *cls.extra_image_models]))
+            new_image_models = response.json()
+            cls.extra_image_models = list(dict.fromkeys([*cls.image_models, *cls.extra_image_models, *new_image_models]))
         
-        if not cls.text_models:
             url = "https://text.pollinations.ai/models"
             response = requests.get(url)
             raise_for_status(response)
@@ -87,8 +88,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                 if model not in cls.extra_text_models
             ]
             cls.text_models = list(dict.fromkeys(combined_text))
-        
-        return list(dict.fromkeys([*cls.text_models, *cls.image_models]))
+        return cls.text_models
 
     @classmethod
     async def create_async_generator(
@@ -115,11 +115,15 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
     ) -> AsyncResult:
         if images is not None and not model:
             model = cls.default_vision_model
-        model = cls.get_model(model)
+        try:
+            model = cls.get_model(model)
+        except ModelNotFoundError:
+            if model not in cls.extra_image_models:
+                raise
         if not cache and seed is None:
-            seed = random.randint(0, 100000)
+            seed = random.randint(0, 10000)
 
-        if model in cls.image_models:
+        if model in cls.image_models and  model not in cls.extra_image_models:
            async for chunk in cls._generate_image(
                 model=model,
                 prompt=format_image_prompt(messages, prompt),

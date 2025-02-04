@@ -5,14 +5,14 @@ from .template import OpenaiTemplate
 
 class CablyAI(OpenaiTemplate):
     url = "https://cablyai.com"
-    login_url = None
+    login_url = url
     needs_auth = False
     api_base = "https://cablyai.com/v1"
     working = True
 
-    default_model = "Cably-80B"
-    models = [default_model]
-    model_aliases = {"cably-80b": default_model}
+    default_model = "o3-mini-low"
+    fallback_models = [default_model, "Cably-80B"]
+    model_aliases = {"cably-80b": "Cably-80B"}
 
     @classmethod
     def create_async_generator(

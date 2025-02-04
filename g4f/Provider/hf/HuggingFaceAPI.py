@@ -38,6 +38,7 @@ class HuggingFaceAPI(OpenaiTemplate):
         model: str,
         messages: Messages,
         api_base: str = None,
+        api_key: str = None,
         max_tokens: int = 2048,
         max_inputs_lenght: int = 10000,
         images: ImagesType = None,
@@ -50,6 +51,7 @@ class HuggingFaceAPI(OpenaiTemplate):
             api_base = f"https://api-inference.huggingface.co/models/{model_name}/v1"
         async with StreamSession(
             timeout=30,
+            headers=cls.get_headers(False, api_key),
         ) as session:
             async with session.get(f"https://huggingface.co/api/models/{model}") as response:
                 if response.status == 404:
@@ -71,7 +73,7 @@ class HuggingFaceAPI(OpenaiTemplate):
                 if len(messages) > 1 and calculate_lenght(messages) > max_inputs_lenght:
                     messages = [messages[-1]]
             debug.log(f"Messages trimmed from: {start} to: {calculate_lenght(messages)}")
-        async for chunk in super().create_async_generator(model, messages, api_base=api_base, max_tokens=max_tokens, images=images, **kwargs):
+        async for chunk in super().create_async_generator(model, messages, api_base=api_base, api_key=api_key, max_tokens=max_tokens, images=images, **kwargs):
             yield chunk
 
 def calculate_lenght(messages: Messages) -> int:
