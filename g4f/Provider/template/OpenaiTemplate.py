@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import time
 import requests
 
 from ..helper import filter_none, format_image_prompt

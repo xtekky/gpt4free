@@ -741,10 +741,11 @@ class ModelUtils:
 
 demo_models = {
     gpt_4o.name: [gpt_4o, [PollinationsAI, Blackbox]],
+    gpt_4o_mini.name: [gpt_4o_mini, [PollinationsAI, CablyAI, DDG]],
+    deepseek_r1.name: [deepseek_r1, [PollinationsAI, HuggingFace]],
     "default": [llama_3_2_11b, [HuggingFace]],
     qwen_2_vl_7b.name: [qwen_2_vl_7b, [HuggingFaceAPI]],
     qvq_72b.name: [qvq_72b, [HuggingSpace]],
-    deepseek_r1.name: [deepseek_r1, [HuggingFace]],
     command_r.name: [command_r, [HuggingSpace]],
     command_r_plus.name: [command_r_plus, [HuggingSpace]],
     command_r7b.name: [command_r7b, [HuggingSpace]],
@@ -753,8 +754,8 @@ demo_models = {
     qwq_32b.name: [qwq_32b, [HuggingFace]],
     llama_3_3_70b.name: [llama_3_3_70b, [HuggingFace]],
     sd_3_5.name: [sd_3_5, [HuggingSpace, HuggingFace]],
-    flux_dev.name: [flux_dev, [HuggingSpace, HuggingFace]],
-    flux_schnell.name: [flux_schnell, [HuggingFace, HuggingSpace, PollinationsAI]],
+    flux_dev.name: [flux_dev, [PollinationsAI, HuggingSpace, HuggingFace]],
+    flux_schnell.name: [flux_schnell, [PollinationsAI, HuggingFace, HuggingSpace, PollinationsAI]],
 }
 
 # Create a list of all models and his providers

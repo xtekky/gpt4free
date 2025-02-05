@@ -15,6 +15,7 @@ from .Qwen_QVQ_72B                   import Qwen_QVQ_72B
 from .Qwen_Qwen_2_5M_Demo            import Qwen_Qwen_2_5M_Demo
 from .Qwen_Qwen_2_72B_Instruct       import Qwen_Qwen_2_72B_Instruct
 from .StableDiffusion35Large         import StableDiffusion35Large
+from .G4F                            import G4F
 
 class HuggingSpace(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://huggingface.co/spaces"
@@ -30,7 +31,8 @@ class HuggingSpace(AsyncGeneratorProvider, ProviderModelMixin):
         VoodoohopFlux1Schnell,
         CohereForAI, Janus_Pro_7B,
         Qwen_QVQ_72B, Qwen_Qwen_2_5M_Demo, Qwen_Qwen_2_72B_Instruct,
-        StableDiffusion35Large
+        StableDiffusion35Large,
+        G4F
     ]
 
     @classmethod
