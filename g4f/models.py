@@ -10,7 +10,6 @@ from .Provider import (
     CablyAI,
     ChatGLM,
     ChatGptEs,
-    ChatGptt,
     Cloudflare,
     Copilot,
     DDG,
@@ -81,7 +80,6 @@ default = Model(
         Copilot,
         DeepInfraChat,
         ChatGptEs,
-        ChatGptt,
         PollinationsAI,
         Jmuz,
         CablyAI,
@@ -116,20 +114,20 @@ default_vision = Model(
 gpt_4 = Model(
     name          = 'gpt-4',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([Blackbox, DDG, Jmuz, ChatGptEs, ChatGptt, PollinationsAI, Yqcloud, Copilot, OpenaiChat, Liaobots, Mhystical])
+    best_provider = IterListProvider([Blackbox, DDG, Jmuz, ChatGptEs, PollinationsAI, Yqcloud, Copilot, OpenaiChat, Liaobots, Mhystical])
 )
 
 # gpt-4o
 gpt_4o = VisionModel(
     name          = 'gpt-4o',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([Blackbox, ChatGptt, Jmuz, ChatGptEs, PollinationsAI, Copilot, Liaobots, OpenaiChat])
+    best_provider = IterListProvider([Blackbox, Jmuz, ChatGptEs, PollinationsAI, Copilot, Liaobots, OpenaiChat])
 )
 
 gpt_4o_mini = Model(
     name          = 'gpt-4o-mini',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([DDG, ChatGptEs, ChatGptt, Jmuz, PollinationsAI, OIVSCode, CablyAI, Liaobots, OpenaiChat])
+    best_provider = IterListProvider([DDG, ChatGptEs, Jmuz, PollinationsAI, OIVSCode, CablyAI, Liaobots, OpenaiChat])
 )
 
 # o1
