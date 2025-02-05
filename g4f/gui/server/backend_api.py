@@ -147,6 +147,8 @@ class Backend_Api(Api):
                 limiter_check()
             if "images" in json_data:
                 kwargs["images"] = json_data["images"]
+            if "zerogpu_token" in json_data:
+                kwargs["zerogpu_token"] = json_data["zerogpu_token"]
             kwargs = self._prepare_conversation_kwargs(json_data, kwargs)
             return self.app.response_class(
                 self._create_response_stream(
