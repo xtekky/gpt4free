@@ -26,7 +26,6 @@ class CablyAI(OpenaiTemplate):
     ] + reasoning_models
     
     model_aliases = {
-        "searchgpt": "searchgpt (free)",
         "gpt-4o-mini": "searchgpt",
         "llama-3.1-8b": "llama-3.1-8b-instruct",
         "deepseek-r1": "deepseek-r1-uncensored",
@@ -43,6 +42,6 @@ class CablyAI(OpenaiTemplate):
             model = super().get_model(model, **kwargs)
             return model.split(" (free)")[0]
         except ModelNotSupportedError:
-            if f"f{model} (free)" in cls.models:
+            if f"{model} (free)" in cls.models:
                 return model
             raise

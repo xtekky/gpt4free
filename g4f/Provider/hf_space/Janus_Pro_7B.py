@@ -70,6 +70,8 @@ class Janus_Pro_7B(AsyncGeneratorProvider, ProviderModelMixin):
         prompt: str = None,
         proxy: str = None,
         cookies: Cookies = None,
+        zerogpu_token: str = None,
+        zerogpu_uuid: str = None,
         return_conversation: bool = False,
         conversation: JsonConversation = None,
         seed: int = None,
@@ -90,7 +92,8 @@ class Janus_Pro_7B(AsyncGeneratorProvider, ProviderModelMixin):
         session_hash = generate_session_hash() if conversation is None else getattr(conversation, "session_hash")
         async with StreamSession(proxy=proxy, impersonate="chrome") as session:
             session_hash = generate_session_hash() if conversation is None else getattr(conversation, "session_hash")
-            zerogpu_uuid, zerogpu_token = await get_zerogpu_token(cls.space, session, conversation, cookies)
+            if zerogpu_token is None:
+                zerogpu_uuid, zerogpu_token = await get_zerogpu_token(cls.space, session, conversation, cookies)
             if conversation is None or not hasattr(conversation, "session_hash"):
                 conversation = JsonConversation(session_hash=session_hash, zerogpu_token=zerogpu_token, zerogpu_uuid=zerogpu_uuid)
             conversation.zerogpu_token = zerogpu_token

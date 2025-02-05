@@ -34,10 +34,21 @@ class G4F(Janus_Pro_7B):
         height: int = 1024,
         seed: int = None,
         cookies: dict = None,
+        zerogpu_token: str = None,
+        zerogpu_uuid: str = None,
         **kwargs
     ) -> AsyncResult:
         if cls.default_model not in model:
-            async for chunk in super().create_async_generator(model, messages, prompt=prompt, seed=seed, cookies=cookies, **kwargs):
+            async for chunk in super().create_async_generator(
+                model, messages,
+                proxy=proxy,
+                prompt=prompt,
+                seed=seed,
+                cookies=cookies, 
+                zerogpu_token=zerogpu_token,
+                zerogpu_uuid=zerogpu_uuid,
+                **kwargs
+            ):
                 yield chunk
             return
 
@@ -64,8 +75,9 @@ class G4F(Janus_Pro_7B):
             "trigger_id": 10
         }
         async with ClientSession() as session:
-            yield Reasoning(status="Acquiring GPU Token")
-            zerogpu_uuid, zerogpu_token = await get_zerogpu_token(cls.space, session, JsonConversation(), cookies)
+            if zerogpu_token is None:
+                yield Reasoning(status="Acquiring GPU Token")
+                zerogpu_uuid, zerogpu_token = await get_zerogpu_token(cls.space, session, JsonConversation(), cookies)
             headers = {
                 "x-zerogpu-token": zerogpu_token,
                 "x-zerogpu-uuid": zerogpu_uuid,

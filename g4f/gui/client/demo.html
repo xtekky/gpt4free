@@ -198,6 +198,15 @@
                 <a href="https://huggingface.co/settings/tokens" target="_blank">Get Access Token</a>
             </p>
         </form>
+        <script>
+            (async () => {
+                let chat_url = new URL(window.location.href)
+                let chat_params = new URLSearchParams(chat_url.search);
+                if (chat_params.get("__sign")) {
+                    localStorage.setItem("zerogpu_token", chat_params.get("__sign"));
+                }
+            })();
+        </script>
         <script type="module">
             import * as hub from "@huggingface/hub";
 
@@ -205,6 +214,9 @@
             const input = document.querySelector('form input[name="token"]');
             async function check_access_token() {
                 const accessToken = input.value || localStorage.getItem("HuggingFace-api_key");
+                if (!accessToken) {
+                    return;
+                }
                 let user;
                 try {
                     user = await hub.whoAmI({accessToken: accessToken});

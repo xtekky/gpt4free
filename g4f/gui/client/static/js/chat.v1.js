@@ -1056,6 +1056,7 @@ const ask_gpt = async (message_id, message_index = -1, regenerate = false, provi
             api_key: api_key,
             api_base: api_base,
             ignored: ignored,
+            zerogpu_token: localStorage.getItem("zerogpu_token")
         }, files, message_id, scroll, finish_message);
     } catch (e) {
         console.error(e);
@@ -1898,10 +1899,6 @@ async function on_load() {
         load_conversation(window.conversation_id);
     } else {
         chatPrompt.value = document.getElementById("systemPrompt")?.value || "";
-        example = document.getElementById("systemPrompt")?.dataset.example || ""
-        if (chatPrompt.value == example) {
-            messageInput.value = "";
-        }
         let chat_url = new URL(window.location.href)
         let chat_params = new URLSearchParams(chat_url.search);
         if (chat_params.get("prompt")) {
