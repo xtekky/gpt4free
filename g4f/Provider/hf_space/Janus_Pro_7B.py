@@ -71,7 +71,7 @@ class Janus_Pro_7B(AsyncGeneratorProvider, ProviderModelMixin):
         proxy: str = None,
         cookies: Cookies = None,
         zerogpu_token: str = None,
-        zerogpu_uuid: str = None,
+        zerogpu_uuid: str = "[object Object]",
         return_conversation: bool = False,
         conversation: JsonConversation = None,
         seed: int = None,

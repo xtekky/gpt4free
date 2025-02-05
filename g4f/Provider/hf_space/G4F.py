@@ -35,7 +35,7 @@ class G4F(Janus_Pro_7B):
         seed: int = None,
         cookies: dict = None,
         zerogpu_token: str = None,
-        zerogpu_uuid: str = None,
+        zerogpu_uuid: str = "[object Object]",
         **kwargs
     ) -> AsyncResult:
         if cls.default_model not in model:
