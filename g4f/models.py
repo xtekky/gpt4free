@@ -500,6 +500,12 @@ sonar_reasoning = Model(
     best_provider = PerplexityLabs
 )
 
+sonar_reasoning_pro = Model(
+    name = 'sonar-reasoning-pro',
+    base_provider = 'Perplexity AI',
+    best_provider = PerplexityLabs
+)
+
 ### Nvidia ### 
 nemotron_70b = Model(
     name = 'nemotron-70b',
@@ -717,6 +723,7 @@ class ModelUtils:
         sonar.name: sonar,
         sonar_pro.name: sonar_pro,
         sonar_reasoning.name: sonar_reasoning,
+        sonar_reasoning_pro.name: sonar_reasoning_pro,
         
         ### DeepSeek ###
         deepseek_chat.name: deepseek_chat,
