@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from ..typing import AsyncResult, Messages
+from ..errors import ModelNotSupportedError
 from .template import OpenaiTemplate
 
 class CablyAI(OpenaiTemplate):
     url = "https://cablyai.com"
-    login_url = None
+    login_url = url
     api_base = "https://cablyai.com/v1"
     api_key = "sk-your-openai-api-key"
 
