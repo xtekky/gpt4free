@@ -68,12 +68,17 @@
                         const currSlideElement = lightbox.pswp.currSlide.data.element;
                         if (currSlideElement) {
                             const img = currSlideElement.querySelector('img');
-                            el.innerText = img.getAttribute('alt');
                             const download = document.createElement("a");
                             download.setAttribute("href", img.getAttribute('src'));
-                            download.setAttribute("download", `${img.getAttribute('alt')}${lightbox.pswp.currSlide.index}.jpg`);
+                            let extension = img.getAttribute('src').includes(".webp") ? ".webp" : ".jpg";
+                            download.setAttribute("download", `${img.getAttribute('alt')} ${lightbox.pswp.currSlide.index}${extension}`);
+                            download.style.float = "right";
                             download.innerHTML = '<i class="fa-solid fa-download"></i>';
+                            let span = document.createElement("span");
+                            span.innerText = img.getAttribute('alt');
+                            el.innerHTML = '';
                             el.appendChild(download);
+                            el.appendChild(span);
                         }
                     });
                 }

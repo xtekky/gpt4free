@@ -15,7 +15,7 @@ from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..image import to_data_uri
 from ..cookies import get_cookies_dir
 from .helper import format_prompt, format_image_prompt
-from ..providers.response import JsonConversation, ImageResponse
+from ..providers.response import JsonConversation, ImageResponse, Reasoning
 
 class Conversation(JsonConversation):
     validated_value: str = None

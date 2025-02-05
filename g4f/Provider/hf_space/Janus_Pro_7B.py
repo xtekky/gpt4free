@@ -82,10 +82,8 @@ class Janus_Pro_7B(AsyncGeneratorProvider, ProviderModelMixin):
         method = "post"
         if model == cls.default_image_model or prompt is not None:
             method = "image"
-
         prompt = format_prompt(messages) if prompt is None and conversation is None else prompt
         prompt = format_image_prompt(messages, prompt)
-
         if seed is None:
             seed = int(time.time())
 
@@ -139,7 +137,8 @@ class Janus_Pro_7B(AsyncGeneratorProvider, ProviderModelMixin):
 
                             if json_data.get('msg') == 'process_completed':
                                 if 'output' in json_data and 'error' in json_data['output']:
-                                    raise ResponseError("Missing image input" if json_data['output']['error'] and "AttributeError" in json_data['output']['error'] else json_data['output']['error'])
+                                    json_data['output']['error'] = json_data['output']['error'].split(" <a ")[0]
+                                    raise ResponseError("Missing images input" if json_data['output']['error'] and "AttributeError" in json_data['output']['error'] else json_data['output']['error'])
                                 if 'output' in json_data and 'data' in json_data['output']:
                                     yield Reasoning(status="Finished")
                                     if "image" in json_data['output']['data'][0][0]:

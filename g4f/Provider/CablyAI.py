@@ -87,7 +87,6 @@ class CablyAI(AsyncGeneratorProvider, ProviderModelMixin):
                             continue
                             
                         line = line.decode('utf-8').strip()
-                        print(line)
                         
                         if not line.startswith("data: "):
                             continue

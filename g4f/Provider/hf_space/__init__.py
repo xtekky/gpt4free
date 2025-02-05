@@ -27,10 +27,14 @@ class HuggingSpace(AsyncGeneratorProvider, ProviderModelMixin):
     default_image_model = BlackForestLabsFlux1Dev.default_model
     default_vision_model = Qwen_QVQ_72B.default_model
     providers = [
-        BlackForestLabsFlux1Dev, BlackForestLabsFlux1Schnell,
+        BlackForestLabsFlux1Dev,
+        BlackForestLabsFlux1Schnell,
         VoodoohopFlux1Schnell,
-        CohereForAI, Janus_Pro_7B,
-        Qwen_QVQ_72B, Qwen_Qwen_2_5M_Demo, Qwen_Qwen_2_72B_Instruct,
+        CohereForAI,
+        Janus_Pro_7B,
+        Qwen_QVQ_72B,
+        Qwen_Qwen_2_5M_Demo,
+        Qwen_Qwen_2_72B_Instruct,
         StableDiffusion35Large,
         G4F
     ]
@@ -70,7 +74,7 @@ class HuggingSpace(AsyncGeneratorProvider, ProviderModelMixin):
         random.shuffle(cls.providers)
         for provider in cls.providers:
             if model in provider.model_aliases:
-                async for chunk in provider.create_async_generator(provider.model_aliases[model], messages, **kwargs):
+                async for chunk in provider.create_async_generator(provider.model_aliases[model], messages, images=images, **kwargs):
                     is_started = True
                     yield chunk
             if is_started:
@@ -79,7 +83,7 @@ class HuggingSpace(AsyncGeneratorProvider, ProviderModelMixin):
         for provider in cls.providers:
             if model in provider.get_models():
                 try:
-                    async for chunk in provider.create_async_generator(model, messages, **kwargs):
+                    async for chunk in provider.create_async_generator(model, messages, images=images, **kwargs):
                         is_started = True
                         yield chunk
                     if is_started:

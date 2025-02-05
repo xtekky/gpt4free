@@ -116,7 +116,7 @@ class Backend_Api(Api):
             }
             for model, providers in models.demo_models.values()]
 
-        def handle_conversation():
+        def handle_conversation(limiter_check: callable = None):
             """
             Handles conversation requests and streams responses back.
 
@@ -135,7 +135,7 @@ class Backend_Api(Api):
             else:
                 json_data = request.json
 
-            if app.demo and json_data.get("provider") not in ["Custom", "Feature"]:
+            if app.demo and json_data.get("provider") not in ["Custom", "Feature", "HuggingFace", "HuggingSpace", "G4F"]:
                 model = json_data.get("model")
                 if model != "default" and model in models.demo_models:
                     json_data["provider"] = random.choice(models.demo_models[model][1])
@@ -143,6 +143,10 @@ class Backend_Api(Api):
                     if not model or model == "default":
                         json_data["model"] = models.demo_models["default"][0].name
                     json_data["provider"] = random.choice(models.demo_models["default"][1])
+            if limiter_check is not None and json_data.get("provider") in ["Feature"]:
+                limiter_check()
+            if "images" in json_data:
+                kwargs["images"] = json_data["images"]
             kwargs = self._prepare_conversation_kwargs(json_data, kwargs)
             return self.app.response_class(
                 self._create_response_stream(
@@ -158,8 +162,7 @@ class Backend_Api(Api):
             @app.route('/backend-api/v2/conversation', methods=['POST'])
             @limiter.limit("2 per minute")
             def _handle_conversation():
-                limiter.check()
-                return handle_conversation()
+                return handle_conversation(limiter.check)
         else:
             @app.route('/backend-api/v2/conversation', methods=['POST'])
             def _handle_conversation():

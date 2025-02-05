@@ -1165,6 +1165,10 @@ ul {
     .settings h3 {
         text-align: center;
     }
+
+    .field.collapsible {
+        flex-direction: column;
+    }
 }
 
 .shown {

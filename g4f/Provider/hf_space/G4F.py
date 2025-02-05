@@ -2,14 +2,16 @@ from __future__ import annotations
 
 from aiohttp import ClientSession
 import time
+import asyncio
 
 from ...typing import AsyncResult, Messages
-from ...providers.response import ImageResponse
+from ...providers.response import ImageResponse, Reasoning
 from ...requests.raise_for_status import raise_for_status
 from ..helper import format_image_prompt, get_random_string
 from .Janus_Pro_7B import Janus_Pro_7B, JsonConversation, get_zerogpu_token
 
 class G4F(Janus_Pro_7B):
+    label = "G4F framework"
     space = "roxky/Janus-Pro-7B"
     url = f"https://huggingface.co/spaces/roxky/g4f-space"
     api_url = "https://roxky-janus-pro-7b.hf.space"
@@ -62,13 +64,25 @@ class G4F(Janus_Pro_7B):
             "trigger_id": 10
         }
         async with ClientSession() as session:
+            yield Reasoning(status="Acquiring GPU Token")
             zerogpu_uuid, zerogpu_token = await get_zerogpu_token(cls.space, session, JsonConversation(), cookies)
             headers = {
                 "x-zerogpu-token": zerogpu_token,
                 "x-zerogpu-uuid": zerogpu_uuid,
             }
-            async with session.post(cls.url_flux, json=payload, proxy=proxy, headers=headers) as response:
-                await raise_for_status(response)
-                response_data = await response.json()
-                image_url = response_data["data"][0]['url']
-                yield ImageResponse(images=[image_url], alt=prompt)
+            async def generate():
+                async with session.post(cls.url_flux, json=payload, proxy=proxy, headers=headers) as response:
+                    await raise_for_status(response)
+                    response_data = await response.json()
+                    image_url = response_data["data"][0]['url']
+                    return ImageResponse(images=[image_url], alt=prompt)
+            background_tasks = set()
+            started = time.time()
+            task = asyncio.create_task(generate())
+            background_tasks.add(task)
+            task.add_done_callback(background_tasks.discard)
+            while background_tasks:
+                yield Reasoning(status=f"Generating {time.time() - started:.2f}s")
+                await asyncio.sleep(0.2)
+            yield await task
+            yield Reasoning(status=f"Finished {time.time() - started:.2f}s")
