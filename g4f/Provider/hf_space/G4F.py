@@ -83,11 +83,14 @@ class G4F(Janus_Pro_7B):
                 "x-zerogpu-uuid": zerogpu_uuid,
             }
             async def generate():
-                async with session.post(cls.url_flux, json=payload, proxy=proxy, headers=headers) as response:
-                    await raise_for_status(response)
-                    response_data = await response.json()
-                    image_url = response_data["data"][0]['url']
-                    return ImageResponse(images=[image_url], alt=prompt)
+                try:
+                    async with session.post(cls.url_flux, json=payload, proxy=proxy, headers=headers) as response:
+                        await raise_for_status(response)
+                        response_data = await response.json()
+                        image_url = response_data["data"][0]['url']
+                        return ImageResponse(images=[image_url], alt=prompt)
+                except Exception as e:
+                    return Reasoning(status=f"Error: {e.__class__.__name__}: {e}")
             background_tasks = set()
             started = time.time()
             task = asyncio.create_task(generate())
@@ -95,6 +98,6 @@ class G4F(Janus_Pro_7B):
             task.add_done_callback(background_tasks.discard)
             while background_tasks:
                 yield Reasoning(status=f"Generating {time.time() - started:.2f}s")
-                await asyncio.sleep(0.2)
+                await asyncio.sleep(0.5)
             yield await task
             yield Reasoning(status=f"Finished {time.time() - started:.2f}s")
