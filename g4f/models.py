@@ -96,6 +96,7 @@ default_vision = Model(
     base_provider = "",
     best_provider = IterListProvider([
         Blackbox,
+        OIVSCode,
         PollinationsAI,
         HuggingSpace,
         GeminiPro,
@@ -115,14 +116,14 @@ default_vision = Model(
 gpt_4 = Model(
     name          = 'gpt-4',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([DDG, Jmuz, ChatGptEs, ChatGptt, PollinationsAI, Yqcloud, Copilot, OpenaiChat, Liaobots, Mhystical])
+    best_provider = IterListProvider([Blackbox, DDG, Jmuz, ChatGptEs, ChatGptt, PollinationsAI, Yqcloud, Copilot, OpenaiChat, Liaobots, Mhystical])
 )
 
 # gpt-4o
 gpt_4o = VisionModel(
     name          = 'gpt-4o',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([ChatGptt, Jmuz, ChatGptEs, PollinationsAI, Copilot, Liaobots, OpenaiChat])
+    best_provider = IterListProvider([Blackbox, ChatGptt, Jmuz, ChatGptEs, PollinationsAI, Copilot, Liaobots, OpenaiChat])
 )
 
 gpt_4o_mini = Model(
@@ -151,6 +152,12 @@ o1_mini = Model(
 )
 
 # o3
+o3_mini = Model(
+    name          = 'o3-mini',
+    base_provider = 'OpenAI',
+    best_provider = IterListProvider([Blackbox, CablyAI])
+)
+
 o3_mini_low = Model(
     name          = 'o3-mini-low',
     base_provider = 'OpenAI',
@@ -321,7 +328,7 @@ gemini_1_5_pro = Model(
 gemini_2_0_flash = Model(
     name          = 'gemini-2.0-flash',
     base_provider = 'Google DeepMind',
-    best_provider = IterListProvider([GeminiPro, Liaobots])
+    best_provider = IterListProvider([PollinationsAI, GeminiPro, Liaobots])
 )
 
 gemini_2_0_flash_thinking = Model(
@@ -355,7 +362,7 @@ claude_3_opus = Model(
 claude_3_5_sonnet = Model(
     name          = 'claude-3.5-sonnet',
     base_provider = 'Anthropic',
-    best_provider = IterListProvider([Jmuz, Liaobots])
+    best_provider = IterListProvider([Blackbox, Jmuz, Liaobots])
 )
 
 ### Reka AI ###
@@ -556,19 +563,19 @@ flux = ImageModel(
 flux_pro = ImageModel(
     name = 'flux-pro',
     base_provider = 'Black Forest Labs',
-    best_provider = PollinationsImage
+    best_provider = PollinationsAI
 )
 
 flux_dev = ImageModel(
     name = 'flux-dev',
     base_provider = 'Black Forest Labs',
-    best_provider = IterListProvider([HuggingSpace, HuggingChat, HuggingFace])
+    best_provider = IterListProvider([PollinationsImage, HuggingSpace, HuggingChat, HuggingFace])
 )
 
 flux_schnell = ImageModel(
     name = 'flux-schnell',
     base_provider = 'Black Forest Labs',
-    best_provider = IterListProvider([HuggingSpace, HuggingChat, HuggingFace])
+    best_provider = IterListProvider([PollinationsImage, HuggingSpace, HuggingChat, HuggingFace])
 )
 
 
@@ -610,6 +617,10 @@ class ModelUtils:
         o1.name: o1,
         o1_preview.name: o1_preview,
         o1_mini.name: o1_mini,
+        
+        # o3
+        o3_mini.name: o3_mini,
+        o3_mini_low.name: o3_mini_low,
 
         ### Meta ###
         meta.name: meta,
@@ -742,11 +753,10 @@ class ModelUtils:
 
 demo_models = {
     gpt_4o.name: [gpt_4o, [PollinationsAI, Blackbox]],
-    gpt_4o_mini.name: [gpt_4o_mini, [PollinationsAI, CablyAI, DDG]],
-    deepseek_r1.name: [deepseek_r1, [PollinationsAI, HuggingFace]],
     "default": [llama_3_2_11b, [HuggingFace]],
     qwen_2_vl_7b.name: [qwen_2_vl_7b, [HuggingFaceAPI]],
     qvq_72b.name: [qvq_72b, [HuggingSpace]],
+    deepseek_r1.name: [deepseek_r1, [HuggingFace]],
     command_r.name: [command_r, [HuggingSpace]],
     command_r_plus.name: [command_r_plus, [HuggingSpace]],
     command_r7b.name: [command_r7b, [HuggingSpace]],
@@ -756,7 +766,7 @@ demo_models = {
     llama_3_3_70b.name: [llama_3_3_70b, [HuggingFace]],
     sd_3_5.name: [sd_3_5, [HuggingSpace, HuggingFace]],
     flux_dev.name: [flux_dev, [PollinationsImage, HuggingSpace, HuggingFace]],
-    flux_schnell.name: [flux_schnell, [PollinationsImage, HuggingFace, HuggingSpace]],
+    flux_schnell.name: [flux_schnell, [HuggingFace, HuggingSpace, PollinationsImage]],
 }
 
 # Create a list of all models and his providers

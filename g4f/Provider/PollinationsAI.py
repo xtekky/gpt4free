@@ -37,21 +37,11 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
 
     # Models configuration
     default_model = "openai"
+    default_image_model = "flux"
     default_vision_model = "gpt-4o"
-    extra_image_models = [
-        "flux",
-        "flux-pro",
-        "flux-realism",
-        "flux-anime",
-        "flux-3d",
-        "flux-cablyai",
-        "turbo",
-        "midjourney",
-        "dall-e-3",
-    ]
+    extra_image_models = ["flux-pro", "flux-dev", "flux-schnell", "midjourney", "dall-e-3"]
     vision_models = [default_vision_model, "gpt-4o-mini"]
-    reasoning_models = ['deepseek-reasoner', 'deepseek-r1']
-    extra_text_models = ["claude", "claude-email", "p1"] + vision_models + reasoning_models
+    extra_text_models = ["claude", "claude-email", "deepseek-reasoner", "deepseek-r1"] + vision_models
     model_aliases = {
         ### Text Models ###
         "gpt-4o-mini": "openai",
@@ -64,7 +54,6 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         "gpt-4o-mini": "rtist",
         "gpt-4o": "searchgpt",
         "gpt-4o-mini": "p1",
-        "deepseek-chat": "deepseek",
         "deepseek-chat": "claude-hybridspace",
         "llama-3.1-8b": "llamalight",
         "gpt-4o-vision": "gpt-4o",
@@ -72,33 +61,38 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         "gpt-4o-mini": "claude",
         "deepseek-chat": "claude-email",
         "deepseek-r1": "deepseek-reasoner",
+        "gemini-2.0-flash": "gemini",
+        "gemini-2.0-flash-thinking": "gemini-thinking",
         
         ### Image Models ###
         "sdxl-turbo": "turbo",
-        "flux-schnell": "flux",
-        "flux-dev": "flux", 
     }
     text_models = []
+    image_models = []
 
     @classmethod
     def get_models(cls, **kwargs):
-        if not cls.text_models:
-            url = "https://image.pollinations.ai/models"
-            response = requests.get(url)
-            raise_for_status(response)
-            new_image_models = response.json()
-            cls.extra_image_models = list(dict.fromkeys([*cls.extra_image_models, *new_image_models]))
-        
-            url = "https://text.pollinations.ai/models"
-            response = requests.get(url)
-            raise_for_status(response)
-            original_text_models = [model.get("name") for model in response.json()]
+        if not cls.text_models or not cls.image_models:
+            image_url = "https://image.pollinations.ai/models"
+            image_response = requests.get(image_url)
+            raise_for_status(image_response)
+            new_image_models = image_response.json()
+
+            cls.image_models = list(dict.fromkeys([*cls.extra_image_models, *new_image_models]))
+            cls.extra_image_models = cls.image_models.copy()
+            
+            text_url = "https://text.pollinations.ai/models"
+            text_response = requests.get(text_url)
+            raise_for_status(text_response)
+            original_text_models = [model.get("name") for model in text_response.json()]
+            
             combined_text = cls.extra_text_models + [
                 model for model in original_text_models 
                 if model not in cls.extra_text_models
             ]
             cls.text_models = list(dict.fromkeys(combined_text))
-        return cls.text_models
+            
+        return cls.text_models + cls.image_models
 
     @classmethod
     async def create_async_generator(
@@ -194,7 +188,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         yield ImagePreview(url, prompt)
         async with ClientSession(headers=DEFAULT_HEADERS, connector=get_connector(proxy=proxy)) as session:
             async with session.head(url) as response:
-                if response.status != 500: # Server is busy
+                if response.status != 500:
                     await raise_for_status(response)
                 yield ImageResponse(str(response.url), prompt)
 
@@ -256,12 +250,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                         data = json.loads(json_str)
                         choice = data["choices"][0]
                         message = choice.get("message") or choice.get("delta", {})
-                        
-                        # Handle reasoning content
-                        if model in cls.reasoning_models:
-                            if "reasoning_content" in message:
-                                yield Reasoning(status=message["reasoning_content"].strip())
-                        
+
                         if "usage" in data:
                             yield Usage(**data["usage"])
                         content = message.get("content", "")
