@@ -1023,13 +1023,10 @@ const ask_gpt = async (message_id, message_index = -1, regenerate = false, provi
         let api_key;
         if (is_demo && provider == "Feature") {
             api_key = localStorage.getItem("user");
-        } else if (is_demo && provider != "Custom") {
+        } else if (is_demo) {
             api_key = localStorage.getItem("HuggingFace-api_key");
         } else {
             api_key = get_api_key_by_provider(provider);
-        }
-        if (is_demo && !api_key) {
-            api_key = localStorage.getItem("HuggingFace-api_key");
         }
         if (is_demo && !api_key) {
             location.href = "/";
@@ -2005,7 +2002,9 @@ async function on_api() {
         providerSelect.innerHTML = `
             <option value="">Demo Mode</option>
             <option value="Feature">Feature Provider</option>
-            <option value="Custom">Custom Provider</option>`;
+            <option value="G4F">G4F framework</option>
+            <option value="HuggingFace">HuggingFace</option>
+            <option value="HuggingSpace">HuggingSpace</option>`;
         providerSelect.selectedIndex = 0;
         document.getElementById("pin").disabled = true;
         document.getElementById("refine")?.parentElement.classList.add("hidden")
@@ -2018,7 +2017,6 @@ async function on_api() {
             }
         });
         login_urls = {
-            "Custom": ["Custom Provider", "", []],
             "HuggingFace": ["HuggingFace", "", []],
         };
     } else {
@@ -2425,6 +2423,7 @@ async function api(ressource, args=null, files=null, message_id=null, scroll=tru
             const message = body.match(/<p>([^<]+?)<\/p>/)[1];
             error_storage[message_id] = `**${title}**\n${message}`;
             await finish_message();
+            return;
         } else {
             await read_response(response, message_id, args.provider || null, scroll, finish_message);
             await finish_message();

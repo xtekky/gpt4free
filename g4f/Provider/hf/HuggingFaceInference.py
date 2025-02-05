@@ -148,7 +148,7 @@ class HuggingFaceInference(AsyncGeneratorProvider, ProviderModelMixin):
                     if response.headers["content-type"].startswith("image/"):
                         base64_data = base64.b64encode(b"".join([chunk async for chunk in response.iter_content()]))
                         url = f"data:{response.headers['content-type']};base64,{base64_data.decode()}"
-                        yield ImageResponse(url, prompt)
+                        yield ImageResponse(url, inputs)
                     else:
                         yield (await response.json())[0]["generated_text"].strip()
 

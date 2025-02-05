@@ -75,7 +75,8 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         
         ### Image Models ###
         "sdxl-turbo": "turbo",
-        "flux-schnell": "flux", 
+        "flux-schnell": "flux",
+        "flux-dev": "flux", 
     }
     text_models = []
 
