@@ -82,6 +82,7 @@ class G4F(Janus_Pro_7B):
                 "x-zerogpu-token": zerogpu_token,
                 "x-zerogpu-uuid": zerogpu_uuid,
             }
+            headers = {k: v for k, v in headers.items() if v is not None}
             async def generate():
                 async with session.post(cls.url_flux, json=payload, proxy=proxy, headers=headers) as response:
                     await raise_for_status(response)
