@@ -14,6 +14,7 @@ from ... import debug
 
 class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin):
     api_base = ""
+    api_key = None
     supports_message_history = True
     supports_system_message = True
     default_model = ""
@@ -28,6 +29,8 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
                 headers = {}
                 if api_base is None:
                     api_base = cls.api_base
+                if api_key is None and cls.api_key is not None:
+                    api_key = cls.api_key
                 if api_key is not None:
                     headers["authorization"] = f"Bearer {api_key}"
                 response = requests.get(f"{api_base}/models", headers=headers, verify=cls.ssl)
@@ -66,6 +69,8 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
         extra_data: dict = {},
         **kwargs
     ) -> AsyncResult:
+        if api_key is None and cls.api_key is not None:
+            api_key = cls.api_key
         if cls.needs_auth and api_key is None:
             raise MissingAuthError('Add a "api_key"')
         async with StreamSession(

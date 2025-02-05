@@ -25,6 +25,7 @@ from .Provider import (
     PerplexityLabs,
     Pi,
     PollinationsAI,
+    PollinationsImage,
     TeachAnything,
     Yqcloud,
     
@@ -536,7 +537,7 @@ evil = Model(
 sdxl_turbo = ImageModel(
     name = 'sdxl-turbo',
     base_provider = 'Stability AI',
-    best_provider = IterListProvider([PollinationsAI, ImageLabs])
+    best_provider = IterListProvider([PollinationsImage, ImageLabs])
 )
 
 sd_3_5 = ImageModel(
@@ -549,13 +550,13 @@ sd_3_5 = ImageModel(
 flux = ImageModel(
     name = 'flux',
     base_provider = 'Black Forest Labs',
-    best_provider = IterListProvider([Blackbox, PollinationsAI, HuggingSpace])
+    best_provider = IterListProvider([Blackbox, PollinationsImage, HuggingSpace])
 )
 
 flux_pro = ImageModel(
     name = 'flux-pro',
     base_provider = 'Black Forest Labs',
-    best_provider = PollinationsAI
+    best_provider = PollinationsImage
 )
 
 flux_dev = ImageModel(
@@ -575,14 +576,14 @@ flux_schnell = ImageModel(
 dall_e_3 = ImageModel(
     name = 'dall-e-3',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([PollinationsAI, CopilotAccount, OpenaiAccount, MicrosoftDesigner, BingCreateImages])
+    best_provider = IterListProvider([PollinationsImage, CopilotAccount, OpenaiAccount, MicrosoftDesigner, BingCreateImages])
 )
 
 ### Midjourney ###
 midjourney = ImageModel(
     name = 'midjourney',
     base_provider = 'Midjourney',
-    best_provider = PollinationsAI
+    best_provider = PollinationsImage
 )
 
 class ModelUtils:
@@ -754,8 +755,8 @@ demo_models = {
     qwq_32b.name: [qwq_32b, [HuggingFace]],
     llama_3_3_70b.name: [llama_3_3_70b, [HuggingFace]],
     sd_3_5.name: [sd_3_5, [HuggingSpace, HuggingFace]],
-    flux_dev.name: [flux_dev, [PollinationsAI, HuggingSpace, HuggingFace]],
-    flux_schnell.name: [flux_schnell, [PollinationsAI, HuggingFace, HuggingSpace, PollinationsAI]],
+    flux_dev.name: [flux_dev, [PollinationsImage, HuggingSpace, HuggingFace]],
+    flux_schnell.name: [flux_schnell, [PollinationsImage, HuggingFace, HuggingSpace]],
 }
 
 # Create a list of all models and his providers
