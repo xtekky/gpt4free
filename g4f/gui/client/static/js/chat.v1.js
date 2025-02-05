@@ -2425,6 +2425,7 @@ async function api(ressource, args=null, files=null, message_id=null, scroll=tru
             const message = body.match(/<p>([^<]+?)<\/p>/)[1];
             error_storage[message_id] = `**${title}**\n${message}`;
             await finish_message();
+            return;
         } else {
             await read_response(response, message_id, args.provider || null, scroll, finish_message);
             await finish_message();
