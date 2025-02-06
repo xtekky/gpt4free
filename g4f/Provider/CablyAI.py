@@ -4,8 +4,8 @@ from ..errors import ModelNotSupportedError
 from .template import OpenaiTemplate
 
 class CablyAI(OpenaiTemplate):
-    url = "https://cablyai.com"
-    login_url = url
+    url = "https://cablyai.com/chat"
+    login_url = "https://cablyai.com"
     api_base = "https://cablyai.com/v1"
     api_key = "sk-your-openai-api-key"
 
@@ -19,18 +19,25 @@ class CablyAI(OpenaiTemplate):
     fallback_models = [
         default_model,
         'searchgpt',
-        'llama-3.1-8b-instruct',
         'deepseek-r1-uncensored',
+        'deepseek-r1',
+        'deepseek-reasoner',
         'deepseek-v3',
-        'tinyswallow1.5b',
         'andy-3.5',
+        'hermes-3-llama-3.2-3b',
+        'llama-3.1-8b-instruct',
+        'o3-mini',
         'o3-mini-low',
+        'sonar-reasoning',
+        'tinyswallow1.5b',
     ]
       
     model_aliases = {
         "gpt-4o-mini": "searchgpt",
-        "llama-3.1-8b": "llama-3.1-8b-instruct",
         "deepseek-r1": "deepseek-r1-uncensored",
+        "deepseek-r1": "deepseek-reasoner",
+        "deepseek-r1": "hermes-3-llama-3.2-3b",
+        "llama-3.1-8b": "llama-3.1-8b-instruct",
         "o3-mini": "o3-mini-low",
     }
     
