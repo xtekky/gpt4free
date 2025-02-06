@@ -439,7 +439,7 @@ qwen_2_vl_7b = VisionModel(
 qwen_2_5_72b = Model(
     name = 'qwen-2.5-72b',
     base_provider = 'Qwen',
-    best_provider = IterListProvider([DeepInfraChat, PollinationsAI, Jmuz])
+    best_provider = IterListProvider([PollinationsAI, Jmuz])
 )
 qwen_2_5_coder_32b = Model(
     name = 'qwen-2.5-coder-32b',
@@ -581,6 +581,13 @@ airoboros_70b = Model(
 lzlv_70b = Model(
     name = "lzlv-70b",
     base_provider = "Lizpreciatior",
+    best_provider = DeepInfraChat
+)
+
+### OpenBMB ###
+minicpm_2_5 = Model(
+    name = "minicpm-2.5",
+    base_provider = "OpenBMB",
     best_provider = DeepInfraChat
 )
 
