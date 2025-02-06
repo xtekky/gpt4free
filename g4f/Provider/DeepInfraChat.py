@@ -53,7 +53,17 @@ class DeepInfraChat(OpenaiTemplate):
             'Origin': 'https://deepinfra.com',
             'Referer': 'https://deepinfra.com/',
             'X-Deepinfra-Source': 'web-page',
+            'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
             **headers
         }
-        async for chunk in super().create_async_generator(model, messages, headers=headers, **kwargs):
+        async for chunk in super().create_async_generator(
+            model,
+            messages,
+            headers=headers,
+            stream=stream,
+            top_p=top_p,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            **kwargs
+        ):
             yield chunk
