@@ -253,6 +253,11 @@ mixtral_8x7b = Model(
     base_provider = "Mistral",
     best_provider = IterListProvider([DDG, Jmuz])
 )
+mixtral_8x22b = Model(
+    name          = "mixtral-8x22b",
+    base_provider = "Mistral",
+    best_provider = DeepInfraChat
+)
 
 mistral_nemo = Model(
     name          = "mistral-nemo",
@@ -295,6 +300,12 @@ phi_4 = Model(
 )
 
 # wizardlm
+wizardlm_2_7b = Model(
+    name = 'wizardlm-2-7b',
+    base_provider = 'Microsoft',
+    best_provider = DeepInfraChat
+)
+
 wizardlm_2_8x22b = Model(
     name = 'wizardlm-2-8x22b',
     base_provider = 'Microsoft',
@@ -418,7 +429,7 @@ qwen_1_5_7b = Model(
 qwen_2_72b = Model(
     name = 'qwen-2-72b',
     base_provider = 'Qwen',
-    best_provider = HuggingSpace
+    best_provider = IterListProvider([DeepInfraChat, HuggingSpace])
 )
 qwen_2_vl_7b = VisionModel(
     name = "qwen-2-vl-7b",
@@ -522,7 +533,7 @@ nemotron_70b = Model(
 dbrx_instruct = Model(
     name = 'dbrx-instruct',
     base_provider = 'Databricks',
-    best_provider = IterListProvider([Blackbox, BlackboxAPI])
+    best_provider = IterListProvider([Blackbox, BlackboxAPI, DeepInfraChat])
 )
 
 ### THUDM ### 
@@ -532,11 +543,45 @@ glm_4 = Model(
     best_provider = ChatGLM
 )
 
-### MiniMax
+### MiniMax ###
 mini_max = Model(
     name = "MiniMax",
     base_provider = "MiniMax",
     best_provider = HailuoAI
+)
+
+### 01-ai ###
+yi_34b = Model(
+    name = "yi-34b",
+    base_provider = "01-ai",
+    best_provider = DeepInfraChat
+)
+
+### Cognitive Computations ###
+dolphin_2_6 = Model(
+    name = "dolphin-2.6",
+    base_provider = "Cognitive Computations",
+    best_provider = DeepInfraChat
+)
+
+dolphin_2_9 = Model(
+    name = "dolphin-2.9",
+    base_provider = "Cognitive Computations",
+    best_provider = DeepInfraChat
+)
+
+### DeepInfra ###
+airoboros_70b = Model(
+    name = "airoboros-70b",
+    base_provider = "DeepInfra",
+    best_provider = DeepInfraChat
+)
+
+### Lizpreciatior ###
+lzlv_70b = Model(
+    name = "lzlv-70b",
+    base_provider = "Lizpreciatior",
+    best_provider = DeepInfraChat
 )
 
 ### Uncensored AI ### 
@@ -659,6 +704,7 @@ class ModelUtils:
                 
         ### Mistral ###
         mixtral_8x7b.name: mixtral_8x7b,
+        mixtral_8x22b.name: mixtral_8x22b,
         mistral_nemo.name: mistral_nemo,
         mixtral_small_28b.name: mixtral_small_28b,
 
@@ -672,6 +718,7 @@ class ModelUtils:
         phi_4.name: phi_4,
         
         # wizardlm
+        wizardlm_2_7b.name: wizardlm_2_7b,
         wizardlm_2_8x22b.name: wizardlm_2_8x22b,
 
         ### Google ###
@@ -739,7 +786,17 @@ class ModelUtils:
         nemotron_70b.name: nemotron_70b, ### Nvidia ###
         dbrx_instruct.name: dbrx_instruct, ### Databricks ###
         glm_4.name: glm_4, ### THUDM ###
-        mini_max.name: mini_max, ## MiniMax
+        mini_max.name: mini_max, ## MiniMax ###
+        yi_34b.name: yi_34b, ## 01-ai ###
+        
+        ### Cognitive Computations ###
+        dolphin_2_6.name: dolphin_2_6,
+        dolphin_2_9.name: dolphin_2_9,
+        
+        airoboros_70b.name: airoboros_70b, ### DeepInfra ###
+        lzlv_70b.name: lzlv_70b, ### Lizpreciatior ###
+        minicpm_2_5.name: minicpm_2_5, ### OpenBMB ###
+        
         evil.name: evil, ### Uncensored AI ###
         
         #############
