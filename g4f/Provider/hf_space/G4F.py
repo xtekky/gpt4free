@@ -5,7 +5,7 @@ import time
 import asyncio
 
 from ...typing import AsyncResult, Messages
-from ...providers.response import ImageResponse, Reasoning
+from ...providers.response import ImageResponse, Reasoning, JsonConversation
 from ..helper import format_image_prompt, get_random_string
 from .Janus_Pro_7B import Janus_Pro_7B, get_zerogpu_token
 from .BlackForestLabsFlux1Dev import BlackForestLabsFlux1Dev
