@@ -47,7 +47,7 @@ This document provides an overview of various AI providers and models, including
 |[playground.ai.cloudflare.com](https://playground.ai.cloudflare.com)|[Automatic cookies](https://playground.ai.cloudflare.com)|`g4f.Provider.Cloudflare`|`llama-2-7b, llama-3-8b, llama-3.1-8b, llama-3.2-1b, qwen-1.5-7b`|❌|❌|✔|![Error](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[copilot.microsoft.com](https://copilot.microsoft.com)|Optional API key|`g4f.Provider.Copilot`|`gpt-4, gpt-4o`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
 |[duckduckgo.com/aichat](https://duckduckgo.com/aichat)|No auth required|`g4f.Provider.DDG`|`gpt-4, gpt-4o-mini, claude-3-haiku, llama-3.1-70b, mixtral-8x7b`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
-|[deepinfra.com/chat](https://deepinfra.com/chat)|No auth required|`g4f.Provider.DeepInfraChat`|`llama-3.1-8b, llama-3.2-90b, llama-3.3-70b, deepseek-v3, mixtral-small-28b, deepseek-r1, phi-4, wizardlm-2-8x22b, qwen-2.5-72b`|❌|`llama-3.2-90b`|✔|![](https://img.shields.io/badge/Active-brightgreen)|
+|[deepinfra.com/chat](https://deepinfra.com/chat)|No auth required|`g4f.Provider.DeepInfraChat`|`llama-3.1-8b, llama-3.2-90b, llama-3.3-70b, deepseek-v3, mixtral-small-28b, deepseek-r1, phi-4, wizardlm-2-8x22b, qwen-2.5-72b, yi-34b, qwen-2-72b, dolphin-2.6, dolphin-2.9, dbrx-instruct, airoboros-70b, lzlv-70b, wizardlm-2-7b, mixtral-8x22b, minicpm-2.5`|❌|`llama-3.2-90b, minicpm-2.5`|✔|![](https://img.shields.io/badge/Active-brightgreen)|
 |[chat10.free2gpt.xyz](https://chat10.free2gpt.xyz)|No auth required|`g4f.Provider.Free2GPT`|`mistral-7b`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
 |[freegptsnav.aifree.site](https://freegptsnav.aifree.site)|No auth required|`g4f.Provider.FreeGpt`|`gemini-1.5-pro`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
 |[app.giz.ai/assistant](https://app.giz.ai/assistant)|No auth required|`g4f.Provider.GizAI`|`gemini-1.5-flash`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
@@ -144,12 +144,14 @@ This document provides an overview of various AI providers and models, including
 |llama-3.2-90b|Meta Llama|1+ Providers|[huggingface.co](https://huggingface.co/meta-llama/Llama-3.2-90B-Vision)|
 |llama-3.3-70b|Meta Llama|6+ Providers|[ai.meta.com](https://ai.meta.com/blog/llama-3-3/)|
 |mixtral-8x7b|Mistral|2+ Providers|[mistral.ai](https://mistral.ai/news/mixtral-of-experts/)|
+|mixtral-8x22b|Mistral|1+ Providers|[huggingface.co](https://huggingface.co/mistralai/Mixtral-8x22B-Instruct-v0.1)|
 |mistral-nemo|Mistral|3+ Providers|[huggingface.co](https://huggingface.co/mistralai/Mistral-Nemo-Instruct-2407)|
 |mixtral-small-28b|Mistral|3+ Providers|[mistral.ai](https://mistral.ai/news/mixtral-small-28b/)|
 |hermes-2-dpo|NousResearch|2+ Providers|[huggingface.co](https://huggingface.co/NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO)|
 |hermes-3|NousResearch|1+ Providers|[huggingface.co](https://huggingface.co/NousResearch/Hermes-3-Llama-3.2-3B)|
 |phi-3.5-mini|Microsoft|1+ Providers|[huggingface.co](https://huggingface.co/microsoft/Phi-3.5-mini-instruct)|
 |phi-4|Microsoft|1+ Providers|[techcommunity.microsoft.com](https://techcommunity.microsoft.com/blog/aiplatformblog/introducing-phi-4-microsoft%E2%80%99s-newest-small-language-model-specializing-in-comple/4357090)|
+|wizardlm-2-7b|Microsoft|1+ Providers|[wizardlm.github.io](https://wizardlm.github.io/WizardLM2/)|
 |wizardlm-2-8x22b|Microsoft|2+ Providers|[wizardlm.github.io](https://wizardlm.github.io/WizardLM2/)|
 |gemini|Google DeepMind|1+|[deepmind.google](http://deepmind.google/technologies/gemini/)|
 |gemini-exp|Google DeepMind|1+ Providers|[blog.google](https://blog.google/feed/gemini-exp-1206/)|
@@ -168,7 +170,7 @@ This document provides an overview of various AI providers and models, including
 |command-r-plus|CohereForAI|2+ Providers|[docs.cohere.com](https://docs.cohere.com/docs/command-r-plus)|
 |command-r7b|CohereForAI|1+ Providers|[huggingface.co](https://huggingface.co/CohereForAI/c4ai-command-r7b-12-2024)|
 |qwen-1.5-7b|Qwen|1+ Providers|[huggingface.co](https://huggingface.co/Qwen/Qwen1.5-7B)|
-|qwen-2-72b|Qwen|1+ Providers|[huggingface.co](https://huggingface.co/Qwen/Qwen2-72B)|
+|qwen-2-72b|Qwen|2+ Providers|[huggingface.co](https://huggingface.co/Qwen/Qwen2-72B)|
 |qwen-2-vl-7b|Qwen|1+ Providers|[huggingface.co](https://huggingface.co/Qwen/Qwen2-VL-7B)|
 |qwen-2.5-72b|Qwen|3+ Providers|[huggingface.co](https://huggingface.co/Qwen/Qwen2.5-72B-Instruct)|
 |qwen-2.5-coder-32b|Qwen|3+ Providers|[huggingface.co](https://huggingface.co/Qwen/Qwen2.5-Coder-32B)|
@@ -185,10 +187,16 @@ This document provides an overview of various AI providers and models, including
 |sonar-reasoning|Perplexity AI|2+ Providers|[sonar.perplexity.ai](https://sonar.perplexity.ai/)|
 |sonar-reasoning-pro|Perplexity AI|1+ Providers|[sonar.perplexity.ai](https://sonar.perplexity.ai/)|
 |nemotron-70b|Nvidia|2+ Providers|[build.nvidia.com](https://build.nvidia.com/nvidia/llama-3_1-nemotron-70b-instruct)|
-|dbrx-instruct|Databricks|2+ Providers|[huggingface.co](https://huggingface.co/databricks/dbrx-instruct)|
+|dbrx-instruct|Databricks|3+ Providers|[huggingface.co](https://huggingface.co/databricks/dbrx-instruct)|
 |glm-4|THUDM|1+ Providers|[github.com/THUDM](https://github.com/THUDM/GLM-4)|
 |mini_max|MiniMax|1+ Providers|[hailuo.ai](https://www.hailuo.ai/)|
-|evil|Evil Mode - Experimental|1+ Providers||
+|yi-34b|01-ai|1+ Providers|[huggingface.co](https://huggingface.co/01-ai/Yi-34B-Chat)|
+|dolphin-2.6|Cognitive Computations|1+ Providers|[huggingface.co](https://huggingface.co/cognitivecomputations/dolphin-2.6-mixtral-8x7b)|
+|dolphin-2.9|Cognitive Computations|1+ Providers|[huggingface.co](https://huggingface.co/cognitivecomputations/dolphin-2.9.1-llama-3-70b)|
+|airoboros-70b|DeepInfra|1+ Providers|[huggingface.co](https://huggingface.co/cognitivecomputations/dolphin-2.9.1-llama-3-70b)|
+|lzlv-70b|Lizpreciatior|1+ Providers|[huggingface.co](https://huggingface.co/cognitivecomputations/dolphin-2.9.1-llama-3-70b)|
+|minicpm-2.5|OpenBMB|1+ Providers|[huggingface.co](https://huggingface.co/openbmb/MiniCPM-Llama3-V-2_5)|
+|evil|Evil Mode - Experimental|1+ Providers|[]( )|
 
 ---
 ### Image Models
