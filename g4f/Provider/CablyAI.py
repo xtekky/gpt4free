@@ -33,12 +33,14 @@ class CablyAI(OpenaiTemplate):
     ]
       
     model_aliases = {
-        "gpt-4o-mini": "searchgpt",
-        "deepseek-r1": "deepseek-r1-uncensored",
-        "deepseek-r1": "deepseek-reasoner",
-        "deepseek-r1": "hermes-3-llama-3.2-3b",
-        "llama-3.1-8b": "llama-3.1-8b-instruct",
-        "o3-mini": "o3-mini-low",
+        "gpt-4o-mini": "searchgpt (free)",
+        "deepseek-r1": "deepseek-r1-uncensored (free)",
+        "deepseek-r1": "deepseek-reasoner (free)",
+        "hermes-3": "hermes-3-llama-3.2-3b (free)",
+        "llama-3.1-8b": "llama-3.1-8b-instruct (free)",
+        "o3-mini-low": "o3-mini-low (free)",
+        "o3-mini": "o3-mini-low (free)",
+        "o3-mini": "o3-mini (free)",
     }
     
     @classmethod
