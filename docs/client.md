@@ -181,8 +181,8 @@ for chunk in stream:
     if chunk.choices[0].delta.content:
         print(chunk.choices[0].delta.content or "", end="")
 ```
----
 
+---
 ### Using a Vision Model
 **Analyze an image and generate a description:**
 ```python
