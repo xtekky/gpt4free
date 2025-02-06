@@ -95,6 +95,7 @@ default_vision = Model(
     best_provider = IterListProvider([
         Blackbox,
         OIVSCode,
+        DeepInfraChat,
         PollinationsAI,
         HuggingSpace,
         GeminiPro,
