@@ -38,10 +38,9 @@ This document provides an overview of various AI providers and models, including
 | Website | API Credentials | Provider | Text Models | Image Models | Vision (Image Upload) | Stream | Status |
 |----------|-------------|--------------|---------------|--------|--------|------|------|
 |[aichatfree.info](https://aichatfree.info)|No auth required|`g4f.Provider.AIChatFree`|`gemini-1.5-pro` _**(1+)**_|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
-|[autonomous.ai](https://www.autonomous.ai/anon/)|No auth required|`g4f.Provider.AutonomousAI`|`llama-3.3-70b, qwen-2.5-coder-32b, hermes-3, llama-3.2-90b, llama-3.3-70b, llama-3-2-70b`|✔|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
 |[blackbox.ai](https://www.blackbox.ai)|No auth required|`g4f.Provider.Blackbox`|`blackboxai, gpt-4, gpt-4o, o3-mini, claude-3.5-sonnet, gemini-1.5-flash, gemini-1.5-pro, blackboxai-pro, llama-3.1-8b, llama-3.1-70b, llama-3-1-405b, llama-3.3-70b, mixtral-small-28b, deepseek-chat, dbrx-instruct, qwq-32b, hermes-2-dpo, deepseek-r1` _**(+34)**_|`flux`|`blackboxai, gpt-4o, o3-mini, gemini-1.5-pro, gemini-1.5-flash, llama-3.1-8b, llama-3.1-70b, llama-3.1-405b`|✔|![](https://img.shields.io/badge/Active-brightgreen)|
 |[api.blackbox.ai](https://api.blackbox.ai)|No auth required|`g4f.Provider.BlackboxAPI`|`deepseek-v3, deepseek-r1, deepseek-chat, mixtral-small-28b, dbrx-instruct, qwq-32b, hermes-2-dpo`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
-|[cablyai.com](https://cablyai.com)|Optional API key|`g4f.Provider.CablyAI`|`gpt-4o-mini, llama-3.1-8b, deepseek-v3, deepseek-r1, o3-mini-low` _**(2+)**_|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
+|[cablyai.com](https://cablyai.com)|Optional API key|`g4f.Provider.CablyAI`|`gpt-4o-mini, llama-3.1-8b, deepseek-v3, deepseek-r1, hermes-3, o3-mini-low, o3-mini, sonar-reasoning` _**(2+)**_|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
 |[chatglm.cn](https://chatglm.cn)|No auth required|`g4f.Provider.ChatGLM`|`glm-4`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
 |[chatgpt.com](https://chatgpt.com)|No auth required|`g4f.Provider.ChatGpt`|✔ _**(+7)**_|❌|❌|✔|![Error](https://img.shields.io/badge/HTTPError-f48d37)|
 |[chatgpt.es](https://chatgpt.es)|No auth required|`g4f.Provider.ChatGptEs`|`gpt-4, gpt-4o, gpt-4o-mini`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
@@ -148,6 +147,7 @@ This document provides an overview of various AI providers and models, including
 |mistral-nemo|Mistral|3+ Providers|[huggingface.co](https://huggingface.co/mistralai/Mistral-Nemo-Instruct-2407)|
 |mixtral-small-28b|Mistral|3+ Providers|[mistral.ai](https://mistral.ai/news/mixtral-small-28b/)|
 |hermes-2-dpo|NousResearch|2+ Providers|[huggingface.co](https://huggingface.co/NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO)|
+|hermes-3|NousResearch|1+ Providers|[huggingface.co](https://huggingface.co/NousResearch/Hermes-3-Llama-3.2-3B)|
 |phi-3.5-mini|Microsoft|1+ Providers|[huggingface.co](https://huggingface.co/microsoft/Phi-3.5-mini-instruct)|
 |phi-4|Microsoft|1+ Providers|[techcommunity.microsoft.com](https://techcommunity.microsoft.com/blog/aiplatformblog/introducing-phi-4-microsoft%E2%80%99s-newest-small-language-model-specializing-in-comple/4357090)|
 |wizardlm-2-8x22b|Microsoft|2+ Providers|[wizardlm.github.io](https://wizardlm.github.io/WizardLM2/)|
@@ -182,7 +182,7 @@ This document provides an overview of various AI providers and models, including
 |grok-2|x.ai|1+|[x.ai](https://x.ai/blog/grok-2)|
 |sonar|Perplexity AI|1+ Providers|[sonar.perplexity.ai](https://sonar.perplexity.ai/)|
 |sonar-pro|Perplexity AI|1+ Providers|[sonar.perplexity.ai](https://sonar.perplexity.ai/)|
-|sonar-reasoning|Perplexity AI|1+ Providers|[sonar.perplexity.ai](https://sonar.perplexity.ai/)|
+|sonar-reasoning|Perplexity AI|2+ Providers|[sonar.perplexity.ai](https://sonar.perplexity.ai/)|
 |sonar-reasoning-pro|Perplexity AI|1+ Providers|[sonar.perplexity.ai](https://sonar.perplexity.ai/)|
 |nemotron-70b|Nvidia|2+ Providers|[build.nvidia.com](https://build.nvidia.com/nvidia/llama-3_1-nemotron-70b-instruct)|
 |dbrx-instruct|Databricks|2+ Providers|[huggingface.co](https://huggingface.co/databricks/dbrx-instruct)|
