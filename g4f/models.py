@@ -272,6 +272,12 @@ hermes_2_dpo = Model(
     best_provider = IterListProvider([Blackbox, BlackboxAPI])
 )
 
+hermes_3 = Model(
+    name          = "hermes-3",
+    base_provider = "NousResearch",
+    best_provider = CablyAI
+)
+
 
 ### Microsoft ###
 # phi
@@ -495,7 +501,7 @@ sonar_pro = Model(
 sonar_reasoning = Model(
     name = 'sonar-reasoning',
     base_provider = 'Perplexity AI',
-    best_provider = PerplexityLabs
+    best_provider = IterListProvider([PerplexityLabs, CablyAI])
 )
 
 sonar_reasoning_pro = Model(
@@ -657,6 +663,7 @@ class ModelUtils:
 
         ### NousResearch ###
         hermes_2_dpo.name: hermes_2_dpo,
+        hermes_3.name: hermes_3,
                 
         ### Microsoft ###
         # phi
