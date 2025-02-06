@@ -816,8 +816,10 @@ async function add_message_chunk(message, message_id, provider, scroll, finish_m
         if (img = content_map.inner.querySelector("img"))
             if (!img.complete)
                 return;
-        content_map.inner.innerHTML = markdown_render(message.preview);
-        await register_message_images();
+            else
+                img.src = message.images;
+        else
+           content_map.inner.innerHTML = markdown_render(message.preview);
     } else if (message.type == "content") {
         message_storage[message_id] += message.content;
         update_message(content_map, message_id, null, scroll);

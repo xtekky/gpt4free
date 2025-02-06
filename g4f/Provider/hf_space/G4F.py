@@ -6,9 +6,14 @@ import asyncio
 
 from ...typing import AsyncResult, Messages
 from ...providers.response import ImageResponse, Reasoning
-from ...requests.raise_for_status import raise_for_status
 from ..helper import format_image_prompt, get_random_string
-from .Janus_Pro_7B import Janus_Pro_7B, JsonConversation, get_zerogpu_token
+from .Janus_Pro_7B import Janus_Pro_7B, get_zerogpu_token
+from .BlackForestLabsFlux1Dev import BlackForestLabsFlux1Dev
+from .raise_for_status import raise_for_status
+
+class FluxDev(BlackForestLabsFlux1Dev):
+    url = "https://roxky-flux-1-dev.hf.space"
+    space = "roxky/FLUX.1-dev"
 
 class G4F(Janus_Pro_7B):
     label = "G4F framework"
@@ -19,8 +24,8 @@ class G4F(Janus_Pro_7B):
     referer = f"{api_url}?__theme=light"
 
     default_model = "flux"
-    model_aliases = {"flux-schnell": default_model, "flux-dev": default_model}
-    image_models = [Janus_Pro_7B.default_image_model, default_model, *model_aliases.keys()]
+    model_aliases = {"flux-schnell": default_model}
+    image_models = [Janus_Pro_7B.default_image_model, default_model, "flux-dev", *model_aliases.keys()]
     models = [Janus_Pro_7B.default_model, *image_models]
 
     @classmethod
@@ -38,6 +43,21 @@ class G4F(Janus_Pro_7B):
         zerogpu_uuid: str = "[object Object]",
         **kwargs
     ) -> AsyncResult:
+        if model == "flux-dev":
+            async for chunk in FluxDev.create_async_generator(
+                model, messages,
+                proxy=proxy,
+                prompt=prompt,
+                width=width,
+                height=height,
+                seed=seed,
+                cookies=cookies,
+                zerogpu_token=zerogpu_token,
+                zerogpu_uuid=zerogpu_uuid,
+                **kwargs
+            ):
+                yield chunk
+            return
         if cls.default_model not in model:
             async for chunk in super().create_async_generator(
                 model, messages,
@@ -96,6 +116,6 @@ class G4F(Janus_Pro_7B):
             task.add_done_callback(background_tasks.discard)
             while background_tasks:
                 yield Reasoning(status=f"Generating {time.time() - started:.2f}s")
-                await asyncio.sleep(0.5)
+                await asyncio.sleep(0.2)
             yield await task
             yield Reasoning(status=f"Finished {time.time() - started:.2f}s")

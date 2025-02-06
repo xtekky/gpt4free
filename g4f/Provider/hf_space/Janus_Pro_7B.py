@@ -17,6 +17,7 @@ from ...image import to_bytes, is_accepted_format
 from ...cookies import get_cookies
 from ...errors import ResponseError
 from ... import debug
+from .raise_for_status import raise_for_status
 
 class Janus_Pro_7B(AsyncGeneratorProvider, ProviderModelMixin):
     space = "deepseek-ai/Janus-Pro-7B"
@@ -125,6 +126,7 @@ class Janus_Pro_7B(AsyncGeneratorProvider, ProviderModelMixin):
 
             async with cls.run("get", session, prompt, conversation, None, seed) as response:
                 response: StreamResponse = response
+                counter = 3
                 async for line in response.iter_lines():
                     decoded_line = line.decode(errors="replace")
                     if decoded_line.startswith('data: '):
@@ -134,11 +136,18 @@ class Janus_Pro_7B(AsyncGeneratorProvider, ProviderModelMixin):
                                 yield Reasoning(status=json_data["log"])
 
                             if json_data.get('msg') == 'progress':
-                                if 'progress_data' in json_data and json_data['progress_data']:
-                                    progress = json_data['progress_data'][0]
-                                    yield Reasoning(status=f"{progress['desc']} {progress['index']}/{progress['length']}")
+                                if 'progress_data' in json_data:
+                                    if json_data['progress_data']:
+                                        progress = json_data['progress_data'][0]
+                                        yield Reasoning(status=f"{progress['desc']} {progress['index']}/{progress['length']}")
+                                    else:
+                                        yield Reasoning(status=f"Generating")
 
-                            if json_data.get('msg') == 'process_completed':
+                            elif json_data.get('msg') == 'heartbeat':
+                                yield Reasoning(status=f"Generating{''.join(['.' for i in range(counter)])}")
+                                counter  += 1
+
+                            elif json_data.get('msg') == 'process_completed':
                                 if 'output' in json_data and 'error' in json_data['output']:
                                     json_data['output']['error'] = json_data['output']['error'].split(" <a ")[0]
                                     raise ResponseError("Missing images input" if json_data['output']['error'] and "AttributeError" in json_data['output']['error'] else json_data['output']['error'])
