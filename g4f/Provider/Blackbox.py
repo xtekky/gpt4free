@@ -39,9 +39,9 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
     default_vision_model = default_model
     default_image_model = 'ImageGeneration' 
     image_models = [default_image_model]
-    vision_models = [default_vision_model, 'gpt-4o', 'o3-mini', 'gemini-pro', 'gemini-1.5-flash', 'llama-3.1-8b', 'llama-3.1-70b', 'llama-3.1-405b']
+    vision_models = [default_vision_model, 'gpt-4o', 'o3-mini', 'gemini-pro', 'gemini-1.5-flash', 'llama-3.1-8b', 'llama-3.1-70b', 'llama-3.1-405b', 'Gemini-Flash-2.0']
 
-    userSelectedModel = ['gpt-4o', 'o3-mini', 'gemini-pro', 'claude-sonnet-3.5', 'DeepSeek-V3', 'DeepSeek-R1', 'blackboxai-pro', 'Meta-Llama-3.3-70B-Instruct-Turbo', 'Mistral-Small-24B-Instruct-2501', 'DeepSeek-LLM-Chat-(67B)', 'DBRX-Instruct', 'Qwen-QwQ-32B-Preview', 'Nous-Hermes-2-Mixtral-8x7B-DPO']
+    userSelectedModel = ['gpt-4o', 'o3-mini', 'gemini-pro', 'claude-sonnet-3.5', 'DeepSeek-V3', 'DeepSeek-R1', 'blackboxai-pro', 'Meta-Llama-3.3-70B-Instruct-Turbo', 'Mistral-Small-24B-Instruct-2501', 'DeepSeek-LLM-Chat-(67B)', 'DBRX-Instruct', 'Qwen-QwQ-32B-Preview', 'Nous-Hermes-2-Mixtral-8x7B-DPO', 'Gemini-Flash-2.0']
 
     agentMode = {
         'DeepSeek-V3': {'mode': True, 'id': "deepseek-chat", 'name': "DeepSeek-V3"},
@@ -52,6 +52,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         'DBRX-Instruct': {'mode': True, 'id': "databricks/dbrx-instruct", 'name': "DBRX-Instruct"},
         'Qwen-QwQ-32B-Preview': {'mode': True, 'id': "Qwen/QwQ-32B-Preview", 'name': "Qwen-QwQ-32B-Preview"},
         'Nous-Hermes-2-Mixtral-8x7B-DPO': {'mode': True, 'id': "NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO", 'name': "Nous-Hermes-2-Mixtral-8x7B-DPO"},
+        'Gemini-Flash-2.0': {'mode': True, 'id': "Gemini/Gemini-Flash-2.0", 'name': "Gemini-Flash-2.0"},
     }
 
     trendingAgentMode = {
@@ -109,6 +110,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         "dbrx-instruct": "DBRX-Instruct",
         "qwq-32b": "Qwen-QwQ-32B-Preview",
         "hermes-2-dpo": "Nous-Hermes-2-Mixtral-8x7B-DPO",
+        "gemini-2.0-flash": "Gemini-Flash-2.0",
         "flux": "ImageGeneration",
     }
 
@@ -284,7 +286,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
                 "vscodeClient": False,
                 "codeInterpreterMode": False,
                 "customProfile": {"name": "", "occupation": "", "traits": [], "additionalInfo": "", "enableNewChats": False},
-                "session": {"user":{"name":"John Doe","email":"john.doe@gmail.com","image":"https://lh3.googleusercontent.com/a/ACg8ocK9X7mNpQ2vR4jH3tY8wL5nB1xM6fDS9JW2kLpTn4Vy3hR2xN4m=s96-c"},"expires":datetime.now(timezone.utc).isoformat(timespec='milliseconds').replace('+00:00', 'Z'), "status": "PREMIUM"},
+                "session": {"user":{"name":"John Doe","email":"john.doe@gmail.com","image":"https://lh3.googleusercontent.com/a/ACg8ocK9X7mNpQ2vR4jH3tY8wL5nB1xM6fDS9JW2kLpTn4Vy3hR2xN4m=s96-c","subscriptionStatus":"PREMIUM"},"expires":datetime.now(timezone.utc).isoformat(timespec='milliseconds').replace('+00:00', 'Z')},
                 "webSearchMode": False
             }
             
