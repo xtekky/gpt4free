@@ -58,36 +58,34 @@ async def copy_images(
         async def copy_image(image: str, target: str = None, headers: dict = headers, ssl: bool = ssl) -> str:
             if target is None or len(images) > 1:
                 hash = hashlib.sha256(image.encode()).hexdigest()
-                target = f"{quote_plus('+'.join(alt.split()[:10])[:100], '')}_{hash}" if alt else str(uuid.uuid4())
+                target = f"{quote_plus('+'.join(alt.split()[:10]), '')[:100]}_{hash[:16]}" if alt else str(uuid.uuid4())
                 target = f"{int(time.time())}_{target}{get_image_extension(image)}"
                 target = os.path.join(images_dir, target)
-            try:
-                if image.startswith("data:"):
-                    with open(target, "wb") as f:
-                        f.write(extract_data_uri(image))
-                else:
-                    try:
-                        if BackendApi.working and image.startswith(BackendApi.url) and headers is None:
-                            headers = BackendApi.headers
-                            ssl = BackendApi.ssl
-                        async with session.get(image, ssl=ssl, headers=headers) as response:
-                            response.raise_for_status()
-                            with open(target, "wb") as f:
-                                async for chunk in response.content.iter_chunked(4096):
-                                    f.write(chunk)
-                    except ClientError as e:
-                        debug.log(f"copy_images failed: {e.__class__.__name__}: {e}")
-                        return get_source_url(image, image)
-                if "." not in target:
-                    with open(target, "rb") as f:
-                        extension = is_accepted_format(f.read(12)).split("/")[-1]
-                        extension = "jpg" if extension == "jpeg" else extension
-                        new_target = f"{target}.{extension}"
-                        os.rename(target, new_target)
-                        target = new_target
-            finally:
-                if "." not in target and os.path.exists(target):
-                    os.unlink(target)
+            if image.startswith("data:"):
+                with open(target, "wb") as f:
+                    f.write(extract_data_uri(image))
+            else:
+                try:
+                    if BackendApi.working and image.startswith(BackendApi.url) and headers is None:
+                        headers = BackendApi.headers
+                        ssl = BackendApi.ssl
+                    async with session.get(image, ssl=ssl, headers=headers) as response:
+                        response.raise_for_status()
+                        with open(target, "wb") as f:
+                            async for chunk in response.content.iter_chunked(4096):
+                                f.write(chunk)
+                except ClientError as e:
+                    debug.log(f"copy_images failed: {e.__class__.__name__}: {e}")
+                    if os.path.exists(target):
+                        os.unlink(target)
+                    return get_source_url(image, image)
+            if "." not in target:
+                with open(target, "rb") as f:
+                    extension = is_accepted_format(f.read(12)).split("/")[-1]
+                    extension = "jpg" if extension == "jpeg" else extension
+                new_target = f"{target}.{extension}"
+                os.rename(target, new_target)
+                target = new_target
             return f"/images/{os.path.basename(target)}{'?url=' + image if add_url and not image.startswith('data:') else ''}"
 
         return await asyncio.gather(*[copy_image(image, target) for image in images])

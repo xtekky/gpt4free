@@ -811,17 +811,18 @@ async function add_message_chunk(message, message_id, provider, scroll, finish_m
         log_storage.appendChild(p);
         await api("log", {...message, provider: provider_storage[message_id]});
     } else if (message.type == "preview") {
-        if (content_map.inner.clientHeight > 200)
-            content_map.inner.style.height = content_map.inner.clientHeight + "px";
         if (img = content_map.inner.querySelector("img"))
             if (!img.complete)
                 return;
-        content_map.inner.innerHTML = markdown_render(message.preview);
-        await register_message_images();
+            else
+                img.src = message.images;
+        else {
+            content_map.inner.innerHTML = markdown_render(message.preview);
+            await register_message_images();
+        }
     } else if (message.type == "content") {
         message_storage[message_id] += message.content;
         update_message(content_map, message_id, null, scroll);
-        content_map.inner.style.height = "";
     } else if (message.type == "log") {
         let p = document.createElement("p");
         p.innerText = message.log;
@@ -1056,6 +1057,7 @@ const ask_gpt = async (message_id, message_index = -1, regenerate = false, provi
             api_key: api_key,
             api_base: api_base,
             ignored: ignored,
+            zerogpu_token: localStorage.getItem("zerogpu_token")
         }, files, message_id, scroll, finish_message);
     } catch (e) {
         console.error(e);
@@ -1898,10 +1900,6 @@ async function on_load() {
         load_conversation(window.conversation_id);
     } else {
         chatPrompt.value = document.getElementById("systemPrompt")?.value || "";
-        example = document.getElementById("systemPrompt")?.dataset.example || ""
-        if (chatPrompt.value == example) {
-            messageInput.value = "";
-        }
         let chat_url = new URL(window.location.href)
         let chat_params = new URLSearchParams(chat_url.search);
         if (chat_params.get("prompt")) {

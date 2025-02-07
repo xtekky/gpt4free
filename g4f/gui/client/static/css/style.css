@@ -684,8 +684,12 @@ input-count .text {
 .file-label:has(> input:valid),
 .file-label.selected,
 .micro-label.recognition,
-#search.active a i {
+#search.active i {
     color: var(--accent);
+}
+
+#search.active {
+    border-color: var(--accent);
 }
 
 label[for="image"] {

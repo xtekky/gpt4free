@@ -85,8 +85,9 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
 
             # Proxy for image generation feature
             if model and model in cls.image_models:
+                prompt = format_image_prompt(messages, prompt)
                 data = {
-                    "prompt": format_image_prompt(messages, prompt),
+                    "prompt": prompt,
                     "model": model,
                 }
                 async with session.post(f"{api_base.rstrip('/')}/images/generations", json=data, ssl=cls.ssl) as response:

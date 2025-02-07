@@ -6,9 +6,9 @@ import json
 from ...typing import AsyncResult, Messages
 from ...providers.response import ImageResponse
 from ...errors import ResponseError
-from ...requests.raise_for_status import raise_for_status
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..helper import format_image_prompt
+from .raise_for_status import raise_for_status
 
 class BlackForestLabsFlux1Schnell(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://black-forest-labs-flux-1-schnell.hf.space"
@@ -38,13 +38,9 @@ class BlackForestLabsFlux1Schnell(AsyncGeneratorProvider, ProviderModelMixin):
     ) -> AsyncResult:
 
         model = cls.get_model(model)
-        
         width = max(32, width - (width % 8))
         height = max(32, height - (height % 8))
-
-        if prompt is None:
-            prompt = format_image_prompt(messages)
-
+        prompt = format_image_prompt(messages, prompt)
         payload = {
             "data": [
                 prompt,
@@ -72,7 +68,7 @@ class BlackForestLabsFlux1Schnell(AsyncGeneratorProvider, ProviderModelMixin):
                                 event_type = event_parts[0].split(b': ')[1]
                                 data = event_parts[1]
                                 if event_type == b'error':
-                                    raise ResponseError(f"Error generating image: {data}")
+                                    raise ResponseError(f"Error generating image: {data.decode(errors='ignore')}")
                                 elif event_type == b'complete':
                                     json_data = json.loads(data)
                                     image_url = json_data[0]['url']

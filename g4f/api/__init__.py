@@ -40,7 +40,7 @@ from g4f.client import AsyncClient, ChatCompletion, ImagesResponse, convert_to_p
 from g4f.providers.response import BaseConversation, JsonConversation
 from g4f.client.helper import filter_none
 from g4f.image import is_data_uri_an_image
-from g4f.image.copy_images import images_dir, copy_images
+from g4f.image.copy_images import images_dir, copy_images, get_source_url
 from g4f.errors import ProviderNotFoundError, ModelNotFoundError, MissingAuthError, NoValidHarFileError
 from g4f.cookies import read_cookie_files, get_cookies_dir
 from g4f.Provider import ProviderType, ProviderUtils, __providers__
@@ -298,11 +298,9 @@ class Api:
         })
         async def chat_completions(
             config: ChatCompletionsConfig,
-            credentials: Annotated[HTTPAuthorizationCredentials, Depends(Api.security)] = None,
-            provider: str = None
+            credentials: Annotated[HTTPAuthorizationCredentials, Depends(Api.security)] = None
         ):
             try:
-                config.provider = provider if config.provider is None else config.provider
                 if config.provider is None:
                     config.provider = AppConfig.provider
                 if credentials is not None:
@@ -582,19 +580,16 @@ class Api:
             except KeyError:
                 pass
             if not os.path.isfile(target):
-                source_url = str(request.query_params).split("url=", 1)
-                if len(source_url) > 1:
-                    source_url = source_url[1]
-                    source_url = source_url.replace("%2F", "/").replace("%3A", ":").replace("%3F", "?").replace("%3D", "=")
-                    if source_url.startswith("https://"):
-                        try:
-                            await copy_images(
-                                [source_url],
-                                target=target)
-                            debug.log(f"Image copied from {source_url}")
-                        except Exception as e:
-                            debug.log(f"{type(e).__name__}: Download failed:  {source_url}\n{e}")
-                            return RedirectResponse(url=source_url)
+                source_url = get_source_url(str(request.query_params))
+                if source_url is not None:
+                    try:
+                        await copy_images(
+                            [source_url],
+                            target=target)
+                        debug.log(f"Image copied from {source_url}")
+                    except Exception as e:
+                        debug.log(f"{type(e).__name__}: Download failed:  {source_url}\n{e}")
+                        return RedirectResponse(url=source_url)
             if not os.path.isfile(target):
                 return ErrorResponse.from_message("File not found", HTTP_404_NOT_FOUND)
             async def stream():

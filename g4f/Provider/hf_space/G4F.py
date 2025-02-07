@@ -5,10 +5,15 @@ import time
 import asyncio
 
 from ...typing import AsyncResult, Messages
-from ...providers.response import ImageResponse, Reasoning
-from ...requests.raise_for_status import raise_for_status
+from ...providers.response import ImageResponse, Reasoning, JsonConversation
 from ..helper import format_image_prompt, get_random_string
-from .Janus_Pro_7B import Janus_Pro_7B, JsonConversation, get_zerogpu_token
+from .Janus_Pro_7B import Janus_Pro_7B, get_zerogpu_token
+from .BlackForestLabsFlux1Dev import BlackForestLabsFlux1Dev
+from .raise_for_status import raise_for_status
+
+class FluxDev(BlackForestLabsFlux1Dev):
+    url = "https://roxky-flux-1-dev.hf.space"
+    space = "roxky/FLUX.1-dev"
 
 class G4F(Janus_Pro_7B):
     label = "G4F framework"
@@ -19,8 +24,8 @@ class G4F(Janus_Pro_7B):
     referer = f"{api_url}?__theme=light"
 
     default_model = "flux"
-    model_aliases = {"flux-schnell": default_model, "flux-dev": default_model}
-    image_models = [Janus_Pro_7B.default_image_model, default_model, *model_aliases.keys()]
+    model_aliases = {"flux-schnell": default_model}
+    image_models = [Janus_Pro_7B.default_image_model, default_model, "flux-dev", *model_aliases.keys()]
     models = [Janus_Pro_7B.default_model, *image_models]
 
     @classmethod
@@ -34,10 +39,36 @@ class G4F(Janus_Pro_7B):
         height: int = 1024,
         seed: int = None,
         cookies: dict = None,
+        zerogpu_token: str = None,
+        zerogpu_uuid: str = "[object Object]",
         **kwargs
     ) -> AsyncResult:
+        if model == "flux-dev":
+            async for chunk in FluxDev.create_async_generator(
+                model, messages,
+                proxy=proxy,
+                prompt=prompt,
+                width=width,
+                height=height,
+                seed=seed,
+                cookies=cookies,
+                zerogpu_token=zerogpu_token,
+                zerogpu_uuid=zerogpu_uuid,
+                **kwargs
+            ):
+                yield chunk
+            return
         if cls.default_model not in model:
-            async for chunk in super().create_async_generator(model, messages, prompt=prompt, seed=seed, cookies=cookies, **kwargs):
+            async for chunk in super().create_async_generator(
+                model, messages,
+                proxy=proxy,
+                prompt=prompt,
+                seed=seed,
+                cookies=cookies, 
+                zerogpu_token=zerogpu_token,
+                zerogpu_uuid=zerogpu_uuid,
+                **kwargs
+            ):
                 yield chunk
             return
 
@@ -64,12 +95,14 @@ class G4F(Janus_Pro_7B):
             "trigger_id": 10
         }
         async with ClientSession() as session:
-            yield Reasoning(status="Acquiring GPU Token")
-            zerogpu_uuid, zerogpu_token = await get_zerogpu_token(cls.space, session, JsonConversation(), cookies)
+            if zerogpu_token is None:
+                yield Reasoning(status="Acquiring GPU Token")
+                zerogpu_uuid, zerogpu_token = await get_zerogpu_token(cls.space, session, JsonConversation(), cookies)
             headers = {
                 "x-zerogpu-token": zerogpu_token,
                 "x-zerogpu-uuid": zerogpu_uuid,
             }
+            headers = {k: v for k, v in headers.items() if v is not None}
             async def generate():
                 async with session.post(cls.url_flux, json=payload, proxy=proxy, headers=headers) as response:
                     await raise_for_status(response)

@@ -1,6 +1,6 @@
 {
     "name": "",
-    "short_name": "",
+    "short_name": "G4F",
     "icons": [
         {
             "src": "/static/img/android-chrome-192x192.png",
@@ -21,9 +21,7 @@
         "method": "GET",
         "enctype": "application/x-www-form-urlencoded",
         "params": {
-            "title": "title",
-            "text": "prompt",
-            "url": "url"
+            "text": "prompt"
         }
     }
 }

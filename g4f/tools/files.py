@@ -431,7 +431,7 @@ async def download_urls(
         connector=get_connector(proxy=proxy),
         timeout=ClientTimeout(timeout)
     ) as session:
-        async def download_url(url: str) -> str:
+        async def download_url(url: str, max_depth: int) -> str:
             try:
                 async with session.get(url) as response:
                     response.raise_for_status()
@@ -457,7 +457,7 @@ async def download_urls(
             except (ClientError, asyncio.TimeoutError) as e:
                 debug.log(f"Download failed: {e.__class__.__name__}: {e}")
             return None
-        for filename in await asyncio.gather(*[download_url(url) for url in urls]):
+        for filename in await asyncio.gather(*[download_url(url, max_depth) for url in urls]):
             if filename:
                 yield filename
             else:
