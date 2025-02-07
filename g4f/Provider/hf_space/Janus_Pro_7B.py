@@ -17,6 +17,7 @@ from ...image import to_bytes, is_accepted_format
 from ...cookies import get_cookies
 from ...errors import ResponseError
 from ... import debug
+from .raise_for_status import raise_for_status
 
 class Janus_Pro_7B(AsyncGeneratorProvider, ProviderModelMixin):
     space = "deepseek-ai/Janus-Pro-7B"
@@ -70,6 +71,8 @@ class Janus_Pro_7B(AsyncGeneratorProvider, ProviderModelMixin):
         prompt: str = None,
         proxy: str = None,
         cookies: Cookies = None,
+        zerogpu_token: str = None,
+        zerogpu_uuid: str = "[object Object]",
         return_conversation: bool = False,
         conversation: JsonConversation = None,
         seed: int = None,
@@ -90,7 +93,8 @@ class Janus_Pro_7B(AsyncGeneratorProvider, ProviderModelMixin):
         session_hash = generate_session_hash() if conversation is None else getattr(conversation, "session_hash")
         async with StreamSession(proxy=proxy, impersonate="chrome") as session:
             session_hash = generate_session_hash() if conversation is None else getattr(conversation, "session_hash")
-            zerogpu_uuid, zerogpu_token = await get_zerogpu_token(cls.space, session, conversation, cookies)
+            if zerogpu_token is None:
+                zerogpu_uuid, zerogpu_token = await get_zerogpu_token(cls.space, session, conversation, cookies)
             if conversation is None or not hasattr(conversation, "session_hash"):
                 conversation = JsonConversation(session_hash=session_hash, zerogpu_token=zerogpu_token, zerogpu_uuid=zerogpu_uuid)
             conversation.zerogpu_token = zerogpu_token
@@ -122,6 +126,7 @@ class Janus_Pro_7B(AsyncGeneratorProvider, ProviderModelMixin):
 
             async with cls.run("get", session, prompt, conversation, None, seed) as response:
                 response: StreamResponse = response
+                counter = 3
                 async for line in response.iter_lines():
                     decoded_line = line.decode(errors="replace")
                     if decoded_line.startswith('data: '):
@@ -131,11 +136,18 @@ class Janus_Pro_7B(AsyncGeneratorProvider, ProviderModelMixin):
                                 yield Reasoning(status=json_data["log"])
 
                             if json_data.get('msg') == 'progress':
-                                if 'progress_data' in json_data and json_data['progress_data']:
-                                    progress = json_data['progress_data'][0]
-                                    yield Reasoning(status=f"{progress['desc']} {progress['index']}/{progress['length']}")
+                                if 'progress_data' in json_data:
+                                    if json_data['progress_data']:
+                                        progress = json_data['progress_data'][0]
+                                        yield Reasoning(status=f"{progress['desc']} {progress['index']}/{progress['length']}")
+                                    else:
+                                        yield Reasoning(status=f"Generating")
 
-                            if json_data.get('msg') == 'process_completed':
+                            elif json_data.get('msg') == 'heartbeat':
+                                yield Reasoning(status=f"Generating{''.join(['.' for i in range(counter)])}")
+                                counter  += 1
+
+                            elif json_data.get('msg') == 'process_completed':
                                 if 'output' in json_data and 'error' in json_data['output']:
                                     json_data['output']['error'] = json_data['output']['error'].split(" <a ")[0]
                                     raise ResponseError("Missing images input" if json_data['output']['error'] and "AttributeError" in json_data['output']['error'] else json_data['output']['error'])

@@ -4,13 +4,16 @@ import json
 from aiohttp import ClientSession
 
 from ...typing import AsyncResult, Messages
-from ...providers.response import ImageResponse, ImagePreview
+from ...providers.response import ImageResponse, ImagePreview, JsonConversation
 from ...errors import ResponseError
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..helper import format_image_prompt
+from .Janus_Pro_7B import get_zerogpu_token
+from .raise_for_status import raise_for_status
 
 class BlackForestLabsFlux1Dev(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://black-forest-labs-flux-1-dev.hf.space"
+    space = "black-forest-labs/FLUX.1-dev"
     api_endpoint = "/gradio_api/call/infer"
 
     working = True
@@ -27,7 +30,6 @@ class BlackForestLabsFlux1Dev(AsyncGeneratorProvider, ProviderModelMixin):
         model: str, 
         messages: Messages,
         prompt: str = None,
-        api_key: str = None, 
         proxy: str = None,
         width: int = 1024,
         height: int = 1024,
@@ -35,6 +37,9 @@ class BlackForestLabsFlux1Dev(AsyncGeneratorProvider, ProviderModelMixin):
         num_inference_steps: int = 28,
         seed: int = 0,
         randomize_seed: bool = True,
+        cookies: dict = None,
+        zerogpu_token: str = None,
+        zerogpu_uuid: str = "[object Object]",
         **kwargs
     ) -> AsyncResult:
         model = cls.get_model(model)
@@ -42,18 +47,23 @@ class BlackForestLabsFlux1Dev(AsyncGeneratorProvider, ProviderModelMixin):
             "Content-Type": "application/json",
             "Accept": "application/json",
         }
-        if api_key is not None:
-            headers["Authorization"] = f"Bearer {api_key}"
         async with ClientSession(headers=headers) as session:
             prompt = format_image_prompt(messages, prompt)
             data = {
                 "data": [prompt, seed, randomize_seed, width, height, guidance_scale, num_inference_steps]
             }
-            async with session.post(f"{cls.url}{cls.api_endpoint}", json=data, proxy=proxy) as response:
-                response.raise_for_status()
+            if zerogpu_token is None:
+                zerogpu_uuid, zerogpu_token = await get_zerogpu_token(cls.space, session, JsonConversation(), cookies)
+            headers = {
+                "x-zerogpu-token": zerogpu_token,
+                "x-zerogpu-uuid": zerogpu_uuid,
+            }
+            headers = {k: v for k, v in headers.items() if v is not None}
+            async with session.post(f"{cls.url}{cls.api_endpoint}", json=data, proxy=proxy, headers=headers) as response:
+                await raise_for_status(response)
                 event_id = (await response.json()).get("event_id")
                 async with session.get(f"{cls.url}{cls.api_endpoint}/{event_id}") as event_response:
-                    event_response.raise_for_status()
+                    await raise_for_status(event_response)
                     event = None
                     async for chunk in event_response.content:
                         if chunk.startswith(b"event: "):
