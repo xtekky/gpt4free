@@ -208,7 +208,7 @@ from g4f.gui import run_gui
 
 run_gui()
 ```
-** Run via CLI (To start the Flask Server):**
+**Run via CLI (To start the Flask Server):**
 ```bash
 python -m g4f.cli gui --port 8080 --debug
 ```
