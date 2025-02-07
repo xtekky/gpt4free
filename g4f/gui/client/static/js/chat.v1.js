@@ -811,19 +811,18 @@ async function add_message_chunk(message, message_id, provider, scroll, finish_m
         log_storage.appendChild(p);
         await api("log", {...message, provider: provider_storage[message_id]});
     } else if (message.type == "preview") {
-        if (content_map.inner.clientHeight > 200)
-            content_map.inner.style.height = content_map.inner.clientHeight + "px";
         if (img = content_map.inner.querySelector("img"))
             if (!img.complete)
                 return;
             else
                 img.src = message.images;
-        else
-           content_map.inner.innerHTML = markdown_render(message.preview);
+        else {
+            content_map.inner.innerHTML = markdown_render(message.preview);
+            await register_message_images();
+        }
     } else if (message.type == "content") {
         message_storage[message_id] += message.content;
         update_message(content_map, message_id, null, scroll);
-        content_map.inner.style.height = "";
     } else if (message.type == "log") {
         let p = document.createElement("p");
         p.innerText = message.log;

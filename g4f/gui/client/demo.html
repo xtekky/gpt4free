@@ -181,7 +181,6 @@
     <script>
         (async () => {
             const isIframe = window.self !== window.top;
-            const button = document.querySelector('form a.button');
             let url = new URL(window.location.href)
             let params = new URLSearchParams(url.search);
             if (params.get("__sign")) {
@@ -189,9 +188,6 @@
                 if (!isIframe) {
                     window.location.replace("/");
                 }
-            }
-            if (isIframe) {
-                button.classList.remove('hidden');
             }
         })();
     </script>
@@ -236,7 +232,11 @@
             import * as hub from "@huggingface/hub";
             import { init } from "@huggingface/space-header";
 
-            if (window.self === window.top) {
+            const isIframe = window.self !== window.top;
+            const button = document.querySelector('form a.button');
+            if (isIframe) {
+                button.classList.remove('hidden');
+            } else {
                 init("roxky/g4f-space");
             }
 
