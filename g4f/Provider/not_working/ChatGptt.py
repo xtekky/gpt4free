@@ -2,19 +2,18 @@ from __future__ import annotations
 
 import os
 import re
-
 from aiohttp import ClientSession
 
-from ..typing import AsyncResult, Messages
-from ..requests.raise_for_status import raise_for_status
-from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from .helper import format_prompt
+from ...typing import AsyncResult, Messages
+from ...requests.raise_for_status import raise_for_status
+from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from ..helper import format_prompt
 
 class ChatGptt(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://chatgptt.me"
     api_endpoint = "https://chatgptt.me/wp-admin/admin-ajax.php"
     
-    working = True
+    working = False
     supports_stream = True
     supports_system_message = True
     supports_message_history = True
@@ -41,10 +40,22 @@ class ChatGptt(AsyncGeneratorProvider, ProviderModelMixin):
         }
 
         async with ClientSession(headers=headers) as session:
+            # Get initial page content
             initial_response = await session.get(cls.url)
-            nonce_ = re.findall(r'data-nonce="(.+?)"', await initial_response.text())[0]
-            post_id = re.findall(r'data-post-id="(.+?)"', await initial_response.text())[0]
+            await raise_for_status(initial_response)
+            html = await initial_response.text()
+            
+            # Extract nonce and post ID with error handling
+            nonce_match = re.search(r'data-nonce=["\']([^"\']+)["\']', html)
+            post_id_match = re.search(r'data-post-id=["\']([^"\']+)["\']', html)
+            
+            if not nonce_match or not post_id_match:
+                raise RuntimeError("Required authentication tokens not found in page HTML")
+            
+            nonce_ = nonce_match.group(1)
+            post_id = post_id_match.group(1)
 
+            # Prepare payload with session data
             payload = {
                 '_wpnonce': nonce_,
                 'post_id': post_id,
@@ -57,6 +68,7 @@ class ChatGptt(AsyncGeneratorProvider, ProviderModelMixin):
                 'wpaicg_chat_history': None
             }
 
+            # Stream the response
             async with session.post(cls.api_endpoint, headers=headers, data=payload, proxy=proxy) as response:
                 await raise_for_status(response)
                 result = await response.json()

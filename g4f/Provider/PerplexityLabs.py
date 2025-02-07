@@ -17,9 +17,10 @@ class PerplexityLabs(AsyncGeneratorProvider, ProviderModelMixin):
 
     default_model = "sonar-pro"
     models = [
-        default_model,
         "sonar",
+        default_model,
         "sonar-reasoning",
+        "sonar-reasoning-pro",
     ]
 
     @classmethod

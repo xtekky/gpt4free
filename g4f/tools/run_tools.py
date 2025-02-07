@@ -87,6 +87,51 @@ async def async_iter_run_tools(provider: ProviderType, model: str, messages, too
     response = to_async_iterator(create_function(model=model, messages=messages, **kwargs))
     async for chunk in response:
         yield chunk
+        
+def process_thinking_chunk(chunk: str, start_time: float = 0) -> tuple[float, list]:
+    """Process a thinking chunk and return timing and results."""
+    results = []
+    
+    # Handle non-thinking chunk
+    if not start_time and "<think>" not in chunk:
+        return 0, [chunk]
+        
+    # Handle thinking start
+    if "<think>" in chunk and not "`<think>`" in chunk:
+        before_think, *after = chunk.split("<think>", 1)
+        
+        if before_think:
+            results.append(before_think)
+            
+        results.append(Reasoning(status="🤔 Is thinking...", is_thinking="<think>"))
+        
+        if after and after[0]:
+            results.append(Reasoning(after[0]))
+            
+        return time.time(), results
+        
+    # Handle thinking end
+    if "</think>" in chunk:
+        before_end, *after = chunk.split("</think>", 1)
+        
+        if before_end:
+            results.append(Reasoning(before_end))
+            
+        thinking_duration = time.time() - start_time if start_time > 0 else 0
+        
+        status = f"Thought for {thinking_duration:.2f}s" if thinking_duration > 1 else "Finished"
+        results.append(Reasoning(status=status, is_thinking="</think>"))
+        
+        if after and after[0]:
+            results.append(after[0])
+            
+        return 0, results
+        
+    # Handle ongoing thinking
+    if start_time:
+        return start_time, [Reasoning(chunk)]
+        
+    return start_time, [chunk]
 
 def iter_run_tools(
     iter_callback: Callable,
@@ -149,37 +194,13 @@ def iter_run_tools(
                     if has_bucket and isinstance(messages[-1]["content"], str):
                         messages[-1]["content"] += BUCKET_INSTRUCTIONS
 
-    is_thinking = 0
+    thinking_start_time = 0
     for chunk in iter_callback(model=model, messages=messages, provider=provider, **kwargs):
         if not isinstance(chunk, str):
             yield chunk
             continue
-        if "<think>" in chunk and not "`<think>`" in chunk:
-            if chunk != "<think>":
-                chunk = chunk.split("<think>", 1)
-                if len(chunk) > 0 and chunk[0]:
-                    yield chunk[0]
-            yield Reasoning(status="🤔 Is thinking...", is_thinking="<think>")
-            if chunk != "<think>":
-                if len(chunk) > 1 and chunk[1]:
-                    yield Reasoning(chunk[1])
-            is_thinking = time.time()
-        else:
-            if "</think>" in chunk:
-                if chunk != "<think>":
-                    chunk = chunk.split("</think>", 1)
-                    if len(chunk) > 0 and chunk[0]:
-                        yield Reasoning(chunk[0])
-                is_thinking = time.time() - is_thinking if is_thinking > 0 else 0
-                if is_thinking > 1:
-                    yield Reasoning(status=f"Thought for {is_thinking:.2f}s", is_thinking="</think>")
-                else:
-                    yield Reasoning(status=f"Finished", is_thinking="</think>")
-                if chunk != "<think>":
-                    if len(chunk) > 1 and chunk[1]:
-                        yield chunk[1]
-                is_thinking = 0
-            elif is_thinking:
-                yield Reasoning(chunk)
-            else:
-                yield chunk
+            
+        thinking_start_time, results = process_thinking_chunk(chunk, thinking_start_time)
+        
+        for result in results:
+            yield result

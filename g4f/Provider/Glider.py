@@ -5,7 +5,7 @@ from aiohttp import ClientSession
 from ..typing import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..requests.raise_for_status import raise_for_status
-from ..providers.response import FinishReason, Reasoning
+from ..providers.response import FinishReason
 from .helper import format_prompt
 
 class Glider(AsyncGeneratorProvider, ProviderModelMixin):
