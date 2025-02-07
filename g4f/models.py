@@ -344,7 +344,7 @@ gemini_1_5_pro = Model(
 gemini_2_0_flash = Model(
     name          = 'gemini-2.0-flash',
     base_provider = 'Google DeepMind',
-    best_provider = IterListProvider([PollinationsAI, GeminiPro, Liaobots])
+    best_provider = IterListProvider([Blackbox, PollinationsAI, GeminiPro, Liaobots])
 )
 
 gemini_2_0_flash_thinking = Model(
