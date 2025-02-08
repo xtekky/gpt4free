@@ -1896,20 +1896,21 @@ async function on_load() {
     count_input();
     if (/\/settings\//.test(window.location.href)) {
         open_settings();
-    } else if (/\/chat\/[^?]+/.test(window.location.href)) {
-        load_conversation(window.conversation_id);
-    } else {
+    } else if (/\/chat\/share/.test(window.location.href)) {
         chatPrompt.value = document.getElementById("systemPrompt")?.value || "";
         let chat_url = new URL(window.location.href)
         let chat_params = new URLSearchParams(chat_url.search);
         if (chat_params.get("prompt")) {
-            messageInput.value = `${window.location.href}\n`;
+            messageInput.value = chat_params.get("prompt");
             messageInput.style.height = messageInput.scrollHeight  + "px";
             messageInput.focus();
             //await handle_ask();
-        } else {
-            say_hello()
         }
+    } else if (/\/chat\/[^?]+/.test(window.location.href)) {
+        load_conversation(window.conversation_id);
+    } else {
+        chatPrompt.value = document.getElementById("systemPrompt")?.value || "";
+        say_hello();
     }
     load_conversations();
 }

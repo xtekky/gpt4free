@@ -170,6 +170,8 @@ class Api:
                     provider = chunk.name
                 elif isinstance(chunk, BaseConversation):
                     if provider is not None:
+                        if hasattr(provider, "__name__"):
+                            provider = provider.__name__
                         if provider not in conversations:
                             conversations[provider] = {}
                         conversations[provider][conversation_id] = chunk
@@ -189,7 +191,7 @@ class Api:
                 elif isinstance(chunk, ImageResponse):
                     images = chunk
                     if download_images or chunk.get("cookies"):
-                        chunk.alt = chunk.alt or format_image_prompt(kwargs.get("messages"))
+                        chunk.alt = format_image_prompt(kwargs.get("messages"), chunk.alt)
                         images = asyncio.run(copy_images(chunk.get_list(), chunk.get("cookies"), proxy=proxy, alt=chunk.alt))
                         images = ImageResponse(images, chunk.alt)
                     yield self._format_json("content", str(images), images=chunk.get_list(), alt=chunk.alt)
