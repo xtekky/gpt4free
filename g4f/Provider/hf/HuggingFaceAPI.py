@@ -5,7 +5,7 @@ from ...typing import ImagesType
 from ...requests import StreamSession, raise_for_status
 from ...errors import ModelNotSupportedError
 from ..template.OpenaiTemplate import OpenaiTemplate
-from .models import model_aliases
+from .models import model_aliases, vision_models, default_vision_model
 from .HuggingChat import HuggingChat
 from ... import debug
 
@@ -17,9 +17,9 @@ class HuggingFaceAPI(OpenaiTemplate):
     working = True
     needs_auth = True
 
-    default_model = "meta-llama/Llama-3.2-11B-Vision-Instruct"
-    default_vision_model = default_model
-    vision_models = [default_vision_model, "Qwen/Qwen2-VL-7B-Instruct"]
+    default_model = default_vision_model
+    default_vision_model = default_vision_model
+    vision_models = vision_models
     model_aliases = model_aliases
 
     @classmethod

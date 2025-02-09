@@ -44,3 +44,5 @@ extra_models = [
     "nvidia/Llama-3.1-Nemotron-70B-Instruct-HF",
     "NousResearch/Hermes-3-Llama-3.1-8B",
 ]
+default_vision_model = "meta-llama/Llama-3.2-11B-Vision-Instruct"
+vision_models = [default_vision_model, "Qwen/Qwen2-VL-7B-Instruct"]
