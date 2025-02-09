@@ -298,11 +298,12 @@ class Api:
         })
         async def chat_completions(
             config: ChatCompletionsConfig,
-            credentials: Annotated[HTTPAuthorizationCredentials, Depends(Api.security)] = None
+            credentials: Annotated[HTTPAuthorizationCredentials, Depends(Api.security)] = None,
+            provider: str = None
         ):
             try:
                 if config.provider is None:
-                    config.provider = AppConfig.provider
+                    config.provider = AppConfig.provider if provider is None else provider
                 if credentials is not None:
                     config.api_key = credentials.credentials
 
