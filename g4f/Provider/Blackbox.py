@@ -286,7 +286,9 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
                 "vscodeClient": False,
                 "codeInterpreterMode": False,
                 "customProfile": {"name": "", "occupation": "", "traits": [], "additionalInfo": "", "enableNewChats": False},
-                "session": {"user":{"name":"John Doe","email":"john.doe@gmail.com","image":"https://lh3.googleusercontent.com/a/ACg8ocK9X7mNpQ2vR4jH3tY8wL5nB1xM6fDS9JW2kLpTn4Vy3hR2xN4m=s96-c","subscriptionStatus":"PREMIUM"},"expires":datetime.now(timezone.utc).isoformat(timespec='milliseconds').replace('+00:00', 'Z')},
+                "session": {"user":{"name":"John Doe","email":"john.doe@gmail.com","image":"https://lh3.googleusercontent.com/a/ACg8ocK9X7mNpQ2vR4jH3tY8wL5nB1xM6fDS9JW2kLpTn4Vy3hR2xN4m=s96-c"},"expires":datetime.now(timezone.utc).isoformat(timespec='milliseconds').replace('+00:00', 'Z')},
+                "isPremium": True, 
+                "subscriptionCache": None,
                 "webSearchMode": False
             }
             
