@@ -29,6 +29,10 @@ def get_api_parser():
                             default=[], help="List of browsers to access or retrieve cookies from. (incompatible with --reload and --workers)")
     api_parser.add_argument("--reload", action="store_true", help="Enable reloading.")
     api_parser.add_argument("--demo", action="store_true", help="Enable demo mode.")
+	
+    api_parser.add_argument("--ssl-keyfile", type=str, default=None, help="Path to SSL key file for HTTPS.")
+    api_parser.add_argument("--ssl-certfile", type=str, default=None, help="Path to SSL certificate file for HTTPS.")
+	
     return api_parser
 
 def main():
@@ -68,7 +72,9 @@ def run_api_args(args):
         debug=args.debug,
         workers=args.workers,
         use_colors=not args.disable_colors,
-        reload=args.reload
+        reload=args.reload,
+        ssl_keyfile=args.ssl_keyfile,
+        ssl_certfile=args.ssl_certfile
     )
 
 if __name__ == "__main__":
