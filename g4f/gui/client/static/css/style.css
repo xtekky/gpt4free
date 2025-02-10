@@ -554,7 +554,6 @@ input-count .text {
 
 .stop_generating, .toolbar .regenerate {
     position: absolute;
-    z-index: 100000;
     top: 0;
     right: 0;
     animation: show_popup 0.4s;
@@ -1108,23 +1107,21 @@ ul {
 
 .mobile-sidebar {
     display: none;
-    position: absolute;
-    z-index: 100000;
-    top: 0;
-    left: 0;
-    margin: 10px;
-    font-size: 20px;
-    cursor: pointer;
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    background-color: var(--blur-bg);
-    border-radius: 10px;
-    border: 1px solid var(--blur-border);
+    position: fixed;
+    z-index: 1000;
+    top: 10px;
+    right: 10px;
     width: 40px;
     height: 40px;
+    background-color: var(--blur-bg);
+    border: 1px solid var(--blur-border);
+    border-radius: 10px;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    cursor: pointer;
     justify-content: center;
     align-items: center;
-    transition: 0.33s;
+    transition: all 0.3s ease;
 }
 
 .mobile-sidebar i {
@@ -1529,5 +1526,124 @@ form .field.saved .fa-xmark {
     }
     .box {
         backdrop-filter: none;
+    }
+}
+
+
+/* Basic adaptation */
+.row {
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.conversations, .settings, .conversation {
+    flex: 1 1 300px;
+    min-width: 0;
+}
+
+/* Media queries for mobile devices */
+@media (max-width: 768px) {
+    .row {
+        flex-direction: column;
+    }
+    
+    .conversations, .settings {
+        width: 100%;
+        max-width: 100%;
+        margin: 0;
+    }
+    
+    .conversation {
+        order: -1;
+        min-height: 80vh;
+    }
+    
+    .buttons .field {
+        flex: 1 1 auto;
+    }
+    
+    #model, #provider {
+        font-size: 14px;
+        padding: 6px;
+    }
+    
+    .user-input .input-area {
+        padding: 8px;
+    }
+    
+    textarea#message-input {
+        font-size: 14px;
+    }
+    
+    .mobile-sidebar {
+        display: block;
+        position: fixed;
+        top: 10px;
+        left: 10px;
+        z-index: 1000;
+    }
+    
+    .conversations {
+        position: fixed;
+        left: -100%;
+        top: 0;
+        bottom: 0;
+        transition: left 0.3s;
+        z-index: 999;
+        background: var(--bg-color);
+    }
+    
+    .conversations.active {
+        left: 0;
+    }
+}
+
+/* Flexible form elements */
+.user-input .input-area {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+textarea {
+    max-width: 100%;
+    min-height: 50px;
+    resize: vertical;
+}
+
+/* Adaptive buttons */
+button {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.file-label {
+    flex-shrink: 0;
+}
+
+/* Adaptive model menu */
+#model, #provider {
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+@media (max-width: 480px) {
+    .buttons .field {
+        flex: 1 1 100%;
+    }
+    
+    #model, #provider {
+        max-width: 100%;
+    }
+    
+    .toolbar {
+        flex-wrap: wrap;
+        gap: 5px;
+    }
+    
+    .info .convo-title {
+        font-size: 12px;
     }
 }
