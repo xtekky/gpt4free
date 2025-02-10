@@ -7,7 +7,6 @@ from .Provider import (
     ### no auth required ###
     Blackbox,
     BlackboxAPI,
-    CablyAI,
     ChatGLM,
     ChatGptEs,
     Cloudflare,
@@ -81,10 +80,9 @@ default = Model(
         DeepInfraChat,
         ChatGptEs,
         PollinationsAI,
-        Jmuz,
-        CablyAI,
         OIVSCode,
         OpenaiChat,
+        Jmuz,
         Cloudflare,
     ])
 )
@@ -128,7 +126,7 @@ gpt_4o = VisionModel(
 gpt_4o_mini = Model(
     name          = 'gpt-4o-mini',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([DDG, ChatGptEs, Jmuz, PollinationsAI, OIVSCode, CablyAI, Liaobots, OpenaiChat])
+    best_provider = IterListProvider([DDG, ChatGptEs, Jmuz, PollinationsAI, OIVSCode, Liaobots, OpenaiChat])
 )
 
 # o1
@@ -154,13 +152,7 @@ o1_mini = Model(
 o3_mini = Model(
     name          = 'o3-mini',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([Blackbox, CablyAI])
-)
-
-o3_mini_low = Model(
-    name          = 'o3-mini-low',
-    base_provider = 'OpenAI',
-    best_provider = CablyAI
+    best_provider = Blackbox
 )
 
 ### GigaChat ###
@@ -200,7 +192,7 @@ llama_3_70b = Model(
 llama_3_1_8b = Model(
     name          = "llama-3.1-8b",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider([Blackbox, DeepInfraChat, Glider, Jmuz, PollinationsAI, CablyAI, Cloudflare])
+    best_provider = IterListProvider([Blackbox, DeepInfraChat, Glider, Jmuz, PollinationsAI, Cloudflare])
 )
 
 llama_3_1_70b = Model(
@@ -277,13 +269,6 @@ hermes_2_dpo = Model(
     base_provider = "NousResearch",
     best_provider = IterListProvider([Blackbox, BlackboxAPI])
 )
-
-hermes_3 = Model(
-    name          = "hermes-3",
-    base_provider = "NousResearch",
-    best_provider = CablyAI
-)
-
 
 ### Microsoft ###
 # phi
@@ -378,7 +363,7 @@ claude_3_opus = Model(
 claude_3_5_sonnet = Model(
     name          = 'claude-3.5-sonnet',
     base_provider = 'Anthropic',
-    best_provider = IterListProvider([Blackbox, Jmuz, Liaobots])
+    best_provider = IterListProvider([Jmuz, Liaobots])
 )
 
 ### Reka AI ###
@@ -439,7 +424,7 @@ qwen_2_vl_7b = VisionModel(
 qwen_2_5_72b = Model(
     name = 'qwen-2.5-72b',
     base_provider = 'Qwen',
-    best_provider = IterListProvider([PollinationsAI, Jmuz])
+    best_provider = Jmuz
 )
 qwen_2_5_coder_32b = Model(
     name = 'qwen-2.5-coder-32b',
@@ -481,13 +466,13 @@ deepseek_chat = Model(
 deepseek_v3 = Model(
     name = 'deepseek-v3',
     base_provider = 'DeepSeek',
-    best_provider = IterListProvider([Blackbox, BlackboxAPI, DeepInfraChat, CablyAI, Liaobots])
+    best_provider = IterListProvider([Blackbox, BlackboxAPI, DeepInfraChat, Liaobots])
 )
 
 deepseek_r1 = Model(
     name = 'deepseek-r1',
     base_provider = 'DeepSeek',
-    best_provider = IterListProvider([Blackbox, BlackboxAPI, DeepInfraChat, Glider, PollinationsAI, Jmuz, CablyAI, Liaobots, HuggingChat, HuggingFace])
+    best_provider = IterListProvider([Blackbox, BlackboxAPI, DeepInfraChat, Glider, PollinationsAI, Jmuz, Liaobots, HuggingChat, HuggingFace])
 )
 
 ### x.ai ###
@@ -513,7 +498,7 @@ sonar_pro = Model(
 sonar_reasoning = Model(
     name = 'sonar-reasoning',
     base_provider = 'Perplexity AI',
-    best_provider = IterListProvider([PerplexityLabs, CablyAI])
+    best_provider = PerplexityLabs
 )
 
 sonar_reasoning_pro = Model(
@@ -683,7 +668,6 @@ class ModelUtils:
         
         # o3
         o3_mini.name: o3_mini,
-        o3_mini_low.name: o3_mini_low,
 
         ### Meta ###
         meta.name: meta,
@@ -717,7 +701,6 @@ class ModelUtils:
 
         ### NousResearch ###
         hermes_2_dpo.name: hermes_2_dpo,
-        hermes_3.name: hermes_3,
                 
         ### Microsoft ###
         # phi

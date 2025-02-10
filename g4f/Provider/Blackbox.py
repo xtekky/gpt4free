@@ -16,6 +16,7 @@ from ..image import to_data_uri
 from ..cookies import get_cookies_dir
 from .helper import format_prompt, format_image_prompt
 from ..providers.response import JsonConversation, ImageResponse
+from ..errors import ModelNotSupportedError
 
 class Conversation(JsonConversation):
     validated_value: str = None
@@ -38,10 +39,11 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
     default_model = "blackboxai"
     default_vision_model = default_model
     default_image_model = 'ImageGeneration' 
-    image_models = [default_image_model]
-    vision_models = [default_vision_model, 'gpt-4o', 'o3-mini', 'gemini-pro', 'gemini-1.5-flash', 'llama-3.1-8b', 'llama-3.1-70b', 'llama-3.1-405b', 'Gemini-Flash-2.0']
+    
+    image_models = [default_image_model]   
+    vision_models = [default_vision_model, 'GPT-4o', 'o3-mini', 'Gemini-PRO', 'gemini-1.5-flash', 'llama-3.1-8b', 'llama-3.1-70b', 'llama-3.1-405b', 'Gemini-Flash-2.0']
 
-    userSelectedModel = ['gpt-4o', 'o3-mini', 'gemini-pro', 'claude-sonnet-3.5', 'DeepSeek-V3', 'DeepSeek-R1', 'blackboxai-pro', 'Meta-Llama-3.3-70B-Instruct-Turbo', 'Mistral-Small-24B-Instruct-2501', 'DeepSeek-LLM-Chat-(67B)', 'DBRX-Instruct', 'Qwen-QwQ-32B-Preview', 'Nous-Hermes-2-Mixtral-8x7B-DPO', 'Gemini-Flash-2.0']
+    userSelectedModel = ['GPT-4o', 'o3-mini', 'Gemini-PRO', 'Claude-Sonnet-3.5', 'DeepSeek-V3', 'DeepSeek-R1', 'blackboxai-pro', 'Meta-Llama-3.3-70B-Instruct-Turbo', 'Mistral-Small-24B-Instruct-2501', 'DeepSeek-LLM-Chat-(67B)', 'DBRX-Instruct', 'Qwen-QwQ-32B-Preview', 'Nous-Hermes-2-Mixtral-8x7B-DPO', 'Gemini-Flash-2.0']
 
     agentMode = {
         'DeepSeek-V3': {'mode': True, 'id': "deepseek-chat", 'name': "DeepSeek-V3"},
@@ -95,13 +97,16 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         'builder Agent': {'mode': True, 'id': "builder Agent"},
     }
     
+    premium_models = ['Claude-Sonnet-3.5']
+    
     models = list(dict.fromkeys([default_model, *userSelectedModel, *image_models, *list(agentMode.keys()), *list(trendingAgentMode.keys())]))
 
     model_aliases = {
-        "gpt-4": "gpt-4o",
-        "claude-3.5-sonnet": "claude-sonnet-3.5",
+        "gpt-4": "GPT-4o",
+        "gpt-4o": "GPT-4o",
+        "claude-3.5-sonnet": "Claude-Sonnet-3.5", # Premium
         "gemini-1.5-flash": "gemini-1.5-flash",
-        "gemini-1.5-pro": "gemini-pro",
+        "gemini-1.5-pro": "Gemini-PRO",
         "deepseek-v3": "DeepSeek-V3",
         "deepseek-r1": "DeepSeek-R1",
         "llama-3.3-70b": "Meta-Llama-3.3-70B-Instruct-Turbo",
@@ -113,6 +118,24 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         "gemini-2.0-flash": "Gemini-Flash-2.0",
         "flux": "ImageGeneration",
     }
+
+    @classmethod
+    def get_models(cls) -> list[str]:
+        models = super().get_models()
+        filtered = [m for m in models if m not in cls.premium_models]
+        filtered += [f"{m} (Premium)" for m in cls.premium_models]
+        return filtered
+
+    @classmethod
+    def get_model(cls, model: str, **kwargs) -> str:
+        try:
+            model = super().get_model(model, **kwargs)
+            return model.split(" (Premium)")[0]
+        except ModelNotSupportedError:
+            base_model = model.split(" (Premium)")[0]
+            if base_model in cls.premium_models:
+                return base_model
+            raise
 
     @classmethod
     async def fetch_validated(cls, url: str = "https://www.blackbox.ai", force_refresh: bool = False) -> Optional[str]:
@@ -256,6 +279,14 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
                     "title": ""
                 }
 
+            # Calculate the value for expires + lastChecked
+            expires_iso = datetime.now(timezone.utc).isoformat(timespec='milliseconds').replace('+00:00', 'Z')
+            last_checked_millis = int(datetime.now().timestamp() * 1000)
+            
+            # Fake data of a premium user (temporarily working)
+            fake_session = {"user":{"name":"John Doe","email":"john.doe@gmail.com","image":"https://lh3.googleusercontent.com/a/ACg8ocK9X7mNpQ2vR4jH3tY8wL5nB1xM6fDS9JW2kLpTn4Vy3hR2xN4m=s96-c"},"expires":expires_iso}
+            fake_subscriptionCache = {"status":"PREMIUM", "expiryTimestamp":None,"lastChecked":last_checked_millis}
+
             data = {
                 "messages": current_messages,
                 "agentMode": cls.agentMode.get(model, {}) if model in cls.agentMode else {},
@@ -286,7 +317,9 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
                 "vscodeClient": False,
                 "codeInterpreterMode": False,
                 "customProfile": {"name": "", "occupation": "", "traits": [], "additionalInfo": "", "enableNewChats": False},
-                "session": {"user":{"name":"John Doe","email":"john.doe@gmail.com","image":"https://lh3.googleusercontent.com/a/ACg8ocK9X7mNpQ2vR4jH3tY8wL5nB1xM6fDS9JW2kLpTn4Vy3hR2xN4m=s96-c","subscriptionStatus":"PREMIUM"},"expires":datetime.now(timezone.utc).isoformat(timespec='milliseconds').replace('+00:00', 'Z')},
+                "session": fake_session,
+                "isPremium": True, 
+                "subscriptionCache": fake_subscriptionCache,
                 "webSearchMode": False
             }
             

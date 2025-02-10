@@ -2739,3 +2739,13 @@ document.getElementById("showLog").addEventListener("click", ()=> {
     settings.classList.add("hidden");
     log_storage.scrollTop = log_storage.scrollHeight;
 });
+
+document.querySelector('.mobile-sidebar').addEventListener('click', function() {
+    document.querySelector('.conversations').classList.toggle('active');
+});
+
+document.addEventListener('click', function(e) {
+    if(!e.target.closest('.conversations') && !e.target.closest('.mobile-sidebar')) {
+        document.querySelector('.conversations').classList.remove('active');
+    }
+});
