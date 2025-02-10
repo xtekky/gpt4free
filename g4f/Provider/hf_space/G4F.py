@@ -43,7 +43,7 @@ class G4F(Janus_Pro_7B):
         zerogpu_uuid: str = "[object Object]",
         **kwargs
     ) -> AsyncResult:
-        if model == "flux-dev":
+        if model in ("flux", "flux-dev"):
             async for chunk in FluxDev.create_async_generator(
                 model, messages,
                 proxy=proxy,
@@ -108,7 +108,7 @@ class G4F(Janus_Pro_7B):
                     await raise_for_status(response)
                     response_data = await response.json()
                     image_url = response_data["data"][0]['url']
-                    return ImageResponse(images=[image_url], alt=prompt)
+                    return ImageResponse(image_url, alt=prompt)
             background_tasks = set()
             started = time.time()
             task = asyncio.create_task(generate())

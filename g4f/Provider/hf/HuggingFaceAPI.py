@@ -5,7 +5,7 @@ from ...typing import ImagesType
 from ...requests import StreamSession, raise_for_status
 from ...errors import ModelNotSupportedError
 from ..template.OpenaiTemplate import OpenaiTemplate
-from .models import model_aliases
+from .models import model_aliases, vision_models, default_vision_model
 from .HuggingChat import HuggingChat
 from ... import debug
 
@@ -17,10 +17,12 @@ class HuggingFaceAPI(OpenaiTemplate):
     working = True
     needs_auth = True
 
-    default_model = "meta-llama/Llama-3.2-11B-Vision-Instruct"
-    default_vision_model = default_model
-    vision_models = [default_vision_model, "Qwen/Qwen2-VL-7B-Instruct"]
+    default_model = default_vision_model
+    default_vision_model = default_vision_model
+    vision_models = vision_models
     model_aliases = model_aliases
+
+    pipeline_tag: dict[str, str] = {}
 
     @classmethod
     def get_models(cls, **kwargs):
@@ -31,6 +33,20 @@ class HuggingFaceAPI(OpenaiTemplate):
                 if model not in cls.models:
                     cls.models.append(model)
         return cls.models
+
+    @classmethod
+    async def get_pipline_tag(cls, model: str, api_key: str = None):
+        if model in cls.pipeline_tag:
+            return cls.pipeline_tag[model]
+        async with StreamSession(
+            timeout=30,
+            headers=cls.get_headers(False, api_key),
+        ) as session:
+            async with session.get(f"https://huggingface.co/api/models/{model}") as response:
+                await raise_for_status(response)
+                model_data = await response.json()
+                cls.pipeline_tag[model] = model_data.get("pipeline_tag")
+        return cls.pipeline_tag[model]
 
     @classmethod
     async def create_async_generator(
@@ -44,25 +60,14 @@ class HuggingFaceAPI(OpenaiTemplate):
         images: ImagesType = None,
         **kwargs
     ):
-        if api_base is None:
-            model_name = model
-            if model in cls.model_aliases:
-                model_name = cls.model_aliases[model]
-            api_base = f"https://api-inference.huggingface.co/models/{model_name}/v1"
-        async with StreamSession(
-            timeout=30,
-            headers=cls.get_headers(False, api_key),
-        ) as session:
-            async with session.get(f"https://huggingface.co/api/models/{model}") as response:
-                if response.status == 404:
-                    raise ModelNotSupportedError(f"Model is not supported: {model} in: {cls.__name__}")
-                await raise_for_status(response)
-                model_data = await response.json()
-                pipeline_tag = model_data.get("pipeline_tag")
-                if images is None and pipeline_tag not in ("text-generation", "image-text-to-text"):
-                    raise ModelNotSupportedError(f"Model is not supported: {model} in: {cls.__name__} pipeline_tag: {pipeline_tag}")
-                elif pipeline_tag != "image-text-to-text":
-                    raise ModelNotSupportedError(f"Model does not support images: {model} in: {cls.__name__} pipeline_tag: {pipeline_tag}")
+        if model in cls.model_aliases:
+            model = cls.model_aliases[model]
+        api_base = f"https://api-inference.huggingface.co/models/{model}/v1"
+        pipeline_tag = await cls.get_pipline_tag(model, api_key)
+        if images is None and pipeline_tag not in ("text-generation", "image-text-to-text"):
+            raise ModelNotSupportedError(f"Model is not supported: {model} in: {cls.__name__} pipeline_tag: {pipeline_tag}")
+        elif pipeline_tag != "image-text-to-text":
+            raise ModelNotSupportedError(f"Model does not support images: {model} in: {cls.__name__} pipeline_tag: {pipeline_tag}")
         start = calculate_lenght(messages)
         if start > max_inputs_lenght:
             if len(messages) > 6:

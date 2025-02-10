@@ -9,7 +9,7 @@ from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from .HuggingChat import HuggingChat
 from .HuggingFaceAPI import HuggingFaceAPI
 from .HuggingFaceInference import HuggingFaceInference
-from .models import model_aliases
+from .models import model_aliases, vision_models, default_vision_model
 from ... import debug
 
 class HuggingFace(AsyncGeneratorProvider, ProviderModelMixin):
@@ -26,6 +26,8 @@ class HuggingFace(AsyncGeneratorProvider, ProviderModelMixin):
         return cls.models
 
     model_aliases = model_aliases
+    vision_models = vision_models
+    default_vision_model = default_vision_model
 
     @classmethod
     async def create_async_generator(
