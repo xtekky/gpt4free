@@ -424,7 +424,7 @@ qwen_2_vl_7b = VisionModel(
 qwen_2_5_72b = Model(
     name = 'qwen-2.5-72b',
     base_provider = 'Qwen',
-    best_provider = IterListProvider([PollinationsAI, Jmuz])
+    best_provider = Jmuz
 )
 qwen_2_5_coder_32b = Model(
     name = 'qwen-2.5-coder-32b',

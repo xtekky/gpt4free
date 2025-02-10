@@ -103,6 +103,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
 
     model_aliases = {
         "gpt-4": "GPT-4o",
+        "gpt-4o": "GPT-4o",
         "claude-3.5-sonnet": "Claude-Sonnet-3.5", # Premium
         "gemini-1.5-flash": "gemini-1.5-flash",
         "gemini-1.5-pro": "Gemini-PRO",

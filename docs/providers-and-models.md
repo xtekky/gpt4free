@@ -63,7 +63,7 @@ This document provides an overview of various AI providers and models, including
 |[labs.perplexity.ai](https://labs.perplexity.ai)|No auth required|`g4f.Provider.PerplexityLabs`|`sonar, sonar-pro, sonar-reasoning, sonar-reasoning-pro`|❌|❌|✔|![Error](https://img.shields.io/badge/Active-brightgreen)|
 |[pi.ai/talk](https://pi.ai/talk)|[Manual cookies](https://pi.ai/talk)|`g4f.Provider.Pi`|`pi`|❌|❌|✔|![Error](https://img.shields.io/badge/Active-brightgreen)|
 |[pizzagpt.it](https://www.pizzagpt.it)|No auth required|`g4f.Provider.Pizzagpt`|`gpt-4o-mini`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
-|[pollinations.ai](https://pollinations.ai)|No auth required|`g4f.Provider.PollinationsAI`|`gpt-4o-mini, gpt-4o, qwen-2.5-72b, qwen-2.5-coder-32b, llama-3.3-70b, mistral-nemo, deepseek-chat, llama-3.1-8b, deepseek-r1, gemini-2.0-flash, gemini-2.0-flash-thinking` _**(3+)**_|`flux, flux-pro, flux-dev, flux-schnell, dall-e-3, sdxl-turbo`|gpt-4o, gpt-4o-mini|✔|![](https://img.shields.io/badge/Active-brightgreen)|
+|[pollinations.ai](https://pollinations.ai)|No auth required|`g4f.Provider.PollinationsAI`|`gpt-4o-mini, gpt-4o, qwen-2.5-coder-32b, llama-3.3-70b, mistral-nemo, deepseek-chat, llama-3.1-8b, deepseek-r1, gemini-2.0-flash, gemini-2.0-flash-thinking` _**(3+)**_|`flux, flux-pro, flux-dev, flux-schnell, dall-e-3, sdxl-turbo`|gpt-4o, gpt-4o-mini|✔|![](https://img.shields.io/badge/Active-brightgreen)|
 |[app.prodia.com](https://app.prodia.com)|No auth required|`g4f.Provider.Prodia`|❌|✔ _**(46)**_|❌|❌|![](https://img.shields.io/badge/Active-brightgreen)|
 |[teach-anything.com](https://www.teach-anything.com)|No auth required|`g4f.Provider.TeachAnything`|`llama-3.1-70b`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
 |[you.com](https://you.com)|[Manual cookies](https://you.com)|`g4f.Provider.You`|✔|✔|✔|✔|![](https://img.shields.io/badge/Active-brightgreen)|
@@ -170,7 +170,7 @@ This document provides an overview of various AI providers and models, including
 |qwen-1.5-7b|Qwen|1+ Providers|[huggingface.co](https://huggingface.co/Qwen/Qwen1.5-7B)|
 |qwen-2-72b|Qwen|2+ Providers|[huggingface.co](https://huggingface.co/Qwen/Qwen2-72B)|
 |qwen-2-vl-7b|Qwen|1+ Providers|[huggingface.co](https://huggingface.co/Qwen/Qwen2-VL-7B)|
-|qwen-2.5-72b|Qwen|3+ Providers|[huggingface.co](https://huggingface.co/Qwen/Qwen2.5-72B-Instruct)|
+|qwen-2.5-72b|Qwen|2+ Providers|[huggingface.co](https://huggingface.co/Qwen/Qwen2.5-72B-Instruct)|
 |qwen-2.5-coder-32b|Qwen|3+ Providers|[huggingface.co](https://huggingface.co/Qwen/Qwen2.5-Coder-32B)|
 |qwen-2.5-1m-demo|Qwen|1+ Providers|[huggingface.co](https://huggingface.co/Qwen/Qwen2.5-1M-Demo)|
 |qwq-32b|Qwen|4+ Providers|[huggingface.co](https://huggingface.co/Qwen/QwQ-32B-Preview)|
