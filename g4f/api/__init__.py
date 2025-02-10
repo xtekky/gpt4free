@@ -629,27 +629,36 @@ def run_api(
     debug: bool = False,
     workers: int = None,
     use_colors: bool = None,
-    reload: bool = False
+    reload: bool = False,
+    ssl_keyfile: str = None,
+    ssl_certfile: str = None
 ) -> None:
     print(f'Starting server... [g4f v-{g4f.version.utils.current_version}]' + (" (debug)" if debug else ""))
+    
     if use_colors is None:
         use_colors = debug
+    
     if bind is not None:
         host, port = bind.split(":")
+    
     if port is None:
         port = DEFAULT_PORT
+    
     if AppConfig.demo and debug:
         method = "create_app_with_demo_and_debug"
     elif AppConfig.gui and debug:
         method = "create_app_with_gui_and_debug"
     else:
         method = "create_app_debug" if debug else "create_app"
+    
     uvicorn.run(
-        f"g4f.api:{method}", 
-        host=host, 
-        port=int(port), 
-        workers=workers, 
-        use_colors=use_colors, 
-        factory=True, 
-        reload=reload
+        f"g4f.api:{method}",
+        host=host,
+        port=int(port),
+        workers=workers,
+        use_colors=use_colors,
+        factory=True,
+        reload=reload,
+        ssl_keyfile=ssl_keyfile,
+        ssl_certfile=ssl_certfile
     )
