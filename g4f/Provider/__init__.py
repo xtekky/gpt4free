@@ -16,7 +16,6 @@ from .template         import OpenaiTemplate, BackendApi
 
 from .Blackbox             import Blackbox
 from .BlackboxAPI          import BlackboxAPI
-from .CablyAI              import CablyAI
 from .ChatGLM              import ChatGLM
 from .ChatGpt              import ChatGpt
 from .ChatGptEs            import ChatGptEs
