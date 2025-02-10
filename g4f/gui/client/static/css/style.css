@@ -1122,6 +1122,7 @@ ul {
     justify-content: center;
     align-items: center;
     transition: all 0.3s ease;
+    padding: 10px 12px;
 }
 
 .mobile-sidebar i {
@@ -1611,13 +1612,6 @@ textarea {
     resize: vertical;
 }
 
-/* Adaptive buttons */
-button {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
 .file-label {
     flex-shrink: 0;
 }
@@ -1630,10 +1624,6 @@ button {
 }
 
 @media (max-width: 480px) {
-    .buttons .field {
-        flex: 1 1 100%;
-    }
-    
     #model, #provider {
         max-width: 100%;
     }
