@@ -64,9 +64,9 @@ class HuggingFaceAPI(OpenaiTemplate):
             model = cls.model_aliases[model]
         api_base = f"https://api-inference.huggingface.co/models/{model}/v1"
         pipeline_tag = await cls.get_pipline_tag(model, api_key)
-        if images is None and pipeline_tag not in ("text-generation", "image-text-to-text"):
+        if pipeline_tag not in ("text-generation", "image-text-to-text"):
             raise ModelNotSupportedError(f"Model is not supported: {model} in: {cls.__name__} pipeline_tag: {pipeline_tag}")
-        elif pipeline_tag != "image-text-to-text":
+        elif images and  pipeline_tag != "image-text-to-text":
             raise ModelNotSupportedError(f"Model does not support images: {model} in: {cls.__name__} pipeline_tag: {pipeline_tag}")
         start = calculate_lenght(messages)
         if start > max_inputs_lenght:
