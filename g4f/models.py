@@ -363,7 +363,7 @@ claude_3_opus = Model(
 claude_3_5_sonnet = Model(
     name          = 'claude-3.5-sonnet',
     base_provider = 'Anthropic',
-    best_provider = IterListProvider([Blackbox, Jmuz, Liaobots])
+    best_provider = IterListProvider([Jmuz, Liaobots])
 )
 
 ### Reka AI ###

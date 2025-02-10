@@ -16,6 +16,7 @@ from ..image import to_data_uri
 from ..cookies import get_cookies_dir
 from .helper import format_prompt, format_image_prompt
 from ..providers.response import JsonConversation, ImageResponse
+from ..errors import ModelNotSupportedError
 
 class Conversation(JsonConversation):
     validated_value: str = None
@@ -39,9 +40,12 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
     default_vision_model = default_model
     default_image_model = 'ImageGeneration' 
     image_models = [default_image_model]
+    
+    premium_models = ['claude-sonnet-3.5']
+    
     vision_models = [default_vision_model, 'gpt-4o', 'o3-mini', 'gemini-pro', 'gemini-1.5-flash', 'llama-3.1-8b', 'llama-3.1-70b', 'llama-3.1-405b', 'Gemini-Flash-2.0']
 
-    userSelectedModel = ['gpt-4o', 'o3-mini', 'gemini-pro', 'claude-sonnet-3.5', 'DeepSeek-V3', 'DeepSeek-R1', 'blackboxai-pro', 'Meta-Llama-3.3-70B-Instruct-Turbo', 'Mistral-Small-24B-Instruct-2501', 'DeepSeek-LLM-Chat-(67B)', 'DBRX-Instruct', 'Qwen-QwQ-32B-Preview', 'Nous-Hermes-2-Mixtral-8x7B-DPO', 'Gemini-Flash-2.0']
+    userSelectedModel = ['gpt-4o', 'o3-mini', 'gemini-pro', 'DeepSeek-V3', 'DeepSeek-R1', 'blackboxai-pro', 'Meta-Llama-3.3-70B-Instruct-Turbo', 'Mistral-Small-24B-Instruct-2501', 'DeepSeek-LLM-Chat-(67B)', 'DBRX-Instruct', 'Qwen-QwQ-32B-Preview', 'Nous-Hermes-2-Mixtral-8x7B-DPO', 'Gemini-Flash-2.0'] + premium_models
 
     agentMode = {
         'DeepSeek-V3': {'mode': True, 'id': "deepseek-chat", 'name': "DeepSeek-V3"},
@@ -99,7 +103,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
 
     model_aliases = {
         "gpt-4": "gpt-4o",
-        "claude-3.5-sonnet": "claude-sonnet-3.5",
+        "claude-3.5-sonnet": "claude-sonnet-3.5", # Premium
         "gemini-1.5-flash": "gemini-1.5-flash",
         "gemini-1.5-pro": "gemini-pro",
         "deepseek-v3": "DeepSeek-V3",
@@ -113,6 +117,24 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         "gemini-2.0-flash": "Gemini-Flash-2.0",
         "flux": "ImageGeneration",
     }
+
+    @classmethod
+    def get_models(cls) -> list[str]:
+        models = super().get_models()
+        return [f"{m} (Premium)" for m in models if m in cls.premium_models] + models
+
+    @classmethod
+    def get_model(cls, model: str, **kwargs) -> str:
+        if model.endswith(" (Premium)"):
+            raise ModelNotSupportedError(f"Model {model} is not supported")
+        try:
+            base_model = model.split(" (Premium)")[0]
+            if base_model in cls.premium_models:
+                return base_model
+            return super().get_model(base_model, **kwargs)
+        
+        except ModelNotSupportedError:
+            raise
 
     @classmethod
     async def fetch_validated(cls, url: str = "https://www.blackbox.ai", force_refresh: bool = False) -> Optional[str]:
