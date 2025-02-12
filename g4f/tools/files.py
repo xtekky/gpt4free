@@ -78,7 +78,7 @@ from ..providers.asyncio import to_sync_generator
 from ..errors import MissingRequirementsError
 from .. import debug
 
-PLAIN_FILE_EXTENSIONS = ["txt", "xml", "json", "js", "har", "sh", "py", "php", "css", "yaml", "sql", "log", "csv", "twig", "md"]
+PLAIN_FILE_EXTENSIONS = ["txt", "xml", "json", "js", "har", "sh", "py", "php", "css", "yaml", "sql", "log", "csv", "twig", "md", "arc"]
 PLAIN_CACHE = "plain.cache"
 DOWNLOADS_FILE = "downloads.json"
 FILE_LIST = "files.txt"
