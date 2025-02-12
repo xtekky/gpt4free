@@ -60,8 +60,8 @@ async def copy_images(
     ) as session:
         async def copy_image(image: str, target: str = None) -> str:
             """Process individual image and return its local URL"""
-            target_path = None
-            try:
+            target_path = target
+            if target_path is None:
                 # Generate filename components
                 file_hash = hashlib.sha256(image.encode()).hexdigest()[:16]
                 timestamp = int(time.time())
@@ -88,7 +88,7 @@ async def copy_images(
                     f"{extension}"
                 )
                 target_path = os.path.join(images_dir, filename)
-
+            try:
                 # Handle different image types
                 if image.startswith("data:"):
                     with open(target_path, "wb") as f:

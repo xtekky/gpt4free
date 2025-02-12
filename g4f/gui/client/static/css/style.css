@@ -1122,6 +1122,7 @@ ul {
     justify-content: center;
     align-items: center;
     transition: all 0.3s ease;
+    padding: 10px 12px;
 }
 
 .mobile-sidebar i {
@@ -1421,11 +1422,12 @@ form .field.saved .fa-xmark {
     line-height: 30px;
 }
 
-.collapsible {
+.field.collapsible {
     border: 1px solid var(--blur-border);
     border-radius: var(--border-radius-1);
     overflow: hidden;
     margin-bottom: 10px;
+    padding-right: 0;
 }
 
 .collapsible-header {
@@ -1442,7 +1444,11 @@ form .field.saved .fa-xmark {
 }
 
 .collapsible-content {
-    padding: 10px;
+    padding: 0 10px;
+}
+
+.collapsible-content.api-key {
+    width: 100%;
 }
 
 .collapsible-content.hidden {
@@ -1539,6 +1545,7 @@ form .field.saved .fa-xmark {
 .conversations, .settings, .conversation {
     flex: 1 1 300px;
     min-width: 0;
+    height: 100%;
 }
 
 /* Media queries for mobile devices */
@@ -1557,92 +1564,9 @@ form .field.saved .fa-xmark {
         order: -1;
         min-height: 80vh;
     }
-    
-    .buttons .field {
-        flex: 1 1 auto;
-    }
-    
-    #model, #provider {
-        font-size: 14px;
-        padding: 6px;
-    }
-    
-    .user-input .input-area {
-        padding: 8px;
-    }
-    
-    textarea#message-input {
-        font-size: 14px;
-    }
-    
-    .mobile-sidebar {
-        display: block;
-        position: fixed;
-        top: 10px;
-        left: 10px;
-        z-index: 1000;
-    }
-    
-    .conversations {
-        position: fixed;
-        left: -100%;
-        top: 0;
-        bottom: 0;
-        transition: left 0.3s;
-        z-index: 999;
-        background: var(--bg-color);
-    }
-    
-    .conversations.active {
-        left: 0;
-    }
-}
-
-/* Flexible form elements */
-.user-input .input-area {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-}
-
-textarea {
-    max-width: 100%;
-    min-height: 50px;
-    resize: vertical;
-}
-
-/* Adaptive buttons */
-button {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.file-label {
-    flex-shrink: 0;
-}
-
-/* Adaptive model menu */
-#model, #provider {
-    max-width: 150px;
-    overflow: hidden;
-    text-overflow: ellipsis;
 }
 
 @media (max-width: 480px) {
-    .buttons .field {
-        flex: 1 1 100%;
-    }
-    
-    #model, #provider {
-        max-width: 100%;
-    }
-    
-    .toolbar {
-        flex-wrap: wrap;
-        gap: 5px;
-    }
-    
     .info .convo-title {
         font-size: 12px;
     }

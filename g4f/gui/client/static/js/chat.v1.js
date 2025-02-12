@@ -1651,8 +1651,10 @@ window.addEventListener('popstate', hide_sidebar, false);
 sidebar_button.addEventListener("click", async () => {
     if (sidebar.classList.contains("shown")) {
         await hide_sidebar();
+        chat.classList.remove("hidden");
     } else {
         await show_menu();
+        chat.classList.add("hidden");
     }
     window.scrollTo(0, 0);
 });
@@ -2096,7 +2098,7 @@ async function on_api() {
             <span class="label">Providers API key</span>
             <i class="fa-solid fa-chevron-down"></i>
         </div>
-        <div class="collapsible-content hidden"></div>
+        <div class="collapsible-content api-key hidden"></div>
     `;
     settings.querySelector(".paper").appendChild(providersListContainer);
 
@@ -2738,14 +2740,4 @@ document.getElementById("showLog").addEventListener("click", ()=> {
     log_storage.classList.remove("hidden");
     settings.classList.add("hidden");
     log_storage.scrollTop = log_storage.scrollHeight;
-});
-
-document.querySelector('.mobile-sidebar').addEventListener('click', function() {
-    document.querySelector('.conversations').classList.toggle('active');
-});
-
-document.addEventListener('click', function(e) {
-    if(!e.target.closest('.conversations') && !e.target.closest('.mobile-sidebar')) {
-        document.querySelector('.conversations').classList.remove('active');
-    }
 });
