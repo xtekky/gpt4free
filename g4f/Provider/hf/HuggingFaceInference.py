@@ -25,19 +25,23 @@ class HuggingFaceInference(AsyncGeneratorProvider, ProviderModelMixin):
 
     @classmethod
     def get_models(cls) -> list[str]:
-        if not cls.models:
-            models = fallback_models.copy()
-            url = "https://huggingface.co/api/models?inference=warm&pipeline_tag=text-generation"
-            extra_models = [model["id"] for model in requests.get(url).json()]
-            extra_models.sort()
-            models.extend([model for model in extra_models if model not in models])
-            if not cls.image_models:
-                url = "https://huggingface.co/api/models?pipeline_tag=text-to-image"
-                cls.image_models = [model["id"] for model in requests.get(url).json() if model["trendingScore"] >= 20]
-                cls.image_models.sort()
-                models.extend([model for model in cls.image_models if model not in models])
-            cls.models = models
-        return cls.models
+            if not cls.models:
+                models = fallback_models.copy()
+                url = "https://huggingface.co/api/models?inference=warm&pipeline_tag=text-generation"
+                response = requests.get(url)
+                response.raise_for_status() 
+                extra_models = [model["id"] for model in response.json()]
+                extra_models.sort()
+                models.extend([model for model in extra_models if model not in models])
+                if not cls.image_models:
+                    url = "https://huggingface.co/api/models?pipeline_tag=text-to-image"
+                    response = requests.get(url)
+                    response.raise_for_status()
+                    cls.image_models = [model["id"] for model in response.json() if model.get("trendingScore", 0) >= 20] 
+                    cls.image_models.sort()
+                    models.extend([model for model in cls.image_models if model not in models])
+                cls.models = models
+            return cls.models
 
     @classmethod
     async def create_async_generator(
