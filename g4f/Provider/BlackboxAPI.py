@@ -1,11 +1,9 @@
 from __future__ import annotations
-import json
 from aiohttp import ClientSession
 
 from ..typing import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..requests.raise_for_status import raise_for_status
-from .helper import format_prompt
 
 class BlackboxAPI(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Blackbox AI API"
