@@ -16,3 +16,4 @@ aiohttp_socks
 cryptography
 python-multipart
 pypdf2
+python-docx

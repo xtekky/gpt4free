@@ -19,4 +19,4 @@ cryptography
 nodriver
 python-multipart
 pypdf2
-docx
+python-docx
