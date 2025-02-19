@@ -40,7 +40,7 @@ EXTRA_REQUIRE = {
         "plyer",
         "setuptools",
         "pypdf2", # files
-        "docx",
+        "python-docx",
         "odfpy",
         "ebooklib",
         "openpyxl",
@@ -58,6 +58,7 @@ EXTRA_REQUIRE = {
         "uvicorn",                 # api
         "python-multipart",
         "pypdf2", # files
+        "python-docx",
     ],
     "image": [
         "pillow",
@@ -92,7 +93,7 @@ EXTRA_REQUIRE = {
         "spacy",
         "beautifulsoup4",
         "pypdf2",
-        "docx",
+        "python-docx",
         "odfpy",
         "ebooklib",
         "openpyxl",
