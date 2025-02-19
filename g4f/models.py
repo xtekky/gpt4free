@@ -152,7 +152,7 @@ o1_mini = Model(
 o3_mini = Model(
     name          = 'o3-mini',
     base_provider = 'OpenAI',
-    best_provider = Blackbox
+    best_provider = IterListProvider([DDG, Blackbox])
 )
 
 ### GigaChat ###
@@ -198,7 +198,7 @@ llama_3_1_8b = Model(
 llama_3_1_70b = Model(
     name          = "llama-3.1-70b",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider([DDG, Blackbox, Glider, Jmuz, TeachAnything])
+    best_provider = IterListProvider([Blackbox, Glider, Jmuz, TeachAnything])
 )
 
 llama_3_1_405b = Model(
@@ -236,7 +236,7 @@ llama_3_2_90b = Model(
 llama_3_3_70b = Model(
     name          = "llama-3.3-70b",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider([Blackbox, DeepInfraChat, PollinationsAI, Jmuz, HuggingChat, HuggingFace])
+    best_provider = IterListProvider([DDG, Blackbox, DeepInfraChat, PollinationsAI, Jmuz, HuggingChat, HuggingFace])
 )
 
 ### Mistral ###
