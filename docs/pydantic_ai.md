@@ -48,7 +48,7 @@ This will log detailed information about the internal processes and interactions
 Now you are ready to create a simple agent that can interact with the LLM. The agent is initialized with a model, and you can also define a system prompt. Here's an example where a basic agent is created with the model `g4f:Gemini:Gemini` and a simple system prompt:
 
 ```python
-from g4f import Agent
+from pydantic_ai import Agent
 
 # Define the agent
 agent = Agent(
