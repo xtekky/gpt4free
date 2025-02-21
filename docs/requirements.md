@@ -38,9 +38,9 @@ Install required package for loading cookies from browser:
 ```
 pip install browser_cookie3
 ```
-Install all packages and uninstall this package for disabling the webdriver:
+Install all packages and uninstall this package for disabling the browser support:
 ```
-pip uninstall undetected-chromedriver
+pip uninstall nodriver 
 ```
 
 ---
