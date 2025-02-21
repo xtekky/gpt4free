@@ -14,6 +14,7 @@ from .hf_space         import HuggingSpace
 from .mini_max         import HailuoAI, MiniMax
 from .template         import OpenaiTemplate, BackendApi
 
+from .AllenAI              import AllenAI
 from .Blackbox             import Blackbox
 from .ChatGLM              import ChatGLM
 from .ChatGpt              import ChatGpt
