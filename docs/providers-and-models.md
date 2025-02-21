@@ -54,7 +54,7 @@ This document provides an overview of various AI providers and models, including
 |[editor.imagelabs.net](editor.imagelabs.net)|No auth required|`g4f.Provider.ImageLabs`|❌|`sdxl-turbo`|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
 |[huggingface.co/spaces](https://huggingface.co/spaces)|Optional API key|`g4f.Provider.HuggingSpace`|`qvq-72b, qwen-2-72b, command-r, command-r-plus, command-r7b`|`flux-dev, flux-schnell, sd-3.5`|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
 |[jmuz.me](https://jmuz.me)|Optional API key|`g4f.Provider.Jmuz`|`claude-3-haiku, claude-3-opus, claude-3-haiku, claude-3.5-sonnet, deepseek-r1, deepseek-chat, gemini-exp, gemini-1.5-flash, gemini-1.5-pro, gemini-2.0-flash-thinking, gpt-4, gpt-4o, gpt-4o-mini, llama-3-70b, llama-3-8b, llama-3.1-405b, llama-3.1-70b, llama-3.1-8b, llama-3.2-11b, llama-3.2-90b, llama-3.3-70b, mixtral-8x7b, qwen-2.5-72b, qwen-2.5-coder-32b, qwq-32b, wizardlm-2-8x22b`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
-|[liaobots.work](https://liaobots.work)|[Automatic cookies](https://liaobots.work)|`g4f.Provider.Liaobots`|`grok-2, gpt-4o-mini, gpt-4o, gpt-4, o1-preview, deepseek-r1, deepseek-v3, claude-3-opus, claude-3.5-sonnet, claude-3-sonnet, gemini-1.5-flash, gemini-1.5-pro, gemini-2.0-flash, gemini-2.0-flash-thinking, grok-3, grok-3-r1, o3-mini`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
+|[liaobots.work](https://liaobots.work)|[Automatic cookies](https://liaobots.work)|`g4f.Provider.Liaobots`|`gpt-4o-mini, gpt-4o, gpt-4, o1-preview, deepseek-r1, deepseek-v3, claude-3-opus, claude-3.5-sonnet, claude-3-sonnet, gemini-2.0-flash, gemini-2.0-flash-thinking, grok-3, grok-3-r1, o3-mini`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
 |[mhystical.cc](https://mhystical.cc)|[Optional API key](https://mhystical.cc/dashboard)|`g4f.Provider.Mhystical`|`gpt-4`|❌|❌|✔|![Error](https://img.shields.io/badge/Active-brightgreen)|
 |[oi-vscode-server.onrender.com](https://oi-vscode-server.onrender.com)|No auth required|`g4f.Provider.OIVSCode`|`gpt-4o-mini, deepseek-v3`|❌|`gpt-4o-mini`|✔|![](https://img.shields.io/badge/Active-brightgreen)|
 |[labs.perplexity.ai](https://labs.perplexity.ai)|No auth required|`g4f.Provider.PerplexityLabs`|`sonar, sonar-pro, sonar-reasoning, sonar-reasoning-pro`|❌|❌|✔|![Error](https://img.shields.io/badge/Active-brightgreen)|
@@ -150,8 +150,8 @@ This document provides an overview of various AI providers and models, including
 |wizardlm-2-8x22b|Microsoft|2+ Providers|[wizardlm.github.io](https://wizardlm.github.io/WizardLM2/)|
 |gemini-2.0|Google DeepMind|1+|[deepmind.google](http://deepmind.google/technologies/gemini/)|
 |gemini-exp|Google DeepMind|1+ Providers|[blog.google](https://blog.google/feed/gemini-exp-1206/)|
-|gemini-1.5-flash|Google DeepMind|4+ Providers|[deepmind.google](https://deepmind.google/technologies/gemini/flash/)|
-|gemini-1.5-pro|Google DeepMind|3+ Providers|[deepmind.google](https://deepmind.google/technologies/gemini/pro/)|
+|gemini-1.5-flash|Google DeepMind|3+ Providers|[deepmind.google](https://deepmind.google/technologies/gemini/flash/)|
+|gemini-1.5-pro|Google DeepMind|2+ Providers|[deepmind.google](https://deepmind.google/technologies/gemini/pro/)|
 |gemini-2.0-flash|Google DeepMind|4+ Providers|[deepmind.google](https://deepmind.google/technologies/gemini/flash/)|
 |gemini-2.0-flash-thinking|Google DeepMind|1+ Providers|[ai.google.dev](https://ai.google.dev/gemini-api/docs/thinking-mode)|
 |claude-3-haiku|Anthropic|2+ Providers|[anthropic.com](https://www.anthropic.com/news/claude-3-haiku)|
@@ -176,7 +176,6 @@ This document provides an overview of various AI providers and models, including
 |deepseek-chat|DeepSeek|3+ Providers|[huggingface.co](https://huggingface.co/deepseek-ai/deepseek-llm-67b-chat)|
 |deepseek-v3|DeepSeek|4+ Providers|[api-docs.deepseek.com](https://api-docs.deepseek.com/news/news250120)|
 |deepseek-r1|DeepSeek|8+ Providers|[api-docs.deepseek.com](https://api-docs.deepseek.com/news/news250120)|
-|grok-2|x.ai|1+|[x.ai](https://x.ai/blog/grok-2)|
 |grok-3|x.ai|1+|[x.ai](https://x.ai/blog/grok-3)|
 |grok-3-r1|x.ai|1+|[x.ai](https://x.ai/blog/grok-3)|
 |sonar|Perplexity AI|1+ Providers|[sonar.perplexity.ai](https://sonar.perplexity.ai/)|
