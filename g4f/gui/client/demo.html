@@ -237,6 +237,7 @@
             import * as hub from "@huggingface/hub";
             import { init } from "@huggingface/space-header";
 
+            const isIframe = window.self !== window.top;
             const button = document.querySelector('form a.button');
             if (isIframe) {
                 button.classList.remove('hidden');
