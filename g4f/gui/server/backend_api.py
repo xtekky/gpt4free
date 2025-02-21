@@ -371,7 +371,7 @@ class Backend_Api(Api):
                 return jsonify({"error": {"message": f"Error uploading file: {str(e)}"}}), 500
 
         @app.route('/backend-api/v2/upload_cookies', methods=['POST'])
-        def upload_cookies(self):
+        def upload_cookies():
             file = None
             if "file" in request.files:
                 file = request.files['file']
