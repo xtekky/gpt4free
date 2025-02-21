@@ -588,7 +588,7 @@ class Api:
                             target=target)
                         debug.log(f"Image copied from {source_url}")
                     except Exception as e:
-                        debug.log(f"{type(e).__name__}: Download failed:  {source_url}\n{e}")
+                        debug.error(f"Download failed:  {source_url}\n{type(e).__name__}: {e}")
                         return RedirectResponse(url=source_url)
             if not os.path.isfile(target):
                 return ErrorResponse.from_message("File not found", HTTP_404_NOT_FOUND)

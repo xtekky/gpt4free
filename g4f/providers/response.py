@@ -19,7 +19,6 @@ def quote_url(url: str) -> str:
 
 def quote_title(title: str) -> str:
     if title:
-        title = title.strip()
         title = " ".join(title.split())
         return title.replace('[', '').replace(']', '')
     return ""
@@ -154,6 +153,7 @@ class Sources(ResponseType):
             self.add_source(source)
 
     def add_source(self, source: dict[str, str]):
+        source = source if isinstance(source, dict) else {"url": source}
         url = source.get("url", source.get("link", None))
         if url is not None:
             url = re.sub(r"[&?]utm_source=.+", "", url)

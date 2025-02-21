@@ -122,9 +122,9 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         except ModelNotFoundError:
             if model not in cls.image_models:
                 raise
-        
+
         if not cache and seed is None:
-            seed = random.randint(0, 10000)
+            seed = random.randint(1000, 999999)
 
         if model in cls.image_models:
             async for chunk in cls._generate_image(
@@ -182,9 +182,10 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         }
         params = {k: v for k, v in params.items() if v is not None}
         query = "&".join(f"{k}={quote_plus(v)}" for k, v in params.items())
-        url = f"{cls.image_api_endpoint}prompt/{quote_plus(prompt)}?{query}"
+        prefix = f"{model}_{seed}" if seed is not None else model
+        url = f"{cls.image_api_endpoint}prompt/{prefix}_{quote_plus(prompt)}?{query}"
         yield ImagePreview(url, prompt)
-        
+
         async with ClientSession(headers=DEFAULT_HEADERS, connector=get_connector(proxy=proxy)) as session:
             async with session.get(url, allow_redirects=True) as response:
                 await raise_for_status(response)

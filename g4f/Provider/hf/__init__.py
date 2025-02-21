@@ -48,7 +48,7 @@ class HuggingFace(AsyncGeneratorProvider, ProviderModelMixin):
             except Exception as e:
                 if is_started:
                     raise e
-                debug.log(f"Inference failed: {e.__class__.__name__}: {e}")
+                debug.error(f"{cls.__name__} {type(e).__name__}; {e}")
         if not cls.image_models:
             cls.get_models()
         if model in cls.image_models:

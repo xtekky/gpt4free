@@ -243,7 +243,7 @@ llama_3_3_70b = Model(
 mixtral_8x7b = Model(
     name          = "mixtral-8x7b",
     base_provider = "Mistral",
-    best_provider = IterListProvider([DDG, Jmuz])
+    best_provider = Jmuz
 )
 mixtral_8x22b = Model(
     name          = "mixtral-8x22b",
@@ -300,7 +300,7 @@ wizardlm_2_8x22b = Model(
 ### Google DeepMind ###
 # gemini
 gemini = Model(
-    name          = 'gemini',
+    name          = 'gemini-2.0',
     base_provider = 'Google',
     best_provider = Gemini
 )
@@ -316,13 +316,13 @@ gemini_exp = Model(
 gemini_1_5_flash = Model(
     name          = 'gemini-1.5-flash',
     base_provider = 'Google DeepMind',
-    best_provider = IterListProvider([Blackbox, Jmuz, Gemini, GeminiPro, Liaobots])
+    best_provider = IterListProvider([Blackbox, Jmuz, GeminiPro, Liaobots])
 )
 
 gemini_1_5_pro = Model(
     name          = 'gemini-1.5-pro',
     base_provider = 'Google DeepMind',
-    best_provider = IterListProvider([Blackbox, Jmuz, Gemini, GeminiPro, Liaobots])
+    best_provider = IterListProvider([Blackbox, Jmuz, GeminiPro, Liaobots])
 )
 
 # gemini-2.0
@@ -713,6 +713,7 @@ class ModelUtils:
 
         ### Google ###
         ### Gemini
+        "gemini": gemini,
         gemini.name: gemini,
         gemini_exp.name: gemini_exp,
         gemini_1_5_pro.name: gemini_1_5_pro,
@@ -812,7 +813,6 @@ class ModelUtils:
 
 
 demo_models = {
-    gpt_4o.name: [gpt_4o, [PollinationsAI, Blackbox]],
     "default": [llama_3_2_11b, [HuggingFace]],
     qwen_2_vl_7b.name: [qwen_2_vl_7b, [HuggingFaceAPI]],
     qvq_72b.name: [qvq_72b, [HuggingSpace]],

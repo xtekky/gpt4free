@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import uuid
 import re
-import time
+import random
 from datetime import datetime, timezone, timedelta
 import urllib.parse
 
@@ -88,7 +88,7 @@ class Janus_Pro_7B(AsyncGeneratorProvider, ProviderModelMixin):
         prompt = format_prompt(messages) if prompt is None and conversation is None else prompt
         prompt = format_image_prompt(messages, prompt)
         if seed is None:
-            seed = int(time.time())
+            seed = random.randint(1000, 999999)
 
         session_hash = generate_session_hash() if conversation is None else getattr(conversation, "session_hash")
         async with StreamSession(proxy=proxy, impersonate="chrome") as session:

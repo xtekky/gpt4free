@@ -76,7 +76,7 @@ class Backend_Api(Api):
             @app.route('/', methods=['GET'])
             @limiter.exempt
             def home():
-                return render_template('demo.html')
+                return render_template('demo.html', backend_url=os.environ.get("G4F_BACKEND_URL", ""))
         else:
             @app.route('/', methods=['GET'])
             def home():
