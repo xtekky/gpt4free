@@ -36,12 +36,12 @@ class DDG(AsyncGeneratorProvider, ProviderModelMixin):
     supports_message_history = True
     
     default_model = "gpt-4o-mini"
-    models = [default_model, "o3-mini", "claude-3-haiku-20240307", "meta-llama/Llama-3.3-70B-Instruct-Turbo", "mistralai/Mistral-Small-24B-Instruct-2501"]
+    models = [default_model, "meta-llama/Llama-3.3-70B-Instruct-Turbo", "claude-3-haiku-20240307", "o3-mini", "mistralai/Mistral-Small-24B-Instruct-2501"]
 
     model_aliases = {
         "gpt-4": "gpt-4o-mini",
-        "claude-3-haiku": "claude-3-haiku-20240307",
         "llama-3.3-70b": "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+        "claude-3-haiku": "claude-3-haiku-20240307",
         "mixtral-small-24b": "mistralai/Mistral-Small-24B-Instruct-2501",
     }
 
