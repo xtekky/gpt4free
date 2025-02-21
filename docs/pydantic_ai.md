@@ -19,9 +19,9 @@ pip install g4f pydantic_ai
 
 ## Step-by-Step Setup
 
-### 1. Patch G4F to Use PydanticAI Models
+### 1. Patch PydanticAI to Use G4F Models
 
-In order to use PydanticAI models with G4F, you need to apply the necessary patch to the client. This can be done by importing `apply_patch` from `g4f.tools.pydantic_ai`. The `api_key` parameter is optional, so if you have one, you can provide it. If not, the system will proceed without it.
+In order to use PydanticAI with G4F models, you need to apply the necessary patch to the client. This can be done by importing `apply_patch` from `g4f.tools.pydantic_ai`. The `api_key` parameter is optional, so if you have one, you can provide it. If not, the system will proceed without it.
 
 ```python
 from g4f.tools.pydantic_ai import apply_patch
