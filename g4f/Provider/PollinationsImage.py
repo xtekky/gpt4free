@@ -7,10 +7,11 @@ from ..typing import AsyncResult, Messages
 from .PollinationsAI import PollinationsAI
 
 class PollinationsImage(PollinationsAI):
-    label = "Pollinations AI (Image)"
+    label = "Pollinations AI"
     default_model = "flux"
     default_vision_model = None
     default_image_model = default_model
+    image_models = []
 
     @classmethod
     def get_models(cls, **kwargs):
