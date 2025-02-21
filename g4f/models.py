@@ -6,7 +6,6 @@ from .Provider import IterListProvider, ProviderType
 from .Provider import (
     ### no auth required ###
     Blackbox,
-    BlackboxAPI,
     ChatGLM,
     ChatGptEs,
     Cloudflare,
@@ -113,14 +112,14 @@ default_vision = Model(
 gpt_4 = Model(
     name          = 'gpt-4',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([Blackbox, DDG, Jmuz, ChatGptEs, PollinationsAI, Yqcloud, Copilot, OpenaiChat, Liaobots, Mhystical])
+    best_provider = IterListProvider([DDG, Jmuz, ChatGptEs, PollinationsAI, Yqcloud, Copilot, OpenaiChat, Liaobots, Mhystical])
 )
 
 # gpt-4o
 gpt_4o = VisionModel(
     name          = 'gpt-4o',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([Blackbox, Jmuz, ChatGptEs, PollinationsAI, Copilot, Liaobots, OpenaiChat])
+    best_provider = IterListProvider([Jmuz, ChatGptEs, PollinationsAI, Copilot, Liaobots, OpenaiChat])
 )
 
 gpt_4o_mini = Model(
@@ -142,17 +141,11 @@ o1_preview = Model(
     best_provider = Liaobots
 )
 
-o1_mini = Model(
-    name          = 'o1-mini',
-    base_provider = 'OpenAI',
-    best_provider = Liaobots
-)
-
 # o3
 o3_mini = Model(
     name          = 'o3-mini',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([DDG, Blackbox])
+    best_provider = IterListProvider([DDG, Liaobots])
 )
 
 ### GigaChat ###
@@ -266,14 +259,14 @@ mixtral_small_24b = Model(
 mixtral_small_28b = Model(
     name          = "mixtral-small-28b",
     base_provider = "Mistral",
-    best_provider = IterListProvider([Blackbox, BlackboxAPI, DeepInfraChat])
+    best_provider = IterListProvider([DDG, Blackbox, DeepInfraChat])
 )
 
 ### NousResearch ###
 hermes_2_dpo = Model(
     name          = "hermes-2-dpo",
     base_provider = "NousResearch",
-    best_provider = IterListProvider([Blackbox, BlackboxAPI])
+    best_provider = Blackbox
 )
 
 ### Microsoft ###
@@ -328,7 +321,7 @@ gemini_1_5_flash = Model(
 gemini_1_5_pro = Model(
     name          = 'gemini-1.5-pro',
     base_provider = 'Google DeepMind',
-    best_provider = IterListProvider([Blackbox, Jmuz, GeminiPro, Liaobots])
+    best_provider = IterListProvider([Jmuz, GeminiPro, Liaobots])
 )
 
 # gemini-2.0
@@ -447,7 +440,7 @@ qwen_2_5_1m = Model(
 qwq_32b = Model(
     name = 'qwq-32b',
     base_provider = 'Qwen',
-    best_provider = IterListProvider([Blackbox, BlackboxAPI, Jmuz, HuggingChat])
+    best_provider = IterListProvider([Blackbox, Jmuz, HuggingChat])
 )
 qvq_72b = VisionModel(
     name = 'qvq-72b',
@@ -466,24 +459,36 @@ pi = Model(
 deepseek_chat = Model(
     name = 'deepseek-chat',
     base_provider = 'DeepSeek',
-    best_provider = IterListProvider([Blackbox, BlackboxAPI, Jmuz, PollinationsAI])
+    best_provider = IterListProvider([Blackbox, Jmuz, PollinationsAI])
 )
 
 deepseek_v3 = Model(
     name = 'deepseek-v3',
     base_provider = 'DeepSeek',
-    best_provider = IterListProvider([Blackbox, BlackboxAPI, DeepInfraChat, Liaobots])
+    best_provider = IterListProvider([Blackbox, DeepInfraChat, OIVSCode, Liaobots])
 )
 
 deepseek_r1 = Model(
     name = 'deepseek-r1',
     base_provider = 'DeepSeek',
-    best_provider = IterListProvider([Blackbox, BlackboxAPI, DeepInfraChat, Glider, PollinationsAI, Jmuz, Liaobots, HuggingChat, HuggingFace])
+    best_provider = IterListProvider([Blackbox, DeepInfraChat, Glider, PollinationsAI, Jmuz, Liaobots, HuggingChat, HuggingFace])
 )
 
 ### x.ai ###
 grok_2 = Model(
     name = 'grok-2',
+    base_provider = 'x.ai',
+    best_provider = Liaobots
+)
+
+grok_3 = Model(
+    name = 'grok-3',
+    base_provider = 'x.ai',
+    best_provider = Liaobots
+)
+
+grok_3_r1 = Model(
+    name = 'grok-3-r1',
     base_provider = 'x.ai',
     best_provider = Liaobots
 )
@@ -513,6 +518,12 @@ sonar_reasoning_pro = Model(
     best_provider = PerplexityLabs
 )
 
+r1_1776 = Model(
+    name = 'r1-1776',
+    base_provider = 'Perplexity AI',
+    best_provider = PerplexityLabs
+)
+
 ### Nvidia ### 
 nemotron_70b = Model(
     name = 'nemotron-70b',
@@ -524,7 +535,7 @@ nemotron_70b = Model(
 dbrx_instruct = Model(
     name = 'dbrx-instruct',
     base_provider = 'Databricks',
-    best_provider = IterListProvider([Blackbox, BlackboxAPI, DeepInfraChat])
+    best_provider = IterListProvider([Blackbox, DeepInfraChat])
 )
 
 ### THUDM ### 
@@ -670,7 +681,6 @@ class ModelUtils:
         # o1
         o1.name: o1,
         o1_preview.name: o1_preview,
-        o1_mini.name: o1_mini,
         
         # o3
         o3_mini.name: o3_mini,
@@ -769,12 +779,14 @@ class ModelUtils:
 
         ### x.ai ###
         grok_2.name: grok_2,
+        grok_3.name: grok_3,
 
         ### Perplexity AI ###
         sonar.name: sonar,
         sonar_pro.name: sonar_pro,
         sonar_reasoning.name: sonar_reasoning,
         sonar_reasoning_pro.name: sonar_reasoning_pro,
+        r1_1776.name: r1_1776,
         
         ### DeepSeek ###
         deepseek_chat.name: deepseek_chat,
