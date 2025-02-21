@@ -2071,7 +2071,7 @@ async function on_api() {
                 let api_key = appStorage.getItem(`${provider.name}-api_key`);
                 option.innerHTML = `
                     <span class="label">Enable ${provider.label}</span>
-                    <input id="Provider${provider.name}" type="checkbox" name="Provider${provider.name}" value="${provider.name}" class="provider" ${'checked="checked"' ? !provider.auth || api_key : ''}/>
+                    <input id="Provider${provider.name}" type="checkbox" name="Provider${provider.name}" value="${provider.name}" class="provider" ${(!provider.auth || api_key) ? 'checked="checked"' : ''}/>
                     <label for="Provider${provider.name}" class="toogle" title="Remove provider from dropdown"></label>
                 `;
                 option.querySelector("input").addEventListener("change", (event) => load_provider_option(event.target, provider.name));
