@@ -26,10 +26,6 @@ Install required packages for uploading / generating images:
 ```
 pip install -U g4f[image]
 ```
-Install required packages for using the webdriver:
-```
-pip install -U g4f[webdriver]
-```
 Install required package for proxy support with aiohttp:
 ```
 pip install -U aiohttp_socks
