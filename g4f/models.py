@@ -315,13 +315,13 @@ gemini_exp = Model(
 gemini_1_5_flash = Model(
     name          = 'gemini-1.5-flash',
     base_provider = 'Google DeepMind',
-    best_provider = IterListProvider([Blackbox, Jmuz, GeminiPro, Liaobots])
+    best_provider = IterListProvider([Blackbox, Jmuz, GeminiPro])
 )
 
 gemini_1_5_pro = Model(
     name          = 'gemini-1.5-pro',
     base_provider = 'Google DeepMind',
-    best_provider = IterListProvider([Jmuz, GeminiPro, Liaobots])
+    best_provider = IterListProvider([Jmuz, GeminiPro])
 )
 
 # gemini-2.0
@@ -475,12 +475,6 @@ deepseek_r1 = Model(
 )
 
 ### x.ai ###
-grok_2 = Model(
-    name = 'grok-2',
-    base_provider = 'x.ai',
-    best_provider = Liaobots
-)
-
 grok_3 = Model(
     name = 'grok-3',
     base_provider = 'x.ai',
@@ -778,7 +772,6 @@ class ModelUtils:
         pi.name: pi,
 
         ### x.ai ###
-        grok_2.name: grok_2,
         grok_3.name: grok_3,
 
         ### Perplexity AI ###
