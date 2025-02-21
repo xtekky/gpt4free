@@ -411,10 +411,12 @@ class AsyncAuthedProvider(AsyncGeneratorProvider):
 
     @classmethod
     def write_cache_file(cls, cache_file: Path, auth_result: AuthResult = None):
-         if auth_result is not None:
+        if isinstance(auth_result, AuthResult):
             cache_file.parent.mkdir(parents=True, exist_ok=True)
             cache_file.write_text(json.dumps(auth_result.get_dict()))
-         elif cache_file.exists():
+        elif auth_result is not None:
+            pass
+        elif cache_file.exists():
             cache_file.unlink()
 
     @classmethod
