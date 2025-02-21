@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from .Provider import IterListProvider, ProviderType
 from .Provider import (
     ### no auth required ###
+    AllenAI,
     Blackbox,
     ChatGLM,
     ChatGptEs,
@@ -587,11 +588,42 @@ minicpm_2_5 = Model(
     best_provider = DeepInfraChat
 )
 
+### Ai2 ###
+tulu_3_405b = Model(
+    name = "tulu-3-405b",
+    base_provider = "Ai2",
+    best_provider = AllenAI
+)
+
+olmo_2_13b = Model(
+    name = "olmo-2-13b",
+    base_provider = "Ai2",
+    best_provider = AllenAI
+)
+
+tulu_3_1_8b = Model(
+    name = "tulu-3-1-8b",
+    base_provider = "Ai2",
+    best_provider = AllenAI
+)
+
+tulu_3_70b = Model(
+    name = "tulu-3-70b",
+    base_provider = "Ai2",
+    best_provider = AllenAI
+)
+
+olmoe_0125 = Model(
+    name = "olmoe-0125",
+    base_provider = "Ai2",
+    best_provider = AllenAI
+)
+
 ### Uncensored AI ### 
 evil = Model(
     name = 'evil',
     base_provider = 'Evil Mode - Experimental',
-    best_provider = PollinationsAI
+    best_provider = AllenAI
 )
 
 
@@ -799,6 +831,13 @@ class ModelUtils:
         airoboros_70b.name: airoboros_70b, ### DeepInfra ###
         lzlv_70b.name: lzlv_70b, ### Lizpreciatior ###
         minicpm_2_5.name: minicpm_2_5, ### OpenBMB ###
+        
+        ### Ai2 ###
+        tulu_3_405b.name: tulu_3_405b,
+        olmo_2_13b.name: olmo_2_13b,
+        tulu_3_1_8b.name: tulu_3_1_8b,
+        tulu_3_70b.name: tulu_3_70b,
+        olmoe_0125.name: olmoe_0125,
         
         evil.name: evil, ### Uncensored AI ###
         
