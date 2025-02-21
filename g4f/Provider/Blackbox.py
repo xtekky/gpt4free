@@ -7,7 +7,6 @@ import random
 import string
 from pathlib import Path
 from typing import Optional
-from datetime import datetime, timezone
 
 from ..typing import AsyncResult, Messages, ImagesType
 from ..requests.raise_for_status import raise_for_status
@@ -36,14 +35,16 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
     supports_system_message = True
     supports_message_history = True
     
-    default_model = "blackboxai"
+    default_model = "BLACKBOXAI"
     default_vision_model = default_model
     default_image_model = 'ImageGeneration' 
     
     image_models = [default_image_model]   
     vision_models = [default_vision_model, 'GPT-4o', 'o3-mini', 'Gemini-PRO', 'gemini-1.5-flash', 'llama-3.1-8b', 'llama-3.1-70b', 'llama-3.1-405b', 'Gemini-Flash-2.0']
+    
+    premium_models = ['GPT-4o', 'o1', 'o3-mini', 'Gemini-PRO', 'Claude-Sonnet-3.5']
 
-    userSelectedModel = ['GPT-4o', 'o3-mini', 'Gemini-PRO', 'Claude-Sonnet-3.5', 'DeepSeek-V3', 'DeepSeek-R1', 'blackboxai-pro', 'Meta-Llama-3.3-70B-Instruct-Turbo', 'Mistral-Small-24B-Instruct-2501', 'DeepSeek-LLM-Chat-(67B)', 'DBRX-Instruct', 'Qwen-QwQ-32B-Preview', 'Nous-Hermes-2-Mixtral-8x7B-DPO', 'Gemini-Flash-2.0']
+    userSelectedModel = ['DeepSeek-V3', 'DeepSeek-R1', 'BLACKBOXAI-PRO', 'Meta-Llama-3.3-70B-Instruct-Turbo', 'Mistral-Small-24B-Instruct-2501', 'DeepSeek-LLM-Chat-(67B)', 'DBRX-Instruct', 'Qwen-QwQ-32B-Preview', 'Nous-Hermes-2-Mixtral-8x7B-DPO', 'Gemini-Flash-2.0'] + premium_models
 
     agentMode = {
         'DeepSeek-V3': {'mode': True, 'id': "deepseek-chat", 'name': "DeepSeek-V3"},
@@ -58,6 +59,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
     }
 
     trendingAgentMode = {
+        "o1": {'mode': True, 'id': 'o1'},
         "o3-mini": {'mode': True, 'id': 'o3-mini'},
         "gemini-1.5-flash": {'mode': True, 'id': 'Gemini'},
         "llama-3.1-8b": {'mode': True, 'id': "llama-3.1-8b"},
@@ -75,9 +77,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         'PyTorch Agent': {'mode': True, 'id': "PyTorch Agent"},
         'React Agent': {'mode': True, 'id': "React Agent"},
         'Xcode Agent': {'mode': True, 'id': "Xcode Agent"},
-        'AngularJS Agent': {'mode': True, 'id': "AngularJS Agent"},
-        'blackboxai-pro': {'mode': True, 'id': "BLACKBOXAI-PRO"},
-        'repomap': {'mode': True, 'id': "repomap"},
+        'BLACKBOXAI-PRO': {'mode': True, 'id': "BLACKBOXAI-PRO"},
         'Heroku Agent': {'mode': True, 'id': "Heroku Agent"},
         'Godot Agent': {'mode': True, 'id': "Godot Agent"},
         'Go Agent': {'mode': True, 'id': "Go Agent"},
@@ -97,16 +97,11 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         'builder Agent': {'mode': True, 'id': "builder Agent"},
     }
     
-    premium_models = ['Claude-Sonnet-3.5']
-    
     models = list(dict.fromkeys([default_model, *userSelectedModel, *image_models, *list(agentMode.keys()), *list(trendingAgentMode.keys())]))
 
     model_aliases = {
-        "gpt-4": "GPT-4o",
-        "gpt-4o": "GPT-4o",
-        "claude-3.5-sonnet": "Claude-Sonnet-3.5", # Premium
+        "blackboxai": "BLACKBOXAI",
         "gemini-1.5-flash": "gemini-1.5-flash",
-        "gemini-1.5-pro": "Gemini-PRO",
         "deepseek-v3": "DeepSeek-V3",
         "deepseek-r1": "DeepSeek-R1",
         "llama-3.3-70b": "Meta-Llama-3.3-70B-Instruct-Turbo",
@@ -116,6 +111,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         "qwq-32b": "Qwen-QwQ-32B-Preview",
         "hermes-2-dpo": "Nous-Hermes-2-Mixtral-8x7B-DPO",
         "gemini-2.0-flash": "Gemini-Flash-2.0",
+        "blackboxai-pro": "BLACKBOXAI-PRO",
         "flux": "ImageGeneration",
     }
 
@@ -261,9 +257,6 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
                     "content": msg["content"],
                     "role": msg["role"]
                 }
-                if msg["role"] == "assistant" and i == len(messages)-1:
-                    current_time = datetime.now(timezone.utc).isoformat(timespec='milliseconds').replace('+00:00', 'Z')
-                    current_msg["createdAt"] = current_time
                 current_messages.append(current_msg)
             
             if images is not None:
@@ -278,14 +271,6 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
                     "fileText": "",
                     "title": ""
                 }
-
-            # Calculate the value for expires + lastChecked
-            expires_iso = datetime.now(timezone.utc).isoformat(timespec='milliseconds').replace('+00:00', 'Z')
-            last_checked_millis = int(datetime.now().timestamp() * 1000)
-            
-            # Fake data of a premium user (temporarily working)
-            fake_session = {"user":{"name":"John Doe","email":"john.doe@gmail.com","image":"https://lh3.googleusercontent.com/a/ACg8ocK9X7mNpQ2vR4jH3tY8wL5nB1xM6fDS9JW2kLpTn4Vy3hR2xN4m=s96-c"},"expires":expires_iso}
-            fake_subscriptionCache = {"status":"PREMIUM", "expiryTimestamp":None,"lastChecked":last_checked_millis}
 
             data = {
                 "messages": current_messages,
@@ -316,10 +301,17 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
                 "domains": None,
                 "vscodeClient": False,
                 "codeInterpreterMode": False,
-                "customProfile": {"name": "", "occupation": "", "traits": [], "additionalInfo": "", "enableNewChats": False},
-                "session": fake_session,
-                "isPremium": True, 
-                "subscriptionCache": fake_subscriptionCache,
+                "customProfile": {
+                    "name": "",
+                    "occupation": "",
+                    "traits": [],
+                    "additionalInfo": "",
+                    "enableNewChats": False
+                },
+                "session": None,
+                "isPremium": False, 
+                "subscriptionCache": None,
+                "beastMode": False,
                 "webSearchMode": False
             }
             
