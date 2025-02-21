@@ -39,6 +39,8 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
     default_model = "openai"
     default_image_model = "flux"
     default_vision_model = "gpt-4o"
+    text_models = [default_model]
+    image_models = [default_image_model]
     extra_image_models = ["flux-pro", "flux-dev", "flux-schnell", "midjourney", "dall-e-3"]
     vision_models = [default_vision_model, "gpt-4o-mini"]
     extra_text_models = ["claude", "claude-email", "deepseek-reasoner", "deepseek-r1"] + vision_models
@@ -66,8 +68,6 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         ### Image Models ###
         "sdxl-turbo": "turbo",
     }
-    text_models = []
-    image_models = []
 
     @classmethod
     def get_models(cls, **kwargs):
