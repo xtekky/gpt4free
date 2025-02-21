@@ -37,13 +37,14 @@ This document provides an overview of various AI providers and models, including
 ### Providers No auth required
 | Website | API Credentials | Provider | Text Models | Image Models | Vision (Image Upload) | Stream | Status |
 |----------|-------------|--------------|---------------|--------|--------|------|------|
+|[playground.allenai.org](https://playground.allenai.org)|No auth required|`g4f.Provider.AllenAI`|`tulu-3-405b, olmo-2-13b, tulu-3-1-8b, tulu-3-70b, olmoe-0125`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
 |[blackbox.ai](https://www.blackbox.ai)|No auth required|`g4f.Provider.Blackbox`|`blackboxai, gemini-1.5-flash, blackboxai-pro, llama-3.1-8b, llama-3.1-70b, llama-3-1-405b, llama-3.3-70b, mixtral-small-28b, deepseek-chat, dbrx-instruct, qwq-32b, hermes-2-dpo, deepseek-v3, deepseek-r1, gemini-2.0-flash` _**(+35)**_|`flux`|`blackboxai, gpt-4o, o3-mini, gemini-1.5-pro, gemini-1.5-flash, llama-3.1-8b, llama-3.1-70b, llama-3.1-405b, gemini-2.0-flash`|✔|![](https://img.shields.io/badge/Active-brightgreen)|
 |[chatglm.cn](https://chatglm.cn)|No auth required|`g4f.Provider.ChatGLM`|`glm-4`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
 |[chatgpt.com](https://chatgpt.com)|No auth required|`g4f.Provider.ChatGpt`|✔ _**(+7)**_|❌|❌|✔|![Error](https://img.shields.io/badge/HTTPError-f48d37)|
 |[chatgpt.es](https://chatgpt.es)|No auth required|`g4f.Provider.ChatGptEs`|`gpt-4, gpt-4o, gpt-4o-mini`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
 |[playground.ai.cloudflare.com](https://playground.ai.cloudflare.com)|[Automatic cookies](https://playground.ai.cloudflare.com)|`g4f.Provider.Cloudflare`|`llama-2-7b, llama-3-8b, llama-3.1-8b, llama-3.2-1b, qwen-1.5-7b`|❌|❌|✔|![Error](https://img.shields.io/badge/Active-brightgreen)|❌|
 |[copilot.microsoft.com](https://copilot.microsoft.com)|Optional API key|`g4f.Provider.Copilot`|`gpt-4, gpt-4o`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
-|[duckduckgo.com/aichat](https://duckduckgo.com/aichat)|No auth required|`g4f.Provider.DDG`|`gpt-4, gpt-4o-mini, llama-3.3-70b, claude-3-haiku, o3-mini, mixtral-small-28b`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
+|[duckduckgo.com/aichat](https://duckduckgo.com/aichat)|No auth required|`g4f.Provider.DDG`|`gpt-4, gpt-4o-mini, llama-3.3-70b, claude-3-haiku, o3-mini, mixtral-small-24b`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
 |[deepinfra.com/chat](https://deepinfra.com/chat)|No auth required|`g4f.Provider.DeepInfraChat`|`llama-3.1-8b, llama-3.2-90b, llama-3.3-70b, deepseek-v3, mixtral-small-28b, deepseek-r1, phi-4, wizardlm-2-8x22b, qwen-2.5-72b, yi-34b, qwen-2-72b, dolphin-2.6, dolphin-2.9, dbrx-instruct, airoboros-70b, lzlv-70b, wizardlm-2-7b, mixtral-8x22b, minicpm-2.5`|❌|`llama-3.2-90b, minicpm-2.5`|✔|![](https://img.shields.io/badge/Active-brightgreen)|
 |[chat10.free2gpt.xyz](https://chat10.free2gpt.xyz)|No auth required|`g4f.Provider.Free2GPT`|`mistral-7b`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
 |[freegptsnav.aifree.site](https://freegptsnav.aifree.site)|No auth required|`g4f.Provider.FreeGpt`|`gemini-1.5-pro`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
@@ -193,6 +194,11 @@ This document provides an overview of various AI providers and models, including
 |airoboros-70b|DeepInfra|1+ Providers|[huggingface.co](https://huggingface.co/cognitivecomputations/dolphin-2.9.1-llama-3-70b)|
 |lzlv-70b|Lizpreciatior|1+ Providers|[huggingface.co](https://huggingface.co/cognitivecomputations/dolphin-2.9.1-llama-3-70b)|
 |minicpm-2.5|OpenBMB|1+ Providers|[huggingface.co](https://huggingface.co/openbmb/MiniCPM-Llama3-V-2_5)|
+|tulu-3-405b|Ai2|1+ Providers|[allenai.org](https://allenai.org/documentation)|
+|olmo-2-13b|Ai2|1+ Providers|[allenai.org](https://allenai.org/documentation)|
+|tulu-3-1-8b|Ai2|1+ Providers|[allenai.org](https://allenai.org/documentation)|
+|tulu-3-70b|Ai2|1+ Providers|[allenai.org](https://allenai.org/documentation)|
+|olmoe-0125|Ai2|1+ Providers|[allenai.org](https://allenai.org/documentation)|
 |evil|Evil Mode - Experimental|1+ Providers|[]( )|
 
 ---
