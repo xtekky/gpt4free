@@ -259,7 +259,7 @@ mixtral_small_24b = Model(
 mixtral_small_28b = Model(
     name          = "mixtral-small-28b",
     base_provider = "Mistral",
-    best_provider = IterListProvider([DDG, Blackbox, DeepInfraChat])
+    best_provider = IterListProvider([Blackbox, DeepInfraChat])
 )
 
 ### NousResearch ###
