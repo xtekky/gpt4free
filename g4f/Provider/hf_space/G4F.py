@@ -14,6 +14,7 @@ from .raise_for_status import raise_for_status
 class FluxDev(BlackForestLabsFlux1Dev):
     url = "https://roxky-flux-1-dev.hf.space"
     space = "roxky/FLUX.1-dev"
+    referer = f"{url}/?__theme=light"
 
 class G4F(Janus_Pro_7B):
     label = "G4F framework"
