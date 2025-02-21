@@ -623,7 +623,7 @@ olmoe_0125 = Model(
 evil = Model(
     name = 'evil',
     base_provider = 'Evil Mode - Experimental',
-    best_provider = AllenAI
+    best_provider = PollinationsAI
 )
 
 
