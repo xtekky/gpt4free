@@ -6,58 +6,26 @@ import time
 from typing import AsyncIterator
 import asyncio
 
-from ..base_provider import AsyncAuthedProvider
+from ..base_provider import AsyncAuthedProvider, ProviderModelMixin
 from ...providers.helper import get_last_user_message
-from ... import requests
-from ...errors import MissingAuthError
 from ...requests import get_args_from_nodriver, get_nodriver
 from ...providers.response import AuthResult, RequestLogin, Reasoning, JsonConversation, FinishReason
 from ...typing import AsyncResult, Messages
-from ... import debug
 try:
-    from curl_cffi import requests
-    from dsk.api import DeepSeekAPI, AuthenticationError, DeepSeekPOW
-
-    class DeepSeekAPIArgs(DeepSeekAPI):
-        def __init__(self, args: dict):
-            self.auth_token = args.pop("api_key")
-            if not self.auth_token or not isinstance(self.auth_token, str):
-                raise AuthenticationError("Invalid auth token provided")
-            self.args = args
-            self.pow_solver = DeepSeekPOW()
-
-        def _make_request(self, method: str, endpoint: str, json_data: dict, pow_required: bool = False, **kwargs):
-            url = f"{self.BASE_URL}{endpoint}"
-            headers = self._get_headers()
-            if pow_required:
-                challenge = self._get_pow_challenge()
-                pow_response = self.pow_solver.solve_challenge(challenge)
-                headers = self._get_headers(pow_response)
-
-            response = requests.request(
-                method=method,
-                url=url,
-                json=json_data, **{
-                    **self.args,
-                    "headers": {**headers, **self.args["headers"]},
-                    "timeout":None,
-                },
-                **kwargs
-            )
-            if response.status_code == 403:
-                raise MissingAuthError()
-            response.raise_for_status()
-            return response.json()
+    from dsk.api import DeepSeekAPI as DskAPI
     has_dsk = True
 except ImportError:
     has_dsk = False
 
-class DeepSeekAPI(AsyncAuthedProvider):
+class DeepSeekAPI(AsyncAuthedProvider, ProviderModelMixin):
     url = "https://chat.deepseek.com"
     working = has_dsk
     needs_auth = True
     use_nodriver = True
     _access_token = None
+
+    default_model = "deepseek-v3"
+    models = ["deepseek-v3", "deepseek-r1"]
 
     @classmethod
     async def on_auth_async(cls, proxy: str = None, **kwargs) -> AsyncIterator:
@@ -83,10 +51,11 @@ class DeepSeekAPI(AsyncAuthedProvider):
         messages: Messages,
         auth_result: AuthResult,
         conversation: JsonConversation = None,
+        web_search: bool = False,
         **kwargs
     ) -> AsyncResult:
         # Initialize with your auth token
-        api = DeepSeekAPIArgs(auth_result.get_dict())
+        api = DskAPI(auth_result.get_dict())
 
         # Create a new chat session
         if conversation is None:
@@ -98,7 +67,8 @@ class DeepSeekAPI(AsyncAuthedProvider):
         for chunk in api.chat_completion(
             conversation.chat_id,
             get_last_user_message(messages),
-            thinking_enabled=True
+            thinking_enabled="deepseek-r1" in model,
+            search_enabled=web_search
         ):
             if chunk['type'] == 'thinking':
                 if not is_thinking:

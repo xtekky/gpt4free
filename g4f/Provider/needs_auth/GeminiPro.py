@@ -51,7 +51,9 @@ class GeminiPro(AsyncGeneratorProvider, ProviderModelMixin):
                 ]
                 cls.models.sort()
             except Exception as e:
-                debug.log(e)
+                debug.error(e)
+                if api_key is not None:
+                    raise MissingAuthError("Invalid API key")
                 return cls.fallback_models
         return cls.models
 
@@ -111,8 +113,18 @@ class GeminiPro(AsyncGeneratorProvider, ProviderModelMixin):
                     "topK": kwargs.get("top_k"),
                 },
                  "tools": [{
-                    "functionDeclarations": tools
-                 }] if tools else None
+                    "function_declarations": [{
+                        "name": tool["function"]["name"],
+                        "description": tool["function"]["description"],
+                        "parameters": {
+                            "type": "object",
+                            "properties": {key: {
+                                "type": value["type"],
+                                "description": value["title"]
+                            } for key, value in tool["function"]["parameters"]["properties"].items()}
+                        },
+                    } for tool in tools]
+                }] if tools else None
             }
             system_prompt = "\n".join(
                 message["content"]

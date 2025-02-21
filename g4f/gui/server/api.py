@@ -72,13 +72,16 @@ class Api:
 
     @staticmethod
     def get_version() -> dict:
+        current_version = None
+        latest_version = None
         try:
             current_version = version.utils.current_version
+            latest_version = version.utils.latest_version
         except VersionNotFoundError:
-            current_version = None
+            pass
         return {
             "version": current_version,
-            "latest_version": version.utils.latest_version,
+            "latest_version": latest_version,
         }
 
     def serve_images(self, name):
@@ -137,10 +140,10 @@ class Api:
         }
 
     def _create_response_stream(self, kwargs: dict, conversation_id: str, provider: str, download_images: bool = True) -> Iterator:
-        def decorated_log(text: str):
+        def decorated_log(text: str, file = None):
             debug.logs.append(text)
             if debug.logging:
-                debug.log_handler(text)
+                debug.log_handler(text, file=file)
         debug.log = decorated_log
         proxy = os.environ.get("G4F_PROXY")
         provider = kwargs.get("provider")
@@ -154,6 +157,7 @@ class Api:
             )
         except Exception as e:
             logger.exception(e)
+            debug.error(e)
             yield self._format_json('error', type(e).__name__, message=get_error_message(e))
             return
         if not isinstance(provider_handler, BaseRetryProvider):
@@ -183,6 +187,7 @@ class Api:
                             yield self._format_json("conversation_id", conversation_id)
                 elif isinstance(chunk, Exception):
                     logger.exception(chunk)
+                    debug.error(chunk)
                     yield self._format_json('message', get_error_message(chunk), error=type(chunk).__name__)
                 elif isinstance(chunk, PreviewResponse):
                     yield self._format_json("preview", chunk.to_string())
@@ -215,19 +220,18 @@ class Api:
                     yield self._format_json(chunk.type, **chunk.get_dict())
                 else:
                     yield self._format_json("content", str(chunk))
-                if debug.logs:
-                    for log in debug.logs:
-                        yield self._format_json("log", str(log))
-                    debug.logs = []
+                yield from self._yield_logs()
         except Exception as e:
             logger.exception(e)
-            if debug.logging:
-                debug.log_handler(get_error_message(e))
-            if debug.logs:
-                for log in debug.logs:
-                    yield self._format_json("log", str(log))
-                debug.logs = []
+            debug.error(e)
+            yield from self._yield_logs()
             yield self._format_json('error', type(e).__name__, message=get_error_message(e))
+
+    def _yield_logs(self):
+        if debug.logs:
+            for log in debug.logs:
+                yield self._format_json("log", log)
+            debug.logs = []
 
     def _format_json(self, response_type: str, content = None, **kwargs):
         if content is not None and isinstance(response_type, str):

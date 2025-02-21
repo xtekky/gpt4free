@@ -76,7 +76,7 @@ class Backend_Api(Api):
             @app.route('/', methods=['GET'])
             @limiter.exempt
             def home():
-                return render_template('demo.html')
+                return render_template('demo.html', backend_url=os.environ.get("G4F_BACKEND_URL", ""))
         else:
             @app.route('/', methods=['GET'])
             def home():
@@ -371,7 +371,7 @@ class Backend_Api(Api):
                 return jsonify({"error": {"message": f"Error uploading file: {str(e)}"}}), 500
 
         @app.route('/backend-api/v2/upload_cookies', methods=['POST'])
-        def upload_cookies(self):
+        def upload_cookies():
             file = None
             if "file" in request.files:
                 file = request.files['file']

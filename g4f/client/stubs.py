@@ -5,9 +5,6 @@ from time import time
 
 from .helper import filter_none
 
-ToolCalls = Optional[List[Dict[str, Any]]]
-Usage = Optional[Dict[str, int]]
-
 try:
     from pydantic import BaseModel, Field
 except ImportError:
@@ -29,6 +26,40 @@ class BaseModel(BaseModel):
             return super().model_construct(**data)
         return cls.construct(**data)
 
+class UsageModel(BaseModel):
+    prompt_tokens: int
+    completion_tokens: int
+    total_tokens: int
+    prompt_tokens_details: Optional[Dict[str, Any]]
+    completion_tokens_details: Optional[Dict[str, Any]]
+
+    @classmethod
+    def model_construct(cls, prompt_tokens=0, completion_tokens=0, total_tokens=0, prompt_tokens_details=None, completion_tokens_details=None, **kwargs):
+        return super().model_construct(
+            prompt_tokens=prompt_tokens,
+            completion_tokens=completion_tokens,
+            total_tokens=total_tokens,
+            prompt_tokens_details=prompt_tokens_details,
+            completion_tokens_details=completion_tokens_details,
+            **kwargs
+        )
+
+class ToolFunctionModel(BaseModel):
+    name: str
+    arguments: str
+
+class ToolCallModel(BaseModel):
+    id: str
+    type: str
+    function: ToolFunctionModel
+
+    @classmethod
+    def model_construct(cls, function=None, **kwargs):
+        return super().model_construct(
+            **kwargs,
+            function=ToolFunctionModel.model_construct(**function),
+        )
+
 class ChatCompletionChunk(BaseModel):
     id: str
     object: str
@@ -36,7 +67,7 @@ class ChatCompletionChunk(BaseModel):
     model: str
     provider: Optional[str]
     choices: List[ChatCompletionDeltaChoice]
-    usage: Usage
+    usage: UsageModel
 
     @classmethod
     def model_construct(
@@ -45,7 +76,7 @@ class ChatCompletionChunk(BaseModel):
         finish_reason: str,
         completion_id: str = None,
         created: int = None,
-        usage: Usage = None
+        usage: UsageModel = None
     ):
         return super().model_construct(
             id=f"chatcmpl-{completion_id}" if completion_id else None,
@@ -63,10 +94,10 @@ class ChatCompletionChunk(BaseModel):
 class ChatCompletionMessage(BaseModel):
     role: str
     content: str
-    tool_calls: ToolCalls
+    tool_calls: list[ToolCallModel] = None
 
     @classmethod
-    def model_construct(cls, content: str, tool_calls: ToolCalls = None):
+    def model_construct(cls, content: str, tool_calls: list = None):
         return super().model_construct(role="assistant", content=content, **filter_none(tool_calls=tool_calls))
 
 class ChatCompletionChoice(BaseModel):
@@ -85,11 +116,7 @@ class ChatCompletion(BaseModel):
     model: str
     provider: Optional[str]
     choices: List[ChatCompletionChoice]
-    usage: Usage = Field(default={
-        "prompt_tokens": 0, #prompt_tokens,
-        "completion_tokens": 0, #completion_tokens,
-        "total_tokens": 0, #prompt_tokens + completion_tokens,
-    })
+    usage: UsageModel
 
     @classmethod
     def model_construct(
@@ -98,8 +125,8 @@ class ChatCompletion(BaseModel):
         finish_reason: str,
         completion_id: str = None,
         created: int = None,
-        tool_calls: ToolCalls = None,
-        usage: Usage = None
+        tool_calls: list[ToolCallModel] = None,
+        usage: UsageModel = None
     ):
         return super().model_construct(
             id=f"chatcmpl-{completion_id}" if completion_id else None,

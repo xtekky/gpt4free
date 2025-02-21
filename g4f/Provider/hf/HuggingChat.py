@@ -8,7 +8,8 @@ import base64
 from typing import AsyncIterator
 
 try:
-    from curl_cffi.requests import Session, CurlMime
+    from curl_cffi.requests import Session
+    from curl_cffi import CurlMime
     has_curl_cffi = True
 except ImportError:
     has_curl_cffi = False
@@ -39,14 +40,15 @@ class HuggingChat(AsyncAuthedProvider, ProviderModelMixin):
     default_model = default_model
     model_aliases = model_aliases
     image_models = image_models
+    text_models = fallback_models
 
     @classmethod
     def get_models(cls):
         if not cls.models:
             try:
                 text = requests.get(cls.url).text
-                text = re.sub(r',parameters:{[^}]+?}', '', text)
                 text = re.search(r'models:(\[.+?\]),oldModels:', text).group(1)
+                text = re.sub(r',parameters:{[^}]+?}', '', text)
                 text = text.replace('void 0', 'null')
                 def add_quotation_mark(match):
                     return f'{match.group(1)}"{match.group(2)}":'
@@ -56,7 +58,7 @@ class HuggingChat(AsyncAuthedProvider, ProviderModelMixin):
                 cls.models = cls.text_models + cls.image_models
                 cls.vision_models = [model["id"] for model in models if model["multimodal"]]
             except Exception as e:
-                debug.log(f"HuggingChat: Error reading models: {type(e).__name__}: {e}")
+                debug.error(f"{cls.__name__}: Error reading models: {type(e).__name__}: {e}")
                 cls.models = [*fallback_models]
         return cls.models
 

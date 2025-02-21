@@ -65,7 +65,7 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
     default_image_model = default_model
     default_vision_model = default_model
     image_models = [default_image_model]
-    models = [default_model, "gemini-1.5-flash", "gemini-1.5-pro"]
+    models = [default_model, "gemini-2.0"]
 
     synthesize_content_type = "audio/vnd.wav"
     
@@ -179,7 +179,7 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
                                 yield Conversation(response_part[1][0], response_part[1][1], response_part[4][0][0])
                             content = response_part[4][0][1][0]
                         except (ValueError, KeyError, TypeError, IndexError) as e:
-                            debug.log(f"{cls.__name__}:{e.__class__.__name__}:{e}")
+                            debug.error(f"{cls.__name__} {type(e).__name__}: {e}")
                             continue
                         match = re.search(r'\[Imagen of (.*?)\]', content)
                         if match:

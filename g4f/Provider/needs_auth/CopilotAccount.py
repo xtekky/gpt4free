@@ -32,9 +32,7 @@ class CopilotAccount(AsyncAuthedProvider, Copilot):
         except NoValidHarFileError as h:
             debug.log(f"Copilot: {h}")
             if has_nodriver:
-                login_url = os.environ.get("G4F_LOGIN_URL")
-                if login_url:
-                    yield RequestLogin(cls.label, login_url)
+                yield RequestLogin(cls.label, os.environ.get("G4F_LOGIN_URL", ""))
                 Copilot._access_token, Copilot._cookies = await get_access_token_and_cookies(cls.url, proxy)
             else:
                 raise h

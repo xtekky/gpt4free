@@ -322,8 +322,8 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                 try:
                     image_requests = await cls.upload_images(session, auth_result, images) if images else None
                 except Exception as e:
-                    debug.log("OpenaiChat: Upload image failed")
-                    debug.log(f"{e.__class__.__name__}: {e}")
+                    debug.error("OpenaiChat: Upload image failed")
+                    debug.error(e)
             model = cls.get_model(model)
             if conversation is None:
                 conversation = Conversation(conversation_id, str(uuid.uuid4()), getattr(auth_result, "cookies", {}).get("oai-did"))
@@ -360,12 +360,14 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                 #     if auth_result.arkose_token is None:
                 #         raise MissingAuthError("No arkose token found in .har file")
                 if "proofofwork" in chat_requirements:
-                    if getattr(auth_result, "proof_token", None) is None:
-                        auth_result.proof_token = get_config(auth_result.headers.get("user-agent"))
+                    user_agent = getattr(auth_result, "headers", {}).get("user-agent")
+                    proof_token = getattr(auth_result, "proof_token", None)
+                    if proof_token is None:
+                        auth_result.proof_token = get_config(user_agent)
                     proofofwork = generate_proof_token(
                         **chat_requirements["proofofwork"],
-                        user_agent=getattr(auth_result, "headers", {}).get("user-agent"),
-                        proof_token=getattr(auth_result, "proof_token", None)
+                        user_agent=user_agent,
+                        proof_token=proof_token
                     )
                 [debug.log(text) for text in (
                     #f"Arkose: {'False' if not need_arkose else auth_result.arkose_token[:12]+'...'}",
@@ -425,8 +427,8 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                 ) as response:
                     cls._update_request_args(auth_result, session)
                     if response.status == 403:
-                        auth_result.proof_token = None
                         cls.request_config.proof_token = None
+                        raise MissingAuthError("Access token is not valid")
                     await raise_for_status(response)
                     buffer = u""
                     async for line in response.iter_lines():
@@ -469,14 +471,6 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                     await asyncio.sleep(5)
                 else:
                     break
-                yield Parameters(**{
-                    "action": "continue" if conversation.finish_reason == "max_tokens" else "variant",
-                    "conversation": conversation.get_dict(),
-                    "proof_token": cls.request_config.proof_token,
-                    "cookies": cls._cookies,
-                    "headers": cls._headers,
-                    "web_search": web_search,
-                })
             yield FinishReason(conversation.finish_reason)
 
     @classmethod

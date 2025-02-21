@@ -36,7 +36,7 @@ class HuggingFace(AsyncGeneratorProvider, ProviderModelMixin):
         messages: Messages,
         **kwargs
     ) -> AsyncResult:
-        if "api_key" not in kwargs and "images" not in kwargs and random.random() >= 0.5:
+        if "images" not in kwargs and "deepseek" in model or random.random() >= 0.5:
             try:
                 is_started = False
                 async for chunk in HuggingFaceInference.create_async_generator(model, messages, **kwargs):
@@ -48,7 +48,7 @@ class HuggingFace(AsyncGeneratorProvider, ProviderModelMixin):
             except Exception as e:
                 if is_started:
                     raise e
-                debug.log(f"Inference failed: {e.__class__.__name__}: {e}")
+                debug.error(f"{cls.__name__} {type(e).__name__}; {e}")
         if not cls.image_models:
             cls.get_models()
         if model in cls.image_models:

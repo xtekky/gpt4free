@@ -122,9 +122,6 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         except ModelNotFoundError:
             if model not in cls.image_models:
                 raise
-        
-        if not cache and seed is None:
-            seed = random.randint(0, 10000)
 
         if model in cls.image_models:
             async for chunk in cls._generate_image(
@@ -134,6 +131,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                 width=width,
                 height=height,
                 seed=seed,
+                cache=cache,
                 nologo=nologo,
                 private=private,
                 enhance=enhance,
@@ -165,11 +163,14 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         width: int,
         height: int,
         seed: Optional[int],
+        cache: bool,
         nologo: bool,
         private: bool,
         enhance: bool,
         safe: bool
     ) -> AsyncResult:
+        if not cache and seed is None:
+            seed = random.randint(9999, 99999999)
         params = {
             "seed": str(seed) if seed is not None else None,
             "width": str(width),
@@ -182,9 +183,10 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         }
         params = {k: v for k, v in params.items() if v is not None}
         query = "&".join(f"{k}={quote_plus(v)}" for k, v in params.items())
-        url = f"{cls.image_api_endpoint}prompt/{quote_plus(prompt)}?{query}"
+        prefix = f"{model}_{seed}" if seed is not None else model
+        url = f"{cls.image_api_endpoint}prompt/{prefix}_{quote_plus(prompt)}?{query}"
         yield ImagePreview(url, prompt)
-        
+
         async with ClientSession(headers=DEFAULT_HEADERS, connector=get_connector(proxy=proxy)) as session:
             async with session.get(url, allow_redirects=True) as response:
                 await raise_for_status(response)
@@ -206,6 +208,8 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         seed: Optional[int],
         cache: bool
     ) -> AsyncResult:
+        if not cache and seed is None:
+            seed = random.randint(9999, 99999999)
         json_mode = False
         if response_format and response_format.get("type") == "json_object":
             json_mode = True

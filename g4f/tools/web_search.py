@@ -237,7 +237,7 @@ def get_search_message(prompt: str, raise_search_exceptions=False, **kwargs) -> 
     except (DuckDuckGoSearchException, MissingRequirementsError) as e:
         if raise_search_exceptions:
             raise e
-        debug.log(f"Couldn't do web search: {e.__class__.__name__}: {e}")
+        debug.error(f"Couldn't do web search: {e.__class__.__name__}: {e}")
         return prompt
 
 def spacy_get_keywords(text: str):

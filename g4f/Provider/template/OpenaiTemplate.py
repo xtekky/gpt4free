@@ -42,7 +42,7 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
                 if cls.sort_models:
                     cls.models.sort()
             except Exception as e:
-                debug.log(e)
+                debug.error(e)
                 return cls.fallback_models
         return cls.models
 
@@ -65,7 +65,7 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
         prompt: str = None,
         headers: dict = None,
         impersonate: str = None,
-        tools: Optional[list] = None,
+        extra_parameters: list[str] = ["tools", "parallel_tool_calls", "tool_choice", "reasoning_effort", "logit_bias"],
         extra_data: dict = {},
         **kwargs
     ) -> AsyncResult:
@@ -112,6 +112,7 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
                     }
                 ]
                 messages[-1] = last_message
+            extra_parameters = {key: kwargs[key] for key in extra_parameters if key in kwargs}
             data = filter_none(
                 messages=messages,
                 model=model,
@@ -120,7 +121,7 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
                 top_p=top_p,
                 stop=stop,
                 stream=stream,
-                tools=tools,
+                **extra_parameters,
                 **extra_data
             )
             if api_endpoint is None:

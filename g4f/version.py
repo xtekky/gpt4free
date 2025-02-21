@@ -44,8 +44,9 @@ def get_github_version(repo: str) -> str:
         VersionNotFoundError: If there is an error in fetching the version from GitHub.
     """
     try:
-        response = requests.get(f"https://api.github.com/repos/{repo}/releases/latest").json()
-        return response["tag_name"]
+        response = requests.get(f"https://api.github.com/repos/{repo}/releases/latest")
+        response.raise_for_status()
+        return response.json()["tag_name"]
     except requests.RequestException as e:
         raise VersionNotFoundError(f"Failed to get GitHub release version: {e}")
 

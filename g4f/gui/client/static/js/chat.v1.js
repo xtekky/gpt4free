@@ -1932,7 +1932,7 @@ const load_provider_option = (input, provider_name) => {
         providerSelect.querySelectorAll(`option[data-parent="${provider_name}"]`).forEach(
             (el) => el.removeAttribute("disabled")
         );
-        settings.querySelector(`.field:has(#${provider_name}-api_key)`)?.classList.remove("hidden");
+        //settings.querySelector(`.field:has(#${provider_name}-api_key)`)?.classList.remove("hidden");
     } else {
         modelSelect.querySelectorAll(`option[data-providers*="${provider_name}"]`).forEach(
             (el) => {
@@ -1947,7 +1947,7 @@ const load_provider_option = (input, provider_name) => {
         providerSelect.querySelectorAll(`option[data-parent="${provider_name}"]`).forEach(
             (el) => el.setAttribute("disabled", "disabled")
         );
-        settings.querySelector(`.field:has(#${provider_name}-api_key)`)?.classList.add("hidden");
+        //settings.querySelector(`.field:has(#${provider_name}-api_key)`)?.classList.add("hidden");
     }
 };
 
@@ -2039,13 +2039,13 @@ async function on_api() {
 
             if (provider.parent) {
                 if (!login_urls[provider.parent]) {
-                    login_urls[provider.parent] = [provider.label, provider.login_url, [provider.name]];
+                    login_urls[provider.parent] = [provider.label, provider.login_url, [provider.name], provider.auth];
                 } else {
                     login_urls[provider.parent][2].push(provider.name);
                 }
             } else if (provider.login_url) {
                 if (!login_urls[provider.name]) {
-                    login_urls[provider.name] = [provider.label, provider.login_url, []];
+                    login_urls[provider.name] = [provider.label, provider.login_url, [], provider.auth];
                 } else {
                     login_urls[provider.name][0] = provider.label;
                     login_urls[provider.name][1] = provider.login_url;
@@ -2068,9 +2068,10 @@ async function on_api() {
             if (!provider.parent) {
                 let option = document.createElement("div");
                 option.classList.add("provider-item");
+                let api_key = appStorage.getItem(`${provider.name}-api_key`);
                 option.innerHTML = `
                     <span class="label">Enable ${provider.label}</span>
-                    <input id="Provider${provider.name}" type="checkbox" name="Provider${provider.name}" value="${provider.name}" class="provider" checked="">
+                    <input id="Provider${provider.name}" type="checkbox" name="Provider${provider.name}" value="${provider.name}" class="provider" ${'checked="checked"' ? !provider.auth || api_key : ''}/>
                     <label for="Provider${provider.name}" class="toogle" title="Remove provider from dropdown"></label>
                 `;
                 option.querySelector("input").addEventListener("change", (event) => load_provider_option(event.target, provider.name));
@@ -2102,7 +2103,7 @@ async function on_api() {
     `;
     settings.querySelector(".paper").appendChild(providersListContainer);
 
-    for (let [name, [label, login_url, childs]] of Object.entries(login_urls)) {
+    for (let [name, [label, login_url, childs, auth]] of Object.entries(login_urls)) {
         if (!login_url && !is_demo) {
             continue;
         }
@@ -2113,6 +2114,13 @@ async function on_api() {
             <label for="${name}-api_key" class="label" title="">${label}:</label>
             <input type="text" id="${name}-api_key" name="${name}[api_key]" class="${childs}" placeholder="api_key" autocomplete="off"/>
         ` + (login_url ? `<a href="${login_url}" target="_blank" title="Login to ${label}">Get API key</a>` : "");
+        if (auth) {
+            providerBox.querySelector("input").addEventListener("input", (event) => {
+                const input = document.getElementById(`Provider${name}`);
+                input.checked = !!event.target.value;
+                load_provider_option(input, name);
+            });
+        }
         providersListContainer.querySelector(".collapsible-content").appendChild(providerBox);
     }
 

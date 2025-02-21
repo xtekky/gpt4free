@@ -44,7 +44,7 @@ async def async_iter_run_tools(provider: ProviderType, model: str, messages, too
             web_search = web_search if isinstance(web_search, str) and web_search != "true" else None
             messages[-1]["content"] = await do_search(messages[-1]["content"], web_search)
         except Exception as e:
-            debug.log(f"Couldn't do web search: {e.__class__.__name__}: {e}")
+            debug.error(f"Couldn't do web search: {e.__class__.__name__}: {e}")
             # Keep web_search in kwargs for provider native support
             pass
 
@@ -82,7 +82,8 @@ async def async_iter_run_tools(provider: ProviderType, model: str, messages, too
                                 has_bucket = True
                                 message["content"] = new_message_content
                     if has_bucket and isinstance(messages[-1]["content"], str):
-                        messages[-1]["content"] += BUCKET_INSTRUCTIONS
+                        if "\nSource: " in messages[-1]["content"]:
+                            messages[-1]["content"] += BUCKET_INSTRUCTIONS
     create_function = provider.get_async_create_function()
     response = to_async_iterator(create_function(model=model, messages=messages, **kwargs))
     async for chunk in response:
@@ -149,7 +150,7 @@ def iter_run_tools(
             web_search = web_search if isinstance(web_search, str) and web_search != "true" else None
             messages[-1]["content"] = asyncio.run(do_search(messages[-1]["content"], web_search))
         except Exception as e:
-            debug.log(f"Couldn't do web search: {e.__class__.__name__}: {e}")
+            debug.error(f"Couldn't do web search: {e.__class__.__name__}: {e}")
             # Keep web_search in kwargs for provider native support
             pass
 
@@ -192,7 +193,8 @@ def iter_run_tools(
                                 has_bucket = True
                                 message["content"] = new_message_content
                     if has_bucket and isinstance(messages[-1]["content"], str):
-                        messages[-1]["content"] += BUCKET_INSTRUCTIONS
+                        if "\nSource: " in messages[-1]["content"]:
+                            messages[-1]["content"] = messages[-1]["content"]["content"] + BUCKET_INSTRUCTIONS
 
     thinking_start_time = 0
     for chunk in iter_callback(model=model, messages=messages, provider=provider, **kwargs):

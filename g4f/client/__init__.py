@@ -18,7 +18,7 @@ from ..providers.retry_provider import IterListProvider
 from ..providers.asyncio import to_sync_generator
 from ..Provider.needs_auth import BingCreateImages, OpenaiAccount
 from ..tools.run_tools import async_iter_run_tools, iter_run_tools
-from .stubs import ChatCompletion, ChatCompletionChunk, Image, ImagesResponse
+from .stubs import ChatCompletion, ChatCompletionChunk, Image, ImagesResponse, UsageModel, ToolCallModel
 from .image_models import ImageModels
 from .types import IterResponse, ImageProvider, Client as BaseClient
 from .service import get_model_and_provider, convert_to_provider
@@ -103,14 +103,14 @@ def iter_response(
 
         idx += 1
     if usage is None:
-        usage = Usage(prompt_tokens=0, completion_tokens=idx, total_tokens=idx)
+        usage = Usage(completion_tokens=idx, total_tokens=idx)
 
     finish_reason = "stop" if finish_reason is None else finish_reason
 
     if stream:
         yield ChatCompletionChunk.model_construct(
             None, finish_reason, completion_id, int(time.time()),
-            usage=usage.get_dict()
+            usage=usage
         )
     else:
         if response_format is not None and "type" in response_format:
@@ -118,7 +118,8 @@ def iter_response(
                 content = filter_json(content)
         yield ChatCompletion.model_construct(
             content, finish_reason, completion_id, int(time.time()),
-            usage=usage.get_dict(), **filter_none(tool_calls=tool_calls)
+            usage=UsageModel.model_construct(**usage.get_dict()),
+            **filter_none(tool_calls=[ToolCallModel.model_construct(**tool_call) for tool_call in tool_calls]) if tool_calls is not None else {}
         )
 
 # Synchronous iter_append_model_and_provider function
@@ -186,7 +187,7 @@ async def async_iter_response(
         finish_reason = "stop" if finish_reason is None else finish_reason
 
         if usage is None:
-            usage = Usage(prompt_tokens=0, completion_tokens=idx, total_tokens=idx)
+            usage = Usage(completion_tokens=idx, total_tokens=idx)
 
         if stream:
             yield ChatCompletionChunk.model_construct(
@@ -199,7 +200,8 @@ async def async_iter_response(
                     content = filter_json(content)
             yield ChatCompletion.model_construct(
                 content, finish_reason, completion_id, int(time.time()),
-                usage=usage.get_dict(), **filter_none(tool_calls=tool_calls)
+                usage=UsageModel.model_construct(**usage.get_dict()),
+                **filter_none(tool_calls=[ToolCallModel.model_construct(**tool_call) for tool_call in tool_calls]) if tool_calls is not None else {}
             )
     finally:
         await safe_aclose(response)
@@ -363,7 +365,7 @@ class Images:
                         break
                 except Exception as e:
                     error = e
-                    debug.log(f"Image provider {provider.__name__}: {e}")
+                    debug.error(f"{provider.__name__} {type(e).__name__}: {e}")
         else:
             response = await self._generate_image_response(provider_handler, provider_name, model, prompt, **kwargs)
 
@@ -458,7 +460,7 @@ class Images:
                         break
                 except Exception as e:
                     error = e
-                    debug.log(f"Image provider {provider.__name__}: {e}")
+                    debug.error(f"{provider.__name__} {type(e).__name__}: {e}")
         else:
             response = await self._generate_image_response(provider_handler, provider_name, model, prompt, **kwargs)
 
@@ -583,7 +585,7 @@ class AsyncCompletions:
         messages: Messages,
         model: str,
         **kwargs
-    ) -> AsyncIterator[ChatCompletionChunk, BaseConversation]:
+    ) -> AsyncIterator[ChatCompletionChunk]:
         return self.create(messages, model, stream=True, **kwargs)
 
 class AsyncImages(Images):

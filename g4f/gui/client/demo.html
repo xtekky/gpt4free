@@ -181,7 +181,12 @@
     <script>
         (async () => {
             const isIframe = window.self !== window.top;
+            const backendUrl = "{{backend_url}}";
             let url = new URL(window.location.href)
+            if (isIframe && backendUrl) {
+                window.location.replace(url.search ? `${backendUrl}?${url.search}` : backendUrl);
+                return;
+            }
             let params = new URLSearchParams(url.search);
             if (params.get("__sign")) {
                 localStorage.setItem("zerogpu_token", params.get("__sign"));
@@ -232,12 +237,11 @@
             import * as hub from "@huggingface/hub";
             import { init } from "@huggingface/space-header";
 
-            const isIframe = window.self !== window.top;
             const button = document.querySelector('form a.button');
             if (isIframe) {
                 button.classList.remove('hidden');
             } else {
-                init("roxky/g4f-space");
+                init("roxky/g4f-space-new");
             }
 
             const form = document.querySelector("form");
@@ -282,13 +286,11 @@
             const cache_id = Math.floor(Math.random() * max);
             let prompt;
             if (cache_id % 2 == 0) {
-                prompt = `
-                Today is ${new Date().toJSON().slice(0, 10)}.
+                prompt = `Today is ${new Date().toJSON().slice(0, 10)}.
                 Create a single-page HTML screensaver reflecting the current season (based on the date).
                 Avoid using any text.`;
             } else {
                 prompt = `Create a single-page HTML screensaver. Avoid using any text.`;
-                const response = await fetch(`/backend-api/v2/create?prompt=${prompt}&filter_markdown=html&cache=${cache_id}`);
             }
             const response = await fetch(`/backend-api/v2/create?prompt=${prompt}&filter_markdown=html&cache=${cache_id}`);
             const text = await response.text()

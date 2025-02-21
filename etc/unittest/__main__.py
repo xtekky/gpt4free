@@ -1,5 +1,9 @@
 import unittest
 
+import g4f.debug
+
+g4f.debug.version_check = False
+
 from .asyncio import *
 from .backend import *
 from .main import *
