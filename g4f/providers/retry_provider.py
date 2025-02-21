@@ -105,7 +105,7 @@ class IterListProvider(BaseRetryProvider):
                     return
             except Exception as e:
                 exceptions[provider.__name__] = e
-                debug.error(name=f"{provider.__name__} {type(e).__name__}: {e}")
+                debug.error(f"{provider.__name__} {type(e).__name__}: {e}")
                 if started:
                     raise e
                 yield e

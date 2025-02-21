@@ -13,7 +13,6 @@ from ...errors import MissingAuthError
 from ...requests import get_args_from_nodriver, get_nodriver
 from ...providers.response import AuthResult, RequestLogin, Reasoning, JsonConversation, FinishReason
 from ...typing import AsyncResult, Messages
-from ... import debug
 try:
     from curl_cffi import requests
     from dsk.api import DeepSeekAPI, AuthenticationError, DeepSeekPOW

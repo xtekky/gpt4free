@@ -143,7 +143,7 @@ class Api:
         def decorated_log(text: str, file = None):
             debug.logs.append(text)
             if debug.logging:
-                debug.log_handler(text, file)
+                debug.log_handler(text, file=file)
         debug.log = decorated_log
         proxy = os.environ.get("G4F_PROXY")
         provider = kwargs.get("provider")
@@ -187,7 +187,7 @@ class Api:
                             yield self._format_json("conversation_id", conversation_id)
                 elif isinstance(chunk, Exception):
                     logger.exception(chunk)
-                    debug.error(e)
+                    debug.error(chunk)
                     yield self._format_json('message', get_error_message(chunk), error=type(chunk).__name__)
                 elif isinstance(chunk, PreviewResponse):
                     yield self._format_json("preview", chunk.to_string())

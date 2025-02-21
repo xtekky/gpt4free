@@ -8,7 +8,8 @@ import base64
 from typing import AsyncIterator
 
 try:
-    from curl_cffi.requests import Session, CurlMime
+    from curl_cffi.requests import Session
+    from curl_cffi import CurlMime
     has_curl_cffi = True
 except ImportError:
     has_curl_cffi = False
