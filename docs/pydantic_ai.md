@@ -52,7 +52,7 @@ from pydantic_ai import Agent
 
 # Define the agent
 agent = Agent(
-    'g4f:Gemini:Gemini',
+    'g4f:Gemini:Gemini', # g4f:provider:model_name or g4f:model_name
     system_prompt='Be concise, reply with one sentence.',
 )
 ```
