@@ -144,26 +144,26 @@ class AllenAI(AsyncGeneratorProvider, ProviderModelMixin):
                             continue
                         
                         if isinstance(data, dict):
-                            # Оновлюємо батьківський ідентифікатор
+                            # Update the parental ID
                             if data.get("children"):
                                 for child in data["children"]:
                                     if child.get("role") == "assistant":
                                         current_parent = child.get("id")
                                         break
                             
-                            # Обробляємо контент тільки з асистента
+                            # We process content only from the assistant
                             if "message" in data and data.get("content"):
                                 content = data["content"]
                                 # Пропускаємо порожні контент-блоки
                                 if content.strip():
                                     yield content
                             
-                            # Обробляємо фінальну відповідь
+                            # Processing the final response
                             if data.get("final") or data.get("finish_reason") == "stop":
                                 if current_parent:
                                     conversation.parent = current_parent
                                 
-                                # Додаємо повідомлення до історії
+                                # Add a message to the story
                                 conversation.messages.extend([
                                     {"role": "user", "content": format_prompt(messages)},
                                     {"role": "assistant", "content": "".join(conversation.messages[-1]["content"] + content if conversation.messages else content)}
