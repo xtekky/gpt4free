@@ -89,10 +89,10 @@ def scrape_text(html: str, max_words: int = None, add_source=True, count_images:
         if select:
             select.extract()
 
-    image_select = "img[alt][src^=http]:not([alt='']):not(.avatar)"
+    image_select = "img[alt][src^=http]:not([alt='']):not(.avatar):not([width])"
     image_link_select = f"a:has({image_select})"
     yield_words = []
-    for paragraph in soup.select(f"h1, h2, h3, h4, h5, h6, p, table:not(:has(p)), ul:not(:has(p)), {image_link_select}"):
+    for paragraph in soup.select(f"h1, h2, h3, h4, h5, h6, p, pre, table:not(:has(p)), ul:not(:has(p)), {image_link_select}"):
         if count_images > 0:
             image = paragraph.select_one(image_select)
             if image:

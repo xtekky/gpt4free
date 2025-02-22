@@ -416,7 +416,7 @@ def read_links(html: str, base: str) -> set[str]:
 async def download_urls(
     bucket_dir: Path,
     urls: list[str],
-    max_depth: int = 1,
+    max_depth: int = 0,
     loading_urls: set[str] = set(),
     lock: asyncio.Lock = None,
     delay: int = 3,
@@ -515,7 +515,7 @@ def stream_chunks(bucket_dir: Path, delete_files: bool = False, refine_chunks_wi
     if refine_chunks_with_spacy:
         for chunk in stream_read_parts_and_refine(bucket_dir, delete_files):
             if event_stream:
-                size += len(chunk.decode('utf-8'))
+                size += len(chunk.encode())
                 yield f'data: {json.dumps({"action": "refine", "size": size})}\n\n'
             else:
                 yield chunk
@@ -524,7 +524,7 @@ def stream_chunks(bucket_dir: Path, delete_files: bool = False, refine_chunks_wi
         streaming = cache_stream(streaming, bucket_dir)
         for chunk in streaming:
             if event_stream:
-                size += len(chunk.decode('utf-8'))
+                size += len(chunk.encode())
                 yield f'data: {json.dumps({"action": "load", "size": size})}\n\n'
             else:
                 yield chunk

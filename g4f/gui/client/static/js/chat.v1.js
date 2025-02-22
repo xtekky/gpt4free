@@ -402,7 +402,7 @@ const handle_ask = async (do_ask_gpt = true) => {
     await add_conversation(window.conversation_id);
 
     // Is message a url?
-    const expression = /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/gi;
+    const expression = /^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)$/gi;
     const regex = new RegExp(expression);
     if (message.match(regex)) {
         paperclip.classList.add("blink");
