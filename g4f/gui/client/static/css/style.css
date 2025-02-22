@@ -768,11 +768,10 @@ form input:checked+label {
 }
 
 .settings .bottom_buttons {
-    flex-direction: column;
+    padding-bottom: 50px;
 }
 
 .settings .bottom_buttons button {
-    display: inline-block;
     max-width: 210px;
     width: 100%;
 }
@@ -858,6 +857,10 @@ button.regenerate_button, button.continue_button, button.options_button {
     backdrop-filter: none;
 }
 
+button.options_button {
+    margin-left: auto;
+}
+
 .buttons button.pinned span {
     max-width: 160px;
     overflow: hidden;
@@ -938,6 +941,20 @@ input.model:hover
 .pswp__custom-caption a {
     color: #fff;
     text-decoration: underline;
+}
+.pswp__button--playpause-button {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    margin-left: 6px;
+}
+.pswp__progress-bar {
+    position: fixed;
+    bottom: 0;
+
+    /* default position is "top", from the `progressBarPosition` option,
+        need to reset it for this example */
+    top: auto !important;
 }
 
 .slide-systemPrompt {
@@ -1026,6 +1043,7 @@ input.model:hover
 .mem0 button span {
     color: var(--colour-3);
     font-weight: 500;
+    text-decoration: none;
 }
 
 .conversations .top {
@@ -1145,7 +1163,7 @@ ul {
     }
 
     .settings h3 {
-        padding-left: 54px;
+        padding-left: 14px;
         padding-top: 18px;
     }
 
@@ -1162,10 +1180,6 @@ ul {
 
     #chatPrompt {
         padding-left: 60px;
-    }
-
-    .settings h3 {
-        text-align: center;
     }
 
     .field.collapsible {

@@ -19,6 +19,8 @@ from ... import version, models
 from ... import ChatCompletion, get_model_and_provider
 from ... import debug
 
+logger = logging.getLogger(__name__)
+
 conversations: dict[dict[str, BaseConversation]] = {}
 
 class Api:
@@ -184,6 +186,7 @@ class Api:
                         else:
                             yield self._format_json("conversation_id", conversation_id)
                 elif isinstance(chunk, Exception):
+                    logger.exception(chunk)
                     debug.error(chunk)
                     yield self._format_json('message', get_error_message(chunk), error=type(chunk).__name__)
                 elif isinstance(chunk, PreviewResponse):
@@ -219,6 +222,7 @@ class Api:
                     yield self._format_json("content", str(chunk))
                 yield from self._yield_logs()
         except Exception as e:
+            logger.exception(e)
             debug.error(e)
             yield from self._yield_logs()
             yield self._format_json('error', type(e).__name__, message=get_error_message(e))

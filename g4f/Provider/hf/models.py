@@ -4,7 +4,7 @@ image_models = [
     default_image_model,
     "black-forest-labs/FLUX.1-schnell",
 ]
-fallback_models = [
+text_models = [
     default_model,
     'meta-llama/Llama-3.3-70B-Instruct',
     'CohereForAI/c4ai-command-r-plus-08-2024',
@@ -15,7 +15,8 @@ fallback_models = [
     'meta-llama/Llama-3.2-11B-Vision-Instruct',
     'mistralai/Mistral-Nemo-Instruct-2407',
     'microsoft/Phi-3.5-mini-instruct',
-] + image_models
+]
+fallback_models = text_models + image_models
 model_aliases = {
     ### Chat ###
     "qwen-2.5-72b": "Qwen/Qwen2.5-Coder-32B-Instruct",

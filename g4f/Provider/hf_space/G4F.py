@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from aiohttp import ClientSession
 import time
+import random
 import asyncio
 
 from ...typing import AsyncResult, Messages
@@ -40,7 +41,7 @@ class G4F(Janus_Pro_7B):
         height: int = 1024,
         seed: int = None,
         cookies: dict = None,
-        zerogpu_token: str = None,
+        api_key: str = None,
         zerogpu_uuid: str = "[object Object]",
         **kwargs
     ) -> AsyncResult:
@@ -53,7 +54,7 @@ class G4F(Janus_Pro_7B):
                 height=height,
                 seed=seed,
                 cookies=cookies,
-                zerogpu_token=zerogpu_token,
+                api_key=api_key,
                 zerogpu_uuid=zerogpu_uuid,
                 **kwargs
             ):
@@ -66,7 +67,7 @@ class G4F(Janus_Pro_7B):
                 prompt=prompt,
                 seed=seed,
                 cookies=cookies, 
-                zerogpu_token=zerogpu_token,
+                api_key=api_key,
                 zerogpu_uuid=zerogpu_uuid,
                 **kwargs
             ):
@@ -79,7 +80,7 @@ class G4F(Janus_Pro_7B):
         if prompt is None:
             prompt = format_image_prompt(messages)
         if seed is None:
-            seed = int(time.time())
+            seed = random.randint(9999, 2**32 - 1)
 
         payload = {
             "data": [
@@ -96,11 +97,11 @@ class G4F(Janus_Pro_7B):
             "trigger_id": 10
         }
         async with ClientSession() as session:
-            if zerogpu_token is None:
+            if api_key is None:
                 yield Reasoning(status="Acquiring GPU Token")
-                zerogpu_uuid, zerogpu_token = await get_zerogpu_token(cls.space, session, JsonConversation(), cookies)
+                zerogpu_uuid, api_key = await get_zerogpu_token(cls.space, session, JsonConversation(), cookies)
             headers = {
-                "x-zerogpu-token": zerogpu_token,
+                "x-zerogpu-token": api_key,
                 "x-zerogpu-uuid": zerogpu_uuid,
             }
             headers = {k: v for k, v in headers.items() if v is not None}

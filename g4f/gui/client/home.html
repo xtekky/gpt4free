@@ -224,15 +224,15 @@
     </div>
     <script>
         const iframe = document.querySelector('.stream-widget');
-        const rand_idx = Math.floor(Math.random() * 9)
+        const rand_idx = Math.floor(Math.random() * 12)
         if (rand_idx < 3) {
             search = "xtekky/gpt4free releases";
-        } else if (rand_idx < 5) {
+        } else if (rand_idx < 6) {
             search = "developer news";
         } else {
             search = (navigator.language == "de" ? "news in deutsch" : navigator.language == "en" ? "world news" : `news in ${navigator.language}`);
         }
-        const summary_prompt = "Give a summary of the provided text in ```markdown``` format. Add maybe one or more images.";
+        const summary_prompt = "Present the news from the search results in a clear and organized markdown format. Include a headline, a brief summary, key points, and one or more relevant images with proper attribution. Ensure the content is concise, well-structured, and visually appealing.";
         const url = `/backend-api/v2/create?prompt=${summary_prompt}&stream=1&web_search=${search}`;
         iframe.src = url;
         const message = "Loading...";
@@ -265,7 +265,7 @@
             if (!i.contentWindow || !i.contentDocument) {
                 return;
             }
-            clientHeight = i.contentDocument.body.scrollHeight;
+            clientHeight = i.contentDocument.body?.scrollHeight;
             i.contentWindow.scrollTo(0, clientHeight);
             if (clientHeight - i.contentWindow.scrollY < 2 * clientHeight) {
                 setTimeout(scroll_to_bottom_callback, 1000);

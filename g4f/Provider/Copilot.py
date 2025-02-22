@@ -4,11 +4,11 @@ import os
 import json
 import asyncio
 import base64
-from http.cookiejar import CookieJar
 from urllib.parse import quote
 
 try:
-    from curl_cffi.requests import Session, CurlWsFlag
+    from curl_cffi.requests import Session
+    from curl_cffi import CurlWsFlag
     has_curl_cffi = True
 except ImportError:
     has_curl_cffi = False
@@ -55,7 +55,7 @@ class Copilot(AbstractProvider, ProviderModelMixin):
     conversation_url = f"{url}/c/api/conversations"
 
     _access_token: str = None
-    _cookies: CookieJar = None
+    _cookies: dict = None
 
     @classmethod
     def create_completion(
@@ -86,9 +86,7 @@ class Copilot(AbstractProvider, ProviderModelMixin):
                 except NoValidHarFileError as h:
                     debug.log(f"Copilot: {h}")
                     if has_nodriver:
-                        login_url = os.environ.get("G4F_LOGIN_URL")
-                        if login_url:
-                            yield RequestLogin(cls.label, login_url)
+                        yield RequestLogin(cls.label, os.environ.get("G4F_LOGIN_URL", ""))
                         get_running_loop(check_nested=True)
                         cls._access_token, cls._cookies = asyncio.run(get_access_token_and_cookies(cls.url, proxy))
                     else:
@@ -104,7 +102,7 @@ class Copilot(AbstractProvider, ProviderModelMixin):
             cookies=cls._cookies,
         ) as session:
             if cls._access_token is not None:
-                cls._cookies = session.cookies.jar
+                cls._cookies = session.cookies.jar if hasattr(session.cookies, "jar") else session.cookies
             # if cls._access_token is None:
             #     try:
             #         url = "https://copilot.microsoft.com/cl/eus-sc/collect"
@@ -203,8 +201,7 @@ class Copilot(AbstractProvider, ProviderModelMixin):
                 if not is_started:
                     raise RuntimeError(f"Invalid response: {last_msg}")
             finally:
-                yield Parameters(**{"conversation": conversation.get_dict(), "user": user, "prompt": prompt})
-                yield Parameters(**{"cookies": {c.name: c.value for c in session.cookies.jar}})
+                wss.close()
 
 async def get_access_token_and_cookies(url: str, proxy: str = None, target: str = "ChatAI",):
     browser, stop_browser = await get_nodriver(proxy=proxy, user_data_dir="copilot")
