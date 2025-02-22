@@ -7,6 +7,9 @@ from dataclasses import dataclass, field
 from pydantic_ai.models import Model, KnownModelName, infer_model
 from pydantic_ai.models.openai import OpenAIModel, OpenAISystemPromptRole
 
+import pydantic_ai.models.openai
+pydantic_ai.models.openai.NOT_GIVEN = None
+
 from ..client import AsyncClient
 
 @dataclass(init=False)
@@ -62,10 +65,8 @@ def new_infer_model(model: Model | KnownModelName, api_key: str = None) -> Model
         return AIModel(model)
     return infer_model(model)
 
-def apply_patch(api_key: str | None = None):
+def patch_infer_model(api_key: str | None = None):
     import pydantic_ai.models
-    import pydantic_ai.models.openai
 
     pydantic_ai.models.infer_model = partial(new_infer_model, api_key=api_key)
     pydantic_ai.models.AIModel = AIModel
-    pydantic_ai.models.openai.NOT_GIVEN = None
