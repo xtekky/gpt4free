@@ -21,12 +21,12 @@ pip install g4f pydantic_ai
 
 ### 1. Patch PydanticAI to Use G4F Models
 
-In order to use PydanticAI with G4F models, you need to apply the necessary patch to the client. This can be done by importing `apply_patch` from `g4f.tools.pydantic_ai`. The `api_key` parameter is optional, so if you have one, you can provide it. If not, the system will proceed without it.
+In order to use PydanticAI with G4F models, you need to apply the necessary patch to the client. This can be done by importing `patch_infer_model` from `g4f.tools.pydantic_ai`. The `api_key` parameter is optional, so if you have one, you can provide it. If not, the system will proceed without it.
 
 ```python
-from g4f.tools.pydantic_ai import apply_patch
+from g4f.tools.pydantic_ai import patch_infer_model
 
-apply_patch(api_key="your_api_key_here")  # Optional
+patch_infer_model(api_key="your_api_key_here")  # Optional
 ```
 
 If you don't have an API key, simply omit the `api_key` argument.
@@ -83,12 +83,58 @@ The phrase "hello world" is commonly used in programming tutorials to demonstrat
 
 For example, you can process your query or interact with external systems before passing the data to the agent.
 
+---
+
+### Simple Example without `patch_infer_model`
+
+```python
+from pydantic_ai import Agent
+from g4f.tools.pydantic_ai import AIModel
+
+agent = Agent(
+    AIModel("gpt-4o"),
+)
+
+result = agent.run_sync('Are you gpt-4o?')
+print(result.data)
+```
+
+This example shows how to initialize an agent with a specific model (`gpt-4o`) and run it synchronously.
+
+---
+
+### Full Example with Tool Calls:
+
+```python
+from pydantic import BaseModel
+from pydantic_ai import Agent
+from pydantic_ai.models import ModelSettings
+from g4f.tools.pydantic_ai import patch_infer_model
+
+patch_infer_model("your_api_key")
+
+class MyModel(BaseModel):
+    city: str
+    country: str
+
+agent = Agent('g4f:Groq:llama3-70b-8192', result_type=MyModel, model_settings=ModelSettings(temperature=0))
+
+if __name__ == '__main__':
+    result = agent.run_sync('The windy city in the US of A.')
+    print(result.data)
+    print(result.usage())
+```
+
+This example demonstrates the use of a custom Pydantic model (`MyModel`) to capture structured data (city and country) from the response and running the agent with specific model settings.
+
+---
+
 ## Conclusion
 
 By following these steps, you have successfully integrated PydanticAI models into the G4F client, created an agent, and enabled debugging. This allows you to conduct conversations with the language model, pass system prompts, and retrieve responses synchronously.
 
 ### Notes:
-- The `api_key` parameter when calling `apply_patch` is optional. If you don’t provide it, the system will still work without an API key.
+- The `api_key` parameter when calling `patch_infer_model` is optional. If you don’t provide it, the system will still work without an API key.
 - Modify the agent’s `system_prompt` to suit the nature of the conversation you wish to have.
 - **Tool calls within AI requests are not fully supported** at the moment. Use the agent's basic functionality for generating responses and handle external calls separately.
 

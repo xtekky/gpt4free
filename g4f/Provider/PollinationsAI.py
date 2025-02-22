@@ -39,7 +39,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
     default_model = "openai"
     default_image_model = "flux"
     default_vision_model = "gpt-4o"
-    extra_image_models = ["flux-pro", "flux-dev", "flux-schnell", "midjourney", "dall-e-3"]
+    image_models = ["flux-pro", "flux-dev", "flux-schnell", "midjourney", "dall-e-3", "turbo"]
     vision_models = [default_vision_model, "gpt-4o-mini"]
     extra_text_models = ["claude", "claude-email", "deepseek-reasoner", "deepseek-r1"] + vision_models
     model_aliases = {
@@ -67,7 +67,6 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         "sdxl-turbo": "turbo",
     }
     text_models = []
-    image_models = []
 
     @classmethod
     def get_models(cls, **kwargs):
@@ -76,7 +75,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                 image_response = requests.get("https://image.pollinations.ai/models")
                 image_response.raise_for_status()
                 new_image_models = image_response.json()
-                cls.image_models = list(dict.fromkeys([*cls.extra_image_models, *new_image_models]))
+                cls.image_models = list(dict.fromkeys([*cls.image_models, *new_image_models]))
                 
                 text_response = requests.get("https://text.pollinations.ai/models")
                 text_response.raise_for_status()

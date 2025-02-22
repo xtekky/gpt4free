@@ -19,7 +19,7 @@ from ... import debug
 from ...typing import Messages, Cookies, ImagesType, AsyncResult, AsyncIterator
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..helper import format_prompt, get_cookies
-from ...providers.response import JsonConversation, SynthesizeData, RequestLogin, ImageResponse
+from ...providers.response import JsonConversation, Reasoning, RequestLogin, ImageResponse
 from ...requests.raise_for_status import raise_for_status
 from ...requests.aiohttp import get_connector
 from ...requests import get_nodriver
@@ -53,6 +53,17 @@ UPLOAD_IMAGE_HEADERS = {
     "x-tenant-id": "bard-storage",
 }
 
+models = {
+    "gemini-2.0-flash": {"x-goog-ext-525001261-jspb": '[null,null,null,null,"f299729663a2343f"]'},
+    "gemini-2.0-flash-exp": {"x-goog-ext-525001261-jspb": '[null,null,null,null,"f299729663a2343f"]'},
+    "gemini-2.0-flash-thinking": {"x-goog-ext-525001261-jspb": '[null,null,null,null,"9c17b1863f581b8a"]'},
+    "gemini-2.0-flash-thinking-with-apps": {"x-goog-ext-525001261-jspb": '[null,null,null,null,"f8f8f5ea629f5d37"]'},
+    "gemini-2.0-exp-advanced": {"x-goog-ext-525001261-jspb": '[null,null,null,null,"b1e46a6037e6aa9f"]'},
+    "gemini-1.5-flash": {"x-goog-ext-525001261-jspb": '[null,null,null,null,"418ab5ea040b5c43"]'},
+    "gemini-1.5-pro": {"x-goog-ext-525001261-jspb": '[null,null,null,null,"9d60dfae93c9ff1f"]'},
+    "gemini-1.5-pro-research": {"x-goog-ext-525001261-jspb": '[null,null,null,null,"e5a44cb1dae2b489"]'},
+}
+
 class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Google Gemini"
     url = "https://gemini.google.com"
@@ -61,11 +72,14 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
     working = True
     use_nodriver = True
     
-    default_model = 'gemini'
+    default_model = ""
     default_image_model = default_model
     default_vision_model = default_model
     image_models = [default_image_model]
-    models = [default_model, "gemini-2.0"]
+    models = [
+        default_model, *models.keys()
+    ]
+    model_aliases = {"gemini-2.0": ""}
 
     synthesize_content_type = "audio/vnd.wav"
     
@@ -131,7 +145,6 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
             if not cls._snlm0e:
                 raise RuntimeError("Invalid cookies. SNlM0e not found")
 
-            yield SynthesizeData(cls.__name__, {"text": messages[-1]["content"]})
             images = await cls.upload_images(base_connector, images) if images else None
             async with ClientSession(
                 cookies=cls._cookies,
@@ -158,6 +171,7 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
                     REQUEST_URL,
                     data=data,
                     params=params,
+                    headers=models[model] if model in models else None
                 ) as response:
                     await raise_for_status(response)
                     image_prompt = response_part = None
@@ -177,7 +191,23 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
                                 continue
                             if return_conversation:
                                 yield Conversation(response_part[1][0], response_part[1][1], response_part[4][0][0])
+                            def read_recusive(data):
+                                for item in data:
+                                    if isinstance(item, list):
+                                        yield from read_recusive(item)
+                                    elif isinstance(item, str) and not item.startswith("rc_"):
+                                        yield item
+                            def find_str(data, skip=0):
+                                for item in read_recusive(data):
+                                    if skip > 0:
+                                        skip -= 1
+                                        continue
+                                    yield item
+                            reasoning = "".join(find_str(response_part[4][0], 3))
                             content = response_part[4][0][1][0]
+                            if reasoning:
+                                yield Reasoning(status="🤔")
+                                yield Reasoning(reasoning)
                         except (ValueError, KeyError, TypeError, IndexError) as e:
                             debug.error(f"{cls.__name__} {type(e).__name__}: {e}")
                             continue

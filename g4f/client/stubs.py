@@ -26,12 +26,15 @@ class BaseModel(BaseModel):
             return super().model_construct(**data)
         return cls.construct(**data)
 
+class TokenDetails(BaseModel):
+    pass
+
 class UsageModel(BaseModel):
     prompt_tokens: int
     completion_tokens: int
     total_tokens: int
-    prompt_tokens_details: Optional[Dict[str, Any]]
-    completion_tokens_details: Optional[Dict[str, Any]]
+    prompt_tokens_details: TokenDetails
+    completion_tokens_details: TokenDetails
 
     @classmethod
     def model_construct(cls, prompt_tokens=0, completion_tokens=0, total_tokens=0, prompt_tokens_details=None, completion_tokens_details=None, **kwargs):
@@ -39,8 +42,8 @@ class UsageModel(BaseModel):
             prompt_tokens=prompt_tokens,
             completion_tokens=completion_tokens,
             total_tokens=total_tokens,
-            prompt_tokens_details=prompt_tokens_details,
-            completion_tokens_details=completion_tokens_details,
+            prompt_tokens_details=TokenDetails.model_construct(**prompt_tokens_details) if prompt_tokens_details else None,
+            completion_tokens_details=TokenDetails.model_construct(**completion_tokens_details) if completion_tokens_details else None,
             **kwargs
         )
 

@@ -157,7 +157,7 @@ def get_filenames(bucket_dir: Path):
 def stream_read_files(bucket_dir: Path, filenames: list, delete_files: bool = False) -> Iterator[str]:
     for filename in filenames:
         file_path: Path = bucket_dir / filename
-        if not file_path.exists() and 0 > file_path.lstat().st_size:
+        if not file_path.exists() or file_path.lstat().st_size <= 0:
             continue
         extension = os.path.splitext(filename)[1][1:]
         if filename.endswith(".zip"):
@@ -453,6 +453,8 @@ async def download_urls(
                         async for chunk in response.content.iter_chunked(4096):
                             if b'<link rel="canonical"' not in chunk:
                                 f.write(chunk.replace(b'</head>', f'<link rel="canonical" href="{response.url}">\n</head>'.encode()))
+                            else:
+                                f.write(chunk)
                     return filename
             except (ClientError, asyncio.TimeoutError) as e:
                 debug.log(f"Download failed: {e.__class__.__name__}: {e}")

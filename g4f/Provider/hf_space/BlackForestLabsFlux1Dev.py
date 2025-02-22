@@ -62,7 +62,7 @@ class BlackForestLabsFlux1Dev(AsyncGeneratorProvider, ProviderModelMixin):
         seed: int = 0,
         randomize_seed: bool = True,
         cookies: dict = None,
-        zerogpu_token: str = None,
+        api_key: str = None,
         zerogpu_uuid: str = "[object Object]",
         **kwargs
     ) -> AsyncResult:
@@ -70,7 +70,7 @@ class BlackForestLabsFlux1Dev(AsyncGeneratorProvider, ProviderModelMixin):
         async with StreamSession(impersonate="chrome", proxy=proxy) as session:
             prompt = format_image_prompt(messages, prompt)
             data = [prompt, seed, randomize_seed, width, height, guidance_scale, num_inference_steps]
-            conversation = JsonConversation(zerogpu_token=zerogpu_token, zerogpu_uuid=zerogpu_uuid, session_hash=uuid.uuid4().hex)
+            conversation = JsonConversation(zerogpu_token=api_key, zerogpu_uuid=zerogpu_uuid, session_hash=uuid.uuid4().hex)
             if conversation.zerogpu_token is None:
                 conversation.zerogpu_uuid, conversation.zerogpu_token = await get_zerogpu_token(cls.space, session, conversation, cookies)
             async with cls.run(f"post", session, conversation, data) as response:

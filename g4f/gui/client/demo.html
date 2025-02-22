@@ -183,13 +183,21 @@
             const isIframe = window.self !== window.top;
             const backendUrl = "{{backend_url}}";
             let url = new URL(window.location.href)
+            let params = new URLSearchParams(url.search);
             if (isIframe && backendUrl) {
-                window.location.replace(url.search ? `${backendUrl}?${url.search}` : backendUrl);
+                if (params.get("get_gpu_token")) {
+                    window.addEventListener('DOMContentLoaded', async function() {
+                        const link = document.getElementById("new_window");
+                        link.href = `${backendUrl}${url.search}`;
+                        link.click();
+                    });
+                } else {
+                    window.location.replace(`${backendUrl}${url.search}`);
+                }
                 return;
             }
-            let params = new URLSearchParams(url.search);
             if (params.get("__sign")) {
-                localStorage.setItem("zerogpu_token", params.get("__sign"));
+                localStorage.setItem("HuggingSpace-api_key", params.get("__sign"));
                 if (!isIframe) {
                     window.location.replace("/");
                 }
@@ -226,7 +234,7 @@
         <form action="/chat/">
             <input type="text" name="token" class="input-field" placeholder="Enter an Access Token..." autocomplete="off">
             <div class="button-container">
-                <a href="" class="button hidden" target="_blank">New Window</a>
+                <a id="new_window" href="" class="button hidden" target="_blank">New Window</a>
                 <button class="button">Submit</button>
             </div>
             <p>

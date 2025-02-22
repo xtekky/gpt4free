@@ -18,7 +18,7 @@ from ..typing import CreateResult, AsyncResult, Messages
 from .types import BaseProvider
 from .asyncio import get_running_loop, to_sync_generator, to_async_iterator
 from .response import BaseConversation, AuthResult
-from .helper import concat_chunks, async_concat_chunks
+from .helper import concat_chunks
 from ..cookies import get_cookies_dir
 from ..errors import ModelNotSupportedError, ResponseError, MissingAuthError, NoValidHarFileError
 from .. import debug
@@ -374,7 +374,9 @@ class RaiseErrorMixin():
             raise ResponseError(data["error_message"])
         elif "error" in data:
             if "code" in data["error"]:
-                raise ResponseError(f'Error {data["error"]["code"]}: {data["error"]["message"]}')
+                raise ResponseError("\n".join(
+                    [e for e in [f'Error {data["error"]["code"]}: {data["error"]["message"]}', data["error"].get("failed_generation")] if e is not None]
+                ))
             elif "message" in data["error"]:
                 raise ResponseError(data["error"]["message"])
             else:
@@ -434,8 +436,8 @@ class AsyncAuthedProvider(AsyncGeneratorProvider):
                 raise MissingAuthError
             yield from to_sync_generator(cls.create_authed(model, messages, auth_result, **kwargs))
         except (MissingAuthError, NoValidHarFileError):
-            auth_result = cls.on_auth(**kwargs)
-            for chunk in auth_result:
+            response = cls.on_auth(**kwargs)
+            for chunk in response:
                 if isinstance(chunk, AuthResult):
                     auth_result = chunk
                 else:
@@ -465,8 +467,8 @@ class AsyncAuthedProvider(AsyncGeneratorProvider):
         except (MissingAuthError, NoValidHarFileError):
             if cache_file.exists():
                 cache_file.unlink()
-            auth_result = cls.on_auth_async(**kwargs)
-            async for chunk in auth_result:
+            response = cls.on_auth_async(**kwargs)
+            async for chunk in response:
                 if isinstance(chunk, AuthResult):
                     auth_result = chunk
                 else:
