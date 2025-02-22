@@ -871,7 +871,7 @@ const ask_gpt = async (message_id, message_index = -1, regenerate = false, provi
     stop_generating.classList.remove("stop_generating-hidden");
     let scroll = true;
     if (message_index >= 0 && parseInt(message_index) + 1 < conversation.items.length) {
-        scroll = false;finish_message
+        scroll = false;
     }
 
     if (scroll) {

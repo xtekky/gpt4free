@@ -197,13 +197,13 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
                                         yield from read_recusive(item)
                                     elif isinstance(item, str) and not item.startswith("rc_"):
                                         yield item
-                            def first_str(data, skip=0):
+                            def find_str(data, skip=0):
                                 for item in read_recusive(data):
                                     if skip > 0:
                                         skip -= 1
                                         continue
                                     yield item
-                            reasoning = "".join(first_str(response_part[4][0], 3))
+                            reasoning = "".join(find_str(response_part[4][0], 3))
                             content = response_part[4][0][1][0]
                             if reasoning:
                                 yield Reasoning(status="🤔")
