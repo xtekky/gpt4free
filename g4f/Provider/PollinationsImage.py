@@ -10,7 +10,6 @@ class PollinationsImage(PollinationsAI):
     default_model = "flux"
     default_vision_model = None
     default_image_model = default_model
-    image_models = [default_image_model]
 
     @classmethod
     def get_models(cls, **kwargs):

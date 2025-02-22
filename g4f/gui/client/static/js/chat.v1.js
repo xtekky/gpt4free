@@ -23,6 +23,7 @@ const album             = document.querySelector(".images");
 const log_storage       = document.querySelector(".log");
 const switchInput       = document.getElementById("switch");
 const searchButton      = document.getElementById("search");
+const paperclip         = document.querySelector(".user-input .fa-paperclip");
 
 const optionElementsSelector = ".settings input, .settings textarea, #model, #model2, #provider";
 
@@ -400,6 +401,23 @@ const handle_ask = async (do_ask_gpt = true) => {
     await count_input()
     await add_conversation(window.conversation_id);
 
+    // Is message a url?
+    const expression = /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)/gi;
+    const regex = new RegExp(expression);
+    if (message.match(regex)) {
+        paperclip.classList.add("blink");
+        const blob = new Blob([JSON.stringify([{url: message}])], { type: 'application/json' });
+        const file = new File([blob], 'downloads.json', { type: 'application/json' }); // Create File object
+        let formData = new FormData();
+        formData.append('files', file); // Append as a file
+        const bucket_id = uuid();
+        await fetch(`/backend-api/v2/files/${bucket_id}`, {
+            method: 'POST',
+            body: formData
+        });
+        connectToSSE(`/backend-api/v2/files/${bucket_id}`, false, bucket_id); //Retrieve and refine
+        return;
+    }
     let message_index = await add_message(window.conversation_id, "user", message);
     let message_id = get_message_id();
 
@@ -1990,6 +2008,7 @@ async function on_api() {
         providerSelect.innerHTML = `
             <option value="" selected="selected">Demo Mode</option>
             <option value="Feature">Feature Provider</option>
+            <option value="PollinationsAI">Pollinations AI</option>
             <option value="G4F">G4F framework</option>
             <option value="HuggingFace">HuggingFace</option>
             <option value="HuggingSpace">HuggingSpace</option>
@@ -2248,14 +2267,51 @@ function formatFileSize(bytes) {
     return `${bytes.toFixed(2)} ${units[unitIndex]}`;
 }
 
+function connectToSSE(url, do_refine, bucket_id) {
+    const eventSource = new EventSource(url);
+    eventSource.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        if (data.error) {
+            inputCount.innerText = `Error: ${data.error.message}`;
+            paperclip.classList.remove("blink");
+            fileInput.value = "";
+        } else if (data.action == "load") {
+            inputCount.innerText = `Read data: ${formatFileSize(data.size)}`;
+        } else if (data.action == "refine") {
+            inputCount.innerText = `Refine data: ${formatFileSize(data.size)}`;
+        } else if (data.action == "download") {
+            inputCount.innerText = `Download: ${data.count} files`;
+        } else if (data.action == "done") {
+            if (do_refine) {
+                do_refine = false;
+                connectToSSE(`/backend-api/v2/files/${bucket_id}?refine_chunks_with_spacy=true`, do_refine, bucket_id);
+                return;
+            }
+            appStorage.setItem(`bucket:${bucket_id}`, data.size);
+            inputCount.innerText = "Files are loaded successfully";
+            if (!messageInput.value) {
+                messageInput.value = JSON.stringify({bucket_id: bucket_id});
+                handle_ask(false);
+            } else {
+                messageInput.value += (messageInput.value ? "\n" : "") + JSON.stringify({bucket_id: bucket_id}) + "\n";
+                paperclip.classList.remove("blink");
+                fileInput.value = "";
+            }
+        }
+    };
+    eventSource.onerror = (event) => {
+        eventSource.close();
+        paperclip.classList.remove("blink");
+    }
+}
+
 async function upload_files(fileInput) {
-    const paperclip = document.querySelector(".user-input .fa-paperclip");
     const bucket_id = uuid();
     paperclip.classList.add("blink");
 
     const formData = new FormData();
     Array.from(fileInput.files).forEach(file => {
-        formData.append('files[]', file);
+        formData.append('files', file);
     });
     await fetch("/backend-api/v2/files/" + bucket_id, {
         method: 'POST',
@@ -2263,44 +2319,7 @@ async function upload_files(fileInput) {
     });
 
     let do_refine = document.getElementById("refine")?.checked;
-    function connectToSSE(url) {
-        const eventSource = new EventSource(url);
-        eventSource.onmessage = (event) => {
-            const data = JSON.parse(event.data);
-            if (data.error) {
-                inputCount.innerText = `Error: ${data.error.message}`;
-                paperclip.classList.remove("blink");
-                fileInput.value = "";
-            } else if (data.action == "load") {
-                inputCount.innerText = `Read data: ${formatFileSize(data.size)}`;
-            } else if (data.action == "refine") {
-                inputCount.innerText = `Refine data: ${formatFileSize(data.size)}`;
-            } else if (data.action == "download") {
-                inputCount.innerText = `Download: ${data.count} files`;
-            } else if (data.action == "done") {
-                if (do_refine) {
-                    do_refine = false;
-                    connectToSSE(`/backend-api/v2/files/${bucket_id}?refine_chunks_with_spacy=true`);
-                    return;
-                }
-                appStorage.setItem(`bucket:${bucket_id}`, data.size);
-                inputCount.innerText = "Files are loaded successfully";
-                if (!messageInput.value) {
-                    messageInput.value = JSON.stringify({bucket_id: bucket_id});
-                    handle_ask(false);
-                } else {
-                    messageInput.value += (messageInput.value ? "\n" : "") + JSON.stringify({bucket_id: bucket_id}) + "\n";
-                    paperclip.classList.remove("blink");
-                    fileInput.value = "";
-                }
-            }
-        };
-        eventSource.onerror = (event) => {
-            eventSource.close();
-            paperclip.classList.remove("blink");
-        }
-    }
-    connectToSSE(`/backend-api/v2/files/${bucket_id}`);
+    connectToSSE(`/backend-api/v2/files/${bucket_id}`, do_refine, bucket_id);
 }
 
 fileInput.addEventListener('change', async (event) => {
@@ -2416,7 +2435,7 @@ async function api(ressource, args=null, files=null, message_id=null, scroll=tru
         if (files !== null) {
             const formData = new FormData();
             for (const file of files) {
-                formData.append('files[]', file)
+                formData.append('files', file)
             }
             formData.append('json', body);
             body = formData;

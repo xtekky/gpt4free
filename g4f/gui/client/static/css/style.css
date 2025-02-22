@@ -942,6 +942,20 @@ input.model:hover
     color: #fff;
     text-decoration: underline;
 }
+.pswp__button--playpause-button {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    margin-left: 6px;
+}
+.pswp__progress-bar {
+    position: fixed;
+    bottom: 0;
+
+    /* default position is "top", from the `progressBarPosition` option,
+        need to reset it for this example */
+    top: auto !important;
+}
 
 .slide-systemPrompt {
     position: absolute;

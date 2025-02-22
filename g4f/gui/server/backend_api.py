@@ -124,9 +124,9 @@ class Backend_Api(Api):
                 Response: A Flask response object for streaming.
             """
             kwargs = {}
-            if "files[]" in request.files:
+            if "files" in request.files:
                 images = []
-                for file in request.files.getlist('files[]'):
+                for file in request.files.getlist('files'):
                     if file.filename != '' and is_allowed_extension(file.filename):
                         images.append((to_image(file.stream, file.filename.endswith('.svg')), file.filename))
                 kwargs['images'] = images
@@ -135,7 +135,7 @@ class Backend_Api(Api):
             else:
                 json_data = request.json
 
-            if app.demo and json_data.get("provider") not in ["Custom", "Feature", "HuggingFace", "HuggingSpace", "HuggingChat", "G4F"]:
+            if app.demo and json_data.get("provider") not in ["Custom", "Feature", "HuggingFace", "HuggingSpace", "HuggingChat", "G4F", "PollinationsAI"]:
                 model = json_data.get("model")
                 if model != "default" and model in models.demo_models:
                     json_data["provider"] = random.choice(models.demo_models[model][1])
@@ -329,7 +329,7 @@ class Backend_Api(Api):
             bucket_dir = get_bucket_dir(bucket_id)
             os.makedirs(bucket_dir, exist_ok=True)
             filenames = []
-            for file in request.files.getlist('files[]'):
+            for file in request.files.getlist('files'):
                 try:
                     filename = secure_filename(file.filename)
                     if supports_filename(filename):

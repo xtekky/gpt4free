@@ -51,6 +51,7 @@ class StreamResponse:
         """Asynchronously enter the runtime context for the response object."""
         inner: Response = await self.inner
         self.inner = inner
+        self.url = inner.url
         self.request = inner.request
         self.status: int = inner.status_code
         self.reason: str = inner.reason
