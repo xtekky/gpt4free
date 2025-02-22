@@ -33,14 +33,22 @@
         };
     </script>
     <script id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
-    <script type="module" src="https://cdn.jsdelivr.net/npm/mistral-tokenizer-js" async>
-        import mistralTokenizer from "mistral-tokenizer-js"
+    <template>
+        <script type="module" src="https://cdn.jsdelivr.net/npm/mistral-tokenizer-js" async>
+            import mistralTokenizer from "mistral-tokenizer-js"
+        </script>
+        <script type="module" src="https://cdn.jsdelivr.net/gh/belladoreai/llama-tokenizer-js@master/llama-tokenizer.js" async>
+            import llamaTokenizer from "llama-tokenizer-js"
+        </script>
+        <script src="https://cdn.jsdelivr.net/npm/gpt-tokenizer/dist/cl100k_base.js" async></script>
+        <script src="https://cdn.jsdelivr.net/npm/gpt-tokenizer/dist/o200k_base.js" async></script>
+    </template>
+    <script>
+        if (localStorage.getItem("countTokens") != "false") {
+            const template = document.head.querySelector('template');
+            document.head.appendChild(template.content);
+        }
     </script>
-    <script type="module" src="https://cdn.jsdelivr.net/gh/belladoreai/llama-tokenizer-js@master/llama-tokenizer.js" async>
-        import llamaTokenizer from "llama-tokenizer-js"
-    </script>
-    <script src="https://cdn.jsdelivr.net/npm/gpt-tokenizer/dist/cl100k_base.js" async></script>
-    <script src="https://cdn.jsdelivr.net/npm/gpt-tokenizer/dist/o200k_base.js" async></script>
     <script type="module" async>
         import PhotoSwipeLightbox from 'https://cdn.jsdelivr.net/npm/photoswipe/dist/photoswipe-lightbox.esm.js';
         const lightbox = new PhotoSwipeLightbox({
@@ -168,6 +176,11 @@
                 <input type="checkbox" id="report_error" checked/>
                 <label for="report_error" class="toogle" title=""></label>
             </div>
+            <div class="field">
+                <span class="label">Count words and tokens</span>
+                <input type="checkbox" id="countTokens" checked/>
+                <label for="countTokens" class="toogle" title=""></label>
+            </div>
             <div class="field box">
                 <label for="systemPrompt" class="label">System prompt</label>
                 <textarea id="systemPrompt" placeholder="You are a helpful assistant." data-example="If you need to generate images, you can use the following format: ![keywords](/generate/filename.jpg). This will enable the use of an image generation tool."></textarea>
@@ -193,7 +206,7 @@
                 <label for="mem0-api_key" class="label" title="">Mem0 API:</label>
                 <input type="text" id="mem0-api_key" name="mem0[api_key]" placeholder="api_key"/>
             </div>
-            <div class="field box">
+            <div class="field box hidden">
                 <label for="Custom-api_base" class="label" title="">Custom Provider (Base Url):</label>
                 <input type="text" id="Custom-api_base" name="Custom[api_base]" placeholder="http://localhost:8080/v1"/>
             </div>
@@ -214,6 +227,10 @@
                 <button onclick="save_storage()">
                     <i class="fa-solid fa-download"></i>
                     <a href="" onclick="return false;">Export Conversations</a>
+                </button>
+                <button onclick="save_storage(true)">
+                    <i class="fa-solid fa-pencil"></i>
+                    <a href="" onclick="return false;">Export Settings</a>
                 </button>
                 <button id="showLog">
                     <i class="fa-solid fa-terminal"></i>

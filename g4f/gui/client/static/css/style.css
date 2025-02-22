@@ -768,11 +768,10 @@ form input:checked+label {
 }
 
 .settings .bottom_buttons {
-    flex-direction: column;
+    padding-bottom: 50px;
 }
 
 .settings .bottom_buttons button {
-    display: inline-block;
     max-width: 210px;
     width: 100%;
 }
@@ -856,6 +855,10 @@ button.regenerate_button, button.continue_button, button.options_button {
     margin-top: -8px;
     margin-left: 2px;
     backdrop-filter: none;
+}
+
+button.options_button {
+    margin-left: auto;
 }
 
 .buttons button.pinned span {
@@ -1026,6 +1029,7 @@ input.model:hover
 .mem0 button span {
     color: var(--colour-3);
     font-weight: 500;
+    text-decoration: none;
 }
 
 .conversations .top {
@@ -1145,7 +1149,7 @@ ul {
     }
 
     .settings h3 {
-        padding-left: 54px;
+        padding-left: 14px;
         padding-top: 18px;
     }
 
@@ -1162,10 +1166,6 @@ ul {
 
     #chatPrompt {
         padding-left: 60px;
-    }
-
-    .settings h3 {
-        text-align: center;
     }
 
     .field.collapsible {

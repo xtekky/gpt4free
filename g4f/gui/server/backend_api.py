@@ -135,7 +135,7 @@ class Backend_Api(Api):
             else:
                 json_data = request.json
 
-            if app.demo and json_data.get("provider") not in ["Custom", "Feature", "HuggingFace", "HuggingSpace", "G4F"]:
+            if app.demo and json_data.get("provider") not in ["Custom", "Feature", "HuggingFace", "HuggingSpace", "HuggingChat", "G4F"]:
                 model = json_data.get("model")
                 if model != "default" and model in models.demo_models:
                     json_data["provider"] = random.choice(models.demo_models[model][1])
@@ -147,8 +147,6 @@ class Backend_Api(Api):
                 limiter_check()
             if "images" in json_data:
                 kwargs["images"] = json_data["images"]
-            if "zerogpu_token" in json_data:
-                kwargs["zerogpu_token"] = json_data["zerogpu_token"]
             kwargs = self._prepare_conversation_kwargs(json_data, kwargs)
             return self.app.response_class(
                 self._create_response_stream(

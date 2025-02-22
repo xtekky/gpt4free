@@ -16,6 +16,7 @@
     "theme_color": "#ffffff",
     "background_color": "#ffffff",
     "display": "standalone",
+    "scope": "/",
     "share_target": {
         "action": "/chat/share",
         "method": "GET",

@@ -128,8 +128,12 @@ async def get_args_from_nodriver(
 def merge_cookies(cookies: Iterator[Morsel], response: Response) -> Cookies:
     if cookies is None:
         cookies = {}
-    for cookie in response.cookies.jar:
-        cookies[cookie.name] = cookie.value
+    if hasattr(response.cookies, "jar"):
+        for cookie in response.cookies.jar:
+            cookies[cookie.name] = cookie.value
+    else:
+        for key, value in response.cookies.items():
+            cookies[key] = value
 
 async def get_nodriver(
     proxy: str = None,

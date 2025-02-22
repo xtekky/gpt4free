@@ -14,6 +14,8 @@ from .Provider import (
     DDG,
     DeepInfraChat,
     HuggingSpace,
+    G4F,
+    Janus_Pro_7B,
     Glider,
     ImageLabs,
     Jmuz,
@@ -481,6 +483,12 @@ deepseek_r1 = Model(
     best_provider = IterListProvider([Blackbox, BlackboxAPI, DeepInfraChat, Glider, PollinationsAI, Jmuz, Liaobots, HuggingChat, HuggingFace])
 )
 
+janus_pro_7b = VisionModel(
+    name = Janus_Pro_7B.default_model,
+    base_provider = 'DeepSeek',
+    best_provider = IterListProvider([Janus_Pro_7B, G4F])
+)
+
 ### x.ai ###
 grok_2 = Model(
     name = 'grok-2',
@@ -822,18 +830,17 @@ class ModelUtils:
 demo_models = {
     "default": [llama_3_2_11b, [HuggingFace]],
     qwen_2_vl_7b.name: [qwen_2_vl_7b, [HuggingFaceAPI]],
-    qvq_72b.name: [qvq_72b, [HuggingSpace]],
-    deepseek_r1.name: [deepseek_r1, [HuggingFace]],
+    deepseek_r1.name: [deepseek_r1, [HuggingFace, PollinationsAI]],
+    janus_pro_7b.name: [janus_pro_7b, [HuggingSpace, G4F]],
     command_r.name: [command_r, [HuggingSpace]],
     command_r_plus.name: [command_r_plus, [HuggingSpace]],
     command_r7b.name: [command_r7b, [HuggingSpace]],
-    qwen_2_72b.name: [qwen_2_72b, [HuggingSpace]],
     qwen_2_5_coder_32b.name: [qwen_2_5_coder_32b, [HuggingFace]],
     qwq_32b.name: [qwq_32b, [HuggingFace]],
     llama_3_3_70b.name: [llama_3_3_70b, [HuggingFace]],
     sd_3_5.name: [sd_3_5, [HuggingSpace, HuggingFace]],
-    flux_dev.name: [flux_dev, [PollinationsImage, HuggingSpace, HuggingFace]],
-    flux_schnell.name: [flux_schnell, [HuggingFace, HuggingSpace, PollinationsImage]],
+    flux_dev.name: [flux_dev, [PollinationsImage, HuggingSpace, HuggingFace, G4F]],
+    flux_schnell.name: [flux_schnell, [PollinationsImage, HuggingFace, HuggingSpace, G4F]],
 }
 
 # Create a list of all models and his providers
