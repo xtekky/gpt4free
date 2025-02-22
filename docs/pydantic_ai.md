@@ -85,7 +85,7 @@ For example, you can process your query or interact with external systems before
 
 ---
 
-### Simple Example with Agent
+### Simple Example without `patch_infer_model`
 
 ```python
 from pydantic_ai import Agent
@@ -109,9 +109,9 @@ This example shows how to initialize an agent with a specific model (`gpt-4o`) a
 from pydantic import BaseModel
 from pydantic_ai import Agent
 from pydantic_ai.models import ModelSettings
-from g4f.tools.pydantic_ai import apply_patch
+from g4f.tools.pydantic_ai import patch_infer_model
 
-apply_patch("your_api_key")
+patch_infer_model("your_api_key")
 
 class MyModel(BaseModel):
     city: str
