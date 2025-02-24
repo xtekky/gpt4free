@@ -170,7 +170,9 @@ class Api:
                 try:
                     user_g4f_api_key = await self.get_g4f_api_key(request)
                 except HTTPException:
-                    user_g4f_api_key = None
+                    user_g4f_api_key = await self.security(request)
+                    if hasattr(user_g4f_api_key, "credentials"):
+                        user_g4f_api_key = user_g4f_api_key.credentials
                 path = request.url.path
                 if path.startswith("/v1") or path.startswith("/api/") or (AppConfig.demo and path == '/backend-api/v2/upload_cookies'):
                     if user_g4f_api_key is None:
@@ -581,11 +583,17 @@ class Api:
                 pass
             if not os.path.isfile(target):
                 source_url = get_source_url(str(request.query_params))
+                ssl = None
+                if source_url is None:
+                    backend_url = os.environ.get("G4F_BACKEND_URL")
+                    if backend_url:
+                        source_url = f"{backend_url}/images/{filename}"
+                        ssl = False
                 if source_url is not None:
                     try:
                         await copy_images(
                             [source_url],
-                            target=target)
+                            target=target, ssl=ssl)
                         debug.log(f"Image copied from {source_url}")
                     except Exception as e:
                         debug.error(f"Download failed:  {source_url}\n{type(e).__name__}: {e}")

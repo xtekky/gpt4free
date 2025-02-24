@@ -183,24 +183,9 @@
             const isIframe = window.self !== window.top;
             const backendUrl = "{{backend_url}}";
             let url = new URL(window.location.href)
-            let params = new URLSearchParams(url.search);
             if (isIframe && backendUrl) {
-                if (params.get("get_gpu_token")) {
-                    window.addEventListener('DOMContentLoaded', async function() {
-                        const link = document.getElementById("new_window");
-                        link.href = `${backendUrl}${url.search}`;
-                        link.click();
-                    });
-                } else {
-                    window.location.replace(`${backendUrl}${url.search}`);
-                }
+                window.location.replace(`${backendUrl}${url.search}`);
                 return;
-            }
-            if (params.get("__sign")) {
-                localStorage.setItem("HuggingSpace-api_key", params.get("__sign"));
-                if (!isIframe) {
-                    window.location.replace("/");
-                }
             }
         })();
     </script>
@@ -240,10 +225,13 @@
             <p>
                 <a href="https://huggingface.co/settings/tokens" target="_blank">Get Access Token</a>
             </p>
+            <img src="https://huggingface.co/datasets/huggingface/badges/resolve/main/sign-in-with-huggingface-xl-dark.svg" alt="Sign in with Hugging Face" style="cursor: pointer; display: none;" id="signin">
+            <button id="signout" style="display: none">Sign out</button>
         </form>
         <script type="module">
             import * as hub from "@huggingface/hub";
             import { init } from "@huggingface/space-header";
+            import { oauthLoginUrl, oauthHandleRedirectIfPresent } from "@huggingface/hub";
 
             const isIframe = window.self !== window.top;
             const button = document.querySelector('form a.button');
@@ -269,7 +257,6 @@
                     return;
                 }
                 localStorage.setItem("HuggingFace-api_key", accessToken);
-                localStorage.setItem("HuggingFace-user", JSON.stringify(user));
                 localStorage.setItem("user", user.name);
                 localStorage.setItem("report_error", "true")
                 location.href = "/chat/";
@@ -280,6 +267,34 @@
                 event.preventDefault();
                 check_access_token();
             });
+
+            let oauthResult = localStorage.getItem("oauth");
+            if (oauthResult) {
+                try {
+                    oauthResult = JSON.parse(oauthResult);
+                } catch {
+                    oauthResult = null;
+                }
+            }
+            oauthResult ||= await oauthHandleRedirectIfPresent();
+            if (oauthResult) {
+                localStorage.setItem("oauth", JSON.stringify(oauthResult));
+                localStorage.setItem("HuggingFace-api_key", oauthResult.accessToken);
+                localStorage.setItem("user", oauthResult.userInfo.fullname);
+                document.getElementById("signout").style.removeProperty("display");
+                document.getElementById("signout").onclick = async function() {
+                    localStorage.removeItem("oauth");
+                    localStorage.removeItem("HuggingFace-api_key");
+                    window.location.href = window.location.href.replace(/\?.*$/, '');
+                    window.location.reload();
+                }
+            } else {
+                document.getElementById("signin").style.removeProperty("display");
+                document.getElementById("signin").onclick = async function() {
+                    // prompt=consent to re-trigger the consent screen instead of silently redirecting
+                    window.location.href = (await oauthLoginUrl({clientId: 'ed074164-4f8d-4fb2-8bec-44952707965e', scopes: ['inference-api']})) + "&prompt=consent";
+                }
+            }
         </script>
 
         <!-- Footer -->

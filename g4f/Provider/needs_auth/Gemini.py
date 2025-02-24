@@ -203,7 +203,14 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
                                         skip -= 1
                                         continue
                                     yield item
-                            reasoning = "".join(find_str(response_part[4][0], 3))
+                            reasoning = "\n\n".join(find_str(response_part[4][0], 3))
+                            reasoning = re.sub(r"<b>|</b>", "**", reasoning)
+                            def replace_image(match):
+                                return f"![](https:{match.group(0)})"
+                            reasoning = re.sub(r"//yt3.(?:ggpht.com|googleusercontent.com/ytc)/[\w=-]+", replace_image, reasoning)
+                            reasoning = re.sub(r"\nyoutube\n", "\n\n\n", reasoning)
+                            reasoning = re.sub(r"\nYouTube\n", "\nYouTube ", reasoning)
+                            reasoning = reasoning.replace('https://www.gstatic.com/images/branding/productlogos/youtube/v9/192px.svg', '<i class="fa-brands fa-youtube"></i>')
                             content = response_part[4][0][1][0]
                             if reasoning:
                                 yield Reasoning(status="🤔")
@@ -215,8 +222,12 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
                         if match:
                             image_prompt = match.group(1)
                             content = content.replace(match.group(0), '')
-                        pattern = r"http://googleusercontent.com/image_generation_content/\d+"
+                        pattern = r"http://googleusercontent.com/(?:image_generation|youtube)_content/\d+"
                         content = re.sub(pattern, "", content)
+                        content = content.replace("<!-- end list -->", "")
+                        content = content.replace("https://www.google.com/search?q=http://", "https://")
+                        content = content.replace("https://www.google.com/search?q=https://", "https://")
+                        content = content.replace("https://www.google.com/url?sa=E&source=gmail&q=http://", "http://")
                         if last_content and content.startswith(last_content):
                             yield content[len(last_content):]
                         else:
