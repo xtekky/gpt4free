@@ -39,6 +39,7 @@ let finish_storage = {};
 let usage_storage = {};
 let reasoning_storage = {};
 let generate_storage = {};
+let title_ids_storage = {};
 let is_demo = false;
 let wakeLock = null;
 let countTokensEnabled = true;
@@ -74,6 +75,8 @@ if (window.markdownit) {
         )
             .replaceAll("<a href=", '<a target="_blank" href=')
             .replaceAll('<code>', '<code class="language-plaintext">')
+            .replaceAll('&lt;i class=&quot;', '<i class="')
+            .replaceAll('&quot;&gt;&lt;/i&gt;', '"></i>')
     }
 }
 
@@ -301,7 +304,9 @@ const register_message_buttons = async () => {
         const conversation = await get_conversation(window.conversation_id);
         let buffer = "";
         conversation.items.forEach(message => {
-            buffer += render_reasoning_text(message.reasoning);
+            if (message.reasoning) {
+                buffer += render_reasoning_text(message.reasoning);
+            }
             buffer += `${message.role == 'user' ? 'User' : 'Assistant'}: ${message.content.trim()}\n\n\n`;
         });
         var download = document.getElementById("download");
@@ -435,25 +440,27 @@ const handle_ask = async (do_ask_gpt = true) => {
             imageInput.dataset.objects = images.join(" ");
         }
     }
-    message_box.innerHTML += `
-        <div class="message" data-index="${message_index}">
-            <div class="user">
-                ${user_image}
-                <i class="fa-solid fa-xmark"></i>
-                <i class="fa-regular fa-phone-arrow-up-right"></i>
+    const message_el = document.createElement("div");
+    message_el.classList.add("message");
+    message_el.dataset.index = message_index;
+    message_el.innerHTML = `
+        <div class="user">
+            ${user_image}
+            <i class="fa-solid fa-xmark"></i>
+            <i class="fa-regular fa-phone-arrow-up-right"></i>
+        </div>
+        <div class="content" id="user_${message_id}"> 
+            <div class="content_inner">
+            ${markdown_render(message)}
+            ${images.map((object)=>`<img src="${object}" alt="Image upload">`).join("")}
             </div>
-            <div class="content" id="user_${message_id}"> 
-                <div class="content_inner">
-                ${markdown_render(message)}
-                ${images.map((object)=>'<img src="' + object + '" alt="Image upload">').join("")}
-                </div>
-                <div class="count">
-                    ${countTokensEnabled ? count_words_and_tokens(message, get_selected_model()?.value) : ""}
-                </div>
+            <div class="count">
+                ${countTokensEnabled ? count_words_and_tokens(message, get_selected_model()?.value) : ""}
             </div>
         </div>
     `;
-    highlight(message_box);
+    message_box.appendChild(message_el);
+    highlight(message_el);
     if (do_ask_gpt) {
         const all_pinned = document.querySelectorAll(".buttons button.pinned")
         if (all_pinned.length > 0) {
@@ -1012,7 +1019,7 @@ const ask_gpt = async (message_id, message_index = -1, regenerate = false, provi
     }
     try {
         let api_key;
-        if (is_demo && provider == "Feature") {
+        if (is_demo && ["OpenaiChat", "DeepSeekAPI", "PollinationsAI", "Gemini"].includes(provider)) {
             api_key = localStorage.getItem("user");
         } else if (["HuggingSpace", "G4F"].includes(provider)) {
             api_key = localStorage.getItem("HuggingSpace-api_key");
@@ -1096,9 +1103,30 @@ const clear_conversation = async () => {
     }
 };
 
+var illegalRe = /[\/\?<>\\:\*\|":]/g;
+var controlRe = /[\x00-\x1f\x80-\x9f]/g;
+var reservedRe = /^\.+$/;
+var windowsReservedRe = /^(con|prn|aux|nul|com[0-9]|lpt[0-9])(\..*)?$/i;
+
+function sanitize(input, replacement) {
+  var sanitized = input
+    .replace(illegalRe, replacement)
+    .replace(controlRe, replacement)
+    .replace(reservedRe, replacement)
+    .replace(windowsReservedRe, replacement);
+  return sanitized.replaceAll(/\/|#|\s{2,}/g, replacement).trim();
+}
+
 async function set_conversation_title(conversation_id, title) {
     conversation = await get_conversation(conversation_id)
     conversation.new_title = title;
+    const new_id = sanitize(title, " ");
+    if (new_id && !appStorage.getItem(`conversation:${new_id}`)) {
+        appStorage.removeItem(`conversation:${conversation.id}`);
+        title_ids_storage[conversation_id] = new_id;
+        conversation.id = new_id;
+        add_url_to_history(`/chat/${conversation_id}`);
+    }
     appStorage.setItem(
         `conversation:${conversation.id}`,
         JSON.stringify(conversation)
@@ -1123,6 +1151,7 @@ const show_option = async (conversation_id) => {
         input_el.onclick = (e) => e.stopPropagation()
         input_el.onfocus = () => trash_el.style.display = "none";
         input_el.onchange = () => set_conversation_title(conversation_id, input_el.value);
+        input_el.onblur = () => set_conversation_title(conversation_id, input_el.value);
         left_el.removeChild(title_el);
         left_el.appendChild(input_el);
     }
@@ -1162,6 +1191,9 @@ const delete_conversation = async (conversation_id) => {
 };
 
 const set_conversation = async (conversation_id) => {
+    if (title_ids_storage[conversation_id]) {
+        conversation_id = title_ids_storage[conversation_id];
+    }
     try {
         add_url_to_history(`/chat/${conversation_id}`);
     } catch (e) {
@@ -1912,11 +1944,11 @@ async function on_load() {
             messageInput.focus();
             //await handle_ask();
         }
-    } else if (/\/chat\/[^?]+/.test(window.location.href)) {
-        load_conversation(window.conversation_id);
-    } else {
+    } else if (/\/chat\/[?$]/.test(window.location.href)) {
         chatPrompt.value = document.getElementById("systemPrompt")?.value || "";
         say_hello();
+    } else {
+        load_conversation(window.conversation_id);
     }
     load_conversations();
 }
@@ -2007,9 +2039,11 @@ async function on_api() {
         }
         providerSelect.innerHTML = `
             <option value="" selected="selected">Demo Mode</option>
-            <option value="Feature">Feature Provider</option>
+            <option value="DeepSeekAPI">DeepSeek Provider</option>
+            <option value="OpenaiChat">OpenAI Provider</option>
             <option value="PollinationsAI">Pollinations AI</option>
             <option value="G4F">G4F framework</option>
+            <option value="Gemini">Gemini Provider</option>
             <option value="HuggingFace">HuggingFace</option>
             <option value="HuggingSpace">HuggingSpace</option>
             <option value="HuggingChat">HuggingChat</option>`;
@@ -2340,7 +2374,6 @@ fileInput.addEventListener('change', async (event) => {
                     Object.keys(data).forEach(key => {
                         if (key == "options") {
                             Object.keys(data[key]).forEach(keyOption => {
-                                console.log(keyOption, data[key][keyOption]);
                                 appStorage.setItem(keyOption, data[key][keyOption]);
                                 count += 1;
                             });
