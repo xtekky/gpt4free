@@ -8,6 +8,7 @@ from aiohttp import ClientSession
 from ..typing import AsyncResult, Messages
 from ..requests.raise_for_status import raise_for_status
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from ..providers.response import FinishReason
 
 class ChatGLM(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://chatglm.cn"
@@ -18,9 +19,8 @@ class ChatGLM(AsyncGeneratorProvider, ProviderModelMixin):
     supports_system_message = False
     supports_message_history = False
     
-    default_model = "all-tools-230b"
+    default_model = "glm-4"
     models = [default_model]
-    model_aliases = {"glm-4": default_model}
 
     @classmethod
     async def create_async_generator(
@@ -85,9 +85,13 @@ class ChatGLM(AsyncGeneratorProvider, ProviderModelMixin):
                                 if parts:
                                     content = parts[0].get('content', [])
                                     if content:
-                                        text = content[0].get('text', '')[yield_text:]
+                                        text_content = content[0].get('text', '')
+                                        text = text_content[yield_text:]
                                         if text:
                                             yield text
                                             yield_text += len(text)
+                                # Yield FinishReason when status is 'finish'
+                                if json_data.get('status') == 'finish':
+                                    yield FinishReason("stop")
                             except json.JSONDecodeError:
                                 pass

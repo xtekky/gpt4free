@@ -39,9 +39,12 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
     default_model = "openai"
     default_image_model = "flux"
     default_vision_model = "gpt-4o"
-    image_models = ["flux-pro", "flux-dev", "flux-schnell", "midjourney", "dall-e-3", "turbo"]
+    text_models = [default_model]
+    image_models = [default_image_model]
+    extra_image_models = ["flux-pro", "flux-dev", "flux-schnell", "midjourney", "dall-e-3"]
     vision_models = [default_vision_model, "gpt-4o-mini"]
     extra_text_models = ["claude", "claude-email", "deepseek-reasoner", "deepseek-r1"] + vision_models
+    _models_loaded = False
     model_aliases = {
         ### Text Models ###
         "gpt-4o-mini": "openai",
@@ -66,27 +69,51 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         ### Image Models ###
         "sdxl-turbo": "turbo",
     }
-    text_models = []
 
     @classmethod
     def get_models(cls, **kwargs):
-        if not cls.text_models or not cls.image_models:
+        if not cls._models_loaded:
             try:
+                # Update of image models
                 image_response = requests.get("https://image.pollinations.ai/models")
                 image_response.raise_for_status()
                 new_image_models = image_response.json()
-                cls.image_models = list(dict.fromkeys([*cls.image_models, *new_image_models]))
                 
+                # Combine models without duplicates
+                all_image_models = (
+                    cls.image_models +  # Already contains the default
+                    cls.extra_image_models + 
+                    new_image_models
+                )
+                cls.image_models = list(dict.fromkeys(all_image_models))
+
+                # Update of text models
                 text_response = requests.get("https://text.pollinations.ai/models")
                 text_response.raise_for_status()
-                original_text_models = [model.get("name") for model in text_response.json()]
-                
-                combined_text = cls.extra_text_models + [
-                    model for model in original_text_models 
-                    if model not in cls.extra_text_models
+                original_text_models = [
+                    model.get("name") 
+                    for model in text_response.json()
                 ]
+                
+                # Combining text models
+                combined_text = (
+                    cls.text_models +  # Already contains the default
+                    cls.extra_text_models + 
+                    [
+                        model for model in original_text_models
+                        if model not in cls.extra_text_models
+                    ]
+                )
                 cls.text_models = list(dict.fromkeys(combined_text))
+                
+                cls._models_loaded = True
+
             except Exception as e:
+                # Save default models in case of an error
+                if not cls.text_models:
+                    cls.text_models = [cls.default_model]
+                if not cls.image_models:
+                    cls.image_models = [cls.default_image_model]
                 raise RuntimeError(f"Failed to fetch models: {e}") from e
             
         return cls.text_models + cls.image_models
@@ -114,6 +141,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         cache: bool = False,
         **kwargs
     ) -> AsyncResult:
+        cls.get_models()
         if images is not None and not model:
             model = cls.default_vision_model
         try:
