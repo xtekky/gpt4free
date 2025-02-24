@@ -154,7 +154,7 @@ class AllenAI(AsyncGeneratorProvider, ProviderModelMixin):
                             # We process content only from the assistant
                             if "message" in data and data.get("content"):
                                 content = data["content"]
-                                # Пропускаємо порожні контент-блоки
+                                # Skip empty content blocks
                                 if content.strip():
                                     yield content
                             
