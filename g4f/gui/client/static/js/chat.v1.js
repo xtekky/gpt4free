@@ -1019,7 +1019,7 @@ const ask_gpt = async (message_id, message_index = -1, regenerate = false, provi
     }
     try {
         let api_key;
-        if (is_demo && ["OpenaiChat", "DeepSeekAPI", "PollinationsAI"].includes(provider)) {
+        if (is_demo && ["OpenaiChat", "DeepSeekAPI", "PollinationsAI", "Gemini"].includes(provider)) {
             api_key = localStorage.getItem("user");
         } else if (["HuggingSpace", "G4F"].includes(provider)) {
             api_key = localStorage.getItem("HuggingSpace-api_key");
@@ -2043,6 +2043,7 @@ async function on_api() {
             <option value="OpenaiChat">OpenAI Provider</option>
             <option value="PollinationsAI">Pollinations AI</option>
             <option value="G4F">G4F framework</option>
+            <option value="Gemini">Gemini Provider</option>
             <option value="HuggingFace">HuggingFace</option>
             <option value="HuggingSpace">HuggingSpace</option>
             <option value="HuggingChat">HuggingChat</option>`;

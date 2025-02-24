@@ -59,7 +59,7 @@ class IterListProvider(BaseRetryProvider):
                 for chunk in response:
                     if chunk:
                         yield chunk
-                        if isinstance(chunk, str) or isinstance(chunk, ImageResponse):
+                        if isinstance(chunk, (str, ImageResponse)):
                             started = True
                 if started:
                     return
@@ -94,7 +94,7 @@ class IterListProvider(BaseRetryProvider):
                     async for chunk in response:
                         if chunk:
                             yield chunk
-                            if isinstance(chunk, str) or isinstance(chunk, ImageResponse):
+                            if isinstance(chunk, (str, ImageResponse)):
                                 started = True
                 elif response:
                     response = await response
