@@ -19,8 +19,7 @@ def quote_url(url: str) -> str:
 
 def quote_title(title: str) -> str:
     if title:
-        title = " ".join(title.split())
-        return title.replace('[', '').replace(']', '')
+        return " ".join(title.split())
     return ""
 
 def format_link(url: str, title: str = None) -> str:
@@ -161,9 +160,19 @@ class Sources(ResponseType):
             self.list.append(source)
 
     def __str__(self) -> str:
-        return "\n\n" + ("\n".join([
-            f"{idx+1}. {format_link(link['url'], link.get('title', None))}"
+        return "\n\n\n\n" + ("\n>\n".join([
+            f"> [{idx}] {format_link(link['url'], link.get('title', None))}"
             for idx, link in enumerate(self.list)
+        ]))
+
+class YouTube(ResponseType):
+    def __init__(self, ids: list[str]) -> None:
+        self.ids = ids
+
+    def __str__(self) -> str:
+        return "\n\n" + ("\n".join([
+            f'<iframe type="text/html" src="https://www.youtube.com/embed/{id}"></iframe>'
+            for id in self.ids
         ]))
 
 class BaseConversation(ResponseType):

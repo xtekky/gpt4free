@@ -254,6 +254,13 @@
                 } catch(e) {
                     console.log(e);
                     input.setCustomValidity("Invalid Access Token.");
+                    localStorage.removeItem("HuggingFace-api_key");
+                    if (localStorage.getItem("oauth")) {
+                        window.location.href = (await oauthLoginUrl({
+                            clientId: 'ed074164-4f8d-4fb2-8bec-44952707965e',
+                            scopes: ['inference-api']
+                        }));
+                    }
                     return;
                 }
                 localStorage.setItem("HuggingFace-api_key", accessToken);
@@ -289,10 +296,13 @@
                     window.location.reload();
                 }
             } else {
+                localStorage.removeItem("oauth");
                 document.getElementById("signin").style.removeProperty("display");
                 document.getElementById("signin").onclick = async function() {
-                    // prompt=consent to re-trigger the consent screen instead of silently redirecting
-                    window.location.href = (await oauthLoginUrl({clientId: 'ed074164-4f8d-4fb2-8bec-44952707965e', scopes: ['inference-api']})) + "&prompt=consent";
+                    window.location.href = (await oauthLoginUrl({
+                        clientId: 'ed074164-4f8d-4fb2-8bec-44952707965e',
+                        scopes: ['inference-api']
+                    }));
                 }
             }
         </script>

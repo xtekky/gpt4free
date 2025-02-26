@@ -33,6 +33,12 @@
         };
     </script>
     <script id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
+    <script>
+        var tag = document.createElement('script');
+        tag.src = "https://www.youtube.com/iframe_api";
+        var firstScriptTag = document.getElementsByTagName('script')[0];
+        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+    </script>
     <template>
         <script type="module" src="https://cdn.jsdelivr.net/npm/mistral-tokenizer-js" async>
             import mistralTokenizer from "mistral-tokenizer-js"
@@ -211,6 +217,19 @@
             <div class="media_player">
                 <i class="fa-regular fa-x"></i>
             </div>
+            <div class="media-select hidden">
+                <label class="image-select" for="image" title="">
+                    <input type="file" id="image" name="image" accept="image/*" required/>
+                    <i class="fa-regular fa-image"></i>
+                </label>
+                <label class="capture-camera" for="camera">
+                    <input type="file" id="camera" name="camera" accept="image/*" capture="camera" required/>
+                    <i class="fa-solid fa-camera"></i>
+                </label>
+                <button class="close">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
             <div class="toolbar">
                 <div id="input-count" class="">
                     <button class="hide-input">
@@ -236,13 +255,8 @@
                 <div class="box input-area">
                     <textarea id="message-input" placeholder="Ask a question" cols="30" rows="10"
                         style="white-space: pre-wrap;resize: none;"></textarea>
-                    <label class="file-label image-label" for="image" title="">
-                        <input type="file" id="image" name="image" accept="image/*" required/>
+                    <label class="file-label image-label">
                         <i class="fa-regular fa-image"></i>
-                    </label>
-                    <label class="file-label image-label" for="camera">
-                        <input type="file" id="camera" name="camera" accept="image/*" capture="camera" required/>
-                        <i class="fa-solid fa-camera"></i>
                     </label>
                     <label class="file-label" for="file">
                         <input type="file" id="file" name="file" accept=".txt, .html, .xml, .json, .js, .har, .sh, .py, .php, .css, .yaml, .sql, .log, .csv, .twig, .md, .pdf, .docx, .odt, .epub, .xlsx, .zip" required multiple/>

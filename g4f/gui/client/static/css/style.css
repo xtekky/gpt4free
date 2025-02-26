@@ -384,7 +384,7 @@ body:not(.white) a:visited{
 }
 
 .message .reasoning_text.final {
-    max-height: 1000px;
+    max-height: 2000px;
     transition: max-height 0.25s ease-in;
 }
 
@@ -478,6 +478,13 @@ body:not(.white) a:visited{
     padding: 0 4px;
 }
 
+.message .content blockquote {
+    padding: 8px 16px;
+    margin-bottom: 16px;
+    color: inherit;
+    border-left: .25em solid var(--colour-4);
+}
+
 .media_player {
     display: none;
 }
@@ -499,6 +506,36 @@ body:not(.white) a:visited{
     top: 8px;
     z-index: 1000;
     cursor: pointer;
+}
+
+.media-select {
+    display: flex;
+    flex-direction: row;
+}
+
+.media-select label, .media-select img, .media-select button {
+    display: flex;
+    gap: 18px;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+    color: var(--colour-1);
+    background: var(--colour-4);
+    border: 1px solid var(--colour-1);
+    transition: all 0.2s ease;
+    width: auto;
+    height: 60px;
+    margin: 2px;
+}
+
+.media-select label, .media-select button {
+    padding: 8px 12px;
+    border-radius: var(--border-radius-1);
+}
+
+.media-select button.close {
+    order: 1000;
+    height: 32px;
 }
 
 .count_total {
@@ -691,17 +728,12 @@ input-count .text {
     border-color: var(--accent);
 }
 
-label[for="image"] {
+label.image-label {
     top: 32px;
 }
 
 label[for="micro"] {
     top: 54px;
-}
-
-label[for="camera"] {
-    top: 74px;
-    display: none;
 }
 
 @media (pointer:none), (pointer:coarse) {

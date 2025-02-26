@@ -14,6 +14,11 @@ from ..helper import format_image_prompt, get_last_user_message
 from .models import default_model, default_image_model, model_aliases, text_models, image_models, vision_models
 from ... import debug
 
+provider_together_urls = {
+    "black-forest-labs/FLUX.1-dev": "https://router.huggingface.co/together/v1/images/generations",
+    "black-forest-labs/FLUX.1-schnell": "https://router.huggingface.co/together/v1/images/generations",
+}
+
 class HuggingFaceInference(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://huggingface.co"
     parent = "HuggingFace"
@@ -63,6 +68,7 @@ class HuggingFaceInference(AsyncGeneratorProvider, ProviderModelMixin):
         messages: Messages,
         stream: bool = True,
         proxy: str = None,
+        timeout: int = 600,
         api_base: str = "https://api-inference.huggingface.co",
         api_key: str = None,
         max_tokens: int = 1024,
@@ -71,6 +77,8 @@ class HuggingFaceInference(AsyncGeneratorProvider, ProviderModelMixin):
         action: str = None,
         extra_data: dict = {},
         seed: int = None,
+        width: int = 1024,
+        height: int = 1024,
         **kwargs
     ) -> AsyncResult:
         try:
@@ -78,36 +86,43 @@ class HuggingFaceInference(AsyncGeneratorProvider, ProviderModelMixin):
         except ModelNotSupportedError:
             pass
         headers = {
-            'accept': '*/*',
-            'accept-language': 'en',
-            'cache-control': 'no-cache',
-            'origin': 'https://huggingface.co',
-            'pragma': 'no-cache',
-            'priority': 'u=1, i',
-            'referer': 'https://huggingface.co/chat/',
-            'sec-ch-ua': '"Not)A;Brand";v="99", "Google Chrome";v="127", "Chromium";v="127"',
-            'sec-ch-ua-mobile': '?0',
-            'sec-ch-ua-platform': '"macOS"',
-            'sec-fetch-dest': 'empty',
-            'sec-fetch-mode': 'cors',
-            'sec-fetch-site': 'same-origin',
-            'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36',
+            'Accept-Encoding': 'gzip, deflate',
+            'Content-Type': 'application/json',
         }
         if api_key is not None:
             headers["Authorization"] = f"Bearer {api_key}"
-        payload = None
-        params = {
-            "return_full_text": False,
-            "max_new_tokens": max_tokens,
-            "temperature": temperature,
-            **extra_data
-        }
-        do_continue = action == "continue"
         async with StreamSession(
             headers=headers,
             proxy=proxy,
-            timeout=600
+            timeout=timeout
         ) as session:
+            try:
+                if model in provider_together_urls:
+                    data = {
+                        "response_format": "url",
+                        "prompt": format_image_prompt(messages, prompt),
+                        "model": model,
+                        "width": width,
+                        "height": height,
+                        **extra_data
+                    }
+                    async with session.post(provider_together_urls[model], json=data) as response:
+                        if response.status == 404:
+                            raise ModelNotSupportedError(f"Model is not supported: {model}")
+                        await raise_for_status(response)
+                        result = await response.json()
+                        yield ImageResponse([item["url"] for item in result["data"]], data["prompt"])
+                    return
+            except ModelNotSupportedError:
+                pass
+            payload = None
+            params = {
+                "return_full_text": False,
+                "max_new_tokens": max_tokens,
+                "temperature": temperature,
+                **extra_data
+            }
+            do_continue = action == "continue"
             if payload is None:
                 model_data = await cls.get_model_data(session, model)
                 pipeline_tag = model_data.get("pipeline_tag")
