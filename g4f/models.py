@@ -883,8 +883,8 @@ demo_models = {
     qwq_32b.name: [qwq_32b, [HuggingFace]],
     llama_3_3_70b.name: [llama_3_3_70b, [HuggingFace]],
     sd_3_5.name: [sd_3_5, [HuggingSpace, HuggingFace]],
-    flux_dev.name: [flux_dev, [PollinationsImage, HuggingSpace, HuggingFace, G4F]],
-    flux_schnell.name: [flux_schnell, [PollinationsImage, HuggingFace, HuggingSpace, G4F]],
+    flux_dev.name: [flux_dev, [PollinationsImage, HuggingFace, HuggingSpace]],
+    flux_schnell.name: [flux_schnell, [PollinationsImage, HuggingFace, HuggingSpace]],
 }
 
 # Create a list of all models and his providers

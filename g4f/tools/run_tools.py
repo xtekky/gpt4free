@@ -10,7 +10,7 @@ from typing import Optional, Callable, AsyncIterator
 from ..typing import Messages
 from ..providers.helper import filter_none
 from ..providers.asyncio import to_async_iterator
-from ..providers.response import Reasoning
+from ..providers.response import Reasoning, FinishReason
 from ..providers.types import ProviderType
 from ..cookies import get_cookies_dir
 from .web_search import do_search, get_search_message
@@ -38,11 +38,12 @@ def get_api_key_file(cls) -> Path:
 async def async_iter_run_tools(provider: ProviderType, model: str, messages, tool_calls: Optional[list] = None, **kwargs):
     # Handle web_search from kwargs
     web_search = kwargs.get('web_search')
+    sources = None
     if web_search:
         try:
             messages = messages.copy()
             web_search = web_search if isinstance(web_search, str) and web_search != "true" else None
-            messages[-1]["content"] = await do_search(messages[-1]["content"], web_search)
+            messages[-1]["content"], sources = await do_search(messages[-1]["content"], web_search)
         except Exception as e:
             debug.error(f"Couldn't do web search: {e.__class__.__name__}: {e}")
             # Keep web_search in kwargs for provider native support
@@ -88,6 +89,8 @@ async def async_iter_run_tools(provider: ProviderType, model: str, messages, too
     response = to_async_iterator(create_function(model=model, messages=messages, **kwargs))
     async for chunk in response:
         yield chunk
+    if sources is not None:
+        yield sources
         
 def process_thinking_chunk(chunk: str, start_time: float = 0) -> tuple[float, list]:
     """Process a thinking chunk and return timing and results."""
@@ -144,11 +147,12 @@ def iter_run_tools(
 ) -> AsyncIterator:
     # Handle web_search from kwargs
     web_search = kwargs.get('web_search')
+    sources = None
     if web_search:
         try:
             messages = messages.copy()
             web_search = web_search if isinstance(web_search, str) and web_search != "true" else None
-            messages[-1]["content"] = asyncio.run(do_search(messages[-1]["content"], web_search))
+            messages[-1]["content"], sources = asyncio.run(do_search(messages[-1]["content"], web_search))
         except Exception as e:
             debug.error(f"Couldn't do web search: {e.__class__.__name__}: {e}")
             # Keep web_search in kwargs for provider native support
@@ -198,6 +202,12 @@ def iter_run_tools(
 
     thinking_start_time = 0
     for chunk in iter_callback(model=model, messages=messages, provider=provider, **kwargs):
+        if isinstance(chunk, FinishReason):
+            if sources is not None:
+                yield sources
+                sources = None
+            yield chunk
+            continue
         if not isinstance(chunk, str):
             yield chunk
             continue
@@ -206,3 +216,6 @@ def iter_run_tools(
         
         for result in results:
             yield result
+
+    if sources is not None:
+        yield sources
