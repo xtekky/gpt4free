@@ -14,7 +14,7 @@ from ..image import to_data_uri
 from ..errors import ModelNotFoundError
 from ..requests.raise_for_status import raise_for_status
 from ..requests.aiohttp import get_connector
-from ..providers.response import ImageResponse, ImagePreview, FinishReason, Usage, Reasoning
+from ..providers.response import ImageResponse, ImagePreview, FinishReason, Usage
 
 DEFAULT_HEADERS = {
     'Accept': '*/*',
@@ -63,6 +63,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         "gpt-4o-mini": "claude",
         "deepseek-chat": "claude-email",
         "deepseek-r1": "deepseek-reasoner",
+        "gemini-2.0": "gemini",
         "gemini-2.0-flash": "gemini",
         "gemini-2.0-flash-thinking": "gemini-thinking",
         
@@ -208,10 +209,8 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
             "enhance": str(enhance).lower(),
             "safe": str(safe).lower()
         }
-        params = {k: v for k, v in params.items() if v is not None}
-        query = "&".join(f"{k}={quote_plus(v)}" for k, v in params.items())
-        prefix = f"{model}_{seed}" if seed is not None else model
-        url = f"{cls.image_api_endpoint}prompt/{prefix}_{quote_plus(prompt)}?{query}"
+        query = "&".join(f"{k}={quote_plus(v)}" for k, v in params.items() if v is not None)
+        url = f"{cls.image_api_endpoint}prompt/{quote_plus(prompt)}?{query}"
         yield ImagePreview(url, prompt)
 
         async with ClientSession(headers=DEFAULT_HEADERS, connector=get_connector(proxy=proxy)) as session:
@@ -266,7 +265,8 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                 "seed": seed,
                 "cache": cache
             })
-            
+            if "gemimi" in model:
+                data.pop("seed")
             async with session.post(cls.text_api_endpoint, json=data) as response:
                 await raise_for_status(response)
                 result = await response.json()

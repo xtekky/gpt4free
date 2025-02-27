@@ -111,23 +111,24 @@ def iter_response(
             break
 
         idx += 1
+
     if usage is None:
-        usage = Usage(completion_tokens=idx, total_tokens=idx)
+        usage = UsageModel.model_construct(completion_tokens=idx, total_tokens=idx)
+    else:
+        usage = UsageModel.model_construct(**usage.get_dict())
 
     finish_reason = "stop" if finish_reason is None else finish_reason
 
     if stream:
         chat_completion = ChatCompletionChunk.model_construct(
-            None, finish_reason, completion_id, int(time.time()),
-            usage=usage
+            None, finish_reason, completion_id, int(time.time()), usage=usage
         )
     else:
         if response_format is not None and "type" in response_format:
             if response_format["type"] == "json_object":
                 content = filter_json(content)
         chat_completion = ChatCompletion.model_construct(
-            content, finish_reason, completion_id, int(time.time()),
-            usage=UsageModel.model_construct(**usage.get_dict()),
+            content, finish_reason, completion_id, int(time.time()), usage=usage,
             **filter_none(tool_calls=[ToolCallModel.model_construct(**tool_call) for tool_call in tool_calls]) if tool_calls is not None else {}
         )
     if provider is not None:
@@ -211,21 +212,23 @@ async def async_iter_response(
         finish_reason = "stop" if finish_reason is None else finish_reason
 
         if usage is None:
-            usage = Usage(completion_tokens=idx, total_tokens=idx)
+            usage = UsageModel.model_construct(completion_tokens=idx, total_tokens=idx)
+        else:
+            usage = UsageModel.model_construct(**usage.get_dict())
 
         if stream:
             chat_completion = ChatCompletionChunk.model_construct(
-                None, finish_reason, completion_id, int(time.time()),
-                usage=usage.get_dict()
+                None, finish_reason, completion_id, int(time.time()), usage=usage
             )
         else:
             if response_format is not None and "type" in response_format:
                 if response_format["type"] == "json_object":
                     content = filter_json(content)
             chat_completion = ChatCompletion.model_construct(
-                content, finish_reason, completion_id, int(time.time()),
-                usage=UsageModel.model_construct(**usage.get_dict()),
-                **filter_none(tool_calls=[ToolCallModel.model_construct(**tool_call) for tool_call in tool_calls]) if tool_calls is not None else {}
+                content, finish_reason, completion_id, int(time.time()), usage=usage,
+                **filter_none(
+                    tool_calls=[ToolCallModel.model_construct(**tool_call) for tool_call in tool_calls]
+                ) if tool_calls is not None else {}
             )
         if provider is not None:
             chat_completion.provider = provider.name

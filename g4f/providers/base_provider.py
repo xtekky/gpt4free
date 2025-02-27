@@ -361,7 +361,7 @@ class ProviderModelMixin:
             model = cls.model_aliases[model]
         else:
             if model not in cls.get_models(**kwargs) and cls.models:
-                raise ModelNotSupportedError(f"Model is not supported: {model} in: {cls.__name__}")
+                raise ModelNotSupportedError(f"Model is not supported: {model} in: {cls.__name__} Valid models: {cls.models}")
         cls.last_model = model
         debug.last_model = model
         return model
@@ -373,9 +373,11 @@ class RaiseErrorMixin():
         if "error_message" in data:
             raise ResponseError(data["error_message"])
         elif "error" in data:
-            if "code" in data["error"]:
+            if isinstance(data["error"], str):
+                raise ResponseError(data["error"])
+            elif "code" in data["error"]:
                 raise ResponseError("\n".join(
-                    [e for e in [f'Error {data["error"]["code"]}: {data["error"]["message"]}', data["error"].get("failed_generation")] if e is not None]
+                    [e for e in [f'Error {data["error"]["code"]}:{data["error"]["message"]}', data["error"].get("failed_generation")] if e is not None]
                 ))
             elif "message" in data["error"]:
                 raise ResponseError(data["error"]["message"])

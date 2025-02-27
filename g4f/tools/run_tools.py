@@ -10,7 +10,7 @@ from typing import Optional, Callable, AsyncIterator
 from ..typing import Messages
 from ..providers.helper import filter_none
 from ..providers.asyncio import to_async_iterator
-from ..providers.response import Reasoning, FinishReason
+from ..providers.response import Reasoning, FinishReason, Sources
 from ..providers.types import ProviderType
 from ..cookies import get_cookies_dir
 from .web_search import do_search, get_search_message
@@ -208,6 +208,8 @@ def iter_run_tools(
                 sources = None
             yield chunk
             continue
+        elif isinstance(chunk, Sources):
+            sources = None
         if not isinstance(chunk, str):
             yield chunk
             continue
