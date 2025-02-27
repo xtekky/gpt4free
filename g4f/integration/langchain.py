@@ -31,8 +31,8 @@ class ChatAI(ChatOpenAI):
     @classmethod
     def validate_environment(cls, values: dict) -> dict:
         client_params = {
-            "api_key": values["g4f_api_key"] if "g4f_api_key" in values else None,
-            "provider": values["g4f_provider"] if "g4f_provider" in values else None,
+            "api_key": values["api_key"] if "api_key" in values else None,
+            "provider": values["model_kwargs"]["provider"] if "provider" in values["model_kwargs"] else None,
         }
         values["client"] = Client(**client_params).chat.completions
         values["async_client"] = AsyncClient(

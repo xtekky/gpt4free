@@ -262,7 +262,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                 "seed": seed,
                 "cache": cache
             })
-            if "gemimi" in model:
+            if "gemini" in model:
                 data.pop("seed")
             async with session.post(cls.text_api_endpoint, json=data) as response:
                 await raise_for_status(response)
