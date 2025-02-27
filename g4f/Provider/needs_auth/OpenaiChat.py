@@ -101,7 +101,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
     image_models = image_models
     vision_models = text_models
     models = models
-    synthesize_content_type = "audio/mpeg"
+    synthesize_content_type = "audio/aac"
     request_config = RequestConfig()
 
     _expires: int = None
@@ -588,7 +588,8 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
             page = browser.main_tab
             def on_request(event: nodriver.cdp.network.RequestWillBeSent):
                 if event.request.url == start_url or event.request.url.startswith(conversation_url):
-                    cls.request_config.headers = event.request.headers
+                    for key, value in event.request.headers.items():
+                        cls.request_config.headers[key.lower()] = value
                 elif event.request.url in (backend_url, backend_anon_url):
                     if "OpenAI-Sentinel-Proof-Token" in event.request.headers:
                             cls.request_config.proof_token = json.loads(base64.b64decode(

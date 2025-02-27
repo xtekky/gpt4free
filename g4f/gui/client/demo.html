@@ -256,10 +256,8 @@
                     input.setCustomValidity("Invalid Access Token.");
                     localStorage.removeItem("HuggingFace-api_key");
                     if (localStorage.getItem("oauth")) {
-                        window.location.href = (await oauthLoginUrl({
-                            clientId: 'ed074164-4f8d-4fb2-8bec-44952707965e',
-                            scopes: ['inference-api']
-                        }));
+                        localStorage.removeItem("oauth");
+                        window.location.replace("/");
                     }
                     return;
                 }
@@ -292,8 +290,7 @@
                 document.getElementById("signout").onclick = async function() {
                     localStorage.removeItem("oauth");
                     localStorage.removeItem("HuggingFace-api_key");
-                    window.location.href = window.location.href.replace(/\?.*$/, '');
-                    window.location.reload();
+                    window.location.replace("/");
                 }
             } else {
                 localStorage.removeItem("oauth");

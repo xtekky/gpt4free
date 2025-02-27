@@ -42,7 +42,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
     text_models = [default_model]
     image_models = [default_image_model]
     extra_image_models = ["flux-pro", "flux-dev", "flux-schnell", "midjourney", "dall-e-3"]
-    vision_models = [default_vision_model, "gpt-4o-mini"]
+    vision_models = [default_vision_model, "gpt-4o-mini", "o1-mini"]
     extra_text_models = ["claude", "claude-email", "deepseek-reasoner", "deepseek-r1"] + vision_models
     _models_loaded = False
     model_aliases = {
@@ -53,14 +53,11 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         "qwen-2.5-coder-32b": "qwen-coder",
         "llama-3.3-70b": "llama",
         "mistral-nemo": "mistral",
-        "gpt-4o-mini": "rtist",
         "gpt-4o": "searchgpt",
-        "gpt-4o-mini": "p1",
         "deepseek-chat": "claude-hybridspace",
         "llama-3.1-8b": "llamalight",
         "gpt-4o-vision": "gpt-4o",
         "gpt-4o-mini-vision": "gpt-4o-mini",
-        "gpt-4o-mini": "claude",
         "deepseek-chat": "claude-email",
         "deepseek-r1": "deepseek-reasoner",
         "gemini-2.0": "gemini",
