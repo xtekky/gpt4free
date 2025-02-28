@@ -844,7 +844,7 @@ function is_stopped() {
     return false;
 }
 
-const requestWakeLock = async (onVisibilityChange = false) => {
+const requestWakeLock = async () => {
     try {
       wakeLock = await navigator.wakeLock.request('screen');
     }
@@ -890,7 +890,7 @@ const ask_gpt = async (message_id, message_index = -1, regenerate = false, provi
             <i class="fa-solid fa-xmark"></i>
             <i class="fa-regular fa-phone-arrow-down-left"></i>
         </div>
-        <div class="content" id="gpt_${message_id}">
+        <div class="content">
             <div class="provider" data-provider="${provider}"></div>
             <div class="content_inner"><span class="cursor"></span></div>
             <div class="count"></div>
@@ -908,7 +908,7 @@ const ask_gpt = async (message_id, message_index = -1, regenerate = false, provi
 
     controller_storage[message_id] = new AbortController();
 
-    let content_el = document.getElementById(`gpt_${message_id}`)
+    let content_el = message_el.querySelector('.content');
     let content_map = content_storage[message_id] = {
         container: message_el,
         content: content_el,
@@ -1986,7 +1986,7 @@ async function on_api() {
             console.log("pressed enter");
             prompt_lock = true;
             setTimeout(()=>prompt_lock=false, 3000);
-            await handle_ask();
+            await handle_ask(!do_enter);
         } else {
             messageInput.style.height = messageInput.scrollHeight  + "px";
         }
@@ -2777,7 +2777,9 @@ if (SpeechRecognition) {
         buffer = "";
     };
     recognition.onend = function() {
-        messageInput.value = `${startValue ? startValue + "\n" : ""}${buffer}`;
+        if (buffer) {
+            messageInput.value = `${startValue ? startValue + "\n" : ""}${buffer}`;
+        }
         if (microLabel.classList.contains("recognition")) {
             recognition.start();
         } else {

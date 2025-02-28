@@ -21,10 +21,10 @@ pip install g4f pydantic_ai
 
 ### 1. Patch PydanticAI to Use G4F Models
 
-In order to use PydanticAI with G4F models, you need to apply the necessary patch to the client. This can be done by importing `patch_infer_model` from `g4f.tools.pydantic_ai`. The `api_key` parameter is optional, so if you have one, you can provide it. If not, the system will proceed without it.
+In order to use PydanticAI with G4F models, you need to apply the necessary patch to the client. This can be done by importing `patch_infer_model` from `g4f.integration.pydantic_ai`. The `api_key` parameter is optional, so if you have one, you can provide it. If not, the system will proceed without it.
 
 ```python
-from g4f.tools.pydantic_ai import patch_infer_model
+from g4f.integration.pydantic_ai import patch_infer_model
 
 patch_infer_model(api_key="your_api_key_here")  # Optional
 ```
@@ -89,7 +89,7 @@ For example, you can process your query or interact with external systems before
 
 ```python
 from pydantic_ai import Agent
-from g4f.tools.pydantic_ai import AIModel
+from g4f.integration.pydantic_ai import AIModel
 
 agent = Agent(
     AIModel("gpt-4o"),
@@ -109,7 +109,7 @@ This example shows how to initialize an agent with a specific model (`gpt-4o`) a
 from pydantic import BaseModel
 from pydantic_ai import Agent
 from pydantic_ai.models import ModelSettings
-from g4f.tools.pydantic_ai import patch_infer_model
+from g4f.integration.pydantic_ai import patch_infer_model
 
 patch_infer_model("your_api_key")
 
@@ -126,6 +126,39 @@ if __name__ == '__main__':
 ```
 
 This example demonstrates the use of a custom Pydantic model (`MyModel`) to capture structured data (city and country) from the response and running the agent with specific model settings.
+
+---
+
+## LangChain Integration Example
+
+For users working with LangChain, here is an example demonstrating how to integrate G4F models into a LangChain environment:
+
+```python
+from g4f.integration.langchain import ChatAI
+import g4f.debug
+
+# Enable debugging logs
+g4f.debug.logging = True
+
+llm = ChatAI(
+    model="llama3-70b-8192",
+    provider="Groq",
+    api_key=""  # Optionally add your API key here
+)
+
+messages = [
+    {"role": "user", "content": "2 🦜 2"},
+    {"role": "assistant", "content": "4 🦜"},
+    {"role": "user", "content": "2 🦜 3"},
+    {"role": "assistant", "content": "5 🦜"},
+    {"role": "user", "content": "3 🦜 4"},
+]
+
+response = llm.invoke(messages)
+assert(response.content == "7 🦜")
+```
+
+This example shows how to use LangChain's `ChatAI` integration to create a conversational agent with a G4F model. The interaction takes place with the given messages and the agent processes them step-by-step to return the expected output.
 
 ---
 

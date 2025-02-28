@@ -101,7 +101,7 @@
             border: none;
         }
 
-        #background {
+        #background, #image-feed {
             height: 100%;
             position: absolute;
             z-index: -1;
@@ -201,6 +201,7 @@
 </head>
 <body>
     <iframe id="background"></iframe>
+    <img id="image-feed" alt="Image Feed">
 
     <!-- Gradient Background Circle -->
     <div class="gradient"></div>
@@ -256,10 +257,8 @@
                     input.setCustomValidity("Invalid Access Token.");
                     localStorage.removeItem("HuggingFace-api_key");
                     if (localStorage.getItem("oauth")) {
-                        window.location.href = (await oauthLoginUrl({
-                            clientId: 'ed074164-4f8d-4fb2-8bec-44952707965e',
-                            scopes: ['inference-api']
-                        }));
+                        localStorage.removeItem("oauth");
+                        window.location.replace("/");
                     }
                     return;
                 }
@@ -292,8 +291,7 @@
                 document.getElementById("signout").onclick = async function() {
                     localStorage.removeItem("oauth");
                     localStorage.removeItem("HuggingFace-api_key");
-                    window.location.href = window.location.href.replace(/\?.*$/, '');
-                    window.location.reload();
+                    window.location.replace("/");
                 }
             } else {
                 localStorage.removeItem("oauth");
@@ -316,7 +314,7 @@
     <script>
         (async () => {
             const today = new Date().toJSON().slice(0, 10);
-            const max = 5;
+            const max = 6;
             const cache_id = Math.floor(Math.random() * max);
             let prompt;
             if (cache_id % 2 == 0) {
@@ -331,6 +329,34 @@
             background.src = `data:text/html;charset=utf-8,${encodeURIComponent(text)}`;
             const gradient = document.querySelector('.gradient');
             gradient.classList.add('hidden');
+
+            const url = "https://image.pollinations.ai/feed";
+            const eventSource = new EventSource(url);
+            const imageFeed = document.getElementById("image-feed");
+            const images = []
+            eventSource.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                if (data.nsfw || !data.nologo || data.width < 1024 || !data.imageURL) {
+                    return;
+                }
+                const lower = data.prompt.toLowerCase();
+                const tags = ["logo", "infographic", "warts","prostitute", "curvy", "breasts", "written", "bodies", "naked", "classroom", "malone", "dirty", "shoes", "shower", "banner", "fat", "nipples", "couple", "sexual", "sandal", "supplier", "overlord", "succubus", "platinum", "cracy", "crazy", "lamic", "ropes", "cables", "wires", "dirty", "messy", "cluttered", "chaotic", "disorganized", "disorderly", "untidy", "unorganized", "unorderly", "unsystematic", "disarranged", "disarrayed", "disheveled", "disordered", "jumbled", "muddled", "scattered", "shambolic", "sloppy", "unkept", "unruly"];
+                for (i in tags) {
+                    if (lower.indexOf(tags[i]) != -1) {
+                        console.log("Skipping image with tag: " + tags[i]);
+                        return;
+                    }
+                }
+                images.push(data.imageURL);
+            };
+            eventSource.onerror = (event) => {
+                eventSource.close();
+            }
+            setInterval(() => {
+                if (images.length > 0) {
+                    imageFeed.src = images.shift();
+                }
+            }, 7000);
         })();
     </script>
 </body>

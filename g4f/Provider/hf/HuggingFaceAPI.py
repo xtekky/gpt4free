@@ -6,7 +6,7 @@ from ...requests import StreamSession, raise_for_status
 from ...errors import ModelNotSupportedError
 from ...providers.helper import get_last_user_message
 from ..template.OpenaiTemplate import OpenaiTemplate
-from .models import model_aliases, vision_models, default_vision_model
+from .models import model_aliases, vision_models, default_vision_model, llama_models
 from .HuggingChat import HuggingChat
 from ... import debug
 
@@ -63,6 +63,8 @@ class HuggingFaceAPI(OpenaiTemplate):
     ):
         if model in cls.model_aliases:
             model = cls.model_aliases[model]
+        if model == llama_models["name"]:
+            model = llama_models["text"] if images is None else llama_models["vision"]
         api_base = f"https://api-inference.huggingface.co/models/{model}/v1"
         pipeline_tag = await cls.get_pipline_tag(model, api_key)
         if pipeline_tag not in ("text-generation", "image-text-to-text"):

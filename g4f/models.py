@@ -204,6 +204,12 @@ llama_3_1_405b = Model(
 )
 
 # llama 3.2
+llama_3 = VisionModel(
+    name          = "llama-3",
+    base_provider = "Meta Llama",
+    best_provider = IterListProvider([HuggingChat, HuggingFace])
+)
+
 llama_3_2_1b = Model(
     name          = "llama-3.2-1b",
     base_provider = "Meta Llama",
@@ -872,7 +878,8 @@ class ModelUtils:
 
 
 demo_models = {
-    "default": [llama_3_2_11b, [HuggingFace]],
+    "default": [llama_3, [HuggingFace]],
+    llama_3_2_11b.name: [llama_3_2_11b, [HuggingChat]],
     qwen_2_vl_7b.name: [qwen_2_vl_7b, [HuggingFaceAPI]],
     deepseek_r1.name: [deepseek_r1, [HuggingFace, PollinationsAI]],
     janus_pro_7b.name: [janus_pro_7b, [HuggingSpace, G4F]],

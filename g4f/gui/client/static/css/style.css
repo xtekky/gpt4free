@@ -32,6 +32,7 @@
     --scrollbar: var(--colour-3);
     --scrollbar-thumb: var(--blur-bg);
     --button-hover: var(--colour-5);
+    --media-select: var(--colour-4);
     --top: 50%;
     --size: 70vw;
     --blur: 35vw; /* Half of 70vw */
@@ -520,7 +521,7 @@ body:not(.white) a:visited{
     cursor: pointer;
     user-select: none;
     color: var(--colour-1);
-    background: var(--colour-4);
+    background: var(--media-select);
     border: 1px solid var(--colour-1);
     transition: all 0.2s ease;
     width: auto;
@@ -529,13 +530,14 @@ body:not(.white) a:visited{
 }
 
 .media-select label, .media-select button {
-    padding: 8px 12px;
+    padding: 20px 12px;
     border-radius: var(--border-radius-1);
 }
 
 .media-select button.close {
     order: 1000;
     height: 32px;
+    padding: 8px 12px;
 }
 
 .count_total {
@@ -1211,7 +1213,7 @@ ul {
     }
 
     #chatPrompt {
-        padding-left: 60px;
+        padding-left: 30px;
     }
 
     .field.collapsible {
@@ -1357,6 +1359,7 @@ ul {
     --scrollbar-thumb: #ccc;
     --button-hover: var(--colour-4);
     --background: transparent;
+    --media-select: var(--colour-3);
 }
 
 .white .message .assistant .fa-xmark {
