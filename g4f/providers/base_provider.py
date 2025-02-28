@@ -377,7 +377,7 @@ class RaiseErrorMixin():
                 raise ResponseError(data["error"])
             elif "code" in data["error"]:
                 raise ResponseError("\n".join(
-                    [e for e in [f'Error {data["error"]["code"]}:{data["error"]["message"]}', data["error"].get("failed_generation")] if e is not None]
+                    [e for e in [f'Error {data["error"]["code"]}: {data["error"]["message"]}', data["error"].get("failed_generation")] if e is not None]
                 ))
             elif "message" in data["error"]:
                 raise ResponseError(data["error"]["message"])
