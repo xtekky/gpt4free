@@ -30,6 +30,8 @@ docker pull hlohaus789/g4f
 
 ## 🆕 What's New
 
+![1000032415](https://github.com/user-attachments/assets/4caab977-eb05-48ed-b750-3ad082bcfcae)
+
 - **Explore the latest features and updates**  
   Find comprehensive details on our [Releases Page](https://github.com/xtekky/gpt4free/releases).  
 
