@@ -61,10 +61,10 @@ class HuggingFaceAPI(OpenaiTemplate):
         images: ImagesType = None,
         **kwargs
     ):
-        if model in cls.model_aliases:
-            model = cls.model_aliases[model]
         if model == llama_models["name"]:
             model = llama_models["text"] if images is None else llama_models["vision"]
+        if model in cls.model_aliases:
+            model = cls.model_aliases[model]
         api_base = f"https://api-inference.huggingface.co/models/{model}/v1"
         pipeline_tag = await cls.get_pipline_tag(model, api_key)
         if pipeline_tag not in ("text-generation", "image-text-to-text"):

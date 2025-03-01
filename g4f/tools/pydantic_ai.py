@@ -1,1 +1,0 @@
-from ..integration.pydantic_ai import AIModel, patch_infer_model

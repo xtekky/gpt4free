@@ -306,8 +306,8 @@ class Completions:
 
         response = iter_run_tools(
             provider.get_create_function(),
-            model,
-            messages,
+            model=model,
+            messages=messages,
             stream=stream,
             **filter_none(
                 proxy=self.client.proxy if proxy is None else proxy,
@@ -592,8 +592,8 @@ class AsyncCompletions:
             
         response = async_iter_run_tools(
             provider,
-            model,
-            messages,
+            model=model,
+            messages=messages,
             stream=stream,
             **filter_none(
                 proxy=self.client.proxy if proxy is None else proxy,
