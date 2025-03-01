@@ -152,7 +152,7 @@ class MyModel(BaseModel):
 
 # Create the agent for a model with tool support (using one tool)
 agent = Agent(AIModel(
-    "PollinationsAI:gpt-4o", # Specify the provider and model
+    "PollinationsAI:openai", # Specify the provider and model
     ToolSupportProvider # Use ToolSupportProvider to handle tool-based response formatting
 ), result_type=MyModel, model_settings=ModelSettings(temperature=0))
 
