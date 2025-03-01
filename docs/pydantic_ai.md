@@ -169,7 +169,7 @@ if __name__ == '__main__':
   
   - For instance, if the model generates raw text or unstructured data, the `ToolSupportProvider` will convert this into the expected format (like `MyModel`), allowing the agent to process it as structured data.
   
-- **Model Initialization:** We initialize the agent with the `PollinationsAI:gpt-4o` model, which may not have a built-in API for returning structured outputs. Instead, it relies on the `ToolSupportProvider` to format the output.
+- **Model Initialization:** We initialize the agent with the `PollinationsAI:openai` model, which may not have a built-in API for returning structured outputs. Instead, it relies on the `ToolSupportProvider` to format the output.
 
 - **Custom Result Model:** We define a custom Pydantic model (`MyModel`) to capture the expected output in a structured way (e.g., `city` and `country` fields). This helps ensure that even when the model doesn't support structured data, the agent can interpret and format it.
 
