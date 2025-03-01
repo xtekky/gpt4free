@@ -129,7 +129,7 @@ This example demonstrates the use of a custom Pydantic model (`MyModel`) to capt
 
 ---
 
-### Support for Models/Providers without Tool Call Suport
+### Support for Models/Providers without Tool Call Support
 
 For models/providers that do not fully support tool calls or lack a direct API for structured output, the `ToolSupportProvider` can be used to bridge the gap. This provider ensures that the agent properly formats the response, even when the model itself doesn't have built-in support for structured outputs. It does so by leveraging a tool list and creating a response format when only one tool is used.
 
