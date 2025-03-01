@@ -20,6 +20,7 @@ fallback_models = text_models + image_models
 model_aliases = {
     ### Chat ###
     "qwen-2.5-72b": "Qwen/Qwen2.5-Coder-32B-Instruct",
+    "llama-3": "meta-llama/Llama-3.3-70B-Instruct",
     "llama-3.3-70b": "meta-llama/Llama-3.3-70B-Instruct",
     "command-r-plus": "CohereForAI/c4ai-command-r-plus-08-2024",
     "deepseek-r1": "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B",

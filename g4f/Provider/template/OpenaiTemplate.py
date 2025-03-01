@@ -145,7 +145,6 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
                 elif content_type.startswith("text/event-stream"):
                     await raise_for_status(response)
                     first = True
-                    is_thinking = 0
                     async for line in response.iter_lines():
                         if line.startswith(b"data: "):
                             chunk = line[6:]

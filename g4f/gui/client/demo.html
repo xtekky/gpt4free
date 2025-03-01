@@ -201,7 +201,7 @@
 </head>
 <body>
     <iframe id="background"></iframe>
-    <img id="image-feed" alt="Image Feed">
+    <img id="image-feed" class="hidden" alt="Image Feed">
 
     <!-- Gradient Background Circle -->
     <div class="gradient"></div>
@@ -336,14 +336,15 @@
             const images = []
             eventSource.onmessage = (event) => {
                 const data = JSON.parse(event.data);
-                if (data.nsfw || !data.nologo || data.width < 1024 || !data.imageURL) {
+                if (data.nsfw || !data.nologo || data.width < 1024 || !data.imageURL || data.isChild) {
                     return;
                 }
                 const lower = data.prompt.toLowerCase();
-                const tags = ["logo", "infographic", "warts","prostitute", "curvy", "breasts", "written", "bodies", "naked", "classroom", "malone", "dirty", "shoes", "shower", "banner", "fat", "nipples", "couple", "sexual", "sandal", "supplier", "overlord", "succubus", "platinum", "cracy", "crazy", "lamic", "ropes", "cables", "wires", "dirty", "messy", "cluttered", "chaotic", "disorganized", "disorderly", "untidy", "unorganized", "unorderly", "unsystematic", "disarranged", "disarrayed", "disheveled", "disordered", "jumbled", "muddled", "scattered", "shambolic", "sloppy", "unkept", "unruly"];
+                const tags = ["nsfw", "timeline", "soap", "orally", "heel", "latex", "bathroom", "boobs", "charts", " text ", "gel", "logo", "infographic", "warts", " bra ", "prostitute", "curvy", "breasts", "written", "bodies", "naked", "classroom", "malone", "dirty", "shoes", "shower", "banner", "fat", "nipples", "couple", "sexual", "sandal", "supplier", "overlord", "succubus", "platinum", "cracy", "crazy", "lamic", "ropes", "cables", "wires", "dirty", "messy", "cluttered", "chaotic", "disorganized", "disorderly", "untidy", "unorganized", "unorderly", "unsystematic", "disarranged", "disarrayed", "disheveled", "disordered", "jumbled", "muddled", "scattered", "shambolic", "sloppy", "unkept", "unruly"];
                 for (i in tags) {
                     if (lower.indexOf(tags[i]) != -1) {
                         console.log("Skipping image with tag: " + tags[i]);
+                        console.debug("Skipping image:", data.imageURL);
                         return;
                     }
                 }
@@ -354,7 +355,10 @@
             }
             setInterval(() => {
                 if (images.length > 0) {
+                    imageFeed.classList.remove("hidden");
                     imageFeed.src = images.shift();
+                } else if(imageFeed) {
+                    imageFeed.remove();
                 }
             }, 7000);
         })();

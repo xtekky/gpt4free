@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import random
 import requests
 from urllib.parse import quote_plus
@@ -15,6 +14,7 @@ from ..errors import ModelNotFoundError
 from ..requests.raise_for_status import raise_for_status
 from ..requests.aiohttp import get_connector
 from ..providers.response import ImageResponse, ImagePreview, FinishReason, Usage
+from .. import debug
 
 DEFAULT_HEADERS = {
     'Accept': '*/*',
@@ -74,9 +74,11 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
             try:
                 # Update of image models
                 image_response = requests.get("https://image.pollinations.ai/models")
-                image_response.raise_for_status()
-                new_image_models = image_response.json()
-                
+                if image_response.ok:
+                    new_image_models = image_response.json()
+                else:
+                    new_image_models = []
+
                 # Combine models without duplicates
                 all_image_models = (
                     cls.image_models +  # Already contains the default
@@ -112,8 +114,8 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                     cls.text_models = [cls.default_model]
                 if not cls.image_models:
                     cls.image_models = [cls.default_image_model]
-                raise RuntimeError(f"Failed to fetch models: {e}") from e
-            
+                debug.error(f"Failed to fetch models: {e}")
+
         return cls.text_models + cls.image_models
 
     @classmethod
