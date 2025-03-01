@@ -275,7 +275,6 @@ class Completions:
 
     def create(
         self,
-        *,
         messages: Messages,
         model: str,
         provider: Optional[ProviderType] = None,
@@ -562,7 +561,6 @@ class AsyncCompletions:
 
     def create(
         self,
-        *,
         messages: Messages,
         model: str,
         provider: Optional[ProviderType] = None,
