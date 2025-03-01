@@ -31,12 +31,11 @@ class ToolSupportProvider(AsyncGeneratorProvider):
             stream, logging=False,
             has_images=images is not None
         )
-        if response_format is None:
-            response_format = {"type": "json"}
-
         if tools is not None:
             if len(tools) > 1:
                 raise ValueError("Only one tool is supported.")
+            if response_format is None:
+                response_format = {"type": "json"}
             tools = tools.pop()
             lines = ["Respone in JSON format."]
             properties = tools["function"]["parameters"]["properties"]
