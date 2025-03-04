@@ -465,7 +465,7 @@ const handle_ask = async (do_ask_gpt = true) => {
             await ask_gpt(message_id);
         }
     } else {
-        await lazy_scroll_to_bottom();
+        await safe_load_conversation(window.conversation_id, true);
     }
 };
 
@@ -2490,7 +2490,7 @@ async function api(ressource, args=null, files=null, message_id=null, scroll=tru
     } else if (ressource == "conversation") {
         let body = JSON.stringify(args);
         headers.accept = 'text/event-stream';
-        if (files !== null) {
+        if (files.length > 0) {
             const formData = new FormData();
             for (const file of files) {
                 formData.append('files', file)

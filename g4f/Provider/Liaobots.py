@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import uuid
+import json
 from aiohttp import ClientSession, BaseConnector
 
 from ..typing import AsyncResult, Messages
@@ -290,7 +291,10 @@ class Liaobots(AsyncGeneratorProvider, ProviderModelMixin):
                         if b"<html coupert-item=" in chunk:
                             raise RuntimeError("Invalid session")
                         if chunk:
-                            yield chunk.decode(errors="ignore")
+                            if chunk.startswith(b"data: "):
+                                yield json.loads(chunk[6:]).get("content")
+                            else:
+                                yield chunk.decode(errors="ignore")
             except:
                 async with session.post(
                     "https://liaobots.work/api/user",
@@ -313,7 +317,10 @@ class Liaobots(AsyncGeneratorProvider, ProviderModelMixin):
                         if b"<html coupert-item=" in chunk:
                             raise RuntimeError("Invalid session")
                         if chunk:
-                            yield chunk.decode(errors="ignore")
+                            if chunk.startswith(b"data: "):
+                                yield json.loads(chunk[6:]).get("content")
+                            else:
+                                yield chunk.decode(errors="ignore")
 
     @classmethod
     async def initialize_auth_code(cls, session: ClientSession) -> None:
