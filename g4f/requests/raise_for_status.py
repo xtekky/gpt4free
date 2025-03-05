@@ -6,6 +6,9 @@ from requests import Response as RequestsResponse
 
 from ..errors import ResponseStatusError, RateLimitError
 from . import Response, StreamResponse
+from ..Provider.openai.har_file import get_request_config
+from ..cookies import get_cookies_dir
+import os
 
 class CloudflareError(ResponseStatusError):
     ...
@@ -49,6 +52,11 @@ async def raise_for_status_async(response: Union[StreamResponse, ClientResponse]
     elif response.status == 502:
         raise ResponseStatusError(f"Response {response.status}: Bad gateway")
     else:
+        if response.status in [403, 422, 429]:
+            auth_file = os.path.join(get_cookies_dir(), "auth_OpenaiChat.json")
+            if os.path.exists(auth_file):
+                os.remove(auth_file)
+            await get_request_config(None, None)
         raise ResponseStatusError(f"Response {response.status}: {message}")
 
 def raise_for_status(response: Union[Response, StreamResponse, ClientResponse, RequestsResponse], message: str = None):
@@ -72,4 +80,9 @@ def raise_for_status(response: Union[Response, StreamResponse, ClientResponse, R
     elif response.status_code == 502:
         raise ResponseStatusError(f"Response {response.status_code}: Bad gateway")
     else:
+        if response.status_code in [403, 422, 429]:
+            auth_file = os.path.join(get_cookies_dir(), "auth_OpenaiChat.json")
+            if os.path.exists(auth_file):
+                os.remove(auth_file)
+            get_request_config(None, None)
         raise ResponseStatusError(f"Response {response.status_code}: {message}")

@@ -425,6 +425,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                     cls._update_request_args(auth_result, session)
                     if response.status == 403:
                         cls.request_config.proof_token = None
+                        await cls.handle_error(403)
                         raise MissingAuthError("Access token is not valid")
                     await raise_for_status(response)
                     buffer = u""
@@ -678,6 +679,15 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
     def _update_cookie_header(cls):
         if cls.request_config.cookies:
             cls.request_config.headers["cookie"] = format_cookies(cls.request_config.cookies)
+
+    @classmethod
+    async def handle_error(cls, error_code: int):
+        if error_code in [403, 422, 429]:
+            auth_file = os.path.join(get_cookies_dir(), "auth_OpenaiChat.json")
+            if os.path.exists(auth_file):
+                os.remove(auth_file)
+            cls.request_config = RequestConfig()
+            await get_request_config(cls.request_config, None)
 
 class Conversation(JsonConversation):
     """

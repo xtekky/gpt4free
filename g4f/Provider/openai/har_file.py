@@ -157,3 +157,11 @@ async def get_request_config(request_config: RequestConfig, proxy: str) -> Reque
     if request_config.arkose_request is not None:
         request_config.arkose_token = await sendRequest(genArkReq(request_config.arkose_request), proxy)
     return request_config
+
+async def refresh_har_files_on_error(error_code: int):
+    if error_code in [403, 422, 429]:
+        auth_file = os.path.join(get_cookies_dir(), "auth_OpenaiChat.json")
+        if os.path.exists(auth_file):
+            os.remove(auth_file)
+        request_config = RequestConfig()
+        await get_request_config(request_config, None)
