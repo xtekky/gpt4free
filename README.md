@@ -246,7 +246,7 @@ Run the Web UI on your smartphone for easy access on the go. Check out the dedic
    - **AsyncClient API from G4F:** [/docs/async_client](docs/async_client.md)
    - **Requests API from G4F:** [/docs/requests](docs/requests.md)
    - **File API from G4F:** [/docs/file](docs/file.md)
-   - **PydanticAI and LangChain Integration: for G4F** [/docs/pydantic_ai](docs/pydantic_ai.md)
+   - **PydanticAI and LangChain Integration for G4F:** [/docs/pydantic_ai](docs/pydantic_ai.md)
    - **Legacy API with python modules:** [/docs/legacy](docs/legacy.md)
       
 ---
