@@ -24,7 +24,7 @@ async def raise_for_status_async(response: Union[StreamResponse, ClientResponse]
     if response.ok:
         return
     if message is None:
-        # content_type = response.headers.get("content-type", "")
+            content_type = response.headers.get("content-type", "")
         # if content_type.startswith("application/json"):
         #     try:
         #         data = await response.json()

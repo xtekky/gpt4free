@@ -80,8 +80,8 @@ if (window.markdownit) {
             .replaceAll('<code>', '<code class="language-plaintext">')
             .replaceAll('&lt;i class=&quot;', '<i class="')
             .replaceAll('&quot;&gt;&lt;/i&gt;', '"></i>')
-            .replaceAll('&lt;iframe type=&quot;text/html&quot; src=&quot;', '<iframe type="text/html" frameborder="0" src="')
-            .replaceAll('&quot;&gt;&lt;/iframe&gt;', `?enablejsapi=1&origin=${new URL(location.href).origin}` + '"></iframe>')
+            .replaceAll('&lt;iframe type=&quot;text/html&quot; src=&quot;', '<iframe type="text/html" frameborder="0" allow="fullscreen" src="')
+            .replaceAll('&quot;&gt;&lt;/iframe&gt;', `?enablejsapi=1&origin=${new URL(location.href).origin}"></iframe>`)
     }
 }
 
@@ -305,17 +305,17 @@ const register_message_buttons = async () => {
 
     message_box.querySelectorAll(".message .fa-file-export").forEach(async (el) => el.addEventListener("click", async () => {
         const elem = window.document.createElement('a');
-        let filename = `chat ${new Date().toLocaleString()}.md`.replaceAll(":", "-");
+        let filename = `chat ${new Date().toLocaleString()}.txt`.replaceAll(":", "-");
         const conversation = await get_conversation(window.conversation_id);
         let buffer = "";
         conversation.items.forEach(message => {
             if (message.reasoning) {
                 buffer += render_reasoning_text(message.reasoning);
             }
-            buffer += `${message.role == 'user' ? 'User' : 'Assistant'}: ${message.content.trim()}\n\n\n`;
+            buffer += `${message.role == 'user' ? 'User' : 'Assistant'}: ${message.content.trim()}\n\n`;
         });
         var download = document.getElementById("download");
-        download.setAttribute("href", "data:text/markdown;charset=utf-8," + encodeURIComponent(buffer.trim()));
+        download.setAttribute("href", "data:text/plain;charset=utf-8," + encodeURIComponent(buffer.trim()));
         download.setAttribute("download", filename);
         download.click();
         el.classList.add("clicked");
@@ -796,6 +796,12 @@ async function add_message_chunk(message, message_id, provider, scroll, finish_m
             content_map.inner.innerHTML = markdown_render(message.preview);
             await register_message_images();
         }
+    } else if (message.type == "audio") {
+        audio = new Audio(message.audio);
+        audio.controls = true;   
+        content_map.inner.appendChild(audio);
+        audio.play();
+        generate_storage[window.conversation_id] = true;
     } else if (message.type == "content") {
         message_storage[message_id] += message.content;
         update_message(content_map, message_id, null, scroll);
@@ -819,7 +825,7 @@ async function add_message_chunk(message, message_id, provider, scroll, finish_m
     } else if (message.type == "reasoning") {
         if (!reasoning_storage[message_id]) {
             reasoning_storage[message_id] = message;
-            reasoning_storage[message_id].text = "";
+            reasoning_storage[message_id].text = message.token || "";
         } else if (message.status) {
             reasoning_storage[message_id].status = message.status;
         } else if (message.token) {
