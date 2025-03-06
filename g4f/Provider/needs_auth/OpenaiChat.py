@@ -426,8 +426,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                     headers=headers
                 ) as response:
                     cls._update_request_args(auth_result, session)
-                    if response.status == 403:
-                        cls.request_config.proof_token = None
+                    if response.status in (401, 403):
                         raise MissingAuthError("Access token is not valid")
                     await raise_for_status(response)
                     buffer = u""
