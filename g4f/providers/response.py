@@ -187,12 +187,12 @@ class SynthesizeData(HiddenResponse, JsonMixin):
         self.provider = provider
         self.data = data
 
-class RequestLogin(ResponseType):
+class RequestLogin(HiddenResponse):
     def __init__(self, label: str, login_url: str) -> None:
         self.label = label
         self.login_url = login_url
 
-    def __str__(self) -> str:
+    def to_string(self) -> str:
         return format_link(self.login_url, f"[Login to {self.label}]") + "\n\n"
 
 class ImageResponse(ResponseType):

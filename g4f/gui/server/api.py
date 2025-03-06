@@ -189,6 +189,8 @@ class Api:
                     logger.exception(chunk)
                     debug.error(chunk)
                     yield self._format_json('message', get_error_message(chunk), error=type(chunk).__name__)
+                elif isinstance(chunk, RequestLogin):
+                    yield self._format_json("preview", chunk.to_string())
                 elif isinstance(chunk, PreviewResponse):
                     yield self._format_json("preview", chunk.to_string())
                 elif isinstance(chunk, ImagePreview):
@@ -197,7 +199,7 @@ class Api:
                     images = chunk
                     if download_images or chunk.get("cookies"):
                         chunk.alt = format_image_prompt(kwargs.get("messages"), chunk.alt)
-                        images = asyncio.run(copy_images(chunk.get_list(), chunk.get("cookies"), proxy=proxy, alt=chunk.alt))
+                        images = asyncio.run(copy_images(chunk.get_list(), chunk.get("cookies"), chunk.get("headers"), proxy=proxy, alt=chunk.alt))
                         images = ImageResponse(images, chunk.alt)
                     yield self._format_json("content", str(images), images=chunk.get_list(), alt=chunk.alt)
                 elif isinstance(chunk, SynthesizeData):
