@@ -43,23 +43,21 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
     image_models = [default_image_model]
     extra_image_models = ["flux-pro", "flux-dev", "flux-schnell", "midjourney", "dall-e-3"]
     vision_models = [default_vision_model, "gpt-4o-mini", "o1-mini"]
-    extra_text_models = ["claude", "claude-email", "deepseek-reasoner", "deepseek-r1"] + vision_models
+    extra_text_models = vision_models
     _models_loaded = False
     model_aliases = {
         ### Text Models ###
         "gpt-4o-mini": "openai",
         "gpt-4": "openai-large",
         "gpt-4o": "openai-large",
+        "o1-mini": "openai-reasoning",
         "qwen-2.5-coder-32b": "qwen-coder",
         "llama-3.3-70b": "llama",
         "mistral-nemo": "mistral",
-        "gpt-4o": "searchgpt",
-        "deepseek-chat": "claude-hybridspace",
+        "gpt-4o-mini": "searchgpt",
         "llama-3.1-8b": "llamalight",
-        "gpt-4o-vision": "gpt-4o",
-        "gpt-4o-mini-vision": "gpt-4o-mini",
-        "deepseek-chat": "claude-email",
-        "deepseek-r1": "deepseek-reasoner",
+        "llama-3.3-70b": "llama-scaleway",
+        "phi-4": "phi",
         "gemini-2.0": "gemini",
         "gemini-2.0-flash": "gemini",
         "gemini-2.0-flash-thinking": "gemini-thinking",
@@ -264,8 +262,6 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                 "seed": seed,
                 "cache": cache
             })
-            if "gemini" in model:
-                data.pop("seed")
             async with session.post(cls.text_api_endpoint, json=data) as response:
                 await raise_for_status(response)
                 result = await response.json()
