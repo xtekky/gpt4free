@@ -7,6 +7,7 @@ from ..typing import AsyncResult, Messages
 from .PollinationsAI import PollinationsAI
 
 class PollinationsImage(PollinationsAI):
+    label = "PollinationsImage"
     default_model = "flux"
     default_vision_model = None
     default_image_model = default_model
