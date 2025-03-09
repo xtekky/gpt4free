@@ -107,6 +107,7 @@
             z-index: -1;
             object-fit: contain;
             width: 100%;
+            background: black;
         }
 
         .description, form p a {
@@ -195,8 +196,7 @@
     <script type="importmap">
         {
             "imports": {
-                "@huggingface/hub": "https://cdn.jsdelivr.net/npm/@huggingface/hub@0.21.0/+esm",
-                "@huggingface/space-header": "https://cdn.jsdelivr.net/npm/@huggingface/space-header/+esm"
+                "@huggingface/hub": "https://cdn.jsdelivr.net/npm/@huggingface/hub@0.21.0/+esm"
             }
         }
     </script>
@@ -233,15 +233,12 @@
         </form>
         <script type="module">
             import * as hub from "@huggingface/hub";
-            import { init } from "@huggingface/space-header";
             import { oauthLoginUrl, oauthHandleRedirectIfPresent } from "@huggingface/hub";
 
             const isIframe = window.self !== window.top;
             const button = document.querySelector('form a.button');
             if (isIframe) {
                 button.classList.remove('hidden');
-            } else {
-                init("roxky/g4f-space-new");
             }
 
             const form = document.querySelector("form");
@@ -342,7 +339,7 @@
                     return;
                 }
                 const lower = data.prompt.toLowerCase();
-                const tags = ["nsfw", "timeline", "soap", "orally", "heel", "latex", "bathroom", "boobs", "charts", " text ", "gel", "logo", "infographic", "warts", " bra ", "prostitute", "curvy", "breasts", "written", "bodies", "naked", "classroom", "malone", "dirty", "shoes", "shower", "banner", "fat", "nipples", "couple", "sexual", "sandal", "supplier", "overlord", "succubus", "platinum", "cracy", "crazy", "lamic", "ropes", "cables", "wires", "dirty", "messy", "cluttered", "chaotic", "disorganized", "disorderly", "untidy", "unorganized", "unorderly", "unsystematic", "disarranged", "disarrayed", "disheveled", "disordered", "jumbled", "muddled", "scattered", "shambolic", "sloppy", "unkept", "unruly"];
+                const tags = ["nsfw", "timeline", "blood", "soap", "orally", "heel", "latex", "bathroom", "boobs", "charts", " text ", "gel", "logo", "infographic", "warts", " bra ", "prostitute", "curvy", "breasts", "written", "bodies", "naked", "classroom", "malone", "dirty", "shoes", "shower", "banner", "fat", "nipples", "couple", "sexual", "sandal", "supplier", "overlord", "succubus", "platinum", "cracy", "crazy", "lamic", "ropes", "cables", "wires", "dirty", "messy", "cluttered", "chaotic", "disorganized", "disorderly", "untidy", "unorganized", "unorderly", "unsystematic", "disarranged", "disarrayed", "disheveled", "disordered", "jumbled", "muddled", "scattered", "shambolic", "sloppy", "unkept", "unruly"];
                 for (i in tags) {
                     if (lower.indexOf(tags[i]) != -1) {
                         console.log("Skipping image with tag: " + tags[i]);
@@ -355,6 +352,9 @@
             eventSource.onerror = (event) => {
                 eventSource.close();
             }
+            imageFeed.onerror = () => {
+                imageFeed.classList.add("hidden");
+            }   
             setInterval(() => {
                 if (images.length > 0) {
                     imageFeed.classList.remove("hidden");

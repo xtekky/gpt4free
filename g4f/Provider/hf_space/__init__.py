@@ -11,6 +11,7 @@ from .BlackForestLabsFlux1Schnell    import BlackForestLabsFlux1Schnell
 from .VoodoohopFlux1Schnell          import VoodoohopFlux1Schnell
 from .CohereForAI                    import CohereForAI
 from .Janus_Pro_7B                   import Janus_Pro_7B
+from .Phi_4                          import Phi_4
 from .Qwen_QVQ_72B                   import Qwen_QVQ_72B
 from .Qwen_Qwen_2_5M_Demo            import Qwen_Qwen_2_5M_Demo
 from .Qwen_Qwen_2_72B_Instruct       import Qwen_Qwen_2_72B_Instruct
@@ -19,7 +20,6 @@ from .G4F                            import G4F
 
 class HuggingSpace(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://huggingface.co/spaces"
-    parent = "HuggingFace"
 
     working = True
 
@@ -32,6 +32,7 @@ class HuggingSpace(AsyncGeneratorProvider, ProviderModelMixin):
         VoodoohopFlux1Schnell,
         CohereForAI,
         Janus_Pro_7B,
+        Phi_4,
         Qwen_QVQ_72B,
         Qwen_Qwen_2_5M_Demo,
         Qwen_Qwen_2_72B_Instruct,
@@ -94,3 +95,14 @@ class HuggingSpace(AsyncGeneratorProvider, ProviderModelMixin):
                     error = e
         if not is_started and error is not None:
             raise error
+
+BlackForestLabsFlux1Dev.parent = HuggingSpace.__name__,
+BlackForestLabsFlux1Schnell.parent = HuggingSpace.__name__,
+VoodoohopFlux1Schnell.parent = HuggingSpace.__name__,
+CohereForAI.parent = HuggingSpace.__name__,
+Janus_Pro_7B.parent = HuggingSpace.__name__,
+Phi_4.parent = HuggingSpace.__name__,
+Qwen_QVQ_72B.parent = HuggingSpace.__name__,
+Qwen_Qwen_2_5M_Demo.parent = HuggingSpace.__name__,
+Qwen_Qwen_2_72B_Instruct.parent = HuggingSpace.__name__,
+StableDiffusion35Large.parent = HuggingSpace.__name__,
