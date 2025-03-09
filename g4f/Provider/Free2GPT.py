@@ -14,10 +14,12 @@ from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 
 class Free2GPT(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://chat10.free2gpt.xyz"
+    
     working = True
     supports_message_history = True
-    default_model = 'mistral-7b'
-    models = [default_model]
+    
+    default_model = 'gemini-1.5-pro'
+    models = [default_model, 'gemini-1.5-flash']
 
     @classmethod
     async def create_async_generator(
@@ -36,15 +38,6 @@ class Free2GPT(AsyncGeneratorProvider, ProviderModelMixin):
             "Content-Type": "text/plain;charset=UTF-8",
             "Referer": f"{cls.url}/",
             "Origin": cls.url,
-            "Sec-Fetch-Dest": "empty",
-            "Sec-Fetch-Mode": "cors",
-            "Sec-Fetch-Site": "same-origin",
-            "Sec-Ch-Ua": '"Chromium";v="127", "Not)A;Brand";v="99"',
-            "Sec-Ch-Ua-Mobile": "?0",
-            "Sec-Ch-Ua-Platform": '"Linux"',
-            "Cache-Control": "no-cache",
-            "Pragma": "no-cache",
-            "Priority": "u=1, i",
         }
         async with ClientSession(
             connector=get_connector(connector, proxy), headers=headers
