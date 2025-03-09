@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import base64
 from typing import Union, Dict, List, Optional
 from abc import abstractmethod
 from urllib.parse import quote_plus, unquote_plus
@@ -227,6 +228,14 @@ class Sources(ResponseType):
             f"> [{idx}] {format_link(link['url'], link.get('title', None))}"
             for idx, link in enumerate(self.list)
         ]))
+
+class Audio(HiddenResponse):
+    def __init__(self, data: bytes) -> None:
+        self.data = data
+
+    def to_string(self) -> str:
+        data_base64 = base64.b64encode(self.data).decode()
+        return f"data:audio/mpeg;base64,{data_base64}"
 
 class YouTube(ResponseType):
     def __init__(self, ids: List[str]) -> None:
