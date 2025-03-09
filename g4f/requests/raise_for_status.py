@@ -23,21 +23,21 @@ def is_openai(text: str) -> bool:
 async def raise_for_status_async(response: Union[StreamResponse, ClientResponse], message: str = None):
     if response.ok:
         return
-    text = (await response.text()).strip()
     if message is None:
-        content_type = response.headers.get("content-type", "")
-        if content_type.startswith("application/json"):
-            try:
-                data = await response.json()
-                message = data.get("error")
-                if isinstance(message, dict):
-                        message = data.get("message")
-            except Exception:
-                pass
-        else:
+            content_type = response.headers.get("content-type", "")
+        # if content_type.startswith("application/json"):
+        #     try:
+        #         data = await response.json()
+        #         message = data.get("error")
+        #         if isinstance(message, dict):
+        #                 message = data.get("message")
+        #     except Exception:
+        #         pass
+        # else:
+            text = (await response.text()).strip()
             is_html = content_type.startswith("text/html") or text.startswith("<!DOCTYPE")
             message = "HTML content" if is_html else text
-    if message == "HTML content":
+    if message is None or message == "HTML content":
         if response.status == 520:
             message = "Unknown error (Cloudflare)"
         elif response.status in (429, 402):

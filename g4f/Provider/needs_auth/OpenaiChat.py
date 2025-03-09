@@ -26,7 +26,7 @@ from ...image import ImageRequest, to_image, to_bytes, is_accepted_format
 from ...errors import MissingAuthError, NoValidHarFileError
 from ...providers.response import JsonConversation, FinishReason, SynthesizeData, AuthResult, ImageResponse
 from ...providers.response import Sources, TitleGeneration, RequestLogin, Parameters, Reasoning
-from ..helper import format_cookies
+from ..helper import format_cookies, get_last_user_message
 from ..openai.models import default_model, default_image_model, models, image_models, text_models
 from ..openai.har_file import get_request_config
 from ..openai.har_file import RequestConfig, arkReq, arkose_url, start_url, conversation_url, backend_url, backend_anon_url
@@ -404,7 +404,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                 if action != "continue":
                     data["parent_message_id"] = getattr(conversation, "parent_message_id", conversation.message_id)
                     conversation.parent_message_id = None
-                    messages = messages if conversation_id is None else [messages[-1]]
+                    messages = messages if conversation_id is None else [{"role": "user", "content": get_last_user_message(messages)}]
                     data["messages"] = cls.create_messages(messages, image_requests, ["search"] if web_search else None)
                 headers = {
                     **cls._headers,
@@ -426,7 +426,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                     headers=headers
                 ) as response:
                     cls._update_request_args(auth_result, session)
-                    if response.status in (401, 403):
+                    if response.status in (401, 403, 429):
                         raise MissingAuthError("Access token is not valid")
                     await raise_for_status(response)
                     buffer = u""
@@ -596,8 +596,10 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
         browser, stop_browser = await get_nodriver(proxy=proxy)
         try:
             page = browser.main_tab
-            def on_request(event: nodriver.cdp.network.RequestWillBeSent):
+            def on_request(event: nodriver.cdp.network.RequestWillBeSent, page=None):
                 if event.request.url == start_url or event.request.url.startswith(conversation_url):
+                    if cls.request_config.headers is None:
+                        cls.request_config.headers = {}
                     for key, value in event.request.headers.items():
                         cls.request_config.headers[key.lower()] = value
                 elif event.request.url in (backend_url, backend_anon_url):
@@ -621,18 +623,18 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
             page.add_handler(nodriver.cdp.network.RequestWillBeSent, on_request)
             page = await browser.get(cls.url)
             user_agent = await page.evaluate("window.navigator.userAgent")
-            await page.select("#prompt-textarea", 240)
-            await page.evaluate("document.getElementById('prompt-textarea').innerText = 'Hello'")
+            await page.select("textarea.text-token-text-primary", 240)
+            await page.evaluate("document.querySelector('textarea.text-token-text-primary').value = 'Hello'")
             await page.evaluate("document.querySelector('[data-testid=\"send-button\"]').click()")
             while True:
-                if cls._api_key is not None or not cls.needs_auth:
-                    break
                 body = await page.evaluate("JSON.stringify(window.__remixContext)")
                 if body:
                     match = re.search(r'"accessToken":"(.*?)"', body)
                     if match:
                         cls._api_key = match.group(1)
                         break
+                if cls._api_key is not None or not cls.needs_auth:
+                    break
                 await asyncio.sleep(1)
             while True:
                 if cls.request_config.proof_token:

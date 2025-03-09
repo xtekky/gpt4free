@@ -27,7 +27,7 @@ class BaseModel(BaseModel):
         return cls.construct(**data)
 
 class TokenDetails(BaseModel):
-    pass
+    cached_tokens: int
 
 class UsageModel(BaseModel):
     prompt_tokens: int
@@ -42,7 +42,7 @@ class UsageModel(BaseModel):
             prompt_tokens=prompt_tokens,
             completion_tokens=completion_tokens,
             total_tokens=total_tokens,
-            prompt_tokens_details=TokenDetails.model_construct(**prompt_tokens_details if prompt_tokens_details else {}),
+            prompt_tokens_details=TokenDetails.model_construct(**prompt_tokens_details if prompt_tokens_details else {"cached_tokens": 0}),
             completion_tokens_details=TokenDetails.model_construct(**completion_tokens_details if completion_tokens_details else {}),
             **kwargs
         )

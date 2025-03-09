@@ -250,12 +250,12 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
                                 return f"![](https:{match.group(0)})"
                             reasoning = re.sub(r"//yt3.(?:ggpht.com|googleusercontent.com/ytc)/[\w=-]+", replace_image, reasoning)
                             reasoning = re.sub(r"\nyoutube\n", "\n\n\n", reasoning)
+                            reasoning = re.sub(r"\nyoutube_tool\n", "\n\n", reasoning)
                             reasoning = re.sub(r"\nYouTube\n", "\nYouTube ", reasoning)
-                            reasoning = reasoning.replace('https://www.gstatic.com/images/branding/productlogos/youtube/v9/192px.svg', '<i class="fa-brands fa-youtube"></i>')
+                            reasoning = reasoning.replace('\nhttps://www.gstatic.com/images/branding/productlogos/youtube/v9/192px.svg', '<i class="fa-brands fa-youtube"></i>')
                             content = response_part[4][0][1][0]
                             if reasoning:
-                                yield Reasoning(status="🤔")
-                                yield Reasoning(reasoning)
+                                yield Reasoning(reasoning, status="🤔")
                         except (ValueError, KeyError, TypeError, IndexError) as e:
                             debug.error(f"{cls.__name__} {type(e).__name__}: {e}")
                             continue
@@ -283,7 +283,7 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
                             except (TypeError, IndexError, KeyError):
                                 pass
                         youtube_ids = []
-                        pattern = re.compile(r"http://www.youtube.com/watch\?v=(\w+)")
+                        pattern = re.compile(r"http://www.youtube.com/watch\?v=([\w-]+)")
                         for match in pattern.finditer(content):
                             if match.group(1) not in youtube_ids:
                                 youtube_ids.append(match.group(1))
