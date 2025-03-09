@@ -13,7 +13,7 @@ from ..image import to_data_uri
 from ..errors import ModelNotFoundError
 from ..requests.raise_for_status import raise_for_status
 from ..requests.aiohttp import get_connector
-from ..providers.response import ImageResponse, ImagePreview, FinishReason, Usage
+from ..providers.response import ImageResponse, ImagePreview, FinishReason, Usage, Audio
 from .. import debug
 
 DEFAULT_HEADERS = {
@@ -32,7 +32,8 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
     supports_message_history = True
 
     # API endpoints
-    text_api_endpoint = "https://text.pollinations.ai/openai"
+    text_api_endpoint = "https://text.pollinations.ai"
+    openai_endpoint = "https://text.pollinations.ai/openai"
     image_api_endpoint = "https://image.pollinations.ai/"
 
     # Models configuration
@@ -88,10 +89,17 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                 # Update of text models
                 text_response = requests.get("https://text.pollinations.ai/models")
                 text_response.raise_for_status()
+                models = text_response.json()
                 original_text_models = [
                     model.get("name") 
-                    for model in text_response.json()
+                    for model in models
+                    if model.get("type") == "chat"
                 ]
+                cls.audio_models = {
+                    model.get("name"): model.get("voices")
+                    for model in models
+                    if model.get("audio")
+                }
                 
                 # Combining text models
                 combined_text = (
@@ -262,8 +270,18 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                 "seed": seed,
                 "cache": cache
             })
-            async with session.post(cls.text_api_endpoint, json=data) as response:
+            if "gemini" in model:
+                data.pop("seed")
+            if model in cls.audio_models:
+                data["voice"] = random.choice(cls.audio_models[model])
+                url = f"{cls.text_api_endpoint}"
+            else:
+                url = cls.openai_endpoint
+            async with session.post(url, json=data) as response:
                 await raise_for_status(response)
+                if response.headers["content-type"] == "audio/mpeg":
+                    yield Audio(await response.read())
+                    return
                 result = await response.json()
                 choice = result["choices"][0]
                 message = choice.get("message", {})

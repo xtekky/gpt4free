@@ -229,14 +229,6 @@ class Sources(ResponseType):
             for idx, link in enumerate(self.list)
         ]))
 
-class Audio(HiddenResponse):
-    def __init__(self, data: bytes) -> None:
-        self.data = data
-
-    def to_string(self) -> str:
-        data_base64 = base64.b64encode(self.data).decode()
-        return f"data:audio/mpeg;base64,{data_base64}"
-
 class YouTube(ResponseType):
     def __init__(self, ids: List[str]) -> None:
         """Initialize with a list of YouTube IDs."""
@@ -250,6 +242,16 @@ class YouTube(ResponseType):
             f'<iframe type="text/html" src="https://www.youtube.com/embed/{id}"></iframe>'
             for id in self.ids
         ]))
+
+class Audio(HiddenResponse):
+    def __init__(self, data: bytes) -> None:
+        """Initialize with audio data bytes."""
+        self.data = data
+
+    def to_string(self) -> str:
+        """Return audio data as a base64-encoded data URI."""
+        data_base64 = base64.b64encode(self.data).decode()
+        return f"data:audio/mpeg;base64,{data_base64}"
 
 class BaseConversation(ResponseType):
     def __str__(self) -> str:
