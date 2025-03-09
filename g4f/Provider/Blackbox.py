@@ -104,6 +104,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         "deepseek-chat": "DeepSeek-LLM-Chat-(67B)",
         "qwq-32b": "Qwen-QwQ-32B-Preview",
         "hermes-2-dpo": "Nous-Hermes-2-Mixtral-8x7B-DPO",
+        "claude-3.7-sonnet": "claude-sonnet-3.7",
         "flux": "ImageGeneration",
     }
     
