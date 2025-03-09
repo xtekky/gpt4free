@@ -19,6 +19,7 @@ from .Koala             import Koala
 from .MagickPen         import MagickPen
 from .MyShell           import MyShell
 from .Poe               import Poe
+from .Prodia            import Prodia
 from .Raycast           import Raycast
 from .ReplicateHome     import ReplicateHome
 from .RobocodersAPI     import RobocodersAPI

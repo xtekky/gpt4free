@@ -5,6 +5,7 @@ import re
 import json
 import random
 import string
+import base64
 from pathlib import Path
 from typing import Optional
 
@@ -35,32 +36,28 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
     supports_system_message = True
     supports_message_history = True
     
-    default_model = "BLACKBOXAI"
+    default_model = "blackboxai"
     default_vision_model = default_model
     default_image_model = 'ImageGeneration' 
     
     image_models = [default_image_model]   
-    vision_models = [default_vision_model, 'GPT-4o', 'o3-mini', 'Gemini-PRO', 'gemini-1.5-flash', 'llama-3.1-8b', 'llama-3.1-70b', 'llama-3.1-405b', 'Gemini-Flash-2.0']
-    
-    premium_models = ['GPT-4o', 'o1', 'o3-mini', 'Gemini-PRO', 'Claude-Sonnet-3.5']
+    vision_models = [default_vision_model, 'gpt-4o', 'o1', 'o3-mini', 'gemini-pro', 'gemini-1.5-flash', 'llama-3.1-8b', 'llama-3.1-70b', 'llama-3.1-405b', 'gemini-2.0-flash', 'deepseek-v3']
 
-    userSelectedModel = ['DeepSeek-V3', 'DeepSeek-R1', 'BLACKBOXAI-PRO', 'Meta-Llama-3.3-70B-Instruct-Turbo', 'Mistral-Small-24B-Instruct-2501', 'DeepSeek-LLM-Chat-(67B)', 'DBRX-Instruct', 'Qwen-QwQ-32B-Preview', 'Nous-Hermes-2-Mixtral-8x7B-DPO', 'Gemini-Flash-2.0'] + premium_models
+    userSelectedModel = ['gpt-4o', 'o1', 'o3-mini', 'gemini-pro', 'claude-sonnet-3.7', 'deepseek-v3', 'deepseek-r1', 'blackboxai-pro', 'Meta-Llama-3.3-70B-Instruct-Turbo', 'Mistral-Small-24B-Instruct-2501', 'DeepSeek-LLM-Chat-(67B)', 'dbrx-instruct', 'Qwen-QwQ-32B-Preview', 'Nous-Hermes-2-Mixtral-8x7B-DPO', 'gemini-2.0-flash']
 
     agentMode = {
-        'DeepSeek-V3': {'mode': True, 'id': "deepseek-chat", 'name': "DeepSeek-V3"},
-        'DeepSeek-R1': {'mode': True, 'id': "deepseek-reasoner", 'name': "DeepSeek-R1"},
+        'deepseek-v3': {'mode': True, 'id': "deepseek-chat", 'name': "DeepSeek-V3"},
+        'deepseek-r1': {'mode': True, 'id': "deepseek-reasoner", 'name': "DeepSeek-R1"},
         'Meta-Llama-3.3-70B-Instruct-Turbo': {'mode': True, 'id': "meta-llama/Llama-3.3-70B-Instruct-Turbo", 'name': "Meta-Llama-3.3-70B-Instruct-Turbo"},
         'Mistral-Small-24B-Instruct-2501': {'mode': True, 'id': "mistralai/Mistral-Small-24B-Instruct-2501", 'name': "Mistral-Small-24B-Instruct-2501"},
         'DeepSeek-LLM-Chat-(67B)': {'mode': True, 'id': "deepseek-ai/deepseek-llm-67b-chat", 'name': "DeepSeek-LLM-Chat-(67B)"},
-        'DBRX-Instruct': {'mode': True, 'id': "databricks/dbrx-instruct", 'name': "DBRX-Instruct"},
+        'dbrx-instruct': {'mode': True, 'id': "databricks/dbrx-instruct", 'name': "DBRX-Instruct"},
         'Qwen-QwQ-32B-Preview': {'mode': True, 'id': "Qwen/QwQ-32B-Preview", 'name': "Qwen-QwQ-32B-Preview"},
         'Nous-Hermes-2-Mixtral-8x7B-DPO': {'mode': True, 'id': "NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO", 'name': "Nous-Hermes-2-Mixtral-8x7B-DPO"},
-        'Gemini-Flash-2.0': {'mode': True, 'id': "Gemini/Gemini-Flash-2.0", 'name': "Gemini-Flash-2.0"},
+        'gemini-2.0-flash': {'mode': True, 'id': "Gemini/Gemini-Flash-2.0", 'name': "Gemini-Flash-2.0"},
     }
 
     trendingAgentMode = {
-        "o1": {'mode': True, 'id': 'o1'},
-        "o3-mini": {'mode': True, 'id': 'o3-mini'},
         "gemini-1.5-flash": {'mode': True, 'id': 'Gemini'},
         "llama-3.1-8b": {'mode': True, 'id': "llama-3.1-8b"},
         'llama-3.1-70b': {'mode': True, 'id': "llama-3.1-70b"},
@@ -77,7 +74,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         'PyTorch Agent': {'mode': True, 'id': "PyTorch Agent"},
         'React Agent': {'mode': True, 'id': "React Agent"},
         'Xcode Agent': {'mode': True, 'id': "Xcode Agent"},
-        'BLACKBOXAI-PRO': {'mode': True, 'id': "BLACKBOXAI-PRO"},
+        'blackboxai-pro': {'mode': True, 'id': "BLACKBOXAI-PRO"},
         'Heroku Agent': {'mode': True, 'id': "Heroku Agent"},
         'Godot Agent': {'mode': True, 'id': "Godot Agent"},
         'Go Agent': {'mode': True, 'id': "Go Agent"},
@@ -100,38 +97,20 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
     models = list(dict.fromkeys([default_model, *userSelectedModel, *image_models, *list(agentMode.keys()), *list(trendingAgentMode.keys())]))
 
     model_aliases = {
-        "blackboxai": "BLACKBOXAI",
         "gemini-1.5-flash": "gemini-1.5-flash",
-        "deepseek-v3": "DeepSeek-V3",
-        "deepseek-r1": "DeepSeek-R1",
+        "gemini-1.5-pro": "gemini-pro",
         "llama-3.3-70b": "Meta-Llama-3.3-70B-Instruct-Turbo",
         "mixtral-small-28b": "Mistral-Small-24B-Instruct-2501",
         "deepseek-chat": "DeepSeek-LLM-Chat-(67B)",
-        "dbrx-instruct": "DBRX-Instruct",
         "qwq-32b": "Qwen-QwQ-32B-Preview",
         "hermes-2-dpo": "Nous-Hermes-2-Mixtral-8x7B-DPO",
-        "gemini-2.0-flash": "Gemini-Flash-2.0",
-        "blackboxai-pro": "BLACKBOXAI-PRO",
+        "claude-3.7-sonnet": "claude-sonnet-3.7",
         "flux": "ImageGeneration",
     }
-
-    @classmethod
-    def get_models(cls) -> list[str]:
-        models = super().get_models()
-        filtered = [m for m in models if m not in cls.premium_models]
-        filtered += [f"{m} (Premium)" for m in cls.premium_models]
-        return filtered
-
-    @classmethod
-    def get_model(cls, model: str, **kwargs) -> str:
-        try:
-            model = super().get_model(model, **kwargs)
-            return model.split(" (Premium)")[0]
-        except ModelNotSupportedError:
-            base_model = model.split(" (Premium)")[0]
-            if base_model in cls.premium_models:
-                return base_model
-            raise
+    
+    ENCRYPTED_SESSION = "eyJ1c2VyIjogeyJuYW1lIjogIkJMQUNLQk9YIEFJIiwgImVtYWlsIjogImdpc2VsZUBibGFja2JveC5haSIsICJpbWFnZSI6ICJodHRwczovL3l0My5nb29nbGV1c2VyY29udGVudC5jb20vQjd6RVlVSzUxWnNQYmFSUFVhMF9ZbnQ1WV9URFZoTE4tVjAzdndRSHM0eF96a2g4a1psLXkxcXFxb3hoeFFzcS1wUVBHS0R0WFE9czE2MC1jLWstYzB4MDBmZmZmZmYtbm8tcmoifSwgImV4cGlyZXMiOiBudWxsfQ=="
+    ENCRYPTED_SUBSCRIPTION_CACHE = "eyJzdGF0dXMiOiAiUFJFTUlVTSIsICJleHBpcnlUaW1lc3RhbXAiOiBudWxsLCAibGFzdENoZWNrZWQiOiBudWxsLCAiaXNUcmlhbFN1YnNjcmlwdGlvbiI6IHRydWV9"
+    ENCRYPTED_IS_PREMIUM = "dHJ1ZQ=="
 
     @classmethod
     async def fetch_validated(cls, url: str = "https://www.blackbox.ai", force_refresh: bool = False) -> Optional[str]:
@@ -192,7 +171,21 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
     def generate_id(cls, length: int = 7) -> str:
         chars = string.ascii_letters + string.digits
         return ''.join(random.choice(chars) for _ in range(length))
-
+    
+    @staticmethod
+    def decrypt_data(encrypted_data):
+        try:
+            return json.loads(base64.b64decode(encrypted_data).decode('utf-8'))
+        except:
+            return None
+    
+    @staticmethod
+    def decrypt_bool(encrypted_data):
+        try:
+            return base64.b64decode(encrypted_data).decode('utf-8').lower() == 'true'
+        except:
+            return False
+            
     @classmethod
     async def create_async_generator(
         cls,
@@ -308,9 +301,9 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
                     "additionalInfo": "",
                     "enableNewChats": False
                 },
-                "session": None,
-                "isPremium": False, 
-                "subscriptionCache": None,
+                "session": cls.decrypt_data(cls.ENCRYPTED_SESSION),
+                "isPremium": cls.decrypt_bool(cls.ENCRYPTED_IS_PREMIUM), 
+                "subscriptionCache": cls.decrypt_data(cls.ENCRYPTED_SUBSCRIPTION_CACHE),
                 "beastMode": False,
                 "webSearchMode": False
             }

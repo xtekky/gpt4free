@@ -27,6 +27,7 @@ class FreeGpt(AsyncGeneratorProvider, ProviderModelMixin):
     supports_system_message = True
     
     default_model = 'gemini-1.5-pro'
+    models = [default_model, 'gemini-1.5-flash']
 
     @classmethod
     async def create_async_generator(

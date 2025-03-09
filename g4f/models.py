@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 from .Provider import IterListProvider, ProviderType
 from .Provider import (
-    ### no auth required ###
+    ### No Auth Required ###
     AllenAI,
     Blackbox,
     ChatGLM,
@@ -13,6 +13,8 @@ from .Provider import (
     Copilot,
     DDG,
     DeepInfraChat,
+    Free2GPT,
+    FreeGpt,
     HuggingSpace,
     G4F,
     Janus_Pro_7B,
@@ -20,7 +22,6 @@ from .Provider import (
     ImageLabs,
     Jmuz,
     Liaobots,
-    Mhystical,
     OIVSCode,
     PerplexityLabs,
     Pi,
@@ -29,7 +30,7 @@ from .Provider import (
     TeachAnything,
     Yqcloud,
     
-    ### needs auth ###
+    ### Needs Auth ###
     BingCreateImages,
     CopilotAccount,
     Gemini,
@@ -80,9 +81,13 @@ default = Model(
         Blackbox,
         Copilot,
         DeepInfraChat,
-        ChatGptEs,
+        AllenAI,
         PollinationsAI,
         OIVSCode,
+        ChatGptEs,
+        Free2GPT,
+        FreeGpt,
+        Glider,
         OpenaiChat,
         Jmuz,
         Cloudflare,
@@ -115,14 +120,14 @@ default_vision = Model(
 gpt_4 = Model(
     name          = 'gpt-4',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([DDG, Jmuz, ChatGptEs, PollinationsAI, Yqcloud, Copilot, OpenaiChat, Liaobots, Mhystical])
+    best_provider = IterListProvider([DDG, Jmuz, ChatGptEs, PollinationsAI, Yqcloud, Copilot, OpenaiChat, Liaobots])
 )
 
 # gpt-4o
 gpt_4o = VisionModel(
     name          = 'gpt-4o',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([Jmuz, ChatGptEs, PollinationsAI, Copilot, Liaobots, OpenaiChat])
+    best_provider = IterListProvider([Blackbox, Jmuz, ChatGptEs, PollinationsAI, Copilot, Liaobots, OpenaiChat])
 )
 
 gpt_4o_mini = Model(
@@ -135,20 +140,20 @@ gpt_4o_mini = Model(
 o1 = Model(
     name          = 'o1',
     base_provider = 'OpenAI',
-    best_provider = OpenaiAccount
+    best_provider = IterListProvider([Blackbox, OpenaiAccount])
 )
 
-o1_preview = Model(
-    name          = 'o1-preview',
+o1_mini = Model(
+    name          = 'o1-mini',
     base_provider = 'OpenAI',
-    best_provider = Liaobots
+    best_provider = PollinationsAI
 )
 
 # o3
 o3_mini = Model(
     name          = 'o3-mini',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([DDG, Liaobots])
+    best_provider = IterListProvider([DDG, Blackbox, Liaobots])
 )
 
 ### GigaChat ###
@@ -194,7 +199,7 @@ llama_3_1_8b = Model(
 llama_3_1_70b = Model(
     name          = "llama-3.1-70b",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider([Blackbox, Glider, Jmuz, TeachAnything])
+    best_provider = IterListProvider([Blackbox, Glider, Jmuz])
 )
 
 llama_3_1_405b = Model(
@@ -289,7 +294,7 @@ phi_3_5_mini = Model(
 phi_4 = Model(
     name          = "phi-4",
     base_provider = "Microsoft",
-    best_provider = DeepInfraChat
+    best_provider = IterListProvider([DeepInfraChat, PollinationsAI])
 )
 
 # wizardlm
@@ -324,13 +329,13 @@ gemini_exp = Model(
 gemini_1_5_flash = Model(
     name          = 'gemini-1.5-flash',
     base_provider = 'Google DeepMind',
-    best_provider = IterListProvider([Blackbox, Jmuz, GeminiPro])
+    best_provider = IterListProvider([Blackbox, Free2GPT, FreeGpt, TeachAnything, Jmuz, GeminiPro])
 )
 
 gemini_1_5_pro = Model(
     name          = 'gemini-1.5-pro',
     base_provider = 'Google DeepMind',
-    best_provider = IterListProvider([Jmuz, GeminiPro])
+    best_provider = IterListProvider([Blackbox, Free2GPT, FreeGpt, TeachAnything, Jmuz, GeminiPro])
 )
 
 # gemini-2.0
@@ -342,6 +347,12 @@ gemini_2_0_flash = Model(
 
 gemini_2_0_flash_thinking = Model(
     name          = 'gemini-2.0-flash-thinking',
+    base_provider = 'Google DeepMind',
+    best_provider = Liaobots
+)
+
+gemini_2_0_pro = Model(
+    name          = 'gemini-2.0-pro',
     base_provider = 'Google DeepMind',
     best_provider = Liaobots
 )
@@ -372,6 +383,19 @@ claude_3_5_sonnet = Model(
     name          = 'claude-3.5-sonnet',
     base_provider = 'Anthropic',
     best_provider = IterListProvider([Jmuz, Liaobots])
+)
+
+# claude 3.7
+claude_3_7_sonnet = Model(
+    name          = 'claude-3.7-sonnet',
+    base_provider = 'Anthropic',
+    best_provider = IterListProvider([Blackbox, Liaobots])
+)
+
+claude_3_7_sonnet_thinking = Model(
+    name          = 'claude-3.7-sonnet-thinking',
+    base_provider = 'Anthropic',
+    best_provider = Liaobots
 )
 
 ### Reka AI ###
@@ -468,7 +492,7 @@ pi = Model(
 deepseek_chat = Model(
     name = 'deepseek-chat',
     base_provider = 'DeepSeek',
-    best_provider = IterListProvider([Blackbox, Jmuz, PollinationsAI])
+    best_provider = IterListProvider([Blackbox, Jmuz])
 )
 
 deepseek_v3 = Model(
@@ -720,7 +744,7 @@ class ModelUtils:
         
         # o1
         o1.name: o1,
-        o1_preview.name: o1_preview,
+        o1_mini.name: o1_mini,
         
         # o3
         o3_mini.name: o3_mini,
@@ -777,6 +801,7 @@ class ModelUtils:
         gemini_1_5_flash.name: gemini_1_5_flash,
         gemini_2_0_flash.name: gemini_2_0_flash,
         gemini_2_0_flash_thinking.name: gemini_2_0_flash_thinking,
+        gemini_2_0_pro.name: gemini_2_0_pro,
 
         ### Anthropic ###
         # claude 3
@@ -786,6 +811,10 @@ class ModelUtils:
 
         # claude 3.5
         claude_3_5_sonnet.name: claude_3_5_sonnet,
+        
+        # claude 3.7
+        claude_3_7_sonnet.name: claude_3_7_sonnet,
+        claude_3_7_sonnet_thinking.name: claude_3_7_sonnet_thinking,
 
         ### Reka AI ###
         reka_core.name: reka_core,
