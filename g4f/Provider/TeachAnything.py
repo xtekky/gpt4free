@@ -12,19 +12,11 @@ from .helper import format_prompt
 class TeachAnything(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://www.teach-anything.com"
     api_endpoint = "/api/generate"
+    
     working = True
-    default_model = "llama-3.1-70b"
-    models = [default_model]
-
-    @classmethod
-    def get_model(cls, model: str) -> str:
-        if model in cls.models:
-            return model
-        elif model in cls.model_aliases:
-            return cls.model_aliases[model]
-        else:
-            return cls.default_model
-
+    
+    default_model = 'gemini-1.5-pro'
+    models = [default_model, 'gemini-1.5-flash']
 
     @classmethod
     async def create_async_generator(
