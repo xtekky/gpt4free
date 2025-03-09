@@ -47,6 +47,12 @@ class ChatGptEs(AsyncGeneratorProvider, ProviderModelMixin):
         session = Session()
         session.headers.update({
             "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36",
+            "referer": cls.url,
+            "origin": cls.url,
+            "accept": "*/*",
+            "accept-language": "en-US,en;q=0.9",
+            "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
+            "x-requested-with": "XMLHttpRequest",
         })
         
         if proxy:
@@ -56,24 +62,46 @@ class ChatGptEs(AsyncGeneratorProvider, ProviderModelMixin):
         initial_response = session.get(cls.url, impersonate="chrome110")
         initial_text = initial_response.text
         
-        # Look for nonce in HTML
-        nonce_match = re.search(r'<input\s+type=[\'"]hidden[\'"]\s+name=[\'"]_wpnonce[\'"]\s+value=[\'"]([^\'"]+)[\'"]', initial_text)
-        if not nonce_match:
-            json_match = re.search(r'"_wpnonce":"([^"]+)"', initial_text)
-            if json_match:
-                nonce_ = json_match.group(1)
+        # More comprehensive nonce extraction
+        nonce_patterns = [
+            r'<input\s+type=[\'"]hidden[\'"]\s+name=[\'"]_wpnonce[\'"]\s+value=[\'"]([^\'"]+)[\'"]',
+            r'"_wpnonce":"([^"]+)"',
+            r'var\s+wpaicg_nonce\s*=\s*[\'"]([^\'"]+)[\'"]',
+            r'wpaicg_nonce\s*:\s*[\'"]([^\'"]+)[\'"]'
+        ]
+        
+        nonce_ = None
+        for pattern in nonce_patterns:
+            match = re.search(pattern, initial_text)
+            if match:
+                nonce_ = match.group(1)
+                break
+                
+        if not nonce_:
+            # Try to find any nonce-like pattern as a last resort
+            general_nonce = re.search(r'nonce[\'"]?\s*[=:]\s*[\'"]([a-zA-Z0-9]+)[\'"]', initial_text)
+            if general_nonce:
+                nonce_ = general_nonce.group(1)
             else:
-                # If not found, use default value
+                # Fallback, but this likely won't work
                 nonce_ = "8cf9917be2"
-        else:
-            nonce_ = nonce_match.group(1)
         
         # Look for post_id in HTML
-        post_id_match = re.search(r'<input\s+type=[\'"]hidden[\'"]\s+name=[\'"]post_id[\'"]\s+value=[\'"]([^\'"]+)[\'"]', initial_text)
-        if not post_id_match:
+        post_id_patterns = [
+            r'<input\s+type=[\'"]hidden[\'"]\s+name=[\'"]post_id[\'"]\s+value=[\'"]([^\'"]+)[\'"]',
+            r'"post_id":"([^"]+)"',
+            r'var\s+post_id\s*=\s*[\'"]?(\d+)[\'"]?'
+        ]
+        
+        post_id = None
+        for pattern in post_id_patterns:
+            match = re.search(pattern, initial_text)
+            if match:
+                post_id = match.group(1)
+                break
+                
+        if not post_id:
             post_id = "106"  # Default from curl example
-        else:
-            post_id = post_id_match.group(1)
         
         client_id = os.urandom(5).hex()
         
@@ -102,7 +130,7 @@ class ChatGptEs(AsyncGeneratorProvider, ProviderModelMixin):
         
         result = response.json()
         if "data" in result:
-            if "Du musst das Kästchen anklicken!" in result['data']:
+            if isinstance(result['data'], str) and "Du musst das Kästchen anklicken!" in result['data']:
                 raise ValueError(result['data'])
             yield result['data']
         else:
