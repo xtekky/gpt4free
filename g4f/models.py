@@ -87,6 +87,7 @@ default = Model(
         ChatGptEs,
         Free2GPT,
         FreeGpt,
+        Glider,
         OpenaiChat,
         Jmuz,
         Cloudflare,
