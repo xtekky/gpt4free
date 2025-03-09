@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import base64
 from typing import Union, Dict, List, Optional
 from abc import abstractmethod
 from urllib.parse import quote_plus, unquote_plus
@@ -241,6 +242,16 @@ class YouTube(ResponseType):
             f'<iframe type="text/html" src="https://www.youtube.com/embed/{id}"></iframe>'
             for id in self.ids
         ]))
+
+class Audio(HiddenResponse):
+    def __init__(self, data: bytes) -> None:
+        """Initialize with audio data bytes."""
+        self.data = data
+
+    def to_string(self) -> str:
+        """Return audio data as a base64-encoded data URI."""
+        data_base64 = base64.b64encode(self.data).decode()
+        return f"data:audio/mpeg;base64,{data_base64}"
 
 class BaseConversation(ResponseType):
     def __str__(self) -> str:
