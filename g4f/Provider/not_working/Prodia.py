@@ -4,14 +4,15 @@ from aiohttp import ClientSession
 import asyncio
 import random
 
-from ..typing import AsyncResult, Messages
-from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from ..providers.response import ImageResponse
+from ...typing import AsyncResult, Messages
+from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from ...providers.response import ImageResponse
 
 class Prodia(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://app.prodia.com"
     api_endpoint = "https://api.prodia.com/generate"
-    working = True
+    
+    working = False
     
     default_model = 'absolutereality_v181.safetensors [3d9d4d2b]'
     default_image_model = default_model
