@@ -96,13 +96,5 @@ class HuggingSpace(AsyncGeneratorProvider, ProviderModelMixin):
         if not is_started and error is not None:
             raise error
 
-BlackForestLabsFlux1Dev.parent = HuggingSpace.__name__,
-BlackForestLabsFlux1Schnell.parent = HuggingSpace.__name__,
-VoodoohopFlux1Schnell.parent = HuggingSpace.__name__,
-CohereForAI.parent = HuggingSpace.__name__,
-Janus_Pro_7B.parent = HuggingSpace.__name__,
-Phi_4.parent = HuggingSpace.__name__,
-Qwen_QVQ_72B.parent = HuggingSpace.__name__,
-Qwen_Qwen_2_5M_Demo.parent = HuggingSpace.__name__,
-Qwen_Qwen_2_72B_Instruct.parent = HuggingSpace.__name__,
-StableDiffusion35Large.parent = HuggingSpace.__name__,
+for provider in HuggingSpace.providers:
+    provider.parent = HuggingSpace.__name__

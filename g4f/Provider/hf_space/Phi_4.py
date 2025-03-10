@@ -116,10 +116,11 @@ class Phi_4(AsyncGeneratorProvider, ProviderModelMixin):
 
             if images is not None:
                 data = FormData()
-                mimi_types = [None for i in range(len(images))]
+                mime_types = [None for i in range(len(images))]
                 for i in range(len(images)):
-                    mimi_types[i] = is_data_an_wav(images[i][0], images[i][1])
+                    mime_types[i] = is_data_an_wav(images[i][0], images[i][1])
                     images[i] = (to_bytes(images[i][0]), images[i][1])
+                    mime_types[i] = is_accepted_format(images[i][0]) if mime_types[i] is None else mime_types[i]
                 for image, image_name in images:
                     data.add_field(f"files", to_bytes(image), filename=image_name)
                 async with session.post(f"{cls.api_url}/gradio_api/upload", params={"upload_id": session_hash}, data=data) as response:
@@ -130,7 +131,7 @@ class Phi_4(AsyncGeneratorProvider, ProviderModelMixin):
                     "url": f"{cls.api_url}/gradio_api/file={image_file}",
                     "orig_name": images[i][1],
                     "size": len(images[i][0]),
-                    "mime_type": mimi_types[i] or is_accepted_format(images[i][0]),
+                    "mime_type": mime_types[i],
                     "meta": {
                         "_type": "gradio.FileData"
                     }
