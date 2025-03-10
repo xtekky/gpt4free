@@ -229,12 +229,12 @@ class Sources(ResponseType):
             for idx, link in enumerate(self.list)
         ]))
 
-class YouTube(ResponseType):
+class YouTube(HiddenResponse):
     def __init__(self, ids: List[str]) -> None:
         """Initialize with a list of YouTube IDs."""
         self.ids = ids
 
-    def __str__(self) -> str:
+    def to_string(self) -> str:
         """Return YouTube embeds as a string."""
         if not self.ids:
             return ""
@@ -243,12 +243,12 @@ class YouTube(ResponseType):
             for id in self.ids
         ]))
 
-class Audio(HiddenResponse):
+class Audio(ResponseType):
     def __init__(self, data: bytes) -> None:
         """Initialize with audio data bytes."""
         self.data = data
 
-    def to_string(self) -> str:
+    def __str__(self) -> str:
         """Return audio data as a base64-encoded data URI."""
         data_base64 = base64.b64encode(self.data).decode()
         return f"data:audio/mpeg;base64,{data_base64}"

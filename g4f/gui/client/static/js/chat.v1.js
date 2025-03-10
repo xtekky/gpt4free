@@ -440,7 +440,7 @@ const handle_ask = async (do_ask_gpt = true) => {
             <i class="fa-solid fa-xmark"></i>
             <i class="fa-regular fa-phone-arrow-up-right"></i>
         </div>
-        <div class="content" id="user_${message_id}"> 
+        <div class="content"> 
             <div class="content_inner">
             ${markdown_render(message)}
             </div>

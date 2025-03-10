@@ -274,7 +274,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                 data.pop("seed")
             if model in cls.audio_models:
                 data["voice"] = random.choice(cls.audio_models[model])
-                url = f"{cls.text_api_endpoint}"
+                url = cls.text_api_endpoint
             else:
                 url = cls.openai_endpoint
             async with session.post(url, json=data) as response:
