@@ -290,6 +290,8 @@ class Completions:
         ignore_stream: Optional[bool] = False,
         **kwargs
     ) -> ChatCompletion:
+        if isinstance(messages, str):
+            messages = [{"role": "user", "content": messages}]
         if image is not None:
             kwargs["images"] = [(image, image_name)]
         model, provider = get_model_and_provider(
@@ -576,6 +578,8 @@ class AsyncCompletions:
         ignore_stream: Optional[bool] = False,
         **kwargs
     ) -> Awaitable[ChatCompletion]:
+        if isinstance(messages, str):
+            messages = [{"role": "user", "content": messages}]
         if image is not None:
             kwargs["images"] = [(image, image_name)]
         model, provider = get_model_and_provider(

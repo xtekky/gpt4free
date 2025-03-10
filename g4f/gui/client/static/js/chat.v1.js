@@ -440,7 +440,7 @@ const handle_ask = async (do_ask_gpt = true) => {
             <i class="fa-solid fa-xmark"></i>
             <i class="fa-regular fa-phone-arrow-up-right"></i>
         </div>
-        <div class="content" id="user_${message_id}"> 
+        <div class="content"> 
             <div class="content_inner">
             ${markdown_render(message)}
             </div>
@@ -941,17 +941,12 @@ const ask_gpt = async (message_id, message_index = -1, regenerate = false, provi
                 usage = usage_storage[message_id];
                 delete usage_storage[message_id];
             }
-            usage = {
-                model: message_provider?.model,
-                provider: message_provider?.name,
-                ...usage
-            }
             // Calculate usage if we don't have it jet
             if (countTokensEnabled && document.getElementById("track_usage").checked && !usage.prompt_tokens && window.GPTTokenizer_cl100k_base) {
                 const prompt_token_model = model?.startsWith("gpt-3") ? "gpt-3.5-turbo" : "gpt-4"
                 const prompt_tokens = GPTTokenizer_cl100k_base?.encodeChat(messages, prompt_token_model).length;
                 const completion_tokens = count_tokens(message_provider?.model, message_storage[message_id])
-                    + reasoning_storage[message_id] ? count_tokens(message_provider?.model, reasoning_storage[message_id].text) : 0;
+                    + (reasoning_storage[message_id] ? count_tokens(message_provider?.model, reasoning_storage[message_id].text) : 0);
                 usage = {
                     ...usage,
                     prompt_tokens: prompt_tokens,
@@ -986,6 +981,11 @@ const ask_gpt = async (message_id, message_index = -1, regenerate = false, provi
             delete message_storage[message_id];
             // Send usage to the server
             if (document.getElementById("track_usage").checked) {
+                usage = {
+                    model: message_provider?.model,
+                    provider: message_provider?.name,
+                    ...usage
+                };
                 const user = localStorage.getItem("user");
                 if (user) {
                     usage = {user: user, ...usage};

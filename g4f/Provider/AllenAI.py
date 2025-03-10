@@ -6,7 +6,7 @@ from ..typing import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..requests.raise_for_status import raise_for_status
 from ..providers.response import FinishReason, JsonConversation
-from .helper import format_prompt
+from .helper import format_prompt, get_last_user_message
 
 
 class Conversation(JsonConversation):
@@ -58,13 +58,13 @@ class AllenAI(AsyncGeneratorProvider, ProviderModelMixin):
         proxy: str = None,
         host: str = "inferd",
         private: bool = True,
-        parent: str = None,
         top_p: float = None,
         temperature: float = None,
         conversation: Conversation = None,
         return_conversation: bool = False,
         **kwargs
     ) -> AsyncResult:
+        prompt = format_prompt(messages) if conversation is None else get_last_user_message(messages)
         # Initialize or update conversation
         if conversation is None:
             conversation = Conversation(model)
@@ -85,13 +85,13 @@ class AllenAI(AsyncGeneratorProvider, ProviderModelMixin):
         # Build multipart form data
         form_data = [
             f'--{boundary}\r\n'
-            f'Content-Disposition: form-data; name="model"\r\n\r\n{model}\r\n',
+            f'Content-Disposition: form-data; name="model"\r\n\r\n{cls.get_model(model)}\r\n',
             
             f'--{boundary}\r\n'
             f'Content-Disposition: form-data; name="host"\r\n\r\n{host}\r\n',
             
             f'--{boundary}\r\n'
-            f'Content-Disposition: form-data; name="content"\r\n\r\n{format_prompt(messages)}\r\n',
+            f'Content-Disposition: form-data; name="content"\r\n\r\n{prompt}\r\n',
             
             f'--{boundary}\r\n'
             f'Content-Disposition: form-data; name="private"\r\n\r\n{str(private).lower()}\r\n'
@@ -165,8 +165,8 @@ class AllenAI(AsyncGeneratorProvider, ProviderModelMixin):
                                 
                                 # Add a message to the story
                                 conversation.messages.extend([
-                                    {"role": "user", "content": format_prompt(messages)},
-                                    {"role": "assistant", "content": "".join(conversation.messages[-1]["content"] + content if conversation.messages else content)}
+                                    {"role": "user", "content": prompt},
+                                    {"role": "assistant", "content": content}
                                 ])
                                 
                                 if return_conversation:
