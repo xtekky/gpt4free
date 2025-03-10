@@ -152,7 +152,7 @@ class Phi_4(AsyncGeneratorProvider, ProviderModelMixin):
                             json_data = json.loads(line[6:])
                             if json_data.get('msg') == 'process_completed':
                                 if 'output' in json_data and 'error' in json_data['output']:
-                                    raise ResponseError("Missing images input" if json_data['output']['error'] and "AttributeError" in json_data['output']['error'] else json_data['output']['error'])
+                                    raise ResponseError(json_data['output']['error'])
                                 if 'output' in json_data and 'data' in json_data['output']:
                                     yield json_data['output']['data'][0][-1]["content"]
                                 break
