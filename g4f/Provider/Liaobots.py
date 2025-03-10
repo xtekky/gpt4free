@@ -220,17 +220,6 @@ class Liaobots(AsyncGeneratorProvider, ProviderModelMixin):
     _cookie_jar = None
 
     @classmethod
-    def get_model(cls, model: str) -> str:
-        """
-        Retrieve the internal model identifier based on the provided model name or alias.
-        """
-        if model in cls.model_aliases:
-            model = cls.model_aliases[model]
-        if model not in models:
-            raise ValueError(f"Model '{model}' is not supported.")
-        return model
-
-    @classmethod
     def is_supported(cls, model: str) -> bool:
         """
         Check if the given model is supported.
@@ -249,10 +238,8 @@ class Liaobots(AsyncGeneratorProvider, ProviderModelMixin):
         model = cls.get_model(model)
         
         headers = {
-            "authority": "liaobots.com",
-            "content-type": "application/json",
-            "origin": cls.url,
-            "referer": f"{cls.url}/",
+            "referer": "https://liaobots.work/",
+            "origin": "https://liaobots.work",
             "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36",
         }
         async with ClientSession(
@@ -292,18 +279,13 @@ class Liaobots(AsyncGeneratorProvider, ProviderModelMixin):
                     verify_ssl=False
                 ) as response:
                     await raise_for_status(response)
-                    async for chunk in response.content.iter_any():
-                        if b"<html coupert-item=" in chunk:
-                            raise RuntimeError("Invalid session")
-                        if chunk:
-                            if chunk.startswith(b"data: "):
-                                yield json.loads(chunk[6:]).get("content")
-                            else:
-                                yield chunk.decode(errors="ignore")
+                    async for line in response.content:
+                        if line.startswith(b"data: "):
+                            yield json.loads(line[6:]).get("content")
             except:
                 async with session.post(
                     "https://liaobots.work/api/user",
-                    json={"authcode": "pTIQr4FTnVRfr"},
+                    json={"authcode": "jGDRFOqHcZKAo"},
                     verify_ssl=False
                 ) as response:
                     await raise_for_status(response)
@@ -318,14 +300,9 @@ class Liaobots(AsyncGeneratorProvider, ProviderModelMixin):
                     verify_ssl=False
                 ) as response:
                     await raise_for_status(response)
-                    async for chunk in response.content.iter_any():
-                        if b"<html coupert-item=" in chunk:
-                            raise RuntimeError("Invalid session")
-                        if chunk:
-                            if chunk.startswith(b"data: "):
-                                yield json.loads(chunk[6:]).get("content")
-                            else:
-                                yield chunk.decode(errors="ignore")
+                    async for line in response.content:
+                        if line.startswith(b"data: "):
+                            yield json.loads(line[6:]).get("content")
 
     @classmethod
     async def initialize_auth_code(cls, session: ClientSession) -> None:

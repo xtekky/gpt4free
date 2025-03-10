@@ -76,6 +76,25 @@ def is_allowed_extension(filename: str) -> bool:
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+def is_data_uri_an_media(data_uri: str) -> str:
+    return is_data_an_wav(data_uri) or is_data_uri_an_image(data_uri)
+
+def is_data_an_wav(data_uri: str, filename: str = None) -> str:
+    """
+    Checks if the given data URI represents an image.
+
+    Args:
+        data_uri (str): The data URI to check.
+
+    Raises:
+        ValueError: If the data URI is invalid or the image format is not allowed.
+    """
+    if filename and filename.endswith(".wav"):
+        return "audio/wav"
+    # Check if the data URI starts with 'data:image' and contains an image format (e.g., jpeg, png, gif)
+    if isinstance(data_uri, str) and re.match(r'data:audio/wav;base64,', data_uri):
+        return "audio/wav"
+
 def is_data_uri_an_image(data_uri: str) -> bool:
     """
     Checks if the given data URI represents an image.
@@ -199,7 +218,7 @@ def to_bytes(image: ImageType) -> bytes:
     if isinstance(image, bytes):
         return image
     elif isinstance(image, str) and image.startswith("data:"):
-        is_data_uri_an_image(image)
+        is_data_uri_an_media(image)
         return extract_data_uri(image)
     elif isinstance(image, Image):
         bytes_io = BytesIO()

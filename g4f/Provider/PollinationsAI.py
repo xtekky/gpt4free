@@ -17,9 +17,18 @@ from ..providers.response import ImageResponse, ImagePreview, FinishReason, Usag
 from .. import debug
 
 DEFAULT_HEADERS = {
-    'Accept': '*/*',
-    'Accept-Language': 'en-US,en;q=0.9',
-    'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36',
+    "accept": "*/*",
+    'accept-language': 'en-US,en;q=0.9',
+    "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36",
+    "priority": "u=1, i",
+    "sec-ch-ua": "\"Not(A:Brand\";v=\"99\", \"Google Chrome\";v=\"133\", \"Chromium\";v=\"133\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"Linux\"",
+    "sec-fetch-dest": "empty",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-site",
+    "referer": "https://pollinations.ai/",
+    "origin": "https://pollinations.ai",
 }
 
 class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
@@ -273,8 +282,8 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
             if "gemini" in model:
                 data.pop("seed")
             if model in cls.audio_models:
-                data["voice"] = random.choice(cls.audio_models[model])
-                url = f"{cls.text_api_endpoint}"
+                #data["voice"] = random.choice(cls.audio_models[model])
+                url = cls.text_api_endpoint
             else:
                 url = cls.openai_endpoint
             async with session.post(url, json=data) as response:
@@ -282,17 +291,23 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                 if response.headers["content-type"] == "audio/mpeg":
                     yield Audio(await response.read())
                     return
+                elif response.headers["content-type"].startswith("text/plain"):
+                    yield await response.text()
+                    return
                 result = await response.json()
                 choice = result["choices"][0]
                 message = choice.get("message", {})
                 content = message.get("content", "")
-                
+
+                if "</think>" in content and "<think>" not in content:
+                    yield "<think>"
+
                 if content:
                     yield content.replace("\\(", "(").replace("\\)", ")")
-                
+
                 if "usage" in result:
                     yield Usage(**result["usage"])
-                
+
                 finish_reason = choice.get("finish_reason")
                 if finish_reason:
                     yield FinishReason(finish_reason)

@@ -9,14 +9,13 @@ class DeepInfraChat(OpenaiTemplate):
     api_base = "https://api.deepinfra.com/v1/openai"
     working = True
 
-    default_model = 'deepseek-ai/DeepSeek-V3-Turbo'
+    default_model = 'deepseek-ai/DeepSeek-V3'
     default_vision_model = 'meta-llama/Llama-3.2-90B-Vision-Instruct'
     vision_models = [default_vision_model, 'openbmb/MiniCPM-Llama3-V-2_5']
     models = [
         'meta-llama/Meta-Llama-3.1-8B-Instruct',
         'meta-llama/Llama-3.3-70B-Instruct-Turbo',
         'meta-llama/Llama-3.3-70B-Instruct',
-        'deepseek-ai/DeepSeek-V3',
         default_model,
         'mistralai/Mistral-Small-24B-Instruct-2501',
         'deepseek-ai/DeepSeek-R1',
@@ -41,7 +40,6 @@ class DeepInfraChat(OpenaiTemplate):
         "llama-3.2-90b": "meta-llama/Llama-3.2-90B-Vision-Instruct",
         "llama-3.3-70b": "meta-llama/Llama-3.3-70B-Instruct-Turbo",
         "llama-3.3-70b": "meta-llama/Llama-3.3-70B-Instruct",
-        "deepseek-v3": "deepseek-ai/DeepSeek-V3",
         "deepseek-v3": default_model,
         "mixtral-small-28b": "mistralai/Mistral-Small-24B-Instruct-2501",
         "deepseek-r1": "deepseek-ai/DeepSeek-R1-Turbo",
