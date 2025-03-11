@@ -106,17 +106,16 @@ class Backend_Api(Api):
             Returns:
                 Response: A Flask response object for streaming.
             """
-            kwargs = {}
+            if "json" in request.form:
+                json_data = json.loads(request.form['json'])
+            else:
+                json_data = request.json
             if "files" in request.files:
                 images = []
                 for file in request.files.getlist('files'):
                     if file.filename != '' and is_allowed_extension(file.filename):
                         images.append((to_image(file.stream, file.filename.endswith('.svg')), file.filename))
-                kwargs['images'] = images
-            if "json" in request.form:
-                json_data = json.loads(request.form['json'])
-            else:
-                json_data = request.json
+                json_data['images'] = images
 
             if app.demo and not json_data.get("provider"):
                 model = json_data.get("model")
@@ -126,9 +125,7 @@ class Backend_Api(Api):
                     if not model or model == "default":
                         json_data["model"] = models.demo_models["default"][0].name
                     json_data["provider"] = random.choice(models.demo_models["default"][1])
-            if "images" in json_data:
-                kwargs["images"] = json_data["images"]
-            kwargs = self._prepare_conversation_kwargs(json_data, kwargs)
+            kwargs = self._prepare_conversation_kwargs(json_data)
             return self.app.response_class(
                 self._create_response_stream(
                     kwargs,

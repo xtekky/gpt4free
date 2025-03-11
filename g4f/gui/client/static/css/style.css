@@ -112,7 +112,7 @@ body:not(.white) a:visited{
 
 .new_version {
     position: absolute;
-    right: 0;
+    left: 0;
     top: 0;
     padding: 10px;
     font-weight: 500;
@@ -143,6 +143,7 @@ body:not(.white) a:visited{
 
 .conversation {
     width: 100%;
+    height: 100%;
     display: flex;
     flex-direction: column;
     gap: 5px;
@@ -238,8 +239,7 @@ body:not(.white) a:visited{
 
 #close_provider_forms {
     max-width: 210px;
-    margin-left: auto;
-    margin-right: 8px;
+    margin-left: 12px;
     margin-top: 12px;
 }
 
@@ -1584,19 +1584,6 @@ form .field.saved .fa-xmark {
     }
 }
 
-
-/* Basic adaptation */
-.row {
-    flex-wrap: wrap;
-    gap: 10px;
-}
-
-.conversations, .settings, .conversation {
-    flex: 1 1 300px;
-    min-width: 0;
-    height: 100%;
-}
-
 /* Media queries for mobile devices */
 @media (max-width: 768px) {
     .row {
@@ -1607,11 +1594,6 @@ form .field.saved .fa-xmark {
         width: 100%;
         max-width: 100%;
         margin: 0;
-    }
-    
-    .conversation {
-        order: -1;
-        min-height: 80vh;
     }
 }
 
