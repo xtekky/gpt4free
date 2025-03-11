@@ -131,7 +131,7 @@ class ARTA(AsyncGeneratorProvider, ProviderModelMixin):
         proxy: str = None,
         prompt: str = None,
         negative_prompt: str = "blurry, deformed hands, ugly",
-        images_num: int = 1,
+        n: int = 1,
         guidance_scale: int = 7,
         num_inference_steps: int = 30,
         aspect_ratio: str = "1:1",
@@ -149,7 +149,7 @@ class ARTA(AsyncGeneratorProvider, ProviderModelMixin):
                 "prompt": prompt,
                 "negative_prompt": negative_prompt,
                 "style": model,
-                "images_num": str(images_num),
+                "images_num": str(n),
                 "cfg_scale": str(guidance_scale),
                 "steps": str(num_inference_steps),
                 "aspect_ratio": aspect_ratio,
@@ -181,7 +181,7 @@ class ARTA(AsyncGeneratorProvider, ProviderModelMixin):
                         return
                     elif status in ("IN_QUEUE", "IN_PROGRESS"):
                         yield Reasoning(status=("Waiting" if status == "IN_QUEUE" else "Generating") + "." * counter)
-                        await asyncio.sleep(5)  # Poll every 5 seconds
+                        await asyncio.sleep(2)  # Poll every 5 seconds
                         counter += 1
                         if counter > 3:
                             counter = 0

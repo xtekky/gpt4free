@@ -5,7 +5,7 @@ import json
 import asyncio
 import time
 from pathlib import Path
-from typing import Optional, Callable, AsyncIterator, Dict, Any, Tuple, List, Union
+from typing import Optional, Callable, AsyncIterator, Iterator, Dict, Any, Tuple, List, Union
 
 from ..typing import Messages
 from ..providers.helper import filter_none
@@ -154,7 +154,7 @@ class ThinkingProcessor:
         results = []
         
         # Handle non-thinking chunk
-        if not start_time and "<think>" not in chunk:
+        if not start_time and "<think>" not in chunk and "</think>" not in chunk:
             return 0, [chunk]
             
         # Handle thinking start
@@ -255,7 +255,7 @@ def iter_run_tools(
     provider: Optional[str] = None,
     tool_calls: Optional[List[dict]] = None,
     **kwargs
-) -> AsyncIterator:
+) -> Iterator:
     """Run tools synchronously and yield results"""
     # Process web search
     web_search = kwargs.get('web_search')
