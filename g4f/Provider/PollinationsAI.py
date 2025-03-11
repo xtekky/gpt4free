@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import random
 import requests
 from urllib.parse import quote_plus
@@ -13,7 +14,7 @@ from ..image import to_data_uri
 from ..errors import ModelNotFoundError
 from ..requests.raise_for_status import raise_for_status
 from ..requests.aiohttp import get_connector
-from ..providers.response import ImageResponse, ImagePreview, FinishReason, Usage, Audio
+from ..providers.response import ImageResponse, ImagePreview, FinishReason, Usage, Audio, ToolCalls
 from .. import debug
 
 DEFAULT_HEADERS = {
@@ -52,7 +53,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
     text_models = [default_model]
     image_models = [default_image_model]
     extra_image_models = ["flux-pro", "flux-dev", "flux-schnell", "midjourney", "dall-e-3"]
-    vision_models = [default_vision_model, "gpt-4o-mini", "o1-mini"]
+    vision_models = [default_vision_model, "gpt-4o-mini", "o1-mini", "openai", "openai-large"]
     extra_text_models = vision_models
     _models_loaded = False
     model_aliases = {
@@ -138,6 +139,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         cls,
         model: str,
         messages: Messages,
+        stream: bool = False,
         proxy: str = None,
         prompt: str = None,
         width: int = 1024,
@@ -154,6 +156,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         frequency_penalty: float = None,
         response_format: Optional[dict] = None,
         cache: bool = False,
+        extra_parameters: list[str] = ["tools", "parallel_tool_calls", "tool_choice", "reasoning_effort", "logit_bias"],
         **kwargs
     ) -> AsyncResult:
         cls.get_models()
@@ -193,6 +196,9 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                 response_format=response_format,
                 seed=seed,
                 cache=cache,
+                stream=stream,
+                extra_parameters=extra_parameters,
+                **kwargs
             ):
                 yield result
 
@@ -246,7 +252,10 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         frequency_penalty: float,
         response_format: Optional[dict],
         seed: Optional[int],
-        cache: bool
+        cache: bool,
+        stream: bool,
+        extra_parameters: list[str],
+        **kwargs
     ) -> AsyncResult:
         if not cache and seed is None:
             seed = random.randint(9999, 99999999)
@@ -267,6 +276,13 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
             messages[-1] = last_message
 
         async with ClientSession(headers=DEFAULT_HEADERS, connector=get_connector(proxy=proxy)) as session:
+            if model in cls.audio_models or stream:
+                #data["voice"] = random.choice(cls.audio_models[model])
+                url = cls.text_api_endpoint
+                stream = False
+            else:
+                url = cls.openai_endpoint
+            extra_parameters = {param: kwargs[param] for param in extra_parameters if param in kwargs}
             data = filter_none(**{
                 "messages": messages,
                 "model": model,
@@ -275,17 +291,11 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                 "top_p": top_p,
                 "frequency_penalty": frequency_penalty,
                 "jsonMode": json_mode,
-                "stream": False,
+                "stream": stream,
                 "seed": seed,
-                "cache": cache
+                "cache": cache,
+                **extra_parameters
             })
-            if "gemini" in model:
-                data.pop("seed")
-            if model in cls.audio_models:
-                #data["voice"] = random.choice(cls.audio_models[model])
-                url = cls.text_api_endpoint
-            else:
-                url = cls.openai_endpoint
             async with session.post(url, json=data) as response:
                 await raise_for_status(response)
                 if response.headers["content-type"] == "audio/mpeg":
@@ -294,16 +304,36 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                 elif response.headers["content-type"].startswith("text/plain"):
                     yield await response.text()
                     return
+                elif response.headers["content-type"].startswith("text/event-stream"):
+                    async for line in response.content:
+                        if line.startswith(b"data: "):
+                            if line[6:].startswith(b"[DONE]"):
+                                break
+                            result = json.loads(line[6:])
+                            choice = result.get("choices", [{}])[0]
+                            content = choice.get("delta", {}).get("content")
+                            if content:
+                                yield content
+                            if "usage" in result:
+                                yield Usage(**result["usage"])
+                            finish_reason = choice.get("finish_reason")
+                            if finish_reason:
+                                yield FinishReason(finish_reason)
+                    return
                 result = await response.json()
                 choice = result["choices"][0]
                 message = choice.get("message", {})
                 content = message.get("content", "")
 
-                if "</think>" in content and "<think>" not in content:
-                    yield "<think>"
+                if "tool_calls" in message:
+                    yield ToolCalls(message["tool_calls"])
 
-                if content:
-                    yield content.replace("\\(", "(").replace("\\)", ")")
+                if content is not None:
+                    if "</think>" in content and "<think>" not in content:
+                        yield "<think>"
+
+                    if content:
+                        yield content.replace("\\(", "(").replace("\\)", ")")
 
                 if "usage" in result:
                     yield Usage(**result["usage"])

@@ -89,25 +89,17 @@ class Api:
         ensure_images_dir()
         return send_from_directory(os.path.abspath(images_dir), name)
 
-    def _prepare_conversation_kwargs(self, json_data: dict, kwargs: dict):
+    def _prepare_conversation_kwargs(self, json_data: dict):
+        kwargs = {**json_data}
         model = json_data.get('model')
         provider = json_data.get('provider')
         messages = json_data.get('messages')
-        api_key = json_data.get("api_key")
-        if api_key:
-            kwargs["api_key"] = api_key
-        api_base = json_data.get("api_base")
-        if api_base:
-            kwargs["api_base"] = api_base
         kwargs["tool_calls"] = [{
             "function": {
                 "name": "bucket_tool"
             },
             "type": "function"
         }]
-        web_search = json_data.get('web_search')
-        if web_search:
-            kwargs["web_search"] = web_search
         action = json_data.get('action')
         if action == "continue":
             kwargs["tool_calls"].append({
@@ -117,19 +109,13 @@ class Api:
                 "type": "function"
             })
         conversation = json_data.get("conversation")
-        if conversation is not None:
+        if isinstance(conversation, dict):
             kwargs["conversation"] = JsonConversation(**conversation)
         else:
             conversation_id = json_data.get("conversation_id")
             if conversation_id and provider:
                 if provider in conversations and conversation_id in conversations[provider]:
                     kwargs["conversation"] = conversations[provider][conversation_id]
-
-        if json_data.get("ignored"):
-            kwargs["ignored"] = json_data["ignored"]
-        if json_data.get("action"):
-            kwargs["action"] = json_data["action"]
-
         return {
             "model": model,
             "provider": provider,

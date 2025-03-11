@@ -276,7 +276,7 @@ class Completions:
     def create(
         self,
         messages: Messages,
-        model: str,
+        model: str = "",
         provider: Optional[ProviderType] = None,
         stream: Optional[bool] = False,
         proxy: Optional[str] = None,
@@ -330,7 +330,7 @@ class Completions:
     def stream(
         self,
         messages: Messages,
-        model: str,
+        model: str = "",
         **kwargs
     ) -> IterResponse:
         return self.create(messages, model, stream=True, **kwargs)
@@ -564,7 +564,7 @@ class AsyncCompletions:
     def create(
         self,
         messages: Messages,
-        model: str,
+        model: str = "",
         provider: Optional[ProviderType] = None,
         stream: Optional[bool] = False,
         proxy: Optional[str] = None,
@@ -619,7 +619,7 @@ class AsyncCompletions:
     def stream(
         self,
         messages: Messages,
-        model: str,
+        model: str = "",
         **kwargs
     ) -> AsyncIterator[ChatCompletionChunk]:
         return self.create(messages, model, stream=True, **kwargs)

@@ -21,12 +21,12 @@ from .api import Api
 
 class JsApi(Api):
 
-    def get_conversation(self, options: dict, message_id: str = None, scroll: bool = None, **kwargs) -> Iterator:
+    def get_conversation(self, options: dict, message_id: str = None, scroll: bool = None) -> Iterator:
         window = webview.windows[0]
         if hasattr(self, "image") and self.image is not None:
-            kwargs["image"] = open(self.image, "rb")
+            options["image"] = open(self.image, "rb")
         for message in self._create_response_stream(
-            self._prepare_conversation_kwargs(options, kwargs),
+            self._prepare_conversation_kwargs(options),
             options.get("conversation_id"),
             options.get('provider')
         ):

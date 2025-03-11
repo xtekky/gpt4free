@@ -59,7 +59,7 @@ class ToolHandler:
     def process_continue_tool(messages: Messages, tool: dict, provider: Any) -> Tuple[Messages, Dict[str, Any]]:
         """Process continue tool requests"""
         kwargs = {}
-        if provider not in ("OpenaiAccount", "HuggingFace"):
+        if provider not in ("OpenaiAccount", "HuggingFaceAPI"):
             messages = messages.copy()
             last_line = messages[-1]["content"].strip().splitlines()[-1]
             content = f"Carry on from this point:\n{last_line}"
@@ -84,13 +84,11 @@ class ToolHandler:
                 if new_message_content != message["content"]:
                     has_bucket = True
                     message["content"] = new_message_content
-                    
-        if has_bucket and isinstance(messages[-1]["content"], str):
-            if "\nSource: " in messages[-1]["content"]:
-                if isinstance(messages[-1]["content"], dict):
-                    messages[-1]["content"]["content"] += BUCKET_INSTRUCTIONS
-                else:
-                    messages[-1]["content"] += BUCKET_INSTRUCTIONS
+
+        last_message_content = messages[-1]["content"]      
+        if has_bucket and isinstance(last_message_content, str):
+            if "\nSource: " in last_message_content:
+                messages[-1]["content"] = last_message_content + BUCKET_INSTRUCTIONS
                     
         return messages
 
@@ -309,9 +307,10 @@ def iter_run_tools(
                             if new_message_content != message["content"]:
                                 has_bucket = True
                                 message["content"] = new_message_content
-                    if has_bucket and isinstance(messages[-1]["content"], str):
-                        if "\nSource: " in messages[-1]["content"]:
-                            messages[-1]["content"] = messages[-1]["content"]["content"] + BUCKET_INSTRUCTIONS
+                    last_message = messages[-1]["content"]
+                    if has_bucket and isinstance(last_message, str):
+                        if "\nSource: " in last_message:
+                            messages[-1]["content"] = last_message + BUCKET_INSTRUCTIONS
     
     # Process response chunks
     thinking_start_time = 0

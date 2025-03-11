@@ -259,6 +259,10 @@ function register_message_images() {
 
 const register_message_buttons = async () => {
     message_box.querySelectorAll(".message .content .provider").forEach(async (el) => {
+        if (el.dataset.click) {
+            return
+        }
+        el.dataset.click = true;
         const provider_forms = document.querySelector(".provider_forms");
         const provider_form = provider_forms.querySelector(`#${el.dataset.provider}-form`);
         const provider_link = el.querySelector("a");
@@ -279,6 +283,10 @@ const register_message_buttons = async () => {
     });
 
     message_box.querySelectorAll(".message .fa-xmark").forEach(async (el) => el.addEventListener("click", async () => {
+        if (el.dataset.click) {
+            return
+        }
+        el.dataset.click = true;
         const message_el = get_message_el(el);
         await remove_message(window.conversation_id, message_el.dataset.index);
         message_el.remove();
@@ -286,6 +294,10 @@ const register_message_buttons = async () => {
     }));
 
     message_box.querySelectorAll(".message .fa-clipboard").forEach(async (el) => el.addEventListener("click", async () => {
+        if (el.dataset.click) {
+            return
+        }
+        el.dataset.click = true;
         let message_el = get_message_el(el);
         let response = await fetch(message_el.dataset.object_url);
         let copyText = await response.text();
@@ -304,6 +316,10 @@ const register_message_buttons = async () => {
     }))
 
     message_box.querySelectorAll(".message .fa-file-export").forEach(async (el) => el.addEventListener("click", async () => {
+        if (el.dataset.click) {
+            return
+        }
+        el.dataset.click = true;
         const elem = window.document.createElement('a');
         let filename = `chat ${new Date().toLocaleString()}.txt`.replaceAll(":", "-");
         const conversation = await get_conversation(window.conversation_id);
@@ -323,6 +339,10 @@ const register_message_buttons = async () => {
     }))
 
     message_box.querySelectorAll(".message .fa-volume-high").forEach(async (el) => el.addEventListener("click", async () => {
+        if (el.dataset.click) {
+            return
+        }
+        el.dataset.click = true;
         const message_el = get_message_el(el);
         let audio;
         if (message_el.dataset.synthesize_url) {
@@ -344,6 +364,10 @@ const register_message_buttons = async () => {
     }));
 
     message_box.querySelectorAll(".message .regenerate_button").forEach(async (el) => el.addEventListener("click", async () => {
+        if (el.dataset.click) {
+            return
+        }
+        el.dataset.click = true;
         const message_el = get_message_el(el);
         el.classList.add("clicked");
         setTimeout(() => el.classList.remove("clicked"), 1000);
@@ -351,6 +375,10 @@ const register_message_buttons = async () => {
     }));
 
     message_box.querySelectorAll(".message .continue_button").forEach(async (el) => el.addEventListener("click", async () => {
+        if (el.dataset.click) {
+            return
+        }
+        el.dataset.click = true;
         if (!el.disabled) {
             el.disabled = true;
             const message_el = get_message_el(el);
@@ -361,11 +389,19 @@ const register_message_buttons = async () => {
     ));
 
     message_box.querySelectorAll(".message .fa-whatsapp").forEach(async (el) => el.addEventListener("click", async () => {
+        if (el.dataset.click) {
+            return
+        }
+        el.dataset.click = true;
         const text = get_message_el(el).innerText;
         window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
     }));
 
     message_box.querySelectorAll(".message .fa-print").forEach(async (el) => el.addEventListener("click", async () => {
+        if (el.dataset.click) {
+            return
+        }
+        el.dataset.click = true;
         const message_el = get_message_el(el);
         el.classList.add("clicked");
         message_box.scrollTop = 0;
@@ -378,6 +414,10 @@ const register_message_buttons = async () => {
     }));
 
     message_box.querySelectorAll(".message .reasoning_title").forEach(async (el) => el.addEventListener("click", async () => {
+        if (el.dataset.click) {
+            return
+        }
+        el.dataset.click = true;
         let text_el = el.parentElement.querySelector(".reasoning_text");
         if (text_el) {
             text_el.classList[text_el.classList.contains("hidden") ? "remove" : "add"]("hidden");
@@ -569,9 +609,9 @@ const prepare_messages = (messages, message_index = -1, do_continue = false, do_
     }
 
     // Remove history, only add new user messages
-    let filtered_messages = [];
     // The message_index is null on count total tokens
-    if (document.getElementById('history')?.checked && do_filter && message_index != null) {
+    if (!do_continue && document.getElementById('history')?.checked && do_filter && message_index != null) {
+        let filtered_messages = [];
         while (last_message = messages.pop()) {
             if (last_message["role"] == "user") {
                 filtered_messages.push(last_message);
@@ -630,9 +670,9 @@ async function load_provider_parameters(provider) {
         form_el.id = form_id;
         form_el.classList.add("hidden");
         appStorage.setItem(form_el.id, JSON.stringify(parameters_storage[provider]));
-        let old_form = message_box.querySelector(`#${provider}-form`);
+        let old_form = document.getElementById(form_id);
         if (old_form) {
-            provider_forms.removeChild(old_form);
+            old_form.remove();
         }
         Object.entries(parameters_storage[provider]).forEach(([key, value]) => {
             let el_id = `${provider}-${key}`;
@@ -649,7 +689,7 @@ async function load_provider_parameters(provider) {
                     saved_value = value;
                 }
                 field_el.innerHTML = `<span class="label">${key}:</span>
-                <input type="checkbox" id="${el_id}" name="${provider}[${key}]">
+                <input type="checkbox" id="${el_id}" name="${key}">
                 <label for="${el_id}" class="toogle" title=""></label>
                 <i class="fa-solid fa-xmark"></i>`;
                 form_el.appendChild(field_el);
@@ -679,15 +719,15 @@ async function load_provider_parameters(provider) {
                     placeholder = value == null ? "null" : value;
                 }
                 field_el.innerHTML = `<label for="${el_id}" title="">${key}:</label>`;
-                if (Number.isInteger(value) && value != 1) {
-                    max = value >= 4096 ? 8192 : 4096;
-                    field_el.innerHTML += `<input type="range" id="${el_id}" name="${provider}[${key}]" value="${escapeHtml(value)}" class="slider" min="0" max="${max}" step="1"/><output>${escapeHtml(value)}</output>`;
+                if (Number.isInteger(value)) {
+                    max = value == 42 || value >= 4096 ? 8192 : value >= 100 ? 4096 : value == 1 ? 10 : 100;
+                    field_el.innerHTML += `<input type="range" id="${el_id}" name="${key}" value="${escapeHtml(value)}" class="slider" min="0" max="${max}" step="1"/><output>${escapeHtml(value)}</output>`;
                     field_el.innerHTML += `<i class="fa-solid fa-xmark"></i>`;
                 } else if (typeof value == "number") {
-                    field_el.innerHTML += `<input type="range" id="${el_id}" name="${provider}[${key}]" value="${escapeHtml(value)}" class="slider" min="0" max="2" step="0.1"/><output>${escapeHtml(value)}</output>`;
+                    field_el.innerHTML += `<input type="range" id="${el_id}" name="${key}" value="${escapeHtml(value)}" class="slider" min="0" max="2" step="0.1"/><output>${escapeHtml(value)}</output>`;
                     field_el.innerHTML += `<i class="fa-solid fa-xmark"></i>`;
                 } else {
-                    field_el.innerHTML += `<textarea id="${el_id}" name="${provider}[${key}]"></textarea>`;
+                    field_el.innerHTML += `<textarea id="${el_id}" name="${key}"></textarea>`;
                     field_el.innerHTML += `<i class="fa-solid fa-xmark"></i>`;
                     input_el = field_el.querySelector("textarea");
                     if (value != null) {
@@ -723,6 +763,7 @@ async function load_provider_parameters(provider) {
                     input_el = field_el.querySelector("input");
                     input_el.dataset.value = value;
                     input_el.value = saved_value;
+                    input_el.nextElementSibling.value = input_el.value;
                     input_el.oninput = () => {
                         input_el.nextElementSibling.value = input_el.value;
                         field_el.classList.add("saved");
@@ -1008,6 +1049,7 @@ const ask_gpt = async (message_id, message_index = -1, regenerate = false, provi
         }
         await safe_remove_cancel_button();
         await register_message_images();
+        await register_message_buttons();
         await load_conversations();
         regenerate_button.classList.remove("regenerate-hidden");
     }
@@ -1035,6 +1077,18 @@ const ask_gpt = async (message_id, message_index = -1, regenerate = false, provi
             }
         }
         const ignored = Array.from(settings.querySelectorAll("input.provider:not(:checked)")).map((el)=>el.value);
+        let extra_parameters = {};
+        document.getElementById(`${provider}-form`)?.querySelectorAll(".saved input, .saved textarea").forEach(async (el) => {
+            let value = el.type == "checkbox" ? el.checked : el.value;
+            extra_parameters[el.name] = value;
+            if (el.type == "textarea") {
+                try {
+                    extra_parameters[el.name] = await JSON.parse(value);
+                } catch (e) {
+                }
+            }
+        });
+        console.log(extra_parameters);
         await api("conversation", {
             id: message_id,
             conversation_id: window.conversation_id,
@@ -1048,6 +1102,7 @@ const ask_gpt = async (message_id, message_index = -1, regenerate = false, provi
             api_key: api_key,
             api_base: api_base,
             ignored: ignored,
+            ...extra_parameters
         }, Object.values(image_storage), message_id, scroll, finish_message);
     } catch (e) {
         console.error(e);

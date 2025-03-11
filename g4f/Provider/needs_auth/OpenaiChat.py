@@ -623,8 +623,9 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
             page.add_handler(nodriver.cdp.network.RequestWillBeSent, on_request)
             page = await browser.get(cls.url)
             user_agent = await page.evaluate("window.navigator.userAgent")
-            await page.select("textarea.text-token-text-primary", 240)
-            await page.evaluate("document.querySelector('textarea.text-token-text-primary').value = 'Hello'")
+            await page.select("#prompt-textarea", 240)
+            await page.evaluate("document.getElementById('prompt-textarea').innerText = 'Hello'")
+            await page.select("[data-testid=\"send-button\"]", 30)
             await page.evaluate("document.querySelector('[data-testid=\"send-button\"]').click()")
             while True:
                 body = await page.evaluate("JSON.stringify(window.__remixContext)")

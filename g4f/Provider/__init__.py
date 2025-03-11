@@ -15,6 +15,7 @@ from .mini_max         import HailuoAI, MiniMax
 from .template         import OpenaiTemplate, BackendApi
 
 from .AllenAI              import AllenAI
+from .ARTA                 import ARTA
 from .Blackbox             import Blackbox
 from .ChatGLM              import ChatGLM
 from .ChatGpt              import ChatGpt

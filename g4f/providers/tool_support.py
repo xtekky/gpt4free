@@ -3,11 +3,10 @@ from __future__ import annotations
 import json
 
 from ..typing import AsyncResult, Messages, ImagesType
-from ..providers.asyncio import to_async_iterator
 from ..client.service import get_model_and_provider
 from ..client.helper import filter_json
 from .base_provider import AsyncGeneratorProvider
-from .response import ToolCalls, FinishReason
+from .response import ToolCalls, FinishReason, Usage
 
 class ToolSupportProvider(AsyncGeneratorProvider):
     working = True
@@ -45,6 +44,7 @@ class ToolSupportProvider(AsyncGeneratorProvider):
 
         finish = None
         chunks = []
+        has_usage = False
         async for chunk in provider.get_async_create_function()(
             model,
             messages,
@@ -53,13 +53,19 @@ class ToolSupportProvider(AsyncGeneratorProvider):
             response_format=response_format,
             **kwargs
         ):
-            if isinstance(chunk, FinishReason):
+            if isinstance(chunk, str):
+                chunks.append(chunk)
+            elif isinstance(chunk, Usage):
+                yield chunk
+                has_usage = True
+            elif isinstance(chunk, FinishReason):
                 finish = chunk
                 break
-            elif isinstance(chunk, str):
-                chunks.append(chunk)
             else:
                 yield chunk
+
+        if not has_usage:
+            yield Usage(completion_tokens=len(chunks), total_tokens=len(chunks))
 
         chunks = "".join(chunks)
         if tools is not None:
@@ -72,5 +78,6 @@ class ToolSupportProvider(AsyncGeneratorProvider):
                 }
             }])
         yield chunks
+
         if finish is not None:
             yield finish

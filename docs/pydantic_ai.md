@@ -109,15 +109,18 @@ This example shows how to initialize an agent with a specific model (`gpt-4o`) a
 from pydantic import BaseModel
 from pydantic_ai import Agent
 from pydantic_ai.models import ModelSettings
-from g4f.integration.pydantic_ai import patch_infer_model
+from g4f.integration.pydantic_ai import AIModel
+from g4f.Provider import PollinationsAI
 
-patch_infer_model("your_api_key")
 
 class MyModel(BaseModel):
     city: str
     country: str
 
-agent = Agent('g4f:Groq:llama3-70b-8192', result_type=MyModel, model_settings=ModelSettings(temperature=0))
+nt = Agent(AIModel(
+    "gpt-4o", # Specify the provider and model
+    PollinationsAI # Use a supported provider to handle tool-based response formatting
+), result_type=MyModel, model_settings=ModelSettings(temperature=0))
 
 if __name__ == '__main__':
     result = agent.run_sync('The windy city in the US of A.')
@@ -152,7 +155,7 @@ class MyModel(BaseModel):
 
 # Create the agent for a model with tool support (using one tool)
 agent = Agent(AIModel(
-    "PollinationsAI:openai", # Specify the provider and model
+    "OpenaiChat:gpt-4o", # Specify the provider and model
     ToolSupportProvider # Use ToolSupportProvider to handle tool-based response formatting
 ), result_type=MyModel, model_settings=ModelSettings(temperature=0))
 

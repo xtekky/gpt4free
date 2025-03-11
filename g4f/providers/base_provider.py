@@ -34,7 +34,7 @@ SAFE_PARAMETERS = [
     "api_key", "api_base", "seed", "width", "height",
     "proof_token", "max_retries", "web_search",
     "guidance_scale", "num_inference_steps", "randomize_seed",
-    "safe", "enhance", "private",
+    "safe", "enhance", "private", "aspect_ratio", "images_num",
 ]
 
 BASIC_PARAMETERS = {
