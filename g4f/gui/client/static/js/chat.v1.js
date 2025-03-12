@@ -444,7 +444,7 @@ const register_message_buttons = async () => {
         el.addEventListener("click", async () => {
             let text_el = el.parentElement.querySelector(".reasoning_text");
             if (text_el) {
-                text_el.classList.toogle("hidden");
+                text_el.classList.toggle("hidden");
             }
         });
     });
