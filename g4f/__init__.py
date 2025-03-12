@@ -50,7 +50,7 @@ class ChatCompletion:
 
         result = provider.get_create_function()(model, messages, stream=stream, **kwargs)
 
-        return result if stream else concat_chunks(result)
+        return result if stream or ignore_stream else concat_chunks(result)
 
     @staticmethod
     def create_async(model    : Union[Model, str],
@@ -74,7 +74,7 @@ class ChatCompletion:
 
         result = provider.get_async_create_function()(model, messages, stream=stream, **kwargs)
 
-        if not stream:
+        if not stream and not ignore_stream:
             if hasattr(result, "__aiter__"):
                 result = async_concat_chunks(result)
 

@@ -1,13 +1,15 @@
 from __future__ import annotations
 
+import requests
+
 from ...providers.types import Messages
 from ...typing import ImagesType
 from ...requests import StreamSession, raise_for_status
 from ...errors import ModelNotSupportedError
 from ...providers.helper import get_last_user_message
+from ...providers.response import ProviderInfo
 from ..template.OpenaiTemplate import OpenaiTemplate
-from .models import model_aliases, vision_models, default_vision_model, llama_models
-from .HuggingChat import HuggingChat
+from .models import model_aliases, vision_models, default_vision_model, llama_models, text_models
 from ... import debug
 
 class HuggingFaceAPI(OpenaiTemplate):
@@ -22,32 +24,47 @@ class HuggingFaceAPI(OpenaiTemplate):
     default_vision_model = default_vision_model
     vision_models = vision_models
     model_aliases = model_aliases
+    fallback_models = text_models + vision_models
 
-    pipeline_tags: dict[str, str] = {}
+    provider_mapping: dict[str, dict] = {}
 
     @classmethod
-    def get_models(cls, **kwargs):
+    def get_model(cls, model: str, **kwargs) -> str:
+        try:
+            return super().get_model(model, **kwargs)
+        except ModelNotSupportedError:
+            return model
+
+    @classmethod
+    def get_models(cls, **kwargs) -> list[str]:
         if not cls.models:
-            HuggingChat.get_models()
-            cls.models = HuggingChat.text_models.copy()
-            for model in cls.vision_models:
-                if model not in cls.models:
-                    cls.models.append(model)
+            url = "https://huggingface.co/api/models?inference=warm&&expand[]=inferenceProviderMapping"
+            response = requests.get(url)
+            if response.ok: 
+                cls.models = [
+                    model["id"]
+                    for model in response.json()
+                    if [
+                        provider
+                        for provider in model.get("inferenceProviderMapping")
+                        if provider.get("task") == "conversational"]]
+            else:
+                cls.models = cls.fallback_models
         return cls.models
 
     @classmethod
-    async def get_pipline_tag(cls, model: str, api_key: str = None):
-        if model in cls.pipeline_tags:
-            return cls.pipeline_tags[model]
+    async def get_mapping(cls, model: str, api_key: str = None):
+        if model in cls.provider_mapping:
+            return cls.provider_mapping[model]
         async with StreamSession(
             timeout=30,
             headers=cls.get_headers(False, api_key),
         ) as session:
-            async with session.get(f"https://huggingface.co/api/models/{model}") as response:
+            async with session.get(f"https://huggingface.co/api/models/{model}?expand[]=inferenceProviderMapping") as response:
                 await raise_for_status(response)
                 model_data = await response.json()
-                cls.pipeline_tags[model] = model_data.get("pipeline_tag")
-        return cls.pipeline_tags[model]
+                cls.provider_mapping[model] = model_data.get("inferenceProviderMapping")
+        return cls.provider_mapping[model]
 
     @classmethod
     async def create_async_generator(
@@ -65,12 +82,16 @@ class HuggingFaceAPI(OpenaiTemplate):
             model = llama_models["text"] if images is None else llama_models["vision"]
         if model in cls.model_aliases:
             model = cls.model_aliases[model]
-        api_base = f"https://api-inference.huggingface.co/models/{model}/v1"
-        pipeline_tag = await cls.get_pipline_tag(model, api_key)
-        if pipeline_tag not in ("text-generation", "image-text-to-text"):
-            raise ModelNotSupportedError(f"Model is not supported: {model} in: {cls.__name__} pipeline_tag: {pipeline_tag}")
-        elif images and  pipeline_tag != "image-text-to-text":
-            raise ModelNotSupportedError(f"Model does not support images: {model} in: {cls.__name__} pipeline_tag: {pipeline_tag}")
+        provider_mapping = await cls.get_mapping(model, api_key)
+        for provider_key in provider_mapping:
+            api_path = provider_key if provider_key == "novita" else f"{provider_key}/v1"
+            api_base = f"https://router.huggingface.co/{api_path}"
+            task = provider_mapping[provider_key]["task"]
+            if task != "conversational":
+                raise ModelNotSupportedError(f"Model is not supported: {model} in: {cls.__name__} task: {task}")
+            model = provider_mapping[provider_key]["providerId"]
+            yield ProviderInfo(**{**cls.get_dict(), "label": f"HuggingFace ({provider_key})"})
+            break
         start = calculate_lenght(messages)
         if start > max_inputs_lenght:
             if len(messages) > 6:

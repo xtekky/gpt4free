@@ -49,7 +49,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
     # Models configuration
     default_model = "openai"
     default_image_model = "flux"
-    default_vision_model = "gpt-4o"
+    default_vision_model = default_model
     text_models = [default_model]
     image_models = [default_image_model]
     extra_image_models = ["flux-pro", "flux-dev", "flux-schnell", "midjourney", "dall-e-3"]
@@ -141,6 +141,8 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         messages: Messages,
         stream: bool = False,
         proxy: str = None,
+        cache: bool = False,
+        # Image generation parameters
         prompt: str = None,
         width: int = 1024,
         height: int = 1024,
@@ -149,19 +151,18 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         private: bool = False,
         enhance: bool = False,
         safe: bool = False,
+        # Text generation parameters
         images: ImagesType = None,
         temperature: float = None,
         presence_penalty: float = None,
         top_p: float = 1,
         frequency_penalty: float = None,
         response_format: Optional[dict] = None,
-        cache: bool = False,
-        extra_parameters: list[str] = ["tools", "parallel_tool_calls", "tool_choice", "reasoning_effort", "logit_bias"],
+        extra_parameters: list[str] = ["tools", "parallel_tool_calls", "tool_choice", "reasoning_effort", "logit_bias", "voice"],
         **kwargs
     ) -> AsyncResult:
+        # Load model list
         cls.get_models()
-        if images is not None and not model:
-            model = cls.default_vision_model
         try:
             model = cls.get_model(model)
         except ModelNotFoundError:
@@ -231,7 +232,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         }
         query = "&".join(f"{k}={quote_plus(v)}" for k, v in params.items() if v is not None)
         url = f"{cls.image_api_endpoint}prompt/{quote_plus(prompt)}?{query}"
-        yield ImagePreview(url, prompt)
+        #yield ImagePreview(url, prompt)
 
         async with ClientSession(headers=DEFAULT_HEADERS, connector=get_connector(proxy=proxy)) as session:
             async with session.get(url, allow_redirects=True) as response:
@@ -276,7 +277,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
             messages[-1] = last_message
 
         async with ClientSession(headers=DEFAULT_HEADERS, connector=get_connector(proxy=proxy)) as session:
-            if model in cls.audio_models or stream:
+            if model in cls.audio_models:
                 #data["voice"] = random.choice(cls.audio_models[model])
                 url = cls.text_api_endpoint
                 stream = False
@@ -328,12 +329,8 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                 if "tool_calls" in message:
                     yield ToolCalls(message["tool_calls"])
 
-                if content is not None:
-                    if "</think>" in content and "<think>" not in content:
-                        yield "<think>"
-
-                    if content:
-                        yield content.replace("\\(", "(").replace("\\)", ")")
+                if content:
+                    yield content
 
                 if "usage" in result:
                     yield Usage(**result["usage"])

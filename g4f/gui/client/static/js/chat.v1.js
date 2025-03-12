@@ -40,12 +40,12 @@ let parameters_storage = {};
 let finish_storage = {};
 let usage_storage = {};
 let reasoning_storage = {};
-let generate_storage = {};
 let title_ids_storage = {};
 let image_storage = {};
 let is_demo = false;
 let wakeLock = null;
 let countTokensEnabled = true;
+let reloadConversation = true;
 
 messageInput.addEventListener("blur", () => {
     document.documentElement.scrollTop = 0;
@@ -203,10 +203,12 @@ const highlight = (container) => {
 
 const get_message_el = (el) => {
     let message_el = el;
-    while(!("index" in message_el.dataset) && message_el.parentElement) {
+    while(!(message_el.classList.contains('message')) && message_el.parentElement) {
         message_el = message_el.parentElement;
     }
-    return message_el;
+    if (message_el.classList.contains('message')) {
+        return message_el;
+    }
 }
 
 function register_message_images() {
@@ -220,7 +222,7 @@ function register_message_images() {
             el.onerror = () => {
                 let indexCommand;
                 if ((indexCommand = el.src.indexOf("/generate/")) >= 0) {
-                    generate_storage[window.conversation_id] = true;
+                    reloadConversation = false;
                     indexCommand = indexCommand + "/generate/".length + 1;
                     let newPath = el.src.substring(indexCommand)
                     let filename = newPath.replace(/(?:\?.+?|$)/, "");
@@ -282,147 +284,170 @@ const register_message_buttons = async () => {
         });
     });
 
-    message_box.querySelectorAll(".message .fa-xmark").forEach(async (el) => el.addEventListener("click", async () => {
+    message_box.querySelectorAll(".message .fa-xmark").forEach(async (el) => {
         if (el.dataset.click) {
             return
         }
         el.dataset.click = true;
-        const message_el = get_message_el(el);
-        await remove_message(window.conversation_id, message_el.dataset.index);
-        message_el.remove();
-        await safe_load_conversation(window.conversation_id, false);
-    }));
-
-    message_box.querySelectorAll(".message .fa-clipboard").forEach(async (el) => el.addEventListener("click", async () => {
-        if (el.dataset.click) {
-            return
-        }
-        el.dataset.click = true;
-        let message_el = get_message_el(el);
-        let response = await fetch(message_el.dataset.object_url);
-        let copyText = await response.text();
-        try {        
-            if (!navigator.clipboard) {
-                throw new Error("navigator.clipboard: Clipboard API unavailable.");
+        el.addEventListener("click", async () => {
+            const message_el = get_message_el(el);
+            if (message_el) {
+                if ("index" in message_el.dataset) {
+                    await remove_message(window.conversation_id, message_el.dataset.index);
+                }
+                message_el.remove();
             }
-            await navigator.clipboard.writeText(copyText);
-        } catch (e) {
-            console.error(e);
-            console.error("Clipboard API writeText() failed! Fallback to document.exec(\"copy\")...");
-            fallback_clipboard(copyText);
-        }
-        el.classList.add("clicked");
-        setTimeout(() => el.classList.remove("clicked"), 1000);
-    }))
-
-    message_box.querySelectorAll(".message .fa-file-export").forEach(async (el) => el.addEventListener("click", async () => {
-        if (el.dataset.click) {
-            return
-        }
-        el.dataset.click = true;
-        const elem = window.document.createElement('a');
-        let filename = `chat ${new Date().toLocaleString()}.txt`.replaceAll(":", "-");
-        const conversation = await get_conversation(window.conversation_id);
-        let buffer = "";
-        conversation.items.forEach(message => {
-            if (message.reasoning) {
-                buffer += render_reasoning_text(message.reasoning);
-            }
-            buffer += `${message.role == 'user' ? 'User' : 'Assistant'}: ${message.content.trim()}\n\n`;
+            reloadConversation = true;
+            await safe_load_conversation(window.conversation_id, false);
         });
-        var download = document.getElementById("download");
-        download.setAttribute("href", "data:text/plain;charset=utf-8," + encodeURIComponent(buffer.trim()));
-        download.setAttribute("download", filename);
-        download.click();
-        el.classList.add("clicked");
-        setTimeout(() => el.classList.remove("clicked"), 1000);
-    }))
+    });
 
-    message_box.querySelectorAll(".message .fa-volume-high").forEach(async (el) => el.addEventListener("click", async () => {
+    message_box.querySelectorAll(".message .fa-clipboard").forEach(async (el) => {
         if (el.dataset.click) {
             return
         }
         el.dataset.click = true;
-        const message_el = get_message_el(el);
-        let audio;
-        if (message_el.dataset.synthesize_url) {
-            el.classList.add("active");
-            setTimeout(()=>el.classList.remove("active"), 2000);
-            const media_player = document.querySelector(".media_player");
-            if (!media_player.classList.contains("show")) {
-                media_player.classList.add("show");
-                audio = new Audio(message_el.dataset.synthesize_url);
-                audio.controls = true;   
-                media_player.appendChild(audio);
-            } else {
-                audio = media_player.querySelector("audio");
-                audio.src = message_el.dataset.synthesize_url;
+        el.addEventListener("click", async () => {
+            let message_el = get_message_el(el);
+            let response = await fetch(message_el.dataset.object_url);
+            let copyText = await response.text();
+            try {        
+                if (!navigator.clipboard) {
+                    throw new Error("navigator.clipboard: Clipboard API unavailable.");
+                }
+                await navigator.clipboard.writeText(copyText);
+            } catch (e) {
+                console.error(e);
+                console.error("Clipboard API writeText() failed! Fallback to document.exec(\"copy\")...");
+                fallback_clipboard(copyText);
             }
-            audio.play();
-            return;
-        }
-    }));
+            el.classList.add("clicked");
+            setTimeout(() => el.classList.remove("clicked"), 1000);
+        });
+    })
 
-    message_box.querySelectorAll(".message .regenerate_button").forEach(async (el) => el.addEventListener("click", async () => {
+    message_box.querySelectorAll(".message .fa-file-export").forEach(async (el) => {
         if (el.dataset.click) {
             return
         }
         el.dataset.click = true;
-        const message_el = get_message_el(el);
-        el.classList.add("clicked");
-        setTimeout(() => el.classList.remove("clicked"), 1000);
-        await ask_gpt(get_message_id(), message_el.dataset.index);
-    }));
+        el.addEventListener("click", async () => {
+            const elem = window.document.createElement('a');
+            let filename = `chat ${new Date().toLocaleString()}.txt`.replaceAll(":", "-");
+            const conversation = await get_conversation(window.conversation_id);
+            let buffer = "";
+            conversation.items.forEach(message => {
+                if (message.reasoning) {
+                    buffer += render_reasoning_text(message.reasoning);
+                }
+                buffer += `${message.role == 'user' ? 'User' : 'Assistant'}: ${message.content.trim()}\n\n`;
+            });
+            var download = document.getElementById("download");
+            download.setAttribute("href", "data:text/plain;charset=utf-8," + encodeURIComponent(buffer.trim()));
+            download.setAttribute("download", filename);
+            download.click();
+            el.classList.add("clicked");
+            setTimeout(() => el.classList.remove("clicked"), 1000);
+        });
+    })
 
-    message_box.querySelectorAll(".message .continue_button").forEach(async (el) => el.addEventListener("click", async () => {
+    message_box.querySelectorAll(".message .fa-volume-high").forEach(async (el) => {
         if (el.dataset.click) {
             return
         }
         el.dataset.click = true;
-        if (!el.disabled) {
-            el.disabled = true;
+        el.addEventListener("click", async () => {
+            const message_el = get_message_el(el);
+            let audio;
+            if (message_el.dataset.synthesize_url) {
+                el.classList.add("active");
+                setTimeout(()=>el.classList.remove("active"), 2000);
+                const media_player = document.querySelector(".media_player");
+                if (!media_player.classList.contains("show")) {
+                    media_player.classList.add("show");
+                    audio = new Audio(message_el.dataset.synthesize_url);
+                    audio.controls = true;   
+                    media_player.appendChild(audio);
+                } else {
+                    audio = media_player.querySelector("audio");
+                    audio.src = message_el.dataset.synthesize_url;
+                }
+                audio.play();
+                return;
+            }
+        });
+    });
+
+    message_box.querySelectorAll(".message .regenerate_button").forEach(async (el) => {
+        if (el.dataset.click) {
+            return
+        }
+        el.dataset.click = true;
+        el.addEventListener("click", async () => {
             const message_el = get_message_el(el);
             el.classList.add("clicked");
-            setTimeout(() => {el.classList.remove("clicked"); el.disabled = false}, 1000);
-            await ask_gpt(get_message_id(), message_el.dataset.index, false, null, null, "continue");
-        }}
-    ));
+            setTimeout(() => el.classList.remove("clicked"), 1000);
+            await ask_gpt(get_message_id(), message_el.dataset.index);
+        });
+    });
 
-    message_box.querySelectorAll(".message .fa-whatsapp").forEach(async (el) => el.addEventListener("click", async () => {
+    message_box.querySelectorAll(".message .continue_button").forEach(async (el) => {
         if (el.dataset.click) {
             return
         }
         el.dataset.click = true;
-        const text = get_message_el(el).innerText;
-        window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
-    }));
+        el.addEventListener("click", async () => {
+            if (!el.disabled) {
+                el.disabled = true;
+                const message_el = get_message_el(el);
+                el.classList.add("clicked");
+                setTimeout(() => {el.classList.remove("clicked"); el.disabled = false}, 1000);
+                await ask_gpt(get_message_id(), message_el.dataset.index, false, null, null, "continue");
+            }
+        });
+    });
 
-    message_box.querySelectorAll(".message .fa-print").forEach(async (el) => el.addEventListener("click", async () => {
+    message_box.querySelectorAll(".message .fa-whatsapp").forEach(async (el) => {
         if (el.dataset.click) {
             return
         }
         el.dataset.click = true;
-        const message_el = get_message_el(el);
-        el.classList.add("clicked");
-        message_box.scrollTop = 0;
-        message_el.classList.add("print");
-        setTimeout(() => {
-            el.classList.remove("clicked");
-            message_el.classList.remove("print");
-        }, 1000);
-        window.print()
-    }));
+        el.addEventListener("click", async () => {
+            const text = get_message_el(el).innerText;
+            window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+            });
+    });
 
-    message_box.querySelectorAll(".message .reasoning_title").forEach(async (el) => el.addEventListener("click", async () => {
+    message_box.querySelectorAll(".message .fa-print").forEach(async (el) => {
         if (el.dataset.click) {
             return
         }
         el.dataset.click = true;
-        let text_el = el.parentElement.querySelector(".reasoning_text");
-        if (text_el) {
-            text_el.classList[text_el.classList.contains("hidden") ? "remove" : "add"]("hidden");
+        el.addEventListener("click", async () => {
+            const message_el = get_message_el(el);
+            el.classList.add("clicked");
+            message_box.scrollTop = 0;
+            message_el.classList.add("print");
+            setTimeout(() => {
+                el.classList.remove("clicked");
+                message_el.classList.remove("print");
+            }, 1000);
+            window.print()
+        });
+    });
+
+    message_box.querySelectorAll(".message .reasoning_title").forEach(async (el) => {
+        if (el.dataset.click) {
+            return
         }
-    }));
+        el.dataset.click = true;
+        el.addEventListener("click", async () => {
+            let text_el = el.parentElement.querySelector(".reasoning_text");
+            if (text_el) {
+                text_el.classList.toggle("hidden");
+            }
+        });
+    });
 }
 
 const delete_conversations = async () => {
@@ -842,7 +867,7 @@ async function add_message_chunk(message, message_id, provider, scroll, finish_m
         audio.controls = true;   
         content_map.inner.appendChild(audio);
         audio.play();
-        generate_storage[window.conversation_id] = true;
+        reloadConversation = false;
     } else if (message.type == "content") {
         message_storage[message_id] += message.content;
         update_message(content_map, message_id, null, scroll);
@@ -866,10 +891,11 @@ async function add_message_chunk(message, message_id, provider, scroll, finish_m
     } else if (message.type == "reasoning") {
         if (!reasoning_storage[message_id]) {
             reasoning_storage[message_id] = message;
-            reasoning_storage[message_id].text = message.token || "";
+            reasoning_storage[message_id].text = message_storage[message_id];
+            message_storage[message_id] = "";
         } else if (message.status) {
             reasoning_storage[message_id].status = message.status;
-        } else if (message.token) {
+        } if (message.token) {
             reasoning_storage[message_id].text += message.token;
         }
         update_message(content_map, message_id, render_reasoning(reasoning_storage[message_id]), scroll);
@@ -1039,7 +1065,7 @@ const ask_gpt = async (message_id, message_index = -1, regenerate = false, provi
             delete controller_storage[message_id];
         }
         // Reload conversation if no error
-        if (!error_storage[message_id] && !generate_storage[window.conversation_id]) {
+        if (!error_storage[message_id] && reloadConversation) {
             await safe_load_conversation(window.conversation_id, scroll);
         }
         let cursorDiv = message_el.querySelector(".cursor");
@@ -1077,18 +1103,17 @@ const ask_gpt = async (message_id, message_index = -1, regenerate = false, provi
             }
         }
         const ignored = Array.from(settings.querySelectorAll("input.provider:not(:checked)")).map((el)=>el.value);
-        let extra_parameters = {};
-        document.getElementById(`${provider}-form`)?.querySelectorAll(".saved input, .saved textarea").forEach(async (el) => {
+        let extra_parameters = [];
+        for (el of document.getElementById(`${provider}-form`)?.querySelectorAll(".saved input, .saved textarea") || []) {
             let value = el.type == "checkbox" ? el.checked : el.value;
-            extra_parameters[el.name] = value;
             if (el.type == "textarea") {
                 try {
-                    extra_parameters[el.name] = await JSON.parse(value);
+                    value = await JSON.parse(value);
                 } catch (e) {
                 }
             }
-        });
-        console.log(extra_parameters);
+            extra_parameters[el.name] = value;
+        };
         await api("conversation", {
             id: message_id,
             conversation_id: window.conversation_id,
