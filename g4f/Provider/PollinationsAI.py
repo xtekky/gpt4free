@@ -139,7 +139,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         cls,
         model: str,
         messages: Messages,
-        stream: bool = False,
+        stream: bool = True,
         proxy: str = None,
         cache: bool = False,
         # Image generation parameters
@@ -311,7 +311,8 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                             if line[6:].startswith(b"[DONE]"):
                                 break
                             result = json.loads(line[6:])
-                            choice = result.get("choices", [{}])[0]
+                            choices = result.get("choices", [{}])
+                            choice = choices.pop() if choices else {}
                             content = choice.get("delta", {}).get("content")
                             if content:
                                 yield content
