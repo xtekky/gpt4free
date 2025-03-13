@@ -37,7 +37,6 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://pollinations.ai"
 
     working = True
-    supports_stream = False
     supports_system_message = True
     supports_message_history = True
 
