@@ -146,14 +146,14 @@ o1 = Model(
 o1_mini = Model(
     name          = 'o1-mini',
     base_provider = 'OpenAI',
-    best_provider = PollinationsAI
+    best_provider = OpenaiAccount
 )
 
 # o3
 o3_mini = Model(
     name          = 'o3-mini',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([DDG, Blackbox, Liaobots])
+    best_provider = IterListProvider([DDG, Blackbox, Liaobots, PollinationsAI])
 )
 
 ### GigaChat ###

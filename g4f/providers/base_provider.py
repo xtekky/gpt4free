@@ -27,14 +27,14 @@ SAFE_PARAMETERS = [
     "model", "messages", "stream", "timeout",
     "proxy", "images", "response_format",
     "prompt", "negative_prompt", "tools", "conversation",
-    "history_disabled", "auto_continue",
+    "history_disabled",
     "temperature",  "top_k", "top_p",
     "frequency_penalty", "presence_penalty",
-    "max_tokens", "max_new_tokens", "stop",
+    "max_tokens", "stop",
     "api_key", "api_base", "seed", "width", "height",
-    "proof_token", "max_retries", "web_search",
+    "max_retries", "web_search",
     "guidance_scale", "num_inference_steps", "randomize_seed",
-    "safe", "enhance", "private", "aspect_ratio", "images_num",
+    "safe", "enhance", "private", "aspect_ratio", "n",
 ]
 
 BASIC_PARAMETERS = {
@@ -44,8 +44,8 @@ BASIC_PARAMETERS = {
     "stream": False,
     "timeout": 0,
     "response_format": None,
-    "max_tokens": None,
-    "stop": None,
+    "max_tokens": 4096,
+    "stop": ["stop1", "stop2"],
 }
 
 PARAMETER_EXAMPLES = {
@@ -59,10 +59,7 @@ PARAMETER_EXAMPLES = {
     "images": [["data:image/jpeg;base64,...", "filename.jpg"]],
     "response_format": {"type": "json_object"},
     "conversation": {"conversation_id": "550e8400-e29b-11d4-a716-...", "message_id": "550e8400-e29b-11d4-a716-..."},
-    "max_new_tokens": 1024,
-    "max_tokens": 4096,
     "seed": 42,
-    "stop": ["stop1", "stop2"],
     "tools": [],
 }
 

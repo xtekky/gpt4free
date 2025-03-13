@@ -37,7 +37,6 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://pollinations.ai"
 
     working = True
-    supports_stream = False
     supports_system_message = True
     supports_message_history = True
 
@@ -53,7 +52,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
     text_models = [default_model]
     image_models = [default_image_model]
     extra_image_models = ["flux-pro", "flux-dev", "flux-schnell", "midjourney", "dall-e-3"]
-    vision_models = [default_vision_model, "gpt-4o-mini", "o1-mini", "openai", "openai-large"]
+    vision_models = [default_vision_model, "gpt-4o-mini", "o3-mini", "openai", "openai-large"]
     extra_text_models = vision_models
     _models_loaded = False
     model_aliases = {
@@ -61,7 +60,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         "gpt-4o-mini": "openai",
         "gpt-4": "openai-large",
         "gpt-4o": "openai-large",
-        "o1-mini": "openai-reasoning",
+        "o3-mini": "openai-reasoning",
         "qwen-2.5-coder-32b": "qwen-coder",
         "llama-3.3-70b": "llama",
         "mistral-nemo": "mistral",

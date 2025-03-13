@@ -36,7 +36,7 @@ class HuggingFace(AsyncGeneratorProvider, ProviderModelMixin):
         messages: Messages,
         **kwargs
     ) -> AsyncResult:
-        if "tools" not in kwargs and "images" not in kwargs and "deepseek" in model or random.random() >= 0.5:
+        if "tools" not in kwargs and "images" not in kwargs and random.random() >= 0.5:
             try:
                 is_started = False
                 async for chunk in HuggingFaceInference.create_async_generator(model, messages, **kwargs):
