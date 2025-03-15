@@ -2145,6 +2145,7 @@ async function on_api() {
                 + (provider.vision ? " (Image Upload)" : "")
                 + (provider.image ? " (Image Generation)" : "")
                 + (provider.nodriver ? " (Browser)" : "")
+                + (provider.hf_space ? " (HuggingSpace)" : "")
                 + (!provider.nodriver && provider.auth ? " (Auth)" : "");
             if (provider.parent)
                 option.dataset.parent = provider.parent;
