@@ -67,6 +67,7 @@ class Api:
             "image": bool(getattr(provider, "image_models", False)),
             "vision": getattr(provider, "default_vision_model", None) is not None,
             "nodriver": getattr(provider, "use_nodriver", False),
+            "hf_space": getattr(provider, "hf_space", False),
             "auth": provider.needs_auth,
             "login_url": getattr(provider, "login_url", None),
         } for provider in __providers__ if provider.working]
