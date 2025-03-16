@@ -515,7 +515,7 @@ deepseek_v3 = Model(
 deepseek_r1 = Model(
     name = 'deepseek-r1',
     base_provider = 'DeepSeek',
-    best_provider = IterListProvider([Blackbox, DeepInfraChat, Glider, PollinationsAI, Jmuz, Liaobots, HuggingChat, HuggingFace])
+    best_provider = IterListProvider([Blackbox, DeepInfraChat, Glider, LambdaChat, PollinationsAI, Jmuz, Liaobots, HuggingChat, HuggingFace])
 )
 
 janus_pro_7b = VisionModel(
@@ -666,6 +666,12 @@ olmoe_0125 = Model(
     name = "olmoe-0125",
     base_provider = "Ai2",
     best_provider = AllenAI
+)
+
+lfm_40b = Model(
+    name = "lfm-40b",
+    base_provider = "Liquid AI",
+    best_provider = LambdaChat
 )
 
 ### Uncensored AI ### 
@@ -893,6 +899,8 @@ class ModelUtils:
         tulu_3_1_8b.name: tulu_3_1_8b,
         tulu_3_70b.name: tulu_3_70b,
         olmoe_0125.name: olmoe_0125,
+        
+        lfm_40b.name: lfm_40b, ### Liquid AI ###
         
         evil.name: evil, ### Uncensored AI ###
         
