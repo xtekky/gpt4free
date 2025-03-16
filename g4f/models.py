@@ -13,11 +13,12 @@ from .Provider import (
     Copilot,
     DDG,
     DeepInfraChat,
+    Dynaspark,
     Free2GPT,
     FreeGpt,
     HuggingSpace,
     G4F,
-    Janus_Pro_7B,
+    DeepseekAI_JanusPro7b,
     Glider,
     ImageLabs,
     Jmuz,
@@ -28,6 +29,7 @@ from .Provider import (
     PollinationsAI,
     PollinationsImage,
     TeachAnything,
+    Websim,
     Yqcloud,
     
     ### Needs Auth ###
@@ -88,6 +90,7 @@ default = Model(
         Free2GPT,
         FreeGpt,
         Glider,
+        Dynaspark,
         OpenaiChat,
         Jmuz,
         Cloudflare,
@@ -102,6 +105,7 @@ default_vision = Model(
         OIVSCode,
         DeepInfraChat,
         PollinationsAI,
+        Dynaspark,
         HuggingSpace,
         GeminiPro,
         HuggingFaceAPI,
@@ -193,19 +197,19 @@ llama_3_70b = Model(
 llama_3_1_8b = Model(
     name          = "llama-3.1-8b",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider([Blackbox, DeepInfraChat, Glider, Jmuz, PollinationsAI, Cloudflare])
+    best_provider = IterListProvider([Blackbox, DeepInfraChat, Glider, PollinationsAI, AllenAI, Jmuz, Cloudflare])
 )
 
 llama_3_1_70b = Model(
     name          = "llama-3.1-70b",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider([Blackbox, Glider, Jmuz])
+    best_provider = IterListProvider([Blackbox, Glider, AllenAI, Jmuz])
 )
 
 llama_3_1_405b = Model(
     name          = "llama-3.1-405b",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider([Blackbox, Jmuz])
+    best_provider = IterListProvider([Blackbox, AllenAI, Jmuz])
 )
 
 # llama 3.2
@@ -329,20 +333,20 @@ gemini_exp = Model(
 gemini_1_5_flash = Model(
     name          = 'gemini-1.5-flash',
     base_provider = 'Google DeepMind',
-    best_provider = IterListProvider([Blackbox, Free2GPT, FreeGpt, TeachAnything, Jmuz, GeminiPro])
+    best_provider = IterListProvider([Blackbox, Free2GPT, FreeGpt, TeachAnything, Websim, Dynaspark, Jmuz, GeminiPro])
 )
 
 gemini_1_5_pro = Model(
     name          = 'gemini-1.5-pro',
     base_provider = 'Google DeepMind',
-    best_provider = IterListProvider([Blackbox, Free2GPT, FreeGpt, TeachAnything, Jmuz, GeminiPro])
+    best_provider = IterListProvider([Blackbox, Free2GPT, FreeGpt, TeachAnything, Websim, Jmuz, GeminiPro])
 )
 
 # gemini-2.0
 gemini_2_0_flash = Model(
     name          = 'gemini-2.0-flash',
     base_provider = 'Google DeepMind',
-    best_provider = IterListProvider([Blackbox, GeminiPro, Liaobots])
+    best_provider = IterListProvider([Blackbox, Dynaspark, GeminiPro, Liaobots])
 )
 
 gemini_2_0_flash_thinking = Model(
@@ -508,9 +512,9 @@ deepseek_r1 = Model(
 )
 
 janus_pro_7b = VisionModel(
-    name = Janus_Pro_7B.default_model,
+    name = DeepseekAI_JanusPro7b.default_model,
     base_provider = 'DeepSeek',
-    best_provider = IterListProvider([Janus_Pro_7B, G4F])
+    best_provider = IterListProvider([DeepseekAI_JanusPro7b, G4F])
 )
 
 ### x.ai ###
@@ -686,7 +690,7 @@ sd_3_5 = ImageModel(
 flux = ImageModel(
     name = 'flux',
     base_provider = 'Black Forest Labs',
-    best_provider = IterListProvider([Blackbox, PollinationsImage, HuggingSpace])
+    best_provider = IterListProvider([Blackbox, PollinationsImage, Websim, HuggingSpace])
 )
 
 flux_pro = ImageModel(
