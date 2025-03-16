@@ -131,7 +131,7 @@ gpt_4 = Model(
 gpt_4o = VisionModel(
     name          = 'gpt-4o',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([Blackbox, Jmuz, ChatGptEs, PollinationsAI, Copilot, Liaobots, OpenaiChat])
+    best_provider = IterListProvider([Blackbox, Jmuz, ChatGptEs, PollinationsAI, Liaobots, OpenaiChat])
 )
 
 gpt_4o_mini = Model(
@@ -144,7 +144,7 @@ gpt_4o_mini = Model(
 o1 = Model(
     name          = 'o1',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([Blackbox, OpenaiAccount])
+    best_provider = IterListProvider([Blackbox, Copilot, OpenaiAccount])
 )
 
 o1_mini = Model(
