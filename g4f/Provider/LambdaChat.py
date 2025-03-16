@@ -19,9 +19,10 @@ class LambdaChat(AsyncGeneratorProvider, ProviderModelMixin):
     working = True
 
     default_model = "deepseek-llama3.3-70b"
+    reasoning_model = "deepseek-r1"
     models = [
         default_model,
-        "deepseek-r1",
+        reasoning_model,
         "hermes-3-llama-3.1-405b-fp8",
         "hermes3-405b-fp8-128k",
         "llama3.1-nemotron-70b-instruct",
@@ -166,7 +167,7 @@ class LambdaChat(AsyncGeneratorProvider, ProviderModelMixin):
                             yield token
                     elif data.get("type") == "title":
                         yield TitleGeneration(data.get("title", ""))
-                    elif data.get("type") == "reasoning":  # Added reasoning processing
+                    elif data.get("type") == "reasoning" and model == cls.reasoning_model:  # Only process reasoning for reasoning_model
                         subtype = data.get("subtype")
                         token = data.get("token", "").replace("\u0000", "")
                         status = data.get("status", "")
