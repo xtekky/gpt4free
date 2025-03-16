@@ -100,7 +100,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         "gemini-1.5-flash": "gemini-1.5-flash",
         "gemini-1.5-pro": "gemini-pro",
         "llama-3.3-70b": "Meta-Llama-3.3-70B-Instruct-Turbo",
-        "mixtral-small-28b": "Mistral-Small-24B-Instruct-2501",
+        "mixtral-small-24b": "Mistral-Small-24B-Instruct-2501",
         "deepseek-chat": "DeepSeek-LLM-Chat-(67B)",
         "qwq-32b": "Qwen-QwQ-32B-Preview",
         "hermes-2-dpo": "Nous-Hermes-2-Mixtral-8x7B-DPO",
