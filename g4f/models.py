@@ -22,6 +22,7 @@ from .Provider import (
     Glider,
     ImageLabs,
     Jmuz,
+    LambdaChat,
     Liaobots,
     OIVSCode,
     PerplexityLabs,
@@ -247,7 +248,7 @@ llama_3_2_90b = Model(
 llama_3_3_70b = Model(
     name          = "llama-3.3-70b",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider([DDG, Blackbox, DeepInfraChat, PollinationsAI, Jmuz, HuggingChat, HuggingFace])
+    best_provider = IterListProvider([DDG, Blackbox, DeepInfraChat, LambdaChat, PollinationsAI, Jmuz, HuggingChat, HuggingFace])
 )
 
 ### Mistral ###
@@ -279,6 +280,12 @@ hermes_2_dpo = Model(
     name          = "hermes-2-dpo",
     base_provider = "NousResearch",
     best_provider = Blackbox
+)
+
+hermes_3 = Model(
+    name          = "hermes-3",
+    base_provider = "NousResearch",
+    best_provider = LambdaChat
 )
 
 ### Microsoft ###
@@ -502,7 +509,7 @@ deepseek_chat = Model(
 deepseek_v3 = Model(
     name = 'deepseek-v3',
     base_provider = 'DeepSeek',
-    best_provider = IterListProvider([Blackbox, DeepInfraChat, OIVSCode, Liaobots])
+    best_provider = IterListProvider([Blackbox, DeepInfraChat, LambdaChat, OIVSCode, Liaobots])
 )
 
 deepseek_r1 = Model(
@@ -565,7 +572,7 @@ r1_1776 = Model(
 nemotron_70b = Model(
     name = 'nemotron-70b',
     base_provider = 'Nvidia',
-    best_provider = IterListProvider([HuggingChat, HuggingFace])
+    best_provider = IterListProvider([LambdaChat, HuggingChat, HuggingFace])
 )
 
 ### Databricks ### 
@@ -785,6 +792,7 @@ class ModelUtils:
 
         ### NousResearch ###
         hermes_2_dpo.name: hermes_2_dpo,
+        hermes_3.name: hermes_3,
                 
         ### Microsoft ###
         # phi
