@@ -9,7 +9,8 @@ from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..helper import format_prompt, get_last_user_message
 from ...providers.response import JsonConversation, TitleGeneration
 
-class CohereForAI(AsyncGeneratorProvider, ProviderModelMixin):
+class CohereForAI_C4AI_Command(AsyncGeneratorProvider, ProviderModelMixin):
+    label = "CohereForAI C4AI Command"
     url = "https://cohereforai-c4ai-command.hf.space"
     conversation_url = f"{url}/conversation"
 

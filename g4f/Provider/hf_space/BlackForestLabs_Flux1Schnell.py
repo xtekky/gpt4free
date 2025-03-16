@@ -6,17 +6,18 @@ import json
 from ...typing import AsyncResult, Messages
 from ...providers.response import ImageResponse
 from ...errors import ResponseError
-from ...requests.raise_for_status import raise_for_status
-from ..helper import format_image_prompt
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from ..helper import format_image_prompt
+from .raise_for_status import raise_for_status
 
-class VoodoohopFlux1Schnell(AsyncGeneratorProvider, ProviderModelMixin):
-    url = "https://voodoohop-flux-1-schnell.hf.space"
-    api_endpoint = "https://voodoohop-flux-1-schnell.hf.space/call/infer"
-
+class BlackForestLabs_Flux1Schnell(AsyncGeneratorProvider, ProviderModelMixin):
+    label = "BlackForestLabs Flux-1-Schnell"
+    url = "https://black-forest-labs-flux-1-schnell.hf.space"
+    api_endpoint = "https://black-forest-labs-flux-1-schnell.hf.space/call/infer"
+    
     working = True
-
-    default_model = "voodoohop-flux-1-schnell"
+    
+    default_model = "black-forest-labs-flux-1-schnell"
     default_image_model = default_model
     model_aliases = {"flux-schnell": default_model, "flux": default_model}
     image_models = [default_image_model, *model_aliases.keys()]
@@ -36,6 +37,8 @@ class VoodoohopFlux1Schnell(AsyncGeneratorProvider, ProviderModelMixin):
         randomize_seed: bool = True,
         **kwargs
     ) -> AsyncResult:
+
+        model = cls.get_model(model)
         width = max(32, width - (width % 8))
         height = max(32, height - (height % 8))
         prompt = format_image_prompt(messages, prompt)
@@ -66,7 +69,7 @@ class VoodoohopFlux1Schnell(AsyncGeneratorProvider, ProviderModelMixin):
                                 event_type = event_parts[0].split(b': ')[1]
                                 data = event_parts[1]
                                 if event_type == b'error':
-                                    raise ResponseError(f"Error generating image: {data}")
+                                    raise ResponseError(f"Error generating image: {data.decode(errors='ignore')}")
                                 elif event_type == b'complete':
                                     json_data = json.loads(data)
                                     image_url = json_data[0]['url']

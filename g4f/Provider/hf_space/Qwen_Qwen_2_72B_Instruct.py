@@ -11,6 +11,7 @@ from ..helper import format_prompt
 from ... import debug
 
 class Qwen_Qwen_2_72B_Instruct(AsyncGeneratorProvider, ProviderModelMixin):
+    label = "Qwen Qwen-2.72B-Instruct"
     url = "https://qwen-qwen2-72b-instruct.hf.space"
     api_endpoint = "https://qwen-qwen2-72b-instruct.hf.space/queue/join?"
     

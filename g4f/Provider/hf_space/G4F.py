@@ -8,16 +8,16 @@ import asyncio
 from ...typing import AsyncResult, Messages
 from ...providers.response import ImageResponse, Reasoning, JsonConversation
 from ..helper import format_image_prompt, get_random_string
-from .Janus_Pro_7B import Janus_Pro_7B, get_zerogpu_token
-from .BlackForestLabsFlux1Dev import BlackForestLabsFlux1Dev
+from .DeepseekAI_JanusPro7b import DeepseekAI_JanusPro7b, get_zerogpu_token
+from .BlackForestLabs_Flux1Dev import BlackForestLabs_Flux1Dev
 from .raise_for_status import raise_for_status
 
-class FluxDev(BlackForestLabsFlux1Dev):
+class FluxDev(BlackForestLabs_Flux1Dev):
     url = "https://roxky-flux-1-dev.hf.space"
     space = "roxky/FLUX.1-dev"
     referer = f"{url}/?__theme=light"
 
-class G4F(Janus_Pro_7B):
+class G4F(DeepseekAI_JanusPro7b):
     label = "G4F framework"
     space = "roxky/Janus-Pro-7B"
     url = f"https://huggingface.co/spaces/roxky/g4f-space"
@@ -27,8 +27,8 @@ class G4F(Janus_Pro_7B):
 
     default_model = "flux"
     model_aliases = {"flux-schnell": default_model}
-    image_models = [Janus_Pro_7B.default_image_model, default_model, "flux-dev", *model_aliases.keys()]
-    models = [Janus_Pro_7B.default_model, *image_models]
+    image_models = [DeepseekAI_JanusPro7b.default_image_model, default_model, "flux-dev", *model_aliases.keys()]
+    models = [DeepseekAI_JanusPro7b.default_model, *image_models]
 
     @classmethod
     async def create_async_generator(

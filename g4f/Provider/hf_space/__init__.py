@@ -6,17 +6,17 @@ from ...typing import AsyncResult, Messages, ImagesType
 from ...errors import ResponseError
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
 
-from .BlackForestLabsFlux1Dev        import BlackForestLabsFlux1Dev
-from .BlackForestLabsFlux1Schnell    import BlackForestLabsFlux1Schnell
-from .VoodoohopFlux1Schnell          import VoodoohopFlux1Schnell
-from .CohereForAI                    import CohereForAI
-from .Janus_Pro_7B                   import Janus_Pro_7B
-from .Phi_4                          import Phi_4
+from .BlackForestLabs_Flux1Dev       import BlackForestLabs_Flux1Dev
+from .BlackForestLabs_Flux1Schnell   import BlackForestLabs_Flux1Schnell
+from .CohereForAI_C4AI_Command       import CohereForAI_C4AI_Command
+from .DeepseekAI_JanusPro7b          import DeepseekAI_JanusPro7b
+from .G4F                            import G4F
+from .Microsoft_Phi_4                import Microsoft_Phi_4
 from .Qwen_QVQ_72B                   import Qwen_QVQ_72B
 from .Qwen_Qwen_2_5M_Demo            import Qwen_Qwen_2_5M_Demo
 from .Qwen_Qwen_2_72B_Instruct       import Qwen_Qwen_2_72B_Instruct
-from .StableDiffusion35Large         import StableDiffusion35Large
-from .G4F                            import G4F
+from .StabilityAI_SD35Large          import StabilityAI_SD35Large
+from .Voodoohop_Flux1Schnell         import Voodoohop_Flux1Schnell
 
 class HuggingSpace(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://huggingface.co/spaces"
@@ -24,20 +24,20 @@ class HuggingSpace(AsyncGeneratorProvider, ProviderModelMixin):
     working = True
 
     default_model = Qwen_Qwen_2_72B_Instruct.default_model
-    default_image_model = BlackForestLabsFlux1Dev.default_model
+    default_image_model = BlackForestLabs_Flux1Dev.default_model
     default_vision_model = Qwen_QVQ_72B.default_model
     providers = [
-        BlackForestLabsFlux1Dev,
-        BlackForestLabsFlux1Schnell,
-        VoodoohopFlux1Schnell,
-        CohereForAI,
-        Janus_Pro_7B,
-        Phi_4,
+        BlackForestLabs_Flux1Dev,
+        BlackForestLabs_Flux1Schnell,
+        CohereForAI_C4AI_Command,
+        DeepseekAI_JanusPro7b,
+        G4F,
+        Microsoft_Phi_4,
         Qwen_QVQ_72B,
         Qwen_Qwen_2_5M_Demo,
         Qwen_Qwen_2_72B_Instruct,
-        StableDiffusion35Large,
-        G4F
+        StabilityAI_SD35Large,
+        Voodoohop_Flux1Schnell,
     ]
 
     @classmethod
@@ -98,3 +98,4 @@ class HuggingSpace(AsyncGeneratorProvider, ProviderModelMixin):
 
 for provider in HuggingSpace.providers:
     provider.parent = HuggingSpace.__name__
+    provider.hf_space = True
