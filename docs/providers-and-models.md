@@ -123,7 +123,7 @@ This document provides an overview of various AI providers and models, including
 |[ai.google.dev](https://ai.google.dev)|[Get API key](https://aistudio.google.com/u/0/apikey)|`g4f.Provider.GeminiPro`|`gemini-1.5-flash, gemini-1.5-pro, gemini-2.0-flash`|❌|❌|`gemini-1.5-pro`|❌|![](https://img.shields.io/badge/Active-brightgreen)|
 |[developers.sber.ru/gigachat](https://developers.sber.ru/gigachat)|[Manual cookies](https://developers.sber.ru/gigachat)|`g4f.Provider.GigaChat`|✔ _**(3+)**_|❌|❌|❌|❌|![](https://img.shields.io/badge/Active-brightgreen)|
 |[github.com/copilot](https://github.com/copilot)|[Manual cookies](https://github.com/copilot)|`g4f.Provider.GithubCopilot`|✔ _**(4+)**_|❌|❌|❌|❌|![](https://img.shields.io/badge/Active-brightgreen)|
-|[glhf.chat](https://glhf.chat)|[Get API key](https://glhf.chat/user-settings/api)|`g4f.Provider.GlhfChat`|✔ _**(22+)**_|❌|❌|❌|![](https://img.shields.io/badge/Active-brightgreen)|
+|[glhf.chat](https://glhf.chat)|[Get API key](https://glhf.chat/user-settings/api)|`g4f.Provider.GlhfChat`|✔ _**(22+)**_|❌|❌|❌|❌|![](https://img.shields.io/badge/Active-brightgreen)|
 |[console.groq.com/playground](https://console.groq.com/playground)|[Get API key](https://console.groq.com/keys)|`g4f.Provider.Groq`|✔ _**(18+)**_|❌|❌|✔|❌|![](https://img.shields.io/badge/Active-brightgreen)|
 |[meta.ai](https://www.meta.ai)|[Manual cookies](https://www.meta.ai)|`g4f.Provider.MetaAI`|`meta-ai`|❌|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|✔|
 |[meta.ai](https://www.meta.ai)|[Manual cookies](https://www.meta.ai)|`g4f.Provider.MetaAIAccount`|❌|`meta-ai`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
