@@ -42,7 +42,7 @@ This document provides an overview of various AI providers and models, including
 |----------|-------------|--------------|---------------|--------|--------|------|------|------|
 |[playground.allenai.org](https://playground.allenai.org)|No auth required|`g4f.Provider.AllenAI`|`tulu-3-405b, olmo-2-13b, tulu-3-1-8b, tulu-3-70b, olmoe-0125`|❌|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
 |[ai-arta.com](https://ai-arta.com)|No auth required|`g4f.Provider.ARTA`|❌|✔ _**(17+)**_|❌|❌|❌|![](https://img.shields.io/badge/Active-brightgreen)|
-|[blackbox.ai](https://www.blackbox.ai)|No auth required|`g4f.Provider.Blackbox`|`blackboxai, gemini-1.5-flash, blackboxai-pro, llama-3.1-8b, llama-3.1-70b, llama-3-1-405b, llama-3.3-70b, mixtral-small-28b, deepseek-chat, dbrx-instruct, qwq-32b, hermes-2-dpo, deepseek-v3, deepseek-r1, gemini-2.0-flash, gpt-4o, o1, o3-mini, gemini-1.5-pro, claude-3.7-sonnet` _**(29+)**_|`flux`|❌|`blackboxai, gpt-4o, o1, o3-mini, gemini-1.5-pro, gemini-1.5-flash, llama-3.1-8b, llama-3.1-70b, llama-3.1-405b, gemini-2.0-flash, deepseek-v3`|✔|![](https://img.shields.io/badge/Active-brightgreen)|
+|[blackbox.ai](https://www.blackbox.ai)|No auth required|`g4f.Provider.Blackbox`|`blackboxai, gemini-1.5-flash, blackboxai-pro, llama-3.1-8b, llama-3.1-70b, llama-3-1-405b, llama-3.3-70b, mixtral-small-24b, deepseek-chat, dbrx-instruct, qwq-32b, hermes-2-dpo, deepseek-v3, deepseek-r1, gemini-2.0-flash, gpt-4o, o1, o3-mini, gemini-1.5-pro, claude-3.7-sonnet` _**(29+)**_|`flux`|❌|`blackboxai, gpt-4o, o1, o3-mini, gemini-1.5-pro, gemini-1.5-flash, llama-3.1-8b, llama-3.1-70b, llama-3.1-405b, gemini-2.0-flash, deepseek-v3`|✔|![](https://img.shields.io/badge/Active-brightgreen)|
 |[chatglm.cn](https://chatglm.cn)|No auth required|`g4f.Provider.ChatGLM`|`glm-4`|❌|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
 |[chatgpt.com](https://chatgpt.com)|No auth required|`g4f.Provider.ChatGpt`|✔ _**(7+)**_|❌|❌|❌|✔|![Error](https://img.shields.io/badge/HTTPError-f48d37)|
 |[chatgpt.es](https://chatgpt.es)|No auth required|`g4f.Provider.ChatGptEs`|`gpt-4, gpt-4o, gpt-4o-mini`|❌|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
@@ -165,8 +165,8 @@ This document provides an overview of various AI providers and models, including
 |mixtral-8x7b|Mistral|1+ Providers|[mistral.ai](https://mistral.ai/news/mixtral-of-experts/)|
 |mixtral-8x22b|Mistral|1+ Providers|[huggingface.co](https://huggingface.co/mistralai/Mixtral-8x22B-Instruct-v0.1)|
 |mistral-nemo|Mistral|3+ Providers|[huggingface.co](https://huggingface.co/mistralai/Mistral-Nemo-Instruct-2407)|
-|mixtral-small-24b|Mistral|1+ Providers|[huggingface.co](https://huggingface.co/mistralai/Mistral-Small-24B-Instruct-2501)|
-|mixtral-small-28b|Mistral|2+ Providers|[mistral.ai](https://mistral.ai/news/mixtral-small-28b/)|
+|mixtral-small-24b|Mistral|2+ Providers|[huggingface.co](https://huggingface.co/mistralai/Mistral-Small-24B-Instruct-2501)|
+|mixtral-small-28b|Mistral|1+ Providers|[mistral.ai](https://mistral.ai/news/mixtral-small-28b/)|
 |hermes-2-dpo|NousResearch|1+ Providers|[huggingface.co](https://huggingface.co/NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO)|
 |phi-3.5-mini|Microsoft|1+ Providers|[huggingface.co](https://huggingface.co/microsoft/Phi-3.5-mini-instruct)|
 |phi-4|Microsoft|2+ Providers|[techcommunity.microsoft.com](https://techcommunity.microsoft.com/blog/aiplatformblog/introducing-phi-4-microsoft%E2%80%99s-newest-small-language-model-specializing-in-comple/4357090)|
