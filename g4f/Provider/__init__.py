@@ -31,6 +31,7 @@ from .GizAI                import GizAI
 from .Glider               import Glider
 from .ImageLabs            import ImageLabs
 from .Jmuz                 import Jmuz
+from .LambdaChat           import LambdaChat
 from .Liaobots             import Liaobots
 from .OIVSCode             import OIVSCode
 from .PerplexityLabs       import PerplexityLabs
