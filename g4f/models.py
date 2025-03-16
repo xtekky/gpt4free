@@ -271,13 +271,7 @@ mistral_nemo = Model(
 mixtral_small_24b = Model(
     name          = "mixtral-small-24b",
     base_provider = "Mistral",
-    best_provider = IterListProvider([DDG, Blackbox])
-)
-
-mixtral_small_28b = Model(
-    name          = "mixtral-small-28b",
-    base_provider = "Mistral",
-    best_provider = DeepInfraChat
+    best_provider = IterListProvider([DDG, Blackbox, DeepInfraChat])
 )
 
 ### NousResearch ###
@@ -788,7 +782,6 @@ class ModelUtils:
         mixtral_8x22b.name: mixtral_8x22b,
         mistral_nemo.name: mistral_nemo,
         mixtral_small_24b.name: mixtral_small_24b,
-        mixtral_small_28b.name: mixtral_small_28b,
 
         ### NousResearch ###
         hermes_2_dpo.name: hermes_2_dpo,
