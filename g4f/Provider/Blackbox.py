@@ -38,7 +38,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
     
     default_model = "blackboxai"
     default_vision_model = default_model
-    default_image_model = 'ImageGeneration' 
+    default_image_model = 'flux' 
     
     image_models = [default_image_model]   
     vision_models = [default_vision_model, 'gpt-4o', 'o1', 'o3-mini', 'gemini-pro', 'gemini-1.5-flash', 'llama-3.1-8b', 'llama-3.1-70b', 'llama-3.1-405b', 'gemini-2.0-flash', 'deepseek-v3']
@@ -105,7 +105,6 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         "qwq-32b": "Qwen-QwQ-32B-Preview",
         "hermes-2-dpo": "Nous-Hermes-2-Mixtral-8x7B-DPO",
         "claude-3.7-sonnet": "claude-sonnet-3.7",
-        "flux": "ImageGeneration",
     }
     
     ENCRYPTED_SESSION = "eyJ1c2VyIjogeyJuYW1lIjogIkJMQUNLQk9YIEFJIiwgImVtYWlsIjogImdpc2VsZUBibGFja2JveC5haSIsICJpbWFnZSI6ICJodHRwczovL3l0My5nb29nbGV1c2VyY29udGVudC5jb20vQjd6RVlVSzUxWnNQYmFSUFVhMF9ZbnQ1WV9URFZoTE4tVjAzdndRSHM0eF96a2g4a1psLXkxcXFxb3hoeFFzcS1wUVBHS0R0WFE9czE2MC1jLWstYzB4MDBmZmZmZmYtbm8tcmoifSwgImV4cGlyZXMiOiBudWxsfQ=="
@@ -212,30 +211,6 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         }
         
         async with ClientSession(headers=headers) as session:
-            if model in "ImageGeneration":
-                prompt = format_image_prompt(messages, prompt)
-                data = {
-                    "query": format_image_prompt(messages, prompt),
-                    "agentMode": True
-                }
-                headers['content-type'] = 'text/plain;charset=UTF-8'
-                
-                async with session.post(
-                    "https://www.blackbox.ai/api/image-generator",
-                    json=data,
-                    proxy=proxy,
-                    headers=headers
-                ) as response:
-                    await raise_for_status(response)
-                    response_json = await response.json()
-                    
-                    if "markdown" in response_json:
-                        image_url_match = re.search(r'!\[.*?\]\((.*?)\)', response_json["markdown"])
-                        if image_url_match:
-                            image_url = image_url_match.group(1)
-                            yield ImageResponse(images=[image_url], alt=format_image_prompt(messages, prompt))
-                            return
-
             if conversation is None or not hasattr(conversation, "chat_id"):
                 conversation = Conversation(model)
                 conversation.validated_value = await cls.fetch_validated()
@@ -288,7 +263,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
                 "mobileClient": False,
                 "userSelectedModel": model if model in cls.userSelectedModel else None,
                 "validated": conversation.validated_value,
-                "imageGenerationMode": False,
+                "imageGenerationMode": model == cls.default_image_model,
                 "webSearchModePrompt": False,
                 "deepSearchMode": False,
                 "domains": None,
@@ -310,14 +285,31 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
             
             async with session.post(cls.api_endpoint, json=data, proxy=proxy) as response:
                 await raise_for_status(response)
+                
+                # Collect the full response
                 full_response = []
                 async for chunk in response.content.iter_any():
                     if chunk:
                         chunk_text = chunk.decode()
                         full_response.append(chunk_text)
-                        yield chunk_text
-
+                        # Only yield chunks for non-image models
+                        if model != cls.default_image_model:
+                            yield chunk_text
+                
+                full_response_text = ''.join(full_response)
+                
+                # For image models, check for image markdown
+                if model == cls.default_image_model:
+                    image_url_match = re.search(r'!\[.*?\]\((.*?)\)', full_response_text)
+                    if image_url_match:
+                        image_url = image_url_match.group(1)
+                        yield ImageResponse(images=[image_url], alt=format_image_prompt(messages, prompt))
+                        return
+                
+                # Handle conversation history once, in one place
                 if return_conversation:
-                    full_response_text = ''.join(full_response)
                     conversation.message_history.append({"role": "assistant", "content": full_response_text})
                     yield conversation
+                # For image models that didn't produce an image, fall back to text response
+                elif model == cls.default_image_model:
+                    yield full_response_text
