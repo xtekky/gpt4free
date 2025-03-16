@@ -24,6 +24,7 @@ from .Cloudflare           import Cloudflare
 from .Copilot              import Copilot
 from .DDG                  import DDG
 from .DeepInfraChat        import DeepInfraChat
+from .Dynaspark            import Dynaspark
 from .Free2GPT             import Free2GPT
 from .FreeGpt              import FreeGpt
 from .GizAI                import GizAI
@@ -39,7 +40,9 @@ from .PollinationsAI       import PollinationsAI
 from .PollinationsImage    import PollinationsImage
 from .TeachAnything        import TeachAnything
 from .You                  import You
+from .Websim               import Websim
 from .Yqcloud              import Yqcloud
+
 
 import sys
 
