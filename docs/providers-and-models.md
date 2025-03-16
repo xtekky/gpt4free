@@ -57,7 +57,7 @@ This document provides an overview of various AI providers and models, including
 |[glider.so](https://glider.so)|No auth required|`g4f.Provider.Glider`|`llama-3.1-70b, llama-3.1-8b, llama-3.2-3b, deepseek-r1`|❌|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
 |[hailuo.ai](https://www.hailuo.ai)|No auth required|`g4f.Provider.HailuoAI`|`MiniMax` _**(1+)**_|❌|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
 |[editor.imagelabs.net](editor.imagelabs.net)|No auth required|`g4f.Provider.ImageLabs`|❌|`sdxl-turbo`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
-|[huggingface.co/spaces](https://huggingface.co/spaces)|Optional API key|`g4f.Provider.HuggingSpace`|`qvq-72b, qwen-2-72b, command-r, command-r-plus, command-r7b`|`flux-dev, flux-schnell, sd-3.5`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
+|[huggingface.co/spaces](https://huggingface.co/spaces)|Optional API key|`g4f.Provider.HuggingSpace`|`qvq-72b, qwen-2-72b, command-r, command-r-plus, command-r7b, command-a`|`flux-dev, flux-schnell, sd-3.5`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
 |[jmuz.me](https://jmuz.me)|Optional API key|`g4f.Provider.Jmuz`|`claude-3-haiku, claude-3-opus, claude-3.5-sonnet, deepseek-r1, deepseek-chat, gemini-exp, gemini-1.5-flash, gemini-1.5-pro, gemini-2.0-flash-thinking, gpt-4, gpt-4o, gpt-4o-mini, llama-3-70b, llama-3-8b, llama-3.1-405b, llama-3.1-70b, llama-3.1-8b, llama-3.2-11b, llama-3.2-90b, llama-3.3-70b, mixtral-8x7b, qwen-2.5-72b, qwen-2.5-coder-32b, qwq-32b, wizardlm-2-8x22b`|❌|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
 |[liaobots.work](https://liaobots.work)|[Automatic cookies](https://liaobots.work)|`g4f.Provider.Liaobots`|`claude-3.5-sonnet, claude-3.7-sonnet, claude-3.7-sonnet-thinking, claude-3-opus, claude-3-sonnet, deepseek-r1, deepseek-v3, gemini-2.0-flash, gemini-2.0-flash-thinking, gemini-2.0-pro, gpt-4, gpt-4o, gpt-4o-mini, grok-3, grok-3-r1, o3-mini`|❌|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
 |[oi-vscode-server.onrender.com](https://oi-vscode-server.onrender.com)|No auth required|`g4f.Provider.OIVSCode`|`gpt-4o-mini, deepseek-v3`|❌|❌|`gpt-4o-mini`|✔|![](https://img.shields.io/badge/Active-brightgreen)|
@@ -191,6 +191,7 @@ This document provides an overview of various AI providers and models, including
 |command-r|CohereForAI|1+ Providers|[docs.cohere.com](https://docs.cohere.com/docs/command-r-plus)|
 |command-r-plus|CohereForAI|2+ Providers|[docs.cohere.com](https://docs.cohere.com/docs/command-r-plus)|
 |command-r7b|CohereForAI|1+ Providers|[huggingface.co](https://huggingface.co/CohereForAI/c4ai-command-r7b-12-2024)|
+|command-a|CohereForAI|1+ Providers|[docs.cohere.com](https://docs.cohere.com/v2/docs/command-a)|
 |qwen-1.5-7b|Qwen|1+ Providers|[huggingface.co](https://huggingface.co/Qwen/Qwen1.5-7B)|
 |qwen-2-72b|Qwen|2+ Providers|[huggingface.co](https://huggingface.co/Qwen/Qwen2-72B)|
 |qwen-2-vl-7b|Qwen|1+ Providers|[huggingface.co](https://huggingface.co/Qwen/Qwen2-VL-7B)|

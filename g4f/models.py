@@ -441,6 +441,12 @@ command_r7b = Model(
     best_provider = HuggingSpace
 )
 
+command_a = Model(
+    name = 'command-a',
+    base_provider = 'CohereForAI',
+    best_provider = HuggingSpace
+)
+
 ### Qwen ###
 qwen_1_5_7b = Model(
     name = 'qwen-1.5-7b',
@@ -831,6 +837,7 @@ class ModelUtils:
         command_r.name: command_r,
         command_r_plus.name: command_r_plus,
         command_r7b.name: command_r7b,
+        command_a.name: command_a,
 
         ### GigaChat ###
         gigachat.name: gigachat,
