@@ -59,7 +59,7 @@ This document provides an overview of various AI providers and models, including
 |[editor.imagelabs.net](editor.imagelabs.net)|No auth required|`g4f.Provider.ImageLabs`|❌|`sdxl-turbo`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
 |[huggingface.co/spaces](https://huggingface.co/spaces)|Optional API key|`g4f.Provider.HuggingSpace`|`qvq-72b, qwen-2-72b, command-r, command-r-plus, command-r7b, command-a`|`flux-dev, flux-schnell, sd-3.5`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
 |[jmuz.me](https://jmuz.me)|Optional API key|`g4f.Provider.Jmuz`|`claude-3-haiku, claude-3-opus, claude-3.5-sonnet, deepseek-r1, deepseek-chat, gemini-exp, gemini-1.5-flash, gemini-1.5-pro, gemini-2.0-flash-thinking, gpt-4, gpt-4o, gpt-4o-mini, llama-3-70b, llama-3-8b, llama-3.1-405b, llama-3.1-70b, llama-3.1-8b, llama-3.2-11b, llama-3.2-90b, llama-3.3-70b, mixtral-8x7b, qwen-2.5-72b, qwen-2.5-coder-32b, qwq-32b, wizardlm-2-8x22b`|❌|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
-|[lambda.chat](https://lambda.chat)|No auth required|`g4f.Provider.LambdaChat`|`deepseek-v3, hermes-3, nemotron-70b, llama-3.3-70b`|❌|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
+|[lambda.chat](https://lambda.chat)|No auth required|`g4f.Provider.LambdaChat`|`deepseek-v3, deepseek-r1, hermes-3, nemotron-70b, llama-3.3-70b`|❌|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
 |[liaobots.work](https://liaobots.work)|[Automatic cookies](https://liaobots.work)|`g4f.Provider.Liaobots`|`claude-3.5-sonnet, claude-3.7-sonnet, claude-3.7-sonnet-thinking, claude-3-opus, claude-3-sonnet, deepseek-r1, deepseek-v3, gemini-2.0-flash, gemini-2.0-flash-thinking, gemini-2.0-pro, gpt-4, gpt-4o, gpt-4o-mini, grok-3, grok-3-r1, o3-mini`|❌|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
 |[oi-vscode-server.onrender.com](https://oi-vscode-server.onrender.com)|No auth required|`g4f.Provider.OIVSCode`|`gpt-4o-mini, deepseek-v3`|❌|❌|`gpt-4o-mini`|✔|![](https://img.shields.io/badge/Active-brightgreen)|
 |[labs.perplexity.ai](https://labs.perplexity.ai)|No auth required|`g4f.Provider.PerplexityLabs`|`sonar, sonar-pro, sonar-reasoning, sonar-reasoning-pro`|❌|❌|❌|✔|![Error](https://img.shields.io/badge/Active-brightgreen)|
@@ -204,7 +204,7 @@ This document provides an overview of various AI providers and models, including
 |pi|Inflection|1+ Providers|[inflection.ai](https://inflection.ai/blog/inflection-2-5)|
 |deepseek-chat|DeepSeek|2+ Providers|[huggingface.co](https://huggingface.co/deepseek-ai/deepseek-llm-67b-chat)|
 |deepseek-v3|DeepSeek|4+ Providers|[api-docs.deepseek.com](https://api-docs.deepseek.com/news/news250120)|
-|deepseek-r1|DeepSeek|8+ Providers|[api-docs.deepseek.com](https://api-docs.deepseek.com/news/news250120)|
+|deepseek-r1|DeepSeek|9+ Providers|[api-docs.deepseek.com](https://api-docs.deepseek.com/news/news250120)|
 |janus-pro-7b|DeepSeek|2+ Providers|[api-docs.deepseek.com](https://api-docs.deepseek.com/docs/janus-pro-7b)|
 |grok-3|x.ai|1+ Providers|[x.ai](https://x.ai/blog/grok-3)|
 |grok-3-r1|x.ai|1+ Providers|[x.ai](https://x.ai/blog/grok-3)|
@@ -228,6 +228,7 @@ This document provides an overview of various AI providers and models, including
 |tulu-3-1-8b|Ai2|1+ Providers|[allenai.org](https://allenai.org/documentation)|
 |tulu-3-70b|Ai2|1+ Providers|[allenai.org](https://allenai.org/documentation)|
 |olmoe-0125|Ai2|1+ Providers|[allenai.org](https://allenai.org/documentation)|
+|lfm-40b|Liquid AI|1+ Providers|[liquid.ai](https://www.liquid.ai/liquid-foundation-models)|
 |evil|Evil Mode - Experimental|1+ Providers|[]( )|
 
 ---
