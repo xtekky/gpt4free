@@ -20,6 +20,7 @@ from .Provider import (
     G4F,
     DeepseekAI_JanusPro7b,
     Glider,
+    Goabror,
     ImageLabs,
     Jmuz,
     LambdaChat,
@@ -125,7 +126,7 @@ default_vision = Model(
 gpt_4 = Model(
     name          = 'gpt-4',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([DDG, Jmuz, ChatGptEs, PollinationsAI, Yqcloud, Copilot, OpenaiChat, Liaobots])
+    best_provider = IterListProvider([DDG, Jmuz, ChatGptEs, PollinationsAI, Yqcloud, Goabror, Copilot, OpenaiChat, Liaobots])
 )
 
 # gpt-4o

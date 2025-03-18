@@ -29,6 +29,7 @@ from .Free2GPT             import Free2GPT
 from .FreeGpt              import FreeGpt
 from .GizAI                import GizAI
 from .Glider               import Glider
+from .Goabror              import Goabror
 from .ImageLabs            import ImageLabs
 from .Jmuz                 import Jmuz
 from .LambdaChat           import LambdaChat

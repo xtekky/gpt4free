@@ -55,6 +55,7 @@ This document provides an overview of various AI providers and models, including
 |[freegptsnav.aifree.site](https://freegptsnav.aifree.site)|No auth required|`g4f.Provider.FreeGpt`|`gemini-1.5-pro, gemini-1.5-flash`|❌|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
 |[app.giz.ai/assistant](https://app.giz.ai/assistant)|No auth required|`g4f.Provider.GizAI`|`gemini-1.5-flash`|❌|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
 |[glider.so](https://glider.so)|No auth required|`g4f.Provider.Glider`|`llama-3.1-70b, llama-3.1-8b, llama-3.2-3b, deepseek-r1`|❌|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
+|[goabror.uz](https://goabror.uz)|No auth required|`g4f.Provider.Goabror`|`gpt-4`|❌|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
 |[hailuo.ai](https://www.hailuo.ai)|No auth required|`g4f.Provider.HailuoAI`|`MiniMax` _**(1+)**_|❌|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
 |[editor.imagelabs.net](editor.imagelabs.net)|No auth required|`g4f.Provider.ImageLabs`|❌|`sdxl-turbo`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
 |[huggingface.co/spaces](https://huggingface.co/spaces)|Optional API key|`g4f.Provider.HuggingSpace`|`qvq-72b, qwen-2-72b, command-r, command-r-plus, command-r7b, command-a`|`flux-dev, flux-schnell, sd-3.5`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
@@ -144,7 +145,7 @@ This document provides an overview of various AI providers and models, including
 ### Text generation models
 | Model | Base Provider | Providers | Website |
 |-------|---------------|-----------|---------|
-|gpt-4|OpenAI|8+ Providers|[platform.openai.com](https://platform.openai.com/docs/models/gpt-4-turbo-and-gpt-4)|
+|gpt-4|OpenAI|9+ Providers|[platform.openai.com](https://platform.openai.com/docs/models/gpt-4-turbo-and-gpt-4)|
 |gpt-4o|OpenAI|6+ Providers|[platform.openai.com](https://platform.openai.com/docs/models/gpt-4o)|
 |gpt-4o-mini|OpenAI|7+ Providers|[platform.openai.com](https://platform.openai.com/docs/models/gpt-4o-mini)|
 |o1|OpenAI|3+ Providers|[openai.com](https://openai.com/index/introducing-openai-o1-preview/)|
