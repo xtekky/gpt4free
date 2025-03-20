@@ -41,6 +41,7 @@ from .Pizzagpt             import Pizzagpt
 from .PollinationsAI       import PollinationsAI
 from .PollinationsImage    import PollinationsImage
 from .TeachAnything        import TeachAnything
+from .TypeGPT              import TypeGPT
 from .You                  import You
 from .Websim               import Websim
 from .Yqcloud              import Yqcloud
