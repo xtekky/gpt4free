@@ -31,7 +31,7 @@ def filter_json(text: str) -> str:
     Returns:
         dict: A dictionary parsed from the JSON code block.
     """
-    return filter_markdown(text, ["", "json"], text)
+    return filter_markdown(text, ["", "json"], text.strip("^\n "))
 
 def find_stop(stop: Optional[list[str]], content: str, chunk: str = None):
     first = -1

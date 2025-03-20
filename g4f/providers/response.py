@@ -196,6 +196,11 @@ class Reasoning(ResponseType):
             return f"{self.status}\n"
         return ""
 
+    def __eq__(self, other: Reasoning):
+        return (self.token == other.token and
+                self.status == other.status and
+                self.is_thinking == other.is_thinking)
+
     def get_dict(self) -> Dict:
         """Return a dictionary representation of the reasoning."""
         if self.is_thinking is None:

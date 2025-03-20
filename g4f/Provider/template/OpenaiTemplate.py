@@ -15,6 +15,7 @@ from ... import debug
 class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin):
     api_base = ""
     api_key = None
+    api_endpoint = None
     supports_message_history = True
     supports_system_message = True
     default_model = ""
@@ -125,7 +126,9 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
                 **extra_data
             )
             if api_endpoint is None:
-                api_endpoint = f"{api_base.rstrip('/')}/chat/completions"
+                api_endpoint = cls.api_endpoint
+                if api_endpoint is None:
+                    api_endpoint = f"{api_base.rstrip('/')}/chat/completions"
             async with session.post(api_endpoint, json=data, ssl=cls.ssl) as response:
                 content_type = response.headers.get("content-type", "text/event-stream" if stream else "application/json")
                 if content_type.startswith("application/json"):

@@ -383,7 +383,13 @@ class RaiseErrorMixin():
         elif ("choices" not in data or not data["choices"]) and "data" not in data:
             raise ResponseError(f"Invalid response: {json.dumps(data)}")
 
-class AsyncAuthedProvider(AsyncGeneratorProvider):
+class AuthFileMixin():
+
+    @classmethod
+    def get_cache_file(cls) -> Path:
+        return Path(get_cookies_dir()) / f"auth_{cls.parent if hasattr(cls, 'parent') else cls.__name__}.json"
+
+class AsyncAuthedProvider(AsyncGeneratorProvider, AuthFileMixin):
 
     @classmethod
     async def on_auth_async(cls, **kwargs) -> AuthResult:
@@ -405,10 +411,6 @@ class AsyncAuthedProvider(AsyncGeneratorProvider):
     @classmethod
     def get_async_create_function(cls) -> callable:
         return cls.create_async_generator
-
-    @classmethod
-    def get_cache_file(cls) -> Path:
-        return Path(get_cookies_dir()) / f"auth_{cls.parent if hasattr(cls, 'parent') else cls.__name__}.json"
 
     @classmethod
     def write_cache_file(cls, cache_file: Path, auth_result: AuthResult = None):

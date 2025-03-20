@@ -6,13 +6,11 @@ from aiohttp import ClientSession
 from ..typing import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..requests.raise_for_status import raise_for_status
-from .helper import format_prompt
-
+from .helper import format_prompt, get_system_prompt
 
 class Goabror(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://goabror.uz"
     api_endpoint = "https://goabror.uz/api/gpt.php"
-    
     working = True
 
     default_model = 'gpt-4'
@@ -31,10 +29,10 @@ class Goabror(AsyncGeneratorProvider, ProviderModelMixin):
             'accept-language': 'en-US,en;q=0.9',
             'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36'
         }
-        
         async with ClientSession(headers=headers) as session:
             params = {
-                "user": format_prompt(messages)
+                "user": format_prompt(messages, include_system=False),
+                "system": get_system_prompt(messages),
             }
             async with session.get(f"{cls.api_endpoint}", params=params, proxy=proxy) as response:
                 await raise_for_status(response)

@@ -5,6 +5,7 @@ import re
 import os
 import requests
 import base64
+import uuid
 from typing import AsyncIterator
 
 try:
@@ -31,7 +32,9 @@ class Conversation(JsonConversation):
         self.models: dict = models
 
 class HuggingChat(AsyncAuthedProvider, ProviderModelMixin):
-    url = "https://huggingface.co/chat"
+    domain = "huggingface.co"
+    origin = f"https://{domain}"
+    url = f"{origin}/chat"
 
     working = True
     use_nodriver = True
@@ -65,7 +68,7 @@ class HuggingChat(AsyncAuthedProvider, ProviderModelMixin):
     @classmethod
     async def on_auth_async(cls, cookies: Cookies = None, proxy: str = None, **kwargs) -> AsyncIterator:
         if cookies is None:
-            cookies = get_cookies("huggingface.co", single_browser=True)
+            cookies = get_cookies(cls.domain, single_browser=True)
         if "hf-chat" in cookies:
             yield AuthResult(
                 cookies=cookies,
@@ -73,14 +76,21 @@ class HuggingChat(AsyncAuthedProvider, ProviderModelMixin):
                 headers=DEFAULT_HEADERS
             )
             return
-        yield RequestLogin(cls.__name__, os.environ.get("G4F_LOGIN_URL") or "")
-        yield AuthResult(
-            **await get_args_from_nodriver(
-                cls.url,
-                proxy=proxy,
-                wait_for='form[action="/chat/logout"]'
+        if cls.needs_auth:
+            yield RequestLogin(cls.__name__, os.environ.get("G4F_LOGIN_URL") or "")
+            yield AuthResult(
+                **await get_args_from_nodriver(
+                    cls.url,
+                    proxy=proxy,
+                    wait_for='form[action$="/logout"]'
+                )
             )
-        )
+        else:
+            yield AuthResult(
+                cookies = {
+                    "hf-chat": str(uuid.uuid4())  # Generate a session ID
+                }
+            )
 
     @classmethod
     async def create_authed(
@@ -130,8 +140,8 @@ class HuggingChat(AsyncAuthedProvider, ProviderModelMixin):
 
         headers = {
             'accept': '*/*',
-            'origin': 'https://huggingface.co',
-            'referer': f'https://huggingface.co/chat/conversation/{conversationId}',
+            'origin': cls.origin,
+            'referer': f'{cls.url}/conversation/{conversationId}',
         }
         data = CurlMime()
         data.addpart('data', data=json.dumps(settings, separators=(',', ':')))
@@ -144,7 +154,7 @@ class HuggingChat(AsyncAuthedProvider, ProviderModelMixin):
                 )
 
         response = session.post(
-            f'https://huggingface.co/chat/conversation/{conversationId}',
+            f'{cls.url}/conversation/{conversationId}',
             headers=headers,
             multipart=data,
             stream=True
@@ -167,7 +177,7 @@ class HuggingChat(AsyncAuthedProvider, ProviderModelMixin):
             elif line["type"] == "finalAnswer":
                 break
             elif line["type"] == "file":
-                url = f"https://huggingface.co/chat/conversation/{conversationId}/output/{line['sha']}"
+                url = f"{cls.url}/conversation/{conversationId}/output/{line['sha']}"
                 yield ImageResponse(url, format_image_prompt(messages, prompt), options={"cookies": auth_result.cookies})
             elif line["type"] == "webSearch" and "sources" in line:
                 sources = Sources(line["sources"])
@@ -186,7 +196,7 @@ class HuggingChat(AsyncAuthedProvider, ProviderModelMixin):
         json_data = {
             'model': model,
         }
-        response = session.post('https://huggingface.co/chat/conversation', json=json_data)
+        response = session.post(f'{cls.url}/conversation', json=json_data)
         if response.status_code == 401:
             raise MissingAuthError(response.text)
         if response.status_code == 400:
@@ -197,7 +207,7 @@ class HuggingChat(AsyncAuthedProvider, ProviderModelMixin):
     @classmethod
     def fetch_message_id(cls, session: Session, conversation_id: str):
         # Get the data response and parse it properly
-        response = session.get(f'https://huggingface.co/chat/conversation/{conversation_id}/__data.json?x-sveltekit-invalidated=11')
+        response = session.get(f'{cls.url}/conversation/{conversation_id}/__data.json?x-sveltekit-invalidated=11')
         raise_for_status(response)
 
         # Split the response content by newlines and parse each line as JSON

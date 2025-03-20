@@ -266,13 +266,10 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
         proxy: str = None,
         timeout: int = 180,
         auto_continue: bool = False,
-        history_disabled: bool = False,
         action: str = "next",
-        conversation_id: str = None,
         conversation: Conversation = None,
         images: ImagesType = None,
         return_conversation: bool = False,
-        max_retries: int = 0,
         web_search: bool = False,
         **kwargs
     ) -> AsyncResult:
@@ -286,7 +283,6 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
             timeout (int): Timeout for requests.
             api_key (str): Access token for authentication.
             auto_continue (bool): Flag to automatically continue the conversation.
-            history_disabled (bool): Flag to disable history and training.
             action (str): Type of action ('next', 'continue', 'variant').
             conversation_id (str): ID of the conversation.
             images (ImagesType): Images to include in the conversation.
@@ -326,7 +322,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                     debug.error(e)
             model = cls.get_model(model)
             if conversation is None:
-                conversation = Conversation(conversation_id, str(uuid.uuid4()), getattr(auth_result, "cookies", {}).get("oai-did"))
+                conversation = Conversation(None, str(uuid.uuid4()), getattr(auth_result, "cookies", {}).get("oai-did"))
             else:
                 conversation = copy(conversation)
             if getattr(auth_result, "cookies", {}).get("oai-did") != getattr(conversation, "user_id", None):
@@ -382,21 +378,13 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                     "model": model,
                     "timezone_offset_min":-60,
                     "timezone":"Europe/Berlin",
-                    "suggestions":[],
-                    "history_and_training_disabled": history_disabled and not auto_continue and not return_conversation or not cls.needs_auth,
-                    "conversation_mode":{"kind":"primary_assistant","plugin_ids":None},
-                    "force_paragen":False,
-                    "force_paragen_model_slug":"",
-                    "force_rate_limit":False,
-                    "reset_rate_limits":False,
-                    "websocket_request_id": str(uuid.uuid4()),
+                    "conversation_mode":{"kind":"primary_assistant"},
+                    "enable_message_followups":True,
                     "system_hints": ["search"] if web_search else None,
+                    "supports_buffering":True,
                     "supported_encodings":["v1"],
-                    "conversation_origin":None,
                     "client_contextual_info":{"is_dark_mode":False,"time_since_loaded":random.randint(20, 500),"page_height":578,"page_width":1850,"pixel_ratio":1,"screen_height":1080,"screen_width":1920},
-                    "paragen_stream_type_override":None,
-                    "paragen_cot_summary_display_override":"allow",
-                    "supports_buffering":True
+                    "paragen_cot_summary_display_override":"allow"
                 }
                 if conversation.conversation_id is not None:
                     data["conversation_id"] = conversation.conversation_id
@@ -404,7 +392,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                 if action != "continue":
                     data["parent_message_id"] = getattr(conversation, "parent_message_id", conversation.message_id)
                     conversation.parent_message_id = None
-                    messages = messages if conversation_id is None else [{"role": "user", "content": get_last_user_message(messages)}]
+                    messages = messages if conversation.conversation_id is None else [{"role": "user", "content": get_last_user_message(messages)}]
                     data["messages"] = cls.create_messages(messages, image_requests, ["search"] if web_search else None)
                 headers = {
                     **cls._headers,
@@ -458,7 +446,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                     yield sources
                 if return_conversation:
                     yield conversation
-                if not history_disabled and auth_result.api_key is not None:
+                if auth_result.api_key is not None:
                     yield SynthesizeData(cls.__name__, {
                         "conversation_id": conversation.conversation_id,
                         "message_id": conversation.message_id,
