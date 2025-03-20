@@ -139,7 +139,7 @@ gpt_4o = VisionModel(
 gpt_4o_mini = Model(
     name          = 'gpt-4o-mini',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([DDG, ChatGptEs, Jmuz, PollinationsAI, OIVSCode, Liaobots, OpenaiChat])
+    best_provider = IterListProvider([DDG, Blackbox, ChatGptEs, Jmuz, PollinationsAI, OIVSCode, Liaobots, OpenaiChat])
 )
 
 # o1
@@ -199,19 +199,19 @@ llama_3_70b = Model(
 llama_3_1_8b = Model(
     name          = "llama-3.1-8b",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider([Blackbox, DeepInfraChat, Glider, PollinationsAI, AllenAI, Jmuz, Cloudflare])
+    best_provider = IterListProvider([DeepInfraChat, Glider, PollinationsAI, AllenAI, Jmuz, Cloudflare])
 )
 
 llama_3_1_70b = Model(
     name          = "llama-3.1-70b",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider([Blackbox, Glider, AllenAI, Jmuz])
+    best_provider = IterListProvider([Glider, AllenAI, Jmuz])
 )
 
 llama_3_1_405b = Model(
     name          = "llama-3.1-405b",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider([Blackbox, AllenAI, Jmuz])
+    best_provider = IterListProvider([AllenAI, Jmuz])
 )
 
 # llama 3.2
@@ -249,7 +249,7 @@ llama_3_2_90b = Model(
 llama_3_3_70b = Model(
     name          = "llama-3.3-70b",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider([DDG, Blackbox, DeepInfraChat, LambdaChat, PollinationsAI, Jmuz, HuggingChat, HuggingFace])
+    best_provider = IterListProvider([DDG, DeepInfraChat, LambdaChat, PollinationsAI, Jmuz, HuggingChat, HuggingFace])
 )
 
 ### Mistral ###
@@ -273,16 +273,10 @@ mistral_nemo = Model(
 mixtral_small_24b = Model(
     name          = "mixtral-small-24b",
     base_provider = "Mistral",
-    best_provider = IterListProvider([DDG, Blackbox, DeepInfraChat])
+    best_provider = IterListProvider([DDG, DeepInfraChat])
 )
 
 ### NousResearch ###
-hermes_2_dpo = Model(
-    name          = "hermes-2-dpo",
-    base_provider = "NousResearch",
-    best_provider = Blackbox
-)
-
 hermes_3 = Model(
     name          = "hermes-3",
     base_provider = "NousResearch",
@@ -335,20 +329,20 @@ gemini_exp = Model(
 gemini_1_5_flash = Model(
     name          = 'gemini-1.5-flash',
     base_provider = 'Google DeepMind',
-    best_provider = IterListProvider([Blackbox, Free2GPT, FreeGpt, TeachAnything, Websim, Dynaspark, Jmuz, GeminiPro])
+    best_provider = IterListProvider([Free2GPT, FreeGpt, TeachAnything, Websim, Dynaspark, Jmuz, GeminiPro])
 )
 
 gemini_1_5_pro = Model(
     name          = 'gemini-1.5-pro',
     base_provider = 'Google DeepMind',
-    best_provider = IterListProvider([Blackbox, Free2GPT, FreeGpt, TeachAnything, Websim, Jmuz, GeminiPro])
+    best_provider = IterListProvider([Free2GPT, FreeGpt, TeachAnything, Websim, Jmuz, GeminiPro])
 )
 
 # gemini-2.0
 gemini_2_0_flash = Model(
     name          = 'gemini-2.0-flash',
     base_provider = 'Google DeepMind',
-    best_provider = IterListProvider([Blackbox, Dynaspark, GeminiPro, Liaobots])
+    best_provider = IterListProvider([Dynaspark, GeminiPro, Liaobots])
 )
 
 gemini_2_0_flash_thinking = Model(
@@ -418,12 +412,6 @@ blackboxai = Model(
     best_provider = Blackbox
 )
 
-blackboxai_pro = Model(
-    name = 'blackboxai-pro',
-    base_provider = 'Blackbox AI',
-    best_provider = Blackbox
-)
-
 ### CohereForAI ###
 command_r = Model(
     name = 'command-r',
@@ -485,7 +473,7 @@ qwen_2_5_1m = Model(
 qwq_32b = Model(
     name = 'qwq-32b',
     base_provider = 'Qwen',
-    best_provider = IterListProvider([Blackbox, Jmuz, HuggingChat])
+    best_provider = IterListProvider([Jmuz, HuggingChat])
 )
 qvq_72b = VisionModel(
     name = 'qvq-72b',
@@ -580,7 +568,7 @@ nemotron_70b = Model(
 dbrx_instruct = Model(
     name = 'dbrx-instruct',
     base_provider = 'Databricks',
-    best_provider = IterListProvider([Blackbox, DeepInfraChat])
+    best_provider = DeepInfraChat
 )
 
 ### THUDM ### 
@@ -798,7 +786,6 @@ class ModelUtils:
         mixtral_small_24b.name: mixtral_small_24b,
 
         ### NousResearch ###
-        hermes_2_dpo.name: hermes_2_dpo,
         hermes_3.name: hermes_3,
                 
         ### Microsoft ###
@@ -839,7 +826,6 @@ class ModelUtils:
 
         ### Blackbox AI ###
         blackboxai.name: blackboxai,
-        blackboxai_pro.name: blackboxai_pro,
 
         ### CohereForAI ###
         command_r.name: command_r,
@@ -880,19 +866,33 @@ class ModelUtils:
         deepseek_v3.name: deepseek_v3,
         deepseek_r1.name: deepseek_r1,
 
-        nemotron_70b.name: nemotron_70b, ### Nvidia ###
-        dbrx_instruct.name: dbrx_instruct, ### Databricks ###
-        glm_4.name: glm_4, ### THUDM ###
-        mini_max.name: mini_max, ## MiniMax ###
-        yi_34b.name: yi_34b, ## 01-ai ###
+        ### Nvidia ###
+        nemotron_70b.name: nemotron_70b,
+        
+        ### Databricks ###
+        dbrx_instruct.name: dbrx_instruct,
+        
+        ### THUDM ###
+        glm_4.name: glm_4,
+        
+        ## MiniMax ###
+        mini_max.name: mini_max, 
+        
+        ## 01-ai ###
+        yi_34b.name: yi_34b,
         
         ### Cognitive Computations ###
         dolphin_2_6.name: dolphin_2_6,
         dolphin_2_9.name: dolphin_2_9,
         
-        airoboros_70b.name: airoboros_70b, ### DeepInfra ###
-        lzlv_70b.name: lzlv_70b, ### Lizpreciatior ###
-        minicpm_2_5.name: minicpm_2_5, ### OpenBMB ###
+        ### DeepInfra ###
+        airoboros_70b.name: airoboros_70b,
+        
+        ### Lizpreciatior ###
+        lzlv_70b.name: lzlv_70b,
+        
+        ### OpenBMB ###
+        minicpm_2_5.name: minicpm_2_5,
         
         ### Ai2 ###
         tulu_3_405b.name: tulu_3_405b,
@@ -901,9 +901,11 @@ class ModelUtils:
         tulu_3_70b.name: tulu_3_70b,
         olmoe_0125.name: olmoe_0125,
         
-        lfm_40b.name: lfm_40b, ### Liquid AI ###
+        ### Liquid AI ###
+        lfm_40b.name: lfm_40b,
         
-        evil.name: evil, ### Uncensored AI ###
+        ### Uncensored AI ###
+        evil.name: evil,
         
         #############
         ### Image ###
