@@ -21,13 +21,6 @@ DEFAULT_HEADERS = {
     "accept": "*/*",
     'accept-language': 'en-US,en;q=0.9',
     "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36",
-    "priority": "u=1, i",
-    "sec-ch-ua": "\"Not(A:Brand\";v=\"99\", \"Google Chrome\";v=\"133\", \"Chromium\";v=\"133\"",
-    "sec-ch-ua-mobile": "?0",
-    "sec-ch-ua-platform": "\"Linux\"",
-    "sec-fetch-dest": "empty",
-    "sec-fetch-mode": "cors",
-    "sec-fetch-site": "same-site",
     "referer": "https://pollinations.ai/",
     "origin": "https://pollinations.ai",
 }
@@ -71,6 +64,8 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         "gemini-2.0": "gemini",
         "gemini-2.0-flash": "gemini",
         "gemini-2.0-flash-thinking": "gemini-thinking",
+        "deepseek-r1": "deepseek-r1-llama",
+        "gpt-4o-audio": "openai-audio",
         
         ### Image Models ###
         "sdxl-turbo": "turbo",

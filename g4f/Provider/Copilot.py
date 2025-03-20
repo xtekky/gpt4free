@@ -48,7 +48,7 @@ class Copilot(AbstractProvider, ProviderModelMixin):
     models = [default_model]
     model_aliases = {
         "gpt-4": default_model,
-        "gpt-4o": default_model,
+        "o1": default_model,
     }
 
     websocket_url = "wss://copilot.microsoft.com/c/api/chat?api-version=2"

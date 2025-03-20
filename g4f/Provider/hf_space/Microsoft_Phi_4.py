@@ -12,10 +12,11 @@ from ...requests.raise_for_status import raise_for_status
 from ...image import to_bytes, is_accepted_format, is_data_an_wav
 from ...errors import ResponseError
 from ... import debug
-from .Janus_Pro_7B import get_zerogpu_token
+from .DeepseekAI_JanusPro7b import get_zerogpu_token
 from .raise_for_status import raise_for_status
 
-class Phi_4(AsyncGeneratorProvider, ProviderModelMixin):
+class Microsoft_Phi_4(AsyncGeneratorProvider, ProviderModelMixin):
+    label = "Microsoft Phi-4"
     space = "microsoft/phi-4-multimodal"
     url = f"https://huggingface.co/spaces/{space}"
     api_url = "https://microsoft-phi-4-multimodal.hf.space"

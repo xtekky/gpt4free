@@ -41,7 +41,7 @@ class DeepInfraChat(OpenaiTemplate):
         "llama-3.3-70b": "meta-llama/Llama-3.3-70B-Instruct-Turbo",
         "llama-3.3-70b": "meta-llama/Llama-3.3-70B-Instruct",
         "deepseek-v3": default_model,
-        "mixtral-small-28b": "mistralai/Mistral-Small-24B-Instruct-2501",
+        "mixtral-small-24b": "mistralai/Mistral-Small-24B-Instruct-2501",
         "deepseek-r1": "deepseek-ai/DeepSeek-R1-Turbo",
         "deepseek-r1": "deepseek-ai/DeepSeek-R1",
         "deepseek-r1-distill-llama": "deepseek-ai/DeepSeek-R1-Distill-Llama-70B",

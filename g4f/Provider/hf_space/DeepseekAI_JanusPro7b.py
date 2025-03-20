@@ -19,7 +19,8 @@ from ...errors import ResponseError
 from ... import debug
 from .raise_for_status import raise_for_status
 
-class Janus_Pro_7B(AsyncGeneratorProvider, ProviderModelMixin):
+class DeepseekAI_JanusPro7b(AsyncGeneratorProvider, ProviderModelMixin):
+    label = "DeepseekAI Janus-Pro-7B"
     space = "deepseek-ai/Janus-Pro-7B"
     url = f"https://huggingface.co/spaces/{space}"
     api_url = "https://deepseek-ai-janus-pro-7b.hf.space"

@@ -9,7 +9,8 @@ from ...errors import ResponseError
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..helper import format_image_prompt
 
-class StableDiffusion35Large(AsyncGeneratorProvider, ProviderModelMixin):
+class StabilityAI_SD35Large(AsyncGeneratorProvider, ProviderModelMixin):
+    label = "StabilityAI SD-3.5-Large"
     url = "https://stabilityai-stable-diffusion-3-5-large.hf.space"
     api_endpoint = "/gradio_api/call/infer"
 

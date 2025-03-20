@@ -11,6 +11,7 @@ from ..helper import format_prompt, get_random_string
 from ...image import to_bytes, is_accepted_format
 
 class Qwen_QVQ_72B(AsyncGeneratorProvider, ProviderModelMixin):
+    label = "Qwen QVQ-72B"
     url = "https://qwen-qvq-72b-preview.hf.space"
     api_endpoint = "/gradio_api/call/generate"
 
