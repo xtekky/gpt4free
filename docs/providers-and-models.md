@@ -91,7 +91,7 @@ This document provides an overview of various AI providers and models, including
 |[qwen-qvq-72b-preview.hf.space](https://qwen-qvq-72b-preview.hf.space)|[Get API key](https://huggingface.co/settings/tokens)|`g4f.Provider.Qwen_QVQ_72B`|`qvq-72b`|❌|❌|❌|![](https://img.shields.io/badge/Active-brightgreen)|
 |[qwen-qwen2-5-1m-demo.hf.space](https://qwen-qwen2-5-1m-demo.hf.space)|[Get API key](https://huggingface.co/settings/tokens)|`g4f.Provider.Qwen_Qwen_2_5M`|`qwen-2.5-1m`|❌|❌|❌|![](https://img.shields.io/badge/Active-brightgreen)|
 |[qwen-qwen2-5-max-demo.hf.space](https://qwen-qwen2-5-max-demo.hf.space)|[Get API key](https://huggingface.co/settings/tokens)|`g4f.Provider.Qwen_Qwen_2_5_Max`|`qwen-2-5-max`|❌|❌|❌|![](https://img.shields.io/badge/Active-brightgreen)|
-|[qwen-qwen2-72b-instruct.hf.space](https://qwen-qwen2-72b-instruct.hf.space)|[Get API key](https://huggingface.co/settings/tokens)|`g4f.Provider.Qwen_Qwen_2_72B_Instruct`|`qwen-2-72b`|❌|❌|❌|![](https://img.shields.io/badge/Active-brightgreen)|
+|[qwen-qwen2-72b-instruct.hf.space](https://qwen-qwen2-72b-instruct.hf.space)|[Get API key](https://huggingface.co/settings/tokens)|`g4f.Provider.Qwen_Qwen_2_72B`|`qwen-2-72b`|❌|❌|❌|![](https://img.shields.io/badge/Active-brightgreen)|
 |[stabilityai-stable-diffusion-3-5-large.hf.space](https://stabilityai-stable-diffusion-3-5-large.hf.space)|[Get API key](https://huggingface.co/settings/tokens)|`g4f.Provider.StabilityAI_SD35Large`|❌|`sd-3.5`|❌|❌|![](https://img.shields.io/badge/Active-brightgreen)|
 |[voodoohop-flux-1-schnell.hf.space](https://voodoohop-flux-1-schnell.hf.space)|[Get API key](https://huggingface.co/settings/tokens)|`g4f.Provider.Voodoohop_Flux1Schnell`|❌|`flux, flux-schnell`|❌|❌|![](https://img.shields.io/badge/Active-brightgreen)|
 
