@@ -38,7 +38,7 @@ import g4f.debug
 from g4f.client import AsyncClient, ChatCompletion, ImagesResponse, convert_to_provider
 from g4f.providers.response import BaseConversation, JsonConversation
 from g4f.client.helper import filter_none
-from g4f.image import is_data_uri_an_media
+from g4f.image import is_data_an_media
 from g4f.image.copy_images import images_dir, copy_images, get_source_url
 from g4f.errors import ProviderNotFoundError, ModelNotFoundError, MissingAuthError, NoValidHarFileError
 from g4f.cookies import read_cookie_files, get_cookies_dir
@@ -320,16 +320,18 @@ class Api:
 
                 if config.image is not None:
                     try:
-                        is_data_uri_an_media(config.image)
+                        is_data_an_media(config.image)
                     except ValueError as e:
                         return ErrorResponse.from_message(f"The image you send must be a data URI. Example: data:image/jpeg;base64,...", status_code=HTTP_422_UNPROCESSABLE_ENTITY)
-                if config.images is not None:
-                    for image in config.images:
+                if config.media is None:
+                    config.media = config.images
+                if config.media is not None:
+                    for image in config.media:
                         try:
-                            is_data_uri_an_media(image[0])
+                            is_data_an_media(image[0])
                         except ValueError as e:
-                            example = json.dumps({"images": [["data:image/jpeg;base64,...", "filename"]]})
-                            return ErrorResponse.from_message(f'The image you send must be a data URI. Example: {example}', status_code=HTTP_422_UNPROCESSABLE_ENTITY)
+                            example = json.dumps({"media": [["data:image/jpeg;base64,...", "filename.jpg"]]})
+                            return ErrorResponse.from_message(f'The media you send must be a data URIs. Example: {example}', status_code=HTTP_422_UNPROCESSABLE_ENTITY)
 
                 # Create the completion response
                 response = self.client.chat.completions.create(

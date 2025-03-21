@@ -3,12 +3,11 @@ from __future__ import annotations
 import json
 from aiohttp import ClientSession, FormData
 
-from ..typing import AsyncResult, Messages, ImagesType
+from ..typing import AsyncResult, Messages, MediaListType
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..requests.raise_for_status import raise_for_status
-from ..image import to_data_uri, to_bytes, is_accepted_format
+from ..image import to_bytes, is_accepted_format
 from .helper import format_prompt
-
 
 class Dynaspark(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://dynaspark.onrender.com"
@@ -38,7 +37,7 @@ class Dynaspark(AsyncGeneratorProvider, ProviderModelMixin):
         model: str,
         messages: Messages,
         proxy: str = None,
-        images: ImagesType = None,
+        media: MediaListType = None,
         **kwargs
     ) -> AsyncResult:
         headers = {
@@ -49,17 +48,16 @@ class Dynaspark(AsyncGeneratorProvider, ProviderModelMixin):
             'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36',
             'x-requested-with': 'XMLHttpRequest'
         }
-        
         async with ClientSession(headers=headers) as session:
             form = FormData()
             form.add_field('user_input', format_prompt(messages))
             form.add_field('ai_model', model)
-            
-            if images is not None and len(images) > 0:
-                image, image_name = images[0]
+
+            if media is not None and len(media) > 0:
+                image, image_name = media[0]
                 image_bytes = to_bytes(image)
                 form.add_field('file', image_bytes, filename=image_name, content_type=is_accepted_format(image_bytes))
-            
+
             async with session.post(f"{cls.api_endpoint}", data=form, proxy=proxy) as response:
                 await raise_for_status(response)
                 response_text = await response.text()

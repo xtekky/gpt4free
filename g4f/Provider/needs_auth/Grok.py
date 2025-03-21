@@ -1,51 +1,56 @@
+from __future__ import annotations
+
 import os
 import json
-import random
-import re
-import base64
-import asyncio
 import time
-from urllib.parse import quote_plus, unquote_plus
-from pathlib import Path
-from aiohttp import ClientSession, BaseConnector
-from typing import Dict, Any, Optional, AsyncIterator, List
+from typing import Dict, Any, AsyncIterator
 
-from ... import debug
-from ...typing import Messages, Cookies, ImagesType, AsyncResult
-from ...providers.response import JsonConversation, Reasoning, ImagePreview, ImageResponse, TitleGeneration
+from ...typing import Messages, Cookies, AsyncResult
+from ...providers.response import JsonConversation, Reasoning, ImagePreview, ImageResponse, TitleGeneration, AuthResult, RequestLogin
+from ...requests import StreamSession, get_args_from_nodriver, DEFAULT_HEADERS
 from ...requests.raise_for_status import raise_for_status
-from ...requests.aiohttp import get_connector
-from ...requests import get_nodriver
-from ...errors import MissingAuthError
-from ...cookies import get_cookies_dir
-from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from ..base_provider import AsyncAuthedProvider, ProviderModelMixin
 from ..helper import format_prompt, get_cookies, get_last_user_message
 
 class Conversation(JsonConversation):
     def __init__(self,
-        conversation_id: str,
-        response_id: str,
-        choice_id: str,
-        model: str
+        conversation_id: str
     ) -> None:
         self.conversation_id = conversation_id
-        self.response_id = response_id
-        self.choice_id = choice_id
-        self.model = model
 
-class Grok(AsyncGeneratorProvider, ProviderModelMixin):
+class Grok(AsyncAuthedProvider, ProviderModelMixin):
     label = "Grok AI"
     url = "https://grok.com"
+    cookie_domain = ".grok.com"
     assets_url = "https://assets.grok.com"
     conversation_url = "https://grok.com/rest/app-chat/conversations"
-    
+
     needs_auth = True
-    working = False
+    working = True
 
     default_model = "grok-3"
     models = [default_model, "grok-3-thinking", "grok-2"]
 
-    _cookies: Cookies = None
+    @classmethod
+    async def on_auth_async(cls, cookies: Cookies = None, proxy: str = None, **kwargs) -> AsyncIterator:
+        if cookies is None:
+            cookies = get_cookies(cls.cookie_domain, False, True, False)
+        if cookies is not None and "sso" in cookies:
+            yield AuthResult(
+                cookies=cookies,
+                impersonate="chrome",
+                proxy=proxy,
+                headers=DEFAULT_HEADERS
+            )
+            return
+        yield RequestLogin(cls.__name__, os.environ.get("G4F_LOGIN_URL") or "")
+        yield AuthResult(
+            **await get_args_from_nodriver(
+                cls.url,
+                proxy=proxy,
+                wait_for='[href="/chat#private"]'
+            )
+        )
 
     @classmethod
     async def _prepare_payload(cls, model: str, message: str) -> Dict[str, Any]:
@@ -72,82 +77,65 @@ class Grok(AsyncGeneratorProvider, ProviderModelMixin):
         }
 
     @classmethod
-    async def create_async_generator(
+    async def create_authed(
         cls,
         model: str,
         messages: Messages,
-        proxy: str = None,
+        auth_result: AuthResult,
         cookies: Cookies = None,
-        connector: BaseConnector = None,
-        images: ImagesType = None,
         return_conversation: bool = False,
-        conversation: Optional[Conversation] = None,
+        conversation: Conversation = None,
         **kwargs
     ) -> AsyncResult:
-        cls._cookies = cookies or cls._cookies or get_cookies(".grok.com", False, True)
-        if not cls._cookies:
-            raise MissingAuthError("Missing required cookies")
-
-        prompt = format_prompt(messages) if conversation is None else get_last_user_message(messages)
-        base_connector = get_connector(connector, proxy)
-
-        headers = {
-            "accept": "*/*",
-            "accept-language": "en-GB,en;q=0.9",
-            "content-type": "application/json",
-            "origin": "https://grok.com",
-            "priority": "u=1, i",
-            "referer": "https://grok.com/",
-            "sec-ch-ua": '"Not/A)Brand";v="8", "Chromium";v="126", "Brave";v="126"',
-            "sec-ch-ua-mobile": "?0",
-            "sec-ch-ua-platform": '"macOS"',
-            "sec-fetch-dest": "empty",
-            "sec-fetch-mode": "cors",
-            "sec-fetch-site": "same-origin",
-            "sec-gpc": "1",
-            "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
-        }
-
-        async with ClientSession(
-            headers=headers,
-            cookies=cls._cookies,
-            connector=base_connector
+        conversation_id = None if conversation is None else conversation.conversation_id
+        prompt = format_prompt(messages) if conversation_id is None else get_last_user_message(messages)
+        async with StreamSession(
+            **auth_result.get_dict()
         ) as session:
             payload = await cls._prepare_payload(model, prompt)
-            response = await session.post(f"{cls.conversation_url}/new", json=payload)
-            await raise_for_status(response)
+            if conversation_id is None:
+                url = f"{cls.conversation_url}/new"
+            else:
+                url = f"{cls.conversation_url}/{conversation_id}/responses"
+            async with session.post(url, json=payload) as response:
+                await raise_for_status(response)
 
-            thinking_duration = None
-            async for line in response.content:
-                if line:
-                    try:
-                        json_data = json.loads(line)
-                        result = json_data.get("result", {})
-                        response_data = result.get("response", {})
-                        image = response_data.get("streamingImageGenerationResponse", None)
-                        if image is not None:
-                            yield ImagePreview(f'{cls.assets_url}/{image["imageUrl"]}', "", {"cookies": cookies, "headers": headers})
-                        token = response_data.get("token", "")
-                        is_thinking = response_data.get("isThinking", False)
-                        if token:
-                            if is_thinking:
-                                if thinking_duration is None:
-                                    thinking_duration = time.time()
-                                    yield Reasoning(status="🤔 Is thinking...")
-                                yield Reasoning(token)
-                            else:
-                                if thinking_duration is not None:
-                                    thinking_duration = time.time() - thinking_duration
-                                    status = f"Thought for {thinking_duration:.2f}s" if thinking_duration > 1 else "Finished"
-                                    thinking_duration = None
-                                    yield Reasoning(status=status)
-                                yield token
-                        generated_images = response_data.get("modelResponse", {}).get("generatedImageUrls", None)
-                        if generated_images:
-                            yield ImageResponse([f'{cls.assets_url}/{image}' for image in generated_images], "", {"cookies": cookies, "headers": headers})
-                        title = response_data.get("title", {}).get("newTitle", "")
-                        if title:
-                            yield TitleGeneration(title)
+                thinking_duration = None
+                async for line in response.iter_lines():
+                    if line:
+                        try:
+                            json_data = json.loads(line)
+                            result = json_data.get("result", {})
+                            if conversation_id is None:
+                                conversation_id = result.get("conversation", {}).get("conversationId")
+                            response_data = result.get("response", {})
+                            image = response_data.get("streamingImageGenerationResponse", None)
+                            if image is not None:
+                                yield ImagePreview(f'{cls.assets_url}/{image["imageUrl"]}', "", {"cookies": cookies, "headers": headers})
+                            token = response_data.get("token", result.get("token"))
+                            is_thinking = response_data.get("isThinking", result.get("isThinking"))
+                            if token:
+                                if is_thinking:
+                                    if thinking_duration is None:
+                                        thinking_duration = time.time()
+                                        yield Reasoning(status="🤔 Is thinking...")
+                                    yield Reasoning(token)
+                                else:
+                                    if thinking_duration is not None:
+                                        thinking_duration = time.time() - thinking_duration
+                                        status = f"Thought for {thinking_duration:.2f}s" if thinking_duration > 1 else "Finished"
+                                        thinking_duration = None
+                                        yield Reasoning(status=status)
+                                    yield token
+                            generated_images = response_data.get("modelResponse", {}).get("generatedImageUrls", None)
+                            if generated_images:
+                                yield ImageResponse([f'{cls.assets_url}/{image}' for image in generated_images], "", {"cookies": cookies, "headers": headers})
+                            title = result.get("title", {}).get("newTitle", "")
+                            if title:
+                                yield TitleGeneration(title)
+                            
 
-                    except json.JSONDecodeError:
-                        continue
+                        except json.JSONDecodeError:
+                            continue
+                if return_conversation and conversation_id is not None:
+                    yield Conversation(conversation_id)

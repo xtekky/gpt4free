@@ -14,6 +14,7 @@ class LambdaChat(HuggingChat):
     default_model = "deepseek-llama3.3-70b"
     reasoning_model = "deepseek-r1"
     image_models = []
+    models = []
     fallback_models = [
         default_model,
         reasoning_model,

@@ -25,7 +25,7 @@ from .. import debug
 
 SAFE_PARAMETERS = [
     "model", "messages", "stream", "timeout",
-    "proxy", "images", "response_format",
+    "proxy", "media", "response_format",
     "prompt", "negative_prompt", "tools", "conversation",
     "history_disabled",
     "temperature",  "top_k", "top_p",
@@ -56,7 +56,7 @@ PARAMETER_EXAMPLES = {
     "frequency_penalty": 1,
     "presence_penalty": 1,
     "messages": [{"role": "system", "content": ""}, {"role": "user", "content": ""}],
-    "images": [["data:image/jpeg;base64,...", "filename.jpg"]],
+    "media": [["data:image/jpeg;base64,...", "filename.jpg"]],
     "response_format": {"type": "json_object"},
     "conversation": {"conversation_id": "550e8400-e29b-11d4-a716-...", "message_id": "550e8400-e29b-11d4-a716-..."},
     "seed": 42,

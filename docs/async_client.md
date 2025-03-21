@@ -19,6 +19,7 @@ The G4F AsyncClient API is designed to be compatible with the OpenAI API, making
    - [Text Completions](#text-completions)
    - [Streaming Completions](#streaming-completions)
    - [Using a Vision Model](#using-a-vision-model)
+   - **[Transcribing Audio with Chat Completions](#transcribing-audio-with-chat-completions)** *(New Section)*
    - [Image Generation](#image-generation)
    - [Advanced Usage](#advanced-usage)
    - [Conversation Memory](#conversation-memory)
@@ -202,6 +203,54 @@ async def main():
 
 asyncio.run(main())
 ```
+
+---
+
+### Transcribing Audio with Chat Completions
+
+Some providers in G4F support audio inputs in chat completions, allowing you to transcribe audio files by instructing the model accordingly. This example demonstrates how to use the `AsyncClient` to transcribe an audio file asynchronously:
+
+```python
+import asyncio
+from g4f.client import AsyncClient
+import g4f.Provider
+import g4f.models
+
+async def main():
+    client = AsyncClient(provider=g4f.Provider.PollinationsAI)  # or g4f.Provider.Microsoft_Phi_4
+
+    with open("audio.wav", "rb") as audio_file:
+        response = await client.chat.completions.create(
+            model=g4f.models.default,
+            messages=[{"role": "user", "content": "Transcribe this audio"}],
+            media=[[audio_file, "audio.wav"]],
+            modalities=["text"],
+        )
+
+    print(response.choices[0].message.content)
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+#### Explanation
+- **Client Initialization**: An `AsyncClient` instance is created with a provider that supports audio inputs, such as `PollinationsAI` or `Microsoft_Phi_4`.
+- **File Handling**: The audio file (`audio.wav`) is opened in binary read mode (`"rb"`) using a context manager (`with` statement) to ensure proper file closure after use.
+- **API Call**: The `chat.completions.create` method is called with:
+  - `model=g4f.models.default`: Uses the default model for the selected provider.
+  - `messages`: A list containing a user message instructing the model to transcribe the audio.
+  - `media`: A list of lists, where each inner list contains the file object and its name (`[[audio_file, "audio.wav"]]`).
+  - `modalities=["text"]`: Specifies that the output should be text (the transcription).
+- **Response**: The transcription is extracted from `response.choices[0].message.content` and printed.
+
+#### Notes
+- **Provider Support**: Ensure the chosen provider (e.g., `PollinationsAI` or `Microsoft_Phi_4`) supports audio inputs in chat completions. Not all providers may offer this functionality.
+- **File Path**: Replace `"audio.wav"` with the path to your own audio file. The file format (e.g., WAV) should be compatible with the provider.
+- **Model Selection**: If `g4f.models.default` does not support audio transcription, you may need to specify a model that does (consult the provider's documentation for supported models).
+
+This example complements the guide by showcasing how to handle audio inputs asynchronously, expanding on the multimodal capabilities of the G4F AsyncClient API.
+
+---
 
 ### Image Generation
 **The `response_format` parameter is optional and can have the following values:**

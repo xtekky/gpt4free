@@ -141,7 +141,7 @@ class Api:
                 stream=True,
                 ignore_stream=True,
                 logging=False,
-                has_images="images" in kwargs,
+                has_images="media" in kwargs,
             )
         except Exception as e:
             debug.error(e)

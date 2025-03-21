@@ -18,7 +18,7 @@ except ImportError:
     has_nodriver = False
 
 from ..base_provider import AsyncAuthedProvider, ProviderModelMixin
-from ...typing import AsyncResult, Messages, Cookies, ImagesType
+from ...typing import AsyncResult, Messages, Cookies, MediaListType
 from ...requests.raise_for_status import raise_for_status
 from ...requests import StreamSession
 from ...requests import get_nodriver
@@ -127,7 +127,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
         cls,
         session: StreamSession,
         auth_result: AuthResult,
-        images: ImagesType,
+        media: MediaListType,
     ) -> ImageRequest:
         """
         Upload an image to the service and get the download URL
@@ -135,7 +135,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
         Args:
             session: The StreamSession object to use for requests
             headers: The headers to include in the requests
-            images: The images to upload, either a PIL Image object or a bytes object
+            media: The images to upload, either a PIL Image object or a bytes object
         
         Returns:
             An ImageRequest object that contains the download URL, file name, and other data
@@ -187,9 +187,9 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                 await raise_for_status(response, "Get download url failed")
                 image_data["download_url"] = (await response.json())["download_url"]
             return ImageRequest(image_data)
-        if not images:
+        if not media:
             return
-        return [await upload_image(image, image_name) for image, image_name in images]
+        return [await upload_image(image, image_name) for image, image_name in media]
 
     @classmethod
     def create_messages(cls, messages: Messages, image_requests: ImageRequest = None, system_hints: list = None):
@@ -268,7 +268,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
         auto_continue: bool = False,
         action: str = "next",
         conversation: Conversation = None,
-        images: ImagesType = None,
+        media: MediaListType = None,
         return_conversation: bool = False,
         web_search: bool = False,
         **kwargs
@@ -285,7 +285,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
             auto_continue (bool): Flag to automatically continue the conversation.
             action (str): Type of action ('next', 'continue', 'variant').
             conversation_id (str): ID of the conversation.
-            images (ImagesType): Images to include in the conversation.
+            media (MediaListType): Images to include in the conversation.
             return_conversation (bool): Flag to include response fields in the output.
             **kwargs: Additional keyword arguments.
 
@@ -316,7 +316,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                     cls._update_request_args(auth_result, session)
                     await raise_for_status(response)
                 try:
-                    image_requests = await cls.upload_images(session, auth_result, images) if images else None
+                    image_requests = None if media is None else await cls.upload_images(session, auth_result, media)
                 except Exception as e:
                     debug.error("OpenaiChat: Upload image failed")
                     debug.error(e)

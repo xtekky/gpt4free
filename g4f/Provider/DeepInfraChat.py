@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from ..typing import AsyncResult, Messages, ImagesType
+from ..typing import AsyncResult, Messages, MediaListType
 from .template import OpenaiTemplate
 from ..image import to_data_uri
 
@@ -70,7 +70,6 @@ class DeepInfraChat(OpenaiTemplate):
         temperature: float = 0.7,
         max_tokens: int = None,
         headers: dict = {},
-        images: ImagesType = None,
         **kwargs
     ) -> AsyncResult:
         headers = {
@@ -81,23 +80,6 @@ class DeepInfraChat(OpenaiTemplate):
             'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
             **headers
         }
-
-        if images is not None:
-            if not model or model not in cls.models:
-                model = cls.default_vision_model
-            if messages:
-                last_message = messages[-1].copy()
-                last_message["content"] = [
-                    *[{
-                        "type": "image_url",
-                        "image_url": {"url": to_data_uri(image)}
-                    } for image, _ in images],
-                    {
-                        "type": "text",
-                        "text": last_message["content"]
-                    }
-                ]
-                messages[-1] = last_message
 
         async for chunk in super().create_async_generator(
             model,

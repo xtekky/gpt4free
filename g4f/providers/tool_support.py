@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 
-from ..typing import AsyncResult, Messages, ImagesType
+from ..typing import AsyncResult, Messages, MediaListType
 from ..client.service import get_model_and_provider
 from ..client.helper import filter_json
 from .base_provider import AsyncGeneratorProvider
@@ -17,7 +17,7 @@ class ToolSupportProvider(AsyncGeneratorProvider):
         model: str,
         messages: Messages,
         stream: bool = True,
-        images: ImagesType = None,
+        media: MediaListType = None,
         tools: list[str] = None,
         response_format: dict = None,
         **kwargs
@@ -28,7 +28,7 @@ class ToolSupportProvider(AsyncGeneratorProvider):
         model, provider = get_model_and_provider(
             model, provider,
             stream, logging=False,
-            has_images=images is not None
+            has_images=media is not None
         )
         if tools is not None:
             if len(tools) > 1:
@@ -49,7 +49,7 @@ class ToolSupportProvider(AsyncGeneratorProvider):
             model,
             messages,
             stream=stream,
-            images=images,
+            media=media,
             response_format=response_format,
             **kwargs
         ):

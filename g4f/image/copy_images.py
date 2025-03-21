@@ -109,7 +109,7 @@ async def copy_images(
                                 f.write(chunk)
 
                 # Verify file format
-                if not os.path.splitext(target_path)[1]:
+                if target is None and not os.path.splitext(target_path)[1]:
                     with open(target_path, "rb") as f:
                         file_header = f.read(12)
                     detected_type = is_accepted_format(file_header)
@@ -120,7 +120,7 @@ async def copy_images(
 
                 # Build URL with safe encoding
                 url_filename = quote(os.path.basename(target_path))
-                return f"/images/{url_filename}{'?url=' + quote(image) if add_url and not image.startswith('data:') else ''}"
+                return f"/images/{url_filename}" + (('?url=' + quote(image)) if add_url and not image.startswith('data:') else '')
 
             except (ClientError, IOError, OSError) as e:
                 debug.error(f"Image copying failed: {type(e).__name__}: {e}")

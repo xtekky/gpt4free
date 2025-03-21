@@ -17,7 +17,7 @@ except ImportError:
 
 from ..base_provider import ProviderModelMixin, AsyncAuthedProvider, AuthResult
 from ..helper import format_prompt, format_image_prompt, get_last_user_message
-from ...typing import AsyncResult, Messages, Cookies, ImagesType
+from ...typing import AsyncResult, Messages, Cookies, MediaListType
 from ...errors import MissingRequirementsError, MissingAuthError, ResponseError
 from ...image import to_bytes
 from ...requests import get_args_from_nodriver, DEFAULT_HEADERS
@@ -99,7 +99,7 @@ class HuggingChat(AsyncAuthedProvider, ProviderModelMixin):
         messages: Messages,
         auth_result: AuthResult,
         prompt: str = None,
-        images: ImagesType = None,
+        media: MediaListType = None,
         return_conversation: bool = False,
         conversation: Conversation = None,
         web_search: bool = False,
@@ -108,7 +108,7 @@ class HuggingChat(AsyncAuthedProvider, ProviderModelMixin):
         if not has_curl_cffi:
             raise MissingRequirementsError('Install "curl_cffi" package | pip install -U curl_cffi')
         if model == llama_models["name"]:
-            model = llama_models["text"] if images is None else llama_models["vision"]
+            model = llama_models["text"] if media is None else llama_models["vision"]
         model = cls.get_model(model)
 
         session = Session(**auth_result.get_dict())
@@ -145,8 +145,8 @@ class HuggingChat(AsyncAuthedProvider, ProviderModelMixin):
         }
         data = CurlMime()
         data.addpart('data', data=json.dumps(settings, separators=(',', ':')))
-        if images is not None:
-            for image, filename in images:
+        if media is not None:
+            for image, filename in media:
                 data.addpart(
                     "files",
                     filename=f"base64;{filename}",
