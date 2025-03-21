@@ -22,8 +22,8 @@ class BlackForestLabs_Flux1Dev(AsyncGeneratorProvider, ProviderModelMixin):
 
     default_model = 'black-forest-labs-flux-1-dev'
     default_image_model = default_model
-    model_aliases = {"flux-dev": default_model, "flux": default_model}
-    image_models = [default_image_model, *model_aliases.keys()]
+    model_aliases = {"flux-dev": default_image_model, "flux": default_image_model}
+    image_models = list(model_aliases.keys())
     models = image_models
 
     @classmethod
