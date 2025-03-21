@@ -21,8 +21,8 @@ class Qwen_Qwen_2_72B_Instruct(AsyncGeneratorProvider, ProviderModelMixin):
     supports_message_history = False
     
     default_model = "qwen-qwen2-72b-instruct"
-    models = [default_model]
     model_aliases = {"qwen-2-72b": default_model}
+    models = list(model_aliases.keys())
 
     @classmethod
     async def create_async_generator(
