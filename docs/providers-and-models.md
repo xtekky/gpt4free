@@ -69,6 +69,7 @@ This document provides an overview of various AI providers and models, including
 |[pollinations.ai](https://pollinations.ai)|No auth required|`g4f.Provider.PollinationsAI`|`gpt-4o-mini, gpt-4o, o1-mini, qwen-2.5-coder-32b, llama-3.3-70b, mistral-nemo, llama-3.1-8b, deepseek-r1, phi-4` _**(9+)**_|`flux, flux-pro, flux-dev, flux-schnell, dall-e-3, sdxl-turbo`|✔ _**(1+)**_|`gpt-4o, gpt-4o-mini, o1-mini, o3-mini`|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
 |[pollinations.ai](https://pollinations.ai)|No auth required|`g4f.Provider.PollinationsImage`|❌|`flux, flux-pro, flux-dev, flux-schnell, dall-e-3, sdxl-turbo`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
 |[teach-anything.com](https://www.teach-anything.com)|No auth required|`g4f.Provider.TeachAnything`|`gemini-1.5-pro, gemini-1.5-flash`|❌|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
+|[chat.typegpt.net](https://chat.typegpt.net)|No auth required|`g4f.Provider.TypeGPT`|`gpt-3.5-turbo, o3-mini, deepseek-r1, deepseek-v3, evil, o1`|❌|❌|`gpt-3.5-turbo, o3-mini`|✔|![](https://img.shields.io/badge/Active-brightgreen)|
 |[you.com](https://you.com)|[Manual cookies](https://you.com)|`g4f.Provider.You`|✔|✔|❌|✔|✔|![](https://img.shields.io/badge/Active-brightgreen)|
 |[websim.ai](https://websim.ai)|No auth required|`g4f.Provider.Websim`|`gemini-1.5-pro, gemini-1.5-flash`|`flux`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
 |[chat9.yqcloud.top](https://chat9.yqcloud.top)|No auth required|`g4f.Provider.Yqcloud`|`gpt-4`|✔|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
@@ -85,17 +86,17 @@ This document provides an overview of various AI providers and models, including
 ### Providers HuggingSpace
 | Website | API Credentials | Provider | Text generation | Image generation | Audio generation | Vision (Image Upload) | Streaming | Status |
 |----------|-------------|--------------|---------------|--------|--------|------|------|------|
-|[black-forest-labs-flux-1-dev.hf.space](https://black-forest-labs-flux-1-dev.hf.space)|[Get API key](https://huggingface.co/settings/tokens)|`g4f.Provider.BlackForestLabs_Flux1Dev`|❌|`flux-dev`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
-|[black-forest-labs-flux-1-schnell.hf.space](https://black-forest-labs-flux-1-schnell.hf.space)|[Get API key](https://huggingface.co/settings/tokens)|`g4f.Provider.BlackForestLabs_Flux1Schnell`|❌|`flux-schnell`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
+|[black-forest-labs-flux-1-dev.hf.space](https://black-forest-labs-flux-1-dev.hf.space)|[Get API key](https://huggingface.co/settings/tokens)|`g4f.Provider.BlackForestLabs_Flux1Dev`|❌|`flux, flux-dev`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
+|[black-forest-labs-flux-1-schnell.hf.space](https://black-forest-labs-flux-1-schnell.hf.space)|[Get API key](https://huggingface.co/settings/tokens)|`g4f.Provider.BlackForestLabs_Flux1Schnell`|❌|`flux, flux-schnell`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
 |[cohereforai-c4ai-command.hf.space](https://cohereforai-c4ai-command.hf.space)|[Get API key](https://huggingface.co/settings/tokens)|`g4f.Provider.CohereForAI_C4AI_Command`|`command-r, command-r-plus, command-r7b`|❌|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
 |[huggingface.co/spaces/deepseek-ai/Janus-Pro-7B](https://huggingface.co/spaces/deepseek-ai/Janus-Pro-7B)|[Get API key](https://huggingface.co/settings/tokens)|`g4f.Provider.DeepseekAI_Janus_Pro_7b`|✔|✔|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
 |[roxky-flux-1-dev.hf.space](https://roxky-flux-1-dev.hf.space)|[Get API key](https://huggingface.co/settings/tokens)|`g4f.Provider.G4F`|✔ _**(1+)**_|✔ _**(4+)**_|❌|✔ _**(1+)**_|✔|![](https://img.shields.io/badge/Active-brightgreen)|
-|[microsoft-phi-4-multimodal.hf.space](https://microsoft-phi-4-multimodal.hf.space)|[Get API key](https://huggingface.co/settings/tokens)|`g4f.Provider.Microsoft_Phi_4`|✔ _**(1+)**_|❌|❌|✔ _**(1+)**_|✔|![](https://img.shields.io/badge/Active-brightgreen)|
+|[microsoft-phi-4-multimodal.hf.space](https://microsoft-phi-4-multimodal.hf.space)|[Get API key](https://huggingface.co/settings/tokens)|`g4f.Provider.Microsoft_Phi_4`|`phi-4`|❌|❌|`phi-4`|✔|![](https://img.shields.io/badge/Active-brightgreen)|
 |[qwen-qvq-72b-preview.hf.space](https://qwen-qvq-72b-preview.hf.space)|[Get API key](https://huggingface.co/settings/tokens)|`g4f.Provider.Qwen_QVQ_72B`|`qvq-72b`|❌|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
-|[qwen-qwen2-5-1m-demo.hf.space](https://qwen-qwen2-5-1m-demo.hf.space)|[Get API key](https://huggingface.co/settings/tokens)|`g4f.Provider.Qwen_Qwen_2_5M_Demo`|`qwen-2.5-1m-demo`|❌|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
+|[qwen-qwen2-5-1m-demo.hf.space](https://qwen-qwen2-5-1m-demo.hf.space)|[Get API key](https://huggingface.co/settings/tokens)|`g4f.Provider.Qwen_Qwen_2_5M_Demo`|`qwen-2.5-1m`|❌|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
 |[qwen-qwen2-72b-instruct.hf.space](https://qwen-qwen2-72b-instruct.hf.space)|[Get API key](https://huggingface.co/settings/tokens)|`g4f.Provider.Qwen_Qwen_2_72B_Instruct`|`qwen-2-72b`|❌|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
 |[stabilityai-stable-diffusion-3-5-large.hf.space](https://stabilityai-stable-diffusion-3-5-large.hf.space)|[Get API key](https://huggingface.co/settings/tokens)|`g4f.Provider.StabilityAI_SD35Large`|❌|`sd-3.5`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
-|[voodoohop-flux-1-schnell.hf.space](https://voodoohop-flux-1-schnell.hf.space)|[Get API key](https://huggingface.co/settings/tokens)|`g4f.Provider.Voodoohop_Flux1Schnell`|❌|`flux-schnell`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
+|[voodoohop-flux-1-schnell.hf.space](https://voodoohop-flux-1-schnell.hf.space)|[Get API key](https://huggingface.co/settings/tokens)|`g4f.Provider.Voodoohop_Flux1Schnell`|❌|`flux, flux-schnell`|❌|❌|✔|![](https://img.shields.io/badge/Active-brightgreen)|
 
 ### Providers Local
 | Website | API Credentials | Provider | Text generation | Image generation | Audio generation | Vision (Image Upload) | Streaming | Status |
@@ -145,12 +146,13 @@ This document provides an overview of various AI providers and models, including
 ### Text generation models
 | Model | Base Provider | Providers | Website |
 |-------|---------------|-----------|---------|
+|gpt-3.5-turbo|OpenAI|1+ Providers|[platform.openai.com](https://platform.openai.com/docs/engines/gpt-3.5-turbo)|
 |gpt-4|OpenAI|9+ Providers|[platform.openai.com](https://platform.openai.com/docs/models/gpt-4-turbo-and-gpt-4)|
 |gpt-4o|OpenAI|6+ Providers|[platform.openai.com](https://platform.openai.com/docs/models/gpt-4o)|
-|gpt-4o-mini|OpenAI|8+ Providers|[platform.openai.com](https://platform.openai.com/docs/models/gpt-4o-mini)|
-|o1|OpenAI|3+ Providers|[openai.com](https://openai.com/index/introducing-openai-o1-preview/)|
+|gpt-4o-mini|OpenAI|9+ Providers|[platform.openai.com](https://platform.openai.com/docs/models/gpt-4o-mini)|
+|o1|OpenAI|4+ Providers|[openai.com](https://openai.com/index/introducing-openai-o1-preview/)|
 |o1-mini|OpenAI|1+ Providers|[openai.com](https://openai.com/index/openai-o1-mini-advancing-cost-efficient-reasoning/)|
-|o3-mini|OpenAI|3+ Providers|[openai.com](https://openai.com/index/openai-o3-mini/)|
+|o3-mini|OpenAI|4+ Providers|[openai.com](https://openai.com/index/openai-o3-mini/)|
 |gigachat|GigaChat|1+ Providers|[developers.sber.ru/gigachat](https://developers.sber.ru/gigachat)|
 |meta-ai|Meta|1+ Providers|[ai.meta.com](https://ai.meta.com/)|
 |llama-2-7b|Meta Llama|1+ Providers|[huggingface.co](https://huggingface.co/meta-llama/Llama-2-7b)|
@@ -170,7 +172,7 @@ This document provides an overview of various AI providers and models, including
 |mixtral-small-24b|Mistral|2+ Providers|[huggingface.co](https://huggingface.co/mistralai/Mistral-Small-24B-Instruct-2501)|
 |hermes-3|NousResearch|1+ Providers|[huggingface.co](https://huggingface.co/NousResearch/Hermes-3-Llama-3.1-405B-FP8)|
 |phi-3.5-mini|Microsoft|1+ Providers|[huggingface.co](https://huggingface.co/microsoft/Phi-3.5-mini-instruct)|
-|phi-4|Microsoft|2+ Providers|[techcommunity.microsoft.com](https://techcommunity.microsoft.com/blog/aiplatformblog/introducing-phi-4-microsoft%E2%80%99s-newest-small-language-model-specializing-in-comple/4357090)|
+|phi-4|Microsoft|3+ Providers|[techcommunity.microsoft.com](https://techcommunity.microsoft.com/blog/aiplatformblog/introducing-phi-4-microsoft%E2%80%99s-newest-small-language-model-specializing-in-comple/4357090)|
 |wizardlm-2-7b|Microsoft|1+ Providers|[wizardlm.github.io](https://wizardlm.github.io/WizardLM2/)|
 |wizardlm-2-8x22b|Microsoft|2+ Providers|[wizardlm.github.io](https://wizardlm.github.io/WizardLM2/)|
 |gemini-exp|Google DeepMind|1+ Providers|[blog.google](https://blog.google/feed/gemini-exp-1206/)|
@@ -197,13 +199,13 @@ This document provides an overview of various AI providers and models, including
 |qwen-2-vl-7b|Qwen|1+ Providers|[huggingface.co](https://huggingface.co/Qwen/Qwen2-VL-7B)|
 |qwen-2.5-72b|Qwen|1+ Providers|[huggingface.co](https://huggingface.co/Qwen/Qwen2.5-72B-Instruct)|
 |qwen-2.5-coder-32b|Qwen|3+ Providers|[huggingface.co](https://huggingface.co/Qwen/Qwen2.5-Coder-32B)|
-|qwen-2.5-1m-demo|Qwen|1+ Providers|[huggingface.co](https://huggingface.co/Qwen/Qwen2.5-1M-Demo)|
+|qwen-2.5-1m|Qwen|1+ Providers|[huggingface.co](https://huggingface.co/Qwen/Qwen2.5-1M-Demo)|
 |qwq-32b|Qwen|2+ Providers|[huggingface.co](https://huggingface.co/Qwen/QwQ-32B-Preview)|
 |qvq-72b|Qwen|1+ Providers|[huggingface.co](https://huggingface.co/Qwen/QVQ-72B-Preview)|
 |pi|Inflection|1+ Providers|[inflection.ai](https://inflection.ai/blog/inflection-2-5)|
 |deepseek-chat|DeepSeek|2+ Providers|[huggingface.co](https://huggingface.co/deepseek-ai/deepseek-llm-67b-chat)|
-|deepseek-v3|DeepSeek|4+ Providers|[api-docs.deepseek.com](https://api-docs.deepseek.com/news/news250120)|
-|deepseek-r1|DeepSeek|9+ Providers|[api-docs.deepseek.com](https://api-docs.deepseek.com/news/news250120)|
+|deepseek-v3|DeepSeek|5+ Providers|[api-docs.deepseek.com](https://api-docs.deepseek.com/news/news250120)|
+|deepseek-r1|DeepSeek|10+ Providers|[api-docs.deepseek.com](https://api-docs.deepseek.com/news/news250120)|
 |janus-pro-7b|DeepSeek|2+ Providers|[api-docs.deepseek.com](https://api-docs.deepseek.com/docs/janus-pro-7b)|
 |grok-3|x.ai|1+ Providers|[x.ai](https://x.ai/blog/grok-3)|
 |grok-3-r1|x.ai|1+ Providers|[x.ai](https://x.ai/blog/grok-3)|
@@ -228,7 +230,7 @@ This document provides an overview of various AI providers and models, including
 |tulu-3-70b|Ai2|1+ Providers|[allenai.org](https://allenai.org/documentation)|
 |olmoe-0125|Ai2|1+ Providers|[allenai.org](https://allenai.org/documentation)|
 |lfm-40b|Liquid AI|1+ Providers|[liquid.ai](https://www.liquid.ai/liquid-foundation-models)|
-|evil|Evil Mode - Experimental|1+ Providers|[]( )|
+|evil|Evil Mode - Experimental|2+ Providers|[]( )|
 
 ---
 ### Image generation models
