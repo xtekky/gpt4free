@@ -177,7 +177,7 @@ class Api:
                 if path.startswith("/v1") or path.startswith("/api/") or (AppConfig.demo and path == '/backend-api/v2/upload_cookies'):
                     if user_g4f_api_key is None:
                         return ErrorResponse.from_message("G4F API key required", HTTP_401_UNAUTHORIZED)
-                    if not secrets.compare_digest(AppConfig.g4f_api_key, user_g4f_api_key):
+                    if AppConfig.g4f_api_key is None or not secrets.compare_digest(AppConfig.g4f_api_key, user_g4f_api_key):
                         return ErrorResponse.from_message("Invalid G4F API key", HTTP_403_FORBIDDEN)
                 elif not AppConfig.demo and not path.startswith("/images/"):
                     if user_g4f_api_key is not None:
@@ -305,7 +305,7 @@ class Api:
             try:
                 if config.provider is None:
                     config.provider = AppConfig.provider if provider is None else provider
-                if credentials is not None:
+                if credentials is not None and credentials.credentials != "secret":
                     config.api_key = credentials.credentials
 
                 conversation = return_conversation = None
@@ -328,7 +328,7 @@ class Api:
                 if config.media is not None:
                     for image in config.media:
                         try:
-                            is_data_an_media(image[0])
+                            is_data_an_media(image[0], image[1])
                         except ValueError as e:
                             example = json.dumps({"media": [["data:image/jpeg;base64,...", "filename.jpg"]]})
                             return ErrorResponse.from_message(f'The media you send must be a data URIs. Example: {example}', status_code=HTTP_422_UNPROCESSABLE_ENTITY)
@@ -410,7 +410,7 @@ class Api:
             config: ImageGenerationConfig,
             credentials: Annotated[HTTPAuthorizationCredentials, Depends(Api.security)] = None
         ):
-            if credentials is not None:
+            if credentials is not None and credentials.credentials != "secret":
                 config.api_key = credentials.credentials
             try:
                 response = await self.client.images.generate(

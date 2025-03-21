@@ -103,7 +103,7 @@ curl -X POST "http://localhost:1337/v1/images/generate" \
 from openai import OpenAI
 
 client = OpenAI(
-    api_key="",
+    api_key="secret",
     base_url="http://localhost:1337/v1"
 )
 

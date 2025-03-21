@@ -102,23 +102,19 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
                 if not model and hasattr(cls, "default_vision_model"):
                     model = cls.default_vision_model
                 last_message = messages[-1].copy()
-                last_message["content"] = [
-                    *[
-                        {
-                            "type": "input_audio",
-                            "input_audio": to_input_audio(media_data, filename)
-                        }
-                        if is_data_an_audio(media_data, filename) else {
-                            "type": "image_url",
-                            "image_url": {"url": to_data_uri(media_data, filename)}
-                        }
-                        for media_data, filename in media
-                    ],
+                image_content = [
                     {
-                        "type": "text",
-                        "text": last_message["content"]
-                    } if isinstance(last_message["content"], str) else last_message["content"]
+                        "type": "input_audio",
+                        "input_audio": to_input_audio(media_data, filename)
+                    }
+                    if is_data_an_audio(media_data, filename) else {
+                        "type": "image_url",
+                        "image_url": {"url": to_data_uri(media_data)}
+                    }
+                    for media_data, filename in media
                 ]
+                last_message["content"] = image_content + ([{"type": "text", "text": last_message["content"]}] if isinstance(last_message["content"], str) else image_content)
+
                 messages[-1] = last_message
             extra_parameters = {key: kwargs[key] for key in extra_parameters if key in kwargs}
             data = filter_none(
