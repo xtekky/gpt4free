@@ -174,18 +174,9 @@ class DDG(AsyncGeneratorProvider, ProviderModelMixin):
                         "accept": "text/event-stream",
                         "accept-language": "en-US,en;q=0.9",
                         "content-type": "application/json",
-                        "cache-control": "no-cache",
-                        "pragma": "no-cache",
                         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36",
                         "origin": "https://duckduckgo.com",
                         "referer": "https://duckduckgo.com/",
-                        "sec-ch-ua": '"Chromium";v="133", "Not(A:Brand";v="99"',
-                        "sec-ch-ua-mobile": "?0",
-                        "sec-ch-ua-platform": '"Linux"',
-                        "sec-fetch-dest": "empty",
-                        "sec-fetch-mode": "cors",
-                        "sec-fetch-site": "same-origin",
-                        "priority": "u=1, i",
                         "x-vqd-4": conversation.vqd,
                     }
                     
