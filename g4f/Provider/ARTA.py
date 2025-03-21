@@ -75,7 +75,7 @@ class ARTA(AsyncGeneratorProvider, ProviderModelMixin):
         "professional": "Professional",
         "black_ink": "Black Ink"
     }
-    image_models = [*model_aliases.keys()]
+    image_models = list(model_aliases.keys())
     models = image_models
 
     @classmethod
