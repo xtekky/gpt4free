@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-from ..typing import AsyncResult, Messages, MediaListType
+from ..typing import AsyncResult, Messages
 from .template import OpenaiTemplate
-from ..image import to_data_uri
 
 class DeepInfraChat(OpenaiTemplate):
     url = "https://deepinfra.com/chat"
@@ -10,8 +9,8 @@ class DeepInfraChat(OpenaiTemplate):
     working = True
 
     default_model = 'deepseek-ai/DeepSeek-V3'
-    default_vision_model = 'meta-llama/Llama-3.2-90B-Vision-Instruct'
-    vision_models = [default_vision_model, 'openbmb/MiniCPM-Llama3-V-2_5']
+    default_vision_model = 'openbmb/MiniCPM-Llama3-V-2_5'
+    vision_models = [default_vision_model, 'meta-llama/Llama-3.2-90B-Vision-Instruct']
     models = [
         'meta-llama/Meta-Llama-3.1-8B-Instruct',
         'meta-llama/Llama-3.3-70B-Instruct-Turbo',
@@ -69,7 +68,6 @@ class DeepInfraChat(OpenaiTemplate):
         top_p: float = 0.9,
         temperature: float = 0.7,
         max_tokens: int = None,
-        headers: dict = {},
         **kwargs
     ) -> AsyncResult:
         headers = {
@@ -78,13 +76,11 @@ class DeepInfraChat(OpenaiTemplate):
             'Referer': 'https://deepinfra.com/',
             'X-Deepinfra-Source': 'web-page',
             'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-            **headers
         }
 
         async for chunk in super().create_async_generator(
             model,
             messages,
-            headers=headers,
             stream=stream,
             top_p=top_p,
             temperature=temperature,
