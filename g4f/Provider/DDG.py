@@ -167,10 +167,6 @@ class DDG(AsyncGeneratorProvider, ProviderModelMixin):
                         conversation.vqd_hash_1 = vqd_hash_1
                         conversation.message_history = [{"role": "user", "content": format_prompt(messages)}]
                     else:
-                        # Replace this line:
-                        # conversation.message_history.append(messages[-1])
-                        
-                        # With this implementation:
                         last_message = get_last_user_message(messages.copy())
                         conversation.message_history.append({"role": "user", "content": last_message})
 
