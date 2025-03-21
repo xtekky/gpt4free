@@ -104,7 +104,7 @@ This document provides an overview of various AI providers and models, including
 ### Providers MiniMax
 | Website | API Credentials | Provider | Text generation | Image generation | Audio generation | Vision (Image Upload) | Status |
 |----------|-------------|--------------|---------------|--------|--------|------|------|
-|[hailuo.ai/chat](https://www.hailuo.ai/chat)|[Get API key](https://intl.minimaxi.com/user-center/basic-information/interface-key)|`g4f.Provider.MiniMax`|`MiniMax`  _**(1)**_|❌|❌|❌|![](https://img.shields.io/badge/Active-brightgreen)|
+|[hailuo.ai/chat](https://www.hailuo.ai/chat)|[Get API key](https://intl.minimaxi.com/user-center/basic-information/interface-key)|`g4f.Provider.MiniMax`|`MiniMax`  _**(1+)**_|❌|❌|❌|![](https://img.shields.io/badge/Active-brightgreen)|
 
 ---
 ### Providers Needs Auth
