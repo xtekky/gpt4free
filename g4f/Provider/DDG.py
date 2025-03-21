@@ -5,13 +5,12 @@ from aiohttp import ClientSession, ClientTimeout
 import json
 import asyncio
 import random
-import logging
 from yarl import URL
 
 from ..typing import AsyncResult, Messages, Cookies
 from ..requests.raise_for_status import raise_for_status
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from .helper import format_prompt
+from .helper import format_prompt, get_last_user_message
 from ..providers.response import FinishReason, JsonConversation
 from ..errors import ModelNotSupportedError, ResponseStatusError, RateLimitError, TimeoutError, ConversationLimitError
 
@@ -168,7 +167,12 @@ class DDG(AsyncGeneratorProvider, ProviderModelMixin):
                         conversation.vqd_hash_1 = vqd_hash_1
                         conversation.message_history = [{"role": "user", "content": format_prompt(messages)}]
                     else:
-                        conversation.message_history.append(messages[-1])
+                        # Replace this line:
+                        # conversation.message_history.append(messages[-1])
+                        
+                        # With this implementation:
+                        last_message = get_last_user_message(messages.copy())
+                        conversation.message_history.append({"role": "user", "content": last_message})
 
                     headers = {
                         "accept": "text/event-stream",
