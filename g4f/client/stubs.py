@@ -1,8 +1,10 @@
 from __future__ import annotations
 
-from typing import Optional, List, Dict, Any
+from typing import Optional, List
 from time import time
 
+from ..image import extract_data_uri
+from ..client.helper import filter_markdown
 from .helper import filter_none
 
 try:
@@ -103,6 +105,16 @@ class ChatCompletionMessage(BaseModel):
     def model_construct(cls, content: str, tool_calls: list = None):
         return super().model_construct(role="assistant", content=content, **filter_none(tool_calls=tool_calls))
 
+    def save(self, filepath: str, allowd_types = None):
+        if self.content.startswith("data:"):
+            with open(filepath, "wb") as f:
+                f.write(extract_data_uri(self.content))
+            return
+        content = filter_markdown(self.content, allowd_types)
+        if content is not None:
+            with open(filepath, "w") as f:
+                f.write(content)
+
 class ChatCompletionChoice(BaseModel):
     index: int
     message: ChatCompletionMessage
@@ -118,7 +130,7 @@ class ChatCompletion(BaseModel):
     created: int
     model: str
     provider: Optional[str]
-    choices: List[ChatCompletionChoice]
+    choices: list[ChatCompletionChoice]
     usage: UsageModel
 
     @classmethod

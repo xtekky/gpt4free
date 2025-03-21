@@ -248,14 +248,14 @@ def to_input_audio(audio: ImageType, filename: str = None) -> str:
         if filename is not None and (filename.endswith(".wav") or filename.endswith(".mp3")):
             return {
                 "data": base64.b64encode(to_bytes(audio)).decode(),
-                "format": "wav" if filename.endswith(".wav") else "mpeg"
+                "format": "wav" if filename.endswith(".wav") else "mp3"
             }
         raise ValueError("Invalid input audio")
     audio = re.match(r'^data:audio/(\w+);base64,(.+?)', audio)
     if audio:
         return {
             "data": audio.group(2),
-            "format": audio.group(1),
+            "format": audio.group(1).replace("mpeg", "mp3")
         }
     raise ValueError("Invalid input audio")
 

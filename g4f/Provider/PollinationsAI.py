@@ -152,7 +152,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         top_p: float = 1,
         frequency_penalty: float = None,
         response_format: Optional[dict] = None,
-        extra_parameters: list[str] = ["tools", "parallel_tool_calls", "tool_choice", "reasoning_effort", "logit_bias", "voice", "modalities"],
+        extra_parameters: list[str] = ["tools", "parallel_tool_calls", "tool_choice", "reasoning_effort", "logit_bias", "voice", "modalities", "audio"],
         **kwargs
     ) -> AsyncResult:
         # Load model list
