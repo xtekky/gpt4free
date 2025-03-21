@@ -448,11 +448,14 @@ command_a = Model(
 )
 
 ### Qwen ###
+# qwen-1.5
 qwen_1_5_7b = Model(
     name = 'qwen-1.5-7b',
     base_provider = 'Qwen',
     best_provider = Cloudflare
 )
+
+# qwen-2
 qwen_2_72b = Model(
     name = 'qwen-2-72b',
     base_provider = 'Qwen',
@@ -463,6 +466,14 @@ qwen_2_vl_7b = VisionModel(
     base_provider = 'Qwen',
     best_provider = HuggingFaceAPI
 )
+
+# qwen-2.5
+qwen_2_5 = Model(
+    name = 'qwen-2.5',
+    base_provider = 'Qwen',
+    best_provider = HuggingSpace
+)
+
 qwen_2_5_72b = Model(
     name = 'qwen-2.5-72b',
     base_provider = 'Qwen',
@@ -856,9 +867,15 @@ class ModelUtils:
         gigachat.name: gigachat,
 
         ### Qwen ###
+        # qwen-1.5
         qwen_1_5_7b.name: qwen_1_5_7b,
+        
+        # qwen-2
         qwen_2_72b.name: qwen_2_72b,
         qwen_2_vl_7b.name: qwen_2_vl_7b,
+        
+        # qwen-2.5
+        qwen_2_5.name: qwen_2_5,
         qwen_2_5_72b.name: qwen_2_5_72b,
         qwen_2_5_coder_32b.name: qwen_2_5_coder_32b,
         qwen_2_5_1m.name: qwen_2_5_1m,

@@ -13,6 +13,7 @@ from .DeepseekAI_JanusPro7b          import DeepseekAI_JanusPro7b
 from .G4F                            import G4F
 from .Microsoft_Phi_4                import Microsoft_Phi_4
 from .Qwen_QVQ_72B                   import Qwen_QVQ_72B
+from .Qwen_Qwen_2_5                  import Qwen_Qwen_2_5
 from .Qwen_Qwen_2_5M                 import Qwen_Qwen_2_5M
 from .Qwen_Qwen_2_5_Max              import Qwen_Qwen_2_5_Max
 from .Qwen_Qwen_2_72B                import Qwen_Qwen_2_72B
@@ -35,6 +36,7 @@ class HuggingSpace(AsyncGeneratorProvider, ProviderModelMixin):
         G4F,
         Microsoft_Phi_4,
         Qwen_QVQ_72B,
+        Qwen_Qwen_2_5,
         Qwen_Qwen_2_5M,
         Qwen_Qwen_2_5_Max,
         Qwen_Qwen_2_72B,
