@@ -6,8 +6,8 @@ import requests
 from typing import Optional
 from aiohttp import ClientSession, BaseConnector
 
-from ...typing import AsyncResult, Messages, ImagesType
-from ...image import to_bytes, is_accepted_format
+from ...typing import AsyncResult, Messages, MediaListType
+from ...image import to_bytes, is_data_an_media
 from ...errors import MissingAuthError
 from ...requests.raise_for_status import raise_for_status
 from ...providers.response import Usage, FinishReason
@@ -67,7 +67,7 @@ class GeminiPro(AsyncGeneratorProvider, ProviderModelMixin):
         api_key: str = None,
         api_base: str = api_base,
         use_auth_header: bool = False,
-        images: ImagesType = None,
+        media: MediaListType = None,
         tools: Optional[list] = None,
         connector: BaseConnector = None,
         **kwargs
@@ -94,13 +94,13 @@ class GeminiPro(AsyncGeneratorProvider, ProviderModelMixin):
                 for message in messages
                 if message["role"] != "system"
             ]
-            if images is not None:
-                for image, _ in images:
+            if media is not None:
+                for media_data, filename in media:
                     image = to_bytes(image)
                     contents[-1]["parts"].append({
                         "inline_data": {
-                            "mime_type": is_accepted_format(image),
-                            "data": base64.b64encode(image).decode()
+                            "mime_type": is_data_an_media(image, filename),
+                            "data": base64.b64encode(media_data).decode()
                         }
                     })
             data = {

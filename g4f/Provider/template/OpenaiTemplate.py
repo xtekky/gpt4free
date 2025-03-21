@@ -5,16 +5,17 @@ import requests
 
 from ..helper import filter_none, format_image_prompt
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
-from ...typing import Union, Optional, AsyncResult, Messages, ImagesType
+from ...typing import Union, AsyncResult, Messages, MediaListType
 from ...requests import StreamSession, raise_for_status
 from ...providers.response import FinishReason, ToolCalls, Usage, ImageResponse
 from ...errors import MissingAuthError, ResponseError
-from ...image import to_data_uri
+from ...image import to_data_uri, is_data_an_audio, to_input_audio
 from ... import debug
 
 class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin):
     api_base = ""
     api_key = None
+    api_endpoint = None
     supports_message_history = True
     supports_system_message = True
     default_model = ""
@@ -53,7 +54,7 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
         messages: Messages,
         proxy: str = None,
         timeout: int = 120,
-        images: ImagesType = None,
+        media: MediaListType = None,
         api_key: str = None,
         api_endpoint: str = None,
         api_base: str = None,
@@ -65,7 +66,7 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
         prompt: str = None,
         headers: dict = None,
         impersonate: str = None,
-        extra_parameters: list[str] = ["tools", "parallel_tool_calls", "tool_choice", "reasoning_effort", "logit_bias"],
+        extra_parameters: list[str] = ["tools", "parallel_tool_calls", "tool_choice", "reasoning_effort", "logit_bias", "modalities", "audio"],
         extra_data: dict = {},
         **kwargs
     ) -> AsyncResult:
@@ -97,19 +98,26 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
                     yield ImageResponse([image["url"] for image in data["data"]], prompt)
                 return
 
-            if images is not None and messages:
+            if media is not None and messages:
                 if not model and hasattr(cls, "default_vision_model"):
                     model = cls.default_vision_model
                 last_message = messages[-1].copy()
                 last_message["content"] = [
-                    *[{
-                        "type": "image_url",
-                        "image_url": {"url": to_data_uri(image)}
-                    } for image, _ in images],
+                    *[
+                        {
+                            "type": "input_audio",
+                            "input_audio": to_input_audio(media_data, filename)
+                        }
+                        if is_data_an_audio(media_data, filename) else {
+                            "type": "image_url",
+                            "image_url": {"url": to_data_uri(media_data, filename)}
+                        }
+                        for media_data, filename in media
+                    ],
                     {
                         "type": "text",
-                        "text": messages[-1]["content"]
-                    }
+                        "text": last_message["content"]
+                    } if isinstance(last_message["content"], str) else last_message["content"]
                 ]
                 messages[-1] = last_message
             extra_parameters = {key: kwargs[key] for key in extra_parameters if key in kwargs}
@@ -125,7 +133,9 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
                 **extra_data
             )
             if api_endpoint is None:
-                api_endpoint = f"{api_base.rstrip('/')}/chat/completions"
+                api_endpoint = cls.api_endpoint
+                if api_endpoint is None:
+                    api_endpoint = f"{api_base.rstrip('/')}/chat/completions"
             async with session.post(api_endpoint, json=data, ssl=cls.ssl) as response:
                 content_type = response.headers.get("content-type", "text/event-stream" if stream else "application/json")
                 if content_type.startswith("application/json"):

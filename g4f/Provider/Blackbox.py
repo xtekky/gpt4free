@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Optional
 from datetime import datetime, timedelta
 
-from ..typing import AsyncResult, Messages, ImagesType
+from ..typing import AsyncResult, Messages, MediaListType
 from ..requests.raise_for_status import raise_for_status
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..image import to_data_uri
@@ -444,7 +444,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         messages: Messages,
         prompt: str = None,
         proxy: str = None,
-        images: ImagesType = None,
+        media: MediaListType = None,
         top_p: float = None,
         temperature: float = None,
         max_tokens: int = None,
@@ -478,15 +478,15 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
                     "role": msg["role"]
                 }
                 current_messages.append(current_msg)
-            
-            if images is not None:
+
+            if media is not None:
                 current_messages[-1]['data'] = {
                     "imagesData": [
                         {
                             "filePath": f"/{image_name}",
                             "contents": to_data_uri(image)
                         }
-                        for image, image_name in images
+                        for image, image_name in media
                     ],
                     "fileText": "",
                     "title": ""

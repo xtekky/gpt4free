@@ -156,33 +156,6 @@ class ThinkingProcessor:
         # Handle non-thinking chunk
         if not start_time and "<think>" not in chunk and "</think>" not in chunk:
             return 0, [chunk]
-        
-        # Handle case where both opening and closing tags are in the same chunk
-        if "<think>" in chunk and "</think>" in chunk:
-            parts = chunk.split("<think>", 1)
-            before_think = parts[0]
-            thinking_and_after = parts[1]
-            
-            thinking_parts = thinking_and_after.split("</think>", 1)
-            thinking_content = thinking_parts[0]
-            after_think = thinking_parts[1] if len(thinking_parts) > 1 else ""
-            
-            if before_think.strip():
-                results.append(before_think)
-            
-            # Only add thinking content if it contains non-whitespace
-            if thinking_content.strip():
-                results.append(Reasoning(thinking_content))
-            
-            thinking_duration = time.time() - start_time if start_time > 0 else 0
-            status = f"Thought for {thinking_duration:.2f}s" if thinking_duration > 1 else "Finished"
-            results.append(Reasoning(status=status, is_thinking="</think>"))
-            
-            # Important: Add the content that comes after the thinking tags
-            if after_think.strip():
-                results.append(after_think)
-                
-            return 0, results
             
         # Handle thinking start
         if "<think>" in chunk and "`<think>`" not in chunk:
@@ -193,8 +166,16 @@ class ThinkingProcessor:
                 
             results.append(Reasoning(status="🤔 Is thinking...", is_thinking="<think>"))
             
-            if after and after[0]:
-                results.append(Reasoning(after[0]))
+            if after:
+                if "</think>" in after[0]:
+                    after, *after_end = after[0].split("</think>", 1)
+                    results.append(Reasoning(after))
+                    results.append(Reasoning(status="Finished", is_thinking="</think>"))
+                    if after_end:
+                        results.append(after_end[0])
+                    return 0, results
+                else:
+                    results.append(Reasoning(after[0]))
                 
             return time.time(), results
             

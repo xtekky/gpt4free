@@ -48,7 +48,7 @@ class AllenAI(AsyncGeneratorProvider, ProviderModelMixin):
         "olmo-2-13b": "OLMo-2-1124-13B-Instruct",
         "tulu-3-1-8b": "tulu-3-1-8b",
         "tulu-3-70b": "Llama-3-1-Tulu-3-70B",
-        "llama-3.1-405b": "Llama-3-1-Tulu-3-70B",
+        "llama-3.1-405b": "tulu3-405b",
         "llama-3.1-8b": "tulu-3-1-8b",
         "llama-3.1-70b": "Llama-3-1-Tulu-3-70B",
     }

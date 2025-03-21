@@ -8,6 +8,7 @@ import asyncio
 import shutil
 import random
 import datetime
+import tempfile
 from flask import Flask, Response, request, jsonify, render_template
 from typing import Generator
 from pathlib import Path
@@ -111,11 +112,13 @@ class Backend_Api(Api):
             else:
                 json_data = request.json
             if "files" in request.files:
-                images = []
+                media = []
                 for file in request.files.getlist('files'):
                     if file.filename != '' and is_allowed_extension(file.filename):
-                        images.append((to_image(file.stream, file.filename.endswith('.svg')), file.filename))
-                json_data['images'] = images
+                        newfile = tempfile.TemporaryFile()
+                        shutil.copyfileobj(file.stream, newfile)
+                        media.append((newfile, file.filename))
+                json_data['media'] = media
 
             if app.demo and not json_data.get("provider"):
                 model = json_data.get("model")

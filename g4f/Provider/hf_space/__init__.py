@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import random
 
-from ...typing import AsyncResult, Messages, ImagesType
+from ...typing import AsyncResult, Messages, MediaListType
 from ...errors import ResponseError
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
 
@@ -67,15 +67,15 @@ class HuggingSpace(AsyncGeneratorProvider, ProviderModelMixin):
 
     @classmethod
     async def create_async_generator(
-        cls, model: str, messages: Messages, images: ImagesType = None, **kwargs
+        cls, model: str, messages: Messages, media: MediaListType = None, **kwargs
     ) -> AsyncResult:
-        if not model and images is not None:
+        if not model and media is not None:
             model = cls.default_vision_model
         is_started = False
         random.shuffle(cls.providers)
         for provider in cls.providers:
             if model in provider.model_aliases:
-                async for chunk in provider.create_async_generator(provider.model_aliases[model], messages, images=images, **kwargs):
+                async for chunk in provider.create_async_generator(provider.model_aliases[model], messages, media=media, **kwargs):
                     is_started = True
                     yield chunk
             if is_started:

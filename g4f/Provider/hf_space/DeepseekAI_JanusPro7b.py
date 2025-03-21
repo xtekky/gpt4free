@@ -7,7 +7,7 @@ import random
 from datetime import datetime, timezone, timedelta
 import urllib.parse
 
-from ...typing import AsyncResult, Messages, Cookies, ImagesType
+from ...typing import AsyncResult, Messages, Cookies, MediaListType
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..helper import format_prompt, format_image_prompt
 from ...providers.response import JsonConversation, ImageResponse, Reasoning
@@ -68,7 +68,7 @@ class DeepseekAI_JanusPro7b(AsyncGeneratorProvider, ProviderModelMixin):
         cls,
         model: str,
         messages: Messages,
-        images: ImagesType = None,
+        media: MediaListType = None,
         prompt: str = None,
         proxy: str = None,
         cookies: Cookies = None,
@@ -98,27 +98,27 @@ class DeepseekAI_JanusPro7b(AsyncGeneratorProvider, ProviderModelMixin):
             if return_conversation:
                 yield conversation
 
-            if images is not None:
+            if media is not None:
                 data = FormData()
-                for i in range(len(images)):
-                    images[i] = (to_bytes(images[i][0]), images[i][1])
-                for image, image_name in images:
+                for i in range(len(media)):
+                    media[i] = (to_bytes(media[i][0]), media[i][1])
+                for image, image_name in media:
                     data.add_field(f"files", image, filename=image_name)
                 async with session.post(f"{cls.api_url}/gradio_api/upload", params={"upload_id": session_hash}, data=data) as response:
                     await raise_for_status(response)
                     image_files = await response.json()
-                images = [{
+                media = [{
                     "path": image_file,
                     "url": f"{cls.api_url}/gradio_api/file={image_file}",
-                    "orig_name": images[i][1],
-                    "size": len(images[i][0]),
-                    "mime_type": is_accepted_format(images[i][0]),
+                    "orig_name": media[i][1],
+                    "size": len(media[i][0]),
+                    "mime_type": is_accepted_format(media[i][0]),
                     "meta": {
                         "_type": "gradio.FileData"
                     }
                 } for i, image_file in enumerate(image_files)]
 
-            async with cls.run(method, session, prompt, conversation, None if images is None else images.pop(), seed) as response:
+            async with cls.run(method, session, prompt, conversation, None if media is None else media.pop(), seed) as response:
                 await raise_for_status(response)
 
             async with cls.run("get", session, prompt, conversation, None, seed) as response:

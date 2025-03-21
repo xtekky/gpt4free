@@ -5,14 +5,14 @@ import json
 from pathlib import Path
 
 from ..typing import AsyncResult, Messages, Cookies
-from .base_provider import AsyncGeneratorProvider, ProviderModelMixin, get_running_loop
+from .base_provider import AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin, get_running_loop
 from ..requests import Session, StreamSession, get_args_from_nodriver, raise_for_status, merge_cookies
 from ..requests import DEFAULT_HEADERS, has_nodriver, has_curl_cffi
 from ..providers.response import FinishReason
 from ..cookies import get_cookies_dir
 from ..errors import ResponseStatusError, ModelNotFoundError
 
-class Cloudflare(AsyncGeneratorProvider, ProviderModelMixin):
+class Cloudflare(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
     label = "Cloudflare AI"
     url = "https://playground.ai.cloudflare.com"
     working = True
@@ -35,10 +35,6 @@ class Cloudflare(AsyncGeneratorProvider, ProviderModelMixin):
         "qwen-1.5-7b": "@cf/qwen/qwen1.5-7b-chat-awq",
     }
     _args: dict = None
-
-    @classmethod
-    def get_cache_file(cls) -> Path:
-        return Path(get_cookies_dir()) / f"auth_{cls.parent if hasattr(cls, 'parent') else cls.__name__}.json"
 
     @classmethod
     def get_models(cls) -> str:
@@ -79,7 +75,7 @@ class Cloudflare(AsyncGeneratorProvider, ProviderModelMixin):
             if cache_file.exists():
                 with cache_file.open("r") as f:
                     cls._args = json.load(f)
-            if has_nodriver:
+            elif has_nodriver:
                 cls._args = await get_args_from_nodriver(cls.url, proxy, timeout, cookies)
             else:
                 cls._args = {"headers": DEFAULT_HEADERS, "cookies": {}}

@@ -67,7 +67,7 @@ DOMAINS = [
 if has_browser_cookie3 and os.environ.get('DBUS_SESSION_BUS_ADDRESS') == "/dev/null":
     _LinuxPasswordManager.get_password = lambda a, b: b"secret"
 
-def get_cookies(domain_name: str = '', raise_requirements_error: bool = True, single_browser: bool = False) -> Dict[str, str]:
+def get_cookies(domain_name: str, raise_requirements_error: bool = True, single_browser: bool = False, cache_result: bool = True) -> Dict[str, str]:
     """
     Load cookies for a given domain from all supported browsers and cache the results.
 
@@ -77,11 +77,12 @@ def get_cookies(domain_name: str = '', raise_requirements_error: bool = True, si
     Returns:
         Dict[str, str]: A dictionary of cookie names and values.
     """
-    if domain_name in CookiesConfig.cookies:
+    if cache_result and domain_name in CookiesConfig.cookies:
         return CookiesConfig.cookies[domain_name]
 
     cookies = load_cookies_from_browsers(domain_name, raise_requirements_error, single_browser)
-    CookiesConfig.cookies[domain_name] = cookies
+    if cache_result:
+        CookiesConfig.cookies[domain_name] = cookies
     return cookies
 
 def set_cookies(domain_name: str, cookies: Cookies = None) -> None:
@@ -108,8 +109,8 @@ def load_cookies_from_browsers(domain_name: str, raise_requirements_error: bool 
     for cookie_fn in browsers:
         try:
             cookie_jar = cookie_fn(domain_name=domain_name)
-            if len(cookie_jar) and debug.logging:
-                print(f"Read cookies from {cookie_fn.__name__} for {domain_name}")
+            if len(cookie_jar):
+                debug.log(f"Read cookies from {cookie_fn.__name__} for {domain_name}")
             for cookie in cookie_jar:
                 if cookie.name not in cookies:
                     if not cookie.expires or cookie.expires > time.time():
@@ -119,8 +120,7 @@ def load_cookies_from_browsers(domain_name: str, raise_requirements_error: bool 
         except BrowserCookieError:
             pass
         except Exception as e:
-            if debug.logging:
-                print(f"Error reading cookies from {cookie_fn.__name__} for {domain_name}: {e}")
+            debug.error(f"Error reading cookies from {cookie_fn.__name__} for {domain_name}: {e}")
     return cookies
 
 def set_cookies_dir(dir: str) -> None:

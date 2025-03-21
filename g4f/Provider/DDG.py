@@ -30,7 +30,7 @@ class DDG(AsyncGeneratorProvider, ProviderModelMixin):
     api_endpoint = "https://duckduckgo.com/duckchat/v1/chat"
     status_url = "https://duckduckgo.com/duckchat/v1/status"
     
-    working = True
+    working = False
     supports_stream = True
     supports_system_message = True
     supports_message_history = True

@@ -21,7 +21,7 @@ AsyncResult = AsyncIterator[Union[str, ResponseType]]
 Messages = List[Dict[str, Union[str, List[Dict[str, Union[str, Dict[str, str]]]]]]]
 Cookies = Dict[str, str]
 ImageType = Union[str, bytes, IO, Image, os.PathLike]
-ImagesType = List[Tuple[ImageType, Optional[str]]]
+MediaListType = List[Tuple[ImageType, Optional[str]]]
 
 __all__ = [
     'Any',
@@ -44,5 +44,5 @@ __all__ = [
     'Cookies',
     'Image',
     'ImageType',
-    'ImagesType'
+    'MediaListType'
 ]

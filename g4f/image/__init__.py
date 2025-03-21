@@ -76,24 +76,24 @@ def is_allowed_extension(filename: str) -> bool:
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-def is_data_uri_an_media(data_uri: str) -> str:
-    return is_data_an_wav(data_uri) or is_data_uri_an_image(data_uri)
+def is_data_an_media(data, filename: str = None) -> str:
+    content_type = is_data_an_audio(data, filename)
+    if content_type is not None:
+        return content_type
+    if isinstance(data, bytes):
+        return is_accepted_format(data)
+    return is_data_uri_an_image(data)
 
-def is_data_an_wav(data_uri: str, filename: str = None) -> str:
-    """
-    Checks if the given data URI represents an image.
-
-    Args:
-        data_uri (str): The data URI to check.
-
-    Raises:
-        ValueError: If the data URI is invalid or the image format is not allowed.
-    """
-    if filename and filename.endswith(".wav"):
-        return "audio/wav"
-    # Check if the data URI starts with 'data:image' and contains an image format (e.g., jpeg, png, gif)
-    if isinstance(data_uri, str) and re.match(r'data:audio/wav;base64,', data_uri):
-        return "audio/wav"
+def is_data_an_audio(data_uri: str, filename: str = None) -> str:
+    if filename:
+        if filename.endswith(".wav"):
+            return "audio/wav"
+        elif filename.endswith(".mp3"):
+            return "audio/mpeg"
+    if isinstance(data_uri, str):
+        audio_format = re.match(r'^data:(audio/\w+);base64,', data_uri)
+        if audio_format:
+            return audio_format.group(1)
 
 def is_data_uri_an_image(data_uri: str) -> bool:
     """
@@ -218,7 +218,7 @@ def to_bytes(image: ImageType) -> bytes:
     if isinstance(image, bytes):
         return image
     elif isinstance(image, str) and image.startswith("data:"):
-        is_data_uri_an_media(image)
+        is_data_an_media(image)
         return extract_data_uri(image)
     elif isinstance(image, Image):
         bytes_io = BytesIO()
@@ -236,12 +236,28 @@ def to_bytes(image: ImageType) -> bytes:
             pass
         return image.read()
 
-def to_data_uri(image: ImageType) -> str:
+def to_data_uri(image: ImageType, filename: str = None) -> str:
     if not isinstance(image, str):
         data = to_bytes(image)
         data_base64 = base64.b64encode(data).decode()
-        return f"data:{is_accepted_format(data)};base64,{data_base64}"
+        return f"data:{is_data_an_media(data, filename)};base64,{data_base64}"
     return image
+
+def to_input_audio(audio: ImageType, filename: str = None) -> str:
+    if not isinstance(audio, str):
+        if filename is not None and (filename.endswith(".wav") or filename.endswith(".mp3")):
+            return {
+                "data": base64.b64encode(to_bytes(audio)).decode(),
+                "format": "wav" if filename.endswith(".wav") else "mp3"
+            }
+        raise ValueError("Invalid input audio")
+    audio = re.match(r'^data:audio/(\w+);base64,(.+?)', audio)
+    if audio:
+        return {
+            "data": audio.group(2),
+            "format": audio.group(1).replace("mpeg", "mp3")
+        }
+    raise ValueError("Invalid input audio")
 
 class ImageDataResponse():
     def __init__(

@@ -293,14 +293,16 @@ class Completions:
         if isinstance(messages, str):
             messages = [{"role": "user", "content": messages}]
         if image is not None:
-            kwargs["images"] = [(image, image_name)]
+            kwargs["media"] = [(image, image_name)]
+        elif "images" in kwargs:
+            kwargs["media"] = kwargs.pop("images")
         model, provider = get_model_and_provider(
             model,
             self.provider if provider is None else provider,
             stream,
             ignore_working,
             ignore_stream,
-            has_images="images" in kwargs
+            has_images="media" in kwargs
         )
         stop = [stop] if isinstance(stop, str) else stop
         if ignore_stream:
@@ -481,7 +483,7 @@ class Images:
             proxy = self.client.proxy
         prompt = "create a variation of this image"
         if image is not None:
-            kwargs["images"] = [(image, None)]
+            kwargs["media"] = [(image, None)]
 
         error = None
         response = None
@@ -581,14 +583,16 @@ class AsyncCompletions:
         if isinstance(messages, str):
             messages = [{"role": "user", "content": messages}]
         if image is not None:
-            kwargs["images"] = [(image, image_name)]
+            kwargs["media"] = [(image, image_name)]
+        elif "images" in kwargs:
+            kwargs["media"] = kwargs.pop("images")
         model, provider = get_model_and_provider(
             model,
             self.provider if provider is None else provider,
             stream,
             ignore_working,
             ignore_stream,
-            has_images="images" in kwargs,
+            has_images="media" in kwargs,
         )
         stop = [stop] if isinstance(stop, str) else stop
         if ignore_stream:

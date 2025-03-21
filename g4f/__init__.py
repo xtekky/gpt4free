@@ -34,12 +34,14 @@ class ChatCompletion:
                ignore_stream: bool = False,
                **kwargs) -> Union[CreateResult, str]:
         if image is not None:
-            kwargs["images"] = [(image, image_name)]
+            kwargs["media"] = [(image, image_name)]
+        elif "images" in kwargs:
+            kwargs["media"] = kwargs.pop("images")
         model, provider = get_model_and_provider(
             model, provider, stream,
             ignore_working,
             ignore_stream,
-            has_images="images" in kwargs,
+            has_images="media" in kwargs,
         )
         if "proxy" not in kwargs:
             proxy = os.environ.get("G4F_PROXY")
@@ -63,8 +65,10 @@ class ChatCompletion:
                      ignore_working: bool = False,
                      **kwargs) -> Union[AsyncResult, Coroutine[str]]:
         if image is not None:
-            kwargs["images"] = [(image, image_name)]
-        model, provider = get_model_and_provider(model, provider, False, ignore_working, has_images="images" in kwargs)
+            kwargs["media"] = [(image, image_name)]
+        elif "images" in kwargs:
+            kwargs["media"] = kwargs.pop("images")
+        model, provider = get_model_and_provider(model, provider, False, ignore_working, has_images="media" in kwargs)
         if "proxy" not in kwargs:
             proxy = os.environ.get("G4F_PROXY")
             if proxy:

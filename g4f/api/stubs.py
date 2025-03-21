@@ -17,6 +17,8 @@ class ChatCompletionsConfig(BaseModel):
     image: Optional[str] = None
     image_name: Optional[str] = None
     images: Optional[list[tuple[str, str]]] = None
+    media: Optional[list[tuple[str, str]]] = None
+    modalities: Optional[list[str]] = ["text", "audio"]
     temperature: Optional[float] = None
     presence_penalty: Optional[float] = None
     frequency_penalty: Optional[float] = None

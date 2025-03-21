@@ -56,13 +56,16 @@ class GizAI(AsyncGeneratorProvider, ProviderModelMixin):
             'sec-ch-ua-platform': '"Linux"'
         }
         
-        prompt = format_prompt(messages)
-        
         async with ClientSession(headers=headers) as session:
             data = {
                 "model": model,
                 "input": {
-                    "messages": [{"type": "human", "content": prompt}],
+                    "messages": [
+                        {"content": message.get("content")}
+                        if message.get("role") == "system" else
+                        {"type": "human" if message.get("role") == "user" else "ai", "content": message.get("content")}
+                        for message in messages
+                    ],
                     "mode": "plan"
                 },
                 "noStream": True
@@ -72,4 +75,4 @@ class GizAI(AsyncGeneratorProvider, ProviderModelMixin):
                     result = await response.json()
                     yield result['output'].strip()
                 else:
-                    raise Exception(f"Unexpected response status: {response.status}")
+                    raise Exception(f"Unexpected response status: {response.status}\n{await response.text()}")

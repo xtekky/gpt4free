@@ -6,7 +6,7 @@ import string
 from ..typing import Messages, Cookies, AsyncIterator, Iterator
 from .. import debug
 
-def format_prompt(messages: Messages, add_special_tokens: bool = False, do_continue: bool = False) -> str:
+def format_prompt(messages: Messages, add_special_tokens: bool = False, do_continue: bool = False, include_system: bool = True) -> str:
     """
     Format a series of messages into a single string, optionally adding special tokens.
 
@@ -22,10 +22,14 @@ def format_prompt(messages: Messages, add_special_tokens: bool = False, do_conti
     formatted = "\n".join([
         f'{message["role"].capitalize()}: {message["content"]}'
         for message in messages
+        if include_system or message["role"] != "system"
     ])
     if do_continue:
         return formatted
     return f"{formatted}\nAssistant:"
+
+def get_system_prompt(messages: Messages) -> str:
+    return "\n".join([m["content"] for m in messages if m["role"] == "system"])
 
 def get_last_user_message(messages: Messages) -> str:
     user_messages = []

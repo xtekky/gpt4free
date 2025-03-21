@@ -21,7 +21,7 @@ except ImportError:
 from .base_provider import AbstractProvider, ProviderModelMixin
 from .helper import format_prompt_max_length
 from .openai.har_file import get_headers, get_har_files
-from ..typing import CreateResult, Messages, ImagesType
+from ..typing import CreateResult, Messages, MediaListType
 from ..errors import MissingRequirementsError, NoValidHarFileError, MissingAuthError
 from ..requests.raise_for_status import raise_for_status
 from ..providers.response import BaseConversation, JsonConversation, RequestLogin, Parameters, ImageResponse
@@ -66,7 +66,7 @@ class Copilot(AbstractProvider, ProviderModelMixin):
         proxy: str = None,
         timeout: int = 900,
         prompt: str = None,
-        images: ImagesType = None,
+        media: MediaListType = None,
         conversation: BaseConversation = None,
         return_conversation: bool = False,
         api_key: str = None,
@@ -77,7 +77,7 @@ class Copilot(AbstractProvider, ProviderModelMixin):
 
         websocket_url = cls.websocket_url
         headers = None
-        if cls.needs_auth or images is not None:
+        if cls.needs_auth or media is not None:
             if api_key is not None:
                 cls._access_token = api_key
             if cls._access_token is None:
@@ -142,8 +142,8 @@ class Copilot(AbstractProvider, ProviderModelMixin):
                 debug.log(f"Copilot: Use conversation: {conversation_id}")
 
             uploaded_images = []
-            if images is not None:
-                for image, _ in images:
+            if media is not None:
+                for image, _ in media:
                     data = to_bytes(image)
                     response = session.post(
                         "https://copilot.microsoft.com/c/api/attachments",

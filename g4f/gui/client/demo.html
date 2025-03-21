@@ -86,6 +86,23 @@
             height: 100%;
             text-align: center;
             z-index: 1;
+            transition: transform 0.25s ease-in;
+        }
+
+        .container.slide {
+            transform: translateX(-100%);
+            transition: transform 0.15s ease-out;
+        }
+
+        .slide-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: var(--colour-4);
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            padding: 6px 8px;
         }
 
         header {
@@ -105,7 +122,8 @@
             height: 100%;
             position: absolute;
             z-index: -1;
-            object-fit: contain;
+            object-fit: cover;
+            object-position: center;
             width: 100%;
             background: black;
         }
@@ -181,6 +199,7 @@
             }
         }
     </style>
+    <link rel="stylesheet" href="/static/css/all.min.css">
     <script>
         (async () => {
             const isIframe = window.self !== window.top;
@@ -207,6 +226,10 @@
 
     <!-- Gradient Background Circle -->
     <div class="gradient"></div>
+
+    <button class="slide-button">
+        <i class="fa-solid fa-arrow-left"></i>
+    </button>
 
     <!-- Main Content -->
     <div class="container">
@@ -277,8 +300,11 @@
             if (oauthResult) {
                 try {
                     oauthResult = JSON.parse(oauthResult);
+                    user = await hub.whoAmI({accessToken: oauthResult.accessToken});
                 } catch {
                     oauthResult = null;
+                    localStorage.removeItem("oauth");
+                    localStorage.removeItem("HuggingFace-api_key");
                 }
             }
             oauthResult ||= await oauthHandleRedirectIfPresent();
@@ -339,7 +365,7 @@
                     return;
                 }
                 const lower = data.prompt.toLowerCase();
-                const tags = ["nsfw", "timeline", "blood", "soap", "orally", "heel", "latex", "bathroom", "boobs", "charts", " text ", "gel", "logo", "infographic", "warts", " bra ", "prostitute", "curvy", "breasts", "written", "bodies", "naked", "classroom", "malone", "dirty", "shoes", "shower", "banner", "fat", "nipples", "couple", "sexual", "sandal", "supplier", "overlord", "succubus", "platinum", "cracy", "crazy", "lamic", "ropes", "cables", "wires", "dirty", "messy", "cluttered", "chaotic", "disorganized", "disorderly", "untidy", "unorganized", "unorderly", "unsystematic", "disarranged", "disarrayed", "disheveled", "disordered", "jumbled", "muddled", "scattered", "shambolic", "sloppy", "unkept", "unruly"];
+                const tags = ["nsfw", "timeline", "feet", "blood", "soap", "orally", "heel", "latex", "bathroom", "boobs", "charts", " text ", "gel", "logo", "infographic", "warts", " bra ", "prostitute", "curvy", "breasts", "written", "bodies", "naked", "classroom", "malone", "dirty", "shoes", "shower", "banner", "fat", "nipples", "couple", "sexual", "sandal", "supplier", "overlord", "succubus", "platinum", "cracy", "crazy", "hemale", "oprah", "lamic", "ropes", "cables", "wires", "dirty", "messy", "cluttered", "chaotic", "disorganized", "disorderly", "untidy", "unorganized", "unorderly", "unsystematic", "disarranged", "disarrayed", "disheveled", "disordered", "jumbled", "muddled", "scattered", "shambolic", "sloppy", "unkept", "unruly"];
                 for (i in tags) {
                     if (lower.indexOf(tags[i]) != -1) {
                         console.log("Skipping image with tag: " + tags[i]);
@@ -363,6 +389,21 @@
                     imageFeed.remove();
                 }
             }, 7000);
+
+            const container = document.querySelector('.container');
+            const button = document.querySelector('.slide-button');
+            const slideIcon = button.querySelector('i');
+            button.onclick = () => {
+                if (container.classList.contains('slide')) {
+                    container.classList.remove('slide');
+                    slideIcon.classList.remove('fa-arrow-right');
+                    slideIcon.classList.add('fa-arrow-left');
+                } else {
+                    container.classList.add('slide');
+                    slideIcon.classList.remove('fa-arrow-left');
+                    slideIcon.classList.add('fa-arrow-right');
+                }
+            }
         })();
     </script>
 </body>
