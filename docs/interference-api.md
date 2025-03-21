@@ -103,25 +103,22 @@ curl -X POST "http://localhost:1337/v1/images/generate" \
 from openai import OpenAI
 
 client = OpenAI(
-    api_key="",
-    base_url="http://localhost:1337/v1"
+    api_key='12112',
+    base_url='http://localhost:1337/v1',
 )
 
-response = client.chat.completions.create(
-    model="gpt-4o-mini",
-    messages=[{"role": "user", "content": "Write a poem about a tree"}],
-    stream=True,
+completion = client.chat.completions.create(
+    model="gpt-4o",
+    messages=[
+        {"role": "developer", "content": "Talk like a pirate."},
+        {
+            "role": "user",
+            "content": "How do I check if a Python object is an instance of a class?",
+        },
+    ],
 )
 
-if isinstance(response, dict):
-    # Not streaming
-    print(response.choices[0].message.content)
-else:
-    # Streaming
-    for token in response:
-        content = token.choices[0].delta.content
-        if content is not None:
-            print(content, end="", flush=True)
+print(completion.choices[0].message.content)
 
 ```
   
