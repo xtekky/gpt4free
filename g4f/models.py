@@ -479,6 +479,12 @@ qwen_2_5_1m = Model(
     best_provider = HuggingSpace
 )
 
+qwen_2_5_max = Model(
+    name = 'qwen-2-5-max',
+    base_provider = 'Qwen',
+    best_provider = HuggingSpace
+)
+
 ### qwq/qvq ###
 qwq_32b = Model(
     name = 'qwq-32b',
@@ -856,6 +862,7 @@ class ModelUtils:
         qwen_2_5_72b.name: qwen_2_5_72b,
         qwen_2_5_coder_32b.name: qwen_2_5_coder_32b,
         qwen_2_5_1m.name: qwen_2_5_1m,
+        qwen_2_5_max.name: qwen_2_5_max,
 
         # qwq/qvq
         qwq_32b.name: qwq_32b,

@@ -11,8 +11,8 @@ from ...providers.response import JsonConversation, Reasoning
 from ..helper import get_last_user_message
 from ... import debug
 
-class Qwen_Qwen_2_5M_Demo(AsyncGeneratorProvider, ProviderModelMixin):
-    label = "Qwen Qwen-2.5M-Demo"
+class Qwen_Qwen_2_5M(AsyncGeneratorProvider, ProviderModelMixin):
+    label = "Qwen Qwen-2.5M"
     url = "https://qwen-qwen2-5-1m-demo.hf.space"
     api_endpoint = f"{url}/run/predict?__theme=light"
 
