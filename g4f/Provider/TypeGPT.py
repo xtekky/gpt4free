@@ -5,7 +5,7 @@ from .template import OpenaiTemplate
 class TypeGPT(OpenaiTemplate):
     label = "TypeGpt"
     url = "https://chat.typegpt.net"
-    api_endpoint = "https://chat.typegpt.net/api/openai/typegpt/v1/chat/completions"
+    api_base = "https://chat.typegpt.net/api/openai/typegpt/v1"
     working = True
     
     default_model = 'gpt-4o-mini-2024-07-18'
