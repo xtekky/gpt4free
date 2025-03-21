@@ -37,7 +37,7 @@ This document provides an overview of various AI providers and models, including
 | Website | API Credentials | Provider | Text generation | Image generation | Audio generation | Vision (Image Upload) | Status |
 |----------|-------------|--------------|---------------|--------|--------|------|------|
 |[playground.allenai.org](https://playground.allenai.org)|No auth required|`g4f.Provider.AllenAI`|`tulu-3-405b, olmo-2-13b, tulu-3-1-8b, tulu-3-70b, olmoe-0125`|❌|❌|❌|![](https://img.shields.io/badge/Active-brightgreen)|
-|[ai-arta.com](https://ai-arta.com)|No auth required|`g4f.Provider.ARTA`|❌|✔ _**(17+)**_|❌|❌|![](https://img.shields.io/badge/Active-brightgreen)|
+|[ai-arta.com](https://ai-arta.com)|No auth required|`g4f.Provider.ARTA`|❌|`flux` _**(16+)**_|❌|❌|![](https://img.shields.io/badge/Active-brightgreen)|
 |[blackbox.ai](https://www.blackbox.ai)|No auth required|`g4f.Provider.Blackbox`|`blackboxai, gpt-4o-mini, deepseek-chat, deepseek-v3, deepseek-r1, gpt-4o, o1, o3-mini, claude-3.7-sonnet` _**(40+)**_|`flux`|❌|`blackboxai, gpt-4o, o1, o3-mini, deepseek-v3` _**(7+)**_|![](https://img.shields.io/badge/Active-brightgreen)|
 |[chatglm.cn](https://chatglm.cn)|No auth required|`g4f.Provider.ChatGLM`|`glm-4`|❌|❌|❌|![](https://img.shields.io/badge/Active-brightgreen)|
 |[chatgpt.com](https://chatgpt.com)|No auth required|`g4f.Provider.ChatGpt`|✔ _**(7+)**_|❌|❌|❌|![Error](https://img.shields.io/badge/HTTPError-f48d37)|
@@ -236,7 +236,7 @@ This document provides an overview of various AI providers and models, including
 |-------|---------------|-----------|---------|
 |sdxl-turbo|Stability AI|2+ Providers|[huggingface.co](https://huggingface.co/stabilityai/sdxl-turbo)|
 |sd-3.5|Stability AI|1+ Providers|[huggingface.co](https://huggingface.co/stabilityai/stable-diffusion-3.5-large)|
-|flux|Black Forest Labs|4+ Providers|[github.com/black-forest-labs/flux](https://github.com/black-forest-labs/flux)|
+|flux|Black Forest Labs|5+ Providers|[github.com/black-forest-labs/flux](https://github.com/black-forest-labs/flux)|
 |flux-pro|Black Forest Labs|1+ Providers|[huggingface.co](https://huggingface.co/enhanceaiteam/FLUX.1-Pro)|
 |flux-dev|Black Forest Labs|4+ Providers|[huggingface.co](https://huggingface.co/black-forest-labs/FLUX.1-dev)|
 |flux-schnell|Black Forest Labs|4+ Providers|[huggingface.co](https://huggingface.co/black-forest-labs/FLUX.1-schnell)|

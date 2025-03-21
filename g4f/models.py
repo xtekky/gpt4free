@@ -6,6 +6,7 @@ from .Provider import IterListProvider, ProviderType
 from .Provider import (
     ### No Auth Required ###
     AllenAI,
+    ARTA,
     Blackbox,
     ChatGLM,
     ChatGptEs,
@@ -728,7 +729,7 @@ sd_3_5 = ImageModel(
 flux = ImageModel(
     name = 'flux',
     base_provider = 'Black Forest Labs',
-    best_provider = IterListProvider([Blackbox, PollinationsImage, Websim, HuggingSpace])
+    best_provider = IterListProvider([Blackbox, PollinationsImage, Websim, HuggingSpace, ARTA])
 )
 
 flux_pro = ImageModel(
