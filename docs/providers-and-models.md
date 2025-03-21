@@ -62,7 +62,7 @@ This document provides an overview of various AI providers and models, including
 |[labs.perplexity.ai](https://labs.perplexity.ai)|No auth required|`g4f.Provider.PerplexityLabs`|`sonar, sonar-pro, sonar-reasoning, sonar-reasoning-pro`|❌|❌|❌|![Error](https://img.shields.io/badge/Active-brightgreen)|
 |[pi.ai/talk](https://pi.ai/talk)|[Manual cookies](https://pi.ai/talk)|`g4f.Provider.Pi`|`pi`|❌|❌|❌|![Error](https://img.shields.io/badge/Active-brightgreen)|
 |[pizzagpt.it](https://www.pizzagpt.it)|No auth required|`g4f.Provider.Pizzagpt`|`gpt-4o-mini`|❌|❌|❌|![](https://img.shields.io/badge/Active-brightgreen)|
-|[pollinations.ai](https://pollinations.ai)|No auth required|`g4f.Provider.PollinationsAI`|`gpt-4o-mini, gpt-4o, o1-mini, qwen-2.5-coder-32b, llama-3.3-70b, mistral-nemo, llama-3.1-8b, deepseek-r1, phi-4` _**(9+)**_|`flux, flux-pro, flux-dev, flux-schnell, dall-e-3, sdxl-turbo`|✔ _**(1+)**_|`gpt-4o, gpt-4o-mini, o1-mini, o3-mini`|![](https://img.shields.io/badge/Active-brightgreen)|
+|[pollinations.ai](https://pollinations.ai)|No auth required|`g4f.Provider.PollinationsAI`|`gpt-4o-mini, gpt-4o, o1-mini, qwen-2.5-coder-32b, llama-3.3-70b, mistral-nemo, llama-3.1-8b, deepseek-r1, phi-4` _**(9+)**_|`flux, flux-pro, flux-dev, flux-schnell, dall-e-3, sdxl-turbo`|`gpt-4o-audio`|`gpt-4o, gpt-4o-mini, o1-mini, o3-mini`|![](https://img.shields.io/badge/Active-brightgreen)|
 |[pollinations.ai](https://pollinations.ai)|No auth required|`g4f.Provider.PollinationsImage`|❌|`flux, flux-pro, flux-dev, flux-schnell, dall-e-3, sdxl-turbo`|❌|❌|![](https://img.shields.io/badge/Active-brightgreen)|
 |[teach-anything.com](https://www.teach-anything.com)|No auth required|`g4f.Provider.TeachAnything`|`gemini-1.5-pro, gemini-1.5-flash`|❌|❌|❌|![](https://img.shields.io/badge/Active-brightgreen)|
 |[chat.typegpt.net](https://chat.typegpt.net)|No auth required|`g4f.Provider.TypeGPT`|`gpt-3.5-turbo, o3-mini, deepseek-r1, deepseek-v3, evil, o1`|❌|❌|`gpt-3.5-turbo, o3-mini`|![](https://img.shields.io/badge/Active-brightgreen)|
@@ -242,6 +242,13 @@ This document provides an overview of various AI providers and models, including
 |flux-schnell|Black Forest Labs|4+ Providers|[huggingface.co](https://huggingface.co/black-forest-labs/FLUX.1-schnell)|
 |dall-e-3|OpenAI|5+ Providers|[openai.com](https://openai.com/index/dall-e/)|
 |midjourney|Midjourney|1+ Providers|[docs.midjourney.com](https://docs.midjourney.com/docs/model-versions)|
+
+---
+### Audio generation models
+| Model | Base Provider | Providers | Website |
+|-------|---------------|-----------|---------|
+|gpt-4o-audio|Stability AI|1+ Providers|[platform.openai.com](https://platform.openai.com/docs/models/gpt-4o-audio)|
+
 
 ## Conclusion and Usage Tips
 This document provides a comprehensive overview of various AI providers and models available for text generation, image generation, and vision tasks. **When choosing a provider or model, consider the following factors:**

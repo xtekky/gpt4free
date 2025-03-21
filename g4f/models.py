@@ -74,6 +74,9 @@ class Model:
 class ImageModel(Model):
     pass
 
+class AudioModel(Model):
+    pass
+
 class VisionModel(Model):
     pass
 
@@ -120,9 +123,9 @@ default_vision = Model(
     ], shuffle=False)
 )
 
-###################
-### Text/Vision ###
-###################
+##########################
+### Text//Audio/Vision ###
+##########################
 
 ### OpenAI ###
 # gpt-3.5
@@ -150,6 +153,12 @@ gpt_4o_mini = Model(
     name          = 'gpt-4o-mini',
     base_provider = 'OpenAI',
     best_provider = IterListProvider([DDG, Blackbox, ChatGptEs, TypeGPT, PollinationsAI, OIVSCode, Liaobots, Jmuz, OpenaiChat])
+)
+
+gpt_4o_audio = AudioModel(
+    name          = 'gpt-4o-audio',
+    base_provider = 'OpenAI',
+    best_provider = PollinationsAI
 )
 
 # o1
@@ -777,6 +786,7 @@ class ModelUtils:
         # gpt-4o
         gpt_4o.name: gpt_4o,
         gpt_4o_mini.name: gpt_4o_mini,
+        gpt_4o_audio.name: gpt_4o_audio,
         
         # o1
         o1.name: o1,
