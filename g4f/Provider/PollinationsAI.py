@@ -157,13 +157,14 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
     ) -> AsyncResult:
         # Load model list
         cls.get_models()
-        if not model and media is not None:
-            has_audio = False
-            for media_data, filename in media:
-                if is_data_an_audio(media_data, filename):
-                    has_audio = True
-                    break
-            model = next(iter(cls.audio_models)) if has_audio else cls.default_vision_model
+        if not model:
+            has_audio = "audio" in kwargs
+            if not has_audio and media is not None:
+                for media_data, filename in media:
+                    if is_data_an_audio(media_data, filename):
+                        has_audio = True
+                        break
+            model = next(iter(cls.audio_models)) if has_audio else model
         try:
             model = cls.get_model(model)
         except ModelNotFoundError:
@@ -278,7 +279,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                 }
                 for media_data, filename in media
             ]
-            last_message["content"] = image_content + [{"type": "text", "text": last_message["content"]}]
+            last_message["content"] = image_content + ([{"type": "text", "text": last_message["content"]}] if isinstance(last_message["content"], str) else image_content)
             messages[-1] = last_message
 
         async with ClientSession(headers=DEFAULT_HEADERS, connector=get_connector(proxy=proxy)) as session:

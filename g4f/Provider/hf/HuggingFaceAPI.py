@@ -92,17 +92,17 @@ class HuggingFaceAPI(OpenaiTemplate):
             model = provider_mapping[provider_key]["providerId"]
             yield ProviderInfo(**{**cls.get_dict(), "label": f"HuggingFace ({provider_key})"})
             break
-        start = calculate_lenght(messages)
-        if start > max_inputs_lenght:
-            if len(messages) > 6:
-                messages = messages[:3] + messages[-3:]
-            if calculate_lenght(messages) > max_inputs_lenght:
-                last_user_message = [{"role": "user", "content": get_last_user_message(messages)}]
-                if len(messages) > 2:
-                    messages = [m for m in messages if m["role"] == "system"] + last_user_message
-                if len(messages) > 1 and calculate_lenght(messages) > max_inputs_lenght:
-                    messages = last_user_message
-            debug.log(f"Messages trimmed from: {start} to: {calculate_lenght(messages)}")
+        # start = calculate_lenght(messages)
+        # if start > max_inputs_lenght:
+        #     if len(messages) > 6:
+        #         messages = messages[:3] + messages[-3:]
+        #     if calculate_lenght(messages) > max_inputs_lenght:
+        #         last_user_message = [{"role": "user", "content": get_last_user_message(messages)}]
+        #         if len(messages) > 2:
+        #             messages = [m for m in messages if m["role"] == "system"] + last_user_message
+        #         if len(messages) > 1 and calculate_lenght(messages) > max_inputs_lenght:
+        #             messages = last_user_message
+        #     debug.log(f"Messages trimmed from: {start} to: {calculate_lenght(messages)}")
         async for chunk in super().create_async_generator(model, messages, api_base=api_base, api_key=api_key, max_tokens=max_tokens, media=media, **kwargs):
             yield chunk
 

@@ -162,14 +162,15 @@ async def async_iter_response(
     tool_calls = None
     usage = None
     provider: ProviderInfo = None
+    conversation: JsonConversation = None
 
     try:
         async for chunk in response:
             if isinstance(chunk, FinishReason):
                 finish_reason = chunk.reason
                 break
-            elif isinstance(chunk, BaseConversation):
-                yield chunk
+            elif isinstance(chunk, JsonConversation):
+                conversation = chunk
                 continue
             elif isinstance(chunk, ToolCalls):
                 tool_calls = chunk.get_list()
@@ -228,7 +229,8 @@ async def async_iter_response(
                 content, finish_reason, completion_id, int(time.time()), usage=usage,
                 **filter_none(
                     tool_calls=[ToolCallModel.model_construct(**tool_call) for tool_call in tool_calls]
-                ) if tool_calls is not None else {}
+                ) if tool_calls is not None else {},
+                conversation=None if conversation is None else conversation.get_dict()
             )
         if provider is not None:
             chat_completion.provider = provider.name
@@ -242,7 +244,6 @@ async def async_iter_append_model_and_provider(
         last_model: str,
         last_provider: ProviderType
     ) -> AsyncChatCompletionResponseType:
-    last_provider = None
     try:
         if isinstance(last_provider, BaseRetryProvider):
             async for chunk in response:

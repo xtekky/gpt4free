@@ -1081,11 +1081,7 @@ const ask_gpt = async (message_id, message_index = -1, regenerate = false, provi
     }
     try {
         let api_key;
-        if (is_demo && ["OpenaiChat", "DeepSeekAPI", "PollinationsAI", "Gemini"].includes(provider)) {
-            api_key = localStorage.getItem("user");
-        } else if (["HuggingSpace", "G4F"].includes(provider)) {
-            api_key = localStorage.getItem("HuggingSpace-api_key");
-        } else if (is_demo) {
+        if (is_demo && !provider) {
             api_key = localStorage.getItem("HuggingFace-api_key");
             if (!api_key) {
                 location.href = "/";
@@ -2111,7 +2107,9 @@ async function on_api() {
         }
         providerSelect.innerHTML = `
             <option value="" selected="selected">Demo Mode</option>
+            <option value="ARTA">ARTA Provider</option>
             <option value="DeepSeekAPI">DeepSeek Provider</option>
+            <option value="Grok">Grok Provider</option>
             <option value="OpenaiChat">OpenAI Provider</option>
             <option value="PollinationsAI">Pollinations AI</option>
             <option value="G4F">G4F framework</option>
@@ -2323,6 +2321,7 @@ async function load_version() {
 }
 
 function renderMediaSelect() {
+    mediaSelect.classList.remove("hidden");
     const oldImages = mediaSelect.querySelectorAll("a:has(img)");
     oldImages.forEach((el)=>el.remove());
     Object.entries(image_storage).forEach(([object_url, file]) => {
@@ -2333,7 +2332,9 @@ function renderMediaSelect() {
         img.onclick = () => {
             img.remove();
             delete image_storage[object_url];
-            URL.revokeObjectURL(object_url)
+            if (file instanceof File) {
+                URL.revokeObjectURL(object_url)
+            }
         }
         img.onload = () => {
             link.title += `\n${img.naturalWidth}x${img.naturalHeight}`;
@@ -2349,9 +2350,11 @@ imageInput.onclick = () => {
 
 mediaSelect.querySelector(".close").onclick = () => {
     if (Object.values(image_storage).length) {
-        for (key in image_storage) {
-            URL.revokeObjectURL(key);
-        }
+        Object.entries(image_storage).forEach(([object_url, file]) => {
+            if (file instanceof File) {
+                URL.revokeObjectURL(object_url)
+            }
+        });
         image_storage = {};
         renderMediaSelect();
     } else {
@@ -2459,13 +2462,27 @@ async function upload_files(fileInput) {
     Array.from(fileInput.files).forEach(file => {
         formData.append('files', file);
     });
-    await fetch("/backend-api/v2/files/" + bucket_id, {
+    const response = await fetch("/backend-api/v2/files/" + bucket_id, {
         method: 'POST',
         body: formData
     });
-
-    let do_refine = document.getElementById("refine")?.checked;
-    connectToSSE(`/backend-api/v2/files/${bucket_id}`, do_refine, bucket_id);
+    const result = await response.json()
+    const count = result.files.length + result.media.length;
+    inputCount.innerText = `${count} File(s) uploaded successfully`;
+    if (result.files.length > 0) {
+        let do_refine = document.getElementById("refine")?.checked;
+        connectToSSE(`/backend-api/v2/files/${bucket_id}`, do_refine, bucket_id);
+    } else {
+        paperclip.classList.remove("blink");
+        fileInput.value = "";
+    }
+    if (result.media) {
+        result.media.forEach((filename)=> {
+            const url = `/backend-api/v2/files/${bucket_id}/media/${filename}`;
+            image_storage[url] = {bucket_id: bucket_id, name: filename};
+        });
+        renderMediaSelect();
+    }
 }
 
 fileInput.addEventListener('change', async (event) => {
@@ -2580,7 +2597,9 @@ async function api(ressource, args=null, files=null, message_id=null, scroll=tru
         if (files.length > 0) {
             const formData = new FormData();
             for (const file of files) {
-                formData.append('files', file)
+                if (file instanceof File) {
+                    formData.append('files', file)
+                }
             }
             formData.append('json', body);
             body = formData;

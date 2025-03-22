@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import requests
 
 from ..helper import filter_none, format_image_prompt
@@ -102,23 +101,19 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
                 if not model and hasattr(cls, "default_vision_model"):
                     model = cls.default_vision_model
                 last_message = messages[-1].copy()
-                last_message["content"] = [
-                    *[
-                        {
-                            "type": "input_audio",
-                            "input_audio": to_input_audio(media_data, filename)
-                        }
-                        if is_data_an_audio(media_data, filename) else {
-                            "type": "image_url",
-                            "image_url": {"url": to_data_uri(media_data, filename)}
-                        }
-                        for media_data, filename in media
-                    ],
+                image_content = [
                     {
-                        "type": "text",
-                        "text": last_message["content"]
-                    } if isinstance(last_message["content"], str) else last_message["content"]
+                        "type": "input_audio",
+                        "input_audio": to_input_audio(media_data, filename)
+                    }
+                    if is_data_an_audio(media_data, filename) else {
+                        "type": "image_url",
+                        "image_url": {"url": to_data_uri(media_data)}
+                    }
+                    for media_data, filename in media
                 ]
+                last_message["content"] = image_content + ([{"type": "text", "text": last_message["content"]}] if isinstance(last_message["content"], str) else image_content)
+
                 messages[-1] = last_message
             extra_parameters = {key: kwargs[key] for key in extra_parameters if key in kwargs}
             data = filter_none(
@@ -145,7 +140,7 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
                     choice = data["choices"][0]
                     if "content" in choice["message"] and choice["message"]["content"]:
                         yield choice["message"]["content"].strip()
-                    elif "tool_calls" in choice["message"]:
+                    if "tool_calls" in choice["message"]:
                         yield ToolCalls(choice["message"]["tool_calls"])
                     if "usage" in data:
                         yield Usage(**data["usage"])
@@ -155,26 +150,21 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
                 elif content_type.startswith("text/event-stream"):
                     await raise_for_status(response)
                     first = True
-                    async for line in response.iter_lines():
-                        if line.startswith(b"data: "):
-                            chunk = line[6:]
-                            if chunk == b"[DONE]":
-                                break
-                            data = json.loads(chunk)
-                            cls.raise_error(data)
-                            choice = data["choices"][0]
-                            if "content" in choice["delta"] and choice["delta"]["content"]:
-                                delta = choice["delta"]["content"]
-                                if first:
-                                    delta = delta.lstrip()
-                                if delta:
-                                    first = False
-                                    yield delta
-                            if "usage" in data and data["usage"]:
-                                yield Usage(**data["usage"])
-                            if "finish_reason" in choice and choice["finish_reason"] is not None:
-                                yield FinishReason(choice["finish_reason"])
-                                break
+                    async for data in response.sse():
+                        cls.raise_error(data)
+                        choice = data["choices"][0]
+                        if "content" in choice["delta"] and choice["delta"]["content"]:
+                            delta = choice["delta"]["content"]
+                            if first:
+                                delta = delta.lstrip()
+                            if delta:
+                                first = False
+                                yield delta
+                        if "usage" in data and data["usage"]:
+                            yield Usage(**data["usage"])
+                        if "finish_reason" in choice and choice["finish_reason"] is not None:
+                            yield FinishReason(choice["finish_reason"])
+                            break
                 else:
                     await raise_for_status(response)
                     raise ResponseError(f"Not supported content-type: {content_type}")

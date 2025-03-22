@@ -25,7 +25,7 @@ class BackendApi(AsyncGeneratorProvider, ProviderModelMixin):
         debug.log(f"{cls.__name__}: {api_key}")
         if media is not None:
             for i in range(len(media)):
-                media[i] = (to_data_uri(media[i][0]), media[i][1])
+                media[i] = (to_data_uri(media[i][0], media[i][1]), media[i][1])
         async with StreamSession(
             headers={"Accept": "text/event-stream", **cls.headers},
         ) as session:
