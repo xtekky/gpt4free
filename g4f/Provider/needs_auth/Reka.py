@@ -8,7 +8,7 @@ from ...image        import to_bytes
 
 class Reka(AbstractProvider):
     domain          = "space.reka.ai"
-    url             = f"https://{domain}/"
+    url             = f"https://{domain}"
     working         = True
     needs_auth      = True
     supports_stream = True
@@ -77,7 +77,7 @@ class Reka(AbstractProvider):
 
         tokens = ''
 
-        response = requests.post(f'{cls.url}api/chat', 
+        response = requests.post(f'{cls.url}/api/chat', 
                                 cookies=cls.cookies, headers=headers, json=json_data, proxies=cls.proxy, stream=True)
 
         for completion in response.iter_lines():
@@ -100,7 +100,7 @@ class Reka(AbstractProvider):
             'origin': cls.url,
             'pragma': 'no-cache',
             'priority': 'u=1, i',
-            'referer': f'{cls.url}chat/hPReZExtDOPvUfF8vCPC',
+            'referer': f'{cls.url}/chat/hPReZExtDOPvUfF8vCPC',
             'sec-ch-ua': '"Chromium";v="124", "Google Chrome";v="124", "Not-A.Brand";v="99"',
             'sec-ch-ua-mobile': '?0',
             'sec-ch-ua-platform': '"macOS"',
@@ -117,7 +117,7 @@ class Reka(AbstractProvider):
         data += image_data.decode('latin-1')
         data += f'\r\n--{boundary}--\r\n'
 
-        response = requests.post(f'{cls.url}api/upload-image', 
+        response = requests.post(f'{cls.url}/api/upload-image', 
                                     cookies=cls.cookies, headers=headers, proxies=cls.proxy, data=data.encode('latin-1'))
 
         return response.json()['media_url']
@@ -140,7 +140,7 @@ class Reka(AbstractProvider):
         }
 
         try:
-            response = requests.get(f'{cls.url}bff/auth/access_token', 
+            response = requests.get(f'{cls.url}/bff/auth/access_token', 
                                     cookies=cls.cookies, headers=headers, proxies=cls.proxy)
 
             return response.json()['accessToken']
