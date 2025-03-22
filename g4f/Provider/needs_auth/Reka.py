@@ -7,7 +7,7 @@ from ...cookies      import get_cookies
 from ...image        import to_bytes
 
 class Reka(AbstractProvider):
-    domain = "space.reka.ai"
+    domain          = "space.reka.ai"
     url             = f"https://{domain}/"
     working         = True
     needs_auth      = True
