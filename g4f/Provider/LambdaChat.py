@@ -24,7 +24,6 @@ class LambdaChat(HuggingChat):
         "llama3.3-70b-instruct-fp8"
     ]
     models = fallback_models.copy()
-    text_models = fallback_models.copy()
     
     model_aliases = {
         "deepseek-v3": default_model,
