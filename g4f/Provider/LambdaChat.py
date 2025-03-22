@@ -19,7 +19,6 @@ class LambdaChat(HuggingChat):
         default_model,
         reasoning_model,
         "hermes-3-llama-3.1-405b-fp8",
-        "hermes3-405b-fp8-128k",
         "llama3.1-nemotron-70b-instruct",
         "lfm-40b",
         "llama3.3-70b-instruct-fp8"
@@ -27,7 +26,6 @@ class LambdaChat(HuggingChat):
     model_aliases = {
         "deepseek-v3": default_model,
         "hermes-3": "hermes-3-llama-3.1-405b-fp8",
-        "hermes-3": "hermes3-405b-fp8-128k",
         "nemotron-70b": "llama3.1-nemotron-70b-instruct",
         "llama-3.3-70b": "llama3.3-70b-instruct-fp8"
     }
