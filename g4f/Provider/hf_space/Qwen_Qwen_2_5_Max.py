@@ -10,19 +10,19 @@ from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..helper import format_prompt
 from ... import debug
 
-class Qwen_Qwen_2_72B_Instruct(AsyncGeneratorProvider, ProviderModelMixin):
-    label = "Qwen Qwen-2.72B-Instruct"
-    url = "https://qwen-qwen2-72b-instruct.hf.space"
-    api_endpoint = "https://qwen-qwen2-72b-instruct.hf.space/queue/join?"
+class Qwen_Qwen_2_5_Max(AsyncGeneratorProvider, ProviderModelMixin):
+    label = "Qwen Qwen-2.5-Max"
+    url = "https://qwen-qwen2-5-max-demo.hf.space"
+    api_endpoint = "https://qwen-qwen2-5-max-demo.hf.space/gradio_api/queue/join?"
     
     working = True
     supports_stream = True
     supports_system_message = True
     supports_message_history = False
     
-    default_model = "qwen-qwen2-72b-instruct"
-    models = [default_model]
-    model_aliases = {"qwen-2-72b": default_model}
+    default_model = "qwen-qwen2-5-max"
+    model_aliases = {"qwen-2-5-max": default_model}
+    models = list(model_aliases.keys())
 
     @classmethod
     async def create_async_generator(
@@ -34,22 +34,31 @@ class Qwen_Qwen_2_72B_Instruct(AsyncGeneratorProvider, ProviderModelMixin):
     ) -> AsyncResult:
         def generate_session_hash():
             """Generate a unique session hash."""
-            return str(uuid.uuid4()).replace('-', '')[:12]
+            return str(uuid.uuid4()).replace('-', '')[:8] + str(uuid.uuid4()).replace('-', '')[:4]
 
         # Generate a unique session hash
         session_hash = generate_session_hash()
 
         headers_join = {
-            'accept': '*/*',
-            'accept-language': 'en-US,en;q=0.9',
+            'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:136.0) Gecko/20100101 Firefox/136.0',
+            'Accept': '*/*',
+            'Accept-Language': 'en-US,en;q=0.5',
+            'Accept-Encoding': 'gzip, deflate, br, zstd',
+            'Referer': f'{cls.url}/?__theme=system',
             'content-type': 'application/json',
-            'origin': f'{cls.url}',
-            'referer': f'{cls.url}/',
-            'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
+            'Origin': cls.url,
+            'Connection': 'keep-alive',
+            'Sec-Fetch-Dest': 'empty',
+            'Sec-Fetch-Mode': 'cors',
+            'Sec-Fetch-Site': 'same-origin',
+            'Pragma': 'no-cache',
+            'Cache-Control': 'no-cache',
         }
 
         # Prepare the prompt
         system_prompt = "\n".join([message["content"] for message in messages if message["role"] == "system"])
+        if not system_prompt:
+            system_prompt = "You are a helpful assistant."
         messages = [message for message in messages if message["role"] != "system"]
         prompt = format_prompt(messages)
 
@@ -67,13 +76,13 @@ class Qwen_Qwen_2_72B_Instruct(AsyncGeneratorProvider, ProviderModelMixin):
                 event_id = (await response.json())['event_id']
 
             # Prepare data stream request
-            url_data = f'{cls.url}/queue/data'
+            url_data = f'{cls.url}/gradio_api/queue/data'
 
             headers_data = {
-                'accept': 'text/event-stream',
-                'accept-language': 'en-US,en;q=0.9',
-                'referer': f'{cls.url}/',
-                'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
+                'Accept': 'text/event-stream',
+                'Accept-Language': 'en-US,en;q=0.5',
+                'Referer': f'{cls.url}/?__theme=system',
+                'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:136.0) Gecko/20100101 Firefox/136.0',
             }
 
             params_data = {

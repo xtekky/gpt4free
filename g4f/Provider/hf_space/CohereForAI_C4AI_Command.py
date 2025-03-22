@@ -17,21 +17,15 @@ class CohereForAI_C4AI_Command(AsyncGeneratorProvider, ProviderModelMixin):
     working = True
 
     default_model = "command-a-03-2025"
-    models = [
-        default_model,
-        "command-r-plus-08-2024",
-        "command-r-08-2024",
-        "command-r-plus",
-        "command-r",
-        "command-r7b-12-2024",
-        "command-r7b-arabic-02-2025",
-    ]
     model_aliases = {
-        "command-a": "command-a-03-2025",
+        "command-a": default_model,
         "command-r-plus": "command-r-plus-08-2024",
         "command-r": "command-r-08-2024",
+        "command-r": "command-r",
         "command-r7b": "command-r7b-12-2024",
     }
+    
+    models = list(model_aliases.keys())
 
     @classmethod
     async def create_async_generator(

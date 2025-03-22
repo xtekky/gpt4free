@@ -29,7 +29,9 @@ class Microsoft_Phi_4(AsyncGeneratorProvider, ProviderModelMixin):
 
     default_model = "phi-4-multimodal"
     default_vision_model = default_model
-    models = [default_model]
+    model_aliases = {"phi-4": default_vision_model}
+    vision_models = list(model_aliases.keys())
+    models = vision_models
 
     @classmethod
     def run(cls, method: str, session: StreamSession, prompt: str, conversation: JsonConversation, media: list = None):

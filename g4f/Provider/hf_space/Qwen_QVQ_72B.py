@@ -18,9 +18,10 @@ class Qwen_QVQ_72B(AsyncGeneratorProvider, ProviderModelMixin):
     working = True
 
     default_model = "qwen-qvq-72b-preview"
-    models = [default_model]
-    model_aliases = {"qvq-72b": default_model}
-    vision_models = models
+    default_vision_model = default_model
+    model_aliases = {"qvq-72b": default_vision_model}
+    vision_models = list(model_aliases.keys())
+    models = vision_models
 
     @classmethod
     async def create_async_generator(

@@ -30,6 +30,7 @@ from .Provider import (
     Pi,
     PollinationsAI,
     PollinationsImage,
+    TypeGPT,
     TeachAnything,
     Websim,
     Yqcloud,
@@ -73,6 +74,9 @@ class Model:
 class ImageModel(Model):
     pass
 
+class AudioModel(Model):
+    pass
+
 class VisionModel(Model):
     pass
 
@@ -87,6 +91,7 @@ default = Model(
         DeepInfraChat,
         AllenAI,
         PollinationsAI,
+        TypeGPT,
         OIVSCode,
         ChatGptEs,
         Free2GPT,
@@ -105,6 +110,7 @@ default_vision = Model(
     best_provider = IterListProvider([
         Blackbox,
         OIVSCode,
+        TypeGPT,
         DeepInfraChat,
         PollinationsAI,
         Dynaspark,
@@ -117,11 +123,18 @@ default_vision = Model(
     ], shuffle=False)
 )
 
-###################
-### Text/Vision ###
-###################
+##########################
+### Text//Audio/Vision ###
+##########################
 
 ### OpenAI ###
+# gpt-3.5
+gpt_3_5_turbo = Model(
+    name          = 'gpt-3.5-turbo',
+    base_provider = 'OpenAI',
+    best_provider = TypeGPT
+)
+
 # gpt-4
 gpt_4 = Model(
     name          = 'gpt-4',
@@ -139,14 +152,20 @@ gpt_4o = VisionModel(
 gpt_4o_mini = Model(
     name          = 'gpt-4o-mini',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([DDG, Blackbox, ChatGptEs, Jmuz, PollinationsAI, OIVSCode, Liaobots, OpenaiChat])
+    best_provider = IterListProvider([DDG, Blackbox, ChatGptEs, TypeGPT, PollinationsAI, OIVSCode, Liaobots, Jmuz, OpenaiChat])
+)
+
+gpt_4o_audio = AudioModel(
+    name          = 'gpt-4o-audio',
+    base_provider = 'OpenAI',
+    best_provider = PollinationsAI
 )
 
 # o1
 o1 = Model(
     name          = 'o1',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([Blackbox, Copilot, OpenaiAccount])
+    best_provider = IterListProvider([Blackbox, Copilot, TypeGPT, OpenaiAccount])
 )
 
 o1_mini = Model(
@@ -159,7 +178,7 @@ o1_mini = Model(
 o3_mini = Model(
     name          = 'o3-mini',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([DDG, Blackbox, Liaobots, PollinationsAI])
+    best_provider = IterListProvider([DDG, Blackbox, TypeGPT, PollinationsAI, Liaobots])
 )
 
 ### GigaChat ###
@@ -294,7 +313,7 @@ phi_3_5_mini = Model(
 phi_4 = Model(
     name          = "phi-4",
     base_provider = "Microsoft",
-    best_provider = IterListProvider([DeepInfraChat, PollinationsAI])
+    best_provider = IterListProvider([DeepInfraChat, PollinationsAI, HuggingSpace])
 )
 
 # wizardlm
@@ -438,11 +457,14 @@ command_a = Model(
 )
 
 ### Qwen ###
+# qwen-1.5
 qwen_1_5_7b = Model(
     name = 'qwen-1.5-7b',
     base_provider = 'Qwen',
     best_provider = Cloudflare
 )
+
+# qwen-2
 qwen_2_72b = Model(
     name = 'qwen-2-72b',
     base_provider = 'Qwen',
@@ -453,6 +475,14 @@ qwen_2_vl_7b = VisionModel(
     base_provider = 'Qwen',
     best_provider = HuggingFaceAPI
 )
+
+# qwen-2.5
+qwen_2_5 = Model(
+    name = 'qwen-2.5',
+    base_provider = 'Qwen',
+    best_provider = HuggingSpace
+)
+
 qwen_2_5_72b = Model(
     name = 'qwen-2.5-72b',
     base_provider = 'Qwen',
@@ -464,7 +494,13 @@ qwen_2_5_coder_32b = Model(
     best_provider = IterListProvider([PollinationsAI, Jmuz, HuggingChat])
 )
 qwen_2_5_1m = Model(
-    name = 'qwen-2.5-1m-demo',
+    name = 'qwen-2.5-1m',
+    base_provider = 'Qwen',
+    best_provider = HuggingSpace
+)
+
+qwen_2_5_max = Model(
+    name = 'qwen-2-5-max',
     base_provider = 'Qwen',
     best_provider = HuggingSpace
 )
@@ -498,13 +534,13 @@ deepseek_chat = Model(
 deepseek_v3 = Model(
     name = 'deepseek-v3',
     base_provider = 'DeepSeek',
-    best_provider = IterListProvider([Blackbox, DeepInfraChat, LambdaChat, OIVSCode, Liaobots])
+    best_provider = IterListProvider([Blackbox, DeepInfraChat, LambdaChat, OIVSCode, TypeGPT, Liaobots])
 )
 
 deepseek_r1 = Model(
     name = 'deepseek-r1',
     base_provider = 'DeepSeek',
-    best_provider = IterListProvider([Blackbox, DeepInfraChat, Glider, LambdaChat, PollinationsAI, Jmuz, Liaobots, HuggingChat, HuggingFace])
+    best_provider = IterListProvider([Blackbox, DeepInfraChat, Glider, LambdaChat, PollinationsAI, TypeGPT, Liaobots, Jmuz, HuggingChat, HuggingFace])
 )
 
 janus_pro_7b = VisionModel(
@@ -667,7 +703,7 @@ lfm_40b = Model(
 evil = Model(
     name = 'evil',
     base_provider = 'Evil Mode - Experimental',
-    best_provider = PollinationsAI
+    best_provider = IterListProvider([PollinationsAI, TypeGPT])
 )
 
 
@@ -741,12 +777,16 @@ class ModelUtils:
         ############
 
         ### OpenAI ###
+        # gpt-3.5
+        gpt_3_5_turbo.name: gpt_3_5_turbo,
+        
         # gpt-4
         gpt_4.name: gpt_4,
         
         # gpt-4o
         gpt_4o.name: gpt_4o,
         gpt_4o_mini.name: gpt_4o_mini,
+        gpt_4o_audio.name: gpt_4o_audio,
         
         # o1
         o1.name: o1,
@@ -837,12 +877,19 @@ class ModelUtils:
         gigachat.name: gigachat,
 
         ### Qwen ###
+        # qwen-1.5
         qwen_1_5_7b.name: qwen_1_5_7b,
+        
+        # qwen-2
         qwen_2_72b.name: qwen_2_72b,
         qwen_2_vl_7b.name: qwen_2_vl_7b,
+        
+        # qwen-2.5
+        qwen_2_5.name: qwen_2_5,
         qwen_2_5_72b.name: qwen_2_5_72b,
         qwen_2_5_coder_32b.name: qwen_2_5_coder_32b,
         qwen_2_5_1m.name: qwen_2_5_1m,
+        qwen_2_5_max.name: qwen_2_5_max,
 
         # qwq/qvq
         qwq_32b.name: qwq_32b,

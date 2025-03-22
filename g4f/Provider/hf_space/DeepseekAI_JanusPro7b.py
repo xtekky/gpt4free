@@ -34,8 +34,9 @@ class DeepseekAI_JanusPro7b(AsyncGeneratorProvider, ProviderModelMixin):
     default_model = "janus-pro-7b"
     default_image_model = "janus-pro-7b-image"
     default_vision_model = default_model
-    models = [default_model, default_image_model]
     image_models = [default_image_model]
+    vision_models = [default_vision_model]
+    models = vision_models + image_models
 
     @classmethod
     def run(cls, method: str, session: StreamSession, prompt: str, conversation: JsonConversation, image: dict = None, seed: int = 0):
