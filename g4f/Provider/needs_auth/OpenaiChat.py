@@ -465,8 +465,6 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
         if not line.startswith(b"data: "):
             return
         elif line.startswith(b"data: [DONE]"):
-            if fields.finish_reason is None:
-                fields.finish_reason = "error"
             return
         try:
             line = json.loads(line[6:])

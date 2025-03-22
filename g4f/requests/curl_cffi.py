@@ -47,6 +47,18 @@ class StreamResponse:
         """Asynchronously iterate over the response content."""
         return self.inner.aiter_content()
 
+    async def sse(self) -> AsyncGenerator[dict, None]:
+        """Asynchronously iterate over the Server-Sent Events of the response."""
+        async for line in self.iter_lines():
+            if line.startswith(b"data: "):
+                chunk = line[6:]
+                if chunk == b"[DONE]":
+                    break
+                try:
+                    yield json.loads(chunk)
+                except json.JSONDecodeError:
+                    continue
+
     async def __aenter__(self):
         """Asynchronously enter the runtime context for the response object."""
         inner: Response = await self.inner

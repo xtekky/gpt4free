@@ -298,10 +298,12 @@
 
             let oauthResult = localStorage.getItem("oauth");
             if (oauthResult) {
+                let user;
                 try {
                     oauthResult = JSON.parse(oauthResult);
                     user = await hub.whoAmI({accessToken: oauthResult.accessToken});
-                } catch {
+                } catch (e) {
+                    console.error(e);
                     oauthResult = null;
                     localStorage.removeItem("oauth");
                     localStorage.removeItem("HuggingFace-api_key");
@@ -365,7 +367,7 @@
                     return;
                 }
                 const lower = data.prompt.toLowerCase();
-                const tags = ["nsfw", "timeline", "feet", "blood", "soap", "orally", "heel", "latex", "bathroom", "boobs", "charts", " text ", "gel", "logo", "infographic", "warts", " bra ", "prostitute", "curvy", "breasts", "written", "bodies", "naked", "classroom", "malone", "dirty", "shoes", "shower", "banner", "fat", "nipples", "couple", "sexual", "sandal", "supplier", "overlord", "succubus", "platinum", "cracy", "crazy", "hemale", "oprah", "lamic", "ropes", "cables", "wires", "dirty", "messy", "cluttered", "chaotic", "disorganized", "disorderly", "untidy", "unorganized", "unorderly", "unsystematic", "disarranged", "disarrayed", "disheveled", "disordered", "jumbled", "muddled", "scattered", "shambolic", "sloppy", "unkept", "unruly"];
+                const tags = ["nsfw", "timeline", "feet", "blood", "soap", "orally", "heel", "latex", "bathroom", "boobs", "charts", "gel", "logo", "infographic", "warts", " bra ", "prostitute", "curvy", "breasts", "written", "bodies", "naked", "classroom", "malone", "dirty", "shoes", "shower", "banner", "fat", "nipples", "couple", "sexual", "sandal", "supplier", "overlord", "succubus", "platinum", "cracy", "crazy", "hemale", "oprah", "lamic", "ropes", "cables", "wires", "dirty", "messy", "cluttered", "chaotic", "disorganized", "disorderly", "untidy", "unorganized", "unorderly", "unsystematic", "disarranged", "disarrayed", "disheveled", "disordered", "jumbled", "muddled", "scattered", "shambolic", "sloppy", "unkept", "unruly"];
                 for (i in tags) {
                     if (lower.indexOf(tags[i]) != -1) {
                         console.log("Skipping image with tag: " + tags[i]);

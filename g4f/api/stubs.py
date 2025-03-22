@@ -31,6 +31,7 @@ class ChatCompletionsConfig(BaseModel):
     proxy: Optional[str] = None
     conversation_id: Optional[str] = None
     conversation: Optional[dict] = None
+    return_conversation: Optional[bool] = None
     history_disabled: Optional[bool] = None
     timeout: Optional[int] = None
     tool_calls: list = Field(default=[], examples=[[
@@ -43,6 +44,12 @@ class ChatCompletionsConfig(BaseModel):
 		}
 	]])
     tools: list = None
+    parallel_tool_calls: bool = None
+    tool_choice: Optional[str] = None
+    reasoning_effort: Optional[str] = None
+    logit_bias: Optional[dict] = None
+    modalities: Optional[list[str]] = None
+    audio: Optional[dict] = None
     response_format: Optional[dict] = None
 
 class ImageGenerationConfig(BaseModel):

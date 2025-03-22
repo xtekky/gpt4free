@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Scanner and QR Code Generator</title>
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs/qrcode.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; margin: 20px; }
+        video { width: 300px; height: 300px; border: 1px solid black; display: block; margin: auto; }
+        #qrcode { margin-top: 20px; }
+        #qrcode img, #qrcode canvas { margin: 0 auto; width: 300px; height: 300px; }
+        button { margin: 5px; padding: 10px; }
+    </style>
+</head>
+<body>
+
+    <h1>QR Scanner & QR Code Generator</h1>
+    
+    <h2>QR Code Scanner</h2>
+    <video id="video"></video>
+    <button id="startCamera">Start Camera</button>
+    <button id="stopScan">Stop Scanning</button>
+    <button id="switchCamera">Switch Camera</button>
+    <button id="toggleFlash">Toggle Flash</button>
+    <p id="cam-status"></p>
+
+    <h2>Generate QR Code</h2>
+    <div id="qrcode"></div>
+    
+    <button id="generateQRCode">Generate QR Code</button>
+
+    <script type="module">
+        import QrScanner from 'https://cdn.jsdelivr.net/npm/qr-scanner/qr-scanner.min.js';
+        
+        function generate_uuid() {
+            function random16Hex() { return (0x10000 | Math.random() * 0x10000).toString(16).substr(1); }
+            return random16Hex() + random16Hex() +
+            "-" + random16Hex() +
+            "-" + random16Hex() +
+            "-" + random16Hex() +
+            "-" + random16Hex() + random16Hex() + random16Hex();
+        }
+        
+        const videoElem = document.getElementById('video');
+        const camStatus = document.getElementById('cam-status');
+        let qrScanner;
+
+        document.getElementById('startCamera').addEventListener('click', async () => {
+            startCamera();
+        });
+
+        document.getElementById('stopScan').addEventListener('click', () => {
+            qrScanner.stop();
+        });
+
+        document.getElementById('toggleFlash').addEventListener('click', async () => {
+            if (qrScanner) {
+                const hasFlash = await qrScanner.hasFlash();
+                if (hasFlash) {
+                    qrScanner.toggleFlash();
+                } else {
+                    alert('Flash not supported on this camera.');
+                }
+            }
+        });
+
+        localStorage.getItem('device_id') || localStorage.setItem('device_id', generate_uuid());
+
+        const qrcode = new QRCode(document.getElementById("qrcode"), {
+            text: JSON.stringify({
+                date: Math.floor(Date.now() / 1000),
+                device_id: localStorage.getItem('device_id')
+            }),
+            width: 128,
+            height: 128,
+            colorDark: "#000000",
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.H
+        });
+
+        const switchButton = document.getElementById('switchCamera');
+        let currentStream = null;
+        let facingMode = 'user';
+
+        async function startCamera() {
+            try {
+                if (currentStream) {
+                    currentStream.getTracks().forEach(track => track.stop());
+                }
+
+                const constraints = {
+                    video: {
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 },
+                        facingMode: facingMode
+                    },
+                    audio: false
+                };
+
+                const stream = await navigator.mediaDevices.getUserMedia(constraints);
+                currentStream = stream;
+                video.srcObject = stream;
+
+                qrScanner = new QrScanner(videoElem, result => {
+                    camStatus.innerText = 'Camera Success: ' + result;
+                    console.log('decoded QR code:', result);
+                }, {
+                    highlightScanRegion: true,
+                    highlightCodeOutline: true,
+                });
+
+                await video.play();
+                await qrScanner.start();
+            } catch (error) {
+                console.error('Error accessing the camera:', error);
+                alert(`Could not access the camera: ${error.message}`);
+            }
+        }
+
+        switchButton.addEventListener('click', () => {
+            facingMode = facingMode === 'user' ? 'environment' : 'user';
+            startCamera();
+        });
+    </script>
+</body>
+</html>

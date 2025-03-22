@@ -16,7 +16,7 @@ from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from .helper import format_image_prompt
 
 class ARTA(AsyncGeneratorProvider, ProviderModelMixin):
-    url = "https://img-gen-prod.ai-arta.com"
+    url = "https://ai-arta.com"
     auth_url = "https://www.googleapis.com/identitytoolkit/v3/relyingparty/signupNewUser?key=AIzaSyB3-71wG0fIt0shj0ee4fvx1shcjJHGrrQ"
     token_refresh_url = "https://securetoken.googleapis.com/v1/token?key=AIzaSyB3-71wG0fIt0shj0ee4fvx1shcjJHGrrQ"
     image_generation_url = "https://img-gen-prod.ai-arta.com/api/v1/text2image"

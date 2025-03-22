@@ -132,6 +132,7 @@ class ChatCompletion(BaseModel):
     provider: Optional[str]
     choices: list[ChatCompletionChoice]
     usage: UsageModel
+    conversation: dict
 
     @classmethod
     def model_construct(
@@ -141,7 +142,8 @@ class ChatCompletion(BaseModel):
         completion_id: str = None,
         created: int = None,
         tool_calls: list[ToolCallModel] = None,
-        usage: UsageModel = None
+        usage: UsageModel = None,
+        conversation: dict = None
     ):
         return super().model_construct(
             id=f"chatcmpl-{completion_id}" if completion_id else None,
@@ -153,7 +155,7 @@ class ChatCompletion(BaseModel):
                 ChatCompletionMessage.model_construct(content, tool_calls),
                 finish_reason,
             )],
-            **filter_none(usage=usage)
+            **filter_none(usage=usage, conversation=conversation)
         )
 
 class ChatCompletionDelta(BaseModel):

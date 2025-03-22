@@ -308,7 +308,8 @@ class Api:
                 if credentials is not None and credentials.credentials != "secret":
                     config.api_key = credentials.credentials
 
-                conversation = return_conversation = None
+                conversation = None
+                return_conversation = config.return_conversation
                 if conversation is not None:
                     conversation = JsonConversation(**conversation)
                     return_conversation = True
@@ -637,11 +638,8 @@ def run_api(
     port: int = None,
     bind: str = None,
     debug: bool = False,
-    workers: int = None,
     use_colors: bool = None,
-    reload: bool = False,
-    ssl_keyfile: str = None,
-    ssl_certfile: str = None
+    **kwargs
 ) -> None:
     print(f'Starting server... [g4f v-{g4f.version.utils.current_version}]' + (" (debug)" if debug else ""))
     
@@ -665,10 +663,7 @@ def run_api(
         f"g4f.api:{method}",
         host=host,
         port=int(port),
-        workers=workers,
-        use_colors=use_colors,
         factory=True,
-        reload=reload,
-        ssl_keyfile=ssl_keyfile,
-        ssl_certfile=ssl_certfile
+        use_colors=use_colors,
+        **filter_none(**kwargs)
     )

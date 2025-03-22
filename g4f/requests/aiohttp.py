@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from aiohttp import ClientSession, ClientResponse, ClientTimeout, BaseConnector, FormData
 from typing import AsyncIterator, Any, Optional
 
@@ -17,6 +18,18 @@ class StreamResponse(ClientResponse):
 
     async def json(self, content_type: str = None) -> Any:
         return await super().json(content_type=content_type)
+
+    async def sse(self) -> AsyncIterator[dict]:
+        """Asynchronously iterate over the Server-Sent Events of the response."""
+        async for line in self.content:
+            if line.startswith(b"data: "):
+                chunk = line[6:]
+                if chunk.startswith(b"[DONE]"):
+                    break
+                try:
+                    yield json.loads(chunk)
+                except json.JSONDecodeError:
+                    continue
 
 class StreamSession(ClientSession):
     def __init__(
