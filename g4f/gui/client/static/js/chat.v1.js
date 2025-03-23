@@ -80,7 +80,11 @@ if (window.markdownit) {
             .replaceAll('<code>', '<code class="language-plaintext">')
             .replaceAll('&lt;i class=&quot;', '<i class="')
             .replaceAll('&quot;&gt;&lt;/i&gt;', '"></i>')
-            .replaceAll('&lt;iframe type=&quot;text/html&quot; src=&quot;', '<iframe type="text/html" frameborder="0" allow="fullscreen" src="')
+            .replaceAll('&lt;video controls src=&quot;', '<video controls width="400" src="')
+            .replaceAll('&quot;&gt;&lt;/video&gt;', '"></video>')
+            .replaceAll('&lt;audio controls src=&quot;', '<audio controls src="')
+            .replaceAll('&quot;&gt;&lt;/audio&gt;', '"></audio>')
+            .replaceAll('&lt;iframe type=&quot;text/html&quot; src=&quot;', '<iframe type="text/html" frameborder="0" allow="fullscreen" height="390" width="640" src="')
             .replaceAll('&quot;&gt;&lt;/iframe&gt;', `?enablejsapi=1&origin=${new URL(location.href).origin}"></iframe>`)
     }
 }
@@ -229,7 +233,7 @@ function register_message_images() {
                     let seed = Math.floor(Date.now() / 1000);
                     newPath = `https://image.pollinations.ai/prompt/${newPath}?seed=${seed}&nologo=true`;
                     let downloadUrl = newPath;
-                    if (document.getElementById("download_images")?.checked) {
+                    if (document.getElementById("download_media")?.checked) {
                         downloadUrl = `/images/${filename}?url=${escapeHtml(newPath)}`;
                     }
                     const link = document.createElement("a");
@@ -862,12 +866,6 @@ async function add_message_chunk(message, message_id, provider, scroll, finish_m
             content_map.inner.innerHTML = markdown_render(message.preview);
             await register_message_images();
         }
-    } else if (message.type == "audio") {
-        audio = new Audio(message.audio);
-        audio.controls = true;   
-        content_map.inner.appendChild(audio);
-        audio.play();
-        reloadConversation = false;
     } else if (message.type == "content") {
         message_storage[message_id] += message.content;
         update_message(content_map, message_id, null, scroll);
@@ -1090,7 +1088,7 @@ const ask_gpt = async (message_id, message_index = -1, regenerate = false, provi
         } else {
             api_key = get_api_key_by_provider(provider);
         }
-        const download_images = document.getElementById("download_images")?.checked;
+        const download_media = document.getElementById("download_media")?.checked;
         let api_base;
         if (provider == "Custom") {
             api_base = document.getElementById("api_base")?.value;
@@ -1119,7 +1117,7 @@ const ask_gpt = async (message_id, message_index = -1, regenerate = false, provi
             provider: provider,
             messages: messages,
             action: action,
-            download_images: download_images,
+            download_media: download_media,
             api_key: api_key,
             api_base: api_base,
             ignored: ignored,
@@ -2723,6 +2721,9 @@ async function load_provider_models(provider=null) {
             option.value = model.model;
             option.dataset.label = model.model;
             option.text = `${model.model}${model.image ? " (Image Generation)" : ""}${model.vision ? " (Image Upload)" : ""}`;
+            if (model.task) {
+                option.text += ` (${model.task})`;
+            }
             modelProvider.appendChild(option);
             if (model.default) {
                 defaultIndex = i;

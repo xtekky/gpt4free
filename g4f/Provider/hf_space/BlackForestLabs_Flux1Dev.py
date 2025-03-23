@@ -67,7 +67,6 @@ class BlackForestLabs_Flux1Dev(AsyncGeneratorProvider, ProviderModelMixin):
         zerogpu_uuid: str = "[object Object]",
         **kwargs
     ) -> AsyncResult:
-        model = cls.get_model(model)
         async with StreamSession(impersonate="chrome", proxy=proxy) as session:
             prompt = format_image_prompt(messages, prompt)
             data = [prompt, seed, randomize_seed, width, height, guidance_scale, num_inference_steps]

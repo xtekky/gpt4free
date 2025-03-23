@@ -24,7 +24,7 @@ from ...requests import get_args_from_nodriver, DEFAULT_HEADERS
 from ...requests.raise_for_status import raise_for_status
 from ...providers.response import JsonConversation, ImageResponse, Sources, TitleGeneration, Reasoning, RequestLogin
 from ...cookies import get_cookies
-from .models import default_model, fallback_models, image_models, model_aliases, llama_models
+from .models import default_model, default_vision_model, fallback_models, image_models, model_aliases
 from ... import debug
 
 class Conversation(JsonConversation):
@@ -41,6 +41,7 @@ class HuggingChat(AsyncAuthedProvider, ProviderModelMixin):
     supports_stream = True
     needs_auth = True
     default_model = default_model
+    default_vision_model = default_vision_model
     model_aliases = model_aliases
     image_models = image_models
     text_models = fallback_models
@@ -107,8 +108,8 @@ class HuggingChat(AsyncAuthedProvider, ProviderModelMixin):
     ) -> AsyncResult:
         if not has_curl_cffi:
             raise MissingRequirementsError('Install "curl_cffi" package | pip install -U curl_cffi')
-        if model == llama_models["name"]:
-            model = llama_models["text"] if media is None else llama_models["vision"]
+        if not model and media is not None:
+            model = cls.default_vision_model
         model = cls.get_model(model)
 
         session = Session(**auth_result.get_dict())

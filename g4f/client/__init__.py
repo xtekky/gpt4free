@@ -9,7 +9,7 @@ import aiohttp
 import base64
 from typing import Union, AsyncIterator, Iterator, Awaitable, Optional
 
-from ..image.copy_images import copy_images
+from ..image.copy_images import copy_media
 from ..typing import Messages, ImageType
 from ..providers.types import ProviderType, BaseRetryProvider
 from ..providers.response import *
@@ -532,7 +532,7 @@ class Images:
             images = await asyncio.gather(*[get_b64_from_url(image) for image in response.get_list()])
         else:
             # Save locally for None (default) case
-            images = await copy_images(response.get_list(), response.get("cookies"), proxy)
+            images = await copy_media(response.get_list(), response.get("cookies"), proxy)
             images = [Image.model_construct(url=f"/images/{os.path.basename(image)}", revised_prompt=response.alt) for image in images]
         
         return ImagesResponse.model_construct(

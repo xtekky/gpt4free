@@ -6,27 +6,30 @@ from ...providers.types import Messages
 from ...typing import MediaListType
 from ...requests import StreamSession, raise_for_status
 from ...errors import ModelNotSupportedError
-from ...providers.helper import get_last_user_message
 from ...providers.response import ProviderInfo
 from ..template.OpenaiTemplate import OpenaiTemplate
-from .models import model_aliases, vision_models, default_vision_model, llama_models, text_models
+from .models import model_aliases, vision_models, default_llama_model, default_vision_model, text_models
 from ... import debug
 
 class HuggingFaceAPI(OpenaiTemplate):
-    label = "HuggingFace (Inference API)"
+    label = "HuggingFace (Text Generation)"
     parent = "HuggingFace"
     url = "https://api-inference.huggingface.com"
     api_base = "https://api-inference.huggingface.co/v1"
     working = True
     needs_auth = True
 
-    default_model = default_vision_model
+    default_model = default_llama_model
     default_vision_model = default_vision_model
     vision_models = vision_models
     model_aliases = model_aliases
     fallback_models = text_models + vision_models
 
-    provider_mapping: dict[str, dict] = {}
+    provider_mapping: dict[str, dict] = {
+        "google/gemma-3-27b-it": {
+            "hf-inference/models/google/gemma-3-27b-it": {
+                "task": "conversational",
+                "providerId": "google/gemma-3-27b-it"}}}
 
     @classmethod
     def get_model(cls, model: str, **kwargs) -> str:
@@ -47,7 +50,9 @@ class HuggingFaceAPI(OpenaiTemplate):
                     if [
                         provider
                         for provider in model.get("inferenceProviderMapping")
-                        if provider.get("task") == "conversational"]]
+                        if provider.get("status") == "live" and provider.get("task") == "conversational"
+                    ]
+                ] + list(cls.provider_mapping.keys())
             else:
                 cls.models = cls.fallback_models
         return cls.models
@@ -78,11 +83,12 @@ class HuggingFaceAPI(OpenaiTemplate):
         media: MediaListType = None,
         **kwargs
     ):
-        if model == llama_models["name"]:
-            model = llama_models["text"] if media is None else llama_models["vision"]
-        if model in cls.model_aliases:
-            model = cls.model_aliases[model]
+        if not model and media is not None:
+            model = cls.default_vision_model
+        model = cls.get_model(model)
         provider_mapping = await cls.get_mapping(model, api_key)
+        if not provider_mapping:
+            raise ModelNotSupportedError(f"Model is not supported: {model} in: {cls.__name__}")
         for provider_key in provider_mapping:
             api_path = provider_key if provider_key == "novita" else f"{provider_key}/v1"
             api_base = f"https://router.huggingface.co/{api_path}"

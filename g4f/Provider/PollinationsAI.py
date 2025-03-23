@@ -14,7 +14,8 @@ from ..image import to_data_uri, is_data_an_audio, to_input_audio
 from ..errors import ModelNotFoundError
 from ..requests.raise_for_status import raise_for_status
 from ..requests.aiohttp import get_connector
-from ..providers.response import ImageResponse, ImagePreview, FinishReason, Usage, Audio, ToolCalls
+from ..image.copy_images import save_response_media
+from ..providers.response import FinishReason, Usage, ToolCalls
 from .. import debug
 
 DEFAULT_HEADERS = {
@@ -239,8 +240,9 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         async with ClientSession(headers=DEFAULT_HEADERS, connector=get_connector(proxy=proxy)) as session:
             async with session.get(url, allow_redirects=True) as response:
                 await raise_for_status(response)
-                image_url = str(response.url)
-                yield ImageResponse(image_url, prompt)
+                async for chunk in save_response_media(response, prompt):
+                    yield chunk
+                    return
 
     @classmethod
     async def _generate_text(
@@ -305,10 +307,10 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
             })
             async with session.post(url, json=data) as response:
                 await raise_for_status(response)
-                if response.headers["content-type"] == "audio/mpeg":
-                    yield Audio(await response.read())
+                async for chunk in save_response_media(response, messages[-1]["content"]):
+                    yield chunk
                     return
-                elif response.headers["content-type"].startswith("text/plain"):
+                if response.headers["content-type"].startswith("text/plain"):
                     yield await response.text()
                     return
                 elif response.headers["content-type"].startswith("text/event-stream"):
