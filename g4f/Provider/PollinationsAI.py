@@ -15,6 +15,7 @@ from ..errors import ModelNotFoundError
 from ..requests.raise_for_status import raise_for_status
 from ..requests.aiohttp import get_connector
 from ..image.copy_images import save_response_media
+from ..image import use_aspect_ratio
 from ..providers.response import FinishReason, Usage, ToolCalls
 from .. import debug
 
@@ -139,8 +140,9 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         cache: bool = False,
         # Image generation parameters
         prompt: str = None,
-        width: int = 1024,
-        height: int = 1024,
+        aspect_ratio: str = "1:1",
+        width: int = None,
+        height: int = None,
         seed: Optional[int] = None,
         nologo: bool = True,
         private: bool = False,
@@ -177,6 +179,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                 model=model,
                 prompt=format_image_prompt(messages, prompt),
                 proxy=proxy,
+                aspect_ratio=aspect_ratio,
                 width=width,
                 height=height,
                 seed=seed,
@@ -212,6 +215,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         model: str,
         prompt: str,
         proxy: str,
+        aspect_ratio: str,
         width: int,
         height: int,
         seed: Optional[int],
@@ -223,17 +227,17 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
     ) -> AsyncResult:
         if not cache and seed is None:
             seed = random.randint(9999, 99999999)
-        params = {
-            "seed": str(seed) if seed is not None else None,
-            "width": str(width),
-            "height": str(height),
+        params = use_aspect_ratio({
+            "seed": seed,
+            "width": width,
+            "height": height,
             "model": model,
             "nologo": str(nologo).lower(),
             "private": str(private).lower(),
             "enhance": str(enhance).lower(),
             "safe": str(safe).lower()
-        }
-        query = "&".join(f"{k}={quote_plus(v)}" for k, v in params.items() if v is not None)
+        }, aspect_ratio)
+        query = "&".join(f"{k}={quote_plus(str(v))}" for k, v in params.items() if v is not None)
         url = f"{cls.image_api_endpoint}prompt/{quote_plus(prompt)}?{query}"
         #yield ImagePreview(url, prompt)
 

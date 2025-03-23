@@ -118,9 +118,10 @@ def supports_filename(filename: str):
             return True
     return False
 
-def get_bucket_dir(bucket_id: str):
-    bucket_dir = os.path.join(get_cookies_dir(), "buckets", bucket_id)
-    return bucket_dir
+def get_bucket_dir(bucket_id: str, dirname: str = None):
+    if dirname is None:
+        return os.path.join(get_cookies_dir(), "buckets", bucket_id)
+    return os.path.join(get_cookies_dir(), "buckets", dirname, bucket_id)
 
 def get_buckets():
     buckets_dir = os.path.join(get_cookies_dir(), "buckets")

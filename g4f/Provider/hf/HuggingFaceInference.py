@@ -11,6 +11,7 @@ from ...errors import ModelNotSupportedError, ResponseError
 from ...requests import StreamSession, raise_for_status
 from ...providers.response import FinishReason, ImageResponse
 from ...image.copy_images import save_response_media
+from ...image import use_aspect_ratio
 from ..helper import format_image_prompt, get_last_user_message
 from .models import default_model, default_image_model, model_aliases, text_models, image_models, vision_models
 from ... import debug
@@ -78,8 +79,9 @@ class HuggingFaceInference(AsyncGeneratorProvider, ProviderModelMixin):
         action: str = None,
         extra_data: dict = {},
         seed: int = None,
-        width: int = 1024,
-        height: int = 1024,
+        aspect_ratio: str = None,
+        width: int = None,
+        height: int = None,
         **kwargs
     ) -> AsyncResult:
         try:
@@ -99,14 +101,14 @@ class HuggingFaceInference(AsyncGeneratorProvider, ProviderModelMixin):
         ) as session:
             try:
                 if model in provider_together_urls:
-                    data = {
+                    data = use_aspect_ratio({
                         "response_format": "url",
                         "prompt": format_image_prompt(messages, prompt),
                         "model": model,
                         "width": width,
                         "height": height,
                         **extra_data
-                    }
+                    }, aspect_ratio)
                     async with session.post(provider_together_urls[model], json=data) as response:
                         if response.status == 404:
                             raise ModelNotSupportedError(f"Model is not supported: {model}")

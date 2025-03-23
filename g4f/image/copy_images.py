@@ -11,7 +11,7 @@ from aiohttp import ClientSession, ClientError
 
 from ..typing import Optional, Cookies
 from ..requests.aiohttp import get_connector, StreamResponse
-from ..image import EXTENSIONS_MAP
+from ..image import EXTENSIONS_MAP, ALLOWED_EXTENSIONS
 from ..tools.files import get_bucket_dir
 from ..providers.response import ImageResponse, AudioResponse, VideoResponse
 from ..Provider.template import BackendApi
@@ -21,9 +21,9 @@ from .. import debug
 # Directory for storing generated images
 images_dir = "./generated_images"
 
-def get_media_extension(image: str) -> str:
-    """Extract image extension from URL or filename, default to .jpg"""
-    match = re.search(r"\.(jpe?g|png|webp|mp4|mp3|wav)[?$]", image, re.IGNORECASE)
+def get_media_extension(media: str) -> str:
+    """Extract media file extension from URL or filename"""
+    match = re.search(r"\.(jpe?g|png|gif|svg|webp|webm|mp4|mp3|wav|flac|opus|ogg|mkv)(?:\?|$)", media, re.IGNORECASE)
     return f".{match.group(1).lower()}" if match else ""
 
 def ensure_images_dir():
@@ -51,8 +51,10 @@ def secure_filename(filename: str) -> str:
 
 async def save_response_media(response: StreamResponse, prompt: str):
     content_type = response.headers["content-type"]
-    if content_type in EXTENSIONS_MAP or content_type.startswith("audio/"):
+    if content_type in EXTENSIONS_MAP or content_type.startswith("audio/") or content_type.startswith("video/"):
         extension = EXTENSIONS_MAP[content_type] if content_type in EXTENSIONS_MAP else content_type[6:].replace("mpeg", "mp3")
+        if extension not in ALLOWED_EXTENSIONS:
+            raise ValueError(f"Unsupported media type: {content_type}")
         bucket_id = str(uuid.uuid4())
         dirname = str(int(time.time()))
         bucket_dir = get_bucket_dir(bucket_id, dirname)
@@ -135,11 +137,14 @@ async def copy_media(
                 if target is None and not os.path.splitext(target_path)[1]:
                     with open(target_path, "rb") as f:
                         file_header = f.read(12)
-                    detected_type = is_accepted_format(file_header)
-                    if detected_type:
-                        new_ext = f".{detected_type.split('/')[-1]}"
-                        os.rename(target_path, f"{target_path}{new_ext}")
-                        target_path = f"{target_path}{new_ext}"
+                    try:
+                        detected_type = is_accepted_format(file_header)
+                        if detected_type:
+                            new_ext = f".{detected_type.split('/')[-1]}"
+                            os.rename(target_path, f"{target_path}{new_ext}")
+                            target_path = f"{target_path}{new_ext}"
+                    except ValueError:
+                        pass
 
                 # Build URL with safe encoding
                 url_filename = quote(os.path.basename(target_path))

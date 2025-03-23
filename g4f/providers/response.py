@@ -178,11 +178,13 @@ class Reasoning(ResponseType):
     def __init__(
             self,
             token: Optional[str] = None,
+            label: Optional[str] = None,
             status: Optional[str] = None,
             is_thinking: Optional[str] = None
         ) -> None:
         """Initialize with token, status, and thinking state."""
         self.token = token
+        self.label = label
         self.status = status
         self.is_thinking = is_thinking
 
@@ -203,6 +205,8 @@ class Reasoning(ResponseType):
 
     def get_dict(self) -> Dict:
         """Return a dictionary representation of the reasoning."""
+        if self.label is not None:
+            return {"label": self.label, "status": self.status}
         if self.is_thinking is None:
             if self.status is None:
                 return {"token": self.token}
@@ -248,15 +252,21 @@ class YouTube(HiddenResponse):
             for id in self.ids
         ]))
 
-class Audio(ResponseType):
-    def __init__(self, data: bytes) -> None:
+class AudioResponse(ResponseType):
+    def __init__(self, data: Union[bytes, str]) -> None:
         """Initialize with audio data bytes."""
         self.data = data
 
-    def __str__(self) -> str:
+    def to_uri(self) -> str:
+        if isinstance(self.data, str):
+            return self.data
         """Return audio data as a base64-encoded data URI."""
         data_base64 = base64.b64encode(self.data).decode()
         return f"data:audio/mpeg;base64,{data_base64}"
+
+    def __str__(self) -> str:
+        """Return audio as html element."""
+        return f'<audio controls src="{self.to_uri()}"></audio>'
 
 class BaseConversation(ResponseType):
     def __str__(self) -> str:
@@ -282,7 +292,7 @@ class RequestLogin(HiddenResponse):
         """Return formatted login link as a string."""
         return format_link(self.login_url, f"[Login to {self.label}]") + "\n\n"
 
-class ImageResponse(ResponseType):
+class MediaResponse(ResponseType):
     def __init__(
         self,
         images: Union[str, List[str]],
@@ -294,10 +304,6 @@ class ImageResponse(ResponseType):
         self.alt = alt
         self.options = options
 
-    def __str__(self) -> str:
-        """Return images as markdown."""
-        return format_images_markdown(self.images, self.alt, self.get("preview"))
-
     def get(self, key: str) -> any:
         """Get an option value by key."""
         return self.options.get(key)
@@ -305,6 +311,16 @@ class ImageResponse(ResponseType):
     def get_list(self) -> List[str]:
         """Return images as a list."""
         return [self.images] if isinstance(self.images, str) else self.images
+
+class ImageResponse(MediaResponse):
+    def __str__(self) -> str:
+        """Return images as markdown."""
+        return format_images_markdown(self.images, self.alt, self.get("preview"))
+
+class VideoResponse(MediaResponse):
+    def __str__(self) -> str:
+        """Return videos as html elements."""
+        return "\n".join([f'<video controls src="{video}"></video>' for video in self.get_list()])
 
 class ImagePreview(ImageResponse):
     def __str__(self) -> str:

@@ -84,8 +84,8 @@ if (window.markdownit) {
             .replaceAll('&quot;&gt;&lt;/video&gt;', '"></video>')
             .replaceAll('&lt;audio controls src=&quot;', '<audio controls src="')
             .replaceAll('&quot;&gt;&lt;/audio&gt;', '"></audio>')
-            .replaceAll('&lt;iframe type=&quot;text/html&quot; src=&quot;', '<iframe type="text/html" frameborder="0" allow="fullscreen" height="390" width="640" src="')
-            .replaceAll('&quot;&gt;&lt;/iframe&gt;', `?enablejsapi=1&origin=${new URL(location.href).origin}"></iframe>`)
+            .replaceAll('&lt;iframe type=&quot;text/html&quot; src=&quot;', '<iframe type="text/html" frameborder="0" allow="fullscreen" height="224" width="400" src="')
+            .replaceAll('&quot;&gt;&lt;/iframe&gt;', `?enablejsapi=1"></iframe>`)
     }
 }
 
@@ -95,7 +95,7 @@ function render_reasoning(reasoning, final = false) {
     </div>` : "";
     return `<div class="reasoning_body">
         <div class="reasoning_title">
-           <strong>Reasoning <i class="brain">🧠</i>:</strong> ${escapeHtml(reasoning.status)}
+           <strong>${reasoning.label ? reasoning.label :'Reasoning <i class="brain">🧠</i>'}:</strong> ${escapeHtml(reasoning.status)}
         </div>
         ${inner_text}
     </div>`;
@@ -893,6 +893,8 @@ async function add_message_chunk(message, message_id, provider, scroll, finish_m
             message_storage[message_id] = "";
         } else if (message.status) {
             reasoning_storage[message_id].status = message.status;
+        } if (message.label) {
+            reasoning_storage[message_id].label = message.label;
         } if (message.token) {
             reasoning_storage[message_id].text += message.token;
         }
@@ -999,7 +1001,7 @@ const ask_gpt = async (message_id, message_index = -1, regenerate = false, provi
             content_map.inner.innerHTML = html;
             highlight(content_map.inner);
         }
-        if (message_storage[message_id]) {
+        if (message_storage[message_id] || reasoning_storage[message_id]) {
             const message_provider = message_id in provider_storage ? provider_storage[message_id] : null;
             let usage = {};
             if (usage_storage[message_id]) {
@@ -1064,7 +1066,35 @@ const ask_gpt = async (message_id, message_index = -1, regenerate = false, provi
         }
         // Reload conversation if no error
         if (!error_storage[message_id] && reloadConversation) {
-            await safe_load_conversation(window.conversation_id, scroll);
+            if(await safe_load_conversation(window.conversation_id, scroll)) {
+                const new_message = Array.from(document.querySelectorAll(".message")).at(-1);
+                const new_media = new_message?.querySelector("audio, video, iframe");
+                if (new_media) {
+                    if (new_media.tagName == "IFRAME") {
+                        if (YT) {
+                            async function onPlayerReady(event) {
+                                if (scroll) {
+                                    await lazy_scroll_to_bottom();
+                                }
+                                event.target.setVolume(100);
+                                event.target.playVideo();
+                            }
+                            player = new YT.Player(new_media, {
+                                events: {
+                                    'onReady': onPlayerReady,
+                                }
+                            });
+                        }
+                    } else {
+                        setTimeout(async () => {
+                            if (scroll) {
+                                await lazy_scroll_to_bottom();
+                            }
+                            new_media.play();
+                        }, 2000);
+                    }
+                }
+            }
         }
         let cursorDiv = message_el.querySelector(".cursor");
         if (cursorDiv) cursorDiv.parentNode.removeChild(cursorDiv);
@@ -1121,6 +1151,7 @@ const ask_gpt = async (message_id, message_index = -1, regenerate = false, provi
             api_key: api_key,
             api_base: api_base,
             ignored: ignored,
+            aspect_ratio: window.innerHeight > window.innerWidth ? "9:16" : "16:9",
             ...extra_parameters
         }, Object.values(image_storage), message_id, scroll, finish_message);
     } catch (e) {
@@ -1494,7 +1525,7 @@ const load_conversation = async (conversation_id, scroll=true) => {
     [...new Set(providers)].forEach(async (provider) => {
         await load_provider_parameters(provider);
     });
-    register_message_buttons();
+    await register_message_buttons();
     highlight(message_box);
     regenerate_button.classList.remove("regenerate-hidden");
 
@@ -1504,6 +1535,7 @@ const load_conversation = async (conversation_id, scroll=true) => {
         setTimeout(() => {
             message_box.scrollTop = message_box.scrollHeight;
         }, 500);
+        return true;
     }
 };
 
@@ -1516,7 +1548,7 @@ async function safe_load_conversation(conversation_id, scroll=true) {
         }
     }
     if (!is_running) {
-        load_conversation(conversation_id, scroll);
+        return await load_conversation(conversation_id, scroll);
     }
 }
 

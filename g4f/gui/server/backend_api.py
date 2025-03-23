@@ -9,7 +9,8 @@ import shutil
 import random
 import datetime
 import tempfile
-from flask import Flask, Response, request, jsonify, render_template, send_from_directory
+from flask import Flask, Response, redirect, request, jsonify, render_template, send_from_directory
+from werkzeug.exceptions import NotFound
 from typing import Generator
 from pathlib import Path
 from urllib.parse import quote_plus
@@ -24,7 +25,7 @@ from ...tools.run_tools import iter_run_tools
 from ...errors import ProviderNotFoundError
 from ...image import is_allowed_extension
 from ...cookies import get_cookies_dir
-from ...image.copy_images import secure_filename
+from ...image.copy_images import secure_filename, get_source_url
 from ... import ChatCompletion
 from ... import models
 from .api import Api
@@ -333,45 +334,17 @@ class Backend_Api(Api):
         def get_media(bucket_id, filename, dirname: str = None):
             bucket_dir = get_bucket_dir(secure_filename(bucket_id), secure_filename(dirname))
             media_dir = os.path.join(bucket_dir, "media")
-            if os.path.exists(media_dir):
+            try:
                 return send_from_directory(os.path.abspath(media_dir), filename)
-            return "Not found", 404
+            except NotFound:
+                source_url = get_source_url(request.query_string.decode())
+                if source_url is not None:
+                    return redirect(source_url)
+                raise
 
         @app.route('/files/<dirname>/<bucket_id>/media/<filename>', methods=['GET'])
         def get_media_sub(dirname, bucket_id, filename):
             return get_media(bucket_id, filename, dirname)
-
-        @app.route('/backend-api/v2/files/<bucket_id>/<filename>', methods=['PUT'])
-        def upload_file(bucket_id, filename, dirname: str = None):
-            bucket_dir = secure_filename(bucket_id if dirname is None else dirname)
-            bucket_dir = get_bucket_dir(bucket_dir)
-            filename = secure_filename(filename)
-            bucket_path = Path(bucket_dir)
-            if dirname is not None:
-                bucket_path = bucket_path / secure_filename(bucket_id)
-
-            if not supports_filename(filename):
-                return jsonify({"error": {"message": f"File type not allowed"}}), 400
-
-            if not bucket_path.exists():
-                bucket_path.mkdir(parents=True, exist_ok=True)
-
-            try:
-                file_path = bucket_path / filename
-                file_data = request.get_data()
-                if not file_data:
-                    return jsonify({"error": {"message": "No file data received"}}), 400
-
-                with file_path.open('wb') as f:
-                    f.write(file_data)
-
-                return jsonify({"message": f"File '{filename}' uploaded successfully to bucket '{bucket_id}'"}), 201
-            except Exception as e:
-                return jsonify({"error": {"message": f"Error uploading file: {str(e)}"}}), 500
-    
-        @app.route('/backend-api/v2/files/<bucket_id>/<dirname>/<filename>', methods=['PUT'])
-        def upload_file_sub(bucket_id, filename, dirname):
-            return upload_file(bucket_id, filename, dirname)
 
         @app.route('/backend-api/v2/upload_cookies', methods=['POST'])
         def upload_cookies():
