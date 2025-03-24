@@ -16,7 +16,7 @@ from ..requests.raise_for_status import raise_for_status
 from ..requests.aiohttp import get_connector
 from ..image.copy_images import save_response_media
 from ..image import use_aspect_ratio
-from ..providers.response import FinishReason, Usage, ToolCalls
+from ..providers.response import FinishReason, Usage, ToolCalls, ImageResponse
 from .. import debug
 
 DEFAULT_HEADERS = {
@@ -239,14 +239,11 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         }, aspect_ratio)
         query = "&".join(f"{k}={quote_plus(str(v))}" for k, v in params.items() if v is not None)
         url = f"{cls.image_api_endpoint}prompt/{quote_plus(prompt)}?{query}"
-        #yield ImagePreview(url, prompt)
 
         async with ClientSession(headers=DEFAULT_HEADERS, connector=get_connector(proxy=proxy)) as session:
             async with session.get(url, allow_redirects=True) as response:
                 await raise_for_status(response)
-                async for chunk in save_response_media(response, prompt):
-                    yield chunk
-                    return
+                yield ImageResponse(url, prompt)
 
     @classmethod
     async def _generate_text(

@@ -400,7 +400,6 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                     "client_contextual_info":{"is_dark_mode":False,"time_since_loaded":random.randint(20, 500),"page_height":578,"page_width":1850,"pixel_ratio":1,"screen_height":1080,"screen_width":1920},
                     "paragen_cot_summary_display_override":"allow"
                 }
-                print(data)
                 if conversation.conversation_id is not None:
                     data["conversation_id"] = conversation.conversation_id
                     debug.log(f"OpenaiChat: Use conversation: {conversation.conversation_id}")
