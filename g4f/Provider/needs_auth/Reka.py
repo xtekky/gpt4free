@@ -7,7 +7,8 @@ from ...cookies      import get_cookies
 from ...image        import to_bytes
 
 class Reka(AbstractProvider):
-    url             = "https://chat.reka.ai/"
+    domain          = "space.reka.ai"
+    url             = f"https://{domain}"
     working         = True
     needs_auth      = True
     supports_stream = True
@@ -28,11 +29,11 @@ class Reka(AbstractProvider):
         cls.proxy = proxy
 
         if not api_key:
-            cls.cookies = get_cookies("chat.reka.ai")
+            cls.cookies = get_cookies(cls.domain)
             if not cls.cookies:
-                raise ValueError("No cookies found for chat.reka.ai")
+                raise ValueError(f"No cookies found for {cls.domain}")
             elif "appSession" not in cls.cookies:
-                raise ValueError("No appSession found in cookies for chat.reka.ai, log in or provide bearer_auth")
+                raise ValueError(f"No appSession found in cookies for {cls.domain}, log in or provide bearer_auth")
             api_key = cls.get_access_token(cls)
 
         conversation = []
@@ -53,7 +54,7 @@ class Reka(AbstractProvider):
             'authorization': f'Bearer {api_key}',
             'cache-control': 'no-cache',
             'content-type': 'application/json',
-            'origin': 'https://chat.reka.ai',
+            'origin': cls.url,
             'pragma': 'no-cache',
             'priority': 'u=1, i',
             'sec-ch-ua': '"Chromium";v="124", "Google Chrome";v="124", "Not-A.Brand";v="99"',
@@ -76,7 +77,7 @@ class Reka(AbstractProvider):
 
         tokens = ''
 
-        response = requests.post('https://chat.reka.ai/api/chat', 
+        response = requests.post(f'{cls.url}/api/chat', 
                                 cookies=cls.cookies, headers=headers, json=json_data, proxies=cls.proxy, stream=True)
 
         for completion in response.iter_lines():
@@ -96,10 +97,10 @@ class Reka(AbstractProvider):
             'cache-control': 'no-cache',
             'authorization': f'Bearer {access_token}',
             'content-type': f'multipart/form-data; boundary=----WebKitFormBoundary{boundary_token}',
-            'origin': 'https://chat.reka.ai',
+            'origin': cls.url,
             'pragma': 'no-cache',
             'priority': 'u=1, i',
-            'referer': 'https://chat.reka.ai/chat/hPReZExtDOPvUfF8vCPC',
+            'referer': f'{cls.url}/chat/hPReZExtDOPvUfF8vCPC',
             'sec-ch-ua': '"Chromium";v="124", "Google Chrome";v="124", "Not-A.Brand";v="99"',
             'sec-ch-ua-mobile': '?0',
             'sec-ch-ua-platform': '"macOS"',
@@ -116,7 +117,7 @@ class Reka(AbstractProvider):
         data += image_data.decode('latin-1')
         data += f'\r\n--{boundary}--\r\n'
 
-        response = requests.post('https://chat.reka.ai/api/upload-image', 
+        response = requests.post(f'{cls.url}/api/upload-image', 
                                     cookies=cls.cookies, headers=headers, proxies=cls.proxy, data=data.encode('latin-1'))
 
         return response.json()['media_url']
@@ -128,7 +129,7 @@ class Reka(AbstractProvider):
             'cache-control': 'no-cache',
             'pragma': 'no-cache',
             'priority': 'u=1, i',
-            'referer': 'https://chat.reka.ai/chat',
+            'referer': f'{cls.url}/chat',
             'sec-ch-ua': '"Chromium";v="124", "Google Chrome";v="124", "Not-A.Brand";v="99"',
             'sec-ch-ua-mobile': '?0',
             'sec-ch-ua-platform': '"macOS"',
@@ -139,10 +140,10 @@ class Reka(AbstractProvider):
         }
 
         try:
-            response = requests.get('https://chat.reka.ai/bff/auth/access_token', 
+            response = requests.get(f'{cls.url}/bff/auth/access_token', 
                                     cookies=cls.cookies, headers=headers, proxies=cls.proxy)
 
             return response.json()['accessToken']
 
         except Exception as e:
-            raise ValueError(f"Failed to get access token: {e}, refresh your cookies / log in into chat.reka.ai")
+            raise ValueError(f"Failed to get access token: {e}, refresh your cookies / log in into {cls.domain}")
