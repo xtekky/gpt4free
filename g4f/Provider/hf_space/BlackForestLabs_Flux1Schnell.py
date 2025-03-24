@@ -37,8 +37,6 @@ class BlackForestLabs_Flux1Schnell(AsyncGeneratorProvider, ProviderModelMixin):
         randomize_seed: bool = True,
         **kwargs
     ) -> AsyncResult:
-
-        model = cls.get_model(model)
         width = max(32, width - (width % 8))
         height = max(32, height - (height % 8))
         prompt = format_image_prompt(messages, prompt)

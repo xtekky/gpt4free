@@ -24,16 +24,13 @@ async def raise_for_status_async(response: Union[StreamResponse, ClientResponse]
     if response.ok:
         return
     if message is None:
-            content_type = response.headers.get("content-type", "")
-        # if content_type.startswith("application/json"):
-        #     try:
-        #         data = await response.json()
-        #         message = data.get("error")
-        #         if isinstance(message, dict):
-        #                 message = data.get("message")
-        #     except Exception:
-        #         pass
-        # else:
+        content_type = response.headers.get("content-type", "")
+        if content_type.startswith("application/json"):
+            message = await response.json()
+            message = message.get("error", message)
+            if isinstance(message, dict):
+                message = message.get("message", message)
+        else:
             text = (await response.text()).strip()
             is_html = content_type.startswith("text/html") or text.startswith("<!DOCTYPE")
             message = "HTML content" if is_html else text
@@ -47,7 +44,9 @@ async def raise_for_status_async(response: Union[StreamResponse, ClientResponse]
     elif response.status == 403 and is_openai(text):
         raise ResponseStatusError(f"Response {response.status}: OpenAI Bot detected")
     elif response.status == 502:
-        raise ResponseStatusError(f"Response {response.status}: Bad gateway")
+        raise ResponseStatusError(f"Response {response.status}: Bad Gateway")
+    elif response.status == 504:
+        raise RateLimitError(f"Response {response.status}: Gateway Timeout ")
     else:
         raise ResponseStatusError(f"Response {response.status}: {message}")
 
@@ -70,6 +69,8 @@ def raise_for_status(response: Union[Response, StreamResponse, ClientResponse, R
     elif response.status_code == 403 and is_openai(response.text):
         raise ResponseStatusError(f"Response {response.status_code}: OpenAI Bot detected")
     elif response.status_code == 502:
-        raise ResponseStatusError(f"Response {response.status_code}: Bad gateway")
+        raise ResponseStatusError(f"Response {response.status_code}: Bad Gateway")
+    elif response.status_code == 504:
+        raise RateLimitError(f"Response {response.status_code}: Gateway Timeout ")
     else:
         raise ResponseStatusError(f"Response {response.status_code}: {message}")

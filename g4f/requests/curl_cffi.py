@@ -64,6 +64,7 @@ class StreamResponse:
         inner: Response = await self.inner
         self.inner = inner
         self.url = inner.url
+        self.method = inner.request.method
         self.request = inner.request
         self.status: int = inner.status_code
         self.reason: str = inner.reason

@@ -13,10 +13,18 @@ try:
 except ImportError:
     has_requirements = False
 
+from ..providers.helper import filter_none
 from ..typing import ImageType, Union, Image
 from ..errors import MissingRequirementsError
 
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'}
+ALLOWED_EXTENSIONS = {
+    # Image
+    'png', 'jpg', 'jpeg', 'gif', 'webp',
+    # Audio
+    'wav', 'mp3', 'flac', 'opus', 'ogg',
+    # Video
+    'mkv', 'webm', 'mp4'
+}
 
 EXTENSIONS_MAP: dict[str, str] = {
     "image/png": "png",
@@ -258,6 +266,28 @@ def to_input_audio(audio: ImageType, filename: str = None) -> str:
             "format": audio.group(1).replace("mpeg", "mp3")
         }
     raise ValueError("Invalid input audio")
+
+def use_aspect_ratio(extra_data: dict, aspect_ratio: str) -> Image:
+    extra_data = filter_none(**extra_data)
+    if aspect_ratio == "1:1":
+        extra_data = {
+            "width": 1024,
+            "height": 1024,
+            **extra_data
+        }
+    elif aspect_ratio == "16:9":
+        extra_data = {
+            "width": 800,
+            "height": 512,
+            **extra_data
+        }
+    elif aspect_ratio == "9:16":
+        extra_data = {
+            "width": 512,
+            "height": 800,
+            **extra_data
+        }
+    return extra_data
 
 class ImageDataResponse():
     def __init__(

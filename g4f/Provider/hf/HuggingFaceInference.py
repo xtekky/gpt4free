@@ -10,6 +10,8 @@ from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin, format_p
 from ...errors import ModelNotSupportedError, ResponseError
 from ...requests import StreamSession, raise_for_status
 from ...providers.response import FinishReason, ImageResponse
+from ...image.copy_images import save_response_media
+from ...image import use_aspect_ratio
 from ..helper import format_image_prompt, get_last_user_message
 from .models import default_model, default_image_model, model_aliases, text_models, image_models, vision_models
 from ... import debug
@@ -77,8 +79,9 @@ class HuggingFaceInference(AsyncGeneratorProvider, ProviderModelMixin):
         action: str = None,
         extra_data: dict = {},
         seed: int = None,
-        width: int = 1024,
-        height: int = 1024,
+        aspect_ratio: str = None,
+        width: int = None,
+        height: int = None,
         **kwargs
     ) -> AsyncResult:
         try:
@@ -98,14 +101,14 @@ class HuggingFaceInference(AsyncGeneratorProvider, ProviderModelMixin):
         ) as session:
             try:
                 if model in provider_together_urls:
-                    data = {
+                    data = use_aspect_ratio({
                         "response_format": "url",
                         "prompt": format_image_prompt(messages, prompt),
                         "model": model,
                         "width": width,
                         "height": height,
                         **extra_data
-                    }
+                    }, aspect_ratio)
                     async with session.post(provider_together_urls[model], json=data) as response:
                         if response.status == 404:
                             raise ModelNotSupportedError(f"Model is not supported: {model}")
@@ -176,12 +179,10 @@ class HuggingFaceInference(AsyncGeneratorProvider, ProviderModelMixin):
                     debug.log(f"Special token: {is_special}")
                     yield FinishReason("stop" if is_special else "length")
                 else:
-                    if response.headers["content-type"].startswith("image/"):
-                        base64_data = base64.b64encode(b"".join([chunk async for chunk in response.iter_content()]))
-                        url = f"data:{response.headers['content-type']};base64,{base64_data.decode()}"
-                        yield ImageResponse(url, inputs)
-                    else:
-                        yield (await response.json())[0]["generated_text"].strip()
+                    async for chunk in save_response_media(response, prompt):
+                        yield chunk
+                        return
+                    yield (await response.json())[0]["generated_text"].strip()
 
 def format_prompt_mistral(messages: Messages, do_continue: bool = False) -> str:
     system_messages = [message["content"] for message in messages if message["role"] == "system"]

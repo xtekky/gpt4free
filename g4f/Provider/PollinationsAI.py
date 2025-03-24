@@ -14,7 +14,9 @@ from ..image import to_data_uri, is_data_an_audio, to_input_audio
 from ..errors import ModelNotFoundError
 from ..requests.raise_for_status import raise_for_status
 from ..requests.aiohttp import get_connector
-from ..providers.response import ImageResponse, ImagePreview, FinishReason, Usage, Audio, ToolCalls
+from ..image.copy_images import save_response_media
+from ..image import use_aspect_ratio
+from ..providers.response import FinishReason, Usage, ToolCalls, ImageResponse
 from .. import debug
 
 DEFAULT_HEADERS = {
@@ -138,8 +140,9 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         cache: bool = False,
         # Image generation parameters
         prompt: str = None,
-        width: int = 1024,
-        height: int = 1024,
+        aspect_ratio: str = "1:1",
+        width: int = None,
+        height: int = None,
         seed: Optional[int] = None,
         nologo: bool = True,
         private: bool = False,
@@ -176,6 +179,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                 model=model,
                 prompt=format_image_prompt(messages, prompt),
                 proxy=proxy,
+                aspect_ratio=aspect_ratio,
                 width=width,
                 height=height,
                 seed=seed,
@@ -211,6 +215,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         model: str,
         prompt: str,
         proxy: str,
+        aspect_ratio: str,
         width: int,
         height: int,
         seed: Optional[int],
@@ -222,25 +227,23 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
     ) -> AsyncResult:
         if not cache and seed is None:
             seed = random.randint(9999, 99999999)
-        params = {
-            "seed": str(seed) if seed is not None else None,
-            "width": str(width),
-            "height": str(height),
+        params = use_aspect_ratio({
+            "seed": seed,
+            "width": width,
+            "height": height,
             "model": model,
             "nologo": str(nologo).lower(),
             "private": str(private).lower(),
             "enhance": str(enhance).lower(),
             "safe": str(safe).lower()
-        }
-        query = "&".join(f"{k}={quote_plus(v)}" for k, v in params.items() if v is not None)
+        }, aspect_ratio)
+        query = "&".join(f"{k}={quote_plus(str(v))}" for k, v in params.items() if v is not None)
         url = f"{cls.image_api_endpoint}prompt/{quote_plus(prompt)}?{query}"
-        #yield ImagePreview(url, prompt)
 
         async with ClientSession(headers=DEFAULT_HEADERS, connector=get_connector(proxy=proxy)) as session:
             async with session.get(url, allow_redirects=True) as response:
                 await raise_for_status(response)
-                image_url = str(response.url)
-                yield ImageResponse(image_url, prompt)
+                yield ImageResponse(url, prompt)
 
     @classmethod
     async def _generate_text(
@@ -305,10 +308,10 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
             })
             async with session.post(url, json=data) as response:
                 await raise_for_status(response)
-                if response.headers["content-type"] == "audio/mpeg":
-                    yield Audio(await response.read())
+                async for chunk in save_response_media(response, messages[-1]["content"]):
+                    yield chunk
                     return
-                elif response.headers["content-type"].startswith("text/plain"):
+                if response.headers["content-type"].startswith("text/plain"):
                     yield await response.text()
                     return
                 elif response.headers["content-type"].startswith("text/event-stream"):

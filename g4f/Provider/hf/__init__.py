@@ -9,6 +9,7 @@ from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from .HuggingChat import HuggingChat
 from .HuggingFaceAPI import HuggingFaceAPI
 from .HuggingFaceInference import HuggingFaceInference
+from .HuggingFaceMedia import HuggingFaceMedia
 from .models import model_aliases, vision_models, default_vision_model
 from ... import debug
 
@@ -51,6 +52,12 @@ class HuggingFace(AsyncGeneratorProvider, ProviderModelMixin):
                 debug.error(f"{cls.__name__} {type(e).__name__}; {e}")
         if not cls.image_models:
             cls.get_models()
+        try:
+            async for chunk in HuggingFaceMedia.create_async_generator(model, messages, **kwargs):
+                yield chunk
+            return
+        except ModelNotSupportedError:
+            pass
         if model in cls.image_models:
             if "api_key" not in kwargs:
                 async for chunk in HuggingChat.create_async_generator(model, messages, **kwargs):

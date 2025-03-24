@@ -24,8 +24,13 @@ class CohereForAI_C4AI_Command(AsyncGeneratorProvider, ProviderModelMixin):
         "command-r": "command-r",
         "command-r7b": "command-r7b-12-2024",
     }
-    
     models = list(model_aliases.keys())
+
+    @classmethod
+    def get_model(cls, model: str, **kwargs) -> str:
+        if model in cls.model_aliases.values():
+            return model
+        return super().get_model(model, **kwargs)
 
     @classmethod
     async def create_async_generator(

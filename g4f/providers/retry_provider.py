@@ -4,7 +4,7 @@ import random
 
 from ..typing import Type, List, CreateResult, Messages, AsyncResult
 from .types import BaseProvider, BaseRetryProvider, ProviderType
-from .response import ImageResponse, ProviderInfo
+from .response import MediaResponse, ProviderInfo
 from .. import debug
 from ..errors import RetryProviderError, RetryNoProviderError
 
@@ -59,7 +59,7 @@ class IterListProvider(BaseRetryProvider):
                 for chunk in response:
                     if chunk:
                         yield chunk
-                        if isinstance(chunk, (str, ImageResponse)):
+                        if isinstance(chunk, (str, MediaResponse)):
                             started = True
                 if started:
                     return
@@ -94,7 +94,7 @@ class IterListProvider(BaseRetryProvider):
                     async for chunk in response:
                         if chunk:
                             yield chunk
-                            if isinstance(chunk, (str, ImageResponse)):
+                            if isinstance(chunk, (str, MediaResponse)):
                                 started = True
                 elif response:
                     response = await response

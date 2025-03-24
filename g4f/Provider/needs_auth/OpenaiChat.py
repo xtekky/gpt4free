@@ -203,7 +203,21 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
         Returns:
             A list of messages with the user input and the image, if any
         """
-        # Create a message object with the user role and the content
+        # merged_messages = []
+        # last_message = None
+        # for message in messages:
+        #     current_message = last_message
+        #     if current_message is not None:
+        #         if current_message["role"] == message["role"]:
+        #             current_message["content"] += "\n" + message["content"]
+        #         else:
+        #             merged_messages.append(current_message)
+        #             last_message = message.copy()
+        #     else:
+        #         last_message = message.copy()
+        # if last_message is not None:
+        #     merged_messages.append(last_message)
+
         messages = [{
             "id": str(uuid.uuid4()),
             "author": {"role": message["role"]},
@@ -370,7 +384,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                     #f"Proofofwork: {'False' if proofofwork is None else proofofwork[:12]+'...'}",
                     #f"AccessToken: {'False' if cls._api_key is None else cls._api_key[:12]+'...'}",
                 )]
-                if action == "continue" and conversation.message_id is None:
+                if action is None or action == "variant" or action == "continue" and conversation.message_id is None:
                     action = "next"
                 data = {
                     "action": action,

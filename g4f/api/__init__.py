@@ -39,7 +39,7 @@ from g4f.client import AsyncClient, ChatCompletion, ImagesResponse, convert_to_p
 from g4f.providers.response import BaseConversation, JsonConversation
 from g4f.client.helper import filter_none
 from g4f.image import is_data_an_media
-from g4f.image.copy_images import images_dir, copy_images, get_source_url
+from g4f.image.copy_images import images_dir, copy_media, get_source_url
 from g4f.errors import ProviderNotFoundError, ModelNotFoundError, MissingAuthError, NoValidHarFileError
 from g4f.cookies import read_cookie_files, get_cookies_dir
 from g4f.Provider import ProviderType, ProviderUtils, __providers__
@@ -594,10 +594,10 @@ class Api:
                         ssl = False
                 if source_url is not None:
                     try:
-                        await copy_images(
+                        await copy_media(
                             [source_url],
                             target=target, ssl=ssl)
-                        debug.log(f"Image copied from {source_url}")
+                        debug.log(f"File copied from {source_url}")
                     except Exception as e:
                         debug.error(f"Download failed:  {source_url}\n{type(e).__name__}: {e}")
                         return RedirectResponse(url=source_url)

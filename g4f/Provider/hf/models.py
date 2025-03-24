@@ -47,9 +47,5 @@ extra_models = [
     "NousResearch/Hermes-3-Llama-3.1-8B",
 ]
 default_vision_model = "meta-llama/Llama-3.2-11B-Vision-Instruct"
+default_llama_model = "meta-llama/Llama-3.3-70B-Instruct"
 vision_models = [default_vision_model, "Qwen/Qwen2-VL-7B-Instruct"]
-llama_models = {
-    "name": "llama-3",
-    "text": "meta-llama/Llama-3.3-70B-Instruct",
-    "vision": "meta-llama/Llama-3.2-11B-Vision-Instruct",
-}

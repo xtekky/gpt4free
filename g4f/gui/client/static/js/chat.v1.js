@@ -1,12 +1,13 @@
 const colorThemes       = document.querySelectorAll('[name="theme"]');
-const message_box       = document.getElementById(`messages`);
-const messageInput      = document.getElementById(`message-input`);
+const chatBody          = document.getElementById(`chatBody`);
+const userInput         = document.getElementById("userInput");
 const box_conversations = document.querySelector(`.top`);
 const stop_generating   = document.querySelector(`.stop_generating`);
 const regenerate_button = document.querySelector(`.regenerate`);
-const sidebar           = document.querySelector(".conversations");
+const sidebar           = document.querySelector(".sidebar");
 const sidebar_button    = document.querySelector(".mobile-sidebar");
-const sendButton        = document.getElementById("send-button");
+const sendButton        = document.getElementById("sendButton");
+const addButton         = document.getElementById("addButton");
 const imageInput        = document.querySelector(".image-label");
 const mediaSelect       = document.querySelector(".media-select");
 const imageSelect       = document.getElementById("image");
@@ -20,7 +21,7 @@ const modelProvider     = document.getElementById("model2");
 const custom_model      = document.getElementById("model3");
 const chatPrompt        = document.getElementById("chatPrompt");
 const settings          = document.querySelector(".settings");
-const chat              = document.querySelector(".conversation");
+const chat              = document.querySelector(".chat-container");
 const album             = document.querySelector(".images");
 const log_storage       = document.querySelector(".log");
 const switchInput       = document.getElementById("switch");
@@ -47,11 +48,11 @@ let wakeLock = null;
 let countTokensEnabled = true;
 let reloadConversation = true;
 
-messageInput.addEventListener("blur", () => {
+userInput.addEventListener("blur", () => {
     document.documentElement.scrollTop = 0;
 });
 
-messageInput.addEventListener("focus", () => {
+userInput.addEventListener("focus", () => {
     document.documentElement.scrollTop = document.documentElement.scrollHeight;
 });
 
@@ -80,8 +81,12 @@ if (window.markdownit) {
             .replaceAll('<code>', '<code class="language-plaintext">')
             .replaceAll('&lt;i class=&quot;', '<i class="')
             .replaceAll('&quot;&gt;&lt;/i&gt;', '"></i>')
-            .replaceAll('&lt;iframe type=&quot;text/html&quot; src=&quot;', '<iframe type="text/html" frameborder="0" allow="fullscreen" src="')
-            .replaceAll('&quot;&gt;&lt;/iframe&gt;', `?enablejsapi=1&origin=${new URL(location.href).origin}"></iframe>`)
+            .replaceAll('&lt;video controls src=&quot;', '<video controls width="400" src="')
+            .replaceAll('&quot;&gt;&lt;/video&gt;', '"></video>')
+            .replaceAll('&lt;audio controls src=&quot;', '<audio controls src="')
+            .replaceAll('&quot;&gt;&lt;/audio&gt;', '"></audio>')
+            .replaceAll('&lt;iframe type=&quot;text/html&quot; src=&quot;', '<iframe type="text/html" frameborder="0" allow="fullscreen" height="224" width="400" src="')
+            .replaceAll('&quot;&gt;&lt;/iframe&gt;', `?enablejsapi=1"></iframe>`)
     }
 }
 
@@ -91,7 +96,7 @@ function render_reasoning(reasoning, final = false) {
     </div>` : "";
     return `<div class="reasoning_body">
         <div class="reasoning_title">
-           <strong>Reasoning <i class="brain">🧠</i>:</strong> ${escapeHtml(reasoning.status)}
+           <strong>${reasoning.label ? reasoning.label :'Reasoning <i class="brain">🧠</i>'}:</strong> ${escapeHtml(reasoning.status)}
         </div>
         ${inner_text}
     </div>`;
@@ -212,8 +217,8 @@ const get_message_el = (el) => {
 }
 
 function register_message_images() {
-    message_box.querySelectorAll(`.loading-indicator`).forEach((el) => el.remove());
-    message_box.querySelectorAll(`.message img:not([alt="your avatar"])`).forEach(async (el) => {
+    chatBody.querySelectorAll(`.loading-indicator`).forEach((el) => el.remove());
+    chatBody.querySelectorAll(`.message img:not([alt="your avatar"])`).forEach(async (el) => {
         if (!el.complete) {
             const indicator = document.createElement("span");
             indicator.classList.add("loading-indicator");
@@ -229,7 +234,7 @@ function register_message_images() {
                     let seed = Math.floor(Date.now() / 1000);
                     newPath = `https://image.pollinations.ai/prompt/${newPath}?seed=${seed}&nologo=true`;
                     let downloadUrl = newPath;
-                    if (document.getElementById("download_images")?.checked) {
+                    if (document.getElementById("download_media")?.checked) {
                         downloadUrl = `/images/${filename}?url=${escapeHtml(newPath)}`;
                     }
                     const link = document.createElement("a");
@@ -260,7 +265,7 @@ function register_message_images() {
 }
 
 const register_message_buttons = async () => {
-    message_box.querySelectorAll(".message .content .provider").forEach(async (el) => {
+    chatBody.querySelectorAll(".message .content .provider").forEach(async (el) => {
         if (el.dataset.click) {
             return
         }
@@ -284,7 +289,7 @@ const register_message_buttons = async () => {
         });
     });
 
-    message_box.querySelectorAll(".message .fa-xmark").forEach(async (el) => {
+    chatBody.querySelectorAll(".message .fa-xmark").forEach(async (el) => {
         if (el.dataset.click) {
             return
         }
@@ -302,7 +307,7 @@ const register_message_buttons = async () => {
         });
     });
 
-    message_box.querySelectorAll(".message .fa-clipboard").forEach(async (el) => {
+    chatBody.querySelectorAll(".message .fa-clipboard").forEach(async (el) => {
         if (el.dataset.click) {
             return
         }
@@ -326,7 +331,7 @@ const register_message_buttons = async () => {
         });
     })
 
-    message_box.querySelectorAll(".message .fa-file-export").forEach(async (el) => {
+    chatBody.querySelectorAll(".message .fa-file-export").forEach(async (el) => {
         if (el.dataset.click) {
             return
         }
@@ -351,7 +356,7 @@ const register_message_buttons = async () => {
         });
     })
 
-    message_box.querySelectorAll(".message .fa-volume-high").forEach(async (el) => {
+    chatBody.querySelectorAll(".message .fa-volume-high").forEach(async (el) => {
         if (el.dataset.click) {
             return
         }
@@ -362,7 +367,7 @@ const register_message_buttons = async () => {
             if (message_el.dataset.synthesize_url) {
                 el.classList.add("active");
                 setTimeout(()=>el.classList.remove("active"), 2000);
-                const media_player = document.querySelector(".media_player");
+                const media_player = document.querySelector(".media-player");
                 if (!media_player.classList.contains("show")) {
                     media_player.classList.add("show");
                     audio = new Audio(message_el.dataset.synthesize_url);
@@ -378,7 +383,7 @@ const register_message_buttons = async () => {
         });
     });
 
-    message_box.querySelectorAll(".message .regenerate_button").forEach(async (el) => {
+    chatBody.querySelectorAll(".message .regenerate_button").forEach(async (el) => {
         if (el.dataset.click) {
             return
         }
@@ -391,7 +396,7 @@ const register_message_buttons = async () => {
         });
     });
 
-    message_box.querySelectorAll(".message .continue_button").forEach(async (el) => {
+    chatBody.querySelectorAll(".message .continue_button").forEach(async (el) => {
         if (el.dataset.click) {
             return
         }
@@ -407,7 +412,7 @@ const register_message_buttons = async () => {
         });
     });
 
-    message_box.querySelectorAll(".message .fa-whatsapp").forEach(async (el) => {
+    chatBody.querySelectorAll(".message .fa-whatsapp").forEach(async (el) => {
         if (el.dataset.click) {
             return
         }
@@ -418,7 +423,7 @@ const register_message_buttons = async () => {
             });
     });
 
-    message_box.querySelectorAll(".message .fa-print").forEach(async (el) => {
+    chatBody.querySelectorAll(".message .fa-print").forEach(async (el) => {
         if (el.dataset.click) {
             return
         }
@@ -426,7 +431,7 @@ const register_message_buttons = async () => {
         el.addEventListener("click", async () => {
             const message_el = get_message_el(el);
             el.classList.add("clicked");
-            message_box.scrollTop = 0;
+            chatBody.scrollTop = 0;
             message_el.classList.add("print");
             setTimeout(() => {
                 el.classList.remove("clicked");
@@ -436,7 +441,7 @@ const register_message_buttons = async () => {
         });
     });
 
-    message_box.querySelectorAll(".message .reasoning_title").forEach(async (el) => {
+    chatBody.querySelectorAll(".message .reasoning_title").forEach(async (el) => {
         if (el.dataset.click) {
             return
         }
@@ -464,15 +469,15 @@ const delete_conversations = async () => {
 };
 
 const handle_ask = async (do_ask_gpt = true) => {
-    messageInput.style.height = "82px";
-    messageInput.focus();
+    userInput.style.height = "82px";
+    userInput.focus();
     await scroll_to_bottom();
 
-    let message = messageInput.value.trim();
+    let message = userInput.value.trim();
     if (message.length <= 0) {
         return;
     }
-    messageInput.value = "";
+    userInput.value = "";
     await count_input()
     await add_conversation(window.conversation_id);
 
@@ -514,7 +519,7 @@ const handle_ask = async (do_ask_gpt = true) => {
             </div>
         </div>
     `;
-    message_box.appendChild(message_el);
+    chatBody.appendChild(message_el);
     highlight(message_el);
     if (do_ask_gpt) {
         const all_pinned = document.querySelectorAll(".buttons button.pinned")
@@ -579,10 +584,10 @@ stop_generating.addEventListener("click", async () => {
     await load_conversation(window.conversation_id, false);
 });
 
-document.querySelector(".media_player .fa-x").addEventListener("click", ()=>{
-    const media_player = document.querySelector(".media_player");
+document.querySelector(".media-player .fa-x").addEventListener("click", ()=>{
+    const media_player = document.querySelector(".media-player");
     media_player.classList.remove("show");
-    const audio = document.querySelector(".media_player audio");
+    const audio = document.querySelector(".media-player audio");
     media_player.removeChild(audio);
 });
 
@@ -862,12 +867,6 @@ async function add_message_chunk(message, message_id, provider, scroll, finish_m
             content_map.inner.innerHTML = markdown_render(message.preview);
             await register_message_images();
         }
-    } else if (message.type == "audio") {
-        audio = new Audio(message.audio);
-        audio.controls = true;   
-        content_map.inner.appendChild(audio);
-        audio.play();
-        reloadConversation = false;
     } else if (message.type == "content") {
         message_storage[message_id] += message.content;
         update_message(content_map, message_id, null, scroll);
@@ -895,6 +894,8 @@ async function add_message_chunk(message, message_id, provider, scroll, finish_m
             message_storage[message_id] = "";
         } else if (message.status) {
             reasoning_storage[message_id].status = message.status;
+        } if (message.label) {
+            reasoning_storage[message_id].label = message.label;
         } if (message.token) {
             reasoning_storage[message_id].text += message.token;
         }
@@ -948,7 +949,7 @@ const ask_gpt = async (message_id, message_index = -1, regenerate = false, provi
         await lazy_scroll_to_bottom();
     }
     if (countTokensEnabled) {
-        let count_total = message_box.querySelector('.count_total');
+        let count_total = chatBody.querySelector('.count_total');
         count_total ? count_total.parentElement.removeChild(count_total) : null;
     }
 
@@ -970,9 +971,9 @@ const ask_gpt = async (message_id, message_index = -1, regenerate = false, provi
         </div>
     `;
     if (message_index == -1) {
-        message_box.appendChild(message_el);
+        chatBody.appendChild(message_el);
     } else {
-        parent_message = message_box.querySelector(`.message[data-index="${message_index}"]`);
+        parent_message = chatBody.querySelector(`.message[data-index="${message_index}"]`);
         if (!parent_message) {
             return;
         }
@@ -1001,7 +1002,7 @@ const ask_gpt = async (message_id, message_index = -1, regenerate = false, provi
             content_map.inner.innerHTML = html;
             highlight(content_map.inner);
         }
-        if (message_storage[message_id]) {
+        if (message_storage[message_id] || reasoning_storage[message_id]) {
             const message_provider = message_id in provider_storage ? provider_storage[message_id] : null;
             let usage = {};
             if (usage_storage[message_id]) {
@@ -1066,7 +1067,35 @@ const ask_gpt = async (message_id, message_index = -1, regenerate = false, provi
         }
         // Reload conversation if no error
         if (!error_storage[message_id] && reloadConversation) {
-            await safe_load_conversation(window.conversation_id, scroll);
+            if(await safe_load_conversation(window.conversation_id, scroll)) {
+                const new_message = Array.from(document.querySelectorAll(".message")).at(-1);
+                const new_media = new_message?.querySelector("audio, video, iframe");
+                if (new_media) {
+                    if (new_media.tagName == "IFRAME") {
+                        if (YT) {
+                            async function onPlayerReady(event) {
+                                if (scroll) {
+                                    await lazy_scroll_to_bottom();
+                                }
+                                event.target.setVolume(100);
+                                event.target.playVideo();
+                            }
+                            player = new YT.Player(new_media, {
+                                events: {
+                                    'onReady': onPlayerReady,
+                                }
+                            });
+                        }
+                    } else {
+                        setTimeout(async () => {
+                            if (scroll) {
+                                await lazy_scroll_to_bottom();
+                            }
+                            new_media.play();
+                        }, 2000);
+                    }
+                }
+            }
         }
         let cursorDiv = message_el.querySelector(".cursor");
         if (cursorDiv) cursorDiv.parentNode.removeChild(cursorDiv);
@@ -1090,7 +1119,7 @@ const ask_gpt = async (message_id, message_index = -1, regenerate = false, provi
         } else {
             api_key = get_api_key_by_provider(provider);
         }
-        const download_images = document.getElementById("download_images")?.checked;
+        const download_media = document.getElementById("download_media")?.checked;
         let api_base;
         if (provider == "Custom") {
             api_base = document.getElementById("api_base")?.value;
@@ -1119,10 +1148,11 @@ const ask_gpt = async (message_id, message_index = -1, regenerate = false, provi
             provider: provider,
             messages: messages,
             action: action,
-            download_images: download_images,
+            download_media: download_media,
             api_key: api_key,
             api_base: api_base,
             ignored: ignored,
+            aspect_ratio: window.innerHeight > window.innerWidth ? "9:16" : "16:9",
             ...extra_parameters
         }, Object.values(image_storage), message_id, scroll, finish_message);
     } catch (e) {
@@ -1137,7 +1167,7 @@ const ask_gpt = async (message_id, message_index = -1, regenerate = false, provi
 
 async function scroll_to_bottom() {
     window.scrollTo(0, 0);
-    message_box.scrollTop = message_box.scrollHeight;
+    chatBody.scrollTop = chatBody.scrollHeight;
 }
 
 async function lazy_scroll_to_bottom() {
@@ -1164,10 +1194,10 @@ const clear_conversations = async () => {
 };
 
 const clear_conversation = async () => {
-    let messages = message_box.getElementsByTagName(`div`);
+    let messages = chatBody.getElementsByTagName(`div`);
 
     while (messages.length > 0) {
-        message_box.removeChild(messages[0]);
+        chatBody.removeChild(messages[0]);
     }
 };
 
@@ -1272,7 +1302,7 @@ const set_conversation = async (conversation_id) => {
     await clear_conversation();
     await load_conversation(conversation_id);
     load_conversations();
-    hide_sidebar();
+    hide_sidebar(true);
 };
 
 const new_conversation = async () => {
@@ -1343,10 +1373,11 @@ const load_conversation = async (conversation_id, scroll=true) => {
         return;
     }
     let title = conversation.title || conversation.new_title;
-    title = title ? `${title} - g4f` : window.title;
+    title = title ? `${title} - G4F` : window.title;
     if (title) {
         document.title = title;
     }
+    document.querySelector(".chat-header").innerText = title;
 
     if (chatPrompt) {
         chatPrompt.value = conversation.system || "";
@@ -1492,20 +1523,21 @@ const load_conversation = async (conversation_id, scroll=true) => {
         }
     }
 
-    message_box.innerHTML = elements.join("");
+    chatBody.innerHTML = elements.join("");
     [...new Set(providers)].forEach(async (provider) => {
         await load_provider_parameters(provider);
     });
-    register_message_buttons();
-    highlight(message_box);
+    await register_message_buttons();
+    highlight(chatBody);
     regenerate_button.classList.remove("regenerate-hidden");
 
     if (scroll && document.querySelector("#input-count input").checked) {
-        message_box.scrollTo({ top: message_box.scrollHeight, behavior: "smooth" });
+        chatBody.scrollTo({ top: chatBody.scrollHeight, behavior: "smooth" });
 
         setTimeout(() => {
-            message_box.scrollTop = message_box.scrollHeight;
+            chatBody.scrollTop = chatBody.scrollHeight;
         }, 500);
+        return true;
     }
 };
 
@@ -1518,7 +1550,7 @@ async function safe_load_conversation(conversation_id, scroll=true) {
         }
     }
     if (!is_running) {
-        load_conversation(conversation_id, scroll);
+        return await load_conversation(conversation_id, scroll);
     }
 }
 
@@ -1696,15 +1728,15 @@ const load_conversations = async () => {
     box_conversations.innerHTML += html.join("");
 };
 
-const hide_input = document.querySelector(".toolbar .hide-input");
+const hide_input = document.querySelector(".chat-toolbar .hide-input");
 hide_input.addEventListener("click", async (e) => {
     const icon = hide_input.querySelector("i");
     const func = icon.classList.contains("fa-angles-down") ? "add" : "remove";
     const remv = icon.classList.contains("fa-angles-down") ? "remove" : "add";
     icon.classList[func]("fa-angles-up");
     icon.classList[remv]("fa-angles-down");
-    document.querySelector(".conversation .user-input").classList[func]("hidden");
-    document.querySelector(".conversation .buttons").classList[func]("hidden");
+    document.querySelector(".chat-footer .user-input").classList[func]("hidden");
+    document.querySelector(".chat-footer .buttons").classList[func]("hidden");
 });
 
 const uuid = () => {
@@ -1727,8 +1759,10 @@ function get_message_id() {
     return BigInt(`0b${unix}${random_bytes}`).toString();
 };
 
-async function hide_sidebar() {
-    sidebar.classList.remove("shown");
+async function hide_sidebar(remove_shown=false) {
+    if (remove_shown) {
+        sidebar.classList.remove("shown");
+    }
     sidebar_button.classList.remove("rotated");
     settings.classList.add("hidden");
     chat.classList.remove("hidden");
@@ -1748,9 +1782,11 @@ async function hide_settings() {
 window.addEventListener('popstate', hide_sidebar, false);
 
 sidebar_button.addEventListener("click", async () => {
-    if (sidebar.classList.contains("shown")) {
+    if (sidebar.classList.contains("shown") || sidebar_button.classList.contains("rotated")) {
         await hide_sidebar();
         chat.classList.remove("hidden");
+        sidebar.classList.remove("shown");
+        sidebar_button.classList.remove("rotated");
     } else {
         await show_menu();
         chat.classList.add("hidden");
@@ -1863,7 +1899,7 @@ const load_settings_storage = async () => {
 const say_hello = async () => {
     tokens = [`Hello`, `!`, ` How`,` can`, ` I`,` assist`,` you`,` today`,`?`]
 
-    message_box.innerHTML += `
+    chatBody.innerHTML += `
         <div class="message">
             <div class="assistant">
                 ${gpt_image}
@@ -1883,6 +1919,9 @@ const say_hello = async () => {
 }
 
 function count_tokens(model, text, prompt_tokens = 0) {
+    if (!text) {
+        return 0;
+    }
     if (model) {
         if (window.llamaTokenizer)
         if (model.startsWith("llama") || model.startsWith("codellama")) {
@@ -1958,7 +1997,7 @@ function update_message(content_map, message_id, content = null, scroll = true) 
     }, 100));
 };
 
-let countFocus = messageInput;
+let countFocus = userInput;
 const count_input = async () => {
     if (countTokensEnabled && countFocus.value) {
         if (window.matchMedia("(pointer:coarse)")) {
@@ -1970,14 +2009,14 @@ const count_input = async () => {
         inputCount.innerText = "";
     }
 };
-messageInput.addEventListener("keyup", count_input);
+userInput.addEventListener("keyup", count_input);
 chatPrompt.addEventListener("keyup", count_input);
 chatPrompt.addEventListener("focus", function() {
     countFocus = chatPrompt;
     count_input();
 });
 chatPrompt.addEventListener("input", function() {
-    countFocus = messageInput;
+    countFocus = userInput;
     count_input();
 });
 
@@ -2007,9 +2046,9 @@ async function on_load() {
         let chat_url = new URL(window.location.href)
         let chat_params = new URLSearchParams(chat_url.search);
         if (chat_params.get("prompt")) {
-            messageInput.value = chat_params.get("prompt");
-            messageInput.style.height = messageInput.scrollHeight  + "px";
-            messageInput.focus();
+            userInput.value = chat_params.get("prompt");
+            userInput.style.height = userInput.scrollHeight  + "px";
+            userInput.focus();
             //await handle_ask();
         }
     } else if (/\/chat\/[?$]/.test(window.location.href)) {
@@ -2059,10 +2098,10 @@ const load_provider_option = (input, provider_name) => {
 async function on_api() {
     load_version();
     let prompt_lock = false;
-    messageInput.addEventListener("keydown", async (evt) => {
+    userInput.addEventListener("keydown", async (evt) => {
         if (prompt_lock) return;
         // If not mobile and not shift enter
-        let do_enter = messageInput.value.endsWith("\n\n\n\n");
+        let do_enter = userInput.value.endsWith("\n\n\n\n");
         if (do_enter || !window.matchMedia("(pointer:coarse)").matches && evt.keyCode === 13 && !evt.shiftKey) {
             evt.preventDefault();
             console.log("pressed enter");
@@ -2070,10 +2109,10 @@ async function on_api() {
             setTimeout(()=>prompt_lock=false, 3000);
             await handle_ask(!do_enter);
         } else {
-            messageInput.style.height = messageInput.scrollHeight  + "px";
+            userInput.style.height = userInput.scrollHeight  + "px";
         }
     });
-    sendButton.querySelector(".fa-paper-plane").addEventListener(`click`, async () => {
+    sendButton.addEventListener(`click`, async () => {
         console.log("clicked send");
         if (prompt_lock) return;
         prompt_lock = true;
@@ -2081,11 +2120,11 @@ async function on_api() {
         stop_recognition();
         await handle_ask();
     });
-    sendButton.querySelector(".fa-square-plus").addEventListener(`click`, async () => {
+    addButton.addEventListener(`click`, async () => {
         stop_recognition();
         await handle_ask(false);
     });
-    messageInput.addEventListener(`click`, async () => {
+    userInput.addEventListener(`click`, async () => {
         stop_recognition();
     });
 
@@ -2115,6 +2154,7 @@ async function on_api() {
             <option value="G4F">G4F framework</option>
             <option value="Gemini">Gemini Provider</option>
             <option value="HuggingFace">HuggingFace</option>
+            <option value="HuggingFaceMedia">HuggingFace (Image/Video Generation)</option>
             <option value="HuggingSpace">HuggingSpace</option>
             <option value="HuggingChat">HuggingChat</option>`;
         document.getElementById("pin").disabled = true;
@@ -2128,8 +2168,8 @@ async function on_api() {
             }
         });
         login_urls = {
-            "HuggingFace": ["HuggingFace", "https://huggingface.co/settings/tokens", []],
-            "HuggingSpace": ["HuggingSpace", "https://huggingface.co/spaces/roxky/g4f-new?get_gpu_token=true", []],
+            "HuggingFace": ["HuggingFace", "https://huggingface.co/settings/tokens", ["HuggingFaceMedia"]],
+            "HuggingSpace": ["HuggingSpace", "", []],
         };
     } else {
         providers = await api("providers")
@@ -2269,13 +2309,13 @@ async function on_api() {
         slide_systemPrompt_icon.classList[checked ? "remove": "add"]("fa-angles-up");
         slide_systemPrompt_icon.classList[checked ? "add": "remove"]("fa-angles-down");
     });
-    const messageInputHeight = document.getElementById("message-input-height");
-    if (messageInputHeight) {
-        if (messageInputHeight.value) {
-            messageInput.style.maxHeight = `${messageInputHeight.value}px`;
+    const userInputHeight = document.getElementById("message-input-height");
+    if (userInputHeight) {
+        if (userInputHeight.value) {
+            userInput.style.maxHeight = `${userInputHeight.value}px`;
         }
-        messageInputHeight.addEventListener('change', async () => {
-            messageInput.style.maxHeight = `${messageInputHeight.value}px`;
+        userInputHeight.addEventListener('change', async () => {
+            userInput.style.maxHeight = `${userInputHeight.value}px`;
         });
     }
     const darkMode = document.getElementById("darkMode");
@@ -2303,7 +2343,7 @@ async function load_version() {
         document.title = window.title;
     }
     let text = "version ~ "
-    if (versions["version"] != versions["latest_version"]) {
+    if (versions["latest_version"] && versions["version"] != versions["latest_version"]) {
         let release_url = 'https://github.com/xtekky/gpt4free/releases/latest';
         let title = `New version: ${versions["latest_version"]}`;
         text += `<a href="${release_url}" target="_blank" title="${title}">${versions["version"]}</a> 🆕`;
@@ -2438,11 +2478,11 @@ function connectToSSE(url, do_refine, bucket_id) {
             }
             appStorage.setItem(`bucket:${bucket_id}`, data.size);
             inputCount.innerText = "Files are loaded successfully";
-            if (!messageInput.value) {
-                messageInput.value = JSON.stringify({bucket_id: bucket_id});
+            if (!userInput.value) {
+                userInput.value = JSON.stringify({bucket_id: bucket_id});
                 handle_ask(false);
             } else {
-                messageInput.value += (messageInput.value ? "\n" : "") + JSON.stringify({bucket_id: bucket_id}) + "\n";
+                userInput.value += (userInput.value ? "\n" : "") + JSON.stringify({bucket_id: bucket_id}) + "\n";
                 paperclip.classList.remove("blink");
                 fileInput.value = "";
             }
@@ -2723,6 +2763,9 @@ async function load_provider_models(provider=null) {
             option.value = model.model;
             option.dataset.label = model.model;
             option.text = `${model.model}${model.image ? " (Image Generation)" : ""}${model.vision ? " (Image Upload)" : ""}`;
+            if (model.task) {
+                option.text += ` (${model.task})`;
+            }
             modelProvider.appendChild(option);
             if (model.default) {
                 defaultIndex = i;
@@ -2740,15 +2783,15 @@ async function load_provider_models(provider=null) {
 };
 providerSelect.addEventListener("change", () => {
     load_provider_models()
-    messageInput.focus();
+    userInput.focus();
 });
-modelSelect.addEventListener("change", () => messageInput.focus());
-modelProvider.addEventListener("change", () =>  messageInput.focus());
+modelSelect.addEventListener("change", () => userInput.focus());
+modelProvider.addEventListener("change", () =>  userInput.focus());
 custom_model.addEventListener("change", () => {
     if (!custom_model.value) {
         load_provider_models();
     }
-    messageInput.focus();
+    userInput.focus();
 });
 
 document.getElementById("pin").addEventListener("click", async () => {
@@ -2784,7 +2827,7 @@ switchInput.addEventListener("change", () => {
 });
 searchButton.addEventListener("click", async () => {
     switchInput.click();
-    messageInput.focus();
+    userInput.focus();
 });
 
 function save_storage(settings=false) {
@@ -2877,20 +2920,20 @@ if (SpeechRecognition) {
     let buffer;
     let lastDebounceTranscript;
     recognition.onstart = function() {
-        startValue = messageInput.value;
+        startValue = userInput.value;
         lastDebounceTranscript = "";
-        messageInput.readOnly = true;
+        userInput.readOnly = true;
         buffer = "";
     };
     recognition.onend = function() {
         if (buffer) {
-            messageInput.value = `${startValue ? startValue + "\n" : ""}${buffer}`;
+            userInput.value = `${startValue ? startValue + "\n" : ""}${buffer}`;
         }
         if (microLabel.classList.contains("recognition")) {
             recognition.start();
         } else {
-            messageInput.readOnly = false;
-            messageInput.focus();
+            userInput.readOnly = false;
+            userInput.focus();
         }
     };
     recognition.onresult = function(event) {
@@ -2918,7 +2961,7 @@ if (SpeechRecognition) {
         if (microLabel.classList.contains("recognition")) {
             microLabel.classList.remove("recognition");
             recognition.stop();
-            messageInput.value = `${startValue ? startValue + "\n" : ""}${buffer}`;
+            userInput.value = `${startValue ? startValue + "\n" : ""}${buffer}`;
             count_input();
             return true;
         }

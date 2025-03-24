@@ -8,7 +8,7 @@ from flask import send_from_directory
 from inspect import signature
 
 from ...errors import VersionNotFoundError
-from ...image.copy_images import copy_images, ensure_images_dir, images_dir
+from ...image.copy_images import copy_media, ensure_images_dir, images_dir
 from ...tools.run_tools import iter_run_tools
 from ...Provider import ProviderUtils, __providers__
 from ...providers.base_provider import ProviderModelMixin
@@ -53,6 +53,7 @@ class Api:
                         "default": model == provider.default_model,
                         "vision": getattr(provider, "default_vision_model", None) == model or model in getattr(provider, "vision_models", []),
                         "image": False if provider.image_models is None else model in provider.image_models,
+                        "task": None if not hasattr(provider, "task_mapping") else provider.task_mapping[model] if model in provider.task_mapping else None
                     }
                     for model in models
                 ]
@@ -127,7 +128,7 @@ class Api:
             **kwargs
         }
 
-    def _create_response_stream(self, kwargs: dict, conversation_id: str, provider: str, download_images: bool = True) -> Iterator:
+    def _create_response_stream(self, kwargs: dict, conversation_id: str, provider: str, download_media: bool = True) -> Iterator:
         def decorated_log(text: str, file = None):
             debug.logs.append(text)
             if debug.logging:
@@ -154,7 +155,7 @@ class Api:
             if hasattr(provider_handler, "get_parameters"):
                 yield self._format_json("parameters", provider_handler.get_parameters(as_json=True))
         try:
-            result = iter_run_tools(ChatCompletion.create, **{**kwargs, "model": model, "provider": provider_handler})
+            result = iter_run_tools(ChatCompletion.create, **{**kwargs, "model": model, "provider": provider_handler, "download_media": download_media})
             for chunk in result:
                 if isinstance(chunk, ProviderInfo):
                     yield self.handle_provider(chunk, model)
@@ -182,13 +183,13 @@ class Api:
                     yield self._format_json("preview", chunk.to_string())
                 elif isinstance(chunk, ImagePreview):
                     yield self._format_json("preview", chunk.to_string(), images=chunk.images, alt=chunk.alt)
-                elif isinstance(chunk, ImageResponse):
-                    images = chunk
-                    if download_images or chunk.get("cookies"):
+                elif isinstance(chunk, (ImageResponse, VideoResponse)):
+                    media = chunk
+                    if download_media or chunk.get("cookies"):
                         chunk.alt = format_image_prompt(kwargs.get("messages"), chunk.alt)
-                        images = asyncio.run(copy_images(chunk.get_list(), chunk.get("cookies"), chunk.get("headers"), proxy=proxy, alt=chunk.alt))
-                        images = ImageResponse(images, chunk.alt)
-                    yield self._format_json("content", str(images), images=chunk.get_list(), alt=chunk.alt)
+                        media = asyncio.run(copy_media(chunk.get_list(), chunk.get("cookies"), chunk.get("headers"), proxy=proxy, alt=chunk.alt))
+                        media = ImageResponse(media, chunk.alt) if isinstance(chunk, ImageResponse) else VideoResponse(media, chunk.alt)
+                    yield self._format_json("content", str(media), images=chunk.get_list(), alt=chunk.alt)
                 elif isinstance(chunk, SynthesizeData):
                     yield self._format_json("synthesize", chunk.get_dict())
                 elif isinstance(chunk, TitleGeneration):
@@ -205,8 +206,8 @@ class Api:
                     yield self._format_json("reasoning", **chunk.get_dict())
                 elif isinstance(chunk, YouTube):
                     yield self._format_json("content", chunk.to_string())
-                elif isinstance(chunk, Audio):
-                    yield self._format_json("audio", str(chunk))
+                elif isinstance(chunk, AudioResponse):
+                    yield self._format_json("content", str(chunk))
                 elif isinstance(chunk, DebugResponse):
                     yield self._format_json("log", chunk.log)
                 elif isinstance(chunk, RawResponse):
