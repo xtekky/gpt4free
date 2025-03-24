@@ -60,14 +60,13 @@
         const user_image = '<img src="/static/img/user.png" alt="your avatar">';
         const gpt_image = '<img src="/static/img/gpt.png" alt="your avatar">';
     </script>
-    <script src="/static/js/highlight.min.js"></script>
+    <script src="/static/js/highlight.min.js" async></script>
     <script>window.conversation_id = "{{chat_id}}"</script>
-    <title>g4f - gui</title>
+    <title>G4F Chat</title>
 </head>
 <body>
     <div class="gradient"></div>
-    <div class="row">
-        <div class="box conversations">
+        <div class="sidebar shown">
             <div class="top">
                 <button class="new_convo" onclick="new_conversation()">
                     <i class="fa-regular fa-plus"></i>
@@ -120,8 +119,8 @@
             </div>
             <div class="field">
                 <span class="label">Download generated images</span>
-                <input type="checkbox" id="download_images" checked/>
-                <label for="download_images" class="toogle" title="Download and save generated images to /generated_images"></label>
+                <input type="checkbox" id="download_media" checked/>
+                <label for="download_media" class="toogle" title="Download and save generated images, audios and videos"></label>
             </div>
             <div class="field">
                 <span class="label">Refine files with spaCy</span>
@@ -148,8 +147,8 @@
                 <textarea id="systemPrompt" placeholder="You are a helpful assistant." data-example="If you need to generate images, you can use the following format: ![keywords](/generate/filename.jpg). This will enable the use of an image generation tool."></textarea>
             </div>
             <div class="field box">
-                <label for="message-input-height" class="label" title="">Input max. height</label>
-                <input type="number" id="message-input-height" value="200"/>
+                <label for="userInput-height" class="label" title="">Input max. height</label>
+                <input type="number" id="userInput-height" value="200"/>
             </div>
             <div class="field box">
                 <label for="recognition-language" class="label" title="">Speech recognition language</label>
@@ -208,114 +207,124 @@
                 </button>
             </div>
         </div>
-        <div class="conversation">
+        <div class="chat-container">
+            <div class="chat-header box">
+                G4F Chat
+            </div>
             <textarea id="chatPrompt" class="box" placeholder="System prompt"></textarea>
-            <div id="messages" class="box"></div>
             <button class="slide-systemPrompt">
                 <i class="fa-solid fa-angles-up"></i>
             </button>
-            <div class="media_player">
-                <i class="fa-regular fa-x"></i>
-            </div>
-            <div class="media-select hidden">
-                <label class="image-select" for="image" title="">
-                    <input type="file" id="image" name="image" accept="image/*" required/>
-                    <i class="fa-regular fa-image"></i>
-                </label>
-                <label class="capture-camera" for="camera">
-                    <input type="file" id="camera" name="camera" accept="image/*" capture="camera" required/>
-                    <i class="fa-solid fa-camera"></i>
-                </label>
-                <button class="close">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
-            </div>
-            <div class="toolbar">
-                <div id="input-count" class="">
-                    <button class="hide-input">
-                        <i class="fa-solid fa-angles-down"></i>
-                    </button>
-                    <input type="checkbox" id="agree" name="agree" value="yes" checked>
-                    <label for="agree" class="text" onclick="this.innerText='';">Scroll to bottom</label>
-                </div>
-                <div class="stop_generating stop_generating-hidden">
-                    <button id="cancelButton">
-                        <span>Stop Generating</span>
-                        <i class="fa-solid fa-stop"></i>
-                    </button>
-                </div>
-                <div class="regenerate">
-                    <button id="regenerateButton">
-                        <span>Regenerate</span>
-                        <i class="fa-solid fa-rotate"></i>
-                    </button>
-                </div>
-            </div>
-            <div class="user-input">
-                <div class="box input-area">
-                    <textarea id="message-input" placeholder="Ask a question" cols="30" rows="10"
-                        style="white-space: pre-wrap;resize: none;"></textarea>
-                    <label class="file-label image-label">
-                        <i class="fa-regular fa-image"></i>
-                    </label>
-                    <label class="file-label" for="file">
-                        <input type="file" id="file" name="file" accept=".txt, .html, .xml, .json, .js, .har, .sh, .py, .php, .css, .yaml, .sql, .log, .csv, .twig, .md, .pdf, .docx, .odt, .epub, .xlsx, .zip" required multiple/>
-                        <i class="fa-solid fa-paperclip"></i>
-                    </label>
-                    <label class="micro-label" for="micro">
-                        <i class="fa-solid fa-microphone-slash"></i>
-                    </label>
-                    <div id="send-button">
-                        <i class="fa-solid fa-square-plus"></i>
-                        <i class="fa-regular fa-paper-plane"></i>
-                        <a href="" id="download" class="hidden"></a>
+            <div class="chat-body" id="chatBody"></div>
+            <div class="chat-footer">
+                <div class="chat-toolbar">
+                    <div id="input-count" class="">
+                        <button class="hide-input">
+                            <i class="fa-solid fa-angles-down"></i>
+                        </button>
+                        <input type="checkbox" id="agree" name="agree" value="yes" checked>
+                        <label for="agree" class="text" onclick="this.innerText='';">Scroll to bottom</label>
+                    </div>
+                    <div class="stop_generating stop_generating-hidden">
+                        <button id="cancelButton">
+                            <span>Stop Generating</span>
+                            <i class="fa-solid fa-stop"></i>
+                        </button>
+                    </div>
+                    <div class="regenerate">
+                        <button id="regenerateButton">
+                            <span>Regenerate</span>
+                            <i class="fa-solid fa-rotate"></i>
+                        </button>
                     </div>
                 </div>
-            </div>
-            <div class="buttons">
-                <div class="field">
-                    <button id="search">
-                        <i class="fa-solid fa-search"></i>
+                <div class="media-player">
+                    <i class="fa-regular fa-x"></i>
+                </div>
+                <div class="media-select hidden">
+                    <label class="image-select" for="image" title="">
+                        <input type="file" id="image" name="image" accept="image/*" required/>
+                        <i class="fa-regular fa-image"></i>
+                    </label>
+                    <label class="capture-camera" for="camera">
+                        <input type="file" id="camera" name="camera" accept="image/*" capture="camera" required/>
+                        <i class="fa-solid fa-camera"></i>
+                    </label>
+                    <button class="close">
+                        <i class="fa-solid fa-xmark"></i>
                     </button>
                 </div>
-               <div class="field">
-                  <select name="model" id="model">
-                     <option value="" selected="selected">Model: Default</option>
-                     <option value="gpt-4">gpt-4</option>
-                     <option value="gpt-4o">gpt-4o</option>
-                     <option value="gpt-4o-mini">gpt-4o-mini</option>
-                     <option value="llama-3.1-70b">llama-3.1-70b</option>
-                     <option value="mixtral-8x7b">mixtral-8x7b</option>
-                     <option value="claude-3.5-sonnet">claude-3.5-sonnet</option>
-                     <option value="flux">flux (Image Generation)</option>
-                     <option value="dall-e-3">dall-e-3 (Image Generation)</option>
-                     <option disabled="disabled">----</option>
-                  </select>
-                  <select name="model2" id="model2" class="hidden model"></select>
-                  <input type="text" id="model3" value="" class="hidden model" placeholder="Model:"/>
-               </div>
-               <div class="field">
-                  <select name="provider" id="provider">
-                     <option value="">Provider: Auto</option>
-                     <option value="OpenaiChat">OpenAI ChatGPT</option>
-                     <option value="Copilot">Microsoft Copilot</option>
-                     <option value="Gemini">Google Gemini</option>
-                     <option value="DDG">DuckDuckGo AI Chat</option>
-                     <option value="Blackbox">Blackbox AI</option>
-                     <option value="Custom Model">Custom Model</option>
-                     <option disabled="disabled">----</option>
-                    </select>
+                <div class="user-input">
+                    <div class="input-area">
+                        <textarea id="userInput" class="box" placeholder="Type a message..." cols="30" rows="10"
+                            style="white-space: pre-wrap;resize: none;"></textarea>
+                        <label class="file-label image-label">
+                            <i class="fa-regular fa-image"></i>
+                        </label>
+                        <label class="file-label" for="file">
+                            <input type="file" id="file" name="file" accept=".txt, .html, .xml, .json, .js, .har, .sh, .py, .php, .css, .yaml, .sql, .log, .csv, .twig, .md, .pdf, .docx, .odt, .epub, .xlsx, .zip" required multiple/>
+                            <i class="fa-solid fa-paperclip"></i>
+                        </label>
+                        <label class="micro-label" for="micro">
+                            <i class="fa-solid fa-microphone-slash"></i>
+                        </label>
+                        <div class="send-buttons">
+                            <button id="addButton">
+                                <i class="fa-solid fa-square-plus"></i>
+                                Add
+                            </button>
+                            <button id="sendButton">
+                                <i class="fa-regular fa-paper-plane"></i>
+                                <a href="" id="download" class="hidden"></a>
+                                Send
+                            </button>
+                        </div>
+                    </div>
                 </div>
-                <div class="field">
-                    <button id="pin">
-                        <i class="fa-solid fa-thumbtack"></i>
-                    </button>
+                <div class="chat-buttons">
+                    <div class="field">
+                        <button id="search">
+                            <i class="fa-solid fa-search"></i>
+                        </button>
+                    </div>
+                   <div class="field">
+                      <select name="model" id="model">
+                         <option value="" selected="selected">Model: Default</option>
+                         <option value="gpt-4">gpt-4</option>
+                         <option value="gpt-4o">gpt-4o</option>
+                         <option value="gpt-4o-mini">gpt-4o-mini</option>
+                         <option value="llama-3.1-70b">llama-3.1-70b</option>
+                         <option value="mixtral-8x7b">mixtral-8x7b</option>
+                         <option value="claude-3.5-sonnet">claude-3.5-sonnet</option>
+                         <option value="flux">flux (Image Generation)</option>
+                         <option value="dall-e-3">dall-e-3 (Image Generation)</option>
+                         <option disabled="disabled">----</option>
+                      </select>
+                      <select name="model2" id="model2" class="hidden model"></select>
+                      <input type="text" id="model3" value="" class="hidden model" placeholder="Model:"/>
+                   </div>
+                   <div class="field">
+                      <select name="provider" id="provider">
+                         <option value="">Provider: Auto</option>
+                         <option value="OpenaiChat">OpenAI ChatGPT</option>
+                         <option value="Copilot">Microsoft Copilot</option>
+                         <option value="Gemini">Google Gemini</option>
+                         <option value="DDG">DuckDuckGo AI Chat</option>
+                         <option value="Blackbox">Blackbox AI</option>
+                         <option value="Custom Model">Custom Model</option>
+                         <option disabled="disabled">----</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <button id="pin">
+                            <i class="fa-solid fa-thumbtack"></i>
+                        </button>
+                    </div>
+                    <div id="pin_container" class="field"></div>
                 </div>
-                <div id="pin_container" class="field"></div>
             </div>
         </div>
         <div class="log hidden"></div>
-    </div>
     <div class="mobile-sidebar">
         <i class="fa-solid fa-bars"></i>
     </div>

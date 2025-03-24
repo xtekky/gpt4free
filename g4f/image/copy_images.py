@@ -39,6 +39,8 @@ def get_source_url(image: str, default: str = None) -> str:
     return default
 
 def secure_filename(filename: str) -> str:
+    if filename is None:
+        return None
     # Keep letters, numbers, basic punctuation and all Unicode chars
     filename = re.sub(
         r'[^\w.,_-]+',

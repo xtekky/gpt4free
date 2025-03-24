@@ -33,15 +33,24 @@ class HuggingFaceMedia(AsyncGeneratorProvider, ProviderModelMixin):
             response = requests.get(url)
             if response.ok:
                 models = response.json()
-                cls.models = [
-                    model["id"]
+                providers = {
+                    model["id"]: [
+                        provider
+                        for provider in model.get("inferenceProviderMapping")
+                        if provider.get("status") == "live" and provider.get("task") in cls.tasks
+                    ]
                     for model in models
                     if [
                         provider
                         for provider in model.get("inferenceProviderMapping")
                         if provider.get("status") == "live" and provider.get("task") in cls.tasks
                     ]
-                ]
+                }
+                new_models = []
+                for model, provider_keys in providers.items():
+                    new_models.append(model)
+                    for provider_data in provider_keys:
+                        new_models.append(f"{model}:{provider_data.get('provider')}") 
                 cls.task_mapping = {
                     model["id"]: [
                         provider.get("task")
@@ -49,6 +58,14 @@ class HuggingFaceMedia(AsyncGeneratorProvider, ProviderModelMixin):
                     ].pop()
                     for model in models
                 }
+                prepend_models = []
+                for model, provider_keys in providers.items():
+                    task = cls.task_mapping.get(model)
+                    if task == "text-to-video":
+                        prepend_models.append(model)
+                        for provider_data in provider_keys:
+                            prepend_models.append(f"{model}:{provider_data.get('provider')}") 
+                cls.models = prepend_models + [model for model in new_models if model not in prepend_models]
             else:
                 cls.models = []
         return cls.models
@@ -85,6 +102,9 @@ class HuggingFaceMedia(AsyncGeneratorProvider, ProviderModelMixin):
         aspect_ratio: str = "1:1",
         **kwargs
     ):
+        selected_provider = None
+        if ":" in model:
+            model, selected_provider = model.split(":", 1)
         provider_mapping = await cls.get_mapping(model, api_key)
         headers = {
             'Accept-Encoding': 'gzip, deflate',
@@ -98,6 +118,8 @@ class HuggingFaceMedia(AsyncGeneratorProvider, ProviderModelMixin):
         async def generate(extra_data: dict, prompt: str):
             last_response = None
             for provider_key, provider in provider_mapping.items():
+                if selected_provider is not None and selected_provider != provider_key:
+                    continue
                 provider_info = ProviderInfo(**{**cls.get_dict(), "label": f"HuggingFace ({provider_key})", "url": f"{cls.url}/{model}"})
 
                 api_base = f"https://router.huggingface.co/{provider_key}"
@@ -124,7 +146,7 @@ class HuggingFaceMedia(AsyncGeneratorProvider, ProviderModelMixin):
                         **extra_data
                     }
                 elif provider_key == "replicate":
-                    url = f"{api_base}/v1/models/{provider_id}/prediction"
+                    url = f"{api_base}/v1/models/{provider_id}/predictions"
                     data = {
                         "input": {
                             "prompt": prompt,
@@ -151,7 +173,7 @@ class HuggingFaceMedia(AsyncGeneratorProvider, ProviderModelMixin):
                     }
 
                 async with StreamSession(
-                    headers=headers if provider_key == "free" or api_key is None else {**headers, "Authorization": f"Bearer {api_key}"},
+                    headers=headers if provider_key == "hf-free" or api_key is None else {**headers, "Authorization": f"Bearer {api_key}"},
                     proxy=proxy,
                     timeout=timeout
                 ) as session:

@@ -384,7 +384,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                     #f"Proofofwork: {'False' if proofofwork is None else proofofwork[:12]+'...'}",
                     #f"AccessToken: {'False' if cls._api_key is None else cls._api_key[:12]+'...'}",
                 )]
-                if action == "continue" and conversation.message_id is None:
+                if action is None or action == "variant" or action == "continue" and conversation.message_id is None:
                     action = "next"
                 data = {
                     "action": action,
@@ -400,6 +400,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                     "client_contextual_info":{"is_dark_mode":False,"time_since_loaded":random.randint(20, 500),"page_height":578,"page_width":1850,"pixel_ratio":1,"screen_height":1080,"screen_width":1920},
                     "paragen_cot_summary_display_override":"allow"
                 }
+                print(data)
                 if conversation.conversation_id is not None:
                     data["conversation_id"] = conversation.conversation_id
                     debug.log(f"OpenaiChat: Use conversation: {conversation.conversation_id}")
