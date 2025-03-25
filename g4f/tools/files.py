@@ -254,14 +254,14 @@ def read_bucket(bucket_dir: Path):
     bucket_dir = Path(bucket_dir)
     cache_file = bucket_dir / PLAIN_CACHE
     spacy_file = bucket_dir / f"spacy_0001.cache"
-    if not spacy_file.exists():
+    if not spacy_file.is_file() and cache_file.is_file():
         yield cache_file.read_text(errors="replace")
     for idx in range(1, 1000):
         spacy_file = bucket_dir / f"spacy_{idx:04d}.cache"
         plain_file = bucket_dir / f"plain_{idx:04d}.cache"
-        if spacy_file.exists():
+        if spacy_file.is_file():
             yield spacy_file.read_text(errors="replace")
-        elif plain_file.exists():
+        elif plain_file.is_file():
             yield plain_file.read_text(errors="replace")
         else:
             break

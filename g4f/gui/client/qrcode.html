@@ -81,13 +81,17 @@
             const chat_id = generate_uuid();
 
             const url = `${share_url}/backend-api/v2/chat/${encodeURI(chat_id)}`;
-            fetch(url, {
+            const response = fetch(url, {
                 method: 'POST',
                 headers: {'content-type': 'application/json'},
                 body: localStorage.getItem(`conversation:${conversation_id}`)
             });
             const share = `${share_url}/chat/${encodeURI(chat_id)}/${encodeURI(conversation_id)}`;
             const qrcodeStatus = document.getElementById('qrcode-status');
+            if (response.status !== 200) {
+                qrcodeStatus.innerText = 'Error generating QR code';
+                return;
+            }
             qrcodeStatus.innerText = share;
             qrcodeStatus.href = share;
             document.getElementById("qrcode").innerHTML = '';
