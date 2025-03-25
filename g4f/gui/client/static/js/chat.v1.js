@@ -829,7 +829,7 @@ async function add_message_chunk(message, message_id, provider, scroll, finish_m
         for (const [key, value] of Object.entries(message.conversation)) {
             conversation.data[key] = value;
         }
-        await save_conversation(conversation_id, conversation, false);
+        await save_conversation(conversation_id, conversation);
     } else if (message.type == "provider") {
         provider_storage[message_id] = message.provider;
         let provider_el = content_map.content.querySelector('.provider');
@@ -1619,7 +1619,7 @@ const remove_message = async (conversation_id, index) => {
     await save_conversation(conversation_id, conversation);
     if (window.chat_id) {
         const url = `/backend-api/v2/chat/${window.chat_id}`;
-        response = await fetch(url, {
+        await fetch(url, {
             method: 'POST',
             headers: {'content-type': 'application/json'},
             body: data,
@@ -2037,6 +2037,9 @@ chatPrompt.addEventListener("input", function() {
 });
 
 window.addEventListener('load', async function() {
+    if (!window.chat_id) {
+        return;
+    }
     if (!window.conversation_id) {
         window.conversation_id = window.chat_id;
     }
@@ -2045,7 +2048,7 @@ window.addEventListener('load', async function() {
     });
     if (response.ok) {
         let conversation = await response.json();
-        if (window.chat_id && (!window.conversation_id || conversation.id == window.conversation_id)) {
+        if (!window.conversation_id || conversation.id == window.conversation_id) {
             window.conversation_id = conversation.id;
             await load_conversation(conversation);       
             appStorage.setItem(
@@ -2086,7 +2089,7 @@ window.addEventListener('load', async function() {
 
 window.addEventListener('DOMContentLoaded', async function() {
     await on_load();
-    if (!window.conversation_id == "{{chat_id}}") {
+    if (window.conversation_id == "{{conversation_id}}") {
         window.conversation_id = uuid();
     } else {
         await on_api();
