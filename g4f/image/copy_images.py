@@ -11,7 +11,7 @@ from aiohttp import ClientSession, ClientError
 
 from ..typing import Optional, Cookies
 from ..requests.aiohttp import get_connector, StreamResponse
-from ..image import EXTENSIONS_MAP, ALLOWED_EXTENSIONS
+from ..image import MEDIA_TYPE_MAP, ALLOWED_EXTENSIONS
 from ..tools.files import get_bucket_dir
 from ..providers.response import ImageResponse, AudioResponse, VideoResponse
 from ..Provider.template import BackendApi
@@ -51,10 +51,13 @@ def secure_filename(filename: str) -> str:
     filename = filename[:100].strip(".,_-")
     return filename
 
+def is_valid_media_type(content_type: str) -> bool:
+    return content_type in MEDIA_TYPE_MAP or content_type.startswith("audio/") or content_type.startswith("video/")
+
 async def save_response_media(response: StreamResponse, prompt: str):
     content_type = response.headers["content-type"]
-    if content_type in EXTENSIONS_MAP or content_type.startswith("audio/") or content_type.startswith("video/"):
-        extension = EXTENSIONS_MAP[content_type] if content_type in EXTENSIONS_MAP else content_type[6:].replace("mpeg", "mp3")
+    if is_valid_media_type(content_type):
+        extension = MEDIA_TYPE_MAP[content_type] if content_type in MEDIA_TYPE_MAP else content_type[6:].replace("mpeg", "mp3")
         if extension not in ALLOWED_EXTENSIONS:
             raise ValueError(f"Unsupported media type: {content_type}")
         bucket_id = str(uuid.uuid4())
@@ -131,6 +134,8 @@ async def copy_media(
 
                     async with session.get(image, ssl=request_ssl, headers=request_headers) as response:
                         response.raise_for_status()
+                        if not is_valid_media_type(response.headers.get("content-type")):
+                            raise ValueError(f"Unsupported media type: {response.headers.get('content-type')}")
                         with open(target_path, "wb") as f:
                             async for chunk in response.content.iter_chunked(4096):
                                 f.write(chunk)
@@ -150,9 +155,9 @@ async def copy_media(
 
                 # Build URL with safe encoding
                 url_filename = quote(os.path.basename(target_path))
-                return f"/images/{url_filename}" + (('?url=' + quote(image)) if add_url and not image.startswith('data:') else '')
+                return f"/media/{url_filename}" + (('?url=' + quote(image)) if add_url and not image.startswith('data:') else '')
 
-            except (ClientError, IOError, OSError) as e:
+            except (ClientError, IOError, OSError, ValueError) as e:
                 debug.error(f"Image copying failed: {type(e).__name__}: {e}")
                 if target_path and os.path.exists(target_path):
                     os.unlink(target_path)

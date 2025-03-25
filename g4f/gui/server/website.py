@@ -16,6 +16,14 @@ class Website:
                 'function': self._chat,
                 'methods': ['GET', 'POST']
             },
+            '/chat/<chat_id>/': {
+                'function': self._chat_id,
+                'methods': ['GET', 'POST']
+            },
+            '/chat/<chat_id>/<conversation_id>': {
+                'function': self._chat_id,
+                'methods': ['GET', 'POST']
+            },
             '/chat/menu/': {
                 'function': redirect_home,
                 'methods': ['GET', 'POST']
@@ -32,11 +40,14 @@ class Website:
 
     def _chat(self, conversation_id):
         if conversation_id == "share":
-            return render_template('index.html', chat_id=str(uuid.uuid4()))
-        return render_template('index.html', chat_id=conversation_id)
+            return render_template('index.html', conversation_id=str(uuid.uuid4()))
+        return render_template('index.html', conversation_id=conversation_id)
+
+    def _chat_id(self, chat_id, conversation_id: str = ""):
+        return render_template('index.html', chat_id=chat_id, conversation_id=conversation_id)
 
     def _index(self):
-        return render_template('index.html', chat_id=str(uuid.uuid4()))
+        return render_template('index.html', conversation_id=str(uuid.uuid4()))
 
     def _settings(self):
-        return render_template('index.html', chat_id=str(uuid.uuid4()))
+        return render_template('index.html', conversation_id=str(uuid.uuid4()))

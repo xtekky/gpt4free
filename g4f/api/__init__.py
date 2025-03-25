@@ -38,7 +38,7 @@ import g4f.debug
 from g4f.client import AsyncClient, ChatCompletion, ImagesResponse, convert_to_provider
 from g4f.providers.response import BaseConversation, JsonConversation
 from g4f.client.helper import filter_none
-from g4f.image import is_data_an_media
+from g4f.image import is_data_an_media, EXTENSIONS_MAP
 from g4f.image.copy_images import images_dir, copy_media, get_source_url
 from g4f.errors import ProviderNotFoundError, ModelNotFoundError, MissingAuthError, NoValidHarFileError
 from g4f.cookies import read_cookie_files, get_cookies_dir
@@ -179,7 +179,7 @@ class Api:
                         return ErrorResponse.from_message("G4F API key required", HTTP_401_UNAUTHORIZED)
                     if AppConfig.g4f_api_key is None or not secrets.compare_digest(AppConfig.g4f_api_key, user_g4f_api_key):
                         return ErrorResponse.from_message("Invalid G4F API key", HTTP_403_FORBIDDEN)
-                elif not AppConfig.demo and not path.startswith("/images/"):
+                elif not AppConfig.demo and not path.startswith("/images/") and not path.startswith("/media/"):
                     if user_g4f_api_key is not None:
                         if not secrets.compare_digest(AppConfig.g4f_api_key, user_g4f_api_key):
                             return ErrorResponse.from_message("Invalid G4F API key", HTTP_403_FORBIDDEN)
@@ -189,7 +189,7 @@ class Api:
                         except HTTPException as e:
                             return ErrorResponse.from_message(e.detail, e.status_code, e.headers)
                         response = await call_next(request)
-                        response.headers["X-Username"] = username
+                        response.headers["x-user"] = username
                         return response
             return await call_next(request)
 
@@ -220,7 +220,7 @@ class Api:
             return HTMLResponse('g4f API: Go to '
                                 '<a href="/v1/models">models</a>, '
                                 '<a href="/v1/chat/completions">chat/completions</a>, or '
-                                '<a href="/v1/images/generate">images/generate</a> <br><br>'
+                                '<a href="/v1/media/generate">media/generate</a> <br><br>'
                                 'Open Swagger UI at: '
                                 '<a href="/docs">/docs</a>')
 
@@ -259,7 +259,7 @@ class Api:
             provider: ProviderType = ProviderUtils.convert[provider]
             if not hasattr(provider, "get_models"):
                 models = []
-            elif credentials is not None:
+            elif credentials is not None and credentials.credentials != "secret":
                 models = provider.get_models(api_key=credentials.credentials)
             else:
                 models = provider.get_models()
@@ -404,6 +404,7 @@ class Api:
             HTTP_404_NOT_FOUND: {"model": ErrorResponseModel},
             HTTP_500_INTERNAL_SERVER_ERROR: {"model": ErrorResponseModel},
         }
+        @self.app.post("/v1/media/generate", responses=responses)
         @self.app.post("/v1/images/generate", responses=responses)
         @self.app.post("/v1/images/generations", responses=responses)
         async def generate_image(
@@ -555,9 +556,14 @@ class Api:
             HTTP_200_OK: {"content": {"image/*": {}}},
             HTTP_404_NOT_FOUND: {}
         })
-        async def get_image(filename, request: Request):
+        @self.app.get("/media/{filename}", responses={
+            HTTP_200_OK: {"content": {"image/*": {}, "audio/*": {}}, "video/*": {}},
+            HTTP_404_NOT_FOUND: {}
+        })
+        async def get_media(filename, request: Request):
             target = os.path.join(images_dir, os.path.basename(filename))
             ext = os.path.splitext(filename)[1][1:]
+            mime_type = EXTENSIONS_MAP.get(ext)
             stat_result = SimpleNamespace()
             stat_result.st_size = 0
             if os.path.isfile(target):
@@ -565,12 +571,14 @@ class Api:
             stat_result.st_mtime = int(f"{filename.split('_')[0]}") if filename.startswith("1") else 0
             headers = {
                 "cache-control": "public, max-age=31536000",
-                "content-type": f"image/{ext.replace('jpg', 'jpeg') or 'jpeg'}",
                 "last-modified": formatdate(stat_result.st_mtime, usegmt=True),
                 "etag": f'"{hashlib.md5(filename.encode()).hexdigest()}"',
                 **({
                     "content-length": str(stat_result.st_size),
-                } if stat_result.st_size else {})
+                } if stat_result.st_size else {}),
+                **({} if mime_type is None else {
+                    "content-type": mime_type,
+                })
             }
             response = FileResponse(
                 target,
@@ -584,13 +592,13 @@ class Api:
                     return NotModifiedResponse(response.headers)
             except KeyError:
                 pass
-            if not os.path.isfile(target):
+            if not os.path.isfile(target) and mime_type is not None:
                 source_url = get_source_url(str(request.query_params))
                 ssl = None
                 if source_url is None:
                     backend_url = os.environ.get("G4F_BACKEND_URL")
                     if backend_url:
-                        source_url = f"{backend_url}/images/{filename}"
+                        source_url = f"{backend_url}/media/{filename}"
                         ssl = False
                 if source_url is not None:
                     try:

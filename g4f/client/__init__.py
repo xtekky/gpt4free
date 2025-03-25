@@ -13,7 +13,7 @@ from ..image.copy_images import copy_media
 from ..typing import Messages, ImageType
 from ..providers.types import ProviderType, BaseRetryProvider
 from ..providers.response import *
-from ..errors import NoImageResponseError
+from ..errors import NoMediaResponseError
 from ..providers.retry_provider import IterListProvider
 from ..providers.asyncio import to_sync_generator
 from ..Provider.needs_auth import BingCreateImages, OpenaiAccount
@@ -268,6 +268,7 @@ class Client(BaseClient):
         super().__init__(**kwargs)
         self.chat: Chat = Chat(self, provider)
         self.images: Images = Images(self, image_provider)
+        self.media: Images = Images(self, image_provider)
 
 class Completions:
     def __init__(self, client: Client, provider: Optional[ProviderType] = None):
@@ -406,7 +407,7 @@ class Images:
         else:
             response = await self._generate_image_response(provider_handler, provider_name, model, prompt, **kwargs)
 
-        if isinstance(response, ImageResponse):
+        if isinstance(response, MediaResponse):
             return await self._process_image_response(
                 response,
                 model,
@@ -417,8 +418,8 @@ class Images:
         if response is None:
             if error is not None:
                 raise error
-            raise NoImageResponseError(f"No image response from {provider_name}")
-        raise NoImageResponseError(f"Unexpected response type: {type(response)}")
+            raise NoMediaResponseError(f"No image response from {provider_name}")
+        raise NoMediaResponseError(f"Unexpected response type: {type(response)}")
 
     async def _generate_image_response(
         self,
@@ -428,7 +429,7 @@ class Images:
         prompt: str,
         prompt_prefix: str = "Generate a image: ",
         **kwargs
-    ) -> ImageResponse:
+    ) -> MediaResponse:
         messages = [{"role": "user", "content": f"{prompt_prefix}{prompt}"}]
         response = None
         if hasattr(provider_handler, "create_async_generator"):
@@ -439,7 +440,7 @@ class Images:
                 prompt=prompt,
                 **kwargs
             ):
-                if isinstance(item, ImageResponse):
+                if isinstance(item, MediaResponse):
                     response = item
                     break
         elif hasattr(provider_handler, "create_completion"):
@@ -450,7 +451,7 @@ class Images:
                 prompt=prompt,
                 **kwargs
             ):
-                if isinstance(item, ImageResponse):
+                if isinstance(item, MediaResponse):
                     response = item
                     break
         else:
@@ -501,17 +502,17 @@ class Images:
         else:
             response = await self._generate_image_response(provider_handler, provider_name, model, prompt, **kwargs)
 
-        if isinstance(response, ImageResponse):
+        if isinstance(response, MediaResponse):
             return await self._process_image_response(response, model, provider_name, response_format, proxy)
         if response is None:
             if error is not None:
                 raise error
-            raise NoImageResponseError(f"No image response from {provider_name}")
-        raise NoImageResponseError(f"Unexpected response type: {type(response)}")
+            raise NoMediaResponseError(f"No image response from {provider_name}")
+        raise NoMediaResponseError(f"Unexpected response type: {type(response)}")
 
     async def _process_image_response(
         self,
-        response: ImageResponse,
+        response: MediaResponse,
         model: str,
         provider: str,
         response_format: Optional[str] = None,
@@ -533,7 +534,7 @@ class Images:
         else:
             # Save locally for None (default) case
             images = await copy_media(response.get_list(), response.get("cookies"), proxy)
-            images = [Image.model_construct(url=f"/images/{os.path.basename(image)}", revised_prompt=response.alt) for image in images]
+            images = [Image.model_construct(url=f"/media/{os.path.basename(image)}", revised_prompt=response.alt) for image in images]
         
         return ImagesResponse.model_construct(
             created=int(time.time()),
@@ -552,6 +553,7 @@ class AsyncClient(BaseClient):
         super().__init__(**kwargs)
         self.chat: AsyncChat = AsyncChat(self, provider)
         self.images: AsyncImages = AsyncImages(self, image_provider)
+        self.media: AsyncImages = self.images
 
 class AsyncChat:
     completions: AsyncCompletions

@@ -49,7 +49,7 @@
         <script src="https://cdn.jsdelivr.net/npm/gpt-tokenizer/dist/cl100k_base.js" async></script>
         <script src="https://cdn.jsdelivr.net/npm/gpt-tokenizer/dist/o200k_base.js" async></script>
     </template>
-    <script>
+    <script async>
         if (localStorage.getItem("countTokens") != "false") {
             const template = document.head.querySelector('template');
             document.head.appendChild(template.content);
@@ -61,10 +61,14 @@
         const gpt_image = '<img src="/static/img/gpt.png" alt="your avatar">';
     </script>
     <script src="/static/js/highlight.min.js" async></script>
-    <script>window.conversation_id = "{{chat_id}}"</script>
+    <script>window.conversation_id = "{{conversation_id}}"</script>
+    <script>window.chat_id = "{{chat_id}}"</script>
     <title>G4F Chat</title>
 </head>
 <body>
+    <script async>
+        localStorage.getItem("darkMode") == "false" ? document.body.classList.add("white") : null;
+    </script>
     <div class="gradient"></div>
         <div class="sidebar shown">
             <div class="top">
@@ -118,7 +122,7 @@
                 <label for="hide-systemPrompt" class="toogle" title="For more space on phones"></label>
             </div>
             <div class="field">
-                <span class="label">Download generated images</span>
+                <span class="label">Download generated images, audios and videos</span>
                 <input type="checkbox" id="download_media" checked/>
                 <label for="download_media" class="toogle" title="Download and save generated images, audios and videos"></label>
             </div>
@@ -212,7 +216,7 @@
                 G4F Chat
             </div>
             <textarea id="chatPrompt" class="box" placeholder="System prompt"></textarea>
-            <button class="slide-systemPrompt">
+            <button class="slide-header">
                 <i class="fa-solid fa-angles-up"></i>
             </button>
             <div class="chat-body" id="chatBody"></div>

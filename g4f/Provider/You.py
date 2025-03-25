@@ -7,7 +7,7 @@ import uuid
 from ..typing import AsyncResult, Messages, ImageType, Cookies
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from .helper import format_prompt
-from ..image import EXTENSIONS_MAP, to_bytes, is_accepted_format
+from ..image import MEDIA_TYPE_MAP, to_bytes, is_accepted_format
 from ..requests import StreamSession, FormData, raise_for_status, get_nodriver
 from ..providers.response import ImagePreview, ImageResponse
 from ..cookies import get_cookies
@@ -159,7 +159,7 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
             upload_nonce = await response.text()
         data = FormData()
         content_type = is_accepted_format(file)
-        filename = f"image.{EXTENSIONS_MAP[content_type]}" if filename is None else filename
+        filename = f"image.{MEDIA_TYPE_MAP[content_type]}" if filename is None else filename
         data.add_field('file', file, content_type=content_type, filename=filename)
         async with client.post(
             f"{cls.url}/api/upload",

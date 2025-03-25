@@ -63,8 +63,6 @@ appStorage = window.localStorage || {
     length: 0
 }
 
-appStorage.getItem("darkMode") == "false" ? document.body.classList.add("white") : null;
-
 let markdown_render = (content) => escapeHtml(content);
 if (window.markdownit) {
     const markdown = window.markdownit();
@@ -81,7 +79,7 @@ if (window.markdownit) {
             .replaceAll('<code>', '<code class="language-plaintext">')
             .replaceAll('&lt;i class=&quot;', '<i class="')
             .replaceAll('&quot;&gt;&lt;/i&gt;', '"></i>')
-            .replaceAll('&lt;video controls src=&quot;', '<video controls width="400" src="')
+            .replaceAll('&lt;video controls src=&quot;', '<video controls loop src="')
             .replaceAll('&quot;&gt;&lt;/video&gt;', '"></video>')
             .replaceAll('&lt;audio controls src=&quot;', '<audio controls src="')
             .replaceAll('&quot;&gt;&lt;/audio&gt;', '"></audio>')
@@ -581,7 +579,7 @@ stop_generating.addEventListener("click", async () => {
             }
         }
     }
-    await load_conversation(window.conversation_id, false);
+    await safe_load_conversation(window.conversation_id, false);
 });
 
 document.querySelector(".media-player .fa-x").addEventListener("click", ()=>{
@@ -831,7 +829,7 @@ async function add_message_chunk(message, message_id, provider, scroll, finish_m
         for (const [key, value] of Object.entries(message.conversation)) {
             conversation.data[key] = value;
         }
-        await save_conversation(conversation_id, conversation);
+        await save_conversation(conversation_id, conversation, false);
     } else if (message.type == "provider") {
         provider_storage[message_id] = message.provider;
         let provider_el = content_map.content.querySelector('.provider');
@@ -1289,6 +1287,7 @@ const delete_conversation = async (conversation_id) => {
 };
 
 const set_conversation = async (conversation_id) => {
+    window.chat_id = null;
     if (title_ids_storage[conversation_id]) {
         conversation_id = title_ids_storage[conversation_id];
     }
@@ -1300,7 +1299,7 @@ const set_conversation = async (conversation_id) => {
     window.conversation_id = conversation_id;
 
     await clear_conversation();
-    await load_conversation(conversation_id);
+    await load_conversation(await get_conversation(conversation_id));
     load_conversations();
     hide_sidebar(true);
 };
@@ -1364,15 +1363,14 @@ function merge_messages(message1, message2) {
 // console.log(merge_messages("1 != 2", "```python\n1 != 2;"));
 // console.log(merge_messages("1 != 2;\n1 != 3;\n", "1 != 2;\n1 != 3;\n"));
 
-const load_conversation = async (conversation_id, scroll=true) => {
-    let conversation = await get_conversation(conversation_id);
-    let messages = conversation?.items || [];
-    console.debug("Conversation:", conversation)
-
+const load_conversation = async (conversation, scroll=true) => {
     if (!conversation) {
         return;
     }
-    let title = conversation.title || conversation.new_title;
+    let messages = conversation?.items || [];
+    console.debug("Conversation:", conversation.id)
+
+    let title = conversation.new_title || conversation.title;
     title = title ? `${title} - G4F` : window.title;
     if (title) {
         document.title = title;
@@ -1550,7 +1548,8 @@ async function safe_load_conversation(conversation_id, scroll=true) {
         }
     }
     if (!is_running) {
-        return await load_conversation(conversation_id, scroll);
+        let conversation = await get_conversation(conversation_id);
+        return await load_conversation(conversation, scroll);
     }
 }
 
@@ -1563,9 +1562,10 @@ async function get_conversation(conversation_id) {
 
 async function save_conversation(conversation_id, conversation) {
     conversation.updated = Date.now();
+    const data = JSON.stringify(conversation)
     appStorage.setItem(
         `conversation:${conversation_id}`,
-        JSON.stringify(conversation)
+        data
     );
 }
 
@@ -1617,6 +1617,14 @@ const remove_message = async (conversation_id, index) => {
     }
     conversation.items = new_items;
     await save_conversation(conversation_id, conversation);
+    if (window.chat_id) {
+        const url = `/backend-api/v2/chat/${window.chat_id}`;
+        response = await fetch(url, {
+            method: 'POST',
+            headers: {'content-type': 'application/json'},
+            body: data,
+        });
+    }
 };
 
 const get_message = async (conversation_id, index) => {
@@ -1685,6 +1693,14 @@ const add_message = async (
         conversation.items = new_messages;
     }
     await save_conversation(conversation_id, conversation);
+    if (window.chat_id) {
+        const url = `/backend-api/v2/chat/${window.chat_id}`;
+        fetch(url, {
+            method: 'POST',
+            headers: {'content-type': 'application/json'},
+            body: JSON.stringify(conversation),
+        });
+    }
     return conversation.items.length - 1;
 };
 
@@ -2021,12 +2037,56 @@ chatPrompt.addEventListener("input", function() {
 });
 
 window.addEventListener('load', async function() {
+    if (!window.conversation_id) {
+        window.conversation_id = window.chat_id;
+    }
+    const response = await fetch(`/backend-api/v2/chat/${window.chat_id ? window.chat_id : window.conversation_id}`, {
+        headers: {'accept': 'application/json'},
+    });
+    if (response.ok) {
+        let conversation = await response.json();
+        if (window.chat_id && (!window.conversation_id || conversation.id == window.conversation_id)) {
+            window.conversation_id = conversation.id;
+            await load_conversation(conversation);       
+            appStorage.setItem(
+                `conversation:${conversation.id}`,
+                JSON.stringify(conversation)
+            );
+            let refreshOnHide = true;
+            document.addEventListener("visibilitychange", () => {
+                if (document.hidden) {
+                    refreshOnHide = false;
+                } else {
+                    refreshOnHide = true;
+                }
+            });
+            return setInterval(async () => {
+                if (!refreshOnHide || !window.chat_id) {
+                    return;
+                }
+                const response = await fetch(`/backend-api/v2/chat/${window.chat_id}`, {
+                    headers: {'accept': 'application/json', 'if-none-match': conversation.updated},
+                });
+                if (response.status == 200) {
+                    const new_conversation = await response.json();
+                    if (conversation.id == window.conversation_id && new_conversation.updated != conversation.updated) {
+                        conversation = new_conversation;
+                        appStorage.setItem(
+                            `conversation:${conversation.id}`,
+                            JSON.stringify(conversation)
+                        );
+                        await load_conversation(conversation);
+                    }
+                }
+            }, 5000);
+        }
+    }
     await safe_load_conversation(window.conversation_id, false);
 });
 
 window.addEventListener('DOMContentLoaded', async function() {
     await on_load();
-    if (window.conversation_id == "{{chat_id}}") {
+    if (!window.conversation_id == "{{chat_id}}") {
         window.conversation_id = uuid();
     } else {
         await on_api();
@@ -2289,11 +2349,9 @@ async function on_api() {
     );
 
     const hide_systemPrompt = document.getElementById("hide-systemPrompt")
-    const slide_systemPrompt_icon = document.querySelector(".slide-systemPrompt i");
+    const slide_systemPrompt_icon = document.querySelector(".slide-header i");
     if (hide_systemPrompt.checked) {
         chatPrompt.classList.add("hidden");
-        slide_systemPrompt_icon.classList.remove("fa-angles-up");
-        slide_systemPrompt_icon.classList.add("fa-angles-down");
     }
     hide_systemPrompt.addEventListener('change', async (event) => {
         if (event.target.checked) {
@@ -2302,10 +2360,10 @@ async function on_api() {
             chatPrompt.classList.remove("hidden");
         }
     });
-    document.querySelector(".slide-systemPrompt")?.addEventListener("click", () => {
-        hide_systemPrompt.click();
-        const checked = hide_systemPrompt.checked;
-        chatPrompt.classList[checked ? "add": "remove"]("hidden");
+    document.querySelector(".slide-header")?.addEventListener("click", () => {
+        const checked = slide_systemPrompt_icon.classList.contains("fa-angles-up");
+        document.querySelector(".chat-header").classList[checked ? "add": "remove"]("hidden");
+        chatPrompt.classList[checked || hide_systemPrompt.checked ? "add": "remove"]("hidden");
         slide_systemPrompt_icon.classList[checked ? "remove": "add"]("fa-angles-up");
         slide_systemPrompt_icon.classList[checked ? "add": "remove"]("fa-angles-down");
     });
@@ -2361,7 +2419,6 @@ async function load_version() {
 }
 
 function renderMediaSelect() {
-    mediaSelect.classList.remove("hidden");
     const oldImages = mediaSelect.querySelectorAll("a:has(img)");
     oldImages.forEach((el)=>el.remove());
     Object.entries(image_storage).forEach(([object_url, file]) => {
@@ -2472,9 +2529,14 @@ function connectToSSE(url, do_refine, bucket_id) {
             inputCount.innerText = `Download: ${data.count} files`;
         } else if (data.action == "done") {
             if (do_refine) {
-                do_refine = false;
-                connectToSSE(`/backend-api/v2/files/${bucket_id}?refine_chunks_with_spacy=true`, do_refine, bucket_id);
+                connectToSSE(`/backend-api/v2/files/${bucket_id}?refine_chunks_with_spacy=true`, false, bucket_id);
                 return;
+            }
+            fileInput.value = "";
+            paperclip.classList.remove("blink");
+            if (!data.size) {
+                inputCount.innerText = "No content found";
+                return
             }
             appStorage.setItem(`bucket:${bucket_id}`, data.size);
             inputCount.innerText = "Files are loaded successfully";
@@ -2483,8 +2545,6 @@ function connectToSSE(url, do_refine, bucket_id) {
                 handle_ask(false);
             } else {
                 userInput.value += (userInput.value ? "\n" : "") + JSON.stringify({bucket_id: bucket_id}) + "\n";
-                paperclip.classList.remove("blink");
-                fileInput.value = "";
             }
         }
     };
@@ -2518,9 +2578,10 @@ async function upload_files(fileInput) {
     }
     if (result.media) {
         result.media.forEach((filename)=> {
-            const url = `/backend-api/v2/files/${bucket_id}/media/${filename}`;
+            const url = `/files/${bucket_id}/media/${filename}`;
             image_storage[url] = {bucket_id: bucket_id, name: filename};
         });
+        mediaSelect.classList.remove("hidden");
         renderMediaSelect();
     }
 }

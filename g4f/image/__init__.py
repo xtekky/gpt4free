@@ -26,11 +26,30 @@ ALLOWED_EXTENSIONS = {
     'mkv', 'webm', 'mp4'
 }
 
-EXTENSIONS_MAP: dict[str, str] = {
+MEDIA_TYPE_MAP: dict[str, str] = {
     "image/png": "png",
     "image/jpeg": "jpg",
     "image/gif": "gif",
     "image/webp": "webp",
+}
+
+EXTENSIONS_MAP: dict[str, str] = {
+    # Image
+    "png": "image/png",
+    "jpg": "image/jpeg",
+    "jpeg": "image/jpeg",
+    "gif": "image/gif",
+    "webp": "image/webp",
+    # Audio
+    "wav": "audio/wav",
+    "mp3": "audio/mpeg",
+    "flac": "audio/flac",
+    "opus": "audio/opus",
+    "ogg": "audio/ogg",
+     # Video
+    "mkv": "video/x-matroska",
+    "webm": "video/webm",
+    "mp4": "video/mp4",
 }
 
 def to_image(image: ImageType, is_svg: bool = False) -> Image:

@@ -321,8 +321,9 @@ body:not(.white) a:visited{
     white-space: pre-wrap;
 }
 
-.message .content img{
+.message .content img, .message .content video{
     max-width: 400px;
+    max-height: 400px;
 }
 
 .message .content .audio{
@@ -667,8 +668,9 @@ input-count .text {
 .micro-label {
     cursor: pointer;
     position: absolute;
-    top: 10px;
-    left: 10px;
+    top: 8px;
+    left: 8px;
+    padding: 2px;
 }
 
 .file-label:has(> input:valid),
@@ -683,11 +685,12 @@ input-count .text {
 }
 
 label.image-label {
-    top: 32px;
+    top: 30px;
 }
 
 label[for="micro"] {
-    top: 54px;
+    top: 50px;
+    padding: 4px;
 }
 
 @media (pointer:none), (pointer:coarse) {
@@ -872,7 +875,7 @@ input.model:hover
     min-height: 59px;
     height: 59px;
     resize: vertical;
-    padding: var(--inner-gap) var(--section-gap);
+    padding: var(--inner-gap) 28px;
 }
 
 #systemPrompt, #chatPrompt, .settings textarea, form textarea {
@@ -935,15 +938,15 @@ input.model:hover
     top: auto !important;
 }
 
-.slide-systemPrompt {
+.slide-header {
     position: absolute;
-    top: 42px;
+    top: 0;
     z-index: 1;
-    padding: var(--inner-gap) 10px;
+    padding: 10px;
     border: none;
     background: transparent;
     cursor: pointer;
-    height: 49px;
+    height: 40px;
     color: var(--colour-3);
 }
 
@@ -1159,7 +1162,7 @@ ul {
 }
 
 .sidebar.shown {
-    width: 300px;
+    width: 400px;
     padding: 15px;
     margin-right: 10px;
 }
@@ -1475,7 +1478,7 @@ form .field.saved .fa-xmark {
     .conversation .user-input,
     .conversation .chat-buttons,
     .conversation .chat-toolbar,
-    .conversation .slide-systemPrompt,
+    .conversation .slide-header,
     .message .count i,
     .message .assistant,
     .message .user {
@@ -1509,7 +1512,7 @@ form .field.saved .fa-xmark {
     overflow: hidden;
 }
 .chat-header {
-    padding: 10px;
+    padding: 10px 28px;
     font-weight: 500;
     white-space: nowrap;
     text-overflow: ellipsis;
@@ -1549,10 +1552,12 @@ form .field.saved .fa-xmark {
 .chat-footer .send-buttons button {
     background: var(--blur-bg);
     color: white;
-    border: none;
     padding: 12px 15px;
     margin: 0 10px;
     border-radius: 5px;
     cursor: pointer;
     border: 1px dashed #e4d4ffa6;
+}
+.chat-footer .send-buttons button:hover {
+    border-style: solid;
 }
