@@ -912,7 +912,6 @@ async function add_message_chunk(message, message_id, provider, scroll, finish_m
         } if (message.token) {
             reasoning_storage[message_id].text += message.token;
         }
-        reasoning_storage[message_id].ticker = message.ticker;
         update_message(content_map, message_id, render_reasoning(reasoning_storage[message_id]), scroll);
     } else if (message.type == "parameters") {
         if (!parameters_storage[provider]) {

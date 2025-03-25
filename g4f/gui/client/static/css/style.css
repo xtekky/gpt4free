@@ -354,12 +354,6 @@ body:not(.white) a:visited{
 
 .message .reasoning_title {
     cursor: pointer;
-    height: 22px;
-    overflow: hidden;
-}
-
-.message .reasoning_title strong {
-    float: left;
 }
 
 .message .user i {

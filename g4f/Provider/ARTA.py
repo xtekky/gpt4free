@@ -193,9 +193,9 @@ class ARTA(AsyncGeneratorProvider, ProviderModelMixin):
                         if last_status != status:
                             last_status = status
                             if status == "IN_QUEUE":
-                                yield Reasoning(label="Waiting", ticker="⌛" * counter)
+                                yield Reasoning(label="Waiting")
                             else:
-                                yield Reasoning(label="Generating", ticker="⚽" * counter)
+                                yield Reasoning(label="Generating")
                         await asyncio.sleep(2)  # Poll every 2 seconds
                     else:
                         raise ResponseError(f"Image generation failed with status: {status}")

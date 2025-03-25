@@ -180,14 +180,12 @@ class Reasoning(ResponseType):
             token: Optional[str] = None,
             label: Optional[str] = None,
             status: Optional[str] = None,
-            ticker: Optional[str] = None,
             is_thinking: Optional[str] = None
         ) -> None:
         """Initialize with token, status, and thinking state."""
         self.token = token
         self.label = label
         self.status = status
-        self.ticker = ticker
         self.is_thinking = is_thinking
 
     def __str__(self) -> str:
@@ -210,8 +208,6 @@ class Reasoning(ResponseType):
     def get_dict(self) -> Dict:
         """Return a dictionary representation of the reasoning."""
         if self.label is not None:
-            if self.ticker is not None:
-                return {"label": self.label, "status": self.status, "ticker": self.ticker}
             return {"label": self.label, "status": self.status}
         if self.is_thinking is None:
             if self.status is None:
