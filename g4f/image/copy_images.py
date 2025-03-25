@@ -134,10 +134,12 @@ async def copy_media(
 
                     async with session.get(image, ssl=request_ssl, headers=request_headers) as response:
                         response.raise_for_status()
-                        if not is_valid_media_type(response.headers.get("content-type")):
-                            raise ValueError(f"Unsupported media type: {response.headers.get('content-type')}")
+                        media_type = response.headers.get("content-type", "application/octet-stream")
+                        if media_type != "application/octet-stream":
+                            if not is_valid_media_type(media_type):
+                                raise ValueError(f"Unsupported media type: {media_type}")
                         with open(target_path, "wb") as f:
-                            async for chunk in response.content.iter_chunked(4096):
+                            async for chunk in response.content.iter_any():
                                 f.write(chunk)
 
                 # Verify file format

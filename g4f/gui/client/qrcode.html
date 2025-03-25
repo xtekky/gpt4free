@@ -31,7 +31,13 @@
     <button id="generateQRCode">Generate QR Code</button>
 
     <script type="module">
+        const share_url = "{{share_url}}" || window.location.origin;
         const conversation_id = "{{conversation_id}}";
+        if (!conversation_id) {
+            document.getElementById('generateQRCode')
+                .setAttribute('disabled', 'disabled');
+        }
+
         import QrScanner from 'https://cdn.jsdelivr.net/npm/qr-scanner/qr-scanner.min.js';
         
         function generate_uuid() {
@@ -69,13 +75,13 @@
         document.getElementById('generateQRCode').addEventListener('click', () => {
             const chat_id = generate_uuid();
 
-            const url = `/backend-api/v2/chat/${encodeURI(chat_id)}`;
+            const url = `${share_url}/backend-api/v2/chat/${encodeURI(chat_id)}`;
             fetch(url, {
                 method: 'POST',
                 headers: {'content-type': 'application/json'},
                 body: localStorage.getItem(`conversation:${conversation_id}`)
             });
-            const share = `${window.location.origin}/chat/${encodeURI(chat_id)}/${encodeURI(conversation_id)}`;
+            const share = `${share_url}/chat/${encodeURI(chat_id)}/${encodeURI(conversation_id)}`;
             document.getElementById('qrcode-status').innerText = share;
             document.getElementById("qrcode").innerHTML = '';
             const qrcode = new QRCode(
@@ -116,7 +122,7 @@
                 qrScanner = new QrScanner(videoElem, result => {
                     camStatus.innerText = 'Camera Success: ', result;
                     console.log('decoded QR code:', result.data);
-                    if (result.data.startsWith(window.location.origin)) {
+                    if (result.data.startsWith(share_url)) {
                         location.href = result.data;
                     }
                 }, {

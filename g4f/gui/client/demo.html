@@ -277,7 +277,7 @@
                 document.getElementById("signin").style.removeProperty("display");
                 document.getElementById("signin").onclick = async function() {
                     window.location.href = (await oauthLoginUrl({
-                        clientId: 'ed074164-4f8d-4fb2-8bec-44952707965e',
+                        clientId: '{{client_id}}',
                         scopes: ['inference-api']
                     }));
                 }

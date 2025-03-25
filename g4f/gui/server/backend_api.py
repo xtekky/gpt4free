@@ -63,15 +63,19 @@ class Backend_Api(Api):
         if app.demo:
             @app.route('/', methods=['GET'])
             def home():
-                return render_template('demo.html', backend_url=os.environ.get("G4F_BACKEND_URL", ""))
+                client_id = os.environ.get("OAUTH_CLIENT_ID", "ed074164-4f8d-4fb2-8bec-44952707965e")
+                backend_url = os.environ.get("G4F_BACKEND_URL", "")
+                return render_template('demo.html', backend_url=backend_url, client_id=client_id)
         else:
             @app.route('/', methods=['GET'])
             def home():
                 return render_template('home.html')
 
+        @app.route('/qrcode', methods=['GET'])
         @app.route('/qrcode/<conversation_id>', methods=['GET'])
-        def qrcode(conversation_id: str):
-            return render_template('qrcode.html', conversation_id=conversation_id)
+        def qrcode(conversation_id: str = ""):
+            share_url = os.environ.get("G4F_SHARE_URL", "")
+            return render_template('qrcode.html', conversation_id=conversation_id, share_url=share_url)
 
         @app.route('/backend-api/v2/models', methods=['GET'])
         def jsonify_models(**kwargs):
