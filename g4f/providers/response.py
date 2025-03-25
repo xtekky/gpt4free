@@ -195,6 +195,8 @@ class Reasoning(ResponseType):
         if self.token is not None:
             return self.token
         if self.status is not None:
+            if self.label is not None:
+                return f"{self.label}: {self.status}\n"
             return f"{self.status}\n"
         return ""
 

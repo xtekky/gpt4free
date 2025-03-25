@@ -20,18 +20,24 @@
     <h2>QR Code Scanner</h2>
     <video id="video"></video>
     <button id="startCamera">Start Camera</button>
-    <button id="stopScan">Stop Scanning</button>
+    <button id="stopCamera">Stop Camera</button>
     <button id="switchCamera">Switch Camera</button>
     <button id="toggleFlash">Toggle Flash</button>
     <p id="cam-status"></p>
 
     <h2>QR Code</h2>
     <div id="qrcode"></div>
-    <p id="qrcode-status"></p>
+    <p><a id="qrcode-status" target="_parent"></a></p>
     <button id="generateQRCode">Generate QR Code</button>
 
     <script type="module">
+        const share_url = "{{share_url}}" || window.location.origin;
         const conversation_id = "{{conversation_id}}";
+        if (!conversation_id) {
+            document.getElementById('generateQRCode')
+                .setAttribute('disabled', 'disabled');
+        }
+
         import QrScanner from 'https://cdn.jsdelivr.net/npm/qr-scanner/qr-scanner.min.js';
         
         function generate_uuid() {
@@ -51,8 +57,13 @@
             startCamera();
         });
 
-        document.getElementById('stopScan').addEventListener('click', () => {
-            qrScanner.stop();
+        document.getElementById('stopCamera').addEventListener('click', () => {
+            if (currentStream) {
+                currentStream.getTracks().forEach(track => track.stop());
+            }
+            if (qrScanner) {
+                qrScanner.stop();
+            }
         });
 
         document.getElementById('toggleFlash').addEventListener('click', async () => {
@@ -69,14 +80,20 @@
         document.getElementById('generateQRCode').addEventListener('click', () => {
             const chat_id = generate_uuid();
 
-            const url = `/backend-api/v2/chat/${encodeURI(chat_id)}`;
-            fetch(url, {
+            const url = `${share_url}/backend-api/v2/chat/${encodeURI(chat_id)}`;
+            const response = fetch(url, {
                 method: 'POST',
                 headers: {'content-type': 'application/json'},
                 body: localStorage.getItem(`conversation:${conversation_id}`)
             });
-            const share = `${window.location.origin}/chat/${encodeURI(chat_id)}/${encodeURI(conversation_id)}`;
-            document.getElementById('qrcode-status').innerText = share;
+            const share = `${share_url}/chat/${encodeURI(chat_id)}/${encodeURI(conversation_id)}`;
+            const qrcodeStatus = document.getElementById('qrcode-status');
+            if (response.status !== 200) {
+                qrcodeStatus.innerText = 'Error generating QR code';
+                return;
+            }
+            qrcodeStatus.innerText = share;
+            qrcodeStatus.href = share;
             document.getElementById("qrcode").innerHTML = '';
             const qrcode = new QRCode(
                 document.getElementById("qrcode"),
@@ -92,7 +109,7 @@
 
         const switchButton = document.getElementById('switchCamera');
         let currentStream = null;
-        let facingMode = 'user';
+        let facingMode = 'environment';
 
         async function startCamera() {
             try {
@@ -114,10 +131,10 @@
                 video.srcObject = stream;
 
                 qrScanner = new QrScanner(videoElem, result => {
-                    camStatus.innerText = 'Camera Success: ', result;
-                    console.log('decoded QR code:', result.data);
-                    if (result.data.startsWith(window.location.origin)) {
-                        location.href = result.data;
+                    camStatus.innerText = 'Camera Success: ' + result.data;
+                    console.log('decoded QR code:', result);
+                    if (result.data.startsWith(share_url)) {
+                        window.parent.location = result.data;
                     }
                 }, {
                     highlightScanRegion: true,

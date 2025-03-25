@@ -57,6 +57,8 @@ html,
 body {
     scroll-behavior: smooth;
     overflow: hidden;
+    max-height: 100%;
+    max-width: 100%;
 }
 
 body {
@@ -119,6 +121,7 @@ body:not(.white) a:visited{
     color: var(--colour-3);
     border: var(--colour-1) 1px solid;
     border-radius: var(--border-radius-1);
+    z-index: 1;
 }
 
 .white .new_version {
@@ -1164,7 +1167,6 @@ ul {
 .sidebar.shown {
     width: 400px;
     padding: 15px;
-    margin-right: 10px;
 }
 
 /* style for hljs copy */

@@ -214,12 +214,12 @@ class Api:
                     yield self._format_json(chunk.type, **chunk.get_dict())
                 else:
                     yield self._format_json("content", str(chunk))
-                yield from self._yield_logs()
         except Exception as e:
             logger.exception(e)
             debug.error(e)
-            yield from self._yield_logs()
             yield self._format_json('error', type(e).__name__, message=get_error_message(e))
+        finally:
+            yield from self._yield_logs()
 
     def _yield_logs(self):
         if debug.logs:
