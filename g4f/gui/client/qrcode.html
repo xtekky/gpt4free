@@ -20,7 +20,7 @@
     <h2>QR Code Scanner</h2>
     <video id="video"></video>
     <button id="startCamera">Start Camera</button>
-    <button id="stopScan">Stop Scanning</button>
+    <button id="stopCamera">Stop Camera</button>
     <button id="switchCamera">Switch Camera</button>
     <button id="toggleFlash">Toggle Flash</button>
     <p id="cam-status"></p>
@@ -57,8 +57,13 @@
             startCamera();
         });
 
-        document.getElementById('stopScan').addEventListener('click', () => {
-            qrScanner.stop();
+        document.getElementById('stopCamera').addEventListener('click', () => {
+            if (currentStream) {
+                currentStream.getTracks().forEach(track => track.stop());
+            }
+            if (qrScanner) {
+                qrScanner.stop();
+            }
         });
 
         document.getElementById('toggleFlash').addEventListener('click', async () => {
@@ -120,10 +125,10 @@
                 video.srcObject = stream;
 
                 qrScanner = new QrScanner(videoElem, result => {
-                    camStatus.innerText = 'Camera Success: ', result;
-                    console.log('decoded QR code:', result.data);
+                    camStatus.innerText = 'Camera Success: ' + result.data;
+                    console.log('decoded QR code:', result);
                     if (result.data.startsWith(share_url)) {
-                        location.href = result.data;
+                        window.parent.location = result.data;
                     }
                 }, {
                     highlightScanRegion: true,
