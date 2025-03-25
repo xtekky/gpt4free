@@ -28,43 +28,6 @@
 
         @import url("https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap");
 
-        .gradient {
-            position: absolute;
-            z-index: -1;
-            left: 50vw;
-            border-radius: 50%;
-            background: radial-gradient(circle at center, var(--accent), var(--gradient));
-            width: var(--size);
-            height: var(--size);
-            top: var(--top);
-            transform: translate(-50%, -50%);
-            filter: blur(var(--blur)) opacity(var(--opacity));
-            animation: zoom_gradient 6s infinite alternate;
-            display: none;
-            max-height: 100%;
-            transition: max-height 0.25s ease-in;
-        }
-
-        .gradient.hidden {
-            max-height: 0;
-            transition: max-height 0.15s ease-out;
-        }
-
-        @media only screen and (min-width: 40em) {
-            body .gradient{
-                display: block;
-            }
-        }
-
-        @keyframes zoom_gradient {
-            0% {
-                transform: translate(-50%, -50%) scale(1);
-            }
-            100% {
-                transform: translate(-50%, -50%) scale(1.2);
-            }
-        }
-
         /* Body and text color */
         body {
             background: var(--background);
@@ -126,6 +89,7 @@
 
         .stream-widget img {
             max-width: 320px;
+            display: block;
         }
 
         #stream-container {
@@ -179,24 +143,11 @@
             font-size: 0.9rem;
             color: var(--colour-2);
         }
-
-        /* Animation for the gradient circle */
-        @keyframes zoom_gradient {
-            0% {
-                transform: translate(-50%, -50%) scale(1);
-            }
-            100% {
-                transform: translate(-50%, -50%) scale(1.5);
-            }
-        }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/markdown-it@13.0.1/dist/markdown-it.min.js"></script>
 </head>
 <body>
-    <iframe id="background"></iframe>
-
-    <!-- Gradient Background Circle -->
-    <div class="gradient"></div>
+    <iframe id="background" src="/background"></iframe>
 
     <!-- Main Content -->
     <div class="container">
@@ -285,27 +236,6 @@
             }
             scroll_to_bottom_callback = () => null;
         }
-
-        (async () => {
-            const today = new Date().toJSON().slice(0, 10);
-            const max = 5;
-            const cache_id = Math.floor(Math.random() * max);
-            let prompt;
-            if (cache_id % 2 == 0) {
-                prompt = `
-                Today is ${new Date().toJSON().slice(0, 10)}.
-                Create a single-page HTML screensaver reflecting the current season (based on the date).
-                Avoid using any text.`;
-            } else {
-                prompt = `Create a single-page HTML screensaver. Avoid using any text.`;
-                const response = await fetch(`/backend-api/v2/create?prompt=${prompt}&filter_markdown=html&cache=${cache_id}`);
-            }
-            const response = await fetch(`/backend-api/v2/create?prompt=${prompt}&filter_markdown=html&cache=${cache_id}`);
-            const text = await response.text()
-            background.src = `data:text/html;charset=utf-8,${encodeURIComponent(text)}`;
-            const gradient = document.querySelector('.gradient');
-            gradient.classList.add('hidden');
-        })();
     </script>
 </body>
 </html>

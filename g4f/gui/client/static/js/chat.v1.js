@@ -79,7 +79,7 @@ if (window.markdownit) {
             .replaceAll('<code>', '<code class="language-plaintext">')
             .replaceAll('&lt;i class=&quot;', '<i class="')
             .replaceAll('&quot;&gt;&lt;/i&gt;', '"></i>')
-            .replaceAll('&lt;video controls src=&quot;', '<video controls loop src="')
+            .replaceAll('&lt;video controls src=&quot;', '<video loop autoplay controls muted src="')
             .replaceAll('&quot;&gt;&lt;/video&gt;', '"></video>')
             .replaceAll('&lt;audio controls src=&quot;', '<audio controls src="')
             .replaceAll('&quot;&gt;&lt;/audio&gt;', '"></audio>')
@@ -1079,7 +1079,7 @@ const ask_gpt = async (message_id, message_index = -1, regenerate = false, provi
         if (!error_storage[message_id] && reloadConversation) {
             if(await safe_load_conversation(window.conversation_id, scroll)) {
                 const new_message = Array.from(document.querySelectorAll(".message")).at(-1);
-                const new_media = new_message?.querySelector("audio, video, iframe");
+                const new_media = new_message.querySelector("audio, iframe");
                 if (new_media) {
                     if (new_media.tagName == "IFRAME") {
                         if (YT) {
@@ -1097,12 +1097,7 @@ const ask_gpt = async (message_id, message_index = -1, regenerate = false, provi
                             });
                         }
                     } else {
-                        setTimeout(async () => {
-                            if (scroll) {
-                                await lazy_scroll_to_bottom();
-                            }
-                            new_media.play();
-                        }, 2000);
+                        new_media.play();
                     }
                 }
             }
@@ -1110,7 +1105,9 @@ const ask_gpt = async (message_id, message_index = -1, regenerate = false, provi
         let cursorDiv = message_el.querySelector(".cursor");
         if (cursorDiv) cursorDiv.parentNode.removeChild(cursorDiv);
         if (scroll) {
-            await lazy_scroll_to_bottom();
+            setTimeout(async () => {
+                await lazy_scroll_to_bottom();
+            }, 2000);
         }
         await safe_remove_cancel_button();
         await register_message_images();
