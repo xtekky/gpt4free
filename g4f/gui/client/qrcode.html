@@ -27,7 +27,7 @@
 
     <h2>QR Code</h2>
     <div id="qrcode"></div>
-    <p id="qrcode-status"></p>
+    <p><a id="qrcode-status"></a></p>
     <button id="generateQRCode">Generate QR Code</button>
 
     <script type="module">
@@ -87,7 +87,9 @@
                 body: localStorage.getItem(`conversation:${conversation_id}`)
             });
             const share = `${share_url}/chat/${encodeURI(chat_id)}/${encodeURI(conversation_id)}`;
-            document.getElementById('qrcode-status').innerText = share;
+            const qrcodeStatus = document.getElementById('qrcode-status');
+            qrcodeStatus.innerText = share;
+            qrcodeStatus.href = share;
             document.getElementById("qrcode").innerHTML = '';
             const qrcode = new QRCode(
                 document.getElementById("qrcode"),
