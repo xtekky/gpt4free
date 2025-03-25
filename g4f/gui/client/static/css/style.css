@@ -119,6 +119,7 @@ body:not(.white) a:visited{
     color: var(--colour-3);
     border: var(--colour-1) 1px solid;
     border-radius: var(--border-radius-1);
+    z-index: 1;
 }
 
 .white .new_version {
@@ -351,6 +352,12 @@ body:not(.white) a:visited{
 
 .message .reasoning_title {
     cursor: pointer;
+    height: 22px;
+    overflow: hidden;
+}
+
+.message .reasoning_title strong {
+    float: left;
 }
 
 .message .user i {
@@ -1164,7 +1171,6 @@ ul {
 .sidebar.shown {
     width: 400px;
     padding: 15px;
-    margin-right: 10px;
 }
 
 /* style for hljs copy */

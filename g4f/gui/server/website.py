@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+import os
 import uuid
 from flask import render_template, redirect
 
@@ -48,7 +51,8 @@ class Website:
         return render_template('index.html', conversation_id=conversation_id)
 
     def _chat_id(self, chat_id, conversation_id: str = ""):
-        return render_template('index.html', chat_id=chat_id, conversation_id=conversation_id)
+        share_url = os.environ.get("G4F_SHARE_URL", "")
+        return render_template('index.html', share_url=share_url, chat_id=chat_id, conversation_id=conversation_id)
 
     def _index(self):
         return render_template('index.html', conversation_id=str(uuid.uuid4()))

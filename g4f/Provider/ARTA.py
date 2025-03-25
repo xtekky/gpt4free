@@ -175,8 +175,9 @@ class ARTA(AsyncGeneratorProvider, ProviderModelMixin):
 
             # Step 3: Check Generation Status
             status_url = cls.status_check_url.format(record_id=record_id)
-            counter = 0
+            counter = 4
             start_time = time.time()
+            last_status = None
             while True:
                 async with session.get(status_url, headers=headers, proxy=proxy) as status_response:
                     status_data = await status_response.json()
@@ -189,10 +190,12 @@ class ARTA(AsyncGeneratorProvider, ProviderModelMixin):
                         yield ImageResponse(images=image_urls, alt=prompt)
                         return
                     elif status in ("IN_QUEUE", "IN_PROGRESS"):
-                        yield Reasoning(label=("Waiting" if status == "IN_QUEUE" else "Generating"), status="." * counter)
+                        if last_status != status:
+                            last_status = status
+                            if status == "IN_QUEUE":
+                                yield Reasoning(label="Waiting", ticker="⌛" * counter)
+                            else:
+                                yield Reasoning(label="Generating", ticker="⚽" * counter)
                         await asyncio.sleep(2)  # Poll every 2 seconds
-                        counter += 1
-                        if counter > 3:
-                            counter = 1
                     else:
                         raise ResponseError(f"Image generation failed with status: {status}")
