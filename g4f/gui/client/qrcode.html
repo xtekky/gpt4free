@@ -7,7 +7,7 @@
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs/qrcode.min.js"></script>
     <style>
         body { font-family: Arial, sans-serif; text-align: center; margin: 20px; }
-        video { width: 300px; height: 300px; border: 1px solid black; display: block; margin: auto; }
+        video { width: 300px; height: 300px; border: 1px solid black; display: block; margin: auto; object-fit: cover;}
         #qrcode { margin-top: 20px; }
         #qrcode img, #qrcode canvas { margin: 0 auto; width: 300px; height: 300px; }
         button { margin: 5px; padding: 10px; }
@@ -69,13 +69,13 @@
         document.getElementById('generateQRCode').addEventListener('click', () => {
             const chat_id = generate_uuid();
 
-            const url = `/backend-api/v2/chat/${chat_id}`;
+            const url = `/backend-api/v2/chat/${encodeURI(chat_id)}`;
             fetch(url, {
                 method: 'POST',
                 headers: {'content-type': 'application/json'},
                 body: localStorage.getItem(`conversation:${conversation_id}`)
             });
-            const share = `${new URL(window.location.href).origin}/chat/${encodeURI(chat_id)}/${encodeURI(conversation_id)}`;
+            const share = `${window.location.origin}/chat/${encodeURI(chat_id)}/${encodeURI(conversation_id)}`;
             document.getElementById('qrcode-status').innerText = share;
             document.getElementById("qrcode").innerHTML = '';
             const qrcode = new QRCode(
@@ -114,8 +114,11 @@
                 video.srcObject = stream;
 
                 qrScanner = new QrScanner(videoElem, result => {
-                    camStatus.innerText = 'Camera Success: ' + result;
-                    console.log('decoded QR code:', result);
+                    camStatus.innerText = 'Camera Success: ', result;
+                    console.log('decoded QR code:', result.data);
+                    if (result.data.startsWith(window.location.origin)) {
+                        location.href = result.data;
+                    }
                 }, {
                     highlightScanRegion: true,
                     highlightCodeOutline: true,
