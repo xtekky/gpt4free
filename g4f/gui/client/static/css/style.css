@@ -1553,7 +1553,7 @@ form .field.saved .fa-xmark {
     background: var(--blur-bg);
     color: white;
     padding: 12px 15px;
-    margin: 0 10px;
+    margin: 0 2px 0 4px;
     border-radius: 5px;
     cursor: pointer;
     border: 1px dashed #e4d4ffa6;

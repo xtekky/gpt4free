@@ -308,8 +308,6 @@
                 const text = await response.text()
                 if (text) {
                     background.src = `data:text/html;charset=utf-8,${encodeURIComponent(text)}`;
-                    const gradient = document.querySelector('.gradient');
-                    gradient.classList.add('hidden');
                 }
             }
 
