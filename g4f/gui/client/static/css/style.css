@@ -592,8 +592,8 @@ input-count .text {
     display: none;
     flex-direction: row;
     height: 36px;
-    width: 120px;
-    margin-right: 130px;
+    width: 140px;
+    margin-right: 150px;
     z-index: 1005;
     padding: 10px;
     margin-top: -4px;

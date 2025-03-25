@@ -69,9 +69,9 @@ class Backend_Api(Api):
             def home():
                 return render_template('home.html')
 
-        @app.route('/qrcode', methods=['GET'])
-        def qrcode():
-            return render_template('qrcode.html')
+        @app.route('/qrcode/<conversation_id>', methods=['GET'])
+        def qrcode(conversation_id: str):
+            return render_template('qrcode.html', conversation_id=conversation_id)
 
         @app.route('/backend-api/v2/models', methods=['GET'])
         def jsonify_models(**kwargs):

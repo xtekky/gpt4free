@@ -36,6 +36,10 @@ class Website:
                 'function': redirect_home,
                 'methods': ['GET', 'POST']
             },
+            '/background': {
+                'function': self._background,
+                'methods': ['GET']
+            },
         }
 
     def _chat(self, conversation_id):
@@ -51,3 +55,6 @@ class Website:
 
     def _settings(self):
         return render_template('index.html', conversation_id=str(uuid.uuid4()))
+
+    def _background(self):
+        return render_template('background.html')

@@ -439,6 +439,18 @@ const register_message_buttons = async () => {
         });
     });
 
+    chatBody.querySelectorAll(".message .fa-qrcode").forEach(async (el) => {
+        if (el.dataset.click) {
+            return
+        }
+        el.dataset.click = true;
+        const message_el = get_message_el(el);
+        el.addEventListener("click", async () => {
+            iframe.src = `/qrcode/${window.conversation_id}#${message_el.dataset.index}`;
+            iframe_container.classList.remove("hidden");
+        });
+    });
+
     chatBody.querySelectorAll(".message .reasoning_title").forEach(async (el) => {
         if (el.dataset.click) {
             return
@@ -1446,6 +1458,7 @@ const load_conversation = async (conversation, scroll=true) => {
 
         add_buttons.push(`<button class="options_button">
             <div>
+                <span><i class="fa-solid fa-qrcode"></i></span>
                 <span><i class="fa-brands fa-whatsapp"></i></span>
                 <span><i class="fa-solid fa-volume-high"></i></i></span>
                 <span><i class="fa-solid fa-print"></i></span>
@@ -2038,7 +2051,7 @@ chatPrompt.addEventListener("input", function() {
 
 window.addEventListener('load', async function() {
     if (!window.chat_id) {
-        return;
+        return await load_conversation(JSON.parse(appStorage.getItem(`conversation:${window.conversation_id}`)));
     }
     if (!window.conversation_id) {
         window.conversation_id = window.chat_id;
@@ -2046,43 +2059,49 @@ window.addEventListener('load', async function() {
     const response = await fetch(`/backend-api/v2/chat/${window.chat_id ? window.chat_id : window.conversation_id}`, {
         headers: {'accept': 'application/json'},
     });
-    if (response.ok) {
-        let conversation = await response.json();
-        if (!window.conversation_id || conversation.id == window.conversation_id) {
-            window.conversation_id = conversation.id;
-            await load_conversation(conversation);       
-            appStorage.setItem(
-                `conversation:${conversation.id}`,
-                JSON.stringify(conversation)
-            );
-            let refreshOnHide = true;
-            document.addEventListener("visibilitychange", () => {
-                if (document.hidden) {
-                    refreshOnHide = false;
-                } else {
-                    refreshOnHide = true;
-                }
+    if (!response.ok) {
+        return await load_conversation(JSON.parse(appStorage.getItem(`conversation:${window.conversation_id}`)));
+    }
+    let conversation = await response.json();
+    if (!window.conversation_id || conversation.id == window.conversation_id) {
+        window.conversation_id = conversation.id;
+        await load_conversation(conversation);       
+        appStorage.setItem(
+            `conversation:${conversation.id}`,
+            JSON.stringify(conversation)
+        );
+        let refreshOnHide = true;
+        document.addEventListener("visibilitychange", () => {
+            if (document.hidden) {
+                refreshOnHide = false;
+            } else {
+                refreshOnHide = true;
+            }
+        });
+        var refreshIntervalId = setInterval(async () => {
+            if (!window.chat_id) {
+                clearInterval(refreshIntervalId);
+                return;
+            }
+            if (!refreshOnHide) {
+                return;
+            }
+            const response = await fetch(`/backend-api/v2/chat/${window.chat_id}`, {
+                headers: {'accept': 'application/json', 'if-none-match': conversation.updated},
             });
-            return setInterval(async () => {
-                if (!refreshOnHide || !window.chat_id) {
-                    return;
+            if (response.status == 200) {
+                const new_conversation = await response.json();
+                if (conversation.id == window.conversation_id && new_conversation.updated != conversation.updated) {
+                    conversation = new_conversation;
+                    appStorage.setItem(
+                        `conversation:${conversation.id}`,
+                        JSON.stringify(conversation)
+                    );
+                    await load_conversation(conversation);
                 }
-                const response = await fetch(`/backend-api/v2/chat/${window.chat_id}`, {
-                    headers: {'accept': 'application/json', 'if-none-match': conversation.updated},
-                });
-                if (response.status == 200) {
-                    const new_conversation = await response.json();
-                    if (conversation.id == window.conversation_id && new_conversation.updated != conversation.updated) {
-                        conversation = new_conversation;
-                        appStorage.setItem(
-                            `conversation:${conversation.id}`,
-                            JSON.stringify(conversation)
-                        );
-                        await load_conversation(conversation);
-                    }
-                }
-            }, 5000);
-        }
+            }
+        }, 5000);
+        return;
     }
     await safe_load_conversation(window.conversation_id, false);
 });
