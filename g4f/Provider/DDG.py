@@ -118,13 +118,14 @@ class DDG(AsyncGeneratorProvider, ProviderModelMixin):
                 await raise_for_status(response)
                 
                 vqd = response.headers.get("x-vqd-4", "")
-                vqd_hash_1 = response.headers.get("x-vqd-hash-1", "")
                 
-                if vqd and vqd_hash_1:
+                # Generate a random string for vqd_hash_1 instead of getting it from response headers
+                letters = "abcdefghijklmnopqrstuvwxyz"
+                random_hash = ''.join(random.choice(letters) for _ in range(7))
+                vqd_hash_1 = random_hash
+                
+                if vqd:
                     return vqd, vqd_hash_1
-                
-                if vqd and not vqd_hash_1:
-                    return vqd, ""
                 
                 response_text = await response.text()
                 raise RuntimeError(f"Failed to fetch VQD token and hash: {response.status} {response_text}")
@@ -238,7 +239,8 @@ class DDG(AsyncGeneratorProvider, ProviderModelMixin):
                         if return_conversation:
                             conversation.message_history.append({"role": "assistant", "content": full_message})
                             conversation.vqd = response.headers.get("x-vqd-4", conversation.vqd)
-                            conversation.vqd_hash_1 = response.headers.get("x-vqd-hash-1", conversation.vqd_hash_1)
+                            # Don't update vqd_hash_1 from response headers to avoid ERR_CHALLENGE
+                            # conversation.vqd_hash_1 = response.headers.get("x-vqd-hash-1", conversation.vqd_hash_1)
                             conversation.cookies = {
                                 n: c.value 
                                 for n, c in session.cookie_jar.filter_cookies(URL(cls.url)).items()
