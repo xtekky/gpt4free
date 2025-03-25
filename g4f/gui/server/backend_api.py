@@ -58,6 +58,7 @@ class Backend_Api(Api):
             app (Flask): Flask application instance to attach routes to.
         """
         self.app: Flask = app
+        self.chat_cache = {}
 
         if app.demo:
             @app.route('/', methods=['GET'])
@@ -68,9 +69,9 @@ class Backend_Api(Api):
             def home():
                 return render_template('home.html')
 
-        @app.route('/qrcode', methods=['GET'])
-        def qrcode():
-            return render_template('qrcode.html')
+        @app.route('/qrcode/<conversation_id>', methods=['GET'])
+        def qrcode(conversation_id: str):
+            return render_template('qrcode.html', conversation_id=conversation_id)
 
         @app.route('/backend-api/v2/models', methods=['GET'])
         def jsonify_models(**kwargs):
@@ -208,6 +209,10 @@ class Backend_Api(Api):
                 'methods': ['GET']
             },
             '/images/<path:name>': {
+                'function': self.serve_images,
+                'methods': ['GET']
+            },
+            '/media/<path:name>': {
                 'function': self.serve_images,
                 'methods': ['GET']
             }
@@ -358,6 +363,33 @@ class Backend_Api(Api):
                 file.save(os.path.join(get_cookies_dir(), filename))
                 return "File saved", 200
             return 'Not supported file', 400
+
+        @self.app.route('/backend-api/v2/chat/<chat_id>', methods=['GET'])
+        def get_chat(chat_id: str) -> str:
+            chat_id = secure_filename(chat_id)
+            if int(self.chat_cache.get(chat_id, -1)) == int(request.headers.get("if-none-match", 0)):
+                return jsonify({"error": {"message": "Not modified"}}), 304
+            bucket_dir = get_bucket_dir(chat_id)
+            file = os.path.join(bucket_dir, "chat.json")
+            if not os.path.isfile(file):
+                return jsonify({"error": {"message": "Not found"}}), 404
+            with open(file, 'r') as f:
+                chat_data = json.load(f)
+                if int(chat_data.get("updated", 0)) == int(request.headers.get("if-none-match", 0)):
+                    return jsonify({"error": {"message": "Not modified"}}), 304
+                self.chat_cache[chat_id] = chat_data.get("updated", 0)
+                return jsonify(chat_data), 200
+
+        @self.app.route('/backend-api/v2/chat/<chat_id>', methods=['POST'])
+        def upload_chat(chat_id: str) -> dict:
+            chat_data = {**request.json}
+            chat_id = secure_filename(chat_id)
+            bucket_dir = get_bucket_dir(chat_id)
+            os.makedirs(bucket_dir, exist_ok=True)
+            with open(os.path.join(bucket_dir, "chat.json"), 'w') as f:
+                json.dump(chat_data, f)
+            self.chat_cache[chat_id] = chat_data.get("updated", 0)
+            return {"chat_id": chat_id}
 
     def handle_synthesize(self, provider: str):
         try:

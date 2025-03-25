@@ -239,11 +239,11 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         }, aspect_ratio)
         query = "&".join(f"{k}={quote_plus(str(v))}" for k, v in params.items() if v is not None)
         url = f"{cls.image_api_endpoint}prompt/{quote_plus(prompt)}?{query}"
-
+        url = url[:8192]  # Limit URL length
         async with ClientSession(headers=DEFAULT_HEADERS, connector=get_connector(proxy=proxy)) as session:
-            async with session.get(url, allow_redirects=True) as response:
+            async with session.get(url, allow_redirects=False) as response:
                 await raise_for_status(response)
-                yield ImageResponse(url, prompt)
+                yield ImageResponse(response.headers.get("location", str(response.url)), prompt)
 
     @classmethod
     async def _generate_text(

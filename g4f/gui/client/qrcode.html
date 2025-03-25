@@ -27,9 +27,11 @@
 
     <h2>QR Code</h2>
     <div id="qrcode"></div>
+    <p id="qrcode-status"></p>
     <button id="generateQRCode">Generate QR Code</button>
 
     <script type="module">
+        const conversation_id = "{{conversation_id}}";
         import QrScanner from 'https://cdn.jsdelivr.net/npm/qr-scanner/qr-scanner.min.js';
         
         function generate_uuid() {
@@ -64,18 +66,28 @@
             }
         });
 
-        localStorage.getItem('device_id') || localStorage.setItem('device_id', generate_uuid());
+        document.getElementById('generateQRCode').addEventListener('click', () => {
+            const chat_id = generate_uuid();
 
-        const qrcode = new QRCode(document.getElementById("qrcode"), {
-            text: JSON.stringify({
-                date: Math.floor(Date.now() / 1000),
-                device_id: localStorage.getItem('device_id')
-            }),
-            width: 128,
-            height: 128,
-            colorDark: "#000000",
-            colorLight: "#ffffff",
-            correctLevel: QRCode.CorrectLevel.H
+            const url = `/backend-api/v2/chat/${chat_id}`;
+            fetch(url, {
+                method: 'POST',
+                headers: {'content-type': 'application/json'},
+                body: localStorage.getItem(`conversation:${conversation_id}`)
+            });
+            const share = `${new URL(window.location.href).origin}/chat/${encodeURI(chat_id)}/${encodeURI(conversation_id)}`;
+            document.getElementById('qrcode-status').innerText = share;
+            document.getElementById("qrcode").innerHTML = '';
+            const qrcode = new QRCode(
+                document.getElementById("qrcode"),
+                share,
+            {
+                width: 128,
+                height: 128,
+                colorDark: "#000000",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
         });
 
         const switchButton = document.getElementById('switchCamera');

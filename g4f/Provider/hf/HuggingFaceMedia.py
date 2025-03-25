@@ -202,7 +202,9 @@ class HuggingFaceMedia(AsyncGeneratorProvider, ProviderModelMixin):
         background_tasks.add(task)
         task.add_done_callback(background_tasks.discard)
         while background_tasks:
-            yield Reasoning(label="Generating", status=f"{time.time() - started:.2f}s")
+            diff = time.time() - started
+            if diff > 1:
+                yield Reasoning(label="Generating", status=f"{diff:.2f}s")
             await asyncio.sleep(0.2)
         provider_info, media_response = await task
         yield Reasoning(label="Finished", status=f"{time.time() - started:.2f}s")

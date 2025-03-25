@@ -1,0 +1,181 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>G4F DEMO</title>
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/img/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/static/img/favicon-16x16.png">
+    <link rel="manifest" href="/static/img/site.webmanifest">
+    <style>
+        :root {
+            --colour-1: #000000;
+            --colour-2: #ccc;
+            --colour-3: #e4d4ff;
+            --colour-4: #f0f0f0;
+            --colour-5: #181818;
+            --colour-6: #242424;
+            --accent: #8b3dff;
+            --gradient: #1a1a1a;
+            --background: #16101b;
+            --size: 70vw;
+            --top: 50%;
+            --blur: 40px;
+            --opacity: 0.6;
+        }
+
+        .gradient {
+            position: absolute;
+            z-index: -1;
+            left: 50vw;
+            border-radius: 50%;
+            background: radial-gradient(circle at center, var(--accent), var(--gradient));
+            width: var(--size);
+            height: var(--size);
+            top: var(--top);
+            transform: translate(-50%, -50%);
+            filter: blur(var(--blur)) opacity(var(--opacity));
+            animation: zoom_gradient 6s infinite alternate;
+            display: none;
+            max-height: 100%;
+            transition: max-height 0.25s ease-in;
+        }
+
+        .gradient.hidden {
+            max-height: 0;
+            transition: max-height 0.15s ease-out;
+        }
+
+        @media only screen and (min-width: 40em) {
+            body .gradient{
+                display: block;
+            }
+        }
+
+        @keyframes zoom_gradient {
+            0% {
+                transform: translate(-50%, -50%) scale(1);
+            }
+            100% {
+                transform: translate(-50%, -50%) scale(1.2);
+            }
+        }
+
+        /* Body and text color */
+        body {
+            background: var(--background);
+            height: 100vh;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        iframe {
+            background: transparent;
+            width: 100%;
+            border: none;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        #background, #image-feed {
+            height: 100%;
+            position: absolute;
+            z-index: -1;
+            object-fit: cover;
+            object-position: center;
+            width: 100%;
+            background: black;
+        }
+
+        /* Animation for the gradient circle */
+        @keyframes zoom_gradient {
+            0% {
+                transform: translate(-50%, -50%) scale(1);
+            }
+            100% {
+                transform: translate(-50%, -50%) scale(1.5);
+            }
+        }
+    </style>
+    <link rel="stylesheet" href="/static/css/all.min.css">
+    <script>
+        (async () => {
+            const isIframe = window.self !== window.top;
+            const backendUrl = "{{backend_url}}";
+            let url = new URL(window.location.href)
+            if (isIframe && backendUrl) {
+                window.location.replace(`${backendUrl}${url.search}`);
+                return;
+            }
+        })();
+    </script>
+    <script src="https://unpkg.com/es-module-shims@1.7.0/dist/es-module-shims.js"></script>
+    <script type="importmap">
+        {
+            "imports": {
+                "@huggingface/hub": "https://cdn.jsdelivr.net/npm/@huggingface/hub@0.21.0/+esm"
+            }
+        }
+    </script>
+</head>
+<body>
+    <img id="image-feed" class="hidden" alt="Image Feed">
+
+    <!-- Gradient Background Circle -->
+    <div class="gradient"></div></div>
+    <script>
+        (async () => {
+            const url = "https://image.pollinations.ai/feed";
+            const imageFeed = document.getElementById("image-feed");
+            const images = []
+            let es = null;
+            function initES() {
+                if (es == null || es.readyState == EventSource.CLOSED) {
+                    const eventSource = new EventSource(url);
+                    eventSource.onmessage = (event) => {
+                        const data = JSON.parse(event.data);
+                        if (data.nsfw || !data.nologo || data.width < 512 || !data.imageURL || data.isChild || data.status != "end_generating") {
+                            return;
+                        }
+                        const lower = data.prompt.toLowerCase();
+                        const tags = ["nsfw", "timeline", "feet", "blood", "soap", "orally", "heel", "latex", "bathroom", "boobs", "charts", "gel", "logo", "infographic", "warts", " bra ", "prostitute", "curvy", "breasts", "written", "bodies", "naked", "classroom", "malone", "dirty", "shoes", "shower", "banner", "fat", "nipples", "couple", "sexual", "sandal", "supplier", "overlord", "succubus", "platinum", "cracy", "crazy", "hemale", "oprah", "lamic", "ropes", "cables", "wires", "dirty", "messy", "cluttered", "chaotic", "disorganized", "disorderly", "untidy", "unorganized", "unorderly", "unsystematic", "disarranged", "disarrayed", "disheveled", "disordered", "jumbled", "muddled", "scattered", "shambolic", "sloppy", "unkept", "unruly"];
+                        for (i in tags) {
+                            if (lower.indexOf(tags[i]) != -1) {
+                                console.log("Skipping image with tag: " + tags[i]);
+                                console.debug("Skipping image:", data.imageURL);
+                                return;
+                            }
+                        }
+                        const landscape = window.innerWidth > window.innerHeight;
+                        if (landscape && data.width > data.height) {
+                            images.push(data.imageURL);
+                        } else if (!landscape && data.width < data.height) {
+                            images.push(data.imageURL);
+                        }
+                    };
+                    eventSource.onerror = (event) => {
+                        eventSource.close();
+                    }
+                    imageFeed.onerror = () => {
+                        imageFeed.classList.add("hidden");
+                    }   
+                }
+            }
+            initES();
+            setInterval(() => {
+                if (images.length > 0) {
+                    imageFeed.classList.remove("hidden");
+                    imageFeed.src = images.shift();
+                } else if(imageFeed) {
+                    initES();
+                }
+            }, 7000);
+        })();
+    </script>
+</body>
+</html>

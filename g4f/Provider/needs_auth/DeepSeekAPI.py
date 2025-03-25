@@ -72,12 +72,12 @@ class DeepSeekAPI(AsyncAuthedProvider, ProviderModelMixin):
         ):
             if chunk['type'] == 'thinking':
                 if not is_thinking:
-                    yield Reasoning(None, "Is thinking...")
+                    yield Reasoning(status="Is thinking...")
                     is_thinking = time.time()
                 yield Reasoning(chunk['content'])
             elif chunk['type'] == 'text':
                 if is_thinking:
-                    yield Reasoning(None, f"Thought for {time.time() - is_thinking:.2f}s")
+                    yield Reasoning(status=f"Thought for {time.time() - is_thinking:.2f}s")
                     is_thinking = 0
                 if chunk['content']:
                     yield chunk['content']

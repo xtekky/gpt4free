@@ -28,43 +28,6 @@
 
         @import url("https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap");
 
-        .gradient {
-            position: absolute;
-            z-index: -1;
-            left: 50vw;
-            border-radius: 50%;
-            background: radial-gradient(circle at center, var(--accent), var(--gradient));
-            width: var(--size);
-            height: var(--size);
-            top: var(--top);
-            transform: translate(-50%, -50%);
-            filter: blur(var(--blur)) opacity(var(--opacity));
-            animation: zoom_gradient 6s infinite alternate;
-            display: none;
-            max-height: 100%;
-            transition: max-height 0.25s ease-in;
-        }
-
-        .gradient.hidden {
-            max-height: 0;
-            transition: max-height 0.15s ease-out;
-        }
-
-        @media only screen and (min-width: 40em) {
-            body .gradient{
-                display: block;
-            }
-        }
-
-        @keyframes zoom_gradient {
-            0% {
-                transform: translate(-50%, -50%) scale(1);
-            }
-            100% {
-                transform: translate(-50%, -50%) scale(1.2);
-            }
-        }
-
         /* Body and text color */
         body {
             background: var(--background);
@@ -188,16 +151,6 @@
         .hidden {
             display: none;
         }
-
-        /* Animation for the gradient circle */
-        @keyframes zoom_gradient {
-            0% {
-                transform: translate(-50%, -50%) scale(1);
-            }
-            100% {
-                transform: translate(-50%, -50%) scale(1.5);
-            }
-        }
     </style>
     <link rel="stylesheet" href="/static/css/all.min.css">
     <script>
@@ -221,8 +174,7 @@
     </script>
 </head>
 <body>
-    <iframe id="background"></iframe>
-    <img id="image-feed" class="hidden" alt="Image Feed">
+    <iframe id="background" src="/background"></iframe>
 
     <!-- Gradient Background Circle -->
     <div class="gradient"></div>
@@ -343,65 +295,21 @@
             const today = new Date().toJSON().slice(0, 10);
             const max = 6;
             const cache_id = Math.floor(Math.random() * max);
-            let prompt;
-            if (cache_id % 2 == 0) {
-                prompt = `Today is ${new Date().toJSON().slice(0, 10)}.
-                Create a single-page HTML screensaver reflecting the current season (based on the date).
-                Avoid using any text.`;
-            } else {
-                prompt = `Create a single-page HTML screensaver. Avoid using any text.`;
-            }
-            const response = await fetch(`/backend-api/v2/create?prompt=${prompt}&filter_markdown=html&cache=${cache_id}`);
-            const text = await response.text()
-            background.src = `data:text/html;charset=utf-8,${encodeURIComponent(text)}`;
-            const gradient = document.querySelector('.gradient');
-            gradient.classList.add('hidden');
-
-            const url = "https://image.pollinations.ai/feed";
-            const imageFeed = document.getElementById("image-feed");
-            const images = []
-            let es = null;
-            function initES() {
-                if (es == null || es.readyState == EventSource.CLOSED) {
-                    const eventSource = new EventSource(url);
-                    eventSource.onmessage = (event) => {
-                        const data = JSON.parse(event.data);
-                        if (data.nsfw || !data.nologo || data.width < 512 || !data.imageURL || data.isChild || data.status != "end_generating") {
-                            return;
-                        }
-                        const lower = data.prompt.toLowerCase();
-                        const tags = ["nsfw", "timeline", "feet", "blood", "soap", "orally", "heel", "latex", "bathroom", "boobs", "charts", "gel", "logo", "infographic", "warts", " bra ", "prostitute", "curvy", "breasts", "written", "bodies", "naked", "classroom", "malone", "dirty", "shoes", "shower", "banner", "fat", "nipples", "couple", "sexual", "sandal", "supplier", "overlord", "succubus", "platinum", "cracy", "crazy", "hemale", "oprah", "lamic", "ropes", "cables", "wires", "dirty", "messy", "cluttered", "chaotic", "disorganized", "disorderly", "untidy", "unorganized", "unorderly", "unsystematic", "disarranged", "disarrayed", "disheveled", "disordered", "jumbled", "muddled", "scattered", "shambolic", "sloppy", "unkept", "unruly"];
-                        for (i in tags) {
-                            if (lower.indexOf(tags[i]) != -1) {
-                                console.log("Skipping image with tag: " + tags[i]);
-                                console.debug("Skipping image:", data.imageURL);
-                                return;
-                            }
-                        }
-                        const landscape = window.innerWidth > window.innerHeight;
-                        if (landscape && data.width > data.height) {
-                            images.push(data.imageURL);
-                        } else if (!landscape && data.width < data.height) {
-                            images.push(data.imageURL);
-                        }
-                    };
-                    eventSource.onerror = (event) => {
-                        eventSource.close();
-                    }
-                    imageFeed.onerror = () => {
-                        imageFeed.classList.add("hidden");
-                    }   
+            if (cache_id > 3) {
+                let prompt;
+                if (cache_id % 2 == 0) {
+                    prompt = `Today is ${new Date().toJSON().slice(0, 10)}.
+                    Create a single-page HTML screensaver reflecting the current season (based on the date).
+                    Avoid using any text.`;
+                } else {
+                    prompt = `Create a single-page HTML screensaver. Avoid using any text.`;
+                }
+                const response = await fetch(`/backend-api/v2/create?prompt=${prompt}&filter_markdown=html&cache=${cache_id}`);
+                const text = await response.text()
+                if (text) {
+                    background.src = `data:text/html;charset=utf-8,${encodeURIComponent(text)}`;
                 }
             }
-            initES();
-            setInterval(() => {
-                if (images.length > 0) {
-                    imageFeed.classList.remove("hidden");
-                    imageFeed.src = images.shift();
-                } else if(imageFeed) {
-                    initES();
-                }
-            }, 7000);
 
             const container = document.querySelector('.container');
             const button = document.querySelector('.slide-button');
