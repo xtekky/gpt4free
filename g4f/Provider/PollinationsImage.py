@@ -45,6 +45,7 @@ class PollinationsImage(PollinationsAI):
         private: bool = False,
         enhance: bool = False,
         safe: bool = False,
+        n: int = 4,
         **kwargs
     ) -> AsyncResult:
         # Calling model updates before creating a generator
@@ -61,6 +62,7 @@ class PollinationsImage(PollinationsAI):
             nologo=nologo,
             private=private,
             enhance=enhance,
-            safe=safe
+            safe=safe,
+            n=n
         ):
             yield chunk

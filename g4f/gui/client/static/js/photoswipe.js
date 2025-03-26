@@ -4,7 +4,7 @@ import PhotoSwipeAutoHideUI from "https://cdn.jsdelivr.net/gh/arnowelzel/photosw
 import PhotoSwipeSlideshow from "https://cdn.jsdelivr.net/gh/dpet23/photoswipe-slideshow@v2.0.0/photoswipe-slideshow.esm.min.js";
 
 const lightbox = new PhotoSwipeLightbox({
-    gallery: '#messages',
+    gallery: '#chatBody',
     children: 'a:has(img)',
     initialZoomLevel: 'fill',
     secondaryZoomLevel: 1,

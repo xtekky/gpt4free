@@ -19,12 +19,12 @@ class Website:
                 'function': self._chat,
                 'methods': ['GET', 'POST']
             },
-            '/chat/<chat_id>/': {
-                'function': self._chat_id,
+            '/chat/<share_id>/': {
+                'function': self._share_id,
                 'methods': ['GET', 'POST']
             },
-            '/chat/<chat_id>/<conversation_id>': {
-                'function': self._chat_id,
+            '/chat/<share_id>/<conversation_id>': {
+                'function': self._share_id,
                 'methods': ['GET', 'POST']
             },
             '/chat/menu/': {
@@ -50,9 +50,9 @@ class Website:
             return render_template('index.html', conversation_id=str(uuid.uuid4()))
         return render_template('index.html', conversation_id=conversation_id)
 
-    def _chat_id(self, chat_id, conversation_id: str = ""):
+    def _share_id(self, share_id, conversation_id: str = ""):
         share_url = os.environ.get("G4F_SHARE_URL", "")
-        return render_template('index.html', share_url=share_url, chat_id=chat_id, conversation_id=conversation_id)
+        return render_template('index.html', share_url=share_url, share_id=share_id, conversation_id=conversation_id)
 
     def _index(self):
         return render_template('index.html', conversation_id=str(uuid.uuid4()))

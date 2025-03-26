@@ -25,8 +25,10 @@ def get_media_extension(media: str) -> str:
     """Extract media file extension from URL or filename"""
     match = re.search(r"\.(j?[a-z]{3})(?:\?|$)", media, re.IGNORECASE)
     extension = match.group(1).lower() if match else ""
+    if not extension:
+        return ""
     if extension not in EXTENSIONS_MAP:
-        raise ValueError(f"Unsupported media extension: {extension}")
+        raise ValueError(f"Unsupported media extension: {extension} in: {media}")
     return f".{extension}"
 
 def ensure_images_dir():

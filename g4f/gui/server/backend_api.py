@@ -371,6 +371,8 @@ class Backend_Api(Api):
             match_files = [file for file, count in match_files.items() if count >= request.args.get("min", len(search))]
             if int(request.args.get("skip", 0)) >= len(match_files):
                 return jsonify({"error": {"message": "Not found"}}), 404
+            if (request.args.get("random", False)):
+                return redirect(f"/media/{random.choice(match_files)}"), 302
             return redirect(f"/media/{match_files[int(request.args.get("skip", 0))]}"), 302
 
         @app.route('/backend-api/v2/upload_cookies', methods=['POST'])
@@ -386,12 +388,12 @@ class Backend_Api(Api):
                 return "File saved", 200
             return 'Not supported file', 400
 
-        @self.app.route('/backend-api/v2/chat/<chat_id>', methods=['GET'])
-        def get_chat(chat_id: str) -> str:
-            chat_id = secure_filename(chat_id)
-            if self.chat_cache.get(chat_id, 0) == request.headers.get("if-none-match", 0):
+        @self.app.route('/backend-api/v2/chat/<share_id>', methods=['GET'])
+        def get_chat(share_id: str) -> str:
+            share_id = secure_filename(share_id)
+            if self.chat_cache.get(share_id, 0) == request.headers.get("if-none-match", 0):
                 return jsonify({"error": {"message": "Not modified"}}), 304
-            bucket_dir = get_bucket_dir(chat_id)
+            bucket_dir = get_bucket_dir(share_id)
             file = os.path.join(bucket_dir, "chat.json")
             if not os.path.isfile(file):
                 return jsonify({"error": {"message": "Not found"}}), 404
@@ -399,23 +401,23 @@ class Backend_Api(Api):
                 chat_data = json.load(f)
                 if chat_data.get("updated", 0) == request.headers.get("if-none-match", 0):
                     return jsonify({"error": {"message": "Not modified"}}), 304
-                self.chat_cache[chat_id] = chat_data.get("updated", 0)
+                self.chat_cache[share_id] = chat_data.get("updated", 0)
                 return jsonify(chat_data), 200
 
-        @self.app.route('/backend-api/v2/chat/<chat_id>', methods=['POST'])
-        def upload_chat(chat_id: str) -> dict:
+        @self.app.route('/backend-api/v2/chat/<share_id>', methods=['POST'])
+        def upload_chat(share_id: str) -> dict:
             chat_data = {**request.json}
             updated = chat_data.get("updated", 0)
-            cache_value = self.chat_cache.get(chat_id, 0)
+            cache_value = self.chat_cache.get(share_id, 0)
             if updated == cache_value:
                 return jsonify({"error": {"message": "invalid date"}}), 400
-            chat_id = secure_filename(chat_id)
-            bucket_dir = get_bucket_dir(chat_id)
+            share_id = secure_filename(share_id)
+            bucket_dir = get_bucket_dir(share_id)
             os.makedirs(bucket_dir, exist_ok=True)
             with open(os.path.join(bucket_dir, "chat.json"), 'w') as f:
                 json.dump(chat_data, f)
-            self.chat_cache[chat_id] = updated
-            return {"chat_id": chat_id}
+            self.chat_cache[share_id] = updated
+            return {"share_id": share_id}
 
     def handle_synthesize(self, provider: str):
         try:

@@ -28,7 +28,6 @@
 
         .gradient {
             position: absolute;
-            z-index: -1;
             left: 50vw;
             border-radius: 50%;
             background: radial-gradient(circle at center, var(--accent), var(--gradient));
@@ -73,12 +72,6 @@
             overflow: hidden;
         }
 
-        iframe {
-            background: transparent;
-            width: 100%;
-            border: none;
-        }
-
         .hidden {
             display: none;
         }
@@ -86,7 +79,6 @@
         #background, #image-feed, #video-feed {
             height: 100%;
             position: absolute;
-            z-index: -1;
             object-fit: cover;
             object-position: center;
             width: 100%;
@@ -100,26 +92,38 @@
     <video id="video-feed" class="hidden" alt="Video Feed" src="/search/video" autoplay></video>
 
     <!-- Gradient Background Circle -->
-    <div class="gradient"></div></div>
+    <div class="gradient"></div>
     <script>
         (async () => {
             const url = "https://image.pollinations.ai/feed";
             const imageFeed = document.getElementById("image-feed");
             const videoFeed = document.getElementById("video-feed");
             const gradient = document.querySelector(".gradient");
-            const images = []
+            const images = [];
             let es = null;
             let skipVideo = 1;
-            let errorVideo = false;
+            let skipImage = 0;
+            let errorVideo = 0;
+            let errorImage = 0;
             videoFeed.onloadeddata = () => {
                 videoFeed.classList.remove("hidden");
                 gradient.classList.add("hidden");
             };
-            videoFeed.onerror = () => {
+            videoFeed.onerror = (e) => {
                 videoFeed.classList.add("hidden");
-                errorVideo = true;
+                errorVideo += 1;
+                if (errorVideo > 3) {
+                    gradient.classList.remove("hidden");
+                    return;
+                }
+                videoFeed.src = "/search/video?skip=" + skipVideo;
+                skipVideo++;
             };
             videoFeed.onended = () => {
+                videoFeed.src = "/search/video?skip=" + skipVideo;
+                skipVideo++;
+            };
+            videoFeed.onclick = () => {
                 videoFeed.src = "/search/video?skip=" + skipVideo;
                 skipVideo++;
             };
@@ -152,9 +156,21 @@
                     }
                 }
             }
-            initES();
+            let refreshOnHide = true;
+            document.addEventListener("visibilitychange", () => {
+                if (document.hidden) {
+                    refreshOnHide = false;
+                } else {
+                    refreshOnHide = true;
+                }
+            });
             setInterval(() => {
-                if (!errorVideo) {
+                if (errorVideo < 3 || !refreshOnHide) {
+                    return;
+                }
+                if (errorImage < 3) {
+                    imageFeed.src = "/search/image+g4f?skip=" + skipImage;
+                    skipImage++;
                     return;
                 }
                 if (images.length > 0) {
@@ -168,6 +184,14 @@
             imageFeed.onerror = () => {
                 imageFeed.classList.add("hidden");
                 gradient.classList.remove("hidden");
+                errorImage++;
+            };
+            imageFeed.onload = () => {
+                imageFeed.classList.remove("hidden");
+                gradient.classList.add("hidden");
+            };
+            imageFeed.onclick = () => {
+                imageFeed.src = "/search/image?random=" + Math.random();
             };
         })();
     </script>

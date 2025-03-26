@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import random
 import requests
+import asyncio
 from urllib.parse import quote_plus
 from typing import Optional
 from aiohttp import ClientSession
@@ -148,6 +149,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         private: bool = False,
         enhance: bool = False,
         safe: bool = False,
+        n: int = 1,
         # Text generation parameters
         media: MediaListType = None,
         temperature: float = None,
@@ -187,7 +189,8 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                 nologo=nologo,
                 private=private,
                 enhance=enhance,
-                safe=safe
+                safe=safe,
+                n=n
             ):
                 yield chunk
         else:
@@ -223,12 +226,10 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         nologo: bool,
         private: bool,
         enhance: bool,
-        safe: bool
+        safe: bool,
+        n: int
     ) -> AsyncResult:
-        if not cache and seed is None:
-            seed = random.randint(9999, 99999999)
         params = use_aspect_ratio({
-            "seed": seed,
             "width": width,
             "height": height,
             "model": model,
@@ -238,12 +239,27 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
             "safe": str(safe).lower()
         }, aspect_ratio)
         query = "&".join(f"{k}={quote_plus(str(v))}" for k, v in params.items() if v is not None)
-        prompt = quote_plus(prompt)[:8112]  # Limit URL length
+        prompt = quote_plus(prompt)[:2048-256-len(query)]
         url = f"{cls.image_api_endpoint}prompt/{prompt}?{query}"
+        def get_image_url(i: int = 0, seed: Optional[int] = None):
+            if i == 0:
+                if not cache and seed is None:
+                    seed = random.randint(0, 2**32)
+            else:
+                seed = random.randint(0, 2**32)
+            return f"{url}&seed={seed}" if seed else url
         async with ClientSession(headers=DEFAULT_HEADERS, connector=get_connector(proxy=proxy)) as session:
-            async with session.get(url, allow_redirects=False) as response:
-                await raise_for_status(response)
-                yield ImageResponse(str(response.url), prompt)
+            async def get_image(i: int = 0, seed: Optional[int] = None):
+                async with session.get(get_image_url(i, seed), allow_redirects=False) as response:
+                    try:
+                        await raise_for_status(response)
+                    except Exception as e:
+                        debug.error(f"Error fetching image: {e}")
+                        return str(response.url)
+                    return str(response.url)
+            yield ImageResponse(await asyncio.gather(*[
+                get_image(i, seed) for i in range(int(n))
+            ]), prompt)
 
     @classmethod
     async def _generate_text(
