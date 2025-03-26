@@ -189,7 +189,7 @@ class HuggingFaceMedia(AsyncGeneratorProvider, ProviderModelMixin):
                         if response.status == 404:
                             raise ModelNotSupportedError(f"Model is not supported: {model}")
                         await raise_for_status(response)
-                        async for chunk in save_response_media(response, prompt):
+                        async for chunk in save_response_media(response, prompt, [aspect_ratio, model]):
                             return provider_info, chunk
                         result = await response.json()
                         if "video" in result:

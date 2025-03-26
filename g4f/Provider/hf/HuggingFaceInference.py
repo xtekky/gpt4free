@@ -94,6 +94,11 @@ class HuggingFaceInference(AsyncGeneratorProvider, ProviderModelMixin):
         }
         if api_key is not None:
             headers["Authorization"] = f"Bearer {api_key}"
+        image_extra_data = use_aspect_ratio({
+            "width": width,
+            "height": height,
+            **extra_data
+        }, aspect_ratio)
         async with StreamSession(
             headers=headers,
             proxy=proxy,
@@ -101,14 +106,12 @@ class HuggingFaceInference(AsyncGeneratorProvider, ProviderModelMixin):
         ) as session:
             try:
                 if model in provider_together_urls:
-                    data = use_aspect_ratio({
+                    data = {
                         "response_format": "url",
                         "prompt": format_image_prompt(messages, prompt),
                         "model": model,
-                        "width": width,
-                        "height": height,
-                        **extra_data
-                    }, aspect_ratio)
+                        **image_extra_data
+                    }
                     async with session.post(provider_together_urls[model], json=data) as response:
                         if response.status == 404:
                             raise ModelNotSupportedError(f"Model is not supported: {model}")
@@ -132,7 +135,7 @@ class HuggingFaceInference(AsyncGeneratorProvider, ProviderModelMixin):
                 if pipeline_tag == "text-to-image":
                     stream = False
                     inputs = format_image_prompt(messages, prompt)
-                    payload = {"inputs": inputs, "parameters": {"seed": random.randint(0, 2**32) if seed is None else seed, **extra_data}}
+                    payload = {"inputs": inputs, "parameters": {"seed": random.randint(0, 2**32) if seed is None else seed, **image_extra_data}}
                 elif pipeline_tag in ("text-generation", "image-text-to-text"):
                     model_type = None
                     if "config" in model_data and "model_type" in model_data["config"]:
@@ -179,7 +182,7 @@ class HuggingFaceInference(AsyncGeneratorProvider, ProviderModelMixin):
                     debug.log(f"Special token: {is_special}")
                     yield FinishReason("stop" if is_special else "length")
                 else:
-                    async for chunk in save_response_media(response, prompt):
+                    async for chunk in save_response_media(response, inputs, [aspect_ratio, model]):
                         yield chunk
                         return
                     yield (await response.json())[0]["generated_text"].strip()

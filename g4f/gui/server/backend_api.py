@@ -351,10 +351,8 @@ class Backend_Api(Api):
                 raise
 
         @app.route('/search/<search>', methods=['GET'])
-        def find_media(search: str, min: int = None):
+        def find_media(search: str):
             search = [secure_filename(chunk.lower()) for chunk in search.split("+")]
-            if min is None:
-                min = len(search)
             if not os.access(images_dir, os.R_OK):
                 return jsonify({"error": {"message": "Not found"}}), 404
             match_files = {}
@@ -370,10 +368,10 @@ class Backend_Api(Api):
                     for tag in search:
                         if tag in file.lower():
                             match_files[file] = match_files.get(file, 0) + 1
-            match_files = [file for file, count in match_files.items() if count >= min]
-            if not match_files:
+            match_files = [file for file, count in match_files.items() if count >= request.args.get("min", len(search))]
+            if int(request.args.get("skip")) >= len(match_files):
                 return jsonify({"error": {"message": "Not found"}}), 404
-            return redirect(f"/media/{random.choice(match_files)}")
+            return redirect(f"/media/{match_files[int(request.args.get("skip", 0))]}"), 302
 
         @app.route('/backend-api/v2/upload_cookies', methods=['POST'])
         def upload_cookies():

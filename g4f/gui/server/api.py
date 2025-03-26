@@ -187,7 +187,7 @@ class Api:
                     media = chunk
                     if download_media or chunk.get("cookies"):
                         chunk.alt = format_image_prompt(kwargs.get("messages"), chunk.alt)
-                        tags = [tag for tag in [model, kwargs.get("aspect_ratio")] if tag]
+                        tags = [model, kwargs.get("aspect_ratio")]
                         media = asyncio.run(copy_media(chunk.get_list(), chunk.get("cookies"), chunk.get("headers"), proxy=proxy, alt=chunk.alt, tags=tags))
                         media = ImageResponse(media, chunk.alt) if isinstance(chunk, ImageResponse) else VideoResponse(media, chunk.alt)
                     yield self._format_json("content", str(media), images=chunk.get_list(), alt=chunk.alt)
