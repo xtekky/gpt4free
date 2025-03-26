@@ -298,8 +298,8 @@ const register_message_buttons = async () => {
             if (message_el) {
                 if ("index" in message_el.dataset) {
                     await remove_message(window.conversation_id, message_el.dataset.index);
+                    chatBody.removeChild(message_el);
                 }
-                message_el.remove();
             }
             reloadConversation = true;
             await safe_load_conversation(window.conversation_id, false);
@@ -842,7 +842,7 @@ async function add_message_chunk(message, message_id, provider, scroll, finish_m
         for (const [key, value] of Object.entries(message.conversation)) {
             conversation.data[key] = value;
         }
-        await save_conversation(conversation_id, conversation);
+        await save_conversation(conversation_id, get_conversation_data(conversation));
     } else if (message.type == "auth") {
         error_storage[message_id] = message.message
         content_map.inner.innerHTML += markdown_render(`**An error occured:** ${message.message}`);
@@ -1227,7 +1227,6 @@ function sanitize(input, replacement) {
 }
 
 async function set_conversation_title(conversation_id, title) {
-    window.chat_id = null;
     conversation = await get_conversation(conversation_id)
     conversation.new_title = title;
     const new_id = sanitize(title, " ");
@@ -1319,7 +1318,6 @@ const set_conversation = async (conversation_id) => {
 
 const new_conversation = async () => {
     history.pushState({}, null, `/chat/`);
-    window.chat_id = null;
     window.conversation_id = uuid();
     document.title = window.title || document.title;
     document.querySelector(".chat-header").innerText = "New Conversation - G4F";
@@ -1391,7 +1389,7 @@ const load_conversation = async (conversation, scroll=true) => {
         document.title = title;
     }
     const chatHeader = document.querySelector(".chat-header");
-    if (window.chat_id) {
+    if (window.share_id && conversation.id == window.start_id) {
         chatHeader.innerHTML = '<i class="fa-solid fa-qrcode"></i> ' + escapeHtml(title);
     } else {
         chatHeader.innerText = title;
@@ -1581,16 +1579,16 @@ async function get_conversation(conversation_id) {
     return conversation;
 }
 
-async function save_conversation(conversation_id, conversation) {
+function get_conversation_data(conversation) {
     conversation.updated = Date.now();
-    const data = JSON.stringify(conversation)
+    return JSON.stringify(conversation);
+}
+
+async function save_conversation(conversation_id, data) {
     appStorage.setItem(
         `conversation:${conversation_id}`,
         data
     );
-    if (conversation_id != window.start_id) {
-        window.chat_id = null;
-    }
 }
 
 async function get_messages(conversation_id) {
@@ -1600,13 +1598,13 @@ async function get_messages(conversation_id) {
 
 async function add_conversation(conversation_id) {
     if (appStorage.getItem(`conversation:${conversation_id}`) == null) {
-        await save_conversation(conversation_id, {
+        await save_conversation(conversation_id, get_conversation_data({
             id: conversation_id,
             title: "",
             added: Date.now(),
             system: chatPrompt?.value,
             items: [],
-        });
+        }));
     }
     try {
         add_url_to_history(`/chat/${conversation_id}`);
@@ -1622,7 +1620,7 @@ async function save_system_message() {
     const conversation = await get_conversation(window.conversation_id);
     if (conversation) {
         conversation.system = chatPrompt?.value;
-        await save_conversation(window.conversation_id, conversation);
+        await save_conversation(window.conversation_id, get_conversation_data(conversation));
     }
 }
 
@@ -1640,9 +1638,10 @@ const remove_message = async (conversation_id, index) => {
         }
     }
     conversation.items = new_items;
-    await save_conversation(conversation_id, conversation);
-    if (window.chat_id && window.conversation_id == window.start_id) {
-        const url = `${window.share_url}/backend-api/v2/chat/${window.chat_id}`;
+    const data = get_conversation_data(conversation);
+    await save_conversation(conversation_id, data);
+    if (window.share_id && window.conversation_id == window.start_id) {
+        const url = `${window.share_url}/backend-api/v2/chat/${window.share_id}`;
         await fetch(url, {
             method: 'POST',
             headers: {'content-type': 'application/json'},
@@ -1716,13 +1715,14 @@ const add_message = async (
         });
         conversation.items = new_messages;
     }
-    await save_conversation(conversation_id, conversation);
-    if (window.chat_id && conversation_id == window.start_id) {
-        const url = `${window.share_url}/backend-api/v2/chat/${window.chat_id}`;
+    data = get_conversation_data(conversation);
+    await save_conversation(conversation_id, data);
+    if (window.share_id && conversation_id == window.start_id) {
+        const url = `${window.share_url}/backend-api/v2/chat/${window.share_id}`;
         fetch(url, {
             method: 'POST',
             headers: {'content-type': 'application/json'},
-            body: JSON.stringify(conversation),
+            body: data
         });
     }
     return conversation.items.length - 1;
@@ -1758,7 +1758,7 @@ const load_conversations = async () => {
         //     appStorage.removeItem(`conversation:${conversation.id}`);
         //     return;
         // }
-        const shareIcon = (conversation.id == window.start_id && window.chat_id) ? '<i class="fa-solid fa-qrcode"></i>': '';
+        const shareIcon = (conversation.id == window.start_id && window.share_id) ? '<i class="fa-solid fa-qrcode"></i>': '';
         html.push(`
             <div class="convo" id="convo-${conversation.id}">
                 <div class="left" onclick="set_conversation('${conversation.id}')">
@@ -2071,14 +2071,14 @@ chatPrompt.addEventListener("input", function() {
 });
 
 window.addEventListener('load', async function() {
-    if (!window.chat_id) {
+    if (!window.share_id) {
         return await load_conversation(JSON.parse(appStorage.getItem(`conversation:${window.conversation_id}`)));
     }
     if (!window.conversation_id) {
-        window.conversation_id = window.chat_id;
+        window.conversation_id = window.share_id;
     }
-    const response = await fetch(`${window.share_url}/backend-api/v2/chat/${window.chat_id ? window.chat_id : window.conversation_id}`, {
-        headers: {'accept': 'application/json'},
+    const response = await fetch(`${window.share_url}/backend-api/v2/chat/${window.share_id}`, {
+        headers: {'accept': 'application/json', 'x-conversation-id': window.conversation_id},
     });
     if (!response.ok) {
         return await load_conversation(JSON.parse(appStorage.getItem(`conversation:${window.conversation_id}`)));
@@ -2087,10 +2087,7 @@ window.addEventListener('load', async function() {
     if (!window.conversation_id || conversation.id == window.conversation_id) {
         window.conversation_id = conversation.id;
         await load_conversation(conversation);       
-        appStorage.setItem(
-            `conversation:${conversation.id}`,
-            JSON.stringify(conversation)
-        );
+        await save_conversation(window.conversation_id, JSON.stringify(conversation));
         await load_conversations();
         let refreshOnHide = true;
         document.addEventListener("visibilitychange", () => {
@@ -2101,7 +2098,7 @@ window.addEventListener('load', async function() {
             }
         });
         var refreshIntervalId = setInterval(async () => {
-            if (!window.chat_id) {
+            if (!window.share_id) {
                 clearInterval(refreshIntervalId);
                 return;
             }
@@ -2111,7 +2108,7 @@ window.addEventListener('load', async function() {
             if (window.conversation_id != window.start_id) {
                 return;
             }
-            const response = await fetch(`${window.share_url}/backend-api/v2/chat/${window.chat_id}`, {
+            const response = await fetch(`${window.share_url}/backend-api/v2/chat/${window.share_id}`, {
                 headers: {
                     'accept': 'application/json',
                     'if-none-match': conversation.updated,
