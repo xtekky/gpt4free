@@ -369,7 +369,7 @@ class Backend_Api(Api):
                         if tag in file.lower():
                             match_files[file] = match_files.get(file, 0) + 1
             match_files = [file for file, count in match_files.items() if count >= request.args.get("min", len(search))]
-            if int(request.args.get("skip")) >= len(match_files):
+            if int(request.args.get("skip", 0)) >= len(match_files):
                 return jsonify({"error": {"message": "Not found"}}), 404
             return redirect(f"/media/{match_files[int(request.args.get("skip", 0))]}"), 302
 
