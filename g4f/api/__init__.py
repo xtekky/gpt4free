@@ -408,11 +408,15 @@ class Api:
         @self.app.post("/v1/media/generate", responses=responses)
         @self.app.post("/v1/images/generate", responses=responses)
         @self.app.post("/v1/images/generations", responses=responses)
+        @self.app.post("/api/{provider}/images/generations", responses=responses)
         async def generate_image(
             request: Request,
             config: ImageGenerationConfig,
+            provider: str = None,
             credentials: Annotated[HTTPAuthorizationCredentials, Depends(Api.security)] = None
         ):
+            if config.provider is None:
+                config.provider = provider
             if credentials is not None and credentials.credentials != "secret":
                 config.api_key = credentials.credentials
             try:

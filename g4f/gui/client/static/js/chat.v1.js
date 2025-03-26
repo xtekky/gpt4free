@@ -1641,7 +1641,7 @@ const remove_message = async (conversation_id, index) => {
     }
     conversation.items = new_items;
     await save_conversation(conversation_id, conversation);
-    if (window.chat_id) {
+    if (window.chat_id && window.conversation_id == window.start_id) {
         const url = `${window.share_url}/backend-api/v2/chat/${window.chat_id}`;
         await fetch(url, {
             method: 'POST',
@@ -1717,7 +1717,7 @@ const add_message = async (
         conversation.items = new_messages;
     }
     await save_conversation(conversation_id, conversation);
-    if (window.chat_id) {
+    if (window.chat_id && conversation_id == window.start_id) {
         const url = `${window.share_url}/backend-api/v2/chat/${window.chat_id}`;
         fetch(url, {
             method: 'POST',
@@ -2112,7 +2112,11 @@ window.addEventListener('load', async function() {
                 return;
             }
             const response = await fetch(`${window.share_url}/backend-api/v2/chat/${window.chat_id}`, {
-                headers: {'accept': 'application/json', 'if-none-match': conversation.updated},
+                headers: {
+                    'accept': 'application/json',
+                    'if-none-match': conversation.updated,
+                    'x-conversation-id': conversation.id,
+                },
             });
             if (response.status == 200) {
                 const new_conversation = await response.json();
