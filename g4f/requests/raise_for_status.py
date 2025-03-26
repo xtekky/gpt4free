@@ -77,4 +77,4 @@ def raise_for_status(response: Union[Response, StreamResponse, ClientResponse, R
     elif response.status_code == 504:
         raise RateLimitError(f"Response {response.status_code}: Gateway Timeout ")
     else:
-        raise ResponseStatusError(f"Response {response.status_code}: {"HTML content" if is_html else message}")
+        raise ResponseStatusError(f"Response {response.status_code}: {'HTML content' if is_html else message}")
