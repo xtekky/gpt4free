@@ -38,7 +38,7 @@ This document provides an overview of various AI providers and models, including
 |----------|-------------|--------------|---------------|--------|--------|------|------|
 |[playground.allenai.org](https://playground.allenai.org)|No auth required|`g4f.Provider.AllenAI`|`tulu-3-405b, olmo-2-13b, tulu-3-1-8b, tulu-3-70b, olmoe-0125`|❌|❌|❌|![](https://img.shields.io/badge/Active-brightgreen)|
 |[ai-arta.com](https://ai-arta.com)|No auth required|`g4f.Provider.ARTA`|❌|✔ _**(17+)**_|❌|❌|![](https://img.shields.io/badge/Active-brightgreen)|
-|[blackbox.ai](https://www.blackbox.ai)|No auth required|`g4f.Provider.Blackbox`|`blackboxai, gpt-4o-mini, deepseek-chat, deepseek-v3, deepseek-r1, gpt-4o, o1, o3-mini, claude-3.7-sonnet` _**(40+)**_|`flux`|❌|`blackboxai, gpt-4o, o1, o3-mini, deepseek-v3` _**(7+)**_|![](https://img.shields.io/badge/Active-brightgreen)|
+|[blackbox.ai](https://www.blackbox.ai)|No auth required|`g4f.Provider.Blackbox`|`blackboxai, blackboxai-pro, gpt-4o-mini, deepseek-chat, deepseek-v3, deepseek-r1, gpt-4o, o1, o3-mini, claude-3.7-sonnet` _**(40+)**_|`flux`|❌|`blackboxai, gpt-4o, o1, o3-mini, deepseek-v3` _**(7+)**_|![](https://img.shields.io/badge/Active-brightgreen)|
 |[chatglm.cn](https://chatglm.cn)|No auth required|`g4f.Provider.ChatGLM`|`glm-4`|❌|❌|❌|![](https://img.shields.io/badge/Active-brightgreen)|
 |[chatgpt.com](https://chatgpt.com)|No auth required|`g4f.Provider.ChatGpt`|✔ _**(7+)**_|❌|❌|❌|![Error](https://img.shields.io/badge/HTTPError-f48d37)|
 |[chatgpt.es](https://chatgpt.es)|No auth required|`g4f.Provider.ChatGptEs`|`gpt-4, gpt-4o, gpt-4o-mini`|❌|❌|❌|![](https://img.shields.io/badge/Active-brightgreen)|
@@ -187,6 +187,7 @@ This document provides an overview of various AI providers and models, including
 |claude-3.7-sonnet-thinking|Anthropic|1+ Providers|[anthropic.com](https://www.anthropic.com/claude/sonnet)|
 |reka-core|Reka AI|1+ Providers|[reka.ai](https://www.reka.ai/ourmodels)|
 |blackboxai|Blackbox AI|1+ Providers|[docs.blackbox.chat](https://docs.blackbox.chat/blackbox-ai-1)|
+|blackboxai-pro|Blackbox AI|1+ Providers|[docs.blackbox.chat](https://docs.blackbox.chat/blackbox-ai-1)|
 |command-r|CohereForAI|1+ Providers|[docs.cohere.com](https://docs.cohere.com/docs/command-r-plus)|
 |command-r-plus|CohereForAI|2+ Providers|[docs.cohere.com](https://docs.cohere.com/docs/command-r-plus)|
 |command-r7b|CohereForAI|1+ Providers|[huggingface.co](https://huggingface.co/CohereForAI/c4ai-command-r7b-12-2024)|
