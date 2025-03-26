@@ -308,7 +308,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
             })
             async with session.post(url, json=data) as response:
                 await raise_for_status(response)
-                async for chunk in save_response_media(response, messages[-1]["content"]):
+                async for chunk in save_response_media(response, messages[-1]["content"], [model]):
                     yield chunk
                     return
                 if response.headers["content-type"].startswith("text/plain"):

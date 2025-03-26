@@ -6,13 +6,13 @@ import uuid
 import asyncio
 import hashlib
 import re
+from typing import AsyncIterator
 from urllib.parse import quote, unquote
 from aiohttp import ClientSession, ClientError
 
 from ..typing import Optional, Cookies
 from ..requests.aiohttp import get_connector, StreamResponse
-from ..image import MEDIA_TYPE_MAP, ALLOWED_EXTENSIONS
-from ..tools.files import get_bucket_dir
+from ..image import MEDIA_TYPE_MAP, EXTENSIONS_MAP
 from ..providers.response import ImageResponse, AudioResponse, VideoResponse
 from ..Provider.template import BackendApi
 from . import is_accepted_format, extract_data_uri
@@ -23,8 +23,11 @@ images_dir = "./generated_images"
 
 def get_media_extension(media: str) -> str:
     """Extract media file extension from URL or filename"""
-    match = re.search(r"\.(jpe?g|png|gif|svg|webp|webm|mp4|mp3|wav|flac|opus|ogg|mkv)(?:\?|$)", media, re.IGNORECASE)
-    return f".{match.group(1).lower()}" if match else ""
+    match = re.search(r"\.(j?[a-z]{3})(?:\?|$)", media, re.IGNORECASE)
+    extension = match.group(1).lower() if match else ""
+    if extension not in EXTENSIONS_MAP:
+        raise ValueError(f"Unsupported media extension: {extension}")
+    return f".{extension}"
 
 def ensure_images_dir():
     """Create images directory if it doesn't exist"""
@@ -54,23 +57,19 @@ def secure_filename(filename: str) -> str:
 def is_valid_media_type(content_type: str) -> bool:
     return content_type in MEDIA_TYPE_MAP or content_type.startswith("audio/") or content_type.startswith("video/")
 
-async def save_response_media(response: StreamResponse, prompt: str):
+async def save_response_media(response: StreamResponse, prompt: str, tags: list[str]) -> AsyncIterator:
+    """Save media from response to local file and return URL"""
     content_type = response.headers["content-type"]
     if is_valid_media_type(content_type):
         extension = MEDIA_TYPE_MAP[content_type] if content_type in MEDIA_TYPE_MAP else content_type[6:].replace("mpeg", "mp3")
-        if extension not in ALLOWED_EXTENSIONS:
+        if extension not in EXTENSIONS_MAP:
             raise ValueError(f"Unsupported media type: {content_type}")
-        bucket_id = str(uuid.uuid4())
-        dirname = str(int(time.time()))
-        bucket_dir = get_bucket_dir(bucket_id, dirname)
-        media_dir = os.path.join(bucket_dir, "media")
-        os.makedirs(media_dir, exist_ok=True)
-        filename = secure_filename(f"{content_type[0:5] if prompt is None else prompt}.{extension}")
-        newfile = os.path.join(media_dir, filename)
-        with open(newfile, 'wb') as f:
+        filename = get_filename(tags, prompt, f".{extension}", prompt)
+        target_path = os.path.join(images_dir, filename)
+        with open(target_path, 'wb') as f:
             async for chunk in response.iter_content() if hasattr(response, "iter_content") else response.content.iter_any():
                 f.write(chunk)
-        media_url = f"/files/{dirname}/{bucket_id}/media/{filename}"
+        media_url = f"/media/{filename}"
         if response.method == "GET":
             media_url = f"{media_url}?url={str(response.url)}"
         if content_type.startswith("audio/"):
@@ -79,6 +78,15 @@ async def save_response_media(response: StreamResponse, prompt: str):
             yield VideoResponse(media_url, prompt)
         else:
             yield ImageResponse(media_url, prompt)
+    
+def get_filename(tags: list[str], alt: str, extension: str, image: str) -> str:
+    return secure_filename("".join((
+        f"{int(time.time())}_",
+        (f"{'_'.join([tag for tag in tags if tag])}_" if tags else ""),
+        (f"{alt}_" if alt else ""),
+        f"{hashlib.sha256(image.encode()).hexdigest()[:16]}",
+        f"{extension}"
+    )))
 
 async def copy_media(
     images: list[str],
@@ -86,6 +94,7 @@ async def copy_media(
     headers: Optional[dict] = None,
     proxy: Optional[str] = None,
     alt: str = None,
+    tags: list[str] = None,
     add_url: bool = True,
     target: str = None,
     ssl: bool = None
@@ -111,12 +120,7 @@ async def copy_media(
             target_path = target
             if target_path is None:
                 # Build safe filename with full Unicode support
-                filename = secure_filename("".join((
-                    f"{int(time.time())}_",
-                    (f"{alt}_" if alt else ""),
-                    f"{hashlib.sha256(image.encode()).hexdigest()[:16]}",
-                    f"{get_media_extension(image)}"
-                )))
+                filename = get_filename(tags, alt, get_media_extension(image), image)
                 target_path = os.path.join(images_dir, filename)
             try:
                 # Handle different image types

@@ -83,7 +83,7 @@
             display: none;
         }
 
-        #background, #image-feed {
+        #background, #image-feed, #video-feed {
             height: 100%;
             position: absolute;
             z-index: -1;
@@ -97,6 +97,7 @@
 </head>
 <body>
     <img id="image-feed" class="hidden" alt="Image Feed">
+    <video id="video-feed" class="hidden" alt="Video Feed" src="/search/video" autoplay></video>
 
     <!-- Gradient Background Circle -->
     <div class="gradient"></div></div>
@@ -104,9 +105,24 @@
         (async () => {
             const url = "https://image.pollinations.ai/feed";
             const imageFeed = document.getElementById("image-feed");
+            const videoFeed = document.getElementById("video-feed");
             const gradient = document.querySelector(".gradient");
             const images = []
             let es = null;
+            let skipVideo = 1;
+            let errorVideo = false;
+            videoFeed.onloadeddata = () => {
+                videoFeed.classList.remove("hidden");
+                gradient.classList.add("hidden");
+            };
+            videoFeed.onerror = () => {
+                videoFeed.classList.add("hidden");
+                errorVideo = true;
+            };
+            videoFeed.onended = () => {
+                videoFeed.src = "/search/video?skip=" + skipVideo;
+                skipVideo++;
+            };
             function initES() {
                 if (es == null || es.readyState == EventSource.CLOSED) {
                     const eventSource = new EventSource(url);
@@ -116,7 +132,7 @@
                             return;
                         }
                         const lower = data.prompt.toLowerCase();
-                        const tags = ["nsfw", "timeline", "feet", "blood", "soap", "orally", "heel", "latex", "bathroom", "boobs", "charts", "gel", "logo", "infographic", "warts", " bra ", "prostitute", "curvy", "breasts", "written", "bodies", "naked", "classroom", "malone", "dirty", "shoes", "shower", "banner", "fat", "nipples", "couple", "sexual", "sandal", "supplier", "overlord", "succubus", "platinum", "cracy", "crazy", "hemale", "oprah", "lamic", "ropes", "cables", "wires", "dirty", "messy", "cluttered", "chaotic", "disorganized", "disorderly", "untidy", "unorganized", "unorderly", "unsystematic", "disarranged", "disarrayed", "disheveled", "disordered", "jumbled", "muddled", "scattered", "shambolic", "sloppy", "unkept", "unruly"];
+                        const tags = ["nsfw", "timeline", "feet", "blood", "soap", "orally", "heel", "latex", "bathroom", "boobs", "charts", "gel", "logo", "infographic", "warts", " bra ", "prostitute", "curvy", "breasts", "written", "bodies", "naked", "classroom", "malone", "dirty", "shoes", "shower", "banner", "fat", "nipples", "couple", "sexual", "sandal", "supplier", "overlord", "succubus", "platinum", "cracy", "crazy", "hemale", "oprah", "lamic", "ropes", "cables", "wires", "dirty", "messy", "cluttered", "chaotic", "disorganized", "disorderly", "untidy", "unorganized", "unorderly", "unsystematic", "disarranged", "disarrayed", "disheveled", "disordered", "jumbled", "muddled", "scattered", "shambolic", "sloppy", "unkept", "unruly", "bottomless", "18 year"];
                         for (i in tags) {
                             if (lower.indexOf(tags[i]) != -1) {
                                 console.log("Skipping image with tag: " + tags[i]);
@@ -138,6 +154,9 @@
             }
             initES();
             setInterval(() => {
+                if (!errorVideo) {
+                    return;
+                }
                 if (images.length > 0) {
                     imageFeed.classList.remove("hidden");
                     imageFeed.src = images.shift();

@@ -61,9 +61,12 @@
         const gpt_image = '<img src="/static/img/gpt.png" alt="your avatar">';
     </script>
     <script src="/static/js/highlight.min.js" async></script>
-
-    <script>window.conversation_id = "{{conversation_id}}"</script>
-    <script>window.chat_id = "{{chat_id}}"; window.share_url = "{{share_url}}";</script>
+    <script>
+        window.conversation_id = "{{conversation_id}}";
+        window.chat_id = "{{chat_id}}";
+        window.share_url = "{{share_url}}";
+        window.start_id = "{{conversation_id}}";
+    </script>
     <title>G4F Chat</title>
 </head>
 <body>

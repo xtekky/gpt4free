@@ -66,6 +66,8 @@ class HuggingFaceMedia(AsyncGeneratorProvider, ProviderModelMixin):
                         for provider_data in provider_keys:
                             prepend_models.append(f"{model}:{provider_data.get('provider')}") 
                 cls.models = prepend_models + [model for model in new_models if model not in prepend_models]
+                cls.image_models = [model for model, task in cls.task_mapping.items() if task == "text-to-image"]
+                cls.video_models = [model for model, task in cls.task_mapping.items() if task == "text-to-video"]
             else:
                 cls.models = []
         return cls.models
@@ -99,12 +101,14 @@ class HuggingFaceMedia(AsyncGeneratorProvider, ProviderModelMixin):
         prompt: str = None,
         proxy: str = None,
         timeout: int = 0,
-        aspect_ratio: str = "1:1",
+        aspect_ratio: str = None,
         **kwargs
     ):
         selected_provider = None
-        if ":" in model:
+        if model and ":" in model:
             model, selected_provider = model.split(":", 1)
+        elif not model:
+            model = cls.get_models()[0]
         provider_mapping = await cls.get_mapping(model, api_key)
         headers = {
             'Accept-Encoding': 'gzip, deflate',
@@ -133,11 +137,11 @@ class HuggingFaceMedia(AsyncGeneratorProvider, ProviderModelMixin):
                     extra_data = {
                         "num_inference_steps": 20,
                         "resolution": "480p",
-                        "aspect_ratio": aspect_ratio,
+                        "aspect_ratio": "16:9" if aspect_ratio is None else aspect_ratio,
                         **extra_data
                     }
                 else:
-                    extra_data = use_aspect_ratio(extra_data, aspect_ratio)
+                    extra_data = use_aspect_ratio(extra_data, "1:1" if aspect_ratio is None else aspect_ratio)
                 if provider_key == "fal-ai":
                     url = f"{api_base}/{provider_id}"
                     data = {
@@ -185,7 +189,7 @@ class HuggingFaceMedia(AsyncGeneratorProvider, ProviderModelMixin):
                         if response.status == 404:
                             raise ModelNotSupportedError(f"Model is not supported: {model}")
                         await raise_for_status(response)
-                        async for chunk in save_response_media(response, prompt):
+                        async for chunk in save_response_media(response, prompt, [aspect_ratio, model]):
                             return provider_info, chunk
                         result = await response.json()
                         if "video" in result:

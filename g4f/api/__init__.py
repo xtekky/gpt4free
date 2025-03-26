@@ -10,6 +10,7 @@ from email.utils import formatdate
 import os.path
 import hashlib
 import asyncio
+from urllib.parse import quote_plus
 from fastapi import FastAPI, Response, Request, UploadFile, Depends
 from fastapi.middleware.wsgi import WSGIMiddleware
 from fastapi.responses import StreamingResponse, RedirectResponse, HTMLResponse, JSONResponse
@@ -407,11 +408,15 @@ class Api:
         @self.app.post("/v1/media/generate", responses=responses)
         @self.app.post("/v1/images/generate", responses=responses)
         @self.app.post("/v1/images/generations", responses=responses)
+        @self.app.post("/api/{provider}/images/generations", responses=responses)
         async def generate_image(
             request: Request,
             config: ImageGenerationConfig,
+            provider: str = None,
             credentials: Annotated[HTTPAuthorizationCredentials, Depends(Api.security)] = None
         ):
+            if config.provider is None:
+                config.provider = provider
             if credentials is not None and credentials.credentials != "secret":
                 config.api_key = credentials.credentials
             try:
@@ -562,6 +567,10 @@ class Api:
         })
         async def get_media(filename, request: Request):
             target = os.path.join(images_dir, os.path.basename(filename))
+            if not os.path.isfile(target):
+                other_name = os.path.join(images_dir, os.path.basename(quote_plus(filename)))
+                if os.path.isfile(other_name):
+                    target = other_name
             ext = os.path.splitext(filename)[1][1:]
             mime_type = EXTENSIONS_MAP.get(ext)
             stat_result = SimpleNamespace()

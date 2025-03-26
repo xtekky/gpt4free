@@ -7,7 +7,7 @@ from typing import Iterator
 from flask import send_from_directory
 from inspect import signature
 
-from ...errors import VersionNotFoundError
+from ...errors import VersionNotFoundError, MissingAuthError
 from ...image.copy_images import copy_media, ensure_images_dir, images_dir
 from ...tools.run_tools import iter_run_tools
 from ...Provider import ProviderUtils, __providers__
@@ -187,7 +187,8 @@ class Api:
                     media = chunk
                     if download_media or chunk.get("cookies"):
                         chunk.alt = format_image_prompt(kwargs.get("messages"), chunk.alt)
-                        media = asyncio.run(copy_media(chunk.get_list(), chunk.get("cookies"), chunk.get("headers"), proxy=proxy, alt=chunk.alt))
+                        tags = [model, kwargs.get("aspect_ratio")]
+                        media = asyncio.run(copy_media(chunk.get_list(), chunk.get("cookies"), chunk.get("headers"), proxy=proxy, alt=chunk.alt, tags=tags))
                         media = ImageResponse(media, chunk.alt) if isinstance(chunk, ImageResponse) else VideoResponse(media, chunk.alt)
                     yield self._format_json("content", str(media), images=chunk.get_list(), alt=chunk.alt)
                 elif isinstance(chunk, SynthesizeData):
@@ -214,6 +215,8 @@ class Api:
                     yield self._format_json(chunk.type, **chunk.get_dict())
                 else:
                     yield self._format_json("content", str(chunk))
+        except MissingAuthError as e:
+            yield self._format_json('auth', type(e).__name__, message=get_error_message(e))
         except Exception as e:
             logger.exception(e)
             debug.error(e)

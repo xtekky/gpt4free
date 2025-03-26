@@ -881,7 +881,7 @@ input.model:hover
     padding: var(--inner-gap) 28px;
 }
 
-#systemPrompt, #chatPrompt, .settings textarea, form textarea {
+#systemPrompt, #chatPrompt, .settings textarea, form textarea, .chat-body textarea {
     font-size: 15px;
     color: var(--colour-3);
     outline: none;
@@ -1305,7 +1305,7 @@ form textarea {
     padding: 0;
 }
 
-.settings textarea {
+.settings textarea, .chat-body textarea {
     height: 30px;
     min-height: 30px;
     padding: 6px;
@@ -1315,7 +1315,7 @@ form textarea {
     text-wrap: nowrap;
 }
 
-form .field .fa-xmark {
+.field .fa-xmark {
     line-height: 20px;
     cursor: pointer;
     margin-left: auto;
@@ -1323,11 +1323,11 @@ form .field .fa-xmark {
     margin-top: 0;
 }
 
-form .field.saved .fa-xmark {
+.field.saved .fa-xmark {
     color: var(--accent)
 }
 
-.settings .field, form .field {
+.settings .field, form .field, .chat-body .field {
     padding: var(--inner-gap) var(--inner-gap) var(--inner-gap) 0;
 }
 
@@ -1359,7 +1359,7 @@ form .field.saved .fa-xmark {
     border: none;
 }
 
-.settings input, form input {
+.settings input, form input, .chat-body input {
     background-color: transparent;
     padding: 2px;
     border: none;
@@ -1368,11 +1368,11 @@ form .field.saved .fa-xmark {
     color: var(--colour-3);
 }
 
-.settings input:focus, form input:focus {
+.settings input:focus, form input:focus, .chat-body input:focus {
     outline: none;
 }
 
-.settings .label, form .label, .settings label, form label {
+.settings .label, form .label, .settings label, form label, .chat-body label {
     font-size: 15px;
     margin-left: var(--inner-gap);
 }

@@ -366,11 +366,15 @@ class ProviderModelMixin:
 class RaiseErrorMixin():
 
     @staticmethod
-    def raise_error(data: dict):
+    def raise_error(data: dict, status: int = None):
         if "error_message" in data:
             raise ResponseError(data["error_message"])
         elif "error" in data:
             if isinstance(data["error"], str):
+                if status is not None:
+                    if status in (401, 402):
+                        raise MissingAuthError(f"Error {status}: {data['error']}")
+                    raise ResponseError(f"Error {status}: {data['error']}")
                 raise ResponseError(data["error"])
             elif "code" in data["error"]:
                 raise ResponseError("\n".join(

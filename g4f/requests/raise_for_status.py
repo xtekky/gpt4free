@@ -4,7 +4,7 @@ from typing import Union
 from aiohttp import ClientResponse
 from requests import Response as RequestsResponse
 
-from ..errors import ResponseStatusError, RateLimitError
+from ..errors import ResponseStatusError, RateLimitError, MissingAuthError
 from . import Response, StreamResponse
 
 class CloudflareError(ResponseStatusError):
@@ -23,6 +23,7 @@ def is_openai(text: str) -> bool:
 async def raise_for_status_async(response: Union[StreamResponse, ClientResponse], message: str = None):
     if response.ok:
         return
+    is_html = False
     if message is None:
         content_type = response.headers.get("content-type", "")
         if content_type.startswith("application/json"):
@@ -31,39 +32,42 @@ async def raise_for_status_async(response: Union[StreamResponse, ClientResponse]
             if isinstance(message, dict):
                 message = message.get("message", message)
         else:
-            text = (await response.text()).strip()
+            message = (await response.text()).strip()
             is_html = content_type.startswith("text/html") or text.startswith("<!DOCTYPE")
-            message = "HTML content" if is_html else text
-    if message is None or message == "HTML content":
+    if message is None or is_html:
         if response.status == 520:
             message = "Unknown error (Cloudflare)"
         elif response.status in (429, 402):
             message = "Rate limit"
-    if response.status == 403 and is_cloudflare(text):
+    if response.status in (401, 402):
+        raise MissingAuthError(f"Response {response.status}: {message}")
+    if response.status == 403 and is_cloudflare(message):
         raise CloudflareError(f"Response {response.status}: Cloudflare detected")
-    elif response.status == 403 and is_openai(text):
+    elif response.status == 403 and is_openai(message):
         raise ResponseStatusError(f"Response {response.status}: OpenAI Bot detected")
     elif response.status == 502:
         raise ResponseStatusError(f"Response {response.status}: Bad Gateway")
     elif response.status == 504:
         raise RateLimitError(f"Response {response.status}: Gateway Timeout ")
     else:
-        raise ResponseStatusError(f"Response {response.status}: {message}")
+        raise ResponseStatusError(f"Response {response.status}: {'HTML content' if is_html else message}")
 
 def raise_for_status(response: Union[Response, StreamResponse, ClientResponse, RequestsResponse], message: str = None):
     if hasattr(response, "status"):
         return raise_for_status_async(response, message)
     if response.ok:
         return
+    is_html = False
     if message is None:
         is_html = response.headers.get("content-type", "").startswith("text/html") or response.text.startswith("<!DOCTYPE")
-        message = "HTML content" if is_html else response.text
-    if message == "HTML content":
+        message = response.text
+    if message is None or is_html:
         if response.status_code == 520:
             message = "Unknown error (Cloudflare)"
         elif response.status_code in (429, 402):
-            message = "Rate limit"
-        raise RateLimitError(f"Response {response.status_code}: {message}")
+            raise RateLimitError(f"Response {response.status_code}: Rate Limit")
+    if response.status_code in (401, 402):
+        raise MissingAuthError(f"Response {response.status_code}: {message}")
     if response.status_code == 403 and is_cloudflare(response.text):
         raise CloudflareError(f"Response {response.status_code}: Cloudflare detected")
     elif response.status_code == 403 and is_openai(response.text):
@@ -73,4 +77,4 @@ def raise_for_status(response: Union[Response, StreamResponse, ClientResponse, R
     elif response.status_code == 504:
         raise RateLimitError(f"Response {response.status_code}: Gateway Timeout ")
     else:
-        raise ResponseStatusError(f"Response {response.status_code}: {message}")
+        raise ResponseStatusError(f"Response {response.status_code}: {'HTML content' if is_html else message}")
