@@ -408,6 +408,12 @@ blackboxai = Model(
     best_provider = Blackbox
 )
 
+blackboxai_pro = Model(
+    name = 'blackboxai-pro',
+    base_provider = 'Blackbox AI',
+    best_provider = Blackbox
+)
+
 ### CohereForAI ###
 command_r = Model(
     name = 'command-r',
@@ -840,6 +846,7 @@ class ModelUtils:
 
         ### Blackbox AI ###
         blackboxai.name: blackboxai,
+        blackboxai_pro.name: blackboxai_pro,
 
         ### CohereForAI ###
         command_r.name: command_r,

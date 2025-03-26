@@ -373,7 +373,7 @@ class Backend_Api(Api):
                 return jsonify({"error": {"message": "Not found"}}), 404
             if (request.args.get("random", False)):
                 return redirect(f"/media/{random.choice(match_files)}"), 302
-            return redirect(f"/media/{match_files[int(request.args.get("skip", 0))]}"), 302
+            return redirect(f"/media/{match_files[int(request.args.get('skip', 0))]}", 302)
 
         @app.route('/backend-api/v2/upload_cookies', methods=['POST'])
         def upload_cookies():

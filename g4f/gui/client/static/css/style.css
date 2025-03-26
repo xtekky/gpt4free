@@ -1000,6 +1000,7 @@ input.model:hover
     flex-direction: column;
     gap: 10px;
     margin: 4px 0;
+    margin-top: auto;
 }
 
 .bottom_buttons button, .mem0 button {
@@ -1034,6 +1035,7 @@ input.model:hover
     flex-direction: column;
     gap: var(--inner-gap);
     overflow: auto;
+    flex-grow: 1;
 }
 
 .cursor {
@@ -1506,6 +1508,8 @@ form textarea {
     transition: width 0.3s ease-in-out;
     overflow: hidden;
     width: 0;
+    height: 100%;
+    justify-content: space-between;
 }
 .chat-container {
     flex: 1;
