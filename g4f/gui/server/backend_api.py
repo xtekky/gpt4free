@@ -371,7 +371,7 @@ class Backend_Api(Api):
             match_files = [file for file, count in match_files.items() if count >= request.args.get("min", len(search))]
             if int(request.args.get("skip", 0)) >= len(match_files):
                 return jsonify({"error": {"message": "Not found"}}), 404
-            return redirect(f"/media/{match_files[int(request.args.get("skip", 0))]}"), 302
+            return redirect(f"/media/{match_files[int(request.args.get('skip', 0))]}", 302)
 
         @app.route('/backend-api/v2/upload_cookies', methods=['POST'])
         def upload_cookies():
