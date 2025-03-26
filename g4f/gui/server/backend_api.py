@@ -16,7 +16,6 @@ from pathlib import Path
 from urllib.parse import quote_plus
 from hashlib import sha256
 
-from ...image import is_allowed_extension
 from ...client.service import convert_to_provider
 from ...providers.asyncio import to_sync_generator
 from ...client.helper import filter_markdown
@@ -25,7 +24,7 @@ from ...tools.run_tools import iter_run_tools
 from ...errors import ProviderNotFoundError
 from ...image import is_allowed_extension
 from ...cookies import get_cookies_dir
-from ...image.copy_images import secure_filename, get_source_url
+from ...image.copy_images import secure_filename, get_source_url, images_dir
 from ... import ChatCompletion
 from ... import models
 from .api import Api
@@ -351,9 +350,30 @@ class Backend_Api(Api):
                     return redirect(source_url)
                 raise
 
-        @app.route('/files/<dirname>/<bucket_id>/media/<filename>', methods=['GET'])
-        def get_media_sub(dirname, bucket_id, filename):
-            return get_media(bucket_id, filename, dirname)
+        @app.route('/search/<search>', methods=['GET'])
+        def find_media(search: str, min: int = None):
+            search = [secure_filename(chunk.lower()) for chunk in search.split("+")]
+            if min is None:
+                min = len(search)
+            if not os.access(images_dir, os.R_OK):
+                return jsonify({"error": {"message": "Not found"}}), 404
+            match_files = {}
+            for root, _, files in os.walk(images_dir):
+                for file in files:
+                    mime_type = is_allowed_extension(file)
+                    if mime_type is not None:
+                        mime_type = secure_filename(mime_type)
+                        for tag in search:
+                            if tag in mime_type:
+                                match_files[file] = match_files.get(file, 0) + 1
+                                break
+                    for tag in search:
+                        if tag in file.lower():
+                            match_files[file] = match_files.get(file, 0) + 1
+            match_files = [file for file, count in match_files.items() if count >= min]
+            if not match_files:
+                return jsonify({"error": {"message": "Not found"}}), 404
+            return redirect(f"/media/{random.choice(match_files)}")
 
         @app.route('/backend-api/v2/upload_cookies', methods=['POST'])
         def upload_cookies():
@@ -371,7 +391,7 @@ class Backend_Api(Api):
         @self.app.route('/backend-api/v2/chat/<chat_id>', methods=['GET'])
         def get_chat(chat_id: str) -> str:
             chat_id = secure_filename(chat_id)
-            if int(self.chat_cache.get(chat_id, -1)) == int(request.headers.get("if-none-match", 0)):
+            if self.chat_cache.get(chat_id, 0) == request.headers.get("if-none-match", 0):
                 return jsonify({"error": {"message": "Not modified"}}), 304
             bucket_dir = get_bucket_dir(chat_id)
             file = os.path.join(bucket_dir, "chat.json")
@@ -379,7 +399,7 @@ class Backend_Api(Api):
                 return jsonify({"error": {"message": "Not found"}}), 404
             with open(file, 'r') as f:
                 chat_data = json.load(f)
-                if int(chat_data.get("updated", 0)) == int(request.headers.get("if-none-match", 0)):
+                if chat_data.get("updated", 0) == request.headers.get("if-none-match", 0):
                     return jsonify({"error": {"message": "Not modified"}}), 304
                 self.chat_cache[chat_id] = chat_data.get("updated", 0)
                 return jsonify(chat_data), 200
@@ -387,12 +407,16 @@ class Backend_Api(Api):
         @self.app.route('/backend-api/v2/chat/<chat_id>', methods=['POST'])
         def upload_chat(chat_id: str) -> dict:
             chat_data = {**request.json}
+            updated = chat_data.get("updated", 0)
+            cache_value = self.chat_cache.get(chat_id, 0)
+            if updated == cache_value:
+                return jsonify({"error": {"message": "invalid date"}}), 400
             chat_id = secure_filename(chat_id)
             bucket_dir = get_bucket_dir(chat_id)
             os.makedirs(bucket_dir, exist_ok=True)
             with open(os.path.join(bucket_dir, "chat.json"), 'w') as f:
                 json.dump(chat_data, f)
-            self.chat_cache[chat_id] = chat_data.get("updated", 0)
+            self.chat_cache[chat_id] = updated
             return {"chat_id": chat_id}
 
     def handle_synthesize(self, provider: str):

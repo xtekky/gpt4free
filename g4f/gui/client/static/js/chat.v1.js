@@ -28,7 +28,7 @@ const switchInput       = document.getElementById("switch");
 const searchButton      = document.getElementById("search");
 const paperclip         = document.querySelector(".user-input .fa-paperclip");
 
-const optionElementsSelector = ".settings input, .settings textarea, #model, #model2, #provider";
+const optionElementsSelector = ".settings input, .settings textarea, .chat-body input, #model, #model2, #provider";
 
 let provider_storage = {};
 let message_storage = {};
@@ -153,7 +153,7 @@ const iframe_close = Object.assign(document.createElement("button"), {
 });
 iframe_close.onclick = () => iframe_container.classList.add("hidden");
 iframe_container.appendChild(iframe_close);
-chat.appendChild(iframe_container);
+document.body.appendChild(iframe_container);
 
 class HtmlRenderPlugin {
     constructor(options = {}) {
@@ -843,6 +843,16 @@ async function add_message_chunk(message, message_id, provider, scroll, finish_m
             conversation.data[key] = value;
         }
         await save_conversation(conversation_id, conversation);
+    } else if (message.type == "auth") {
+        error_storage[message_id] = message.message
+        content_map.inner.innerHTML += markdown_render(`**An error occured:** ${message.message}`);
+        let provider = provider_storage[message_id]?.name;
+        let configEl = document.querySelector(`.settings .${provider}-api_key`);
+        if (configEl) {
+            configEl = configEl.parentElement.cloneNode(true);
+            content_map.content.appendChild(configEl);
+            await register_settings_storage();
+        }
     } else if (message.type == "provider") {
         provider_storage[message_id] = message.provider;
         let provider_el = content_map.content.querySelector('.provider');
@@ -1122,10 +1132,6 @@ const ask_gpt = async (message_id, message_index = -1, regenerate = false, provi
         let api_key;
         if (is_demo && !provider) {
             api_key = localStorage.getItem("HuggingFace-api_key");
-            if (!api_key) {
-                location.href = "/";
-                return;
-            }
         } else {
             api_key = get_api_key_by_provider(provider);
         }
@@ -1221,6 +1227,7 @@ function sanitize(input, replacement) {
 }
 
 async function set_conversation_title(conversation_id, title) {
+    window.chat_id = null;
     conversation = await get_conversation(conversation_id)
     conversation.new_title = title;
     const new_id = sanitize(title, " ");
@@ -1742,12 +1749,22 @@ const load_conversations = async () => {
 
     let html = [];
     conversations.forEach((conversation) => {
+        // const length = conversation.items.map((item) => (
+        //     !item.content.toLowerCase().includes("hello") &&
+        //     !item.content.toLowerCase().includes("hi") &&
+        //     item.content
+        // ) ? 1 : 0).reduce((a,b)=>a+b, 0);
+        // if (!length) {
+        //     appStorage.removeItem(`conversation:${conversation.id}`);
+        //     return;
+        // }
+        const shareIcon = (conversation.id == window.start_id && window.chat_id) ? '<i class="fa-solid fa-qrcode"></i>': '';
         html.push(`
             <div class="convo" id="convo-${conversation.id}">
                 <div class="left" onclick="set_conversation('${conversation.id}')">
                     <i class="fa-regular fa-comments"></i>
                     <span class="datetime">${conversation.updated ? toLocaleDateString(conversation.updated) : ""}</span>
-                    <span class="convo-title">${escapeHtml(conversation.new_title ? conversation.new_title : conversation.title)}</span>
+                    <span class="convo-title">${shareIcon} ${escapeHtml(conversation.new_title ? conversation.new_title : conversation.title)}</span>
                 </div>
                 <i onclick="show_option('${conversation.id}')" class="fa-solid fa-ellipsis-vertical" id="conv-${conversation.id}"></i>
                 <div id="cho-${conversation.id}" class="choise" style="display:none;">
@@ -2060,7 +2077,6 @@ window.addEventListener('load', async function() {
     if (!window.conversation_id) {
         window.conversation_id = window.chat_id;
     }
-    window.start_id = window.conversation_id
     const response = await fetch(`${window.share_url}/backend-api/v2/chat/${window.chat_id ? window.chat_id : window.conversation_id}`, {
         headers: {'accept': 'application/json'},
     });
@@ -2075,6 +2091,7 @@ window.addEventListener('load', async function() {
             `conversation:${conversation.id}`,
             JSON.stringify(conversation)
         );
+        await load_conversations();
         let refreshOnHide = true;
         document.addEventListener("visibilitychange", () => {
             if (document.hidden) {
@@ -2091,6 +2108,9 @@ window.addEventListener('load', async function() {
             if (!refreshOnHide) {
                 return;
             }
+            if (window.conversation_id != window.start_id) {
+                return;
+            }
             const response = await fetch(`${window.share_url}/backend-api/v2/chat/${window.chat_id}`, {
                 headers: {'accept': 'application/json', 'if-none-match': conversation.updated},
             });
@@ -2102,6 +2122,7 @@ window.addEventListener('load', async function() {
                         `conversation:${conversation.id}`,
                         JSON.stringify(conversation)
                     );
+                    await load_conversations();
                     await load_conversation(conversation);
                 }
             }
@@ -2284,7 +2305,7 @@ async function on_api() {
                 }
             } else if (provider.login_url) {
                 if (!login_urls[provider.name]) {
-                    login_urls[provider.name] = [provider.label, provider.login_url, [], provider.auth];
+                    login_urls[provider.name] = [provider.label, provider.login_url, [provider.name], provider.auth];
                 } else {
                     login_urls[provider.name][0] = provider.label;
                     login_urls[provider.name][1] = provider.login_url;

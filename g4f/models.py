@@ -18,6 +18,7 @@ from .Provider import (
     FreeGpt,
     HuggingSpace,
     G4F,
+    Grok,
     DeepseekAI_JanusPro7b,
     Glider,
     Goabror,
@@ -356,19 +357,19 @@ gemini_1_5_pro = Model(
 gemini_2_0_flash = Model(
     name          = 'gemini-2.0-flash',
     base_provider = 'Google DeepMind',
-    best_provider = IterListProvider([Dynaspark, GeminiPro, Liaobots])
+    best_provider = IterListProvider([Dynaspark, GeminiPro, Gemini])
 )
 
 gemini_2_0_flash_thinking = Model(
     name          = 'gemini-2.0-flash-thinking',
     base_provider = 'Google DeepMind',
-    best_provider = Liaobots
+    best_provider = Gemini
 )
 
-gemini_2_0_pro = Model(
-    name          = 'gemini-2.0-pro',
+gemini_2_0_flash_thinking_with_apps = Model(
+    name          = 'gemini-2.0-flash-thinking-with-apps',
     base_provider = 'Google DeepMind',
-    best_provider = Liaobots
+    best_provider = Gemini
 )
 
 ### Anthropic ###
@@ -378,19 +379,6 @@ claude_3_haiku = Model(
     base_provider = 'Anthropic',
     best_provider = IterListProvider([DDG, Jmuz])
 )
-
-claude_3_sonnet = Model(
-    name          = 'claude-3-sonnet',
-    base_provider = 'Anthropic',
-    best_provider = Liaobots
-)
-
-claude_3_opus = Model(
-    name          = 'claude-3-opus',
-    base_provider = 'Anthropic',
-    best_provider = IterListProvider([Jmuz, Liaobots])
-)
-
 
 # claude 3.5
 claude_3_5_sonnet = Model(
@@ -404,12 +392,6 @@ claude_3_7_sonnet = Model(
     name          = 'claude-3.7-sonnet',
     base_provider = 'Anthropic',
     best_provider = IterListProvider([Blackbox, Liaobots])
-)
-
-claude_3_7_sonnet_thinking = Model(
-    name          = 'claude-3.7-sonnet-thinking',
-    base_provider = 'Anthropic',
-    best_provider = Liaobots
 )
 
 ### Reka AI ###
@@ -548,13 +530,13 @@ janus_pro_7b = VisionModel(
 grok_3 = Model(
     name = 'grok-3',
     base_provider = 'x.ai',
-    best_provider = Liaobots
+    best_provider = Grok
 )
 
 grok_3_r1 = Model(
     name = 'grok-3-r1',
     base_provider = 'x.ai',
-    best_provider = Liaobots
+    best_provider = Grok
 )
 
 ### Perplexity AI ### 
@@ -841,12 +823,10 @@ class ModelUtils:
         gemini_1_5_flash.name: gemini_1_5_flash,
         gemini_2_0_flash.name: gemini_2_0_flash,
         gemini_2_0_flash_thinking.name: gemini_2_0_flash_thinking,
-        gemini_2_0_pro.name: gemini_2_0_pro,
+        gemini_2_0_flash_thinking_with_apps.name: gemini_2_0_flash_thinking_with_apps,
 
         ### Anthropic ###
         # claude 3
-        claude_3_opus.name: claude_3_opus,
-        claude_3_sonnet.name: claude_3_sonnet,
         claude_3_haiku.name: claude_3_haiku,
 
         # claude 3.5
@@ -854,7 +834,6 @@ class ModelUtils:
         
         # claude 3.7
         claude_3_7_sonnet.name: claude_3_7_sonnet,
-        claude_3_7_sonnet_thinking.name: claude_3_7_sonnet_thinking,
 
         ### Reka AI ###
         reka_core.name: reka_core,

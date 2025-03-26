@@ -10,6 +10,7 @@ from email.utils import formatdate
 import os.path
 import hashlib
 import asyncio
+from urllib.parse import quote_plus
 from fastapi import FastAPI, Response, Request, UploadFile, Depends
 from fastapi.middleware.wsgi import WSGIMiddleware
 from fastapi.responses import StreamingResponse, RedirectResponse, HTMLResponse, JSONResponse
@@ -562,6 +563,10 @@ class Api:
         })
         async def get_media(filename, request: Request):
             target = os.path.join(images_dir, os.path.basename(filename))
+            if not os.path.isfile(target):
+                other_name = os.path.join(images_dir, os.path.basename(quote_plus(filename)))
+                if os.path.isfile(other_name):
+                    target = other_name
             ext = os.path.splitext(filename)[1][1:]
             mime_type = EXTENSIONS_MAP.get(ext)
             stat_result = SimpleNamespace()

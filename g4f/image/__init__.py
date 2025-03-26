@@ -6,6 +6,7 @@ import io
 import base64
 from io import BytesIO
 from pathlib import Path
+from typing import Optional
 try:
     from PIL.Image import open as open_image, new as new_image
     from PIL.Image import FLIP_LEFT_RIGHT, ROTATE_180, ROTATE_270, ROTATE_90
@@ -16,15 +17,6 @@ except ImportError:
 from ..providers.helper import filter_none
 from ..typing import ImageType, Union, Image
 from ..errors import MissingRequirementsError
-
-ALLOWED_EXTENSIONS = {
-    # Image
-    'png', 'jpg', 'jpeg', 'gif', 'webp',
-    # Audio
-    'wav', 'mp3', 'flac', 'opus', 'ogg',
-    # Video
-    'mkv', 'webm', 'mp4'
-}
 
 MEDIA_TYPE_MAP: dict[str, str] = {
     "image/png": "png",
@@ -90,7 +82,7 @@ def to_image(image: ImageType, is_svg: bool = False) -> Image:
 
     return image
 
-def is_allowed_extension(filename: str) -> bool:
+def is_allowed_extension(filename: str) -> Optional[str]:
     """
     Checks if the given filename has an allowed extension.
 
@@ -100,8 +92,8 @@ def is_allowed_extension(filename: str) -> bool:
     Returns:
         bool: True if the extension is allowed, False otherwise.
     """
-    return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+    ext = os.path.splitext(filename)[1][1:].lower() if '.' in filename else None
+    return EXTENSIONS_MAP[ext] if ext in EXTENSIONS_MAP else None
 
 def is_data_an_media(data, filename: str = None) -> str:
     content_type = is_data_an_audio(data, filename)
@@ -138,7 +130,7 @@ def is_data_uri_an_image(data_uri: str) -> bool:
     # Extract the image format from the data URI
     image_format = re.match(r'data:image/(\w+);base64,', data_uri).group(1).lower()
     # Check if the image format is one of the allowed formats (jpg, jpeg, png, gif)
-    if image_format not in ALLOWED_EXTENSIONS and image_format != "svg+xml":
+    if image_format not in EXTENSIONS_MAP and image_format != "svg+xml":
         raise ValueError("Invalid image format (from mime file type).")
 
 def is_accepted_format(binary_data: bytes) -> str:

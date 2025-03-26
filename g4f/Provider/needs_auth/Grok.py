@@ -30,6 +30,7 @@ class Grok(AsyncAuthedProvider, ProviderModelMixin):
 
     default_model = "grok-3"
     models = [default_model, "grok-3-thinking", "grok-2"]
+    model_aliases = {"grok-3-r1": "grok-3-thinking"}
 
     @classmethod
     async def on_auth_async(cls, cookies: Cookies = None, proxy: str = None, **kwargs) -> AsyncIterator:
@@ -73,7 +74,7 @@ class Grok(AsyncAuthedProvider, ProviderModelMixin):
             "sendFinalMetadata": True,
             "customInstructions": "",
             "deepsearchPreset": "",
-            "isReasoning": model.endswith("-thinking"),
+            "isReasoning": model.endswith("-thinking") or model.endswith("-r1"),
         }
 
     @classmethod

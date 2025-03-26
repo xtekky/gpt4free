@@ -11,7 +11,7 @@ from aiohttp import ClientSession, ClientError
 
 from ..typing import Optional, Cookies
 from ..requests.aiohttp import get_connector, StreamResponse
-from ..image import MEDIA_TYPE_MAP, ALLOWED_EXTENSIONS
+from ..image import MEDIA_TYPE_MAP, EXTENSIONS_MAP
 from ..tools.files import get_bucket_dir
 from ..providers.response import ImageResponse, AudioResponse, VideoResponse
 from ..Provider.template import BackendApi
@@ -58,7 +58,7 @@ async def save_response_media(response: StreamResponse, prompt: str):
     content_type = response.headers["content-type"]
     if is_valid_media_type(content_type):
         extension = MEDIA_TYPE_MAP[content_type] if content_type in MEDIA_TYPE_MAP else content_type[6:].replace("mpeg", "mp3")
-        if extension not in ALLOWED_EXTENSIONS:
+        if extension not in EXTENSIONS_MAP:
             raise ValueError(f"Unsupported media type: {content_type}")
         bucket_id = str(uuid.uuid4())
         dirname = str(int(time.time()))
@@ -86,6 +86,7 @@ async def copy_media(
     headers: Optional[dict] = None,
     proxy: Optional[str] = None,
     alt: str = None,
+    tags: list[str] = None,
     add_url: bool = True,
     target: str = None,
     ssl: bool = None
@@ -113,6 +114,7 @@ async def copy_media(
                 # Build safe filename with full Unicode support
                 filename = secure_filename("".join((
                     f"{int(time.time())}_",
+                    (f"{''.join(tags, '_')}_" if tags else ""),
                     (f"{alt}_" if alt else ""),
                     f"{hashlib.sha256(image.encode()).hexdigest()[:16]}",
                     f"{get_media_extension(image)}"

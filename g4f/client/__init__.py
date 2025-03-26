@@ -19,7 +19,7 @@ from ..providers.asyncio import to_sync_generator
 from ..Provider.needs_auth import BingCreateImages, OpenaiAccount
 from ..tools.run_tools import async_iter_run_tools, iter_run_tools
 from .stubs import ChatCompletion, ChatCompletionChunk, Image, ImagesResponse, UsageModel, ToolCallModel
-from .image_models import ImageModels
+from .image_models import MediaModels
 from .types import IterResponse, ImageProvider, Client as BaseClient
 from .service import get_model_and_provider, convert_to_provider
 from .helper import find_stop, filter_json, filter_none, safe_aclose
@@ -267,8 +267,11 @@ class Client(BaseClient):
     ) -> None:
         super().__init__(**kwargs)
         self.chat: Chat = Chat(self, provider)
+        if image_provider is None:
+            image_provider = provider
+        self.models: MediaModels = MediaModels(self, image_provider)
         self.images: Images = Images(self, image_provider)
-        self.media: Images = Images(self, image_provider)
+        self.media: Images = self.images
 
 class Completions:
     def __init__(self, client: Client, provider: Optional[ProviderType] = None):
@@ -349,7 +352,6 @@ class Images:
     def __init__(self, client: Client, provider: Optional[ProviderType] = None):
         self.client: Client = client
         self.provider: Optional[ProviderType] = provider
-        self.models: ImageModels = ImageModels(client)
 
     def generate(
         self,
@@ -369,7 +371,7 @@ class Images:
         if provider is None:
             provider_handler = self.provider
             if provider_handler is None:
-                provider_handler = self.models.get(model, default)
+                provider_handler = self.client.models.get(model, default)
         elif isinstance(provider, str):
             provider_handler = convert_to_provider(provider)
         else:
@@ -385,19 +387,21 @@ class Images:
         provider: Optional[ProviderType] = None,
         response_format: Optional[str] = None,
         proxy: Optional[str] = None,
+        api_key: Optional[str] = None,
         **kwargs
     ) -> ImagesResponse:
         provider_handler = await self.get_provider_handler(model, provider, BingCreateImages)
         provider_name = provider_handler.__name__ if hasattr(provider_handler, "__name__") else type(provider_handler).__name__
         if proxy is None:
             proxy = self.client.proxy
-
+        if api_key is None:
+            api_key = self.client.api_key
         error = None
         response = None
         if isinstance(provider_handler, IterListProvider):
             for provider in provider_handler.providers:
                 try:
-                    response = await self._generate_image_response(provider, provider.__name__, model, prompt, **kwargs)
+                    response = await self._generate_image_response(provider, provider.__name__, model, prompt, proxy=proxy, **kwargs)
                     if response is not None:
                         provider_name = provider.__name__
                         break
@@ -405,7 +409,7 @@ class Images:
                     error = e
                     debug.error(f"{provider.__name__} {type(e).__name__}: {e}")
         else:
-            response = await self._generate_image_response(provider_handler, provider_name, model, prompt, **kwargs)
+            response = await self._generate_image_response(provider_handler, provider_name, model, prompt, proxy=proxy, api_key=api_key, **kwargs)
 
         if isinstance(response, MediaResponse):
             return await self._process_image_response(
@@ -534,7 +538,7 @@ class Images:
         else:
             # Save locally for None (default) case
             images = await copy_media(response.get_list(), response.get("cookies"), proxy)
-            images = [Image.model_construct(url=f"/media/{os.path.basename(image)}", revised_prompt=response.alt) for image in images]
+            images = [Image.model_construct(url=image, revised_prompt=response.alt) for image in images]
         
         return ImagesResponse.model_construct(
             created=int(time.time()),
@@ -552,6 +556,9 @@ class AsyncClient(BaseClient):
     ) -> None:
         super().__init__(**kwargs)
         self.chat: AsyncChat = AsyncChat(self, provider)
+        if image_provider is None:
+            image_provider = provider
+        self.models: MediaModels = MediaModels(self, image_provider)
         self.images: AsyncImages = AsyncImages(self, image_provider)
         self.media: AsyncImages = self.images
 
@@ -635,7 +642,6 @@ class AsyncImages(Images):
     def __init__(self, client: AsyncClient, provider: Optional[ProviderType] = None):
         self.client: AsyncClient = client
         self.provider: Optional[ProviderType] = provider
-        self.models: ImageModels = ImageModels(client)
 
     async def generate(
         self,

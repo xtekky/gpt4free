@@ -92,7 +92,7 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
                 }
                 async with session.post(f"{api_base.rstrip('/')}/images/generations", json=data, ssl=cls.ssl) as response:
                     data = await response.json()
-                    cls.raise_error(data)
+                    cls.raise_error(data, response.status)
                     await raise_for_status(response)
                     yield ImageResponse([image["url"] for image in data["data"]], prompt)
                 return
@@ -135,7 +135,7 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
                 content_type = response.headers.get("content-type", "text/event-stream" if stream else "application/json")
                 if content_type.startswith("application/json"):
                     data = await response.json()
-                    cls.raise_error(data)
+                    cls.raise_error(data, response.status)
                     await raise_for_status(response)
                     choice = data["choices"][0]
                     if "content" in choice["message"] and choice["message"]["content"]:
