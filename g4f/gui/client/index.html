@@ -18,7 +18,6 @@
     <script src="/static/js/highlightjs-copy.min.js"></script>
     <script src="/static/js/chat.v1.js" defer></script>
     <script src="/static/js/dynamic-providers.js" defer></script>
-    <script src="/static/js/provider-test.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/markdown-it@13.0.1/dist/markdown-it.min.js"></script>
     <link rel="stylesheet" href="/static/css/dracula.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/photoswipe/dist/photoswipe.css">
@@ -73,21 +72,38 @@
         document.addEventListener('DOMContentLoaded', function() {
             const collapsibleHeaders = document.querySelectorAll('.collapsible-header');
             collapsibleHeaders.forEach(header => {
+                // Ensure sections are collapsed by default
+                const content = header.nextElementSibling;
+                content.classList.add('hidden');
+                content.style.display = "none";
+                content.style.maxHeight = "0";
+                
+                // Update arrow direction
+                const arrow = header.querySelector('i.fa-solid');
+                arrow.classList.remove('fa-chevron-down');
+                arrow.classList.add('fa-chevron-right');
+
                 header.addEventListener('click', function() {
                     this.classList.toggle('active');
                     const content = this.nextElementSibling;
+                    const arrow = this.querySelector('i.fa-solid');
+                    
                     if (this.classList.contains('active')) {
                         content.classList.remove('hidden');
                         content.style.display = "block";
                         setTimeout(() => {
                             content.style.maxHeight = content.scrollHeight + "px";
                         }, 10);
+                        arrow.classList.remove('fa-chevron-right');
+                        arrow.classList.add('fa-chevron-down');
                     } else {
                         content.style.maxHeight = "0";
                         setTimeout(() => {
                             content.classList.add('hidden');
                             content.style.display = "none";
                         }, 300);
+                        arrow.classList.remove('fa-chevron-down');
+                        arrow.classList.add('fa-chevron-right');
                     }
                 });
             });
@@ -318,9 +334,9 @@
                     <div class="field collapsible provider-section" id="enable-disable-section">
                         <div class="collapsible-header">
                             <span class="label">Providers (Enable/Disable)</span>
-                            <i class="fa-solid fa-chevron-down"></i>
+                            <i class="fa-solid fa-chevron-right"></i>
                         </div>
-                        <div class="collapsible-content">
+                        <div class="collapsible-content hidden" style="display: none; max-height: 0;">
                             <div class="provider-item">
                                 <span class="label">OpenAI ChatGPT</span>
                                 <input type="checkbox" id="provider-openai" checked />
@@ -353,9 +369,9 @@
                     <div class="field collapsible provider-section" id="api-key-section">
                         <div class="collapsible-header">
                             <span class="label">Providers API key</span>
-                            <i class="fa-solid fa-chevron-down"></i>
+                            <i class="fa-solid fa-chevron-right"></i>
                         </div>
-                        <div class="collapsible-content api-key">
+                        <div class="collapsible-content api-key hidden" style="display: none; max-height: 0;">
                             <div class="field box">
                                 <label for="OpenAI-api_key" class="label">OpenAI API Key:</label>
                                 <input type="text" id="OpenAI-api_key" name="OpenAI[api_key]" placeholder="sk-..." />
