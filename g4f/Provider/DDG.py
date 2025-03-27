@@ -118,13 +118,11 @@ class DDG(AsyncGeneratorProvider, ProviderModelMixin):
                 await raise_for_status(response)
                 
                 vqd = response.headers.get("x-vqd-4", "")
-                
-                # Generate a random string for vqd_hash_1 instead of getting it from response headers
-                letters = "abcdefghijklmnopqrstuvwxyz"
-                random_hash = ''.join(random.choice(letters) for _ in range(7))
-                vqd_hash_1 = random_hash
+                # Fetch the actual hash from the response header
+                vqd_hash_1 = response.headers.get("x-vqd-hash-1", "")
                 
                 if vqd:
+                    # Return the fetched vqd and vqd_hash_1
                     return vqd, vqd_hash_1
                 
                 response_text = await response.text()
@@ -179,11 +177,8 @@ class DDG(AsyncGeneratorProvider, ProviderModelMixin):
                         "origin": "https://duckduckgo.com",
                         "referer": "https://duckduckgo.com/",
                         "x-vqd-4": conversation.vqd,
+                        "x-vqd-hash-1": "",
                     }
-                    
-                    # Add the x-vqd-hash-1 header if available
-                    if conversation.vqd_hash_1:
-                        headers["x-vqd-hash-1"] = conversation.vqd_hash_1
 
                     data = {
                         "model": model,
@@ -239,8 +234,7 @@ class DDG(AsyncGeneratorProvider, ProviderModelMixin):
                         if return_conversation:
                             conversation.message_history.append({"role": "assistant", "content": full_message})
                             conversation.vqd = response.headers.get("x-vqd-4", conversation.vqd)
-                            # Don't update vqd_hash_1 from response headers to avoid ERR_CHALLENGE
-                            # conversation.vqd_hash_1 = response.headers.get("x-vqd-hash-1", conversation.vqd_hash_1)
+                            conversation.vqd_hash_1 = response.headers.get("x-vqd-hash-1", conversation.vqd_hash_1)
                             conversation.cookies = {
                                 n: c.value 
                                 for n, c in session.cookie_jar.filter_cookies(URL(cls.url)).items()
