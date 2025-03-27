@@ -202,7 +202,7 @@ class HuggingFaceMedia(AsyncGeneratorProvider, ProviderModelMixin):
                             return provider_info, chunk
                         result = await response.json()
                         if "video" in result:
-                            return provider_info, VideoResponse(result.get("video").get("url", result.get("video").get("url")), prompt)#video_url
+                            return provider_info, VideoResponse(result.get("video").get("url", result.get("video").get("video_url")), prompt)
                         elif task == "text-to-image":
                             return provider_info, ImageResponse([item["url"] for item in result.get("images", result.get("data"))], prompt)
                         elif task == "text-to-video":

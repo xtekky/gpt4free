@@ -72,13 +72,13 @@ async def save_response_media(response: StreamResponse, prompt: str, tags: list[
             yield ImageResponse(media_url, prompt)
     
 def get_filename(tags: list[str], alt: str, extension: str, image: str) -> str:
-    return secure_filename("".join((
+    return "".join((
         f"{int(time.time())}_",
-        (f"{'_'.join([tag for tag in tags if tag])}_" if tags else ""),
-        (f"{alt}_" if alt else ""),
+        secure_filename(f"{'_'.join([tag for tag in tags if tag])}_" if tags else ""),
+        secure_filename(f"{alt}_" if alt else ""),
         f"{hashlib.sha256(image.encode()).hexdigest()[:16]}",
         f"{extension}"
-    )))
+    ))
 
 async def copy_media(
     images: list[str],
