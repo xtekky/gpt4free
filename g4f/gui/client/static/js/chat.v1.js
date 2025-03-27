@@ -2203,6 +2203,9 @@ async function on_load() {
     } else if (/\/chat\/[?$]/.test(window.location.href)) {
         chatPrompt.value = document.getElementById("systemPrompt")?.value || "";
         say_hello();
+    } else if (window.location.pathname === "/chat/") {
+        // When the URL is exactly "/chat/" with trailing slash, create a new conversation
+        await new_conversation();
     } else {
         //load_conversation(window.conversation_id);
     }
