@@ -1,21 +1,18 @@
 from __future__ import annotations
 
+import re
 import os
 import json
 from pathlib import Path
 from typing import Iterator, Optional, AsyncIterator
 from aiohttp import ClientSession, ClientError, ClientResponse, ClientTimeout
 import urllib.parse
+from urllib.parse import unquote
 import time
 import zipfile
 import asyncio
 import hashlib
 import base64
-
-try:
-    from werkzeug.utils import secure_filename
-except ImportError:
-    secure_filename = os.path.basename
 
 try:
     import PyPDF2
@@ -83,6 +80,19 @@ PLAIN_CACHE = "plain.cache"
 DOWNLOADS_FILE = "downloads.json"
 FILE_LIST = "files.txt"
 
+def secure_filename(filename: str) -> str:
+    if filename is None:
+        return None
+    # Keep letters, numbers, basic punctuation and all Unicode chars
+    filename = re.sub(
+        r'[^\w.,_-]+',
+        '_', 
+        unquote(filename).strip(), 
+        flags=re.UNICODE
+    )
+    filename = filename[:100].strip(".,_-")
+    return filename
+
 def supports_filename(filename: str):
     if filename.endswith(".pdf"):
         if has_pypdf2:
@@ -118,10 +128,8 @@ def supports_filename(filename: str):
             return True
     return False
 
-def get_bucket_dir(bucket_id: str, dirname: str = None):
-    if dirname is None:
-        return os.path.join(get_cookies_dir(), "buckets", bucket_id)
-    return os.path.join(get_cookies_dir(), "buckets", dirname, bucket_id)
+def get_bucket_dir(*parts):
+    return os.path.join(get_cookies_dir(), "buckets", *[secure_filename(part) for part in parts if part])
 
 def get_buckets():
     buckets_dir = os.path.join(get_cookies_dir(), "buckets")

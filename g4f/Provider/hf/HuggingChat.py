@@ -24,6 +24,7 @@ from ...requests import get_args_from_nodriver, DEFAULT_HEADERS
 from ...requests.raise_for_status import raise_for_status
 from ...providers.response import JsonConversation, ImageResponse, Sources, TitleGeneration, Reasoning, RequestLogin
 from ...cookies import get_cookies
+from ...tools.media import merge_media
 from .models import default_model, default_vision_model, fallback_models, image_models, model_aliases
 from ... import debug
 
@@ -146,13 +147,12 @@ class HuggingChat(AsyncAuthedProvider, ProviderModelMixin):
         }
         data = CurlMime()
         data.addpart('data', data=json.dumps(settings, separators=(',', ':')))
-        if media is not None:
-            for image, filename in media:
-                data.addpart(
-                    "files",
-                    filename=f"base64;{filename}",
-                    data=base64.b64encode(to_bytes(image))
-                )
+        for image, filename in merge_media(media, messages):
+            data.addpart(
+                "files",
+                filename=f"base64;{filename}",
+                data=base64.b64encode(to_bytes(image))
+            )
 
         response = session.post(
             f'{cls.url}/conversation/{conversationId}',

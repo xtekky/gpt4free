@@ -142,20 +142,30 @@ class HuggingFaceMedia(AsyncGeneratorProvider, ProviderModelMixin):
                     }
                 else:
                     extra_data = use_aspect_ratio(extra_data, "1:1" if aspect_ratio is None else aspect_ratio)
-                if provider_key == "fal-ai":
-                    url = f"{api_base}/{provider_id}"
+                url = f"{api_base}/{provider_id}"
+                data = {
+                    "prompt": prompt,
+                    **extra_data
+                }
+                if provider_key == "fal-ai" and task == "text-to-image":
+                    if aspect_ratio is None or aspect_ratio == "1:1":
+                        image_size = "square_hd",
+                    elif aspect_ratio == "16:9":
+                        image_size = "landscape_hd",
+                    elif aspect_ratio == "9:16":
+                        image_size = "portrait_16_9"
+                    else:
+                        image_size = extra_data # width, height
                     data = {
-                        "prompt": prompt,
-                        "image_size": "square_hd",
-                        **extra_data
+                        "image_size": image_size,
+                        **data
                     }
+                elif provider_key == "novita":
+                    url = f"{api_base}/v3/hf/{provider_id}"
                 elif provider_key == "replicate":
                     url = f"{api_base}/v1/models/{provider_id}/predictions"
                     data = {
-                        "input": {
-                            "prompt": prompt,
-                            **extra_data
-                        }
+                        "input": data
                     }
                 elif provider_key in ("hf-inference", "hf-free"):
                     api_base = "https://api-inference.huggingface.co"
@@ -171,9 +181,8 @@ class HuggingFaceMedia(AsyncGeneratorProvider, ProviderModelMixin):
                     url = f"{api_base}/v1/images/generations"
                     data = {
                         "response_format": "url",
-                        "prompt": prompt,
                         "model": provider_id,
-                        **extra_data
+                        **data
                     }
 
                 async with StreamSession(
@@ -193,7 +202,7 @@ class HuggingFaceMedia(AsyncGeneratorProvider, ProviderModelMixin):
                             return provider_info, chunk
                         result = await response.json()
                         if "video" in result:
-                            return provider_info, VideoResponse(result["video"]["url"], prompt)
+                            return provider_info, VideoResponse(result.get("video").get("url", result.get("video").get("url")), prompt)#video_url
                         elif task == "text-to-image":
                             return provider_info, ImageResponse([item["url"] for item in result.get("images", result.get("data"))], prompt)
                         elif task == "text-to-video":

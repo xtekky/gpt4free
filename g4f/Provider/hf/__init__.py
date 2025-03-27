@@ -20,7 +20,7 @@ class HuggingFace(AsyncGeneratorProvider, ProviderModelMixin):
     supports_message_history = True
 
     @classmethod
-    def get_models(cls) -> list[str]:
+    def get_models(cls, **kwargs) -> list[str]:
         if not cls.models:
             cls.models = HuggingFaceInference.get_models()
             cls.image_models = HuggingFaceInference.image_models

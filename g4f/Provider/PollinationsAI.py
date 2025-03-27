@@ -11,13 +11,14 @@ from aiohttp import ClientSession
 from .helper import filter_none, format_image_prompt
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..typing import AsyncResult, Messages, MediaListType
-from ..image import to_data_uri, is_data_an_audio, to_input_audio
+from ..image import is_data_an_audio
 from ..errors import ModelNotFoundError
 from ..requests.raise_for_status import raise_for_status
 from ..requests.aiohttp import get_connector
 from ..image.copy_images import save_response_media
 from ..image import use_aspect_ratio
 from ..providers.response import FinishReason, Usage, ToolCalls, ImageResponse
+from ..tools.media import render_messages
 from .. import debug
 
 DEFAULT_HEADERS = {
@@ -285,32 +286,15 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         if response_format and response_format.get("type") == "json_object":
             json_mode = True
 
-        if media and messages:
-            last_message = messages[-1].copy()
-            image_content = [
-                {
-                    "type": "input_audio",
-                    "input_audio": to_input_audio(media_data, filename)
-                }
-                if is_data_an_audio(media_data, filename) else {
-                    "type": "image_url",
-                    "image_url": {"url": to_data_uri(media_data)}
-                }
-                for media_data, filename in media
-            ]
-            last_message["content"] = image_content + ([{"type": "text", "text": last_message["content"]}] if isinstance(last_message["content"], str) else image_content)
-            messages[-1] = last_message
-
         async with ClientSession(headers=DEFAULT_HEADERS, connector=get_connector(proxy=proxy)) as session:
             if model in cls.audio_models:
-                #data["voice"] = random.choice(cls.audio_models[model])
                 url = cls.text_api_endpoint
                 stream = False
             else:
                 url = cls.openai_endpoint
             extra_parameters = {param: kwargs[param] for param in extra_parameters if param in kwargs}
             data = filter_none(**{
-                "messages": messages,
+                "messages": list(render_messages(messages, media)),
                 "model": model,
                 "temperature": temperature,
                 "presence_penalty": presence_penalty,
@@ -324,7 +308,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
             })
             async with session.post(url, json=data) as response:
                 await raise_for_status(response)
-                async for chunk in save_response_media(response, messages[-1]["content"], [model]):
+                async for chunk in save_response_media(response, format_image_prompt(messages), [model]):
                     yield chunk
                     return
                 if response.headers["content-type"].startswith("text/plain"):

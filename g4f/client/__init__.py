@@ -19,7 +19,7 @@ from ..providers.asyncio import to_sync_generator
 from ..Provider.needs_auth import BingCreateImages, OpenaiAccount
 from ..tools.run_tools import async_iter_run_tools, iter_run_tools
 from .stubs import ChatCompletion, ChatCompletionChunk, Image, ImagesResponse, UsageModel, ToolCallModel
-from .image_models import MediaModels
+from .models import ClientModels
 from .types import IterResponse, ImageProvider, Client as BaseClient
 from .service import get_model_and_provider, convert_to_provider
 from .helper import find_stop, filter_json, filter_none, safe_aclose
@@ -269,7 +269,7 @@ class Client(BaseClient):
         self.chat: Chat = Chat(self, provider)
         if image_provider is None:
             image_provider = provider
-        self.models: MediaModels = MediaModels(self, image_provider)
+        self.models: ClientModels = ClientModels(self, provider, image_provider)
         self.images: Images = Images(self, image_provider)
         self.media: Images = self.images
 
@@ -558,7 +558,7 @@ class AsyncClient(BaseClient):
         self.chat: AsyncChat = AsyncChat(self, provider)
         if image_provider is None:
             image_provider = provider
-        self.models: MediaModels = MediaModels(self, image_provider)
+        self.models: ClientModels = ClientModels(self, provider, image_provider)
         self.images: AsyncImages = AsyncImages(self, image_provider)
         self.media: AsyncImages = self.images
 

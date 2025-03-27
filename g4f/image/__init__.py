@@ -103,7 +103,7 @@ def is_data_an_media(data, filename: str = None) -> str:
         return is_accepted_format(data)
     return is_data_uri_an_image(data)
 
-def is_data_an_audio(data_uri: str, filename: str = None) -> str:
+def is_data_an_audio(data_uri: str = None, filename: str = None) -> str:
     if filename:
         if filename.endswith(".wav"):
             return "audio/wav"

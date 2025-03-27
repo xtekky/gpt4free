@@ -67,6 +67,17 @@ let markdown_render = (content) => escapeHtml(content);
 if (window.markdownit) {
     const markdown = window.markdownit();
     markdown_render = (content) => {
+        if (Array.isArray(content)) {
+            content = content.map((item) => {
+                if (item.name.endsWith(".wav") || item.name.endsWith(".mp3")) {
+                    return `<audio controls src="${item.url}"></audio>`;
+                }
+                if (item.name.endsWith(".mp4") || item.name.endsWith(".webm")) {
+                    return `<video controls src="${item.url}"></video>`;
+                }
+                return `[![${item.name}](${item.url})]()`;
+            }).join("\n");
+        }
         return markdown.render(content
             .replaceAll(/<!-- generated images start -->|<!-- generated images end -->/gm, "")
             .replaceAll(/<img data-prompt="[^>]+">/gm, "")
@@ -95,7 +106,7 @@ function render_reasoning(reasoning, final = false) {
     return `<div class="reasoning_body">
         <div class="reasoning_title">
            <strong>${reasoning.label ? reasoning.label :'Reasoning <i class="brain">🧠</i>'}: </strong>
-           ${reasoning.status ? escapeHtml(reasoning.status) : '&nbsp;<i class="fas fa-spinner fa-spin"></i>'}
+           ${reasoning.status ? escapeHtml(reasoning.status) : '<i class="fas fa-spinner fa-spin"></i>'}
         </div>
         ${inner_text}
     </div>`;
@@ -106,12 +117,18 @@ function render_reasoning_text(reasoning) {
 }
 
 function filter_message(text) {
+    if (Array.isArray(text)) {
+        return text;
+    }
     return text.replaceAll(
         /<!-- generated images start -->[\s\S]+<!-- generated images end -->/gm, ""
     ).replace(/ \[aborted\]$/g, "").replace(/ \[error\]$/g, "");
 }
 
 function filter_message_content(text) {
+    if (Array.isArray(text)) {
+        return text;
+    }
     return text.replace(/ \[aborted\]$/g, "").replace(/ \[error\]$/g, "")
 }
 
@@ -269,22 +286,18 @@ const register_message_buttons = async () => {
             return
         }
         el.dataset.click = true;
-        const provider_forms = document.querySelector(".provider_forms");
-        const provider_form = provider_forms.querySelector(`#${el.dataset.provider}-form`);
         const provider_link = el.querySelector("a");
         provider_link?.addEventListener("click", async (event) => {
             event.preventDefault();
+            await load_provider_parameters(el.dataset.provider);
+            const provider_forms = document.querySelector(".provider_forms");
+            const provider_form = provider_forms.querySelector(`#${el.dataset.provider}-form`);
             if (provider_form) {
                 provider_form.classList.remove("hidden");
                 provider_forms.classList.remove("hidden");
                 chat.classList.add("hidden");
             }
             return false;
-        });
-        document.getElementById("close_provider_forms").addEventListener("click", async () => {
-            provider_form.classList.add("hidden");
-            provider_forms.classList.add("hidden");
-            chat.classList.remove("hidden");
         });
     });
 
@@ -479,23 +492,24 @@ const delete_conversations = async () => {
     await new_conversation();
 };
 
-const handle_ask = async (do_ask_gpt = true) => {
+const handle_ask = async (do_ask_gpt = true, message = null) => {
     userInput.style.height = "82px";
     userInput.focus();
     await scroll_to_bottom();
 
-    let message = userInput.value.trim();
-    if (message.length <= 0) {
-        return;
+    if (!message) {
+        message = userInput.value.trim();
+        if (!message) {
+            return;
+        }
+        userInput.value = "";
+        await count_input()
     }
-    userInput.value = "";
-    await count_input()
-    await add_conversation(window.conversation_id);
 
     // Is message a url?
     const expression = /^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)$/gi;
     const regex = new RegExp(expression);
-    if (message.match(regex)) {
+    if (!Array.isArray(message) && message.match(regex)) {
         paperclip.classList.add("blink");
         const blob = new Blob([JSON.stringify([{url: message}])], { type: 'application/json' });
         const file = new File([blob], 'downloads.json', { type: 'application/json' }); // Create File object
@@ -509,6 +523,8 @@ const handle_ask = async (do_ask_gpt = true) => {
         connectToSSE(`/backend-api/v2/files/${bucket_id}`, false, bucket_id); //Retrieve and refine
         return;
     }
+
+    await add_conversation(window.conversation_id);
     let message_index = await add_message(window.conversation_id, "user", message);
     let message_id = get_message_id();
 
@@ -600,6 +616,12 @@ document.querySelector(".media-player .fa-x").addEventListener("click", ()=>{
     media_player.classList.remove("show");
     const audio = document.querySelector(".media-player audio");
     media_player.removeChild(audio);
+});
+
+document.getElementById("close_provider_forms").addEventListener("click", async () => {
+    const provider_forms = document.querySelector(".provider_forms");
+    provider_forms.classList.add("hidden");
+    chat.classList.remove("hidden");
 });
 
 const prepare_messages = (messages, message_index = -1, do_continue = false, do_filter = true) => {
@@ -930,7 +952,6 @@ async function add_message_chunk(message, message_id, provider, scroll, finish_m
         Object.entries(message.parameters).forEach(([key, value]) => {
             parameters_storage[provider][key] = value;
         });
-        await load_provider_parameters(provider);
     }
 }
 
@@ -1332,6 +1353,9 @@ const new_conversation = async () => {
 };
 
 function merge_messages(message1, message2) {
+    if (Array.isArray(message2)) {
+        return message2;
+    }
     let newContent = message2;
     // Remove start tokens
     if (newContent.startsWith("```")) {
@@ -1530,20 +1554,20 @@ const load_conversation = async (conversation, scroll=true) => {
     });
 
     if (countTokensEnabled && window.GPTTokenizer_cl100k_base) {
-        const filtered = prepare_messages(messages, null, true, false);
-        if (filtered.length > 0) {
-            last_model = last_model?.startsWith("gpt-3") ? "gpt-3.5-turbo" : "gpt-4"
-            let count_total = GPTTokenizer_cl100k_base?.encodeChat(filtered, last_model).length
-            if (count_total > 0) {
-                elements.push(`<div class="count_total">(${count_total} total tokens)</div>`);
+        const has_media = messages.filter((item)=>Array.isArray(item.content)).length > 0;
+        if (!has_media) {
+            const filtered = prepare_messages(messages, null, true, false);
+            if (filtered.length > 0) {
+                last_model = last_model?.startsWith("gpt-3") ? "gpt-3.5-turbo" : "gpt-4"
+                let count_total = GPTTokenizer_cl100k_base?.encodeChat(filtered, last_model).length
+                if (count_total > 0) {
+                    elements.push(`<div class="count_total">(${count_total} total tokens)</div>`);
+                }
             }
         }
     }
 
     chatBody.innerHTML = elements.join("");
-    [...new Set(providers)].forEach(async (provider) => {
-        await load_provider_parameters(provider);
-    });
     await register_message_buttons();
     highlight(chatBody);
     regenerate_button.classList.remove("regenerate-hidden");
@@ -1674,7 +1698,7 @@ const add_message = async (
     }
     if (title) {
         conversation.title = title;
-    } else if (!conversation.title) {
+    } else if (!conversation.title && !Array.isArray(content)) {
         let new_value = content.trim();
         let new_lenght = new_value.indexOf("\n");
         new_lenght = new_lenght > 200 || new_lenght < 0 ? 200 : new_lenght;
@@ -1728,8 +1752,10 @@ const add_message = async (
     return conversation.items.length - 1;
 };
 
-const escapeHtml = (unsafe) => {
-    return unsafe+"".replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#039;');
+function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.appendChild(document.createTextNode(str));
+    return div.innerHTML;
 }
 
 const toLocaleDateString = (date) => {
@@ -1746,8 +1772,7 @@ const load_conversations = async () => {
         }
     }
     conversations.sort((a, b) => (b.updated||0)-(a.updated||0));
-
-    let html = [];
+    await clear_conversations();
     conversations.forEach((conversation) => {
         // const length = conversation.items.map((item) => (
         //     !item.content.toLowerCase().includes("hello") &&
@@ -1759,23 +1784,23 @@ const load_conversations = async () => {
         //     return;
         // }
         const shareIcon = (conversation.id == window.start_id && window.share_id) ? '<i class="fa-solid fa-qrcode"></i>': '';
-        html.push(`
-            <div class="convo" id="convo-${conversation.id}">
-                <div class="left" onclick="set_conversation('${conversation.id}')">
-                    <i class="fa-regular fa-comments"></i>
-                    <span class="datetime">${conversation.updated ? toLocaleDateString(conversation.updated) : ""}</span>
-                    <span class="convo-title">${shareIcon} ${escapeHtml(conversation.new_title ? conversation.new_title : conversation.title)}</span>
-                </div>
-                <i onclick="show_option('${conversation.id}')" class="fa-solid fa-ellipsis-vertical" id="conv-${conversation.id}"></i>
-                <div id="cho-${conversation.id}" class="choise" style="display:none;">
-                    <i onclick="delete_conversation('${conversation.id}')" class="fa-solid fa-trash"></i>
-                    <i onclick="hide_option('${conversation.id}')" class="fa-regular fa-x"></i>
-                </div>
+        let convo = document.createElement("div");
+        convo.classList.add("convo");
+        convo.id = `convo-${conversation.id}`;
+        convo.innerHTML = `
+            <div class="left" onclick="set_conversation('${conversation.id}')">
+                <i class="fa-regular fa-comments"></i>
+                <span class="datetime">${conversation.updated ? toLocaleDateString(conversation.updated) : ""}</span>
+                <span class="convo-title">${shareIcon} ${escapeHtml(conversation.new_title ? conversation.new_title : conversation.title)}</span>
             </div>
-        `);
+            <i onclick="show_option('${conversation.id}')" class="fa-solid fa-ellipsis-vertical" id="conv-${conversation.id}"></i>
+            <div id="cho-${conversation.id}" class="choise" style="display:none;">
+                <i onclick="delete_conversation('${conversation.id}')" class="fa-solid fa-trash"></i>
+                <i onclick="hide_option('${conversation.id}')" class="fa-regular fa-x"></i>
+            </div>
+        `;
+        box_conversations.appendChild(convo);
     });
-    await clear_conversations();
-    box_conversations.innerHTML += html.join("");
 };
 
 const hide_input = document.querySelector(".chat-toolbar .hide-input");
@@ -1799,6 +1824,13 @@ const uuid = () => {
         }
     );
 };
+
+function generateSecureRandomString(length = 128) {
+    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    const array = new Uint8Array(length);
+    crypto.getRandomValues(array);
+    return Array.from(array, byte => chars[byte % chars.length]).join('');
+}
 
 function get_message_id() {
     random_bytes = (Math.floor(Math.random() * 1338377565) + 2956589730).toString(
@@ -2003,6 +2035,9 @@ function count_chars(text) {
 }
 
 function count_words_and_tokens(text, model, completion_tokens, prompt_tokens) {
+    if (Array.isArray(text)) {
+        return "";
+    }
     text = filter_message(text);
     return `(${count_words(text)} words, ${count_chars(text)} chars, ${completion_tokens ? completion_tokens : count_tokens(model, text, prompt_tokens)} tokens)`;
 }
@@ -2626,12 +2661,12 @@ async function upload_files(fileInput) {
         fileInput.value = "";
     }
     if (result.media) {
+        const media = [];
         result.media.forEach((filename)=> {
             const url = `/files/${bucket_id}/media/${filename}`;
-            image_storage[url] = {bucket_id: bucket_id, name: filename};
+            media.push({bucket_id: bucket_id, name: filename, url: url});
         });
-        mediaSelect.classList.remove("hidden");
-        renderMediaSelect();
+        await handle_ask(false, media);
     }
 }
 
