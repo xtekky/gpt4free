@@ -1214,15 +1214,25 @@ ul {
     border-left: 3px solid var(--accent);
 }
 @media screen and (max-width: 990px) {
-    .sidebar.expanded {
-        width: 260px;
+    /* Completely hide the entire sidebar on mobile devices */
+    .sidebar {
+        display: none !important;
     }
     
+    /* Ensure chat container takes full width */
     .chat-container {
-        margin-left: 60px;
-        width: calc(100% - 60px);
+        margin-left: 0 !important;
+        width: 100% !important;
     }
     
+    /* Only show sidebar when explicitly toggled via JavaScript */
+    .sidebar.expanded {
+        display: block !important;
+        width: 260px;
+        z-index: 2000;
+    }
+    
+    /* When sidebar is expanded, adjust chat container */
     .sidebar.expanded + .chat-container {
         margin-left: 0;
         width: 100%;
@@ -1239,8 +1249,12 @@ ul {
         font-size: 16px;
     }
 
+    /* Revise chat-top-panel for mobile view */
     .chat-top-panel {
         padding: 12px 15px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
     }
 
     .chat-logo {
@@ -1250,6 +1264,41 @@ ul {
     .chat-top-panel .convo-title {
         margin: 0 10px;
         font-size: 14px;
+        text-align: center;
+        flex: 1;
+    }
+    
+    /* Style the mobile-sidebar-toggle in the chat-top-panel */
+    .chat-top-panel .mobile-sidebar-toggle {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 36px;
+        height: 36px;
+        background-color: var(--blur-bg);
+        border: 1px solid var(--blur-border);
+        border-radius: 8px;
+        cursor: pointer;
+    }
+    
+    /* Style the new_convo_icon in the chat-top-panel */
+    .chat-top-panel .new_convo_icon {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 36px;
+        height: 36px;
+        background-color: var(--blur-bg);
+        border: 1px solid var(--blur-border);
+        border-radius: 8px;
+        cursor: pointer;
+        color: var(--colour-3);
+        font-size: 16px;
+    }
+    
+    .chat-top-panel .mobile-sidebar-toggle:hover,
+    .chat-top-panel .new_convo_icon:hover {
+        background-color: var(--button-hover);
     }
 
     .settings h3 {
@@ -1988,6 +2037,14 @@ form textarea {
     margin: 0;
     width: 100%;
 }
+/* Hide mobile-specific elements on desktop */
+@media screen and (min-width: 991px) {
+    .chat-top-panel .mobile-sidebar-toggle,
+    .chat-top-panel .new_convo_icon {
+        display: none !important;
+    }
+}
+
 @media only screen and (min-width: 40em) {
     .sidebar.expanded {
         width: 260px;
