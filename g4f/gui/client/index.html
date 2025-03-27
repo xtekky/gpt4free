@@ -201,7 +201,7 @@
                 </button>
                 <div class="spacer"></div>
                 <button class="settings_icon" onclick="open_settings();">
-                    <i class="fa-solid fa-toolbox"></i>
+                    <i class="fa-solid fa-gear"></i>
                 </button>
             </div>
             <div class="sidebar-expanded">
@@ -219,7 +219,7 @@
                 </div>
                 <div class="bottom_buttons">
                     <button onclick="open_settings();">
-                        <i class="fa-solid fa-toolbox"></i>
+                        <i class="fa-solid fa-gear"></i>
                         <span>Open Settings</span>
                     </button>
                     <div class="info">
@@ -421,16 +421,14 @@
         </div>
         <div class="chat-container">
             <div class="chat-top-panel">
-                <div class="chat-logo">G4F Chat</div>
                 <div class="convo-title"></div>
-                <div class="mobile-sidebar-toggle">
-                    <i class="fa-solid fa-bars"></i>
-                </div>
             </div>
-            <textarea id="chatPrompt" class="box" placeholder="System prompt"></textarea>
-            <button class="slide-header">
-                <i class="fa-solid fa-angles-up"></i>
-            </button>
+            <div class="chatPrompt-wrapper">
+                <textarea id="chatPrompt" class="box" placeholder="System prompt"></textarea>
+                <button class="slide-header">
+                    <i class="fa-solid fa-angles-up"></i>
+                </button>
+            </div>
             <div class="chat-body" id="chatBody"></div>
             <div class="chat-footer">
                 <div class="chat-toolbar">

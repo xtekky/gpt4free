@@ -941,9 +941,27 @@ input.model:hover
     top: auto !important;
 }
 
+.chatPrompt-wrapper {
+    position: relative;
+    width: 100%;
+    display: flex;
+    align-items: flex-start;
+    min-height: 40px; /* Ensure minimum height for the slide-header */
+}
+
+.chatPrompt-wrapper #chatPrompt {
+    flex: 1;
+    width: calc(100% - 40px);
+}
+
+.chatPrompt-wrapper.collapsed #chatPrompt {
+    display: none;
+}
+
 .slide-header {
     position: absolute;
     top: 0;
+    right: 0;
     z-index: 1;
     padding: 10px;
     border: none;
@@ -951,6 +969,7 @@ input.model:hover
     cursor: pointer;
     height: 40px;
     color: var(--colour-3);
+    display: block !important; /* Ensure always visible */
 }
 
 @media only screen and (min-width: 40em) {
@@ -1945,7 +1964,7 @@ form textarea {
 }
 .chat-top-panel {
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
     align-items: center;
     padding: 15px 28px;
     margin-bottom: 10px;
@@ -1966,7 +1985,8 @@ form textarea {
     white-space: nowrap;
     text-overflow: ellipsis;
     overflow: hidden;
-    margin: 0 15px;
+    margin: 0;
+    width: 100%;
 }
 @media only screen and (min-width: 40em) {
     .sidebar.expanded {

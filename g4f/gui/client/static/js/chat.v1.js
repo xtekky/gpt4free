@@ -5,7 +5,7 @@ const box_conversations = document.querySelector(`.top`);
 const stop_generating   = document.querySelector(`.stop_generating`);
 const regenerate_button = document.querySelector(`.regenerate`);
 const sidebar           = document.querySelector(".sidebar");
-const sidebar_buttons   = document.querySelectorAll(".mobile-sidebar-toggle");
+const sidebar_buttons   = document.querySelectorAll(".sidebar .mobile-sidebar-toggle");
 const sendButton        = document.getElementById("sendButton");
 const addButton         = document.getElementById("addButton");
 const imageInput        = document.querySelector(".image-label");
@@ -1882,7 +1882,7 @@ function open_settings() {
 
 // Function to handle collapsible fields
 function setupCollapsibleFields() {
-    const collapsibleHeaders = document.querySelectorAll('.collapsible-header');
+    const collapsibleHeaders = document.qВuerySelectorAll('.collapsible-header');
     
     collapsibleHeaders.forEach(header => {
         // Remove existing event listeners by cloning and replacing
@@ -2469,22 +2469,30 @@ async function on_api() {
 
     const hide_systemPrompt = document.getElementById("hide-systemPrompt")
     const slide_systemPrompt_icon = document.querySelector(".slide-header i");
+    
+    // Function to update UI based on system prompt visibility state
+    const updateSystemPromptVisibility = (isHidden) => {
+        document.querySelector(".chatPrompt-wrapper").classList[isHidden ? "add" : "remove"]("collapsed");
+        slide_systemPrompt_icon.classList[isHidden ? "remove" : "add"]("fa-angles-up");
+        slide_systemPrompt_icon.classList[isHidden ? "add" : "remove"]("fa-angles-down");
+        hide_systemPrompt.checked = isHidden;
+    };
+    
+    // Initialize state
     if (hide_systemPrompt.checked) {
-        chatPrompt.classList.add("hidden");
+        updateSystemPromptVisibility(true);
     }
+    
+    // Handle checkbox change
     hide_systemPrompt.addEventListener('change', async (event) => {
-        if (event.target.checked) {
-            chatPrompt.classList.add("hidden");
-        } else {
-            chatPrompt.classList.remove("hidden");
-        }
+        updateSystemPromptVisibility(event.target.checked);
     });
+    
+    // Handle slide-header click
     document.querySelector(".slide-header")?.addEventListener("click", () => {
-        const checked = slide_systemPrompt_icon.classList.contains("fa-angles-up");
-        document.querySelector(".chat-top-panel").classList[checked ? "add": "remove"]("hidden");
-        chatPrompt.classList[checked || hide_systemPrompt.checked ? "add": "remove"]("hidden");
-        slide_systemPrompt_icon.classList[checked ? "remove": "add"]("fa-angles-up");
-        slide_systemPrompt_icon.classList[checked ? "add": "remove"]("fa-angles-down");
+        const isCurrentlyVisible = !slide_systemPrompt_icon.classList.contains("fa-angles-down");
+        document.querySelector(".chat-top-panel").classList[isCurrentlyVisible ? "add": "remove"]("hidden");
+        updateSystemPromptVisibility(isCurrentlyVisible);
     });
     const userInputHeight = document.getElementById("message-input-height");
     if (userInputHeight) {
