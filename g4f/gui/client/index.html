@@ -17,6 +17,8 @@
     <link rel="manifest" href="/static/img/site.webmanifest">
     <script src="/static/js/highlightjs-copy.min.js"></script>
     <script src="/static/js/chat.v1.js" defer></script>
+    <script src="/static/js/dynamic-providers.js" defer></script>
+    <script src="/static/js/provider-test.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/markdown-it@13.0.1/dist/markdown-it.min.js"></script>
     <link rel="stylesheet" href="/static/css/dracula.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/photoswipe/dist/photoswipe.css">
@@ -66,6 +68,104 @@
         window.share_id = "{{share_id}}";
         window.share_url = "{{share_url}}";
         window.start_id = "{{conversation_id}}";
+        
+        // Initialize collapsible sections when the page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            const collapsibleHeaders = document.querySelectorAll('.collapsible-header');
+            collapsibleHeaders.forEach(header => {
+                header.addEventListener('click', function() {
+                    this.classList.toggle('active');
+                    const content = this.nextElementSibling;
+                    if (this.classList.contains('active')) {
+                        content.classList.remove('hidden');
+                        content.style.display = "block";
+                        setTimeout(() => {
+                            content.style.maxHeight = content.scrollHeight + "px";
+                        }, 10);
+                    } else {
+                        content.style.maxHeight = "0";
+                        setTimeout(() => {
+                            content.classList.add('hidden');
+                            content.style.display = "none";
+                        }, 300);
+                    }
+                });
+            });
+            
+            // Override functions to prevent duplicate provider sections
+            window.setupCollapsibleFields = function() {
+                // Only initialize the collapsible headers that don't already have event listeners
+                const collapsibleHeaders = document.querySelectorAll('.collapsible-header:not([data-initialized])');
+                collapsibleHeaders.forEach(header => {
+                    // Mark as initialized to prevent duplicate event listeners
+                    header.setAttribute('data-initialized', 'true');
+                    
+                    // Remove existing event listeners by cloning and replacing
+                    const newHeader = header.cloneNode(true);
+                    header.parentNode.replaceChild(newHeader, header);
+                    
+                    newHeader.addEventListener('click', function() {
+                        this.classList.toggle('active');
+                        const content = this.nextElementSibling;
+                        
+                        if (content.classList.contains('hidden')) {
+                            content.classList.remove('hidden');
+                            content.style.display = "block";
+                            setTimeout(() => {
+                                content.style.maxHeight = (content.scrollHeight + 100) + "px";
+                            }, 10);
+                        } else {
+                            content.style.maxHeight = "0";
+                            setTimeout(() => {
+                                content.classList.add('hidden');
+                                content.style.display = "none";
+                            }, 300);
+                        }
+                    });
+                });
+            };
+            
+            // Initialize our provider sections
+            const initializeProviderSections = function() {
+                // Get our provider sections
+                const providerSections = document.querySelectorAll('.provider-section');
+                
+                // Initialize each section
+                providerSections.forEach(section => {
+                    const header = section.querySelector('.collapsible-header');
+                    const content = section.querySelector('.collapsible-content');
+                    
+                    if (header && content) {
+                        // Add click event to header
+                        header.addEventListener('click', function() {
+                            this.classList.toggle('active');
+                            
+                            if (this.classList.contains('active')) {
+                                content.classList.remove('hidden');
+                                content.style.display = "block";
+                                setTimeout(() => {
+                                    content.style.maxHeight = content.scrollHeight + "px";
+                                }, 10);
+                            } else {
+                                content.style.maxHeight = "0";
+                                setTimeout(() => {
+                                    content.classList.add('hidden');
+                                    content.style.display = "none";
+                                }, 300);
+                            }
+                        });
+                    }
+                });
+            };
+            
+            // Call the initialization function when the page loads
+            document.addEventListener('DOMContentLoaded', initializeProviderSections);
+            
+            // Also call it when the settings panel is opened
+            document.querySelector('.settings_icon').addEventListener('click', function() {
+                setTimeout(initializeProviderSections, 100);
+            });
+        });
     </script>
     <title>G4F Chat</title>
 </head>
@@ -74,137 +174,225 @@
         localStorage.getItem("darkMode") == "false" ? document.body.classList.add("white") : null;
     </script>
     <div class="gradient"></div>
-        <div class="sidebar shown">
-            <div class="top">
-                <button class="new_convo" onclick="new_conversation()">
+    <div class="sidebar">
+            <div class="sidebar-collapsed">
+                <div class="sidebar-logo">G4F</div>
+                <div class="mobile-sidebar-toggle">
+                    <i class="fa-solid fa-bars"></i>
+                </div>
+                <button class="new_convo_icon" onclick="new_conversation()">
                     <i class="fa-regular fa-plus"></i>
-                    <span>New Conversation</span>
+                </button>
+                <div class="spacer"></div>
+                <button class="settings_icon" onclick="open_settings();">
+                    <i class="fa-solid fa-toolbox"></i>
                 </button>
             </div>
-            <div class="bottom_buttons">
-                <button onclick="open_settings();">
-                    <i class="fa-solid fa-toolbox"></i>
-                    <span>Open Settings</span>
-                </button>
-                <div class="info">
-                    <i class="fa-brands fa-discord"></i>
-                    <span class="convo-title">discord ~ <a href="https://discord.gg/qXA4Wf4Fsm" target="_blank">discord.gg/qXA4Wf4Fsm</a>
-                    </span>
+            <div class="sidebar-expanded">
+                <div class="sidebar-header">
+                    <div class="sidebar-logo">G4F Chat</div>
+                    <div class="mobile-sidebar-toggle">
+                        <i class="fa-solid fa-bars"></i>
+                    </div>
                 </div>
-                <div class="info">
-                    <i class="fa-brands fa-github"></i>
-                    <span class="convo-title">github ~ <a href="https://github.com/xtekky/gpt4free" target="_blank">@xtekky/gpt4free</a>
-                    </span>
+                <div class="top">
+                    <button class="new_convo" onclick="new_conversation()">
+                        <i class="fa-regular fa-plus"></i>
+                        <span>New Conversation</span>
+                    </button>
                 </div>
-                <div class="info">
-                    <i class="fa-solid fa-star"></i>
-                    <span id="version_text" class="convo-title"></span>
+                <div class="bottom_buttons">
+                    <button onclick="open_settings();">
+                        <i class="fa-solid fa-toolbox"></i>
+                        <span>Open Settings</span>
+                    </button>
+                    <div class="info">
+                        <i class="fa-brands fa-discord"></i>
+                        <span class="convo-title">discord ~ <a href="https://discord.gg/qXA4Wf4Fsm" target="_blank">discord.gg/qXA4Wf4Fsm</a>
+                        </span>
+                    </div>
+                    <div class="info">
+                        <i class="fa-brands fa-github"></i>
+                        <span class="convo-title">github ~ <a href="https://github.com/xtekky/gpt4free" target="_blank">@xtekky/gpt4free</a>
+                        </span>
+                    </div>
+                    <div class="info">
+                        <i class="fa-solid fa-star"></i>
+                        <span id="version_text" class="convo-title"></span>
+                    </div>
                 </div>
             </div>
         </div>
         <div class="settings hidden">
             <div class="paper">
-            <h3>Settings</h3>
-            <div class="field">
-                <span class="label">Enable Dark Mode</span>
-                <input type="checkbox" id="darkMode" checked />
-                <label for="darkMode" class="toogle" title=""></label>
-            </div>
-            <div class="field">
-                <span class="label">Web Access with DuckDuckGo</span>
-                <input type="checkbox" id="switch" />
-                <label for="switch" class="toogle" title="Add the pages of the first 5 search results to the query."></label>
-            </div>
-            <div class="field">
-                <span class="label">Disable Conversation History</span>
-                <input type="checkbox" id="history" />
-                <label for="history" class="toogle" title="To improve the reaction time or if you have trouble with large conversations."></label>
-            </div>
-            <div class="field">
-                <span class="label">Hide System-prompt</span>
-                <input type="checkbox" id="hide-systemPrompt" />
-                <label for="hide-systemPrompt" class="toogle" title="For more space on phones"></label>
-            </div>
-            <div class="field">
-                <span class="label">Download generated media</span>
-                <input type="checkbox" id="download_media" checked/>
-                <label for="download_media" class="toogle" title="Download and save generated images, audios and videos"></label>
-            </div>
-            <div class="field">
-                <span class="label">Refine files with spaCy</span>
-                <input type="checkbox" id="refine"/>
-                <label for="refine" class="toogle" title=""></label>
-            </div>
-            <div class="field">
-                <span class="label">Track usage</span>
-                <input type="checkbox" id="track_usage"/>
-                <label for="track_usage" class="toogle" title=""></label>
-            </div>
-            <div class="field">
-                <span class="label">Report errors</span>
-                <input type="checkbox" id="report_error" checked/>
-                <label for="report_error" class="toogle" title=""></label>
-            </div>
-            <div class="field">
-                <span class="label">Count words and tokens</span>
-                <input type="checkbox" id="countTokens" checked/>
-                <label for="countTokens" class="toogle" title=""></label>
-            </div>
-            <div class="field box">
-                <label for="systemPrompt" class="label">System prompt</label>
-                <textarea id="systemPrompt" placeholder="You are a helpful assistant." data-example="If you need to generate images, you can use the following format: ![keywords](/generate/filename.jpg). This will enable the use of an image generation tool."></textarea>
-            </div>
-            <div class="field box">
-                <label for="userInput-height" class="label" title="">Input max. height</label>
-                <input type="number" id="userInput-height" value="200"/>
-            </div>
-            <div class="field box">
-                <label for="recognition-language" class="label" title="">Speech recognition language</label>
-                <input type="text" id="recognition-language" value="" placeholder="navigator.language"/>
-            </div>
-            <div class="field mem0 hidden">
-                <span class="label">Enable Memory with Mem0</span>
-                <input type="checkbox" id="mem0"/>
-                <label for="mem0" class="toogle" title=""></label>
-                <button onclick="import_memory()">
-                    <i class="fa-solid fa-arrow-up-from-bracket"></i>
-                    <span>Import Messages to Mem0</span>
-                </button>
-            </div>
-            <div class="field box hidden">
-                <label for="mem0-api_key" class="label" title="">Mem0 API:</label>
-                <input type="text" id="mem0-api_key" name="mem0[api_key]" placeholder="api_key"/>
-            </div>
-            <div class="field box hidden">
-                <label for="Custom-api_base" class="label" title="">Custom Provider (Base Url):</label>
-                <input type="text" id="Custom-api_base" name="Custom[api_base]" placeholder="http://localhost:8080/v1"/>
-            </div>
-            <div class="field box hidden">
-                <label for="Custom-api_key" class="label" title="">Custom Provider:</label>
-                <input type="text" id="Custom-api_key" name="Custom[api_key]" placeholder="api_key"/>
-            </div>
-            <div class="field box hidden">
-                <label for="BingCreateImages-api_key" class="label" title="">Microsoft Designer in Bing:</label>
-                <input type="text" id="BingCreateImages-api_key" name="BingCreateImages[api_key]" placeholder="&quot;_U&quot; cookie"/>
-            </div>
-            </div>
-            <div class="bottom_buttons">
-                <button onclick="delete_conversations()">
-                    <i class="fa-solid fa-trash"></i>
-                    <span>Clear Conversations</span>
-                </button>
-                <button onclick="save_storage()">
-                    <i class="fa-solid fa-download"></i>
-                    <a href="" onclick="return false;">Export Conversations</a>
-                </button>
-                <button onclick="save_storage(true)">
-                    <i class="fa-solid fa-pencil"></i>
-                    <a href="" onclick="return false;">Export Settings</a>
-                </button>
-                <button id="showLog">
-                    <i class="fa-solid fa-terminal"></i>
-                    <a href="" onclick="return false;">Show log</a>
-                </button>
+                <div class="settings-content">
+                    <h3>Settings</h3>
+                    <!-- Regular toggle fields -->
+                    <div class="field">
+                        <span class="label">Enable Dark Mode</span>
+                        <input type="checkbox" id="darkMode" checked />
+                        <label for="darkMode" class="toogle" title=""></label>
+                    </div>
+                    <div class="field">
+                        <span class="label">Web Access with DuckDuckGo</span>
+                        <input type="checkbox" id="switch" />
+                        <label for="switch" class="toogle" title="Add the pages of the first 5 search results to the query."></label>
+                    </div>
+                    <div class="field">
+                        <span class="label">Disable Conversation History</span>
+                        <input type="checkbox" id="history" />
+                        <label for="history" class="toogle" title="To improve the reaction time or if you have trouble with large conversations."></label>
+                    </div>
+                    <div class="field">
+                        <span class="label">Hide System-prompt</span>
+                        <input type="checkbox" id="hide-systemPrompt" />
+                        <label for="hide-systemPrompt" class="toogle" title="For more space on phones"></label>
+                    </div>
+                    <div class="field">
+                        <span class="label">Download generated media</span>
+                        <input type="checkbox" id="download_media" checked/>
+                        <label for="download_media" class="toogle" title="Download and save generated images, audios and videos"></label>
+                    </div>
+                    <div class="field">
+                        <span class="label">Refine files with spaCy</span>
+                        <input type="checkbox" id="refine"/>
+                        <label for="refine" class="toogle" title=""></label>
+                    </div>
+                    <div class="field">
+                        <span class="label">Track usage</span>
+                        <input type="checkbox" id="track_usage"/>
+                        <label for="track_usage" class="toogle" title=""></label>
+                    </div>
+                    <div class="field">
+                        <span class="label">Report errors</span>
+                        <input type="checkbox" id="report_error" checked/>
+                        <label for="report_error" class="toogle" title=""></label>
+                    </div>
+                    <div class="field">
+                        <span class="label">Count words and tokens</span>
+                        <input type="checkbox" id="countTokens" checked/>
+                        <label for="countTokens" class="toogle" title=""></label>
+                    </div>
+                    
+                    <!-- Box fields -->
+                    <div class="field box">
+                        <label for="systemPrompt" class="label">System prompt</label>
+                        <textarea id="systemPrompt" placeholder="You are a helpful assistant." data-example="If you need to generate images, you can use the following format: ![keywords](/generate/filename.jpg). This will enable the use of an image generation tool."></textarea>
+                    </div>
+                    <div class="field box">
+                        <label for="userInput-height" class="label" title="">Input max. height</label>
+                        <input type="number" id="userInput-height" value="200"/>
+                    </div>
+                    <div class="field box">
+                        <label for="recognition-language" class="label" title="">Speech recognition language</label>
+                        <input type="text" id="recognition-language" value="" placeholder="navigator.language"/>
+                    </div>
+                    
+                    <div class="field mem0 hidden">
+                        <span class="label">Enable Memory with Mem0</span>
+                        <input type="checkbox" id="mem0"/>
+                        <label for="mem0" class="toogle" title=""></label>
+                        <button onclick="import_memory()">
+                            <i class="fa-solid fa-arrow-up-from-bracket"></i>
+                            <span>Import Messages to Mem0</span>
+                        </button>
+                    </div>
+                    <div class="field box hidden">
+                        <label for="mem0-api_key" class="label" title="">Mem0 API:</label>
+                        <input type="text" id="mem0-api_key" name="mem0[api_key]" placeholder="api_key"/>
+                    </div>
+                    <div class="field box hidden">
+                        <label for="Custom-api_base" class="label" title="">Custom Provider (Base Url):</label>
+                        <input type="text" id="Custom-api_base" name="Custom[api_base]" placeholder="http://localhost:8080/v1"/>
+                    </div>
+                    <div class="field box hidden">
+                        <label for="Custom-api_key" class="label" title="">Custom Provider:</label>
+                        <input type="text" id="Custom-api_key" name="Custom[api_key]" placeholder="api_key"/>
+                    </div>
+                    <div class="field box hidden">
+                        <label for="BingCreateImages-api_key" class="label" title="">Microsoft Designer in Bing:</label>
+                        <input type="text" id="BingCreateImages-api_key" name="BingCreateImages[api_key]" placeholder="&quot;_U&quot; cookie"/>
+                    </div>
+                    
+                    <!-- Providers Enable/Disable Section -->
+                    <div class="field collapsible provider-section" id="enable-disable-section">
+                        <div class="collapsible-header">
+                            <span class="label">Providers (Enable/Disable)</span>
+                            <i class="fa-solid fa-chevron-down"></i>
+                        </div>
+                        <div class="collapsible-content">
+                            <div class="provider-item">
+                                <span class="label">OpenAI ChatGPT</span>
+                                <input type="checkbox" id="provider-openai" checked />
+                                <label for="provider-openai" class="toogle" title="Enable/Disable OpenAI ChatGPT"></label>
+                            </div>
+                            <div class="provider-item">
+                                <span class="label">Microsoft Copilot</span>
+                                <input type="checkbox" id="provider-copilot" checked />
+                                <label for="provider-copilot" class="toogle" title="Enable/Disable Microsoft Copilot"></label>
+                            </div>
+                            <div class="provider-item">
+                                <span class="label">Google Gemini</span>
+                                <input type="checkbox" id="provider-gemini" checked />
+                                <label for="provider-gemini" class="toogle" title="Enable/Disable Google Gemini"></label>
+                            </div>
+                            <div class="provider-item">
+                                <span class="label">DuckDuckGo AI Chat</span>
+                                <input type="checkbox" id="provider-ddg" checked />
+                                <label for="provider-ddg" class="toogle" title="Enable/Disable DuckDuckGo AI Chat"></label>
+                            </div>
+                            <div class="provider-item">
+                                <span class="label">Blackbox AI</span>
+                                <input type="checkbox" id="provider-blackbox" checked />
+                                <label for="provider-blackbox" class="toogle" title="Enable/Disable Blackbox AI"></label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Providers API Key Section -->
+                    <div class="field collapsible provider-section" id="api-key-section">
+                        <div class="collapsible-header">
+                            <span class="label">Providers API key</span>
+                            <i class="fa-solid fa-chevron-down"></i>
+                        </div>
+                        <div class="collapsible-content api-key">
+                            <div class="field box">
+                                <label for="OpenAI-api_key" class="label">OpenAI API Key:</label>
+                                <input type="text" id="OpenAI-api_key" name="OpenAI[api_key]" placeholder="sk-..." />
+                                <a href="https://platform.openai.com/api-keys" target="_blank">Get API Key</a>
+                            </div>
+                            <div class="field box">
+                                <label for="Gemini-api_key" class="label">Google Gemini API Key:</label>
+                                <input type="text" id="Gemini-api_key" name="Gemini[api_key]" placeholder="API Key" />
+                                <a href="https://aistudio.google.com/app/apikey" target="_blank">Get API Key</a>
+                            </div>
+                            <div class="field box">
+                                <label for="Anthropic-api_key" class="label">Anthropic API Key:</label>
+                                <input type="text" id="Anthropic-api_key" name="Anthropic[api_key]" placeholder="API Key" />
+                                <a href="https://console.anthropic.com/settings/keys" target="_blank">Get API Key</a>
+                            </div>
+                        </div>
+                    </div>
+                
+                    <div class="bottom_buttons">
+                        <button onclick="delete_conversations()">
+                            <i class="fa-solid fa-trash"></i>
+                            <span>Clear Conversations</span>
+                        </button>
+                        <button onclick="save_storage()">
+                            <i class="fa-solid fa-download"></i>
+                            <a href="" onclick="return false;">Export Conversations</a>
+                        </button>
+                        <button onclick="save_storage(true)">
+                            <i class="fa-solid fa-pencil"></i>
+                            <a href="" onclick="return false;">Export Settings</a>
+                        </button>
+                        <button id="showLog">
+                            <i class="fa-solid fa-terminal"></i>
+                            <a href="" onclick="return false;">Show log</a>
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
         <div class="provider_forms hidden">
@@ -216,8 +404,12 @@
             </div>
         </div>
         <div class="chat-container">
-            <div class="chat-header box">
-                G4F Chat
+            <div class="chat-top-panel">
+                <div class="chat-logo">G4F Chat</div>
+                <div class="convo-title"></div>
+                <div class="mobile-sidebar-toggle">
+                    <i class="fa-solid fa-bars"></i>
+                </div>
             </div>
             <textarea id="chatPrompt" class="box" placeholder="System prompt"></textarea>
             <button class="slide-header">
@@ -333,8 +525,5 @@
             </div>
         </div>
         <div class="log hidden"></div>
-    <div class="mobile-sidebar">
-        <i class="fa-solid fa-bars"></i>
-    </div>
 </body>
 </html>

@@ -1108,27 +1108,65 @@ ul {
     visibility: hidden;
 }
 
-.mobile-sidebar {
-    position: fixed;
-    z-index: 1000;
-    top: 10px;
-    right: 10px;
-    width: 40px;
-    height: 40px;
-    background-color: var(--blur-bg);
-    border: 1px solid var(--blur-border);
-    border-radius: 10px;
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    cursor: pointer;
-    justify-content: center;
+.sidebar-header {
+    display: flex;
+    justify-content: space-between;
     align-items: center;
-    transition: all 0.3s ease;
-    padding: 10px 12px;
+    padding: 15px 0;
+    margin-bottom: 15px;
+    border-bottom: 1px solid var(--blur-border);
 }
 
-.mobile-sidebar i {
+.sidebar-header .mobile-sidebar-toggle {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 36px;
+    height: 36px;
+    background-color: var(--blur-bg);
+    border: 1px solid var(--blur-border);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.sidebar-header .mobile-sidebar-toggle i {
     transition: 0.33s;
+    color: var(--colour-3);
+}
+
+.sidebar-logo {
+    font-weight: 600;
+    font-size: 18px;
+    color: var(--colour-3);
+}
+
+.mobile-sidebar-toggle {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 36px;
+    height: 36px;
+    background-color: var(--blur-bg);
+    border: 1px solid var(--blur-border);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.mobile-sidebar-toggle i {
+    transition: 0.33s;
+    color: var(--colour-3);
+}
+
+@media screen and (min-width: 991px) {
+    /* Keep the toggle visible in both collapsed and expanded states */
+}
+
+@media screen and (max-width: 990px) {
+    .mobile-sidebar-toggle {
+        display: flex;
+    }
 }
 
 .rotated {
@@ -1136,13 +1174,63 @@ ul {
 }
 
 .settings h3 {
-    padding-left: 10px;
+    padding-left: 0;
     padding-top: 10px;
 }
+
+/* Add visual indicators for the collapsible sections */
+.collapsible-header .label::before {
+    content: '';
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    background-color: var(--accent);
+    border-radius: 50%;
+    margin-right: 8px;
+    vertical-align: middle;
+}
+
+/* Add a subtle animation to the collapsible sections when they're active */
+.field.collapsible:has(.collapsible-header.active) {
+    border-left: 3px solid var(--accent);
+}
 @media screen and (max-width: 990px) {
-    .sidebar {
-        width: 300px;
-        max-width: none;
+    .sidebar.expanded {
+        width: 260px;
+    }
+    
+    .chat-container {
+        margin-left: 60px;
+        width: calc(100% - 60px);
+    }
+    
+    .sidebar.expanded + .chat-container {
+        margin-left: 0;
+        width: 100%;
+        position: fixed;
+        left: 260px;
+    }
+    
+    .sidebar-header {
+        padding: 12px 0;
+        margin-bottom: 12px;
+    }
+
+    .sidebar-logo {
+        font-size: 16px;
+    }
+
+    .chat-top-panel {
+        padding: 12px 15px;
+    }
+
+    .chat-logo {
+        font-size: 16px;
+    }
+
+    .chat-top-panel .convo-title {
+        margin: 0 10px;
+        font-size: 14px;
     }
 
     .settings h3 {
@@ -1163,12 +1251,44 @@ ul {
 
     .field.collapsible {
         flex-direction: column;
+        padding-right: 0;
+    }
+    
+    .settings .paper {
+        padding: 16px;
+    }
+    
+    .settings .settings-content {
+        max-width: 100%;
+    }
+    
+    .collapsible-header {
+        padding: 10px 12px;
+    }
+    
+    .collapsible-header.active + .collapsible-content {
+        padding: 12px;
+    }
+    
+    .provider-item {
+        padding: 8px;
+    }
+    
+    .field.box {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .field.box a {
+        margin-left: 0;
+        margin-top: 8px;
     }
 }
 
-.sidebar.shown {
-    width: 400px;
-    padding: 15px;
+
+/* Hide duplicate provider sections at the bottom */
+.settings > .paper > .field.collapsible:not(.provider-section) {
+    display: none !important;
 }
 
 /* style for hljs copy */
@@ -1329,14 +1449,27 @@ form textarea {
     color: var(--accent)
 }
 
-.settings .field, form .field, .chat-body .field {
+.settings .field, form .field {
     padding: var(--inner-gap) var(--inner-gap) var(--inner-gap) 0;
 }
 
 .settings, .log, form {
-    width: 100%;
+    width: calc(100% - 60px);
     overflow: auto;
     height: 100%;
+    margin-left: 60px;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 999;
+    background-color: rgba(30, 30, 40, 0.95);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+.sidebar.expanded + .settings {
+    width: calc(100% - 260px);
+    margin-left: 260px;
 }
 
 .log {
@@ -1349,7 +1482,77 @@ form textarea {
 
 .settings .paper {
     flex-direction: column;
-    min-width: 400px;
+    width: 100%;
+    height: 100vh;
+    padding: 24px;
+    background-color: var(--background);
+    border-radius: 0;
+    border: none;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+}
+
+.settings .settings-content {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.settings h3 {
+    font-size: 24px;
+    margin-bottom: 20px;
+    color: var(--colour-3);
+    border-bottom: 1px solid var(--blur-border);
+    padding-bottom: 12px;
+}
+
+.settings .paper .bottom_buttons,
+.settings .settings-content .bottom_buttons {
+    margin-top: 20px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    padding: 15px;
+    border-top: 1px solid var(--blur-border);
+    background-color: var(--background);
+    order: 999; /* Ensure it's always at the bottom */
+}
+
+.settings .paper .bottom_buttons button,
+.settings .settings-content .bottom_buttons button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background-color: var(--blur-bg);
+    border: 1px solid var(--blur-border);
+    border-radius: var(--border-radius-1);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.settings .paper .bottom_buttons button:hover,
+.settings .settings-content .bottom_buttons button:hover {
+    background-color: var(--blur-border);
+}
+
+.settings .paper .bottom_buttons button i,
+.settings .settings-content .bottom_buttons button i {
+    color: var(--colour-3);
+}
+
+.settings .paper .bottom_buttons button a,
+.settings .paper .bottom_buttons button span,
+.settings .settings-content .bottom_buttons button a,
+.settings .settings-content .bottom_buttons button span {
+    color: var(--colour-3);
+    text-decoration: none;
 }
 
 .settings .field, form .field {
@@ -1363,15 +1566,36 @@ form textarea {
 
 .settings input, form input, .chat-body input {
     background-color: transparent;
-    padding: 2px;
-    border: none;
+    padding: 6px 8px;
+    border: 1px solid var(--blur-border);
+    border-radius: 4px;
     font-size: 15px;
     width: 100%;
     color: var(--colour-3);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .settings input:focus, form input:focus, .chat-body input:focus {
     outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(139, 61, 255, 0.1);
+}
+
+.collapsible-content.api-key .field.box input {
+    flex: 1;
+}
+
+.collapsible-content.api-key .field.box a {
+    margin-left: 8px;
+    color: var(--accent);
+    text-decoration: none;
+    font-size: 14px;
+    transition: color 0.2s ease;
+}
+
+.collapsible-content.api-key .field.box a:hover {
+    color: var(--colour-3);
+    text-decoration: underline;
 }
 
 .settings .label, form .label, .settings label, form label, .chat-body label {
@@ -1388,17 +1612,29 @@ form textarea {
     border: 1px solid var(--blur-border);
     border-radius: var(--border-radius-1);
     overflow: hidden;
-    margin-bottom: 10px;
-    padding-right: 0;
+    margin-bottom: 16px;
+    width: 100%;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    transition: box-shadow 0.3s ease;
+}
+
+.field.collapsible:hover {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
 .collapsible-header {
-    padding: 10px;
+    padding: 12px 16px;
     cursor: pointer;
     display: flex;
     justify-content: space-between;
     align-items: center;
     background-color: var(--blur-bg);
+    transition: background-color 0.2s ease;
+}
+
+.collapsible-header .label {
+    font-weight: 500;
+    margin-left: 0;
 }
 
 .collapsible-header:hover {
@@ -1406,22 +1642,118 @@ form textarea {
 }
 
 .collapsible-content {
-    padding: 0 10px;
+    padding: 0;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease, padding 0.3s ease;
+    width: 100%;
+}
+
+.collapsible-header.active + .collapsible-content {
+    max-height: 400px;
+    overflow-y: auto;
+    padding: 15px;
+}
+
+/* Ensure provider sections are properly styled */
+.provider-section .collapsible-header {
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.provider-section .collapsible-header:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.provider-section .collapsible-header.active {
+    border-left: 3px solid #8c61ff;
+    background-color: rgba(140, 97, 255, 0.1);
+}
+
+.provider-section .collapsible-content,
+.collapsible-content.api-key {
+    scrollbar-width: thin;
+}
+
+.provider-section .collapsible-content::-webkit-scrollbar,
+.collapsible-content.api-key::-webkit-scrollbar {
+    width: 10px;
+}
+
+.provider-section .collapsible-content::-webkit-scrollbar-thumb,
+.collapsible-content.api-key::-webkit-scrollbar-thumb {
+    background-color: var(--accent);
+    border-radius: 4px;
+}
+
+.provider-section .collapsible-content::-webkit-scrollbar-track,
+.collapsible-content.api-key::-webkit-scrollbar-track {
+    background-color: var(--blur-bg);
+    border-radius: 4px;
+}
+
+.provider-section .provider-item {
+    margin-bottom: 10px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    transition: background-color 0.3s ease;
+}
+
+.provider-section .provider-item:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.provider-section .field.box {
+    margin-bottom: 15px;
+    padding: 10px;
+    border-radius: 8px;
+    transition: background-color 0.3s ease;
+}
+
+.provider-section .field.box:hover {
+    background-color: rgba(255, 255, 255, 0.05);
 }
 
 .collapsible-content.api-key {
     width: 100%;
+    max-height: 400px;
+    overflow-y: auto;
 }
 
 .collapsible-content.hidden {
-    display: none;
+    display: none !important;
+    max-height: 0 !important;
+    padding: 0 !important;
+    overflow: hidden;
+}
+
+.collapsible-header.active + .collapsible-content {
+    max-height: 400px;
+    overflow-y: auto;
+    padding: 16px;
+    border-top: 1px solid var(--blur-border);
+    width: 100%;
 }
 
 .provider-item {
-    padding: 5px 0;
+    padding: 10px;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    transition: background-color 0.2s ease;
+}
+
+.provider-item:last-child {
+    border-bottom: none;
+}
+
+.provider-item:hover {
+    background-color: rgba(255, 255, 255, 0.03);
+}
+
+.provider-item .label {
+    font-size: 14px;
 }
 
 .fa-chevron-down {
@@ -1504,31 +1836,146 @@ form textarea {
 
 .sidebar {
     display: flex;
-    flex-direction: column;
-    transition: width 0.3s ease-in-out;
+    flex-direction: row;
+    transition: all 0.3s ease-in-out;
     overflow: hidden;
-    width: 0;
+    width: 60px;
     height: 100%;
-    justify-content: space-between;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1000;
+    background-color: var(--blur-bg);
+    border-right: 1px solid var(--blur-border);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+}
+
+.sidebar-collapsed {
+    width: 60px;
+    display: flex;
+    flex-direction: column;
+    padding: 15px 10px;
+    align-items: center;
+    height: 100%;
+}
+
+.sidebar-collapsed .spacer {
+    flex-grow: 1;
+}
+
+.sidebar.expanded .sidebar-collapsed {
+    display: none;
+}
+
+.sidebar-collapsed .sidebar-logo {
+    font-weight: 600;
+    font-size: 16px;
+    color: var(--colour-3);
+    margin-bottom: 15px;
+}
+
+.sidebar-collapsed .mobile-sidebar-toggle {
+    margin-bottom: 15px;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: transparent;
+    border: none;
+}
+
+.sidebar-collapsed .mobile-sidebar-toggle:hover {
+    background-color: var(--blur-border);
+}
+
+.sidebar-collapsed button {
+    background: none;
+    border: none;
+    color: var(--colour-3);
+    font-size: 18px;
+    cursor: pointer;
+    margin-bottom: 15px;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+}
+
+.sidebar-collapsed button:hover {
+    background-color: var(--blur-border);
+}
+
+.sidebar-expanded {
+    width: 260px;
+    display: flex;
+    flex-direction: column;
+    padding: 10px;
+    opacity: 0;
+    visibility: hidden;
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    background-color: var(--blur-bg);
+    border-right: 1px solid var(--blur-border);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.sidebar.expanded {
+    width: 260px;
+}
+
+.sidebar.expanded .sidebar-expanded {
+    opacity: 1;
+    visibility: visible;
 }
 .chat-container {
     flex: 1;
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    margin-left: 60px;
+    width: calc(100% - 60px);
 }
-.chat-header {
-    padding: 10px 28px;
+.chat-top-panel {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 28px;
+    margin-bottom: 10px;
+    border-bottom: 1px solid var(--blur-border);
+}
+
+.chat-logo {
+    font-weight: 600;
+    font-size: 18px;
+    color: var(--colour-3);
+    flex: 0 0 auto;
+}
+
+.chat-top-panel .convo-title {
+    flex: 1;
+    text-align: center;
     font-weight: 500;
     white-space: nowrap;
     text-overflow: ellipsis;
     overflow: hidden;
+    margin: 0 15px;
 }
 @media only screen and (min-width: 40em) {
-    .sidebar {
-        width: 300px;
-        padding: 15px;
-        margin-right: 10px;
+    .sidebar.expanded {
+        width: 260px;
+    }
+    
+    .sidebar.expanded + .chat-container {
+        margin-left: 260px;
+        width: calc(100% - 260px);
     }
 }
 .chat-body {
