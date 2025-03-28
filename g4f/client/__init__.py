@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 import time
 import random
 import string
@@ -36,6 +35,14 @@ except NameError:
             return await aiter.__anext__()
         except StopAsyncIteration:
             raise StopIteration
+
+def add_chunk(content, chunk):
+    if content == "":
+        content = chunk
+    else:
+        chunk = str(chunk)
+        content += chunk
+    return content
 
 # Synchronous iter_response function
 def iter_response(
@@ -77,20 +84,10 @@ def iter_response(
         elif isinstance(chunk, Exception):
             continue
 
-        if isinstance(chunk, list):
-            chunk = "".join(map(str, chunk))
-        else:
-            temp = chunk.__str__()
-            if not isinstance(temp, str):
-                if isinstance(temp, list):
-                    temp = "".join(map(str, temp))
-                else:
-                    temp = repr(chunk)
-            chunk = temp
-        if not chunk:
+        content = add_chunk(content, chunk)
+        if not content:
             continue
-            
-        content += chunk
+        idx += 1
 
         if max_tokens is not None and idx + 1 >= max_tokens:
             finish_reason = "length"
@@ -109,8 +106,6 @@ def iter_response(
 
         if finish_reason is not None:
             break
-
-        idx += 1
 
     if usage is None:
         usage = UsageModel.model_construct(completion_tokens=idx, total_tokens=idx)
@@ -186,10 +181,9 @@ async def async_iter_response(
             elif isinstance(chunk, Exception):
                 continue
 
-            chunk = str(chunk)
-            if not chunk:
+            content = add_chunk(content, chunk)
+            if not content:
                 continue
-            content += chunk
             idx += 1
 
             if max_tokens is not None and idx >= max_tokens:
