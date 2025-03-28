@@ -5,6 +5,8 @@ from aiohttp import ClientSession, ClientTimeout
 import json
 import asyncio
 import random
+import base64
+import hashlib
 from yarl import URL
 
 from ..typing import AsyncResult, Messages, Cookies
@@ -13,6 +15,12 @@ from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from .helper import format_prompt, get_last_user_message
 from ..providers.response import FinishReason, JsonConversation
 from ..errors import ModelNotSupportedError, ResponseStatusError, RateLimitError, TimeoutError, ConversationLimitError
+
+try:
+    from bs4 import BeautifulSoup
+    has_bs4 = True
+except ImportError:
+    has_bs4 = False
 
 
 class DuckDuckGoSearchException(Exception):
@@ -23,6 +31,7 @@ class Conversation(JsonConversation):
     vqd_hash_1: str = None
     message_history: Messages = []
     cookies: dict = {}
+    fe_version: str = None
 
     def __init__(self, model: str):
         self.model = model
@@ -51,6 +60,64 @@ class DDG(AsyncGeneratorProvider, ProviderModelMixin):
     last_request_time = 0
     max_retries = 3
     base_delay = 2
+    
+    # Class variable to store the x-fe-version across instances
+    _chat_xfe = ""
+    
+    @staticmethod
+    def sha256_base64(text: str) -> str:
+        """Return the base64 encoding of the SHA256 digest of the text."""
+        sha256_hash = hashlib.sha256(text.encode("utf-8")).digest()
+        return base64.b64encode(sha256_hash).decode()
+
+    @staticmethod
+    def parse_dom_fingerprint(js_text: str) -> str:
+        if not has_bs4:
+            # Fallback if BeautifulSoup is not available
+            return "1000"
+        
+        try:
+            html_snippet = js_text.split("e.innerHTML = '")[1].split("';")[0]
+            offset_value = js_text.split("return String(")[1].split(" ")[0]
+            soup = BeautifulSoup(html_snippet, "html.parser")
+            corrected_inner_html = soup.body.decode_contents()
+            inner_html_length = len(corrected_inner_html)
+            fingerprint = int(offset_value) + inner_html_length
+            return str(fingerprint)
+        except Exception:
+            # Return a fallback value if parsing fails
+            return "1000"
+
+    @staticmethod
+    def parse_server_hashes(js_text: str) -> list:
+        try:
+            return js_text.split('server_hashes: ["', maxsplit=1)[1].split('"]', maxsplit=1)[0].split('","')
+        except Exception:
+            # Return a fallback value if parsing fails
+            return ["1", "2"]
+
+    @classmethod
+    def build_x_vqd_hash_1(cls, vqd_hash_1: str, headers: dict) -> str:
+        """Build the x-vqd-hash-1 header value."""
+        try:
+            decoded = base64.b64decode(vqd_hash_1).decode()
+            server_hashes = cls.parse_server_hashes(decoded)
+            dom_fingerprint = cls.parse_dom_fingerprint(decoded)
+
+            ua_fingerprint = headers.get("User-Agent", "") + headers.get("sec-ch-ua", "")
+            ua_hash = cls.sha256_base64(ua_fingerprint)
+            dom_hash = cls.sha256_base64(dom_fingerprint)
+
+            final_result = {
+                "server_hashes": server_hashes,
+                "client_hashes": [ua_hash, dom_hash],
+                "signals": {},
+            }
+            base64_final_result = base64.b64encode(json.dumps(final_result).encode()).decode()
+            return base64_final_result
+        except Exception as e:
+            # If anything fails, return an empty string
+            return ""
 
     @classmethod 
     def validate_model(cls, model: str) -> str:
@@ -92,6 +159,31 @@ class DDG(AsyncGeneratorProvider, ProviderModelMixin):
                 return cookies
         except Exception as e:
             return {}
+    
+    @classmethod
+    async def fetch_fe_version(cls, session: ClientSession) -> str:
+        """Fetches the fe-version from the initial page load."""
+        if cls._chat_xfe:
+            return cls._chat_xfe
+            
+        try:
+            url = "https://duckduckgo.com/?q=DuckDuckGo+AI+Chat&ia=chat&duckai=1"
+            await cls.sleep()
+            async with session.get(url) as response:
+                await raise_for_status(response)
+                content = await response.text()
+                
+                # Extract x-fe-version components
+                try:
+                    xfe1 = content.split('__DDG_BE_VERSION__="', 1)[1].split('"', 1)[0]
+                    xfe2 = content.split('__DDG_FE_CHAT_HASH__="', 1)[1].split('"', 1)[0]
+                    cls._chat_xfe = f"{xfe1}-{xfe2}"
+                    return cls._chat_xfe
+                except Exception:
+                    # If extraction fails, return an empty string
+                    return ""
+        except Exception:
+            return ""
 
     @classmethod
     async def fetch_vqd_and_hash(cls, session: ClientSession, retry_count: int = 0) -> tuple[str, str]:
@@ -118,13 +210,10 @@ class DDG(AsyncGeneratorProvider, ProviderModelMixin):
                 await raise_for_status(response)
                 
                 vqd = response.headers.get("x-vqd-4", "")
-                
-                # Generate a random string for vqd_hash_1 instead of getting it from response headers
-                letters = "abcdefghijklmnopqrstuvwxyz"
-                random_hash = ''.join(random.choice(letters) for _ in range(7))
-                vqd_hash_1 = random_hash
+                vqd_hash_1 = response.headers.get("x-vqd-hash-1", "")
                 
                 if vqd:
+                    # Return the fetched vqd and vqd_hash_1
                     return vqd, vqd_hash_1
                 
                 response_text = await response.text()
@@ -157,20 +246,31 @@ class DDG(AsyncGeneratorProvider, ProviderModelMixin):
             try:
                 session_timeout = ClientTimeout(total=timeout)
                 async with ClientSession(timeout=session_timeout, cookies=cookies) as session:
+                    # Step 1: Ensure we have the fe_version
+                    if not cls._chat_xfe:
+                        cls._chat_xfe = await cls.fetch_fe_version(session)
+                    
+                    # Step 2: Initialize or update conversation
                     if conversation is None:
                         # Get initial cookies if not provided
                         if not cookies:
                             await cls.get_default_cookies(session)
                         
+                        # Create a new conversation
                         conversation = Conversation(model)
+                        conversation.fe_version = cls._chat_xfe
+                        
+                        # Step 3: Get VQD tokens
                         vqd, vqd_hash_1 = await cls.fetch_vqd_and_hash(session)
                         conversation.vqd = vqd
                         conversation.vqd_hash_1 = vqd_hash_1
                         conversation.message_history = [{"role": "user", "content": format_prompt(messages)}]
                     else:
+                        # Update existing conversation with new message
                         last_message = get_last_user_message(messages.copy())
                         conversation.message_history.append({"role": "user", "content": last_message})
-
+                    
+                    # Step 4: Prepare headers - IMPORTANT: send empty x-vqd-hash-1 for the first request
                     headers = {
                         "accept": "text/event-stream",
                         "accept-language": "en-US,en;q=0.9",
@@ -178,18 +278,19 @@ class DDG(AsyncGeneratorProvider, ProviderModelMixin):
                         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36",
                         "origin": "https://duckduckgo.com",
                         "referer": "https://duckduckgo.com/",
+                        "sec-ch-ua": '"Chromium";v="133", "Not_A Brand";v="8"',
+                        "x-fe-version": conversation.fe_version or cls._chat_xfe,
                         "x-vqd-4": conversation.vqd,
+                        "x-vqd-hash-1": "",  # Send empty string initially
                     }
-                    
-                    # Add the x-vqd-hash-1 header if available
-                    if conversation.vqd_hash_1:
-                        headers["x-vqd-hash-1"] = conversation.vqd_hash_1
 
+                    # Step 5: Prepare the request data
                     data = {
                         "model": model,
                         "messages": conversation.message_history,
                     }
 
+                    # Step 6: Send the request
                     await cls.sleep(multiplier=1.0 + retry_count * 0.5)
                     async with session.post(cls.api_endpoint, json=data, headers=headers, proxy=proxy) as response:
                         # Handle 429 errors specifically
@@ -211,6 +312,7 @@ class DDG(AsyncGeneratorProvider, ProviderModelMixin):
                         reason = None
                         full_message = ""
 
+                        # Step 7: Process the streaming response
                         async for line in response.content:
                             line = line.decode("utf-8").strip()
 
@@ -236,11 +338,12 @@ class DDG(AsyncGeneratorProvider, ProviderModelMixin):
                                     else:
                                         reason = "stop"
 
+                        # Step 8: Update conversation with response information
                         if return_conversation:
                             conversation.message_history.append({"role": "assistant", "content": full_message})
+                            # Update tokens from response headers
                             conversation.vqd = response.headers.get("x-vqd-4", conversation.vqd)
-                            # Don't update vqd_hash_1 from response headers to avoid ERR_CHALLENGE
-                            # conversation.vqd_hash_1 = response.headers.get("x-vqd-hash-1", conversation.vqd_hash_1)
+                            conversation.vqd_hash_1 = response.headers.get("x-vqd-hash-1", conversation.vqd_hash_1)
                             conversation.cookies = {
                                 n: c.value 
                                 for n, c in session.cookie_jar.filter_cookies(URL(cls.url)).items()
