@@ -103,7 +103,7 @@ def is_data_an_media(data, filename: str = None) -> str:
         return is_accepted_format(data)
     return is_data_uri_an_image(data)
 
-def is_data_an_audio(data_uri: str, filename: str = None) -> str:
+def is_data_an_audio(data_uri: str = None, filename: str = None) -> str:
     if filename:
         if filename.endswith(".wav"):
             return "audio/wav"
@@ -288,14 +288,14 @@ def use_aspect_ratio(extra_data: dict, aspect_ratio: str) -> Image:
         }
     elif aspect_ratio == "16:9":
         extra_data = {
-            "width": 800,
-            "height": 512,
+            "width": 832,
+            "height": 480,
             **extra_data
         }
     elif aspect_ratio == "9:16":
         extra_data = {
-            "width": 512,
-            "height": 800,
+            "width": 480,
+            "height": 832,
             **extra_data
         }
     return extra_data

@@ -49,11 +49,11 @@ class ToolHandler:
         """Process search tool requests"""
         messages = messages.copy()
         args = ToolHandler.validate_arguments(tool["function"])
-        messages[-1]["content"] = await do_search(
+        messages[-1]["content"], sources = await do_search(
             messages[-1]["content"],
             **args
         )
-        return messages
+        return messages, sources
     
     @staticmethod
     def process_continue_tool(messages: Messages, tool: dict, provider: Any) -> Tuple[Messages, Dict[str, Any]]:
@@ -100,6 +100,7 @@ class ToolHandler:
             
         extra_kwargs = {}
         messages = messages.copy()
+        sources = None
         
         for tool in tool_calls:
             if tool.get("type") != "function":
@@ -108,7 +109,7 @@ class ToolHandler:
             function_name = tool.get("function", {}).get("name")
             
             if function_name == TOOL_NAMES["SEARCH"]:
-                messages = await ToolHandler.process_search_tool(messages, tool)
+                messages, sources = await ToolHandler.process_search_tool(messages, tool)
                 
             elif function_name == TOOL_NAMES["CONTINUE"]:
                 messages, kwargs = ToolHandler.process_continue_tool(messages, tool, provider)
@@ -117,7 +118,7 @@ class ToolHandler:
             elif function_name == TOOL_NAMES["BUCKET"]:
                 messages = ToolHandler.process_bucket_tool(messages, tool)
                 
-        return messages, extra_kwargs
+        return messages, sources, extra_kwargs
 
 
 class AuthManager:
@@ -242,7 +243,7 @@ async def async_iter_run_tools(
     
     # Process tool calls
     if tool_calls:
-        messages, extra_kwargs = await ToolHandler.process_tools(messages, tool_calls, provider)
+        messages, sources, extra_kwargs = await ToolHandler.process_tools(messages, tool_calls, provider)
         kwargs.update(extra_kwargs)
     
     # Generate response

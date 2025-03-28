@@ -7,8 +7,8 @@ from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin, RaiseErr
 from ...typing import Union, AsyncResult, Messages, MediaListType
 from ...requests import StreamSession, raise_for_status
 from ...providers.response import FinishReason, ToolCalls, Usage, ImageResponse
+from ...tools.media import render_messages
 from ...errors import MissingAuthError, ResponseError
-from ...image import to_data_uri, is_data_an_audio, to_input_audio
 from ... import debug
 
 class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin):
@@ -97,27 +97,9 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
                     yield ImageResponse([image["url"] for image in data["data"]], prompt)
                 return
 
-            if media is not None and messages:
-                if not model and hasattr(cls, "default_vision_model"):
-                    model = cls.default_vision_model
-                last_message = messages[-1].copy()
-                image_content = [
-                    {
-                        "type": "input_audio",
-                        "input_audio": to_input_audio(media_data, filename)
-                    }
-                    if is_data_an_audio(media_data, filename) else {
-                        "type": "image_url",
-                        "image_url": {"url": to_data_uri(media_data)}
-                    }
-                    for media_data, filename in media
-                ]
-                last_message["content"] = image_content + ([{"type": "text", "text": last_message["content"]}] if isinstance(last_message["content"], str) else image_content)
-
-                messages[-1] = last_message
             extra_parameters = {key: kwargs[key] for key in extra_parameters if key in kwargs}
             data = filter_none(
-                messages=messages,
+                messages=list(render_messages(messages, media)),
                 model=model,
                 temperature=temperature,
                 max_tokens=max_tokens,

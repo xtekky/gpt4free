@@ -40,15 +40,6 @@
 
         import QrScanner from 'https://cdn.jsdelivr.net/npm/qr-scanner/qr-scanner.min.js';
         
-        function generate_uuid() {
-            function random16Hex() { return (0x10000 | Math.random() * 0x10000).toString(16).substr(1); }
-            return random16Hex() + random16Hex() +
-            "-" + random16Hex() +
-            "-" + random16Hex() +
-            "-" + random16Hex() +
-            "-" + random16Hex() + random16Hex() + random16Hex();
-        }
-        
         const videoElem = document.getElementById('video');
         const camStatus = document.getElementById('cam-status');
         let qrScanner;
@@ -72,9 +63,15 @@
                 }
             }
         });
-
+        let share_id = null;
         document.getElementById('generateQRCode').addEventListener('click', async () => {
-            const share_id = generate_uuid();
+            if (share_id) {
+                const delete_url = `${share_url}/backend-api/v2/files/${encodeURI(share_id)}`;
+                await fetch(delete_url, {
+                    method: 'DELETE'
+                });
+            }
+            share_id = crypto.randomUUID();
 
             const url = `${share_url}/backend-api/v2/chat/${encodeURI(share_id)}`;
             const response = await fetch(url, {

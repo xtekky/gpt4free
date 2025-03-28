@@ -340,8 +340,7 @@ class Backend_Api(Api):
 
         @app.route('/files/<bucket_id>/media/<filename>', methods=['GET'])
         def get_media(bucket_id, filename, dirname: str = None):
-            bucket_dir = get_bucket_dir(secure_filename(bucket_id), secure_filename(dirname))
-            media_dir = os.path.join(bucket_dir, "media")
+            media_dir = get_bucket_dir(dirname, bucket_id, "media")
             try:
                 return send_from_directory(os.path.abspath(media_dir), filename)
             except NotFound:
@@ -391,15 +390,14 @@ class Backend_Api(Api):
         @self.app.route('/backend-api/v2/chat/<share_id>', methods=['GET'])
         def get_chat(share_id: str) -> str:
             share_id = secure_filename(share_id)
-            if self.chat_cache.get(share_id, 0) == request.headers.get("if-none-match", 0):
+            if self.chat_cache.get(share_id, 0) == int(request.headers.get("if-none-match", 0)):
                 return jsonify({"error": {"message": "Not modified"}}), 304
-            bucket_dir = get_bucket_dir(share_id)
-            file = os.path.join(bucket_dir, "chat.json")
+            file = get_bucket_dir(share_id, "chat.json")
             if not os.path.isfile(file):
                 return jsonify({"error": {"message": "Not found"}}), 404
             with open(file, 'r') as f:
                 chat_data = json.load(f)
-                if chat_data.get("updated", 0) == request.headers.get("if-none-match", 0):
+                if chat_data.get("updated", 0) == int(request.headers.get("if-none-match", 0)):
                     return jsonify({"error": {"message": "Not modified"}}), 304
                 self.chat_cache[share_id] = chat_data.get("updated", 0)
                 return jsonify(chat_data), 200
