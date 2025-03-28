@@ -119,7 +119,7 @@ class HuggingFaceMedia(AsyncGeneratorProvider, ProviderModelMixin):
             if key in ["replicate", "together", "hf-inference"]
         }
         provider_mapping = {**new_mapping, **provider_mapping}
-        async def generate(extra_data: dict, prompt: str):
+        async def generate(extra_data: dict, prompt: str, aspect_ratio: str = None):
             last_response = None
             for provider_key, provider in provider_mapping.items():
                 if selected_provider is not None and selected_provider != provider_key:
@@ -133,15 +133,17 @@ class HuggingFaceMedia(AsyncGeneratorProvider, ProviderModelMixin):
                     raise ModelNotSupportedError(f"Model is not supported: {model} in: {cls.__name__} task: {task}")
 
                 prompt = format_image_prompt(messages, prompt)
-                if task == "text-to-video":
+                if aspect_ratio is None:
+                    aspect_ratio = "1:1" if task == "text-to-image" else "16:9"
+                if task == "text-to-video" and provider_key != "novita":
                     extra_data = {
                         "num_inference_steps": 20,
                         "resolution": "480p",
-                        "aspect_ratio": "16:9" if aspect_ratio is None else aspect_ratio,
+                        "aspect_ratio": aspect_ratio,
                         **extra_data
                     }
                 else:
-                    extra_data = use_aspect_ratio(extra_data, "1:1" if aspect_ratio is None else aspect_ratio)
+                    extra_data = use_aspect_ratio(extra_data, aspect_ratio)
                 url = f"{api_base}/{provider_id}"
                 data = {
                     "prompt": prompt,
@@ -211,7 +213,7 @@ class HuggingFaceMedia(AsyncGeneratorProvider, ProviderModelMixin):
 
         background_tasks = set()
         started = time.time()
-        task = asyncio.create_task(generate(extra_data, prompt))
+        task = asyncio.create_task(generate(extra_data, prompt, aspect_ratio))
         background_tasks.add(task)
         task.add_done_callback(background_tasks.discard)
         while background_tasks:

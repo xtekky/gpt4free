@@ -2,17 +2,26 @@ from __future__ import annotations
 
 import random
 import string
+from pathlib import Path
 
 from ..typing import Messages, Cookies, AsyncIterator, Iterator
+from ..tools.files import get_bucket_dir, read_bucket
 from .. import debug
 
 def to_string(value) -> str:
     if isinstance(value, str):
         return value
     elif isinstance(value, dict):
-        return value.get("text")
+        if "name" in value:
+            return ""
+        elif "bucket_id" in value:
+            bucket_dir = Path(get_bucket_dir(value.get("bucket_id")))
+            return "".join(read_bucket(bucket_dir))
+        elif value.get("type") == "text":
+            return value.get("text")
+        return ""
     elif isinstance(value, list):
-        return "".join([to_string(v) for v in value if v.get("type") == "text"])
+        return "".join([to_string(v) for v in value if v.get("type", "text") == "text"])
     return str(value)
 
 def format_prompt(messages: Messages, add_special_tokens: bool = False, do_continue: bool = False, include_system: bool = True) -> str:

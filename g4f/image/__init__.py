@@ -288,14 +288,14 @@ def use_aspect_ratio(extra_data: dict, aspect_ratio: str) -> Image:
         }
     elif aspect_ratio == "16:9":
         extra_data = {
-            "width": 800,
-            "height": 512,
+            "width": 832,
+            "height": 480,
             **extra_data
         }
     elif aspect_ratio == "9:16":
         extra_data = {
-            "width": 512,
-            "height": 800,
+            "width": 480,
+            "height": 832,
             **extra_data
         }
     return extra_data

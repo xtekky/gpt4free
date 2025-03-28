@@ -69,6 +69,10 @@ if (window.markdownit) {
     markdown_render = (content) => {
         if (Array.isArray(content)) {
             content = content.map((item) => {
+                if (!item.name) {
+                    size = parseInt(appStorage.getItem(`bucket:${item.bucket_id}`), 10);
+                    return `**Bucket:** [[${item.bucket_id}]](${item.url})${size ? ` (${formatFileSize(size)})` : ""}`
+                }
                 if (item.name.endsWith(".wav") || item.name.endsWith(".mp3")) {
                     return `<audio controls src="${item.url}"></audio>`;
                 }
@@ -78,14 +82,8 @@ if (window.markdownit) {
                 return `[![${item.name}](${item.url})]()`;
             }).join("\n");
         }
-        return markdown.render(content
-            .replaceAll(/<!-- generated images start -->|<!-- generated images end -->/gm, "")
-            .replaceAll(/<img data-prompt="[^>]+">/gm, "")
-            .replaceAll(/{"bucket_id":"([^"]+)"}/gm, (match, p1) => {
-                size = parseInt(appStorage.getItem(`bucket:${p1}`), 10);
-                return `**Bucket:** [[${p1}]](/backend-api/v2/files/${p1})${size ? ` (${formatFileSize(size)})` : ""}`;
-            })
-        )
+        content = content.replaceAll(/<!-- generated images start -->|<!-- generated images end -->/gm, "")
+        return markdown.render(content)
             .replaceAll("<a href=", '<a target="_blank" href=')
             .replaceAll('<code>', '<code class="language-plaintext">')
             .replaceAll('&lt;i class=&quot;', '<i class="')
@@ -113,7 +111,7 @@ function render_reasoning(reasoning, final = false) {
 }
 
 function render_reasoning_text(reasoning) {
-    return `Reasoning 🧠: ${reasoning.status}\n\n${reasoning.text}\n\n`;
+    return `${reasoning.label ? reasoning.label :'Reasoning 🧠'}: ${reasoning.status}\n\n${reasoning.text}\n\n`;
 }
 
 function filter_message(text) {
@@ -168,7 +166,10 @@ const iframe_close = Object.assign(document.createElement("button"), {
     className: "hljs-iframe-close",
     innerHTML: '<i class="fa-regular fa-x"></i>',
 });
-iframe_close.onclick = () => iframe_container.classList.add("hidden");
+iframe_close.onclick = () => {
+    iframe_container.classList.add("hidden");
+    iframe.src = "";
+}
 iframe_container.appendChild(iframe_close);
 document.body.appendChild(iframe_container);
 
@@ -199,10 +200,6 @@ class HtmlRenderPlugin {
             if (typeof callback === "function") return callback(newText, el);
         }
     }
-}
-if (window.hljs) {
-    hljs.addPlugin(new HtmlRenderPlugin())
-    hljs.addPlugin(new CopyButtonPlugin());
 }
 let typesetPromise = Promise.resolve();
 const highlight = (container) => {
@@ -515,7 +512,7 @@ const handle_ask = async (do_ask_gpt = true, message = null) => {
         const file = new File([blob], 'downloads.json', { type: 'application/json' }); // Create File object
         let formData = new FormData();
         formData.append('files', file); // Append as a file
-        const bucket_id = uuid();
+        const bucket_id = crypto.randomUUID();
         await fetch(`/backend-api/v2/files/${bucket_id}`, {
             method: 'POST',
             body: formData
@@ -1339,7 +1336,7 @@ const set_conversation = async (conversation_id) => {
 
 const new_conversation = async () => {
     history.pushState({}, null, `/chat/`);
-    window.conversation_id = uuid();
+    window.conversation_id = crypto.randomUUID();
     document.title = window.title || document.title;
     document.querySelector(".chat-header").innerText = "New Conversation - G4F";
 
@@ -1814,17 +1811,6 @@ hide_input.addEventListener("click", async (e) => {
     document.querySelector(".chat-footer .buttons").classList[func]("hidden");
 });
 
-const uuid = () => {
-    return `xxxxxxxx-xxxx-4xxx-yxxx-${Date.now().toString(16)}`.replace(
-        /[xy]/g,
-        function (c) {
-            var r = (Math.random() * 16) | 0,
-                v = c == "x" ? r : (r & 0x3) | 0x8;
-            return v.toString(16);
-        }
-    );
-};
-
 function generateSecureRandomString(length = 128) {
     const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
     const array = new Uint8Array(length);
@@ -2171,7 +2157,7 @@ window.addEventListener('load', async function() {
 window.addEventListener('DOMContentLoaded', async function() {
     await on_load();
     if (window.conversation_id == "{{conversation_id}}") {
-        window.conversation_id = uuid();
+        window.conversation_id = crypto.randomUUID();
     } else {
         await on_api();
     }
@@ -2202,6 +2188,10 @@ async function on_load() {
         //load_conversation(window.conversation_id);
     }
     load_conversations();
+    if (window.hljs) {
+        hljs.addPlugin(new HtmlRenderPlugin())
+        hljs.addPlugin(new CopyButtonPlugin());
+    }
 }
 
 const load_provider_option = (input, provider_name) => {
@@ -2599,7 +2589,7 @@ function formatFileSize(bytes) {
 
 function connectToSSE(url, do_refine, bucket_id) {
     const eventSource = new EventSource(url);
-    eventSource.onmessage = (event) => {
+    eventSource.onmessage = async (event) => {
         const data = JSON.parse(event.data);
         if (data.error) {
             inputCount.innerText = `Error: ${data.error.message}`;
@@ -2624,12 +2614,10 @@ function connectToSSE(url, do_refine, bucket_id) {
             }
             appStorage.setItem(`bucket:${bucket_id}`, data.size);
             inputCount.innerText = "Files are loaded successfully";
-            if (!userInput.value) {
-                userInput.value = JSON.stringify({bucket_id: bucket_id});
-                handle_ask(false);
-            } else {
-                userInput.value += (userInput.value ? "\n" : "") + JSON.stringify({bucket_id: bucket_id}) + "\n";
-            }
+
+            const url = `/backend-api/v2/files/${bucket_id}`;
+            const media = [{bucket_id: bucket_id, url: url}];
+            await handle_ask(false, media);
         }
     };
     eventSource.onerror = (event) => {
@@ -2639,7 +2627,7 @@ function connectToSSE(url, do_refine, bucket_id) {
 }
 
 async function upload_files(fileInput) {
-    const bucket_id = uuid();
+    const bucket_id = crypto.randomUUID();
     paperclip.classList.add("blink");
 
     const formData = new FormData();
@@ -3016,7 +3004,7 @@ function import_memory() {
     let count = 0;
     let user_id = appStorage.getItem("user") || appStorage.getItem("mem0-user_id");
     if (!user_id) {
-        user_id = uuid();
+        user_id = crypto.randomUUID();
         appStorage.setItem("mem0-user_id", user_id);
     }
     inputCount.innerText = `Start importing to Mem0...`;

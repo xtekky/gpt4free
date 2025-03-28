@@ -7,10 +7,10 @@ from pathlib import Path
 
 from ..typing import Messages
 from ..image import is_data_an_media, is_data_an_audio, to_input_audio, to_data_uri
-from .files import get_bucket_dir
+from .files import get_bucket_dir, read_bucket
 
 def render_media(bucket_id: str, name: str, url: str, as_path: bool = False, as_base64: bool = False) -> Union[str, Path]:
-    if (not as_base64 or url.startswith("/")):
+    if (as_base64 or as_path or url.startswith("/")):
         file = Path(get_bucket_dir(bucket_id, "media", name))
         if as_path:
             return file
@@ -19,11 +19,18 @@ def render_media(bucket_id: str, name: str, url: str, as_path: bool = False, as_
         if as_base64:
             return data_base64
         return f"data:{is_data_an_media(data, name)};base64,{data_base64}"
+    return url
 
 def render_part(part: dict) -> dict:
     if "type" in part:
         return part
     filename = part.get("name")
+    if (filename is None):
+        bucket_dir = Path(get_bucket_dir(part.get("bucket_id")))
+        return {
+            "type": "text",
+            "text": "".join(read_bucket(bucket_dir))
+        }
     if filename.endswith(".wav") or filename.endswith(".mp3"):
         return {
             "type": "input_audio",
@@ -44,7 +51,7 @@ def merge_media(media: list, messages: list) -> Iterator:
             content = message.get("content")
             if isinstance(content, list):
                 for part in content:
-                    if "type" not in part:
+                    if "type" not in part and "name" in part:
                         path = render_media(**part, as_path=True)
                         buffer.append((path, os.path.basename(path)))
                     elif part.get("type") == "image_url":
@@ -76,7 +83,7 @@ def render_messages(messages: Messages, media: list = None) -> Iterator:
                             "image_url": {"url": to_data_uri(media_data)}
                         }
                         for media_data, filename in media
-                    ] + ([{"type": "text", "text": message["content"]}] if isinstance(message["content"], str) else [])
+                    ] + ([{"type": "text", "text": message["content"]}] if isinstance(message["content"], str) else message["content"])
                 }
             else:
                 yield message

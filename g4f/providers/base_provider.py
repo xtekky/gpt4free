@@ -372,7 +372,7 @@ class RaiseErrorMixin():
         elif "error" in data:
             if isinstance(data["error"], str):
                 if status is not None:
-                    if status in (401, 402):
+                    if status == 401:
                         raise MissingAuthError(f"Error {status}: {data['error']}")
                     raise ResponseError(f"Error {status}: {data['error']}")
                 raise ResponseError(data["error"])
