@@ -41,7 +41,7 @@ def add_chunk(content, chunk):
         content = chunk
     else:
         chunk = str(chunk)
-        content += chunk
+        content = str(content) + chunk
     return content
 
 # Synchronous iter_response function
@@ -89,7 +89,7 @@ def iter_response(
             continue
         idx += 1
 
-        if max_tokens is not None and idx + 1 >= max_tokens:
+        if max_tokens is not None and idx >= max_tokens:
             finish_reason = "length"
 
         first, content, chunk = find_stop(stop, content, chunk if stream else None)
