@@ -34,6 +34,9 @@ class NestAsyncioError(MissingRequirementsError):
 class MissingAuthError(Exception):
     ...
 
+class PaymentRequiredError(Exception):
+    ...
+
 class NoMediaResponseError(Exception):
     ...
 

@@ -38,6 +38,7 @@ EXTENSIONS_MAP: dict[str, str] = {
     "flac": "audio/flac",
     "opus": "audio/opus",
     "ogg": "audio/ogg",
+    "m4a": "audio/mp4",
      # Video
     "mkv": "video/x-matroska",
     "webm": "video/webm",
@@ -109,6 +110,8 @@ def is_data_an_audio(data_uri: str = None, filename: str = None) -> str:
             return "audio/wav"
         elif filename.endswith(".mp3"):
             return "audio/mpeg"
+        elif filename.endswith(".m4a"):
+            return "audio/m4a"
     if isinstance(data_uri, str):
         audio_format = re.match(r'^data:(audio/\w+);base64,', data_uri)
         if audio_format:

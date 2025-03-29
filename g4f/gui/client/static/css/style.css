@@ -97,12 +97,6 @@ body:not(.white) a:visited{
     }
 }
 
-.row {
-    display: flex;
-    gap: 10px;
-    height: 100%;
-}
-
 .box {
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
@@ -1334,9 +1328,8 @@ form textarea {
 }
 
 .settings, .log, form {
-    width: 100%;
     overflow: auto;
-    height: 100%;
+    width: 100%;
 }
 
 .log {
@@ -1462,7 +1455,7 @@ form textarea {
     font-size: 14px;
 }
 
-.hidden, input.hidden {
+.hidden, input.hidden, .chat-container.hidden {
     display: none;
 }
 
@@ -1508,7 +1501,6 @@ form textarea {
     transition: width 0.3s ease-in-out;
     overflow: hidden;
     width: 0;
-    height: 100%;
     justify-content: space-between;
 }
 .chat-container {

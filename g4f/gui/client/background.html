@@ -174,8 +174,8 @@
                     skipImage++;
                     return;
                 }
-                if (skipRefresh) {
-                    skipRefresh = 0;
+                if (skipRefresh > 0) {
+                    skipRefresh -= 1;
                     return;
                 }
                 if (images.length > 0) {
@@ -197,7 +197,7 @@
             };
             imageFeed.onclick = () => {
                 imageFeed.src = "/search/image?random=" + Math.random();
-                skipRefresh = 1;
+                skipRefresh = 2;
             };
         })();
     </script>

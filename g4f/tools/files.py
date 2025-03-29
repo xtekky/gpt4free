@@ -85,12 +85,12 @@ def secure_filename(filename: str) -> str:
         return None
     # Keep letters, numbers, basic punctuation and all Unicode chars
     filename = re.sub(
-        r'[^\w.,_-]+',
+        r'[^\w.,_+-]+',
         '_', 
         unquote(filename).strip(), 
         flags=re.UNICODE
     )
-    filename = filename[:100].strip(".,_-")
+    filename = filename[:100].strip(".,_-+")
     return filename
 
 def supports_filename(filename: str):
