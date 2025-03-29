@@ -2619,6 +2619,11 @@ function connectToSSE(url, do_refine, bucket_id) {
             inputCount.innerText = `Error: ${data.error.message}`;
             paperclip.classList.remove("blink");
             fileInput.value = "";
+        } else if (data.action == "media") {
+            inputCount.innerText = `File: ${data.filename}`;
+            const url = `/files/${bucket_id}/media/${data.filename}`;
+            const media = [{bucket_id: bucket_id, url: url}];
+            await handle_ask(false, media);
         } else if (data.action == "load") {
             inputCount.innerText = `Read data: ${formatFileSize(data.size)}`;
         } else if (data.action == "refine") {

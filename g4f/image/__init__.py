@@ -14,7 +14,6 @@ try:
 except ImportError:
     has_requirements = False
 
-from ..providers.helper import filter_none
 from ..typing import ImageType, Union, Image
 from ..errors import MissingRequirementsError
 
@@ -282,7 +281,7 @@ def to_input_audio(audio: ImageType, filename: str = None) -> str:
     raise ValueError("Invalid input audio")
 
 def use_aspect_ratio(extra_data: dict, aspect_ratio: str) -> Image:
-    extra_data = filter_none(**extra_data)
+    extra_data = {key: value for key, value in extra_data.items() if value is not None}
     if aspect_ratio == "1:1":
         extra_data = {
             "width": 1024,

@@ -276,17 +276,6 @@ class Backend_Api(Api):
                 logger.exception(e)
                 return jsonify({"error": {"message": f"{type(e).__name__}: {e}"}}), 500
 
-        @app.route('/backend-api/v2/buckets', methods=['GET'])
-        def list_buckets():
-            try:
-                buckets = get_buckets()
-                if buckets is None:
-                    return jsonify({"error": {"message": "Error accessing bucket directory"}}), 500
-                sanitized_buckets = [secure_filename(b) for b in buckets]
-                return jsonify(sanitized_buckets), 200
-            except Exception as e:
-                return jsonify({"error": {"message": str(e)}}), 500
-
         @app.route('/backend-api/v2/files/<bucket_id>', methods=['GET', 'DELETE'])
         def manage_files(bucket_id: str):
             bucket_id = secure_filename(bucket_id)
