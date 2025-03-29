@@ -132,8 +132,7 @@ default_vision = Model(
 # gpt-3.5
 gpt_3_5_turbo = Model(
     name          = 'gpt-3.5-turbo',
-    base_provider = 'OpenAI',
-    best_provider = TypeGPT
+    base_provider = 'OpenAI'
 )
 
 # gpt-4
@@ -166,7 +165,7 @@ gpt_4o_audio = AudioModel(
 o1 = Model(
     name          = 'o1',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([Blackbox, Copilot, TypeGPT, OpenaiAccount])
+    best_provider = IterListProvider([Blackbox, Copilot, OpenaiAccount])
 )
 
 o1_mini = Model(
@@ -179,7 +178,7 @@ o1_mini = Model(
 o3_mini = Model(
     name          = 'o3-mini',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([DDG, Blackbox, TypeGPT, PollinationsAI, Liaobots])
+    best_provider = IterListProvider([DDG, Blackbox, PollinationsAI, Liaobots])
 )
 
 ### GigaChat ###

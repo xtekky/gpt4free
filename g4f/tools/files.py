@@ -70,6 +70,7 @@ except ImportError:
 
 from .web_search import scrape_text
 from ..cookies import get_cookies_dir
+from ..image import is_allowed_extension
 from ..requests.aiohttp import get_connector
 from ..providers.asyncio import to_sync_generator
 from ..errors import MissingRequirementsError
@@ -85,12 +86,12 @@ def secure_filename(filename: str) -> str:
         return None
     # Keep letters, numbers, basic punctuation and all Unicode chars
     filename = re.sub(
-        r'[^\w.,_-]+',
+        r'[^\w.,_+-]+',
         '_', 
         unquote(filename).strip(), 
         flags=re.UNICODE
     )
-    filename = filename[:100].strip(".,_-")
+    filename = filename[:100].strip(".,_-+")
     return filename
 
 def supports_filename(filename: str):
@@ -448,7 +449,7 @@ async def download_urls(
                     if not filename:
                         print(f"Failed to get filename for {url}")
                         return None
-                    if not supports_filename(filename) or filename == DOWNLOADS_FILE:
+                    if not is_allowed_extension(filename) and not supports_filename(filename) or filename == DOWNLOADS_FILE:
                         return None
                     if filename.endswith(".html") and max_depth > 0:
                         add_urls = read_links(await response.text(), str(response.url))
@@ -457,10 +458,14 @@ async def download_urls(
                                 add_urls = [add_url for add_url in add_urls if add_url not in loading_urls]
                                 [loading_urls.add(add_url) for add_url in add_urls]
                                 [new_urls.append(add_url) for add_url in add_urls if add_url not in new_urls]
-                    target = bucket_dir / filename
+                    if is_allowed_extension(filename):
+                        target = bucket_dir / "media" / filename
+                        target.parent.mkdir(parents=True, exist_ok=True)
+                    else:
+                        target = bucket_dir / filename
                     with target.open("wb") as f:
-                        async for chunk in response.content.iter_chunked(4096):
-                            if b'<link rel="canonical"' not in chunk:
+                        async for chunk in response.content.iter_any():
+                            if filename.endswith(".html") and b'<link rel="canonical"' not in chunk:
                                 f.write(chunk.replace(b'</head>', f'<link rel="canonical" href="{response.url}">\n</head>'.encode()))
                             else:
                                 f.write(chunk)
@@ -538,9 +543,11 @@ def stream_chunks(bucket_dir: Path, delete_files: bool = False, refine_chunks_wi
             else:
                 yield chunk
         files_txt = os.path.join(bucket_dir, FILE_LIST)
-        if delete_files and os.path.exists(files_txt):
+        if os.path.exists(files_txt):
             for filename in get_filenames(bucket_dir):
-                if os.path.exists(os.path.join(bucket_dir, filename)):
+                if is_allowed_extension(filename):
+                    yield f'data: {json.dumps({"action": "media", "filename": filename})}\n\n'
+                if delete_files and os.path.exists(os.path.join(bucket_dir, filename)):
                     os.remove(os.path.join(bucket_dir, filename))
             os.remove(files_txt)
             if event_stream:

@@ -142,6 +142,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
             An ImageRequest object that contains the download URL, file name, and other data
         """
         async def upload_image(image, image_name):
+            debug.log(f"Uploading image: {image_name}")
             # Convert the image to a PIL Image object and get the extension
             data_bytes = to_bytes(image)
             image = to_image(data_bytes)

@@ -73,7 +73,7 @@ if (window.markdownit) {
                     size = parseInt(appStorage.getItem(`bucket:${item.bucket_id}`), 10);
                     return `**Bucket:** [[${item.bucket_id}]](${item.url})${size ? ` (${formatFileSize(size)})` : ""}`
                 }
-                if (item.name.endsWith(".wav") || item.name.endsWith(".mp3")) {
+                if (item.name.endsWith(".wav") || item.name.endsWith(".mp3") || item.name.endsWith(".m4a")) {
                     return `<audio controls src="${item.url}"></audio>`;
                 }
                 if (item.name.endsWith(".mp4") || item.name.endsWith(".webm")) {
@@ -227,6 +227,16 @@ const get_message_el = (el) => {
     if (message_el.classList.contains('message')) {
         return message_el;
     }
+}
+
+function generateUUID() {
+    if (crypto.randomUUID) {
+        return crypto.randomUUID();
+    }
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+      const r = crypto.getRandomValues(new Uint8Array(1))[0] % 16;
+      return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+    });
 }
 
 function register_message_images() {
@@ -512,7 +522,7 @@ const handle_ask = async (do_ask_gpt = true, message = null) => {
         const file = new File([blob], 'downloads.json', { type: 'application/json' }); // Create File object
         let formData = new FormData();
         formData.append('files', file); // Append as a file
-        const bucket_id = crypto.randomUUID();
+        const bucket_id = generateUUID();
         await fetch(`/backend-api/v2/files/${bucket_id}`, {
             method: 'POST',
             body: formData
@@ -923,9 +933,6 @@ async function add_message_chunk(message, message_id, provider, scroll, finish_m
     } else if (message.type == "finish") {
         if (!finish_storage[message_id]) {
             finish_storage[message_id] = message.finish;
-            if (finish_message) {
-                await finish_message();
-            }
         }
     } else if (message.type == "usage") {
         usage_storage[message_id] = message.usage;
@@ -1165,14 +1172,14 @@ const ask_gpt = async (message_id, message_index = -1, regenerate = false, provi
         let extra_parameters = [];
         for (el of document.getElementById(`${provider}-form`)?.querySelectorAll(".saved input, .saved textarea") || []) {
             let value = el.type == "checkbox" ? el.checked : el.value;
-            if (el.type == "textarea") {
-                try {
-                    value = await JSON.parse(value);
-                } catch (e) {
-                }
+            try {
+                value = await JSON.parse(value);
+            } catch (e) {
             }
             extra_parameters[el.name] = value;
         };
+        automaticOrientation = appStorage.getItem("automaticOrientation") != "false";
+        aspect_ratio = automaticOrientation ? (window.innerHeight > window.innerWidth ? "9:16" : "16:9") : null;
         await api("conversation", {
             id: message_id,
             conversation_id: window.conversation_id,
@@ -1186,7 +1193,7 @@ const ask_gpt = async (message_id, message_index = -1, regenerate = false, provi
             api_key: api_key,
             api_base: api_base,
             ignored: ignored,
-            aspect_ratio: window.innerHeight > window.innerWidth ? "9:16" : "16:9",
+            aspect_ratio: aspect_ratio,
             ...extra_parameters
         }, Object.values(image_storage), message_id, scroll, finish_message);
     } catch (e) {
@@ -1305,10 +1312,23 @@ const hide_option = async (conversation_id) => {
 };
 
 const delete_conversation = async (conversation_id) => {
-    appStorage.removeItem(`conversation:${conversation_id}`);
+    const conversation = await get_conversation(conversation_id);
+    for (const message of conversation.items)  {
+        if (Array.isArray(message.content)) {
+            for (const item of message.content) {
+                if ("bucket_id" in item) {
+                    const delete_url = `/backend-api/v2/files/${encodeURI(item.bucket_id)}`;
+                    await fetch(delete_url, {
+                        method: 'DELETE'
+                    });
+                }
+            }
+        }
+    }
 
-    const conversation = document.getElementById(`convo-${conversation_id}`);
-    conversation.remove();
+    appStorage.removeItem(`conversation:${conversation_id}`);
+    const item = document.getElementById(`convo-${conversation_id}`);
+    item.remove();
 
     if (window.conversation_id == conversation_id) {
         await new_conversation();
@@ -1336,7 +1356,7 @@ const set_conversation = async (conversation_id) => {
 
 const new_conversation = async () => {
     history.pushState({}, null, `/chat/`);
-    window.conversation_id = crypto.randomUUID();
+    window.conversation_id = generateUUID();
     document.title = window.title || document.title;
     document.querySelector(".chat-header").innerText = "New Conversation - G4F";
 
@@ -1647,6 +1667,7 @@ async function save_system_message() {
 
 const remove_message = async (conversation_id, index) => {
     const conversation = await get_conversation(conversation_id);
+    const old_message = conversation.items[index];
     let new_items = [];
     for (i in conversation.items) {
         if (i == index - 1) {
@@ -1668,6 +1689,16 @@ const remove_message = async (conversation_id, index) => {
             headers: {'content-type': 'application/json'},
             body: data,
         });
+    }
+    if (Array.isArray(old_message.content)) {
+        for (const item of old_message.content) {
+            if ("bucket_id" in item) {
+                const delete_url = `/backend-api/v2/files/${encodeURI(item.bucket_id)}`;
+                await fetch(delete_url, {
+                    method: 'DELETE'
+                });
+            }
+        }
     }
 };
 
@@ -1810,13 +1841,6 @@ hide_input.addEventListener("click", async (e) => {
     document.querySelector(".chat-footer .user-input").classList[func]("hidden");
     document.querySelector(".chat-footer .buttons").classList[func]("hidden");
 });
-
-function generateSecureRandomString(length = 128) {
-    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
-    const array = new Uint8Array(length);
-    crypto.getRandomValues(array);
-    return Array.from(array, byte => chars[byte % chars.length]).join('');
-}
 
 function get_message_id() {
     random_bytes = (Math.floor(Math.random() * 1338377565) + 2956589730).toString(
@@ -2157,7 +2181,7 @@ window.addEventListener('load', async function() {
 window.addEventListener('DOMContentLoaded', async function() {
     await on_load();
     if (window.conversation_id == "{{conversation_id}}") {
-        window.conversation_id = crypto.randomUUID();
+        window.conversation_id = generateUUID();
     } else {
         await on_api();
     }
@@ -2595,6 +2619,11 @@ function connectToSSE(url, do_refine, bucket_id) {
             inputCount.innerText = `Error: ${data.error.message}`;
             paperclip.classList.remove("blink");
             fileInput.value = "";
+        } else if (data.action == "media") {
+            inputCount.innerText = `File: ${data.filename}`;
+            const url = `/files/${bucket_id}/media/${data.filename}`;
+            const media = [{bucket_id: bucket_id, url: url}];
+            await handle_ask(false, media);
         } else if (data.action == "load") {
             inputCount.innerText = `Read data: ${formatFileSize(data.size)}`;
         } else if (data.action == "refine") {
@@ -2627,7 +2656,7 @@ function connectToSSE(url, do_refine, bucket_id) {
 }
 
 async function upload_files(fileInput) {
-    const bucket_id = crypto.randomUUID();
+    const bucket_id = generateUUID();
     paperclip.classList.add("blink");
 
     const formData = new FormData();
@@ -3004,7 +3033,7 @@ function import_memory() {
     let count = 0;
     let user_id = appStorage.getItem("user") || appStorage.getItem("mem0-user_id");
     if (!user_id) {
-        user_id = crypto.randomUUID();
+        user_id = generateUUID();
         appStorage.setItem("mem0-user_id", user_id);
     }
     inputCount.innerText = `Start importing to Mem0...`;

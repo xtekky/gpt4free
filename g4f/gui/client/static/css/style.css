@@ -97,12 +97,6 @@ body:not(.white) a:visited{
     }
 }
 
-.row {
-    display: flex;
-    gap: 10px;
-    height: 100%;
-}
-
 .box {
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
@@ -865,8 +859,7 @@ select:hover,
 input.model:hover
 .chat-buttons button:hover,
 .stop_generating button:hover,
-.chat-toolbar .regenerate button:hover,
-.send-buttons button:hover {
+.chat-toolbar .regenerate button:hover {
     background-color: var(--button-hover);
 }
 
@@ -1334,9 +1327,8 @@ form textarea {
 }
 
 .settings, .log, form {
-    width: 100%;
     overflow: auto;
-    height: 100%;
+    width: 100%;
 }
 
 .log {
@@ -1452,8 +1444,8 @@ form textarea {
 }
 
 #userInput {
-    min-height: 94px;
-    height: 94px;
+    min-height: 90px;
+    height: 90px;
     flex: 1;
     padding: 10px 30px;
     color: var(--colour-3);
@@ -1462,7 +1454,7 @@ form textarea {
     font-size: 14px;
 }
 
-.hidden, input.hidden {
+.hidden, input.hidden, .chat-container.hidden {
     display: none;
 }
 
@@ -1508,7 +1500,6 @@ form textarea {
     transition: width 0.3s ease-in-out;
     overflow: hidden;
     width: 0;
-    height: 100%;
     justify-content: space-between;
 }
 .chat-container {
@@ -1552,18 +1543,25 @@ form textarea {
 }
 .send-buttons {
     display: flex;
-    gap: 10px;
+    gap: 6px;
     flex-direction: column;
 }
 .chat-footer .send-buttons button {
     background: var(--blur-bg);
-    color: white;
+    color: var(--colour-3);
     padding: 12px 15px;
     margin: 0 2px 0 4px;
     border-radius: 5px;
     cursor: pointer;
-    border: 1px dashed #e4d4ffa6;
+    border: 1px dashed var(--conversations);
+    box-shadow: 1px 1px 1px 0px rgba(0,0,0,0.75);
+}
+.white .chat-footer .send-buttons button {
+    border-style: solid;
+    border-color: var(--blur-border);
 }
 .chat-footer .send-buttons button:hover {
     border-style: solid;
+    box-shadow: none;
+    background-color: var(--button-hover);
 }
