@@ -5,7 +5,7 @@ const box_conversations = document.querySelector(`.top`);
 const stop_generating   = document.querySelector(`.stop_generating`);
 const regenerate_button = document.querySelector(`.regenerate`);
 const sidebar           = document.querySelector(".sidebar");
-const sidebar_button    = document.querySelector(".mobile-sidebar");
+const sidebar_buttons   = document.querySelectorAll(".sidebar .mobile-sidebar-toggle, .chat-top-panel .mobile-sidebar-toggle");
 const sendButton        = document.getElementById("sendButton");
 const addButton         = document.getElementById("addButton");
 const imageInput        = document.querySelector(".image-label");
@@ -1338,7 +1338,7 @@ const new_conversation = async () => {
     history.pushState({}, null, `/chat/`);
     window.conversation_id = crypto.randomUUID();
     document.title = window.title || document.title;
-    document.querySelector(".chat-header").innerText = "New Conversation - G4F";
+    document.querySelector(".chat-top-panel .convo-title").innerText = "New Conversation";
 
     await clear_conversation();
     if (chatPrompt) {
@@ -1409,11 +1409,11 @@ const load_conversation = async (conversation, scroll=true) => {
     if (title) {
         document.title = title;
     }
-    const chatHeader = document.querySelector(".chat-header");
+    const convoTitle = document.querySelector(".chat-top-panel .convo-title");
     if (window.share_id && conversation.id == window.start_id) {
-        chatHeader.innerHTML = '<i class="fa-solid fa-qrcode"></i> ' + escapeHtml(title);
+        convoTitle.innerHTML = '<i class="fa-solid fa-qrcode"></i> ' + escapeHtml(title);
     } else {
-        chatHeader.innerText = title;
+        convoTitle.innerText = title;
     }
 
     if (chatPrompt) {
@@ -1828,10 +1828,8 @@ function get_message_id() {
 };
 
 async function hide_sidebar(remove_shown=false) {
-    if (remove_shown) {
-        sidebar.classList.remove("shown");
-    }
-    sidebar_button.classList.remove("rotated");
+    sidebar.classList.remove("expanded");
+    sidebar_buttons.forEach(btn => btn.classList.remove("rotated"));
     settings.classList.add("hidden");
     chat.classList.remove("hidden");
     log_storage.classList.add("hidden");
@@ -1849,17 +1847,17 @@ async function hide_settings() {
 
 window.addEventListener('popstate', hide_sidebar, false);
 
-sidebar_button.addEventListener("click", async () => {
-    if (sidebar.classList.contains("shown") || sidebar_button.classList.contains("rotated")) {
-        await hide_sidebar();
-        chat.classList.remove("hidden");
-        sidebar.classList.remove("shown");
-        sidebar_button.classList.remove("rotated");
-    } else {
-        await show_menu();
-        chat.classList.add("hidden");
-    }
-    window.scrollTo(0, 0);
+sidebar_buttons.forEach(button => {
+    button.addEventListener("click", async () => {
+        if (sidebar.classList.contains("expanded") || button.classList.contains("rotated")) {
+            await hide_sidebar();
+            chat.classList.remove("hidden");
+            sidebar_buttons.forEach(btn => btn.classList.remove("rotated"));
+        } else {
+            await show_menu();
+        }
+        window.scrollTo(0, 0);
+    });
 });
 
 function add_url_to_history(url) {
@@ -1869,8 +1867,8 @@ function add_url_to_history(url) {
 }
 
 async function show_menu() {
-    sidebar.classList.add("shown");
-    sidebar_button.classList.add("rotated");
+    sidebar.classList.add("expanded");
+    sidebar_buttons.forEach(btn => btn.classList.add("rotated"));
     await hide_settings();
     add_url_to_history("/chat/menu/");
 }
@@ -1878,14 +1876,136 @@ async function show_menu() {
 function open_settings() {
     if (settings.classList.contains("hidden")) {
         chat.classList.add("hidden");
-        sidebar.classList.remove("shown");
+        sidebar.classList.remove("expanded");
         settings.classList.remove("hidden");
         add_url_to_history("/chat/settings/");
+        
+        // Make sure the sidebar is in collapsed state when settings are open
+        sidebar.classList.remove("expanded");
+        sidebar_buttons.forEach(btn => btn.classList.remove("rotated"));
+        
+        // Show all hidden fields that should be visible
+        document.querySelectorAll('.settings .field.box.hidden').forEach(field => {
+            field.classList.remove('hidden');
+        });
+        
+        // Setup collapsible fields
+        setupCollapsibleFields();
     } else {
         settings.classList.add("hidden");
         chat.classList.remove("hidden");
     }
     log_storage.classList.add("hidden");
+}
+
+// Function to handle collapsible fields
+function setupCollapsibleFields() {
+    const collapsibleHeaders = document.querySelectorAll('.collapsible-header');
+    
+    collapsibleHeaders.forEach(header => {
+        // Remove existing event listeners by cloning and replacing
+        const newHeader = header.cloneNode(true);
+        header.parentNode.replaceChild(newHeader, header);
+        
+        newHeader.addEventListener('click', function() {
+            this.classList.toggle('active');
+            const content = this.nextElementSibling;
+            
+            if (content.classList.contains('hidden')) {
+                content.classList.remove('hidden');
+                content.style.display = "block";
+                setTimeout(() => {
+                    content.style.maxHeight = (content.scrollHeight + 100) + "px";
+                }, 10);
+            } else {
+                content.style.maxHeight = "0";
+                setTimeout(() => {
+                    content.classList.add('hidden');
+                    content.style.display = "none";
+                }, 300);
+            }
+        });
+    });
+}
+
+// Function to dynamically load all providers into the Enable/Disable and API key sections
+async function loadAllProviders() {
+    try {
+        // Fetch providers from the API
+        const providers = await fetchProviders();
+        if (!providers || providers.length === 0) {
+            return; // No providers found
+        }
+
+        // Sort providers alphabetically
+        providers.sort((a, b) => a.label.localeCompare(b.label));
+
+        // Get the provider sections using the unique IDs we added
+        const enableDisableSection = document.querySelector('#enable-disable-section .collapsible-content');
+        const apiKeySection = document.querySelector('#api-key-section .collapsible-content');
+
+        if (!enableDisableSection || !apiKeySection) {
+            return; // One or both provider sections not found
+        }
+
+        // Clear existing hardcoded providers
+        enableDisableSection.innerHTML = '';
+        apiKeySection.innerHTML = '';
+
+        // Add all providers to the Enable/Disable section
+        providers.forEach(provider => {
+            if (!provider.parent) {
+                const providerItem = document.createElement('div');
+                providerItem.classList.add('provider-item');
+                
+                const apiKey = localStorage.getItem(`${provider.name}-api_key`);
+                
+                providerItem.innerHTML = `
+                    <span class="label">${provider.label}</span>
+                    <input type="checkbox" id="provider-${provider.name.toLowerCase()}" ${!provider.auth || apiKey ? 'checked="checked"' : ''}/>
+                    <label for="provider-${provider.name.toLowerCase()}" class="toogle" title="Enable/Disable ${provider.label}"></label>
+                `;
+                
+                enableDisableSection.appendChild(providerItem);
+            }
+        });
+
+        // Add providers that need API keys to the API key section
+        providers.forEach(provider => {
+            if (provider.auth) {
+                const apiKeyItem = document.createElement('div');
+                apiKeyItem.classList.add('field', 'box');
+                
+                apiKeyItem.innerHTML = `
+                    <label for="${provider.name}-api_key" class="label">${provider.label} API Key:</label>
+                    <input type="text" id="${provider.name}-api_key" name="${provider.name}[api_key]" placeholder="API Key" />
+                    ${provider.login_url ? `<a href="${provider.login_url}" target="_blank">Get API Key</a>` : ''}
+                `;
+                
+                apiKeySection.appendChild(apiKeyItem);
+            }
+        });
+
+        // Reinitialize collapsible sections
+        if (window.setupCollapsibleFields) {
+            window.setupCollapsibleFields();
+        }
+    } catch (error) {
+        // Handle error silently
+    }
+}
+
+// Function to fetch providers from the API
+async function fetchProviders() {
+    try {
+        const response = await fetch('/backend-api/v2/providers');
+        if (!response.ok) {
+            throw new Error(`Failed to fetch providers: ${response.status}`);
+        }
+        return await response.json();
+    } catch (error) {
+        return []; // Return empty array on error
+    }
 }
 
 const register_settings_storage = async () => {
@@ -2161,6 +2281,19 @@ window.addEventListener('DOMContentLoaded', async function() {
     } else {
         await on_api();
     }
+    
+    // Load providers when the DOM is fully loaded
+    setTimeout(loadAllProviders, 1000); // Increased timeout to 1000ms
+});
+
+// Also try loading when the settings panel is opened
+document.addEventListener('DOMContentLoaded', function() {
+    const settingsIcon = document.querySelector('.settings_icon');
+    if (settingsIcon) {
+        settingsIcon.addEventListener('click', function() {
+            setTimeout(loadAllProviders, 500);
+        });
+    }
 });
 
 window.addEventListener('pywebviewready', async function() {
@@ -2184,6 +2317,9 @@ async function on_load() {
     } else if (/\/chat\/[?$]/.test(window.location.href)) {
         chatPrompt.value = document.getElementById("systemPrompt")?.value || "";
         say_hello();
+    } else if (window.location.pathname === "/chat/") {
+        // When the URL is exactly "/chat/" with trailing slash, create a new conversation
+        await new_conversation();
     } else {
         //load_conversation(window.conversation_id);
     }
@@ -2367,8 +2503,23 @@ async function on_api() {
         });
 
         providersContainer.querySelector(".collapsible-header").addEventListener('click', (e) => {
-            providersContainer.querySelector(".collapsible-content").classList.toggle('hidden');
-            providersContainer.querySelector(".collapsible-header").classList.toggle('active');
+            const header = providersContainer.querySelector(".collapsible-header");
+            const content = providersContainer.querySelector(".collapsible-content");
+            
+            header.classList.toggle('active');
+            if (content.classList.contains('hidden')) {
+                content.classList.remove('hidden');
+                content.style.display = "block";
+                setTimeout(() => {
+                    content.style.maxHeight = (content.scrollHeight + 100) + "px";
+                }, 10);
+            } else {
+                content.style.maxHeight = "0";
+                setTimeout(() => {
+                    content.classList.add('hidden');
+                    content.style.display = "none";
+                }, 300);
+            }
         });
     }
 
@@ -2412,8 +2563,23 @@ async function on_api() {
     }
 
     providersListContainer.querySelector(".collapsible-header").addEventListener('click', (e) => {
-        providersListContainer.querySelector(".collapsible-content").classList.toggle('hidden');
-        providersListContainer.querySelector(".collapsible-header").classList.toggle('active');
+    const header = providersListContainer.querySelector(".collapsible-header");
+    const content = providersListContainer.querySelector(".collapsible-content");
+    
+    header.classList.toggle('active');
+    if (content.classList.contains('hidden')) {
+        content.classList.remove('hidden');
+        content.style.display = "block";
+        setTimeout(() => {
+            content.style.maxHeight = (content.scrollHeight + 100) + "px";
+        }, 10);
+    } else {
+        content.style.maxHeight = "0";
+        setTimeout(() => {
+            content.classList.add('hidden');
+            content.style.display = "none";
+        }, 300);
+    }
     });
 
     register_settings_storage();
@@ -2424,22 +2590,30 @@ async function on_api() {
 
     const hide_systemPrompt = document.getElementById("hide-systemPrompt")
     const slide_systemPrompt_icon = document.querySelector(".slide-header i");
+    
+    // Function to update UI based on system prompt visibility state
+    const updateSystemPromptVisibility = (isHidden) => {
+        document.querySelector(".chatPrompt-wrapper").classList[isHidden ? "add" : "remove"]("collapsed");
+        slide_systemPrompt_icon.classList[isHidden ? "remove" : "add"]("fa-angles-up");
+        slide_systemPrompt_icon.classList[isHidden ? "add" : "remove"]("fa-angles-down");
+        hide_systemPrompt.checked = isHidden;
+    };
+    
+    // Initialize state
     if (hide_systemPrompt.checked) {
-        chatPrompt.classList.add("hidden");
+        updateSystemPromptVisibility(true);
     }
+    
+    // Handle checkbox change
     hide_systemPrompt.addEventListener('change', async (event) => {
-        if (event.target.checked) {
-            chatPrompt.classList.add("hidden");
-        } else {
-            chatPrompt.classList.remove("hidden");
-        }
+        updateSystemPromptVisibility(event.target.checked);
     });
+    
+    // Handle slide-header click
     document.querySelector(".slide-header")?.addEventListener("click", () => {
-        const checked = slide_systemPrompt_icon.classList.contains("fa-angles-up");
-        document.querySelector(".chat-header").classList[checked ? "add": "remove"]("hidden");
-        chatPrompt.classList[checked || hide_systemPrompt.checked ? "add": "remove"]("hidden");
-        slide_systemPrompt_icon.classList[checked ? "remove": "add"]("fa-angles-up");
-        slide_systemPrompt_icon.classList[checked ? "add": "remove"]("fa-angles-down");
+        const isCurrentlyVisible = !slide_systemPrompt_icon.classList.contains("fa-angles-down");
+        document.querySelector(".chat-top-panel").classList[isCurrentlyVisible ? "add": "remove"]("hidden");
+        updateSystemPromptVisibility(isCurrentlyVisible);
     });
     const userInputHeight = document.getElementById("message-input-height");
     if (userInputHeight) {
