@@ -14,6 +14,7 @@ from .hf_space         import *
 from .mini_max         import HailuoAI, MiniMax
 from .template         import OpenaiTemplate, BackendApi
 
+from .Chatai               import Chatai
 from .AllenAI              import AllenAI
 from .ARTA                 import ARTA
 from .Blackbox             import Blackbox
