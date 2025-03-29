@@ -31,12 +31,12 @@ def render_part(part: dict) -> dict:
             "type": "text",
             "text": "".join(read_bucket(bucket_dir))
         }
-    if filename.endswith(".wav") or filename.endswith(".mp3"):
+    if is_data_an_audio(filename=filename):
         return {
             "type": "input_audio",
             "input_audio": {
                 "data": render_media(**part, as_base64=True),
-                "format": "wav" if filename.endswith(".wav") else "mp3"
+                "format": os.path.splitext(filename)[1][1:]
             }
         }
     return {

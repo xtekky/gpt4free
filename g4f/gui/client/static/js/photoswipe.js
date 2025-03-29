@@ -17,6 +17,7 @@ lightbox.addFilter('itemData', (itemData, index) => {
     const img = itemData.element.querySelector('img');
     itemData.width = img.naturalWidth || 1024;
     itemData.height = img.naturalHeight || 1024;
+    itemData.src = img.src;
     return itemData;
 });
 lightbox.on('uiRegister', function() {

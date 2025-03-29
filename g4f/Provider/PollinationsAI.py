@@ -155,7 +155,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         media: MediaListType = None,
         temperature: float = None,
         presence_penalty: float = None,
-        top_p: float = 1,
+        top_p: float = None,
         frequency_penalty: float = None,
         response_format: Optional[dict] = None,
         extra_parameters: list[str] = ["tools", "parallel_tool_calls", "tool_choice", "reasoning_effort", "logit_bias", "voice", "modalities", "audio"],

@@ -20,7 +20,7 @@ from .asyncio import get_running_loop, to_sync_generator, to_async_iterator
 from .response import BaseConversation, AuthResult
 from .helper import concat_chunks
 from ..cookies import get_cookies_dir
-from ..errors import ModelNotSupportedError, ResponseError, MissingAuthError, NoValidHarFileError
+from ..errors import ModelNotSupportedError, ResponseError, MissingAuthError, NoValidHarFileError, PaymentRequiredError
 from .. import debug
 
 SAFE_PARAMETERS = [
@@ -374,8 +374,12 @@ class RaiseErrorMixin():
                 if status is not None:
                     if status == 401:
                         raise MissingAuthError(f"Error {status}: {data['error']}")
+                    elif status == 402:
+                        raise PaymentRequiredError(f"Error {status}: {data['error']}")
                     raise ResponseError(f"Error {status}: {data['error']}")
                 raise ResponseError(data["error"])
+            elif isinstance(data["error"], bool):
+                raise ResponseError(data)
             elif "code" in data["error"]:
                 raise ResponseError("\n".join(
                     [e for e in [f'Error {data["error"]["code"]}: {data["error"]["message"]}', data["error"].get("failed_generation")] if e is not None]

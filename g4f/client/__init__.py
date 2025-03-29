@@ -429,7 +429,7 @@ class Images:
         **kwargs
     ) -> MediaResponse:
         messages = [{"role": "user", "content": f"{prompt_prefix}{prompt}"}]
-        response = None
+        items: list[MediaResponse] = []
         if hasattr(provider_handler, "create_async_generator"):
             async for item in provider_handler.create_async_generator(
                 model,
@@ -439,8 +439,7 @@ class Images:
                 **kwargs
             ):
                 if isinstance(item, MediaResponse):
-                    response = item
-                    break
+                    items.append(item)
         elif hasattr(provider_handler, "create_completion"):
             for item in provider_handler.create_completion(
                 model,
@@ -450,11 +449,18 @@ class Images:
                 **kwargs
             ):
                 if isinstance(item, MediaResponse):
-                    response = item
-                    break
+                    items.append(item)
         else:
             raise ValueError(f"Provider {provider_name} does not support image generation")
-        return response
+        urls = []
+        for item in items:
+            if isinstance(item.urls, str):
+                urls.append(item.urls)
+            elif isinstance(item.urls, list):
+                urls.extend(item.urls)
+        if not urls:
+            return None
+        return MediaResponse(urls, items[0].alt)
 
     def create_variation(
         self,

@@ -101,7 +101,14 @@ class HuggingFaceMedia(AsyncGeneratorProvider, ProviderModelMixin):
         prompt: str = None,
         proxy: str = None,
         timeout: int = 0,
+        # Video & Image Generation
+        n: int = 1,
         aspect_ratio: str = None,
+        # Only for Image Generation
+        height: int = None,
+        width: int = None,
+        # Video Generation
+        resolution: str = "480p",
         **kwargs
     ):
         selected_provider = None
@@ -109,6 +116,7 @@ class HuggingFaceMedia(AsyncGeneratorProvider, ProviderModelMixin):
             model, selected_provider = model.split(":", 1)
         elif not model:
             model = cls.get_models()[0]
+        prompt = format_image_prompt(messages, prompt)
         provider_mapping = await cls.get_mapping(model, api_key)
         headers = {
             'Accept-Encoding': 'gzip, deflate',
@@ -119,7 +127,7 @@ class HuggingFaceMedia(AsyncGeneratorProvider, ProviderModelMixin):
             if key in ["replicate", "together", "hf-inference"]
         }
         provider_mapping = {**new_mapping, **provider_mapping}
-        async def generate(extra_data: dict, prompt: str, aspect_ratio: str = None):
+        async def generate(extra_data: dict, aspect_ratio: str = None):
             last_response = None
             for provider_key, provider in provider_mapping.items():
                 if selected_provider is not None and selected_provider != provider_key:
@@ -132,34 +140,29 @@ class HuggingFaceMedia(AsyncGeneratorProvider, ProviderModelMixin):
                 if task not in cls.tasks:
                     raise ModelNotSupportedError(f"Model is not supported: {model} in: {cls.__name__} task: {task}")
 
-                prompt = format_image_prompt(messages, prompt)
                 if aspect_ratio is None:
                     aspect_ratio = "1:1" if task == "text-to-image" else "16:9"
                 if task == "text-to-video" and provider_key != "novita":
                     extra_data = {
                         "num_inference_steps": 20,
-                        "resolution": "480p",
+                        "resolution": resolution,
                         "aspect_ratio": aspect_ratio,
                         **extra_data
                     }
                 else:
-                    extra_data = use_aspect_ratio(extra_data, aspect_ratio)
+                    extra_data = use_aspect_ratio({
+                        **extra_data,
+                        "height": height,
+                        "width": width,
+                    }, aspect_ratio)
                 url = f"{api_base}/{provider_id}"
                 data = {
                     "prompt": prompt,
                     **extra_data
                 }
                 if provider_key == "fal-ai" and task == "text-to-image":
-                    if aspect_ratio is None or aspect_ratio == "1:1":
-                        image_size = "square_hd",
-                    elif aspect_ratio == "16:9":
-                        image_size = "landscape_hd",
-                    elif aspect_ratio == "9:16":
-                        image_size = "portrait_16_9"
-                    else:
-                        image_size = extra_data # width, height
                     data = {
-                        "image_size": image_size,
+                        "image_size": extra_data,
                         **data
                     }
                 elif provider_key == "novita":
@@ -212,16 +215,21 @@ class HuggingFaceMedia(AsyncGeneratorProvider, ProviderModelMixin):
             await raise_for_status(last_response)
 
         background_tasks = set()
+        running_tasks = set()
         started = time.time()
-        task = asyncio.create_task(generate(extra_data, prompt, aspect_ratio))
-        background_tasks.add(task)
-        task.add_done_callback(background_tasks.discard)
-        while background_tasks:
+        while n > 0:
+            n -= 1
+            task = asyncio.create_task(generate(extra_data, aspect_ratio))
+            background_tasks.add(task)
+            running_tasks.add(task)
+            task.add_done_callback(running_tasks.discard)
+        while running_tasks:
             diff = time.time() - started
             if diff > 1:
                 yield Reasoning(label="Generating", status=f"{diff:.2f}s")
             await asyncio.sleep(0.2)
-        provider_info, media_response = await task
-        yield Reasoning(label="Finished", status=f"{time.time() - started:.2f}s")
-        yield provider_info
-        yield media_response
+        for task in background_tasks:
+            provider_info, media_response = await task
+            yield Reasoning(label="Finished", status=f"{time.time() - started:.2f}s")
+            yield provider_info
+            yield media_response

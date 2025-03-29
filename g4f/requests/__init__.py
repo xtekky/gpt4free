@@ -134,6 +134,7 @@ def merge_cookies(cookies: Iterator[Morsel], response: Response) -> Cookies:
     else:
         for key, value in response.cookies.items():
             cookies[key] = value
+    return cookies
 
 async def get_nodriver(
     proxy: str = None,
