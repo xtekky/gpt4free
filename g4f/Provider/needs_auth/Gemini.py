@@ -27,6 +27,7 @@ from ...requests import get_nodriver
 from ...errors import MissingAuthError
 from ...image import to_bytes
 from ...cookies import get_cookies_dir
+from ...tools.media import merge_media
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..helper import format_prompt, get_cookies, get_last_user_message
 from ... import debug
@@ -186,7 +187,7 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
                         cls.start_auto_refresh()
                     )
 
-            uploads = None if media is None else await cls.upload_images(base_connector, media)
+            uploads = await cls.upload_images(base_connector, merge_media(media, messages))
             async with ClientSession(
                 cookies=cls._cookies,
                 headers=REQUEST_HEADERS,

@@ -48,7 +48,6 @@
             align-items: center;
             height: 100%;
             text-align: center;
-            z-index: 1;
         }
 
         header {
@@ -67,7 +66,11 @@
         #background {
             height: 100%;
             position: absolute;
-            z-index: -1;
+            top: 0;
+        }
+
+        .container * {
+            z-index: 2;
         }
 
         .stream-widget {

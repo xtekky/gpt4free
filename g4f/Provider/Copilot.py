@@ -24,8 +24,9 @@ from .openai.har_file import get_headers, get_har_files
 from ..typing import CreateResult, Messages, MediaListType
 from ..errors import MissingRequirementsError, NoValidHarFileError, MissingAuthError
 from ..requests.raise_for_status import raise_for_status
-from ..providers.response import BaseConversation, JsonConversation, RequestLogin, Parameters, ImageResponse
+from ..providers.response import BaseConversation, JsonConversation, RequestLogin, ImageResponse
 from ..providers.asyncio import get_running_loop
+from ..tools.media import merge_media
 from ..requests import get_nodriver
 from ..image import to_bytes, is_accepted_format
 from .helper import get_last_user_message
@@ -142,17 +143,18 @@ class Copilot(AbstractProvider, ProviderModelMixin):
                 debug.log(f"Copilot: Use conversation: {conversation_id}")
 
             uploaded_images = []
-            if media is not None:
-                for image, _ in media:
-                    data = to_bytes(image)
+            media, _ = [(None, None), *merge_media(media, messages)].pop()
+            if media:
+                if not isinstance(media, str):
+                    data = to_bytes(media)
                     response = session.post(
                         "https://copilot.microsoft.com/c/api/attachments",
                         headers={"content-type": is_accepted_format(data)},
                         data=data
                     )
                     raise_for_status(response)
-                    uploaded_images.append({"type":"image", "url": response.json().get("url")})
-                    break
+                    media = response.json().get("url")
+                uploaded_images.append({"type":"image", "url": media})
 
             wss = session.ws_connect(cls.websocket_url)
             # if clarity_token is not None:

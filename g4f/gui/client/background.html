@@ -89,7 +89,7 @@
 </head>
 <body>
     <img id="image-feed" class="hidden" alt="Image Feed">
-    <video id="video-feed" class="hidden" alt="Video Feed" src="/search/video" autoplay></video>
+    <video id="video-feed" class="hidden" alt="Video Feed" src="/search/video+g4f" autoplay></video>
 
     <!-- Gradient Background Circle -->
     <div class="gradient"></div>
@@ -105,6 +105,7 @@
             let skipImage = 0;
             let errorVideo = 0;
             let errorImage = 0;
+            let skipRefresh = 0;
             videoFeed.onloadeddata = () => {
                 videoFeed.classList.remove("hidden");
                 gradient.classList.add("hidden");
@@ -116,15 +117,15 @@
                     gradient.classList.remove("hidden");
                     return;
                 }
-                videoFeed.src = "/search/video?skip=" + skipVideo;
+                videoFeed.src = "/search/video+g4f?skip=" + skipVideo;
                 skipVideo++;
             };
             videoFeed.onended = () => {
-                videoFeed.src = "/search/video?skip=" + skipVideo;
+                videoFeed.src = "/search/video+g4f?skip=" + skipVideo;
                 skipVideo++;
             };
             videoFeed.onclick = () => {
-                videoFeed.src = "/search/video?skip=" + skipVideo;
+                videoFeed.src = "/search/video+g4f?skip=" + skipVideo;
                 skipVideo++;
             };
             function initES() {
@@ -173,11 +174,15 @@
                     skipImage++;
                     return;
                 }
+                if (skipRefresh) {
+                    skipRefresh = 0;
+                    return;
+                }
                 if (images.length > 0) {
                     imageFeed.classList.remove("hidden");
                     imageFeed.src = images.shift();
                     gradient.classList.add("hidden");
-                } else if(imageFeed) {
+                } else {
                     initES();
                 }
             }, 7000);
@@ -192,6 +197,7 @@
             };
             imageFeed.onclick = () => {
                 imageFeed.src = "/search/image?random=" + Math.random();
+                skipRefresh = 1;
             };
         })();
     </script>

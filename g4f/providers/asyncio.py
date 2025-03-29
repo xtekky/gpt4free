@@ -72,9 +72,8 @@ async def to_async_iterator(iterator) -> AsyncIterator:
     if hasattr(iterator, '__aiter__'):
         async for item in iterator:
             yield item
-        return
-    try:
+    elif asyncio.iscoroutine(iterator):
+        yield await iterator
+    else:
         for item in iterator:
             yield item
-    except TypeError:
-        yield await iterator

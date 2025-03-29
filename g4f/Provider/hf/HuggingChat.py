@@ -22,8 +22,9 @@ from ...errors import MissingRequirementsError, MissingAuthError, ResponseError
 from ...image import to_bytes
 from ...requests import get_args_from_nodriver, DEFAULT_HEADERS
 from ...requests.raise_for_status import raise_for_status
-from ...providers.response import JsonConversation, ImageResponse, Sources, TitleGeneration, Reasoning, RequestLogin
+from ...providers.response import JsonConversation, ImageResponse, Sources, TitleGeneration, Reasoning, RequestLogin, FinishReason
 from ...cookies import get_cookies
+from ...tools.media import merge_media
 from .models import default_model, default_vision_model, fallback_models, image_models, model_aliases
 from ... import debug
 
@@ -146,13 +147,12 @@ class HuggingChat(AsyncAuthedProvider, ProviderModelMixin):
         }
         data = CurlMime()
         data.addpart('data', data=json.dumps(settings, separators=(',', ':')))
-        if media is not None:
-            for image, filename in media:
-                data.addpart(
-                    "files",
-                    filename=f"base64;{filename}",
-                    data=base64.b64encode(to_bytes(image))
-                )
+        for image, filename in merge_media(media, messages):
+            data.addpart(
+                "files",
+                filename=f"base64;{filename}",
+                data=base64.b64encode(to_bytes(image))
+            )
 
         response = session.post(
             f'{cls.url}/conversation/{conversationId}',
@@ -169,13 +169,16 @@ class HuggingChat(AsyncAuthedProvider, ProviderModelMixin):
             try:
                 line = json.loads(line)
             except json.JSONDecodeError as e:
-                debug.log(f"Failed to decode JSON: {line}, error: {e}")
+                debug.error(f"Failed to decode JSON: {line}, error: {e}")
                 continue
             if "type" not in line:
                 raise RuntimeError(f"Response: {line}")
             elif line["type"] == "stream":
                 yield line["token"].replace('\u0000', '')
             elif line["type"] == "finalAnswer":
+                if sources is not None:
+                    yield sources
+                yield FinishReason("stop")
                 break
             elif line["type"] == "file":
                 url = f"{cls.url}/conversation/{conversationId}/output/{line['sha']}"
@@ -185,10 +188,7 @@ class HuggingChat(AsyncAuthedProvider, ProviderModelMixin):
             elif line["type"] == "title":
                 yield TitleGeneration(line["title"])
             elif line["type"] == "reasoning":
-                yield Reasoning(line.get("token"), line.get("status"))
-
-        if sources is not None:
-            yield sources
+                yield Reasoning(line.get("token"), status=line.get("status"))
 
     @classmethod
     def create_conversation(cls, session: Session, model: str):
@@ -223,7 +223,7 @@ class HuggingChat(AsyncAuthedProvider, ProviderModelMixin):
                             break
                     except json.JSONDecodeError:
                         continue
-                        
+
             if not json_data:
                 raise RuntimeError("Failed to parse response data")
 

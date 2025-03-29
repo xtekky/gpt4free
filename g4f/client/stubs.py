@@ -1,14 +1,16 @@
 from __future__ import annotations
 
+import os
 from typing import Optional, List
 from time import time
 
 from ..image import extract_data_uri
+from ..image.copy_images import images_dir
 from ..client.helper import filter_markdown
 from .helper import filter_none
 
 try:
-    from pydantic import BaseModel, Field
+    from pydantic import BaseModel
 except ImportError:
     class BaseModel():
         @classmethod
@@ -17,9 +19,6 @@ except ImportError:
             for key, value in data.items():
                 setattr(new, key, value)
             return new
-    class Field():
-        def __init__(self, **config):
-            pass
 
 class BaseModel(BaseModel):
     @classmethod
@@ -106,6 +105,9 @@ class ChatCompletionMessage(BaseModel):
         return super().model_construct(role="assistant", content=content, **filter_none(tool_calls=tool_calls))
 
     def save(self, filepath: str, allowd_types = None):
+        if hasattr(self.content, "data"):
+            os.rename(self.content.data.replace("/media", images_dir), filepath)
+            return
         if self.content.startswith("data:"):
             with open(filepath, "wb") as f:
                 f.write(extract_data_uri(self.content))

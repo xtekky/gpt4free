@@ -19,18 +19,18 @@ def quote_url(url: str) -> str:
     # Only unquote if needed to avoid double-unquoting
     if '%' in url:
         url = unquote_plus(url)
-    
+
     url_parts = url.split("//", maxsplit=1)
     # If there is no "//" in the URL, then it is a relative URL
     if len(url_parts) == 1:
         return quote_plus(url_parts[0], '/?&=#')
-        
+
     protocol, rest = url_parts
     domain_parts = rest.split("/", maxsplit=1)
     # If there is no "/" after the domain, then it is a domain URL
     if len(domain_parts) == 1:
         return f"{protocol}//{domain_parts[0]}"
-    
+
     domain, path = domain_parts
     return f"{protocol}//{domain}/{quote_plus(path, '/?&=#')}"
 
@@ -95,7 +95,7 @@ def format_images_markdown(images: Union[str, List[str]], alt: str,
     """
     if isinstance(images, list) and len(images) == 1:
         images = images[0]
-        
+
     if isinstance(images, str):
         result = format_image(images, alt, preview)
     else:
@@ -107,7 +107,7 @@ def format_images_markdown(images: Union[str, List[str]], alt: str,
             )
             for idx, image in enumerate(images)
         )
-    
+
     start_flag = "<!-- generated images start -->\n"
     end_flag = "<!-- generated images end -->\n"
     return f"\n{start_flag}{result}\n{end_flag}\n"

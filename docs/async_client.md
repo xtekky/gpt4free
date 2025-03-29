@@ -21,6 +21,7 @@ The G4F AsyncClient API is designed to be compatible with the OpenAI API, making
    - [Using a Vision Model](#using-a-vision-model)
    - **[Transcribing Audio with Chat Completions](#transcribing-audio-with-chat-completions)** *(New Section)*
    - [Image Generation](#image-generation)
+   - **[Video Generation](#video-generation)** *(New Section)*
    - [Advanced Usage](#advanced-usage)
    - [Conversation Memory](#conversation-memory)
    - [Search Tool Support](#search-tool-support)
@@ -327,6 +328,46 @@ asyncio.run(main())
 
 ---
 
+### Video Generation
+
+The G4F `AsyncClient` also supports **video generation** through supported providers like `HuggingFaceMedia`. You can retrieve the list of available video models and generate videos from prompts.
+
+**Example: Generate a video using a prompt**
+
+```python
+import asyncio
+from g4f.client import AsyncClient
+from g4f.Provider import HuggingFaceMedia
+
+async def main():
+    client = AsyncClient(
+        provider=HuggingFaceMedia,
+        api_key="hf_***"  # Your API key here
+    )
+
+    # Get available video models
+    video_models = client.models.get_video()
+    print("Available Video Models:", video_models)
+
+    # Generate video
+    result = await client.media.generate(
+        model=video_models[0],
+        prompt="G4F AI technology is the best in the world.",
+        response_format="url"
+    )
+
+    print("Generated Video URL:", result.data[0].url)
+
+asyncio.run(main())
+```
+
+#### Explanation
+- **Client Initialization**: An `AsyncClient` is initialized using the `HuggingFaceMedia` provider with an API key.
+- **Model Discovery**: `client.models.get_video()` fetches a list of supported video models.
+- **Video Generation**: A prompt is submitted to generate a video using `await client.media.generate(...)`.
+- **Output**: The result includes a URL to the generated video, accessed via `result.data[0].url`.
+
+> Make sure your selected provider supports media generation and your API key has appropriate permissions.
 
 ## Advanced Usage
 

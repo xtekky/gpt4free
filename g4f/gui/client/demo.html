@@ -81,14 +81,17 @@
             border: none;
         }
 
-        #background, #image-feed {
+        #background {
             height: 100%;
             position: absolute;
-            z-index: -1;
             object-fit: cover;
             object-position: center;
             width: 100%;
             background: black;
+        }
+
+        .container * {
+            z-index: 2;
         }
 
         .description, form p a {
@@ -175,9 +178,6 @@
 </head>
 <body>
     <iframe id="background" src="/background"></iframe>
-
-    <!-- Gradient Background Circle -->
-    <div class="gradient"></div>
 
     <button class="slide-button">
         <i class="fa-solid fa-arrow-left"></i>

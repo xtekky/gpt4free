@@ -2,17 +2,18 @@ from __future__ import annotations
 
 import os
 import time
-import uuid
 import asyncio
 import hashlib
 import re
 from typing import AsyncIterator
 from urllib.parse import quote, unquote
 from aiohttp import ClientSession, ClientError
+from urllib.parse import urlparse
 
 from ..typing import Optional, Cookies
 from ..requests.aiohttp import get_connector, StreamResponse
 from ..image import MEDIA_TYPE_MAP, EXTENSIONS_MAP
+from ..tools.files import secure_filename
 from ..providers.response import ImageResponse, AudioResponse, VideoResponse
 from ..Provider.template import BackendApi
 from . import is_accepted_format, extract_data_uri
@@ -23,13 +24,15 @@ images_dir = "./generated_images"
 
 def get_media_extension(media: str) -> str:
     """Extract media file extension from URL or filename"""
-    match = re.search(r"\.(j?[a-z]{3})(?:\?|$)", media, re.IGNORECASE)
-    extension = match.group(1).lower() if match else ""
+    path = urlparse(media).path
+    extension = os.path.splitext(path)[1]
+    if not extension:
+        extension = os.path.splitext(media)[1]
     if not extension:
         return ""
-    if extension not in EXTENSIONS_MAP:
+    if extension[1:] not in EXTENSIONS_MAP:
         raise ValueError(f"Unsupported media extension: {extension} in: {media}")
-    return f".{extension}"
+    return extension
 
 def ensure_images_dir():
     """Create images directory if it doesn't exist"""
@@ -42,19 +45,6 @@ def get_source_url(image: str, default: str = None) -> str:
         if decoded_url.startswith(("http://", "https://")):
             return decoded_url
     return default
-
-def secure_filename(filename: str) -> str:
-    if filename is None:
-        return None
-    # Keep letters, numbers, basic punctuation and all Unicode chars
-    filename = re.sub(
-        r'[^\w.,_-]+',
-        '_', 
-        unquote(filename).strip(), 
-        flags=re.UNICODE
-    )
-    filename = filename[:100].strip(".,_-")
-    return filename
 
 def is_valid_media_type(content_type: str) -> bool:
     return content_type in MEDIA_TYPE_MAP or content_type.startswith("audio/") or content_type.startswith("video/")
@@ -82,13 +72,13 @@ async def save_response_media(response: StreamResponse, prompt: str, tags: list[
             yield ImageResponse(media_url, prompt)
     
 def get_filename(tags: list[str], alt: str, extension: str, image: str) -> str:
-    return secure_filename("".join((
+    return "".join((
         f"{int(time.time())}_",
-        (f"{'_'.join([tag for tag in tags if tag])}_" if tags else ""),
-        (f"{alt}_" if alt else ""),
+        secure_filename(f"{'_'.join([tag for tag in tags if tag])}_" if tags else ""),
+        secure_filename(f"{alt}_" if alt else ""),
         f"{hashlib.sha256(image.encode()).hexdigest()[:16]}",
         f"{extension}"
-    )))
+    ))
 
 async def copy_media(
     images: list[str],

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 import time
 import random
 import string
@@ -19,7 +18,7 @@ from ..providers.asyncio import to_sync_generator
 from ..Provider.needs_auth import BingCreateImages, OpenaiAccount
 from ..tools.run_tools import async_iter_run_tools, iter_run_tools
 from .stubs import ChatCompletion, ChatCompletionChunk, Image, ImagesResponse, UsageModel, ToolCallModel
-from .image_models import MediaModels
+from .models import ClientModels
 from .types import IterResponse, ImageProvider, Client as BaseClient
 from .service import get_model_and_provider, convert_to_provider
 from .helper import find_stop, filter_json, filter_none, safe_aclose
@@ -36,6 +35,14 @@ except NameError:
             return await aiter.__anext__()
         except StopAsyncIteration:
             raise StopIteration
+
+def add_chunk(content, chunk):
+    if content == "":
+        content = chunk
+    else:
+        chunk = str(chunk)
+        content = str(content) + chunk
+    return content
 
 # Synchronous iter_response function
 def iter_response(
@@ -77,22 +84,12 @@ def iter_response(
         elif isinstance(chunk, Exception):
             continue
 
-        if isinstance(chunk, list):
-            chunk = "".join(map(str, chunk))
-        else:
-            temp = chunk.__str__()
-            if not isinstance(temp, str):
-                if isinstance(temp, list):
-                    temp = "".join(map(str, temp))
-                else:
-                    temp = repr(chunk)
-            chunk = temp
-        if not chunk:
+        content = add_chunk(content, chunk)
+        if not content:
             continue
-            
-        content += chunk
+        idx += 1
 
-        if max_tokens is not None and idx + 1 >= max_tokens:
+        if max_tokens is not None and idx >= max_tokens:
             finish_reason = "length"
 
         first, content, chunk = find_stop(stop, content, chunk if stream else None)
@@ -109,8 +106,6 @@ def iter_response(
 
         if finish_reason is not None:
             break
-
-        idx += 1
 
     if usage is None:
         usage = UsageModel.model_construct(completion_tokens=idx, total_tokens=idx)
@@ -186,10 +181,9 @@ async def async_iter_response(
             elif isinstance(chunk, Exception):
                 continue
 
-            chunk = str(chunk)
-            if not chunk:
+            content = add_chunk(content, chunk)
+            if not content:
                 continue
-            content += chunk
             idx += 1
 
             if max_tokens is not None and idx >= max_tokens:
@@ -269,7 +263,7 @@ class Client(BaseClient):
         self.chat: Chat = Chat(self, provider)
         if image_provider is None:
             image_provider = provider
-        self.models: MediaModels = MediaModels(self, image_provider)
+        self.models: ClientModels = ClientModels(self, provider, image_provider)
         self.images: Images = Images(self, image_provider)
         self.media: Images = self.images
 
@@ -558,7 +552,7 @@ class AsyncClient(BaseClient):
         self.chat: AsyncChat = AsyncChat(self, provider)
         if image_provider is None:
             image_provider = provider
-        self.models: MediaModels = MediaModels(self, image_provider)
+        self.models: ClientModels = ClientModels(self, provider, image_provider)
         self.images: AsyncImages = AsyncImages(self, image_provider)
         self.media: AsyncImages = self.images
 

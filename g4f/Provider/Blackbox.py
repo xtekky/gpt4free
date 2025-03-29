@@ -16,9 +16,9 @@ from ..requests.raise_for_status import raise_for_status
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..image import to_data_uri
 from ..cookies import get_cookies_dir
-from .helper import format_prompt, format_image_prompt
+from .helper import format_image_prompt
 from ..providers.response import JsonConversation, ImageResponse
-from ..errors import ModelNotSupportedError
+from ..tools.media import merge_media
 from .. import debug
 
 class Conversation(JsonConversation):
@@ -488,7 +488,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
                             "filePath": f"/{image_name}",
                             "contents": to_data_uri(image)
                         }
-                        for image, image_name in media
+                        for image, image_name in merge_media(media, messages)
                     ],
                     "fileText": "",
                     "title": ""
