@@ -113,7 +113,7 @@ body:not(.white) a:visited{
 
 .new_version {
     position: absolute;
-    left: 0;
+    right: 0;
     top: 0;
     padding: 10px;
     font-weight: 500;
@@ -1178,16 +1178,6 @@ ul {
     color: var(--colour-3);
 }
 
-@media screen and (min-width: 991px) {
-    /* Keep the toggle visible in both collapsed and expanded states */
-}
-
-@media screen and (max-width: 990px) {
-    .mobile-sidebar-toggle {
-        display: flex;
-    }
-}
-
 .rotated {
     transform: rotate(360deg);
 }
@@ -1213,146 +1203,12 @@ ul {
 .field.collapsible:has(.collapsible-header.active) {
     border-left: 3px solid var(--accent);
 }
-@media screen and (max-width: 990px) {
-    /* Completely hide the entire sidebar on mobile devices */
-    .sidebar {
-        display: none !important;
-    }
-    
-    /* Ensure chat container takes full width */
-    .chat-container {
-        margin-left: 0 !important;
-        width: 100% !important;
-    }
-    
-    /* Only show sidebar when explicitly toggled via JavaScript */
+
+@media screen and (min-width: 991px) {
     .sidebar.expanded {
-        display: block !important;
-        width: 260px;
-        z-index: 2000;
-    }
-    
-    /* When sidebar is expanded, adjust chat container */
-    .sidebar.expanded + .chat-container {
-        margin-left: 0;
-        width: 100%;
-        position: fixed;
-        left: 260px;
-    }
-    
-    .sidebar-header {
-        padding: 12px 0;
-        margin-bottom: 12px;
-    }
-
-    .sidebar-logo {
-        font-size: 16px;
-    }
-
-    /* Revise chat-top-panel for mobile view */
-    .chat-top-panel {
-        padding: 12px 15px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-
-    .chat-logo {
-        font-size: 16px;
-    }
-
-    .chat-top-panel .convo-title {
-        margin: 0 10px;
-        font-size: 14px;
-        text-align: center;
-        flex: 1;
-    }
-    
-    /* Style the mobile-sidebar-toggle in the chat-top-panel */
-    .chat-top-panel .mobile-sidebar-toggle {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        width: 36px;
-        height: 36px;
-        background-color: var(--blur-bg);
-        border: 1px solid var(--blur-border);
-        border-radius: 8px;
-        cursor: pointer;
-    }
-    
-    /* Style the new_convo_icon in the chat-top-panel */
-    .chat-top-panel .new_convo_icon {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        width: 36px;
-        height: 36px;
-        background-color: var(--blur-bg);
-        border: 1px solid var(--blur-border);
-        border-radius: 8px;
-        cursor: pointer;
-        color: var(--colour-3);
-        font-size: 16px;
-    }
-    
-    .chat-top-panel .mobile-sidebar-toggle:hover,
-    .chat-top-panel .new_convo_icon:hover {
-        background-color: var(--button-hover);
-    }
-
-    .settings h3 {
-        padding-left: 14px;
-        padding-top: 18px;
-    }
-
-    .chat-buttons {
-        align-items: flex-start;
-        flex-wrap: wrap;
-        gap: 8px;
-        padding-left: 4px;
-    }
-
-    #chatPrompt {
-        padding-left: 30px;
-    }
-
-    .field.collapsible {
-        flex-direction: column;
-        padding-right: 0;
-    }
-    
-    .settings .paper {
-        padding: 16px;
-    }
-    
-    .settings .settings-content {
-        max-width: 100%;
-    }
-    
-    .collapsible-header {
-        padding: 10px 12px;
-    }
-    
-    .collapsible-header.active + .collapsible-content {
-        padding: 12px;
-    }
-    
-    .provider-item {
-        padding: 8px;
-    }
-    
-    .field.box {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-    
-    .field.box a {
-        margin-left: 0;
-        margin-top: 8px;
+        width: 400px;
     }
 }
-
 
 /* Hide duplicate provider sections at the bottom */
 .settings > .paper > .field.collapsible:not(.provider-section) {
@@ -1536,8 +1392,8 @@ form textarea {
 }
 
 .sidebar.expanded + .settings {
-    width: calc(100% - 260px);
-    margin-left: 260px;
+    width: calc(100% - 400px);
+    margin-left: 400px;
 }
 
 .log {
@@ -1978,7 +1834,7 @@ form textarea {
 }
 
 .sidebar-expanded {
-    width: 260px;
+    width: 400px;
     display: flex;
     flex-direction: column;
     padding: 10px;
@@ -1996,7 +1852,7 @@ form textarea {
 }
 
 .sidebar.expanded {
-    width: 260px;
+    width: 400px;
 }
 
 .sidebar.expanded .sidebar-expanded {
@@ -2047,12 +1903,12 @@ form textarea {
 
 @media only screen and (min-width: 40em) {
     .sidebar.expanded {
-        width: 260px;
+        width: 400px;
     }
     
     .sidebar.expanded + .chat-container {
-        margin-left: 260px;
-        width: calc(100% - 260px);
+        margin-left: 400px;
+        width: calc(100% - 400px);
     }
 }
 .chat-body {
@@ -2090,4 +1946,281 @@ form textarea {
 }
 .chat-footer .send-buttons button:hover {
     border-style: solid;
+}
+
+.settings-top-bar {
+    display: flex;
+    align-items: center;
+    padding: 15px 0;
+    margin-bottom: 15px;
+    border-bottom: 1px solid var(--blur-border);
+    gap: 12px; /* Space between button and title */
+}
+
+.settings-back-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    color: var(--colour-3);
+    font-size: 18px;
+    cursor: pointer;
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+}
+
+.settings-back-button:hover {
+    background-color: var(--blur-border);
+}
+
+.settings-title {
+    font-size: 20px;
+    font-weight: 500;
+    color: var(--colour-3);
+    user-select: none; /* Prevent text selection */
+}
+
+.settings-top-bar span {
+    font-weight: 600;
+    font-size: 18px;
+    margin-left: 8px;
+}
+
+@media screen and (max-width: 990px) {
+    .mobile-sidebar-toggle {
+        display: flex;
+    }
+    
+    /* Completely hide the entire sidebar on mobile devices */
+    .sidebar {
+        display: none !important;
+    }
+    
+    /* Ensure chat container takes full width */
+    .chat-container {
+        margin-left: 0 !important;
+        width: 100% !important;
+    }
+    
+    /* Only show sidebar when explicitly toggled via JavaScript */
+    .sidebar.expanded {
+        display: block !important;
+        width: 260px;
+        z-index: 2000;
+    }
+    
+    .sidebar-expanded {
+        width: 260px;
+    }
+    
+    /* When sidebar is expanded, adjust chat container */
+    .sidebar.expanded + .chat-container {
+        margin-left: 260px;
+        width: calc(100% - 260px);
+        position: fixed;
+        left: 400px;
+    }
+    
+    .sidebar-header {
+        padding: 12px 0;
+        margin-bottom: 12px;
+    }
+
+    .sidebar-logo {
+        font-size: 16px;
+    }
+
+    /* Revise chat-top-panel for mobile view */
+    .chat-top-panel {
+        padding: 12px 15px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .chat-logo {
+        font-size: 16px;
+    }
+
+    .chat-top-panel .convo-title {
+        margin: 0 10px;
+        font-size: 14px;
+        text-align: center;
+        flex: 1;
+    }
+    
+    /* Style the mobile-sidebar-toggle in the chat-top-panel */
+    .chat-top-panel .mobile-sidebar-toggle {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 36px;
+        height: 36px;
+        background-color: var(--blur-bg);
+        border: 1px solid var(--blur-border);
+        border-radius: 8px;
+        cursor: pointer;
+    }
+    
+    /* Style the new_convo_icon in the chat-top-panel */
+    .chat-top-panel .new_convo_icon {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 36px;
+        height: 36px;
+        background-color: var(--blur-bg);
+        border: 1px solid var(--blur-border);
+        border-radius: 8px;
+        cursor: pointer;
+        color: var(--colour-3);
+        font-size: 16px;
+    }
+    
+    .chat-top-panel .mobile-sidebar-toggle:hover,
+    .chat-top-panel .new_convo_icon:hover {
+        background-color: var(--button-hover);
+    }
+
+    .settings h3 {
+        padding-left: 14px;
+        padding-top: 18px;
+    }
+
+    .chat-buttons {
+        align-items: flex-start;
+        flex-wrap: wrap;
+        gap: 8px;
+        padding-left: 4px;
+    }
+
+    #chatPrompt {
+        padding-left: 30px;
+    }
+
+    .field.collapsible {
+        flex-direction: column;
+        padding-right: 0;
+    }
+    
+    .settings {
+        width: 100% !important;
+        margin-left: 0 !important;
+        z-index: 2000;
+    }
+    
+    .settings .paper {
+        width: 100%;
+        height: 100%;
+        padding: 16px;
+        border-radius: 0;
+        max-width: none;
+    }
+    
+    .settings .settings-content {
+        width: 100%;
+        max-width: none;
+    }
+    
+    /* Make sure bottom buttons are visible */
+    .settings .bottom_buttons {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: var(--background);
+        padding: 12px 16px;
+        z-index: 100;
+    }
+    
+    /* Adjust input fields for mobile */
+    .settings input[type="text"],
+    .settings input[type="number"],
+    .settings textarea {
+        width: 100%;
+    }
+    
+    /* Ensure collapsible sections take full width */
+    .field.collapsible {
+        width: 100%;
+    }
+    
+    .field.collapsible {
+        width: 100%;
+    }
+    
+    .collapsible-header {
+        padding: 10px 12px;
+    }
+    
+    /* Make sure provider sections are properly sized */
+    .collapsible-content {
+        max-height: none !important;
+    }
+    
+    .collapsible-header.active + .collapsible-content {
+        padding: 12px;
+    }
+    
+    .provider-item {
+        padding: 8px;
+    }
+    
+    .field.box {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .field.box a {
+        margin-left: 0;
+        margin-top: 8px;
+    }
+    
+    .settings .settings-content {
+        padding-bottom: 120px; /* Make space for bottom buttons */
+    }
+    
+    /* Ensure bottom buttons stay fixed at bottom */
+    .settings .bottom_buttons {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: var(--background);
+        padding: 12px 16px;
+        z-index: 100;
+        border-top: 1px solid var(--blur-border);
+    }
+    
+    /* Make provider sections full width */
+    .field.collapsible.provider-section {
+        width: 100%;
+        margin-bottom: 15px;
+    }
+    
+    .collapsible-content {
+        max-height: 300px !important;
+        overflow-y: auto;
+    }
+    
+    .provider-section .collapsible-content,
+    .collapsible-content.api-key {
+        max-height: 250px !important;
+    }
+    
+    .settings-top-bar {
+        padding: 12px 0;
+        margin-bottom: 12px;
+    }
+    
+    .settings-title {
+        font-size: 18px;
+    }
+    
+    .settings-back-button {
+        width: 36px;
+        height: 36px;
+    }
 }

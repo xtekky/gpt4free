@@ -1,32 +1,33 @@
-const colorThemes       = document.querySelectorAll('[name="theme"]');
-const chatBody          = document.getElementById(`chatBody`);
-const userInput         = document.getElementById("userInput");
-const box_conversations = document.querySelector(`.top`);
-const stop_generating   = document.querySelector(`.stop_generating`);
-const regenerate_button = document.querySelector(`.regenerate`);
-const sidebar           = document.querySelector(".sidebar");
-const sidebar_buttons   = document.querySelectorAll(".sidebar .mobile-sidebar-toggle, .chat-top-panel .mobile-sidebar-toggle");
-const sendButton        = document.getElementById("sendButton");
-const addButton         = document.getElementById("addButton");
-const imageInput        = document.querySelector(".image-label");
-const mediaSelect       = document.querySelector(".media-select");
-const imageSelect       = document.getElementById("image");
-const cameraInput       = document.getElementById("camera");
-const fileInput         = document.getElementById("file");
-const microLabel        = document.querySelector(".micro-label");
-const inputCount        = document.getElementById("input-count").querySelector(".text");
-const providerSelect    = document.getElementById("provider");
-const modelSelect       = document.getElementById("model");
-const modelProvider     = document.getElementById("model2");
-const custom_model      = document.getElementById("model3");
-const chatPrompt        = document.getElementById("chatPrompt");
-const settings          = document.querySelector(".settings");
-const chat              = document.querySelector(".chat-container");
-const album             = document.querySelector(".images");
-const log_storage       = document.querySelector(".log");
-const switchInput       = document.getElementById("switch");
-const searchButton      = document.getElementById("search");
-const paperclip         = document.querySelector(".user-input .fa-paperclip");
+const colorThemes        = document.querySelectorAll('[name="theme"]');
+const chatBody           = document.getElementById(`chatBody`);
+const userInput          = document.getElementById("userInput");
+const box_conversations  = document.querySelector(`.top`);
+const stop_generating    = document.querySelector(`.stop_generating`);
+const regenerate_button  = document.querySelector(`.regenerate`);
+const sidebar            = document.querySelector(".sidebar");
+const sidebar_buttons    = document.querySelectorAll(".sidebar .mobile-sidebar-toggle, .chat-top-panel .mobile-sidebar-toggle");
+const sendButton         = document.getElementById("sendButton");
+const addButton          = document.getElementById("addButton");
+const imageInput         = document.querySelector(".image-label");
+const mediaSelect        = document.querySelector(".media-select");
+const imageSelect        = document.getElementById("image");
+const cameraInput        = document.getElementById("camera");
+const fileInput          = document.getElementById("file");
+const microLabel         = document.querySelector(".micro-label");
+const inputCount         = document.getElementById("input-count").querySelector(".text");
+const providerSelect     = document.getElementById("provider");
+const modelSelect        = document.getElementById("model");
+const modelProvider      = document.getElementById("model2");
+const custom_model       = document.getElementById("model3");
+const chatPrompt         = document.getElementById("chatPrompt");
+const settings           = document.querySelector(".settings");
+const settingsBackButton = document.querySelector('.settings-back-button');
+const chat               = document.querySelector(".chat-container");
+const album              = document.querySelector(".images");
+const log_storage        = document.querySelector(".log");
+const switchInput        = document.getElementById("switch");
+const searchButton       = document.getElementById("search");
+const paperclip          = document.querySelector(".user-input .fa-paperclip");
 
 const optionElementsSelector = ".settings input, .settings textarea, .chat-body input, #model, #model2, #provider";
 
@@ -62,6 +63,8 @@ appStorage = window.localStorage || {
     removeItem: (key) => delete self[key],
     length: 0
 }
+
+settingsBackButton.addEventListener('click', hide_settings);
 
 let markdown_render = (content) => escapeHtml(content);
 if (window.markdownit) {
@@ -1841,8 +1844,12 @@ async function hide_sidebar(remove_shown=false) {
 
 async function hide_settings() {
     settings.classList.add("hidden");
-    let provider_forms = document.querySelectorAll(".provider_forms from");
+    chat.classList.remove("hidden");
+    let provider_forms = document.querySelectorAll(".provider_forms form");
     Array.from(provider_forms).forEach((form) => form.classList.add("hidden"));
+    if (window.location.pathname.endsWith("/settings/")) {
+        history.back();
+    }
 }
 
 window.addEventListener('popstate', hide_sidebar, false);
@@ -1892,8 +1899,7 @@ function open_settings() {
         // Setup collapsible fields
         setupCollapsibleFields();
     } else {
-        settings.classList.add("hidden");
-        chat.classList.remove("hidden");
+        hide_settings();
     }
     log_storage.classList.add("hidden");
 }
@@ -1903,11 +1909,12 @@ function setupCollapsibleFields() {
     const collapsibleHeaders = document.querySelectorAll('.collapsible-header');
     
     collapsibleHeaders.forEach(header => {
-        // Remove existing event listeners by cloning and replacing
+        // Remove existing event listeners
         const newHeader = header.cloneNode(true);
         header.parentNode.replaceChild(newHeader, header);
         
-        newHeader.addEventListener('click', function() {
+        newHeader.addEventListener('click', function(e) {
+            e.stopPropagation(); // Prevent event bubbling
             this.classList.toggle('active');
             const content = this.nextElementSibling;
             
@@ -1928,71 +1935,61 @@ function setupCollapsibleFields() {
     });
 }
 
-// Function to dynamically load all providers into the Enable/Disable and API key sections
 async function loadAllProviders() {
-    try {
-        // Fetch providers from the API
-        const providers = await fetchProviders();
-        if (!providers || providers.length === 0) {
-            return; // No providers found
-        }
-
-        // Sort providers alphabetically
-        providers.sort((a, b) => a.label.localeCompare(b.label));
-
-        // Get the provider sections using the unique IDs we added
-        const enableDisableSection = document.querySelector('#enable-disable-section .collapsible-content');
-        const apiKeySection = document.querySelector('#api-key-section .collapsible-content');
-
-        if (!enableDisableSection || !apiKeySection) {
-            return; // One or both provider sections not found
-        }
-
-        // Clear existing hardcoded providers
-        enableDisableSection.innerHTML = '';
-        apiKeySection.innerHTML = '';
-
-        // Add all providers to the Enable/Disable section
-        providers.forEach(provider => {
-            if (!provider.parent) {
-                const providerItem = document.createElement('div');
-                providerItem.classList.add('provider-item');
-                
-                const apiKey = localStorage.getItem(`${provider.name}-api_key`);
-                
-                providerItem.innerHTML = `
-                    <span class="label">${provider.label}</span>
-                    <input type="checkbox" id="provider-${provider.name.toLowerCase()}" ${!provider.auth || apiKey ? 'checked="checked"' : ''}/>
-                    <label for="provider-${provider.name.toLowerCase()}" class="toogle" title="Enable/Disable ${provider.label}"></label>
-                `;
-                
-                enableDisableSection.appendChild(providerItem);
-            }
-        });
-
-        // Add providers that need API keys to the API key section
-        providers.forEach(provider => {
-            if (provider.auth) {
-                const apiKeyItem = document.createElement('div');
-                apiKeyItem.classList.add('field', 'box');
-                
-                apiKeyItem.innerHTML = `
-                    <label for="${provider.name}-api_key" class="label">${provider.label} API Key:</label>
-                    <input type="text" id="${provider.name}-api_key" name="${provider.name}[api_key]" placeholder="API Key" />
-                    ${provider.login_url ? `<a href="${provider.login_url}" target="_blank">Get API Key</a>` : ''}
-                `;
-                
-                apiKeySection.appendChild(apiKeyItem);
-            }
-        });
-
-        // Reinitialize collapsible sections
-        if (window.setupCollapsibleFields) {
-            window.setupCollapsibleFields();
-        }
-    } catch (error) {
-        // Handle error silently
+    // Fetch providers from the API
+    const providers = await fetchProviders();
+    if (!providers || providers.length === 0) {
+        return; // No providers found
     }
+
+    // Sort providers alphabetically
+    providers.sort((a, b) => a.label.localeCompare(b.label));
+
+    // Get the provider sections
+    const enableDisableSection = document.querySelector('#enable-disable-section .collapsible-content');
+    const apiKeySection = document.querySelector('#api-key-section .collapsible-content');
+
+    if (!enableDisableSection || !apiKeySection) {
+        return; // Sections not found
+    }
+
+    // Clear existing content
+    enableDisableSection.innerHTML = '';
+    apiKeySection.innerHTML = '';
+
+    // Add all providers to the Enable/Disable section
+    providers.forEach(provider => {
+        if (!provider.parent) {
+            const providerItem = document.createElement('div');
+            providerItem.classList.add('provider-item');
+            
+            const apiKey = localStorage.getItem(`${provider.name}-api_key`);
+            
+            providerItem.innerHTML = `
+                <span class="label">${provider.label}</span>
+                <input type="checkbox" id="provider-${provider.name.toLowerCase()}" ${!provider.auth || apiKey ? 'checked="checked"' : ''}/>
+                <label for="provider-${provider.name.toLowerCase()}" class="toogle" title="Enable/Disable ${provider.label}"></label>
+            `;
+            
+            enableDisableSection.appendChild(providerItem);
+        }
+    });
+
+    // Add providers that need API keys to the API key section
+    providers.forEach(provider => {
+        if (provider.auth) {
+            const apiKeyItem = document.createElement('div');
+            apiKeyItem.classList.add('field', 'box');
+            
+            apiKeyItem.innerHTML = `
+                <label for="${provider.name}-api_key" class="label">${provider.label} API Key:</label>
+                <input type="text" id="${provider.name}-api_key" name="${provider.name}[api_key]" placeholder="API Key" />
+                ${provider.login_url ? `<a href="${provider.login_url}" target="_blank">Get API Key</a>` : ''}
+            `;
+            
+            apiKeySection.appendChild(apiKeyItem);
+        }
+    });
 }
 
 // Function to fetch providers from the API
@@ -2282,8 +2279,8 @@ window.addEventListener('DOMContentLoaded', async function() {
         await on_api();
     }
     
-    // Load providers when the DOM is fully loaded
-    setTimeout(loadAllProviders, 1000); // Increased timeout to 1000ms
+    // Load providers immediately when page loads
+    await loadAllProviders();
 });
 
 // Also try loading when the settings panel is opened
@@ -2368,6 +2365,7 @@ const load_provider_option = (input, provider_name) => {
 async function on_api() {
     load_version();
     let prompt_lock = false;
+    setupCollapsibleFields();
     userInput.addEventListener("keydown", async (evt) => {
         if (prompt_lock) return;
         // If not mobile and not shift enter
