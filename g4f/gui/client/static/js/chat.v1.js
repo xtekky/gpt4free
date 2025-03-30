@@ -2297,6 +2297,29 @@ window.addEventListener('load', async function() {
     await safe_load_conversation(window.conversation_id, false);
 });
 
+document.addEventListener("DOMContentLoaded", function () {
+    document.querySelectorAll(".collapsible-header").forEach(header => {
+        header.addEventListener("click", function () {
+            const content = this.nextElementSibling;
+
+            const isOpen = !content.classList.contains("hidden");
+
+            document.querySelectorAll(".collapsible-content").forEach(section => {
+                section.style.display = "none";
+                section.style.maxHeight = "0";
+                section.classList.add("hidden");
+            });
+
+            if (!isOpen) {
+                content.style.display = "block";
+                content.style.maxHeight = content.scrollHeight + "px";
+                content.classList.remove("hidden");
+            }
+        });
+    });
+});
+
+
 window.addEventListener('DOMContentLoaded', async function() {
     await on_load();
     if (window.conversation_id == "{{conversation_id}}") {
