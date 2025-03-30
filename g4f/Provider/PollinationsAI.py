@@ -48,7 +48,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
     default_vision_model = default_model
     text_models = [default_model]
     image_models = [default_image_model]
-    extra_image_models = ["flux-pro", "flux-dev", "flux-schnell", "midjourney", "dall-e-3"]
+    extra_image_models = ["flux-pro", "flux-dev", "flux-schnell", "midjourney", "dall-e-3", "turbo"]
     vision_models = [default_vision_model, "gpt-4o-mini", "o3-mini", "openai", "openai-large"]
     extra_text_models = vision_models
     _models_loaded = False
@@ -113,10 +113,8 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                 combined_text = (
                     cls.text_models +  # Already contains the default
                     cls.extra_text_models + 
-                    [
-                        model for model in original_text_models
-                        if model not in cls.extra_text_models
-                    ]
+                    original_text_models +
+                    cls.vision_models
                 )
                 cls.text_models = list(dict.fromkeys(combined_text))
                 
@@ -155,7 +153,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         media: MediaListType = None,
         temperature: float = None,
         presence_penalty: float = None,
-        top_p: float = 1,
+        top_p: float = None,
         frequency_penalty: float = None,
         response_format: Optional[dict] = None,
         extra_parameters: list[str] = ["tools", "parallel_tool_calls", "tool_choice", "reasoning_effort", "logit_bias", "voice", "modalities", "audio"],

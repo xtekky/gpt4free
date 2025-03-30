@@ -14,7 +14,6 @@ try:
 except ImportError:
     has_requirements = False
 
-from ..providers.helper import filter_none
 from ..typing import ImageType, Union, Image
 from ..errors import MissingRequirementsError
 
@@ -38,6 +37,7 @@ EXTENSIONS_MAP: dict[str, str] = {
     "flac": "audio/flac",
     "opus": "audio/opus",
     "ogg": "audio/ogg",
+    "m4a": "audio/mp4",
      # Video
     "mkv": "video/x-matroska",
     "webm": "video/webm",
@@ -109,6 +109,8 @@ def is_data_an_audio(data_uri: str = None, filename: str = None) -> str:
             return "audio/wav"
         elif filename.endswith(".mp3"):
             return "audio/mpeg"
+        elif filename.endswith(".m4a"):
+            return "audio/m4a"
     if isinstance(data_uri, str):
         audio_format = re.match(r'^data:(audio/\w+);base64,', data_uri)
         if audio_format:
@@ -279,7 +281,7 @@ def to_input_audio(audio: ImageType, filename: str = None) -> str:
     raise ValueError("Invalid input audio")
 
 def use_aspect_ratio(extra_data: dict, aspect_ratio: str) -> Image:
-    extra_data = filter_none(**extra_data)
+    extra_data = {key: value for key, value in extra_data.items() if value is not None}
     if aspect_ratio == "1:1":
         extra_data = {
             "width": 1024,
