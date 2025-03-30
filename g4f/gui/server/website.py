@@ -52,6 +52,7 @@ class Website:
 
     def _share_id(self, share_id, conversation_id: str = ""):
         share_url = os.environ.get("G4F_SHARE_URL", "")
+        conversation_id = conversation_id if conversation_id else str(uuid.uuid4())
         return render_template('index.html', share_url=share_url, share_id=share_id, conversation_id=conversation_id)
 
     def _index(self):

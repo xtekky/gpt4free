@@ -117,6 +117,7 @@ asyncio.run(main())
 ### **Multiple Providers with API Keys**  
 ```python
 import os
+import g4f.Provider
 from g4f.client import Client
 
 # Using environment variables
@@ -126,10 +127,10 @@ providers = {
 }
 
 for provider_name, api_key in providers.items():
-    client = Client(provider=f"g4f.Provider.{provider_name}", api_key=api_key)
+    client = Client(provider=getattr(g4f.Provider, provider_name), api_key=api_key)
     response = client.chat.completions.create(
         model="claude-3.5-sonnet",
-        messages=[{"role": "user", "content": f"Hello from {provider_name}!"}]
+        messages=[{"role": "user", "content": f"Hello to {provider_name}!"}]
     )
     print(f"{provider_name}: {response.choices[0].message.content}")
 ```
@@ -144,16 +145,22 @@ for provider_name, api_key in providers.items():
    - Firefox: **Storage** → **Cookies**  
 
 ```python
+from g4f.client import Client
 from g4f.Provider import Gemini
 
-# Initialize with cookies
+# Using with cookies
 client = Client(
     provider=Gemini,
+)
+response = client.chat.completions.create(
+    model="", # Default model
+    messages="Hello Google",
     cookies={
         "__Secure-1PSID": "your_cookie_value_here",
-        "__Secure-1PSIDTS": "timestamp_value_here"
+        "__Secure-1PSIDTS": "your_cookie_value_here"
     }
 )
+print(f"Gemini: {response.choices[0].message.content}")
 ```
 
 ---

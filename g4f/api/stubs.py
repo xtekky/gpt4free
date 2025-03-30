@@ -68,6 +68,7 @@ class ImageGenerationConfig(BaseModel):
     aspect_ratio: Optional[str] = None
     n: Optional[int] = None
     negative_prompt: Optional[str] = None
+    resolution: Optional[str] = None
 
 class ProviderResponseModel(BaseModel):
     id: str
