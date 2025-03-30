@@ -1325,7 +1325,12 @@ const delete_conversation = async (conversation_id) => {
             }
         }
     }
-
+    if (window.share_id && conversation_id == window.start_id) {
+        const url = `${window.share_url}/backend-api/v2/files/${window.share_id}`;
+        await fetch(url, {
+            method: 'DELETE'
+        });
+    }
     appStorage.removeItem(`conversation:${conversation_id}`);
     const item = document.getElementById(`convo-${conversation_id}`);
     item.remove();
@@ -2622,7 +2627,7 @@ function connectToSSE(url, do_refine, bucket_id) {
         } else if (data.action == "media") {
             inputCount.innerText = `File: ${data.filename}`;
             const url = `/files/${bucket_id}/media/${data.filename}`;
-            const media = [{bucket_id: bucket_id, url: url}];
+            const media = [{bucket_id: bucket_id, url: url, name: data.filename}];
             await handle_ask(false, media);
         } else if (data.action == "load") {
             inputCount.innerText = `Read data: ${formatFileSize(data.size)}`;
