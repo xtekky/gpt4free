@@ -1756,7 +1756,6 @@ form textarea {
     flex-direction: row;
     transition: all 0.3s ease-in-out;
     overflow: hidden;
-<<<<<<< HEAD
     width: 60px;
     height: 100%;
     position: fixed;
@@ -1887,6 +1886,7 @@ form textarea {
     margin: 0;
     width: 100%;
 }
+
 /* Hide mobile-specific elements on desktop */
 @media screen and (min-width: 991px) {
     .chat-top-panel .mobile-sidebar-toggle,
@@ -1945,7 +1945,6 @@ form textarea {
 }
 .chat-footer .send-buttons button:hover {
     border-style: solid;
-<<<<<<< HEAD
 }
 
 .settings-top-bar {
@@ -1983,6 +1982,46 @@ form textarea {
 }
 
 .settings-top-bar span {
+    font-weight: 600;
+    font-size: 18px;
+    margin-left: 8px;
+}
+
+.log-top-bar {
+    display: flex;
+    align-items: center;
+    padding: 15px 0;
+    margin-bottom: 15px;
+    border-bottom: 1px solid var(--blur-border);
+    gap: 12px; /* Space between button and title */
+}
+
+.log-back-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    color: var(--colour-3);
+    font-size: 18px;
+    cursor: pointer;
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+}
+
+.log-back-button:hover {
+    background-color: var(--blur-border);
+}
+
+.log-title {
+    font-size: 20px;
+    font-weight: 500;
+    color: var(--colour-3);
+    user-select: none; /* Prevent text selection */
+}
+
+.log-top-bar span {
     font-weight: 600;
     font-size: 18px;
     margin-left: 8px;
@@ -2082,11 +2121,6 @@ form textarea {
     .chat-top-panel .mobile-sidebar-toggle:hover,
     .chat-top-panel .new_convo_icon:hover {
         background-color: var(--button-hover);
-    }
-
-    .settings h3 {
-        padding-left: 14px;
-        padding-top: 18px;
     }
 
     .chat-buttons {
@@ -2222,5 +2256,44 @@ form textarea {
     .settings-back-button {
         width: 36px;
         height: 36px;
+    }
+    
+    /* Make log component take full screen on mobile */
+    .log {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100vh;
+        z-index: 2000;
+        background-color: rgba(30, 30, 40, 0.95);
+        backdrop-filter: blur(10px);
+        overflow-y: auto;
+        margin: 0;
+        padding: 0 16px;
+    }
+    
+    .log-top-bar {
+        padding: 12px 0;
+        margin-bottom: 12px;
+        position: sticky;
+        top: 0;
+        background-color: rgba(30, 30, 40, 0.95);
+        backdrop-filter: blur(10px);
+        z-index: 10;
+    }
+    
+    .log-title {
+        font-size: 18px;
+    }
+    
+    .log-back-button {
+        width: 36px;
+        height: 36px;
+    }
+    
+    .log-content {
+        padding-bottom: 60px;
+        width: 100%;
     }
 }

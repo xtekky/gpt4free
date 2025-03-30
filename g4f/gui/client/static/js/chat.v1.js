@@ -22,6 +22,7 @@ const custom_model       = document.getElementById("model3");
 const chatPrompt         = document.getElementById("chatPrompt");
 const settings           = document.querySelector(".settings");
 const settingsBackButton = document.querySelector('.settings-back-button');
+const logBackButton      = document.querySelector('.log-back-button');
 const chat               = document.querySelector(".chat-container");
 const album              = document.querySelector(".images");
 const log_storage        = document.querySelector(".log");
@@ -65,6 +66,7 @@ appStorage = window.localStorage || {
 }
 
 settingsBackButton.addEventListener('click', hide_settings);
+logBackButton.addEventListener('click', hide_settings);
 
 let markdown_render = (content) => escapeHtml(content);
 if (window.markdownit) {
