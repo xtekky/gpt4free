@@ -2134,11 +2134,20 @@ window.addEventListener('load', async function() {
         return await load_conversation(JSON.parse(appStorage.getItem(`conversation:${window.conversation_id}`)));
     }
     let conversation = await response.json();
-    if (!window.conversation_id || conversation.id == window.conversation_id) {
-        window.conversation_id = conversation.id;
-        await load_conversation(conversation);       
-        await save_conversation(window.conversation_id, JSON.stringify(conversation));
+    if (!appStorage.getItem(`conversation:${window.conversation_id}`) || conversation.id == window.conversation_id) {
+        // Copy conversation from share
+        if (conversation.id != window.conversation_id) {
+            conversation.id = window.conversation_id;
+            conversation.updated = Date.now();
+            window.share_id = null;
+        }
+        await load_conversation(conversation);
+        await save_conversation(conversation.id, JSON.stringify(conversation));
         await load_conversations();
+        if (!window.share_id) {
+            // Continue after copy conversation
+            return;
+        }
         let refreshOnHide = true;
         document.addEventListener("visibilitychange", () => {
             if (document.hidden) {
@@ -2147,6 +2156,7 @@ window.addEventListener('load', async function() {
                 refreshOnHide = true;
             }
         });
+        // Start chat mode (QRCode)
         var refreshIntervalId = setInterval(async () => {
             if (!window.share_id) {
                 clearInterval(refreshIntervalId);

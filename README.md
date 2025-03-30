@@ -248,7 +248,7 @@ Run the Web UI on your smartphone for easy access on the go. Check out the dedic
    - **File API from G4F:** [/docs/file](docs/file.md)
    - **PydanticAI and LangChain Integration for G4F:** [/docs/pydantic_ai](docs/pydantic_ai.md)
    - **Legacy API with python modules:** [/docs/legacy](docs/legacy.md)
-   - **G4F - Media Documentation** [/docs/media](/docs/meda.md) *(New)*
+   - **G4F - Media Documentation** [/docs/media](/docs/media.md) *(New)*
 
 ---
 
