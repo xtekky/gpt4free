@@ -1,54 +1,52 @@
+# G4F 客户端 API 指南
 
+## 目录
+   - [介绍](#介绍)
+   - [入门](#入门)
+   - [切换到 G4F 客户端](#切换到-g4f-客户端)
+   - [初始化客户端](#初始化客户端)
+   - [创建聊天补全](#创建聊天补全)
+   - [配置](#配置)
+   - [参数解释](#参数解释)
+   - [使用示例](#使用示例)
+   - [文本补全](#文本补全)
+   - [流式补全](#流式补全)
+   - [使用视觉模型](#使用视觉模型)
+   - [图像生成](#图像生成)
+   - [创建图像变体](#创建图像变体)
+   - [高级用法](#高级用法)
+   - [对话记忆](#对话记忆)
+   - [搜索工具支持](#搜索工具支持)
+   - [使用带有 RetryProvider 的提供商列表](#使用带有-retryprovider-的提供商列表)
+   - [使用视觉模型](#使用视觉模型)
+   - [命令行聊天程序](#命令行聊天程序)
 
-# G4F Client API Guide
-
-## Table of Contents
-   - [Introduction](#introduction)
-   - [Getting Started](#getting-started)
-   - [Switching to G4F Client](#switching-to-g4f-client)
-   - [Initializing the Client](#initializing-the-client)
-   - [Creating Chat Completions](#creating-chat-completions)
-   - [Configuration](#configuration)
-   - [Explanation of Parameters](#explanation-of-parameters)
-   - [Usage Examples](#usage-examples)
-   - [Text Completions](#text-completions)
-   - [Streaming Completions](#streaming-completions)
-   - [Using a Vision Model](#using-a-vision-model)
-   - [Image Generation](#image-generation)
-   - [Creating Image Variations](#creating-image-variations)
-   - [Advanced Usage](#advanced-usage)
-   - [Conversation Memory](#conversation-memory)
-   - [Search Tool Support](#search-tool-support)
-   - [Using a List of Providers with RetryProvider](#using-a-list-of-providers-with-retryprovider)
-   - [Using a Vision Model](#using-a-vision-model)
-   - [Command-line Chat Program](#command-line-chat-program)
-
-## Introduction
-Welcome to the G4F Client API, a cutting-edge tool for seamlessly integrating advanced AI capabilities into your Python applications. This guide is designed to facilitate your transition from using the OpenAI client to the G4F Client, offering enhanced features while maintaining compatibility with the existing OpenAI API.
+## 介绍
+欢迎使用 G4F 客户端 API，这是一款尖端工具，可将高级 AI 功能无缝集成到您的 Python 应用程序中。本指南旨在帮助您从使用 OpenAI 客户端过渡到 G4F 客户端，提供增强的功能，同时保持与现有 OpenAI API 的兼容性。
 
 ---
 
-## Getting Started
+## 入门
 
-### Switching to G4F Client
-**To begin using the G4F Client, simply update your import statement in your Python code:**
+### 切换到 G4F 客户端
+**要开始使用 G4F 客户端，只需在您的 Python 代码中更新导入语句：**
 
-**Old Import:**
+**旧导入：**
 ```python
 from openai import OpenAI
 ```
 
-**New Import:**
+**新导入：**
 ```python
 from g4f.client import Client as OpenAI
 ```
 
-The G4F Client preserves the same familiar API interface as OpenAI, ensuring a smooth transition process.
+G4F 客户端保留了与 OpenAI 相同的熟悉 API 接口，确保平滑的过渡过程。
 
 ---
 
-## Initializing the Client
-To utilize the G4F Client, create a new instance. **Below is an example showcasing custom providers:**
+## 初始化客户端
+要使用 G4F 客户端，请创建一个新实例。**以下是展示自定义提供商的示例：**
 ```python
 from g4f.client import Client
 from g4f.Provider import BingCreateImages, OpenaiChat, Gemini
@@ -56,14 +54,14 @@ from g4f.Provider import BingCreateImages, OpenaiChat, Gemini
 client = Client(
     provider=OpenaiChat,
     image_provider=Gemini,
-    # Add any other necessary parameters
+    # 添加任何其他必要的参数
 )
 ```
 
 ---
 
-## Creating Chat Completions
-**Here’s an improved example of creating chat completions:**
+## 创建聊天补全
+**以下是创建聊天补全的改进示例：**
 ```python
 response = client.chat.completions.create(
     model="gpt-4o-mini",
@@ -73,41 +71,41 @@ response = client.chat.completions.create(
             "content": "Say this is a test"
         }
     ]
-    # Add any other necessary parameters
+    # 添加任何其他必要的参数
 )
 ```
 
-**This example:**
-   - Asks a specific question `Say this is a test`
-   - Configures various parameters like temperature and max_tokens for more control over the output
-   - Disables streaming for a complete response
+**此示例：**
+   - 提出特定问题 `Say this is a test`
+   - 配置各种参数，如 temperature 和 max_tokens，以更好地控制输出
+   - 禁用流式传输以获得完整响应
 
-You can adjust these parameters based on your specific needs.
+您可以根据具体需求调整这些参数。
 
-## Configuration
-**You can set an `api_key` for your provider in the client and define a proxy for all outgoing requests:**
+## 配置
+**您可以在客户端中为提供商设置 `api_key` 并定义所有传出请求的代理：**
 ```python
 from g4f.client import Client
 
 client = Client(
     api_key="your_api_key_here",
     proxies="http://user:pass@host",
-    # Add any other necessary parameters
+    # 添加任何其他必要的参数
 )
 ```
 
 ---
 
-## Explanation of Parameters
-**When using the G4F to create chat completions or perform related tasks, you can configure the following parameters:**
+## 参数解释
+**使用 G4F 创建聊天补全或执行相关任务时，您可以配置以下参数：**
 - **`model`**:  
-  Specifies the AI model to be used for the task. Examples include `"gpt-4o"` for GPT-4 Optimized or `"gpt-4o-mini"` for a lightweight version. The choice of model determines the quality and speed of the response. Always ensure the selected model is supported by the provider.
+  指定用于任务的 AI 模型。示例包括 `"gpt-4o"` 表示 GPT-4 优化版或 `"gpt-4o-mini"` 表示轻量版。模型的选择决定了响应的质量和速度。请确保所选模型受提供商支持。
 
 - **`messages`**:  
-  **A list of dictionaries representing the conversation context. Each dictionary contains two keys:**
-      - `role`: Defines the role of the message sender, such as `"user"` (input from the user) or `"system"` (instructions to the AI).  
-      - `content`: The actual text of the message.  
-  **Example:**
+  **表示对话上下文的字典列表。每个字典包含两个键：**
+      - `role`: 定义消息发送者的角色，如 `"user"`（用户输入）或 `"system"`（对 AI 的指令）。  
+      - `content`: 消息的实际文本。  
+  **示例：**
   ```python
   [
       {"role": "system", "content": "You are a helpful assistant."},
@@ -116,29 +114,29 @@ client = Client(
   ```
 
 - **`provider`**:
-*(Optional)* Specifies the backend provider for the API. Examples include `g4f.Provider.Blackbox` or `g4f.Provider.OpenaiChat`. Each provider may support a different subset of models and features, so select one that matches your requirements.
+*(可选)* 指定 API 的后端提供商。示例包括 `g4f.Provider.Blackbox` 或 `g4f.Provider.OpenaiChat`。每个提供商可能支持不同的模型和功能，因此请选择符合您需求的提供商。
 
-- **`web_search`** (Optional):  
-  Boolean flag indicating whether to enable internet-based search capabilities. This is useful for obtaining real-time or specific details not included in the model’s training data.
+- **`web_search`** (可选):  
+  布尔标志，指示是否启用基于互联网的搜索功能。这对于获取模型训练数据中未包含的实时或特定详细信息非常有用。
 
-#### Providers Limitation
-The `web_search` argument is **limited to specific providers**, including:
+#### 提供商限制
+`web_search` 参数 **仅限于特定提供商**，包括：
   - ChatGPT
   - HuggingChat
   - Blackbox
   - RubiksAI
 
-If your chosen provider does not support `web_search`, it will not function as expected.  
+如果您选择的提供商不支持 `web_search`，则它将无法按预期工作。  
 
-**Alternative Solution:**  
-Instead of relying on the `web_search` argument, you can use the more versatile **Search Tool Support**, which allows for highly customizable web search operations. The search tool enables you to define parameters such as query, number of results, word limit, and timeout, offering greater control over search capabilities.
+**替代解决方案：**  
+与其依赖 `web_search` 参数，您可以使用更通用的 **搜索工具支持**，它允许高度自定义的网络搜索操作。搜索工具使您能够定义查询、结果数量、字数限制和超时等参数，提供更大的搜索功能控制。
 
 ---
 
-## Usage Examples
+## 使用示例
 
-### Text Completions
-**Generate text completions using the `ChatCompletions` endpoint:** 
+### 文本补全
+**使用 `ChatCompletions` 端点生成文本补全：** 
 ```python
 from g4f.client import Client
 
@@ -158,8 +156,8 @@ response = client.chat.completions.create(
 print(response.choices[0].message.content)
 ```
 
-### Streaming Completions
-**Process responses incrementally as they are generated:**
+### 流式补全
+**在生成响应时逐步处理响应：**
 ```python
 from g4f.client import Client
 
@@ -183,8 +181,8 @@ for chunk in stream:
 ```
 
 ---
-### Using a Vision Model
-**Analyze an image and generate a description:**
+### 使用视觉模型
+**分析图像并生成描述：**
 ```python
 import g4f
 import requests
@@ -192,14 +190,14 @@ import requests
 from g4f.client import Client
 from g4f.Provider.GeminiPro import GeminiPro
 
-# Initialize the GPT client with the desired provider and api key
+# 使用所需提供商和 api key 初始化 GPT 客户端
 client = Client(
     api_key="your_api_key_here",
     provider=GeminiPro
 )
 
 image = requests.get("https://raw.githubusercontent.com/xtekky/gpt4free/refs/heads/main/docs/images/cat.jpeg", stream=True).raw
-# Or: image = open("docs/images/cat.jpeg", "rb")
+# 或：image = open("docs/images/cat.jpeg", "rb")
 
 response = client.chat.completions.create(
     model=g4f.models.default,
@@ -210,7 +208,7 @@ response = client.chat.completions.create(
         }
     ],
     image=image
-    # Add any other necessary parameters
+    # 添加任何其他必要的参数
 )
 
 print(response.choices[0].message.content)
@@ -218,13 +216,13 @@ print(response.choices[0].message.content)
 
 ---
 
-### Image Generation
-**The `response_format` parameter is optional and can have the following values:**
-- **If not specified (default):** The image will be saved locally, and a local path will be returned (e.g., "/images/1733331238_cf9d6aa9-f606-4fea-ba4b-f06576cba309.jpg").
-- **"url":** Returns a URL to the generated image.
-- **"b64_json":** Returns the image as a base64-encoded JSON string.
+### 图像生成
+**`response_format` 参数是可选的，可以具有以下值：**
+- **如果未指定（默认）：** 图像将本地保存，并返回本地路径（例如，"/images/1733331238_cf9d6aa9-f606-4fea-ba4b-f06576cba309.jpg"）。
+- **"url":** 返回生成图像的 URL。
+- **"b64_json":** 以 base64 编码的 JSON 字符串返回图像。
 
-**Generate images using a specified prompt:**
+**使用指定的提示生成图像：**
 ```python
 from g4f.client import Client
 
@@ -234,7 +232,7 @@ response = client.images.generate(
     model="flux",
     prompt="a white siamese cat",
     response_format="url"
-    # Add any other necessary parameters
+    # 添加任何其他必要的参数
 )
 
 image_url = response.data[0].url
@@ -242,7 +240,7 @@ image_url = response.data[0].url
 print(f"Generated image URL: {image_url}")
 ```
 
-#### Base64 Response Format
+#### Base64 响应格式
 ```python
 from g4f.client import Client
 
@@ -252,15 +250,15 @@ response = client.images.generate(
     model="flux",
     prompt="a white siamese cat",
     response_format="b64_json"
-    # Add any other necessary parameters
+    # 添加任何其他必要的参数
 )
 
 base64_text = response.data[0].b64_json
 print(base64_text)
 ```
 
-### Creating Image Variations
-**Create variations of an existing image:**
+### 创建图像变体
+**创建现有图像的变体：**
 ```python
 from g4f.client import Client
 from g4f.Provider import OpenaiChat
@@ -272,7 +270,7 @@ client = Client(
 response = client.images.create_variation(
     image=open("docs/images/cat.jpg", "rb"),
     model="dall-e-3",
-    # Add any other necessary parameters
+    # 添加任何其他必要的参数
 )
 
 image_url = response.data[0].url
@@ -282,17 +280,17 @@ print(f"Generated image URL: {image_url}")
 
 ---
 
-## Advanced Usage
+## 高级用法
 
-### Conversation Memory
-To maintain a coherent conversation, it's important to store the context or history of the dialogue. This can be achieved by appending both the user's inputs and the bot's responses to a messages list. This allows the model to reference past exchanges when generating responses.
+### 对话记忆
+为了保持连贯的对话，重要的是存储对话的上下文或历史记录。这可以通过将用户的输入和机器人的响应附加到消息列表中来实现。这使得模型在生成响应时可以参考过去的交流。
 
-**The conversation history consists of messages with different roles:**
-- `system`: Initial instructions that define the AI's behavior
-- `user`: Messages from the user
-- `assistant`: Responses from the AI
+**对话历史记录由具有不同角色的消息组成：**
+- `system`: 定义 AI 行为的初始指令
+- `user`: 来自用户的消息
+- `assistant`: 来自 AI 的响应
 
-**The following example demonstrates how to implement conversation memory with the G4F:**
+**以下示例演示了如何使用 G4F 实现对话记忆：**
 ```python
 from g4f.client import Client
 
@@ -313,17 +311,17 @@ class Conversation:
         })
     
     def get_response(self, user_message):
-        # Add user message to history
+        # 将用户消息添加到历史记录中
         self.add_message("user", user_message)
         
-        # Get response from AI
+        # 从 AI 获取响应
         response = self.client.chat.completions.create(
             model="gpt-4o-mini",
             messages=self.history,
             web_search=False
         )
         
-        # Add AI response to history
+        # 将 AI 响应添加到历史记录中
         assistant_response = response.choices[0].message.content
         self.add_message("assistant", assistant_response)
         
@@ -333,15 +331,15 @@ def main():
     conversation = Conversation()
     
     print("=" * 50)
-    print("G4F Chat started (type 'exit' to end)".center(50))
+    print("G4F 聊天已启动（输入 'exit' 结束）".center(50))
     print("=" * 50)
-    print("\nAI: Hello! How can I assist you today?")
+    print("\nAI: 你好！今天我能帮你什么？")
     
     while True:
-        user_input = input("\nYou: ")
+        user_input = input("\n你: ")
         
         if user_input.lower() == 'exit':
-            print("\nGoodbye!")
+            print("\n再见！")
             break
             
         response = conversation.get_response(user_input)
@@ -351,29 +349,29 @@ if __name__ == "__main__":
     main()
 ```
 
-**Key Features:**
-- Maintains conversation context through a message history
-- Includes system instructions for AI behavior
-- Automatically stores both user inputs and AI responses
-- Simple and clean implementation using a class-based approach
+**主要功能：**
+- 通过消息历史记录维护对话上下文
+- 包含 AI 行为的系统指令
+- 自动存储用户输入和 AI 响应
+- 使用基于类的方法实现简单且干净
 
-**Usage Example:**
+**使用示例：**
 ```python
 conversation = Conversation()
 response = conversation.get_response("Hello, how are you?")
 print(response)
 ```
 
-**Note:**
-The conversation history grows with each interaction. For long conversations, you might want to implement a method to limit the history size or clear old messages to manage token usage.
+**注意：**
+对话历史记录会随着每次交互而增长。对于长对话，您可能需要实现一种方法来限制历史记录的大小或清除旧消息以管理令牌使用。
 
 ---
 
-## Search Tool Support
+## 搜索工具支持
 
-The **Search Tool Support** feature enables triggering a web search during chat completions. This is useful for retrieving real-time or specific data, offering a more flexible solution than `web_search`.
+**搜索工具支持** 功能允许在聊天补全期间触发网络搜索。这对于检索实时或特定数据非常有用，提供比 `web_search` 更灵活的解决方案。
 
-**Example Usage**:
+**使用示例**：
 ```python
 from g4f.client import Client
 
@@ -407,22 +405,22 @@ response = client.chat.completions.create(
 print(response.choices[0].message.content)
 ```
 
-**Parameters for `search_tool`:**
-- **`query`**: The search query string.
-- **`max_results`**: Number of search results to retrieve.
-- **`max_words`**: Maximum number of words in the response.
-- **`backend`**: The backend used for search (e.g., `"api"`).
-- **`add_text`**: Whether to include text snippets in the response.
-- **`timeout`**: Maximum time (in seconds) for the search operation.
+**`search_tool` 的参数：**
+- **`query`**: 搜索查询字符串。
+- **`max_results`**: 要检索的搜索结果数量。
+- **`max_words`**: 响应中的最大字数。
+- **`backend`**: 用于搜索的后端（例如，`"api"`）。
+- **`add_text`**: 是否在响应中包含文本片段。
+- **`timeout`**: 搜索操作的最大时间（以秒为单位）。
 
-**Advantages of Search Tool Support:**
-- Works with any provider, irrespective of `web_search` support.
-- Offers more customization and control over the search process.
-- Bypasses provider-specific limitations.
+**搜索工具支持的优势：**
+- 适用于任何提供商，无论是否支持 `web_search`。
+- 提供更多的自定义和控制搜索过程。
+- 绕过提供商特定的限制。
 
 ---
 
-### Using a List of Providers with RetryProvider
+### 使用带有 RetryProvider 的提供商列表
 ```python
 from g4f.client import Client
 from g4f.Provider import RetryProvider, Phind, FreeChatgpt, Liaobots
@@ -448,50 +446,50 @@ response = client.chat.completions.create(
 print(response.choices[0].message.content)
 ```
   
-## Command-line Chat Program
-**Here's an example of a simple command-line chat program using the G4F Client:**
+## 命令行聊天程序
+**以下是使用 G4F 客户端的简单命令行聊天程序示例：**
 ```python
 import g4f
 from g4f.client import Client
 
-# Initialize the GPT client with the desired provider
+# 使用所需提供商初始化 GPT 客户端
 client = Client()
 
-# Initialize an empty conversation history
+# 初始化空的对话历史记录
 messages = []
 
 while True:
-    # Get user input
-    user_input = input("You: ")
+    # 获取用户输入
+    user_input = input("你: ")
 
-    # Check if the user wants to exit the chat
+    # 检查用户是否想退出聊天
     if user_input.lower() == "exit":
-        print("Exiting chat...")
-        break  # Exit the loop to end the conversation
+        print("退出聊天...")
+        break  # 退出循环以结束对话
 
-    # Update the conversation history with the user's message
+    # 更新对话历史记录中的用户消息
     messages.append({"role": "user", "content": user_input})
 
     try:
-        # Get GPT's response
+        # 获取 GPT 的响应
         response = client.chat.completions.create(
             messages=messages,
             model=g4f.models.default,
         )
 
-        # Extract the GPT response and print it
+        # 提取 GPT 响应并打印
         gpt_response = response.choices[0].message.content
         print(f"Bot: {gpt_response}")
 
-        # Update the conversation history with GPT's response
+        # 更新对话历史记录中的 GPT 响应
         messages.append({"role": "assistant", "content": gpt_response})
 
     except Exception as e:
-        print(f"An error occurred: {e}")
+        print(f"发生错误：{e}")
 ```
  
-This guide provides a comprehensive overview of the G4F Client API, demonstrating its versatility in handling various AI tasks, from text generation to image analysis and creation. By leveraging these features, you can build powerful and responsive applications that harness the capabilities of advanced AI models.
+本指南提供了 G4F 客户端 API 的全面概述，展示了其在处理各种 AI 任务（从文本生成到图像分析和创建）方面的多功能性。通过利用这些功能，您可以构建强大且响应迅速的应用程序，充分利用高级 AI 模型的能力。
 
 
 ---  
-[Return to Home](/)
+[返回首页](/)

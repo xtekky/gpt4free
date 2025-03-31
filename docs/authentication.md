@@ -1,90 +1,90 @@
-**# G4F - Authentication Guide**  
-This documentation explains how to authenticate with G4F providers and configure GUI security. It covers API key management, cookie-based authentication, rate limiting, and GUI access controls.
+**# G4F - 认证指南**  
+本文档解释了如何使用 G4F 提供商进行认证并配置 GUI 安全性。它涵盖了 API 密钥管理、基于 Cookie 的认证、速率限制和 GUI 访问控制。
 
 ---
 
-## **Table of Contents**  
-1. **[Provider Authentication](#provider-authentication)**  
-   - [Prerequisites](#prerequisites)  
-   - [API Key Setup](#api-key-setup)  
-   - [Synchronous Usage](#synchronous-usage)  
-   - [Asynchronous Usage](#asynchronous-usage)  
-   - [Multiple Providers](#multiple-providers-with-api-keys)  
-   - [Cookie-Based Authentication](#cookie-based-authentication)  
-   - [Rate Limiting](#rate-limiting)  
-   - [Error Handling](#error-handling)  
-   - [Supported Providers](#supported-providers)  
-2. **[GUI Authentication](#gui-authentication)**  
-   - [Server Setup](#server-setup)  
-   - [Browser Access](#browser-access)  
-   - [Programmatic Access](#programmatic-access)  
-3. **[Best Practices](#best-practices)**  
-4. **[Troubleshooting](#troubleshooting)**  
+## **目录**  
+1. **[提供商认证](#提供商认证)**  
+   - [先决条件](#先决条件)  
+   - [API 密钥设置](#api-密钥设置)  
+   - [同步使用](#同步使用)  
+   - [异步使用](#异步使用)  
+   - [多个提供商](#多个提供商与api密钥)  
+   - [基于 Cookie 的认证](#基于-cookie-的认证)  
+   - [速率限制](#速率限制)  
+   - [错误处理](#错误处理)  
+   - [支持的提供商](#支持的提供商)  
+2. **[GUI 认证](#gui-认证)**  
+   - [服务器设置](#服务器设置)  
+   - [浏览器访问](#浏览器访问)  
+   - [编程访问](#编程访问)  
+3. **[最佳实践](#最佳实践)**  
+4. **[故障排除](#故障排除)**  
 
 ---
 
-## **Provider Authentication**  
+## **提供商认证**  
 
-### **Prerequisites**  
+### **先决条件**  
 - Python 3.7+  
-- Installed `g4f` package:  
+- 安装 `g4f` 包:  
   ```bash
   pip install g4f
   ```  
-- API keys or cookies from providers (if required).  
+- 提供商的 API 密钥或 Cookie（如果需要）。  
 
 ---
 
-### **API Key Setup**  
-#### **Step 1: Set Environment Variables**  
-**For Linux/macOS (Terminal)**:  
+### **API 密钥设置**  
+#### **步骤 1: 设置环境变量**  
+**对于 Linux/macOS (终端)**:  
 ```bash
-# Example for Anthropic
+# Anthropic 示例
 export ANTHROPIC_API_KEY="your_key_here"
 
-# Example for HuggingFace
+# HuggingFace 示例
 export HUGGINGFACE_API_KEY="another_key_here"
 ```
 
-**For Windows (Command Prompt)**:  
+**对于 Windows (命令提示符)**:  
 ```cmd
-:: Example for Anthropic
+:: Anthropic 示例
 set ANTHROPIC_API_KEY=your_key_here
 
-:: Example for HuggingFace
+:: HuggingFace 示例
 set HUGGINGFACE_API_KEY=another_key_here
 ```
 
-**For Windows (PowerShell)**:  
+**对于 Windows (PowerShell)**:  
 ```powershell
-# Example for Anthropic
+# Anthropic 示例
 $env:ANTHROPIC_API_KEY = "your_key_here"
 
-# Example for HuggingFace
+# HuggingFace 示例
 $env:HUGGINGFACE_API_KEY = "another_key_here"
 ```
 
-#### **Step 2: Initialize Client**  
+#### **步骤 2: 初始化客户端**  
 ```python
 from g4f.client import Client
 
-# Example for Anthropic
+# Anthropic 示例
 client = Client(
     provider="g4f.Provider.Anthropic",
-    api_key="your_key_here"  # Or use os.getenv("ANTHROPIC_API_KEY")
+    api_key="your_key_here"  # 或使用 os.getenv("ANTHROPIC_API_KEY")
 )
 ```
 
 ---
 
-### **Synchronous Usage**  
+### **同步使用**  
 ```python
 from g4f.client import Client
 
-# Initialize with Anthropic
+# 使用 Anthropic 初始化
 client = Client(provider="g4f.Provider.Anthropic", api_key="your_key_here")
 
-# Simple request
+# 简单请求
 response = client.chat.completions.create(
     model="claude-3.5-sonnet",
     messages=[{"role": "user", "content": "Hello!"}]
@@ -94,13 +94,13 @@ print(response.choices[0].message.content)
 
 ---
 
-### **Asynchronous Usage**  
+### **异步使用**  
 ```python
 import asyncio
 from g4f.client import AsyncClient
 
 async def main():
-    # Initialize with Groq
+    # 使用 Groq 初始化
     client = AsyncClient(provider="g4f.Provider.Groq", api_key="your_key_here")
     
     response = await client.chat.completions.create(
@@ -114,13 +114,13 @@ asyncio.run(main())
 
 ---
 
-### **Multiple Providers with API Keys**  
+### **多个提供商与 API 密钥**  
 ```python
 import os
 import g4f.Provider
 from g4f.client import Client
 
-# Using environment variables
+# 使用环境变量
 providers = {
     "Anthropic": os.getenv("ANTHROPIC_API_KEY"),
     "Groq": os.getenv("GROQ_API_KEY")
@@ -137,23 +137,23 @@ for provider_name, api_key in providers.items():
 
 ---
 
-### **Cookie-Based Authentication**  
-**For Providers Like Gemini/Bing**:  
-1. Open your browser and log in to the provider's website.  
-2. Use developer tools (F12) to copy cookies:  
-   - Chrome/Edge: **Application** → **Cookies**  
-   - Firefox: **Storage** → **Cookies**  
+### **基于 Cookie 的认证**  
+**对于像 Gemini/Bing 这样的提供商**:  
+1. 打开浏览器并登录到提供商的网站。  
+2. 使用开发者工具 (F12) 复制 Cookie:  
+   - Chrome/Edge: **应用程序** → **Cookie**  
+   - Firefox: **存储** → **Cookie**  
 
 ```python
 from g4f.client import Client
 from g4f.Provider import Gemini
 
-# Using with cookies
+# 使用 Cookie
 client = Client(
     provider=Gemini,
 )
 response = client.chat.completions.create(
-    model="", # Default model
+    model="", # 默认模型
     messages="Hello Google",
     cookies={
         "__Secure-1PSID": "your_cookie_value_here",
@@ -165,11 +165,11 @@ print(f"Gemini: {response.choices[0].message.content}")
 
 ---
 
-### **Rate Limiting**  
+### **速率限制**  
 ```python
 from aiolimiter import AsyncLimiter
 
-# Limit to 5 requests per second
+# 限制为每秒 5 个请求
 rate_limiter = AsyncLimiter(max_rate=5, time_period=1)
 
 async def make_request():
@@ -179,7 +179,7 @@ async def make_request():
 
 ---
 
-### **Error Handling**  
+### **错误处理**  
 ```python
 from tenacity import retry, stop_after_attempt, wait_exponential
 
@@ -194,48 +194,48 @@ def safe_request():
 
 ---
 
-### **Supported Providers**  
-| Provider       | Auth Type       | Example Models       |  
+### **支持的提供商**  
+| 提供商       | 认证类型       | 示例模型       |  
 |----------------|-----------------|----------------------|  
-| Anthropic      | API Key         | `claude-3.5-sonnet`  |  
-| Gemini         | Cookies         | `gemini-1.5-pro`     |  
-| Groq           | API Key         | `mixtral-8x7b`       |  
-| HuggingFace    | API Key         | `llama-3.1-70b`      |  
+| Anthropic      | API 密钥         | `claude-3.5-sonnet`  |  
+| Gemini         | Cookie         | `gemini-1.5-pro`     |  
+| Groq           | API 密钥         | `mixtral-8x7b`       |  
+| HuggingFace    | API 密钥         | `llama-3.1-70b`      |  
 
-*Full list: [Providers and Models](providers-and-models.md)*  
+*完整列表: [提供商和模型](providers-and-models.md)*  
 
 ---
 
-## **GUI Authentication**  
+## **GUI 认证**  
 
-### **Server Setup**  
-1. Create a password:  
+### **服务器设置**  
+1. 创建密码:  
    ```bash
    # Linux/macOS
    export G4F_API_KEY="your_password_here"
 
-   # Windows (Command Prompt)
+   # Windows (命令提示符)
    set G4F_API_KEY=your_password_here
 
    # Windows (PowerShell)
    $env:G4F_API_KEY = "your_password_here"
    ```  
-2. Start the server:  
+2. 启动服务器:  
    ```bash
    python -m g4f --debug --port 8080 --g4f-api-key $G4F_API_KEY
    ```  
 
 ---
 
-### **Browser Access**  
-1. Navigate to `http://localhost:8080/chat/`.  
-2. Use credentials:  
-   - **Username**: Any value (e.g., `admin`).  
-   - **Password**: Your `G4F_API_KEY`.  
+### **浏览器访问**  
+1. 访问 `http://localhost:8080/chat/`。  
+2. 使用凭据:  
+   - **用户名**: 任意值 (例如 `admin`)。  
+   - **密码**: 您的 `G4F_API_KEY`。  
 
 ---
 
-### **Programmatic Access**  
+### **编程访问**  
 ```python
 import requests
 
@@ -248,26 +248,26 @@ print("Success!" if response.status_code == 200 else f"Failed: {response.status_
 
 ---
 
-## **Best Practices**  
-1. 🔒 **Never hardcode keys**  
-   - Use `.env` files or secret managers like AWS Secrets Manager.  
-2. 🔄 **Rotate keys every 90 days**  
-   - Especially critical for production environments.  
-3. 📊 **Monitor API usage**  
-   - Use tools like Prometheus/Grafana for tracking.  
-4. ♻️ **Retry transient errors**  
-   - Use the `tenacity` library for robust retry logic.  
+## **最佳实践**  
+1. 🔒 **永远不要硬编码密钥**  
+   - 使用 `.env` 文件或像 AWS Secrets Manager 这样的秘密管理器。  
+2. 🔄 **每 90 天轮换一次密钥**  
+   - 对于生产环境尤为重要。  
+3. 📊 **监控 API 使用情况**  
+   - 使用像 Prometheus/Grafana 这样的工具进行跟踪。  
+4. ♻️ **重试临时错误**  
+   - 使用 `tenacity` 库进行健壮的重试逻辑。  
 
 ---
 
-## **Troubleshooting**  
-| Issue                     | Solution                                  |  
+## **故障排除**  
+| 问题                     | 解决方案                                  |  
 |---------------------------|-------------------------------------------|  
-| **"Invalid API Key"**     | 1. Verify key spelling<br>2. Regenerate key in provider dashboard |  
-| **"Cookie Expired"**      | 1. Re-login to provider website<br>2. Update cookie values |  
-| **"Rate Limit Exceeded"** | 1. Implement rate limiting<br>2. Upgrade provider plan |  
-| **"Provider Not Found"**  | 1. Check provider name spelling<br>2. Verify provider compatibility |  
+| **"无效的 API 密钥"**     | 1. 验证密钥拼写<br>2. 在提供商仪表板中重新生成密钥 |  
+| **"Cookie 过期"**      | 1. 重新登录到提供商网站<br>2. 更新 Cookie 值 |  
+| **"超出速率限制"** | 1. 实施速率限制<br>2. 升级提供商计划 |  
+| **"找不到提供商"**  | 1. 检查提供商名称拼写<br>2. 验证提供商兼容性 |  
 
 ---
 
-**[⬆ Back to Top](#table-of-contents)** | **[Providers and Models →](providers-and-models.md)**
+**[⬆ 返回顶部](#目录)** | **[提供商和模型 →](providers-and-models.md)**

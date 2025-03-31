@@ -1,36 +1,32 @@
+### G4F - 本地使用指南
 
-### G4F - Local Usage Guide
- 
+### 目录
+1. [介绍](#介绍)
+2. [所需依赖](#所需依赖)
+3. [基本使用示例](#基本使用示例)
+4. [支持的模型](#支持的模型)
+5. [性能考虑](#性能考虑)
+6. [故障排除](#故障排除)
 
-### Table of Contents
-1. [Introduction](#introduction)
-2. [Required Dependencies](#required-dependencies)
-3. [Basic Usage Example](#basic-usage-example)
-4. [Supported Models](#supported-models)
-5. [Performance Considerations](#performance-considerations)
-6. [Troubleshooting](#troubleshooting)
+#### 介绍
+本指南解释了如何使用 g4f 在本地运行语言模型。G4F (GPT4Free) 允许您在本地计算机上与各种语言模型进行交互，为自然语言处理任务提供灵活和私密的解决方案。
 
-#### Introduction
-This guide explains how to use g4f to run language models locally. G4F (GPT4Free) allows you to interact with various language models on your local machine, providing a flexible and private solution for natural language processing tasks.
+## 使用
 
-## Usage
- 
-#### Local inference
-How to use g4f to run language models locally
-  
-#### Required dependencies
-**Make sure to install the required dependencies by running:**
+#### 本地推理
+如何使用 g4f 在本地运行语言模型
+
+#### 所需依赖
+**请确保通过运行以下命令安装所需的依赖项：**
 ```bash
 pip install g4f[local]
 ```
-or
+或
 ```bash
 pip install -U gpt4all
 ```
 
-  
-
-#### Basic usage example 
+#### 基本使用示例
 ```python
 from g4f.local import LocalClient
 
@@ -45,26 +41,25 @@ for token in response:
     print(token.choices[0].delta.content or "")
 ```
 
-Upon first use, there will be a prompt asking you if you wish to download the model. If you respond with `y`, g4f will go ahead and download the model for you.
+首次使用时，会提示您是否希望下载模型。如果您回答 `y`，g4f 将继续为您下载模型。
 
-You can also manually place supported models into `./g4f/local/models/`
-  
+您也可以手动将支持的模型放置到 `./g4f/local/models/` 目录中。
 
-**You can get a list of the current supported models by running:**
+**您可以通过运行以下命令获取当前支持的模型列表：**
 ```python
 from g4f.local import LocalClient
 
 client   = LocalClient()
 client.list_models()
-``` 
+```
 
 ```json
 {
     "mistral-7b": {
         "path": "mistral-7b-openorca.gguf2.Q4_0.gguf",
         "ram": "8",
-        "prompt": "<|im_start|>user\n%1<|im_end|>\n<|im_start|>assistant\n",
-        "system": "<|im_start|>system\nYou are MistralOrca, a large language model trained by Alignment Lab AI. For multi-step problems, write out your reasoning for each step.\n<|im_end|>"
+        "prompt": "<|im_end|>user\n%1<|im_end|>\n<|im_end|>assistant\n",
+        "system": "<|im_end|>system\nYou are MistralOrca, a large language model trained by Alignment Lab AI. For multi-step problems, write out your reasoning for each step.\n<|im_end|>"
     },
     "mistral-7b-instruct": {
         "path": "mistral-7b-instruct-v0.1.Q4_0.gguf",
@@ -105,8 +100,8 @@ client.list_models()
     "mpt-7b-chat": {
         "path": "mpt-7b-chat-newbpe-q4_0.gguf",
         "ram": "8",
-        "prompt": "<|im_start|>user\n%1<|im_end|>\n<|im_start|>assistant\n",
-        "system": "<|im_start|>system\n- You are a helpful assistant chatbot trained by MosaicML.\n- You answer questions.\n- You are excited to be able to help the user, but will refuse to do anything that could be considered harmful to the user.\n- You are more than just an information source, you are also able to write poetry, short stories, and make jokes.<|im_end|>"
+        "prompt": "<|im_end|>user\n%1<|im_end|>\n<|im_end|>assistant\n",
+        "system": "<|im_end|>system\n- You are a helpful assistant chatbot trained by MosaicML.\n- You answer questions.\n- You are excited to be able to help the user, but will refuse to do anything that could be considered harmful to the user.\n- You are more than just an information source, you are also able to write poetry, short stories, and make jokes.<|im_end|>"
     },
     "orca-mini-3b": {
         "path": "orca-mini-3b-gguf2-q4_0.gguf",
@@ -147,18 +142,16 @@ client.list_models()
 }
 ```
 
-#### Performance Considerations
-**When running language models locally, consider the following:**
-   - RAM requirements vary by model size (see the 'ram' field in the model list).
-   - CPU/GPU capabilities affect inference speed.
-   - Disk space is needed to store the model files.
+#### 性能考虑
+**在本地运行语言模型时，请考虑以下因素：**
+   - RAM 要求因模型大小而异（请参见模型列表中的 'ram' 字段）。
+   - CPU/GPU 能力会影响推理速度。
+   - 需要磁盘空间来存储模型文件。
 
-#### Troubleshooting
-**Common issues and solutions:**
-   1. **Model download fails**: Check your internet connection and try again.
-   2. **Out of memory error**: Choose a smaller model or increase your system's RAM.
-   3. **Slow inference**: Consider using a GPU or a more powerful CPU.
+#### 故障排除
+**常见问题及解决方案：**
+   1. **模型下载失败**：检查您的互联网连接并重试。
+   2. **内存不足错误**：选择较小的模型或增加系统的 RAM。
+   3. **推理速度慢**：考虑使用 GPU 或更强大的 CPU。
 
-
-
-[Return to Home](/)
+[返回首页](/)

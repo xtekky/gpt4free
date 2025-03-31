@@ -1,10 +1,10 @@
-## Vision Support in Chat Completion
+## 视觉支持在聊天补全中的应用
 
-This documentation provides an overview of how to integrate vision support into chat completions using an API and a client. It includes examples to guide you through the process.
+本文档提供了如何在聊天补全中集成视觉支持的概述，包括使用 API 和客户端的示例。
 
-### Example with the API
+### 使用 API 的示例
 
-To use vision support in chat completion with the API, follow the example below:
+要在聊天补全中使用视觉支持，请按照以下示例操作：
 
 ```python
 import requests
@@ -28,16 +28,16 @@ raise_for_status(response)
 print(response.json())
 ```
 
-In this example:
-- `url` is the endpoint for the chat completion API.
-- `body` contains the model, provider, messages, and images.
-- `messages` is a list of message objects with roles and content.
-- `images` is a list of image data in Data URI format and optional filenames.
-- `response` stores the API response.
+在此示例中：
+- `url` 是聊天补全 API 的端点。
+- `body` 包含模型、提供商、消息和图像。
+- `messages` 是包含角色和内容的消息对象列表。
+- `images` 是 Data URI 格式的图像数据和可选文件��的列表。
+- `response` 存储 API 响应。
 
-### Example with the Client
+### 使用客户端的示例
 
-To use vision support in chat completion with the client, follow the example below:
+要在聊天补全中使用视觉支持，请按照以下示例操作：
 
 ```python
 import g4f
@@ -70,14 +70,14 @@ chat_completion(prompt)
 * Sunlight streaming through the window
 ```
 
-In this example:
-- `client` initializes a new client with the specified provider.
-- `images` is a list of image data and optional filenames.
-- `response` stores the response from the client.
-- The `chat_completion` function prints the chat completion output.
+在此示例中：
+- `client` 初始化一个带有指定提供商的新客户端。
+- `images` 是图像数据和可选文件名的列表。
+- `response` 存储来自客户端的响应。
+- `chat_completion` 函数打印聊天补全输出。
 
-### Notes
+### 注意事项
 
-- Multiple images can be sent. Each image has two data parts: image data (in Data URI format for the API) and an optional filename.
-- The client supports bytes, IO objects, and PIL images as input.
-- Ensure you use a provider that supports vision and multiple images.
+- 可以发送多张图像。每张图像有两个数据部分：图像数据（API 使用 Data URI 格式）和可选文件名。
+- 客户端支持字节、IO 对象和 PIL 图像作为输入。
+- 确保使用支持视觉和多图像的提供商。

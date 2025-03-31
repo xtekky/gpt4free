@@ -1,30 +1,30 @@
 ### G4F - Webview GUI
 
-Open the GUI in a window of your OS. Runs on a local/static/ssl server and use a JavaScript API.
-Supports login into the OpenAI Chat (.har files), Image Upload and streamed Text Generation.
+在操作系统的窗口中打开 GUI。运行在本地/静态/SSL 服务器上，并使用 JavaScript API。
+支持登录到 OpenAI Chat（.har 文件）、图像上传和流式文本生成。
 
-Supports all platforms, but only Linux/Windows tested.
+支持所有平台，但仅在 Linux/Windows 上进行了测试。
 
-1. Install all python requirements with:
+1. 使用以下命令安装所有 Python 依赖项：
 
 ```bash
 pip install g4f[webview]
 ```
 
-2. *a)* Follow the **OS specific** steps here:
- [pywebview installation](https://pywebview.flowrl.com/guide/installation.html#dependencies)
+2. *a)* 按照此处的 **操作系统特定** 步骤操作：
+ [pywebview 安装](https://pywebview.flowrl.com/guide/installation.html#dependencies)
 
-2. *b)* **WebView2** on **Windows**: Our application requires the *WebView2 Runtime* to be installed on your system. If you do not have it installed, please download and install it from the [Microsoft Developer Website](https://developer.microsoft.com/en-us/microsoft-edge/webview2/). If you already have *WebView2 Runtime* installed but are encountering issues, navigate to *Installed Windows Apps*, select *WebView2*, and opt for the repair option.
+2. *b)* **Windows 上的 WebView2**：我们的应用程序需要在系统上安装 *WebView2 Runtime*。如果尚未安装，请从 [Microsoft Developer 网站](https://developer.microsoft.com/en-us/microsoft-edge/webview2/) 下载并安装。如果已经安装了 *WebView2 Runtime* 但遇到问题，请导航到 *已安装的 Windows 应用*，选择 *WebView2*，并选择修复选项。
 
-3. Run the app with:
+3. 使用以下命令运行应用程序：
 
 ```python
 from g4f.gui.webview import run_webview
 run_webview(debug=True)
 ```
-or execute the following command:
+或执行以下命令：
 ```bash
 python -m g4f.gui.webview -debug
 ```
 
-[Return to Home](/)
+[返回首页](/)

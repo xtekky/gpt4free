@@ -1,95 +1,93 @@
+# G4F - Git 安装指南
 
-# G4F - Git Installation Guide
+本指南提供了使用 Git 从源代码安装 G4F 的分步说明。
 
-This guide provides step-by-step instructions for installing G4F from the source code using Git.
+## 目录
 
-
-## Table of Contents
-
-1. [Prerequisites](#prerequisites)
-2. [Installation Steps](#installation-steps)
-   1. [Clone the Repository](#1-clone-the-repository)
-   2. [Navigate to the Project Directory](#2-navigate-to-the-project-directory)
-   3. [Set Up a Python Virtual Environment](#3-set-up-a-python-virtual-environment-recommended)
-   4. [Activate the Virtual Environment](#4-activate-the-virtual-environment)
-   5. [Install Dependencies](#5-install-dependencies)
-   6. [Verify Installation](#6-verify-installation)
-3. [Usage](#usage)
-4. [Troubleshooting](#troubleshooting)
-5. [Additional Resources](#additional-resources)
+1. [先决条件](#先决条件)
+2. [安装步骤](#安装步骤)
+   1. [克隆仓库](#1-克隆仓库)
+   2. [导航到项目目录](#2-导航到项目目录)
+   3. [设置 Python 虚拟环境](#3-设置-python-虚拟环境-推荐)
+   4. [激活虚拟环境](#4-激活虚拟环境)
+   5. [安装依赖项](#5-安装依赖项)
+   6. [验证安装](#6-验证安装)
+3. [使用](#使用)
+4. [故障排除](#故障排除)
+5. [其他资源](#其他资源)
 
 ---
 
-## Prerequisites
+## 先决条件
 
-Before you begin, ensure you have the following installed on your system:
+在开始之前，请确保您的系统上已安装以下内容：
 - Git
-- Python 3.7 or higher
-- pip (Python package installer)
+- Python 3.7 或更高版本
+- pip (Python 包管理器)
 
-## Installation Steps
+## 安装步骤
 
-### 1. Clone the Repository
-**Open your terminal and run the following command to clone the G4F repository:**
+### 1. 克隆仓库
+**打开终端并运行以下命令以克隆 G4F 仓库：**
 ```bash
 git clone https://github.com/xtekky/gpt4free.git
 ```
 
-### 2. Navigate to the Project Directory
-**Change to the project directory:**
+### 2. 导航到项目目录
+**切换到项目目录：**
 ```bash
 cd gpt4free
 ```
 
-### 3. Set Up a Python Virtual Environment (Recommended)
-**It's best practice to use a virtual environment to manage project dependencies:**
+### 3. 设置 Python 虚拟环境 (推荐)
+**建议使用虚拟环境来管理项目依赖项：**
 ```bash
 python3 -m venv venv
 ```
 
-### 4. Activate the Virtual Environment
-**Activate the virtual environment based on your operating system:**
+### 4. 激活虚拟环境
+**根据您的操作系统激活虚拟环境：**
 - **Windows:**
   ```bash
   .\venv\Scripts\activate
   ```
 
-- **macOS and Linux:**
+- **macOS 和 Linux:**
   ```bash
   source venv/bin/activate
   ```
 
-### 5. Install Dependencies
-**You have two options for installing dependencies:**
+### 5. 安装依赖项
+**您有两种安装依赖项的选项：**
 
-#### Option A: Install Minimum Requirements
-**For a lightweight installation, use:**
+#### 选项 A: 安装最小依赖项
+**对于轻量级安装，使用：**
 ```bash
 pip install -r requirements-min.txt
 ```
 
-#### Option B: Install All Packages
-**For a full installation with all features, use:**
+#### 选项 B: 安装所有包
+**要进行完整安装并启用所有功能，使用：**
 ```bash
 pip install -r requirements.txt
 ```
 
-### 6. Verify Installation
-You can now create Python scripts and utilize the G4F functionalities. Here's a basic example:
+### 6. 验证安装
+您现在可以创建 Python 脚本并使用 G4F 功能。以下是一个基本示例：
 
-**Create a `g4f-test.py` file in the root folder and start using the repository:**
+**在根文件夹中创建一个 `g4f-test.py` 文件并开始使用仓库：**
 ```python
 import g4f
-# Your code here
+# 在此处编写您的代码
 ```
 
-## Usage
-**After installation, you can start using G4F in your Python scripts. Here's a basic example:**
+## 使用
+**安装完成后，您可以在 Python 脚本中开始使用 G4F。以下是一个基本示例：**
 ```python
 import g4f
 
-# Your G4F code here
-# For example:
+# 在此处编写您的 G4F 代码
+# 例如：
 from g4f.client import Client
 
 client = Client()
@@ -102,28 +100,27 @@ response = client.chat.completions.create(
             "content": "Say this is a test"
         }
     ]
-    # Add any other necessary parameters
+    # 添加任何其他必要的参数
 )
 
 print(response.choices[0].message.content)
 ```
 
-## Troubleshooting
-**If you encounter any issues during installation or usage:**
-   1. Ensure all prerequisites are correctly installed.
-   2. Check that you're in the correct directory and the virtual environment is activated.
-   3. Try reinstalling the dependencies.
-   4. Consult the [G4F documentation](https://github.com/xtekky/gpt4free) for more detailed information.
+## 故障排除
+**如果在安装或使用过程中遇到任何问题：**
+   1. 确保所有先决条件已正确安装。
+   2. 确保您在正确的目录中并且虚拟环境已激活。
+   3. 尝试重新安装依赖项。
+   4. 查阅 [G4F 文档](https://github.com/xtekky/gpt4free) 以获取更详细的信息。
 
-## Additional Resources
-   - [G4F GitHub Repository](https://github.com/xtekky/gpt4free)
-   - [Python Virtual Environments Guide](https://docs.python.org/3/tutorial/venv.html)
-   - [pip Documentation](https://pip.pypa.io/en/stable/)
+## 其他资源
+   - [G4F GitHub 仓库](https://github.com/xtekky/gpt4free)
+   - [Python 虚拟环境指南](https://docs.python.org/3/tutorial/venv.html)
+   - [pip 文档](https://pip.pypa.io/en/stable/)
 
 ---
 
-**_For more information or support, please visit the [G4F GitHub Issues page](https://github.com/xtekky/gpt4free/issues)._**
-
+**_有关更多信息或支持，请访问 [G4F GitHub 问题页面](https://github.com/xtekky/gpt4free/issues)._**
 
 ---  
-[Return to Home](/)
+[返回首页](/)

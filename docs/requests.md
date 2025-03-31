@@ -1,74 +1,74 @@
-# G4F Requests API Guide
+# G4F 请求 API 指南
 
-## Table of Contents
-- [Introduction](#introduction)
-- [Getting Started](#getting-started)
-  - [Installing Dependencies](#installing-dependencies)
-- [Making API Requests](#making-api-requests)
-- [Text Generation](#text-generation)
-  - [Using the Chat Completions Endpoint](#using-the-chat-completions-endpoint)
-  - [Streaming Text Generation](#streaming-text-generation)
-- [Model Retrieval](#model-retrieval)
-  - [Fetching Available Models](#fetching-available-models)
-- [Image Generation](#image-generation)
-  - [Creating Images with AI](#creating-images-with-ai)
-- [Advanced Usage](#advanced-usage)
+## 目录
+- [介绍](#介绍)
+- [入门](#入门)
+  - [安装依赖](#安装依赖)
+- [进行 API 请求](#进行-api-请求)
+- [文本生成](#文本生成)
+  - [使用聊天补全端点](#使用聊天补全端点)
+  - [流式文本生成](#流式文本生成)
+- [模型检索](#模型检索)
+  - [获取可用模型](#获取可用模型)
+- [图像生成](#图像生成)
+  - [使用 AI 创建图像](#使用-ai-创建图像)
+- [高级用法](#高级用法)
 
-## Introduction
+## 介绍
 
-Welcome to the G4F Requests API Guide, a powerful tool for leveraging AI capabilities directly from your Python applications using HTTP requests. This guide will take you through the steps of setting up requests to interact with AI models for a variety of tasks, from text generation to image creation.
+欢迎使用 G4F 请求 API 指南，这是一个强大的工具，可以通过 HTTP 请求直接从您的 Python 应用程序中利用 AI 功能。本指南将带您完成设置请求以与 AI 模型进行交互的步骤，包括文本生成和图像创建。
 
-## Getting Started
+## 入门
 
-### Installing Dependencies
+### 安装依赖
 
-Ensure you have the `requests` library installed in your environment. You can install it via `pip` if needed:
+确保您的环境中已安装 `requests` 库。如果需要，您可以通过 `pip` 安装它：
 
 ```bash
 pip install requests
 ```
 
-This guide provides examples on how to make API requests using Python's `requests` library, focusing on tasks such as text and image generation, as well as retrieving available models.
+本指南提供了如何使用 Python 的 `requests` 库进行 API 请求的示例，重点是文本和图像生成以及检索可用模型。
 
-## Making API Requests
+## 进行 API 请求
 
-Before diving into specific functionalities, it's essential to understand how to structure your API requests. All endpoints assume that your server is running locally at `http://localhost`. If your server is running on a different port, adjust the URLs accordingly (e.g., `http://localhost:8000`).
+在深入了解具体功能之前，了解如何构建 API 请求是至关重要的。所有端点假设您的服务器在 `http://localhost` 本地运行。如果您的服务器在不同的端口上运行，请相应地调整 URL（例如，`http://localhost:8000`）。
 
-## Text Generation
+## 文本生成
 
-### Using the Chat Completions Endpoint
+### 使用聊天补全端点
 
-To generate text responses using the chat completions endpoint, follow this example:
+要使用聊天补全端点生成文本响应，请按照以下示例操作：
 
 ```python
 import requests
 
-# Define the payload
+# 定义负载
 payload = {
     "model": "gpt-4o",
     "temperature": 0.9,
     "messages": [{"role": "system", "content": "Hello, how are you?"}]
 }
 
-# Send the POST request to the chat completions endpoint
+# 发送 POST 请求到聊天补全端点
 response = requests.post("http://localhost/v1/chat/completions", json=payload)
 
-# Check if the request was successful
+# 检查请求是否成功
 if response.status_code == 200:
-    # Print the response text
+    # 打印响应文本
     print(response.text)
 else:
-    print(f"Request failed with status code {response.status_code}")
-    print("Response:", response.text)
+    print(f"请求失败，状态码 {response.status_code}")
+    print("响应:", response.text)
 ```
 
-**Explanation:**
-- This request sends a conversation context to the model, which in turn generates and returns a response.
-- The `temperature` parameter controls the randomness of the output.
+**解释:**
+- 此请求将对话上下文发送到模型，模型生成并返回响应。
+- `temperature` 参数控制输出的随机性。
 
-### Streaming Text Generation
+### 流式文本生成
 
-For scenarios where you want to receive partial responses or stream data as it's generated, you can utilize the streaming capabilities of the API. Here's how you can implement streaming text generation using Python's `requests` library:
+对于希望在生成时接收部分响应或流式数据的场景，您可以利用 API 的流式功能。以下是如何使用 Python 的 `requests` 库实现流式文本生成：
 
 ```python
 import requests
@@ -76,15 +76,15 @@ import json
 
 def fetch_response(url, model, messages):
     """
-    Sends a POST request to the streaming chat completions endpoint.
+    发送 POST 请求到流式聊天补全端点。
 
-    Args:
-        url (str): The API endpoint URL.
-        model (str): The model to use for text generation.
-        messages (list): A list of message dictionaries.
+    参数:
+        url (str): API 端点 URL。
+        model (str): 用于文本生成的模型。
+        messages (list): 消息字典列表。
 
-    Returns:
-        requests.Response: The streamed response object.
+    返回:
+        requests.Response: 流式响应对象。
     """
     payload = {"model": model, "messages": messages, "stream": True}
     headers = {
@@ -94,23 +94,22 @@ def fetch_response(url, model, messages):
     response = requests.post(url, headers=headers, json=payload, stream=True)
     if response.status_code != 200:
         raise Exception(
-            f"Failed to send message: {response.status_code} {response.text}"
+            f"发送消息失败: {response.status_code} {response.text}"
         )
     return response
 
 def process_stream(response):
     """
-    Processes the streamed response and extracts messages.
+    处理流式响应并提取消息。
 
-    Args:
-        response (requests.Response): The streamed response object.
-        output_queue (Queue): A queue to store the extracted messages.
+    参数:
+        response (requests.Response): 流式响应对象。
     """
     for line in response.iter_lines():
         if line:
             line = line.decode("utf-8")
             if line == "data: [DONE]":
-                print("\n\nConversation completed.")
+                print("\n\n对话完成。")
                 break
             if line.startswith("data: "):
                 try:
@@ -119,100 +118,100 @@ def process_stream(response):
                     if message:
                         print(message, end="", flush=True)
                 except json.JSONDecodeError as e:
-                    print(f"Error decoding JSON: {e}")
+                    print(f"解码 JSON 时出错: {e}")
                     continue
 
-# Define the API endpoint
+# 定义 API 端点
 chat_url = "http://localhost:8080/v1/chat/completions"
 
-# Define the payload
+# 定义负载
 model = ""
 messages = [{"role": "user", "content": "Hello, how are you?"}]
 
 try:
-    # Fetch the streamed response
+    # 获取流式响应
     response = fetch_response(chat_url, model, messages)
     
-    # Process the streamed response
+    # 处理流式响应
     process_stream(response)
 
 except Exception as e:
-    print(f"An error occurred: {e}")
+    print(f"发生错误: {e}")
 ```
 
-**Explanation:**
-- **`fetch_response` Function:**
-  - Sends a POST request to the streaming chat completions endpoint with the specified model and messages.
-  - Sets `stream` parameter to `true` to enable streaming.
-  - Raises an exception if the request fails.
+**解释:**
+- **`fetch_response` 函数:**
+  - 发送 POST 请求到流式聊天补全端点，指定模型和消息。
+  - 设置 `stream` 参数为 `true` 以启用流式传输。
+  - 如果请求失败，则引发异常。
 
-- **`process_stream` Function:**
-  - Iterates over each line in the streamed response.
-  - Decodes the line and checks for the termination signal `"data: [DONE]"`.
-  - Parses lines that start with `"data: "` to extract the message content.
+- **`process_stream` 函数:**
+  - 迭代流式响应中的每一行。
+  - 解码行并检查终止信号 `"data: [DONE]"`。
+  - 解析以 `"data: "` 开头的行以提取消息内容。
 
-- **Main Execution:**
-  - Defines the API endpoint, model, and messages.
-  - Fetches and processes the streamed response.
-  - Retrieves and prints messages.
+- **主执行:**
+  - 定义 API 端点、模型和消息。
+  - 获取并处理流式响应。
+  - 检索并打印消息。
 
-**Usage Tips:**
-- Ensure your local server supports streaming.
-- Adjust the `chat_url` if your local server runs on a different port or path.
-- Use threading or asynchronous programming for handling streams in real-time applications.
+**使用提示:**
+- 确保您的本地服务器支持流式传输。
+- 如果您的本地服务器在不同的端口或路径上运行，请调整 `chat_url`。
+- 使用线程或异步编程处理实时应用程序中的流。
 
-## Model Retrieval
+## 模型检索
 
-### Fetching Available Models
+### 获取可用模型
 
-To retrieve a list of available models, you can use the following function:
+要检索可用模型列表，您可以使用以下函数：
 
 ```python
 import requests
 
 def fetch_models():
     """
-    Retrieves the list of available models from the API.
+    从 API 检索可用模型列表。
 
-    Returns:
-        dict: A dictionary containing available models or an error message.
+    返回:
+        dict: 包含可用模型或错误消息的字典。
     """
     url = "http://localhost/v1/models/"
     try:
         response = requests.get(url)
-        response.raise_for_status()  # Raise an error for HTTP issues
-        return response.json()  # Parse and return the JSON response
+        response.raise_for_status()  # 处理 HTTP 问题
+        return response.json()  # 解析并返回 JSON 响应
     except Exception as e:
-        return {"error": str(e)}  # Return an error message if something goes wrong
+        return {"error": str(e)}  # 如果出现问题，返回错误消息
 
 models = fetch_models()
 
 print(models)
 ```
 
-**Explanation:**
-- The `fetch_models` function makes a GET request to the models endpoint.
-- It handles HTTP errors and returns a parsed JSON response containing available models or an error message.
+**解释:**
+- `fetch_models` 函数向模型端点发出 GET 请求。
+- 它处理 HTTP 错误并返回包含可用模型或错误消息的解析 JSON 响应。
 
-## Image Generation
+## 图像生成
 
-### Creating Images with AI
+### 使用 AI 创建图像
 
-The following function demonstrates how to generate images using a specified model:
+以下函数演示了如何使用指定模型生成图像：
 
 ```python
 import requests
 
 def generate_image(prompt: str, model: str = "flux-4o"):
     """
-    Generates an image based on the provided text prompt.
+    根据提供的文本提示生成图像。
 
-    Args:
-        prompt (str): The text prompt for image generation.
-        model (str, optional): The model to use for image generation. Defaults to "flux-4o".
+    参数:
+        prompt (str): 图像生成的文本提示。
+        model (str, optional): 用于图像生成的模型。默认为 "flux-4o"。
 
-    Returns:
-        tuple: A tuple containing the image URL, caption, and the full response.
+    返回:
+        tuple: 包含图像 URL、标题和完整响应的元组。
     """
     payload = {
         "model": model,
@@ -227,39 +226,39 @@ def generate_image(prompt: str, model: str = "flux-4o"):
 
         data = res.get("data")
         if not data or not isinstance(data, list):
-            raise ValueError("Invalid 'data' in response")
+            raise ValueError("响应中的 'data' 无效")
 
         image_url = data[0].get("url")
         if not image_url:
-            raise ValueError("No 'url' found in response data")
+            raise ValueError("响应数据中未找到 'url'")
 
         timestamp = res.get("created")
-        caption = f"Prompt: {prompt}\nCreated: {timestamp}\nModel: {model}"
+        caption = f"提示: {prompt}\n创建时间: {timestamp}\n模型: {model}"
         return image_url, caption, res
 
     except Exception as e:
-        return None, f"Error: {e}", None
+        return None, f"错误: {e}", None
 
 prompt = "A tiger in a forest"
 
 image_url, caption, res = generate_image(prompt)
 
-print("API Response:", res)
-print("Image URL:", image_url)
-print("Caption:", caption)
+print("API 响应:", res)
+print("图像 URL:", image_url)
+print("标题:", caption)
 ```
 
-**Explanation:**
-- The `generate_image` function constructs a request to create an image based on a text prompt.
-- It handles responses and possible errors, ensuring a URL and caption are returned if successful.
+**解释:**
+- `generate_image` 函数构建请求以根据文本提示创建图像。
+- 它处理响应和可能的错误，确保成功时返回 URL 和标题。
 
-## Advanced Usage
+## 高级用法
 
-This guide has demonstrated basic usage scenarios for the G4F Requests API. The API provides robust capabilities for integrating advanced AI into your applications. You can expand upon these examples to fit more complex workflows and tasks, ensuring your applications are built with cutting-edge AI features.
+本指南演示了 G4F 请求 API 的基本用法。该 API 提供了将高级 AI 集成到您的应用程序中的强大功能。您可以扩展这些示例以适应更复杂的工作流和任务，确保您的应用程序具有最先进的 AI 功能。
 
-### Handling Concurrency and Asynchronous Requests
+### 处理并发和异步请求
 
-For applications requiring high performance and non-blocking operations, consider using asynchronous programming libraries such as `aiohttp` or `httpx`. Here's an example using `aiohttp`:
+对于需要高性能和非阻塞操作的应用程序，请考虑使用异步编程库，如 `aiohttp` 或 `httpx`。以下是使用 `aiohttp` 的示例：
 
 ```python
 import aiohttp
@@ -269,13 +268,13 @@ from queue import Queue
 
 async def fetch_response_async(url, model, messages, output_queue):
     """
-    Asynchronously sends a POST request to the streaming chat completions endpoint and processes the stream.
+    异步发送 POST 请求到流式聊天补全端点并处理流。
 
-    Args:
-        url (str): The API endpoint URL.
-        model (str): The model to use for text generation.
-        messages (list): A list of message dictionaries.
-        output_queue (Queue): A queue to store the extracted messages.
+    参数:
+        url (str): API 端点 URL。
+        model (str): 用于文本生成的模型。
+        messages (list): 消息字典列表。
+        output_queue (Queue): 用于存储提取消息的队列。
     """
     payload = {"model": model, "messages": messages, "stream": True}
     headers = {
@@ -287,7 +286,7 @@ async def fetch_response_async(url, model, messages, output_queue):
         async with session.post(url, headers=headers, json=payload) as resp:
             if resp.status != 200:
                 text = await resp.text()
-                raise Exception(f"Failed to send message: {resp.status} {text}")
+                raise Exception(f"发送消息失败: {resp.status} {text}")
             
             async for line in resp.content:
                 decoded_line = line.decode('utf-8').strip()
@@ -316,52 +315,52 @@ async def main():
             print(msg)
 
     except Exception as e:
-        print(f"An error occurred: {e}")
+        print(f"发生错误: {e}")
 
-# Run the asynchronous main function
+# 运行异步主函数
 asyncio.run(main())
 ```
 
-**Explanation:**
-- **`aiohttp` Library:** Facilitates asynchronous HTTP requests, allowing your application to handle multiple requests concurrently without blocking.
-- **`fetch_response_async` Function:**
-  - Sends an asynchronous POST request to the streaming chat completions endpoint.
-  - Processes the streamed response line by line.
-  - Extracts messages and enqueues them into `output_queue`.
-- **`main` Function:**
-  - Defines the API endpoint, model, and messages.
-  - Initializes a `Queue` to store incoming messages.
-  - Invokes the asynchronous fetch function and processes the messages.
+**解释:**
+- **`aiohttp` 库:** 便于异步 HTTP 请求，允许您的应用程序高效地处理多个请求而不阻塞。
+- **`fetch_response_async` 函数:**
+  - 异步发送 POST 请求到流式聊天补全端点。
+  - 逐行处理流式响应。
+  - 提取消息并将其排入 `output_queue`。
+- **`main` 函数:**
+  - 定义 API 端点、模型和消息。
+  - 初始化一个 `Queue` 以存储传入消息。
+  - 调用异步获取函数并处理消息。
 
-**Benefits:**
-- **Performance:** Handles multiple requests efficiently, reducing latency in high-throughput applications.
-- **Scalability:** Easily scales with increasing demand, making it suitable for production environments.
+**优点:**
+- **性能:** 高效处理多个请求，减少高吞吐量应用程序中的延迟。
+- **可扩展性:** 随着需求的增加轻松扩展，适用于生产环境。
 
-**Note:** Ensure you have `aiohttp` installed:
+**注意:** 确保已安装 `aiohttp`：
 
 ```bash
 pip install aiohttp
 ```
 
-## Conclusion
+## 结论
 
-By following this guide, you can effectively integrate the G4F Requests API into your Python applications, enabling powerful AI-driven functionalities such as text and image generation, model retrieval, and handling streaming data. Whether you're building simple scripts or complex, high-performance applications, the examples provided offer a solid foundation to harness the full potential of AI in your projects.
+通过遵循本指南，您可以有效地将 G4F 请求 API 集成到您的 Python 应用程序中，实现强大的 AI 驱动功能，如文本和图像生成、模型检索和处理流式数据。无论您是构建简单脚本还是复杂的高性能应用程序，提供的示例都为利用 AI 在项目中的全部潜力提供了坚实的基础。
 
-Feel free to customize and expand upon these examples to suit your specific needs. If you encounter any issues or have further questions, don't hesitate to seek assistance or refer to additional resources.
+请随意自定义和扩展这些示例以适应您的特定需求。如果您遇到任何问题或有进一步的问题，请不要犹豫，寻求帮助或参考其他资源。
 
 ---
 
-# Additional Notes
+# 附加说明
 
-1. **Adjusting the Base URL:**
-   - The guide assumes your API server is accessible at `http://localhost`. If your server runs on a different port (e.g., `8000`), update the URLs accordingly:
+1. **调整基本 URL:**
+   - 本指南假设您的 API 服务器可通过 `http://localhost` 访问。如果您的服务器在不同的端口（例如 `8000`）上运行，请相应地更新 URL：
      ```python
-     # Example for port 8000
+     # 端口 8000 的示例
      chat_url = "http://localhost:8000/v1/chat/completions"
      ```
    
-2. **Environment Variables (Optional):**
-   - For better flexibility and security, consider using environment variables to store your base URL and other sensitive information.
+2. **环境变量（可选）:**
+   - 为了更好的灵活性和安全性，请考虑使用环境变量来存储您的基本 URL 和其他敏感信息。
      ```python
      import os
 
@@ -369,18 +368,18 @@ Feel free to customize and expand upon these examples to suit your specific need
      chat_url = f"{BASE_URL}/v1/chat/completions"
      ```
 
-3. **Error Handling:**
-   - Always implement robust error handling to gracefully manage unexpected scenarios, such as network failures or invalid responses.
+3. **错误处理:**
+   - 始终实现健壮的错误处理，以优雅地管理意外情况，如网络故障或无效响应。
 
-4. **Security Considerations:**
-   - Ensure that your local API server is secured, especially if accessible over a network. Implement authentication mechanisms if necessary.
+4. **安全考虑:**
+   - 确保您的本地 API 服务器是安全的，特别是如果可以通过网络访问。必要时实施认证机制。
 
-5. **Testing:**
-   - Utilize tools like [Postman](https://www.postman.com/) or [Insomnia](https://insomnia.rest/) for testing your API endpoints before integrating them into your code.
+5. **测试:**
+   - 在将 API 端点集成到代码中之前，使用 [Postman](https://www.postman.com/) 或 [Insomnia](https://insomnia.rest/) 等工具测试它们。
 
-6. **Logging:**
-   - Implement logging to monitor the behavior of your applications, which is crucial for debugging and maintaining your systems.
+6. **日志记录:**
+   - 实现日志记录以监控应用程序的行为，这对于调试和维护系统至关重要。
 
 ---
 
-[Return to Home](/)
+[返回首页](/)

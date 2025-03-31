@@ -1,29 +1,26 @@
-# G4F - Interference API Usage Guide
-  
+# G4F - 干扰 API 使用指南
 
-## Table of Contents
-   - [Introduction](#introduction)
-   - [Running the Interference API](#running-the-interference-api)
-   - [From PyPI Package](#from-pypi-package)
-   - [From Repository](#from-repository)
-   - [Using the Interference API](#using-the-interference-api)
-   - [Basic Usage](#basic-usage)
-   - [Using the OpenAI Library](#using-the-openai-library)
-   - [With Requests Library](#with-requests-library)
-   - [Selecting a Provider](#selecting-a-provider)
-   - [Key Points](#key-points)
-   - [Conclusion](#conclusion)
+## 目录
+   - [介绍](#介绍)
+   - [运行干扰 API](#运行干扰-api)
+   - [从 PyPI 包运行](#从-pypi-包运行)
+   - [从仓库运行](#从仓库运行)
+   - [使用干扰 API](#使用干扰-api)
+   - [基本用法](#基本用法)
+   - [使用 OpenAI 库](#使用-openai-库)
+   - [使用 Requests 库](#使用-requests-库)
+   - [选择提供商](#选择提供商)
+   - [关键点](#关键点)
+   - [结论](#结论)
 
-## Introduction
-The G4F Interference API is a powerful tool that allows you to serve other OpenAI integrations using G4F (Gpt4free). It acts as a proxy, translating requests intended for the OpenAI API into requests compatible with G4F providers. This guide will walk you through the process of setting up, running, and using the Interference API effectively.
-  
+## 介绍
+G4F 干扰 API 是一个强大的工具，它允许您使用 G4F (Gpt4free) 为其他 OpenAI 集成提供服务。它充当代理，将针对 OpenAI API 的请求转换为与 G4F 提供商兼容的请求。本指南将引导您完成设置、运行和有效使用干扰 API 的过程。
 
-## Running the Interference API
-**You can run the Interference API in two ways:** using the PyPI package or from the repository.
-  
+## 运行干扰 API
+**您可以通过两种方式运行干扰 API：** 使用 PyPI 包或从仓库运行。
 
-### From PyPI Package
-**To run the Interference API directly from the G4F PyPI package, use the following Python code:**
+### 从 PyPI 包运行
+**要直接从 G4F PyPI 包运行干扰 API，请使用以下 Python 代码：**
 
 ```python
 from g4f.api import run_api
@@ -31,33 +28,32 @@ from g4f.api import run_api
 run_api()
 ```
 
-  
-### From Repository
-**If you prefer to run the Interference API from the cloned repository, you have two options:**
+### 从仓库运行
+**如果您更喜欢从克隆的仓库运行干扰 API，您有两种选择：**
 
-1. **Using the command line:**
+1. **使用命令行：**
 ```bash
 g4f api
 ```
 
-2. **Using Python:**
+2. **使用 Python：**
 ```bash
 python -m g4f.api.run
 ```
 
-**Once running, the API will be accessible at:** `http://localhost:1337/v1`
+**运行后，API 将可通过以下地址访问：** `http://localhost:1337/v1`
 
-**(Advanced) Bind to custom port:**
+**（高级）绑定到自定义端口：**
 ```bash
 python -m g4f.cli api --bind "0.0.0.0:2400" 
 ```
 
-## Using the Interference API
+## 使用干扰 API
 
-### Basic Usage
-**You can interact with the Interference API using curl commands for both text and image generation:**
+### 基本用法
+**您可以使用 curl 命令与干扰 API 进行交互，进行文本和图像生成：**
 
-**For text generation:**
+**文本生成：**
 ```bash
 curl -X POST "http://localhost:1337/v1/chat/completions" \
      -H "Content-Type: application/json" \
@@ -72,8 +68,8 @@ curl -X POST "http://localhost:1337/v1/chat/completions" \
          }'
 ```
 
-**For image generation:**
-1. **url:**
+**图像生成：**
+1. **url：**
 ```bash
 curl -X POST "http://localhost:1337/v1/images/generate" \
      -H "Content-Type: application/json" \
@@ -97,48 +93,47 @@ curl -X POST "http://localhost:1337/v1/images/generate" \
 
 ---
 
-### Using the OpenAI Library
+### 使用 OpenAI 库
 
-**To utilize the Inference API with the OpenAI Python library, you can specify the `base_url` to point to your endpoint:**
+**要使用 OpenAI Python 库与干扰 API 进行交互，您可以将 `base_url` 指向您的端点：**
 
 ```python
 from openai import OpenAI
 
-# Initialize the OpenAI client
+# 初始化 OpenAI 客户端
 client = OpenAI(
-    api_key="secret",  # Set an API key (use "secret" if your provider doesn't require one)
-    base_url="http://localhost:1337/v1"  # Point to your local or custom API endpoint
+    api_key="secret",  # 设置 API 密钥（如果您的提供商不需要，可以使用 "secret"）
+    base_url="http://localhost:1337/v1"  # 指向您的本地或自定义 API 端点
 )
 
-# Create a chat completion request
+# 创建聊天补全请求
 response = client.chat.completions.create(
-    model="gpt-4o-mini",  # Specify the model to use
-    messages=[{"role": "user", "content": "Write a poem about a tree"}],  # Define the input message
-    stream=True,  # Enable streaming for real-time responses
+    model="gpt-4o-mini",  # 指定要使用的模型
+    messages=[{"role": "user", "content": "Write a poem about a tree"}],  # 定义输入消息
+    stream=True,  # 启用流式传输以实现实时响应
 )
 
-# Handle the response
+# 处理响应
 if isinstance(response, dict):
-    # Non-streaming response
+    # 非流式响应
     print(response.choices[0].message.content)
 else:
-    # Streaming response
+    # 流式响应
     for token in response:
         content = token.choices[0].delta.content
         if content is not None:
             print(content, end="", flush=True)
 ```
 
-**Notes:**
-- The `api_key` is required by the OpenAI Python library. If your provider does not require an API key, you can set it to `"secret"`. This value will be ignored by providers in G4F.
-- Replace `"http://localhost:1337/v1"` with the appropriate URL for your custom or local inference API.
+**注意：**
+- OpenAI Python 库需要 `api_key`。如果您的提供商不需要 API 密钥，您可以将其设置为 `"secret"`。G4F 中的提供商将忽略此值。
+- 将 `"http://localhost:1337/v1"` 替换为适当的 URL，以指向您的自定义或本地干扰 API。
 
 ---
-  
 
-### With Requests Library
+### 使用 Requests 库
 
-**You can also send requests directly to the Interference API using the `requests` library:**
+**您还可以使用 `requests` 库直接向干扰 API 发送请求：**
 ```python
 import requests
 
@@ -156,27 +151,24 @@ json_response = requests.post(url, json=body).json().get('choices', [])
 
 for choice in json_response:
     print(choice.get('message', {}).get('content', ''))
-
 ```
 
-## Selecting a Provider
+## 选择提供商
 
-**Provider Selection**: [How to Specify a Provider?](selecting_a_provider.md)
+**提供商选择**： [如何指定提供商？](selecting_a_provider.md)
 
-Selecting the right provider is a key step in configuring the G4F Interference API to suit your needs. Refer to the guide linked above for detailed instructions on choosing and specifying a provider.
+选择合适的提供商是配置 G4F 干扰 API 以满足您需求的关键步骤。请参阅上面链接的指南，了解选择和指定提供商的详细说明。
 
-## Key Points
-   - The Interference API translates OpenAI API requests into G4F provider requests.
-   - It can be run from either the PyPI package or the cloned repository.
-   - The API supports usage with the OpenAI Python library by changing the `base_url`.
-   - Direct requests can be sent to the API endpoints using libraries like `requests`.
-   - Both text and image generation are supported.
+## 关键点
+   - 干扰 API 将 OpenAI API 请求转换为 G4F 提供商请求。
+   - 它可以从 PyPI 包或克隆的仓库运行。
+   - 通过更改 `base_url`，API 支持与 OpenAI Python 库一起使用。
+   - 可以使用 `requests` 等库直接向 API 端点发送请求。
+   - 支持文本和图像生成。
 
-  
-## Conclusion
-The G4F Interference API provides a seamless way to integrate G4F with existing OpenAI-based applications and tools. By following this guide, you should now be able to set up, run, and use the Interference API effectively. Whether you're using it for text generation, image creation, or as a drop-in replacement for OpenAI in your projects, the Interference API offers flexibility and power for your AI-driven applications.
- 
+## 结论
+G4F 干扰 API 提供了一种无缝的方式，将 G4F 集成到现有的基于 OpenAI 的应用程序和工具中。通过遵循本指南，您现在应该能够有效地设置、运行和使用干扰 API。无论您是将其用于文本生成、图像创建，还是作为 OpenAI 在项目中的替代品，干扰 API 都为您的 AI 驱动应用程序提供了灵活性和强大功能。
 
 ---
 
-[Return to Home](/)
+[返回首页](/)

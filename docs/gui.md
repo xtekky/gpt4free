@@ -1,133 +1,133 @@
-# G4F - GUI Documentation
+# G4F - GUI 文档
 
-## Overview
-The G4F GUI is a self-contained, user-friendly interface designed for interacting with multiple AI models from various providers. It allows users to generate text, code, and images effortlessly. Advanced features such as speech recognition, file uploads, conversation backup/restore, and more are included. Both the backend and frontend are fully integrated into the GUI, making setup simple and seamless.
+## 概述
+G4F GUI 是一个自包含的用户友好界面，旨在与来自各种提供商的多个 AI 模型进行交互。它允许用户轻松生成文本、代码和图像。高级功能如语音识别、文件上传、对话备份/恢复等均包含在内。后端和前端完全集成到 GUI 中，使设置变得简单无缝。
 
-## Features
+## 功能
 
-### 1. **Multiple Providers and Models**
-   - **Provider/Model Selection via Dropdown**  
-     Use the select box to choose a specific **provider/model combination**.  
-   - **Pinning Provider/Model Combinations**  
-     After selecting a provider and model from the dropdown, click the **pin button** to add the combination to the pinned list.  
-   - **Remove Pinned Combinations**  
-     Each pinned provider/model combination is displayed as a button. Clicking on the button removes it from the pinned list.  
-   - **Send Requests to Multiple Providers**  
-     You can pin multiple provider/model combinations and send requests to all of them simultaneously, enabling fast and comprehensive content generation.
+### 1. **多个提供商和模型**
+   - **通过下拉菜单选择提供商/模型**  
+     使用选择框选择特定的**提供商/模型组合**。  
+   - **固定提供商/模型组合**  
+     从下拉菜单中选择提供商和模型后，点击**固定按钮**将组合添加到固定列表中。  
+   - **移除固定组合**  
+     每个固定的提供商/模型组合显示为一个按钮。点击按钮可将其从固定列表中移除。  
+   - **向多个提供商发送请求**  
+     您可以固定多个提供商/模型组合，并同时向所有提供商发送请求，从而实现快速全面的内容生成。
 
-### 2. **Text, Code, and Image Generation**
-   - **Text and Code Generation**  
-     Enter prompts to generate text or code outputs.  
-   - **Image Generation**  
-     Provide text prompts to generate images, which are shown as thumbnails. Clicking on a thumbnail opens the image in a lightbox view.
+### 2. **文本、代码和图像生成**
+   - **文本和代码生成**  
+     输入提示以生成文本或代码输出。  
+   - **图像生成**  
+     提供文本提示以生成图像，图像以缩略图形式显示。点击缩略图可在灯箱视图中打开图像。
 
-### 3. **Gallery Functionality**
-   - **Image Thumbnails**  
-     Generated images appear as small thumbnails within the conversation.  
-   - **Lightbox View**  
-     Clicking a thumbnail opens the image in full size, along with the prompt used to generate it.  
-   - **Automatic Image Download**  
-     You can enable automatic downloading of generated images through the settings.
+### 3. **画廊功能**
+   - **图像缩略图**  
+     生成的图像以小缩略图形式显示在对话中。  
+   - **灯箱视图**  
+     点击缩略图可全尺寸查看图像，并显示用于生成图像的提示。  
+   - **自动下载图像**  
+     您可以通过设置启用自动下载生成的图像。
 
-### 4. **Conversation Management**
-   - **Message Reuse**  
-     While messages cannot be edited after sending, you can copy and reuse them.  
-   - **Message Deletion**  
-     Individual messages or entire conversations can be deleted for a cleaner workspace.  
-   - **Conversation List**  
-     The left sidebar displays a list of active and past conversations for easy navigation.  
-   - **Change Conversation Title**  
-     By clicking the three dots next to a conversation title, you can either delete the conversation or change its title.  
-   - **Backup and Restore Conversations**  
-     Backup and restore all conversations and messages as a JSON file (accessible via the settings).
+### 4. **对话管理**
+   - **消息重用**  
+     虽然消息在发送后无法编辑，但您可以复制并重用它们。  
+   - **删除消息**  
+     可以删除单个消息或整个对话，以保持工作区整洁。  
+   - **对话列表**  
+     左侧边栏显示活动和过去的对话列表，便于导航。  
+   - **更改对话标题**  
+     点击对话标题旁边的三个点，可以删除对话或更改其标题。  
+   - **备份和恢复对话**  
+     将所有对话和消息备份为 JSON 文件（可通过设置访问）。
 
-### 5. **Speech Recognition and Synthesis**
-   - **Speech Input**  
-     Use speech recognition to input prompts by speaking instead of typing.  
-   - **Speech Output (Text-to-Speech)**  
-     The generated text can be read aloud using speech synthesis.  
-   - **Custom Language Settings**  
-     Configure the language used for speech recognition to match your preference.
+### 5. **语音识别和合成**
+   - **语音输入**  
+     使用语音识别通过说话而不是打字输入提示。  
+   - **语音输出（文本转语音）**  
+     生成的文本可以通过语音合成朗读。  
+   - **自定义语言设置**  
+     配置用于语音识别的语言以匹配您的偏好。
 
-### 6. **File Uploads**
-   - **Image Uploads**  
-     Upload images that will be appended to your message and sent to the AI provider.  
-   - **Text File Uploads**  
-     Upload text files; their contents will be added to the message to provide more detailed input to the AI.
+### 6. **文件上传**
+   - **图像上传**  
+     上传的图像将附加到您的消息中并发送给 AI 提供商。  
+   - **文本文件上传**  
+     上传的文本文件内容将添加到消息中，以提供更详细的输入给 AI。
 
-### 7. **Web Access and Settings**
-   - **DuckDuckGo Web Access**  
-     Enable web access through DuckDuckGo for privacy-focused browsing.  
-   - **Theme Toggle**  
-     Switch between **dark mode** and **light mode** in the settings.  
-   - **Provider Visibility**  
-     Hide unused providers in the settings using toggle buttons.  
-   - **Log Access**  
-     View application logs, including error messages and debug logs, through the settings.
+### 7. **网络访问和设置**
+   - **DuckDuckGo 网络访问**  
+     启用 DuckDuckGo 进行隐私保护的浏览。  
+   - **主题切换**  
+     在设置中切换**暗模式**和**亮模式**。  
+   - **提供商可见性**  
+     使用切换按钮在设置中隐藏未使用的提供商。  
+   - **日志访问**  
+     通过设置查看应用程序日志，包括错误消息和调试日志。
 
-### 8. **Authentication**
-   - **Basic Authentication**  
-     You can set a password for Basic Authentication using the `--g4f-api-key` argument when starting the web server.
+### 8. **认证**
+   - **基本认证**  
+     您可以在启动 Web 服务器时使用 `--g4f-api-key` 参数设置基本认证密码。
 
-### 9. **Continue Button**
-   - **Automatic Detection of Truncated Responses**  
-     When using providers, responses may occasionally be cut off or truncated.  
-   - **Continue Button**  
-     If the GUI detects that the response ended abruptly, a **Continue** button appears directly below the truncated message. Clicking this button sends a follow-up request to the same provider and model, retrieving the rest of the message.  
-   - **Seamless Conversation Flow**  
-     This feature ensures that you can read complete messages without manually re-prompting.  
+### 9. **继续按钮**
+   - **自动检测截断响应**  
+     使用提供商时，响应可能会偶尔被截断。  
+   - **继续按钮**  
+     如果 GUI 检测到响应突然结束，则在截断消息下方会出现一个**继续**按钮。点击此按钮会向同一提供商和模型发送后续请求，检索剩余的消息。  
+   - **无缝对话流**  
+     此功能确保您可以阅读完整的消息，而无需手动重新提示。  
 
 ---
 
-## Installation
+## 安装
 
-You can install the G4F GUI either as a full stack or in a lightweight version:
+您可以安装 G4F GUI 作为完整堆栈或轻量级版本：
 
-1. **Full Stack Installation** (includes all packages, including browser support and drivers):
+1. **完整堆栈安装**（包括所有包，包括浏览器支持和驱动程序）：
    ```bash
    pip install -U g4f[all]
    ```
    
-   - Installs all necessary dependencies, including browser support for web-based interactions.
+   - 安装所有必要的依赖项，包括用于基于 Web 的交互的浏览器支持。
 
-2. **Slim Installation** (does not include browser drivers, suitable for headless environments):
+2. **轻量��安装**（不包括浏览器驱动程序，适用于无头环境）：
    ```bash
    pip install -U g4f[slim]
    ```
    
-   - This version is lighter, with no browser support, ideal for environments where browser interactions are not required.
+   - 此版本较轻，无浏览器支持，适用于不需要浏览器交互的环境。
 
 ---
 
-## Setup
+## 设置
 
-### 1. Setting the Environment Variable
+### 1. 设置环境变量
 
-It is **recommended** to set a `G4F_API_KEY` environment variable for authentication. You can do this as follows:
+**推荐**设置 `G4F_API_KEY` 环境变量进行认证。您可以按以下方式进行设置：
 
-- **Linux/macOS**:
+- **Linux/macOS**：
   ```bash
   export G4F_API_KEY="your-api-key-here"
   ```
 
-- **Windows**:
+- **Windows**：
   ```bash
   set G4F_API_KEY="your-api-key-here"
   ```
 
-### 2. Start the GUI and Backend
+### 2. 启动 GUI 和后端
 
-Run the following command to start both the GUI and backend services based on the G4F client:
+运行以下命令以基于 G4F 客户端启动 GUI 和后端服务：
 
 ```bash
 python -m g4f --debug --port 8080 --g4f-api-key $G4F_API_KEY
 ```
 
-This starts the GUI at `http://localhost:8080` with all necessary backend components running seamlessly.
+这将在 `http://localhost:8080` 启动 GUI，并无缝运行所有必要的后端组件。
 
-### 3. Access the GUI
+### 3. 访问 GUI
 
-Once the server is running, open your browser and navigate to:
+服务器启动后，打开浏览器并导航到：
 
 ```
 http://localhost:8080/chat/
@@ -135,78 +135,78 @@ http://localhost:8080/chat/
 
 ---
 
-## Using the Interface
+## 使用界面
 
-1. **Select and Manage Providers/Models**  
-   - Use the **select box** to view the list of available providers and models.  
-   - Select a **provider/model combination** from the dropdown.  
-   - Click the **pin button** to add the combination to your pinned list.  
-   - To **unpin** a combination, click the corresponding pinned button.
+1. **选择和管理提供商/模型**  
+   - 使用**选择框**查看可用的提供商和模型列表。  
+   - 从下拉菜单中选择**提供商/模型组合**。  
+   - 点击**固定按钮**将组合添加到固定列表中。  
+   - 要**取消固定**组合，请点击相应的固定按钮。
 
-2. **Input a Prompt**  
-   - Enter your prompt manually or use **speech recognition** to dictate it.  
-   - You can also upload **images** or **text files** to include them in your prompt.
+2. **输入提示**  
+   - 手动输入提示或使用**语音识别**进行口述。  
+   - 您还可以上传**图像**或**文本文件**以将其包含在提示中。
 
-3. **Generate Content**  
-   - Click the **Generate** button to produce the text, code, or images requested.
+3. **生成内容**  
+   - 点击**生成**按钮以生成所请求的文本、代码或图像。
 
-4. **View and Interact with Results**  
-   - **Text/Code:** The generated response appears in the conversation window.  
-   - **Images:** Generated images are displayed as thumbnails. Click on any thumbnail to view it in full size within the lightbox.
+4. **查看和交互结果**  
+   - **文本/代码**：生成的响应显示在对话窗口中。  
+   - **图像**：生成的图像以缩略图形式显示。点击任何缩略图可在灯箱中全尺寸查看。
 
-5. **Continue Button**  
-   - If a response is truncated, a **Continue** button will appear under the last message. Clicking it asks the same provider to continue the response from where it ended.
+5. **继续按钮**  
+   - 如果响应被截断，则在最后一条消息下方会出现一个**继续**按钮。点击它会请求同一提供商继续响应。
 
-6. **Manage Conversations**  
-   - **Delete** or **rename** any conversation by clicking the three dots next to its title.  
-   - **Backup/Restore** all your conversations as a JSON file in the settings.
-
----
-
-## Gallery Functionality
-
-- **Image Thumbnails:** All generated images are shown as thumbnails within the conversation window.  
-- **Lightbox View:** Clicking any thumbnail opens the image in a larger view along with the associated prompt.  
-- **Automatic Image Download:** Enable this feature in the settings if you want images to be saved automatically.
+6. **管理对话**  
+   - 点击对话标题旁边的三个点可以**删除**或**重命名**对话。  
+   - 在设置中将所有对话备份/恢复为 JSON 文件。
 
 ---
 
-## Settings Configuration
+## 画廊功能
 
-1. **API Key**  
-   Set your API key when starting the server by defining the `G4F_API_KEY` environment variable.
-
-2. **Provider Visibility**  
-   Hide any providers you don’t plan to use through the settings.
-
-3. **Theme**  
-   Toggle between **dark mode** and **light mode**. Disabling dark mode switches to a white theme.
-
-4. **DuckDuckGo Access**  
-   Optionally enable DuckDuckGo for privacy-focused web searching.
-
-5. **Speech Recognition Language**  
-   Configure your preferred speech recognition language.
-
-6. **Log Access**  
-   View logs (including error and debug messages) from the settings menu.
-
-7. **Automatic Image Download**  
-   Enable this to have all generated images downloaded immediately upon creation.
+- **图像缩略图**：所有生成的图像在对话窗口中显示为缩略图。  
+- **灯箱视图**：点击任何缩略图可在较大视图中打开图像，并显示相关提示。  
+- **自动下载图像**：在设置中启用此功能，如果您希望图像在创建后立即保存。
 
 ---
 
-## Known Issues
+## 设置配置
 
-1. **Gallery Loading**  
-   Large images may take additional time to load depending on your hardware and network.
+1. **API 密钥**  
+   启动服务器时通过定义 `G4F_API_KEY` 环境变量设置您的 API 密钥。
 
-2. **Speech Recognition Accuracy**  
-   Voice recognition may vary with microphone quality, background noise, or speech clarity.
+2. **提供商可见性**  
+   通过设置隐藏您不打算使用的提供商。
 
-3. **Provider Downtime**  
-   Some AI providers may experience temporary downtime or disruptions.
+3. **主题**  
+   切换**暗模式**和**亮模式**。禁用暗模式切换为白色主题。
+
+4. **DuckDuckGo 访问**  
+   可选启用 DuckDuckGo 进行隐私保护的网络搜索。
+
+5. **语音识别语言**  
+   配置您偏好的语音识别语言。
+
+6. **日志访问**  
+   通过设置菜单查看日志（包括错误和调试消息）。
+
+7. **自动下载图像**  
+   启用此功能以在创建图像时立即下载所有生成的图像。
 
 ---
 
-[Return to Home](/)
+## 已知问题
+
+1. **画廊加载**  
+   大图像可能需要额外时间加载，具体取决于您的硬件和网络。
+
+2. **语音识别准确性**  
+   语音识别可能会因麦克风质量、背景噪音或语音清晰度而有所不同。
+
+3. **提供商停机**  
+   某些 AI 提供商可能会遇到临时停机或中断。
+
+---
+
+[返回首页](/)

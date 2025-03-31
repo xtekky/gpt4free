@@ -1,43 +1,43 @@
-### G4F - Additional Requirements
+### G4F - 额外要求
 
-#### Introduction
+#### 介绍
 
-You can install requirements partially or completely. So G4F can be used as you wish. You have the following options for this:
+您可以部分或完全安装所需的依赖项。因此，G4F 可以根据您的需求进行使用。您有以下选项：
 
-#### Options
+#### 选项
 
-Install g4f with all possible dependencies:
+安装 g4f 及其所有可能的依赖项：
 ```
 pip install -U g4f[all]
 ```
-Or install only g4f and the required packages for the OpenaiChat provider:
+或者仅安装 g4f 和 OpenaiChat 提供商所需的包：
 ```
 pip install -U g4f[openai]
 ```
-Install required packages for the Interference API:
+安装干扰 API 所需的包：
 ```
 pip install -U g4f[api]
 ```
-Install required packages for the Web UI:
+安装 Web UI 所需的包：
 ```
 pip install -U g4f[gui]
 ```
-Install required packages for uploading / generating images:
+安装上传/生成图像所需的包：
 ```
 pip install -U g4f[image]
 ```
-Install required package for proxy support with aiohttp:
+安装支持 aiohttp 代理的所需包：
 ```
 pip install -U aiohttp_socks
 ```
-Install required package for loading cookies from browser:
+安装从浏览器加载 cookies 所需的包：
 ```
 pip install browser_cookie3
 ```
-Install all packages and uninstall this package for disabling the browser support:
+安装所有包并卸载此包以禁用浏览器支持：
 ```
 pip uninstall nodriver 
 ```
 
 ---
-[Return to Home](/)
+[返回首页](/)
