@@ -1316,6 +1316,7 @@ form textarea {
 
 .field a {
     text-wrap: nowrap;
+    padding: 4px;
 }
 
 .field .fa-xmark {

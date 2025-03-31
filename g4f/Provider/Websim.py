@@ -124,7 +124,7 @@ class Websim(AsyncGeneratorProvider, ProviderModelMixin):
                 response_json = json.loads(response_text)
                 image_url = response_json.get("url")
                 if image_url:
-                    yield ImageResponse(images=[image_url], alt=used_prompt)
+                    yield ImageResponse(urls=[image_url], alt=used_prompt)
 
     @classmethod
     async def _handle_chat_request(

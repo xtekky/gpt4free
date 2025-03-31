@@ -170,7 +170,7 @@ class Airforce(AsyncGeneratorProvider, ProviderModelMixin):
             async with session.get(cls.api_endpoint_imagine2, params=params, proxy=proxy) as response:
                 if response.status == 200:
                     image_url = str(response.url)
-                    yield ImageResponse(images=image_url, alt=prompt)
+                    yield ImageResponse(urls=image_url, alt=prompt)
                 else:
                     error_text = await response.text()
                     raise RuntimeError(f"Image generation failed: {response.status} - {error_text}")
