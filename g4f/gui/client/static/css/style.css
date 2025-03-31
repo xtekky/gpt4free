@@ -611,15 +611,6 @@ input-count .text {
     transition: all 0.3s;
 }
 
-@media only screen and (min-width: 40em) {
-    .stop_generating {
-        right: 4px;
-    }
-    .chat-toolbar .regenerate span {
-        display: block;
-    }
-}
-
 .chat-toolbar .hide-input {
     background: transparent;
     border: none;
@@ -966,6 +957,22 @@ input.model:hover
 }
 
 @media only screen and (min-width: 40em) {
+    .sidebar.expanded {
+        width: 400px;
+    }
+    
+    .sidebar.expanded + .chat-container {
+        margin-left: 400px;
+        width: calc(100% - 400px);
+    }
+    
+    .stop_generating {
+        right: 4px;
+    }
+    .chat-toolbar .regenerate span {
+        display: block;
+    }
+    
     select, input.model {
         width: 200px;
     }
@@ -984,7 +991,8 @@ input.model:hover
     body:not(.white) .gradient{
         display: block;
     }
-    .settings .label:not([for="systemPrompt"]), form .label {
+    .settings .label:not([for="systemPrompt"]), 
+    form .label {
         min-width: 200px;
     }
 }
@@ -1195,12 +1203,6 @@ ul {
 /* Add a subtle animation to the collapsible sections when they're active */
 .field.collapsible:has(.collapsible-header.active) {
     border-left: 3px solid var(--accent);
-}
-
-@media screen and (min-width: 991px) {
-    .sidebar.expanded {
-        width: 400px;
-    }
 }
 
 /* Hide duplicate provider sections at the bottom */
@@ -1893,18 +1895,12 @@ form textarea {
     .chat-top-panel .new_convo_icon {
         display: none !important;
     }
-}
-
-@media only screen and (min-width: 40em) {
+    
     .sidebar.expanded {
         width: 400px;
     }
-    
-    .sidebar.expanded + .chat-container {
-        margin-left: 400px;
-        width: calc(100% - 400px);
-    }
 }
+
 .chat-body {
     flex: 1;
     padding: 10px;
