@@ -75,6 +75,12 @@
     </script>
     <div class="gradient"></div>
         <div class="sidebar shown">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">G4F Chat</div>
+                <div class="mobile-sidebar-toggle">
+                    <i class="fa-solid fa-bars"></i>
+                </div>
+            </div>
             <div class="top">
                 <button class="new_convo" onclick="new_conversation()">
                     <i class="fa-regular fa-plus"></i>
@@ -104,8 +110,13 @@
         </div>
         <div class="settings hidden">
             <div class="paper">
-            <h3>Settings</h3>
-            <div class="field">
+                <div class="settings-top-bar">
+                    <button class="settings-back-button" onclick="open_settings();">
+                        <i class="fa-solid fa-arrow-left"></i>
+                    </button>
+                     <span>Settings</span>
+                </div>
+                <div class="field">
                 <span class="label">Enable Dark Mode</span>
                 <input type="checkbox" id="darkMode" checked />
                 <label for="darkMode" class="toogle" title=""></label>
@@ -221,8 +232,14 @@
             </div>
         </div>
         <div class="chat-container">
-            <div class="chat-header box">
-                G4F Chat
+            <div class="chat-top-panel">
+                <div class="mobile-sidebar-toggle">
+                    <i class="fa-solid fa-bars"></i>
+                </div>
+                <div class="convo-title">New Conversation</div>
+                <button class="new_convo_icon" onclick="new_conversation()">
+                    <i class="fa-regular fa-plus"></i>
+                </button>
             </div>
             <textarea id="chatPrompt" class="box" placeholder="System prompt"></textarea>
             <button class="slide-header">
@@ -337,9 +354,13 @@
                 </div>
             </div>
         </div>
-        <div class="log hidden"></div>
-    <div class="mobile-sidebar">
-        <i class="fa-solid fa-bars"></i>
-    </div>
+        <div class="log hidden">
+            <div class="log-top-bar">
+                <button class="log-back-button" onclick="open_settings();">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </button>
+                <span>Logs</span>
+            </div>
+        </div>
 </body>
 </html>

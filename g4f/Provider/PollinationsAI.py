@@ -12,7 +12,7 @@ from .helper import filter_none, format_image_prompt
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..typing import AsyncResult, Messages, MediaListType
 from ..image import is_data_an_audio
-from ..errors import ModelNotFoundError
+from ..errors import ModelNotFoundError, ResponseError
 from ..requests.raise_for_status import raise_for_status
 from ..requests.aiohttp import get_connector
 from ..image.copy_images import save_response_media
@@ -279,7 +279,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         **kwargs
     ) -> AsyncResult:
         if not cache and seed is None:
-            seed = random.randint(9999, 99999999)
+            seed = random.randint(0, 2**32)
         json_mode = False
         if response_format and response_format.get("type") == "json_object":
             json_mode = True
@@ -318,31 +318,30 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                             if line[6:].startswith(b"[DONE]"):
                                 break
                             result = json.loads(line[6:])
+                            if "usage" in result:
+                                yield Usage(**result["usage"])
                             choices = result.get("choices", [{}])
                             choice = choices.pop() if choices else {}
                             content = choice.get("delta", {}).get("content")
                             if content:
                                 yield content
-                            if "usage" in result:
-                                yield Usage(**result["usage"])
                             finish_reason = choice.get("finish_reason")
                             if finish_reason:
                                 yield FinishReason(finish_reason)
                     return
                 result = await response.json()
-                choice = result["choices"][0]
-                message = choice.get("message", {})
-                content = message.get("content", "")
-
-                if "tool_calls" in message:
-                    yield ToolCalls(message["tool_calls"])
-
-                if content:
-                    yield content
-
+                if "choices" in result:
+                    choice = result["choices"][0]
+                    message = choice.get("message", {})
+                    content = message.get("content", "")
+                    if content:
+                        yield content
+                    if "tool_calls" in message:
+                        yield ToolCalls(message["tool_calls"])
+                else:
+                    raise ResponseError(result)
                 if "usage" in result:
                     yield Usage(**result["usage"])
-
                 finish_reason = choice.get("finish_reason")
                 if finish_reason:
                     yield FinishReason(finish_reason)
