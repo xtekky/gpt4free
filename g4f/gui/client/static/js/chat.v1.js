@@ -1890,13 +1890,14 @@ window.addEventListener('popstate', hide_sidebar, false);
 
 // Create a reusable function for sidebar toggle logic
 const toggleSidebar = async () => {
-  if (sidebar.classList.contains("expanded") || 
+  if (sidebar.classList.contains("expanded") ||
       document.querySelector(".sidebar-button.rotated")) {
     await hide_sidebar();
-    chat.classList.remove("hidden");
+    document.body.classList.remove('mobile-sidebar-open');
     sidebar_buttons.forEach(btn => btn.classList.remove("rotated"));
-  } else {
+    } else {
     await show_menu();
+        document.body.classList.add('mobile-sidebar-open');
   }
   window.scrollTo(0, 0);
 };

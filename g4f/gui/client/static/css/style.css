@@ -957,6 +957,12 @@ input.model:hover
 }
 
 @media only screen and (min-width: 40em) {
+    .sidebar {
+        position: static;
+        height: auto;
+        background-color: transparent;
+    }
+
     .sidebar.expanded {
         width: 400px;
     }
@@ -964,6 +970,9 @@ input.model:hover
     .sidebar.expanded + .chat-container {
         margin-left: 400px;
         width: calc(100% - 400px);
+        position: relative;
+        left: 0;
+        transition: left 0.3s ease; /* Add transition for smooth animation */
     }
     
     .stop_generating {
@@ -995,6 +1004,15 @@ input.model:hover
     form .label {
         min-width: 200px;
     }
+}
+
+body.mobile-sidebar-open .sidebar {
+    position: fixed;
+}
+
+body.mobile-sidebar-open .chat-container {
+    margin-left: 400px; /* Push chat container to the right */
+    transition: margin-left 0.3s ease; /* Add transition for smooth animation */
 }
 
 .input-area {
