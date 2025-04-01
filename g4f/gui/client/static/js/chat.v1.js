@@ -2259,7 +2259,7 @@ window.addEventListener('load', async function() {
     if (!appStorage.getItem(`conversation:${window.conversation_id}`) || conversation.id == window.conversation_id) {
         // Copy conversation from share
         if (conversation.id != window.conversation_id) {
-            window.conversation_id = conversation.id;
+            conversation.id = window.conversation_id;
             conversation.updated = Date.now();
             window.share_id = null;
         }

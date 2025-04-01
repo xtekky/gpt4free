@@ -40,6 +40,7 @@ try:
     from .Copilot              import Copilot
     from .DDG                  import DDG
     from .DeepInfraChat        import DeepInfraChat
+    from .DuckDuckGo           import DuckDuckGo
     from .Dynaspark            import Dynaspark
 except ImportError as e:
     debug.error("Providers not loaded (A-D):", e)

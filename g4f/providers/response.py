@@ -284,6 +284,10 @@ class SynthesizeData(HiddenResponse, JsonMixin):
         self.provider = provider
         self.data = data
 
+class SuggestedFollowups(HiddenResponse):
+    def __init__(self, suggestions: list[str]):
+        self.suggestions = suggestions
+
 class RequestLogin(HiddenResponse):
     def __init__(self, label: str, login_url: str) -> None:
         """Initialize with label and login URL."""

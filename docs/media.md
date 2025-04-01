@@ -175,7 +175,7 @@ from g4f.Provider import HuggingFaceMedia
 async def main():
     client = AsyncClient(
         provider=HuggingFaceMedia,
-        api_key="hf_***"  # Your API key here
+        api_key=os.getenv("HF_TOKEN") # Your API key here
     )
 
     video_models = client.models.get_video()
@@ -214,7 +214,7 @@ from g4f.Provider import HuggingFaceMedia
 async def main():
     client = AsyncClient(
         provider=HuggingFaceMedia,
-        api_key=os.getenv("HUGGINGFACE_API_KEY")  # Your API key here
+        api_key=os.getenv("HF_TOKEN")  # Your API key here
     )
 
     video_models = client.models.get_video()

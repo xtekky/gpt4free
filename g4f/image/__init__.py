@@ -37,7 +37,7 @@ EXTENSIONS_MAP: dict[str, str] = {
     "flac": "audio/flac",
     "opus": "audio/opus",
     "ogg": "audio/ogg",
-    "m4a": "audio/mp4",
+    "m4a": "audio/m4a",
      # Video
     "mkv": "video/x-matroska",
     "webm": "video/webm",

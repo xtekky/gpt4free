@@ -83,9 +83,9 @@ class Cloudflare(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
             pass
         data = {
             "messages": [{
-                "role":"user",
+                **message,
                 "content": message["content"] if isinstance(message["content"], str) else "",
-                "parts": [{"type":"text", "text":message["content"]}] if isinstance(message["content"], str) else message["content"]} for message in messages],
+                "parts": [{"type":"text", "text":message["content"]}] if isinstance(message["content"], str) else message} for message in messages],
             "lora": None,
             "model": model,
             "max_tokens": max_tokens,
