@@ -575,6 +575,7 @@ const handle_ask = async (do_ask_gpt = true, message = null) => {
         }
     } else {
         await safe_load_conversation(window.conversation_id, true);
+        await load_conversations();
     }
 };
 
@@ -1330,7 +1331,12 @@ const delete_conversation = async (conversation_id) => {
             }
         }
     }
-
+    if (window.share_id && conversation_id == window.start_id) {
+        const url = `${window.share_url}/backend-api/v2/files/${window.share_id}`;
+        await fetch(url, {
+            method: 'DELETE'
+        });
+    }
     appStorage.removeItem(`conversation:${conversation_id}`);
     const item = document.getElementById(`convo-${conversation_id}`);
     item.remove();
@@ -1360,7 +1366,9 @@ const set_conversation = async (conversation_id) => {
 };
 
 const new_conversation = async () => {
-    history.pushState({}, null, `/chat/`);
+    if (!/\/chat\/(share|\?|$)/.test(window.location.href)) {
+        history.pushState({}, null, `/chat/`);
+    }
     window.conversation_id = generateUUID();
     document.title = window.title || document.title;
     document.querySelector(".chat-top-panel .convo-title").innerText = "New Conversation";
@@ -1429,16 +1437,16 @@ const load_conversation = async (conversation, scroll=true) => {
     let messages = conversation?.items || [];
     console.debug("Conversation:", conversation.id)
 
-    let title = conversation.new_title || conversation.title;
-    title = title ? `${title} - G4F` : window.title;
+    let conversation_title = conversation.new_title || conversation.title;
+    title = conversation_title ? `${conversation_title} - G4F` : window.title;
     if (title) {
         document.title = title;
     }
-    const convoTitle = document.querySelector(".chat-top-panel .convo-title");
+    const chatHeader = document.querySelector(".chat-top-panel .convo-title");
     if (window.share_id && conversation.id == window.start_id) {
-        convoTitle.innerHTML = '<i class="fa-solid fa-qrcode"></i> ' + escapeHtml(title);
+        chatHeader.innerHTML = '<i class="fa-solid fa-qrcode"></i> ' + escapeHtml(conversation_title);
     } else {
-        convoTitle.innerText = title;
+        chatHeader.innerText = conversation_title;
     }
 
     if (chatPrompt) {
@@ -2248,11 +2256,20 @@ window.addEventListener('load', async function() {
         return await load_conversation(JSON.parse(appStorage.getItem(`conversation:${window.conversation_id}`)));
     }
     let conversation = await response.json();
-    if (!window.conversation_id || conversation.id == window.conversation_id) {
-        window.conversation_id = conversation.id;
-        await load_conversation(conversation);       
-        await save_conversation(window.conversation_id, JSON.stringify(conversation));
+    if (!appStorage.getItem(`conversation:${window.conversation_id}`) || conversation.id == window.conversation_id) {
+        // Copy conversation from share
+        if (conversation.id != window.conversation_id) {
+            window.conversation_id = conversation.id;
+            conversation.updated = Date.now();
+            window.share_id = null;
+        }
+        await load_conversation(conversation);
+        await save_conversation(conversation.id, JSON.stringify(conversation));
         await load_conversations();
+        if (!window.share_id) {
+            // Continue after copy conversation
+            return;
+        }
         let refreshOnHide = true;
         document.addEventListener("visibilitychange", () => {
             if (document.hidden) {
@@ -2261,6 +2278,7 @@ window.addEventListener('load', async function() {
                 refreshOnHide = true;
             }
         });
+        // Start chat mode (QRCode)
         var refreshIntervalId = setInterval(async () => {
             if (!window.share_id) {
                 clearInterval(refreshIntervalId);
@@ -2297,29 +2315,6 @@ window.addEventListener('load', async function() {
     await safe_load_conversation(window.conversation_id, false);
 });
 
-document.addEventListener("DOMContentLoaded", function () {
-    document.querySelectorAll(".collapsible-header").forEach(header => {
-        header.addEventListener("click", function () {
-            const content = this.nextElementSibling;
-
-            const isOpen = !content.classList.contains("hidden");
-
-            document.querySelectorAll(".collapsible-content").forEach(section => {
-                section.style.display = "none";
-                section.style.maxHeight = "0";
-                section.classList.add("hidden");
-            });
-
-            if (!isOpen) {
-                content.style.display = "block";
-                content.style.maxHeight = content.scrollHeight + "px";
-                content.classList.remove("hidden");
-            }
-        });
-    });
-});
-
-
 window.addEventListener('DOMContentLoaded', async function() {
     await on_load();
     if (window.conversation_id == "{{conversation_id}}") {
@@ -2332,16 +2327,6 @@ window.addEventListener('DOMContentLoaded', async function() {
     await loadAllProviders();
 });
 
-// Also try loading when the settings panel is opened
-document.addEventListener('DOMContentLoaded', function() {
-    const settingsIcon = document.querySelector('.settings_icon');
-    if (settingsIcon) {
-        settingsIcon.addEventListener('click', function() {
-            setTimeout(loadAllProviders, 500);
-        });
-    }
-});
-
 window.addEventListener('pywebviewready', async function() {
     await on_api();
 });
@@ -2350,7 +2335,7 @@ async function on_load() {
     count_input();
     if (/\/settings\//.test(window.location.href)) {
         open_settings();
-    } else if (/\/chat\/share/.test(window.location.href)) {
+    } else if (/\/chat\/(share|\?|$)/.test(window.location.href)) {
         chatPrompt.value = document.getElementById("systemPrompt")?.value || "";
         let chat_url = new URL(window.location.href)
         let chat_params = new URLSearchParams(chat_url.search);
@@ -2358,14 +2343,9 @@ async function on_load() {
             userInput.value = chat_params.get("prompt");
             userInput.style.height = userInput.scrollHeight  + "px";
             userInput.focus();
-            //await handle_ask();
+        } else {
+            new_conversation();
         }
-    } else if (/\/chat\/[?$]/.test(window.location.href)) {
-        chatPrompt.value = document.getElementById("systemPrompt")?.value || "";
-        say_hello();
-    } else if (window.location.pathname === "/chat/") {
-        // When the URL is exactly "/chat/" with trailing slash, create a new conversation
-        await new_conversation();
     } else {
         //load_conversation(window.conversation_id);
     }
@@ -2414,7 +2394,6 @@ const load_provider_option = (input, provider_name) => {
 async function on_api() {
     load_version();
     let prompt_lock = false;
-    setupCollapsibleFields();
     userInput.addEventListener("keydown", async (evt) => {
         if (prompt_lock) return;
         // If not mobile and not shift enter
@@ -2550,23 +2529,8 @@ async function on_api() {
         });
 
         providersContainer.querySelector(".collapsible-header").addEventListener('click', (e) => {
-            const header = providersContainer.querySelector(".collapsible-header");
-            const content = providersContainer.querySelector(".collapsible-content");
-            
-            header.classList.toggle('active');
-            if (content.classList.contains('hidden')) {
-                content.classList.remove('hidden');
-                content.style.display = "block";
-                setTimeout(() => {
-                    content.style.maxHeight = (content.scrollHeight + 100) + "px";
-                }, 10);
-            } else {
-                content.style.maxHeight = "0";
-                setTimeout(() => {
-                    content.classList.add('hidden');
-                    content.style.display = "none";
-                }, 300);
-            }
+            providersContainer.querySelector(".collapsible-content").classList.toggle('hidden');
+            providersContainer.querySelector(".collapsible-header").classList.toggle('active');
         });
     }
 
@@ -2610,23 +2574,8 @@ async function on_api() {
     }
 
     providersListContainer.querySelector(".collapsible-header").addEventListener('click', (e) => {
-    const header = providersListContainer.querySelector(".collapsible-header");
-    const content = providersListContainer.querySelector(".collapsible-content");
-    
-    header.classList.toggle('active');
-    if (content.classList.contains('hidden')) {
-        content.classList.remove('hidden');
-        content.style.display = "block";
-        setTimeout(() => {
-            content.style.maxHeight = (content.scrollHeight + 100) + "px";
-        }, 10);
-    } else {
-        content.style.maxHeight = "0";
-        setTimeout(() => {
-            content.classList.add('hidden');
-            content.style.display = "none";
-        }, 300);
-    }
+        providersListContainer.querySelector(".collapsible-content").classList.toggle('hidden');
+        providersListContainer.querySelector(".collapsible-header").classList.toggle('active');
     });
 
     register_settings_storage();
@@ -2653,14 +2602,19 @@ async function on_api() {
     
     // Handle checkbox change
     hide_systemPrompt.addEventListener('change', async (event) => {
-        updateSystemPromptVisibility(event.target.checked);
+        if (event.target.checked) {
+            chatPrompt.classList.add("hidden");
+        } else {
+            chatPrompt.classList.remove("hidden");
+        }
     });
     
     // Handle slide-header click
     document.querySelector(".slide-header")?.addEventListener("click", () => {
-        const isCurrentlyVisible = !slide_systemPrompt_icon.classList.contains("fa-angles-down");
-        document.querySelector(".chat-top-panel").classList[isCurrentlyVisible ? "add": "remove"]("hidden");
-        updateSystemPromptVisibility(isCurrentlyVisible);
+        const checked = slide_systemPrompt_icon.classList.contains("fa-angles-up");
+        chatPrompt.classList[checked ? "add": "remove"]("hidden");
+        slide_systemPrompt_icon.classList[checked ? "remove": "add"]("fa-angles-up");
+        slide_systemPrompt_icon.classList[checked ? "add": "remove"]("fa-angles-down");
     });
     const userInputHeight = document.getElementById("message-input-height");
     if (userInputHeight) {
@@ -2819,7 +2773,7 @@ function connectToSSE(url, do_refine, bucket_id) {
         } else if (data.action == "media") {
             inputCount.innerText = `File: ${data.filename}`;
             const url = `/files/${bucket_id}/media/${data.filename}`;
-            const media = [{bucket_id: bucket_id, url: url}];
+            const media = [{bucket_id: bucket_id, url: url, name: data.filename}];
             await handle_ask(false, media);
         } else if (data.action == "load") {
             inputCount.innerText = `Read data: ${formatFileSize(data.size)}`;
