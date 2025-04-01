@@ -105,7 +105,7 @@ default = Model(
     ])
 )
 
-default_vision = Model(
+default_vision = VisionModel(
     name = "",
     base_provider = "",
     best_provider = IterListProvider([
@@ -383,7 +383,7 @@ claude_3_haiku = Model(
 claude_3_5_sonnet = Model(
     name          = 'claude-3.5-sonnet',
     base_provider = 'Anthropic',
-    best_provider = IterListProvider([Jmuz, Liaobots])
+    best_provider = IterListProvider([Blackbox, Jmuz, Liaobots])
 )
 
 # claude 3.7

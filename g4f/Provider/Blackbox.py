@@ -45,13 +45,14 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
     
     # Completely free models
     fallback_models = [
-        "blackboxai", 
+        default_model, 
         "blackboxai-pro",
         "gpt-4o-mini", 
         "GPT-4o", 
         "o1", 
         "o3-mini", 
         "Claude-sonnet-3.7", 
+        "Claude-sonnet-3.5", 
         "DeepSeek-V3", 
         "DeepSeek-R1", 
         "DeepSeek-LLM-Chat-(67B)",
@@ -92,13 +93,14 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
     image_models = [default_image_model]   
     vision_models = [default_vision_model, 'GPT-4o', 'o1', 'o3-mini', 'Gemini-PRO', 'Gemini Agent', 'llama-3.1-8b Agent', 'llama-3.1-70b Agent', 'llama-3.1-405 Agent', 'Gemini-Flash-2.0', 'DeepSeek-V3']
 
-    userSelectedModel = ['GPT-4o', 'o1', 'o3-mini', 'Gemini-PRO', 'Claude-sonnet-3.7', 'DeepSeek-V3', 'DeepSeek-R1', 'Meta-Llama-3.3-70B-Instruct-Turbo', 'Mistral-Small-24B-Instruct-2501', 'DeepSeek-LLM-Chat-(67B)', 'DBRX-Instruct', 'Qwen-QwQ-32B-Preview', 'Nous-Hermes-2-Mixtral-8x7B-DPO', 'Gemini-Flash-2.0']
+    userSelectedModel = ['GPT-4o', 'o1', 'o3-mini', 'Gemini-PRO', 'Claude-sonnet-3.7', 'Claude-sonnet-3.5', 'DeepSeek-V3', 'DeepSeek-R1', 'Meta-Llama-3.3-70B-Instruct-Turbo', 'Mistral-Small-24B-Instruct-2501', 'DeepSeek-LLM-Chat-(67B)', 'DBRX-Instruct', 'Qwen-QwQ-32B-Preview', 'Nous-Hermes-2-Mixtral-8x7B-DPO', 'Gemini-Flash-2.0']
 
     # Agent mode configurations
     agentMode = {
         'GPT-4o': {'mode': True, 'id': "GPT-4o", 'name': "GPT-4o"},
         'Gemini-PRO': {'mode': True, 'id': "Gemini-PRO", 'name': "Gemini-PRO"},
         'Claude-sonnet-3.7': {'mode': True, 'id': "Claude-sonnet-3.7", 'name': "Claude-sonnet-3.7"},
+        'Claude-sonnet-3.5': {'mode': True, 'id': "Claude-sonnet-3.5", 'name': "Claude-sonnet-3.5"},
         'DeepSeek-V3': {'mode': True, 'id': "deepseek-chat", 'name': "DeepSeek-V3"},
         'DeepSeek-R1': {'mode': True, 'id': "deepseek-reasoner", 'name': "DeepSeek-R1"},
         'Meta-Llama-3.3-70B-Instruct-Turbo': {'mode': True, 'id': "meta-llama/Llama-3.3-70B-Instruct-Turbo", 'name': "Meta-Llama-3.3-70B-Instruct-Turbo"},
@@ -335,6 +337,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
     model_aliases = {
         "gpt-4o": "GPT-4o",
         "claude-3.7-sonnet": "Claude-sonnet-3.7",
+        "claude-3.5-sonnet": "Claude-sonnet-3.5",
         "deepseek-v3": "DeepSeek-V3",
         "deepseek-r1": "DeepSeek-R1",
         "deepseek-chat": "DeepSeek-LLM-Chat-(67B)",

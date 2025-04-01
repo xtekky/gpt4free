@@ -46,8 +46,10 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
     default_model = "openai"
     default_image_model = "flux"
     default_vision_model = default_model
+    default_audio_model = "openai-audio"
     text_models = [default_model]
     image_models = [default_image_model]
+    audio_models = [default_audio_model]
     extra_image_models = ["flux-pro", "flux-dev", "flux-schnell", "midjourney", "dall-e-3", "turbo"]
     vision_models = [default_vision_model, "gpt-4o-mini", "o3-mini", "openai", "openai-large"]
     extra_text_models = vision_models
@@ -68,7 +70,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         "gemini-2.0": "gemini",
         "gemini-2.0-flash": "gemini",
         "gemini-2.0-flash-thinking": "gemini-thinking",
-        "deepseek-r1": "deepseek-r1-llama",
+        "deepseek-r1": "deepseek-reasoning-large",
         "gpt-4o-audio": "openai-audio",
         
         ### Image Models ###
@@ -98,22 +100,28 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                 text_response = requests.get("https://text.pollinations.ai/models")
                 text_response.raise_for_status()
                 models = text_response.json()
-                original_text_models = [
+                
+                # Purpose of text models
+                cls.text_models = [
                     model.get("name") 
                     for model in models
-                    if model.get("type") == "chat"
+                    if "input_modalities" in model and "text" in model["input_modalities"]
                 ]
+
+                # Purpose of audio models
                 cls.audio_models = {
                     model.get("name"): model.get("voices")
                     for model in models
                     if model.get("audio")
                 }
-                
-                # Combining text models
+
+                # Combining text models with existing ones
+                if not cls.text_models:
+                    cls.text_models = [cls.default_model]  # or set default models here
+
                 combined_text = (
-                    cls.text_models +  # Already contains the default
                     cls.extra_text_models + 
-                    original_text_models +
+                    cls.text_models +
                     cls.vision_models
                 )
                 cls.text_models = list(dict.fromkeys(combined_text))
@@ -128,7 +136,9 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                     cls.image_models = [cls.default_image_model]
                 debug.error(f"Failed to fetch models: {e}")
 
-        return cls.text_models + cls.image_models
+        result = cls.text_models + cls.image_models + list(cls.audio_models.keys())
+        return result
+
 
     @classmethod
     async def create_async_generator(
