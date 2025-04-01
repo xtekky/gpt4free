@@ -77,7 +77,7 @@ def get_cookies(domain_name: str, raise_requirements_error: bool = True, single_
     Returns:
         Dict[str, str]: A dictionary of cookie names and values.
     """
-    if cache_result and domain_name in CookiesConfig.cookies:
+    if domain_name in CookiesConfig.cookies:
         return CookiesConfig.cookies[domain_name]
 
     cookies = load_cookies_from_browsers(domain_name, raise_requirements_error, single_browser)

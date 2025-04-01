@@ -1881,9 +1881,6 @@ async function hide_settings() {
     chat.classList.remove("hidden");
     let provider_forms = document.querySelectorAll(".provider_forms form");
     Array.from(provider_forms).forEach((form) => form.classList.add("hidden"));
-    if (window.location.pathname.endsWith("/settings/")) {
-        history.back();
-    }
 }
 
 window.addEventListener('popstate', hide_sidebar, false);
@@ -2306,7 +2303,7 @@ window.addEventListener('load', async function() {
     if (!appStorage.getItem(`conversation:${window.conversation_id}`) || conversation.id == window.conversation_id) {
         // Copy conversation from share
         if (conversation.id != window.conversation_id) {
-            conversation.id = window.conversation_id;
+            window.conversation_id = conversation.id;
             conversation.updated = Date.now();
             window.share_id = null;
         }

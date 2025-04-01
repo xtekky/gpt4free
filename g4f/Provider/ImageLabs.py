@@ -78,7 +78,7 @@ class ImageLabs(AsyncGeneratorProvider, ProviderModelMixin):
                     if progress_data.get('status') == 'Done' or progress_data.get('final_image_url'):
                         # Yield ImageResponse with the final image URL
                         yield ImageResponse(
-                            images=[progress_data.get('final_image_url')], 
+                            urls=[progress_data.get('final_image_url')], 
                             alt=prompt
                         )
                         break

@@ -71,5 +71,5 @@ class Voodoohop_Flux1Schnell(AsyncGeneratorProvider, ProviderModelMixin):
                                 elif event_type == b'complete':
                                     json_data = json.loads(data)
                                     image_url = json_data[0]['url']
-                                    yield ImageResponse(images=[image_url], alt=prompt)
+                                    yield ImageResponse(urls=[image_url], alt=prompt)
                                     return

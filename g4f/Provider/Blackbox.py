@@ -639,7 +639,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
                     image_url_match = re.search(r'!\[.*?\]\((.*?)\)', full_response_text)
                     if image_url_match:
                         image_url = image_url_match.group(1)
-                        yield ImageResponse(images=[image_url], alt=format_image_prompt(messages, prompt))
+                        yield ImageResponse(urls=[image_url], alt=format_image_prompt(messages, prompt))
                         return
                 
                 # Handle conversation history once, in one place
