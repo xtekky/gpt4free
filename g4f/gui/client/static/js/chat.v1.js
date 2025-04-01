@@ -1888,17 +1888,22 @@ async function hide_settings() {
 
 window.addEventListener('popstate', hide_sidebar, false);
 
+// Create a reusable function for sidebar toggle logic
+const toggleSidebar = async () => {
+  if (sidebar.classList.contains("expanded") || 
+      document.querySelector(".sidebar-button.rotated")) {
+    await hide_sidebar();
+    chat.classList.remove("hidden");
+    sidebar_buttons.forEach(btn => btn.classList.remove("rotated"));
+  } else {
+    await show_menu();
+  }
+  window.scrollTo(0, 0);
+};
+
+// Attach the event listener to each button with the reusable function
 sidebar_buttons.forEach(button => {
-    button.addEventListener("click", async () => {
-        if (sidebar.classList.contains("expanded") || button.classList.contains("rotated")) {
-            await hide_sidebar();
-            chat.classList.remove("hidden");
-            sidebar_buttons.forEach(btn => btn.classList.remove("rotated"));
-        } else {
-            await show_menu();
-        }
-        window.scrollTo(0, 0);
-    });
+  button.addEventListener("click", toggleSidebar);
 });
 
 function add_url_to_history(url) {
@@ -1916,14 +1921,19 @@ async function show_menu() {
 
 function open_settings() {
     if (settings.classList.contains("hidden")) {
+        // Store current sidebar state before modifying it
+        const wasSidebarExpanded = sidebar.classList.contains("expanded");
+        
         chat.classList.add("hidden");
-        sidebar.classList.remove("expanded");
         settings.classList.remove("hidden");
         add_url_to_history("/chat/settings/");
         
-        // Make sure the sidebar is in collapsed state when settings are open
-        sidebar.classList.remove("expanded");
-        sidebar_buttons.forEach(btn => btn.classList.remove("rotated"));
+        // Only collapse sidebar when appropriate (not during specific UI states)
+        if (!document.body.classList.contains("mobile-view") && 
+            !document.body.classList.contains("transition-lock")) {
+            sidebar.classList.remove("expanded");
+            sidebar_buttons.forEach(btn => btn.classList.remove("rotated"));
+        }
         
         // Show all hidden fields that should be visible
         document.querySelectorAll('.settings .field.box.hidden').forEach(field => {
@@ -1938,34 +1948,70 @@ function open_settings() {
     log_storage.classList.add("hidden");
 }
 
+// Store the event handler function as a named function
+function handleCollapsibleHeaderClick(e) {
+    e.stopPropagation(); // Prevent event bubbling
+    this.classList.toggle('active');
+    const content = this.nextElementSibling;
+    
+    if (content.classList.contains('hidden')) {
+        content.classList.remove('hidden');
+        content.style.display = "block";
+        setTimeout(() => {
+            content.style.maxHeight = (content.scrollHeight + 100) + "px";
+        }, 10);
+    } else {
+        content.style.maxHeight = "0";
+        setTimeout(() => {
+            content.classList.add('hidden');
+            content.style.display = "none";
+        }, 300);
+    }
+}
+
+// Function to handle collapsible header clicks with improved animation handling
+function handleCollapsibleHeaderClick(e) {
+    e.stopPropagation(); // Prevent event bubbling
+    this.classList.toggle('active');
+    const content = this.nextElementSibling;
+    
+    if (content.classList.contains('hidden')) {
+        // Show content immediately but with zero height
+        content.classList.remove('hidden');
+        content.style.display = "block";
+        content.style.maxHeight = "0";
+        
+        // Use requestAnimationFrame to ensure browser has rendered the element
+        requestAnimationFrame(() => {
+            // Use a second frame to ensure CSS has applied
+            requestAnimationFrame(() => {
+                content.style.maxHeight = (content.scrollHeight + 100) + "px";
+            });
+        });
+    } else {
+        content.style.maxHeight = "0";
+        
+        // Use the transitionend event instead of setTimeout
+        const transitionEndHandler = function() {
+            content.classList.add('hidden');
+            content.style.display = "none";
+            content.removeEventListener('transitionend', transitionEndHandler);
+        };
+        
+        content.addEventListener('transitionend', transitionEndHandler);
+    }
+}
+
 // Function to handle collapsible fields
 function setupCollapsibleFields() {
     const collapsibleHeaders = document.querySelectorAll('.collapsible-header');
     
     collapsibleHeaders.forEach(header => {
-        // Remove existing event listeners
-        const newHeader = header.cloneNode(true);
-        header.parentNode.replaceChild(newHeader, header);
+        // Properly remove existing event listeners
+        header.removeEventListener('click', handleCollapsibleHeaderClick);
         
-        newHeader.addEventListener('click', function(e) {
-            e.stopPropagation(); // Prevent event bubbling
-            this.classList.toggle('active');
-            const content = this.nextElementSibling;
-            
-            if (content.classList.contains('hidden')) {
-                content.classList.remove('hidden');
-                content.style.display = "block";
-                setTimeout(() => {
-                    content.style.maxHeight = (content.scrollHeight + 100) + "px";
-                }, 10);
-            } else {
-                content.style.maxHeight = "0";
-                setTimeout(() => {
-                    content.classList.add('hidden');
-                    content.style.display = "none";
-                }, 300);
-            }
-        });
+        // Add the event listener
+        header.addEventListener('click', handleCollapsibleHeaderClick);
     });
 }
 
