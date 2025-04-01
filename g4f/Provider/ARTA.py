@@ -187,7 +187,7 @@ class ARTA(AsyncGeneratorProvider, ProviderModelMixin):
                         image_urls = [image["url"] for image in status_data.get("response", [])]
                         duration = time.time() - start_time
                         yield Reasoning(label="Generated", status=f"{n} image(s) in {duration:.2f}s")
-                        yield ImageResponse(images=image_urls, alt=prompt)
+                        yield ImageResponse(urls=image_urls, alt=prompt)
                         return
                     elif status in ("IN_QUEUE", "IN_PROGRESS"):
                         if last_status != status:

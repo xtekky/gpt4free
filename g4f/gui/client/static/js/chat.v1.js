@@ -5,7 +5,7 @@ const box_conversations = document.querySelector(`.top`);
 const stop_generating   = document.querySelector(`.stop_generating`);
 const regenerate_button = document.querySelector(`.regenerate`);
 const sidebar           = document.querySelector(".sidebar");
-const sidebar_button    = document.querySelector(".mobile-sidebar");
+const sidebar_buttons   = document.querySelectorAll(".mobile-sidebar-toggle");
 const sendButton        = document.getElementById("sendButton");
 const addButton         = document.getElementById("addButton");
 const imageInput        = document.querySelector(".image-label");
@@ -570,6 +570,7 @@ const handle_ask = async (do_ask_gpt = true, message = null) => {
         }
     } else {
         await safe_load_conversation(window.conversation_id, true);
+        await load_conversations();
     }
 };
 
@@ -1360,10 +1361,12 @@ const set_conversation = async (conversation_id) => {
 };
 
 const new_conversation = async () => {
-    history.pushState({}, null, `/chat/`);
+    if (!/\/chat\/(share|\?|$)/.test(window.location.href)) {
+        history.pushState({}, null, `/chat/`);
+    }
     window.conversation_id = generateUUID();
     document.title = window.title || document.title;
-    document.querySelector(".chat-header").innerText = "New Conversation - G4F";
+    document.querySelector(".chat-top-panel .convo-title").innerText = "New Conversation";
 
     await clear_conversation();
     if (chatPrompt) {
@@ -1429,16 +1432,16 @@ const load_conversation = async (conversation, scroll=true) => {
     let messages = conversation?.items || [];
     console.debug("Conversation:", conversation.id)
 
-    let title = conversation.new_title || conversation.title;
-    title = title ? `${title} - G4F` : window.title;
+    let conversation_title = conversation.new_title || conversation.title;
+    title = conversation_title ? `${conversation_title} - G4F` : window.title;
     if (title) {
         document.title = title;
     }
-    const chatHeader = document.querySelector(".chat-header");
+    const chatHeader = document.querySelector(".chat-top-panel .convo-title");
     if (window.share_id && conversation.id == window.start_id) {
-        chatHeader.innerHTML = '<i class="fa-solid fa-qrcode"></i> ' + escapeHtml(title);
+        chatHeader.innerHTML = '<i class="fa-solid fa-qrcode"></i> ' + escapeHtml(conversation_title);
     } else {
-        chatHeader.innerText = title;
+        chatHeader.innerText = conversation_title;
     }
 
     if (chatPrompt) {
@@ -1860,7 +1863,7 @@ async function hide_sidebar(remove_shown=false) {
     if (remove_shown) {
         sidebar.classList.remove("shown");
     }
-    sidebar_button.classList.remove("rotated");
+    sidebar_buttons.forEach((el)=>el.classList.remove("rotated"))
     settings.classList.add("hidden");
     chat.classList.remove("hidden");
     log_storage.classList.add("hidden");
@@ -1878,18 +1881,16 @@ async function hide_settings() {
 
 window.addEventListener('popstate', hide_sidebar, false);
 
-sidebar_button.addEventListener("click", async () => {
-    if (sidebar.classList.contains("shown") || sidebar_button.classList.contains("rotated")) {
-        await hide_sidebar();
+sidebar_buttons.forEach((el)=>el.addEventListener("click", async () => {
+    if (sidebar.classList.contains("shown") || el.classList.contains("rotated")) {
+        await hide_sidebar(true);
         chat.classList.remove("hidden");
-        sidebar.classList.remove("shown");
-        sidebar_button.classList.remove("rotated");
     } else {
         await show_menu();
         chat.classList.add("hidden");
     }
     window.scrollTo(0, 0);
-});
+}));
 
 function add_url_to_history(url) {
     if (!window?.pywebview) {
@@ -1899,7 +1900,7 @@ function add_url_to_history(url) {
 
 async function show_menu() {
     sidebar.classList.add("shown");
-    sidebar_button.classList.add("rotated");
+    sidebar_buttons.forEach((el)=>el.classList.add("rotated"))
     await hide_settings();
     add_url_to_history("/chat/menu/");
 }
@@ -2137,7 +2138,7 @@ window.addEventListener('load', async function() {
     if (!appStorage.getItem(`conversation:${window.conversation_id}`) || conversation.id == window.conversation_id) {
         // Copy conversation from share
         if (conversation.id != window.conversation_id) {
-            conversation.id = window.conversation_id;
+            window.conversation_id = conversation.id;
             conversation.updated = Date.now();
             window.share_id = null;
         }
@@ -2210,7 +2211,8 @@ async function on_load() {
     count_input();
     if (/\/settings\//.test(window.location.href)) {
         open_settings();
-    } else if (/\/chat\/share/.test(window.location.href)) {
+    } else if (/\/chat\/(share|\?|$)/.test(window.location.href)) {
+        chatPrompt.value = document.getElementById("systemPrompt")?.value || "";
         chatPrompt.value = document.getElementById("systemPrompt")?.value || "";
         let chat_url = new URL(window.location.href)
         let chat_params = new URLSearchParams(chat_url.search);
@@ -2218,11 +2220,9 @@ async function on_load() {
             userInput.value = chat_params.get("prompt");
             userInput.style.height = userInput.scrollHeight  + "px";
             userInput.focus();
-            //await handle_ask();
+        } else {
+            new_conversation();
         }
-    } else if (/\/chat\/[?$]/.test(window.location.href)) {
-        chatPrompt.value = document.getElementById("systemPrompt")?.value || "";
-        say_hello();
     } else {
         //load_conversation(window.conversation_id);
     }
@@ -2475,8 +2475,7 @@ async function on_api() {
     });
     document.querySelector(".slide-header")?.addEventListener("click", () => {
         const checked = slide_systemPrompt_icon.classList.contains("fa-angles-up");
-        document.querySelector(".chat-header").classList[checked ? "add": "remove"]("hidden");
-        chatPrompt.classList[checked || hide_systemPrompt.checked ? "add": "remove"]("hidden");
+        chatPrompt.classList[checked ? "add": "remove"]("hidden");
         slide_systemPrompt_icon.classList[checked ? "remove": "add"]("fa-angles-up");
         slide_systemPrompt_icon.classList[checked ? "add": "remove"]("fa-angles-down");
     });

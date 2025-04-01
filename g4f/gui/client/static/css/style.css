@@ -57,15 +57,14 @@ html,
 body {
     scroll-behavior: smooth;
     overflow: hidden;
-    max-height: 100%;
-    max-width: 100%;
 }
 
 body {
     background: var(--background);
     color: var(--colour-3);
-    height: 100vh;
     display: flex;
+    height: 100vh;
+    max-height: 100vh;
 }
 
 body:not(.white) a:link,
@@ -936,7 +935,7 @@ input.model:hover
 
 .slide-header {
     position: absolute;
-    top: 0;
+    top: 58px;
     z-index: 1;
     padding: 10px;
     border: none;
@@ -1101,26 +1100,35 @@ ul {
     visibility: hidden;
 }
 
-.mobile-sidebar {
-    position: fixed;
-    z-index: 1000;
-    top: 10px;
-    right: 10px;
-    width: 40px;
-    height: 40px;
-    background-color: var(--blur-bg);
-    border: 1px solid var(--blur-border);
-    border-radius: 10px;
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    cursor: pointer;
-    justify-content: center;
+.sidebar-header {
+    padding: 12px 0;
+    margin-bottom: 12px;
+    display: flex;
+    justify-content: space-between;
     align-items: center;
-    transition: all 0.3s ease;
-    padding: 10px 12px;
+    padding: 0 0 10px 0;
+    border-bottom: 1px solid var(--blur-border);
 }
 
-.mobile-sidebar i {
+.sidebar-logo {
+    font-size: 16px;
+    font-weight: 500;
+}
+
+.mobile-sidebar-toggle {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 36px;
+    height: 36px;
+    background-color: var(--blur-bg);
+    border: 1px solid var(--blur-border);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.mobile-sidebar-toggle i {
     transition: 0.33s;
 }
 
@@ -1308,6 +1316,7 @@ form textarea {
 
 .field a {
     text-wrap: nowrap;
+    padding: 4px;
 }
 
 .field .fa-xmark {
@@ -1328,7 +1337,9 @@ form textarea {
 
 .settings, .log, form {
     overflow: auto;
-    width: 100%;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
 }
 
 .log {
@@ -1508,13 +1519,59 @@ form textarea {
     flex-direction: column;
     overflow: hidden;
 }
-.chat-header {
-    padding: 10px 28px;
-    font-weight: 500;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-    overflow: hidden;
+.chat-top-panel {
+    padding: 12px 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
+
+.chat-logo {
+    font-size: 16px;
+}
+
+.chat-top-panel .convo-title {
+    margin: 0 10px;
+    font-size: 14px;
+    text-align: center;
+    flex: 1;
+}
+
+.chat-top-panel .mobile-sidebar-toggle {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 36px;
+    height: 36px;
+    background-color: var(--blur-bg);
+    border: 1px solid var(--blur-border);
+    border-radius: 8px;
+    cursor: pointer;
+}
+@media only screen and (min-width: 40em) {
+    .chat-top-panel .mobile-sidebar-toggle {
+        display: none;
+    }
+}
+.chat-top-panel .new_convo_icon {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 36px;
+    height: 36px;
+    background-color: var(--blur-bg);
+    border: 1px solid var(--blur-border);
+    border-radius: 8px;
+    cursor: pointer;
+    color: var(--colour-3);
+    font-size: 16px;
+}
+
+.chat-top-panel .mobile-sidebar-toggle:hover,
+.chat-top-panel .new_convo_icon:hover {
+    background-color: var(--button-hover);
+}
+
 @media only screen and (min-width: 40em) {
     .sidebar {
         width: 300px;
@@ -1564,4 +1621,44 @@ form textarea {
     border-style: solid;
     box-shadow: none;
     background-color: var(--button-hover);
+}
+
+.settings-top-bar, .log-top-bar {
+    display: flex;
+    align-items: center;
+    padding: 15px 0;
+    margin-bottom: 15px;
+    border-bottom: 1px solid var(--blur-border);
+    gap: 12px; /* Space between button and title */
+}
+
+.settings-back-button, .log-back-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    color: var(--colour-3);
+    font-size: 18px;
+    cursor: pointer;
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+}
+
+.settings-back-button:hover, .log-back-button:hover {
+    background-color: var(--blur-border);
+}
+
+.settings-title, .log-title {
+    font-size: 20px;
+    font-weight: 500;
+    color: var(--colour-3);
+    user-select: none; /* Prevent text selection */
+}
+
+.settings-top-bar span, .log-top-bar span {
+    font-weight: 600;
+    font-size: 18px;
+    margin-left: 8px;
 }

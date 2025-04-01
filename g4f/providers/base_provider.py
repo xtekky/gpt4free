@@ -424,7 +424,10 @@ class AsyncAuthedProvider(AsyncGeneratorProvider, AuthFileMixin):
     def write_cache_file(cls, cache_file: Path, auth_result: AuthResult = None):
          if auth_result is not None:
             cache_file.parent.mkdir(parents=True, exist_ok=True)
-            cache_file.write_text(json.dumps(auth_result.get_dict()))
+            try:
+                cache_file.write_text(json.dumps(auth_result.get_dict()))
+            except TypeError:
+                raise RuntimeError(f"Failed to save: {auth_result.get_dict()}")
          elif cache_file.exists():
             cache_file.unlink()
 
@@ -489,5 +492,4 @@ class AsyncAuthedProvider(AsyncGeneratorProvider, AuthFileMixin):
                     cache_file = None
                 yield chunk
         finally:
-            if cache_file is not None:
-                cls.write_cache_file(cache_file, auth_result)
+            cls.write_cache_file(cache_file, auth_result)
