@@ -1948,54 +1948,33 @@ function open_settings() {
 
 // Store the event handler function as a named function
 function handleCollapsibleHeaderClick(e) {
-    e.stopPropagation(); // Prevent event bubbling
-    this.classList.toggle('active');
-    const content = this.nextElementSibling;
-    
-    if (content.classList.contains('hidden')) {
-        content.classList.remove('hidden');
-        content.style.display = "block";
-        setTimeout(() => {
-            content.style.maxHeight = (content.scrollHeight + 100) + "px";
-        }, 10);
-    } else {
-        content.style.maxHeight = "0";
-        setTimeout(() => {
-            content.classList.add('hidden');
-            content.style.display = "none";
-        }, 300);
-    }
-}
+    e.stopPropagation(); // Preventing events from resurfacing
+    this.classList.toggle('active'); // Add/remove an activity class
+    const content = this.nextElementSibling; // We get the following element (content)
 
-// Function to handle collapsible header clicks with improved animation handling
-function handleCollapsibleHeaderClick(e) {
-    e.stopPropagation(); // Prevent event bubbling
-    this.classList.toggle('active');
-    const content = this.nextElementSibling;
-    
     if (content.classList.contains('hidden')) {
-        // Show content immediately but with zero height
+        // Showing content
         content.classList.remove('hidden');
         content.style.display = "block";
-        content.style.maxHeight = "0";
-        
-        // Use requestAnimationFrame to ensure browser has rendered the element
+        content.style.maxHeight = "0"; // Set the initial height
+
+        // Using requestAnimationFrame for animation
         requestAnimationFrame(() => {
-            // Use a second frame to ensure CSS has applied
             requestAnimationFrame(() => {
-                content.style.maxHeight = (content.scrollHeight + 100) + "px";
+                content.style.maxHeight = (content.scrollHeight + 100) + "px"; // Setting the maximum height
             });
         });
     } else {
+        // Hide content
         content.style.maxHeight = "0";
-        
-        // Use the transitionend event instead of setTimeout
+
+        // Use the transitionend event to end the animation
         const transitionEndHandler = function() {
             content.classList.add('hidden');
-            content.style.display = "none";
-            content.removeEventListener('transitionend', transitionEndHandler);
+            content.style.display = "none"; // Hide content
+            content.removeEventListener('transitionend', transitionEndHandler); // Delete the event handler
         };
-        
+
         content.addEventListener('transitionend', transitionEndHandler);
     }
 }
@@ -2003,15 +1982,18 @@ function handleCollapsibleHeaderClick(e) {
 // Function to handle collapsible fields
 function setupCollapsibleFields() {
     const collapsibleHeaders = document.querySelectorAll('.collapsible-header');
-    
+
     collapsibleHeaders.forEach(header => {
-        // Properly remove existing event listeners
+        // Delete existing event handlers
         header.removeEventListener('click', handleCollapsibleHeaderClick);
-        
-        // Add the event listener
+
+        // Add a new event handler
         header.addEventListener('click', handleCollapsibleHeaderClick);
     });
 }
+
+// Calling the function to customize headers on loading
+document.addEventListener('DOMContentLoaded', setupCollapsibleFields);
 
 async function loadAllProviders() {
     // Fetch providers from the API
@@ -2630,21 +2612,9 @@ async function on_api() {
 
     const hide_systemPrompt = document.getElementById("hide-systemPrompt")
     const slide_systemPrompt_icon = document.querySelector(".slide-header i");
-    
-    // Function to update UI based on system prompt visibility state
-    const updateSystemPromptVisibility = (isHidden) => {
-        document.querySelector(".chatPrompt-wrapper").classList[isHidden ? "add" : "remove"]("collapsed");
-        slide_systemPrompt_icon.classList[isHidden ? "remove" : "add"]("fa-angles-up");
-        slide_systemPrompt_icon.classList[isHidden ? "add" : "remove"]("fa-angles-down");
-        hide_systemPrompt.checked = isHidden;
-    };
-    
-    // Initialize state
     if (hide_systemPrompt.checked) {
-        updateSystemPromptVisibility(true);
+        chatPrompt.classList.add("hidden");
     }
-    
-    // Handle checkbox change
     hide_systemPrompt.addEventListener('change', async (event) => {
         if (event.target.checked) {
             chatPrompt.classList.add("hidden");
@@ -2652,8 +2622,6 @@ async function on_api() {
             chatPrompt.classList.remove("hidden");
         }
     });
-    
-    // Handle slide-header click
     document.querySelector(".slide-header")?.addEventListener("click", () => {
         const checked = slide_systemPrompt_icon.classList.contains("fa-angles-up");
         chatPrompt.classList[checked ? "add": "remove"]("hidden");
