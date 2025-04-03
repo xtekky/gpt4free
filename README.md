@@ -119,9 +119,7 @@ docker run \
   -v ${PWD}/har_and_cookies:/app/har_and_cookies \
   -v ${PWD}/generated_images:/app/generated_images \
   hlohaus789/g4f:latest-slim \
-  rm -r -f /app/g4f/ \
-  && pip install -U g4f[slim] \
-  && python -m g4f --debug
+  /bin/sh -c 'rm -rf /app/g4f && pip install -U g4f[slim] && python -m g4f --debug'
 ```
  
 5. **Access the Client Interface:**
