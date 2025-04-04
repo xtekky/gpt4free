@@ -99,6 +99,8 @@ class Backend_Api(Api):
                 "name": model.name,
                 "image": isinstance(model, models.ImageModel),
                 "vision": isinstance(model, models.VisionModel),
+                "audio": isinstance(model, models.AudioModel),
+                "video": isinstance(model, models.VideoModel),
                 "providers": [
                     getattr(provider, "parent", provider.__name__)
                     for provider in providers

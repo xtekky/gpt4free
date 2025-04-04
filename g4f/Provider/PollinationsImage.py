@@ -11,6 +11,7 @@ class PollinationsImage(PollinationsAI):
     default_model = "flux"
     default_vision_model = None
     default_image_model = default_model
+    audio_models = None
     image_models = [default_image_model]  # Default models
     _models_loaded = False  # Add a checkbox for synchronization
 

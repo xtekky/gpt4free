@@ -46,11 +46,13 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
     default_model = "openai"
     default_image_model = "flux"
     default_vision_model = default_model
+    default_audio_model = "openai-audio"
     text_models = [default_model]
     image_models = [default_image_model]
+    audio_models = [default_audio_model]
     extra_image_models = ["flux-pro", "flux-dev", "flux-schnell", "midjourney", "dall-e-3", "turbo"]
-    vision_models = [default_vision_model, "gpt-4o-mini", "o3-mini", "openai", "openai-large"]
-    extra_text_models = vision_models
+    vision_models = ["gpt-4o-mini", "o3-mini", "openai-large"]  # Removed duplicates with default_model
+    extra_text_models = []  # Will be populated with unique vision models
     _models_loaded = False
     model_aliases = {
         ### Text Models ###
@@ -68,7 +70,12 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         "gemini-2.0": "gemini",
         "gemini-2.0-flash": "gemini",
         "gemini-2.0-flash-thinking": "gemini-thinking",
-        "deepseek-r1": "deepseek-r1-llama",
+        "gemini-2.0-flash-thinking": "gemini-reasoning",
+        "deepseek-r1": "deepseek-reasoning-large",
+        "deepseek-r1": "deepseek-reasoning",
+        "deepseek-v3": "deepseek",
+        "qwq-32b": "qwen-reasoning",
+        "llama-3.2-11b": "llama-vision",
         "gpt-4o-audio": "openai-audio",
         
         ### Image Models ###
@@ -86,37 +93,52 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                 else:
                     new_image_models = []
 
-                # Combine models without duplicates
-                all_image_models = (
-                    cls.image_models +  # Already contains the default
-                    cls.extra_image_models + 
-                    new_image_models
-                )
-                cls.image_models = list(dict.fromkeys(all_image_models))
+                # Combine image models without duplicates
+                all_image_models = [cls.default_image_model]  # Start with default model
+                
+                # Add extra image models if not already in the list
+                for model in cls.extra_image_models + new_image_models:
+                    if model not in all_image_models:
+                        all_image_models.append(model)
+                
+                cls.image_models = all_image_models
 
                 # Update of text models
                 text_response = requests.get("https://text.pollinations.ai/models")
                 text_response.raise_for_status()
                 models = text_response.json()
-                original_text_models = [
+                
+                # Purpose of text models
+                cls.text_models = [
                     model.get("name") 
                     for model in models
-                    if model.get("type") == "chat"
+                    if "input_modalities" in model and "text" in model["input_modalities"]
                 ]
+
+                # Purpose of audio models
                 cls.audio_models = {
                     model.get("name"): model.get("voices")
                     for model in models
                     if model.get("audio")
                 }
+
+                # Create a set of unique text models starting with default model
+                unique_text_models = {cls.default_model}
                 
-                # Combining text models
-                combined_text = (
-                    cls.text_models +  # Already contains the default
-                    cls.extra_text_models + 
-                    original_text_models +
-                    cls.vision_models
-                )
-                cls.text_models = list(dict.fromkeys(combined_text))
+                # Add models from vision_models
+                unique_text_models.update(cls.vision_models)
+                
+                # Add models from the API response
+                for model in models:
+                    model_name = model.get("name")
+                    if model_name and "input_modalities" in model and "text" in model["input_modalities"]:
+                        unique_text_models.add(model_name)
+                
+                # Convert to list and update text_models
+                cls.text_models = list(unique_text_models)
+                
+                # Update extra_text_models with unique vision models
+                cls.extra_text_models = [model for model in cls.vision_models if model != cls.default_model]
                 
                 cls._models_loaded = True
 
@@ -128,7 +150,13 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                     cls.image_models = [cls.default_image_model]
                 debug.error(f"Failed to fetch models: {e}")
 
-        return cls.text_models + cls.image_models
+        # Return unique models across all categories
+        all_models = set(cls.text_models)
+        all_models.update(cls.image_models)
+        all_models.update(cls.audio_models.keys())
+        result = list(all_models)
+        return result
+
 
     @classmethod
     async def create_async_generator(

@@ -27,7 +27,8 @@ class ARTA(AsyncGeneratorProvider, ProviderModelMixin):
     default_model = "Flux"
     default_image_model = default_model
     model_aliases = {
-        "flux": "Flux",
+        default_image_model: default_image_model,
+        "flux": default_image_model,
         "medieval": "Medieval",
         "vincent_van_gogh": "Vincent Van Gogh",
         "f_dev": "F Dev",
@@ -91,7 +92,17 @@ class ARTA(AsyncGeneratorProvider, ProviderModelMixin):
             # Step 1: Generate Authentication Token
             auth_payload = {"clientType": "CLIENT_TYPE_ANDROID"}
             async with session.post(cls.auth_url, json=auth_payload, proxy=proxy) as auth_response:
-                auth_data = await auth_response.json()
+                if auth_response.status >= 400:
+                    error_text = await auth_response.text()
+                    raise ResponseError(f"Failed to obtain authentication token. Status: {auth_response.status}, Response: {error_text}")
+                
+                try:
+                    auth_data = await auth_response.json()
+                except Exception as e:
+                    error_text = await auth_response.text()
+                    content_type = auth_response.headers.get('Content-Type', 'unknown')
+                    raise ResponseError(f"Failed to parse auth response as JSON. Content-Type: {content_type}, Error: {str(e)}, Response: {error_text}")
+                
                 auth_token = auth_data.get("idToken")
                 #refresh_token = auth_data.get("refreshToken")
                 if not auth_token:
@@ -107,7 +118,17 @@ class ARTA(AsyncGeneratorProvider, ProviderModelMixin):
                 "refresh_token": refresh_token,
             }
             async with session.post(cls.token_refresh_url, data=payload, proxy=proxy) as response:
-                response_data = await response.json()
+                if response.status >= 400:
+                    error_text = await response.text()
+                    raise ResponseError(f"Failed to refresh token. Status: {response.status}, Response: {error_text}")
+                
+                try:
+                    response_data = await response.json()
+                except Exception as e:
+                    error_text = await response.text()
+                    content_type = response.headers.get('Content-Type', 'unknown')
+                    raise ResponseError(f"Failed to parse token refresh response as JSON. Content-Type: {content_type}, Error: {str(e)}, Response: {error_text}")
+                
                 return response_data.get("id_token"), response_data.get("refresh_token")
 
     @classmethod
@@ -167,9 +188,18 @@ class ARTA(AsyncGeneratorProvider, ProviderModelMixin):
             }
 
             async with session.post(cls.image_generation_url, data=image_payload, headers=headers, proxy=proxy) as image_response:
-                image_data = await image_response.json()
+                if image_response.status >= 400:
+                    error_text = await image_response.text()
+                    raise ResponseError(f"Failed to initiate image generation. Status: {image_response.status}, Response: {error_text}")
+                
+                try:
+                    image_data = await image_response.json()
+                except Exception as e:
+                    error_text = await image_response.text()
+                    content_type = image_response.headers.get('Content-Type', 'unknown')
+                    raise ResponseError(f"Failed to parse response as JSON. Content-Type: {content_type}, Error: {str(e)}, Response: {error_text}")
+                
                 record_id = image_data.get("record_id")
-
                 if not record_id:
                     raise ResponseError(f"Failed to initiate image generation: {image_data}")
 
@@ -180,7 +210,17 @@ class ARTA(AsyncGeneratorProvider, ProviderModelMixin):
             last_status = None
             while True:
                 async with session.get(status_url, headers=headers, proxy=proxy) as status_response:
-                    status_data = await status_response.json()
+                    if status_response.status >= 400:
+                        error_text = await status_response.text()
+                        raise ResponseError(f"Failed to check image generation status. Status: {status_response.status}, Response: {error_text}")
+                    
+                    try:
+                        status_data = await status_response.json()
+                    except Exception as e:
+                        error_text = await status_response.text()
+                        content_type = status_response.headers.get('Content-Type', 'unknown')
+                        raise ResponseError(f"Failed to parse status response as JSON. Content-Type: {content_type}, Error: {str(e)}, Response: {error_text}")
+                    
                     status = status_data.get("status")
 
                     if status == "DONE":

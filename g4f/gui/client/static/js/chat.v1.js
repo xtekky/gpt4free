@@ -2306,7 +2306,7 @@ async function on_api() {
     models.forEach((model) => {
         let option = document.createElement("option");
         option.value = model.name;
-        option.text = model.name + (model.image ? " (Image Generation)" : "") + (model.vision ? " (Image Upload)" : "");
+        option.text = model.name + (model.image ? " (Image Generation)" : "") + (model.vision ? " (Image Upload)" : "") + (model.audio ? " (Audio Generation)" : "") + (model.video ? " (Video Generation)" : "");
         option.dataset.providers = model.providers.join(" ");
         modelSelect.appendChild(option);
         is_demo = model.demo;
@@ -2355,6 +2355,8 @@ async function on_api() {
             option.text = provider.label
                 + (provider.vision ? " (Image Upload)" : "")
                 + (provider.image ? " (Image Generation)" : "")
+                + (provider.audio ? " (Audio Generation)" : "")
+                + (provider.video ? " (Video Generation)" : "")
                 + (provider.nodriver ? " (Browser)" : "")
                 + (provider.hf_space ? " (HuggingSpace)" : "")
                 + (!provider.nodriver && provider.auth ? " (Auth)" : "");
@@ -2942,7 +2944,7 @@ async function load_provider_models(provider=null) {
             let option = document.createElement('option');
             option.value = model.model;
             option.dataset.label = model.model;
-            option.text = `${model.model}${model.image ? " (Image Generation)" : ""}${model.vision ? " (Image Upload)" : ""}`;
+            option.text = `${model.model}${model.image ? " (Image Generation)" : ""}${model.audio ? " (Audio Generation)" : ""}${model.video ? " (Video Generation)" : ""}${model.vision ? " (Image Upload)" : ""}`;
             if (model.task) {
                 option.text += ` (${model.task})`;
             }
