@@ -37,6 +37,7 @@ def find_stop(stop: Optional[list[str]], content: str, chunk: str = None):
     first = -1
     word = None
     if stop is not None:
+        content = str(content)
         for word in list(stop):
             first = content.find(word)
             if first != -1:

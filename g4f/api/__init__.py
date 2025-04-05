@@ -421,14 +421,8 @@ class Api:
                 config.api_key = credentials.credentials
             try:
                 response = await self.client.images.generate(
-                    prompt=config.prompt,
-                    model=config.model,
-                    provider=AppConfig.image_provider if config.provider is None else config.provider,
-                    **filter_none(
-                        response_format=config.response_format,
-                        api_key=config.api_key,
-                        proxy=config.proxy
-                    )
+                    **config.dict(exclude_none=True),
+                    provider=AppConfig.image_provider if config.provider is None else config.provider
                 )
                 for image in response.data:
                     if hasattr(image, "url") and image.url.startswith("/"):

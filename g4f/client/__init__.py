@@ -37,11 +37,10 @@ except NameError:
             raise StopIteration
 
 def add_chunk(content, chunk):
-    if content == "":
+    if content == "" and isinstance(chunk, (MediaResponse, AudioResponse)):
         content = chunk
     else:
-        chunk = str(chunk)
-        content = str(content) + chunk
+        content = str(content) + str(chunk)
     return content
 
 # Synchronous iter_response function
@@ -57,6 +56,7 @@ def iter_response(
     tool_calls = None
     usage = None
     provider: ProviderInfo = None
+    conversation: JsonConversation = None
     completion_id = ''.join(random.choices(string.ascii_letters + string.digits, k=28))
     idx = 0
 
@@ -67,6 +67,9 @@ def iter_response(
         if isinstance(chunk, FinishReason):
             finish_reason = chunk.reason
             break
+        elif isinstance(chunk, JsonConversation):
+            conversation = chunk
+            continue
         elif isinstance(chunk, ToolCalls):
             tool_calls = chunk.get_list()
             continue
@@ -124,7 +127,8 @@ def iter_response(
                 content = filter_json(content)
         chat_completion = ChatCompletion.model_construct(
             content, finish_reason, completion_id, int(time.time()), usage=usage,
-            **filter_none(tool_calls=[ToolCallModel.model_construct(**tool_call) for tool_call in tool_calls]) if tool_calls is not None else {}
+            **filter_none(tool_calls=[ToolCallModel.model_construct(**tool_call) for tool_call in tool_calls]) if tool_calls is not None else {},
+            conversation=None if conversation is None else conversation.get_dict()
         )
     if provider is not None:
         chat_completion.provider = provider.name
@@ -460,7 +464,7 @@ class Images:
                 urls.extend(item.urls)
         if not urls:
             return None
-        return MediaResponse(urls, items[0].alt)
+        return MediaResponse(urls, items[0].alt, items[0].options)
 
     def create_variation(
         self,
@@ -537,7 +541,7 @@ class Images:
             images = await asyncio.gather(*[get_b64_from_url(image) for image in response.get_list()])
         else:
             # Save locally for None (default) case
-            images = await copy_media(response.get_list(), response.get("cookies"), proxy)
+            images = await copy_media(response.get_list(), response.get("cookies"), response.get("headers"), proxy, response.alt)
             images = [Image.model_construct(url=image, revised_prompt=response.alt) for image in images]
         
         return ImagesResponse.model_construct(
