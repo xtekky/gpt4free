@@ -49,7 +49,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
     text_models = [default_model]
     image_models = [default_image_model]
     extra_image_models = ["flux-pro", "flux-dev", "flux-schnell", "midjourney", "dall-e-3", "turbo"]
-    vision_models = [default_vision_model, "gpt-4o-mini", "o3-mini", "openai", "openai-large"]
+    vision_models = [default_vision_model, "gpt-4o-mini", "o3-mini", "openai", "openai-large", "searchgpt"]
     extra_text_models = vision_models
     _models_loaded = False
     model_aliases = {
@@ -68,7 +68,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         "gemini-2.0": "gemini",
         "gemini-2.0-flash": "gemini",
         "gemini-2.0-flash-thinking": "gemini-thinking",
-        "deepseek-r1": "deepseek-r1-llama",
+        "deepseek-r1": "deepseek-reasoning-large",
         "gpt-4o-audio": "openai-audio",
         
         ### Image Models ###
@@ -101,7 +101,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                 original_text_models = [
                     model.get("name") 
                     for model in models
-                    if model.get("type") == "chat"
+                    if "text"in model.get("output_modalities")
                 ]
                 cls.audio_models = {
                     model.get("name"): model.get("voices")

@@ -541,7 +541,7 @@ class Images:
             images = await asyncio.gather(*[get_b64_from_url(image) for image in response.get_list()])
         else:
             # Save locally for None (default) case
-            images = await copy_media(response.get_list(), response.get("cookies"), proxy)
+            images = await copy_media(response.get_list(), response.get("cookies"), response.get("headers"), proxy, response.alt)
             images = [Image.model_construct(url=image, revised_prompt=response.alt) for image in images]
         
         return ImagesResponse.model_construct(
