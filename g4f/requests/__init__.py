@@ -103,7 +103,7 @@ async def get_args_from_nodriver(
         else:
             await browser.cookies.set_all(get_cookie_params_from_dict(cookies, url=url, domain=domain))
         page = await browser.get(url)
-        user_agent = await page.evaluate("window.navigator.userAgent")
+        user_agent = str(await page.evaluate("window.navigator.userAgent"))
         await page.wait_for("body:not(.no-js)", timeout=timeout)
         if wait_for is not None:
             await page.wait_for(wait_for, timeout=timeout)

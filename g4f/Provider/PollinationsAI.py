@@ -51,8 +51,8 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
     image_models = [default_image_model]
     audio_models = [default_audio_model]
     extra_image_models = ["flux-pro", "flux-dev", "flux-schnell", "midjourney", "dall-e-3", "turbo"]
-    vision_models = ["gpt-4o-mini", "o3-mini", "openai-large"]  # Removed duplicates with default_model
-    extra_text_models = []  # Will be populated with unique vision models
+    vision_models = [default_vision_model, "gpt-4o-mini", "o3-mini", "openai", "openai-large", "searchgpt"]
+    extra_text_models = vision_models
     _models_loaded = False
     model_aliases = {
         ### Text Models ###
