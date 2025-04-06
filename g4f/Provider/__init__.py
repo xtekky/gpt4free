@@ -33,6 +33,7 @@ try:
     from .AllenAI              import AllenAI
     from .ARTA                 import ARTA
     from .Blackbox             import Blackbox
+    from .Chatai               import Chatai
     from .ChatGLM              import ChatGLM
     from .ChatGpt              import ChatGpt
     from .ChatGptEs            import ChatGptEs
