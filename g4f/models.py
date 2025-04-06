@@ -6,6 +6,7 @@ from .Provider import IterListProvider, ProviderType
 from .Provider import (
     ### No Auth Required ###
     AllenAI,
+    ARTA,
     Blackbox,
     ChatGLM,
     ChatGptEs,
@@ -77,7 +78,10 @@ class ImageModel(Model):
 
 class AudioModel(Model):
     pass
-
+    
+class VideoModel(Model):
+    pass
+    
 class VisionModel(Model):
     pass
 
@@ -105,7 +109,7 @@ default = Model(
     ])
 )
 
-default_vision = Model(
+default_vision = VisionModel(
     name = "",
     base_provider = "",
     best_provider = IterListProvider([
@@ -115,6 +119,7 @@ default_vision = Model(
         DeepInfraChat,
         PollinationsAI,
         Dynaspark,
+        AllenAI,
         HuggingSpace,
         GeminiPro,
         HuggingFaceAPI,
@@ -263,7 +268,7 @@ llama_3_2_90b = Model(
 llama_3_3_70b = Model(
     name          = "llama-3.3-70b",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider([DDG, DeepInfraChat, LambdaChat, PollinationsAI, Jmuz, HuggingChat, HuggingFace])
+    best_provider = IterListProvider([Blackbox, DDG, DeepInfraChat, LambdaChat, PollinationsAI, Jmuz, HuggingChat, HuggingFace])
 )
 
 ### Mistral ###
@@ -287,7 +292,7 @@ mistral_nemo = Model(
 mixtral_small_24b = Model(
     name          = "mixtral-small-24b",
     base_provider = "Mistral",
-    best_provider = IterListProvider([DDG, DeepInfraChat])
+    best_provider = IterListProvider([Blackbox, DDG, DeepInfraChat])
 )
 
 ### NousResearch ###
@@ -383,7 +388,7 @@ claude_3_haiku = Model(
 claude_3_5_sonnet = Model(
     name          = 'claude-3.5-sonnet',
     base_provider = 'Anthropic',
-    best_provider = IterListProvider([Jmuz, Liaobots])
+    best_provider = IterListProvider([Blackbox, Jmuz, Liaobots])
 )
 
 # claude 3.7
@@ -491,7 +496,7 @@ qwen_2_5_max = Model(
 qwq_32b = Model(
     name = 'qwq-32b',
     base_provider = 'Qwen',
-    best_provider = IterListProvider([Jmuz, HuggingChat])
+    best_provider = IterListProvider([Blackbox, PollinationsAI, Jmuz, HuggingChat])
 )
 qvq_72b = VisionModel(
     name = 'qvq-72b',
@@ -516,7 +521,7 @@ deepseek_chat = Model(
 deepseek_v3 = Model(
     name = 'deepseek-v3',
     base_provider = 'DeepSeek',
-    best_provider = IterListProvider([Blackbox, DeepInfraChat, LambdaChat, OIVSCode, TypeGPT, Liaobots])
+    best_provider = IterListProvider([Blackbox, DeepInfraChat, LambdaChat, PollinationsAI, OIVSCode, TypeGPT, Liaobots])
 )
 
 deepseek_r1 = Model(
@@ -645,14 +650,26 @@ minicpm_2_5 = Model(
 )
 
 ### Ai2 ###
-tulu_3_405b = Model(
-    name = "tulu-3-405b",
+olmo_1_7b = Model(
+    name = "olmo-1-7b",
     base_provider = "Ai2",
     best_provider = AllenAI
 )
 
 olmo_2_13b = Model(
     name = "olmo-2-13b",
+    base_provider = "Ai2",
+    best_provider = AllenAI
+)
+
+olmo_2_32b = Model(
+    name = "olmo-2-32b",
+    base_provider = "Ai2",
+    best_provider = AllenAI
+)
+
+olmo_4_synthetic = VisionModel(
+    name = "olmo-4-synthetic",
     base_provider = "Ai2",
     best_provider = AllenAI
 )
@@ -669,12 +686,13 @@ tulu_3_70b = Model(
     best_provider = AllenAI
 )
 
-olmoe_0125 = Model(
-    name = "olmoe-0125",
+tulu_3_405b = Model(
+    name = "tulu-3-405b",
     base_provider = "Ai2",
     best_provider = AllenAI
 )
 
+### Liquid AI ###
 lfm_40b = Model(
     name = "lfm-40b",
     base_provider = "Liquid AI",
@@ -710,7 +728,7 @@ sd_3_5 = ImageModel(
 flux = ImageModel(
     name = 'flux',
     base_provider = 'Black Forest Labs',
-    best_provider = IterListProvider([Blackbox, PollinationsImage, Websim, HuggingSpace])
+    best_provider = IterListProvider([Blackbox, PollinationsImage, Websim, HuggingSpace, ARTA])
 )
 
 flux_pro = ImageModel(
@@ -922,11 +940,13 @@ class ModelUtils:
         minicpm_2_5.name: minicpm_2_5,
         
         ### Ai2 ###
-        tulu_3_405b.name: tulu_3_405b,
+        olmo_1_7b.name: olmo_1_7b,
         olmo_2_13b.name: olmo_2_13b,
+        olmo_2_32b.name: olmo_2_32b,
+        olmo_4_synthetic.name: olmo_4_synthetic,
         tulu_3_1_8b.name: tulu_3_1_8b,
         tulu_3_70b.name: tulu_3_70b,
-        olmoe_0125.name: olmoe_0125,
+        tulu_3_405b.name: tulu_3_405b,
         
         ### Liquid AI ###
         lfm_40b.name: lfm_40b,
