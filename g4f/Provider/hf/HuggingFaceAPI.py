@@ -5,11 +5,10 @@ import requests
 from ...providers.types import Messages
 from ...typing import MediaListType
 from ...requests import StreamSession, raise_for_status
-from ...errors import ModelNotSupportedError
+from ...errors import ModelNotSupportedError, PaymentRequiredError
 from ...providers.response import ProviderInfo
 from ..template.OpenaiTemplate import OpenaiTemplate
 from .models import model_aliases, vision_models, default_llama_model, default_vision_model, text_models
-from ... import debug
 
 class HuggingFaceAPI(OpenaiTemplate):
     label = "HuggingFace (Text Generation)"
@@ -89,6 +88,7 @@ class HuggingFaceAPI(OpenaiTemplate):
         provider_mapping = await cls.get_mapping(model, api_key)
         if not provider_mapping:
             raise ModelNotSupportedError(f"Model is not supported: {model} in: {cls.__name__}")
+        error = None
         for provider_key in provider_mapping:
             api_path = provider_key if provider_key == "novita" else f"{provider_key}/v1"
             api_base = f"https://router.huggingface.co/{api_path}"
@@ -97,7 +97,6 @@ class HuggingFaceAPI(OpenaiTemplate):
                 raise ModelNotSupportedError(f"Model is not supported: {model} in: {cls.__name__} task: {task}")
             model = provider_mapping[provider_key]["providerId"]
             yield ProviderInfo(**{**cls.get_dict(), "label": f"HuggingFace ({provider_key})"})
-            break
         # start = calculate_lenght(messages)
         # if start > max_inputs_lenght:
         #     if len(messages) > 6:
@@ -109,8 +108,14 @@ class HuggingFaceAPI(OpenaiTemplate):
         #         if len(messages) > 1 and calculate_lenght(messages) > max_inputs_lenght:
         #             messages = last_user_message
         #     debug.log(f"Messages trimmed from: {start} to: {calculate_lenght(messages)}")
-        async for chunk in super().create_async_generator(model, messages, api_base=api_base, api_key=api_key, max_tokens=max_tokens, media=media, **kwargs):
-            yield chunk
-
+            try:
+                async for chunk in super().create_async_generator(model, messages, api_base=api_base, api_key=api_key, max_tokens=max_tokens, media=media, **kwargs):
+                    yield chunk
+                return
+            except PaymentRequiredError as e:
+                error = e
+                continue
+        if error is not None:
+            raise error
 def calculate_lenght(messages: Messages) -> int:
     return sum([len(message["content"]) + 16 for message in messages])

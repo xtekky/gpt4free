@@ -18,6 +18,7 @@ from hashlib import sha256
 
 from ...client.service import convert_to_provider
 from ...providers.asyncio import to_sync_generator
+from ...providers.response import FinishReason
 from ...client.helper import filter_markdown
 from ...tools.files import supports_filename, get_streaming, get_bucket_dir, get_buckets
 from ...tools.run_tools import iter_run_tools
@@ -79,16 +80,12 @@ class Backend_Api(Api):
         @app.route('/backend-api/v2/models', methods=['GET'])
         def jsonify_models(**kwargs):
             response = get_demo_models() if app.demo else self.get_models(**kwargs)
-            if isinstance(response, list):
-                return jsonify(response)
-            return response
+            return jsonify(response)
 
         @app.route('/backend-api/v2/models/<provider>', methods=['GET'])
         def jsonify_provider_models(**kwargs):
             response = self.get_provider_models(**kwargs)
-            if isinstance(response, list):
-                return jsonify(response)
-            return response
+            return jsonify(response)
 
         @app.route('/backend-api/v2/providers', methods=['GET'])
         def jsonify_providers(**kwargs):
@@ -102,6 +99,8 @@ class Backend_Api(Api):
                 "name": model.name,
                 "image": isinstance(model, models.ImageModel),
                 "vision": isinstance(model, models.VisionModel),
+                "audio": isinstance(model, models.AudioModel),
+                "video": isinstance(model, models.VideoModel),
                 "providers": [
                     getattr(provider, "parent", provider.__name__)
                     for provider in providers
@@ -259,9 +258,11 @@ class Backend_Api(Api):
                     else:
                         response = iter_run_tools(ChatCompletion.create, **parameters)
                         cache_dir.mkdir(parents=True, exist_ok=True)
+                        copy_response = [chunk for chunk in response]
                         with cache_file.open("w") as f:
-                            for chunk in response:
+                            for chunk in copy_response:
                                 f.write(str(chunk))
+                        response = copy_response
                 else:
                     response = iter_run_tools(ChatCompletion.create, **parameters)
 
@@ -269,23 +270,14 @@ class Backend_Api(Api):
                     return Response(filter_markdown("".join([str(chunk) for chunk in response]), do_filter_markdown), mimetype='text/plain')
                 def cast_str():
                     for chunk in response:
-                        if not isinstance(chunk, Exception):
+                        if isinstance(chunk, FinishReason):
+                            yield f"[{chunk.reason}]" if chunk.reason != "stop" else ""
+                        elif not isinstance(chunk, Exception):
                             yield str(chunk)
                 return Response(cast_str(), mimetype='text/plain')
             except Exception as e:
                 logger.exception(e)
                 return jsonify({"error": {"message": f"{type(e).__name__}: {e}"}}), 500
-
-        @app.route('/backend-api/v2/buckets', methods=['GET'])
-        def list_buckets():
-            try:
-                buckets = get_buckets()
-                if buckets is None:
-                    return jsonify({"error": {"message": "Error accessing bucket directory"}}), 500
-                sanitized_buckets = [secure_filename(b) for b in buckets]
-                return jsonify(sanitized_buckets), 200
-            except Exception as e:
-                return jsonify({"error": {"message": str(e)}}), 500
 
         @app.route('/backend-api/v2/files/<bucket_id>', methods=['GET', 'DELETE'])
         def manage_files(bucket_id: str):

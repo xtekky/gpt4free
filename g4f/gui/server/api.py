@@ -30,6 +30,8 @@ class Api:
             "name": model.name,
             "image": isinstance(model, models.ImageModel),
             "vision": isinstance(model, models.VisionModel),
+            "audio": isinstance(model, models.AudioModel),
+            "video": isinstance(model, models.VideoModel),
             "providers": [
                 getattr(provider, "parent", provider.__name__)
                 for provider in providers
@@ -52,6 +54,8 @@ class Api:
                         "model": model,
                         "default": model == provider.default_model,
                         "vision": getattr(provider, "default_vision_model", None) == model or model in getattr(provider, "vision_models", []),
+                        "audio": getattr(provider, "default_audio_model", None) == model or model in getattr(provider, "audio_models", []),
+                        "video": getattr(provider, "default_video_model", None) == model or model in getattr(provider, "video_models", []),
                         "image": False if provider.image_models is None else model in provider.image_models,
                         "task": None if not hasattr(provider, "task_mapping") else provider.task_mapping[model] if model in provider.task_mapping else None
                     }
@@ -66,6 +70,8 @@ class Api:
             "label": provider.label if hasattr(provider, "label") else provider.__name__,
             "parent": getattr(provider, "parent", None),
             "image": bool(getattr(provider, "image_models", False)),
+            "audio": getattr(provider, "audio_models", None) is not None,
+            "video": getattr(provider, "video_models", None) is not None,
             "vision": getattr(provider, "default_vision_model", None) is not None,
             "nodriver": getattr(provider, "use_nodriver", False),
             "hf_space": getattr(provider, "hf_space", False),
@@ -182,15 +188,15 @@ class Api:
                 elif isinstance(chunk, PreviewResponse):
                     yield self._format_json("preview", chunk.to_string())
                 elif isinstance(chunk, ImagePreview):
-                    yield self._format_json("preview", chunk.to_string(), images=chunk.images, alt=chunk.alt)
-                elif isinstance(chunk, (ImageResponse, VideoResponse)):
+                    yield self._format_json("preview", chunk.to_string(), urls=chunk.urls, alt=chunk.alt)
+                elif isinstance(chunk, MediaResponse):
                     media = chunk
                     if download_media or chunk.get("cookies"):
                         chunk.alt = format_image_prompt(kwargs.get("messages"), chunk.alt)
-                        tags = [model, kwargs.get("aspect_ratio")]
+                        tags = [model, kwargs.get("aspect_ratio"), kwargs.get("resolution"), kwargs.get("width"), kwargs.get("height")]
                         media = asyncio.run(copy_media(chunk.get_list(), chunk.get("cookies"), chunk.get("headers"), proxy=proxy, alt=chunk.alt, tags=tags))
                         media = ImageResponse(media, chunk.alt) if isinstance(chunk, ImageResponse) else VideoResponse(media, chunk.alt)
-                    yield self._format_json("content", str(media), images=chunk.get_list(), alt=chunk.alt)
+                    yield self._format_json("content", str(media), urls=chunk.urls, alt=chunk.alt)
                 elif isinstance(chunk, SynthesizeData):
                     yield self._format_json("synthesize", chunk.get_dict())
                 elif isinstance(chunk, TitleGeneration):

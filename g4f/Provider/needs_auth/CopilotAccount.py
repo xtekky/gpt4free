@@ -19,11 +19,6 @@ class CopilotAccount(AsyncAuthedProvider, Copilot):
     parent = "Copilot"
     default_model = "Copilot"
     default_vision_model = default_model
-    models = [default_model]
-    image_models = models
-    model_aliases = {
-        "dall-e-3": default_model
-    }
 
     @classmethod
     async def on_auth_async(cls, proxy: str = None, **kwargs) -> AsyncIterator:

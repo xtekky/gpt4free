@@ -83,7 +83,6 @@ class Grok(AsyncAuthedProvider, ProviderModelMixin):
         model: str,
         messages: Messages,
         auth_result: AuthResult,
-        cookies: Cookies = None,
         return_conversation: bool = False,
         conversation: Conversation = None,
         **kwargs
@@ -130,7 +129,7 @@ class Grok(AsyncAuthedProvider, ProviderModelMixin):
                                     yield token
                             generated_images = response_data.get("modelResponse", {}).get("generatedImageUrls", None)
                             if generated_images:
-                                yield ImageResponse([f'{cls.assets_url}/{image}' for image in generated_images], "", {"cookies": cookies, "headers": headers})
+                                yield ImageResponse([f'{cls.assets_url}/{image}' for image in generated_images], "", {"cookies": auth_result.cookies, "headers": auth_result.headers})
                             title = result.get("title", {}).get("newTitle", "")
                             if title:
                                 yield TitleGeneration(title)

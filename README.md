@@ -97,31 +97,29 @@ Is your site on this repository and you want to take it down? Send an email to t
 1. **Install Docker:** [Download and install Docker](https://docs.docker.com/get-docker/).
 2. **Set Up Directories:** Before running the container, make sure the necessary data directories exist or can be created. For example, you can create and set ownership on these directories by running: 
 ```bash
-   mkdir -p ${PWD}/har_and_cookies ${PWD}/generated_images
-   sudo chown -R 1200:1201 ${PWD}/har_and_cookies ${PWD}/generated_images
+mkdir -p ${PWD}/har_and_cookies ${PWD}/generated_images
+sudo chown -R 1200:1201 ${PWD}/har_and_cookies ${PWD}/generated_images
 ```
 3. **Run the Docker Container:** Use the following commands to pull the latest image and start the container (Only x64):
 ```bash
-   docker pull hlohaus789/g4f
-   docker run -p 8080:8080 -p 7900:7900 \
-     --shm-size="2g" \
-     -v ${PWD}/har_and_cookies:/app/har_and_cookies \
-     -v ${PWD}/generated_images:/app/generated_images \
-     hlohaus789/g4f:latest
+docker pull hlohaus789/g4f
+docker run -p 8080:8080 -p 7900:7900 \
+  --shm-size="2g" \
+  -v ${PWD}/har_and_cookies:/app/har_and_cookies \
+  -v ${PWD}/generated_images:/app/generated_images \
+  hlohaus789/g4f:latest
 ```
 
 4. **Running the Slim Docker Image:** And use the following commands to run the Slim Docker image. This command also updates the `g4f` package at startup and installs any additional dependencies: (x64 and arm64)
 ```bash
-  mkdir -p ${PWD}/har_and_cookies ${PWD}/generated_images
-  chown -R 1000:1000 ${PWD}/har_and_cookies ${PWD}/generated_images
-	docker run \
-	  -p 1337:1337 \
-	  -v ${PWD}/har_and_cookies:/app/har_and_cookies \
-	  -v ${PWD}/generated_images:/app/generated_images \
-	  hlohaus789/g4f:latest-slim \
-	  rm -r -f /app/g4f/ \
-	  && pip install -U g4f[slim] \
-	  && python -m g4f --debug
+mkdir -p ${PWD}/har_and_cookies ${PWD}/generated_images
+chown -R 1000:1000 ${PWD}/har_and_cookies ${PWD}/generated_images
+docker run \
+  -p 1337:1337 \
+  -v ${PWD}/har_and_cookies:/app/har_and_cookies \
+  -v ${PWD}/generated_images:/app/generated_images \
+  hlohaus789/g4f:latest-slim \
+  /bin/sh -c 'rm -rf /app/g4f && pip install -U g4f[slim] && python -m g4f --debug'
 ```
  
 5. **Access the Client Interface:**
@@ -248,7 +246,8 @@ Run the Web UI on your smartphone for easy access on the go. Check out the dedic
    - **File API from G4F:** [/docs/file](docs/file.md)
    - **PydanticAI and LangChain Integration for G4F:** [/docs/pydantic_ai](docs/pydantic_ai.md)
    - **Legacy API with python modules:** [/docs/legacy](docs/legacy.md)
-      
+   - **G4F - Media Documentation** [/docs/media](/docs/media.md) *(New)*
+
 ---
 
 ## 🔗 Powered by gpt4free

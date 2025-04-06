@@ -74,7 +74,7 @@ class AiChats(AsyncGeneratorProvider, ProviderModelMixin):
 
                                 base64_image = base64.b64encode(image_data).decode('utf-8')
                                 base64_url = f"data:image/png;base64,{base64_image}"
-                                yield ImageResponse(base64_url, prompt)
+                                yield ImageResponse(image_url, prompt)
                             else:
                                 yield f"Error: No image URL found in the response. Full response: {response_json}"
                         else:

@@ -13,6 +13,7 @@ try:
     from duckduckgo_search import DDGS
     from duckduckgo_search.exceptions import DuckDuckGoSearchException
     from bs4 import BeautifulSoup
+    ddgs = DDGS()
     has_requirements = True
 except ImportError:
     has_requirements = False
@@ -164,49 +165,49 @@ async def fetch_and_scrape(session: ClientSession, url: str, max_words: int = No
 async def search(query: str, max_results: int = 5, max_words: int = 2500, backend: str = "auto", add_text: bool = True, timeout: int = 5, region: str = "wt-wt") -> SearchResults:
     if not has_requirements:
         raise MissingRequirementsError('Install "duckduckgo-search" and "beautifulsoup4" package | pip install -U g4f[search]')
-    with DDGS() as ddgs:
-        results = []
-        for result in ddgs.text(
-                query,
-                region=region,
-                safesearch="moderate",
-                timelimit="y",
-                max_results=max_results,
-                backend=backend,
-            ):
-            if ".google." in result["href"]:
-                continue
-            results.append(SearchResultEntry(
-                result["title"],
-                result["href"],
-                result["body"]
-            ))
 
+    results = []
+    for result in ddgs.text(
+            query,
+            region=region,
+            safesearch="moderate",
+            timelimit="y",
+            max_results=max_results,
+            backend=backend,
+        ):
+        if ".google." in result["href"]:
+            continue
+        results.append(SearchResultEntry(
+            result["title"],
+            result["href"],
+            result["body"]
+        ))
+
+    if add_text:
+        requests = []
+        async with ClientSession(timeout=ClientTimeout(timeout)) as session:
+            for entry in results:
+                requests.append(fetch_and_scrape(session, entry.url, int(max_words / (max_results - 1)), False))
+            texts = await asyncio.gather(*requests)
+
+    formatted_results = []
+    used_words = 0
+    left_words = max_words
+    for i, entry in enumerate(results):
         if add_text:
-            requests = []
-            async with ClientSession(timeout=ClientTimeout(timeout)) as session:
-                for entry in results:
-                    requests.append(fetch_and_scrape(session, entry.url, int(max_words / (max_results - 1)), False))
-                texts = await asyncio.gather(*requests)
+            entry.text = texts[i]
+        if max_words:
+            left_words -= entry.title.count(" ") + 5
+            if entry.text:
+                left_words -= entry.text.count(" ")
+            else:
+                left_words -= entry.snippet.count(" ")
+            if 0 > left_words:
+                break
+        used_words = max_words - left_words
+        formatted_results.append(entry)
 
-        formatted_results = []
-        used_words = 0
-        left_words = max_words
-        for i, entry in enumerate(results):
-            if add_text:
-                entry.text = texts[i]
-            if max_words:
-                left_words -= entry.title.count(" ") + 5
-                if entry.text:
-                    left_words -= entry.text.count(" ")
-                else:
-                    left_words -= entry.snippet.count(" ")
-                if 0 > left_words:
-                    break
-            used_words = max_words - left_words
-            formatted_results.append(entry)
-
-        return SearchResults(formatted_results, used_words)
+    return SearchResults(formatted_results, used_words)
 
 async def do_search(prompt: str, query: str = None, instructions: str = DEFAULT_INSTRUCTIONS, **kwargs) -> tuple[str, Sources]:
     if instructions and instructions in prompt:

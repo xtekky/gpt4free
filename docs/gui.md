@@ -69,9 +69,9 @@ The G4F GUI is a self-contained, user-friendly interface designed for interactin
    - **Basic Authentication**  
      You can set a password for Basic Authentication using the `--g4f-api-key` argument when starting the web server.
 
-### 9. **Continue Button (ChatGPT & HuggingChat)**
+### 9. **Continue Button**
    - **Automatic Detection of Truncated Responses**  
-     When using **ChatGPT** or **HuggingChat** providers, responses may occasionally be cut off or truncated.  
+     When using providers, responses may occasionally be cut off or truncated.  
    - **Continue Button**  
      If the GUI detects that the response ended abruptly, a **Continue** button appears directly below the truncated message. Clicking this button sends a follow-up request to the same provider and model, retrieving the rest of the message.  
    - **Seamless Conversation Flow**  
@@ -154,7 +154,7 @@ http://localhost:8080/chat/
    - **Text/Code:** The generated response appears in the conversation window.  
    - **Images:** Generated images are displayed as thumbnails. Click on any thumbnail to view it in full size within the lightbox.
 
-5. **Continue Button (ChatGPT & HuggingChat)**  
+5. **Continue Button**  
    - If a response is truncated, a **Continue** button will appear under the last message. Clicking it asks the same provider to continue the response from where it ended.
 
 6. **Manage Conversations**  

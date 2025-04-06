@@ -5,7 +5,7 @@ const box_conversations = document.querySelector(`.top`);
 const stop_generating   = document.querySelector(`.stop_generating`);
 const regenerate_button = document.querySelector(`.regenerate`);
 const sidebar           = document.querySelector(".sidebar");
-const sidebar_button    = document.querySelector(".mobile-sidebar");
+const sidebar_buttons   = document.querySelectorAll(".mobile-sidebar-toggle");
 const sendButton        = document.getElementById("sendButton");
 const addButton         = document.getElementById("addButton");
 const imageInput        = document.querySelector(".image-label");
@@ -73,7 +73,7 @@ if (window.markdownit) {
                     size = parseInt(appStorage.getItem(`bucket:${item.bucket_id}`), 10);
                     return `**Bucket:** [[${item.bucket_id}]](${item.url})${size ? ` (${formatFileSize(size)})` : ""}`
                 }
-                if (item.name.endsWith(".wav") || item.name.endsWith(".mp3")) {
+                if (item.name.endsWith(".wav") || item.name.endsWith(".mp3") || item.name.endsWith(".m4a")) {
                     return `<audio controls src="${item.url}"></audio>`;
                 }
                 if (item.name.endsWith(".mp4") || item.name.endsWith(".webm")) {
@@ -227,6 +227,16 @@ const get_message_el = (el) => {
     if (message_el.classList.contains('message')) {
         return message_el;
     }
+}
+
+function generateUUID() {
+    if (crypto.randomUUID) {
+        return crypto.randomUUID();
+    }
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+      const r = crypto.getRandomValues(new Uint8Array(1))[0] % 16;
+      return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+    });
 }
 
 function register_message_images() {
@@ -512,7 +522,7 @@ const handle_ask = async (do_ask_gpt = true, message = null) => {
         const file = new File([blob], 'downloads.json', { type: 'application/json' }); // Create File object
         let formData = new FormData();
         formData.append('files', file); // Append as a file
-        const bucket_id = crypto.randomUUID();
+        const bucket_id = generateUUID();
         await fetch(`/backend-api/v2/files/${bucket_id}`, {
             method: 'POST',
             body: formData
@@ -560,6 +570,7 @@ const handle_ask = async (do_ask_gpt = true, message = null) => {
         }
     } else {
         await safe_load_conversation(window.conversation_id, true);
+        await load_conversations();
     }
 };
 
@@ -923,9 +934,6 @@ async function add_message_chunk(message, message_id, provider, scroll, finish_m
     } else if (message.type == "finish") {
         if (!finish_storage[message_id]) {
             finish_storage[message_id] = message.finish;
-            if (finish_message) {
-                await finish_message();
-            }
         }
     } else if (message.type == "usage") {
         usage_storage[message_id] = message.usage;
@@ -1165,14 +1173,14 @@ const ask_gpt = async (message_id, message_index = -1, regenerate = false, provi
         let extra_parameters = [];
         for (el of document.getElementById(`${provider}-form`)?.querySelectorAll(".saved input, .saved textarea") || []) {
             let value = el.type == "checkbox" ? el.checked : el.value;
-            if (el.type == "textarea") {
-                try {
-                    value = await JSON.parse(value);
-                } catch (e) {
-                }
+            try {
+                value = await JSON.parse(value);
+            } catch (e) {
             }
             extra_parameters[el.name] = value;
         };
+        automaticOrientation = appStorage.getItem("automaticOrientation") != "false";
+        aspect_ratio = automaticOrientation ? (window.innerHeight > window.innerWidth ? "9:16" : "16:9") : null;
         await api("conversation", {
             id: message_id,
             conversation_id: window.conversation_id,
@@ -1186,7 +1194,7 @@ const ask_gpt = async (message_id, message_index = -1, regenerate = false, provi
             api_key: api_key,
             api_base: api_base,
             ignored: ignored,
-            aspect_ratio: window.innerHeight > window.innerWidth ? "9:16" : "16:9",
+            aspect_ratio: aspect_ratio,
             ...extra_parameters
         }, Object.values(image_storage), message_id, scroll, finish_message);
     } catch (e) {
@@ -1305,10 +1313,28 @@ const hide_option = async (conversation_id) => {
 };
 
 const delete_conversation = async (conversation_id) => {
+    const conversation = await get_conversation(conversation_id);
+    for (const message of conversation.items)  {
+        if (Array.isArray(message.content)) {
+            for (const item of message.content) {
+                if ("bucket_id" in item) {
+                    const delete_url = `/backend-api/v2/files/${encodeURI(item.bucket_id)}`;
+                    await fetch(delete_url, {
+                        method: 'DELETE'
+                    });
+                }
+            }
+        }
+    }
+    if (window.share_id && conversation_id == window.start_id) {
+        const url = `${window.share_url}/backend-api/v2/files/${window.share_id}`;
+        await fetch(url, {
+            method: 'DELETE'
+        });
+    }
     appStorage.removeItem(`conversation:${conversation_id}`);
-
-    const conversation = document.getElementById(`convo-${conversation_id}`);
-    conversation.remove();
+    const item = document.getElementById(`convo-${conversation_id}`);
+    item.remove();
 
     if (window.conversation_id == conversation_id) {
         await new_conversation();
@@ -1335,10 +1361,12 @@ const set_conversation = async (conversation_id) => {
 };
 
 const new_conversation = async () => {
-    history.pushState({}, null, `/chat/`);
-    window.conversation_id = crypto.randomUUID();
+    if (!/\/chat\/(share|\?|$)/.test(window.location.href)) {
+        history.pushState({}, null, `/chat/`);
+    }
+    window.conversation_id = generateUUID();
     document.title = window.title || document.title;
-    document.querySelector(".chat-header").innerText = "New Conversation - G4F";
+    document.querySelector(".chat-top-panel .convo-title").innerText = "New Conversation";
 
     await clear_conversation();
     if (chatPrompt) {
@@ -1404,16 +1432,16 @@ const load_conversation = async (conversation, scroll=true) => {
     let messages = conversation?.items || [];
     console.debug("Conversation:", conversation.id)
 
-    let title = conversation.new_title || conversation.title;
-    title = title ? `${title} - G4F` : window.title;
+    let conversation_title = conversation.new_title || conversation.title;
+    title = conversation_title ? `${conversation_title} - G4F` : window.title;
     if (title) {
         document.title = title;
     }
-    const chatHeader = document.querySelector(".chat-header");
+    const chatHeader = document.querySelector(".chat-top-panel .convo-title");
     if (window.share_id && conversation.id == window.start_id) {
-        chatHeader.innerHTML = '<i class="fa-solid fa-qrcode"></i> ' + escapeHtml(title);
+        chatHeader.innerHTML = '<i class="fa-solid fa-qrcode"></i> ' + escapeHtml(conversation_title);
     } else {
-        chatHeader.innerText = title;
+        chatHeader.innerText = conversation_title;
     }
 
     if (chatPrompt) {
@@ -1647,6 +1675,7 @@ async function save_system_message() {
 
 const remove_message = async (conversation_id, index) => {
     const conversation = await get_conversation(conversation_id);
+    const old_message = conversation.items[index];
     let new_items = [];
     for (i in conversation.items) {
         if (i == index - 1) {
@@ -1668,6 +1697,16 @@ const remove_message = async (conversation_id, index) => {
             headers: {'content-type': 'application/json'},
             body: data,
         });
+    }
+    if (Array.isArray(old_message.content)) {
+        for (const item of old_message.content) {
+            if ("bucket_id" in item) {
+                const delete_url = `/backend-api/v2/files/${encodeURI(item.bucket_id)}`;
+                await fetch(delete_url, {
+                    method: 'DELETE'
+                });
+            }
+        }
     }
 };
 
@@ -1811,13 +1850,6 @@ hide_input.addEventListener("click", async (e) => {
     document.querySelector(".chat-footer .buttons").classList[func]("hidden");
 });
 
-function generateSecureRandomString(length = 128) {
-    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
-    const array = new Uint8Array(length);
-    crypto.getRandomValues(array);
-    return Array.from(array, byte => chars[byte % chars.length]).join('');
-}
-
 function get_message_id() {
     random_bytes = (Math.floor(Math.random() * 1338377565) + 2956589730).toString(
         2
@@ -1831,7 +1863,7 @@ async function hide_sidebar(remove_shown=false) {
     if (remove_shown) {
         sidebar.classList.remove("shown");
     }
-    sidebar_button.classList.remove("rotated");
+    sidebar_buttons.forEach((el)=>el.classList.remove("rotated"))
     settings.classList.add("hidden");
     chat.classList.remove("hidden");
     log_storage.classList.add("hidden");
@@ -1849,18 +1881,16 @@ async function hide_settings() {
 
 window.addEventListener('popstate', hide_sidebar, false);
 
-sidebar_button.addEventListener("click", async () => {
-    if (sidebar.classList.contains("shown") || sidebar_button.classList.contains("rotated")) {
-        await hide_sidebar();
+sidebar_buttons.forEach((el)=>el.addEventListener("click", async () => {
+    if (sidebar.classList.contains("shown") || el.classList.contains("rotated")) {
+        await hide_sidebar(true);
         chat.classList.remove("hidden");
-        sidebar.classList.remove("shown");
-        sidebar_button.classList.remove("rotated");
     } else {
         await show_menu();
         chat.classList.add("hidden");
     }
     window.scrollTo(0, 0);
-});
+}));
 
 function add_url_to_history(url) {
     if (!window?.pywebview) {
@@ -1870,7 +1900,7 @@ function add_url_to_history(url) {
 
 async function show_menu() {
     sidebar.classList.add("shown");
-    sidebar_button.classList.add("rotated");
+    sidebar_buttons.forEach((el)=>el.classList.add("rotated"))
     await hide_settings();
     add_url_to_history("/chat/menu/");
 }
@@ -2105,11 +2135,20 @@ window.addEventListener('load', async function() {
         return await load_conversation(JSON.parse(appStorage.getItem(`conversation:${window.conversation_id}`)));
     }
     let conversation = await response.json();
-    if (!window.conversation_id || conversation.id == window.conversation_id) {
-        window.conversation_id = conversation.id;
-        await load_conversation(conversation);       
-        await save_conversation(window.conversation_id, JSON.stringify(conversation));
+    if (!appStorage.getItem(`conversation:${window.conversation_id}`) || conversation.id == window.conversation_id) {
+        // Copy conversation from share
+        if (conversation.id != window.conversation_id) {
+            window.conversation_id = conversation.id;
+            conversation.updated = Date.now();
+            window.share_id = null;
+        }
+        await load_conversation(conversation);
+        await save_conversation(conversation.id, JSON.stringify(conversation));
         await load_conversations();
+        if (!window.share_id) {
+            // Continue after copy conversation
+            return;
+        }
         let refreshOnHide = true;
         document.addEventListener("visibilitychange", () => {
             if (document.hidden) {
@@ -2118,6 +2157,7 @@ window.addEventListener('load', async function() {
                 refreshOnHide = true;
             }
         });
+        // Start chat mode (QRCode)
         var refreshIntervalId = setInterval(async () => {
             if (!window.share_id) {
                 clearInterval(refreshIntervalId);
@@ -2157,7 +2197,7 @@ window.addEventListener('load', async function() {
 window.addEventListener('DOMContentLoaded', async function() {
     await on_load();
     if (window.conversation_id == "{{conversation_id}}") {
-        window.conversation_id = crypto.randomUUID();
+        window.conversation_id = generateUUID();
     } else {
         await on_api();
     }
@@ -2171,7 +2211,8 @@ async function on_load() {
     count_input();
     if (/\/settings\//.test(window.location.href)) {
         open_settings();
-    } else if (/\/chat\/share/.test(window.location.href)) {
+    } else if (/\/chat\/(share|\?|$)/.test(window.location.href)) {
+        chatPrompt.value = document.getElementById("systemPrompt")?.value || "";
         chatPrompt.value = document.getElementById("systemPrompt")?.value || "";
         let chat_url = new URL(window.location.href)
         let chat_params = new URLSearchParams(chat_url.search);
@@ -2179,11 +2220,9 @@ async function on_load() {
             userInput.value = chat_params.get("prompt");
             userInput.style.height = userInput.scrollHeight  + "px";
             userInput.focus();
-            //await handle_ask();
+        } else {
+            new_conversation();
         }
-    } else if (/\/chat\/[?$]/.test(window.location.href)) {
-        chatPrompt.value = document.getElementById("systemPrompt")?.value || "";
-        say_hello();
     } else {
         //load_conversation(window.conversation_id);
     }
@@ -2267,7 +2306,7 @@ async function on_api() {
     models.forEach((model) => {
         let option = document.createElement("option");
         option.value = model.name;
-        option.text = model.name + (model.image ? " (Image Generation)" : "") + (model.vision ? " (Image Upload)" : "");
+        option.text = model.name + (model.image ? " (Image Generation)" : "") + (model.vision ? " (Image Upload)" : "") + (model.audio ? " (Audio Generation)" : "") + (model.video ? " (Video Generation)" : "");
         option.dataset.providers = model.providers.join(" ");
         modelSelect.appendChild(option);
         is_demo = model.demo;
@@ -2316,6 +2355,8 @@ async function on_api() {
             option.text = provider.label
                 + (provider.vision ? " (Image Upload)" : "")
                 + (provider.image ? " (Image Generation)" : "")
+                + (provider.audio ? " (Audio Generation)" : "")
+                + (provider.video ? " (Video Generation)" : "")
                 + (provider.nodriver ? " (Browser)" : "")
                 + (provider.hf_space ? " (HuggingSpace)" : "")
                 + (!provider.nodriver && provider.auth ? " (Auth)" : "");
@@ -2436,8 +2477,7 @@ async function on_api() {
     });
     document.querySelector(".slide-header")?.addEventListener("click", () => {
         const checked = slide_systemPrompt_icon.classList.contains("fa-angles-up");
-        document.querySelector(".chat-header").classList[checked ? "add": "remove"]("hidden");
-        chatPrompt.classList[checked || hide_systemPrompt.checked ? "add": "remove"]("hidden");
+        chatPrompt.classList[checked ? "add": "remove"]("hidden");
         slide_systemPrompt_icon.classList[checked ? "remove": "add"]("fa-angles-up");
         slide_systemPrompt_icon.classList[checked ? "add": "remove"]("fa-angles-down");
     });
@@ -2595,6 +2635,11 @@ function connectToSSE(url, do_refine, bucket_id) {
             inputCount.innerText = `Error: ${data.error.message}`;
             paperclip.classList.remove("blink");
             fileInput.value = "";
+        } else if (data.action == "media") {
+            inputCount.innerText = `File: ${data.filename}`;
+            const url = `/files/${bucket_id}/media/${data.filename}`;
+            const media = [{bucket_id: bucket_id, url: url, name: data.filename}];
+            await handle_ask(false, media);
         } else if (data.action == "load") {
             inputCount.innerText = `Read data: ${formatFileSize(data.size)}`;
         } else if (data.action == "refine") {
@@ -2627,7 +2672,7 @@ function connectToSSE(url, do_refine, bucket_id) {
 }
 
 async function upload_files(fileInput) {
-    const bucket_id = crypto.randomUUID();
+    const bucket_id = generateUUID();
     paperclip.classList.add("blink");
 
     const formData = new FormData();
@@ -2899,7 +2944,7 @@ async function load_provider_models(provider=null) {
             let option = document.createElement('option');
             option.value = model.model;
             option.dataset.label = model.model;
-            option.text = `${model.model}${model.image ? " (Image Generation)" : ""}${model.vision ? " (Image Upload)" : ""}`;
+            option.text = `${model.model}${model.image ? " (Image Generation)" : ""}${model.audio ? " (Audio Generation)" : ""}${model.video ? " (Video Generation)" : ""}${model.vision ? " (Image Upload)" : ""}`;
             if (model.task) {
                 option.text += ` (${model.task})`;
             }
@@ -3004,7 +3049,7 @@ function import_memory() {
     let count = 0;
     let user_id = appStorage.getItem("user") || appStorage.getItem("mem0-user_id");
     if (!user_id) {
-        user_id = crypto.randomUUID();
+        user_id = generateUUID();
         appStorage.setItem("mem0-user_id", user_id);
     }
     inputCount.innerText = `Start importing to Mem0...`;
