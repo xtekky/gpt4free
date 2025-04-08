@@ -75,7 +75,7 @@ def upload_and_process(files_or_urls, bucket_id=None):
           else:
               print(f"Unhandled SSE event: {line}")
     response.close()
-    return bucket_id5
+    return bucket_id
 
 # Example with URLs
 urls = [{"url": "https://github.com/xtekky/gpt4free/issues"}]
