@@ -5,7 +5,7 @@ import time
 import json
 import random
 from pathlib import Path
-from aiohttp import ClientSession
+from aiohttp import ClientSession, ClientResponse
 import asyncio
 
 from ..typing import AsyncResult, Messages
@@ -92,17 +92,8 @@ class ARTA(AsyncGeneratorProvider, ProviderModelMixin):
             # Step 1: Generate Authentication Token
             auth_payload = {"clientType": "CLIENT_TYPE_ANDROID"}
             async with session.post(cls.auth_url, json=auth_payload, proxy=proxy) as auth_response:
-                if auth_response.status >= 400:
-                    error_text = await auth_response.text()
-                    raise ResponseError(f"Failed to obtain authentication token. Status: {auth_response.status}, Response: {error_text}")
-                
-                try:
-                    auth_data = await auth_response.json()
-                except Exception as e:
-                    error_text = await auth_response.text()
-                    content_type = auth_response.headers.get('Content-Type', 'unknown')
-                    raise ResponseError(f"Failed to parse auth response as JSON. Content-Type: {content_type}, Error: {str(e)}, Response: {error_text}")
-                
+                await raise_error(f"Failed to obtain authentication token", auth_response)
+                auth_data = await auth_response.json()
                 auth_token = auth_data.get("idToken")
                 #refresh_token = auth_data.get("refreshToken")
                 if not auth_token:
@@ -118,17 +109,8 @@ class ARTA(AsyncGeneratorProvider, ProviderModelMixin):
                 "refresh_token": refresh_token,
             }
             async with session.post(cls.token_refresh_url, data=payload, proxy=proxy) as response:
-                if response.status >= 400:
-                    error_text = await response.text()
-                    raise ResponseError(f"Failed to refresh token. Status: {response.status}, Response: {error_text}")
-                
-                try:
-                    response_data = await response.json()
-                except Exception as e:
-                    error_text = await response.text()
-                    content_type = response.headers.get('Content-Type', 'unknown')
-                    raise ResponseError(f"Failed to parse token refresh response as JSON. Content-Type: {content_type}, Error: {str(e)}, Response: {error_text}")
-                
+                await raise_error(f"Failed to refresh token", response)
+                response_data = await response.json()
                 return response_data.get("id_token"), response_data.get("refresh_token")
 
     @classmethod
@@ -156,7 +138,7 @@ class ARTA(AsyncGeneratorProvider, ProviderModelMixin):
         n: int = 1,
         guidance_scale: int = 7,
         num_inference_steps: int = 30,
-        aspect_ratio: str = "1:1",
+        aspect_ratio: str = None,
         seed: int = None,
         **kwargs
     ) -> AsyncResult:
@@ -179,7 +161,7 @@ class ARTA(AsyncGeneratorProvider, ProviderModelMixin):
                 "images_num": str(n),
                 "cfg_scale": str(guidance_scale),
                 "steps": str(num_inference_steps),
-                "aspect_ratio": aspect_ratio,
+                "aspect_ratio": "1:1" if aspect_ratio is None else aspect_ratio,
                 "seed": str(seed),
             }
 
@@ -188,45 +170,26 @@ class ARTA(AsyncGeneratorProvider, ProviderModelMixin):
             }
 
             async with session.post(cls.image_generation_url, data=image_payload, headers=headers, proxy=proxy) as image_response:
-                if image_response.status >= 400:
-                    error_text = await image_response.text()
-                    raise ResponseError(f"Failed to initiate image generation. Status: {image_response.status}, Response: {error_text}")
-                
-                try:
-                    image_data = await image_response.json()
-                except Exception as e:
-                    error_text = await image_response.text()
-                    content_type = image_response.headers.get('Content-Type', 'unknown')
-                    raise ResponseError(f"Failed to parse response as JSON. Content-Type: {content_type}, Error: {str(e)}, Response: {error_text}")
-                
+                await raise_error(f"Failed to initiate image generation", image_response)
+                image_data = await image_response.json()
                 record_id = image_data.get("record_id")
                 if not record_id:
                     raise ResponseError(f"Failed to initiate image generation: {image_data}")
 
             # Step 3: Check Generation Status
             status_url = cls.status_check_url.format(record_id=record_id)
-            counter = 4
             start_time = time.time()
             last_status = None
             while True:
                 async with session.get(status_url, headers=headers, proxy=proxy) as status_response:
-                    if status_response.status >= 400:
-                        error_text = await status_response.text()
-                        raise ResponseError(f"Failed to check image generation status. Status: {status_response.status}, Response: {error_text}")
-                    
-                    try:
-                        status_data = await status_response.json()
-                    except Exception as e:
-                        error_text = await status_response.text()
-                        content_type = status_response.headers.get('Content-Type', 'unknown')
-                        raise ResponseError(f"Failed to parse status response as JSON. Content-Type: {content_type}, Error: {str(e)}, Response: {error_text}")
-                    
+                    await raise_error(f"Failed to check image generation status", status_response)
+                    status_data = await status_response.json()
                     status = status_data.get("status")
 
                     if status == "DONE":
                         image_urls = [image["url"] for image in status_data.get("response", [])]
                         duration = time.time() - start_time
-                        yield Reasoning(label="Generated", status=f"{n} image(s) in {duration:.2f}s")
+                        yield Reasoning(label="Generated", status=f"{n} image in {duration:.2f}s" if n == 1 else f"{n} images in {duration:.2f}s")
                         yield ImageResponse(urls=image_urls, alt=prompt)
                         return
                     elif status in ("IN_QUEUE", "IN_PROGRESS"):
@@ -239,3 +202,10 @@ class ARTA(AsyncGeneratorProvider, ProviderModelMixin):
                         await asyncio.sleep(2)  # Poll every 2 seconds
                     else:
                         raise ResponseError(f"Image generation failed with status: {status}")
+
+async def raise_error(response: ClientResponse, message: str):
+    if response.ok:
+        return
+    error_text = await response.text()
+    content_type = response.headers.get('Content-Type', 'unknown')
+    raise ResponseError(f"{message}. Content-Type: {content_type}, Response: {error_text}")

@@ -80,7 +80,7 @@ class ToolHandler:
         has_bucket = False
         for message in messages:
             if "content" in message and isinstance(message["content"], str):
-                new_message_content = re.sub(r'{"bucket_id":"([^"]*)"}', on_bucket, message["content"])
+                new_message_content = re.sub(r'{"bucket_id":\s*"([^"]*)"}', on_bucket, message["content"])
                 if new_message_content != message["content"]:
                     has_bucket = True
                     message["content"] = new_message_content
@@ -97,29 +97,28 @@ class ToolHandler:
         """Process all tool calls and return updated messages and kwargs"""
         if not tool_calls:
             return messages, {}
-            
+
         extra_kwargs = {}
         messages = messages.copy()
         sources = None
-        
+
         for tool in tool_calls:
             if tool.get("type") != "function":
                 continue
-                
+
             function_name = tool.get("function", {}).get("name")
-            
+
             if function_name == TOOL_NAMES["SEARCH"]:
                 messages, sources = await ToolHandler.process_search_tool(messages, tool)
-                
+
             elif function_name == TOOL_NAMES["CONTINUE"]:
                 messages, kwargs = ToolHandler.process_continue_tool(messages, tool, provider)
                 extra_kwargs.update(kwargs)
-                
+
             elif function_name == TOOL_NAMES["BUCKET"]:
                 messages = ToolHandler.process_bucket_tool(messages, tool)
-                
-        return messages, sources, extra_kwargs
 
+        return messages, sources, extra_kwargs
 
 class AuthManager:
     """Handles API key management"""
@@ -128,13 +127,13 @@ class AuthManager:
     def get_api_key_file(cls) -> Path:
         """Get the path to the API key file for a provider"""
         return Path(get_cookies_dir()) / f"api_key_{cls.parent if hasattr(cls, 'parent') else cls.__name__}.json"
-    
+
     @staticmethod
     def load_api_key(provider: Any) -> Optional[str]:
         """Load API key from config file if needed"""
         if not getattr(provider, "needs_auth", False):
             return None
-            
+
         auth_file = AuthManager.get_api_key_file(provider)
         try:
             if auth_file.exists():

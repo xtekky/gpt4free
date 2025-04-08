@@ -581,14 +581,15 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
                 }
                 current_messages.append(current_msg)
 
-            if media is not None:
+            media = list(merge_media(media, messages))
+            if media:
                 current_messages[-1]['data'] = {
                     "imagesData": [
                         {
                             "filePath": f"/{image_name}",
                             "contents": to_data_uri(image)
                         }
-                        for image, image_name in merge_media(media, messages)
+                        for image, image_name in media
                     ],
                     "fileText": "",
                     "title": ""

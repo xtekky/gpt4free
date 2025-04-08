@@ -48,6 +48,7 @@ except ImportError as e:
 try:
     from .Free2GPT             import Free2GPT
     from .FreeGpt              import FreeGpt
+    from .FreeRouter           import FreeRouter
     from .GizAI                import GizAI
     from .Glider               import Glider
     from .Goabror              import Goabror
