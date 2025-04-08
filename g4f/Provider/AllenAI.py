@@ -83,17 +83,7 @@ class AllenAI(AsyncGeneratorProvider, ProviderModelMixin):
     ) -> AsyncResult:
         actual_model = cls.get_model(model)
         
-        # Use format_image_prompt for vision models when media is provided
-        if media is not None and len(media) > 0:
-            # For vision models, use format_image_prompt
-            if actual_model in cls.vision_models:
-                prompt = format_image_prompt(messages)
-            else:
-                # For non-vision models with images, still use the last user message
-                prompt = get_last_user_message(messages)
-        else:
-            # For text-only messages, use the standard format
-            prompt = format_prompt(messages) if conversation is None else get_last_user_message(messages)
+        prompt = format_prompt(messages) if conversation is None else get_last_user_message(messages)
         
         # Determine the correct host for the model
         if host is None:
@@ -157,18 +147,16 @@ class AllenAI(AsyncGeneratorProvider, ProviderModelMixin):
         if media is not None and len(media) > 0:
             conversation = Conversation(actual_model)
         
-        # Add image if provided
-        if media is not None and len(media) > 0:
-            # For each image in the media list (using merge_media to handle different formats)
-            for image, image_name in merge_media(media, messages):
-                image_bytes = to_bytes(image)
-                form_data.extend([
-                    f'--{boundary}\r\n'
-                    f'Content-Disposition: form-data; name="files"; filename="{image_name}"\r\n'
-                    f'Content-Type: {is_accepted_format(image_bytes)}\r\n\r\n'
-                ])
-                form_data.append(image_bytes.decode('latin1'))
-                form_data.append('\r\n')
+        # For each image in the media list (using merge_media to handle different formats)
+        for image, image_name in merge_media(media, messages):
+            image_bytes = to_bytes(image)
+            form_data.extend([
+                f'--{boundary}\r\n'
+                f'Content-Disposition: form-data; name="files"; filename="{image_name}"\r\n'
+                f'Content-Type: {is_accepted_format(image_bytes)}\r\n\r\n'
+            ])
+            form_data.append(image_bytes.decode('latin1'))
+            form_data.append('\r\n')
 
         form_data.append(f'--{boundary}--\r\n')
         data = "".join(form_data).encode('latin1')
@@ -182,11 +170,7 @@ class AllenAI(AsyncGeneratorProvider, ProviderModelMixin):
                 await raise_for_status(response)
                 current_parent = None
                 
-                async for chunk in response.content:
-                    if not chunk:
-                        continue
-                    decoded = chunk.decode(errors="ignore")
-                    for line in decoded.splitlines():
+                async for line in response.content:
                         line = line.strip()
                         if not line:
                             continue
