@@ -84,7 +84,7 @@ class ChatCompletionChunk(BaseModel):
     ):
         return super().model_construct(
             id=f"chatcmpl-{completion_id}" if completion_id else None,
-            object="chat.completion.cunk",
+            object="chat.completion.chunk",
             created=created,
             model=None,
             provider=None,
