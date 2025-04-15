@@ -30,7 +30,13 @@ class Cloudflare(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
         "llama-3.1-8b": "@cf/meta/llama-3.1-8b-instruct-awq",
         "llama-3.1-8b": "@cf/meta/llama-3.1-8b-instruct-fp8",
         "llama-3.2-1b": "@cf/meta/llama-3.2-1b-instruct",
+        "llama-4-scout": "@cf/meta/llama-4-scout-17b-16e-instruct",
+        "llama-3.3-70b": "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+        "deepseek-math-7b": "@cf/deepseek-ai/deepseek-math-7b-instruct",
+        "deepseek-r1-qwen-32b": "@cf/deepseek-ai/deepseek-r1-distill-qwen-32b",
+        "falcon-7b": "@cf/tiiuae/falcon-7b-instruct",
         "qwen-1.5-7b": "@cf/qwen/qwen1.5-7b-chat-awq",
+        "qwen-2.5-coder": "@cf/qwen/qwen2.5-coder-32b-instruct",
     }
     _args: dict = None
 
