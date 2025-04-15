@@ -8,9 +8,8 @@ from ..tools.web_search import fetch_and_scrape
 
 class SearXNG(AsyncGeneratorProvider):
     default_url = os.environ.get("SEARXNG_URL", "http://searxng:8080")
-    label = "SearXNG (configurable)"
-    models = ["searx"]
-
+    label = "SearXNG"
+  
     @classmethod
     async def create_async_generator(
         cls,
