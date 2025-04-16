@@ -47,6 +47,7 @@ let is_demo = false;
 let wakeLock = null;
 let countTokensEnabled = true;
 let reloadConversation = true;
+let privateConversation = null;
 
 userInput.addEventListener("blur", () => {
     document.documentElement.scrollTop = 0;
@@ -1360,13 +1361,13 @@ const set_conversation = async (conversation_id) => {
     hide_sidebar(true);
 };
 
-const new_conversation = async () => {
+const new_conversation = async (private = false) => {
     if (!/\/chat\/(share|\?|$)/.test(window.location.href)) {
         history.pushState({}, null, `/chat/`);
     }
-    window.conversation_id = generateUUID();
+    window.conversation_id = private ? null : generateUUID();
     document.title = window.title || document.title;
-    document.querySelector(".chat-top-panel .convo-title").innerText = "New Conversation";
+    document.querySelector(".chat-top-panel .convo-title").innerText = `${private ? "Private" : "New"} Conversation`;
 
     await clear_conversation();
     if (chatPrompt) {
@@ -1622,6 +1623,9 @@ async function safe_load_conversation(conversation_id, scroll=true) {
 }
 
 async function get_conversation(conversation_id) {
+    if (!conversation_id) {
+        return privateConversation;
+    }
     let conversation = await JSON.parse(
         appStorage.getItem(`conversation:${conversation_id}`)
     );
@@ -1630,13 +1634,17 @@ async function get_conversation(conversation_id) {
 
 function get_conversation_data(conversation) {
     conversation.updated = Date.now();
-    return JSON.stringify(conversation);
+    return conversation;
 }
 
-async function save_conversation(conversation_id, data) {
+async function save_conversation(conversation_id, conversation) {
+    if (!conversation_id) {
+        privateConversation = conversation;
+        return;
+    }
     appStorage.setItem(
         `conversation:${conversation_id}`,
-        data
+        JSON.stringify(conversation)
     );
 }
 
@@ -1646,6 +1654,16 @@ async function get_messages(conversation_id) {
 }
 
 async function add_conversation(conversation_id) {
+    if (!conversation_id) {
+        privateConversation = {
+            id: conversation_id,
+            title: "",
+            added: Date.now(),
+            system: chatPrompt?.value,
+            items: [],
+        }
+        return;
+    }
     if (appStorage.getItem(`conversation:${conversation_id}`) == null) {
         await save_conversation(conversation_id, get_conversation_data({
             id: conversation_id,
@@ -2143,7 +2161,7 @@ window.addEventListener('load', async function() {
             window.share_id = null;
         }
         await load_conversation(conversation);
-        await save_conversation(conversation.id, JSON.stringify(conversation));
+        await save_conversation(conversation.id, conversation);
         await load_conversations();
         if (!window.share_id) {
             // Continue after copy conversation
@@ -2211,6 +2229,7 @@ async function on_load() {
     count_input();
     if (/\/settings\//.test(window.location.href)) {
         open_settings();
+        await load_conversations();
     } else if (/\/chat\/(share|\?|$)/.test(window.location.href)) {
         chatPrompt.value = document.getElementById("systemPrompt")?.value || "";
         chatPrompt.value = document.getElementById("systemPrompt")?.value || "";
@@ -2221,12 +2240,12 @@ async function on_load() {
             userInput.style.height = userInput.scrollHeight  + "px";
             userInput.focus();
         } else {
-            new_conversation();
+            await new_conversation();
         }
     } else {
         //load_conversation(window.conversation_id);
+        await load_conversations();
     }
-    load_conversations();
     if (window.hljs) {
         hljs.addPlugin(new HtmlRenderPlugin())
         hljs.addPlugin(new CopyButtonPlugin());
