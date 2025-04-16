@@ -9,6 +9,7 @@ from ..requests import Session, StreamSession, get_args_from_nodriver, raise_for
 from ..requests import DEFAULT_HEADERS, has_nodriver, has_curl_cffi
 from ..providers.response import FinishReason, Usage
 from ..errors import ResponseStatusError, ModelNotFoundError
+from .helper import to_string
 
 class Cloudflare(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
     label = "Cloudflare AI"
@@ -89,8 +90,8 @@ class Cloudflare(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
         data = {
             "messages": [{
                 **message,
-                "content": message["content"] if isinstance(message["content"], str) else "",
-                "parts": [{"type":"text", "text":message["content"]}] if isinstance(message["content"], str) else message} for message in messages],
+                "content": to_string(message["content"]),
+                "parts": [{"type":"text", "text": to_string(message["content"])}]} for message in messages],
             "lora": None,
             "model": model,
             "max_tokens": max_tokens,

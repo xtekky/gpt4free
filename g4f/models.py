@@ -183,7 +183,7 @@ o1_mini = Model(
 o3_mini = Model(
     name          = 'o3-mini',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([DDG, Blackbox, PollinationsAI, Liaobots])
+    best_provider = IterListProvider([DDG, Blackbox, Liaobots])
 )
 
 ### GigaChat ###
@@ -200,13 +200,13 @@ meta = Model(
     best_provider = MetaAI
 )
 
-# llama 2
+### llama 2-4 ###
 llama_2_7b = Model(
     name          = "llama-2-7b",
     base_provider = "Meta Llama",
     best_provider = Cloudflare
 )
-# llama 3
+
 llama_3_8b = Model(
     name          = "llama-3-8b",
     base_provider = "Meta Llama",
@@ -219,7 +219,6 @@ llama_3_70b = Model(
     best_provider = Jmuz
 )
 
-# llama 3.1
 llama_3_1_8b = Model(
     name          = "llama-3.1-8b",
     base_provider = "Meta Llama",
@@ -237,8 +236,6 @@ llama_3_1_405b = Model(
     base_provider = "Meta Llama",
     best_provider = IterListProvider([AllenAI, Jmuz])
 )
-
-# llama 3.2
 
 llama_3_2_1b = Model(
     name          = "llama-3.2-1b",
@@ -264,11 +261,16 @@ llama_3_2_90b = Model(
     best_provider = IterListProvider([DeepInfraChat, Jmuz])
 )
 
-# llama 3.3
 llama_3_3_70b = Model(
     name          = "llama-3.3-70b",
     base_provider = "Meta Llama",
     best_provider = IterListProvider([Blackbox, DDG, DeepInfraChat, LambdaChat, PollinationsAI, Jmuz, HuggingChat, HuggingFace])
+)
+
+llama_4_scout = Model(
+    name          = "llama-4-scout",
+    base_provider = "Meta Llama",
+    best_provider = IterListProvider([Cloudflare, PollinationsAI])
 )
 
 ### Mistral ###
@@ -496,7 +498,7 @@ qwen_2_5_max = Model(
 qwq_32b = Model(
     name = 'qwq-32b',
     base_provider = 'Qwen',
-    best_provider = IterListProvider([Blackbox, PollinationsAI, Jmuz, HuggingChat])
+    best_provider = IterListProvider([Blackbox, Jmuz, HuggingChat])
 )
 qvq_72b = VisionModel(
     name = 'qvq-72b',
@@ -818,6 +820,9 @@ class ModelUtils:
         
         # llama-3.3
         llama_3_3_70b.name: llama_3_3_70b,
+
+        # llama-4
+        llama_4_scout.name: llama_4_scout,
                 
         ### Mistral ###
         mixtral_8x7b.name: mixtral_8x7b,
