@@ -75,16 +75,45 @@ def upload_and_process(files_or_urls, bucket_id=None):
           else:
               print(f"Unhandled SSE event: {line}")
     response.close()
+    return bucket_id
 
 # Example with URLs
 urls = [{"url": "https://github.com/xtekky/gpt4free/issues"}]
 bucket_id = upload_and_process(urls)
 
 #Example with files
-files = {'files': open('document.pdf', 'rb'), 'files': open('data.json', 'rb')}
+files = {'files': ('document.pdf', open('document.pdf', 'rb'))}
 bucket_id = upload_and_process(files)
 ```
 
+**Usage of Uploaded Files:**
+```python
+from g4f.client import Client
+
+# Enable debug mode
+import g4f.debug
+g4f.debug.logging = True
+
+client = Client()
+
+# Upload example file
+files = {'files': ('demo.docx', open('demo.docx', 'rb'))}
+bucket_id = upload_and_process(files)
+
+# Send request with file:
+response = client.chat.completions.create(
+    [{"role": "user", "content": [
+        {"type": "text", "text": "Discribe this file."},
+        {"bucket_id": bucket_id}
+    ]}],
+)
+print(response.choices[0].message.content)
+```
+
+**Example Output:**
+```
+This document is a demonstration of the DOCX Input plugin capabilities in the software ...
+```
 
 **Example Usage (JavaScript):**
 

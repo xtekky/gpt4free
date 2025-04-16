@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from ...errors import ModelNotSupportedError
+from ...typing import Messages, AsyncResult
 from ..template import OpenaiTemplate
 
 class CablyAI(OpenaiTemplate):

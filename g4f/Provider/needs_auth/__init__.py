@@ -21,6 +21,7 @@ from .MicrosoftDesigner import MicrosoftDesigner
 from .OpenaiAccount     import OpenaiAccount
 from .OpenaiAPI         import OpenaiAPI
 from .OpenaiChat        import OpenaiChat
+from .OpenRouter        import OpenRouter
 from .PerplexityApi     import PerplexityApi
 from .Reka              import Reka
 from .Replicate         import Replicate

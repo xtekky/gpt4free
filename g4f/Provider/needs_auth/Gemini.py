@@ -61,6 +61,9 @@ ROTATE_COOKIES_URL = "https://accounts.google.com/RotateCookies"
 GGOGLE_SID_COOKIE = "__Secure-1PSID"
 
 models = {
+    "gemini-2.5-pro-exp": {"x-goog-ext-525001261-jspb": '[1,null,null,null,"2525e3954d185b3c"]'},
+    "gemini-2.0-flash-thinking-exp": {"x-goog-ext-525001261-jspb": '[1,null,null,null,"7ca48d02d802f20a"]'},
+    "gemini-deep-research": {"x-goog-ext-525001261-jspb": '[1,null,null,null,"cd472a54d2abba7e"]'},
     "gemini-2.0-flash": {"x-goog-ext-525001261-jspb": '[null,null,null,null,"f299729663a2343f"]'},
     "gemini-2.0-flash-exp": {"x-goog-ext-525001261-jspb": '[null,null,null,null,"f299729663a2343f"]'},
     "gemini-2.0-flash-thinking": {"x-goog-ext-525001261-jspb": '[null,null,null,null,"9c17b1863f581b8a"]'},
@@ -267,6 +270,7 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
                         pattern = r"http://googleusercontent.com/(?:image_generation|youtube|map)_content/\d+"
                         content = re.sub(pattern, "", content)
                         content = content.replace("<!-- end list -->", "")
+                        content = content.replace("<ctrl94>thought", "<think>").replace("<ctrl95>", "</think>")
                         def replace_link(match):
                             return f"(https://{quote_plus(unquote_plus(match.group(1)), '/?&=#')})"
                         content = re.sub(r"\(https://www.google.com/(?:search\?q=|url\?sa=E&source=gmail&q=)https?://(.+?)\)", replace_link, content)

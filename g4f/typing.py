@@ -1,6 +1,5 @@
-import sys
 import os
-from typing import Any, AsyncGenerator, Generator, AsyncIterator, Iterator, NewType, Tuple, Union, List, Dict, Type, IO, Optional
+from typing import Any, AsyncGenerator, Generator, AsyncIterator, Iterator, NewType, Tuple, Union, List, Dict, Type, IO, Optional, TypedDict
 
 try:
     from PIL.Image import Image
@@ -8,11 +7,6 @@ except ImportError:
     class Image:
         pass
 
-if sys.version_info >= (3, 8):
-    from typing import TypedDict
-else:
-    from typing_extensions import TypedDict
-    
 from .providers.response import ResponseType
 
 SHA256 = NewType('sha_256_hash', str)
