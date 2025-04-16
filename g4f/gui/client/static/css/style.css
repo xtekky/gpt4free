@@ -432,7 +432,7 @@ body:not(.white) a:visited{
     padding: 8px 16px;
     margin-bottom: 16px;
     color: inherit;
-    border-left: .25em solid var(--colour-4);
+    border-left: .25em solid var(--media-select);
 }
 
 .media-player {

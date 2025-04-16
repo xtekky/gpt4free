@@ -19,6 +19,7 @@ from ..cookies import get_cookies_dir
 from .helper import format_image_prompt
 from ..providers.response import JsonConversation, ImageResponse
 from ..tools.media import merge_media
+from ..errors import PaymentRequiredError
 from .. import debug
 
 class Conversation(JsonConversation):
@@ -689,6 +690,8 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
                 async for chunk in response.content.iter_any():
                     if chunk:
                         chunk_text = chunk.decode()
+                        if chunk_text == "You have reached your request limit for the hour":
+                            raise PaymentRequiredError(chunk_text)
                         full_response.append(chunk_text)
                         # Only yield chunks for non-image models
                         if model != cls.default_image_model:

@@ -605,7 +605,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                 elif event.request.url in (backend_url, backend_anon_url):
                     if "OpenAI-Sentinel-Proof-Token" in event.request.headers:
                             cls.request_config.proof_token = json.loads(base64.b64decode(
-                                event.request.headers["OpenAI-Sentinel-Proof-Token"].split("gAAAAAB", 1)[-1].encode()
+                                event.request.headers["OpenAI-Sentinel-Proof-Token"].split("gAAAAAB", 1)[-1].split("~")[0].encode()
                             ).decode())
                     if "OpenAI-Sentinel-Turnstile-Token" in event.request.headers:
                         cls.request_config.turnstile_token = event.request.headers["OpenAI-Sentinel-Turnstile-Token"]

@@ -51,7 +51,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
     image_models = [default_image_model]
     audio_models = [default_audio_model]
     extra_image_models = ["flux-pro", "flux-dev", "flux-schnell", "midjourney", "dall-e-3", "turbo"]
-    vision_models = [default_vision_model, "gpt-4o-mini", "o3-mini", "openai", "openai-large", "searchgpt"]
+    vision_models = [default_vision_model, "gpt-4o-mini", "openai", "openai-large", "searchgpt"]
     extra_text_models = vision_models
     _models_loaded = False
     model_aliases = {
@@ -59,22 +59,19 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         "gpt-4o-mini": "openai",
         "gpt-4": "openai-large",
         "gpt-4o": "openai-large",
-        "o3-mini": "openai-reasoning",
         "qwen-2.5-coder-32b": "qwen-coder",
         "llama-3.3-70b": "llama",
+        "llama-4-scout": "llamascout",
         "mistral-nemo": "mistral",
-        "gpt-4o-mini": "searchgpt",
         "llama-3.1-8b": "llamalight",
         "llama-3.3-70b": "llama-scaleway",
         "phi-4": "phi",
         "gemini-2.0": "gemini",
         "gemini-2.0-flash": "gemini",
         "gemini-2.0-flash-thinking": "gemini-thinking",
-        "gemini-2.0-flash-thinking": "gemini-reasoning",
         "deepseek-r1": "deepseek-reasoning-large",
         "deepseek-r1": "deepseek-reasoning",
         "deepseek-v3": "deepseek",
-        "qwq-32b": "qwen-reasoning",
         "llama-3.2-11b": "llama-vision",
         "gpt-4o-audio": "openai-audio",
         
