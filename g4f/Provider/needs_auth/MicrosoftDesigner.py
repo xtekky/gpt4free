@@ -146,7 +146,7 @@ async def get_access_token_and_user_agent(url: str, proxy: str = None):
     browser, stop_browser = await get_nodriver(proxy=proxy, user_data_dir="designer")
     try:
         page = await browser.get(url)
-        user_agent = await page.evaluate("navigator.userAgent")
+        user_agent = await page.evaluate("navigator.userAgent", return_by_value=True)
         access_token = None
         while access_token is None:
             access_token = await page.evaluate("""

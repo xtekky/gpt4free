@@ -10,10 +10,7 @@ from ...typing import AsyncResult, Messages
 from ...errors import NoValidHarFileError
 from ... import debug
 
-def cookies_to_dict():
-    return Copilot._cookies if isinstance(Copilot._cookies, dict) else {c.name: c.value for c in Copilot._cookies}
-
-class CopilotAccount(AsyncAuthedProvider, Copilot):
+class CopilotAccount(Copilot, AsyncAuthedProvider):
     needs_auth = True
     use_nodriver = True
     parent = "Copilot"
@@ -23,17 +20,17 @@ class CopilotAccount(AsyncAuthedProvider, Copilot):
     @classmethod
     async def on_auth_async(cls, proxy: str = None, **kwargs) -> AsyncIterator:
         try:
-            Copilot._access_token, Copilot._cookies = readHAR(cls.url)
+            cls._access_token, cls._cookies = readHAR(cls.url)
         except NoValidHarFileError as h:
             debug.log(f"Copilot: {h}")
             if has_nodriver:
                 yield RequestLogin(cls.label, os.environ.get("G4F_LOGIN_URL", ""))
-                Copilot._access_token, Copilot._cookies = await get_access_token_and_cookies(cls.url, proxy)
+                cls._access_token, cls._cookies = await get_access_token_and_cookies(cls.url, proxy)
             else:
                 raise h
         yield AuthResult(
-            api_key=Copilot._access_token,
-            cookies=cookies_to_dict()
+            api_key=cls._access_token,
+            cookies=cls.cookies_to_dict()
         )
 
     @classmethod
@@ -44,9 +41,12 @@ class CopilotAccount(AsyncAuthedProvider, Copilot):
         auth_result: AuthResult,
         **kwargs
     ) -> AsyncResult:
-        Copilot._access_token = getattr(auth_result, "api_key")
-        Copilot._cookies = getattr(auth_result, "cookies")
-        Copilot.needs_auth = cls.needs_auth
-        for chunk in Copilot.create_completion(model, messages, **kwargs):
+        cls._access_token = getattr(auth_result, "api_key")
+        cls._cookies = getattr(auth_result, "cookies")
+        async for chunk in cls.create_async_generator(model, messages, **kwargs):
             yield chunk
-        auth_result.cookies = cookies_to_dict()
+        auth_result.cookies = cls.cookies_to_dict()
+
+    @classmethod
+    def cookies_to_dict(cls):
+        return cls._cookies if isinstance(cls._cookies, dict) else {c.name: c.value for c in cls._cookies}

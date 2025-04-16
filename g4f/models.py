@@ -18,7 +18,6 @@ from .Provider import (
     Free2GPT,
     FreeGpt,
     HuggingSpace,
-    G4F,
     Grok,
     DeepseekAI_JanusPro7b,
     Glider,
@@ -535,7 +534,7 @@ deepseek_r1 = Model(
 janus_pro_7b = VisionModel(
     name = DeepseekAI_JanusPro7b.default_model,
     base_provider = 'DeepSeek',
-    best_provider = IterListProvider([DeepseekAI_JanusPro7b, G4F])
+    best_provider = IterListProvider([DeepseekAI_JanusPro7b])
 )
 
 ### x.ai ###
@@ -985,7 +984,7 @@ demo_models = {
     llama_3_2_11b.name: [llama_3_2_11b, [HuggingChat]],
     qwen_2_vl_7b.name: [qwen_2_vl_7b, [HuggingFaceAPI]],
     deepseek_r1.name: [deepseek_r1, [HuggingFace, PollinationsAI]],
-    janus_pro_7b.name: [janus_pro_7b, [HuggingSpace, G4F]],
+    janus_pro_7b.name: [janus_pro_7b, [HuggingSpace]],
     command_r.name: [command_r, [HuggingSpace]],
     command_r_plus.name: [command_r_plus, [HuggingSpace]],
     command_r7b.name: [command_r7b, [HuggingSpace]],

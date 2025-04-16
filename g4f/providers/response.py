@@ -240,6 +240,15 @@ class Sources(ResponseType):
             for idx, link in enumerate(self.list)
         ]))
 
+class SourceLink(ResponseType):
+    def __init__(self, title: str, url: str) -> None:
+        self.title = title
+        self.url = url
+
+    def __str__(self) -> str:
+        title = f"[{self.title}]"
+        return f" {format_link(self.url, title)}"
+
 class YouTube(HiddenResponse):
     def __init__(self, ids: List[str]) -> None:
         """Initialize with a list of YouTube IDs."""
