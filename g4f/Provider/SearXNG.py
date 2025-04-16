@@ -30,7 +30,7 @@ class SearXNG(AsyncGeneratorProvider):
             params = {
                 "q": query,
                 "format": "json",
-                "language": "it",
+                "language": "en",
                 "safesearch": 0,
                 "categories": "general",
             }
