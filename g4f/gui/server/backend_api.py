@@ -341,28 +341,35 @@ class Backend_Api(Api):
                     return redirect(source_url)
                 raise
 
+        self.match_files = {}
+
         @app.route('/search/<search>', methods=['GET'])
         def find_media(search: str):
-            search = [secure_filename(chunk.lower()) for chunk in search.split("+")]
+            safe_search = [secure_filename(chunk.lower()) for chunk in search.split("+")]
             if not os.access(images_dir, os.R_OK):
                 return jsonify({"error": {"message": "Not found"}}), 404
-            match_files = {}
-            for root, _, files in os.walk(images_dir):
-                for file in files:
-                    mime_type = is_allowed_extension(file)
-                    if mime_type is not None:
-                        mime_type = secure_filename(mime_type)
-                        for tag in search:
-                            if tag in mime_type:
-                                match_files[file] = match_files.get(file, 0) + 1
-                                break
-                    for tag in search:
-                        if tag in file.lower():
-                            match_files[file] = match_files.get(file, 0) + 1
-            match_files = [file for file, count in match_files.items() if count >= request.args.get("min", len(search))]
+            if search not in self.match_files:
+                self.match_files[search] = {}
+                for root, _, files in os.walk(images_dir):
+                    for file in files:
+                        mime_type = is_allowed_extension(file)
+                        if mime_type is not None:
+                            mime_type = secure_filename(mime_type)
+                            for tag in safe_search:
+                                if tag in mime_type:
+                                    self.match_files[search][file] = self.match_files[search].get(file, 0) + 1
+                                    break
+                        for tag in safe_search:
+                            if tag in file.lower():
+                                self.match_files[search][file] = self.match_files[search].get(file, 0) + 1
+                    break
+            match_files = [file for file, count in self.match_files[search].items() if count >= request.args.get("min", len(safe_search))]
             if int(request.args.get("skip", 0)) >= len(match_files):
                 return jsonify({"error": {"message": "Not found"}}), 404
             if (request.args.get("random", False)):
+                seed = request.args.get("random")
+                if seed not in ["true", "True", "1"]:
+                   random.seed(seed)
                 return redirect(f"/media/{random.choice(match_files)}"), 302
             return redirect(f"/media/{match_files[int(request.args.get('skip', 0))]}", 302)
 

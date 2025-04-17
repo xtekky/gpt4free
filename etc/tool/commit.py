@@ -26,6 +26,10 @@ from typing import Optional, Dict, Any, List, Tuple
 
 from g4f.client import Client
 from g4f.models import ModelUtils
+import g4f.Provider
+
+from g4f import debug
+debug.logging = True
 
 # Constants
 DEFAULT_MODEL = "claude-3.7-sonnet"
@@ -184,16 +188,21 @@ def generate_commit_message(diff_text: str, model: str = DEFAULT_MODEL) -> Optio
             
             # Make API call
             response = client.chat.completions.create(
+                prompt,
                 model=model,
-                messages=[{"role": "user", "content": prompt}]
+                stream=True,
             )
-            
-            # Stop spinner and clear line
-            spinner.set()
-            sys.stdout.write("\r" + " " * 50 + "\r")
-            sys.stdout.flush()
-            
-            return response.choices[0].message.content.strip()
+            content = []
+            for chunk in response:
+                # Stop spinner and clear line
+                if spinner:
+                    spinner.set()
+                    print(" " * 50 + "\n", flush=True)
+                    spinner = None
+                if isinstance(chunk.choices[0].delta.content, str):
+                    content.append(chunk.choices[0].delta.content)
+                    print(chunk.choices[0].delta.content, end="", flush=True)
+            return "".join(content).strip()
         except Exception as e:
             # Stop spinner if it's running
             if 'spinner' in locals() and spinner:
@@ -305,11 +314,6 @@ def main():
         if not commit_message:
             print("Failed to generate commit message after multiple attempts.")
             sys.exit(1)
-        
-        print("\nGenerated commit message:")
-        print("-" * 50)
-        print(commit_message)
-        print("-" * 50)
         
         if args.edit:
             print("\nOpening editor to modify commit message...")

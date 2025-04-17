@@ -10,7 +10,7 @@ from ..client.helper import filter_markdown
 from .helper import filter_none
 
 try:
-    from pydantic import BaseModel
+    from pydantic import BaseModel, field_serializer
 except ImportError:
     class BaseModel():
         @classmethod
@@ -19,6 +19,11 @@ except ImportError:
             for key, value in data.items():
                 setattr(new, key, value)
             return new
+    class field_serializer():
+        def __init__(self, field_name):
+            self.field_name = field_name
+        def __call__(self, *args, **kwargs):
+            return args[0]
 
 class BaseModel(BaseModel):
     @classmethod
@@ -72,6 +77,7 @@ class ChatCompletionChunk(BaseModel):
     provider: Optional[str]
     choices: List[ChatCompletionDeltaChoice]
     usage: UsageModel
+    conversation: dict
 
     @classmethod
     def model_construct(
@@ -80,7 +86,8 @@ class ChatCompletionChunk(BaseModel):
         finish_reason: str,
         completion_id: str = None,
         created: int = None,
-        usage: UsageModel = None
+        usage: UsageModel = None,
+        conversation: dict = None
     ):
         return super().model_construct(
             id=f"chatcmpl-{completion_id}" if completion_id else None,
@@ -92,8 +99,14 @@ class ChatCompletionChunk(BaseModel):
                 ChatCompletionDelta.model_construct(content),
                 finish_reason
             )],
-            **filter_none(usage=usage)
+            **filter_none(usage=usage, conversation=conversation)
         )
+
+    @field_serializer('conversation')
+    def serialize_conversation(self, conversation: dict):
+        if hasattr(conversation, "get_dict"):
+            return conversation.get_dict()
+        return conversation
 
 class ChatCompletionMessage(BaseModel):
     role: str
@@ -103,6 +116,10 @@ class ChatCompletionMessage(BaseModel):
     @classmethod
     def model_construct(cls, content: str, tool_calls: list = None):
         return super().model_construct(role="assistant", content=content, **filter_none(tool_calls=tool_calls))
+
+    @field_serializer('content')
+    def serialize_content(self, content: str):
+        return str(content)
 
     def save(self, filepath: str, allowd_types = None):
         if hasattr(self.content, "data"):
@@ -160,6 +177,12 @@ class ChatCompletion(BaseModel):
             **filter_none(usage=usage, conversation=conversation)
         )
 
+    @field_serializer('conversation')
+    def serialize_conversation(self, conversation: dict):
+        if hasattr(conversation, "get_dict"):
+            return conversation.get_dict()
+        return conversation
+
 class ChatCompletionDelta(BaseModel):
     role: str
     content: str
@@ -167,6 +190,10 @@ class ChatCompletionDelta(BaseModel):
     @classmethod
     def model_construct(cls, content: Optional[str]):
         return super().model_construct(role="assistant", content=content)
+
+    @field_serializer('content')
+    def serialize_content(self, content: str):
+        return str(content)
 
 class ChatCompletionDeltaChoice(BaseModel):
     index: int

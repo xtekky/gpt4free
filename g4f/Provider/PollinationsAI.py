@@ -52,8 +52,8 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
     audio_models = [default_audio_model]
     extra_image_models = ["flux-pro", "flux-dev", "flux-schnell", "midjourney", "dall-e-3", "turbo"]
     vision_models = [default_vision_model, "gpt-4o-mini", "openai", "openai-large", "searchgpt"]
-    extra_text_models = vision_models
     _models_loaded = False
+    # https://github.com/pollinations/pollinations/blob/master/text.pollinations.ai/generateTextPortkey.js#L15
     model_aliases = {
         ### Text Models ###
         "gpt-4o-mini": "openai",
@@ -100,43 +100,32 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                 
                 cls.image_models = all_image_models
 
-                # Update of text models
                 text_response = requests.get("https://text.pollinations.ai/models")
                 text_response.raise_for_status()
                 models = text_response.json()
-                
-                # Purpose of text models
-                cls.text_models = [
-                    model.get("name") 
-                    for model in models
-                    if "input_modalities" in model and "text" in model["input_modalities"]
-                ]
 
                 # Purpose of audio models
                 cls.audio_models = {
                     model.get("name"): model.get("voices")
                     for model in models
-                    if model.get("audio")
+                    if "output_modalities" in model and "audio" in model["output_modalities"]
                 }
 
                 # Create a set of unique text models starting with default model
-                unique_text_models = {cls.default_model}
-                
+                unique_text_models = cls.text_models.copy()
+
                 # Add models from vision_models
-                unique_text_models.update(cls.vision_models)
-                
+                unique_text_models.extend(cls.vision_models)
+
                 # Add models from the API response
                 for model in models:
                     model_name = model.get("name")
                     if model_name and "input_modalities" in model and "text" in model["input_modalities"]:
-                        unique_text_models.add(model_name)
-                
+                        unique_text_models.append(model_name)
+
                 # Convert to list and update text_models
-                cls.text_models = list(unique_text_models)
-                
-                # Update extra_text_models with unique vision models
-                cls.extra_text_models = [model for model in cls.vision_models if model != cls.default_model]
-                
+                cls.text_models = list(dict.fromkeys(unique_text_models))
+
                 cls._models_loaded = True
 
             except Exception as e:
@@ -148,12 +137,10 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                 debug.error(f"Failed to fetch models: {e}")
 
         # Return unique models across all categories
-        all_models = set(cls.text_models)
-        all_models.update(cls.image_models)
-        all_models.update(cls.audio_models.keys())
-        result = list(all_models)
-        return result
-
+        all_models = cls.text_models.copy()
+        all_models.extend(cls.image_models)
+        all_models.extend(cls.audio_models.keys())
+        return list(dict.fromkeys(all_models))
 
     @classmethod
     async def create_async_generator(
@@ -265,15 +252,15 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         query = "&".join(f"{k}={quote_plus(str(v))}" for k, v in params.items() if v is not None)
         prompt = quote_plus(prompt)[:2048-256-len(query)]
         url = f"{cls.image_api_endpoint}prompt/{prompt}?{query}"
-        def get_image_url(i: int = 0, seed: Optional[int] = None):
-            if i == 0:
+        def get_image_url(i: int, seed: Optional[int] = None):
+            if i == 1:
                 if not cache and seed is None:
                     seed = random.randint(0, 2**32)
             else:
                 seed = random.randint(0, 2**32)
             return f"{url}&seed={seed}" if seed else url
         async with ClientSession(headers=DEFAULT_HEADERS, connector=get_connector(proxy=proxy)) as session:
-            async def get_image(i: int = 0, seed: Optional[int] = None):
+            async def get_image(i: int, seed: Optional[int] = None):
                 async with session.get(get_image_url(i, seed), allow_redirects=False) as response:
                     try:
                         await raise_for_status(response)
@@ -343,6 +330,8 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                             if line[6:].startswith(b"[DONE]"):
                                 break
                             result = json.loads(line[6:])
+                            if "error" in result:
+                                raise ResponseError(result["error"].get("message", result["error"]))
                             if "usage" in result:
                                 yield Usage(**result["usage"])
                             choices = result.get("choices", [{}])

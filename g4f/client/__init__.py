@@ -217,7 +217,7 @@ async def async_iter_response(
 
         if stream:
             chat_completion = ChatCompletionChunk.model_construct(
-                None, finish_reason, completion_id, int(time.time()), usage=usage
+                None, finish_reason, completion_id, int(time.time()), usage=usage, conversation=conversation
             )
         else:
             if response_format is not None and "type" in response_format:
@@ -228,7 +228,7 @@ async def async_iter_response(
                 **filter_none(
                     tool_calls=[ToolCallModel.model_construct(**tool_call) for tool_call in tool_calls]
                 ) if tool_calls is not None else {},
-                conversation=None if conversation is None else conversation.get_dict()
+                conversation=conversation
             )
         if provider is not None:
             chat_completion.provider = provider.name

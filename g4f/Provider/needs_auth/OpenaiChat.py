@@ -278,7 +278,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
         messages: Messages,
         auth_result: AuthResult,
         proxy: str = None,
-        timeout: int = 180,
+        timeout: int = 360,
         auto_continue: bool = False,
         action: str = "next",
         conversation: Conversation = None,
@@ -447,7 +447,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                                                 link = sources.list[int(match.group(1))]["url"]
                                                 return f"[[{int(match.group(1))+1}]]({link})"
                                             return f" [{int(match.group(1))+1}]"
-                                        buffer = re.sub(r'(?:cite\nturn0search|cite\nturn0news|turn0news)(\d+)', replacer, buffer)
+                                        buffer = re.sub(r'(?:cite\nturn[0-9]+|turn[0-9]+)(?:search|news|view)(\d+)', replacer, buffer)
                                     else:
                                         continue
                                 yield buffer
@@ -489,25 +489,39 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
         if "type" in line:
             if line["type"] == "title_generation":
                 yield TitleGeneration(line["title"])
+        fields.p = line.get("p", fields.p)
+        if fields.p.startswith("/message/content/thoughts"):
+            if fields.p.endswith("/content"):
+                if fields.thoughts_summary:
+                    yield Reasoning(token="", status=fields.thoughts_summary)
+                    fields.thoughts_summary = ""
+                yield Reasoning(token=line.get("v"))
+            elif fields.p.endswith("/summary"):
+                fields.thoughts_summary += line.get("v")
+            return
         if "v" in line:
             v = line.get("v")
-            if isinstance(v, str) and fields.is_recipient:
+            if isinstance(v, str) and fields.recipient == "all":
                 if "p" not in line or line.get("p") == "/message/content/parts/0":
                     yield Reasoning(token=v) if fields.is_thinking else v
             elif isinstance(v, list):
                 for m in v:
-                    if m.get("p") == "/message/content/parts/0" and fields.is_recipient:
+                    if m.get("p") == "/message/content/parts/0" and fields.recipient == "all":
                         yield m.get("v")
                     elif m.get("p") == "/message/metadata/search_result_groups":
                         for entry in [p.get("entries") for p in m.get("v")]:
                             for link in entry:
                                 sources.add_source(link)
-                    elif re.match(r"^/message/metadata/content_references/\d+$", m.get("p")):
+                    elif m.get("p") == "/message/metadata/content_references":
+                        for entry in m.get("v"):
+                            for link in entry.get("sources", []):
+                                sources.add_source(link)
+                    elif m.get("p") and re.match(r"^/message/metadata/content_references/\d+$", m.get("p")):
                         sources.add_source(m.get("v"))
                     elif m.get("p") == "/message/metadata/finished_text":
                         fields.is_thinking = False
                         yield Reasoning(status=m.get("v"))
-                    elif m.get("p") == "/message/metadata":
+                    elif m.get("p") == "/message/metadata" and fields.recipient == "all":
                         fields.finish_reason = m.get("v", {}).get("finish_details", {}).get("type")
                         break
             elif isinstance(v, dict):
@@ -515,8 +529,8 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                     fields.conversation_id = v.get("conversation_id")
                     debug.log(f"OpenaiChat: New conversation: {fields.conversation_id}")
                 m = v.get("message", {})
-                fields.is_recipient = m.get("recipient", "all") == "all"
-                if fields.is_recipient:
+                fields.recipient = m.get("recipient", fields.recipient)
+                if fields.recipient == "all":
                     c = m.get("content", {})
                     if c.get("content_type") == "text" and m.get("author", {}).get("role") == "tool" and "initial_text" in m.get("metadata", {}):
                         fields.is_thinking = True
@@ -578,14 +592,17 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
             cls._set_api_key(api_key)
         else:
             try:
-                await get_request_config(cls.request_config, proxy)
+                cls.request_config = await get_request_config(cls.request_config, proxy)
+                if cls.request_config is None:
+                    cls.request_config = RequestConfig()
                 cls._create_request_args(cls.request_config.cookies, cls.request_config.headers)
-                if cls.request_config.access_token is not None or cls.needs_auth:
-                    if not cls._set_api_key(cls.request_config.access_token):
-                        raise NoValidHarFileError(f"Access token is not valid: {cls.request_config.access_token}")
+                if cls.needs_auth and cls.request_config.access_token is None:
+                    raise NoValidHarFileError(f"Missing access token")
+                if not cls._set_api_key(cls.request_config.access_token):
+                    raise NoValidHarFileError(f"Access token is not valid: {cls.request_config.access_token}")
             except NoValidHarFileError:
                 if has_nodriver:
-                    if cls._api_key is None:
+                    if cls.request_config.access_token is None:
                         yield RequestLogin(cls.label, os.environ.get("G4F_LOGIN_URL", ""))
                         await cls.nodriver_auth(proxy)
                 else:
@@ -622,15 +639,18 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
             await page.send(nodriver.cdp.network.enable())
             page.add_handler(nodriver.cdp.network.RequestWillBeSent, on_request)
             page = await browser.get(cls.url)
-            user_agent = await page.evaluate("window.navigator.userAgent")
-            await page.select("#prompt-textarea", 240)
-            await page.evaluate("document.getElementById('prompt-textarea').innerText = 'Hello'")
-            await page.select("[data-testid=\"send-button\"]", 30)
+            user_agent = await page.evaluate("window.navigator.userAgent", return_by_value=True)
+            while not await page.evaluate("document.getElementById('prompt-textarea').id"):
+                await asyncio.sleep(1)
+            while not await page.evaluate("document.querySelector('[data-testid=\"send-button\"]').type"):
+                await asyncio.sleep(1)
             await page.evaluate("document.querySelector('[data-testid=\"send-button\"]').click()")
             while True:
-                body = await page.evaluate("JSON.stringify(window.__remixContext)")
+                body = await page.evaluate("JSON.stringify(window.__remixContext)", return_by_value=True)
+                if hasattr(body, "value"):
+                    body = body.value
                 if body:
-                    match = re.search(r'"accessToken":"(.*?)"', body)
+                    match = re.search(r'"accessToken":"(.+?)"', body)
                     if match:
                         cls._api_key = match.group(1)
                         break
@@ -674,6 +694,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
 
     @classmethod
     def _set_api_key(cls, api_key: str):
+        cls._api_key = api_key
         if api_key:
             exp = api_key.split(".")[1]
             exp = (exp + "=" * (4 - len(exp) % 4)).encode()
@@ -681,11 +702,11 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
             debug.log(f"OpenaiChat: API key expires at\n {cls._expires} we have:\n {time.time()}")
             if time.time() > cls._expires:
                 debug.log(f"OpenaiChat: API key is expired")
+                return False
             else:
-                cls._api_key = api_key
                 cls._headers["authorization"] = f"Bearer {api_key}"
                 return True
-        return False
+        return True
 
     @classmethod
     def _update_cookie_header(cls):
@@ -700,10 +721,12 @@ class Conversation(JsonConversation):
         self.conversation_id = conversation_id
         self.message_id = message_id
         self.finish_reason = finish_reason
-        self.is_recipient = False
+        self.recipient = "all"
         self.parent_message_id = message_id if parent_message_id is None else parent_message_id
         self.user_id = user_id
         self.is_thinking = is_thinking
+        self.p = None
+        self.thoughts_summary = ""
 
 def get_cookies(
     urls: Optional[Iterator[str]] = None

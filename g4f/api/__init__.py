@@ -309,9 +309,9 @@ class Api:
                 if credentials is not None and credentials.credentials != "secret":
                     config.api_key = credentials.credentials
 
-                conversation = None
+                conversation = config.conversation
                 return_conversation = config.return_conversation
-                if conversation is not None:
+                if conversation:
                     conversation = JsonConversation(**conversation)
                     return_conversation = True
                 elif config.conversation_id is not None and config.provider is not None:

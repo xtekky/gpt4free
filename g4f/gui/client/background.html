@@ -169,13 +169,13 @@
                 if (errorVideo < 3 || !refreshOnHide) {
                     return;
                 }
+                if (skipRefresh > 0) {
+                    skipRefresh -= 1;
+                    return;
+                }
                 if (errorImage < 3) {
                     imageFeed.src = "/search/image+g4f?skip=" + skipImage;
                     skipImage++;
-                    return;
-                }
-                if (skipRefresh > 0) {
-                    skipRefresh -= 1;
                     return;
                 }
                 if (images.length > 0) {
@@ -194,10 +194,13 @@
             imageFeed.onload = () => {
                 imageFeed.classList.remove("hidden");
                 gradient.classList.add("hidden");
+                errorImage = 0;
             };
             imageFeed.onclick = () => {
                 imageFeed.src = "/search/image?random=" + Math.random();
-                skipRefresh = 2;
+                if (skipRefresh < 4) {
+                    skipRefresh += 1;
+                }
             };
         })();
     </script>

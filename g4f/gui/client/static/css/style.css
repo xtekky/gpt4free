@@ -1533,6 +1533,7 @@ form textarea {
 .chat-top-panel .convo-title {
     margin: 0 10px;
     font-size: 14px;
+    font-weight: bold;
     text-align: center;
     flex: 1;
 }
@@ -1581,7 +1582,6 @@ form textarea {
 }
 .chat-body {
     flex: 1;
-    padding: 10px;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
@@ -1613,11 +1613,25 @@ form textarea {
     border: 1px dashed var(--conversations);
     box-shadow: 1px 1px 1px 0px rgba(0,0,0,0.75);
 }
-.white .chat-footer .send-buttons button {
+.suggestions {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+.suggestions .suggestion {
+    background: var(--blur-bg);
+    color: var(--colour-3);
+    padding: 10px;
+    margin: 0 2px 0 4px;
+    border-radius: 5px;
+    cursor: pointer;
+    border: 1px dashed var(--conversations);
+}
+.white .chat-footer .send-buttons button, .white .suggestions .suggestion {
     border-style: solid;
     border-color: var(--blur-border);
 }
-.chat-footer .send-buttons button:hover {
+.chat-footer .send-buttons button:hover, .suggestions .suggestion:hover {
     border-style: solid;
     box-shadow: none;
     background-color: var(--button-hover);

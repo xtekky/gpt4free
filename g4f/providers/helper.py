@@ -24,6 +24,16 @@ def to_string(value) -> str:
         return "".join([to_string(v) for v in value if v.get("type", "text") == "text"])
     return str(value)
 
+def render_messages(messages: Messages) -> Iterator:
+    for idx, message in enumerate(messages):
+        if isinstance(message, dict) and isinstance(message.get("content"), list):
+            yield {
+                **message,
+                "content": to_string(message["content"]),
+            }
+        else:
+            yield message
+
 def format_prompt(messages: Messages, add_special_tokens: bool = False, do_continue: bool = False, include_system: bool = True) -> str:
     """
     Format a series of messages into a single string, optionally adding special tokens.

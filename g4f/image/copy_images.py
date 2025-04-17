@@ -28,7 +28,7 @@ def get_media_extension(media: str) -> str:
     extension = os.path.splitext(path)[1]
     if not extension:
         extension = os.path.splitext(media)[1]
-    if not extension:
+    if not extension or len(extension) > 4:
         return ""
     if extension[1:] not in EXTENSIONS_MAP:
         raise ValueError(f"Unsupported media extension: {extension} in: {media}")

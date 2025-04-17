@@ -44,7 +44,7 @@ async def raise_for_status_async(response: Union[StreamResponse, ClientResponse]
     if response.status == 403 and is_cloudflare(message):
         raise CloudflareError(f"Response {response.status}: Cloudflare detected")
     elif response.status == 403 and is_openai(message):
-        raise ResponseStatusError(f"Response {response.status}: OpenAI Bot detected")
+        raise MissingAuthError(f"Response {response.status}: OpenAI Bot detected")
     elif response.status == 502:
         raise ResponseStatusError(f"Response {response.status}: Bad Gateway")
     elif response.status == 504:
@@ -71,7 +71,7 @@ def raise_for_status(response: Union[Response, StreamResponse, ClientResponse, R
     if response.status_code == 403 and is_cloudflare(response.text):
         raise CloudflareError(f"Response {response.status_code}: Cloudflare detected")
     elif response.status_code == 403 and is_openai(response.text):
-        raise ResponseStatusError(f"Response {response.status_code}: OpenAI Bot detected")
+        raise MissingAuthError(f"Response {response.status_code}: OpenAI Bot detected")
     elif response.status_code == 502:
         raise ResponseStatusError(f"Response {response.status_code}: Bad Gateway")
     elif response.status_code == 504:

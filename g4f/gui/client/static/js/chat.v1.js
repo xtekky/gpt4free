@@ -48,6 +48,7 @@ let wakeLock = null;
 let countTokensEnabled = true;
 let reloadConversation = true;
 let privateConversation = null;
+let suggestions = null;
 
 userInput.addEventListener("blur", () => {
     document.documentElement.scrollTop = 0;
@@ -119,9 +120,9 @@ function filter_message(text) {
     if (Array.isArray(text)) {
         return text;
     }
-    return text.replaceAll(
+    return filter_message_content(text.replaceAll(
         /<!-- generated images start -->[\s\S]+<!-- generated images end -->/gm, ""
-    ).replace(/ \[aborted\]$/g, "").replace(/ \[error\]$/g, "");
+    ))
 }
 
 function filter_message_content(text) {
@@ -468,7 +469,7 @@ const register_message_buttons = async () => {
         el.dataset.click = true;
         const message_el = get_message_el(el);
         el.addEventListener("click", async () => {
-            iframe.src = `/qrcode/${window.conversation_id}#${message_el.dataset.index}`;
+            iframe.src = window.conversation_id ? `/qrcode/${window.conversation_id}#${message_el.dataset.index}` : '/qrcode';
             iframe_container.classList.remove("hidden");
         });
     });
@@ -933,9 +934,7 @@ async function add_message_chunk(message, message_id, provider, scroll, finish_m
     } else if (message.type == "login") {
         update_message(content_map, message_id, markdown_render(message.login), scroll);
     } else if (message.type == "finish") {
-        if (!finish_storage[message_id]) {
-            finish_storage[message_id] = message.finish;
-        }
+        finish_storage[message_id] = message.finish;
     } else if (message.type == "usage") {
         usage_storage[message_id] = message.usage;
     } else if (message.type == "reasoning") {
@@ -950,7 +949,7 @@ async function add_message_chunk(message, message_id, provider, scroll, finish_m
         } if (message.token) {
             reasoning_storage[message_id].text += message.token;
         }
-        update_message(content_map, message_id, render_reasoning(reasoning_storage[message_id]), scroll);
+        update_message(content_map, message_id, null, scroll);
     } else if (message.type == "parameters") {
         if (!parameters_storage[provider]) {
             parameters_storage[provider] = {};
@@ -958,6 +957,8 @@ async function add_message_chunk(message, message_id, provider, scroll, finish_m
         Object.entries(message.parameters).forEach(([key, value]) => {
             parameters_storage[provider][key] = value;
         });
+    } else if (message.type == "suggestions") {
+        suggestions = message.suggestions;
     }
 }
 
@@ -998,6 +999,9 @@ const ask_gpt = async (message_id, message_index = -1, regenerate = false, provi
     if (scroll) {
         await lazy_scroll_to_bottom();
     }
+
+    let suggestions_el = chatBody.querySelector('.suggestions');
+    suggestions_el ? suggestions_el.remove() : null;
     if (countTokensEnabled) {
         let count_total = chatBody.querySelector('.count_total');
         count_total ? count_total.parentElement.removeChild(count_total) : null;
@@ -1507,7 +1511,7 @@ const load_conversation = async (conversation, scroll=true) => {
             } else if (reason == "stop" && buffer.split("```").length - 1 % 2 === 1) {
                 reason = "length";
             }
-            if (reason == "length" || reason == "max_tokens" || reason == "error") {
+            if (reason != "stop") {
                 actions.push("continue")
             }
         }
@@ -1578,8 +1582,23 @@ const load_conversation = async (conversation, scroll=true) => {
             </div>
         `);
     });
+    chatBody.innerHTML = elements.join("");
 
-    if (countTokensEnabled && window.GPTTokenizer_cl100k_base) {
+    if (suggestions) {
+        const suggestions_el = document.createElement("div");
+        suggestions_el.classList.add("suggestions");
+        suggestions.forEach((suggestion)=> {
+            const el = document.createElement("button");
+            el.classList.add("suggestion");
+            el.innerHTML = `<span>${escapeHtml(suggestion)}</span> <i class="fa-solid fa-turn-up"></i>`;
+            el.onclick = async () => {
+                await handle_ask(true, suggestion);
+            }
+            suggestions_el.appendChild(el);
+        });
+        chatBody.appendChild(suggestions_el);
+        suggestions = null;
+    } else if (countTokensEnabled && window.GPTTokenizer_cl100k_base) {
         const has_media = messages.filter((item)=>Array.isArray(item.content)).length > 0;
         if (!has_media) {
             const filtered = prepare_messages(messages, null, true, false);
@@ -1587,13 +1606,15 @@ const load_conversation = async (conversation, scroll=true) => {
                 last_model = last_model?.startsWith("gpt-3") ? "gpt-3.5-turbo" : "gpt-4"
                 let count_total = GPTTokenizer_cl100k_base?.encodeChat(filtered, last_model).length
                 if (count_total > 0) {
-                    elements.push(`<div class="count_total">(${count_total} total tokens)</div>`);
+                    const count_total_el = document.createElement("div");
+                    count_total_el.classList.add("count_total");
+                    count_total_el.innerText = `(${count_total} total tokens)`;
+                    chatBody.appendChild(count_total_el);
                 }
             }
         }
     }
 
-    chatBody.innerHTML = elements.join("");
     await register_message_buttons();
     highlight(chatBody);
     regenerate_button.classList.remove("regenerate-hidden");
@@ -2079,8 +2100,10 @@ function count_words_and_tokens(text, model, completion_tokens, prompt_tokens) {
 function update_message(content_map, message_id, content = null, scroll = true) {
     content_map.update_timeouts.push(setTimeout(() => {
         if (!content) {
-            if (reasoning_storage[message_id]) {
+            if (reasoning_storage[message_id] && message_storage[message_id]) {
                 content = render_reasoning(reasoning_storage[message_id], true) + markdown_render(message_storage[message_id]);
+            } else if (reasoning_storage[message_id]) {
+                content = render_reasoning(reasoning_storage[message_id]);
             } else {
                 content = markdown_render(message_storage[message_id]);
             }
@@ -2097,10 +2120,9 @@ function update_message(content_map, message_id, content = null, scroll = true) 
             }
         }
         if (error_storage[message_id]) {
-            content_map.inner.innerHTML = message + markdown_render(`**An error occured:** ${error_storage[message_id]}`);
-        } else {
-            content_map.inner.innerHTML = content;
+            content += markdown_render(`**An error occured:** ${error_storage[message_id]}`);
         }
+        content_map.inner.innerHTML = content;
         if (countTokensEnabled) {
             content_map.count.innerText = count_words_and_tokens(
                 (reasoning_storage[message_id] ? reasoning_storage[message_id].text : "")
@@ -2484,8 +2506,14 @@ async function on_api() {
 
     const hide_systemPrompt = document.getElementById("hide-systemPrompt")
     const slide_systemPrompt_icon = document.querySelector(".slide-header i");
+    document.querySelector(".slide-header")?.addEventListener("click", () => {
+        const checked = slide_systemPrompt_icon.classList.contains("fa-angles-up");
+        chatPrompt.classList[checked ? "add": "remove"]("hidden");
+        slide_systemPrompt_icon.classList[checked ? "remove": "add"]("fa-angles-up");
+        slide_systemPrompt_icon.classList[checked ? "add": "remove"]("fa-angles-down");
+    });
     if (hide_systemPrompt.checked) {
-        chatPrompt.classList.add("hidden");
+        slide_systemPrompt_icon.click();
     }
     hide_systemPrompt.addEventListener('change', async (event) => {
         if (event.target.checked) {
@@ -2493,12 +2521,6 @@ async function on_api() {
         } else {
             chatPrompt.classList.remove("hidden");
         }
-    });
-    document.querySelector(".slide-header")?.addEventListener("click", () => {
-        const checked = slide_systemPrompt_icon.classList.contains("fa-angles-up");
-        chatPrompt.classList[checked ? "add": "remove"]("hidden");
-        slide_systemPrompt_icon.classList[checked ? "remove": "add"]("fa-angles-up");
-        slide_systemPrompt_icon.classList[checked ? "add": "remove"]("fa-angles-down");
     });
     const userInputHeight = document.getElementById("message-input-height");
     if (userInputHeight) {

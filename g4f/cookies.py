@@ -56,12 +56,11 @@ DOMAINS = [
     ".google.com",
     "www.whiterabbitneo.com",
     "huggingface.co",
+    ".huggingface.co"
     "chat.reka.ai",
     "chatgpt.com",
     ".cerebras.ai",
     "github.com",
-    "huggingface.co",
-    ".huggingface.co"
 ]
 
 if has_browser_cookie3 and os.environ.get('DBUS_SESSION_BUS_ADDRESS') == "/dev/null":
@@ -152,6 +151,7 @@ def read_cookie_files(dirPath: str = None):
                 harFiles.append(os.path.join(root, file))
             elif file.endswith(".json"):
                 cookieFiles.append(os.path.join(root, file))
+        break
 
     CookiesConfig.cookies = {}
     for path in harFiles:

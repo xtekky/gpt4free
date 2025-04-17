@@ -425,9 +425,14 @@ class AsyncAuthedProvider(AsyncGeneratorProvider, AuthFileMixin):
          if auth_result is not None:
             cache_file.parent.mkdir(parents=True, exist_ok=True)
             try:
-                cache_file.write_text(json.dumps(auth_result.get_dict()))
-            except TypeError:
-                raise RuntimeError(f"Failed to save: {auth_result.get_dict()}")
+                def toJSON(obj):
+                    if hasattr(obj, "get_dict"):
+                        return obj.get_dict()
+                    return str(obj)
+                with cache_file.open("w") as cache_file:
+                    json.dump(auth_result, cache_file, default=toJSON)
+            except TypeError as e:
+                raise RuntimeError(f"Failed to save: {auth_result.get_dict()}\n{type(e).__name__}: {e}")
          elif cache_file.exists():
             cache_file.unlink()
 
@@ -443,7 +448,9 @@ class AsyncAuthedProvider(AsyncGeneratorProvider, AuthFileMixin):
         try:
             if cache_file.exists():
                 with cache_file.open("r") as f:
-                    auth_result = AuthResult(**json.load(f))
+                    data = f.read()
+                if data:
+                    auth_result = AuthResult(**json.loads(data))
             else:
                 raise MissingAuthError
             yield from to_sync_generator(cls.create_authed(model, messages, auth_result, **kwargs))
