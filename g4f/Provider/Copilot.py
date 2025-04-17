@@ -116,8 +116,6 @@ class Copilot(AsyncGeneratorProvider, ProviderModelMixin):
                 response.raise_for_status()
                 conversation_id = response.json().get("id")
                 conversation = Conversation(conversation_id)
-                if return_conversation:
-                    yield conversation
                 if prompt is None:
                     prompt = format_prompt_max_length(messages, 10000)
                 debug.log(f"Copilot: Created conversation: {conversation_id}")
@@ -126,6 +124,8 @@ class Copilot(AsyncGeneratorProvider, ProviderModelMixin):
                 if prompt is None:
                     prompt = get_last_user_message(messages)
                 debug.log(f"Copilot: Use conversation: {conversation_id}")
+            if return_conversation:
+                yield conversation
 
             uploaded_images = []
             for media, _ in merge_media(media, messages):

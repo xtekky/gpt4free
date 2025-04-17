@@ -9,7 +9,7 @@ from ..requests import Session, StreamSession, get_args_from_nodriver, raise_for
 from ..requests import DEFAULT_HEADERS, has_nodriver, has_curl_cffi
 from ..providers.response import FinishReason, Usage
 from ..errors import ResponseStatusError, ModelNotFoundError
-from .helper import to_string
+from .helper import render_messages
 
 class Cloudflare(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
     label = "Cloudflare AI"
@@ -82,7 +82,7 @@ class Cloudflare(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
             elif has_nodriver:
                 cls._args = await get_args_from_nodriver(cls.url, proxy, timeout, cookies)
             else:
-                cls._args = {"headers": DEFAULT_HEADERS, "cookies": {}}
+                cls._args = {"headers": DEFAULT_HEADERS, "cookies": {}, "impersonate": "chrome"}
         try:
             model = cls.get_model(model)
         except ModelNotFoundError:
@@ -90,8 +90,7 @@ class Cloudflare(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
         data = {
             "messages": [{
                 **message,
-                "content": to_string(message["content"]),
-                "parts": [{"type":"text", "text": to_string(message["content"])}]} for message in messages],
+                "parts": [{"type":"text", "text": message["content"]}]} for message in render_messages(messages)],
             "lora": None,
             "model": model,
             "max_tokens": max_tokens,
@@ -120,5 +119,5 @@ class Cloudflare(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                         yield Usage(**finish.get("usage"))
                         yield FinishReason(finish.get("finishReason"))
 
-                with cache_file.open("w") as f:
-                    json.dump(cls._args, f)
+        with cache_file.open("w") as f:
+            json.dump(cls._args, f)

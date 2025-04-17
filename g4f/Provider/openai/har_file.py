@@ -49,6 +49,7 @@ def get_har_files():
         for file in files:
             if file.endswith(".har"):
                 harPath.append(os.path.join(root, file))
+        break
     if not harPath:
         raise NoValidHarFileError("No .har file found")
     harPath.sort(key=lambda x: os.path.getmtime(x))
