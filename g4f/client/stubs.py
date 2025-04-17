@@ -22,6 +22,8 @@ except ImportError:
     class field_serializer():
         def __init__(self, field_name):
             self.field_name = field_name
+        def __call__(self, *args, **kwargs):
+            return args[0]
 
 class BaseModel(BaseModel):
     @classmethod
