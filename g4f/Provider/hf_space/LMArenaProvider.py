@@ -229,7 +229,9 @@ class LMArenaProvider(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin)
                                 if len(data) > 2:
                                     if isinstance(data[2], list):
                                         data[2] = data[2][-1]
-                                    content = data[2][text_position:].rstrip("▌")
+                                    content = data[2][text_position:]
+                                    if content.endswith("▌"):
+                                        content = content[:-2]
                                     if content:
                                         count += 1
                                         yield count, content

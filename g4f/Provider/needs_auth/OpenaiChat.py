@@ -447,7 +447,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                                                 link = sources.list[int(match.group(1))]["url"]
                                                 return f"[[{int(match.group(1))+1}]]({link})"
                                             return f" [{int(match.group(1))+1}]"
-                                        buffer = re.sub(r'(?:cite\nturn0search|cite\nturn0news|turn0news)(\d+)', replacer, buffer)
+                                        buffer = re.sub(r'(?:cite\nturn[0-9]+search|cite\nturn[0-9]+news|turn[0-9]+news|turn[0-9]+search)(\d+)', replacer, buffer)
                                     else:
                                         continue
                                 yield buffer
@@ -501,23 +501,27 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
             return
         if "v" in line:
             v = line.get("v")
-            if isinstance(v, str) and fields.is_recipient:
+            if isinstance(v, str) and fields.recipient == "all":
                 if "p" not in line or line.get("p") == "/message/content/parts/0":
                     yield Reasoning(token=v) if fields.is_thinking else v
             elif isinstance(v, list):
                 for m in v:
-                    if m.get("p") == "/message/content/parts/0" and fields.is_recipient:
+                    if m.get("p") == "/message/content/parts/0" and fields.recipient == "all":
                         yield m.get("v")
                     elif m.get("p") == "/message/metadata/search_result_groups":
                         for entry in [p.get("entries") for p in m.get("v")]:
                             for link in entry:
+                                sources.add_source(link)
+                    elif m.get("p") == "/message/metadata/content_references":
+                        for entry in m.get("v"):
+                            for link in entry.get("sources", []):
                                 sources.add_source(link)
                     elif m.get("p") and re.match(r"^/message/metadata/content_references/\d+$", m.get("p")):
                         sources.add_source(m.get("v"))
                     elif m.get("p") == "/message/metadata/finished_text":
                         fields.is_thinking = False
                         yield Reasoning(status=m.get("v"))
-                    elif m.get("p") == "/message/metadata":
+                    elif m.get("p") == "/message/metadata" and fields.recipient == "all":
                         fields.finish_reason = m.get("v", {}).get("finish_details", {}).get("type")
                         break
             elif isinstance(v, dict):
@@ -525,8 +529,8 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                     fields.conversation_id = v.get("conversation_id")
                     debug.log(f"OpenaiChat: New conversation: {fields.conversation_id}")
                 m = v.get("message", {})
-                fields.is_recipient = m.get("recipient", "all") == "all"
-                if fields.is_recipient:
+                fields.recipient = m.get("recipient", fields.recipient)
+                if fields.recipient == "all":
                     c = m.get("content", {})
                     if c.get("content_type") == "text" and m.get("author", {}).get("role") == "tool" and "initial_text" in m.get("metadata", {}):
                         fields.is_thinking = True
@@ -598,7 +602,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                     raise NoValidHarFileError(f"Access token is not valid: {cls.request_config.access_token}")
             except NoValidHarFileError:
                 if has_nodriver:
-                    if cls._api_key is None:
+                    if cls.request_config.access_token is None:
                         yield RequestLogin(cls.label, os.environ.get("G4F_LOGIN_URL", ""))
                         await cls.nodriver_auth(proxy)
                 else:
@@ -717,7 +721,7 @@ class Conversation(JsonConversation):
         self.conversation_id = conversation_id
         self.message_id = message_id
         self.finish_reason = finish_reason
-        self.is_recipient = False
+        self.recipient = "all"
         self.parent_message_id = message_id if parent_message_id is None else parent_message_id
         self.user_id = user_id
         self.is_thinking = is_thinking

@@ -469,7 +469,7 @@ const register_message_buttons = async () => {
         el.dataset.click = true;
         const message_el = get_message_el(el);
         el.addEventListener("click", async () => {
-            iframe.src = `/qrcode/${window.conversation_id}#${message_el.dataset.index}`;
+            iframe.src = window.conversation_id ? `/qrcode/${window.conversation_id}#${message_el.dataset.index}` : '/qrcode';
             iframe_container.classList.remove("hidden");
         });
     });

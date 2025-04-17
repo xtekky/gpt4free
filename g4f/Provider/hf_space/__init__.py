@@ -88,7 +88,7 @@ class HuggingSpace(AsyncGeneratorProvider, ProviderModelMixin):
         for provider in cls.providers:
             if model in provider.get_models():
                 try:
-                    async for chunk in provider.create_async_generator(model, messages, images=images, **kwargs):
+                    async for chunk in provider.create_async_generator(model, messages, media=media, **kwargs):
                         is_started = True
                         yield chunk
                     if is_started:
