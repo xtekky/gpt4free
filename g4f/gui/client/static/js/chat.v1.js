@@ -120,9 +120,9 @@ function filter_message(text) {
     if (Array.isArray(text)) {
         return text;
     }
-    return text.replaceAll(
+    return filter_message_content(text.replaceAll(
         /<!-- generated images start -->[\s\S]+<!-- generated images end -->/gm, ""
-    ).replace(/ \[aborted\]$/g, "").replace(/ \[error\]$/g, "");
+    ))
 }
 
 function filter_message_content(text) {
@@ -949,7 +949,7 @@ async function add_message_chunk(message, message_id, provider, scroll, finish_m
         } if (message.token) {
             reasoning_storage[message_id].text += message.token;
         }
-        update_message(content_map, message_id, render_reasoning(reasoning_storage[message_id]), scroll);
+        update_message(content_map, message_id, null, scroll);
     } else if (message.type == "parameters") {
         if (!parameters_storage[provider]) {
             parameters_storage[provider] = {};
@@ -2100,8 +2100,10 @@ function count_words_and_tokens(text, model, completion_tokens, prompt_tokens) {
 function update_message(content_map, message_id, content = null, scroll = true) {
     content_map.update_timeouts.push(setTimeout(() => {
         if (!content) {
-            if (reasoning_storage[message_id]) {
+            if (reasoning_storage[message_id] && message_storage[message_id]) {
                 content = render_reasoning(reasoning_storage[message_id], true) + markdown_render(message_storage[message_id]);
+            } else if (reasoning_storage[message_id]) {
+                content = render_reasoning(reasoning_storage[message_id]);
             } else {
                 content = markdown_render(message_storage[message_id]);
             }
@@ -2118,10 +2120,9 @@ function update_message(content_map, message_id, content = null, scroll = true) 
             }
         }
         if (error_storage[message_id]) {
-            content_map.inner.innerHTML = message + markdown_render(`**An error occured:** ${error_storage[message_id]}`);
-        } else {
-            content_map.inner.innerHTML = content;
+            content += markdown_render(`**An error occured:** ${error_storage[message_id]}`);
         }
+        content_map.inner.innerHTML = content;
         if (countTokensEnabled) {
             content_map.count.innerText = count_words_and_tokens(
                 (reasoning_storage[message_id] ? reasoning_storage[message_id].text : "")

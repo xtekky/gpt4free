@@ -278,7 +278,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
         messages: Messages,
         auth_result: AuthResult,
         proxy: str = None,
-        timeout: int = 180,
+        timeout: int = 360,
         auto_continue: bool = False,
         action: str = "next",
         conversation: Conversation = None,
@@ -447,7 +447,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                                                 link = sources.list[int(match.group(1))]["url"]
                                                 return f"[[{int(match.group(1))+1}]]({link})"
                                             return f" [{int(match.group(1))+1}]"
-                                        buffer = re.sub(r'(?:cite\nturn[0-9]+search|cite\nturn[0-9]+news|turn[0-9]+news|turn[0-9]+search)(\d+)', replacer, buffer)
+                                        buffer = re.sub(r'(?:cite\nturn[0-9]+|turn[0-9]+)(?:search|news|view)(\d+)', replacer, buffer)
                                     else:
                                         continue
                                 yield buffer
