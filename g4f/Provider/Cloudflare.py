@@ -6,7 +6,7 @@ import json
 from ..typing import AsyncResult, Messages, Cookies
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin, get_running_loop
 from ..requests import Session, StreamSession, get_args_from_nodriver, raise_for_status, merge_cookies
-from ..requests import DEFAULT_HEADERS, has_nodriver
+from ..requests import DEFAULT_HEADERS, has_nodriver, has_curl_cffi
 from ..providers.response import FinishReason, Usage
 from ..errors import ResponseStatusError, ModelNotFoundError
 from .. import debug
@@ -51,7 +51,16 @@ class Cloudflare(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                 raise_for_status(response)
                 json_data = response.json()
                 def clean_name(name: str) -> str:
-                    return name.split("/")[-1].replace("-instruct", "").replace("-17b-16e", "").replace("-chat", "").replace("-fp8", "").replace("-fast", "").replace("-int8", "").replace("-awq", "").replace("-qvq", "").replace("-r1", "")
+                    return name.split("/")[-1].replace(
+                        "-instruct", "").replace(
+                        "-17b-16e", "").replace(
+                        "-chat", "").replace(
+                        "-fp8", "").replace(
+                        "-fast", "").replace(
+                        "-int8", "").replace(
+                        "-awq", "").replace(
+                        "-qvq", "").replace(
+                        "-r1", "")
                 model_map = {clean_name(model.get("name")): model.get("name") for model in json_data.get("models")}
                 cls.models = list(model_map.keys())
                 cls.model_aliases = {**cls.model_aliases, **model_map}
@@ -61,7 +70,7 @@ class Cloudflare(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                     cls._args = {"headers": DEFAULT_HEADERS, "cookies": {}}
                 read_models()
             except ResponseStatusError:
-                if has_nodriver:
+                if has_nodriver and has_curl_cffi:
                     get_running_loop(check_nested=True)
                     args = get_args_from_nodriver(cls.url)
                     try:
@@ -70,6 +79,8 @@ class Cloudflare(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                     except RuntimeError:
                         cls.models = cls.fallback_models
                         debug.log("Nodriver is not available")
+                else:
+                    raise
         return cls.models
 
     @classmethod
