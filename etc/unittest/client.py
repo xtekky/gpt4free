@@ -3,7 +3,8 @@ from __future__ import annotations
 import unittest
 
 from g4f.errors import ModelNotFoundError
-from g4f.client import Client, AsyncClient, ChatCompletion, ChatCompletionChunk, get_model_and_provider
+from g4f.client import Client, AsyncClient, ChatCompletion, ChatCompletionChunk
+from g4f.client.service import get_model_and_provider
 from g4f.Provider.Copilot import Copilot
 from g4f.models import gpt_4o
 from .mocks import AsyncGeneratorProviderMock, ModelProviderMock, YieldProviderMock

@@ -17,7 +17,7 @@ class TestProviderHasModel(unittest.TestCase):
                         model_name = provider.model_aliases[model.name]
                     else:
                         model_name = model.name
-                    self.provider_has_model(provider, model_name)
+                        self.provider_has_model(provider, model_name)
 
     def provider_has_model(self, provider: Type[BaseProvider], model: str):
         if provider.__name__ not in self.cache:
