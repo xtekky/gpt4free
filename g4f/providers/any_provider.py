@@ -167,7 +167,7 @@ class AnyProvider(AsyncGeneratorProvider, ProviderModelMixin):
                 else:
                     yield chunk
             return
-        async for chunk in IterListProvider(providers, False).get_async_create_function()(
+        async for chunk in IterListProvider(providers).get_async_create_function()(
             model,
             messages,
             stream=stream,

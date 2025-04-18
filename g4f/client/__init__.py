@@ -304,6 +304,8 @@ class Completions:
             provider = self.provider
             if provider is None:
                 provider = AnyProvider
+        if isinstance(provider, str):
+            provider = convert_to_provider(provider)
         stop = [stop] if isinstance(stop, str) else stop
         if ignore_stream:
             kwargs["ignore_stream"] = True
@@ -601,6 +603,8 @@ class AsyncCompletions:
             provider = self.provider
             if provider is None:
                 provider = AnyProvider
+        if isinstance(provider, str):
+            provider = convert_to_provider(provider)
         stop = [stop] if isinstance(stop, str) else stop
         if ignore_stream:
             kwargs["ignore_stream"] = True
