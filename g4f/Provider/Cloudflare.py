@@ -69,7 +69,7 @@ class Cloudflare(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                 if cls._args is None:
                     cls._args = {"headers": DEFAULT_HEADERS, "cookies": {}}
                 read_models()
-            except ResponseStatusError:
+            except ResponseStatusError as f:
                 if has_nodriver:
                     get_running_loop(check_nested=True)
                     args = get_args_from_nodriver(cls.url)
@@ -81,7 +81,7 @@ class Cloudflare(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                         debug.log(f"Nodriver is not available: {type(e).__name__}: {e}")
                 else:
                     cls.models = cls.fallback_models
-                    debug.log(f"Nodriver is not installed: {type(e).__name__}: {e}")
+                    debug.log(f"Nodriver is not installed: {type(f).__name__}: {f}")
         return cls.models
 
     @classmethod
