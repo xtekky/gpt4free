@@ -80,7 +80,8 @@ class Cloudflare(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                         cls.models = cls.fallback_models
                         debug.log(f"Nodriver is not available: {type(e).__name__}: {e}")
                 else:
-                    raise
+                    cls.models = cls.fallback_models
+                    debug.log(f"Nodriver is not installed: {type(e).__name__}: {e}")
         return cls.models
 
     @classmethod
