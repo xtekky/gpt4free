@@ -147,9 +147,10 @@ class AnyProvider(AsyncGeneratorProvider, ProviderModelMixin):
             raise ModelNotFoundError(f"Model {model} not found in any provider.")
         if len(providers) == 1:
             provider = providers[0]
-            child_conversation = getattr(conversation, provider.__name__, None)
-            if child_conversation is not None:
-                kwargs["conversation"] = JsonConversation(**child_conversation)
+            if conversation is not None:
+                child_conversation = getattr(conversation, provider.__name__, None)
+                if child_conversation is not None:
+                    kwargs["conversation"] = JsonConversation(**child_conversation)
             yield ProviderInfo(**provider.get_dict(), model=model)
             async for chunk in provider.get_async_create_function()(
                 model,
@@ -161,7 +162,7 @@ class AnyProvider(AsyncGeneratorProvider, ProviderModelMixin):
                 if isinstance(chunk, JsonConversation):
                     if conversation is None:
                         conversation = JsonConversation()
-                    setattr(conversation, provider.__name__, chunk)
+                    setattr(conversation, provider.__name__, chunk.get_dict())
                     yield conversation
                 else:
                     yield chunk
