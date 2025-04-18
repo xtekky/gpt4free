@@ -438,7 +438,11 @@ class Backend_Api(Api):
     def get_provider_models(self, provider: str):
         api_key = request.headers.get("x_api_key")
         api_base = request.headers.get("x_api_base")
-        ignored = request.headers.get("x_ignored").split()
+        ignored_header = request.headers.get("x_ignored")
+        if ignored_header is not None:
+            ignored = ignored_header.split()
+        else:
+            ignored = []
         models = super().get_provider_models(provider, api_key, api_base, ignored)
         if models is None:
             return "Provider not found", 404
