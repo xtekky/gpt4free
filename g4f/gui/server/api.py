@@ -10,7 +10,7 @@ from inspect import signature
 from ...errors import VersionNotFoundError, MissingAuthError
 from ...image.copy_images import copy_media, ensure_images_dir, images_dir
 from ...tools.run_tools import iter_run_tools
-from ...Provider import ProviderUtils, __providers__
+from ... import Provider
 from ...providers.base_provider import ProviderModelMixin
 from ...providers.retry_provider import BaseRetryProvider
 from ...providers.helper import format_image_prompt
@@ -41,12 +41,14 @@ class Api:
         for model, providers in models.__models__.values()]
 
     @staticmethod
-    def get_provider_models(provider: str, api_key: str = None, api_base: str = None):
-        if provider in ProviderUtils.convert:
-            provider = ProviderUtils.convert[provider]
+    def get_provider_models(provider: str, api_key: str = None, api_base: str = None, ignored: list = None):
+        if provider in Provider.__map__:
+            provider = Provider.__map__[provider]
             if issubclass(provider, ProviderModelMixin):
                 if "api_key" in signature(provider.get_models).parameters:
                     models = provider.get_models(api_key=api_key, api_base=api_base)
+                elif "ignored" in signature(provider.get_models).parameters:
+                    models = provider.get_models(ignored=ignored)
                 else:
                     models = provider.get_models()
                 return [
@@ -57,7 +59,7 @@ class Api:
                         "audio": getattr(provider, "default_audio_model", None) == model or model in getattr(provider, "audio_models", []),
                         "video": getattr(provider, "default_video_model", None) == model or model in getattr(provider, "video_models", []),
                         "image": False if provider.image_models is None else model in provider.image_models,
-                        "task": None if not hasattr(provider, "task_mapping") else provider.task_mapping[model] if model in provider.task_mapping else None
+                        "count": getattr(provider, "models_count", {}).get(model),
                     }
                     for model in models
                 ]
@@ -69,15 +71,15 @@ class Api:
             "name": provider.__name__,
             "label": provider.label if hasattr(provider, "label") else provider.__name__,
             "parent": getattr(provider, "parent", None),
-            "image": bool(getattr(provider, "image_models", False)),
-            "audio": getattr(provider, "audio_models", None) is not None,
-            "video": getattr(provider, "video_models", None) is not None,
+            "image": len(getattr(provider, "image_models", [])),
+            "audio": len(getattr(provider, "audio_models", [])),
+            "video": len(getattr(provider, "video_models", [])),
             "vision": getattr(provider, "default_vision_model", None) is not None,
             "nodriver": getattr(provider, "use_nodriver", False),
             "hf_space": getattr(provider, "hf_space", False),
             "auth": provider.needs_auth,
             "login_url": getattr(provider, "login_url", None),
-        } for provider in __providers__ if provider.working]
+        } for provider in Provider.__providers__ if provider.working]
 
     @staticmethod
     def get_version() -> dict:

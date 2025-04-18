@@ -43,7 +43,9 @@ from g4f.image import is_data_an_media, EXTENSIONS_MAP
 from g4f.image.copy_images import images_dir, copy_media, get_source_url
 from g4f.errors import ProviderNotFoundError, ModelNotFoundError, MissingAuthError, NoValidHarFileError
 from g4f.cookies import read_cookie_files, get_cookies_dir
-from g4f.Provider import ProviderType, ProviderUtils, __providers__
+from g4f.providers.types import ProviderType
+from g4f.providers.any_provider import AnyProvider
+from g4f import Provider
 from g4f.gui import get_gui_app
 from g4f.tools.files import supports_filename, get_async_streaming
 from .stubs import (
@@ -86,8 +88,8 @@ def create_app():
 
     if AppConfig.ignored_providers:
         for provider in AppConfig.ignored_providers:
-            if provider in ProviderUtils.convert:
-                ProviderUtils.convert[provider].working = False
+            if provider in Provider.__map__:
+                Provider.__map__[provider].working = False
 
     return app
 
@@ -232,13 +234,13 @@ class Api:
             return {
                 "object": "list",
                 "data": [{
-                    "id": model_id,
+                    "id": model,
                     "object": "model",
                     "created": 0,
-                    "owned_by": model.base_provider,
+                    "owned_by": "",
                     "image": isinstance(model, g4f.models.ImageModel),
                     "provider": False,
-                } for model_id, model in g4f.models.ModelUtils.convert.items()] +
+                } for model in AnyProvider.get_models()] +
                 [{
                     "id": provider_name,
                     "object": "model",
@@ -255,9 +257,9 @@ class Api:
             HTTP_200_OK: {"model": List[ModelResponseModel]},
         })
         async def models(provider: str, credentials: Annotated[HTTPAuthorizationCredentials, Depends(Api.security)] = None):
-            if provider not in ProviderUtils.convert:
+            if provider not in Provider.__map__:
                 return ErrorResponse.from_message("The provider does not exist.", 404)
-            provider: ProviderType = ProviderUtils.convert[provider]
+            provider: ProviderType = Provider.__map__[provider]
             if not hasattr(provider, "get_models"):
                 models = []
             elif credentials is not None and credentials.credentials != "secret":
@@ -448,7 +450,7 @@ class Api:
                 'created': 0,
                 'url': provider.url,
                 'label': getattr(provider, "label", None),
-            } for provider in __providers__ if provider.working]
+            } for provider in Provider.__providers__ if provider.working]
 
         @self.app.get("/v1/providers/{provider}", responses={
             HTTP_200_OK: {"model": ProviderResponseDetailModel},

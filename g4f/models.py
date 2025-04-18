@@ -187,7 +187,7 @@ o3_mini = Model(
 
 ### GigaChat ###
 gigachat = Model(
-    name          = 'GigaChat:latest',
+    name          = 'gigachat',
     base_provider = 'gigachat',
     best_provider = GigaChat
 )
@@ -1006,6 +1006,6 @@ __models__  = {
                 if model.best_provider is not None and model.best_provider.working
                 else [])
         for model in ModelUtils.convert.values()]
-        if providers
+        if [p for p in providers if p.working]
     }
 _all_models = list(__models__.keys())

@@ -342,6 +342,8 @@ class ProviderModelMixin:
     model_aliases: dict[str, str] = {}
     image_models: list = []
     vision_models: list = []
+    video_models: list = []
+    audio_models: dict = {}
     last_model: str = None
 
     @classmethod

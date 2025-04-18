@@ -13,6 +13,7 @@ from ..helper import format_prompt, format_image_prompt
 from ...providers.response import JsonConversation, ImageResponse, Reasoning
 from ...requests.aiohttp import StreamSession, StreamResponse, FormData
 from ...requests.raise_for_status import raise_for_status
+from ...tools.media import merge_media
 from ...image import to_bytes, is_accepted_format
 from ...cookies import get_cookies
 from ...errors import ResponseError
@@ -99,7 +100,8 @@ class DeepseekAI_JanusPro7b(AsyncGeneratorProvider, ProviderModelMixin):
             if return_conversation:
                 yield conversation
 
-            if media is not None:
+            media = list(merge_media(media, messages))
+            if media:
                 data = FormData()
                 for i in range(len(media)):
                     media[i] = (to_bytes(media[i][0]), media[i][1])

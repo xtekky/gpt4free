@@ -48,7 +48,6 @@ class Copilot(AsyncGeneratorProvider, ProviderModelMixin):
         "gpt-4": default_model,
         "gpt-4o": default_model,
         "o1": "Think Deeper",
-        "reasoning": "Think Deeper",
         "dall-e-3": default_model
     }
 
@@ -144,7 +143,6 @@ class Copilot(AsyncGeneratorProvider, ProviderModelMixin):
                 uploaded_images.append({"type":"image", "url": media})
 
             wss = await session.ws_connect(cls.websocket_url, timeout=3)
-            await wss.send(json.dumps({"event":"setOptions","supportedCards":["weather","local","image","sports","video","ads","finance"],"ads":{"supportedTypes":["multimedia","product","tourActivity","propertyPromotion","text"]}}));
             await wss.send(json.dumps({
                 "event": "send",
                 "conversationId": conversation_id,
