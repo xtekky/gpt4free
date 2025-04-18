@@ -39,7 +39,7 @@ class AnyProvider(AsyncGeneratorProvider, ProviderModelMixin):
         }
         all_models = ["default"] + list(model_with_providers.keys())
         for provider in [OpenaiChat, PollinationsAI, HuggingSpace, Cloudflare, PerplexityLabs, Gemini, Grok]:
-            if getattr(provider, "parent", provider.__name__) in ignored:
+            if not provider.working or getattr(provider, "parent", provider.__name__) in ignored:
                 continue
             if provider == PollinationsAI:
                 all_models.extend([f"{provider.__name__}:{model}" for model in provider.get_models() if model not in all_models])
@@ -51,9 +51,9 @@ class AnyProvider(AsyncGeneratorProvider, ProviderModelMixin):
             cls.image_models.extend(provider.image_models)
             cls.vision_models.extend(provider.vision_models)
             cls.video_models.extend(provider.video_models)
-        if CopilotAccount.parent not in ignored:
+        if CopilotAccount.working and CopilotAccount.parent not in ignored:
             all_models.extend(list(CopilotAccount.model_aliases.keys()))
-        if PollinationsAI.__name__ not in ignored:
+        if PollinationsAI.working and PollinationsAI.__name__ not in ignored:
             all_models.extend(list(PollinationsAI.model_aliases.keys()))
         def clean_name(name: str) -> str:
             return name.split("/")[-1].split(":")[0].lower(
@@ -87,7 +87,7 @@ class AnyProvider(AsyncGeneratorProvider, ProviderModelMixin):
                 ).replace("-hf", ""
                 ).replace("llama3", "llama-3")
         for provider in [HuggingFace, HuggingFaceMedia, LMArenaProvider, LambdaChat, DeepInfraChat]:
-            if getattr(provider, "parent", provider.__name__) in ignored:
+            if not provider.working or getattr(provider, "parent", provider.__name__) in ignored:
                 continue
             model_map = {clean_name(model): model for model in provider.get_models()}
             provider.model_aliases.update(model_map)
@@ -96,7 +96,8 @@ class AnyProvider(AsyncGeneratorProvider, ProviderModelMixin):
             cls.vision_models.extend([clean_name(model) for model in provider.vision_models])
             cls.video_models.extend([clean_name(model) for model in provider.video_models])
         for provider in [Microsoft_Phi_4, PollinationsAI]:
-            cls.audio_models.update(provider.audio_models)
+            if provider.working and getattr(provider, "parent", provider.__name__) not in ignored:
+                cls.audio_models.update(provider.audio_models)
         cls.models_count.update({model: all_models.count(model) + cls.models_count.get(model, 0) for model in all_models})
         return list(dict.fromkeys([model if model else "default" for model in all_models]))
 

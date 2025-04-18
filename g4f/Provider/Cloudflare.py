@@ -15,7 +15,7 @@ from .helper import render_messages
 class Cloudflare(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
     label = "Cloudflare AI"
     url = "https://playground.ai.cloudflare.com"
-    working = True
+    working = has_curl_cffi
     use_nodriver = True
     api_endpoint = "https://playground.ai.cloudflare.com/api/inference"
     models_url = "https://playground.ai.cloudflare.com/api/models"
@@ -69,14 +69,14 @@ class Cloudflare(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                 if cls._args is None:
                     cls._args = {"headers": DEFAULT_HEADERS, "cookies": {}}
                 read_models()
-            except (ResponseStatusError, MissingRequirementsError):
-                if has_nodriver and has_curl_cffi:
+            except ResponseStatusError:
+                if has_nodriver:
                     get_running_loop(check_nested=True)
                     args = get_args_from_nodriver(cls.url)
                     try:
                         cls._args = asyncio.run(args)
                         read_models()
-                    except (RuntimeError, MissingRequirementsError) as e:
+                    except RuntimeError as e:
                         cls.models = cls.fallback_models
                         debug.log(f"Nodriver is not available: {type(e).__name__}: {e}")
                 else:
