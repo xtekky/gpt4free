@@ -47,7 +47,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
     default_image_model = "flux"
     default_vision_model = default_model
     default_audio_model = "openai-audio"
-    text_models = [default_model]
+    text_models = [default_model, "evil"]
     image_models = [default_image_model]
     audio_models = {default_audio_model: []}
     extra_image_models = ["flux-pro", "flux-dev", "flux-schnell", "midjourney", "dall-e-3", "turbo"]
