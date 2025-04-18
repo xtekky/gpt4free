@@ -8,7 +8,7 @@ from .base_provider import AsyncGeneratorProvider, ProviderModelMixin, AuthFileM
 from ..requests import Session, StreamSession, get_args_from_nodriver, raise_for_status, merge_cookies
 from ..requests import DEFAULT_HEADERS, has_nodriver, has_curl_cffi
 from ..providers.response import FinishReason, Usage
-from ..errors import ResponseStatusError, ModelNotFoundError
+from ..errors import ResponseStatusError, ModelNotFoundError, MissingRequirementsError
 from .. import debug
 from .helper import render_messages
 
@@ -69,7 +69,7 @@ class Cloudflare(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                 if cls._args is None:
                     cls._args = {"headers": DEFAULT_HEADERS, "cookies": {}}
                 read_models()
-            except ResponseStatusError:
+            except (ResponseStatusError, MissingRequirementsError):
                 if has_nodriver and has_curl_cffi:
                     get_running_loop(check_nested=True)
                     args = get_args_from_nodriver(cls.url)
