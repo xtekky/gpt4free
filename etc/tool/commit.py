@@ -22,18 +22,17 @@ import os
 import argparse
 import tempfile
 import time
-from typing import Optional, Dict, Any, List, Tuple
+from typing import Optional, Any, List
 
 from g4f.client import Client
 from g4f.models import ModelUtils
-import g4f.Provider
 
 from g4f import debug
 debug.logging = True
 
 # Constants
-DEFAULT_MODEL = "claude-3.7-sonnet"
-FALLBACK_MODELS = ["claude-3.5-sonnet", "o1", "o3-mini", "gpt-4o"]
+DEFAULT_MODEL = "o1"
+FALLBACK_MODELS = ["o1", "o3-mini", "gpt-4o"]
 MAX_DIFF_SIZE = None  # Set to None to disable truncation, or a number for character limit
 MAX_RETRIES = 3
 RETRY_DELAY = 2  # Seconds

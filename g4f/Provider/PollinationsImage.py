@@ -8,10 +8,11 @@ from .PollinationsAI import PollinationsAI
 
 class PollinationsImage(PollinationsAI):
     label = "PollinationsImage"
+    parent = PollinationsAI.__name__
     default_model = "flux"
     default_vision_model = None
     default_image_model = default_model
-    audio_models = None
+    audio_models = {}
     image_models = [default_image_model]  # Default models
     _models_loaded = False  # Add a checkbox for synchronization
 

@@ -4,9 +4,12 @@ import random
 
 from ..typing import Type, List, CreateResult, Messages, AsyncResult
 from .types import BaseProvider, BaseRetryProvider, ProviderType
-from .response import MediaResponse, ProviderInfo
+from .response import MediaResponse, AudioResponse, ProviderInfo
 from .. import debug
 from ..errors import RetryProviderError, RetryNoProviderError
+
+def is_content(chunk):
+    return isinstance(chunk, (str, MediaResponse, AudioResponse))
 
 class IterListProvider(BaseRetryProvider):
     def __init__(
@@ -59,7 +62,7 @@ class IterListProvider(BaseRetryProvider):
                 for chunk in response:
                     if chunk:
                         yield chunk
-                        if isinstance(chunk, (str, MediaResponse)):
+                        if is_content(chunk):
                             started = True
                 if started:
                     return
@@ -94,7 +97,7 @@ class IterListProvider(BaseRetryProvider):
                     async for chunk in response:
                         if chunk:
                             yield chunk
-                            if isinstance(chunk, (str, MediaResponse)):
+                            if is_content(chunk):
                                 started = True
                 elif response:
                     response = await response
@@ -173,8 +176,8 @@ class RetryProvider(IterListProvider):
                         print(f"Using {provider.__name__} provider (attempt {attempt + 1})")
                     response = provider.get_create_function()(model, messages, stream=stream, **kwargs)
                     for chunk in response:
-                        if isinstance(chunk, str) or isinstance(chunk, ImageResponse):
-                            yield chunk
+                        yield chunk
+                        if is_content(chunk):
                             started = True
                     if started:
                         return
@@ -207,8 +210,8 @@ class RetryProvider(IterListProvider):
                     response = provider.get_async_create_function()(model, messages, stream=stream, **kwargs)
                     if hasattr(response, "__aiter__"):
                         async for chunk in response:
-                            if isinstance(chunk, str) or isinstance(chunk, ImageResponse):
-                                yield chunk
+                            yield chunk
+                            if is_content(chunk):
                                 started = True
                     else:
                         response = await response
@@ -237,6 +240,6 @@ def raise_exceptions(exceptions: dict) -> None:
     if exceptions:
         raise RetryProviderError("RetryProvider failed:\n" + "\n".join([
             f"{p}: {type(exception).__name__}: {exception}" for p, exception in exceptions.items()
-        ]))
+        ])) from list(exceptions.values())[0]
 
     raise RetryNoProviderError("No provider found")

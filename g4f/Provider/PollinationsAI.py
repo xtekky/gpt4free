@@ -47,9 +47,9 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
     default_image_model = "flux"
     default_vision_model = default_model
     default_audio_model = "openai-audio"
-    text_models = [default_model]
+    text_models = [default_model, "evil"]
     image_models = [default_image_model]
-    audio_models = [default_audio_model]
+    audio_models = {default_audio_model: []}
     extra_image_models = ["flux-pro", "flux-dev", "flux-schnell", "midjourney", "dall-e-3", "turbo"]
     vision_models = [default_vision_model, "gpt-4o-mini", "openai", "openai-large", "searchgpt"]
     _models_loaded = False
@@ -66,9 +66,6 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         "llama-3.1-8b": "llamalight",
         "llama-3.3-70b": "llama-scaleway",
         "phi-4": "phi",
-        "gemini-2.0": "gemini",
-        "gemini-2.0-flash": "gemini",
-        "gemini-2.0-flash-thinking": "gemini-thinking",
         "deepseek-r1": "deepseek-reasoning-large",
         "deepseek-r1": "deepseek-reasoning",
         "deepseek-v3": "deepseek",
@@ -332,7 +329,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                             result = json.loads(line[6:])
                             if "error" in result:
                                 raise ResponseError(result["error"].get("message", result["error"]))
-                            if "usage" in result:
+                            if result.get("usage") is not None:
                                 yield Usage(**result["usage"])
                             choices = result.get("choices", [{}])
                             choice = choices.pop() if choices else {}
@@ -354,7 +351,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                         yield ToolCalls(message["tool_calls"])
                 else:
                     raise ResponseError(result)
-                if "usage" in result:
+                if result.get("usage") is not None:
                     yield Usage(**result["usage"])
                 finish_reason = choice.get("finish_reason")
                 if finish_reason:

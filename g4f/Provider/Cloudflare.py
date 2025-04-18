@@ -8,13 +8,14 @@ from .base_provider import AsyncGeneratorProvider, ProviderModelMixin, AuthFileM
 from ..requests import Session, StreamSession, get_args_from_nodriver, raise_for_status, merge_cookies
 from ..requests import DEFAULT_HEADERS, has_nodriver, has_curl_cffi
 from ..providers.response import FinishReason, Usage
-from ..errors import ResponseStatusError, ModelNotFoundError
+from ..errors import ResponseStatusError, ModelNotFoundError, MissingRequirementsError
+from .. import debug
 from .helper import render_messages
 
 class Cloudflare(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
     label = "Cloudflare AI"
     url = "https://playground.ai.cloudflare.com"
-    working = True
+    working = has_curl_cffi
     use_nodriver = True
     api_endpoint = "https://playground.ai.cloudflare.com/api/inference"
     models_url = "https://playground.ai.cloudflare.com/api/models"
@@ -38,29 +39,49 @@ class Cloudflare(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
         "qwen-1.5-7b": "@cf/qwen/qwen1.5-7b-chat-awq",
         "qwen-2.5-coder": "@cf/qwen/qwen2.5-coder-32b-instruct",
     }
+    fallback_models = list(model_aliases.keys())
     _args: dict = None
 
     @classmethod
     def get_models(cls) -> str:
-        if not cls.models:
-            if cls._args is None:
-                if has_nodriver:
-                    get_running_loop(check_nested=True)
-                    args = get_args_from_nodriver(cls.url)
-                    cls._args = asyncio.run(args)
-                elif not has_curl_cffi:
-                    return cls.models
-                else:
-                    cls._args = {"headers": DEFAULT_HEADERS, "cookies": {}}
+        def read_models():
             with Session(**cls._args) as session:
                 response = session.get(cls.models_url)
                 cls._args["cookies"] = merge_cookies(cls._args["cookies"], response)
-                try:
-                    raise_for_status(response)
-                except ResponseStatusError:
-                    return cls.models
+                raise_for_status(response)
                 json_data = response.json()
-                cls.models = [model.get("name") for model in json_data.get("models")]
+                def clean_name(name: str) -> str:
+                    return name.split("/")[-1].replace(
+                        "-instruct", "").replace(
+                        "-17b-16e", "").replace(
+                        "-chat", "").replace(
+                        "-fp8", "").replace(
+                        "-fast", "").replace(
+                        "-int8", "").replace(
+                        "-awq", "").replace(
+                        "-qvq", "").replace(
+                        "-r1", "")
+                model_map = {clean_name(model.get("name")): model.get("name") for model in json_data.get("models")}
+                cls.models = list(model_map.keys())
+                cls.model_aliases = {**cls.model_aliases, **model_map}
+        if not cls.models:
+            try:
+                if cls._args is None:
+                    cls._args = {"headers": DEFAULT_HEADERS, "cookies": {}}
+                read_models()
+            except ResponseStatusError as f:
+                if has_nodriver:
+                    get_running_loop(check_nested=True)
+                    args = get_args_from_nodriver(cls.url)
+                    try:
+                        cls._args = asyncio.run(args)
+                        read_models()
+                    except RuntimeError as e:
+                        cls.models = cls.fallback_models
+                        debug.log(f"Nodriver is not available: {type(e).__name__}: {e}")
+                else:
+                    cls.models = cls.fallback_models
+                    debug.log(f"Nodriver is not installed: {type(f).__name__}: {f}")
         return cls.models
 
     @classmethod

@@ -2347,7 +2347,7 @@ async function on_api() {
     models.forEach((model) => {
         let option = document.createElement("option");
         option.value = model.name;
-        option.text = model.name + (model.image ? " (Image Generation)" : "") + (model.vision ? " (Image Upload)" : "") + (model.audio ? " (Audio Generation)" : "") + (model.video ? " (Video Generation)" : "");
+        option.text = model.name + (model.image ? " (🖼️ Image Generation)" : "") + (model.vision ? " (👓 Image Upload)" : "") + (model.audio ? " (🎧 Audio Generation)" : "") + (model.video ? " (🎥 Video Generation)" : "");
         option.dataset.providers = model.providers.join(" ");
         modelSelect.appendChild(option);
         is_demo = model.demo;
@@ -2849,6 +2849,10 @@ async function api(ressource, args=null, files=null, message_id=null, scroll=tru
         if (api_base) {
             headers.x_api_base = api_base;
         }
+        const ignored = Array.from(settings.querySelectorAll("input.provider:not(:checked)")).map((el)=>el.value);
+        if (ignored) {
+            headers.x_ignored = ignored.join(" ");
+        }
         url = `/backend-api/v2/${ressource}/${args}`;
     } else if (ressource == "conversation") {
         let body = JSON.stringify(args);
@@ -2985,7 +2989,8 @@ async function load_provider_models(provider=null) {
             let option = document.createElement('option');
             option.value = model.model;
             option.dataset.label = model.model;
-            option.text = `${model.model}${model.image ? " (Image Generation)" : ""}${model.audio ? " (Audio Generation)" : ""}${model.video ? " (Video Generation)" : ""}${model.vision ? " (Image Upload)" : ""}`;
+            option.text = model.model + (model.count > 1 ? ` (${model.count}+)` : "") + (model.image ? " (🖼️ Image Generation)" : "") + (model.vision ? " (👓 Image Upload)" : "") + (model.audio ? " (🎧 Audio Generation)" : "") + (model.video ? " (🎥 Video Generation)" : "");
+
             if (model.task) {
                 option.text += ` (${model.task})`;
             }

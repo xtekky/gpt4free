@@ -56,6 +56,7 @@ try:
     from .Jmuz                 import Jmuz
     from .LambdaChat           import LambdaChat
     from .Liaobots             import Liaobots
+    from .LMArenaProvider      import LMArenaProvider
     from .OIVSCode             import OIVSCode
 except ImportError as e:
     debug.error("Providers not loaded (F-L):", e)

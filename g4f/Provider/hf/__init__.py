@@ -37,6 +37,8 @@ class HuggingFace(AsyncGeneratorProvider, ProviderModelMixin):
         messages: Messages,
         **kwargs
     ) -> AsyncResult:
+        if model in cls.model_aliases:
+            model = cls.model_aliases[model]
         if "tools" not in kwargs and "media" not in kwargs and random.random() >= 0.5:
             try:
                 is_started = False

@@ -66,6 +66,7 @@ class GigaChat(AsyncGeneratorProvider, ProviderModelMixin):
     needs_auth = True
     default_model = "GigaChat:latest"
     models = [default_model, "GigaChat-Plus", "GigaChat-Pro"]
+    model_aliases = {"gigachat": default_model}
 
     @classmethod
     async def create_async_generator(

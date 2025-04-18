@@ -10,7 +10,6 @@ from .BlackForestLabs_Flux1Dev       import BlackForestLabs_Flux1Dev
 from .BlackForestLabs_Flux1Schnell   import BlackForestLabs_Flux1Schnell
 from .CohereForAI_C4AI_Command       import CohereForAI_C4AI_Command
 from .DeepseekAI_JanusPro7b          import DeepseekAI_JanusPro7b
-from .LMArenaProvider                import LMArenaProvider
 from .Microsoft_Phi_4                import Microsoft_Phi_4
 from .Qwen_QVQ_72B                   import Qwen_QVQ_72B
 from .Qwen_Qwen_2_5                  import Qwen_Qwen_2_5
@@ -33,7 +32,6 @@ class HuggingSpace(AsyncGeneratorProvider, ProviderModelMixin):
         BlackForestLabs_Flux1Schnell,
         CohereForAI_C4AI_Command,
         DeepseekAI_JanusPro7b,
-        LMArenaProvider,
         Microsoft_Phi_4,
         Qwen_QVQ_72B,
         Qwen_Qwen_2_5,
