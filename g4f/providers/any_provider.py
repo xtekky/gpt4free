@@ -134,7 +134,7 @@ class AnyProvider(AsyncGeneratorProvider, ProviderModelMixin):
                 providers = models.default.best_provider.providers
         else:
             for provider in [OpenaiChat, HuggingSpace, Cloudflare, LMArenaProvider, PerplexityLabs, Gemini, Grok, DeepSeekAPI, FreeRouter, Blackbox]:
-                if (model if model else "auto") in provider.get_models():
+                if provider.working and (model if model else "auto") in provider.get_models():
                     providers.append(provider)
             for provider in [HuggingFace, HuggingFaceMedia, LambdaChat, LMArenaProvider, CopilotAccount, PollinationsAI, DeepInfraChat]:
                 if model in provider.model_aliases:
