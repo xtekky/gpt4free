@@ -217,6 +217,10 @@ class Image(BaseModel):
             revised_prompt=revised_prompt
         ))
 
+    def save(self, path: str):
+        if self.url is not None and self.url.startswith("/media/"):
+            os.rename(self.url.replace("/media", get_media_dir()), path)
+
 class ImagesResponse(BaseModel):
     data: List[Image]
     model: str

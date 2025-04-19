@@ -463,7 +463,8 @@ class Images:
                 urls.extend(item.urls)
         if not urls:
             return None
-        return MediaResponse(urls, items[0].alt, items[0].options)
+        alt = getattr(items[0], "alt", items[0].options.get("text"))
+        return MediaResponse(urls, alt, items[0].options)
 
     def create_variation(
         self,

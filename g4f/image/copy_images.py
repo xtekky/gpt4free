@@ -70,7 +70,7 @@ async def save_response_media(response: StreamResponse, prompt: str, tags: list[
     if response.method == "GET":
         media_url = f"{media_url}?url={str(response.url)}"
     if content_type.startswith("audio/"):
-        yield AudioResponse(media_url)
+        yield AudioResponse(media_url, text=prompt)
     elif content_type.startswith("video/"):
         yield VideoResponse(media_url, prompt)
     else:

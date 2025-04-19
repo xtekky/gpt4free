@@ -28,6 +28,30 @@ async def main():
 asyncio.run(main())
 ```
 
+#### **More examples for Generate Audio:**
+
+```python
+from g4f.client import Client
+
+from g4f.Provider import EdgeTTS, Gemini, PollinationsAI
+
+client = Client(provider=PollinationsAI)
+response = client.media.generate("Hello", audio={"voice": "alloy", "format": "mp3"})
+response.data[0].save("openai.mp3")
+
+client = Client(provider=PollinationsAI)
+response = client.media.generate("Hello", model="hypnosis-tracy")
+response.data[0].save("hypnosis.mp3")
+
+client = Client(provider=Gemini)
+response = client.media.generate("Hello", model="gemini-audio")
+response.data[0].save("gemini.ogx")
+
+client = Client(provider=EdgeTTS)
+response = client.media.generate("Hello", audio={"locale": "en-US"})
+response.data[0].save("edge-tts.mp3")
+```
+
 #### **Transcribe an Audio File:**
 
 Some providers in G4F support audio inputs in chat completions, allowing you to transcribe audio files by instructing the model accordingly. This example demonstrates how to use the `AsyncClient` to transcribe an audio file asynchronously:

@@ -33,6 +33,12 @@ from starlette.responses import FileResponse
 from types import SimpleNamespace
 from typing import Union, Optional, List
 
+try:
+    from typing import Annotated
+except ImportError:
+    class Annotated:
+        pass
+
 import g4f
 import g4f.Provider
 import g4f.debug
@@ -52,7 +58,7 @@ from .stubs import (
     ChatCompletionsConfig, ImageGenerationConfig,
     ProviderResponseModel, ModelResponseModel,
     ErrorResponseModel, ProviderResponseDetailModel,
-    FileResponseModel, UploadResponseModel, Annotated
+    FileResponseModel, UploadResponseModel
 )
 from g4f import debug
 
