@@ -33,7 +33,7 @@ asyncio.run(main())
 ```python
 from g4f.client import Client
 
-from g4f.Provider import EdgeTTS, Gemini, PollinationsAI
+from g4f.Provider import gTTS, EdgeTTS, Gemini, PollinationsAI
 
 client = Client(provider=PollinationsAI)
 response = client.media.generate("Hello", audio={"voice": "alloy", "format": "mp3"})
@@ -48,8 +48,12 @@ response = client.media.generate("Hello", model="gemini-audio")
 response.data[0].save("gemini.ogx")
 
 client = Client(provider=EdgeTTS)
-response = client.media.generate("Hello", audio={"locale": "en-US"})
+response = client.media.generate("Hello", audio={"language": "en"})
 response.data[0].save("edge-tts.mp3")
+
+client = Client(provider=gTTS)
+response = client.media.generate("Hello", audio={"language": "en"})
+response.data[0].save("google-tts.mp3")
 ```
 
 #### **Transcribe an Audio File:**

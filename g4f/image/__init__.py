@@ -79,7 +79,7 @@ def to_image(image: ImageType, is_svg: bool = False) -> Image:
 
 def get_extension(filename: str) -> Optional[str]:
     if '.' in filename:
-        ext = os.path.splitext(filename)[1][1:].lower()
+        ext = os.path.splitext(filename)[1].lower().lstrip('.')
         return ext if ext in EXTENSIONS_MAP else None
     return None
 

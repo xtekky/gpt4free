@@ -20,6 +20,7 @@ from ..helper import format_image_prompt
 class EdgeTTS(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Edge TTS"
     working = has_edge_tts
+    model_id = "edge-tts"
     default_language = "en"
     default_locale = "en-US"
     default_format = "mp3"
@@ -45,7 +46,7 @@ class EdgeTTS(AsyncGeneratorProvider, ProviderModelMixin):
         prompt = format_image_prompt(messages, prompt)
         if not prompt:
             raise ValueError("Prompt is empty.")
-        voice = audio.get("voice", model if model and model != "edge-tts" else None)
+        voice = audio.get("voice", model if model and model != cls.model_id else None)
         if not voice:
             voices = await VoicesManager.create()
             if "locale" in audio:
@@ -62,7 +63,7 @@ class EdgeTTS(AsyncGeneratorProvider, ProviderModelMixin):
             voice = random.choice(voices)["Name"]
 
         format = audio.get("format", cls.default_format)
-        filename = get_filename([cls.default_model], prompt, f".{format}", prompt)
+        filename = get_filename([cls.model_id], prompt, f".{format}", prompt)
         target_path = os.path.join(get_media_dir(), filename)
         ensure_media_dir()
 
