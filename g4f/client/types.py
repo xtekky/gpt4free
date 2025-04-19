@@ -6,7 +6,6 @@ from .stubs import ChatCompletion, ChatCompletionChunk
 from ..providers.types import BaseProvider
 from typing import Union, Iterator, AsyncIterator
 
-ImageProvider = Union[BaseProvider, object]
 Proxies = Union[dict, str]
 IterResponse = Iterator[Union[ChatCompletion, ChatCompletionChunk]]
 AsyncIterResponse = AsyncIterator[Union[ChatCompletion, ChatCompletionChunk]]
@@ -19,7 +18,7 @@ class Client():
         **kwargs
     ) -> None:
         self.api_key: str = api_key
-        self.proxies= proxies 
+        self.proxies = proxies 
         self.proxy: str = self.get_proxy()
 
     def get_proxy(self) -> Union[str, None]:

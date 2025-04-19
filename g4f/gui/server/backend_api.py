@@ -25,7 +25,7 @@ from ...tools.run_tools import iter_run_tools
 from ...errors import ProviderNotFoundError
 from ...image import is_allowed_extension
 from ...cookies import get_cookies_dir
-from ...image.copy_images import secure_filename, get_source_url, images_dir
+from ...image.copy_images import secure_filename, get_source_url, get_media_dir
 from ... import ChatCompletion
 from ... import models
 from .api import Api
@@ -346,11 +346,12 @@ class Backend_Api(Api):
         @app.route('/search/<search>', methods=['GET'])
         def find_media(search: str):
             safe_search = [secure_filename(chunk.lower()) for chunk in search.split("+")]
-            if not os.access(images_dir, os.R_OK):
+            media_dir = get_media_dir()
+            if not os.access(media_dir, os.R_OK):
                 return jsonify({"error": {"message": "Not found"}}), 404
             if search not in self.match_files:
                 self.match_files[search] = {}
-                for root, _, files in os.walk(images_dir):
+                for root, _, files in os.walk(media_dir):
                     for file in files:
                         mime_type = is_allowed_extension(file)
                         if mime_type is not None:
@@ -438,7 +439,7 @@ class Backend_Api(Api):
     def get_provider_models(self, provider: str):
         api_key = request.headers.get("x_api_key")
         api_base = request.headers.get("x_api_base")
-        ignored = request.headers.get("x_ignored").split()
+        ignored = request.headers.get("x_ignored", "").split()
         models = super().get_provider_models(provider, api_key, api_base, ignored)
         if models is None:
             return "Provider not found", 404

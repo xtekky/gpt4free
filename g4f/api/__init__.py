@@ -40,7 +40,7 @@ from g4f.client import AsyncClient, ChatCompletion, ImagesResponse, convert_to_p
 from g4f.providers.response import BaseConversation, JsonConversation
 from g4f.client.helper import filter_none
 from g4f.image import is_data_an_media, EXTENSIONS_MAP
-from g4f.image.copy_images import images_dir, copy_media, get_source_url
+from g4f.image.copy_images import get_media_dir, copy_media, get_source_url
 from g4f.errors import ProviderNotFoundError, ModelNotFoundError, MissingAuthError, NoValidHarFileError
 from g4f.cookies import read_cookie_files, get_cookies_dir
 from g4f.providers.types import ProviderType
@@ -130,7 +130,7 @@ class AppConfig:
     ignore_cookie_files: bool = False
     model: str = None
     provider: str = None
-    image_provider: str = None
+    media_provider: str = None
     proxy: str = None
     gui: bool = False
     demo: bool = False
@@ -419,12 +419,13 @@ class Api:
         ):
             if config.provider is None:
                 config.provider = provider
+            if config.provider is None:
+                config.provider = AppConfig.media_provider
             if credentials is not None and credentials.credentials != "secret":
                 config.api_key = credentials.credentials
             try:
                 response = await self.client.images.generate(
                     **config.dict(exclude_none=True),
-                    provider=AppConfig.image_provider if config.provider is None else config.provider
                 )
                 for image in response.data:
                     if hasattr(image, "url") and image.url.startswith("/"):
@@ -562,9 +563,9 @@ class Api:
             HTTP_404_NOT_FOUND: {}
         })
         async def get_media(filename, request: Request):
-            target = os.path.join(images_dir, os.path.basename(filename))
+            target = os.path.join(get_media_dir(), os.path.basename(filename))
             if not os.path.isfile(target):
-                other_name = os.path.join(images_dir, os.path.basename(quote_plus(filename)))
+                other_name = os.path.join(get_media_dir(), os.path.basename(quote_plus(filename)))
                 if os.path.isfile(other_name):
                     target = other_name
             ext = os.path.splitext(filename)[1][1:]
@@ -627,7 +628,7 @@ class Api:
 
 def format_exception(e: Union[Exception, str], config: Union[ChatCompletionsConfig, ImageGenerationConfig] = None, image: bool = False) -> str:
     last_provider = {} if not image else g4f.get_last_provider(True)
-    provider = (AppConfig.image_provider if image else AppConfig.provider)
+    provider = (AppConfig.media_provider if image else AppConfig.provider)
     model = AppConfig.model
     if config is not None:
         if config.provider is not None:

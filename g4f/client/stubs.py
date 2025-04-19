@@ -5,7 +5,7 @@ from typing import Optional, List
 from time import time
 
 from ..image import extract_data_uri
-from ..image.copy_images import images_dir
+from ..image.copy_images import get_media_dir
 from ..client.helper import filter_markdown
 from .helper import filter_none
 
@@ -123,7 +123,7 @@ class ChatCompletionMessage(BaseModel):
 
     def save(self, filepath: str, allowd_types = None):
         if hasattr(self.content, "data"):
-            os.rename(self.content.data.replace("/media", images_dir), filepath)
+            os.rename(self.content.data.replace("/media", get_media_dir()), filepath)
             return
         if self.content.startswith("data:"):
             with open(filepath, "wb") as f:

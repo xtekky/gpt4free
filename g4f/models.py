@@ -1006,6 +1006,6 @@ __models__  = {
                 if model.best_provider is not None and model.best_provider.working
                 else [])
         for model in ModelUtils.convert.values()]
-        if [p for p in providers if p.working]
+        if model.name and [True for provider in providers if provider.working]
     }
 _all_models = list(__models__.keys())

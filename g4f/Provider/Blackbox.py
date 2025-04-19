@@ -20,7 +20,7 @@ from ..cookies import get_cookies_dir
 from .helper import format_image_prompt, render_messages
 from ..providers.response import JsonConversation, ImageResponse
 from ..tools.media import merge_media
-from ..errors import RateLimitError
+from ..errors import RateLimitError, NoValidHarFileError
 from .. import debug
 
 class Conversation(JsonConversation):
@@ -470,6 +470,8 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
                 except Exception as e:
                     debug.log(f"Blackbox: Error reading HAR file {file}: {e}")
             return None
+        except NoValidHarFileError:
+            pass
         except Exception as e:
             debug.log(f"Blackbox: Error searching HAR files: {e}")
             return None
