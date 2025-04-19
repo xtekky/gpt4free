@@ -121,7 +121,7 @@ class ChatCompletionMessage(BaseModel):
     def serialize_content(self, content: str):
         return str(content)
 
-    def save(self, filepath: str, allowd_types = None):
+    def save(self, filepath: str, allowed_types = None):
         if hasattr(self.content, "data"):
             os.rename(self.content.data.replace("/media", get_media_dir()), filepath)
             return
@@ -129,7 +129,7 @@ class ChatCompletionMessage(BaseModel):
             with open(filepath, "wb") as f:
                 f.write(extract_data_uri(self.content))
             return
-        content = filter_markdown(self.content, allowd_types)
+        content = filter_markdown(self.content, allowed_types)
         if content is not None:
             with open(filepath, "w") as f:
                 f.write(content)
