@@ -180,23 +180,17 @@ fileInput.addEventListener('change', () => {
 
 **Integrating with `ChatCompletion`:**
 
-To incorporate file uploads into your client applications, include the `tool_calls` parameter in your chat completion requests, using the `bucket_tool` function.  The `bucket_id` is passed as a JSON object within your prompt.
-
+To incorporate file uploads into your client applications, include the `bucket` in your chat completion requests, using inline content parts.
 
 ```json
 {
   "messages": [
     {
       "role": "user",
-      "content": "Answer this question using the files in the specified bucket: ...your question...\n{\"bucket_id\": \"your_actual_bucket_id\"}"
-    }
-  ],
-  "tool_calls": [
-    {
-      "function": {
-        "name": "bucket_tool"
-      },
-      "type": "function"
+      "content": [
+        {"type": "text", "text": "Answer this question using the files in the specified bucket: ...your question..."},
+        {"bucket_id": "your_actual_bucket_id"}
+      ]
     }
   ]
 }

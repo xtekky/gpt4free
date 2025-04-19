@@ -177,7 +177,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                     if is_data_an_audio(media_data, filename):
                         has_audio = True
                         break
-            model = next(iter(cls.audio_models)) if has_audio else model
+            model = cls.default_audio_model if has_audio else model
         try:
             model = cls.get_model(model)
         except ModelNotFoundError:
@@ -202,6 +202,11 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
             ):
                 yield chunk
         else:
+            if prompt is not None and len(messages) == 1:
+                messages = [{
+                    "role": "user",
+                    "content": prompt
+                }]
             async for result in cls._generate_text(
                 model=model,
                 messages=messages,
@@ -315,9 +320,6 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
             })
             async with session.post(url, json=data) as response:
                 await raise_for_status(response)
-                async for chunk in save_response_media(response, format_image_prompt(messages), [model]):
-                    yield chunk
-                    return
                 if response.headers["content-type"].startswith("text/plain"):
                     yield await response.text()
                     return
@@ -339,20 +341,24 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                             finish_reason = choice.get("finish_reason")
                             if finish_reason:
                                 yield FinishReason(finish_reason)
-                    return
-                result = await response.json()
-                if "choices" in result:
-                    choice = result["choices"][0]
-                    message = choice.get("message", {})
-                    content = message.get("content", "")
-                    if content:
-                        yield content
-                    if "tool_calls" in message:
-                        yield ToolCalls(message["tool_calls"])
+                elif response.headers["content-type"].startswith("application/json"):
+                    result = await response.json()
+                    if "choices" in result:
+                        choice = result["choices"][0]
+                        message = choice.get("message", {})
+                        content = message.get("content", "")
+                        if content:
+                            yield content
+                        if "tool_calls" in message:
+                            yield ToolCalls(message["tool_calls"])
+                    else:
+                        raise ResponseError(result)
+                    if result.get("usage") is not None:
+                        yield Usage(**result["usage"])
+                    finish_reason = choice.get("finish_reason")
+                    if finish_reason:
+                        yield FinishReason(finish_reason)
                 else:
-                    raise ResponseError(result)
-                if result.get("usage") is not None:
-                    yield Usage(**result["usage"])
-                finish_reason = choice.get("finish_reason")
-                if finish_reason:
-                    yield FinishReason(finish_reason)
+                    async for chunk in save_response_media(response, format_image_prompt(messages), [model]):
+                        yield chunk
+                        return

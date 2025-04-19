@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import time
 import random
 import string
@@ -8,7 +9,7 @@ import aiohttp
 import base64
 from typing import Union, AsyncIterator, Iterator, Awaitable, Optional
 
-from ..image.copy_images import copy_media
+from ..image.copy_images import copy_media, get_media_dir
 from ..typing import Messages, ImageType
 from ..providers.types import ProviderType, BaseRetryProvider
 from ..providers.response import *
@@ -16,11 +17,11 @@ from ..errors import NoMediaResponseError
 from ..providers.retry_provider import IterListProvider
 from ..providers.asyncio import to_sync_generator
 from ..providers.any_provider import AnyProvider
-from ..Provider.needs_auth import BingCreateImages, OpenaiAccount
+from ..Provider import OpenaiAccount, PollinationsImage
 from ..tools.run_tools import async_iter_run_tools, iter_run_tools
 from .stubs import ChatCompletion, ChatCompletionChunk, Image, ImagesResponse, UsageModel, ToolCallModel
 from .models import ClientModels
-from .types import IterResponse, ImageProvider, Client as BaseClient
+from .types import IterResponse, Client as BaseClient
 from .service import convert_to_provider
 from .helper import find_stop, filter_json, filter_none, safe_aclose
 from .. import debug
@@ -261,15 +262,15 @@ class Client(BaseClient):
     def __init__(
         self,
         provider: Optional[ProviderType] = None,
-        image_provider: Optional[ImageProvider] = None,
+        media_provider: Optional[ProviderType] = None,
         **kwargs
     ) -> None:
         super().__init__(**kwargs)
         self.chat: Chat = Chat(self, provider)
-        if image_provider is None:
-            image_provider = provider
-        self.models: ClientModels = ClientModels(self, provider, image_provider)
-        self.images: Images = Images(self, image_provider)
+        if media_provider is None:
+            media_provider = kwargs.get("image_provider", provider)
+        self.models: ClientModels = ClientModels(self, provider, media_provider)
+        self.images: Images = Images(self, media_provider)
         self.media: Images = self.images
 
 class Completions:
@@ -364,7 +365,7 @@ class Images:
         """
         return asyncio.run(self.async_generate(prompt, model, provider, response_format, proxy, **kwargs))
 
-    async def get_provider_handler(self, model: Optional[str], provider: Optional[ImageProvider], default: ImageProvider) -> ImageProvider:
+    async def get_provider_handler(self, model: Optional[str], provider: Optional[ProviderType], default: ProviderType) -> ProviderType:
         if provider is None:
             provider_handler = self.provider
             if provider_handler is None:
@@ -387,7 +388,7 @@ class Images:
         api_key: Optional[str] = None,
         **kwargs
     ) -> ImagesResponse:
-        provider_handler = await self.get_provider_handler(model, provider, BingCreateImages)
+        provider_handler = await self.get_provider_handler(model, provider, PollinationsImage)
         provider_name = provider_handler.__name__ if hasattr(provider_handler, "__name__") else type(provider_handler).__name__
         if proxy is None:
             proxy = self.client.proxy
@@ -407,20 +408,17 @@ class Images:
                     debug.error(f"{provider.__name__} {type(e).__name__}: {e}")
         else:
             response = await self._generate_image_response(provider_handler, provider_name, model, prompt, proxy=proxy, api_key=api_key, **kwargs)
-
-        if isinstance(response, MediaResponse):
-            return await self._process_image_response(
-                response,
-                model,
-                provider_name,
-                response_format,
-                proxy
-            )
         if response is None:
             if error is not None:
                 raise error
-            raise NoMediaResponseError(f"No image response from {provider_name}")
-        raise NoMediaResponseError(f"Unexpected response type: {type(response)}")
+            raise NoMediaResponseError(f"No media response from {provider_name}")
+        return await self._process_image_response(
+            response,
+            model,
+            provider_name,
+            response_format,
+            proxy
+        )
 
     async def _generate_image_response(
         self,
@@ -441,7 +439,7 @@ class Images:
                 prompt=prompt,
                 **kwargs
             ):
-                if isinstance(item, MediaResponse):
+                if isinstance(item, (MediaResponse, AudioResponse)):
                     items.append(item)
         elif hasattr(provider_handler, "create_completion"):
             for item in provider_handler.create_completion(
@@ -451,19 +449,22 @@ class Images:
                 prompt=prompt,
                 **kwargs
             ):
-                if isinstance(item, MediaResponse):
+                if isinstance(item, (MediaResponse, AudioResponse)):
                     items.append(item)
         else:
             raise ValueError(f"Provider {provider_name} does not support image generation")
         urls = []
         for item in items:
-            if isinstance(item.urls, str):
+            if isinstance(item, AudioResponse):
+                urls.append(item.to_uri())
+            elif isinstance(item.urls, str):
                 urls.append(item.urls)
             elif isinstance(item.urls, list):
                 urls.extend(item.urls)
         if not urls:
             return None
-        return MediaResponse(urls, items[0].alt, items[0].options)
+        alt = getattr(items[0], "alt", items[0].options.get("text"))
+        return MediaResponse(urls, alt, items[0].options)
 
     def create_variation(
         self,
@@ -508,14 +509,11 @@ class Images:
                     debug.error(f"{provider.__name__} {type(e).__name__}: {e}")
         else:
             response = await self._generate_image_response(provider_handler, provider_name, model, prompt, **kwargs)
-
-        if isinstance(response, MediaResponse):
-            return await self._process_image_response(response, model, provider_name, response_format, proxy)
         if response is None:
             if error is not None:
                 raise error
-            raise NoMediaResponseError(f"No image response from {provider_name}")
-        raise NoMediaResponseError(f"Unexpected response type: {type(response)}")
+            raise NoMediaResponseError(f"No media response from {provider_name}")
+        return await self._process_image_response(response, model, provider_name, response_format, proxy)
 
     async def _process_image_response(
         self,
@@ -531,12 +529,16 @@ class Images:
         elif response_format == "b64_json":
             # Convert URLs directly to base64 without saving
             async def get_b64_from_url(url: str) -> Image:
+                if url.startswith("/media/"):
+                    with open(os.path.join(get_media_dir(), os.path.basename(url)), "rb") as f:
+                        b64_data = base64.b64encode(f.read()).decode()
+                        return Image.model_construct(b64_json=b64_data, revised_prompt=response.alt)
                 async with aiohttp.ClientSession(cookies=response.get("cookies")) as session:
                     async with session.get(url, proxy=proxy) as resp:
                         if resp.status == 200:
-                            image_data = await resp.read()
-                            b64_data = base64.b64encode(image_data).decode()
+                            b64_data = base64.b64encode(await resp.read()).decode()
                             return Image.model_construct(b64_json=b64_data, revised_prompt=response.alt)
+                return Image.model_construct(url=url, revised_prompt=response.alt)
             images = await asyncio.gather(*[get_b64_from_url(image) for image in response.get_list()])
         else:
             # Save locally for None (default) case
@@ -554,15 +556,15 @@ class AsyncClient(BaseClient):
     def __init__(
         self,
         provider: Optional[ProviderType] = None,
-        image_provider: Optional[ImageProvider] = None,
+        media_provider: Optional[ProviderType] = None,
         **kwargs
     ) -> None:
         super().__init__(**kwargs)
         self.chat: AsyncChat = AsyncChat(self, provider)
-        if image_provider is None:
-            image_provider = provider
-        self.models: ClientModels = ClientModels(self, provider, image_provider)
-        self.images: AsyncImages = AsyncImages(self, image_provider)
+        if media_provider is None:
+            media_provider = kwargs.get("image_provider", provider)
+        self.models: ClientModels = ClientModels(self, provider, media_provider)
+        self.images: AsyncImages = AsyncImages(self, media_provider)
         self.media: AsyncImages = self.images
 
 class AsyncChat:

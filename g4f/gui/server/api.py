@@ -8,7 +8,7 @@ from flask import send_from_directory
 from inspect import signature
 
 from ...errors import VersionNotFoundError, MissingAuthError
-from ...image.copy_images import copy_media, ensure_images_dir, images_dir
+from ...image.copy_images import copy_media, ensure_media_dir, get_media_dir
 from ...tools.run_tools import iter_run_tools
 from ... import Provider
 from ...providers.base_provider import ProviderModelMixin
@@ -96,8 +96,8 @@ class Api:
         }
 
     def serve_images(self, name):
-        ensure_images_dir()
-        return send_from_directory(os.path.abspath(images_dir), name)
+        ensure_media_dir()
+        return send_from_directory(os.path.abspath(get_media_dir()), name)
 
     def _prepare_conversation_kwargs(self, json_data: dict):
         kwargs = {**json_data}
