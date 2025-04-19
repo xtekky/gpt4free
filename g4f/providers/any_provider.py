@@ -142,8 +142,9 @@ class AnyProvider(AsyncGeneratorProvider, ProviderModelMixin):
                 OpenaiChat, Cloudflare, LMArenaProvider, PerplexityLabs, Gemini, Grok, DeepSeekAPI, FreeRouter, Blackbox,
                 HuggingFace, HuggingFaceMedia, HuggingSpace, LambdaChat, CopilotAccount, PollinationsAI, DeepInfraChat
             ]:
-                if not model or model in provider.get_models() or model in provider.model_aliases:
-                    providers.append(provider)
+                if provider.working:
+                    if not model or model in provider.get_models() or model in provider.model_aliases:
+                       providers.append(provider)
             if model in models.__models__:
                 for provider in models.__models__[model][1]:
                     providers.append(provider)

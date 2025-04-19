@@ -529,7 +529,7 @@ class Images:
             # Convert URLs directly to base64 without saving
             async def get_b64_from_url(url: str) -> Image:
                 if url.startswith("/media/"):
-                    with open(os.path.join(get_media_dir(), os.path.basename(url)), "wb") as f:
+                    with open(os.path.join(get_media_dir(), os.path.basename(url)), "rb") as f:
                         b64_data = base64.b64encode(f.read()).decode()
                         return Image.model_construct(b64_json=b64_data, revised_prompt=response.alt)
                 async with aiohttp.ClientSession(cookies=response.get("cookies")) as session:
