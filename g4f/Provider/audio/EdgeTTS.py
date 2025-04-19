@@ -38,10 +38,7 @@ class EdgeTTS(AsyncGeneratorProvider, ProviderModelMixin):
         messages: Messages,
         proxy: str = None,
         prompt: str = None,
-        language: str = None,
-        locale: str = None,
         audio: dict = {"voice": None, "format": "mp3"},
-        extra_parameters: list[str] = ["rate", "volume", "pitch"],
         **kwargs
     ) -> AsyncResult:
         prompt = format_image_prompt(messages, prompt)
@@ -50,17 +47,17 @@ class EdgeTTS(AsyncGeneratorProvider, ProviderModelMixin):
         voice = audio.get("voice", model)
         if not voice:
             voices = await VoicesManager.create()
-            if locale is None:
-                if language is None:
-                    voices = voices.find(Locale=cls.default_locale)
-                elif "-" in language:
-                    voices = voices.find(Locale=language)
+            if "locale" in audio:
+                voices = voices.find(Locale=audio["locale"])
+            elif "language" in audio:
+                if "-" in audio["language"]:
+                    voices = voices.find(Locale=audio["language"])
                 else:
-                    voices = voices.find(Language=language)
+                    voices = voices.find(Language=audio["language"])
             else:
-                voices = voices.find(Locale=locale)
+                voices = voices.find(Locale=cls.default_locale)
             if not voices:
-                raise ValueError(f"No voices found for language '{language}' and locale '{locale}'.")
+                raise ValueError(f"No voices found for language '{audio.get('language')}' and locale '{audio.get('locale')}'.")
             voice = random.choice(voices)["Name"]
 
         format = audio.get("format", "mp3")
@@ -68,7 +65,7 @@ class EdgeTTS(AsyncGeneratorProvider, ProviderModelMixin):
         target_path = os.path.join(get_media_dir(), filename)
         ensure_media_dir()
 
-        extra_parameters = {param: kwargs[param] for param in extra_parameters if param in kwargs}
+        extra_parameters = {param: audio[param] for param in ["rate", "volume", "pitch"] if param in audio}
         communicate = edge_tts.Communicate(prompt, voice=voice, proxy=proxy, **extra_parameters)
 
         await communicate.save(target_path)
