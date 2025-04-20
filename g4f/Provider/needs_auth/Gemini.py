@@ -231,6 +231,7 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
                     await raise_for_status(response)
                     image_prompt = response_part = None
                     last_content = ""
+                    youtube_ids = []
                     async for line in response.content:
                         try:
                             try:
@@ -246,6 +247,11 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
                                 continue
                             if return_conversation:
                                 yield Conversation(response_part[1][0], response_part[1][1], response_part[4][0][0], model)
+                            def find_youtube_ids(content: str):
+                                pattern = re.compile(r"http://www.youtube.com/watch\?v=([\w-]+)")
+                                for match in pattern.finditer(content):
+                                    if match.group(1) not in youtube_ids:
+                                        yield match.group(1)
                             def read_recusive(data):
                                 for item in data:
                                     if isinstance(item, list):
@@ -267,6 +273,7 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
                             reasoning = re.sub(r"\nyoutube_tool\n", "\n\n", reasoning)
                             reasoning = re.sub(r"\nYouTube\n", "\nYouTube ", reasoning)
                             reasoning = reasoning.replace('\nhttps://www.gstatic.com/images/branding/productlogos/youtube/v9/192px.svg', '<i class="fa-brands fa-youtube"></i>')
+                            youtube_ids = list(find_youtube_ids(reasoning))
                             content = response_part[4][0][1][0]
                             if reasoning:
                                 yield Reasoning(reasoning, status="🤔")
@@ -297,11 +304,7 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
                                 yield ImageResponse(images, image_prompt, {"cookies": cls._cookies})
                             except (TypeError, IndexError, KeyError):
                                 pass
-                        youtube_ids = []
-                        pattern = re.compile(r"http://www.youtube.com/watch\?v=([\w-]+)")
-                        for match in pattern.finditer(content):
-                            if match.group(1) not in youtube_ids:
-                                youtube_ids.append(match.group(1))
+                        youtube_ids = youtube_ids if youtube_ids else find_youtube_ids(content)
                         if youtube_ids:
                             yield YouTube(youtube_ids)
 

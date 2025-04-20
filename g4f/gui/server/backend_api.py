@@ -60,23 +60,6 @@ class Backend_Api(Api):
         self.app: Flask = app
         self.chat_cache = {}
 
-        if app.demo:
-            @app.route('/', methods=['GET'])
-            def home():
-                client_id = os.environ.get("OAUTH_CLIENT_ID", "")
-                backend_url = os.environ.get("G4F_BACKEND_URL", "")
-                return render_template('demo.html', backend_url=backend_url, client_id=client_id)
-        else:
-            @app.route('/', methods=['GET'])
-            def home():
-                return render_template('home.html')
-
-        @app.route('/qrcode', methods=['GET'])
-        @app.route('/qrcode/<conversation_id>', methods=['GET'])
-        def qrcode(conversation_id: str = ""):
-            share_url = os.environ.get("G4F_SHARE_URL", "")
-            return render_template('qrcode.html', conversation_id=conversation_id, share_url=share_url)
-
         @app.route('/backend-api/v2/models', methods=['GET'])
         def jsonify_models(**kwargs):
             response = get_demo_models() if app.demo else self.get_models(**kwargs)
@@ -260,6 +243,7 @@ class Backend_Api(Api):
                     cache_id = sha256(cache_id.encode() + json.dumps(parameters, sort_keys=True).encode()).hexdigest()
                     cache_dir = Path(get_cookies_dir()) / ".scrape_cache" / "create"
                     cache_file = cache_dir / f"{quote_plus(request.args.get('prompt').strip()[:20])}.{cache_id}.txt"
+                    response = None
                     if cache_file.exists():
                         with cache_file.open("r") as f:
                             response = f.read()
@@ -369,7 +353,7 @@ class Backend_Api(Api):
                                 self.match_files[search][file] = self.match_files[search].get(file, 0) + 1
                     break
             match_files = [file for file, count in self.match_files[search].items() if count >= request.args.get("min", len(safe_search))]
-            if int(request.args.get("skip", 0)) >= len(match_files):
+            if int(request.args.get("skip") or 0) >= len(match_files):
                 return jsonify({"error": {"message": "Not found"}}), 404
             if (request.args.get("random", False)):
                 seed = request.args.get("random")
