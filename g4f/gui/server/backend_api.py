@@ -221,13 +221,13 @@ class Backend_Api(Api):
                         },
                         "type": "function"
                     })
-                do_filter_markdown = request.args.get("filter_markdown")
+                do_filter = request.args.get("filter_markdown")
                 cache_id = request.args.get('cache')
                 parameters = {
                     "model": request.args.get("model"),
                     "messages": [{"role": "user", "content": request.args.get("prompt")}],
                     "provider": request.args.get("provider", None),
-                    "stream": not do_filter_markdown and not cache_id,
+                    "stream": not do_filter and not cache_id,
                     "ignore_stream": not request.args.get("stream"),
                     "tool_calls": tool_calls,
                 }
@@ -258,10 +258,10 @@ class Backend_Api(Api):
                         response = copy_response
                 else:
                     response = cast_str(iter_run_tools(ChatCompletion.create, **parameters))
-                if do_filter_markdown:
-                    is_true_filter_markdown = do_filter_markdown.lower() in ["true", "1"]
+                if do_filter:
+                    is_true_filter = do_filter.lower() in ["true", "1"]
                     response = "".join(response)
-                    return Response(filter_markdown(response, do_filter_markdown, response if is_true_filter_markdown else ""), mimetype='text/plain')
+                    return Response(filter_markdown(response, None if is_true_filter else do_filter, response if is_true_filter else ""), mimetype='text/plain')
                 return Response(response, mimetype='text/plain')
             except Exception as e:
                 logger.exception(e)

@@ -44,6 +44,8 @@ from ..typing import Cookies
 from ..cookies import get_cookies_dir
 from .defaults import DEFAULT_HEADERS, WEBVIEW_HAEDERS
 
+BROWSER_EXECUTABLE_PATH = None
+
 if not has_curl_cffi:
     class Session:
         def __init__(self, **kwargs):
@@ -137,16 +139,21 @@ def merge_cookies(cookies: Iterator[Morsel], response: Response) -> Cookies:
             cookies[key] = value
     return cookies
 
+def set_browser_executable_path(browser_executable_path: str):
+    BROWSER_EXECUTABLE_PATH = browser_executable_path
+
 async def get_nodriver(
     proxy: str = None,
     user_data_dir = "nodriver",
     timeout: int = 120,
-    browser_executable_path=None,
+    browser_executable_path: str = None,
     **kwargs
 ) -> tuple[Browser, callable]:
     if not has_nodriver:
         raise MissingRequirementsError('Install "nodriver" and "platformdirs" package | pip install -U nodriver platformdirs')
     user_data_dir = user_config_dir(f"g4f-{user_data_dir}") if has_platformdirs else None
+    if browser_executable_path is None:
+        browser_executable_path = BROWSER_EXECUTABLE_PATH
     if browser_executable_path is None:
         try:
             browser_executable_path = find_chrome_executable()
@@ -178,6 +185,8 @@ async def get_nodriver(
             browser_executable_path=browser_executable_path,
             **kwargs
         )
+    except FileNotFoundError as e:
+        raise MissingRequirementsError(e)
     except:
         if util.get_registered_instances():
             browser = util.get_registered_instances().pop()
