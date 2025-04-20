@@ -37,7 +37,7 @@ class AnyProvider(AsyncGeneratorProvider, ProviderModelMixin):
         cls.models_count = {
             model: len(providers) for model, providers in model_with_providers.items() if len(providers) > 1
         }
-        all_models = ["default"] + list(model_with_providers.keys())
+        all_models = [cls.default_model] + list(model_with_providers.keys())
         for provider in [OpenaiChat, PollinationsAI, HuggingSpace, Cloudflare, PerplexityLabs, Gemini, Grok]:
             if not provider.working or getattr(provider, "parent", provider.__name__) in ignored:
                 continue
@@ -63,6 +63,7 @@ class AnyProvider(AsyncGeneratorProvider, ProviderModelMixin):
                 ).replace("-03-2025", ""
                 ).replace("-20250219", ""
                 ).replace("-20241022", ""
+                ).replace("-20240904", ""
                 ).replace("-2025-04-16", ""
                 ).replace("-2025-04-14", ""
                 ).replace("-0125", ""
@@ -72,10 +73,13 @@ class AnyProvider(AsyncGeneratorProvider, ProviderModelMixin):
                 ).replace("-2409", ""
                 ).replace("-2410", ""
                 ).replace("-2411", ""
+                ).replace("-1119", ""
+                ).replace("-0919", ""
                 ).replace("-02-24", ""
                 ).replace("-03-25", ""
                 ).replace("-03-26", ""
                 ).replace("-01-21", ""
+                ).replace("-002", ""
                 ).replace(".1-", "-"
                 ).replace("_", "."
                 ).replace("c4ai-", ""
@@ -98,8 +102,8 @@ class AnyProvider(AsyncGeneratorProvider, ProviderModelMixin):
         for provider in [Microsoft_Phi_4, PollinationsAI]:
             if provider.working and getattr(provider, "parent", provider.__name__) not in ignored:
                 cls.audio_models.update(provider.audio_models)
-        cls.models_count.update({model: all_models.count(model) + cls.models_count.get(model, 0) for model in all_models})
-        return list(dict.fromkeys([model if model else "default" for model in all_models]))
+        cls.models_count.update({model: all_models.count(model) for model in all_models if all_models.count(model) > cls.models_count.get(model, 0)})
+        return list(dict.fromkeys([model if model else cls.default_model for model in all_models]))
 
     @classmethod
     async def create_async_generator(
@@ -113,11 +117,12 @@ class AnyProvider(AsyncGeneratorProvider, ProviderModelMixin):
         **kwargs
     ) -> AsyncResult:
         providers = []
-        if ":" in model:
+        if model and ":" in model:
             providers = model.split(":")
             model = providers.pop()
             providers = [getattr(Provider, provider) for provider in providers]
-        elif not model or model == "default":
+        elif not model or model == cls.default_model:
+            model = ""
             has_image = False
             has_audio = "audio" in kwargs
             if not has_audio and media is not None:
@@ -133,12 +138,13 @@ class AnyProvider(AsyncGeneratorProvider, ProviderModelMixin):
             else:
                 providers = models.default.best_provider.providers
         else:
-            for provider in [OpenaiChat, HuggingSpace, Cloudflare, LMArenaProvider, PerplexityLabs, Gemini, Grok, DeepSeekAPI, FreeRouter, Blackbox]:
-                if provider.working and (model if model else "auto") in provider.get_models():
-                    providers.append(provider)
-            for provider in [HuggingFace, HuggingFaceMedia, LambdaChat, LMArenaProvider, CopilotAccount, PollinationsAI, DeepInfraChat]:
-                if model in provider.model_aliases:
-                    providers.append(provider)
+            for provider in [
+                OpenaiChat, Cloudflare, LMArenaProvider, PerplexityLabs, Gemini, Grok, DeepSeekAPI, FreeRouter, Blackbox,
+                HuggingFace, HuggingFaceMedia, HuggingSpace, LambdaChat, CopilotAccount, PollinationsAI, DeepInfraChat
+            ]:
+                if provider.working:
+                    if not model or model in provider.get_models() or model in provider.model_aliases:
+                       providers.append(provider)
             if model in models.__models__:
                 for provider in models.__models__[model][1]:
                     providers.append(provider)

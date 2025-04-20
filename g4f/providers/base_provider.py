@@ -449,10 +449,12 @@ class AsyncAuthedProvider(AsyncGeneratorProvider, AuthFileMixin):
         cache_file = cls.get_cache_file()
         try:
             if cache_file.exists():
-                with cache_file.open("r") as f:
-                    data = f.read()
-                if data:
-                    auth_result = AuthResult(**json.loads(data))
+                try:
+                    with cache_file.open("r") as f:
+                        auth_result = AuthResult(**json.load(f))
+                except json.JSONDecodeError:
+                    cache_file.unlink()
+                    raise MissingAuthError(f"Invalid auth file: {cache_file}")
             else:
                 raise MissingAuthError
             yield from to_sync_generator(cls.create_authed(model, messages, auth_result, **kwargs))
@@ -478,8 +480,12 @@ class AsyncAuthedProvider(AsyncGeneratorProvider, AuthFileMixin):
         cache_file = cls.get_cache_file()
         try:
             if cache_file.exists():
-                with cache_file.open("r") as f:
-                    auth_result = AuthResult(**json.load(f))
+                try:
+                    with cache_file.open("r") as f:
+                        auth_result = AuthResult(**json.load(f))
+                except json.JSONDecodeError:
+                    cache_file.unlink()
+                    raise MissingAuthError(f"Invalid auth file: {cache_file}")
             else:
                 raise MissingAuthError
             response = to_async_iterator(cls.create_authed(model, messages, **kwargs, auth_result=auth_result))

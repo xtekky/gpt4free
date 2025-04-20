@@ -17,13 +17,6 @@ except ImportError:
 from ..typing import ImageType, Union, Image
 from ..errors import MissingRequirementsError
 
-MEDIA_TYPE_MAP: dict[str, str] = {
-    "image/png": "png",
-    "image/jpeg": "jpg",
-    "image/gif": "gif",
-    "image/webp": "webp",
-}
-
 EXTENSIONS_MAP: dict[str, str] = {
     # Image
     "png": "image/png",
@@ -43,6 +36,8 @@ EXTENSIONS_MAP: dict[str, str] = {
     "webm": "video/webm",
     "mp4": "video/mp4",
 }
+
+MEDIA_TYPE_MAP: dict[str, str] = {value: key for key, value in EXTENSIONS_MAP.items()}
 
 def to_image(image: ImageType, is_svg: bool = False) -> Image:
     """
@@ -82,6 +77,12 @@ def to_image(image: ImageType, is_svg: bool = False) -> Image:
 
     return image
 
+def get_extension(filename: str) -> Optional[str]:
+    if '.' in filename:
+        ext = os.path.splitext(filename)[1].lower().lstrip('.')
+        return ext if ext in EXTENSIONS_MAP else None
+    return None
+
 def is_allowed_extension(filename: str) -> Optional[str]:
     """
     Checks if the given filename has an allowed extension.
@@ -92,8 +93,10 @@ def is_allowed_extension(filename: str) -> Optional[str]:
     Returns:
         bool: True if the extension is allowed, False otherwise.
     """
-    ext = os.path.splitext(filename)[1][1:].lower() if '.' in filename else None
-    return EXTENSIONS_MAP[ext] if ext in EXTENSIONS_MAP else None
+    extension = get_extension(filename)
+    if extension is None:
+        return None
+    return EXTENSIONS_MAP[extension]
 
 def is_data_an_media(data, filename: str = None) -> str:
     content_type = is_data_an_audio(data, filename)
@@ -105,12 +108,11 @@ def is_data_an_media(data, filename: str = None) -> str:
 
 def is_data_an_audio(data_uri: str = None, filename: str = None) -> str:
     if filename:
-        if filename.endswith(".wav"):
-            return "audio/wav"
-        elif filename.endswith(".mp3"):
-            return "audio/mpeg"
-        elif filename.endswith(".m4a"):
-            return "audio/m4a"
+        extension = get_extension(filename)
+        if extension is not None:
+            media_type = EXTENSIONS_MAP[extension]
+            if media_type.startswith("audio/"):
+                return media_type
     if isinstance(data_uri, str):
         audio_format = re.match(r'^data:(audio/\w+);base64,', data_uri)
         if audio_format:
@@ -266,10 +268,13 @@ def to_data_uri(image: ImageType, filename: str = None) -> str:
 
 def to_input_audio(audio: ImageType, filename: str = None) -> str:
     if not isinstance(audio, str):
-        if filename is not None and (filename.endswith(".wav") or filename.endswith(".mp3")):
+        if filename is not None:
+            format = get_extension(filename)
+            if format is None:
+                raise ValueError("Invalid input audio")
             return {
                 "data": base64.b64encode(to_bytes(audio)).decode(),
-                "format": "wav" if filename.endswith(".wav") else "mp3"
+                "format": format
             }
         raise ValueError("Invalid input audio")
     audio = re.match(r'^data:audio/(\w+);base64,(.+?)', audio)

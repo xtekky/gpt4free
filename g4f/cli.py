@@ -16,7 +16,7 @@ def get_api_parser():
     api_parser.add_argument("--model", default=None, help="Default model for chat completion. (incompatible with --reload and --workers)")
     api_parser.add_argument("--provider", choices=[provider.__name__ for provider in Provider.__providers__ if provider.working],
                             default=None, help="Default provider for chat completion. (incompatible with --reload and --workers)")
-    api_parser.add_argument("--image-provider", choices=[provider.__name__ for provider in Provider.__providers__ if provider.working and hasattr(provider, "image_models")],
+    api_parser.add_argument("--media-provider", choices=[provider.__name__ for provider in Provider.__providers__ if provider.working and bool(getattr(provider, "image_models", False))],
                             default=None, help="Default provider for image generation. (incompatible with --reload and --workers)"),
     api_parser.add_argument("--proxy", default=None, help="Default used proxy. (incompatible with --reload and --workers)")
     api_parser.add_argument("--workers", type=int, default=None, help="Number of workers.")
@@ -59,7 +59,7 @@ def run_api_args(args):
         ignored_providers=args.ignored_providers,
         g4f_api_key=args.g4f_api_key,
         provider=args.provider,
-        image_provider=args.image_provider,
+        media_provider=args.media_provider,
         proxy=args.proxy,
         model=args.model,
         gui=args.gui,

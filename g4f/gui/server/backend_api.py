@@ -25,7 +25,7 @@ from ...tools.run_tools import iter_run_tools
 from ...errors import ProviderNotFoundError
 from ...image import is_allowed_extension
 from ...cookies import get_cookies_dir
-from ...image.copy_images import secure_filename, get_source_url, images_dir
+from ...image.copy_images import secure_filename, get_source_url, get_media_dir
 from ... import ChatCompletion
 from ... import models
 from .api import Api
@@ -63,7 +63,7 @@ class Backend_Api(Api):
         if app.demo:
             @app.route('/', methods=['GET'])
             def home():
-                client_id = os.environ.get("OAUTH_CLIENT_ID", "ed074164-4f8d-4fb2-8bec-44952707965e")
+                client_id = os.environ.get("OAUTH_CLIENT_ID", "")
                 backend_url = os.environ.get("G4F_BACKEND_URL", "")
                 return render_template('demo.html', backend_url=backend_url, client_id=client_id)
         else:
@@ -248,6 +248,14 @@ class Backend_Api(Api):
                     "ignore_stream": not request.args.get("stream"),
                     "tool_calls": tool_calls,
                 }
+                def cast_str(response):
+                    for chunk in response:
+                        if isinstance(chunk, FinishReason):
+                            yield f"[{chunk.reason}]" if chunk.reason != "stop" else ""
+                        elif not isinstance(chunk, Exception):
+                            chunk = str(chunk)
+                            if chunk:
+                                yield chunk
                 if cache_id:
                     cache_id = sha256(cache_id.encode() + json.dumps(parameters, sort_keys=True).encode()).hexdigest()
                     cache_dir = Path(get_cookies_dir()) / ".scrape_cache" / "create"
@@ -255,26 +263,22 @@ class Backend_Api(Api):
                     if cache_file.exists():
                         with cache_file.open("r") as f:
                             response = f.read()
-                    else:
+                    if not response:
                         response = iter_run_tools(ChatCompletion.create, **parameters)
                         cache_dir.mkdir(parents=True, exist_ok=True)
-                        copy_response = [chunk for chunk in response]
-                        with cache_file.open("w") as f:
-                            for chunk in copy_response:
-                                f.write(str(chunk))
+                        copy_response = cast_str(response)
+                        if copy_response:
+                            with cache_file.open("w") as f:
+                                for chunk in copy_response:
+                                    f.write(chunk)
                         response = copy_response
                 else:
-                    response = iter_run_tools(ChatCompletion.create, **parameters)
-
+                    response = cast_str(iter_run_tools(ChatCompletion.create, **parameters))
                 if do_filter_markdown:
-                    return Response(filter_markdown("".join([str(chunk) for chunk in response]), do_filter_markdown), mimetype='text/plain')
-                def cast_str():
-                    for chunk in response:
-                        if isinstance(chunk, FinishReason):
-                            yield f"[{chunk.reason}]" if chunk.reason != "stop" else ""
-                        elif not isinstance(chunk, Exception):
-                            yield str(chunk)
-                return Response(cast_str(), mimetype='text/plain')
+                    is_true_filter_markdown = do_filter_markdown.lower() in ["true", "1"]
+                    response = "".join(response)
+                    return Response(filter_markdown(response, do_filter_markdown, response if is_true_filter_markdown else ""), mimetype='text/plain')
+                return Response(response, mimetype='text/plain')
             except Exception as e:
                 logger.exception(e)
                 return jsonify({"error": {"message": f"{type(e).__name__}: {e}"}}), 500
@@ -346,11 +350,12 @@ class Backend_Api(Api):
         @app.route('/search/<search>', methods=['GET'])
         def find_media(search: str):
             safe_search = [secure_filename(chunk.lower()) for chunk in search.split("+")]
-            if not os.access(images_dir, os.R_OK):
+            media_dir = get_media_dir()
+            if not os.access(media_dir, os.R_OK):
                 return jsonify({"error": {"message": "Not found"}}), 404
             if search not in self.match_files:
                 self.match_files[search] = {}
-                for root, _, files in os.walk(images_dir):
+                for root, _, files in os.walk(media_dir):
                     for file in files:
                         mime_type = is_allowed_extension(file)
                         if mime_type is not None:
@@ -438,7 +443,7 @@ class Backend_Api(Api):
     def get_provider_models(self, provider: str):
         api_key = request.headers.get("x_api_key")
         api_base = request.headers.get("x_api_base")
-        ignored = request.headers.get("x_ignored").split()
+        ignored = request.headers.get("x_ignored", "").split()
         models = super().get_provider_models(provider, api_key, api_base, ignored)
         if models is None:
             return "Provider not found", 404

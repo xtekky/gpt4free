@@ -5,7 +5,7 @@ from typing import Optional, List
 from time import time
 
 from ..image import extract_data_uri
-from ..image.copy_images import images_dir
+from ..image.copy_images import get_media_dir
 from ..client.helper import filter_markdown
 from .helper import filter_none
 
@@ -121,15 +121,15 @@ class ChatCompletionMessage(BaseModel):
     def serialize_content(self, content: str):
         return str(content)
 
-    def save(self, filepath: str, allowd_types = None):
+    def save(self, filepath: str, allowed_types = None):
         if hasattr(self.content, "data"):
-            os.rename(self.content.data.replace("/media", images_dir), filepath)
+            os.rename(self.content.data.replace("/media", get_media_dir()), filepath)
             return
         if self.content.startswith("data:"):
             with open(filepath, "wb") as f:
                 f.write(extract_data_uri(self.content))
             return
-        content = filter_markdown(self.content, allowd_types)
+        content = filter_markdown(self.content, allowed_types)
         if content is not None:
             with open(filepath, "w") as f:
                 f.write(content)
@@ -216,6 +216,10 @@ class Image(BaseModel):
             b64_json=b64_json,
             revised_prompt=revised_prompt
         ))
+
+    def save(self, path: str):
+        if self.url is not None and self.url.startswith("/media/"):
+            os.rename(self.url.replace("/media", get_media_dir()), path)
 
 class ImagesResponse(BaseModel):
     data: List[Image]

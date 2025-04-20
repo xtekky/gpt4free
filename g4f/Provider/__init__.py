@@ -28,6 +28,10 @@ try:
     from .mini_max import HailuoAI, MiniMax
 except ImportError as e:
     debug.error("MiniMax providers not loaded:", e)
+try:
+    from .audio import *
+except ImportError as e:
+    debug.error("Audio providers not loaded:", e)
 
 try:
     from .AllenAI              import AllenAI

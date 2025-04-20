@@ -203,7 +203,7 @@ class ARTA(AsyncGeneratorProvider, ProviderModelMixin):
                     else:
                         raise ResponseError(f"Image generation failed with status: {status}")
 
-async def raise_error(response: ClientResponse, message: str):
+async def raise_error(message: str, response: ClientResponse):
     if response.ok:
         return
     error_text = await response.text()

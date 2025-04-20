@@ -8,7 +8,7 @@ from .base_provider import AsyncGeneratorProvider, ProviderModelMixin, AuthFileM
 from ..requests import Session, StreamSession, get_args_from_nodriver, raise_for_status, merge_cookies
 from ..requests import DEFAULT_HEADERS, has_nodriver, has_curl_cffi
 from ..providers.response import FinishReason, Usage
-from ..errors import ResponseStatusError, ModelNotFoundError, MissingRequirementsError
+from ..errors import ResponseStatusError, ModelNotFoundError
 from .. import debug
 from .helper import render_messages
 
@@ -72,11 +72,11 @@ class Cloudflare(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
             except ResponseStatusError as f:
                 if has_nodriver:
                     get_running_loop(check_nested=True)
-                    args = get_args_from_nodriver(cls.url)
                     try:
+                        args = get_args_from_nodriver(cls.url)
                         cls._args = asyncio.run(args)
                         read_models()
-                    except RuntimeError as e:
+                    except (RuntimeError, FileNotFoundError) as e:
                         cls.models = cls.fallback_models
                         debug.log(f"Nodriver is not available: {type(e).__name__}: {e}")
                 else:

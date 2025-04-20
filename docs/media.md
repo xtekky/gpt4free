@@ -28,7 +28,41 @@ async def main():
 asyncio.run(main())
 ```
 
+#### **More examples for Generate Audio:**
+
+```python
+from g4f.client import Client
+
+from g4f.Provider import gTTS, EdgeTTS, Gemini, PollinationsAI
+
+client = Client(provider=PollinationsAI)
+response = client.media.generate("Hello", audio={"voice": "alloy", "format": "mp3"})
+response.data[0].save("openai.mp3")
+
+client = Client(provider=PollinationsAI)
+response = client.media.generate("Hello", model="hypnosis-tracy")
+response.data[0].save("hypnosis.mp3")
+
+client = Client(provider=Gemini)
+response = client.media.generate("Hello", model="gemini-audio")
+response.data[0].save("gemini.ogx")
+
+client = Client(provider=EdgeTTS)
+response = client.media.generate("Hello", audio={"language": "en"})
+response.data[0].save("edge-tts.mp3")
+
+# The EdgeTTS provider also support the audio parameters `rate`, `volume` and `pitch`
+
+client = Client(provider=gTTS)
+response = client.media.generate("Hello", audio={"language": "en-US"})
+response.data[0].save("google-tts.mp3")
+
+# The gTTS provider also support the audio parameters `tld` and `slow`
+```
+
 #### **Transcribe an Audio File:**
+
+Some providers in G4F support audio inputs in chat completions, allowing you to transcribe audio files by instructing the model accordingly. This example demonstrates how to use the `AsyncClient` to transcribe an audio file asynchronously:
 
 ```python
 import asyncio
@@ -41,14 +75,31 @@ async def main():
     with open("audio.wav", "rb") as audio_file:
         response = await client.chat.completions.create(
             messages="Transcribe this audio",
-            provider=g4f.Provider.Microsoft_Phi_4,
             media=[[audio_file, "audio.wav"]],
             modalities=["text"],
         )
-        print(response.choices[0].message.content)
 
-asyncio.run(main())
+    print(response.choices[0].message.content)
+
+if __name__ == "__main__":
+    asyncio.run(main())
 ```
+
+#### Explanation
+- **Client Initialization**: An `AsyncClient` instance is created with a provider that supports audio inputs, such as `PollinationsAI` or `Microsoft_Phi_4`.
+- **File Handling**: The audio file (`audio.wav`) is opened in binary read mode (`"rb"`) using a context manager (`with` statement) to ensure proper file closure after use.
+- **API Call**: The `chat.completions.create` method is called with:
+  - `messages`: Containing a user message instructing the model to transcribe the audio.
+  - `media`: A list of lists, where each inner list contains the file object and its name (`[[audio_file, "audio.wav"]]`).
+  - `modalities=["text"]`: Specifies that the output should be text (the transcription).
+- **Response**: The transcription is extracted from `response.choices[0].message.content` and printed.
+
+#### Notes
+- **Provider Support**: Ensure the chosen provider (e.g., `PollinationsAI` or `Microsoft_Phi_4`) supports audio inputs in chat completions. Not all providers may offer this functionality.
+- **File Path**: Replace `"audio.wav"` with the path to your own audio file. The file format (e.g., WAV) should be compatible with the provider.
+- **Model Selection**: If `g4f.models.default` does not support audio transcription, you may need to specify a model that does (consult the provider's documentation for supported models).
+
+This example complements the guide by showcasing how to handle audio inputs asynchronously, expanding on the multimodal capabilities of the G4F AsyncClient API.
 
 ---
 

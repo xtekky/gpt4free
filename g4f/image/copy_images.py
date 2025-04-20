@@ -21,6 +21,13 @@ from .. import debug
 
 # Directory for storing generated images
 images_dir = "./generated_images"
+media_dir = "./generated_media"
+
+def get_media_dir() -> str:#
+    """Get the directory for storing generated media files"""
+    if os.access(images_dir, os.R_OK):
+        return images_dir
+    return media_dir
 
 def get_media_extension(media: str) -> str:
     """Extract media file extension from URL or filename"""
@@ -34,9 +41,10 @@ def get_media_extension(media: str) -> str:
         raise ValueError(f"Unsupported media extension: {extension} in: {media}")
     return extension
 
-def ensure_images_dir():
+def ensure_media_dir():
     """Create images directory if it doesn't exist"""
-    os.makedirs(images_dir, exist_ok=True)
+    if not os.access(images_dir, os.R_OK):
+        os.makedirs(media_dir, exist_ok=True)
 
 def get_source_url(image: str, default: str = None) -> str:
     """Extract original URL from image parameter if present"""
@@ -46,30 +54,27 @@ def get_source_url(image: str, default: str = None) -> str:
             return decoded_url
     return default
 
-def is_valid_media_type(content_type: str) -> bool:
-    return content_type in MEDIA_TYPE_MAP or content_type.startswith("audio/") or content_type.startswith("video/")
-
 async def save_response_media(response: StreamResponse, prompt: str, tags: list[str]) -> AsyncIterator:
     """Save media from response to local file and return URL"""
     content_type = response.headers["content-type"]
-    if is_valid_media_type(content_type):
-        extension = MEDIA_TYPE_MAP[content_type] if content_type in MEDIA_TYPE_MAP else content_type[6:].replace("mpeg", "mp3")
-        if extension not in EXTENSIONS_MAP:
-            raise ValueError(f"Unsupported media type: {content_type}")
-        filename = get_filename(tags, prompt, f".{extension}", prompt)
-        target_path = os.path.join(images_dir, filename)
-        with open(target_path, 'wb') as f:
-            async for chunk in response.iter_content() if hasattr(response, "iter_content") else response.content.iter_any():
-                f.write(chunk)
-        media_url = f"/media/{filename}"
-        if response.method == "GET":
-            media_url = f"{media_url}?url={str(response.url)}"
-        if content_type.startswith("audio/"):
-            yield AudioResponse(media_url)
-        elif content_type.startswith("video/"):
-            yield VideoResponse(media_url, prompt)
-        else:
-            yield ImageResponse(media_url, prompt)
+    extension = MEDIA_TYPE_MAP.get(content_type)
+    if extension is None:
+        raise ValueError(f"Unsupported media type: {content_type}")
+    filename = get_filename(tags, prompt, f".{extension}", prompt)
+    target_path = os.path.join(get_media_dir(), filename)
+    ensure_media_dir()
+    with open(target_path, 'wb') as f:
+        async for chunk in response.iter_content() if hasattr(response, "iter_content") else response.content.iter_any():
+            f.write(chunk)
+    media_url = f"/media/{filename}"
+    if response.method == "GET":
+        media_url = f"{media_url}?url={str(response.url)}"
+    if content_type.startswith("audio/"):
+        yield AudioResponse(media_url, text=prompt)
+    elif content_type.startswith("video/"):
+        yield VideoResponse(media_url, prompt)
+    else:
+        yield ImageResponse(media_url, prompt)
 
 def get_filename(tags: list[str], alt: str, extension: str, image: str) -> str:
     return "".join((
@@ -97,7 +102,7 @@ async def copy_media(
     """
     if add_url:
         add_url = not cookies
-    ensure_images_dir()
+    ensure_media_dir()
 
     async with ClientSession(
         connector=get_connector(proxy=proxy),
@@ -113,7 +118,7 @@ async def copy_media(
             if target_path is None:
                 # Build safe filename with full Unicode support
                 filename = get_filename(tags, alt, get_media_extension(image), image)
-                target_path = os.path.join(images_dir, filename)
+                target_path = os.path.join(get_media_dir(), filename)
             try:
                 # Handle different image types
                 if image.startswith("data:"):
@@ -132,7 +137,7 @@ async def copy_media(
                         response.raise_for_status()
                         media_type = response.headers.get("content-type", "application/octet-stream")
                         if media_type not in ("application/octet-stream", "binary/octet-stream"):
-                            if not is_valid_media_type(media_type):
+                            if media_type not in MEDIA_TYPE_MAP:
                                 raise ValueError(f"Unsupported media type: {media_type}")
                         with open(target_path, "wb") as f:
                             async for chunk in response.content.iter_any():
