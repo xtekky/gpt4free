@@ -22,6 +22,8 @@ def to_string(value) -> str:
         return ""
     elif isinstance(value, list):
         return "".join([to_string(v) for v in value if v.get("type", "text") == "text"])
+    elif value is None:
+        return ""
     return str(value)
 
 def render_messages(messages: Messages) -> Iterator:
@@ -71,12 +73,20 @@ def get_last_user_message(messages: Messages) -> str:
     while last_message is not None and messages:
         last_message = messages.pop()
         if last_message["role"] == "user":
-            content = to_string(last_message["content"]).strip()
+            content = to_string(last_message.get("content")).strip()
             if content:
                 user_messages.append(content)
         else:
             return "\n".join(user_messages[::-1])
     return "\n".join(user_messages[::-1])
+
+def get_last_message(messages: Messages, prompt: str = None) -> str:
+    if prompt is None:
+        for message in messages[::-1]:
+            content = to_string(message.get("content")).strip()
+            if content:
+                prompt = content
+    return prompt
 
 def format_image_prompt(messages, prompt: str = None) -> str:
     if prompt is None:

@@ -117,7 +117,7 @@ class AnyProvider(AsyncGeneratorProvider, ProviderModelMixin):
         **kwargs
     ) -> AsyncResult:
         providers = []
-        if ":" in model:
+        if model and ":" in model:
             providers = model.split(":")
             model = providers.pop()
             providers = [getattr(Provider, provider) for provider in providers]

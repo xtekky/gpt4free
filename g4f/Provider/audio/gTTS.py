@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 import os
-import random
-import asyncio
 
 try:
     from gtts import gTTS as gTTS_Service
@@ -14,7 +12,7 @@ from ...typing import AsyncResult, Messages
 from ...providers.response import AudioResponse
 from ...image.copy_images import get_filename, get_media_dir, ensure_media_dir
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from ..helper import format_image_prompt
+from ..helper import get_last_message
 
 locals = {
     "en-AU": ["English (Australia)", "en", "com.au"],
@@ -56,13 +54,16 @@ class gTTS(AsyncGeneratorProvider, ProviderModelMixin):
         audio: dict = {},
         **kwargs
     ) -> AsyncResult:
-        prompt = format_image_prompt(messages, prompt)
+        prompt = get_last_message(messages, prompt)
         if not prompt:
             raise ValueError("Prompt is empty.")
         format = audio.get("format", cls.default_format)
         filename = get_filename([cls.model_id], prompt, f".{format}", prompt)
         target_path = os.path.join(get_media_dir(), filename)
         ensure_media_dir()
+
+        if "language" in audio:
+            model = locals[audio["language"]][0] if audio["language"] in locals else model
 
         gTTS_Service(
             prompt,

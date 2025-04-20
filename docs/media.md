@@ -51,9 +51,13 @@ client = Client(provider=EdgeTTS)
 response = client.media.generate("Hello", audio={"language": "en"})
 response.data[0].save("edge-tts.mp3")
 
+# The EdgeTTS provider also support the audio parameters `rate`, `volume` and `pitch`
+
 client = Client(provider=gTTS)
-response = client.media.generate("Hello", audio={"language": "en"})
+response = client.media.generate("Hello", audio={"language": "en-US"})
 response.data[0].save("google-tts.mp3")
+
+# The gTTS provider also support the audio parameters `tld` and `slow`
 ```
 
 #### **Transcribe an Audio File:**

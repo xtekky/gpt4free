@@ -15,7 +15,7 @@ from ...typing import AsyncResult, Messages
 from ...providers.response import AudioResponse
 from ...image.copy_images import get_filename, get_media_dir, ensure_media_dir
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from ..helper import format_image_prompt
+from ..helper import get_last_message
 
 class EdgeTTS(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Edge TTS"
@@ -43,7 +43,7 @@ class EdgeTTS(AsyncGeneratorProvider, ProviderModelMixin):
         audio: dict = {},
         **kwargs
     ) -> AsyncResult:
-        prompt = format_image_prompt(messages, prompt)
+        prompt = get_last_message(messages, prompt)
         if not prompt:
             raise ValueError("Prompt is empty.")
         voice = audio.get("voice", model if model and model != cls.model_id else None)
