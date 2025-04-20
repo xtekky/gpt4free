@@ -1,65 +1,73 @@
 from __future__ import annotations
 
 import os
-import uuid
-from flask import render_template, redirect
+import requests
+from datetime import datetime
+from flask import send_from_directory, redirect
+from ...image.copy_images import secure_filename, get_media_dir, ensure_media_dir
+from ...errors import VersionNotFoundError
+from ... import version
+
+GPT4FREE_URL = "https://gpt4free.github.io"
 
 def redirect_home():
     return redirect('/chat')
+
+def render(filename = "chat"):
+    try:
+        latest_version = version.utils.latest_version
+    except VersionNotFoundError:
+        latest_version = version.utils.current_version
+    today = datetime.today().strftime('%Y-%m-%d')
+    cache_file = os.path.join(get_media_dir(), f"{today}.{secure_filename(filename)}.{version.utils.current_version}-{latest_version}.html")
+    if not os.path.exists(cache_file):
+        ensure_media_dir()
+        html = requests.get(f"{GPT4FREE_URL}/{filename}.html").text
+        html = html.replace("../dist/", f"{GPT4FREE_URL}/dist/")
+        html = html.replace('"dist/', f"\"{GPT4FREE_URL}/dist/")
+        with open(cache_file, 'w', encoding='utf-8') as f:
+            f.write(html)
+    return send_from_directory(os.path.abspath(get_media_dir()), os.path.basename(cache_file))
 
 class Website:
     def __init__(self, app) -> None:
         self.app = app
         self.routes = {
-            '/chat/': {
+            '/': {
                 'function': self._index,
+                'methods': ['GET', 'POST']
+            },
+            '/chat/': {
+                'function': self._chat,
+                'methods': ['GET', 'POST']
+            },
+            '/qrcode.html': {
+                'function': self._qrcode,
+                'methods': ['GET', 'POST']
+            },
+            '/background.html': {
+                'function': self._background,
                 'methods': ['GET', 'POST']
             },
             '/chat/<conversation_id>': {
                 'function': self._chat,
                 'methods': ['GET', 'POST']
             },
-            '/chat/<share_id>/': {
-                'function': self._share_id,
-                'methods': ['GET', 'POST']
-            },
-            '/chat/<share_id>/<conversation_id>': {
-                'function': self._share_id,
-                'methods': ['GET', 'POST']
-            },
-            '/chat/menu/': {
+            '/media/': {
                 'function': redirect_home,
                 'methods': ['GET', 'POST']
-            },
-            '/chat/settings/': {
-                'function': self._settings,
-                'methods': ['GET', 'POST']
-            },
-            '/images/': {
-                'function': redirect_home,
-                'methods': ['GET', 'POST']
-            },
-            '/background': {
-                'function': self._background,
-                'methods': ['GET']
             },
         }
 
-    def _chat(self, conversation_id):
-        if conversation_id == "share":
-            return render_template('index.html', conversation_id=str(uuid.uuid4()))
-        return render_template('index.html', conversation_id=conversation_id)
+    def _index(self, filename = "index"):
+        return render(filename)
 
-    def _share_id(self, share_id, conversation_id: str = ""):
-        share_url = os.environ.get("G4F_SHARE_URL", "")
-        conversation_id = conversation_id if conversation_id else str(uuid.uuid4())
-        return render_template('index.html', share_url=share_url, share_id=share_id, conversation_id=conversation_id)
-
-    def _index(self):
-        return render_template('index.html', conversation_id=str(uuid.uuid4()))
-
-    def _settings(self):
-        return render_template('index.html', conversation_id=str(uuid.uuid4()))
-
-    def _background(self):
-        return render_template('background.html')
+    def _qrcode(self, filename = "qrcode"):
+        return render(filename)
+    
+    def _background(self, filename = "background"):
+        return render(filename)
+    
+    def _chat(self, filename = "chat"):
+        filename = "chat/index" if filename == 'chat' else secure_filename(filename)
+        return render(filename)
