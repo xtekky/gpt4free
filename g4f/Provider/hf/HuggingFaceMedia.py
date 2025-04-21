@@ -121,6 +121,7 @@ class HuggingFaceMedia(AsyncGeneratorProvider, ProviderModelMixin):
         headers = {
             'Accept-Encoding': 'gzip, deflate',
             'Content-Type': 'application/json',
+            'Prefer': 'wait',
         }
         new_mapping = {
             "hf-free" if key == "hf-inference" else key: value for key, value in provider_mapping.items()
@@ -142,28 +143,32 @@ class HuggingFaceMedia(AsyncGeneratorProvider, ProviderModelMixin):
 
                 if aspect_ratio is None:
                     aspect_ratio = "1:1" if task == "text-to-image" else "16:9"
+                extra_data_image = use_aspect_ratio({
+                    **extra_data,
+                    "height": height,
+                    "width": width,
+                }, aspect_ratio)
+                extra_data_video = {}
                 if task == "text-to-video" and provider_key != "novita":
-                    extra_data = {
+                    extra_data_video = {
                         "num_inference_steps": 20,
                         "resolution": resolution,
                         "aspect_ratio": aspect_ratio,
                         **extra_data
                     }
-                else:
-                    extra_data = use_aspect_ratio({
-                        **extra_data,
-                        "height": height,
-                        "width": width,
-                    }, aspect_ratio)
                 url = f"{api_base}/{provider_id}"
                 data = {
                     "prompt": prompt,
-                    **extra_data
+                    **{"width": width, "height": height},
+                    **(extra_data_video if task == "text-to-video" else extra_data_image),
                 }
                 if provider_key == "fal-ai" and task == "text-to-image":
                     data = {
-                        "image_size": extra_data,
-                        **data
+                        "image_size": use_aspect_ratio({
+                            "height": height,
+                            "width": width,
+                        }, aspect_ratio),
+                        **extra_data
                     }
                 elif provider_key == "novita":
                     url = f"{api_base}/v3/hf/{provider_id}"
@@ -179,7 +184,7 @@ class HuggingFaceMedia(AsyncGeneratorProvider, ProviderModelMixin):
                         "inputs": prompt,
                         "parameters": {
                             "seed": random.randint(0, 2**32),
-                            **extra_data
+                            **data
                         }
                     }
                 elif task == "text-to-image":
@@ -203,15 +208,18 @@ class HuggingFaceMedia(AsyncGeneratorProvider, ProviderModelMixin):
                         if response.status == 404:
                             raise ModelNotSupportedError(f"Model is not supported: {model}")
                         await raise_for_status(response)
+                        if response.headers.get("Content-Type", "").startswith("application/json"):
+                            result = await response.json()
+                            if "video" in result:
+                                return provider_info, VideoResponse(result.get("video").get("url", result.get("video").get("video_url")), prompt)
+                            elif task == "text-to-image":
+                                return provider_info, ImageResponse([item["url"] for item in result.get("images", result.get("data"))], prompt)
+                            elif task == "text-to-video" and result.get("output") is not None:
+                                return provider_info, VideoResponse(result["output"], prompt)
+                            raise ValueError(f"Unexpected response: {result}")
                         async for chunk in save_response_media(response, prompt, [aspect_ratio, model]):
                             return provider_info, chunk
-                        result = await response.json()
-                        if "video" in result:
-                            return provider_info, VideoResponse(result.get("video").get("url", result.get("video").get("video_url")), prompt)
-                        elif task == "text-to-image":
-                            return provider_info, ImageResponse([item["url"] for item in result.get("images", result.get("data"))], prompt)
-                        elif task == "text-to-video":
-                            return provider_info, VideoResponse(result["output"], prompt)
+
             await raise_for_status(last_response)
 
         background_tasks = set()
