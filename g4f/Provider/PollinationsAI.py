@@ -105,8 +105,11 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                 cls.audio_models = {
                     model.get("name"): model.get("voices")
                     for model in models
-                    if "output_modalities" in model and "audio" in model["output_modalities"]
+                    if "output_modalities" in model and "audio" in model["output_modalities"] and model.get("name") != "gemini"
                 }
+
+                if cls.default_audio_model in cls.audio_models:
+                    cls.audio_models = {**cls.audio_models, **{voice: {} for voice in cls.audio_models[cls.default_audio_model]}}
 
                 # Create a set of unique text models starting with default model
                 unique_text_models = cls.text_models.copy()
@@ -119,6 +122,9 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                     model_name = model.get("name")
                     if model_name and "input_modalities" in model and "text" in model["input_modalities"]:
                         unique_text_models.append(model_name)
+
+                if cls.default_audio_model in cls.audio_models:
+                    unique_text_models.extend([voice for voice in cls.audio_models[cls.default_audio_model]])
 
                 # Convert to list and update text_models
                 cls.text_models = list(dict.fromkeys(unique_text_models))
@@ -207,6 +213,11 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                     "role": "user",
                     "content": prompt
                 }]
+            if model and model in cls.audio_models[cls.default_audio_model]:
+                kwargs["audio"] = {
+                    "voice": model,
+                }
+                model = cls.default_audio_model
             async for result in cls._generate_text(
                 model=model,
                 messages=messages,
@@ -359,6 +370,6 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                     if finish_reason:
                         yield FinishReason(finish_reason)
                 else:
-                    async for chunk in save_response_media(response, format_image_prompt(messages), [model]):
+                    async for chunk in save_response_media(response, format_image_prompt(messages), [model, extra_parameters.get("audio", {}).get("voice")]):
                         yield chunk
                         return

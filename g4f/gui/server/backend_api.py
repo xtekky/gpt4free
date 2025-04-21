@@ -360,7 +360,7 @@ class Backend_Api(Api):
                 if seed not in ["true", "True", "1"]:
                    random.seed(seed)
                 return redirect(f"/media/{random.choice(match_files)}"), 302
-            return redirect(f"/media/{match_files[int(request.args.get('skip', 0))]}", 302)
+            return redirect(f"/media/{match_files[int(request.args.get('skip') or 0)]}", 302)
 
         @app.route('/backend-api/v2/upload_cookies', methods=['POST'])
         def upload_cookies():

@@ -254,16 +254,25 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
         return messages
 
     @classmethod
-    async def get_generated_image(cls, session: StreamSession, auth_result: AuthResult, element: dict, prompt: str = None) -> ImageResponse:
+    async def get_generated_image(cls, session: StreamSession, auth_result: AuthResult, element: dict, prompt: str, conversation_id: str) -> ImageResponse:
         try:
             prompt = element["metadata"]["dalle"]["prompt"]
-            file_id = element["asset_pointer"].split("file-service://", 1)[1]
+        except IndexError:
+            pass
+        try:
+            file_id = element["asset_pointer"]
+            if "file-service://" in file_id:
+                file_id = file_id.split("file-service://", 1)[-1]
+                url = f"{cls.url}/backend-api/files/{file_id}/download"
+            else:
+                file_id = file_id.split("sediment://")[-1]
+                url = f"{cls.url}/backend-api/conversation/{conversation_id}/attachment/{file_id}/download"
         except TypeError:
             return
         except Exception as e:
-            raise RuntimeError(f"No Image: {e.__class__.__name__}: {e}")
+            raise RuntimeError(f"No Image: {element} - {e}")
         try:
-            async with session.get(f"{cls.url}/backend-api/files/{file_id}/download", headers=auth_result.headers) as response:
+            async with session.get(url, headers=auth_result.headers) as response:
                 cls._update_request_args(auth_result, session)
                 await raise_for_status(response)
                 download_url = (await response.json())["download_url"]
@@ -285,6 +294,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
         media: MediaListType = None,
         return_conversation: bool = False,
         web_search: bool = False,
+        prompt: str = None,
         **kwargs
     ) -> AsyncResult:
         """
@@ -403,10 +413,11 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                 if conversation.conversation_id is not None:
                     data["conversation_id"] = conversation.conversation_id
                     debug.log(f"OpenaiChat: Use conversation: {conversation.conversation_id}")
+                prompt = get_last_user_message(messages) if prompt is None else prompt
                 if action != "continue":
                     data["parent_message_id"] = getattr(conversation, "parent_message_id", conversation.message_id)
                     conversation.parent_message_id = None
-                    messages = messages if conversation.conversation_id is None else [{"role": "user", "content": get_last_user_message(messages)}]
+                    messages = messages if conversation.conversation_id is None else [{"role": "user", "content": prompt}]
                     data["messages"] = cls.create_messages(messages, image_requests, ["search"] if web_search else None)
                 headers = {
                     **cls._headers,
@@ -433,7 +444,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                     await raise_for_status(response)
                     buffer = u""
                     async for line in response.iter_lines():
-                        async for chunk in cls.iter_messages_line(session, auth_result, line, conversation, sources):
+                        async for chunk in cls.iter_messages_line(session, auth_result, line, conversation, sources, prompt):
                             if isinstance(chunk, str):
                                 chunk = chunk.replace("\ue203", "").replace("\ue204", "").replace("\ue206", "")
                                 buffer += chunk
@@ -475,7 +486,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
             yield FinishReason(conversation.finish_reason)
 
     @classmethod
-    async def iter_messages_line(cls, session: StreamSession, auth_result: AuthResult, line: bytes, fields: Conversation, sources: Sources) -> AsyncIterator:
+    async def iter_messages_line(cls, session: StreamSession, auth_result: AuthResult, line: bytes, fields: Conversation, sources: Sources, prompt: str) -> AsyncIterator:
         if not line.startswith(b"data: "):
             return
         elif line.startswith(b"data: [DONE]"):
@@ -490,7 +501,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
             if line["type"] == "title_generation":
                 yield TitleGeneration(line["title"])
         fields.p = line.get("p", fields.p)
-        if fields.p.startswith("/message/content/thoughts"):
+        if fields.p is not None and fields.p.startswith("/message/content/thoughts"):
             if fields.p.endswith("/content"):
                 if fields.thoughts_summary:
                     yield Reasoning(token="", status=fields.thoughts_summary)
@@ -539,7 +550,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                         generated_images = []
                         for element in c.get("parts"):
                             if isinstance(element, dict) and element.get("content_type") == "image_asset_pointer":
-                                image = cls.get_generated_image(session, auth_result, element)
+                                image = cls.get_generated_image(session, auth_result, element, prompt, fields.conversation_id)
                                 generated_images.append(image)
                         for image_response in await asyncio.gather(*generated_images):
                             if image_response is not None:
