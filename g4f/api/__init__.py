@@ -464,9 +464,9 @@ class Api:
             HTTP_404_NOT_FOUND: {"model": ErrorResponseModel},
         })
         async def providers_info(provider: str):
-            if provider not in ProviderUtils.convert:
+            if provider not in g4f.Provider.ProviderUtils.convert:
                 return ErrorResponse.from_message("The provider does not exist.", 404)
-            provider: ProviderType = ProviderUtils.convert[provider]
+            provider: ProviderType = g4f.Provider.ProviderUtils.convert[provider]
             def safe_get_models(provider: ProviderType) -> list[str]:
                 try:
                     return provider.get_models() if hasattr(provider, "get_models") else []
