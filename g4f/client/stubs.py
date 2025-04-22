@@ -185,14 +185,17 @@ class ChatCompletion(BaseModel):
 
 class ChatCompletionDelta(BaseModel):
     role: str
-    content: str
+    content: Optional[str]
 
     @classmethod
     def model_construct(cls, content: Optional[str]):
         return super().model_construct(role="assistant", content=content)
 
     @field_serializer('content')
-    def serialize_content(self, content: str):
+    def serialize_content(self, content: Optional[str]):
+        if content is None:
+            return ""
+
         return str(content)
 
 class ChatCompletionDeltaChoice(BaseModel):
