@@ -24,10 +24,10 @@ from ...requests import StreamSession
 from ...requests import get_nodriver
 from ...image import ImageRequest, to_image, to_bytes, is_accepted_format
 from ...errors import MissingAuthError, NoValidHarFileError
-from ...providers.response import JsonConversation, FinishReason, SynthesizeData, AuthResult, ImageResponse
+from ...providers.response import JsonConversation, FinishReason, SynthesizeData, AuthResult, ImageResponse, ImagePreview
 from ...providers.response import Sources, TitleGeneration, RequestLogin, Reasoning
 from ...tools.media import merge_media
-from ..helper import format_cookies, get_last_user_message
+from ..helper import format_cookies, format_image_prompt
 from ..openai.models import default_model, default_image_model, models, image_models, text_models
 from ..openai.har_file import get_request_config
 from ..openai.har_file import RequestConfig, arkReq, arkose_url, start_url, conversation_url, backend_url, backend_anon_url
@@ -254,22 +254,22 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
         return messages
 
     @classmethod
-    async def get_generated_image(cls, session: StreamSession, auth_result: AuthResult, element: dict, prompt: str = None) -> ImageResponse:
+    async def get_generated_images(cls, session: StreamSession, auth_result: AuthResult, parts: list, prompt: str, conversation_id: str) -> AsyncIterator:
+        download_urls = []
+        element = element.split("sediment://")[-1]
+        url = f"{cls.url}/backend-api/conversation/{conversation_id}/attachment/{element}/download"
+        debug.log(f"OpenaiChat: Downloading image: {url}")
         try:
-            prompt = element["metadata"]["dalle"]["prompt"]
-            file_id = element["asset_pointer"].split("file-service://", 1)[1]
-        except TypeError:
-            return
-        except Exception as e:
-            raise RuntimeError(f"No Image: {e.__class__.__name__}: {e}")
-        try:
-            async with session.get(f"{cls.url}/backend-api/files/{file_id}/download", headers=auth_result.headers) as response:
+            async with session.get(url, headers=auth_result.headers) as response:
                 cls._update_request_args(auth_result, session)
                 await raise_for_status(response)
-                download_url = (await response.json())["download_url"]
-                return ImageResponse(download_url, prompt)
+                data = await response.json()
+                download_url = data.get("download_url")
+                download_urls.append(download_url)
         except Exception as e:
-            raise RuntimeError(f"Error in downloading image: {e}")
+            debug.error("OpenaiChat: Download image failed")
+            debug.error(e)
+        return ImagePreview(download_urls, prompt)
 
     @classmethod
     async def create_authed(
@@ -285,6 +285,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
         media: MediaListType = None,
         return_conversation: bool = False,
         web_search: bool = False,
+        prompt: str = None,
         **kwargs
     ) -> AsyncResult:
         """
@@ -384,10 +385,8 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                     #f"Proofofwork: {'False' if proofofwork is None else proofofwork[:12]+'...'}",
                     #f"AccessToken: {'False' if cls._api_key is None else cls._api_key[:12]+'...'}",
                 )]
-                if action is None or action == "variant" or action == "continue" and conversation.message_id is None:
-                    action = "next"
                 data = {
-                    "action": action,
+                    "action": "next",
                     "parent_message_id": conversation.message_id,
                     "model": model,
                     "timezone_offset_min":-60,
@@ -403,10 +402,11 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                 if conversation.conversation_id is not None:
                     data["conversation_id"] = conversation.conversation_id
                     debug.log(f"OpenaiChat: Use conversation: {conversation.conversation_id}")
+                conversation.prompt = format_image_prompt(messages, prompt)
                 if action != "continue":
                     data["parent_message_id"] = getattr(conversation, "parent_message_id", conversation.message_id)
                     conversation.parent_message_id = None
-                    messages = messages if conversation.conversation_id is None else [{"role": "user", "content": get_last_user_message(messages)}]
+                    messages = messages if conversation.conversation_id is None else [{"role": "user", "content": prompt}]
                     data["messages"] = cls.create_messages(messages, image_requests, ["search"] if web_search else None)
                 headers = {
                     **cls._headers,
@@ -458,6 +458,10 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                             break
                 if sources.list:
                     yield sources
+                if conversation.generated_images:
+                    yield ImageResponse(conversation.generated_images.urls, conversation.prompt)
+                    conversation.generated_images = None
+                conversation.prompt = None
                 if return_conversation:
                     yield conversation
                 if auth_result.api_key is not None:
@@ -490,7 +494,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
             if line["type"] == "title_generation":
                 yield TitleGeneration(line["title"])
         fields.p = line.get("p", fields.p)
-        if fields.p.startswith("/message/content/thoughts"):
+        if fields.p is not None and fields.p.startswith("/message/content/thoughts"):
             if fields.p.endswith("/content"):
                 if fields.thoughts_summary:
                     yield Reasoning(token="", status=fields.thoughts_summary)
@@ -508,6 +512,10 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                 for m in v:
                     if m.get("p") == "/message/content/parts/0" and fields.recipient == "all":
                         yield m.get("v")
+                    elif m.get("p") == "/message/metadata/image_gen_title":
+                        fields.prompt = m.get("v")
+                    elif m.get("p") == "/message/content/parts/0/asset_pointer":
+                        fields.generated_images = await cls.get_generated_images(session, auth_result, m.get("v"), fields.prompt, fields.conversation_id)
                     elif m.get("p") == "/message/metadata/search_result_groups":
                         for entry in [p.get("entries") for p in m.get("v")]:
                             for link in entry:
@@ -536,14 +544,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                         fields.is_thinking = True
                         yield Reasoning(status=m.get("metadata", {}).get("initial_text"))
                     if c.get("content_type") == "multimodal_text":
-                        generated_images = []
-                        for element in c.get("parts"):
-                            if isinstance(element, dict) and element.get("content_type") == "image_asset_pointer":
-                                image = cls.get_generated_image(session, auth_result, element)
-                                generated_images.append(image)
-                        for image_response in await asyncio.gather(*generated_images):
-                            if image_response is not None:
-                                yield image_response
+                        yield await cls.get_generated_images(session, auth_result, c.get("parts"), fields.prompt, fields.conversation_id)
                     if m.get("author", {}).get("role") == "assistant":
                         if fields.parent_message_id is None:
                             fields.parent_message_id = v.get("message", {}).get("id")
@@ -727,6 +728,8 @@ class Conversation(JsonConversation):
         self.is_thinking = is_thinking
         self.p = None
         self.thoughts_summary = ""
+        self.prompt = None
+        self.generated_images: ImagePreview = None
 
 def get_cookies(
     urls: Optional[Iterator[str]] = None

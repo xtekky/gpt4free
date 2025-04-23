@@ -17,7 +17,7 @@ class LMArenaProvider(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin)
     label = "LM Arena"
     url = "https://lmarena.ai"
     api_endpoint = "/queue/join?"
-    working = True
+    working = False
 
     default_model = "gpt-4o"
     model_aliases = {default_model: "chatgpt-4o-latest-20250326"}

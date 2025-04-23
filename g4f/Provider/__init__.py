@@ -12,6 +12,7 @@ except ImportError as e:
 from .needs_auth       import *
 from .template         import OpenaiTemplate, BackendApi
 from .hf               import HuggingFace, HuggingChat, HuggingFaceAPI, HuggingFaceInference, HuggingFaceMedia
+from .har              import HarProvider
 try:
     from .not_working import *
 except ImportError as e:
