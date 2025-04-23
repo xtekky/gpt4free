@@ -40,7 +40,6 @@ except ImportError:
         pass
 
 import g4f
-import g4f.Provider
 import g4f.debug
 from g4f.client import AsyncClient, ChatCompletion, ImagesResponse, convert_to_provider
 from g4f.providers.response import BaseConversation, JsonConversation
@@ -254,7 +253,7 @@ class Api:
                     "owned_by": getattr(provider, "label", None),
                     "image": bool(getattr(provider, "image_models", False)),
                     "provider": True,
-                } for provider_name, provider in g4f.Provider.ProviderUtils.convert.items()
+                } for provider_name, provider in Provider.ProviderUtils.convert.items()
                     if provider.working and provider_name != "Custom"
                 ]
             }
@@ -464,9 +463,9 @@ class Api:
             HTTP_404_NOT_FOUND: {"model": ErrorResponseModel},
         })
         async def providers_info(provider: str):
-            if provider not in g4f.Provider.ProviderUtils.convert:
+            if provider not in Provider.ProviderUtils.convert:
                 return ErrorResponse.from_message("The provider does not exist.", 404)
-            provider: ProviderType = g4f.Provider.ProviderUtils.convert[provider]
+            provider: ProviderType = Provider.ProviderUtils.convert[provider]
             def safe_get_models(provider: ProviderType) -> list[str]:
                 try:
                     return provider.get_models() if hasattr(provider, "get_models") else []
