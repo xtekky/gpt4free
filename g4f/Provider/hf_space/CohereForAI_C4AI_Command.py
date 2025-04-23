@@ -11,7 +11,7 @@ from ...providers.response import JsonConversation, TitleGeneration
 
 class CohereForAI_C4AI_Command(AsyncGeneratorProvider, ProviderModelMixin):
     label = "CohereForAI C4AI Command"
-    url = "https://cohereforai-c4ai-command.hf.space"
+    url = "	https://coherelabs-c4ai-command.hf.space"
     conversation_url = f"{url}/conversation"
 
     working = True

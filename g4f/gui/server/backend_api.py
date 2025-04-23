@@ -396,7 +396,7 @@ class Backend_Api(Api):
             updated = chat_data.get("updated", 0)
             cache_value = self.chat_cache.get(share_id, 0)
             if updated == cache_value:
-                return jsonify({"error": {"message": "invalid date"}}), 400
+                return {"share_id": share_id}
             share_id = secure_filename(share_id)
             bucket_dir = get_bucket_dir(share_id)
             os.makedirs(bucket_dir, exist_ok=True)
