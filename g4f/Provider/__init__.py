@@ -66,6 +66,7 @@ try:
 except ImportError as e:
     debug.error("Providers not loaded (F-L):", e)
 try:
+    from .Puter                import Puter
     from .PerplexityLabs       import PerplexityLabs
     from .Pi                   import Pi
     from .Pizzagpt             import Pizzagpt
