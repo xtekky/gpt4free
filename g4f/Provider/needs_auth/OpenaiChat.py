@@ -256,23 +256,19 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
     @classmethod
     async def get_generated_images(cls, session: StreamSession, auth_result: AuthResult, parts: list, prompt: str, conversation_id: str) -> AsyncIterator:
         download_urls = []
-        for element in [parts] if isinstance(parts, str) else parts:
-            if isinstance(element, dict) and element.get("content_type") == "image_asset_pointer":
-                if not prompt:
-                    prompt = element["metadata"]["dalle"]["prompt"]
-                element = element["asset_pointer"]
-            element = element.split("sediment://")[-1]
-            url = f"{cls.url}/backend-api/conversation/{conversation_id}/attachment/{element}/download"
-            debug.log(f"OpenaiChat: Downloading image: {url}")
+        element = element.split("sediment://")[-1]
+        url = f"{cls.url}/backend-api/conversation/{conversation_id}/attachment/{element}/download"
+        debug.log(f"OpenaiChat: Downloading image: {url}")
+        try:
             async with session.get(url, headers=auth_result.headers) as response:
                 cls._update_request_args(auth_result, session)
                 await raise_for_status(response)
                 data = await response.json()
                 download_url = data.get("download_url")
-                if download_url is None:
-                    print(data)
-                else:
-                    download_urls.append(download_url)
+                download_urls.append(download_url)
+        except Exception as e:
+            debug.error("OpenaiChat: Download image failed")
+            debug.error(e)
         return ImagePreview(download_urls, prompt)
 
     @classmethod
