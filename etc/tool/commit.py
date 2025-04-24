@@ -31,8 +31,8 @@ from g4f import debug
 debug.logging = True
 
 # Constants
-DEFAULT_MODEL = "o1"
-FALLBACK_MODELS = ["o1", "o3-mini", "gpt-4o"]
+DEFAULT_MODEL = "gpt-4o"
+FALLBACK_MODELS = []
 MAX_DIFF_SIZE = None  # Set to None to disable truncation, or a number for character limit
 MAX_RETRIES = 3
 RETRY_DELAY = 2  # Seconds
@@ -193,15 +193,15 @@ def generate_commit_message(diff_text: str, model: str = DEFAULT_MODEL) -> Optio
             )
             content = []
             for chunk in response:
-                # Stop spinner and clear line
-                if spinner:
-                    spinner.set()
-                    print(" " * 50 + "\n", flush=True)
-                    spinner = None
                 if isinstance(chunk.choices[0].delta.content, str):
+                    # Stop spinner and clear line
+                    if spinner:
+                        spinner.set()
+                        print(" " * 50 + "\n", flush=True)
+                        spinner = None
                     content.append(chunk.choices[0].delta.content)
                     print(chunk.choices[0].delta.content, end="", flush=True)
-            return "".join(content).strip()
+            return "".join(content).strip().strip("`")
         except Exception as e:
             # Stop spinner if it's running
             if 'spinner' in locals() and spinner:

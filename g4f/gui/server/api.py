@@ -87,9 +87,12 @@ class Api:
         latest_version = None
         try:
             current_version = version.utils.current_version
-            if request.args.get("cache"):
-                latest_version = version.utils.latest_version_cached
-            else:
+            try:
+                if request.args.get("cache"):
+                    latest_version = version.utils.latest_version_cached
+            except RuntimeError:
+                pass
+            if latest_version is None:
                 latest_version = version.utils.latest_version
         except VersionNotFoundError:
             pass
