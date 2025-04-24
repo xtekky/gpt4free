@@ -107,12 +107,6 @@ class Api:
         model = json_data.get('model')
         provider = json_data.get('provider')
         messages = json_data.get('messages')
-        kwargs["tool_calls"] = [{
-            "function": {
-                "name": "bucket_tool"
-            },
-            "type": "function"
-        }]
         action = json_data.get('action')
         if action == "continue":
             kwargs["tool_calls"].append({
@@ -186,7 +180,6 @@ class Api:
                             yield self._format_json("conversation_id", conversation_id)
                 elif isinstance(chunk, Exception):
                     logger.exception(chunk)
-                    debug.error(chunk)
                     yield self._format_json('message', get_error_message(chunk), error=type(chunk).__name__)
                 elif isinstance(chunk, RequestLogin):
                     yield self._format_json("preview", chunk.to_string())
@@ -232,7 +225,6 @@ class Api:
             yield self._format_json('auth', type(e).__name__, message=get_error_message(e))
         except Exception as e:
             logger.exception(e)
-            debug.error(e)
             yield self._format_json('error', type(e).__name__, message=get_error_message(e))
         finally:
             yield from self._yield_logs()

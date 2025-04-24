@@ -318,7 +318,7 @@ class Backend_Api(Api):
                         md = MarkItDown()
                         result = md.convert(copyfile.name).text_content
                         with open(os.path.join(bucket_dir, f"{filename}.md"), 'w') as f:
-                            f.write(f"{result.text_content}\n")
+                            f.write(f"{result}\n")
                         filenames.append(f"{filename}.md")
                     except Exception as e:
                         logger.exception(e)
@@ -333,8 +333,11 @@ class Backend_Api(Api):
                     else:
                         os.remove(copyfile.name)
                         continue
-                    shutil.copyfile(copyfile.name, newfile)
-                    os.remove(copyfile.name)
+                    try:
+                        os.rename(copyfile.name, newfile)
+                    except OSError:
+                        shutil.copyfile(copyfile.name, newfile)
+                        os.remove(copyfile.name)
             with open(os.path.join(bucket_dir, "files.txt"), 'w') as f:
                 [f.write(f"{filename}\n") for filename in filenames]
             return {"bucket_id": bucket_id, "files": filenames, "media": media}
