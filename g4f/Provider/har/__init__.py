@@ -14,6 +14,7 @@ from ..openai.har_file import get_headers
 class HarProvider(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://lmarena.ai"
     working = True
+    default_model = "chatgpt-4o-latest-20250326"
 
     @classmethod
     def get_models(cls):
@@ -26,6 +27,7 @@ class HarProvider(AsyncGeneratorProvider, ProviderModelMixin):
                     continue
                 chunk = v['response']['content']['text'].split("\n\ndata: ")[2]
                 cls.models = list(dict.fromkeys(get_str_list(find_list(json.loads(chunk), 'choices'))).keys())
+                cls.models[0] = cls.default_model
                 if cls.models:
                     break
         return cls.models

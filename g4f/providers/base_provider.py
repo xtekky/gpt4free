@@ -465,9 +465,11 @@ class AsyncAuthedProvider(AsyncGeneratorProvider, AuthFileMixin):
                     auth_result = chunk
                 else:
                     yield chunk
-            yield from to_sync_generator(cls.create_authed(model, messages, auth_result, **kwargs))
-        finally:
-            cls.write_cache_file(cache_file, auth_result)
+            for chunk in to_sync_generator(cls.create_authed(model, messages, auth_result, **kwargs)):
+                if cache_file is not None:
+                    cls.write_cache_file(cache_file, auth_result)
+                    cache_file = None
+                yield chunk
 
     @classmethod
     async def create_async_generator(
@@ -506,5 +508,3 @@ class AsyncAuthedProvider(AsyncGeneratorProvider, AuthFileMixin):
                     cls.write_cache_file(cache_file, auth_result)
                     cache_file = None
                 yield chunk
-        finally:
-            cls.write_cache_file(cache_file, auth_result)

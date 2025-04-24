@@ -16,7 +16,7 @@ from ...image import use_aspect_ratio
 from ... import debug
 
 class HuggingFaceMedia(AsyncGeneratorProvider, ProviderModelMixin):
-    label = "HuggingFace (Image/Video Generation)"
+    label = "HuggingFace"
     parent = "HuggingFace"
     url = "https://huggingface.co"
     working = True
