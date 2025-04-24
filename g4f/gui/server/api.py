@@ -4,7 +4,7 @@ import logging
 import os
 import asyncio
 from typing import Iterator
-from flask import send_from_directory
+from flask import send_from_directory, request
 from inspect import signature
 
 from ...errors import VersionNotFoundError, MissingAuthError
@@ -87,7 +87,10 @@ class Api:
         latest_version = None
         try:
             current_version = version.utils.current_version
-            latest_version = version.utils.latest_version
+            if request.args.get("cache"):
+                latest_version = version.utils.latest_version_cached
+            else:
+                latest_version = version.utils.latest_version
         except VersionNotFoundError:
             pass
         return {

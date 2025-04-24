@@ -104,6 +104,10 @@ class VersionUtils:
             return get_github_version(GITHUB_REPOSITORY)
         return get_pypi_version(PACKAGE_NAME)
 
+    @cached_property
+    def latest_version_cached(self) -> str:
+        return self.latest_version
+
     def check_version(self) -> None:
         """
         Checks if the current version of 'g4f' is up to date with the latest version.
