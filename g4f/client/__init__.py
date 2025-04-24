@@ -297,7 +297,7 @@ class Completions:
         if isinstance(messages, str):
             messages = [{"role": "user", "content": messages}]
         if image is not None:
-            kwargs["media"] = (image, image_name)
+            kwargs["media"] = [(image, image_name)]
         elif "images" in kwargs:
             kwargs["media"] = kwargs.pop("images")
         for idx, media in kwargs.get("media", []):
@@ -608,7 +608,6 @@ class AsyncCompletions:
         for idx, media in kwargs.get("media", []):
             if not isinstance(media, (list, tuple)):
                 kwargs["media"][idx] = (media[0], media[1] if media[1] is not None else getattr(image, "name", None))
-
         if provider is None:
             provider = self.provider
             if provider is None:
