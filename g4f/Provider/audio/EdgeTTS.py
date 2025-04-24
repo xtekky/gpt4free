@@ -31,6 +31,7 @@ class EdgeTTS(AsyncGeneratorProvider, ProviderModelMixin):
             voices = asyncio.run(VoicesManager.create())
             cls.default_model = voices.find(Locale=cls.default_locale)[0]["Name"]
             cls.models = [voice["Name"] for voice in voices.voices]
+            cls.audio_models = cls.models
         return cls.models
 
     @classmethod

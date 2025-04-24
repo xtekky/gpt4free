@@ -8,7 +8,7 @@ import json
 import base64
 import time
 import random
-from typing import AsyncIterator, Iterator, Optional, Generator, Dict
+from typing import AsyncIterator, Iterator, Optional, Generator, Dict, Union
 from copy import copy
 
 try:
@@ -254,22 +254,43 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
         return messages
 
     @classmethod
-    async def get_generated_images(cls, session: StreamSession, auth_result: AuthResult, parts: list, prompt: str, conversation_id: str) -> AsyncIterator:
+    async def get_generated_image(cls, session: StreamSession, auth_result: AuthResult, element: Union[dict, str], prompt: str = None, conversation_id: str = None) -> AsyncIterator:
         download_urls = []
-        element = element.split("sediment://")[-1]
-        url = f"{cls.url}/backend-api/conversation/{conversation_id}/attachment/{element}/download"
-        debug.log(f"OpenaiChat: Downloading image: {url}")
+        is_sediment = False
+        if prompt is None:
+            try:
+                prompt = element["metadata"]["dalle"]["prompt"]
+            except KeyError:
+                pass
+        if "asset_pointer" in element:
+            element = element["asset_pointer"] 
+        if isinstance(element, str) and element.startswith("file-service://"):
+            element = element.split("file-service://", 1)[-1]
+        if isinstance(element, str) and element.startswith("sediment://"):
+            is_sediment = True
+            element = element.split("sediment://")[-1]
+        else:
+            raise RuntimeError(f"Invalid image element: {element}")
+        if is_sediment:
+            url = f"{cls.url}/backend-api/conversation/{conversation_id}/attachment/{element}/download"
+        else:
+            url =f"{cls.url}/backend-api/files/{element}/download"
         try:
             async with session.get(url, headers=auth_result.headers) as response:
                 cls._update_request_args(auth_result, session)
                 await raise_for_status(response)
                 data = await response.json()
                 download_url = data.get("download_url")
-                download_urls.append(download_url)
+                if download_url is not None:
+                    download_urls.append(download_url)
+                    debug.log(f"OpenaiChat: Found image: {download_url}")
+                else:
+                    debug.log("OpenaiChat: No download URL found in response: ", data)
         except Exception as e:
             debug.error("OpenaiChat: Download image failed")
             debug.error(e)
-        return ImagePreview(download_urls, prompt)
+        if download_urls:
+            return ImagePreview(download_urls, prompt) if is_sediment else ImageResponse(download_urls, prompt)
 
     @classmethod
     async def create_authed(
@@ -402,7 +423,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                 if conversation.conversation_id is not None:
                     data["conversation_id"] = conversation.conversation_id
                     debug.log(f"OpenaiChat: Use conversation: {conversation.conversation_id}")
-                conversation.prompt = format_image_prompt(messages, prompt)
+                prompt = conversation.prompt = format_image_prompt(messages, prompt)
                 if action != "continue":
                     data["parent_message_id"] = getattr(conversation, "parent_message_id", conversation.message_id)
                     conversation.parent_message_id = None
@@ -430,6 +451,8 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                     cls._update_request_args(auth_result, session)
                     if response.status in (401, 403, 429):
                         raise MissingAuthError("Access token is not valid")
+                    elif response.status == 422:
+                        raise RuntimeError((await response.json()), data)
                     await raise_for_status(response)
                     buffer = u""
                     async for line in response.iter_lines():
@@ -515,7 +538,9 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                     elif m.get("p") == "/message/metadata/image_gen_title":
                         fields.prompt = m.get("v")
                     elif m.get("p") == "/message/content/parts/0/asset_pointer":
-                        fields.generated_images = await cls.get_generated_images(session, auth_result, m.get("v"), fields.prompt, fields.conversation_id)
+                        generated_images = fields.generated_images = await cls.get_generated_image(session, auth_result, m.get("v"), fields.prompt, fields.conversation_id)
+                        if generated_images is not None:
+                            yield generated_images
                     elif m.get("p") == "/message/metadata/search_result_groups":
                         for entry in [p.get("entries") for p in m.get("v")]:
                             for link in entry:
@@ -544,7 +569,9 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                         fields.is_thinking = True
                         yield Reasoning(status=m.get("metadata", {}).get("initial_text"))
                     if c.get("content_type") == "multimodal_text":
-                        yield await cls.get_generated_images(session, auth_result, c.get("parts"), fields.prompt, fields.conversation_id)
+                        for part in c.get("parts"):
+                            if isinstance(part, dict) and part.get("content_type") == "image_asset_pointer":
+                                yield await cls.get_generated_image(session, auth_result, part, fields.prompt, fields.conversation_id)
                     if m.get("author", {}).get("role") == "assistant":
                         if fields.parent_message_id is None:
                             fields.parent_message_id = v.get("message", {}).get("id")

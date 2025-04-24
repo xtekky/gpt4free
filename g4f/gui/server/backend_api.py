@@ -16,6 +16,12 @@ from pathlib import Path
 from urllib.parse import quote_plus
 from hashlib import sha256
 
+try:
+    from markitdown import MarkItDown
+    has_markitdown = True
+except ImportError:
+    has_markitdown = False
+
 from ...client.service import convert_to_provider
 from ...providers.asyncio import to_sync_generator
 from ...providers.response import FinishReason
@@ -299,8 +305,24 @@ class Backend_Api(Api):
             filenames = []
             media = []
             for file in request.files.getlist('files'):
-                try:
-                    filename = secure_filename(file.filename)
+                # Copy the file to a temporary location
+                filename = secure_filename(file.filename)
+                copyfile = tempfile.NamedTemporaryFile(suffix=filename, delete=False)
+                shutil.copyfileobj(file.stream, copyfile)
+                copyfile.close()
+                file.stream.close()
+
+                result = None
+                if has_markitdown:
+                    try:
+                        md = MarkItDown()
+                        result = md.convert(copyfile.name).text_content
+                        with open(os.path.join(bucket_dir, f"{filename}.md"), 'w') as f:
+                            f.write(f"{result}\n")
+                        filenames.append(f"{filename}.md")
+                    except Exception as e:
+                        logger.exception(e)
+                if not result:
                     if is_allowed_extension(filename):
                         os.makedirs(media_dir, exist_ok=True)
                         newfile = os.path.join(media_dir, filename)
@@ -309,11 +331,13 @@ class Backend_Api(Api):
                         newfile = os.path.join(bucket_dir, filename)
                         filenames.append(filename)
                     else:
+                        os.remove(copyfile.name)
                         continue
-                    with open(newfile, 'wb') as f:
-                        shutil.copyfileobj(file.stream, f)
-                finally:
-                    file.stream.close()
+                    try:
+                        os.rename(copyfile.name, newfile)
+                    except OSError:
+                        shutil.copyfile(copyfile.name, newfile)
+                        os.remove(copyfile.name)
             with open(os.path.join(bucket_dir, "files.txt"), 'w') as f:
                 [f.write(f"{filename}\n") for filename in filenames]
             return {"bucket_id": bucket_id, "files": filenames, "media": media}

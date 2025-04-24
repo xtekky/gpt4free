@@ -291,7 +291,6 @@ class Completions:
         max_tokens: Optional[int] = None,
         stop: Optional[Union[list[str], str]] = None,
         api_key: Optional[str] = None,
-        ignore_working: Optional[bool] = False,
         ignore_stream: Optional[bool] = False,
         **kwargs
     ) -> ChatCompletion:
@@ -301,6 +300,9 @@ class Completions:
             kwargs["media"] = [(image, image_name)]
         elif "images" in kwargs:
             kwargs["media"] = kwargs.pop("images")
+        for idx, media in kwargs.get("media", []):
+            if not isinstance(media, (list, tuple)):
+                kwargs["media"][idx] = (media[0], media[1] if media[1] is not None else getattr(image, "name", None))
         if provider is None:
             provider = self.provider
             if provider is None:
@@ -493,7 +495,10 @@ class Images:
             proxy = self.client.proxy
         prompt = "create a variation of this image"
         if image is not None:
-            kwargs["media"] = [(image, None)]
+            kwargs["media"] = image
+        for idx, media in kwargs.get("media", []):
+            if not isinstance(media, (list, tuple)):
+                kwargs["media"][idx] = (media[0], media[1] if media[1] is not None else getattr(image, "name", None))
 
         error = None
         response = None
@@ -591,7 +596,6 @@ class AsyncCompletions:
         max_tokens: Optional[int] = None,
         stop: Optional[Union[list[str], str]] = None,
         api_key: Optional[str] = None,
-        ignore_working: Optional[bool] = False,
         ignore_stream: Optional[bool] = False,
         **kwargs
     ) -> Awaitable[ChatCompletion]:
@@ -601,6 +605,9 @@ class AsyncCompletions:
             kwargs["media"] = [(image, image_name)]
         elif "images" in kwargs:
             kwargs["media"] = kwargs.pop("images")
+        for idx, media in kwargs.get("media", []):
+            if not isinstance(media, (list, tuple)):
+                kwargs["media"][idx] = (media[0], media[1] if media[1] is not None else getattr(image, "name", None))
         if provider is None:
             provider = self.provider
             if provider is None:

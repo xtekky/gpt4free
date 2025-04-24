@@ -111,7 +111,7 @@ class Grok(AsyncAuthedProvider, ProviderModelMixin):
                             response_data = result.get("response", {})
                             image = response_data.get("streamingImageGenerationResponse", None)
                             if image is not None:
-                                yield ImagePreview(f'{cls.assets_url}/{image["imageUrl"]}', "", {"cookies": cookies, "headers": headers})
+                                yield ImagePreview(f'{cls.assets_url}/{image["imageUrl"]}', "", {"cookies": auth_result.cookies, "headers": auth_result.headers})
                             token = response_data.get("token", result.get("token"))
                             is_thinking = response_data.get("isThinking", result.get("isThinking"))
                             if token:

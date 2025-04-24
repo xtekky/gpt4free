@@ -66,6 +66,11 @@ class Cloudflare(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                 cls.model_aliases = {**cls.model_aliases, **model_map}
         if not cls.models:
             try:
+                cache_file = cls.get_cache_file()
+                if cls._args is None:
+                    if cache_file.exists():
+                        with cache_file.open("r") as f:
+                            cls._args = json.load(f)
                 if cls._args is None:
                     cls._args = {"headers": DEFAULT_HEADERS, "cookies": {}}
                 read_models()

@@ -43,7 +43,10 @@ class gTTS(AsyncGeneratorProvider, ProviderModelMixin):
     default_language = "en"
     default_tld = "com"
     default_format = "mp3"
+
+    default_model = "en-US"
     models = list(models.keys())
+    audio_models = models
 
     @classmethod
     async def create_async_generator(

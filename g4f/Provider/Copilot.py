@@ -158,44 +158,42 @@ class Copilot(AsyncGeneratorProvider, ProviderModelMixin):
             image_prompt: str = None
             last_msg = None
             sources = {}
-            try:
-                while not wss.closed:
-                    try:
-                        msg = await asyncio.wait_for(wss.recv(), 3 if done else timeout)
-                        msg = json.loads(msg[0])
-                    except:
-                        break
-                    last_msg = msg
-                    if msg.get("event") == "appendText":
-                        yield msg.get("text")
-                    elif msg.get("event") == "generatingImage":
-                        image_prompt = msg.get("prompt")
-                    elif msg.get("event") == "imageGenerated":
-                        yield ImageResponse(msg.get("url"), image_prompt, {"preview": msg.get("thumbnailUrl")})
-                    elif msg.get("event") == "done":
-                        yield FinishReason("stop")
-                        done = True
-                    elif msg.get("event") == "suggestedFollowups":
-                        yield SuggestedFollowups(msg.get("suggestions"))
-                        break
-                    elif msg.get("event") == "replaceText":
-                        yield msg.get("text")
-                    elif msg.get("event") == "titleUpdate":
-                        yield TitleGeneration(msg.get("title"))
-                    elif msg.get("event") == "citation":
-                        sources[msg.get("url")] = msg
-                        yield SourceLink(list(sources.keys()).index(msg.get("url")), msg.get("url"))
-                    elif msg.get("event") == "error":
-                        raise RuntimeError(f"Error: {msg}")
-                    elif msg.get("event") not in ["received", "startMessage", "partCompleted"]:
-                        debug.log(f"Copilot Message: {msg}")
-                if not done:
-                    raise RuntimeError(f"Invalid response: {last_msg}")
-                if sources:
-                    yield Sources(sources.values())
-            finally:
-                if not wss.closed:
-                    await wss.close()
+            while not wss.closed:
+                try:
+                    msg = await asyncio.wait_for(wss.recv(), 3 if done else timeout)
+                    msg = json.loads(msg[0])
+                except:
+                    break
+                last_msg = msg
+                if msg.get("event") == "appendText":
+                    yield msg.get("text")
+                elif msg.get("event") == "generatingImage":
+                    image_prompt = msg.get("prompt")
+                elif msg.get("event") == "imageGenerated":
+                    yield ImageResponse(msg.get("url"), image_prompt, {"preview": msg.get("thumbnailUrl")})
+                elif msg.get("event") == "done":
+                    yield FinishReason("stop")
+                    done = True
+                elif msg.get("event") == "suggestedFollowups":
+                    yield SuggestedFollowups(msg.get("suggestions"))
+                    break
+                elif msg.get("event") == "replaceText":
+                    yield msg.get("text")
+                elif msg.get("event") == "titleUpdate":
+                    yield TitleGeneration(msg.get("title"))
+                elif msg.get("event") == "citation":
+                    sources[msg.get("url")] = msg
+                    yield SourceLink(list(sources.keys()).index(msg.get("url")), msg.get("url"))
+                elif msg.get("event") == "error":
+                    raise RuntimeError(f"Error: {msg}")
+                elif msg.get("event") not in ["received", "startMessage", "partCompleted"]:
+                    debug.log(f"Copilot Message: {msg}")
+            if not done:
+                raise RuntimeError(f"Invalid response: {last_msg}")
+            if sources:
+                yield Sources(sources.values())
+            if not wss.closed:
+                await wss.close()
 
 async def get_access_token_and_cookies(url: str, proxy: str = None, target: str = "ChatAI",):
     browser, stop_browser = await get_nodriver(proxy=proxy, user_data_dir="copilot")

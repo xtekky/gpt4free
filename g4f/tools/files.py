@@ -187,7 +187,7 @@ def stream_read_files(bucket_dir: Path, filenames: list, delete_files: bool = Fa
                                 else:
                                     os.unlink(filepath)
             continue
-        yield f"```{filename}\n"        
+        yield f"```{filename}\n"
         if has_pypdf2 and filename.endswith(".pdf"):
             try:
                 reader = PyPDF2.PdfReader(file_path)
