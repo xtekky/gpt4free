@@ -74,7 +74,7 @@ Is your site on this repository and you want to take it down? Send an email to t
      - [🛠️ Configuration](https://gpt4free.github.io/docs/configuration.html)
      - [📱 Run on Smartphone](#-run-on-smartphone)
      - [📘 Full Documentation for Python API](#-full-documentation-for-python-api)
-  - [🚀 Providers and Models](https://gpt4free.github.io/docs/providers-and-models.html)
+  - [🚀 Providers and Models](https://github.com/gpt4free/gpt4free.github.io/blob/main/docs%2Fproviders-and-models.md)
   - [🔗 Powered by gpt4free](#-powered-by-gpt4free)
   - [🤝 Contribute](#-contribute)
      - [How do i create a new Provider?](#guide-how-do-i-create-a-new-provider)
@@ -196,7 +196,7 @@ response = client.images.generate(
 
 print(f"Generated image URL: {response.data[0].url}")
 ```
-[![Image with cat](/https://gpt4free.github.io/docs/images/cat.jpeg)](https://gpt4free.github.io/docs/client.html)
+[![Image with cat](https://gpt4free.github.io/docs/images/cat.jpeg)](https://gpt4free.github.io/docs/client.html)
 
 ### 🌐 Web Interface
 **Run the GUI using Python:**
