@@ -45,7 +45,7 @@ docker pull hlohaus789/g4f
   Reach out for help in our [Support Group: discord.gg/qXA4Wf4Fsm](https://discord.gg/qXA4Wf4Fsm).
 
 - **Read our Documentation** 📖  
-  Find detailed guidance and resources at [gpt4free.github.io/docs/main.html](https://gpt4free.github.io/docs/main.html).
+  Find detailed guidance and resources at [gpt4free.github.io/docs](https://gpt4free.github.io/docs/main.html).
 
 ## 🔻 Site Takedown
 
