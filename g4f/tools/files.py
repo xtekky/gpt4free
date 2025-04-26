@@ -13,6 +13,8 @@ import zipfile
 import asyncio
 import hashlib
 import base64
+import tempfile
+import shutil
 
 try:
     import PyPDF2
@@ -579,3 +581,10 @@ async def get_async_streaming(bucket_dir: str, delete_files = False, refine_chun
         if event_stream:
             yield f'data: {json.dumps({"error": {"message": str(e)}})}\n\n'
         raise e
+
+def get_tempfile(file, suffix):
+    copyfile = tempfile.NamedTemporaryFile(suffix=suffix, delete=False)
+    shutil.copyfileobj(file, copyfile)
+    copyfile.close()
+    file.close()
+    return copyfile.name

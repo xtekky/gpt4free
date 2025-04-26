@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import tempfile
-import shutil
 import os
 
 try:
@@ -11,6 +9,7 @@ except ImportError:
     has_markitdown = False
 
 from ...typing import AsyncResult, Messages, MediaListType
+from ...tools.files import get_tempfile
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
 
 class MarkItDown(AsyncGeneratorProvider, ProviderModelMixin):
@@ -26,17 +25,15 @@ class MarkItDown(AsyncGeneratorProvider, ProviderModelMixin):
     ) -> AsyncResult:
         md = MaItDo()
         for file, filename in media:
+            text = None
             try:
-                text = md.convert(file, stream_info=StreamInfo(filename=filename)).text_content
+                text = md.convert(file, stream_info=StreamInfo(filename=filename) if filename else None).text_content
             except TypeError:
-                # Copy SpooledTemporaryFile to a NamedTemporaryFile
-                copyfile = tempfile.NamedTemporaryFile(suffix=filename, delete=False)
-                shutil.copyfileobj(file, copyfile)
-                copyfile.close()
-                file.close()
-                # Use the NamedTemporaryFile for conversion
-                text = md.convert(copyfile.name, stream_info=StreamInfo(filename=filename)).text_content
-                os.remove(copyfile.name)
+                copyfile = get_tempfile(file, filename)
+                try:
+                    text = md.convert(copyfile).text_content
+                finally:
+                    os.remove(copyfile)
             text = text.split("### Audio Transcript:\n")[-1]
             if text:
                 yield text

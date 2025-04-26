@@ -59,6 +59,11 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         "gpt-4o-mini": "openai",
         "gpt-4": "openai-large",
         "gpt-4o": "openai-large",
+        "gpt-4.1": "openai",
+        "gpt-4.1-nano": "openai",
+        "gpt-4.1-mini": "openai-large",
+        "gpt-4.1-xlarge": "openai-xlarge",
+        "o4-mini": "openai-reasoning",
         "qwen-2.5-coder-32b": "qwen-coder",
         "llama-3.3-70b": "llama",
         "llama-4-scout": "llamascout",
@@ -67,10 +72,12 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         "llama-3.3-70b": "llama-scaleway",
         "phi-4": "phi",
         "deepseek-r1": "deepseek-reasoning-large",
-        "deepseek-r1": "deepseek-reasoning",
+        "deepseek-r1-distill-llama-70b": "deepseek-reasoning-large",
+        "deepseek-r1-distill-qwen-32b": "deepseek-reasoning",
         "deepseek-v3": "deepseek",
         "llama-3.2-11b": "llama-vision",
         "gpt-4o-audio": "openai-audio",
+        "gpt-4o-audio-preview": "openai-audio",
         
         ### Image Models ###
         "sdxl-turbo": "turbo",
@@ -331,7 +338,6 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                 "cache": cache,
                 **extra_parameters
             })
-            print(f"Requesting {url} with data: {data}")
             async with session.post(url, json=data) as response:
                 await raise_for_status(response)
                 if response.headers["content-type"].startswith("text/plain"):

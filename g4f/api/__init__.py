@@ -494,28 +494,20 @@ class Api:
         }
         @self.app.post("/v1/audio/transcriptions", responses=responses)
         @self.app.post("/api/{path_provider}/audio/transcriptions", responses=responses)
-        @self.app.post("/api/markitdown", responses=responses)
         async def convert(
             file: UploadFile,
-            model: Annotated[Optional[str], Form()] = None,
-            provider: Annotated[Optional[str], Form()] = "MarkItDown",
             path_provider: str = None,
-            prompt: Annotated[Optional[str], Form()] = "Transcribe this audio",
-            api_key: Annotated[Optional[str], Form()] = None,
-            credentials: Annotated[HTTPAuthorizationCredentials, Depends(Api.security)] = None
+            model: Annotated[Optional[str], Form()] = None,
+            provider: Annotated[Optional[str], Form()] = None,
+            prompt: Annotated[Optional[str], Form()] = "Transcribe this audio"
         ):
-            if credentials is not None and credentials.credentials != "secret":
-                api_key = credentials.credentials
             try:
                 response = await self.client.chat.completions.create(
                     messages=prompt,
                     model=model,
+                    provider=provider if path_provider is None else path_provider,
                     media=[[file.file, file.filename]],
-                    modalities=["text"],
-                    **filter_none(
-                        provider=provider if path_provider is None else path_provider,
-                        api_key=api_key
-                    )
+                    modalities=["text"]
                 )
                 return {"text": response.choices[0].message.content, "model": response.model, "provider": response.provider}
             except (ModelNotFoundError, ProviderNotFoundError) as e:
@@ -527,6 +519,12 @@ class Api:
             except Exception as e:
                 logger.exception(e)
                 return ErrorResponse.from_exception(e, None, HTTP_500_INTERNAL_SERVER_ERROR)
+
+        @self.app.post("/api/markitdown", responses=responses)
+        async def markitdown(
+            file: UploadFile
+        ):
+            return await convert(file, "MarkItDown")
 
         responses = {
             HTTP_200_OK: {"class": FileResponse},
