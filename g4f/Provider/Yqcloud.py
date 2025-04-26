@@ -36,7 +36,7 @@ class Yqcloud(AsyncGeneratorProvider, ProviderModelMixin):
         stream: bool = True,
         proxy: str = None,
         conversation: Conversation = None,
-        return_conversation: bool = False,
+        return_conversation: bool = True,
         **kwargs
     ) -> AsyncResult:      
         model = cls.get_model(model)

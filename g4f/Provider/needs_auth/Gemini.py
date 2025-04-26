@@ -152,7 +152,7 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
         cookies: Cookies = None,
         connector: BaseConnector = None,
         media: MediaListType = None,
-        return_conversation: bool = False,
+        return_conversation: bool = True,
         conversation: Conversation = None,
         language: str = "en",
         prompt: str = None,

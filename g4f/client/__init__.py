@@ -308,6 +308,8 @@ class Completions:
         if isinstance(messages, str):
             messages = [{"role": "user", "content": messages}]
         resolve_media(kwargs, image, image_name)
+        if hasattr(model, "name"):
+            model = model.name
         if provider is None:
             provider = self.provider
             if provider is None:
@@ -603,6 +605,8 @@ class AsyncCompletions:
         if isinstance(messages, str):
             messages = [{"role": "user", "content": messages}]
         resolve_media(kwargs, image, image_name)
+        if hasattr(model, "name"):
+            model = model.name
         if provider is None:
             provider = self.provider
             if provider is None:

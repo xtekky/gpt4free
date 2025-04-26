@@ -102,7 +102,7 @@ class HuggingChat(AsyncAuthedProvider, ProviderModelMixin):
         auth_result: AuthResult,
         prompt: str = None,
         media: MediaListType = None,
-        return_conversation: bool = False,
+        return_conversation: bool = True,
         conversation: Conversation = None,
         web_search: bool = False,
         **kwargs

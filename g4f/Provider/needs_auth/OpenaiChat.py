@@ -304,7 +304,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
         action: str = "next",
         conversation: Conversation = None,
         media: MediaListType = None,
-        return_conversation: bool = False,
+        return_conversation: bool = True,
         web_search: bool = False,
         prompt: str = None,
         **kwargs

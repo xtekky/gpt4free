@@ -76,7 +76,7 @@ class DeepseekAI_JanusPro7b(AsyncGeneratorProvider, ProviderModelMixin):
         cookies: Cookies = None,
         api_key: str = None,
         zerogpu_uuid: str = "[object Object]",
-        return_conversation: bool = False,
+        return_conversation: bool = True,
         conversation: JsonConversation = None,
         seed: int = None,
         **kwargs

@@ -548,7 +548,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         temperature: float = None,
         max_tokens: int = None,
         conversation: Conversation = None,
-        return_conversation: bool = False,
+        return_conversation: bool = True,
         **kwargs
     ) -> AsyncResult:      
         model = cls.get_model(model)

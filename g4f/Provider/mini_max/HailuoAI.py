@@ -48,7 +48,7 @@ class HailuoAI(AsyncAuthedProvider, ProviderModelMixin):
         model: str,
         messages: Messages,
         auth_result: AuthResult,
-        return_conversation: bool = False,
+        return_conversation: bool = True,
         conversation: Conversation = None,
         **kwargs
     ) -> AsyncResult:

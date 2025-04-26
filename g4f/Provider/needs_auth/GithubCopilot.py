@@ -38,7 +38,7 @@ class GithubCopilot(AsyncGeneratorProvider, ProviderModelMixin):
         cookies: Cookies = None,
         conversation_id: str = None,
         conversation: Conversation = None,
-        return_conversation: bool = False,
+        return_conversation: bool = True,
         **kwargs
     ) -> AsyncResult:
         if not model:

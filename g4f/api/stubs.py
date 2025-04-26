@@ -27,7 +27,7 @@ class ChatCompletionsConfig(BaseModel):
     proxy: Optional[str] = None
     conversation_id: Optional[str] = None
     conversation: Optional[dict] = None
-    return_conversation: Optional[bool] = None
+    return_conversation: bool = True
     history_disabled: Optional[bool] = None
     timeout: Optional[int] = None
     tool_calls: list = Field(default=[], examples=[[

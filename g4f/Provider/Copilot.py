@@ -68,7 +68,7 @@ class Copilot(AsyncGeneratorProvider, ProviderModelMixin):
         prompt: str = None,
         media: MediaListType = None,
         conversation: BaseConversation = None,
-        return_conversation: bool = False,
+        return_conversation: bool = True,
         api_key: str = None,
         **kwargs
     ) -> AsyncResult:
