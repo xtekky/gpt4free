@@ -137,6 +137,11 @@ class AnyProvider(AsyncGeneratorProvider, ProviderModelMixin):
                 providers = models.default_vision.best_provider.providers
             else:
                 providers = models.default.best_provider.providers
+        elif model in Provider.__map__:
+            provider = Provider.__map__[model]
+            if provider.working and getattr(provider, "parent", provider.__name__) not in ignored:
+                model = None
+                providers.append(provider)
         else:
             for provider in [
                 OpenaiChat, Cloudflare, LMArenaProvider, PerplexityLabs, Gemini, Grok, DeepSeekAPI, FreeRouter, Blackbox,

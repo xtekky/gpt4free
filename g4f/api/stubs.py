@@ -114,3 +114,8 @@ class ErrorResponseMessageModel(BaseModel):
 
 class FileResponseModel(BaseModel):
     filename: str
+
+class TranscriptionResponseModel(BaseModel):
+    text: str
+    model: str
+    provider: str

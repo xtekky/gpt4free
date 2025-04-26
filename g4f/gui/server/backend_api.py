@@ -220,6 +220,8 @@ class Backend_Api(Api):
                 }]
                 web_search = request.args.get("web_search")
                 if web_search:
+                    is_true_web_search = web_search.lower() in ["true", "1"]
+                    web_search = None if is_true_web_search else web_search
                     tool_calls.append({
                         "function": {
                             "name": "search_tool",
@@ -227,7 +229,7 @@ class Backend_Api(Api):
                         },
                         "type": "function"
                     })
-                do_filter = request.args.get("filter_markdown")
+                do_filter = request.args.get("filter_markdown", request.args.get("json"))
                 cache_id = request.args.get('cache')
                 parameters = {
                     "model": request.args.get("model"),

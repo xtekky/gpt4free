@@ -300,9 +300,9 @@ class Completions:
             kwargs["media"] = [(image, image_name)]
         elif "images" in kwargs:
             kwargs["media"] = kwargs.pop("images")
-        for idx, media in kwargs.get("media", []):
+        for idx, media in enumerate(kwargs.get("media", [])):
             if not isinstance(media, (list, tuple)):
-                kwargs["media"][idx] = (media[0], media[1] if media[1] is not None else getattr(image, "name", None))
+                kwargs["media"][idx] = (media, getattr(media, "name", None))
         if provider is None:
             provider = self.provider
             if provider is None:
@@ -496,10 +496,9 @@ class Images:
         prompt = "create a variation of this image"
         if image is not None:
             kwargs["media"] = image
-        for idx, media in kwargs.get("media", []):
+        for idx, media in enumerate(kwargs.get("media", [])):
             if not isinstance(media, (list, tuple)):
-                kwargs["media"][idx] = (media[0], media[1] if media[1] is not None else getattr(image, "name", None))
-
+                kwargs["media"][idx] = (media, getattr(media, "name", None))
         error = None
         response = None
         if isinstance(provider_handler, IterListProvider):
@@ -605,9 +604,9 @@ class AsyncCompletions:
             kwargs["media"] = [(image, image_name)]
         elif "images" in kwargs:
             kwargs["media"] = kwargs.pop("images")
-        for idx, media in kwargs.get("media", []):
+        for idx, media in enumerate(kwargs.get("media", [])):
             if not isinstance(media, (list, tuple)):
-                kwargs["media"][idx] = (media[0], media[1] if media[1] is not None else getattr(image, "name", None))
+                kwargs["media"][idx] = (media, getattr(media, "name", None))
         if provider is None:
             provider = self.provider
             if provider is None:

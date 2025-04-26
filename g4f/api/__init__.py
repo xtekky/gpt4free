@@ -11,7 +11,7 @@ import os.path
 import hashlib
 import asyncio
 from urllib.parse import quote_plus
-from fastapi import FastAPI, Response, Request, UploadFile, Depends
+from fastapi import FastAPI, Response, Request, UploadFile, Form, Depends
 from fastapi.middleware.wsgi import WSGIMiddleware
 from fastapi.responses import StreamingResponse, RedirectResponse, HTMLResponse, JSONResponse
 from fastapi.exceptions import RequestValidationError
@@ -57,7 +57,8 @@ from .stubs import (
     ChatCompletionsConfig, ImageGenerationConfig,
     ProviderResponseModel, ModelResponseModel,
     ErrorResponseModel, ProviderResponseDetailModel,
-    FileResponseModel, UploadResponseModel
+    FileResponseModel, UploadResponseModel,
+    TranscriptionResponseModel
 )
 from g4f import debug
 
@@ -482,6 +483,47 @@ class Api:
                 'vision_models': [model for model in [getattr(provider, "default_vision_model", None)] if model],
                 'params': [*provider.get_parameters()] if hasattr(provider, "get_parameters") else []
             }
+
+        responses = {
+            HTTP_200_OK: {"model": TranscriptionResponseModel},
+            HTTP_401_UNAUTHORIZED: {"model": ErrorResponseModel},
+            HTTP_404_NOT_FOUND: {"model": ErrorResponseModel},
+            HTTP_500_INTERNAL_SERVER_ERROR: {"model": ErrorResponseModel},
+        }
+        @self.app.post("/v1/audio/transcriptions", responses=responses)
+        @self.app.post("/api/{path_provider}/audio/transcriptions", responses=responses)
+        async def generate_image(
+            file: UploadFile,
+            model: Annotated[Optional[str], Form()] = None,
+            provider: Annotated[Optional[str], Form()] = AppConfig.media_provider,
+            path_provider: str = None,
+            prompt: Annotated[Optional[str], Form()] = "Transcribe this audio",
+            api_key: Annotated[Optional[str], Form()] = None,
+            credentials: Annotated[HTTPAuthorizationCredentials, Depends(Api.security)] = None
+        ):
+            if credentials is not None and credentials.credentials != "secret":
+                api_key = credentials.credentials
+            try:
+                response = await self.client.chat.completions.create(
+                    messages=prompt,
+                    model=model,
+                    media=[[file.file, file.filename]],
+                    modalities=["text"],
+                    **filter_none(
+                        provider=provider if path_provider is None else path_provider,
+                        api_key=api_key
+                    )
+                )
+                return {"text": response.choices[0].message.content, "model": response.model, "provider": response.provider}
+            except (ModelNotFoundError, ProviderNotFoundError) as e:
+                logger.exception(e)
+                return ErrorResponse.from_exception(e, None, HTTP_404_NOT_FOUND)
+            except MissingAuthError as e:
+                logger.exception(e)
+                return ErrorResponse.from_exception(e, None, HTTP_401_UNAUTHORIZED)
+            except Exception as e:
+                logger.exception(e)
+                return ErrorResponse.from_exception(e, None, HTTP_500_INTERNAL_SERVER_ERROR)
 
         @self.app.post("/v1/upload_cookies", responses={
             HTTP_200_OK: {"model": List[FileResponseModel]},
