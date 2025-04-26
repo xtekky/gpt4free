@@ -1,0 +1,16 @@
+{
+  "main": "index.js",
+  "dependencies": {
+    "@xenova/transformers": "^2.16.1",
+    "webpack": "^5.91.0",
+    "webpack-node-externals": "^3.0.0"
+  },
+  "bundledDependencies": [
+    "@xenova/transformers"
+  ],
+  "devDependencies": {
+    "pack": "^2.2.0",
+    "web": "^0.0.2",
+    "webpack-cli": "^5.1.4"
+  }
+}

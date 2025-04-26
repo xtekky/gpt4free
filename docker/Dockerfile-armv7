@@ -1,0 +1,71 @@
+FROM python:slim-bookworm
+
+ARG G4F_VERSION
+ARG G4F_USER=g4f
+ARG G4F_USER_ID=1000
+ARG PYDANTIC_VERSION=1.8.1
+
+ENV G4F_VERSION $G4F_VERSION
+ENV G4F_USER $G4F_USER
+ENV G4F_USER_ID $G4F_USER_ID
+ENV G4F_DIR /app
+
+RUN apt-get update && apt-get upgrade -y \
+  && apt-get install -y git curl \
+  && apt-get install --quiet --yes --no-install-recommends \
+      build-essential libffi-dev zlib1g-dev libjpeg-dev libssl-dev pkg-config \
+# Add user and user group
+  && groupadd -g $G4F_USER_ID $G4F_USER \
+  && useradd -rm -G sudo -u $G4F_USER_ID -g $G4F_USER_ID $G4F_USER \
+  && mkdir -p /var/log/supervisor \
+  && chown "${G4F_USER_ID}:${G4F_USER_ID}" /var/log/supervisor \
+  && echo "${G4F_USER}:${G4F_USER}" | chpasswd \
+  && python -m pip install --upgrade pip
+
+USER $G4F_USER_ID
+WORKDIR $G4F_DIR
+
+ENV HOME /home/$G4F_USER
+ENV PATH "${HOME}/.local/bin:${HOME}/.cargo/bin:${PATH}"
+
+# Install rust toolchain
+RUN curl https://sh.rustup.rs -sSf | bash -s -- -y
+
+# Create app dir and copy the project's requirements file into it
+RUN mkdir -p $G4F_DIR
+COPY requirements-min.txt $G4F_DIR
+COPY requirements-slim.txt $G4F_DIR
+
+# Upgrade pip for the latest features and install the project's Python dependencies.
+RUN pip install --no-cache-dir -r requirements-min.txt \
+  && pip install --no-cache-dir --no-binary setuptools \
+    Cython==0.29.22 \
+    setuptools \
+  # Install PyDantic
+  && pip install \
+    -vvv \
+    --no-cache-dir \
+    --no-binary :all: \
+    --global-option=build_ext \
+    --global-option=-j8 \
+    pydantic==${PYDANTIC_VERSION}
+RUN cat requirements-slim.txt | xargs -n 1 timeout 5m pip install --no-cache-dir || true 
+
+# Remove build packages
+RUN pip uninstall --yes \
+      Cython \
+      setuptools
+
+USER root
+
+# Clean up build deps
+RUN rm --recursive --force "${HOME}/.rustup"
+RUN apt-get purge --auto-remove --yes \
+    build-essential \
+  && apt-get clean \
+  && rm --recursive --force /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+USER $G4F_USER_ID
+
+# Copy the entire package into the container.
+ADD --chown=$G4F_USER:$G4F_USER g4f $G4F_DIR/g4f

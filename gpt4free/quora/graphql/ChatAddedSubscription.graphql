@@ -1,5 +1,0 @@
-subscription ChatAddedSubscription {
-	chatAdded {
-		...ChatFragment
-	}
-}

@@ -1,0 +1,5 @@
+requests
+aiohttp
+brotli
+pycryptodome
+nest_asyncio

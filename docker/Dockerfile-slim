@@ -1,0 +1,36 @@
+FROM python:slim-bookworm
+
+ARG G4F_VERSION
+ARG G4F_USER=g4f
+ARG G4F_USER_ID=1000
+
+ENV G4F_VERSION $G4F_VERSION
+ENV G4F_USER $G4F_USER
+ENV G4F_USER_ID $G4F_USER_ID
+ENV G4F_DIR /app
+
+RUN apt-get update && apt-get upgrade -y \
+  && apt-get install -y git \
+# Add user and user group
+  && groupadd -g $G4F_USER_ID $G4F_USER \
+  && useradd -rm -G sudo -u $G4F_USER_ID -g $G4F_USER_ID $G4F_USER \
+  && echo "${G4F_USER}:${G4F_USER}" | chpasswd \
+  && python -m pip install --upgrade pip \
+  && apt-get clean \
+  && rm --recursive --force /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+USER $G4F_USER_ID
+WORKDIR $G4F_DIR
+
+ENV HOME /home/$G4F_USER
+ENV PATH "${HOME}/.local/bin:${PATH}"
+
+# Create app dir and copy the project's requirements file into it
+RUN mkdir -p $G4F_DIR
+COPY requirements-slim.txt $G4F_DIR
+
+# Upgrade pip for the latest features and install the project's Python dependencies.
+RUN pip install --no-cache-dir -r requirements-slim.txt
+
+# Copy the entire package into the container.
+ADD --chown=$G4F_USER:$G4F_USER g4f $G4F_DIR/g4f

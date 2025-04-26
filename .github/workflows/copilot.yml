@@ -1,0 +1,57 @@
+name: AI Code Reviewer
+
+on:
+  workflow_run:
+    workflows: ["Unittest"]
+    types:
+      - completed
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v3
+      - name: 'Download artifact'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            let allArtifacts = await github.rest.actions.listWorkflowRunArtifacts({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              run_id: context.payload.workflow_run.id,
+            });
+            let matchArtifact = allArtifacts.data.artifacts.filter((artifact) => {
+              return artifact.name == "pr_number"
+            })[0];
+            if (matchArtifact) {
+              let download = await github.rest.actions.downloadArtifact({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                artifact_id: matchArtifact.id,
+                archive_format: 'zip',
+              });
+              let fs = require('fs');
+              fs.writeFileSync(`${process.env.GITHUB_WORKSPACE}/pr_number.zip`, Buffer.from(download.data));
+            } else {
+              throw new Error('No artifact found with name "pr_number"');
+            }
+      - name: 'Unzip artifact'
+        run: unzip pr_number.zip
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+            python-version: "3.x"
+            cache: 'pip'
+      - name: Install Requirements
+        run: |
+          pip install -r requirements.txt
+          pip install PyGithub
+      - name: AI Code Review
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: python -m etc.tool.copilot

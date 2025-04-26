@@ -1,9 +1,0 @@
-mutation subscriptionsMutation(
-  $subscriptions: [AutoSubscriptionQuery!]!
-) {
-  autoSubscribe(subscriptions: $subscriptions) {
-    viewer {
-      id
-    }
-  }
-}

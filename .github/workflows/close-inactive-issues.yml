@@ -1,0 +1,31 @@
+name: Close inactive issues
+
+on:
+  schedule:
+    - cron: "5 0 * * *"
+
+jobs:
+  close-issues:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
+    steps:
+      - uses: actions/stale@v5
+        with:
+          days-before-issue-stale: 7
+          days-before-issue-close: 7
+          
+          days-before-pr-stale: 7
+          days-before-pr-close: 7
+          
+          stale-issue-label: "stale"
+          stale-pr-label: "stale"
+          
+          stale-issue-message: "Bumping this issue because it has been open for 7 days with no activity. Closing automatically in 7 days unless it becomes active again."
+          close-issue-message: "Closing due to inactivity."
+          
+          stale-pr-message: "Bumping this pull request because it has been open for 7 days with no activity. Closing automatically in 7 days unless it becomes active again."
+          close-pr-message: "Closing due to inactivity."
+          
+          repo-token: ${{ secrets.GITHUB_TOKEN }}

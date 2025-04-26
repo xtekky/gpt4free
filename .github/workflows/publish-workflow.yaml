@@ -1,0 +1,102 @@
+name: Publish Docker image
+
+on:
+  push:
+    tags:
+      - '**'
+
+jobs:
+  openapi:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Python 3.13
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.13"
+        cache: 'pip'
+    - name: Install requirements
+      run: |
+        pip install fastapi uvicorn python-multipart
+        pip install -r requirements-min.txt
+    - name: Generate openapi.json
+      run: |
+        python -m etc.tool.openapi
+    - uses: actions/upload-artifact@v4
+      with:
+        name: openapi
+        path: openapi.json
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Get metadata for Docker
+        id: metadata
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            hlohaus789/g4f
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@f4ef78c080cd8ba55a85445d5b36e214a81df20a
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and push armv7 image
+        uses: docker/build-push-action@v5
+        with:
+            context: .
+            file: docker/Dockerfile-armv7
+            platforms: linux/arm/v7
+            push: true
+            tags: |
+              hlohaus789/g4f:latest-armv7
+              hlohaus789/g4f:${{ github.ref_name }}-armv7
+            labels: ${{ steps.metadata.outputs.labels }}
+            build-args: |
+              G4F_VERSION=${{ github.ref_name }}
+
+      - name: Build and push small images
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/Dockerfile-slim
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            hlohaus789/g4f:latest-slim
+            hlohaus789/g4f:${{ github.ref_name }}-slim
+          labels: ${{ steps.metadata.outputs.labels }}
+          build-args: |
+            G4F_VERSION=${{ github.ref_name }}
+
+      - name: Build and push arm64 image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/Dockerfile-slim
+          platforms: linux/arm64
+          push: true
+          tags: ${{ steps.metadata.outputs.tags }}
+          labels: ${{ steps.metadata.outputs.labels }}
+          build-args: |
+            G4F_VERSION=${{ github.ref_name }}
+
+      - name: Build and push big image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.metadata.outputs.tags }}
+          labels: ${{ steps.metadata.outputs.labels }}
+          build-args: |
+            G4F_VERSION=${{ github.ref_name }}
