@@ -45,7 +45,7 @@ docker pull hlohaus789/g4f
   Reach out for help in our [Support Group: discord.gg/qXA4Wf4Fsm](https://discord.gg/qXA4Wf4Fsm).
 
 - **Read our Documentation** 📖  
-  Find detailed guidance and resources at [gpt4free.github.io/docs](https://gpt4free.github.io/docs/main.html).
+  Find detailed guidance and resources at [gpt4free.github.io/docs](https://github.com/gpt4free/gpt4free.github.io/blob/main/docs/main.md).
 
 ## 🔻 Site Takedown
 
@@ -69,9 +69,9 @@ Is your site on this repository and you want to take it down? Send an email to t
      - [📝 Text Generation](#-text-generation)
      - [🎨 Image Generation](#-image-generation)
      - [🌐 Web Interface](#-web-interface)
-     - [🖥️ Local Inference](https://gpt4free.github.io/docs/local.html)
+     - [🖥️ Local Inference](https://github.com/gpt4free/gpt4free.github.io/blob/main/docs/local.md)
      - [🤖 Interference API](#-interference-api)
-     - [🛠️ Configuration](https://gpt4free.github.io/docs/configuration.html)
+     - [🛠️ Configuration](https://github.com/gpt4free/gpt4free.github.io/blob/main/docs/configuration.md)
      - [📱 Run on Smartphone](#-run-on-smartphone)
      - [📘 Full Documentation for Python API](#-full-documentation-for-python-api)
   - [🚀 Providers and Models](https://github.com/gpt4free/gpt4free.github.io/blob/main/docs%2Fproviders-and-models.md)
@@ -152,7 +152,7 @@ By following these steps, you should be able to successfully install and run the
 pip install -U g4f[all]
 ```
 
-> How do I install only parts or do disable parts? **Use partial requirements:** [/docs/requirements](https://gpt4free.github.io/docs/requirements.html)
+> How do I install only parts or do disable parts? **Use partial requirements:** [/docs/requirements](https://github.com/gpt4free/gpt4free.github.io/blob/main/docs/requirements.md)
 
 #### Install from Source:
 ```bash
@@ -161,7 +161,7 @@ cd gpt4free
 pip install -r requirements.txt
 ```
 
-> How do I load the project using git and installing the project requirements? **Read this tutorial and follow it step by step:** [/docs/git](https://gpt4free.github.io/docs/git.html)
+> How do I load the project using git and installing the project requirements? **Read this tutorial and follow it step by step:** [/docs/git](https://github.com/gpt4free/gpt4free.github.io/blob/main/docs/git.md)
 
 ---
 
@@ -196,7 +196,7 @@ response = client.images.generate(
 
 print(f"Generated image URL: {response.data[0].url}")
 ```
-[![Image with cat](https://gpt4free.github.io/docs/images/cat.jpeg)](https://gpt4free.github.io/docs/client.html)
+[![Image with cat](https://gpt4free.github.io/docs/images/cat.jpeg)](https://github.com/gpt4free/gpt4free.github.io/blob/main/docs/client.md)
 
 ### 🌐 Web Interface
 **Run the GUI using Python:**
@@ -214,7 +214,7 @@ python -m g4f.cli gui --port 8080 --debug
 python -m g4f --port 8080 --debug
 ```
 
-> **Learn More About the GUI:** For detailed instructions on how to set up, configure, and use the GPT4Free GUI, refer to the [GUI Documentation](https://gpt4free.github.io/docs/gui.html) . This guide includes step-by-step details on provider selection, managing conversations, using advanced features like speech recognition, and more.
+> **Learn More About the GUI:** For detailed instructions on how to set up, configure, and use the GPT4Free GUI, refer to the [GUI Documentation](https://github.com/gpt4free/gpt4free.github.io/blob/main/docs/gui.md) . This guide includes step-by-step details on provider selection, managing conversations, using advanced features like speech recognition, and more.
 
 ---
 
@@ -222,28 +222,28 @@ python -m g4f --port 8080 --debug
 
 The **Interference API** enables seamless integration with OpenAI's services through G4F, allowing you to deploy efficient AI solutions.
 
-- **Documentation**: [Interference API Docs](https://gpt4free.github.io/docs/interference-api.html)
+- **Documentation**: [Interference API Docs](https://github.com/gpt4free/gpt4free.github.io/blob/main/docs/interference-api.md)
 - **Endpoint**: `http://localhost:1337/v1`
 - **Swagger UI**: Explore the OpenAPI documentation via Swagger UI at `http://localhost:1337/docs`
-- **Provider Selection**: [How to Specify a Provider?](https://gpt4free.github.io/docs/selecting_a_provider.html)
+- **Provider Selection**: [How to Specify a Provider?](https://github.com/gpt4free/gpt4free.github.io/blob/main/docs/selecting_a_provider.md)
 
 This API is designed for straightforward implementation and enhanced compatibility with other OpenAI integrations.
 
 ---
 
 ### 📱 Run on Smartphone
-Run the Web UI on your smartphone for easy access on the go. Check out the dedicated guide to learn how to set up and use the GUI on your mobile device: [Run on Smartphone Guide](https://gpt4free.github.io/docs/guides/phone.html)
+Run the Web UI on your smartphone for easy access on the go. Check out the dedicated guide to learn how to set up and use the GUI on your mobile device: [Run on Smartphone Guide](https://github.com/gpt4free/gpt4free.github.io/blob/main/docs/guides/phone.md)
 
 ---
 
 #### **📘 Full Documentation for Python API**
-   - **Client API from G4F:** [/docs/client](https://gpt4free.github.io/docs/client.html)
-   - **AsyncClient API from G4F:** [/docs/async_client](https://gpt4free.github.io/docs/async_client.html)
-   - **Requests API from G4F:** [/docs/requests](https://gpt4free.github.io/docs/requests.html)
-   - **File API from G4F:** [/docs/file](https://gpt4free.github.io/docs/file.html)
-   - **PydanticAI and LangChain Integration for G4F:** [/docs/pydantic_ai](https://gpt4free.github.io/docs/pydantic_ai.html)
-   - **Legacy API with python modules:** [/docs/legacy](https://gpt4free.github.io/docs/legacy.html)
-   - **G4F - Media Documentation** [/docs/media](https://gpt4free.github.io/media.html) *(New)*
+   - **Client API from G4F:** [/docs/client](https://github.com/gpt4free/gpt4free.github.io/blob/main/docs/client.md)
+   - **AsyncClient API from G4F:** [/docs/async_client](https://github.com/gpt4free/gpt4free.github.io/blob/main/docs/async_client.md)
+   - **Requests API from G4F:** [/docs/requests](https://github.com/gpt4free/gpt4free.github.io/blob/main/docs/requests.md)
+   - **File API from G4F:** [/docs/file](https://github.com/gpt4free/gpt4free.github.io/blob/main/docs/file.md)
+   - **PydanticAI and LangChain Integration for G4F:** [/docs/pydantic_ai](https://github.com/gpt4free/gpt4free.github.io/blob/main/docs/pydantic_ai.md)
+   - **Legacy API with python modules:** [/docs/legacy](https://github.com/gpt4free/gpt4free.github.io/blob/main/docs/legacy.md)
+   - **G4F - Media Documentation** [/docs/media](https://github.com/gpt4free/gpt4free.github.io/media.md) *(New)*
 
 ---
 
@@ -711,10 +711,10 @@ Run the Web UI on your smartphone for easy access on the go. Check out the dedic
 We welcome contributions from the community. Whether you're adding new providers or features, or simply fixing typos and making small improvements, your input is valued. Creating a pull request is all it takes – our co-pilot will handle the code review process. Once all changes have been addressed, we'll merge the pull request into the main branch and release the updates at a later time.
 
 ###### Guide: How do i create a new Provider?
-   - **Read:** [Create Provider Guide](https://gpt4free.github.io/docs/guides/create_provider.html)
+   - **Read:** [Create Provider Guide](https://github.com/gpt4free/gpt4free.github.io/blob/main/docs/guides/create_provider.md)
 
 ###### Guide: How can AI help me with writing code?
-   - **Read:** [AI Assistance Guide](https://gpt4free.github.io/docs/guides/help_me.html)
+   - **Read:** [AI Assistance Guide](https://github.com/gpt4free/gpt4free.github.io/blob/main/docs/guides/help_me.md)
 
 
 
@@ -884,4 +884,3 @@ This project is licensed under <a href="https://github.com/xtekky/gpt4free/blob/
 ---
 
 <p align="right">(<a href="#top">🔼 Back to top</a>)</p>
-
