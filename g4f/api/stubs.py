@@ -119,3 +119,11 @@ class TranscriptionResponseModel(BaseModel):
     text: str
     model: str
     provider: str
+
+class AudioSpeechConfig(BaseModel):
+    input: str
+    model: Optional[str] = None
+    provider: Optional[str] = None
+    voice: Optional[str] = None
+    instrcutions: str = "Speech this text in a natural way."
+    response_format: Optional[str] = None

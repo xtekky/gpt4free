@@ -177,7 +177,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         # Load model list
         cls.get_models()
         if not model:
-            has_audio = "audio" in kwargs
+            has_audio = "audio" in kwargs or "audio" in kwargs.get("modalities", [])
             if not has_audio and media is not None:
                 for media_data, filename in media:
                     if is_data_an_audio(media_data, filename):
@@ -311,6 +311,8 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
 
         async with ClientSession(headers=DEFAULT_HEADERS, connector=get_connector(proxy=proxy)) as session:
             if model in cls.audio_models:
+                if "audio" in kwargs and kwargs.get("audio", {}).get("voice") is None:
+                    kwargs["audio"]["voice"] = cls.audio_models[model][0]
                 url = cls.text_api_endpoint
                 stream = False
             else:
@@ -329,6 +331,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                 "cache": cache,
                 **extra_parameters
             })
+            print(f"Requesting {url} with data: {data}")
             async with session.post(url, json=data) as response:
                 await raise_for_status(response)
                 if response.headers["content-type"].startswith("text/plain"):
