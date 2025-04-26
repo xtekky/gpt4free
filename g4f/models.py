@@ -522,7 +522,7 @@ deepseek_chat = Model(
 deepseek_v3 = Model(
     name = 'deepseek-v3',
     base_provider = 'DeepSeek',
-    best_provider = IterListProvider([Blackbox, DeepInfraChat, LambdaChat, PollinationsAI, OIVSCode, TypeGPT, Liaobots])
+    best_provider = IterListProvider([Blackbox, DeepInfraChat, PollinationsAI, OIVSCode, TypeGPT, Liaobots])
 )
 
 deepseek_r1 = Model(

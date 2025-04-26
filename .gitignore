@@ -21,7 +21,6 @@ accounts.txt
 **/__pycache__/
 __pycache__/
 
-dist/
 *.log
 *.pyc
 *.egg-info/
@@ -66,6 +65,7 @@ bench.py
 to-reverse.txt
 g4f/Provider/OpenaiChat2.py
 generated_images/
+generated_media/
 projects/windows/
 
 *.bak

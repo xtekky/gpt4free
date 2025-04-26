@@ -270,7 +270,7 @@ class LMArenaProvider(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin)
         cls, model: str, messages: Messages,
         media: MediaListType = None,
         conversation: JsonConversation = None,
-        return_conversation: bool = False,
+        return_conversation: bool = True,
         max_tokens: int = 2048,
         temperature: float = 0.7,
         top_p: float = 1,

@@ -59,6 +59,11 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         "gpt-4o-mini": "openai",
         "gpt-4": "openai-large",
         "gpt-4o": "openai-large",
+        "gpt-4.1": "openai",
+        "gpt-4.1-nano": "openai",
+        "gpt-4.1-mini": "openai-large",
+        "gpt-4.1-xlarge": "openai-xlarge",
+        "o4-mini": "openai-reasoning",
         "qwen-2.5-coder-32b": "qwen-coder",
         "llama-3.3-70b": "llama",
         "llama-4-scout": "llamascout",
@@ -67,10 +72,12 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         "llama-3.3-70b": "llama-scaleway",
         "phi-4": "phi",
         "deepseek-r1": "deepseek-reasoning-large",
-        "deepseek-r1": "deepseek-reasoning",
+        "deepseek-r1-distill-llama-70b": "deepseek-reasoning-large",
+        "deepseek-r1-distill-qwen-32b": "deepseek-reasoning",
         "deepseek-v3": "deepseek",
         "llama-3.2-11b": "llama-vision",
         "gpt-4o-audio": "openai-audio",
+        "gpt-4o-audio-preview": "openai-audio",
         
         ### Image Models ###
         "sdxl-turbo": "turbo",
@@ -177,7 +184,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         # Load model list
         cls.get_models()
         if not model:
-            has_audio = "audio" in kwargs
+            has_audio = "audio" in kwargs or "audio" in kwargs.get("modalities", [])
             if not has_audio and media is not None:
                 for media_data, filename in media:
                     if is_data_an_audio(media_data, filename):
@@ -311,6 +318,8 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
 
         async with ClientSession(headers=DEFAULT_HEADERS, connector=get_connector(proxy=proxy)) as session:
             if model in cls.audio_models:
+                if "audio" in kwargs and kwargs.get("audio", {}).get("voice") is None:
+                    kwargs["audio"]["voice"] = cls.audio_models[model][0]
                 url = cls.text_api_endpoint
                 stream = False
             else:

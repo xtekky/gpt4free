@@ -27,7 +27,7 @@ class ChatCompletionsConfig(BaseModel):
     proxy: Optional[str] = None
     conversation_id: Optional[str] = None
     conversation: Optional[dict] = None
-    return_conversation: Optional[bool] = None
+    return_conversation: bool = True
     history_disabled: Optional[bool] = None
     timeout: Optional[int] = None
     tool_calls: list = Field(default=[], examples=[[
@@ -114,3 +114,16 @@ class ErrorResponseMessageModel(BaseModel):
 
 class FileResponseModel(BaseModel):
     filename: str
+
+class TranscriptionResponseModel(BaseModel):
+    text: str
+    model: str
+    provider: str
+
+class AudioSpeechConfig(BaseModel):
+    input: str
+    model: Optional[str] = None
+    provider: Optional[str] = None
+    voice: Optional[str] = None
+    instrcutions: str = "Speech this text in a natural way."
+    response_format: Optional[str] = None

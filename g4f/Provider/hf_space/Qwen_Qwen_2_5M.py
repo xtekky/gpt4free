@@ -31,7 +31,7 @@ class Qwen_Qwen_2_5M(AsyncGeneratorProvider, ProviderModelMixin):
         model: str,
         messages: Messages,
         proxy: str = None,
-        return_conversation: bool = False,
+        return_conversation: bool = True,
         conversation: JsonConversation = None,
         **kwargs
     ) -> AsyncResult:

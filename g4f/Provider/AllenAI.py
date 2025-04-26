@@ -77,7 +77,7 @@ class AllenAI(AsyncGeneratorProvider, ProviderModelMixin):
         top_p: float = None,
         temperature: float = None,
         conversation: Conversation = None,
-        return_conversation: bool = False,
+        return_conversation: bool = True,
         media: MediaListType = None,
         **kwargs
     ) -> AsyncResult:

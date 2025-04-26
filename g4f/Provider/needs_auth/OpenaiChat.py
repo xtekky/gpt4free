@@ -23,11 +23,11 @@ from ...requests.raise_for_status import raise_for_status
 from ...requests import StreamSession
 from ...requests import get_nodriver
 from ...image import ImageRequest, to_image, to_bytes, is_accepted_format
-from ...errors import MissingAuthError, NoValidHarFileError
+from ...errors import MissingAuthError, NoValidHarFileError, ModelNotSupportedError
 from ...providers.response import JsonConversation, FinishReason, SynthesizeData, AuthResult, ImageResponse, ImagePreview
 from ...providers.response import Sources, TitleGeneration, RequestLogin, Reasoning
 from ...tools.media import merge_media
-from ..helper import format_cookies, format_image_prompt
+from ..helper import format_cookies, format_image_prompt, to_string
 from ..openai.models import default_model, default_image_model, models, image_models, text_models
 from ..openai.har_file import get_request_config
 from ..openai.har_file import RequestConfig, arkReq, arkose_url, start_url, conversation_url, backend_url, backend_anon_url
@@ -221,7 +221,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
         messages = [{
             "id": str(uuid.uuid4()),
             "author": {"role": message["role"]},
-            "content": {"content_type": "text", "parts": [message["content"]]},
+            "content": {"content_type": "text", "parts": [to_string(message["content"])]},
             "metadata": {"serialization_metadata": {"custom_symbol_offsets": []}, **({"system_hints": system_hints} if system_hints else {})},
             "create_time": time.time(),
         } for message in messages]
@@ -304,7 +304,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
         action: str = "next",
         conversation: Conversation = None,
         media: MediaListType = None,
-        return_conversation: bool = False,
+        return_conversation: bool = True,
         web_search: bool = False,
         prompt: str = None,
         **kwargs
@@ -356,7 +356,10 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                 except Exception as e:
                     debug.error("OpenaiChat: Upload image failed")
                     debug.error(e)
-            model = cls.get_model(model)
+            try:
+                model = cls.get_model(model)
+            except ModelNotSupportedError:
+                pass
             if conversation is None:
                 conversation = Conversation(None, str(uuid.uuid4()), getattr(auth_result, "cookies", {}).get("oai-did"))
             else:

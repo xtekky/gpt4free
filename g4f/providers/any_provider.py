@@ -11,7 +11,7 @@ from ..Provider.hf_space import HuggingSpace
 from .. import Provider
 from .. import models
 from ..Provider import Cloudflare, LMArenaProvider, Gemini, Grok, DeepSeekAPI, PerplexityLabs, LambdaChat, PollinationsAI, FreeRouter
-from ..Provider import Microsoft_Phi_4, DeepInfraChat, Blackbox
+from ..Provider import Microsoft_Phi_4, DeepInfraChat, Blackbox, EdgeTTS, gTTS, MarkItDown
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 
 class AnyProvider(AsyncGeneratorProvider, ProviderModelMixin):
@@ -124,19 +124,26 @@ class AnyProvider(AsyncGeneratorProvider, ProviderModelMixin):
         elif not model or model == cls.default_model:
             model = ""
             has_image = False
-            has_audio = "audio" in kwargs
+            has_audio = False
             if not has_audio and media is not None:
                 for media_data, filename in media:
                     if is_data_an_audio(media_data, filename):
                         has_audio = True
                         break
                     has_image = True
-            if has_audio:
-                providers = [PollinationsAI, Microsoft_Phi_4]
+            if "audio" in kwargs or "audio" in kwargs.get("modalities", []):
+                providers = [PollinationsAI, EdgeTTS, gTTS]
+            elif has_audio:
+                providers = [PollinationsAI, Microsoft_Phi_4, MarkItDown]
             elif has_image:
                 providers = models.default_vision.best_provider.providers
             else:
                 providers = models.default.best_provider.providers
+        elif model in Provider.__map__:
+            provider = Provider.__map__[model]
+            if provider.working and getattr(provider, "parent", provider.__name__) not in ignored:
+                model = None
+                providers.append(provider)
         else:
             for provider in [
                 OpenaiChat, Cloudflare, LMArenaProvider, PerplexityLabs, Gemini, Grok, DeepSeekAPI, FreeRouter, Blackbox,

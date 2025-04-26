@@ -38,7 +38,7 @@ class CohereForAI_C4AI_Command(AsyncGeneratorProvider, ProviderModelMixin):
         api_key: str = None, 
         proxy: str = None,
         conversation: JsonConversation = None,
-        return_conversation: bool = False,
+        return_conversation: bool = True,
         **kwargs
     ) -> AsyncResult:
         model = cls.get_model(model)

@@ -321,7 +321,7 @@ class DDG(AsyncGeneratorProvider, ProviderModelMixin):
         timeout: int = 60,
         cookies: Cookies = None,
         conversation: Conversation = None,
-        return_conversation: bool = False,
+        return_conversation: bool = True,
         **kwargs
     ) -> AsyncResult:
         model = cls.validate_model(model)

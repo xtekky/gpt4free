@@ -45,6 +45,17 @@ def add_chunk(content, chunk):
         content = str(content) + str(chunk)
     return content
 
+def resolve_media(kwargs: dict, image = None, image_name: str = None) -> None:
+    if image is not None:
+        kwargs["media"] = [(image, image_name)]
+    elif "images" in kwargs:
+        kwargs["media"] = kwargs.pop("images")
+    if "media" in kwargs and not isinstance(kwargs["media"], list):
+        kwargs["media"] = [kwargs["media"]]
+    for idx, media in enumerate(kwargs.get("media", [])):
+        if not isinstance(media, (list, tuple)):
+            kwargs["media"][idx] = (media, getattr(media, "name", None))
+
 # Synchronous iter_response function
 def iter_response(
     response: Union[Iterator[Union[str, ResponseType]]],
@@ -296,13 +307,9 @@ class Completions:
     ) -> ChatCompletion:
         if isinstance(messages, str):
             messages = [{"role": "user", "content": messages}]
-        if image is not None:
-            kwargs["media"] = [(image, image_name)]
-        elif "images" in kwargs:
-            kwargs["media"] = kwargs.pop("images")
-        for idx, media in kwargs.get("media", []):
-            if not isinstance(media, (list, tuple)):
-                kwargs["media"][idx] = (media[0], media[1] if media[1] is not None else getattr(image, "name", None))
+        resolve_media(kwargs, image, image_name)
+        if hasattr(model, "name"):
+            model = model.name
         if provider is None:
             provider = self.provider
             if provider is None:
@@ -483,6 +490,7 @@ class Images:
     async def async_create_variation(
         self,
         image: ImageType,
+        image_name: str = None,
         model: Optional[str] = None,
         provider: Optional[ProviderType] = None,
         response_format: Optional[str] = None,
@@ -494,12 +502,7 @@ class Images:
         if proxy is None:
             proxy = self.client.proxy
         prompt = "create a variation of this image"
-        if image is not None:
-            kwargs["media"] = image
-        for idx, media in kwargs.get("media", []):
-            if not isinstance(media, (list, tuple)):
-                kwargs["media"][idx] = (media[0], media[1] if media[1] is not None else getattr(image, "name", None))
-
+        resolve_media(kwargs, image, image_name)
         error = None
         response = None
         if isinstance(provider_handler, IterListProvider):
@@ -601,13 +604,9 @@ class AsyncCompletions:
     ) -> Awaitable[ChatCompletion]:
         if isinstance(messages, str):
             messages = [{"role": "user", "content": messages}]
-        if image is not None:
-            kwargs["media"] = [(image, image_name)]
-        elif "images" in kwargs:
-            kwargs["media"] = kwargs.pop("images")
-        for idx, media in kwargs.get("media", []):
-            if not isinstance(media, (list, tuple)):
-                kwargs["media"][idx] = (media[0], media[1] if media[1] is not None else getattr(image, "name", None))
+        resolve_media(kwargs, image, image_name)
+        if hasattr(model, "name"):
+            model = model.name
         if provider is None:
             provider = self.provider
             if provider is None:

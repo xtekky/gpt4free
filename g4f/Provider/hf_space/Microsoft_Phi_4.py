@@ -99,7 +99,7 @@ class Microsoft_Phi_4(AsyncGeneratorProvider, ProviderModelMixin):
         cookies: Cookies = None,
         api_key: str = None,
         zerogpu_uuid: str = "[object Object]",
-        return_conversation: bool = False,
+        return_conversation: bool = True,
         conversation: JsonConversation = None,
         **kwargs
     ) -> AsyncResult:
