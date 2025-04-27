@@ -534,7 +534,7 @@ class Api:
             return await convert(file, "MarkItDown")
 
         responses = {
-            HTTP_200_OK: {"class": FileResponse},
+            HTTP_200_OK: {"content": {"audio/*": {}}},
             HTTP_401_UNAUTHORIZED: {"model": ErrorResponseModel},
             HTTP_404_NOT_FOUND: {"model": ErrorResponseModel},
             HTTP_500_INTERNAL_SERVER_ERROR: {"model": ErrorResponseModel},
