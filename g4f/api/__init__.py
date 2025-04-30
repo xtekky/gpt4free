@@ -301,21 +301,25 @@ class Api:
                 })
             return ErrorResponse.from_message("The model does not exist.", HTTP_404_NOT_FOUND)
 
-        @self.app.post("/v1/chat/completions", responses={
+        responses = {
             HTTP_200_OK: {"model": ChatCompletion},
             HTTP_401_UNAUTHORIZED: {"model": ErrorResponseModel},
             HTTP_404_NOT_FOUND: {"model": ErrorResponseModel},
             HTTP_422_UNPROCESSABLE_ENTITY: {"model": ErrorResponseModel},
             HTTP_500_INTERNAL_SERVER_ERROR: {"model": ErrorResponseModel},
-        })
+        }
+        @self.app.post("/v1/chat/completions", responses=responses)
         async def chat_completions(
             config: ChatCompletionsConfig,
             credentials: Annotated[HTTPAuthorizationCredentials, Depends(Api.security)] = None,
-            provider: str = None
+            provider: str = None,
+            conversation_id: str = None,
         ):
             try:
                 if config.provider is None:
                     config.provider = AppConfig.provider if provider is None else provider
+                if config.conversation_id is None:
+                    config.conversation_id = conversation_id
                 if credentials is not None and credentials.credentials != "secret":
                     config.api_key = credentials.credentials
 
@@ -395,19 +399,22 @@ class Api:
                 logger.exception(e)
                 return ErrorResponse.from_exception(e, config, HTTP_500_INTERNAL_SERVER_ERROR)
 
-        @self.app.post("/api/{provider}/chat/completions", responses={
-            HTTP_200_OK: {"model": ChatCompletion},
-            HTTP_401_UNAUTHORIZED: {"model": ErrorResponseModel},
-            HTTP_404_NOT_FOUND: {"model": ErrorResponseModel},
-            HTTP_422_UNPROCESSABLE_ENTITY: {"model": ErrorResponseModel},
-            HTTP_500_INTERNAL_SERVER_ERROR: {"model": ErrorResponseModel},
-        })
+        @self.app.post("/api/{provider}/chat/completions", responses=responses)
         async def provider_chat_completions(
             provider: str,
             config: ChatCompletionsConfig,
             credentials: Annotated[HTTPAuthorizationCredentials, Depends(Api.security)] = None,
         ):
             return await chat_completions(config, credentials, provider)
+
+        @self.app.post("/api/{provider}/{conversation_id}/chat/completions", responses=responses)
+        async def provider_chat_completions(
+            provider: str,
+            conversation_id: str,
+            config: ChatCompletionsConfig,
+            credentials: Annotated[HTTPAuthorizationCredentials, Depends(Api.security)] = None,
+        ):
+            return await chat_completions(config, credentials, provider, conversation_id)
 
         responses = {
             HTTP_200_OK: {"model": ImagesResponse},
@@ -527,7 +534,7 @@ class Api:
             return await convert(file, "MarkItDown")
 
         responses = {
-            HTTP_200_OK: {"class": FileResponse},
+            HTTP_200_OK: {"content": {"audio/*": {}}},
             HTTP_401_UNAUTHORIZED: {"model": ErrorResponseModel},
             HTTP_404_NOT_FOUND: {"model": ErrorResponseModel},
             HTTP_500_INTERNAL_SERVER_ERROR: {"model": ErrorResponseModel},

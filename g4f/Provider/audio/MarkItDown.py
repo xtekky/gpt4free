@@ -23,6 +23,10 @@ class MarkItDown(AsyncGeneratorProvider, ProviderModelMixin):
         media: MediaListType = None,
         **kwargs
     ) -> AsyncResult:
+        if media is None:
+            raise ValueError("MarkItDown requires media to be provided.")
+        if not has_markitdown:
+            raise ImportError("MarkItDown is not installed. Please install it with `pip install markitdown`.")
         md = MaItDo()
         for file, filename in media:
             text = None
