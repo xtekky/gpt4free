@@ -583,7 +583,7 @@ async def get_async_streaming(bucket_dir: str, delete_files = False, refine_chun
         raise e
 
 def get_tempfile(file, suffix):
-    copyfile = tempfile.NamedTemporaryFile(suffix=suffix, delete=False)
+    copyfile = tempfile.NamedTemporaryFile(suffix=os.path.splitext(suffix)[-1], delete=False)
     shutil.copyfileobj(file, copyfile)
     copyfile.close()
     file.close()

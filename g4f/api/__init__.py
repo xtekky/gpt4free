@@ -508,13 +508,19 @@ class Api:
             provider: Annotated[Optional[str], Form()] = None,
             prompt: Annotated[Optional[str], Form()] = "Transcribe this audio"
         ):
+            provider = provider if path_provider is None else path_provider
+            kwargs = {"modalities": ["text"]}
+            if provider == "MarkItDown":
+                kwargs = {
+                    "llm_client": self.client,
+                }
             try:
                 response = await self.client.chat.completions.create(
                     messages=prompt,
                     model=model,
-                    provider=provider if path_provider is None else path_provider,
+                    provider=provider,
                     media=[[file.file, file.filename]],
-                    modalities=["text"]
+                    **kwargs
                 )
                 return {"text": response.choices[0].message.content, "model": response.model, "provider": response.provider}
             except (ModelNotFoundError, ProviderNotFoundError) as e:
