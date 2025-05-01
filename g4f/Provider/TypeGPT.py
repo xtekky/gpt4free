@@ -37,5 +37,5 @@ class TypeGPT(OpenaiTemplate):
     def get_models(cls, **kwargs):
         if not cls.models:
             cls.models = requests.get(f"{cls.url}/api/config").json()["customModels"].split(",")
-            cls.models = [model.split("@")[0][1:] for model in cls.models if model.startswith("+") and model not in cls.image_models]
+            cls.models = [model.split("@")[0].strip("+") for model in cls.models if not model.startswith("-") and model not in cls.image_models]
         return cls.models

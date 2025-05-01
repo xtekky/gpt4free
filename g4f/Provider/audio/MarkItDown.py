@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import os
+import asyncio
+from typing import Any
 
 try:
     from markitdown import MarkItDown as MaItDo, StreamInfo
@@ -21,6 +23,7 @@ class MarkItDown(AsyncGeneratorProvider, ProviderModelMixin):
         model: str,
         messages: Messages,
         media: MediaListType = None,
+        llm_client: Any = None,
         **kwargs
     ) -> AsyncResult:
         if media is None:
@@ -31,11 +34,28 @@ class MarkItDown(AsyncGeneratorProvider, ProviderModelMixin):
         for file, filename in media:
             text = None
             try:
-                text = md.convert(file, stream_info=StreamInfo(filename=filename) if filename else None).text_content
+                result = md.convert(
+                    file,
+                    stream_info=StreamInfo(filename=filename) if filename else None,
+                    llm_client=llm_client,
+                    llm_model=model
+                )
+                if asyncio.iscoroutine(result.text_content):
+                    text = await result.text_content
+                else:
+                    text = result.text_content
             except TypeError:
                 copyfile = get_tempfile(file, filename)
                 try:
-                    text = md.convert(copyfile).text_content
+                    result = md.convert(
+                        copyfile, 
+                        llm_client=llm_client,
+                        llm_model=model
+                    )
+                    if asyncio.iscoroutine(result.text_content):
+                        text = await result.text_content
+                    else:
+                        text = result.text_content
                 finally:
                     os.remove(copyfile)
             text = text.split("### Audio Transcript:\n")[-1]

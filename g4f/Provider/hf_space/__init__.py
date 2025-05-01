@@ -16,6 +16,7 @@ from .Qwen_Qwen_2_5                  import Qwen_Qwen_2_5
 from .Qwen_Qwen_2_5M                 import Qwen_Qwen_2_5M
 from .Qwen_Qwen_2_5_Max              import Qwen_Qwen_2_5_Max
 from .Qwen_Qwen_2_72B                import Qwen_Qwen_2_72B
+from .Qwen_Qwen_3                    import Qwen_Qwen_3
 from .StabilityAI_SD35Large          import StabilityAI_SD35Large
 from .Voodoohop_Flux1Schnell         import Voodoohop_Flux1Schnell
 
@@ -38,6 +39,7 @@ class HuggingSpace(AsyncGeneratorProvider, ProviderModelMixin):
         Qwen_Qwen_2_5M,
         Qwen_Qwen_2_5_Max,
         Qwen_Qwen_2_72B,
+        Qwen_Qwen_3,
         StabilityAI_SD35Large,
         Voodoohop_Flux1Schnell,
     ]

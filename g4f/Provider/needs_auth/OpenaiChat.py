@@ -337,7 +337,8 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
             timeout=timeout
         ) as session:
             image_requests = None
-            if not cls.needs_auth:
+            media  = merge_media(media, messages)
+            if not cls.needs_auth and not media:
                 if cls._headers is None:
                     cls._create_request_args(cls._cookies)
                     async with session.get(cls.url, headers=INIT_HEADERS) as response:
@@ -352,7 +353,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                     cls._update_request_args(auth_result, session)
                     await raise_for_status(response)
                 try:
-                    image_requests = await cls.upload_images(session, auth_result, merge_media(media, messages))
+                    image_requests = await cls.upload_images(session, auth_result, media)
                 except Exception as e:
                     debug.error("OpenaiChat: Upload image failed")
                     debug.error(e)
