@@ -10,11 +10,12 @@ from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..helper import get_last_user_message
 from ... import debug
 
+
 class Qwen_Qwen_3(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Qwen Qwen-3"
     url = "https://qwen-qwen3-demo.hf.space"
     api_endpoint = "https://qwen-qwen3-demo.hf.space/gradio_api/queue/join?__theme=system"
-    
+
     working = True
     supports_stream = True
     supports_system_message = True
@@ -34,13 +35,13 @@ class Qwen_Qwen_3(AsyncGeneratorProvider, ProviderModelMixin):
 
     @classmethod
     async def create_async_generator(
-        cls,
-        model: str,
-        messages: Messages,
-        proxy: str = None,
-        conversation: JsonConversation = None,
-        thinking_budget: int = 38,
-        **kwargs
+            cls,
+            model: str,
+            messages: Messages,
+            proxy: str = None,
+            conversation: JsonConversation = None,
+            thinking_budget: int = 38,
+            **kwargs
     ) -> AsyncResult:
         if conversation is None:
             conversation = JsonConversation(session_hash=str(uuid.uuid4()).replace('-', ''))
@@ -64,10 +65,10 @@ class Qwen_Qwen_3(AsyncGeneratorProvider, ProviderModelMixin):
         sys_prompt = "\n".join([message['content'] for message in messages if message['role'] == 'system'])
         sys_prompt = sys_prompt if sys_prompt else "You are a helpful and harmless assistant."
 
-        payload_join = {"data":[
+        payload_join = {"data": [
             get_last_user_message(messages),
             {"thinking_budget": thinking_budget, "model": cls.get_model(model), "sys_prompt": sys_prompt}, None, None],
-            "event_data":None,"fn_index":13,"trigger_id":31,"session_hash":conversation.session_hash
+            "event_data": None, "fn_index": 13, "trigger_id": 31, "session_hash": conversation.session_hash
         }
 
         async with aiohttp.ClientSession() as session:
@@ -100,14 +101,20 @@ class Qwen_Qwen_3(AsyncGeneratorProvider, ProviderModelMixin):
 
                             # Look for generation stages
                             if json_data.get('msg') == 'process_generating':
-                                if 'output' in json_data and 'data' in json_data['output'] and len(json_data['output']['data']) > 5:
+                                if 'output' in json_data and 'data' in json_data['output'] and len(
+                                        json_data['output']['data']) > 5:
                                     updates = json_data['output']['data'][5]
                                     for update in updates:
                                         if isinstance(update[2], dict):
                                             if update[2].get('type') == 'tool':
-                                                yield Reasoning(update[2].get('content'), status=update[2].get('options', {}).get('title'))
+                                                yield Reasoning(update[2].get('content'),
+                                                                status=update[2].get('options', {}).get('title'))
                                                 is_thinking = True
-                                        elif isinstance(update, list) and isinstance(update[1], list) and len(update[1]) > 4:
+                                            elif update[2].get('type') == 'text':
+                                                yield Reasoning(update[2].get('content'))
+                                                is_thinking = False
+                                        elif isinstance(update, list) and isinstance(update[1], list) and len(
+                                                update[1]) > 4:
                                             if update[1][4] == "content":
                                                 yield Reasoning(update[2]) if is_thinking else update[2]
                                             elif update[1][4] == "options":
