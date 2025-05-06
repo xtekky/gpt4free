@@ -2,6 +2,8 @@ from __future__  import annotations
 
 from dataclasses import dataclass
 
+from g4f.Provider.needs_auth.zai import ZAI
+
 from .Provider import IterListProvider, ProviderType
 from .Provider import (
     ### No Auth Required ###
@@ -51,6 +53,7 @@ from .Provider import (
     OpenaiAccount,
     OpenaiChat,
     Reka,
+    zai,
 )
 
 @dataclass(unsafe_hash=True)
@@ -105,6 +108,7 @@ default = Model(
         OpenaiChat,
         Jmuz,
         Cloudflare,
+        zai,
     ])
 )
 
@@ -707,6 +711,23 @@ evil = Model(
     best_provider = IterListProvider([PollinationsAI, TypeGPT])
 )
 
+### ZAI MODELS ###
+glm_4_32b = Model(
+    name = 'GLM-4-32B',
+    base_provider = 'zai',
+    best_provider = ZAI
+)
+
+z1_32b = Model(
+    name='Z1-32B',
+    base_provider='zai',
+    best_provider= ZAI
+)
+z1_rumination = Model(
+    name='Z1-Rumination',
+    base_provider='zai',
+    best_provider= ZAI
+)
 
 #############
 ### Image ###
@@ -957,6 +978,11 @@ class ModelUtils:
         
         ### Uncensored AI ###
         evil.name: evil,
+
+        ### ZAI MODELS ###
+        glm_4_32b.name: glm_4_32b,
+        z1_32b.name: z1_32b,
+        z1_rumination.name: z1_rumination,
         
         #############
         ### Image ###

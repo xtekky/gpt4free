@@ -28,3 +28,4 @@ from .Replicate         import Replicate
 from .ThebApi           import ThebApi
 from .WhiteRabbitNeo    import WhiteRabbitNeo
 from .xAI               import xAI
+from .zai               import ZAI
