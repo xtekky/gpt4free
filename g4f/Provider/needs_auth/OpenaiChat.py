@@ -153,8 +153,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                 "use_case":	"multimodal"
             }
             # Post the image data to the service and get the image data
-            headers = auth_result.headers if hasattr(auth_result, "headers") else None
-            async with session.post(f"{cls.url}/backend-api/files", json=data, headers=headers) as response:
+            async with session.post(f"{cls.url}/backend-api/files", json=data, headers=cls._headers) as response:
                 cls._update_request_args(auth_result, session)
                 await raise_for_status(response, "Create file failed")
                 image_data = {
@@ -266,7 +265,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
             element = element["asset_pointer"] 
         if isinstance(element, str) and element.startswith("file-service://"):
             element = element.split("file-service://", 1)[-1]
-        if isinstance(element, str) and element.startswith("sediment://"):
+        elif isinstance(element, str) and element.startswith("sediment://"):
             is_sediment = True
             element = element.split("sediment://")[-1]
         else:
@@ -459,7 +458,16 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                         raise RuntimeError((await response.json()), data)
                     await raise_for_status(response)
                     buffer = u""
+                    matches = []
                     async for line in response.iter_lines():
+                        pattern = re.compile(r"file-service://[\w-]+")
+                        for match in pattern.finditer(line.decode(errors="ignore")):
+                            if match.group(0) in matches:
+                                continue
+                            matches.append(match.group(0))
+                            generated_image = await cls.get_generated_image(session, auth_result, match.group(0), prompt)
+                            if generated_image is not None:
+                                yield generated_image
                         async for chunk in cls.iter_messages_line(session, auth_result, line, conversation, sources):
                             if isinstance(chunk, str):
                                 chunk = chunk.replace("\ue203", "").replace("\ue204", "").replace("\ue206", "")
@@ -572,10 +580,10 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                     if c.get("content_type") == "text" and m.get("author", {}).get("role") == "tool" and "initial_text" in m.get("metadata", {}):
                         fields.is_thinking = True
                         yield Reasoning(status=m.get("metadata", {}).get("initial_text"))
-                    if c.get("content_type") == "multimodal_text":
-                        for part in c.get("parts"):
-                            if isinstance(part, dict) and part.get("content_type") == "image_asset_pointer":
-                                yield await cls.get_generated_image(session, auth_result, part, fields.prompt, fields.conversation_id)
+                    #if c.get("content_type") == "multimodal_text":
+                    #    for part in c.get("parts"):
+                    #        if isinstance(part, dict) and part.get("content_type") == "image_asset_pointer":
+                    #            yield await cls.get_generated_image(session, auth_result, part, fields.prompt, fields.conversation_id)
                     if m.get("author", {}).get("role") == "assistant":
                         if fields.parent_message_id is None:
                             fields.parent_message_id = v.get("message", {}).get("id")

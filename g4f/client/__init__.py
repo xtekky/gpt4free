@@ -54,7 +54,7 @@ def resolve_media(kwargs: dict, image = None, image_name: str = None) -> None:
         kwargs["media"] = [kwargs["media"]]
     for idx, media in enumerate(kwargs.get("media", [])):
         if not isinstance(media, (list, tuple)):
-            kwargs["media"][idx] = (media, getattr(media, "name", None))
+            kwargs["media"][idx] = (media, os.path.basename(getattr(media, "name", "")))
 
 # Synchronous iter_response function
 def iter_response(

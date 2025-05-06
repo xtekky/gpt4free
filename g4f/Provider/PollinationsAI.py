@@ -194,8 +194,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         try:
             model = cls.get_model(model)
         except ModelNotFoundError:
-            if model not in cls.image_models:
-                raise
+            pass
 
         if model in cls.image_models:
             async for chunk in cls._generate_image(
