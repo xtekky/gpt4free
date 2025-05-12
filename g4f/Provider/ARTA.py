@@ -167,9 +167,6 @@ class ARTA(AsyncGeneratorProvider, ProviderModelMixin):
                 "seed": str(seed),
             }
 
-            # Debug: Print the payload being sent
-            print(f"Sending payload: {form_data}")
-
             headers = {
                 "Authorization": auth_token,
                 # No Content-Type header for multipart/form-data, aiohttp sets it automatically
