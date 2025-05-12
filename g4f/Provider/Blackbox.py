@@ -6,7 +6,6 @@ import re
 import json
 import random
 import string
-import base64
 from pathlib import Path
 from typing import Optional
 from datetime import datetime, timedelta
@@ -14,13 +13,11 @@ from datetime import datetime, timedelta
 from ..typing import AsyncResult, Messages, MediaListType
 from ..requests.raise_for_status import raise_for_status
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from .openai.har_file import get_har_files
 from ..image import to_data_uri
-from ..cookies import get_cookies_dir
-from .helper import format_image_prompt, render_messages
-from ..providers.response import JsonConversation, ImageResponse
+from .helper import render_messages
+from ..providers.response import JsonConversation
 from ..tools.media import merge_media
-from ..errors import RateLimitError, NoValidHarFileError
+from ..errors import RateLimitError
 from .. import debug
 
 class Conversation(JsonConversation):
@@ -43,83 +40,66 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
     
     default_model = "blackboxai"
     default_vision_model = default_model
-    default_image_model = 'flux'
-    
-    # Free models (available without subscription)
-    fallback_models = [
-        default_model,
-        "gpt-4o-mini",
-        "DeepSeek-V3",
-        "DeepSeek-R1",
-        "Meta-Llama-3.3-70B-Instruct-Turbo",
-        "Mistral-Small-24B-Instruct-2501",
-        "DeepSeek-LLM-Chat-(67B)",
-        "Qwen-QwQ-32B-Preview",
-        # Image models
-        "flux",
-        # Trending agent modes
-        'Python Agent',
-        'HTML Agent',
-        'Builder Agent',
-        'Java Agent',
-        'JavaScript Agent',
-        'React Agent',
-        'Android Agent',
-        'Flutter Agent',
-        'Next.js Agent',
-        'AngularJS Agent',
-        'Swift Agent',
-        'MongoDB Agent',
-        'PyTorch Agent',
-        'Xcode Agent',
-        'Azure Agent',
-        'Bitbucket Agent',
-        'DigitalOcean Agent',
-        'Docker Agent',
-        'Electron Agent',
-        'Erlang Agent',
-        'FastAPI Agent',
-        'Firebase Agent',
-        'Flask Agent',
-        'Git Agent',
-        'Gitlab Agent',
-        'Go Agent',
-        'Godot Agent',
-        'Google Cloud Agent',
-        'Heroku Agent'
+
+    # OpenRouter Free
+    openrouter_models = [
+        "Deepcoder 14B Preview",
+        "DeepHermes 3 Llama 3 8B Preview",
+        "DeepSeek R1 Zero",
+        "Dolphin3.0 Mistral 24B",
+        "Dolphin3.0 R1 Mistral 24B",
+        "Flash 3", # FIX (<reasoning> ◁</reasoning>)
+        "Gemini 2.0 Flash Experimental",
+        "Gemma 2 9B",
+        "Gemma 3 12B",
+        "Gemma 3 1B",
+        "Gemma 3 27B",
+        "Gemma 3 4B",
+        "Kimi VL A3B Thinking", # FIX (◁think▷ ◁/think▷)
+        "Llama 3.1 8B Instruct",
+        "Llama 3.1 Nemotron Ultra 253B v1",
+        "Llama 3.2 11B Vision Instruct",
+        "Llama 3.2 1B Instruct",
+        "Llama 3.2 3B Instruct",
+        "Llama 3.3 70B Instruct",
+        "Llama 3.3 Nemotron Super 49B v1",
+        "Llama 4 Maverick",
+        "Llama 4 Scout",
+        "Mistral 7B Instruct",
+        "Mistral Nemo",
+        "Mistral Small 3",
+        "Mistral Small 3.1 24B",
+        "Molmo 7B D",
+        "Moonlight 16B A3B Instruct",
+        "Qwen2.5 72B Instruct",
+        "Qwen2.5 7B Instruct",
+        "Qwen2.5 Coder 32B Instruct",
+        "Qwen2.5 VL 32B Instruct",
+        "Qwen2.5 VL 3B Instruct",
+        "Qwen2.5 VL 72B Instruct",
+        "Qwen2.5-VL 7B Instruct",
+        "Qwerky 72B",
+        "QwQ 32B",
+        "QwQ 32B Preview",
+        "QwQ 32B RpR v1",
+        "R1",
+        "R1 Distill Llama 70B",
+        "R1 Distill Qwen 14B",
+        "R1 Distill Qwen 32B",
     ]
-    
-    # Premium models (require subscription)
-    premium_models = [
-        "GPT-4o",
-        "o1",
-        "o3-mini",
-        "Claude-sonnet-3.7",
-        "Claude-sonnet-3.5",
-        "Gemini-Flash-2.0",
-        "DBRX-Instruct",
-        "blackboxai-pro",
-        "Gemini-PRO"
-    ]
-    
-    # Models available in the demo account
-    demo_models = [
+
+    models = [
         default_model, 
-        "blackboxai-pro",
-        "gpt-4o-mini", 
-        "GPT-4o", 
-        "o1", 
         "o3-mini", 
+        "gpt-4.1-nano", 
         "Claude-sonnet-3.7", 
         "Claude-sonnet-3.5", 
-        "DeepSeek-V3", 
         "DeepSeek-R1", 
-        "DeepSeek-LLM-Chat-(67B)",
-        "Meta-Llama-3.3-70B-Instruct-Turbo",
         "Mistral-Small-24B-Instruct-2501",
-        "Qwen-QwQ-32B-Preview",
-        # Image models
-        "flux",
+        
+        # OpenRouter Free
+        *openrouter_models,
+        
         # Trending agent modes
         'Python Agent',
         'HTML Agent',
@@ -152,35 +132,66 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         'Heroku Agent'
     ]
     
-    image_models = [default_image_model]   
-    vision_models = [default_vision_model, 'GPT-4o', 'o1', 'o3-mini', 'Gemini-PRO', 'Gemini Agent', 'llama-3.1-8b Agent', 'llama-3.1-70b Agent', 'llama-3.1-405 Agent', 'Gemini-Flash-2.0', 'DeepSeek-V3']
+    vision_models = [default_vision_model, 'o3-mini']
 
-    userSelectedModel = ['GPT-4o', 'o1', 'o3-mini', 'Gemini-PRO', 'Claude-sonnet-3.7', 'Claude-sonnet-3.5', 'DeepSeek-V3', 'DeepSeek-R1', 'Meta-Llama-3.3-70B-Instruct-Turbo', 'Mistral-Small-24B-Instruct-2501', 'DeepSeek-LLM-Chat-(67B)', 'DBRX-Instruct', 'Qwen-QwQ-32B-Preview', 'Nous-Hermes-2-Mixtral-8x7B-DPO', 'Gemini-Flash-2.0']
+    userSelectedModel = ['o3-mini','Claude-sonnet-3.7', 'Claude-sonnet-3.5', 'DeepSeek-R1', 'Mistral-Small-24B-Instruct-2501'] + openrouter_models
 
     # Agent mode configurations
     agentMode = {
-        'GPT-4o': {'mode': True, 'id': "GPT-4o", 'name': "GPT-4o"},
-        'Gemini-PRO': {'mode': True, 'id': "Gemini-PRO", 'name': "Gemini-PRO"},
+        # OpenRouter Free
+        'Deepcoder 14B Preview': {'mode': True, 'id': "agentica-org/deepcoder-14b-preview:free", 'name': "Deepcoder 14B Preview"},
+        'DeepHermes 3 Llama 3 8B Preview': {'mode': True, 'id': "nousresearch/deephermes-3-llama-3-8b-preview:free", 'name': "DeepHermes 3 Llama 3 8B Preview"},
+        'DeepSeek R1 Zero': {'mode': True, 'id': "deepseek/deepseek-r1-zero:free", 'name': "DeepSeek R1 Zero"},
+        'Dolphin3.0 Mistral 24B': {'mode': True, 'id': "cognitivecomputations/dolphin3.0-mistral-24b:free", 'name': "Dolphin3.0 Mistral 24B"},
+        'Dolphin3.0 R1 Mistral 24B': {'mode': True, 'id': "cognitivecomputations/dolphin3.0-r1-mistral-24b:free", 'name': "Dolphin3.0 R1 Mistral 24B"},
+        'Flash 3': {'mode': True, 'id': "rekaai/reka-flash-3:free", 'name': "Flash 3"},
+        'Gemini 2.0 Flash Experimental': {'mode': True, 'id': "google/gemini-2.0-flash-exp:free", 'name': "Gemini 2.0 Flash Experimental"},
+        'Gemma 2 9B': {'mode': True, 'id': "google/gemma-2-9b-it:free", 'name': "Gemma 2 9B"},
+        'Gemma 3 12B': {'mode': True, 'id': "google/gemma-3-12b-it:free", 'name': "Gemma 3 12B"},
+        'Gemma 3 1B': {'mode': True, 'id': "google/gemma-3-1b-it:free", 'name': "Gemma 3 1B"},
+        'Gemma 3 27B': {'mode': True, 'id': "google/gemma-3-27b-it:free", 'name': "Gemma 3 27B"},
+        'Gemma 3 4B': {'mode': True, 'id': "google/gemma-3-4b-it:free", 'name': "Gemma 3 4B"},
+        'Kimi VL A3B Thinking': {'mode': True, 'id': "moonshotai/kimi-vl-a3b-thinking:free", 'name': "Kimi VL A3B Thinking"},
+        'Llama 3.1 8B Instruct': {'mode': True, 'id': "meta-llama/llama-3.1-8b-instruct:free", 'name': "Llama 3.1 8B Instruct"},
+        'Llama 3.1 Nemotron Ultra 253B v1': {'mode': True, 'id': "nvidia/llama-3.1-nemotron-ultra-253b-v1:free", 'name': "Llama 3.1 Nemotron Ultra 253B v1"},
+        'Llama 3.2 11B Vision Instruct': {'mode': True, 'id': "meta-llama/llama-3.2-11b-vision-instruct:free", 'name': "Llama 3.2 11B Vision Instruct"},
+        'Llama 3.2 1B Instruct': {'mode': True, 'id': "meta-llama/llama-3.2-1b-instruct:free", 'name': "Llama 3.2 1B Instruct"},
+        'Llama 3.2 3B Instruct': {'mode': True, 'id': "meta-llama/llama-3.2-3b-instruct:free", 'name': "Llama 3.2 3B Instruct"},
+        'Llama 3.3 70B Instruct': {'mode': True, 'id': "meta-llama/llama-3.3-70b-instruct:free", 'name': "Llama 3.3 70B Instruct"},
+        'Llama 3.3 Nemotron Super 49B v1': {'mode': True, 'id': "nvidia/llama-3.3-nemotron-super-49b-v1:free", 'name': "Llama 3.3 Nemotron Super 49B v1"},
+        'Llama 4 Maverick': {'mode': True, 'id': "meta-llama/llama-4-maverick:free", 'name': "Llama 4 Maverick"},
+        'Llama 4 Scout': {'mode': True, 'id': "meta-llama/llama-4-scout:free", 'name': "Llama 4 Scout"},
+        'Mistral 7B Instruct': {'mode': True, 'id': "mistralai/mistral-7b-instruct:free", 'name': "Mistral 7B Instruct"},
+        'Mistral Nemo': {'mode': True, 'id': "mistralai/mistral-nemo:free", 'name': "Mistral Nemo"},
+        'Mistral Small 3': {'mode': True, 'id': "mistralai/mistral-small-24b-instruct-2501:free", 'name': "Mistral Small 3"},
+        'Mistral Small 3.1 24B': {'mode': True, 'id': "mistralai/mistral-small-3.1-24b-instruct:free", 'name': "Mistral Small 3.1 24B"},
+        'Molmo 7B D': {'mode': True, 'id': "allenai/molmo-7b-d:free", 'name': "Molmo 7B D"},
+        'Moonlight 16B A3B Instruct': {'mode': True, 'id': "moonshotai/moonlight-16b-a3b-instruct:free", 'name': "Moonlight 16B A3B Instruct"},
+        'Qwen2.5 72B Instruct': {'mode': True, 'id': "qwen/qwen-2.5-72b-instruct:free", 'name': "Qwen2.5 72B Instruct"},
+        'Qwen2.5 7B Instruct': {'mode': True, 'id': "qwen/qwen-2.5-7b-instruct:free", 'name': "Qwen2.5 7B Instruct"},
+        'Qwen2.5 Coder 32B Instruct': {'mode': True, 'id': "qwen/qwen-2.5-coder-32b-instruct:free", 'name': "Qwen2.5 Coder 32B Instruct"},
+        'Qwen2.5 VL 32B Instruct': {'mode': True, 'id': "qwen/qwen2.5-vl-32b-instruct:free", 'name': "Qwen2.5 VL 32B Instruct"},
+        'Qwen2.5 VL 3B Instruct': {'mode': True, 'id': "qwen/qwen2.5-vl-3b-instruct:free", 'name': "Qwen2.5 VL 3B Instruct"},
+        'Qwen2.5 VL 72B Instruct': {'mode': True, 'id': "qwen/qwen2.5-vl-72b-instruct:free", 'name': "Qwen2.5 VL 72B Instruct"},
+        'Qwen2.5-VL 7B Instruct': {'mode': True, 'id': "qwen/qwen-2.5-vl-7b-instruct:free", 'name': "Qwen2.5-VL 7B Instruct"},
+        'Qwerky 72B': {'mode': True, 'id': "featherless/qwerky-72b:free", 'name': "Qwerky 72B"},
+        'QwQ 32B': {'mode': True, 'id': "qwen/qwq-32b:free", 'name': "QwQ 32B"},
+        'QwQ 32B Preview': {'mode': True, 'id': "qwen/qwq-32b-preview:free", 'name': "QwQ 32B Preview"},
+        'QwQ 32B RpR v1': {'mode': True, 'id': "arliai/qwq-32b-arliai-rpr-v1:free", 'name': "QwQ 32B RpR v1"},
+        'R1': {'mode': True, 'id': "deepseek/deepseek-r1:free", 'name': "R1"},
+        'R1 Distill Llama 70B': {'mode': True, 'id': "deepseek/deepseek-r1-distill-llama-70b:free", 'name': "R1 Distill Llama 70B"},
+        'R1 Distill Qwen 14B': {'mode': True, 'id': "deepseek/deepseek-r1-distill-qwen-14b:free", 'name': "R1 Distill Qwen 14B"},
+        'R1 Distill Qwen 32B': {'mode': True, 'id': "deepseek/deepseek-r1-distill-qwen-32b:free", 'name': "R1 Distill Qwen 32B"},
+        
+        # Default
         'Claude-sonnet-3.7': {'mode': True, 'id': "Claude-sonnet-3.7", 'name': "Claude-sonnet-3.7"},
         'Claude-sonnet-3.5': {'mode': True, 'id': "Claude-sonnet-3.5", 'name': "Claude-sonnet-3.5"},
-        'DeepSeek-V3': {'mode': True, 'id': "deepseek-chat", 'name': "DeepSeek-V3"},
         'DeepSeek-R1': {'mode': True, 'id': "deepseek-reasoner", 'name': "DeepSeek-R1"},
-        'Meta-Llama-3.3-70B-Instruct-Turbo': {'mode': True, 'id': "meta-llama/Llama-3.3-70B-Instruct-Turbo", 'name': "Meta-Llama-3.3-70B-Instruct-Turbo"},
-        'Gemini-Flash-2.0': {'mode': True, 'id': "Gemini/Gemini-Flash-2.0", 'name': "Gemini-Flash-2.0"},
         'Mistral-Small-24B-Instruct-2501': {'mode': True, 'id': "mistralai/Mistral-Small-24B-Instruct-2501", 'name': "Mistral-Small-24B-Instruct-2501"},
-        'DeepSeek-LLM-Chat-(67B)': {'mode': True, 'id': "deepseek-ai/deepseek-llm-67b-chat", 'name': "DeepSeek-LLM-Chat-(67B)"},
-        'DBRX-Instruct': {'mode': True, 'id': "databricks/dbrx-instruct", 'name': "DBRX-Instruct"},
-        'Qwen-QwQ-32B-Preview': {'mode': True, 'id': "Qwen/QwQ-32B-Preview", 'name': "Qwen-QwQ-32B-Preview"},
-        'Nous-Hermes-2-Mixtral-8x7B-DPO': {'mode': True, 'id': "NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO", 'name': "Nous-Hermes-2-Mixtral-8x7B-DPO"},
     }
 
     # Trending agent modes
     trendingAgentMode = {
-        'blackboxai-pro': {'mode': True, 'id': "BLACKBOXAI-PRO"},
-        "Gemini Agent": {'mode': True, 'id': 'gemini'},
-        "llama-3.1-405 Agent": {'mode': True, 'id': "llama-3.1-405"},
-        'llama-3.1-70b Agent': {'mode': True, 'id': "llama-3.1-70b"},
-        'llama-3.1-8b Agent': {'mode': True, 'id': "llama-3.1-8b"},
         'Python Agent': {'mode': True, 'id': "python"},
         'HTML Agent': {'mode': True, 'id': "html"},
         'Builder Agent': {'mode': True, 'id': "builder"},
@@ -214,180 +225,78 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
     
     # Complete list of all models (for authorized users)
     _all_models = list(dict.fromkeys([
-        *fallback_models,  # Include all free models
-        *premium_models,   # Include all premium models
-        *image_models,
+        *models,  # Include all free models
         *list(agentMode.keys()),
         *list(trendingAgentMode.keys())
     ]))
-   
-    # Initialize models with fallback_models
-    models = fallback_models
     
     model_aliases = {
-        "gpt-4o": "GPT-4o",
+        "gpt-4": default_model,
+        "gpt-4o": default_model,
+        "gpt-4o-mini": default_model,
         "claude-3.7-sonnet": "Claude-sonnet-3.7",
         "claude-3.5-sonnet": "Claude-sonnet-3.5",
-        "deepseek-v3": "DeepSeek-V3",
         "deepseek-r1": "DeepSeek-R1",
-        "deepseek-chat": "DeepSeek-LLM-Chat-(67B)",
-        "llama-3.3-70b": "Meta-Llama-3.3-70B-Instruct-Turbo",
-        "mixtral-small-24b": "Mistral-Small-24B-Instruct-2501",
-        "qwq-32b": "Qwen-QwQ-32B-Preview",
+        #
+        "deepcoder-14b": "Deepcoder 14B Preview",
+        "deephermes-3-8b": "DeepHermes 3 Llama 3 8B Preview",
+        "deepseek-r1-zero": "DeepSeek R1 Zero",
+        "deepseek-r1": "DeepSeek R1 Zero",
+        "dolphin-3.0-24b": "Dolphin3.0 Mistral 24B",
+        "dolphin-3.0-r1-24b": "Dolphin3.0 R1 Mistral 24B",
+        "reka-flash":  "Flash 3",
+        "gemini-2.0-flash":  "Gemini 2.0 Flash Experimental",
+        "gemma-2-9b":  "Gemma 2 9B",
+        "gemma-3-12b":  "Gemma 3 12B",
+        "gemma-3-1b":  "Gemma 3 1B",
+        "gemma-3-27b":  "Gemma 3 27B",
+        "gemma-3-4b":  "Gemma 3 4B",
+        "kimi-vl-a3b-thinking":  "Kimi VL A3B Thinking",
+        "llama-3.1-8b":  "Llama 3.1 8B Instruct",
+        "nemotron-253b":  "Llama 3.1 Nemotron Ultra 253B v1",
+        "llama-3.2-11b":  "Llama 3.2 11B Vision Instruct",
+        "llama-3.2-1b":  "Llama 3.2 1B Instruct",
+        "llama-3.2-3b":  "Llama 3.2 3B Instruct",
+        "llama-3.3-70b":  "Llama 3.3 70B Instruct",
+        "nemotron-49b":  "Llama 3.3 Nemotron Super 49B v1",
+        "llama-4-maverick":  "Llama 4 Maverick",
+        "llama-4-scout":  "Llama 4 Scout",
+        "mistral-7b":  "Mistral 7B Instruct",
+        "mistral-nemo":  "Mistral Nemo",
+        "mistral-small-24b":  "Mistral Small 3",
+        "mistral-small-24b":  "Mistral-Small-24B-Instruct-2501",
+        "mistral-small-3.1-24b":  "Mistral Small 3.1 24B",
+        "molmo-7b":  "Molmo 7B D",
+        "moonlight-16b":  "Moonlight 16B A3B Instruct",
+        "qwen-2.5-72b":  "Qwen2.5 72B Instruct",
+        "qwen-2.5-7b":  "Qwen2.5 7B Instruct",
+        "qwen-2.5-coder-32b":  "Qwen2.5 Coder 32B Instruct",
+        "qwen-2.5-vl-32b":  "Qwen2.5 VL 32B Instruct",
+        "qwen-2.5-vl-3b":  "Qwen2.5 VL 3B Instruct",
+        "qwen-2.5-vl-72b":  "Qwen2.5 VL 72B Instruct",
+        "qwen-2.5-vl-7b":  "Qwen2.5-VL 7B Instruct",
+        "qwerky-72b":  "Qwerky 72B",
+        "qwq-32b":  "QwQ 32B",
+        "qwq-32b-preview":  "QwQ 32B Preview",
+        "qwq-32b":  "QwQ 32B Preview",
+        "qwq-32b-arliai":  "QwQ 32B RpR v1",
+        "qwq-32b":  "QwQ 32B RpR v1",
+        "deepseek-r1":  "R1",
+        "deepseek-r1-distill-llama-70b":  "R1 Distill Llama 70B",
+        "deepseek-r1":  "R1 Distill Llama 70B",
+        "deepseek-r1-distill-qwen-14b":  "R1 Distill Qwen 14B",
+        "deepseek-r1":  "R1 Distill Qwen 14B",
+        "deepseek-r1-distill-qwen-32b":  "R1 Distill Qwen 32B",
+        "deepseek-r1":  "R1 Distill Qwen 32B",
     }
 
     @classmethod
-    async def get_models_async(cls) -> list:
+    def generate_session(cls, email: str, id_length: int = 21, days_ahead: int = 365) -> dict:
         """
-        Asynchronous version of get_models that checks subscription status.
-        Returns a list of available models based on subscription status.
-        Premium users get the full list of models.
-        Free users get fallback_models.
-        Demo accounts get demo_models.
-        """
-        # Check if there are valid session data in HAR files
-        session_data = cls._find_session_in_har_files()
-        
-        if not session_data:
-            # For demo accounts - return demo models
-            debug.log(f"Blackbox: Returning demo model list with {len(cls.demo_models)} models")
-            return cls.demo_models
-            
-        # Check if this is a demo session
-        demo_session = cls.generate_session()
-        is_demo = (session_data['user'].get('email') == demo_session['user'].get('email'))
-        
-        if is_demo:
-            # For demo accounts - return demo models
-            debug.log(f"Blackbox: Returning demo model list with {len(cls.demo_models)} models")
-            return cls.demo_models
-        
-        # For non-demo accounts, check subscription status
-        if 'user' in session_data and 'email' in session_data['user']:
-            subscription = await cls.check_subscription(session_data['user']['email'])
-            if subscription['status'] == "PREMIUM":
-                debug.log(f"Blackbox: Returning premium model list with {len(cls._all_models)} models")
-                return cls._all_models
-        
-        # For free accounts - return free models
-        debug.log(f"Blackbox: Returning free model list with {len(cls.fallback_models)} models")
-        return cls.fallback_models
-        
-    @classmethod
-    def get_models(cls) -> list:
-        """
-        Returns a list of available models based on authorization status.
-        Authorized users get the full list of models.
-        Free users get fallback_models.
-        Demo accounts get demo_models.
-        
-        Note: This is a synchronous method that can't check subscription status,
-        so it falls back to the basic premium access check.
-        For more accurate results, use get_models_async when possible.
-        """
-        # Check if there are valid session data in HAR files
-        session_data = cls._find_session_in_har_files()
-        
-        if not session_data:
-            # For demo accounts - return demo models
-            debug.log(f"Blackbox: Returning demo model list with {len(cls.demo_models)} models")
-            return cls.demo_models
-            
-        # Check if this is a demo session
-        demo_session = cls.generate_session()
-        is_demo = (session_data['user'].get('email') == demo_session['user'].get('email'))
-        
-        if is_demo:
-            # For demo accounts - return demo models
-            debug.log(f"Blackbox: Returning demo model list with {len(cls.demo_models)} models")
-            return cls.demo_models
-        
-        # For non-demo accounts, check premium access
-        has_premium_access = cls._check_premium_access()
-        
-        if has_premium_access:
-            # For premium users - all models
-            debug.log(f"Blackbox: Returning premium model list with {len(cls._all_models)} models")
-            return cls._all_models
-        
-        # For free accounts - return free models
-        debug.log(f"Blackbox: Returning free model list with {len(cls.fallback_models)} models")
-        return cls.fallback_models
-    
-    @classmethod
-    async def check_subscription(cls, email: str) -> dict:
-        """
-        Check subscription status for a given email using the Blackbox API.
+        Generate a dynamic session with proper ID and expiry format using a specific email.
         
         Args:
-            email: The email to check subscription for
-            
-        Returns:
-            dict: Subscription status information with keys:
-                - status: "PREMIUM" or "FREE"
-                - customerId: Customer ID if available
-                - isTrialSubscription: Whether this is a trial subscription
-        """
-        if not email:
-            return {"status": "FREE", "customerId": None, "isTrialSubscription": False}
-            
-        headers = {
-            'accept': '*/*',
-            'accept-language': 'en',
-            'content-type': 'application/json',
-            'origin': 'https://www.blackbox.ai',
-            'referer': 'https://www.blackbox.ai/?ref=login-success',
-            'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36'
-        }
-        
-        try:
-            async with ClientSession(headers=headers) as session:
-                async with session.post(
-                    'https://www.blackbox.ai/api/check-subscription',
-                    json={"email": email}
-                ) as response:
-                    if response.status != 200:
-                        debug.log(f"Blackbox: Subscription check failed with status {response.status}")
-                        return {"status": "FREE", "customerId": None, "isTrialSubscription": False}
-                    
-                    result = await response.json()
-                    status = "PREMIUM" if result.get("hasActiveSubscription", False) else "FREE"
-                    
-                    return {
-                        "status": status,
-                        "customerId": result.get("customerId"),
-                        "isTrialSubscription": result.get("isTrialSubscription", False)
-                    }
-        except Exception as e:
-            debug.log(f"Blackbox: Error checking subscription: {e}")
-            return {"status": "FREE", "customerId": None, "isTrialSubscription": False}
-    
-    @classmethod
-    def _check_premium_access(cls) -> bool:
-        """
-        Checks for an authorized session in HAR files.
-        Returns True if a valid session is found that differs from the demo.
-        """
-        try:
-            session_data = cls._find_session_in_har_files()
-            if not session_data:
-                return False
-                
-            # Check if this is not a demo session
-            demo_session = cls.generate_session()
-            if (session_data['user'].get('email') != demo_session['user'].get('email')):
-                return True
-            return False
-        except Exception as e:
-            debug.log(f"Blackbox: Error checking premium access: {e}")
-            return False
-
-    @classmethod
-    def generate_session(cls, id_length: int = 21, days_ahead: int = 365) -> dict:
-        """
-        Generate a dynamic session with proper ID and expiry format.
-        
-        Args:
+            email: The email to use for this session
             id_length: Length of the numeric ID (default: 21)
             days_ahead: Number of days ahead for expiry (default: 365)
         
@@ -401,10 +310,6 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         future_date = datetime.now() + timedelta(days=days_ahead)
         expiry = future_date.strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
         
-        # Decode the encoded email
-        encoded_email = "Z2lzZWxlQGJsYWNrYm94LmFp"  # Base64 encoded email
-        email = base64.b64decode(encoded_email).decode('utf-8')
-        
         # Generate random image ID for the new URL format
         chars = string.ascii_letters + string.digits + "-"
         random_img_id = ''.join(random.choice(chars) for _ in range(48))
@@ -417,68 +322,14 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
                 "image": image_url, 
                 "id": numeric_id
             }, 
-            "expires": expiry
+            "expires": expiry,
+            "isNewUser": False
         }
 
     @classmethod
-    def _find_session_in_har_files(cls) -> Optional[dict]:
-        """
-        Search for valid session data in HAR files.
-        
-        Returns:
-            Optional[dict]: Session data if found, None otherwise
-        """
-        try:
-            for file in get_har_files():
-                try:
-                    with open(file, 'rb') as f:
-                        har_data = json.load(f)
-
-                    for entry in har_data['log']['entries']:
-                        # Only look at blackbox API responses
-                        if 'blackbox.ai/api' in entry['request']['url']:
-                            # Look for a response that has the right structure
-                            if 'response' in entry and 'content' in entry['response']:
-                                content = entry['response']['content']
-                                # Look for both regular and Google auth session formats
-                                if ('text' in content and 
-                                    isinstance(content['text'], str) and 
-                                    '"user"' in content['text'] and 
-                                    '"email"' in content['text'] and
-                                    '"expires"' in content['text']):
-                                    try:
-                                        # Remove any HTML or other non-JSON content
-                                        text = content['text'].strip()
-                                        if text.startswith('{') and text.endswith('}'):
-                                            # Replace escaped quotes
-                                            text = text.replace('\\"', '"')
-                                            har_session = json.loads(text)
-
-                                            # Check if this is a valid session object
-                                            if (isinstance(har_session, dict) and 
-                                                'user' in har_session and 
-                                                'email' in har_session['user'] and
-                                                'expires' in har_session):
-
-                                                debug.log(f"Blackbox: Found session in HAR file: {file}")
-                                                return har_session
-                                    except json.JSONDecodeError as e:
-                                        # Only print error for entries that truly look like session data
-                                        if ('"user"' in content['text'] and 
-                                            '"email"' in content['text']):
-                                            debug.log(f"Blackbox: Error parsing likely session data: {e}")
-                except Exception as e:
-                    debug.log(f"Blackbox: Error reading HAR file {file}: {e}")
-            return None
-        except NoValidHarFileError:
-            pass
-        except Exception as e:
-            debug.log(f"Blackbox: Error searching HAR files: {e}")
-            return None
-
-    @classmethod
     async def fetch_validated(cls, url: str = "https://www.blackbox.ai", force_refresh: bool = False) -> Optional[str]:
-        cache_file = Path(get_cookies_dir()) / 'blackbox.json'
+        cache_path = Path(os.path.expanduser("~")) / ".g4f" / "cache"
+        cache_file = cache_path / 'blackbox.json'
         
         if not force_refresh and cache_file.exists():
             try:
@@ -517,7 +368,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
                                 if is_valid_context(context):
                                     validated_value = match.group(1)
                                     
-                                    cache_file.parent.mkdir(exist_ok=True)
+                                    cache_file.parent.mkdir(exist_ok=True, parents=True)
                                     try:
                                         with open(cache_file, 'w') as f:
                                             json.dump({'validated_value': validated_value}, f)
@@ -592,41 +443,14 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
                     "title": ""
                 }
 
-            # Get session data - try HAR files first, fall back to generated session
-            session_data = cls._find_session_in_har_files() or cls.generate_session()
+            # Generate a new email for each request instead of using the one stored in conversation
+            chars = string.ascii_lowercase + string.digits
+            random_team = ''.join(random.choice(chars) for _ in range(8))
+            request_email = f"{random_team}@blackbox.ai"
             
-            # Log which session type is being used
-            demo_session = cls.generate_session()
-            is_demo = (session_data['user'].get('email') == demo_session['user'].get('email'))
-            
-            if is_demo:
-                debug.log("Blackbox: Using generated demo session")
-                # For demo account, set default values without checking subscription
-                subscription_status = {"status": "FREE", "customerId": None, "isTrialSubscription": False}
-                # Check if the requested model is in demo_models
-                is_premium = model in cls.demo_models
-                if not is_premium:
-                    debug.log(f"Blackbox: Model {model} not available in demo account, falling back to default model")
-                    model = cls.default_model
-                    is_premium = True
-            else:
-                debug.log(f"Blackbox: Using session from HAR file (email: {session_data['user'].get('email', 'unknown')})")
-                # Only check subscription for non-demo accounts
-                subscription_status = {"status": "FREE", "customerId": None, "isTrialSubscription": False}
-                if session_data.get('user', {}).get('email'):
-                    subscription_status = await cls.check_subscription(session_data['user']['email'])
-                    debug.log(f"Blackbox: Subscription status for {session_data['user']['email']}: {subscription_status['status']}")
-                
-                # Determine if user has premium access based on subscription status
-                if subscription_status['status'] == "PREMIUM":
-                    is_premium = True
-                else:
-                    # For free accounts, check if the requested model is in fallback_models
-                    is_premium = model in cls.fallback_models
-                    if not is_premium:
-                        debug.log(f"Blackbox: Model {model} not available in free account, falling back to default model")
-                        model = cls.default_model
-                        is_premium = True
+            # Generate a session with the new email
+            session_data = cls.generate_session(request_email)
+            debug.log(f"Blackbox: Using generated session with email {request_email}")
             
             data = {
                 "messages": current_messages,
@@ -651,26 +475,28 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
                 "mobileClient": False,
                 "userSelectedModel": model if model in cls.userSelectedModel else None,
                 "validated": conversation.validated_value,
-                "imageGenerationMode": model == cls.default_image_model,
+                "imageGenerationMode": False,
                 "webSearchModePrompt": False,
                 "deepSearchMode": False,
+                "designerMode": False,
                 "domains": None,
                 "vscodeClient": False,
                 "codeInterpreterMode": False,
                 "customProfile": {
+                    "additionalInfo": "",
+                    "enableNewChats": False,
                     "name": "",
                     "occupation": "",
-                    "traits": [],
-                    "additionalInfo": "",
-                    "enableNewChats": False
+                    "traits": []
                 },
                 "session": session_data,
-                "isPremium": is_premium, 
+                "isPremium": True, 
                 "subscriptionCache": {
-                    "status": subscription_status['status'],
-                    "customerId": subscription_status['customerId'],
-                    "isTrialSubscription": subscription_status['isTrialSubscription'],
-                    "lastChecked": int(datetime.now().timestamp() * 1000)
+                    "expiryTimestamp": None,
+                    "isTrialSubscription": False,
+                    "lastChecked": int(datetime.now().timestamp() * 1000),
+                    "status": "FREE",
+                    "customerId": None
                 },
                 "beastMode": False,
                 "reasoningMode": False,
@@ -689,24 +515,11 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
                         if "You have reached your request limit for the hour" in chunk_text:
                             raise RateLimitError(chunk_text)
                         full_response.append(chunk_text)
-                        # Only yield chunks for non-image models
-                        if model != cls.default_image_model:
-                            yield chunk_text
+                        yield chunk_text
                 
                 full_response_text = ''.join(full_response)
                 
-                # For image models, check for image markdown
-                if model == cls.default_image_model:
-                    image_url_match = re.search(r'!\[.*?\]\((.*?)\)', full_response_text)
-                    if image_url_match:
-                        image_url = image_url_match.group(1)
-                        yield ImageResponse(urls=[image_url], alt=format_image_prompt(messages, prompt))
-                        return
-                
-                # Handle conversation history once, in one place
+                # Handle conversation history
                 if return_conversation:
                     conversation.message_history.append({"role": "assistant", "content": full_response_text})
                     yield conversation
-                # For image models that didn't produce an image, fall back to text response
-                elif model == cls.default_image_model:
-                    yield full_response_text

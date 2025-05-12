@@ -81,15 +81,31 @@ class PerplexityLabs(AsyncGeneratorProvider, ProviderModelMixin):
                         await ws.send_str("3")
                         continue
                     try:
-                        if last_message == 0 and model == cls.default_model:
-                            yield "<think>"
-                        data = json.loads(message[2:])[1]
-                        yield data["output"][last_message:]
-                        last_message = len(data["output"])
-                        if data["final"]:
-                            if data["citations"]:
-                                yield Sources(data["citations"])
-                            yield FinishReason("stop")
-                            break
+                        if not message.startswith("42"):
+                            continue
+                            
+                        parsed_data = json.loads(message[2:])
+                        message_type = parsed_data[0]
+                        data = parsed_data[1]
+                        
+                        # Handle error responses
+                        if message_type.endswith("_query_progress") and data.get("status") == "failed":
+                            error_message = data.get("text", "Unknown API error")
+                            raise ResponseError(f"API Error: {error_message}")
+                        
+                        # Handle normal responses
+                        if "output" in data:
+                            if last_message == 0 and model == cls.default_model:
+                                yield "<think>"
+                            yield data["output"][last_message:]
+                            last_message = len(data["output"])
+                            if data["final"]:
+                                if data["citations"]:
+                                    yield Sources(data["citations"])
+                                yield FinishReason("stop")
+                                break
+                    except ResponseError as e:
+                        # Re-raise ResponseError directly
+                        raise e
                     except Exception as e:
-                        raise ResponseError(f"Message: {message}") from e
+                        raise ResponseError(f"Error processing message: {message}") from e

@@ -35,13 +35,11 @@ except ImportError as e:
     debug.error("Audio providers not loaded:", e)
 
 try:
-    from .AllenAI              import AllenAI
     from .ARTA                 import ARTA
     from .Blackbox             import Blackbox
     from .Chatai               import Chatai
     from .ChatGLM              import ChatGLM
     from .ChatGpt              import ChatGpt
-    from .ChatGptEs            import ChatGptEs
     from .Cloudflare           import Cloudflare
     from .Copilot              import Copilot
     from .DDG                  import DDG
@@ -53,16 +51,11 @@ except ImportError as e:
 try:
     from .Free2GPT             import Free2GPT
     from .FreeGpt              import FreeGpt
-    from .FreeRouter           import FreeRouter
     from .GizAI                import GizAI
-    from .Glider               import Glider
-    from .Goabror              import Goabror
     from .ImageLabs            import ImageLabs
-    from .Jmuz                 import Jmuz
     from .LambdaChat           import LambdaChat
     from .Liaobots             import Liaobots
     from .LMArenaProvider      import LMArenaProvider
-    from .OIVSCode             import OIVSCode
 except ImportError as e:
     debug.error("Providers not loaded (F-L):", e)
 try:

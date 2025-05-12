@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from .template import OpenaiTemplate
+from ..template import OpenaiTemplate
 
 class Glider(OpenaiTemplate):
     label = "Glider"
     url = "https://glider.so"
     api_endpoint = "https://glider.so/api/chat"
-    working = True
+    working = False
 
     default_model = 'chat-llama-3-1-70b'
     models = [

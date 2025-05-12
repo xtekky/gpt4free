@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .template import OpenaiTemplate
+from ..template import OpenaiTemplate
 
 class FreeRouter(OpenaiTemplate):
     label = "CablyAI FreeRouter"

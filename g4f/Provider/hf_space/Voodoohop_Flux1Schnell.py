@@ -19,7 +19,10 @@ class Voodoohop_Flux1Schnell(AsyncGeneratorProvider, ProviderModelMixin):
 
     default_model = "voodoohop-flux-1-schnell"
     default_image_model = default_model
-    model_aliases = {"flux-schnell": default_model, "flux": default_model}
+    model_aliases = {
+        "flux-schnell": default_image_model, 
+        "flux": default_image_model
+    }
     image_models = list(model_aliases.keys())
     models = image_models
 

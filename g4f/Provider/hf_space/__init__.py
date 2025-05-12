@@ -7,10 +7,9 @@ from ...errors import ResponseError
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
 
 from .BlackForestLabs_Flux1Dev       import BlackForestLabs_Flux1Dev
-from .BlackForestLabs_Flux1Schnell   import BlackForestLabs_Flux1Schnell
 from .CohereForAI_C4AI_Command       import CohereForAI_C4AI_Command
 from .DeepseekAI_JanusPro7b          import DeepseekAI_JanusPro7b
-from .Microsoft_Phi_4                import Microsoft_Phi_4
+from .Microsoft_Phi_4_Multimodal     import Microsoft_Phi_4_Multimodal
 from .Qwen_QVQ_72B                   import Qwen_QVQ_72B
 from .Qwen_Qwen_2_5                  import Qwen_Qwen_2_5
 from .Qwen_Qwen_2_5M                 import Qwen_Qwen_2_5M
@@ -30,10 +29,9 @@ class HuggingSpace(AsyncGeneratorProvider, ProviderModelMixin):
     default_vision_model = Qwen_QVQ_72B.default_model
     providers = [
         BlackForestLabs_Flux1Dev,
-        BlackForestLabs_Flux1Schnell,
         CohereForAI_C4AI_Command,
         DeepseekAI_JanusPro7b,
-        Microsoft_Phi_4,
+        Microsoft_Phi_4_Multimodal,
         Qwen_QVQ_72B,
         Qwen_Qwen_2_5,
         Qwen_Qwen_2_5M,

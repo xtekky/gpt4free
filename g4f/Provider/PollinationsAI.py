@@ -51,33 +51,55 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
     image_models = [default_image_model]
     audio_models = {default_audio_model: []}
     extra_image_models = ["flux-pro", "flux-dev", "flux-schnell", "midjourney", "dall-e-3", "turbo"]
-    vision_models = [default_vision_model, "gpt-4o-mini", "openai", "openai-large", "searchgpt"]
+    vision_models = [default_vision_model, "gpt-4o-mini", "openai", "openai-large", "openai-reasoning", "searchgpt"]
     _models_loaded = False
     # https://github.com/pollinations/pollinations/blob/master/text.pollinations.ai/generateTextPortkey.js#L15
     model_aliases = {
         ### Text Models ###
         "gpt-4o-mini": "openai",
+        "gpt-4.1": "openai",
+        "gpt-4.1-mini": "openai",
+        "gpt-4.1-nano": "openai-fast",
+        "gpt-4.1-nano": "openai-small",
         "gpt-4": "openai-large",
         "gpt-4o": "openai-large",
-        "gpt-4.1": "openai",
-        "gpt-4.1-nano": "openai",
-        "gpt-4.1-mini": "openai-large",
-        "gpt-4.1-xlarge": "openai-xlarge",
+        "gpt-4.1": "openai-large",
+        "gpt-4.1": "openai-xlarge",
         "o4-mini": "openai-reasoning",
+        "gpt-4.1-mini": "openai-roblox",
+        "gpt-4.1-mini": "roblox-rp",
+        "command-r-plus-08-2024": "command-r",
+        "gemini-2.5-flash": "gemini",
+        "gemini-2.0-flash-thinking": "gemini-thinking",
         "qwen-2.5-coder-32b": "qwen-coder",
         "llama-3.3-70b": "llama",
         "llama-4-scout": "llamascout",
-        "mistral-nemo": "mistral",
-        "llama-3.1-8b": "llamalight",
-        "llama-3.3-70b": "llama-scaleway",
-        "phi-4": "phi",
+        "llama-4-scout-17b": "llamascout",
+        "mistral-small-3.1-24b": "mistral",
         "deepseek-r1": "deepseek-reasoning-large",
         "deepseek-r1-distill-llama-70b": "deepseek-reasoning-large",
+        "deepseek-r1-distill-llama-70b": "deepseek-r1-llama",
+        #"mistral-small-3.1-24b": "unity", # Personas
+        #"mirexa": "mirexa", # Personas
+        #"midijourney": "midijourney", # Personas
+        #"rtist": "rtist", # Personas
+        #"searchgpt": "searchgpt",
+        #"evil": "evil", # Personas
+        "deepseek-r1": "deepseek-reasoning",
         "deepseek-r1-distill-qwen-32b": "deepseek-reasoning",
+        "phi-4": "phi",
+        #"pixtral-12b": "pixtral",
+        #"hormoz-8b": "hormoz",
+        "qwq-32b": "qwen-qwq",
+        #"hypnosis-tracy-7b": "hypnosis-tracy", # Personas
+        #"mistral-?": "sur", # Personas
         "deepseek-v3": "deepseek",
-        "llama-3.2-11b": "llama-vision",
+        "deepseek-v3-0324": "deepseek",
+        #"bidara": "bidara", # Personas
+        
+        ### Audio Models ###
         "gpt-4o-audio": "openai-audio",
-        "gpt-4o-audio-preview": "openai-audio",
+        #"gpt-4o-audio-preview": "openai-audio",
         
         ### Image Models ###
         "sdxl-turbo": "turbo",

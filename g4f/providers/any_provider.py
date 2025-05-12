@@ -10,7 +10,7 @@ from ..Provider.hf_space import HuggingSpace
 from .. import Provider
 from .. import models
 from ..Provider import Cloudflare, Gemini, Grok, DeepSeekAPI, PerplexityLabs, LambdaChat, PollinationsAI, FreeRouter
-from ..Provider import Microsoft_Phi_4, DeepInfraChat, Blackbox, EdgeTTS, gTTS, MarkItDown, HarProvider
+from ..Provider import Microsoft_Phi_4_Multimodal, DeepInfraChat, Blackbox, EdgeTTS, gTTS, MarkItDown, HarProvider
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 
 class AnyProvider(AsyncGeneratorProvider, ProviderModelMixin):
@@ -100,7 +100,7 @@ class AnyProvider(AsyncGeneratorProvider, ProviderModelMixin):
                 cls.image_models.extend([clean_name(model) for model in provider.image_models])
                 cls.vision_models.extend([clean_name(model) for model in provider.vision_models])
                 cls.video_models.extend([clean_name(model) for model in provider.video_models])
-            for provider in [Microsoft_Phi_4, PollinationsAI]:
+            for provider in [Microsoft_Phi_4_Multimodal, PollinationsAI]:
                 if provider.working and getattr(provider, "parent", provider.__name__) not in ignored:
                     cls.audio_models.update(provider.audio_models)
             cls.models_count.update({model: all_models.count(model) for model in all_models if all_models.count(model) > cls.models_count.get(model, 0)})
@@ -137,7 +137,7 @@ class AnyProvider(AsyncGeneratorProvider, ProviderModelMixin):
             if "audio" in kwargs or "audio" in kwargs.get("modalities", []):
                 providers = [PollinationsAI, EdgeTTS, gTTS]
             elif has_audio:
-                providers = [PollinationsAI, Microsoft_Phi_4, MarkItDown]
+                providers = [PollinationsAI, Microsoft_Phi_4_Multimodal, MarkItDown]
             elif has_image:
                 providers = models.default_vision.best_provider.providers
             else:

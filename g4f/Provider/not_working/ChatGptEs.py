@@ -10,16 +10,16 @@ try:
 except ImportError:
     has_curl_cffi = False
 
-from ..typing import AsyncResult, Messages
-from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from .helper import format_prompt
-from ..errors import MissingRequirementsError
+from ...typing import AsyncResult, Messages
+from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from ..helper import format_prompt
+from ...errors import MissingRequirementsError
 
 class ChatGptEs(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://chatgpt.es"
     api_endpoint = "https://chatgpt.es/wp-admin/admin-ajax.php"
     
-    working = True
+    working = False
     supports_stream = True
     supports_system_message = False
     supports_message_history = False
