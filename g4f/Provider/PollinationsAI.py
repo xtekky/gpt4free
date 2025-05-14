@@ -57,17 +57,12 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
     model_aliases = {
         ### Text Models ###
         "gpt-4o-mini": "openai",
-        "gpt-4.1": "openai",
-        "gpt-4.1-mini": "openai",
-        "gpt-4.1-nano": "openai-fast",
-        "gpt-4.1-nano": "openai-small",
+        "gpt-4.1-nano": ["openai-fast", "openai-small"],
         "gpt-4": "openai-large",
         "gpt-4o": "openai-large",
-        "gpt-4.1": "openai-large",
-        "gpt-4.1": "openai-xlarge",
+        "gpt-4.1": ["openai", "openai-large", "openai-xlarge"],
         "o4-mini": "openai-reasoning",
-        "gpt-4.1-mini": "openai-roblox",
-        "gpt-4.1-mini": "roblox-rp",
+        "gpt-4.1-mini": ["openai", "openai-roblox", "roblox-rp"],
         "command-r-plus-08-2024": "command-r",
         "gemini-2.5-flash": "gemini",
         "gemini-2.0-flash-thinking": "gemini-thinking",
@@ -76,7 +71,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         "llama-4-scout": "llamascout",
         "llama-4-scout-17b": "llamascout",
         "mistral-small-3.1-24b": "mistral",
-        "deepseek-r1": "deepseek-reasoning-large",
+        "deepseek-r1": ["deepseek-reasoning-large", "deepseek-reasoning"],
         "deepseek-r1-distill-llama-70b": "deepseek-reasoning-large",
         "deepseek-r1-distill-llama-70b": "deepseek-r1-llama",
         #"mistral-small-3.1-24b": "unity", # Personas
@@ -85,7 +80,6 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         #"rtist": "rtist", # Personas
         #"searchgpt": "searchgpt",
         #"evil": "evil", # Personas
-        "deepseek-r1": "deepseek-reasoning",
         "deepseek-r1-distill-qwen-32b": "deepseek-reasoning",
         "phi-4": "phi",
         #"pixtral-12b": "pixtral",
@@ -104,6 +98,27 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         ### Image Models ###
         "sdxl-turbo": "turbo",
     }
+
+    @classmethod
+    def get_model(cls, model: str) -> str:
+        """Get the internal model name from the user-provided model name."""
+        if not model:
+            return cls.default_model
+        
+        # Check if the model exists directly in our model lists
+        if model in cls.text_models or model in cls.image_models or model in cls.audio_models:
+            return model
+        
+        # Check if there's an alias for this model
+        if model in cls.model_aliases:
+            alias = cls.model_aliases[model]
+            # If the alias is a list, randomly select one of the options
+            if isinstance(alias, list):
+                return random.choice(alias)
+            return alias
+        
+        # If no match is found, raise an error
+        raise ModelNotFoundError(f"Model {model} not found")
 
     @classmethod
     def get_models(cls, **kwargs):
