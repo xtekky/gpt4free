@@ -3,6 +3,7 @@ from __future__ import annotations
 import requests
 
 from .template import OpenaiTemplate
+from .. import debug
 
 class TypeGPT(OpenaiTemplate):
     label = "TypeGpt"
@@ -36,6 +37,10 @@ class TypeGPT(OpenaiTemplate):
     @classmethod
     def get_models(cls, **kwargs):
         if not cls.models:
-            cls.models = requests.get(f"{cls.url}/api/config").json()["customModels"].split(",")
-            cls.models = [model.split("@")[0].strip("+") for model in cls.models if not model.startswith("-") and model not in cls.image_models]
+            try:
+                cls.models = requests.get(f"{cls.url}/api/config").json()["customModels"].split(",")
+                cls.models = [model.split("@")[0].strip("+") for model in cls.models if not model.startswith("-") and model not in cls.image_models]
+            except Exception as e:
+                cls.models = cls.fallback_models
+                debug.log(f"Error fetching models: {e}")
         return cls.models
