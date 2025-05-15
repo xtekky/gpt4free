@@ -135,7 +135,6 @@ class ChatCompletionMessage(BaseModel):
     tool_calls: list[ToolCallModel] = None
 
     @classmethod
-    @classmethod
     def model_construct(cls, content: str, tool_calls: list = None):
         return super().model_construct(role="assistant", content=content, **filter_none(tool_calls=tool_calls))
 

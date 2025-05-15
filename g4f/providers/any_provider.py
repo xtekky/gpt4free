@@ -252,7 +252,7 @@ class AnyProvider(AsyncGeneratorProvider, ProviderModelMixin):
                 child_conversation = getattr(conversation, provider.__name__, None)
                 if child_conversation is not None:
                     kwargs["conversation"] = JsonConversation(**child_conversation)
-            debug.log(f"Using {provider.__name__} provider" + f" and model {model}" if model else "")
+            debug.log(f"Using {provider.__name__} provider" + f" and {model} model" if model else "")
             yield ProviderInfo(**provider.get_dict(), model=model)
             if provider in (HuggingFace, HuggingFaceMedia):
                 kwargs["api_key"] = api_key
