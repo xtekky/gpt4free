@@ -2,13 +2,13 @@ from __future__ import annotations
 import json
 from uuid import uuid4
 from aiohttp import ClientSession
-from ..typing import AsyncResult, Messages, MediaListType
-from ..image import to_bytes, is_accepted_format, to_data_uri
-from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from ..requests.raise_for_status import raise_for_status
-from ..providers.response import FinishReason, JsonConversation
-from .helper import format_prompt, get_last_user_message, format_image_prompt
-from ..tools.media import merge_media
+from ...typing import AsyncResult, Messages, MediaListType
+from ...image import to_bytes, is_accepted_format, to_data_uri
+from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from ...requests.raise_for_status import raise_for_status
+from ...providers.response import FinishReason, JsonConversation
+from ..helper import format_prompt, get_last_user_message, format_image_prompt
+from ...tools.media import merge_media
 
 
 class Conversation(JsonConversation):
@@ -29,7 +29,7 @@ class AllenAI(AsyncGeneratorProvider, ProviderModelMixin):
     login_url = None
     api_endpoint = "https://olmo-api.allen.ai/v4/message/stream"
     
-    working = True
+    working = False
     needs_auth = False
     use_nodriver = False
     supports_stream = True

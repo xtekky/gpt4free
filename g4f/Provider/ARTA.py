@@ -151,10 +151,12 @@ class ARTA(AsyncGeneratorProvider, ProviderModelMixin):
 
         # Step 1: Get Authentication Token
         auth_data = await cls.read_and_refresh_token(proxy)
+        auth_token = auth_data.get("idToken")
 
         async with ClientSession() as session:
             # Step 2: Generate Images
-            image_payload = {
+            # Create a form data structure as the API might expect form data instead of JSON
+            form_data = {
                 "prompt": prompt,
                 "negative_prompt": negative_prompt,
                 "style": model,
@@ -166,10 +168,12 @@ class ARTA(AsyncGeneratorProvider, ProviderModelMixin):
             }
 
             headers = {
-                "Authorization": auth_data.get("idToken"),
+                "Authorization": auth_token,
+                # No Content-Type header for multipart/form-data, aiohttp sets it automatically
             }
 
-            async with session.post(cls.image_generation_url, data=image_payload, headers=headers, proxy=proxy) as image_response:
+            # Try with form data instead of JSON
+            async with session.post(cls.image_generation_url, data=form_data, headers=headers, proxy=proxy) as image_response:
                 await raise_error(f"Failed to initiate image generation", image_response)
                 image_data = await image_response.json()
                 record_id = image_data.get("record_id")

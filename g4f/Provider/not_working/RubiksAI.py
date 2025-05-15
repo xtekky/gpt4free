@@ -17,7 +17,7 @@ class RubiksAI(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://rubiks.ai"
     api_endpoint = "https://rubiks.ai/search/api/"
     
-    working = True
+    working = False
     supports_stream = True
     supports_system_message = True
     supports_message_history = True

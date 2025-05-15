@@ -34,50 +34,34 @@ try:
 except ImportError as e:
     debug.error("Audio providers not loaded:", e)
 
-try:
-    from .AllenAI              import AllenAI
-    from .ARTA                 import ARTA
-    from .Blackbox             import Blackbox
-    from .Chatai               import Chatai
-    from .ChatGLM              import ChatGLM
-    from .ChatGpt              import ChatGpt
-    from .ChatGptEs            import ChatGptEs
-    from .Cloudflare           import Cloudflare
-    from .Copilot              import Copilot
-    from .DDG                  import DDG
-    from .DeepInfraChat        import DeepInfraChat
-    from .DuckDuckGo           import DuckDuckGo
-    from .Dynaspark            import Dynaspark
-except ImportError as e:
-    debug.error("Providers not loaded (A-D):", e)
-try:
-    from .Free2GPT             import Free2GPT
-    from .FreeGpt              import FreeGpt
-    from .FreeRouter           import FreeRouter
-    from .GizAI                import GizAI
-    from .Glider               import Glider
-    from .Goabror              import Goabror
-    from .ImageLabs            import ImageLabs
-    from .Jmuz                 import Jmuz
-    from .LambdaChat           import LambdaChat
-    from .Liaobots             import Liaobots
-    from .LMArenaProvider      import LMArenaProvider
-    from .OIVSCode             import OIVSCode
-except ImportError as e:
-    debug.error("Providers not loaded (F-L):", e)
-try:
-    from .PerplexityLabs       import PerplexityLabs
-    from .Pi                   import Pi
-    from .Pizzagpt             import Pizzagpt
-    from .PollinationsAI       import PollinationsAI
-    from .PollinationsImage    import PollinationsImage
-    from .TeachAnything        import TeachAnything
-    from .TypeGPT              import TypeGPT
-    from .You                  import You
-    from .Websim               import Websim
-    from .Yqcloud              import Yqcloud
-except ImportError as e:
-    debug.error("Providers not loaded (M-Z):", e)
+from .ARTA                 import ARTA
+from .Blackbox             import Blackbox
+from .Chatai               import Chatai
+from .ChatGLM              import ChatGLM
+from .ChatGpt              import ChatGpt
+from .Cloudflare           import Cloudflare
+from .Copilot              import Copilot
+from .DDG                  import DDG
+from .DeepInfraChat        import DeepInfraChat
+from .DuckDuckGo           import DuckDuckGo
+from .Dynaspark            import Dynaspark
+from .Free2GPT             import Free2GPT
+from .FreeGpt              import FreeGpt
+from .GizAI                import GizAI
+from .ImageLabs            import ImageLabs
+from .LambdaChat           import LambdaChat
+from .Liaobots             import Liaobots
+from .LMArenaProvider      import LMArenaProvider
+from .PerplexityLabs       import PerplexityLabs
+from .Pi                   import Pi
+from .Pizzagpt             import Pizzagpt
+from .PollinationsAI       import PollinationsAI
+from .PollinationsImage    import PollinationsImage
+from .TeachAnything        import TeachAnything
+from .TypeGPT              import TypeGPT
+from .You                  import You
+from .Websim               import Websim
+from .Yqcloud              import Yqcloud
 
 import sys
 

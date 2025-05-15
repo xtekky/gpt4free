@@ -1,5 +1,6 @@
 from .Anthropic         import Anthropic
 from .BingCreateImages  import BingCreateImages
+from .BlackboxPro       import BlackboxPro
 from .CablyAI           import CablyAI
 from .Cerebras          import Cerebras
 from .CopilotAccount    import CopilotAccount

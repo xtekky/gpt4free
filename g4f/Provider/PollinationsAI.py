@@ -51,37 +51,69 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
     image_models = [default_image_model]
     audio_models = {default_audio_model: []}
     extra_image_models = ["flux-pro", "flux-dev", "flux-schnell", "midjourney", "dall-e-3", "turbo"]
-    vision_models = [default_vision_model, "gpt-4o-mini", "openai", "openai-large", "searchgpt"]
+    vision_models = [default_vision_model, "gpt-4o-mini", "openai", "openai-large", "openai-reasoning", "searchgpt"]
     _models_loaded = False
     # https://github.com/pollinations/pollinations/blob/master/text.pollinations.ai/generateTextPortkey.js#L15
     model_aliases = {
         ### Text Models ###
         "gpt-4o-mini": "openai",
+        "gpt-4.1-nano": "openai-fast",
         "gpt-4": "openai-large",
         "gpt-4o": "openai-large",
-        "gpt-4.1": "openai",
-        "gpt-4.1-nano": "openai",
-        "gpt-4.1-mini": "openai-large",
-        "gpt-4.1-xlarge": "openai-xlarge",
+        "gpt-4.1": "openai-large",
         "o4-mini": "openai-reasoning",
+        "gpt-4.1-mini": "openai",
+        "command-r-plus-08-2024": "command-r",
+        "gemini-2.5-flash": "gemini",
+        "gemini-2.0-flash-thinking": "gemini-thinking",
         "qwen-2.5-coder-32b": "qwen-coder",
         "llama-3.3-70b": "llama",
         "llama-4-scout": "llamascout",
-        "mistral-nemo": "mistral",
-        "llama-3.1-8b": "llamalight",
-        "llama-3.3-70b": "llama-scaleway",
-        "phi-4": "phi",
+        "llama-4-scout-17b": "llamascout",
+        "mistral-small-3.1-24b": "mistral",
         "deepseek-r1": "deepseek-reasoning-large",
         "deepseek-r1-distill-llama-70b": "deepseek-reasoning-large",
+        "deepseek-r1-distill-llama-70b": "deepseek-r1-llama",
+        #"mistral-small-3.1-24b": "unity", # Personas
+        #"mirexa": "mirexa", # Personas
+        #"midijourney": "midijourney", # Personas
+        #"rtist": "rtist", # Personas
+        #"searchgpt": "searchgpt",
+        #"evil": "evil", # Personas
         "deepseek-r1-distill-qwen-32b": "deepseek-reasoning",
+        "phi-4": "phi",
+        #"pixtral-12b": "pixtral",
+        #"hormoz-8b": "hormoz",
+        "qwq-32b": "qwen-qwq",
+        #"hypnosis-tracy-7b": "hypnosis-tracy", # Personas
+        #"mistral-?": "sur", # Personas
         "deepseek-v3": "deepseek",
-        "llama-3.2-11b": "llama-vision",
+        "deepseek-v3-0324": "deepseek",
+        #"bidara": "bidara", # Personas
+        
+        ### Audio Models ###
         "gpt-4o-audio": "openai-audio",
-        "gpt-4o-audio-preview": "openai-audio",
         
         ### Image Models ###
         "sdxl-turbo": "turbo",
     }
+
+    @classmethod
+    def get_model(cls, model: str) -> str:
+        """Get the internal model name from the user-provided model name."""
+        if not model:
+            return cls.default_model
+        
+        # Check if the model exists directly in our model lists
+        if model in cls.text_models or model in cls.image_models or model in cls.audio_models:
+            return model
+        
+        # Check if there's an alias for this model
+        if model in cls.model_aliases:
+            return cls.model_aliases[model]
+        
+        # If no match is found, raise an error
+        raise ModelNotFoundError(f"Model {model} not found")
 
     @classmethod
     def get_models(cls, **kwargs):
@@ -160,6 +192,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         stream: bool = True,
         proxy: str = None,
         cache: bool = False,
+        referrer: str = "https://gpt4free.github.io/",
         # Image generation parameters
         prompt: str = None,
         aspect_ratio: str = "1:1",
@@ -210,7 +243,8 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                 private=private,
                 enhance=enhance,
                 safe=safe,
-                n=n
+                n=n,
+                referrer=referrer
             ):
                 yield chunk
         else:
@@ -238,6 +272,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                 cache=cache,
                 stream=stream,
                 extra_parameters=extra_parameters,
+                referrer=referrer,
                 **kwargs
             ):
                 yield result
@@ -257,7 +292,8 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         private: bool,
         enhance: bool,
         safe: bool,
-        n: int
+        n: int,
+        referrer: str
     ) -> AsyncResult:
         params = use_aspect_ratio({
             "width": width,
@@ -269,7 +305,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
             "safe": str(safe).lower()
         }, aspect_ratio)
         query = "&".join(f"{k}={quote_plus(str(v))}" for k, v in params.items() if v is not None)
-        prompt = quote_plus(prompt)[:2048-256-len(query)]
+        prompt = quote_plus(prompt)[:2048-len(cls.image_api_endpoint)-len(query)-8]
         url = f"{cls.image_api_endpoint}prompt/{prompt}?{query}"
         def get_image_url(i: int, seed: Optional[int] = None):
             if i == 1:
@@ -280,7 +316,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
             return f"{url}&seed={seed}" if seed else url
         async with ClientSession(headers=DEFAULT_HEADERS, connector=get_connector(proxy=proxy)) as session:
             async def get_image(i: int, seed: Optional[int] = None):
-                async with session.get(get_image_url(i, seed), allow_redirects=False) as response:
+                async with session.get(get_image_url(i, seed), allow_redirects=False, headers={"referer": referrer}) as response:
                     try:
                         await raise_for_status(response)
                     except Exception as e:
@@ -307,13 +343,11 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         cache: bool,
         stream: bool,
         extra_parameters: list[str],
+        referrer: str,
         **kwargs
     ) -> AsyncResult:
         if not cache and seed is None:
             seed = random.randint(0, 2**32)
-        json_mode = False
-        if response_format and response_format.get("type") == "json_object":
-            json_mode = True
 
         async with ClientSession(headers=DEFAULT_HEADERS, connector=get_connector(proxy=proxy)) as session:
             if model in cls.audio_models:
@@ -331,13 +365,13 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                 "presence_penalty": presence_penalty,
                 "top_p": top_p,
                 "frequency_penalty": frequency_penalty,
-                "jsonMode": json_mode,
+                "response_format": response_format,
                 "stream": stream,
                 "seed": seed,
                 "cache": cache,
                 **extra_parameters
             })
-            async with session.post(url, json=data) as response:
+            async with session.post(url, json=data, headers={"referer": referrer}) as response:
                 await raise_for_status(response)
                 if response.headers["content-type"].startswith("text/plain"):
                     yield await response.text()

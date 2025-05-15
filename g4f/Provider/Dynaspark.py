@@ -12,7 +12,7 @@ from .helper import format_prompt
 class Dynaspark(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://dynaspark.onrender.com"
     login_url = None
-    api_endpoint = "https://dynaspark.onrender.com/generate_response"
+    api_endpoint = "https://dynaspark.onrender.com/dsai_fuck_u_spammer"
     
     working = True
     needs_auth = False

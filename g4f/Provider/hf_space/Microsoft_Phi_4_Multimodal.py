@@ -15,7 +15,7 @@ from ... import debug
 from .DeepseekAI_JanusPro7b import get_zerogpu_token
 from .raise_for_status import raise_for_status
 
-class Microsoft_Phi_4(AsyncGeneratorProvider, ProviderModelMixin):
+class Microsoft_Phi_4_Multimodal(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Microsoft Phi-4"
     space = "microsoft/phi-4-multimodal"
     url = f"https://huggingface.co/spaces/{space}"
@@ -29,9 +29,9 @@ class Microsoft_Phi_4(AsyncGeneratorProvider, ProviderModelMixin):
 
     default_model = "phi-4-multimodal"
     default_vision_model = default_model
-    model_aliases = {"phi-4": default_vision_model}
-    vision_models = list(model_aliases.keys())
+    vision_models = [default_vision_model]
     models = vision_models
+    model_aliases = {"phi-4": default_vision_model}
 
     @classmethod
     def run(cls, method: str, session: StreamSession, prompt: str, conversation: JsonConversation, media: list = None):

@@ -35,9 +35,8 @@ class Chatai(AsyncGeneratorProvider, ProviderModelMixin):
     supports_message_history = True 
 
     default_model = 'gpt-4o-mini-2024-07-18'
-    models = ['gpt-4o-mini-2024-07-18'] # 
-
     model_aliases = {"gpt-4o-mini":default_model} 
+    models = list(model_aliases.keys())
 
     # --- ProviderModelMixin Methods ---
     @classmethod
