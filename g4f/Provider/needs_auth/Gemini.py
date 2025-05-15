@@ -63,6 +63,7 @@ GGOGLE_SID_COOKIE = "__Secure-1PSID"
 
 models = {
     "gemini-2.5-pro-exp": {"x-goog-ext-525001261-jspb": '[1,null,null,null,"2525e3954d185b3c"]'},
+    "gemini-2.5-flash": {"x-goog-ext-525001261-jspb": '[1,null,null,null,"35609594dbe934d8"]'},
     "gemini-2.0-flash-thinking-exp": {"x-goog-ext-525001261-jspb": '[1,null,null,null,"7ca48d02d802f20a"]'},
     "gemini-deep-research": {"x-goog-ext-525001261-jspb": '[1,null,null,null,"cd472a54d2abba7e"]'},
     "gemini-2.0-flash": {"x-goog-ext-525001261-jspb": '[null,null,null,null,"f299729663a2343f"]'},
@@ -87,7 +88,10 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
     models = [
         default_model, *models.keys()
     ]
-    model_aliases = {"gemini-2.0": ""}
+    model_aliases = {
+        "gemini-2.0": "",
+        "gemini-2.5-pro": "gemini-2.5-pro-exp"
+    }
 
     synthesize_content_type = "audio/vnd.wav"
     
@@ -102,14 +106,11 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
     @classmethod
     async def nodriver_login(cls, proxy: str = None) -> AsyncIterator[str]:
         if not has_nodriver:
-            if debug.logging:
-                print("Skip nodriver login in Gemini provider")
+            debug.log("Skip nodriver login in Gemini provider")
             return
         browser, stop_browser = await get_nodriver(proxy=proxy, user_data_dir="gemini")
         try:
-            login_url = os.environ.get("G4F_LOGIN_URL")
-            if login_url:
-                yield RequestLogin(cls.label, login_url)
+            yield RequestLogin(cls.label, os.environ.get("G4F_LOGIN_URL", ""))
             page = await browser.get(f"{cls.url}/app")
             await page.select("div.ql-editor.textarea", 240)
             cookies = {}
@@ -159,6 +160,8 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
         audio: dict = None,
         **kwargs
     ) -> AsyncResult:
+        if model in cls.model_aliases:
+            model = cls.model_aliases[model]
         if audio is not None or model == "gemini-audio":
             prompt = format_image_prompt(messages, prompt)
             filename = get_filename(["gemini"], prompt, ".ogx", prompt)

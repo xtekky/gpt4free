@@ -57,12 +57,12 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
     model_aliases = {
         ### Text Models ###
         "gpt-4o-mini": "openai",
-        "gpt-4.1-nano": ["openai-fast", "openai-small"],
+        "gpt-4.1-nano": "openai-fast",
         "gpt-4": "openai-large",
         "gpt-4o": "openai-large",
-        "gpt-4.1": ["openai", "openai-large", "openai-xlarge"],
+        "gpt-4.1": "openai-large",
         "o4-mini": "openai-reasoning",
-        "gpt-4.1-mini": ["openai", "openai-roblox", "roblox-rp"],
+        "gpt-4.1-mini": "openai",
         "command-r-plus-08-2024": "command-r",
         "gemini-2.5-flash": "gemini",
         "gemini-2.0-flash-thinking": "gemini-thinking",
@@ -71,7 +71,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         "llama-4-scout": "llamascout",
         "llama-4-scout-17b": "llamascout",
         "mistral-small-3.1-24b": "mistral",
-        "deepseek-r1": ["deepseek-reasoning-large", "deepseek-reasoning"],
+        "deepseek-r1": "deepseek-reasoning-large",
         "deepseek-r1-distill-llama-70b": "deepseek-reasoning-large",
         "deepseek-r1-distill-llama-70b": "deepseek-r1-llama",
         #"mistral-small-3.1-24b": "unity", # Personas
@@ -93,7 +93,6 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         
         ### Audio Models ###
         "gpt-4o-audio": "openai-audio",
-        #"gpt-4o-audio-preview": "openai-audio",
         
         ### Image Models ###
         "sdxl-turbo": "turbo",
@@ -111,11 +110,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         
         # Check if there's an alias for this model
         if model in cls.model_aliases:
-            alias = cls.model_aliases[model]
-            # If the alias is a list, randomly select one of the options
-            if isinstance(alias, list):
-                return random.choice(alias)
-            return alias
+            return cls.model_aliases[model]
         
         # If no match is found, raise an error
         raise ModelNotFoundError(f"Model {model} not found")
@@ -197,6 +192,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         stream: bool = True,
         proxy: str = None,
         cache: bool = False,
+        referrer: str = "https://gpt4free.github.io/",
         # Image generation parameters
         prompt: str = None,
         aspect_ratio: str = "1:1",
@@ -247,7 +243,8 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                 private=private,
                 enhance=enhance,
                 safe=safe,
-                n=n
+                n=n,
+                referrer=referrer
             ):
                 yield chunk
         else:
@@ -275,6 +272,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                 cache=cache,
                 stream=stream,
                 extra_parameters=extra_parameters,
+                referrer=referrer,
                 **kwargs
             ):
                 yield result
@@ -294,7 +292,8 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         private: bool,
         enhance: bool,
         safe: bool,
-        n: int
+        n: int,
+        referrer: str
     ) -> AsyncResult:
         params = use_aspect_ratio({
             "width": width,
@@ -306,7 +305,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
             "safe": str(safe).lower()
         }, aspect_ratio)
         query = "&".join(f"{k}={quote_plus(str(v))}" for k, v in params.items() if v is not None)
-        prompt = quote_plus(prompt)[:2048-256-len(query)]
+        prompt = quote_plus(prompt)[:2048-len(cls.image_api_endpoint)-len(query)-8]
         url = f"{cls.image_api_endpoint}prompt/{prompt}?{query}"
         def get_image_url(i: int, seed: Optional[int] = None):
             if i == 1:
@@ -317,7 +316,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
             return f"{url}&seed={seed}" if seed else url
         async with ClientSession(headers=DEFAULT_HEADERS, connector=get_connector(proxy=proxy)) as session:
             async def get_image(i: int, seed: Optional[int] = None):
-                async with session.get(get_image_url(i, seed), allow_redirects=False) as response:
+                async with session.get(get_image_url(i, seed), allow_redirects=False, headers={"referer": referrer}) as response:
                     try:
                         await raise_for_status(response)
                     except Exception as e:
@@ -344,13 +343,11 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         cache: bool,
         stream: bool,
         extra_parameters: list[str],
+        referrer: str,
         **kwargs
     ) -> AsyncResult:
         if not cache and seed is None:
             seed = random.randint(0, 2**32)
-        json_mode = False
-        if response_format and response_format.get("type") == "json_object":
-            json_mode = True
 
         async with ClientSession(headers=DEFAULT_HEADERS, connector=get_connector(proxy=proxy)) as session:
             if model in cls.audio_models:
@@ -368,13 +365,13 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                 "presence_penalty": presence_penalty,
                 "top_p": top_p,
                 "frequency_penalty": frequency_penalty,
-                "jsonMode": json_mode,
+                "response_format": response_format,
                 "stream": stream,
                 "seed": seed,
                 "cache": cache,
                 **extra_parameters
             })
-            async with session.post(url, json=data) as response:
+            async with session.post(url, json=data, headers={"referer": referrer}) as response:
                 await raise_for_status(response)
                 if response.headers["content-type"].startswith("text/plain"):
                     yield await response.text()

@@ -375,7 +375,7 @@ class Liaobots(AsyncGeneratorProvider, ProviderModelMixin):
                     f"{cls.url}/api/chat",
                     json=data,
                     headers={"x-auth-code": cls._auth_code},
-                    verify_ssl=False
+                    ssl=False
                 ) as response:
                     # Check if we got a streaming response
                     content_type = response.headers.get("Content-Type", "")
@@ -416,7 +416,7 @@ class Liaobots(AsyncGeneratorProvider, ProviderModelMixin):
                                 f"{cls.url}/api/chat",
                                 json=data,
                                 headers={"x-auth-code": cls._auth_code},
-                                verify_ssl=False
+                                ssl=False
                             ) as response2:
                                 # Check if we got a streaming response
                                 content_type = response2.headers.get("Content-Type", "")
@@ -462,7 +462,7 @@ class Liaobots(AsyncGeneratorProvider, ProviderModelMixin):
             async with session.post(
                 f"{cls.url}/recaptcha/api/login",
                 json={"token": "abcdefghijklmnopqrst"},
-                verify_ssl=False
+                ssl=False
             ) as response:
                 if response.status == 200:
                     try:
@@ -497,7 +497,7 @@ class Liaobots(AsyncGeneratorProvider, ProviderModelMixin):
             async with session.post(
                 f"{cls.url}/api/user",
                 json=auth_request_data,
-                verify_ssl=False
+                ssl=False
             ) as response:
                 if response.status == 200:
                     response_text = await response.text()
@@ -518,7 +518,7 @@ class Liaobots(AsyncGeneratorProvider, ProviderModelMixin):
                             async with session.post(
                                 f"{cls.url}/api/user",
                                 json=auth_request_data,
-                                verify_ssl=False
+                                ssl=False
                             ) as response2:
                                 if response2.status == 200:
                                     response_text2 = await response2.text()
