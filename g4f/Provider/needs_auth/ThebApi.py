@@ -48,4 +48,4 @@ class ThebApi(OpenaiTemplate):
                 top_p=top_p,
             )
         }
-        return super().create_async_generator(model, messages, extra_data=data, **kwargs)
+        return super().create_async_generator(model, messages, extra_body=data, **kwargs)

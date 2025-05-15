@@ -74,8 +74,8 @@ class HuggingChat(AsyncAuthedProvider, ProviderModelMixin):
         if "hf-chat" in cookies:
             yield AuthResult(
                 cookies=cookies,
-                impersonate="chrome",
-                headers=DEFAULT_HEADERS
+                headers=DEFAULT_HEADERS,
+                impersonate="chrome"
             )
             return
         if cls.needs_auth:
@@ -89,9 +89,11 @@ class HuggingChat(AsyncAuthedProvider, ProviderModelMixin):
             )
         else:
             yield AuthResult(
-                cookies = {
+                cookies={
                     "hf-chat": str(uuid.uuid4())  # Generate a session ID
-                }
+                },
+                headers=DEFAULT_HEADERS,
+                impersonate="chrome"
             )
 
     @classmethod

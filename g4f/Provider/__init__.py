@@ -10,7 +10,7 @@ try:
 except ImportError as e:
     debug.error("Deprecated providers not loaded:", e)
 from .needs_auth       import *
-from .template         import OpenaiTemplate, BackendApi
+from .template         import OpenaiTemplate, BackendApi, Puter
 from .hf               import HuggingFace, HuggingChat, HuggingFaceAPI, HuggingFaceInference, HuggingFaceMedia
 from .har              import HarProvider
 try:

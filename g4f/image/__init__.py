@@ -285,27 +285,27 @@ def to_input_audio(audio: ImageType, filename: str = None) -> str:
         }
     raise ValueError("Invalid input audio")
 
-def use_aspect_ratio(extra_data: dict, aspect_ratio: str) -> Image:
-    extra_data = {key: value for key, value in extra_data.items() if value is not None}
+def use_aspect_ratio(extra_body: dict, aspect_ratio: str) -> Image:
+    extra_body = {key: value for key, value in extra_body.items() if value is not None}
     if aspect_ratio == "1:1":
-        extra_data = {
+        extra_body = {
             "width": 1024,
             "height": 1024,
-            **extra_data
+            **extra_body
         }
     elif aspect_ratio == "16:9":
-        extra_data = {
+        extra_body = {
             "width": 832,
             "height": 480,
-            **extra_data
+            **extra_body
         }
     elif aspect_ratio == "9:16":
-        extra_data = {
+        extra_body = {
             "width": 480,
             "height": 832,
-            **extra_data
+            **extra_body
         }
-    return extra_data
+    return extra_body
 
 class ImageDataResponse():
     def __init__(

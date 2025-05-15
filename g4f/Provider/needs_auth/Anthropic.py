@@ -73,7 +73,7 @@ class Anthropic(OpenaiAPI):
         headers: dict = None,
         impersonate: str = None,
         tools: Optional[list] = None,
-        extra_data: dict = {},
+        extra_body: dict = {},
         **kwargs
     ) -> AsyncResult:
         if api_key is None:
@@ -121,7 +121,7 @@ class Anthropic(OpenaiAPI):
                 system=system,
                 stream=stream,
                 tools=tools,
-                **extra_data
+                **extra_body
             )
             async with session.post(f"{cls.api_base}/messages", json=data) as response:
                 await raise_for_status(response)

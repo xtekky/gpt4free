@@ -340,6 +340,7 @@ class ProviderModelMixin:
     default_model: str = None
     models: list[str] = []
     model_aliases: dict[str, str] = {}
+    models_count: dict = {}
     image_models: list = []
     vision_models: list = []
     video_models: list = []

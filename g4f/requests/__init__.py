@@ -3,8 +3,9 @@ from __future__ import annotations
 import os
 import time
 import random
+import json
 from urllib.parse import urlparse
-from typing import Iterator
+from typing import Iterator, AsyncIterator
 from http.cookies import Morsel
 from pathlib import Path
 import asyncio
@@ -199,3 +200,10 @@ async def get_nodriver(
         finally:
             lock_file.unlink(missing_ok=True)
     return browser, on_stop
+
+async def see_stream(iter_lines: Iterator[bytes]) -> AsyncIterator[dict]:
+    async for line in iter_lines:
+        if line.startswith(b"data: "):
+            if line[6:].startswith(b"[DONE]"):
+                break
+            yield json.loads(line[6:])

@@ -77,7 +77,7 @@ class HuggingFaceInference(AsyncGeneratorProvider, ProviderModelMixin):
         temperature: float = None,
         prompt: str = None,
         action: str = None,
-        extra_data: dict = {},
+        extra_body: dict = {},
         seed: int = None,
         aspect_ratio: str = None,
         width: int = None,
@@ -94,10 +94,10 @@ class HuggingFaceInference(AsyncGeneratorProvider, ProviderModelMixin):
         }
         if api_key is not None:
             headers["Authorization"] = f"Bearer {api_key}"
-        image_extra_data = use_aspect_ratio({
+        image_extra_body = use_aspect_ratio({
             "width": width,
             "height": height,
-            **extra_data
+            **extra_body
         }, aspect_ratio)
         async with StreamSession(
             headers=headers,
@@ -110,7 +110,7 @@ class HuggingFaceInference(AsyncGeneratorProvider, ProviderModelMixin):
                         "response_format": "url",
                         "prompt": format_image_prompt(messages, prompt),
                         "model": model,
-                        **image_extra_data
+                        **image_extra_body
                     }
                     async with session.post(provider_together_urls[model], json=data) as response:
                         if response.status == 404:
@@ -126,7 +126,7 @@ class HuggingFaceInference(AsyncGeneratorProvider, ProviderModelMixin):
                 "return_full_text": False,
                 "max_new_tokens": max_tokens,
                 "temperature": temperature,
-                **extra_data
+                **extra_body
             }
             do_continue = action == "continue"
             if payload is None:
@@ -135,7 +135,7 @@ class HuggingFaceInference(AsyncGeneratorProvider, ProviderModelMixin):
                 if pipeline_tag == "text-to-image":
                     stream = False
                     inputs = format_image_prompt(messages, prompt)
-                    payload = {"inputs": inputs, "parameters": {"seed": random.randint(0, 2**32) if seed is None else seed, **image_extra_data}}
+                    payload = {"inputs": inputs, "parameters": {"seed": random.randint(0, 2**32) if seed is None else seed, **image_extra_body}}
                 elif pipeline_tag in ("text-generation", "image-text-to-text"):
                     model_type = None
                     if "config" in model_data and "model_type" in model_data["config"]:

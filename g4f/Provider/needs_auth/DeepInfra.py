@@ -89,7 +89,7 @@ class DeepInfra(OpenaiTemplate):
         api_base: str = "https://api.deepinfra.com/v1/inference",
         proxy: str = None,
         timeout: int = 180,
-        extra_data: dict = {},
+        extra_body: dict = {},
         **kwargs
     ) -> ImageResponse:
         headers = {
@@ -115,7 +115,7 @@ class DeepInfra(OpenaiTemplate):
             timeout=timeout
         ) as session:
             model = cls.get_model(model)
-            data = {"prompt": prompt, **extra_data}
+            data = {"prompt": prompt, **extra_body}
             data = {"input": data} if model == cls.default_model else data
             async with session.post(f"{api_base.rstrip('/')}/{model}", json=data) as response:
                 await raise_for_status(response)

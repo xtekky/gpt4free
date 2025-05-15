@@ -21,8 +21,6 @@ from ... import debug
 
 logger = logging.getLogger(__name__)
 
-conversations: dict[dict[str, BaseConversation]] = {}
-
 class Api:
     @staticmethod
     def get_models():
@@ -42,31 +40,49 @@ class Api:
 
     @staticmethod
     def get_provider_models(provider: str, api_key: str = None, api_base: str = None, ignored: list = None):
+        def get_model_data(provider: ProviderModelMixin, model: str):
+            return {
+                "model": model,
+                "label": model.split(":")[-1] if provider.__name__ == "AnyProvider" else model,
+                "default": model == provider.default_model,
+                "vision": model in provider.vision_models,
+                "audio": model in provider.audio_models,
+                "video": model in provider.video_models,
+                "image": model in provider.image_models,
+                "count": provider.models_count.get(model),
+            }
         if provider in Provider.__map__:
             provider = Provider.__map__[provider]
             if issubclass(provider, ProviderModelMixin):
+                has_grouped_models = hasattr(provider, "get_grouped_models")
+                method = provider.get_grouped_models if has_grouped_models else provider.get_models
                 if "api_key" in signature(provider.get_models).parameters:
-                    models = provider.get_models(api_key=api_key, api_base=api_base)
+                    models = method(api_key=api_key, api_base=api_base)
                 elif "ignored" in signature(provider.get_models).parameters:
-                    models = provider.get_models(ignored=ignored)
+                    models = method(ignored=ignored)
                 else:
-                    models = provider.get_models()
+                    models = method()
+                if has_grouped_models:
+                    return [{
+                        "group": model["group"],
+                        "models": [get_model_data(provider, name) for name in model["models"]]
+                    } for model in models]
                 return [
-                    {
-                        "model": model,
-                        "default": model == provider.default_model,
-                        "vision": getattr(provider, "default_vision_model", None) == model or model in getattr(provider, "vision_models", []),
-                        "audio": getattr(provider, "default_audio_model", None) == model or model in getattr(provider, "audio_models", []),
-                        "video": getattr(provider, "default_video_model", None) == model or model in getattr(provider, "video_models", []),
-                        "image": False if provider.image_models is None else model in provider.image_models,
-                        "count": getattr(provider, "models_count", {}).get(model),
-                    }
+                    get_model_data(provider, model)
                     for model in models
                 ]
         return []
 
     @staticmethod
     def get_providers() -> dict[str, str]:
+        def safe_get_models(provider: ProviderModelMixin):
+            if not isinstance(provider, ProviderModelMixin):
+                return True
+            try:
+                return provider.get_models()
+            except Exception as e:
+                logger.exception(e)
+                return True
         return [{
             "name": provider.__name__,
             "label": provider.label if hasattr(provider, "label") else provider.__name__,
@@ -79,7 +95,7 @@ class Api:
             "hf_space": getattr(provider, "hf_space", False),
             "auth": provider.needs_auth,
             "login_url": getattr(provider, "login_url", None),
-        } for provider in Provider.__providers__ if provider.working]
+        } for provider in Provider.__providers__ if provider.working and safe_get_models(provider)]
 
     @staticmethod
     def get_version() -> dict:
@@ -121,11 +137,6 @@ class Api:
         conversation = json_data.get("conversation")
         if isinstance(conversation, dict):
             kwargs["conversation"] = JsonConversation(**conversation)
-        else:
-            conversation_id = json_data.get("conversation_id")
-            if conversation_id and provider:
-                if provider in conversations and conversation_id in conversations[provider]:
-                    kwargs["conversation"] = conversations[provider][conversation_id]
         return {
             "model": model,
             "provider": provider,
@@ -168,19 +179,13 @@ class Api:
                 if isinstance(chunk, ProviderInfo):
                     yield self.handle_provider(chunk, model)
                     provider = chunk.name
-                elif isinstance(chunk, BaseConversation):
+                elif isinstance(chunk, JsonConversation):
                     if provider is not None:
                         if hasattr(provider, "__name__"):
                             provider = provider.__name__
-                        if provider not in conversations:
-                            conversations[provider] = {}
-                        conversations[provider][conversation_id] = chunk
-                        if isinstance(chunk, JsonConversation):
-                            yield self._format_json("conversation", {
-                                provider: chunk.get_dict()
-                            })
-                        else:
-                            yield self._format_json("conversation_id", conversation_id)
+                        yield self._format_json("conversation", {
+                            provider: chunk.get_dict()
+                        })
                 elif isinstance(chunk, Exception):
                     logger.exception(chunk)
                     yield self._format_json('message', get_error_message(chunk), error=type(chunk).__name__)

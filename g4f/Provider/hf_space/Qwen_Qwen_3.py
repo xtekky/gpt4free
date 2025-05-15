@@ -6,6 +6,7 @@ import uuid
 
 from ...typing import AsyncResult, Messages
 from ...providers.response import Reasoning, JsonConversation
+from ...requests.raise_for_status import raise_for_status
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..helper import get_last_user_message
 from ... import debug
@@ -82,6 +83,7 @@ class Qwen_Qwen_3(AsyncGeneratorProvider, ProviderModelMixin):
         async with aiohttp.ClientSession() as session:
             # Send join request
             async with session.post(cls.api_endpoint, headers=headers_join, json=payload_join) as response:
+                await raise_for_status(response)
                 (await response.json())['event_id']
 
             # Prepare data stream request

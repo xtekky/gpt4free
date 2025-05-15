@@ -108,6 +108,27 @@ class ChatCompletionChunk(BaseModel):
             return conversation.get_dict()
         return conversation
 
+class ResponseMessage(BaseModel):
+    type: str = "message"
+    role: str
+    content: list[ResponseMessageContent]
+
+    @classmethod
+    def model_construct(cls, content: str):
+        return super().model_construct(role="assistant", content=[ResponseMessageContent.model_construct(content)])
+
+class ResponseMessageContent(BaseModel):
+    type: str
+    text: str
+
+    @classmethod
+    def model_construct(cls, text: str):
+        return super().model_construct(type="output_text", text=text)
+
+    @field_serializer('text')
+    def serialize_text(self, text: str):
+        return str(text)
+
 class ChatCompletionMessage(BaseModel):
     role: str
     content: str
@@ -133,6 +154,7 @@ class ChatCompletionMessage(BaseModel):
         if content is not None:
             with open(filepath, "w") as f:
                 f.write(content)
+
 
 class ChatCompletionChoice(BaseModel):
     index: int
@@ -174,6 +196,43 @@ class ChatCompletion(BaseModel):
                 ChatCompletionMessage.model_construct(content, tool_calls),
                 finish_reason,
             )],
+            **filter_none(usage=usage, conversation=conversation)
+        )
+
+    @field_serializer('conversation')
+    def serialize_conversation(self, conversation: dict):
+        if hasattr(conversation, "get_dict"):
+            return conversation.get_dict()
+        return conversation
+
+class ClientResponse(BaseModel):
+    id: str
+    object: str
+    created_at: int
+    model: str
+    provider: Optional[str]
+    output: list[ResponseMessage]
+    usage: UsageModel
+    conversation: dict
+
+    @classmethod
+    def model_construct(
+        cls,
+        content: str,
+        response_id: str = None,
+        created_at: int = None,
+        usage: UsageModel = None,
+        conversation: dict = None
+    ) -> ClientResponse:
+        return super().model_construct(
+            id=f"resp-{response_id}" if response_id else None,
+            object="response",
+            created_at=created_at,
+            model=None,
+            provider=None,
+            output=[
+                ResponseMessage.model_construct(content),
+            ],
             **filter_none(usage=usage, conversation=conversation)
         )
 
