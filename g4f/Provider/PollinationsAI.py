@@ -13,11 +13,12 @@ from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..typing import AsyncResult, Messages, MediaListType
 from ..image import is_data_an_audio
 from ..errors import ModelNotFoundError, ResponseError
+from ..requests import see_stream
 from ..requests.raise_for_status import raise_for_status
 from ..requests.aiohttp import get_connector
 from ..image.copy_images import save_response_media
 from ..image import use_aspect_ratio
-from ..providers.response import FinishReason, Usage, ToolCalls, ImageResponse
+from ..providers.response import FinishReason, Usage, ToolCalls, ImageResponse, Reasoning
 from ..tools.media import render_messages
 from .. import debug
 
@@ -73,7 +74,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         "mistral-small-3.1-24b": "mistral",
         "deepseek-r1": "deepseek-reasoning-large",
         "deepseek-r1-distill-llama-70b": "deepseek-reasoning-large",
-        "deepseek-r1-distill-llama-70b": "deepseek-r1-llama",
+        #"deepseek-r1-distill-llama-70b": "deepseek-r1-llama",
         #"mistral-small-3.1-24b": "unity", # Personas
         #"mirexa": "mirexa", # Personas
         #"midijourney": "midijourney", # Personas
@@ -90,10 +91,10 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         "deepseek-v3": "deepseek",
         "deepseek-v3-0324": "deepseek",
         #"bidara": "bidara", # Personas
-        
+
         ### Audio Models ###
         "gpt-4o-audio": "openai-audio",
-        
+
         ### Image Models ###
         "sdxl-turbo": "turbo",
     }
@@ -146,9 +147,17 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                     for model in models
                     if "output_modalities" in model and "audio" in model["output_modalities"] and model.get("name") != "gemini"
                 }
-
                 if cls.default_audio_model in cls.audio_models:
                     cls.audio_models = {**cls.audio_models, **{voice: {} for voice in cls.audio_models[cls.default_audio_model]}}
+
+                cls.vision_models.extend([
+                    model.get("name")
+                    for model in models
+                    if model.get("vision") and model not in cls.vision_models
+                ])
+                for alias, model in cls.model_aliases.items():
+                    if model in cls.vision_models and alias not in cls.vision_models:
+                        cls.vision_models.append(alias)
 
                 # Create a set of unique text models starting with default model
                 unique_text_models = cls.text_models.copy()
@@ -193,6 +202,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         proxy: str = None,
         cache: bool = False,
         referrer: str = "https://gpt4free.github.io/",
+        extra_body: dict = {},
         # Image generation parameters
         prompt: str = None,
         aspect_ratio: str = "1:1",
@@ -244,7 +254,8 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                 enhance=enhance,
                 safe=safe,
                 n=n,
-                referrer=referrer
+                referrer=referrer,
+                extra_body=extra_body
             ):
                 yield chunk
         else:
@@ -273,6 +284,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                 stream=stream,
                 extra_parameters=extra_parameters,
                 referrer=referrer,
+                extra_body=extra_body,
                 **kwargs
             ):
                 yield result
@@ -293,18 +305,20 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         enhance: bool,
         safe: bool,
         n: int,
-        referrer: str
+        referrer: str,
+        extra_body: dict
     ) -> AsyncResult:
-        params = use_aspect_ratio({
+        extra_body = use_aspect_ratio({
             "width": width,
             "height": height,
             "model": model,
             "nologo": str(nologo).lower(),
             "private": str(private).lower(),
             "enhance": str(enhance).lower(),
-            "safe": str(safe).lower()
+            "safe": str(safe).lower(),
+            **extra_body
         }, aspect_ratio)
-        query = "&".join(f"{k}={quote_plus(str(v))}" for k, v in params.items() if v is not None)
+        query = "&".join(f"{k}={quote_plus(str(v))}" for k, v in extra_body.items() if v is not None)
         prompt = quote_plus(prompt)[:2048-len(cls.image_api_endpoint)-len(query)-8]
         url = f"{cls.image_api_endpoint}prompt/{prompt}?{query}"
         def get_image_url(i: int, seed: Optional[int] = None):
@@ -344,6 +358,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         stream: bool,
         extra_parameters: list[str],
         referrer: str,
+        extra_body: dict,
         **kwargs
     ) -> AsyncResult:
         if not cache and seed is None:
@@ -357,43 +372,46 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                 stream = False
             else:
                 url = cls.openai_endpoint
-            extra_parameters = {param: kwargs[param] for param in extra_parameters if param in kwargs}
-            data = filter_none(**{
-                "messages": list(render_messages(messages, media)),
-                "model": model,
-                "temperature": temperature,
-                "presence_penalty": presence_penalty,
-                "top_p": top_p,
-                "frequency_penalty": frequency_penalty,
-                "response_format": response_format,
-                "stream": stream,
-                "seed": seed,
-                "cache": cache,
-                **extra_parameters
-            })
+            extra_body.update({param: kwargs[param] for param in extra_parameters if param in kwargs})
+            data = filter_none(
+                messages=list(render_messages(messages, media)),
+                model=model,
+                temperature=temperature,
+                presence_penalty=presence_penalty,
+                top_p=top_p,
+                frequency_penalty=frequency_penalty,
+                response_format=response_format,
+                stream=stream,
+                seed=seed,
+                cache=cache,
+                **extra_body
+            )
             async with session.post(url, json=data, headers={"referer": referrer}) as response:
                 await raise_for_status(response)
                 if response.headers["content-type"].startswith("text/plain"):
                     yield await response.text()
                     return
                 elif response.headers["content-type"].startswith("text/event-stream"):
-                    async for line in response.content:
-                        if line.startswith(b"data: "):
-                            if line[6:].startswith(b"[DONE]"):
-                                break
-                            result = json.loads(line[6:])
-                            if "error" in result:
-                                raise ResponseError(result["error"].get("message", result["error"]))
-                            if result.get("usage") is not None:
-                                yield Usage(**result["usage"])
-                            choices = result.get("choices", [{}])
-                            choice = choices.pop() if choices else {}
-                            content = choice.get("delta", {}).get("content")
-                            if content:
-                                yield content
-                            finish_reason = choice.get("finish_reason")
-                            if finish_reason:
-                                yield FinishReason(finish_reason)
+                    reasoning = False
+                    async for result in see_stream(response.content):
+                        if "error" in result:
+                            raise ResponseError(result["error"].get("message", result["error"]))
+                        if result.get("usage") is not None:
+                            yield Usage(**result["usage"])
+                        choices = result.get("choices", [{}])
+                        choice = choices.pop() if choices else {}
+                        content = choice.get("delta", {}).get("content")
+                        if content:
+                            yield content
+                        reasoning_content = choice.get("delta", {}).get("reasoning_content")
+                        if reasoning_content:
+                            reasoning = True
+                            yield Reasoning(reasoning_content)
+                        finish_reason = choice.get("finish_reason")
+                        if finish_reason:
+                            yield FinishReason(finish_reason)
+                    if reasoning:
+                        yield Reasoning(status="Done")
                 elif response.headers["content-type"].startswith("application/json"):
                     result = await response.json()
                     if "choices" in result:

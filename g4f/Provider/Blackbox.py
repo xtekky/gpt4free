@@ -278,16 +278,11 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         "qwerky-72b":  "Qwerky 72B",
         "qwq-32b":  "QwQ 32B",
         "qwq-32b-preview":  "QwQ 32B Preview",
-        "qwq-32b":  "QwQ 32B Preview",
         "qwq-32b-arliai":  "QwQ 32B RpR v1",
-        "qwq-32b":  "QwQ 32B RpR v1",
         "deepseek-r1":  "R1",
         "deepseek-r1-distill-llama-70b":  "R1 Distill Llama 70B",
-        "deepseek-r1":  "R1 Distill Llama 70B",
         "deepseek-r1-distill-qwen-14b":  "R1 Distill Qwen 14B",
-        "deepseek-r1":  "R1 Distill Qwen 14B",
         "deepseek-r1-distill-qwen-32b":  "R1 Distill Qwen 32B",
-        "deepseek-r1":  "R1 Distill Qwen 32B",
     }
 
     @classmethod

@@ -66,7 +66,7 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
         headers: dict = None,
         impersonate: str = None,
         extra_parameters: list[str] = ["tools", "parallel_tool_calls", "tool_choice", "reasoning_effort", "logit_bias", "modalities", "audio"],
-        extra_data: dict = {},
+        extra_body: dict = {},
         **kwargs
     ) -> AsyncResult:
         if api_key is None and cls.api_key is not None:
@@ -107,7 +107,7 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
                 stop=stop,
                 stream=stream,
                 **extra_parameters,
-                **extra_data
+                **extra_body
             )
             if api_endpoint is None:
                 api_endpoint = cls.api_endpoint

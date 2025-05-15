@@ -78,7 +78,7 @@ class HuggingFaceAPI(OpenaiTemplate):
         api_base: str = None,
         api_key: str = None,
         max_tokens: int = 2048,
-        max_inputs_lenght: int = 10000,
+        # max_inputs_lenght: int = 10000,
         media: MediaListType = None,
         **kwargs
     ):
@@ -117,5 +117,6 @@ class HuggingFaceAPI(OpenaiTemplate):
                 continue
         if error is not None:
             raise error
-def calculate_lenght(messages: Messages) -> int:
-    return sum([len(message["content"]) + 16 for message in messages])
+
+# def calculate_lenght(messages: Messages) -> int:
+#     return sum([len(message["content"]) + 16 for message in messages])

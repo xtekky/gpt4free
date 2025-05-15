@@ -29,7 +29,7 @@ class Replicate(AsyncGeneratorProvider, ProviderModelMixin):
         top_p: float = None,
         top_k: float = None,
         stop: list = None,
-        extra_data: dict = {},
+        extra_body: dict = {},
         headers: dict = {
             "accept": "application/json",
         },
@@ -60,7 +60,7 @@ class Replicate(AsyncGeneratorProvider, ProviderModelMixin):
                         top_k=top_k,
                         stop_sequences=",".join(stop) if stop else None
                     ),
-                    **extra_data
+                    **extra_body
                 },
             }
             url = f"{api_base.rstrip('/')}/{model}/predictions"

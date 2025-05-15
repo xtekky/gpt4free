@@ -55,9 +55,10 @@ class HuggingFaceMedia(AsyncGeneratorProvider, ProviderModelMixin):
                     model["id"]: [
                         provider.get("task")
                         for provider in model.get("inferenceProviderMapping")
-                    ].pop()
+                    ]
                     for model in models
                 }
+                cls.task_mapping = {model: task[0] for model, task in cls.task_mapping.items() if task}
                 prepend_models = []
                 for model, provider_keys in providers.items():
                     task = cls.task_mapping.get(model)
@@ -97,7 +98,7 @@ class HuggingFaceMedia(AsyncGeneratorProvider, ProviderModelMixin):
         model: str,
         messages: Messages,
         api_key: str = None,
-        extra_data: dict = {},
+        extra_body: dict = {},
         prompt: str = None,
         proxy: str = None,
         timeout: int = 0,
@@ -128,7 +129,7 @@ class HuggingFaceMedia(AsyncGeneratorProvider, ProviderModelMixin):
             if key in ["replicate", "together", "hf-inference"]
         }
         provider_mapping = {**new_mapping, **provider_mapping}
-        async def generate(extra_data: dict, aspect_ratio: str = None):
+        async def generate(extra_body: dict, aspect_ratio: str = None):
             last_response = None
             for provider_key, provider in provider_mapping.items():
                 if selected_provider is not None and selected_provider != provider_key:
@@ -143,24 +144,24 @@ class HuggingFaceMedia(AsyncGeneratorProvider, ProviderModelMixin):
 
                 if aspect_ratio is None:
                     aspect_ratio = "1:1" if task == "text-to-image" else "16:9"
-                extra_data_image = use_aspect_ratio({
-                    **extra_data,
+                extra_body_image = use_aspect_ratio({
+                    **extra_body,
                     "height": height,
                     "width": width,
                 }, aspect_ratio)
-                extra_data_video = {}
+                extra_body_video = {}
                 if task == "text-to-video" and provider_key != "novita":
-                    extra_data_video = {
+                    extra_body_video = {
                         "num_inference_steps": 20,
                         "resolution": resolution,
                         "aspect_ratio": aspect_ratio,
-                        **extra_data
+                        **extra_body
                     }
                 url = f"{api_base}/{provider_id}"
                 data = {
                     "prompt": prompt,
                     **{"width": width, "height": height},
-                    **(extra_data_video if task == "text-to-video" else extra_data_image),
+                    **(extra_body_video if task == "text-to-video" else extra_body_image),
                 }
                 if provider_key == "fal-ai" and task == "text-to-image":
                     data = {
@@ -168,7 +169,7 @@ class HuggingFaceMedia(AsyncGeneratorProvider, ProviderModelMixin):
                             "height": height,
                             "width": width,
                         }, aspect_ratio),
-                        **extra_data
+                        **extra_body
                     }
                 elif provider_key == "novita":
                     url = f"{api_base}/v3/hf/{provider_id}"
@@ -213,7 +214,13 @@ class HuggingFaceMedia(AsyncGeneratorProvider, ProviderModelMixin):
                             if "video" in result:
                                 return provider_info, VideoResponse(result.get("video").get("url", result.get("video").get("video_url")), prompt)
                             elif task == "text-to-image":
-                                return provider_info, ImageResponse([item["url"] for item in result.get("images", result.get("data"))], prompt)
+                                try:
+                                    return provider_info, ImageResponse([
+                                        item["url"] if isinstance(item, dict) else item
+                                        for item in result.get("images", result.get("data", result.get("output")))
+                                    ], prompt)
+                                except:
+                                    raise ValueError(f"Unexpected response: {result}")
                             elif task == "text-to-video" and result.get("output") is not None:
                                 return provider_info, VideoResponse(result["output"], prompt)
                             raise ValueError(f"Unexpected response: {result}")
@@ -227,7 +234,7 @@ class HuggingFaceMedia(AsyncGeneratorProvider, ProviderModelMixin):
         started = time.time()
         while n > 0:
             n -= 1
-            task = asyncio.create_task(generate(extra_data, aspect_ratio))
+            task = asyncio.create_task(generate(extra_body, aspect_ratio))
             background_tasks.add(task)
             running_tasks.add(task)
             task.add_done_callback(running_tasks.discard)

@@ -52,7 +52,7 @@ def format_prompt(messages: Messages, add_special_tokens: bool = False, do_conti
     messages = [
         (message["role"], to_string(message["content"]))
         for message in messages
-        if include_system or message.get("role") != "system"
+        if include_system or message.get("role") not in ("developer", "system")
     ]
     formatted = "\n".join([
         f'{role.capitalize()}: {content}'
@@ -64,7 +64,7 @@ def format_prompt(messages: Messages, add_special_tokens: bool = False, do_conti
     return f"{formatted}\nAssistant:"
 
 def get_system_prompt(messages: Messages) -> str:
-    return "\n".join([m["content"] for m in messages if m["role"] == "system"])
+    return "\n".join([m["content"] for m in messages if m["role"] in ("developer", "system")])
 
 def get_last_user_message(messages: Messages) -> str:
     user_messages = []

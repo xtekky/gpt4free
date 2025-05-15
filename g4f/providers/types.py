@@ -56,6 +56,10 @@ class BaseProvider(ABC):
         """
         return {'name': cls.__name__, 'url': cls.url, 'label': getattr(cls, 'label', None)} 
 
+    @classmethod
+    def get_parent(cls) -> str:
+        return getattr(cls, "parent", cls.__name__)
+
 class BaseRetryProvider(BaseProvider):
     """
     Base class for a provider that implements retry logic.

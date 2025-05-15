@@ -60,7 +60,8 @@ class Cloudflare(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                         "-int8", "").replace(
                         "-awq", "").replace(
                         "-qvq", "").replace(
-                        "-r1", "")
+                        "-r1", "").replace(
+                        "meta-llama-", "llama-")
                 model_map = {clean_name(model.get("name")): model.get("name") for model in json_data.get("models")}
                 cls.models = list(model_map.keys())
                 cls.model_aliases = {**cls.model_aliases, **model_map}

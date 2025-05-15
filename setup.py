@@ -3,14 +3,16 @@ import os
 
 from setuptools import find_packages, setup
 
+STATIC_HOST = "gpt4free.github.io"
+
 here = os.path.abspath(os.path.dirname(__file__))
 
 with codecs.open(os.path.join(here, 'README.md'), encoding='utf-8') as fh:
     long_description = '\n' + fh.read()
 
 long_description = long_description.replace("[!NOTE]", "")
-long_description = long_description.replace("(docs/images/", "(https://raw.githubusercontent.com/xtekky/gpt4free/refs/heads/main/docs/images/")
-long_description = long_description.replace("(docs/", "(https://github.com/xtekky/gpt4free/blob/main/docs/")
+long_description = long_description.replace("(docs/images/", f"(https://{STATIC_HOST}/docs/images/")
+long_description = long_description.replace("(docs/", f"(https://github.com/gpt4free/{STATIC_HOST}/blob/main/docs/")
 
 INSTALL_REQUIRE = [
     "requests",
@@ -39,11 +41,10 @@ EXTRA_REQUIRE = {
         "pywebview",
         "plyer",
         "setuptools",
-        "pypdf2", # files
-        "python-docx",
-        "odfpy",
+        "odfpy", # files
         "ebooklib",
         "openpyxl",
+        "markitdown[all]"
     ],
     'slim': [
         "curl_cffi>=0.6.2",
@@ -57,8 +58,7 @@ EXTRA_REQUIRE = {
         "fastapi",                 # api
         "uvicorn",                 # api
         "python-multipart",
-        "pypdf2", # files
-        "python-docx",
+        "markitdown[pdf, docx, pptx]"
     ],
     "image": [
         "pillow",
@@ -90,13 +90,11 @@ EXTRA_REQUIRE = {
         "gpt4all"
     ],
     "files": [
-        "spacy",
         "beautifulsoup4",
-        "pypdf2",
-        "python-docx",
         "odfpy",
         "ebooklib",
         "openpyxl",
+        "markitdown[all]"
     ]
 }
 

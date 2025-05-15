@@ -5,16 +5,11 @@ from typing import Union, Optional
 
 from ..typing import Messages
 
-class ChatCompletionsConfig(BaseModel):
-    messages: Messages = Field(examples=[[{"role": "system", "content": ""}, {"role": "user", "content": ""}]])
+class RequestConfig(BaseModel):
     model: str = Field(default="")
     provider: Optional[str] = None
-    stream: bool = False
-    image: Optional[str] = None
-    image_name: Optional[str] = None
-    images: Optional[list[tuple[str, str]]] = None
     media: Optional[list[tuple[str, str]]] = None
-    modalities: Optional[list[str]] = ["text", "audio"]
+    modalities: Optional[list[str]] = None
     temperature: Optional[float] = None
     presence_penalty: Optional[float] = None
     frequency_penalty: Optional[float] = None
@@ -25,10 +20,7 @@ class ChatCompletionsConfig(BaseModel):
     api_base: str = None
     web_search: Optional[bool] = None
     proxy: Optional[str] = None
-    conversation_id: Optional[str] = None
     conversation: Optional[dict] = None
-    return_conversation: bool = True
-    history_disabled: Optional[bool] = None
     timeout: Optional[int] = None
     tool_calls: list = Field(default=[], examples=[[
 		{
@@ -39,15 +31,26 @@ class ChatCompletionsConfig(BaseModel):
 			"type": "function"
 		}
 	]])
-    tools: list = None
-    parallel_tool_calls: bool = None
-    tool_choice: Optional[str] = None
     reasoning_effort: Optional[str] = None
     logit_bias: Optional[dict] = None
     modalities: Optional[list[str]] = None
     audio: Optional[dict] = None
     response_format: Optional[dict] = None
-    extra_data: Optional[dict] = None
+    extra_body: Optional[dict] = None
+
+class ChatCompletionsConfig(RequestConfig):
+    messages: Messages = Field(examples=[[{"role": "system", "content": ""}, {"role": "user", "content": ""}]])
+    stream: bool = False
+    image: Optional[str] = None
+    image_name: Optional[str] = None
+    images: Optional[list[tuple[str, str]]] = None
+    tools: list = None
+    parallel_tool_calls: bool = None
+    tool_choice: Optional[str] = None
+    conversation_id: Optional[str] = None
+
+class ResponsesConfig(RequestConfig):
+    input: Union[Messages, str]
 
 class ImageGenerationConfig(BaseModel):
     prompt: str
@@ -127,3 +130,4 @@ class AudioSpeechConfig(BaseModel):
     voice: Optional[str] = None
     instrcutions: str = "Speech this text in a natural way."
     response_format: Optional[str] = None
+    language: Optional[str] = None

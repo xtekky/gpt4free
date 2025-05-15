@@ -12,6 +12,7 @@ from ..helper import get_last_user_message
 from ..openai.har_file import get_headers
 
 class HarProvider(AsyncGeneratorProvider, ProviderModelMixin):
+    label = "LM Arena"
     url = "https://lmarena.ai"
     working = True
     default_model = "chatgpt-4o-latest-20250326"
