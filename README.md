@@ -243,7 +243,7 @@ Run the Web UI on your smartphone for easy access on the go. Check out the dedic
    - **File API from G4F:** [/docs/file](https://github.com/gpt4free/gpt4free.github.io/blob/main/docs/file.md)
    - **PydanticAI and LangChain Integration for G4F:** [/docs/pydantic_ai](https://github.com/gpt4free/gpt4free.github.io/blob/main/docs/pydantic_ai.md)
    - **Legacy API with python modules:** [/docs/legacy](https://github.com/gpt4free/gpt4free.github.io/blob/main/docs/legacy.md)
-   - **G4F - Media Documentation** [/docs/media](https://github.com/gpt4free/gpt4free.github.io/media.md) *(New)*
+   - **G4F - Media Documentation (Image, Audio and Video)** [/docs/media](https://github.com/gpt4free/gpt4free.github.io/blob/main/docs/media.md) *(New)*
 
 ---
 
