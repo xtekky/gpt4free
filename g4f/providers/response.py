@@ -6,6 +6,9 @@ from typing import Union, Dict, List, Optional
 from abc import abstractmethod
 from urllib.parse import quote_plus, unquote_plus
 
+def is_content(chunk):
+    return isinstance(chunk, (str, MediaResponse, AudioResponse, Reasoning, ToolCalls))
+
 def quote_url(url: str) -> str:
     """
     Quote parts of a URL while preserving the domain structure.

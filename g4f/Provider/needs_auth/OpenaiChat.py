@@ -680,9 +680,9 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
             page.add_handler(nodriver.cdp.network.RequestWillBeSent, on_request)
             page = await browser.get(cls.url)
             user_agent = await page.evaluate("window.navigator.userAgent", return_by_value=True)
-            while not await page.evaluate("document.getElementById('prompt-textarea').id"):
+            while not await page.evaluate("document.getElementById('prompt-textarea')?.id"):
                 await asyncio.sleep(1)
-            while not await page.evaluate("document.querySelector('[data-testid=\"send-button\"]').type"):
+            while not await page.evaluate("document.querySelector('[data-testid=\"send-button\"]')?.type"):
                 await asyncio.sleep(1)
             await page.evaluate("document.querySelector('[data-testid=\"send-button\"]').click()")
             while True:

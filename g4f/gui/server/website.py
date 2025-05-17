@@ -7,17 +7,16 @@ from flask import send_from_directory, redirect
 from ...image.copy_images import secure_filename
 from ...cookies import get_cookies_dir
 from ...errors import VersionNotFoundError
+from ...constants import STATIC_URL, DIST_DIR
 from ... import version
-
-GPT4FREE_URL = "https://gpt4free.github.io"
-DIST_DIR = "./gpt4free.github.io/dist"
 
 def redirect_home():
     return redirect('/chat')
 
-def render(filename = "chat", add_origion = True):
+def render(filename = "chat"):
+    is_live = True
     if os.path.exists(DIST_DIR):
-        add_origion = False
+        is_live = False
         path = os.path.abspath(os.path.join(os.path.dirname(DIST_DIR), (filename + ("" if "." in filename else ".html"))))
         return send_from_directory(os.path.dirname(path), os.path.basename(path))
     try:
@@ -26,13 +25,13 @@ def render(filename = "chat", add_origion = True):
         latest_version = version.utils.current_version
     today = datetime.today().strftime('%Y-%m-%d')
     cache_dir = os.path.join(get_cookies_dir(), ".gui_cache")
-    cache_file = os.path.join(cache_dir, f"{today}.{secure_filename(filename)}.{version.utils.current_version}-{latest_version}{'.live' if add_origion else ''}.html")
+    cache_file = os.path.join(cache_dir, f"{today}.{secure_filename(f'{filename}.{version.utils.current_version}-{latest_version}')}{'.live' if is_live else ''}.html")
     if not os.path.exists(cache_file):
         os.makedirs(cache_dir, exist_ok=True)
-        html = requests.get(f"{GPT4FREE_URL}/{filename}.html").text
-        if add_origion:
+        html = requests.get(f"{STATIC_URL}{filename}.html").text
+        if is_live:
             html = html.replace("../dist/", f"dist/")
-            html = html.replace("\"dist/", f"\"{GPT4FREE_URL}/dist/")
+            html = html.replace("\"dist/", f"\"{STATIC_URL}dist/")
         with open(cache_file, 'w', encoding='utf-8') as f:
             f.write(html)
     return send_from_directory(os.path.abspath(cache_dir), os.path.basename(cache_file))

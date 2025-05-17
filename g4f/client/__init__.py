@@ -41,7 +41,7 @@ except NameError:
 def add_chunk(content, chunk):
     if content == "" and isinstance(chunk, (MediaResponse, AudioResponse)):
         content = chunk
-    elif not isinstance(chunk, Reasoning):
+    elif not isinstance(chunk, (Reasoning, ToolCalls)):
         content = str(content) + str(chunk)
     return content
 
@@ -85,8 +85,9 @@ def iter_response(
             conversation = chunk
             continue
         elif isinstance(chunk, ToolCalls):
-            tool_calls = chunk.get_list()
-            continue
+            if not stream:
+                tool_calls = chunk.get_list()
+                continue
         elif isinstance(chunk, Usage):
             usage = chunk
             continue
@@ -99,10 +100,10 @@ def iter_response(
             continue
         elif isinstance(chunk, Exception):
             continue
+        elif not chunk:
+            continue
 
         content = add_chunk(content, chunk)
-        if not content:
-            continue
         idx += 1
 
         if max_tokens is not None and idx >= max_tokens:
@@ -187,8 +188,9 @@ async def async_iter_response(
                 conversation = chunk
                 continue
             elif isinstance(chunk, ToolCalls):
-                tool_calls = chunk.get_list()
-                continue
+                if not stream:
+                    tool_calls = chunk.get_list()
+                    continue
             elif isinstance(chunk, Usage):
                 usage = chunk
                 continue
@@ -201,10 +203,10 @@ async def async_iter_response(
                 continue
             elif isinstance(chunk, Exception):
                 continue
+            elif not chunk:
+                continue
 
             content = add_chunk(content, chunk)
-            if not content:
-                continue
             idx += 1
 
             if max_tokens is not None and idx >= max_tokens:

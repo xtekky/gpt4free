@@ -4,12 +4,9 @@ import random
 
 from ..typing import Type, List, CreateResult, Messages, AsyncResult
 from .types import BaseProvider, BaseRetryProvider, ProviderType
-from .response import MediaResponse, AudioResponse, ProviderInfo, Reasoning, JsonConversation
+from .response import ProviderInfo, JsonConversation, is_content
 from .. import debug
 from ..errors import RetryProviderError, RetryNoProviderError, MissingAuthError, NoValidHarFileError
-
-def is_content(chunk):
-    return isinstance(chunk, (str, MediaResponse, AudioResponse, Reasoning))
 
 class IterListProvider(BaseRetryProvider):
     def __init__(
@@ -92,7 +89,7 @@ class IterListProvider(BaseRetryProvider):
 
         for provider in self.get_providers(stream and not ignore_stream, ignored):
             self.last_provider = provider
-            debug.log(f"Using {provider.__name__} provider and {model} model")
+            debug.log(f"Using {provider.__name__} provider" + (f" and {model} model" if model else ""))
             yield ProviderInfo(**provider.get_dict(), model=model if model else getattr(provider, "default_model"))
             extra_body = kwargs.copy()
             if self.add_api_key or provider.__name__ in ["HuggingFace", "HuggingFaceMedia"]:

@@ -6,7 +6,7 @@ import uuid
 from urllib.parse import urlparse
 
 from ...typing import AsyncResult, Messages, MediaListType
-from ...requests import StreamSession, StreamResponse, FormData, raise_for_status
+from ...requests import DEFAULT_HEADERS, StreamSession, StreamResponse, FormData, raise_for_status
 from ...providers.response import JsonConversation
 from ...tools.media import merge_media
 from ...image import to_bytes, is_accepted_format
@@ -192,7 +192,7 @@ class HarProvider(AsyncGeneratorProvider, ProviderModelMixin):
                                 postData = postData.replace("__MODEL__", model)
                         request_url = request_url.replace("__SESSION__", conversation.session_hash)
                         method = v['request']['method'].lower()
-                        async with getattr(session, method)(request_url, data=postData, headers=get_headers(v), proxy=proxy) as response:
+                        async with getattr(session, method)(request_url, data=postData, headers={**get_headers(v), **DEFAULT_HEADERS}, proxy=proxy) as response:
                             await raise_for_status(response)
                             async for chunk in read_response(response):
                                 yield chunk
