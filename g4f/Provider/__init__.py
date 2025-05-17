@@ -52,13 +52,16 @@ from .ImageLabs            import ImageLabs
 from .LambdaChat           import LambdaChat
 from .Liaobots             import Liaobots
 from .LMArenaProvider      import LMArenaProvider
+from .OIVSCodeSer2         import OIVSCodeSer2
+from .OIVSCodeSer5         import OIVSCodeSer5
+from .OIVSCodeSer0501      import OIVSCodeSer0501
 from .PerplexityLabs       import PerplexityLabs
 from .Pi                   import Pi
 from .Pizzagpt             import Pizzagpt
+from .PuterJS              import PuterJS
 from .PollinationsAI       import PollinationsAI
 from .PollinationsImage    import PollinationsImage
 from .TeachAnything        import TeachAnything
-from .TypeGPT              import TypeGPT
 from .You                  import You
 from .Websim               import Websim
 from .Yqcloud              import Yqcloud

@@ -10,6 +10,8 @@ from ..requests import raise_for_status
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from .helper import format_prompt, get_last_user_message
 from ..providers.response import JsonConversation, TitleGeneration, Reasoning, FinishReason
+from ..errors import ModelNotFoundError
+from .. import debug
 
 class LambdaChat(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Lambda Chat"
@@ -32,11 +34,34 @@ class LambdaChat(AsyncGeneratorProvider, ProviderModelMixin):
     ]
     model_aliases = {
         "deepseek-v3": default_model,
-        "hermes-3": "hermes-3-llama-3.1-405b-fp8",
-        "hermes-3-405b": "hermes3-405b-fp8-128k",
+        "hermes-3-405b": ["hermes3-405b-fp8-128k", "hermes-3-llama-3.1-405b-fp8"],
         "nemotron-70b": "llama3.1-nemotron-70b-instruct",
         "qwen-2.5-coder-32b": "qwen25-coder-32b-instruct"
     }
+
+    @classmethod
+    def get_model(cls, model: str) -> str:
+        """Get the internal model name from the user-provided model name."""
+        
+        if not model:
+            return cls.default_model
+        
+        # Check if the model exists directly in our models list
+        if model in cls.models:
+            return model
+        
+        # Check if there's an alias for this model
+        if model in cls.model_aliases:
+            alias = cls.model_aliases[model]
+            # If the alias is a list, randomly select one of the options
+            if isinstance(alias, list):
+                selected_model = random.choice(alias)
+                debug.log(f"PuterJS: Selected model '{selected_model}' from alias '{model}'")
+                return selected_model
+            debug.log(f"PuterJS: Using model '{alias}' for alias '{model}'")
+            return alias
+        
+        raise ModelNotFoundError(f"Model {model} not found")
 
     @classmethod
     async def create_async_generator(

@@ -26,7 +26,7 @@ class DDG(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://duckduckgo.com"
     api_endpoint = "https://duckduckgo.com/duckchat/v1/chat"
     status_url = "https://duckduckgo.com/duckchat/v1/status"
-    working = True
+    working = False
     needs_auth = False
     supports_stream = True
     supports_system_message = True
@@ -38,6 +38,7 @@ class DDG(AsyncGeneratorProvider, ProviderModelMixin):
         "gpt-4o": default_model,
         "llama-3.3-70b": "meta-llama/Llama-3.3-70B-Instruct-Turbo",
         "claude-3-haiku": "claude-3-haiku-20240307",
+        "mistral-small": "mistralai/Mistral-Small-24B-Instruct-2501",
         "mistral-small-24b": "mistralai/Mistral-Small-24B-Instruct-2501",
     }
     models = [default_model, "o3-mini"] + list(model_aliases.keys())

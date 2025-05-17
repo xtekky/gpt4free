@@ -29,4 +29,5 @@ from .ReplicateHome     import ReplicateHome
 from .RobocodersAPI     import RobocodersAPI
 from .RubiksAI          import RubiksAI
 from .Theb              import Theb
+from .TypeGPT           import TypeGPT
 from .Upstage           import Upstage
