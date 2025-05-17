@@ -191,7 +191,7 @@ class ChatCompletion(BaseModel):
         tool_calls: list[ToolCallModel] = None,
         usage: UsageModel = None,
         conversation: dict = None,
-        reasoning_content: Optional[str] = None
+        reasoning_content: list[Reasoning] = None
     ):
         return super().model_construct(
             id=f"chatcmpl-{completion_id}" if completion_id else None,
