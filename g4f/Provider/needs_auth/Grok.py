@@ -3,14 +3,16 @@ from __future__ import annotations
 import os
 import json
 import time
+import nodriver
+import asyncio
 from typing import Dict, Any, AsyncIterator
 
-from ...typing import Messages, Cookies, AsyncResult
+from ...typing import Messages, AsyncResult
 from ...providers.response import JsonConversation, Reasoning, ImagePreview, ImageResponse, TitleGeneration, AuthResult, RequestLogin
-from ...requests import StreamSession, get_args_from_nodriver, DEFAULT_HEADERS
+from ...requests import StreamSession, get_nodriver, DEFAULT_HEADERS
 from ...requests.raise_for_status import raise_for_status
 from ..base_provider import AsyncAuthedProvider, ProviderModelMixin
-from ..helper import format_prompt, get_cookies, get_last_user_message
+from ..helper import format_prompt, get_last_user_message
 
 class Conversation(JsonConversation):
     def __init__(self,
@@ -33,30 +35,40 @@ class Grok(AsyncAuthedProvider, ProviderModelMixin):
     model_aliases = {"grok-3-r1": "grok-3-thinking"}
 
     @classmethod
-    async def on_auth_async(cls, cookies: Cookies = None, proxy: str = None, **kwargs) -> AsyncIterator:
-        if cookies is None:
-            cookies = get_cookies(cls.cookie_domain, False, True, False)
-        if cookies is not None and "sso" in cookies:
-            yield AuthResult(
-                cookies=cookies,
-                impersonate="chrome",
-                proxy=proxy,
-                headers=DEFAULT_HEADERS
-            )
-            return
+    async def on_auth_async(cls, proxy: str = None, **kwargs) -> AsyncIterator:
+        auth_result = AuthResult(headers=DEFAULT_HEADERS, impersonate="chrome")
+        auth_result.headers["referer"] = cls.url + "/"
+        browser, stop_browser = await get_nodriver(proxy=proxy)
         yield RequestLogin(cls.__name__, os.environ.get("G4F_LOGIN_URL") or "")
-        yield AuthResult(
-            **await get_args_from_nodriver(
-                cls.url,
-                proxy=proxy,
-                wait_for='[href="/chat#private"]'
-            )
-        )
+        try:
+            page = browser.main_tab
+            has_headers = False
+            def on_request(event: nodriver.cdp.network.RequestWillBeSent, page=None):
+                nonlocal has_headers
+                if event.request.url.startswith(cls.conversation_url + "/new"):
+                    for key, value in event.request.headers.items():
+                        auth_result.headers[key.lower()] = value
+                    has_headers = True
+            await page.send(nodriver.cdp.network.enable())
+            page.add_handler(nodriver.cdp.network.RequestWillBeSent, on_request)
+            page = await browser.get(cls.url)
+            auth_result.headers["user-agent"] = await page.evaluate("window.navigator.userAgent", return_by_value=True)
+            while True:
+                if has_headers:
+                    break
+                await asyncio.sleep(1)
+            auth_result.cookies = {}
+            for c in await page.send(nodriver.cdp.network.get_cookies([cls.url])):
+                auth_result.cookies[c.name] = c.value
+            await page.close()
+        finally:
+            stop_browser()
+        yield auth_result
 
     @classmethod
     async def _prepare_payload(cls, model: str, message: str) -> Dict[str, Any]:
         return {
-            "temporary": False,
+            "temporary": True,
             "modelName": "grok-latest" if model == "grok-2" else "grok-3",
             "message": message,
             "fileAttachments": [],
@@ -83,7 +95,6 @@ class Grok(AsyncAuthedProvider, ProviderModelMixin):
         model: str,
         messages: Messages,
         auth_result: AuthResult,
-        return_conversation: bool = True,
         conversation: Conversation = None,
         **kwargs
     ) -> AsyncResult:
@@ -99,7 +110,6 @@ class Grok(AsyncAuthedProvider, ProviderModelMixin):
                 url = f"{cls.conversation_url}/{conversation_id}/responses"
             async with session.post(url, json=payload) as response:
                 await raise_for_status(response)
-
                 thinking_duration = None
                 async for line in response.iter_lines():
                     if line:
@@ -133,9 +143,7 @@ class Grok(AsyncAuthedProvider, ProviderModelMixin):
                             title = result.get("title", {}).get("newTitle", "")
                             if title:
                                 yield TitleGeneration(title)
-                            
-
                         except json.JSONDecodeError:
                             continue
-                if return_conversation and conversation_id is not None:
-                    yield Conversation(conversation_id)
+                # if conversation_id is not None:
+                #     yield Conversation(conversation_id)

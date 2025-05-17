@@ -41,7 +41,7 @@ except NameError:
 def add_chunk(content, chunk):
     if content == "" and isinstance(chunk, (MediaResponse, AudioResponse)):
         content = chunk
-    else:
+    elif not isinstance(chunk, Reasoning):
         content = str(content) + str(chunk)
     return content
 
@@ -65,6 +65,7 @@ def iter_response(
     stop: Optional[list[str]] = None
 ) -> ChatCompletionResponseType:
     content = ""
+    reasoning_content = []
     finish_reason = None
     tool_calls = None
     usage = None
@@ -92,9 +93,8 @@ def iter_response(
         elif isinstance(chunk, ProviderInfo):
             provider = chunk
             continue
-        elif isinstance(chunk, BaseConversation):
-            yield chunk
-            continue
+        elif isinstance(chunk, Reasoning):
+            reasoning_content.append(chunk)
         elif isinstance(chunk, HiddenResponse):
             continue
         elif isinstance(chunk, Exception):
@@ -141,7 +141,8 @@ def iter_response(
         chat_completion = ChatCompletion.model_construct(
             content, finish_reason, completion_id, int(time.time()), usage=usage,
             **filter_none(tool_calls=[ToolCallModel.model_construct(**tool_call) for tool_call in tool_calls]) if tool_calls is not None else {},
-            conversation=None if conversation is None else conversation.get_dict()
+            conversation=None if conversation is None else conversation.get_dict(),
+            reasoning_content=reasoning_content if reasoning_content else None
         )
     if provider is not None:
         chat_completion.provider = provider.name
@@ -168,6 +169,7 @@ async def async_iter_response(
     stop: Optional[list[str]] = None
 ) -> AsyncChatCompletionResponseType:
     content = ""
+    reasoning_content = []
     finish_reason = None
     completion_id = ''.join(random.choices(string.ascii_letters + string.digits, k=28))
     idx = 0
@@ -193,6 +195,8 @@ async def async_iter_response(
             elif isinstance(chunk, ProviderInfo):
                 provider = chunk
                 continue
+            elif isinstance(chunk, Reasoning) and not stream:
+                reasoning_content.append(chunk)
             elif isinstance(chunk, HiddenResponse):
                 continue
             elif isinstance(chunk, Exception):
@@ -241,7 +245,8 @@ async def async_iter_response(
                 **filter_none(
                     tool_calls=[ToolCallModel.model_construct(**tool_call) for tool_call in tool_calls]
                 ) if tool_calls is not None else {},
-                conversation=conversation
+                conversation=conversation,
+                reasoning_content=reasoning_content if reasoning_content else None
             )
         if provider is not None:
             chat_completion.provider = provider.name
