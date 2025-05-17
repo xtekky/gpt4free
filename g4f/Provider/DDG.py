@@ -6,14 +6,13 @@ import time
 import random
 import hashlib
 import asyncio
-from datetime import datetime
 from aiohttp import ClientSession
 
 from ..typing import AsyncResult, Messages
+from ..errors import ResponseError
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from .helper import format_prompt, get_last_user_message
 from ..providers.response import FinishReason, JsonConversation
-
 
 class Conversation(JsonConversation):
     message_history: Messages = []
@@ -21,7 +20,6 @@ class Conversation(JsonConversation):
     def __init__(self, model: str):
         self.model = model
         self.message_history = []
-
 
 class DDG(AsyncGeneratorProvider, ProviderModelMixin):
     label = "DuckDuckGo AI Chat"
@@ -161,8 +159,7 @@ class DDG(AsyncGeneratorProvider, ProviderModelMixin):
                     if response.status != 200:
                         error_text = await response.text()
                         if "ERR_BN_LIMIT" in error_text:
-                            yield "Blocked by DuckDuckGo: Bot limit exceeded (ERR_BN_LIMIT)."
-                            return
+                            raise ResponseError("Blocked by DuckDuckGo: Bot limit exceeded (ERR_BN_LIMIT).")
                         if "ERR_INVALID_VQD" in error_text and retry_count < 3:
                             await asyncio.sleep(random.uniform(2.5, 5.5))
                             async for chunk in cls.create_async_generator(
@@ -170,9 +167,7 @@ class DDG(AsyncGeneratorProvider, ProviderModelMixin):
                             ):
                                 yield chunk
                             return
-                        yield f"Error: HTTP {response.status} - {error_text}"
-                        return
-
+                        raise ResponseError(f"HTTP {response.status} - {error_text}")
                     full_message = ""
                     async for line in response.content:
                         line_text = line.decode("utf-8").strip()
@@ -188,8 +183,7 @@ class DDG(AsyncGeneratorProvider, ProviderModelMixin):
                             try:
                                 msg = json.loads(payload)
                                 if msg.get("action") == "error":
-                                    yield f"Error: {msg.get('type', 'unknown')}"
-                                    break
+                                    raise ResponseError(f"Error: {msg.get('type', 'unknown')}")
                                 if "message" in msg:
                                     content = msg["message"]
                                     yield content
@@ -204,4 +198,4 @@ class DDG(AsyncGeneratorProvider, ProviderModelMixin):
                     ):
                         yield chunk
                 else:
-                    yield f"Error: {str(e)}"
+                    raise ResponseError(f"Error: {str(e)}")

@@ -121,7 +121,7 @@ class DeepseekAI_JanusPro7b(AsyncGeneratorProvider, ProviderModelMixin):
                     }
                 } for i, image_file in enumerate(image_files)]
 
-            async with cls.run(method, session, prompt, conversation, None if media is None else media.pop(), seed) as response:
+            async with cls.run(method, session, prompt, conversation, None if not media else media.pop(), seed) as response:
                 await raise_for_status(response)
 
             async with cls.run("get", session, prompt, conversation, None, seed) as response:

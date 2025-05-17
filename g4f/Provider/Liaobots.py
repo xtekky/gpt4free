@@ -303,7 +303,7 @@ class Liaobots(AsyncGeneratorProvider, ProviderModelMixin):
         # xAI
         "grok-3-reason": "grok-3-reason",
         "o3-mini": "o3-mini-2025-01-31",
-        "qwen-3-235b": "qwen3-235b-a22b",
+        "qwen3-235b": "qwen3-235b-a22b",
     }
     
     _auth_code = None

@@ -143,11 +143,10 @@ class Api:
             "messages": messages,
             "stream": True,
             "ignore_stream": True,
-            "return_conversation": True,
             **kwargs
         }
 
-    def _create_response_stream(self, kwargs: dict, conversation_id: str, provider: str, download_media: bool = True) -> Iterator:
+    def _create_response_stream(self, kwargs: dict, provider: str, download_media: bool = True) -> Iterator:
         def decorated_log(text: str, file = None):
             debug.logs.append(text)
             if debug.logging:
@@ -178,12 +177,9 @@ class Api:
             for chunk in result:
                 if isinstance(chunk, ProviderInfo):
                     yield self.handle_provider(chunk, model)
-                    provider = chunk.name
                 elif isinstance(chunk, JsonConversation):
                     if provider is not None:
-                        if hasattr(provider, "__name__"):
-                            provider = provider.__name__
-                        yield self._format_json("conversation", {
+                        yield self._format_json("conversation", chunk.get_dict() if provider == "AnyProvider" else {
                             provider: chunk.get_dict()
                         })
                 elif isinstance(chunk, Exception):

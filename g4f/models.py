@@ -631,45 +631,45 @@ qwen_2_5_vl_72b = Model(
     best_provider = Blackbox
 )
 
-# qwen-3
+# qwen3
 qwen_3_235b = Model(
-    name = 'qwen-3-235b',
+    name = 'qwen3-235b',
     base_provider = 'Qwen',
     best_provider = IterListProvider([DeepInfraChat, HuggingSpace, Liaobots])
 )
 
 qwen_3_32b = Model(
-    name = 'qwen-3-32b',
+    name = 'qwen3-32b',
     base_provider = 'Qwen',
     best_provider = IterListProvider([DeepInfraChat, HuggingSpace])
 )
 
 qwen_3_30b = Model(
-    name = 'qwen-3-30b',
+    name = 'qwen3-30b',
     base_provider = 'Qwen',
     best_provider = IterListProvider([DeepInfraChat, HuggingSpace])
 )
 
 qwen_3_14b = Model(
-    name = 'qwen-3-14b',
+    name = 'qwen3-14b',
     base_provider = 'Qwen',
     best_provider = IterListProvider([DeepInfraChat, HuggingSpace])
 )
 
 qwen_3_4b = Model(
-    name = 'qwen-3-4b',
+    name = 'qwen3-4b',
     base_provider = 'Qwen',
     best_provider = HuggingSpace
 )
 
 qwen_3_1_7b = Model(
-    name = 'qwen-3-1.7b',
+    name = 'qwen3-1.7b',
     base_provider = 'Qwen',
     best_provider = HuggingSpace
 )
 
 qwen_3_0_6b = Model(
-    name = 'qwen-3-0.6b',
+    name = 'qwen3-0.6b',
     base_provider = 'Qwen',
     best_provider = HuggingSpace
 )
@@ -949,7 +949,7 @@ sdxl_turbo = ImageModel(
 )
 
 sd_3_5 = ImageModel(
-    name = 'sd-3.5',
+    name = 'stable-diffusion-3.5-large',
     base_provider = 'Stability AI',
     best_provider = HuggingSpace
 )

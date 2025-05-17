@@ -13,6 +13,7 @@ class TestProviderHasModel(unittest.TestCase):
         for model, providers in __models__.values():
             for provider in providers:
                 if issubclass(provider, ProviderModelMixin):
+                    provider.get_models() # Update models
                     if model.name in provider.model_aliases:
                         model_name = provider.model_aliases[model.name]
                     else:

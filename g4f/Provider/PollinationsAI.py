@@ -254,8 +254,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                 enhance=enhance,
                 safe=safe,
                 n=n,
-                referrer=referrer,
-                extra_body=extra_body
+                referrer=referrer
             ):
                 yield chunk
         else:
@@ -305,10 +304,9 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         enhance: bool,
         safe: bool,
         n: int,
-        referrer: str,
-        extra_body: dict
+        referrer: str
     ) -> AsyncResult:
-        extra_body = use_aspect_ratio({
+        params = use_aspect_ratio({
             "width": width,
             "height": height,
             "model": model,
@@ -316,9 +314,8 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
             "private": str(private).lower(),
             "enhance": str(enhance).lower(),
             "safe": str(safe).lower(),
-            **extra_body
         }, aspect_ratio)
-        query = "&".join(f"{k}={quote_plus(str(v))}" for k, v in extra_body.items() if v is not None)
+        query = "&".join(f"{k}={quote_plus(str(v))}" for k, v in params.items() if v is not None)
         prompt = quote_plus(prompt)[:2048-len(cls.image_api_endpoint)-len(query)-8]
         url = f"{cls.image_api_endpoint}prompt/{prompt}?{query}"
         def get_image_url(i: int, seed: Optional[int] = None):

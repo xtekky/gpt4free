@@ -31,7 +31,7 @@ from g4f import debug
 debug.logging = True
 
 # Constants
-DEFAULT_MODEL = "claude-3.7-sonnet"
+DEFAULT_MODEL = "gpt-4o"
 FALLBACK_MODELS = []
 MAX_DIFF_SIZE = None  # Set to None to disable truncation, or a number for character limit
 MAX_RETRIES = 3

@@ -19,7 +19,7 @@ class StabilityAI_SD35Large(AsyncGeneratorProvider, ProviderModelMixin):
 
     default_model = 'stabilityai-stable-diffusion-3-5-large'
     default_image_model = default_model
-    model_aliases = {"sd-3.5": default_model}
+    model_aliases = {"stable-diffusion-3.5-large": default_model}
     image_models = list(model_aliases.keys())
     models = image_models
 
