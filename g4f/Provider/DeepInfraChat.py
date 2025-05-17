@@ -45,10 +45,11 @@ class DeepInfraChat(OpenaiTemplate):
     ] + vision_models
     model_aliases = {
         "deepseek-prover-v2-671b": "deepseek-ai/DeepSeek-Prover-V2-671B",
-        "qwen3-235b": "Qwen/Qwen3-235B-A22B",
-        "qwen3-30b": "Qwen/Qwen3-30B-A3B",
-        "qwen3-32b": "Qwen/Qwen3-32B",
-        "qwen3-14b": "Qwen/Qwen3-14B",
+        "deepseek-prover-v2": "deepseek-ai/DeepSeek-Prover-V2-671B",
+        "qwen-3-235b": "Qwen/Qwen3-235B-A22B",
+        "qwen-3-30b": "Qwen/Qwen3-30B-A3B",
+        "qwen-3-32b": "Qwen/Qwen3-32B",
+        "qwen-3-14b": "Qwen/Qwen3-14B",
         "llama-4-maverick": "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
         "llama-4-maverick-17b": "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
         "llama-4-scout": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
@@ -65,6 +66,7 @@ class DeepInfraChat(OpenaiTemplate):
         "llama-3.2-90b": "meta-llama/Llama-3.2-90B-Vision-Instruct",
         "llama-3.3-70b": "meta-llama/Llama-3.3-70B-Instruct",
         "deepseek-v3": default_model,
+        "mistral-small": "mistralai/Mistral-Small-24B-Instruct-2501",
         "mixtral-small-24b": "mistralai/Mistral-Small-24B-Instruct-2501",
         "deepseek-r1-turbo": "deepseek-ai/DeepSeek-R1-Turbo",
         "deepseek-r1": "deepseek-ai/DeepSeek-R1",

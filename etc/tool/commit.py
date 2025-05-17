@@ -10,7 +10,7 @@ Usage:
   python -m etc.tool.commit [options]
 
 Options:
-  --model MODEL    Specify the AI model to use (default: claude-3.7-sonnet)
+  --model MODEL    Specify the AI model to use
   --edit           Edit the generated commit message before committing
   --no-commit      Generate message only without committing
   --list-models    List available AI models and exit

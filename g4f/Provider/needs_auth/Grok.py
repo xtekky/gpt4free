@@ -3,9 +3,15 @@ from __future__ import annotations
 import os
 import json
 import time
-import nodriver
 import asyncio
 from typing import Dict, Any, AsyncIterator
+
+# Add the try-except block for nodriver
+try:
+    import nodriver
+    has_nodriver = True
+except ImportError:
+    has_nodriver = False
 
 from ...typing import Messages, AsyncResult
 from ...providers.response import JsonConversation, Reasoning, ImagePreview, ImageResponse, TitleGeneration, AuthResult, RequestLogin
@@ -36,6 +42,10 @@ class Grok(AsyncAuthedProvider, ProviderModelMixin):
 
     @classmethod
     async def on_auth_async(cls, proxy: str = None, **kwargs) -> AsyncIterator:
+        if not has_nodriver:
+            yield AuthResult(error="The 'nodriver' package is required. Install it with 'pip install nodriver'")
+            return
+            
         auth_result = AuthResult(headers=DEFAULT_HEADERS, impersonate="chrome")
         auth_result.headers["referer"] = cls.url + "/"
         browser, stop_browser = await get_nodriver(proxy=proxy)

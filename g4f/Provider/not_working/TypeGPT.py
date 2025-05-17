@@ -2,14 +2,15 @@ from __future__ import annotations
 
 import requests
 
-from .template import OpenaiTemplate
-from .. import debug
+from ..template import OpenaiTemplate
+from ...errors import ModelNotFoundError
+from ... import debug
 
 class TypeGPT(OpenaiTemplate):
     label = "TypeGpt"
     url = "https://chat.typegpt.net"
     api_base = "https://chat.typegpt.net/api/openai/v1"
-    working = True
+    working = False
     headers = {
         "accept": "application/json, text/event-stream",
         "accept-language": "de,en-US;q=0.9,en;q=0.8",

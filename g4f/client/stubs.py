@@ -135,7 +135,9 @@ class ChatCompletionMessage(BaseModel):
     content: str
     reasoning_content: list[Reasoning] = None
     tool_calls: list[ToolCallModel] = None
-
+    
+    model_config = {"arbitrary_types_allowed": True}
+    
     @classmethod
     def model_construct(cls, content: str, reasoning_content: list[Reasoning] = None, tool_calls: list = None):
         return super().model_construct(role="assistant", content=content, **filter_none(tool_calls=tool_calls, reasoning_content=reasoning_content))

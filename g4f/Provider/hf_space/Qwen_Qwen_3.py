@@ -34,8 +34,13 @@ class Qwen_Qwen_3(AsyncGeneratorProvider, ProviderModelMixin):
         "qwen3-0.6b",
     }
     model_aliases = {
-        "qwen3-235b": default_model,
-        "qwen3-30b": "qwen3-30b-a3b"
+        "qwen-3-235b": default_model,
+        "qwen-3-30b": "qwen3-30b-a3b",
+        "qwen-3-32b": "qwen3-32b",
+        "qwen-3-14b": "qwen3-14b",
+        "qwen-3-4b": "qwen3-4b",
+        "qwen-3-1.7b": "qwen3-1.7b",
+        "qwen-3-0.6b": "qwen3-0.6b"
     }
 
     @classmethod
