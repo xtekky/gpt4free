@@ -129,6 +129,8 @@ class HuggingFaceMedia(AsyncGeneratorProvider, ProviderModelMixin):
             if key in ["replicate", "together", "hf-inference"]
         }
         provider_mapping = {**new_mapping, **provider_mapping}
+        if not provider_mapping:
+            raise ModelNotSupportedError(f"Model is not supported: {model} in: {cls.__name__}")
         async def generate(extra_body: dict, aspect_ratio: str = None):
             last_response = None
             for provider_key, provider in provider_mapping.items():

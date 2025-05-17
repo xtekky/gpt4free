@@ -37,6 +37,7 @@ class PollinationsImage(PollinationsAI):
         model: str,
         messages: Messages,
         proxy: str = None,
+        referrer: str = "https://gpt4free.github.io/",
         prompt: str = None,
         aspect_ratio: str = "1:1",
         width: int = None,
@@ -65,6 +66,7 @@ class PollinationsImage(PollinationsAI):
             private=private,
             enhance=enhance,
             safe=safe,
-            n=n
+            n=n,
+            referrer=referrer
         ):
             yield chunk

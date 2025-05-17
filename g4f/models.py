@@ -949,7 +949,7 @@ sdxl_turbo = ImageModel(
 )
 
 sd_3_5 = ImageModel(
-    name = 'sd-3.5',
+    name = 'stable-diffusion-3.5-large',
     base_provider = 'Stability AI',
     best_provider = HuggingSpace
 )

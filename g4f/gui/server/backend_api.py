@@ -128,7 +128,6 @@ class Backend_Api(Api):
             return self.app.response_class(
                 self._create_response_stream(
                     kwargs,
-                    json_data.get("conversation_id"),
                     json_data.get("provider"),
                     json_data.get("download_media", True),
                 ),

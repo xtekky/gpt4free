@@ -5,7 +5,6 @@ from ..errors import ModelNotFoundError
 from ..image import is_data_an_audio
 from ..providers.retry_provider import IterListProvider
 from ..providers.types import ProviderType
-from ..providers.response import JsonConversation, ProviderInfo
 from ..Provider.needs_auth import OpenaiChat, CopilotAccount
 from ..Provider.hf_space import HuggingSpace
 from ..Provider import Cloudflare, Gemini, Grok, DeepSeekAPI, PerplexityLabs, LambdaChat, PollinationsAI, FreeRouter
@@ -14,9 +13,9 @@ from ..Provider import HarProvider, DDG, HuggingFace, HuggingFaceMedia
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from .. import Provider
 from .. import models
-from .. import debug
 
 LABELS = {
+    "default": "Default",
     "openai": "OpenAI: ChatGPT",
     "llama": "Meta: LLaMA",
     "deepseek": "DeepSeek",
@@ -26,6 +25,7 @@ LABELS = {
     "claude": "Anthropic: Claude",
     "command": "Cohere: Command",
     "phi": "Microsoft: Phi",
+    "mistral": "Mistral",
     "PollinationsAI": "Pollinations AI",
     "perplexity": "Perplexity Labs",
     "video": "Video Generation",
@@ -45,7 +45,12 @@ class AnyProvider(AsyncGeneratorProvider, ProviderModelMixin):
         for model in unsorted_models:
             added = False
             for group in groups:
-                if group == "qwen":
+                if group == "mistral":
+                    if model.split("-")[0] in ("mistral", "mixtral", "mistralai", "pixtral", "ministral", "codestral"):
+                        groups[group].append(model)
+                        added = True
+                        break
+                elif group == "qwen":
                     if model.startswith("qwen") or model.startswith("qwq") or model.startswith("qvq"):
                         groups[group].append(model)
                         added = True
@@ -198,8 +203,6 @@ class AnyProvider(AsyncGeneratorProvider, ProviderModelMixin):
         stream: bool = True,
         media: MediaListType = None,
         ignored: list[str] = [],
-        conversation: JsonConversation = None,
-        api_key: str = None,
         **kwargs
     ) -> AsyncResult:
         cls.get_models(ignored=ignored)
@@ -246,33 +249,7 @@ class AnyProvider(AsyncGeneratorProvider, ProviderModelMixin):
         providers = list({provider.__name__: provider for provider in providers}.values())
         if len(providers) == 0:
             raise ModelNotFoundError(f"Model {model} not found in any provider.")
-        if len(providers) == 1:
-            provider = providers[0]
-            if conversation is not None:
-                child_conversation = getattr(conversation, provider.__name__, None)
-                if child_conversation is not None:
-                    kwargs["conversation"] = JsonConversation(**child_conversation)
-            debug.log(f"Using {provider.__name__} provider" + f" and {model} model" if model else "")
-            yield ProviderInfo(**provider.get_dict(), model=model)
-            if provider in (HuggingFace, HuggingFaceMedia):
-                kwargs["api_key"] = api_key
-            async for chunk in provider.get_async_create_function()(
-                model,
-                messages,
-                stream=stream,
-                media=media,
-                **kwargs
-            ):
-                if isinstance(chunk, JsonConversation):
-                    if conversation is None:
-                        conversation = JsonConversation()
-                    setattr(conversation, provider.__name__, chunk.get_dict())
-                    yield conversation
-                else:
-                    yield chunk
-            return
-        kwargs["api_key"] = api_key
-        async for chunk in IterListProvider(providers).get_async_create_function()(
+        async for chunk in IterListProvider(providers).create_async_generator(
             model,
             messages,
             stream=stream,
