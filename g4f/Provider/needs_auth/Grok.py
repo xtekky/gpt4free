@@ -3,9 +3,13 @@ from __future__ import annotations
 import os
 import json
 import time
-import nodriver
 import asyncio
 from typing import Dict, Any, AsyncIterator
+
+try:
+    import nodriver
+except ImportError:
+    pass
 
 from ...typing import Messages, AsyncResult
 from ...providers.response import JsonConversation, Reasoning, ImagePreview, ImageResponse, TitleGeneration, AuthResult, RequestLogin

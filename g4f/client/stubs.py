@@ -133,7 +133,7 @@ class ResponseMessageContent(BaseModel):
 class ChatCompletionMessage(BaseModel):
     role: str
     content: str
-    reasoning_content: list[Reasoning] = None
+    reasoning_content: Optional[str] = None
     tool_calls: list[ToolCallModel] = None
 
     @classmethod
