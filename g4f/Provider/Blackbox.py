@@ -491,7 +491,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
                 "trendingAgentMode": cls.trendingAgentMode.get(model, {}) if model in cls.trendingAgentMode else {},
                 "isMicMode": False,
                 "userSystemPrompt": None,
-                "maxTokens": max_tokens or 1024,
+                "maxTokens": max_tokens,
                 "playgroundTopP": top_p,
                 "playgroundTemperature": temperature,
                 "isChromeExt": False,
@@ -519,7 +519,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
                     "traits": []
                 },
                 "webSearchModeOption": {
-                    "autoMode": True,
+                    "autoMode": False,
                     "webMode": False,
                     "offlineMode": False
                 },
