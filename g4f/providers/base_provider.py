@@ -61,6 +61,8 @@ PARAMETER_EXAMPLES = {
     "conversation": {"conversation_id": "550e8400-e29b-11d4-a716-...", "message_id": "550e8400-e29b-11d4-a716-..."},
     "seed": 42,
     "tools": [],
+    "width": 1024,
+    "height": 1024,
 }
 
 class AbstractProvider(BaseProvider):

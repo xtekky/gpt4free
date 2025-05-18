@@ -287,24 +287,25 @@ def to_input_audio(audio: ImageType, filename: str = None) -> str:
 
 def use_aspect_ratio(extra_body: dict, aspect_ratio: str) -> Image:
     extra_body = {key: value for key, value in extra_body.items() if value is not None}
-    if aspect_ratio == "1:1":
-        extra_body = {
-            "width": 1024,
-            "height": 1024,
-            **extra_body
-        }
-    elif aspect_ratio == "16:9":
-        extra_body = {
-            "width": 832,
-            "height": 480,
-            **extra_body
-        }
-    elif aspect_ratio == "9:16":
-        extra_body = {
-            "width": 480,
-            "height": 832,
-            **extra_body
-        }
+    if extra_body.get("width") is None or extra_body.get("height") is None:
+        if aspect_ratio == "1:1":
+            extra_body = {
+                "width": extra_body.get("width", 1024),
+                "height": extra_body.get("height", 1024),
+                **extra_body
+            }
+        elif aspect_ratio == "16:9":
+            extra_body = {
+                "width": extra_body.get("width", 832),
+                "height": extra_body.get("height", 480),
+                **extra_body
+            }
+        elif aspect_ratio == "9:16":
+            extra_body = {
+                "width": extra_body.get("width", 480),
+                "height": extra_body.get("height", 832),
+                **extra_body
+            }
     return extra_body
 
 class ImageDataResponse():

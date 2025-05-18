@@ -5,7 +5,7 @@ import json
 import hashlib
 from pathlib import Path
 from urllib.parse import urlparse, quote_plus
-from datetime import datetime, date
+from datetime import date
 import asyncio
 
 # Optional dependencies

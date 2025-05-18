@@ -7,7 +7,11 @@ from abc import abstractmethod
 from urllib.parse import quote_plus, unquote_plus
 
 def is_content(chunk):
-    return isinstance(chunk, (str, MediaResponse, AudioResponse, Reasoning, ToolCalls))
+    if isinstance(chunk, Reasoning):
+        if chunk.is_thinking is None and chunk.token is None:
+            return False
+        return True
+    return isinstance(chunk, (str, MediaResponse, AudioResponse, ToolCalls))
 
 def quote_url(url: str) -> str:
     """
@@ -202,11 +206,6 @@ class Reasoning(ResponseType):
                 return f"{self.label}: {self.status}\n"
             return f"{self.status}\n"
         return ""
-
-    def __eq__(self, other: Reasoning):
-        return (self.token == other.token and
-                self.status == other.status and
-                self.is_thinking == other.is_thinking)
 
     def get_dict(self) -> Dict:
         """Return a dictionary representation of the reasoning."""

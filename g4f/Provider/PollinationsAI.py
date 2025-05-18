@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 import json
 import random
 import requests
@@ -350,24 +351,34 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         prompt = quote_plus(prompt)[:2048-len(cls.image_api_endpoint)-len(query)-8]
         url = f"{cls.image_api_endpoint}prompt/{prompt}?{query}"
         def get_image_url(i: int, seed: Optional[int] = None):
-            if i == 1:
+            if i == 0:
                 if not cache and seed is None:
                     seed = random.randint(0, 2**32)
             else:
                 seed = random.randint(0, 2**32)
             return f"{url}&seed={seed}" if seed else url
         async with ClientSession(headers=DEFAULT_HEADERS, connector=get_connector(proxy=proxy)) as session:
-            async def get_image(i: int, seed: Optional[int] = None):
+            responses = set()
+            finished = 0
+            async def get_image(responses: set, i: int, seed: Optional[int] = None):
+                nonlocal finished
+                start = time.time()
                 async with session.get(get_image_url(i, seed), allow_redirects=False, headers={"referer": referrer}) as response:
                     try:
                         await raise_for_status(response)
                     except Exception as e:
                         debug.error(f"Error fetching image: {e}")
-                        return str(response.url)
-                    return str(response.url)
-            yield ImageResponse(await asyncio.gather(*[
-                get_image(i, seed) for i in range(int(n))
-            ]), prompt)
+                    responses.add(Reasoning(status=f"Image #{i+1} generated in {time.time() - start:.2f}s"))
+                    responses.add(ImageResponse(str(response.url), prompt))
+                    finished += 1
+            tasks = []
+            for i in range(int(n)):
+                tasks.append(asyncio.create_task(get_image(responses, i, seed)))
+            while finished < n or len(responses) > 0:
+                while len(responses) > 0:
+                    yield responses.pop()
+                await asyncio.sleep(0.1)
+            await asyncio.gather(*tasks)
 
     @classmethod
     async def _generate_text(
