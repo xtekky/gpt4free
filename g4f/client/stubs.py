@@ -7,7 +7,7 @@ from time import time
 from ..image import extract_data_uri
 from ..image.copy_images import get_media_dir
 from ..client.helper import filter_markdown
-from ..providers.response import Reasoning
+from ..providers.response import Reasoning, ToolCalls
 from .helper import filter_none
 
 try:
@@ -253,18 +253,23 @@ class ChatCompletionDelta(BaseModel):
     role: str
     content: Optional[str]
     reasoning_content: Optional[str] = None
+    tool_calls: list[ToolCallModel] = None
 
     @classmethod
     def model_construct(cls, content: Optional[str]):
         if isinstance(content, Reasoning):
             return super().model_construct(role="reasoning", content=content, reasoning_content=str(content))
+        elif isinstance(content, ToolCalls):
+            return super().model_construct(role="assistant", content=None, tool_calls=[
+                ToolCallModel.model_construct(**tool_call) for tool_call in content.get_list()
+            ])
         return super().model_construct(role="assistant", content=content)
 
     @field_serializer('content')
     def serialize_content(self, content: Optional[str]):
         if content is None:
             return ""
-        if isinstance(content, Reasoning):
+        if isinstance(content, (Reasoning, ToolCalls)):
             return None
         return str(content)
 

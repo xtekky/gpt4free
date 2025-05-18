@@ -221,7 +221,9 @@ class AnyProvider(AsyncGeneratorProvider, ProviderModelMixin):
                         has_audio = True
                         break
                     has_image = True
-            if "audio" in kwargs or "audio" in kwargs.get("modalities", []):
+            if "tools" in kwargs:
+                providers = [PollinationsAI]
+            elif "audio" in kwargs or "audio" in kwargs.get("modalities", []):
                 providers = [PollinationsAI, EdgeTTS, gTTS]
             elif has_audio:
                 providers = [PollinationsAI, Microsoft_Phi_4_Multimodal, MarkItDown]

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 import json
 import random
 import requests
@@ -18,8 +19,9 @@ from ..requests.raise_for_status import raise_for_status
 from ..requests.aiohttp import get_connector
 from ..image.copy_images import save_response_media
 from ..image import use_aspect_ratio
-from ..providers.response import FinishReason, Usage, ToolCalls, ImageResponse, Reasoning
+from ..providers.response import FinishReason, Usage, ToolCalls, ImageResponse, Reasoning, TitleGeneration, SuggestedFollowups
 from ..tools.media import render_messages
+from ..constants import STATIC_URL
 from .. import debug
 
 DEFAULT_HEADERS = {
@@ -29,6 +31,36 @@ DEFAULT_HEADERS = {
     "referer": "https://pollinations.ai/",
     "origin": "https://pollinations.ai",
 }
+
+FOLLOWUPS_TOOLS = [{
+    "type": "function",
+    "function": {
+        "name": "options",
+        "description": "Provides options for the conversation",
+        "parameters": {
+            "properties": {
+                "title": {
+                    "title": "Conversation Title",
+                    "type": "string"
+                },
+                    "followups": {
+                    "items": {
+                        "type": "string"
+                    },
+                    "title": "Suggested Followups",
+                    "type": "array"
+                }
+            },
+            "title": "Conversation",
+            "type": "object"
+        }
+    }
+}]
+
+FOLLOWUPS_DEVELOPER_MESSAGE = [{
+    "role": "developer",
+    "content": "Prefix conversation title with one or more emojies. Suggested 4 Followups"
+}]
 
 class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Pollinations AI"
@@ -201,7 +233,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         stream: bool = True,
         proxy: str = None,
         cache: bool = False,
-        referrer: str = "https://gpt4free.github.io/",
+        referrer: str = STATIC_URL,
         extra_body: dict = {},
         # Image generation parameters
         prompt: str = None,
@@ -319,24 +351,34 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         prompt = quote_plus(prompt)[:2048-len(cls.image_api_endpoint)-len(query)-8]
         url = f"{cls.image_api_endpoint}prompt/{prompt}?{query}"
         def get_image_url(i: int, seed: Optional[int] = None):
-            if i == 1:
+            if i == 0:
                 if not cache and seed is None:
                     seed = random.randint(0, 2**32)
             else:
                 seed = random.randint(0, 2**32)
             return f"{url}&seed={seed}" if seed else url
         async with ClientSession(headers=DEFAULT_HEADERS, connector=get_connector(proxy=proxy)) as session:
-            async def get_image(i: int, seed: Optional[int] = None):
+            responses = set()
+            finished = 0
+            async def get_image(responses: set, i: int, seed: Optional[int] = None):
+                nonlocal finished
+                start = time.time()
                 async with session.get(get_image_url(i, seed), allow_redirects=False, headers={"referer": referrer}) as response:
                     try:
                         await raise_for_status(response)
                     except Exception as e:
                         debug.error(f"Error fetching image: {e}")
-                        return str(response.url)
-                    return str(response.url)
-            yield ImageResponse(await asyncio.gather(*[
-                get_image(i, seed) for i in range(int(n))
-            ]), prompt)
+                    responses.add(Reasoning(status=f"Image #{i+1} generated in {time.time() - start:.2f}s"))
+                    responses.add(ImageResponse(str(response.url), prompt))
+                    finished += 1
+            tasks = []
+            for i in range(int(n)):
+                tasks.append(asyncio.create_task(get_image(responses, i, seed)))
+            while finished < n or len(responses) > 0:
+                while len(responses) > 0:
+                    yield responses.pop()
+                await asyncio.sleep(0.1)
+            await asyncio.gather(*tasks)
 
     @classmethod
     async def _generate_text(
@@ -400,6 +442,9 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                         content = choice.get("delta", {}).get("content")
                         if content:
                             yield content
+                        tool_calls = choice.get("delta", {}).get("tool_calls")
+                        if tool_calls:
+                            yield ToolCalls(choice["delta"]["tool_calls"])
                         reasoning_content = choice.get("delta", {}).get("reasoning_content")
                         if reasoning_content:
                             reasoning = True
@@ -409,6 +454,26 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                             yield FinishReason(finish_reason)
                     if reasoning:
                         yield Reasoning(status="Done")
+                    if "action" in kwargs and "tools" not in data and "response_format" not in data:
+                        data = {
+                            "model": model,
+                            "messages": messages + FOLLOWUPS_DEVELOPER_MESSAGE,
+                            "tool_choice": "required",
+                            "tools": FOLLOWUPS_TOOLS
+                        }
+                        async with session.post(url, json=data, headers={"referer": referrer}) as response:
+                            try:
+                                await raise_for_status(response)
+                                tool_calls = (await response.json()).get("choices", [{}])[0].get("message", {}).get("tool_calls", [])
+                                if tool_calls:
+                                    arguments = json.loads(tool_calls.pop().get("function", {}).get("arguments"))
+                                    if arguments.get("title"):
+                                        yield TitleGeneration(arguments.get("title"))
+                                    if arguments.get("followups"):
+                                        yield SuggestedFollowups(arguments.get("followups"))
+                            except Exception as e:
+                                debug.error("Error generating title and followups")
+                                debug.error(e)
                 elif response.headers["content-type"].startswith("application/json"):
                     result = await response.json()
                     if "choices" in result:

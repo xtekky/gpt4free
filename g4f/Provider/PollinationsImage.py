@@ -4,6 +4,7 @@ from typing import Optional
 
 from .helper import format_image_prompt
 from ..typing import AsyncResult, Messages
+from ..constants import STATIC_URL
 from .PollinationsAI import PollinationsAI
 
 class PollinationsImage(PollinationsAI):
@@ -37,7 +38,7 @@ class PollinationsImage(PollinationsAI):
         model: str,
         messages: Messages,
         proxy: str = None,
-        referrer: str = "https://gpt4free.github.io/",
+        referrer: str = STATIC_URL,
         prompt: str = None,
         aspect_ratio: str = "1:1",
         width: int = None,

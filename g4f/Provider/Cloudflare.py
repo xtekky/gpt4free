@@ -98,8 +98,6 @@ class Cloudflare(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
         messages: Messages,
         proxy: str = None,
         max_tokens: int = 2048,
-        cookies: Cookies = None,
-        timeout: int = 300,
         **kwargs
     ) -> AsyncResult:
         cache_file = cls.get_cache_file()
@@ -109,7 +107,7 @@ class Cloudflare(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                     cls._args = json.load(f)
             elif has_nodriver:
                 try:
-                    cls._args = await get_args_from_nodriver(cls.url)
+                    cls._args = await get_args_from_nodriver(cls.url, proxy=proxy)
                 except (RuntimeError, FileNotFoundError) as e:
                     debug.log(f"Nodriver is not available: {type(e).__name__}: {e}")
                     cls._args = {"headers": DEFAULT_HEADERS, "cookies": {}, "impersonate": "chrome"}

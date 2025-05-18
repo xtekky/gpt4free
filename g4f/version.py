@@ -6,10 +6,8 @@ from functools import cached_property
 from importlib.metadata import version as get_package_version, PackageNotFoundError
 from subprocess import check_output, CalledProcessError, PIPE
 from .errors import VersionNotFoundError
+from .constants import PACKAGE_NAME, GITHUB_REPOSITORY
 from . import debug
-
-PACKAGE_NAME = "g4f"
-GITHUB_REPOSITORY = "xtekky/gpt4free"
 
 def get_pypi_version(package_name: str) -> str:
     """

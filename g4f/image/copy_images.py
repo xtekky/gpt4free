@@ -79,7 +79,7 @@ async def save_response_media(response: StreamResponse, prompt: str, tags: list[
 def get_filename(tags: list[str], alt: str, extension: str, image: str) -> str:
     return "".join((
         f"{int(time.time())}_",
-        f"{secure_filename('+'.join([tag for tag in tags if tag]))}+" if tags else "",
+        f"{secure_filename('+'.join([str(tag) for tag in tags if tag]))}+" if tags else "",
         f"{secure_filename(alt)}_",
         hashlib.sha256(image.encode()).hexdigest()[:16],
         extension
