@@ -247,7 +247,7 @@ Run the Web UI on your smartphone for easy access on the go. Check out the dedic
 
 ---
 
-### 🚀 Used by gpt4free
+### Powered by Pollinations AI
 
 **🌟 Pollinations AI**
 
@@ -255,13 +255,13 @@ Run the Web UI on your smartphone for easy access on the go. Check out the dedic
 
 A creative AI content platform that generates images, audios, and other media using advanced generative models. Pollinations AI empowers users and developers to turn text into visuals and multimedia experiences.
 
-> [github.com/pollinations/pollinations](https://github.com/pollinations/pollinations)
+> [pollinations/pollinations on GitHub](https://github.com/pollinations/pollinations)
 
 ---
 
-### 💸 Powered by GPT4Free
+### Powered by GPT4Free
 
-**🖨️ MoneyPrinter**
+**💸 MoneyPrinter**
 
 <img src="https://image.pollinations.ai/prompt/Create+a+logo+for+MoneyPrinter+glowing+center+futuristic+font?width=512&height=256&nologo=true" height="128">
 
