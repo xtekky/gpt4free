@@ -32,6 +32,7 @@ from .Provider import (
     PuterJS,
     TeachAnything,
     Websim,
+    WeWordle,
     Yqcloud,
     
     ### Needs Auth ###
@@ -100,6 +101,7 @@ default = Model(
         FreeGpt,
         Dynaspark,
         Chatai,
+        WeWordle,
         OpenaiChat,
         Cloudflare,
     ])
@@ -142,7 +144,7 @@ gpt_3_5_turbo = Model(
 gpt_4 = Model(
     name          = 'gpt-4',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([Blackbox, DDG, PollinationsAI, Copilot, Yqcloud, PuterJS, Liaobots, OpenaiChat])
+    best_provider = IterListProvider([Blackbox, DDG, PollinationsAI, Copilot, Yqcloud, PuterJS, WeWordle, Liaobots, OpenaiChat])
 )
 
 gpt_4_turbo = Model(

@@ -64,6 +64,7 @@ from .PollinationsImage    import PollinationsImage
 from .TeachAnything        import TeachAnything
 from .You                  import You
 from .Websim               import Websim
+from .WeWordle             import WeWordle
 from .Yqcloud              import Yqcloud
 
 import sys
