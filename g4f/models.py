@@ -26,6 +26,7 @@ from .Provider import (
     OIVSCodeSer2,
     OIVSCodeSer5,
     OIVSCodeSer0501,
+    OpenAIFM,
     PerplexityLabs,
     Pi,
     PollinationsAI,
@@ -181,10 +182,16 @@ gpt_4o_mini_search = Model(
     best_provider = PuterJS
 )
 
-gpt_4o_audio = AudioModel(
-    name          = 'gpt-4o-audio',
+gpt_4o_mini_audio = AudioModel(
+    name          = 'gpt-4o-mini-audio',
     base_provider = 'OpenAI',
     best_provider = PollinationsAI
+)
+
+gpt_4o_mini_tts = AudioModel(
+    name          = 'gpt-4o-mini-tts',
+    base_provider = 'OpenAI',
+    best_provider = OpenAIFM
 )
 
 # o1
@@ -1454,7 +1461,8 @@ class ModelUtils:
         gpt_4o_search.name: gpt_4o_search,
         gpt_4o_mini.name: gpt_4o_mini,
         gpt_4o_mini_search.name: gpt_4o_mini_search,
-        gpt_4o_audio.name: gpt_4o_audio,
+        gpt_4o_mini_audio.name: gpt_4o_mini_audio,
+        gpt_4o_mini_tts.name: gpt_4o_mini_tts,
         
         # o1
         o1.name: o1,
