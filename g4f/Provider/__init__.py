@@ -43,6 +43,7 @@ from .Cloudflare           import Cloudflare
 from .Copilot              import Copilot
 from .DDG                  import DDG
 from .DeepInfraChat        import DeepInfraChat
+from .DocsBot              import DocsBot
 from .DuckDuckGo           import DuckDuckGo
 from .Dynaspark            import Dynaspark
 from .Free2GPT             import Free2GPT

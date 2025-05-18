@@ -13,6 +13,7 @@ from .Provider import (
     Copilot,
     DDG,
     DeepInfraChat,
+    DocsBot,
     Dynaspark,
     Free2GPT,
     FreeGpt,
@@ -102,6 +103,7 @@ default = Model(
         Dynaspark,
         Chatai,
         WeWordle,
+        DocsBot,
         OpenaiChat,
         Cloudflare,
     ])
@@ -119,6 +121,7 @@ default_vision = VisionModel(
         PollinationsAI,
         Dynaspark,
         PuterJS,
+        DocsBot,
         HuggingSpace,
         GeminiPro,
         HuggingFaceAPI,
@@ -157,7 +160,7 @@ gpt_4_turbo = Model(
 gpt_4o = VisionModel(
     name          = 'gpt-4o',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([Blackbox, PollinationsAI, PuterJS, Liaobots, OpenaiChat])
+    best_provider = IterListProvider([Blackbox, PollinationsAI, PuterJS, DocsBot, Liaobots, OpenaiChat])
 )
 
 gpt_4o_search = Model(
