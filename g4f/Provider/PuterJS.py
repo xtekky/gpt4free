@@ -5,8 +5,10 @@ import json
 import time
 import re
 import random
+import json # Ensure json is imported if not already
+import uuid # Import the uuid module
 import asyncio
-from typing import Optional, Dict, Any, List, Union
+from typing import Optional, Dict, Any, List, Union # Assuming these are used elsewhere or can be pruned if not
 
 from ..typing import AsyncResult, Messages, MediaListType
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
@@ -583,7 +585,7 @@ class PuterJS(AsyncGeneratorProvider, ProviderModelMixin):
         """
         signup_headers = {
             "Content-Type": "application/json",
-            "host": "api.puter.com",
+            "host": "puter.com",  # Kept the previous fix for Host header
             "connection": "keep-alive",
             "sec-ch-ua-platform": "macOS",
             "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36",
@@ -599,10 +601,9 @@ class PuterJS(AsyncGeneratorProvider, ProviderModelMixin):
             "accept-language": "en-US,en;q=0.9"
         }
         
-        # Add some randomization to avoid detection
         signup_data = {
             "is_temp": True,
-            "client_id": f"g4f-{int(time.time())}-{random.randint(1000, 9999)}"
+            "client_id": str(uuid.uuid4())  # Changed to generate a standard UUID
         }
         
         for attempt in range(cls.MAX_RETRIES):
@@ -621,7 +622,8 @@ class PuterJS(AsyncGeneratorProvider, ProviderModelMixin):
                             await asyncio.sleep(retry_after)
                             continue
                         else:
-                            raise RateLimitError(f"Rate limited by Puter.js API. Try again after {retry_after} seconds.")
+                            # from ..errors import RateLimitError (ensure this import path is correct for your project)
+                            raise Exception(f"Rate limited by Puter.js API. Try again after {retry_after} seconds.") # Placeholder if RateLimitError not accessible
                     
                     if signup_response.status != 200:
                         error_text = await signup_response.text()

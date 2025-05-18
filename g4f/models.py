@@ -641,7 +641,7 @@ gemini_2_0_flash_thinking_with_apps = Model(
 gemini_2_5_flash = Model(
     name          = 'gemini-2.5-flash',
     base_provider = 'Google',
-    best_provider = IterListProvider([PollinationsAI, PuterJS])
+    best_provider = IterListProvider([PollinationsAI, PuterJS, Gemini])
 )
 
 gemini_2_5_flash_thinking = Model(
@@ -653,7 +653,7 @@ gemini_2_5_flash_thinking = Model(
 gemini_2_5_pro = Model(
     name          = 'gemini-2.5-pro',
     base_provider = 'Google',
-    best_provider = IterListProvider([PuterJS, Liaobots])
+    best_provider = IterListProvider([PuterJS, Liaobots, Gemini])
 )
 
 # gemma-2
