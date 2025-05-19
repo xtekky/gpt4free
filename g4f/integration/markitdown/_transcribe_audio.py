@@ -20,7 +20,7 @@ except ImportError:
     _dependency_exc_info = sys.exc_info()
 
 
-def transcribe_audio(file_stream: BinaryIO, *, audio_format: str = "wav", language: str = "en-US") -> str:
+def transcribe_audio(file_stream: BinaryIO, *, audio_format: str = "wav", language: str = None) -> str:
     # Check for installed dependencies
     if _dependency_exc_info is not None:
         raise MissingDependencyException(
@@ -45,5 +45,7 @@ def transcribe_audio(file_stream: BinaryIO, *, audio_format: str = "wav", langua
     recognizer = sr.Recognizer()
     with sr.AudioFile(audio_source) as source:
         audio = recognizer.record(source)
+        if language is None:
+            language = "en-US"
         transcript = recognizer.recognize_google(audio, language=language).strip()
-        return "[No speech detected]" if transcript == "" else transcript
+        return "[No speech detected]" if transcript == "" else transcript.strip()

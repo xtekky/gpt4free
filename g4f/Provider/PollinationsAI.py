@@ -43,7 +43,7 @@ FOLLOWUPS_TOOLS = [{
                     "title": "Conversation Title",
                     "type": "string"
                 },
-                    "followups": {
+                "followups": {
                     "items": {
                         "type": "string"
                     },

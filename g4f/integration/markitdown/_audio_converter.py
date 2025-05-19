@@ -50,7 +50,7 @@ class AudioConverter(DocumentConverter):
         self,
         file_stream: BinaryIO,
         stream_info: StreamInfo,
-        language: str = "en-US",
+        recognition_language: str = None,
         **kwargs: Any,  # Options to pass to the converter
     ) -> DocumentConverterResult:
         md_content = ""
@@ -97,7 +97,7 @@ class AudioConverter(DocumentConverter):
         # Transcribe
         if audio_format:
             try:
-                md_content = transcribe_audio(file_stream, audio_format=audio_format, language=language)
+                md_content = transcribe_audio(file_stream, audio_format=audio_format, language=recognition_language)
             except MissingDependencyException:
                 pass
 
