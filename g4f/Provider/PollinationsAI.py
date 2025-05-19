@@ -359,18 +359,19 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
             return f"{url}&seed={seed}" if seed else url
         async with ClientSession(headers=DEFAULT_HEADERS, connector=get_connector(proxy=proxy)) as session:
             responses = set()
+            responses.add(Reasoning(status=f"Generating {n} {'image' if n == 1 else 'images'}"))
             finished = 0
+            start = time.time()
             async def get_image(responses: set, i: int, seed: Optional[int] = None):
                 nonlocal finished
-                start = time.time()
                 async with session.get(get_image_url(i, seed), allow_redirects=False, headers={"referer": referrer}) as response:
                     try:
                         await raise_for_status(response)
                     except Exception as e:
                         debug.error(f"Error fetching image: {e}")
-                    responses.add(Reasoning(status=f"Image #{i+1} generated in {time.time() - start:.2f}s"))
                     responses.add(ImageResponse(str(response.url), prompt))
                     finished += 1
+                    responses.add(Reasoning(status=f"Image {finished}/{n} generated in {time.time() - start:.2f}s"))
             tasks = []
             for i in range(int(n)):
                 tasks.append(asyncio.create_task(get_image(responses, i, seed)))
@@ -426,6 +427,8 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                 **extra_body
             )
             async with session.post(url, json=data, headers={"referer": referrer}) as response:
+                if response.status == 400:
+                    debug.error(f"Error: 400 - Bad Request: {data}")
                 await raise_for_status(response)
                 if response.headers["content-type"].startswith("text/plain"):
                     yield await response.text()
@@ -492,6 +495,6 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                     if finish_reason:
                         yield FinishReason(finish_reason)
                 else:
-                    async for chunk in save_response_media(response, format_image_prompt(messages), [model, extra_parameters.get("audio", {}).get("voice")]):
+                    async for chunk in save_response_media(response, format_image_prompt(messages), [model, extra_body.get("audio", {}).get("voice")]):
                         yield chunk
                         return

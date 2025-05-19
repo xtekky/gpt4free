@@ -5,7 +5,7 @@ import asyncio
 from typing import Any
 
 try:
-    from markitdown import MarkItDown as MaItDo, StreamInfo
+    from ...integration.markitdown import MarkItDown as MaItDo, StreamInfo
     has_markitdown = True
 except ImportError:
     has_markitdown = False

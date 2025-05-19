@@ -146,7 +146,7 @@ class Api:
             **kwargs
         }
 
-    def _create_response_stream(self, kwargs: dict, provider: str, download_media: bool = True) -> Iterator:
+    def _create_response_stream(self, kwargs: dict, provider: str, download_media: bool = True, tempfiles: list[str] = []) -> Iterator:
         def decorated_log(text: str, file = None):
             debug.logs.append(text)
             if debug.logging:
@@ -163,7 +163,7 @@ class Api:
                 has_images="media" in kwargs,
             )
         except Exception as e:
-            debug.error(e)
+            logger.exception(e)
             yield self._format_json('error', type(e).__name__, message=get_error_message(e))
             return
         if not isinstance(provider_handler, BaseRetryProvider):
@@ -198,7 +198,7 @@ class Api:
                         tags = [model, kwargs.get("aspect_ratio"), kwargs.get("resolution"), kwargs.get("width"), kwargs.get("height")]
                         media = asyncio.run(copy_media(chunk.get_list(), chunk.get("cookies"), chunk.get("headers"), proxy=proxy, alt=chunk.alt, tags=tags))
                         media = ImageResponse(media, chunk.alt) if isinstance(chunk, ImageResponse) else VideoResponse(media, chunk.alt)
-                    yield self._format_json("content", str(media), urls=chunk.urls, alt=chunk.alt)
+                    yield self._format_json("content", str(media), urls=media.urls, alt=media.alt)
                 elif isinstance(chunk, SynthesizeData):
                     yield self._format_json("synthesize", chunk.get_dict())
                 elif isinstance(chunk, TitleGeneration):
@@ -232,6 +232,11 @@ class Api:
             yield self._format_json('error', type(e).__name__, message=get_error_message(e))
         finally:
             yield from self._yield_logs()
+            for tempfile in tempfiles:
+                try:
+                    os.remove(tempfile)
+                except Exception as e:
+                    logger.exception(e)
 
     def _yield_logs(self):
         if debug.logs:
@@ -252,8 +257,6 @@ class Api:
         }
 
     def handle_provider(self, provider_handler, model):
-        if isinstance(provider_handler, BaseRetryProvider) and provider_handler.last_provider is not None:
-            provider_handler = provider_handler.last_provider
         if model:
             return self._format_json("provider", {**provider_handler.get_dict(), "model": model})
         return self._format_json("provider", provider_handler.get_dict())

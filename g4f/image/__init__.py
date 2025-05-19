@@ -38,6 +38,7 @@ EXTENSIONS_MAP: dict[str, str] = {
 }
 
 MEDIA_TYPE_MAP: dict[str, str] = {value: key for key, value in EXTENSIONS_MAP.items()}
+MEDIA_TYPE_MAP["audio/webm"] = "webm"
 
 def to_image(image: ImageType, is_svg: bool = False) -> Image:
     """
@@ -111,7 +112,7 @@ def is_data_an_audio(data_uri: str = None, filename: str = None) -> str:
         extension = get_extension(filename)
         if extension is not None:
             media_type = EXTENSIONS_MAP[extension]
-            if media_type.startswith("audio/"):
+            if media_type.startswith("audio/") or media_type == "video/webm":
                 return media_type
     if isinstance(data_uri, str):
         audio_format = re.match(r'^data:(audio/\w+);base64,', data_uri)
