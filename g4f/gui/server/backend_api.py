@@ -8,8 +8,7 @@ import asyncio
 import shutil
 import random
 import datetime
-import tempfile
-from flask import Flask, Response, redirect, request, jsonify, render_template, send_from_directory
+from flask import Flask, Response, redirect, request, jsonify, send_from_directory
 from werkzeug.exceptions import NotFound
 from typing import Generator
 from pathlib import Path
@@ -17,21 +16,22 @@ from urllib.parse import quote_plus
 from hashlib import sha256
 
 try:
-    from markitdown import MarkItDown
+    from ...integration.markitdown import MarkItDown, StreamInfo
     has_markitdown = True
-except ImportError:
+except ImportError as e:
+    print(e)
     has_markitdown = False
 
 from ...client.service import convert_to_provider
 from ...providers.asyncio import to_sync_generator
-from ...providers.response import FinishReason
+from ...providers.response import FinishReason, AudioResponse, MediaResponse, Reasoning, HiddenResponse
 from ...client.helper import filter_markdown
-from ...tools.files import supports_filename, get_streaming, get_bucket_dir, get_buckets
+from ...tools.files import supports_filename, get_streaming, get_bucket_dir, get_tempfile
 from ...tools.run_tools import iter_run_tools
 from ...errors import ProviderNotFoundError
-from ...image import is_allowed_extension
+from ...image import is_allowed_extension, MEDIA_TYPE_MAP
 from ...cookies import get_cookies_dir
-from ...image.copy_images import secure_filename, get_source_url, get_media_dir
+from ...image.copy_images import secure_filename, get_source_url, get_media_dir, copy_media
 from ... import ChatCompletion
 from ... import models
 from .api import Api
@@ -79,9 +79,7 @@ class Backend_Api(Api):
         @app.route('/backend-api/v2/providers', methods=['GET'])
         def jsonify_providers(**kwargs):
             response = self.get_providers(**kwargs)
-            if isinstance(response, list):
-                return jsonify(response)
-            return response
+            return jsonify(response)
 
         def get_demo_models():
             return [{
@@ -91,7 +89,7 @@ class Backend_Api(Api):
                 "audio": isinstance(model, models.AudioModel),
                 "video": isinstance(model, models.VideoModel),
                 "providers": [
-                    getattr(provider, "parent", provider.__name__)
+                    provider.get_parent()
                     for provider in providers
                 ],
                 "demo": True
@@ -109,13 +107,14 @@ class Backend_Api(Api):
                 json_data = json.loads(request.form['json'])
             else:
                 json_data = request.json
+            tempfiles = []
             if "files" in request.files:
                 media = []
                 for file in request.files.getlist('files'):
                     if file.filename != '' and is_allowed_extension(file.filename):
-                        newfile = tempfile.TemporaryFile()
-                        shutil.copyfileobj(file.stream, newfile)
-                        media.append((newfile, file.filename))
+                        newfile = get_tempfile(file)
+                        tempfiles.append(newfile)
+                        media.append((Path(newfile), file.filename))
                 json_data['media'] = media
 
             if app.demo and not json_data.get("provider"):
@@ -130,6 +129,7 @@ class Backend_Api(Api):
                     kwargs,
                     json_data.get("provider"),
                     json_data.get("download_media", True),
+                    tempfiles
                 ),
                 mimetype='text/event-stream'
             )
@@ -233,23 +233,44 @@ class Backend_Api(Api):
                 parameters = {
                     "model": request.args.get("model"),
                     "messages": [{"role": "user", "content": request.args.get("prompt")}],
-                    "provider": request.args.get("provider", None),
+                    "provider": request.args.get("provider", request.args.get("audio_provider", "AnyProvider")),
                     "stream": not do_filter and not cache_id,
                     "ignore_stream": not request.args.get("stream"),
                     "tool_calls": tool_calls,
                 }
+                if request.args.get("audio_provider") or request.args.get("audio"):
+                    parameters["audio"] = {}
                 def cast_str(response):
-                    for chunk in response:
-                        if isinstance(chunk, FinishReason):
-                            yield f"[{chunk.reason}]" if chunk.reason != "stop" else ""
-                        elif not isinstance(chunk, Exception):
-                            chunk = str(chunk)
-                            if chunk:
-                                yield chunk
+                    buffer = next(response)
+                    while isinstance(buffer, (Reasoning, HiddenResponse)):
+                        buffer = next(response)
+                    if isinstance(buffer, MediaResponse):
+                        if len(buffer.get_list()) == 1:
+                            if not cache_id:
+                                return buffer.get_list()[0]
+                            return asyncio.run(copy_media(
+                                buffer.get_list(),
+                                buffer.get("cookies"),
+                                buffer.get("headers"),
+                                request.args.get("prompt")
+                            )).pop()
+                    elif isinstance(buffer, AudioResponse):
+                        return buffer.data
+                    def iter_response():
+                        yield str(buffer)
+                        for chunk in response:
+                            if isinstance(chunk, FinishReason):
+                                yield f"[{chunk.reason}]" if chunk.reason != "stop" else ""
+                            elif not isinstance(chunk, Exception):
+                                chunk = str(chunk)
+                                if chunk:
+                                    yield chunk
+                    return iter_response()
+                
                 if cache_id:
                     cache_id = sha256(cache_id.encode() + json.dumps(parameters, sort_keys=True).encode()).hexdigest()
                     cache_dir = Path(get_cookies_dir()) / ".scrape_cache" / "create"
-                    cache_file = cache_dir / f"{quote_plus(request.args.get('prompt').strip()[:20])}.{cache_id}.txt"
+                    cache_file = cache_dir / f"{quote_plus(request.args.get('prompt', '').strip()[:20])}.{cache_id}.txt"
                     response = None
                     if cache_file.exists():
                         with cache_file.open("r") as f:
@@ -260,11 +281,22 @@ class Backend_Api(Api):
                         copy_response = cast_str(response)
                         if copy_response:
                             with cache_file.open("w") as f:
-                                for chunk in copy_response:
+                                for chunk in [copy_response] if isinstance(copy_response, str) else copy_response:
                                     f.write(chunk)
                         response = copy_response
                 else:
                     response = cast_str(iter_run_tools(ChatCompletion.create, **parameters))
+                if isinstance(response, str):
+                    if response.startswith("/media/"):
+                        media_dir = get_media_dir()
+                        filename = os.path.basename(response.split("?")[0])
+                        try:
+                            return send_from_directory(os.path.abspath(media_dir), filename)
+                        finally:
+                            if not cache_id:
+                                os.remove(os.path.join(media_dir, filename))
+                    elif response.startswith("https://") or response.startswith("http://"):
+                        return redirect(response)
                 if do_filter:
                     is_true_filter = do_filter.lower() in ["true", "1"]
                     response = "".join(response)
@@ -306,41 +338,47 @@ class Backend_Api(Api):
             filenames = []
             media = []
             for file in request.files.getlist('files'):
-                # Copy the file to a temporary location
                 filename = secure_filename(file.filename)
-                copyfile = tempfile.NamedTemporaryFile(suffix=filename, delete=False)
-                shutil.copyfileobj(file.stream, copyfile)
-                copyfile.close()
-                file.stream.close()
-
+                mimetype = file.mimetype.split(";")[0]
+                if (not filename or filename == "blob") and mimetype in MEDIA_TYPE_MAP:
+                    filename = f"file.{MEDIA_TYPE_MAP[mimetype]}"
+                suffix = os.path.splitext(filename)[1].lower()
+                copyfile = get_tempfile(file, suffix)
                 result = None
                 if has_markitdown:
                     try:
+                        language = request.headers.get("x-recognition-language")
                         md = MarkItDown()
-                        result = md.convert(copyfile.name).text_content
-                        with open(os.path.join(bucket_dir, f"{filename}.md"), 'w') as f:
-                            f.write(f"{result}\n")
-                        filenames.append(f"{filename}.md")
+                        result = md.convert(copyfile, stream_info=StreamInfo(
+                            extension=suffix,
+                            mimetype=file.mimetype,
+                        ),recognition_language=language).text_content
                     except Exception as e:
                         logger.exception(e)
-                if not result:
-                    if is_allowed_extension(filename):
-                        os.makedirs(media_dir, exist_ok=True)
-                        newfile = os.path.join(media_dir, filename)
-                        media.append(filename)
-                    elif supports_filename(filename):
-                        newfile = os.path.join(bucket_dir, filename)
-                        filenames.append(filename)
-                    else:
-                        os.remove(copyfile.name)
-                        continue
-                    try:
-                        os.rename(copyfile.name, newfile)
-                    except OSError:
-                        shutil.copyfile(copyfile.name, newfile)
-                        os.remove(copyfile.name)
+                is_media = is_allowed_extension(filename)
+                is_supported = supports_filename(filename)
+                if not is_media and not is_supported:
+                    os.remove(copyfile)
+                    continue
+                if not is_media and result:
+                    with open(os.path.join(bucket_dir, f"{filename}.md"), 'w') as f:
+                        f.write(f"{result}\n")
+                    filenames.append(f"{filename}.md")
+                if is_media:
+                    os.makedirs(media_dir, exist_ok=True)
+                    newfile = os.path.join(media_dir, filename)
+                    media.append({"name": filename, "text": result})
+                elif not result and is_supported:
+                    newfile = os.path.join(bucket_dir, filename)
+                    filenames.append(filename)
+                try:
+                    os.rename(copyfile, newfile)
+                except OSError:
+                    shutil.copyfile(copyfile, newfile)
+                    os.remove(copyfile)
             with open(os.path.join(bucket_dir, "files.txt"), 'w') as f:
-                [f.write(f"{filename}\n") for filename in filenames]
+                for filename in filenames:
+                    f.write(f"{filename}\n")
             return {"bucket_id": bucket_id, "files": filenames, "media": media}
 
         @app.route('/files/<bucket_id>/media/<filename>', methods=['GET'])

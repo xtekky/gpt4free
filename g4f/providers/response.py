@@ -114,10 +114,7 @@ def format_images_markdown(images: Union[str, List[str]], alt: str,
             )
             for idx, image in enumerate(images)
         )
-
-    start_flag = "<!-- generated images start -->\n"
-    end_flag = "<!-- generated images end -->\n"
-    return f"\n{start_flag}{result}\n{end_flag}\n"
+    return result
 
 class ResponseType:
     @abstractmethod

@@ -6,6 +6,7 @@ import asyncio
 
 from ..typing import AsyncResult, Messages
 from ..providers.response import ImageResponse
+from ..image import use_aspect_ratio
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 
 
@@ -32,10 +33,18 @@ class ImageLabs(AsyncGeneratorProvider, ProviderModelMixin):
         # Image
         prompt: str = None,
         negative_prompt: str = "",
-        width: int = 1152,
-        height: int = 896,
+        aspect_ratio: str = "1:1",
+        width: int = None,
+        height: int = None,
+        extra_body: dict = {},
         **kwargs
-    ) -> AsyncResult:      
+    ) -> AsyncResult:
+        extra_body = use_aspect_ratio({
+            "width": width,
+            "height": height,
+            **extra_body
+        }, aspect_ratio)
+
         headers = {
             'accept': '*/*',
             'accept-language': 'en-US,en;q=0.9',
@@ -56,13 +65,12 @@ class ImageLabs(AsyncGeneratorProvider, ProviderModelMixin):
                 "seed": str(int(time.time())),
                 "subseed": str(int(time.time() * 1000)),
                 "attention": 0,
-                "width": width,
-                "height": height,
                 "tiling": False,
                 "negative_prompt": negative_prompt,
                 "reference_image": "",
                 "reference_image_type": None,
-                "reference_strength": 30
+                "reference_strength": 30,
+                **extra_body
             }
             
             async with session.post(f'{cls.url}/txt2img', json=payload, proxy=proxy) as generate_response:

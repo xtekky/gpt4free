@@ -24,6 +24,12 @@ def render_media(bucket_id: str, name: str, url: str, as_path: bool = False, as_
 def render_part(part: dict) -> dict:
     if "type" in part:
         return part
+    text = part.get("text")
+    if text:
+        return {
+            "type": "text",
+            "text": text
+        }
     filename = part.get("name")
     if (filename is None):
         bucket_dir = Path(get_bucket_dir(part.get("bucket_id")))
