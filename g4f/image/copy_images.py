@@ -66,15 +66,19 @@ async def save_response_media(response: StreamResponse, prompt: str, tags: list[
     with open(target_path, 'wb') as f:
         async for chunk in response.iter_content() if hasattr(response, "iter_content") else response.content.iter_any():
             f.write(chunk)
+    
+    # Base URL without request parameters
     media_url = f"/media/{filename}"
-    if response.method == "GET":
-        media_url = f"{media_url}?url={str(response.url)}"
+    
+    # Save the original URL in the metadata, but not in the file path itself
+    source_url = str(response.url) if response.method == "GET" else None
+    
     if content_type.startswith("audio/"):
-        yield AudioResponse(media_url, text=prompt)
+        yield AudioResponse(media_url, text=prompt, source_url=source_url)
     elif content_type.startswith("video/"):
-        yield VideoResponse(media_url, prompt)
+        yield VideoResponse(media_url, prompt, source_url=source_url)
     else:
-        yield ImageResponse(media_url, prompt)
+        yield ImageResponse(media_url, prompt, source_url=source_url)
 
 def get_filename(tags: list[str], alt: str, extension: str, image: str) -> str:
     return "".join((

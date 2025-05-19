@@ -17,7 +17,7 @@ from ..image import to_data_uri
 from .helper import render_messages
 from ..providers.response import JsonConversation
 from ..tools.media import merge_media
-from ..errors import RateLimitError
+from ..errors import RateLimitError, ModelNotFoundError
 from .. import debug
 
 class Conversation(JsonConversation):
@@ -251,7 +251,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         "gemma-3-1b":  "Gemma 3 1B",
         "gemma-3-27b":  "Gemma 3 27B",
         "gemma-3-4b":  "Gemma 3 4B",
-        "kimi-vl-a3b-thinking":  "Kimi VL A3B Thinking",
+        "kimi-vl-thinking":  "Kimi VL A3B Thinking",
         "llama-3.1-8b":  "Llama 3.1 8B Instruct",
         "nemotron-253b":  "Llama 3.1 Nemotron Ultra 253B v1",
         "llama-3.2-11b":  "Llama 3.2 11B Vision Instruct",
@@ -263,8 +263,8 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         "llama-4-scout":  "Llama 4 Scout",
         "mistral-7b":  "Mistral 7B Instruct",
         "mistral-nemo":  "Mistral Nemo",
-        "mistral-small-24b":  "Mistral Small 3",
-        "mistral-small-24b":  "Mistral-Small-24B-Instruct-2501",
+        "mistral-small":  ["Mistral Small 3", "Mistral-Small-24B-Instruct-2501", "Mistral Small 3.1 24B"],
+        "mistral-small-24b":  ["Mistral Small 3", "Mistral-Small-24B-Instruct-2501"],
         "mistral-small-3.1-24b":  "Mistral Small 3.1 24B",
         "molmo-7b":  "Molmo 7B D",
         "moonlight-16b":  "Moonlight 16B A3B Instruct",
@@ -284,6 +284,30 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         "deepseek-r1-distill-qwen-14b":  "R1 Distill Qwen 14B",
         "deepseek-r1-distill-qwen-32b":  "R1 Distill Qwen 32B",
     }
+    
+
+    @classmethod
+    def get_model(cls, model: str) -> str:
+        """Get the internal model name from the user-provided model name."""
+        if not model:
+            return cls.default_model
+        
+        # Check if the model exists directly in our models list
+        if model in cls.models:
+            return model
+        
+        # Check if there's an alias for this model
+        if model in cls.model_aliases:
+            alias = cls.model_aliases[model]
+            # If the alias is a list, randomly select one of the options
+            if isinstance(alias, list):
+                selected_model = random.choice(alias)
+                debug.log(f"Blackbox: Selected model '{selected_model}' from alias '{model}'")
+                return selected_model
+            debug.log(f"Blackbox: Using model '{alias}' for alias '{model}'")
+            return alias
+        
+        raise ModelNotFoundError(f"Model {model} not found")
 
     @classmethod
     def generate_session(cls, email: str, id_length: int = 21, days_ahead: int = 365) -> dict:
@@ -383,6 +407,25 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         return ''.join(random.choice(chars) for _ in range(length))
     
     @classmethod
+    def generate_session_data(cls) -> dict:
+        """
+        Generate a complete session data object with random email and proper format.
+        
+        Returns:
+            dict: A complete session data object ready to be used in API requests
+        """
+        # Generate random email
+        chars = string.ascii_lowercase + string.digits
+        random_team = ''.join(random.choice(chars) for _ in range(8))
+        request_email = f"{random_team}@blackbox.ai"
+        
+        # Generate session with the email
+        session_data = cls.generate_session(request_email)
+        debug.log(f"Blackbox: Using generated session with email {request_email}")
+        
+        return session_data
+
+    @classmethod
     async def create_async_generator(
         cls,
         model: str,
@@ -437,15 +480,6 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
                     "fileText": "",
                     "title": ""
                 }
-
-            # Generate a new email for each request instead of using the one stored in conversation
-            chars = string.ascii_lowercase + string.digits
-            random_team = ''.join(random.choice(chars) for _ in range(8))
-            request_email = f"{random_team}@blackbox.ai"
-            
-            # Generate a session with the new email
-            session_data = cls.generate_session(request_email)
-            debug.log(f"Blackbox: Using generated session with email {request_email}")
             
             data = {
                 "messages": current_messages,
@@ -484,7 +518,12 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
                     "occupation": "",
                     "traits": []
                 },
-                "session": session_data,
+                "webSearchModeOption": {
+                    "autoMode": False,
+                    "webMode": False,
+                    "offlineMode": False
+                },
+                "session": cls.generate_session_data(),
                 "isPremium": True, 
                 "subscriptionCache": {
                     "expiryTimestamp": None,
@@ -495,6 +534,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
                 },
                 "beastMode": False,
                 "reasoningMode": False,
+                "workspaceId": "",
                 "webSearchMode": False
             }
 
