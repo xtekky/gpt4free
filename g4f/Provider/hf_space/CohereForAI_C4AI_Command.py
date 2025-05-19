@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import random
 from aiohttp import ClientSession, FormData
 
 from ...typing import AsyncResult, Messages
@@ -54,9 +55,9 @@ class CohereForAI_C4AI_Command(AsyncGeneratorProvider, ProviderModelMixin):
             # If the alias is a list, randomly select one of the options
             if isinstance(alias, list):
                 selected_model = random.choice(alias)
-                debug.log(f"PuterJS: Selected model '{selected_model}' from alias '{model}'")
+                debug.log(f"{cls.__name__}: Selected model '{selected_model}' from alias '{model}'")
                 return selected_model
-            debug.log(f"PuterJS: Using model '{alias}' for alias '{model}'")
+            debug.log(f"{cls.__name__}: Using model '{alias}' for alias '{model}'")
             return alias
         
         raise ModelNotFoundError(f"Model {model} not found")

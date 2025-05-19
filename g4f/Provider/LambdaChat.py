@@ -3,13 +3,14 @@ from __future__ import annotations
 import json
 import re
 import uuid
+import random
 from aiohttp import ClientSession, FormData
 
 from ..typing import AsyncResult, Messages
 from ..requests import raise_for_status
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from .helper import format_prompt, get_last_user_message
-from ..providers.response import JsonConversation, TitleGeneration, Reasoning, FinishReason
+from .helper import get_last_user_message
+from ..providers.response import TitleGeneration, Reasoning, FinishReason
 from ..errors import ModelNotFoundError
 from .. import debug
 
@@ -56,9 +57,9 @@ class LambdaChat(AsyncGeneratorProvider, ProviderModelMixin):
             # If the alias is a list, randomly select one of the options
             if isinstance(alias, list):
                 selected_model = random.choice(alias)
-                debug.log(f"PuterJS: Selected model '{selected_model}' from alias '{model}'")
+                debug.log(f"{cls.__name__}: Selected model '{selected_model}' from alias '{model}'")
                 return selected_model
-            debug.log(f"PuterJS: Using model '{alias}' for alias '{model}'")
+            debug.log(f"{cls.__name__}: Using model '{alias}' for alias '{model}'")
             return alias
         
         raise ModelNotFoundError(f"Model {model} not found")
