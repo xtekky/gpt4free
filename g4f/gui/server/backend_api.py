@@ -19,7 +19,6 @@ try:
     from ...integration.markitdown import MarkItDown, StreamInfo
     has_markitdown = True
 except ImportError as e:
-    print(e)
     has_markitdown = False
 
 from ...client.service import convert_to_provider
@@ -367,10 +366,16 @@ class Backend_Api(Api):
                 if is_media:
                     os.makedirs(media_dir, exist_ok=True)
                     newfile = os.path.join(media_dir, filename)
-                    media.append({"name": filename, "text": result})
-                elif not result and is_supported:
+                    if result:
+                        media.append({"name": filename, "text": result})
+                    else:
+                        media.append({"name": filename})
+                elif is_supported:
                     newfile = os.path.join(bucket_dir, filename)
                     filenames.append(filename)
+                else:
+                    os.remove(copyfile)
+                    raise ValueError(f"Unsupported file type: {filename}")
                 try:
                     os.rename(copyfile, newfile)
                 except OSError:

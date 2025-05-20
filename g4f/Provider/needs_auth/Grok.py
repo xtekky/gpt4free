@@ -4,6 +4,7 @@ import os
 import json
 import time
 import asyncio
+import uuid
 from typing import Dict, Any, AsyncIterator
 
 try:
@@ -13,8 +14,9 @@ except ImportError:
 
 from ...typing import Messages, AsyncResult
 from ...providers.response import JsonConversation, Reasoning, ImagePreview, ImageResponse, TitleGeneration, AuthResult, RequestLogin
-from ...requests import StreamSession, get_nodriver, DEFAULT_HEADERS
+from ...requests import StreamSession, get_nodriver, DEFAULT_HEADERS, merge_cookies
 from ...requests.raise_for_status import raise_for_status
+from ...errors import MissingAuthError
 from ..base_provider import AsyncAuthedProvider, ProviderModelMixin
 from ..helper import format_prompt, get_last_user_message
 
@@ -112,7 +114,10 @@ class Grok(AsyncAuthedProvider, ProviderModelMixin):
                 url = f"{cls.conversation_url}/new"
             else:
                 url = f"{cls.conversation_url}/{conversation_id}/responses"
-            async with session.post(url, json=payload) as response:
+            async with session.post(url, json=payload, headers={"x-xai-request-id": str(uuid.uuid4())}) as response:
+                if response.status == 403:
+                    raise MissingAuthError("Invalid secrets")
+                auth_result.cookies = merge_cookies(auth_result.cookies, response)
                 await raise_for_status(response)
                 thinking_duration = None
                 async for line in response.iter_lines():

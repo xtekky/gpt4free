@@ -25,7 +25,7 @@ EXTENSIONS_MAP: dict[str, str] = {
     "gif": "image/gif",
     "webp": "image/webp",
     # Audio
-    "wav": "audio/wav",
+    "wav": "audio/x-wav",
     "mp3": "audio/mpeg",
     "flac": "audio/flac",
     "opus": "audio/opus",
@@ -107,17 +107,38 @@ def is_data_an_media(data, filename: str = None) -> str:
         return is_accepted_format(data)
     return is_data_uri_an_image(data)
 
+def is_valid_media(data, filename: str = None) -> str:
+    if is_valid_audio(data, filename):
+        return True
+    if filename:
+        extension = get_extension(filename)
+        if extension is not None:
+            media_type = EXTENSIONS_MAP[extension]
+            if media_type.startswith("image/"):
+                return media_type
+    if isinstance(data, bytes):
+        return is_accepted_format(data)
+    return is_data_uri_an_image(data)
+
 def is_data_an_audio(data_uri: str = None, filename: str = None) -> str:
     if filename:
         extension = get_extension(filename)
         if extension is not None:
             media_type = EXTENSIONS_MAP[extension]
-            if media_type.startswith("audio/") or media_type == "video/webm":
+            if media_type.startswith("audio/"):
                 return media_type
     if isinstance(data_uri, str):
         audio_format = re.match(r'^data:(audio/\w+);base64,', data_uri)
         if audio_format:
             return audio_format.group(1)
+
+def is_valid_audio(data_uri: str = None, filename: str = None) -> bool:
+    mimetype = is_data_an_audio(data_uri, filename)
+    if mimetype is None:
+        return False
+    if MEDIA_TYPE_MAP.get(mimetype) not in ("wav", "mp3"):
+        return False
+    return True
 
 def is_data_uri_an_image(data_uri: str) -> bool:
     """
