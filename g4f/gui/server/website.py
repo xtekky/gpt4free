@@ -67,7 +67,7 @@ class Website:
             },
         }
 
-    def _index(self, filename = "index"):
+    def _index(self, filename = "home"):
         return render(filename)
 
     def _qrcode(self, filename = "qrcode"):
