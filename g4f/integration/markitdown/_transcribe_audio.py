@@ -47,5 +47,8 @@ def transcribe_audio(file_stream: BinaryIO, *, audio_format: str = "wav", langua
         audio = recognizer.record(source)
         if language is None:
             language = "en-US"
-        transcript = recognizer.recognize_google(audio, language=language).strip()
+        try:
+            transcript = recognizer.recognize_faster_whisper(audio, language=language.split("-")[0]).strip()
+        except ImportError:
+            transcript = recognizer.recognize_google(audio, language=language).strip()
         return "[No speech detected]" if transcript == "" else transcript.strip()

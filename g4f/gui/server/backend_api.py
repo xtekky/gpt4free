@@ -19,7 +19,6 @@ try:
     from ...integration.markitdown import MarkItDown, StreamInfo
     has_markitdown = True
 except ImportError as e:
-    print(e)
     has_markitdown = False
 
 from ...client.service import convert_to_provider
@@ -211,12 +210,7 @@ class Backend_Api(Api):
         @app.route('/backend-api/v2/create', methods=['GET', 'POST'])
         def create():
             try:
-                tool_calls = [{
-                    "function": {
-                        "name": "bucket_tool"
-                    },
-                    "type": "function"
-                }]
+                tool_calls = []
                 web_search = request.args.get("web_search")
                 if web_search:
                     is_true_web_search = web_search.lower() in ["true", "1"]
@@ -278,12 +272,11 @@ class Backend_Api(Api):
                     if not response:
                         response = iter_run_tools(ChatCompletion.create, **parameters)
                         cache_dir.mkdir(parents=True, exist_ok=True)
-                        copy_response = cast_str(response)
-                        if copy_response:
+                        response = cast_str(response)
+                        response = response if isinstance(response, str) else "".join(response)
+                        if response:
                             with cache_file.open("w") as f:
-                                for chunk in [copy_response] if isinstance(copy_response, str) else copy_response:
-                                    f.write(chunk)
-                        response = copy_response
+                                f.write(response)
                 else:
                     response = cast_str(iter_run_tools(ChatCompletion.create, **parameters))
                 if isinstance(response, str):
@@ -299,7 +292,7 @@ class Backend_Api(Api):
                         return redirect(response)
                 if do_filter:
                     is_true_filter = do_filter.lower() in ["true", "1"]
-                    response = "".join(response)
+                    response = response if isinstance(response, str) else "".join(response)
                     return Response(filter_markdown(response, None if is_true_filter else do_filter, response if is_true_filter else ""), mimetype='text/plain')
                 return Response(response, mimetype='text/plain')
             except Exception as e:
@@ -367,10 +360,16 @@ class Backend_Api(Api):
                 if is_media:
                     os.makedirs(media_dir, exist_ok=True)
                     newfile = os.path.join(media_dir, filename)
-                    media.append({"name": filename, "text": result})
-                elif not result and is_supported:
+                    if result:
+                        media.append({"name": filename, "text": result})
+                    else:
+                        media.append({"name": filename})
+                elif is_supported:
                     newfile = os.path.join(bucket_dir, filename)
                     filenames.append(filename)
+                else:
+                    os.remove(copyfile)
+                    raise ValueError(f"Unsupported file type: {filename}")
                 try:
                     os.rename(copyfile, newfile)
                 except OSError:
@@ -407,10 +406,9 @@ class Backend_Api(Api):
                         mime_type = is_allowed_extension(file)
                         if mime_type is not None:
                             mime_type = secure_filename(mime_type)
-                            for tag in safe_search:
-                                if tag in mime_type:
-                                    self.match_files[search][file] = self.match_files[search].get(file, 0) + 1
-                                    break
+                            if safe_search[0] in mime_type:
+                                self.match_files[search][file] = self.match_files[search].get(file, 0) + 1
+                                break
                         for tag in safe_search:
                             if tag in file.lower():
                                 self.match_files[search][file] = self.match_files[search].get(file, 0) + 1

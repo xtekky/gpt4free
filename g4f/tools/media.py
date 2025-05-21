@@ -6,7 +6,7 @@ from typing import Iterator, Union
 from pathlib import Path
 
 from ..typing import Messages
-from ..image import is_data_an_media, is_data_an_audio, to_input_audio, to_data_uri
+from ..image import is_data_an_media, to_input_audio, is_valid_media, is_valid_audio, to_data_uri
 from .files import get_bucket_dir, read_bucket
 
 def render_media(bucket_id: str, name: str, url: str, as_path: bool = False, as_base64: bool = False) -> Union[str, Path]:
@@ -37,7 +37,7 @@ def render_part(part: dict) -> dict:
             "type": "text",
             "text": "".join(read_bucket(bucket_dir))
         }
-    if is_data_an_audio(filename=filename):
+    if is_valid_audio(filename=filename):
         return {
             "type": "input_audio",
             "input_audio": {
@@ -45,10 +45,11 @@ def render_part(part: dict) -> dict:
                 "format": os.path.splitext(filename)[1][1:]
             }
         }
-    return {
-        "type": "image_url",
-        "image_url": {"url": render_media(**part)}
-    }
+    if is_valid_media(filename=filename):
+        return {
+            "type": "image_url",
+            "image_url": {"url": render_media(**part)}
+        }
 
 def merge_media(media: list, messages: list) -> Iterator:
     buffer = []
@@ -57,7 +58,7 @@ def merge_media(media: list, messages: list) -> Iterator:
             content = message.get("content")
             if isinstance(content, list):
                 for part in content:
-                    if "type" not in part and "name" in part:
+                    if "type" not in part and "name" in part and "text" not in part:
                         path = render_media(**part, as_path=True)
                         buffer.append((path, os.path.basename(path)))
                     elif part.get("type") == "image_url":
@@ -71,9 +72,10 @@ def merge_media(media: list, messages: list) -> Iterator:
 def render_messages(messages: Messages, media: list = None) -> Iterator:
     for idx, message in enumerate(messages):
         if isinstance(message["content"], list):
+            parts = [render_part(part) for part in message["content"] if part]
             yield {
                 **message,
-                "content": [render_part(part) for part in message["content"] if part]
+                "content": [part for part in parts if part]
             }
         else:
             if media is not None and idx == len(messages) - 1:
@@ -84,11 +86,12 @@ def render_messages(messages: Messages, media: list = None) -> Iterator:
                             "type": "input_audio",
                             "input_audio": to_input_audio(media_data, filename)
                         }
-                        if is_data_an_audio(media_data, filename) else {
+                        if is_valid_audio(media_data, filename) else {
                             "type": "image_url",
                             "image_url": {"url": to_data_uri(media_data)}
                         }
                         for media_data, filename in media
+                        if is_valid_media(media_data, filename)
                     ] + ([{"type": "text", "text": message["content"]}] if isinstance(message["content"], str) else message["content"])
                 }
             else:

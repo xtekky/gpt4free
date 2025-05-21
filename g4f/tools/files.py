@@ -69,6 +69,11 @@ try:
     has_beautifulsoup4 = True
 except ImportError:
     has_beautifulsoup4 = False
+try:
+    from markitdown import MarkItDown
+    has_markitdown = True
+except ImportError:
+    has_markitdown = False
 
 from .web_search import scrape_text
 from ..cookies import get_cookies_dir
@@ -169,8 +174,10 @@ def get_filenames(bucket_dir: Path):
             return [filename.strip() for filename in f.readlines()]
     return []
 
-def stream_read_files(bucket_dir: Path, filenames: list, delete_files: bool = False) -> Iterator[str]:
+def stream_read_files(bucket_dir: Path, filenames: list[str], delete_files: bool = False) -> Iterator[str]:
     for filename in filenames:
+        if filename.startswith(DOWNLOADS_FILE):
+            continue
         file_path: Path = bucket_dir / filename
         if not file_path.exists() or file_path.lstat().st_size <= 0:
             continue
@@ -192,7 +199,7 @@ def stream_read_files(bucket_dir: Path, filenames: list, delete_files: bool = Fa
                                 else:
                                     os.unlink(filepath)
             continue
-        yield f"```{filename.replace('.md', '')}\n"
+        yield f"```{filename}\n"
         if has_pypdf2 and filename.endswith(".pdf"):
             try:
                 reader = PyPDF2.PdfReader(file_path)
@@ -339,6 +346,13 @@ def split_file_by_size_and_newline(input_filename, output_dir, chunk_size_bytes=
             with open(output_filename, 'w', encoding='utf-8') as outfile:
                 outfile.write(current_chunk)
 
+def get_filename_from_url(url: str, extension: str = ".md") -> str:
+    parsed_url = urllib.parse.urlparse(url)
+    sha256_hash = hashlib.sha256(url.encode()).digest()
+    base32_encoded = base64.b32encode(sha256_hash).decode()
+    url_hash = base32_encoded[:24].lower()
+    return f"{parsed_url.netloc}+{parsed_url.path[1:].replace('/', '_')}+{url_hash}{extension}"
+
 async def get_filename(response: ClientResponse) -> str:
     """
     Attempts to extract a filename from an aiohttp response. Prioritizes Content-Disposition, then URL.
@@ -364,11 +378,7 @@ async def get_filename(response: ClientResponse) -> str:
     if content_type and url:
         extension = await get_file_extension(response)
         if extension:
-            parsed_url = urllib.parse.urlparse(url)
-            sha256_hash = hashlib.sha256(url.encode()).digest()
-            base32_encoded = base64.b32encode(sha256_hash).decode()
-            url_hash = base32_encoded[:24].lower()
-            return f"{parsed_url.netloc}+{parsed_url.path[1:].replace('/', '_')}+{url_hash}{extension}"
+            return get_filename_from_url(url, extension)
 
     return None
 
@@ -442,17 +452,29 @@ async def download_urls(
 ) -> AsyncIterator[str]:
     if lock is None:
         lock = asyncio.Lock()
+    md = MarkItDown()
     async with ClientSession(
         connector=get_connector(proxy=proxy),
         timeout=ClientTimeout(timeout)
     ) as session:
         async def download_url(url: str, max_depth: int) -> str:
+            text_content = None
+            if has_markitdown:
+                try:
+                    text_content = md.convert(url).text_content
+                    if text_content:
+                        filename = get_filename_from_url(url)
+                        target = bucket_dir / filename
+                        target.write_text(text_content, errors="replace")
+                        return filename
+                except Exception as e:
+                    debug.log(f"Failed to convert URL to text: {type(e).__name__}: {e}")
             try:
                 async with session.get(url) as response:
                     response.raise_for_status()
                     filename = await get_filename(response)
                     if not filename:
-                        print(f"Failed to get filename for {url}")
+                        debug.log(f"Failed to get filename for {url}")
                         return None
                     if not is_allowed_extension(filename) and not supports_filename(filename) or filename == DOWNLOADS_FILE:
                         return None

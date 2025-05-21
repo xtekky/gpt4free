@@ -14,9 +14,7 @@ def redirect_home():
     return redirect('/chat')
 
 def render(filename = "chat"):
-    is_live = True
     if os.path.exists(DIST_DIR):
-        is_live = False
         path = os.path.abspath(os.path.join(os.path.dirname(DIST_DIR), (filename + ("" if "." in filename else ".html"))))
         return send_from_directory(os.path.dirname(path), os.path.basename(path))
     try:
@@ -25,13 +23,12 @@ def render(filename = "chat"):
         latest_version = version.utils.current_version
     today = datetime.today().strftime('%Y-%m-%d')
     cache_dir = os.path.join(get_cookies_dir(), ".gui_cache")
-    cache_file = os.path.join(cache_dir, f"{today}.{secure_filename(f'{filename}.{version.utils.current_version}-{latest_version}')}{'.live' if is_live else ''}.html")
+    cache_file = os.path.join(cache_dir, f"{today}.{secure_filename(f'{filename}.{version.utils.current_version}-{latest_version}')}.html")
     if not os.path.exists(cache_file):
         os.makedirs(cache_dir, exist_ok=True)
         html = requests.get(f"{STATIC_URL}{filename}.html").text
-        if is_live:
-            html = html.replace("../dist/", f"dist/")
-            html = html.replace("\"dist/", f"\"{STATIC_URL}dist/")
+        html = html.replace("../dist/", f"dist/")
+        html = html.replace("\"dist/", f"\"{STATIC_URL}dist/")
         with open(cache_file, 'w', encoding='utf-8') as f:
             f.write(html)
     return send_from_directory(os.path.abspath(cache_dir), os.path.basename(cache_file))
@@ -70,7 +67,7 @@ class Website:
             },
         }
 
-    def _index(self, filename = "index"):
+    def _index(self, filename = "home"):
         return render(filename)
 
     def _qrcode(self, filename = "qrcode"):

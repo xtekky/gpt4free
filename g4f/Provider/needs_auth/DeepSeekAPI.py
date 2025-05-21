@@ -67,7 +67,7 @@ class DeepSeekAPI(AsyncAuthedProvider, ProviderModelMixin):
         for chunk in api.chat_completion(
             conversation.chat_id,
             get_last_user_message(messages),
-            thinking_enabled="deepseek-r1" in model,
+            thinking_enabled=bool(model) and "deepseek-r1" in model,
             search_enabled=web_search
         ):
             if chunk['type'] == 'thinking':
