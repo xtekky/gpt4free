@@ -346,12 +346,12 @@ def split_file_by_size_and_newline(input_filename, output_dir, chunk_size_bytes=
             with open(output_filename, 'w', encoding='utf-8') as outfile:
                 outfile.write(current_chunk)
 
-def get_filename_from_url(url: str) -> str:
+def get_filename_from_url(url: str, extension: str = ".md") -> str:
     parsed_url = urllib.parse.urlparse(url)
     sha256_hash = hashlib.sha256(url.encode()).digest()
     base32_encoded = base64.b32encode(sha256_hash).decode()
     url_hash = base32_encoded[:24].lower()
-    return f"{parsed_url.netloc}+{parsed_url.path[1:].replace('/', '_')}+{url_hash}.md"
+    return f"{parsed_url.netloc}+{parsed_url.path[1:].replace('/', '_')}+{url_hash}{extension}"
 
 async def get_filename(response: ClientResponse) -> str:
     """
@@ -378,7 +378,7 @@ async def get_filename(response: ClientResponse) -> str:
     if content_type and url:
         extension = await get_file_extension(response)
         if extension:
-            return get_filename_from_url(url)
+            return get_filename_from_url(url, extension)
 
     return None
 
