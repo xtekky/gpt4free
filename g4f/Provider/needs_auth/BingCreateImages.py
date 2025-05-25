@@ -5,7 +5,7 @@ from ...providers.response import ImageResponse
 from ...errors import MissingAuthError
 from ...typing import AsyncResult, Messages, Cookies
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from ..bing.create_images import create_images, create_session
+from .bing.create_images import create_images, create_session
 from ..helper import format_image_prompt
 
 class BingCreateImages(AsyncGeneratorProvider, ProviderModelMixin):

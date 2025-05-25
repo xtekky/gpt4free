@@ -96,13 +96,12 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         "gpt-4.1": "openai-large",
         "o4-mini": "openai-reasoning",
         "gpt-4.1-mini": "openai",
-        "command-r-plus-08-2024": "command-r",
+        "command-r-plus": "command-r",
         "gemini-2.5-flash": "gemini",
         "gemini-2.0-flash-thinking": "gemini-thinking",
         "qwen-2.5-coder-32b": "qwen-coder",
         "llama-3.3-70b": "llama",
         "llama-4-scout": "llamascout",
-        "llama-4-scout-17b": "llamascout",
         "mistral-small-3.1-24b": "mistral",
         "deepseek-r1": "deepseek-reasoning-large",
         "deepseek-r1-distill-llama-70b": "deepseek-reasoning-large",
@@ -123,12 +122,14 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         "deepseek-v3": "deepseek",
         "deepseek-v3-0324": "deepseek",
         #"bidara": "bidara", # Personas
+        "grok-3-mini": "grok",
 
         ### Audio Models ###
         "gpt-4o-mini-audio": "openai-audio",
 
         ### Image Models ###
         "sdxl-turbo": "turbo",
+        "gpt-image": "gptimage",
     }
 
     @classmethod

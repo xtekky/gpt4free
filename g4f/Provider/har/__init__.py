@@ -15,7 +15,7 @@ from ..helper import get_last_user_message
 from ..openai.har_file import get_headers
 
 class HarProvider(AsyncGeneratorProvider, ProviderModelMixin):
-    label = "LM Arena"
+    label = "LM Arena (Har)"
     url = "https://lmarena.ai"
     api_endpoint = "/queue/join?"
     working = True

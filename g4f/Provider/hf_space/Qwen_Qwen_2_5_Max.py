@@ -21,7 +21,7 @@ class Qwen_Qwen_2_5_Max(AsyncGeneratorProvider, ProviderModelMixin):
     supports_message_history = False
     
     default_model = "qwen-qwen2-5-max"
-    model_aliases = {"qwen-2-5-max": default_model}
+    model_aliases = {"qwen-2.5-max": default_model}
     models = list(model_aliases.keys())
 
     @classmethod
