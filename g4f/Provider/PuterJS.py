@@ -1,20 +1,19 @@
 from __future__ import annotations
 
-from aiohttp import ClientSession
 import json
 import time
 import re
 import random
-import json # Ensure json is imported if not already
-import uuid # Import the uuid module
+import json
+import uuid
 import asyncio
-from typing import Optional, Dict, Any, List, Union # Assuming these are used elsewhere or can be pruned if not
+from typing import Optional, Dict, Any
+from aiohttp import ClientSession
 
 from ..typing import AsyncResult, Messages, MediaListType
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..providers.response import FinishReason, JsonConversation
-from ..tools.media import merge_media
-from ..image import to_data_uri, is_data_uri_an_image
+from ..image import to_data_uri
 from ..errors import RateLimitError, ModelNotFoundError
 from .. import debug
 
@@ -95,7 +94,7 @@ class PuterJS(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://docs.puter.com/playground"
     api_endpoint = "https://api.puter.com/drivers/call"
     
-    working = True
+    working = False # Take down request
     needs_auth = False
     supports_stream = True
     supports_system_message = True
@@ -769,7 +768,7 @@ class PuterJS(AsyncGeneratorProvider, ProviderModelMixin):
         proxy: str = None,
         stream: bool = True,
         conversation: Optional[JsonConversation] = None,
-        return_conversation: bool = False,
+        return_conversation: bool = True,
         media: MediaListType = None,  # Add media parameter for images
         **kwargs
     ) -> AsyncResult:
@@ -847,8 +846,7 @@ class PuterJS(AsyncGeneratorProvider, ProviderModelMixin):
         if auth_data.is_rate_limited():
             wait_time = auth_data.rate_limited_until - time.time()
             if wait_time > 0:
-                yield f"Rate limited. Please try again in {int(wait_time)} seconds."
-                return
+                raise RateLimitError(f"Rate limited. Please try again in {int(wait_time)} seconds.")
         
         async with ClientSession() as session:
             # Step 1: Create a temporary account (if needed)
@@ -859,16 +857,14 @@ class PuterJS(AsyncGeneratorProvider, ProviderModelMixin):
                     auth_data.auth_token = signup_data.get("token")
                     
                     if not auth_data.auth_token:
-                        yield f"Error: No auth token in response for model {model}"
-                        return
+                        raise RuntimeError(f"Error: No auth token in response for model {model}")
                     
                     # Get app token
                     app_token_data = await cls._get_app_token(session, auth_data.auth_token, proxy)
                     auth_data.app_token = app_token_data.get("token")
                     
                     if not auth_data.app_token:
-                        yield f"Error: No app token in response for model {model}"
-                        return
+                        raise RuntimeError(f"Error: No app token in response for model {model}")
                     
                     # Mark tokens as valid
                     auth_data.created_at = time.time()
@@ -880,11 +876,9 @@ class PuterJS(AsyncGeneratorProvider, ProviderModelMixin):
                 except RateLimitError as e:
                     # Set rate limit and inform user
                     auth_data.set_rate_limit(cls.RATE_LIMIT_DELAY)
-                    yield str(e)
-                    return
+                    raise e
                 except Exception as e:
-                    yield f"Error during authentication for model {model}: {str(e)}"
-                    return
+                    raise RuntimeError(f"Error during authentication for model {model}: {str(e)}")
             
             # Step 3: Make the chat request with proper image handling
             try:
@@ -1218,8 +1212,7 @@ class PuterJS(AsyncGeneratorProvider, ProviderModelMixin):
                             await asyncio.sleep(min(cls.RATE_LIMIT_DELAY, 10))  # Wait but cap at 10 seconds for retries
                             continue
                         else:
-                            yield str(e)
-                            return
+                            raise RuntimeError(str(e))
                     
                     except Exception as e:
                         # For network errors or other exceptions
@@ -1230,13 +1223,10 @@ class PuterJS(AsyncGeneratorProvider, ProviderModelMixin):
                             await asyncio.sleep(cls.RETRY_DELAY * (attempt + 1))
                             continue
                         else:
-                            yield f"Error: {str(e)}"
-                            return
+                            raise RuntimeError(str(e))
             
             except Exception as e:
                 # If any error occurs outside the retry loop
                 if "token" in str(e).lower() or "auth" in str(e).lower():
                     auth_data.invalidate()
-                
-                yield f"Error: {str(e)}"
-                return
+                raise RuntimeError(str(e))
