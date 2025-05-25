@@ -91,7 +91,8 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
     models = [
         default_model, 
         "o3-mini", 
-        "gpt-4.1-nano",  
+        "gpt-4.1-mini", 
+        "gpt-4.1-nano", 
         "Claude-sonnet-3.7", 
         "Claude-sonnet-3.5", 
         "DeepSeek-R1", 
