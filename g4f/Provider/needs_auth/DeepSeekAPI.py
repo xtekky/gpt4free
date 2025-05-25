@@ -26,6 +26,7 @@ class DeepSeekAPI(AsyncAuthedProvider, ProviderModelMixin):
 
     default_model = "deepseek-v3"
     models = ["deepseek-v3", "deepseek-r1"]
+    model_aliases = {"deepseek-chat": "deepseek-v3"}
 
     @classmethod
     async def on_auth_async(cls, proxy: str = None, **kwargs) -> AsyncIterator:
