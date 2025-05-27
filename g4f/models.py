@@ -10,6 +10,7 @@ from .Provider import (
     ### No Auth Required ###
     ARTA,
     Blackbox,
+    Blackboxapi,
     Chatai,
     ChatGLM,
     Cloudflare,
@@ -168,12 +169,13 @@ default = Model(
     name = "",
     base_provider = "",
     best_provider = IterListProvider([
-        Blackbox,
-        DDG,
-        Copilot,
-        OIVSCodeSer2,
         OIVSCodeSer5,
         OIVSCodeSer0501,
+        OIVSCodeSer2,
+        Blackbox,
+        Blackboxapi,
+        DDG,
+        Copilot,
         DeepInfraChat,
         LambdaChat,
         PollinationsAI,
@@ -183,6 +185,7 @@ default = Model(
         Chatai,
         WeWordle,
         DocsBot,
+        LMArena,
         OpenaiChat,
         Cloudflare,
     ])
@@ -405,7 +408,7 @@ llama_3_1_8b = Model(
 llama_3_1_70b = Model(
     name          = "llama-3.1-70b",
     base_provider = "Meta Llama",
-    best_provider = LMArena
+    best_provider = IterListProvider([Blackboxapi, LMArena])
 )
 
 llama_3_1_405b = Model(
