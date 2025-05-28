@@ -10,12 +10,12 @@ import asyncio
 from typing import Optional, Dict, Any
 from aiohttp import ClientSession
 
-from ..typing import AsyncResult, Messages, MediaListType
-from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from ..providers.response import FinishReason, JsonConversation
-from ..image import to_data_uri
-from ..errors import RateLimitError, ModelNotFoundError
-from .. import debug
+from ...typing import AsyncResult, Messages, MediaListType
+from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from ...providers.response import FinishReason, JsonConversation
+from ...image import to_data_uri
+from ...errors import RateLimitError, ModelNotFoundError
+from ... import debug
 
 class AuthData:
     """
@@ -94,7 +94,7 @@ class PuterJS(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://docs.puter.com/playground"
     api_endpoint = "https://api.puter.com/drivers/call"
     
-    working = False # Take down request
+    working = False
     needs_auth = False
     supports_stream = True
     supports_system_message = True

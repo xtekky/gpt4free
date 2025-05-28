@@ -13,8 +13,8 @@ try:
 except ImportError:
     has_requirements = False
 
-from ..helper import get_connector
-from ...errors import MissingRequirementsError, RateLimitError
+from ...helper import get_connector
+from ....errors import MissingRequirementsError, RateLimitError
 
 BING_URL = "https://www.bing.com"
 TIMEOUT_LOGIN = 1200

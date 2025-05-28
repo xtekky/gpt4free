@@ -91,6 +91,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
     models = [
         default_model, 
         "o3-mini", 
+        "gpt-4.1-mini", 
         "gpt-4.1-nano", 
         "Claude-sonnet-3.7", 
         "Claude-sonnet-3.5", 
@@ -310,18 +311,18 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         raise ModelNotFoundError(f"Model {model} not found")
 
     @classmethod
-    def generate_session(cls, email: str, id_length: int = 21, days_ahead: int = 365) -> dict:
+    def generate_session(cls, id_length: int = 21, days_ahead: int = 365) -> dict:
         """
-        Generate a dynamic session with proper ID and expiry format using a specific email.
+        Generate a dynamic session with proper ID and expiry format using a fixed email.
         
         Args:
-            email: The email to use for this session
             id_length: Length of the numeric ID (default: 21)
             days_ahead: Number of days ahead for expiry (default: 365)
         
         Returns:
             dict: A session dictionary with user information and expiry
         """
+        
         # Generate numeric ID
         numeric_id = ''.join(random.choice('0123456789') for _ in range(id_length))
         
@@ -337,7 +338,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
         return {
             "user": {
                 "name": "BLACKBOX AI", 
-                "email": email, 
+                "email": "blackboxapp@blackboxai.tech", 
                 "image": image_url, 
                 "id": numeric_id
             }, 
@@ -405,25 +406,6 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
     def generate_id(cls, length: int = 7) -> str:
         chars = string.ascii_letters + string.digits
         return ''.join(random.choice(chars) for _ in range(length))
-    
-    @classmethod
-    def generate_session_data(cls) -> dict:
-        """
-        Generate a complete session data object with random email and proper format.
-        
-        Returns:
-            dict: A complete session data object ready to be used in API requests
-        """
-        # Generate random email
-        chars = string.ascii_lowercase + string.digits
-        random_team = ''.join(random.choice(chars) for _ in range(8))
-        request_email = f"{random_team}@blackbox.ai"
-        
-        # Generate session with the email
-        session_data = cls.generate_session(request_email)
-        debug.log(f"Blackbox: Using generated session with email {request_email}")
-        
-        return session_data
 
     @classmethod
     async def create_async_generator(
@@ -523,7 +505,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
                     "webMode": False,
                     "offlineMode": False
                 },
-                "session": cls.generate_session_data(),
+                "session": cls.generate_session(),
                 "isPremium": True, 
                 "subscriptionCache": {
                     "expiryTimestamp": None,
@@ -535,6 +517,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
                 "beastMode": False,
                 "reasoningMode": False,
                 "workspaceId": "",
+                "asyncMode": False,
                 "webSearchMode": False
             }
 

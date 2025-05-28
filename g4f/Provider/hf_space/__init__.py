@@ -10,14 +10,12 @@ from .BlackForestLabs_Flux1Dev       import BlackForestLabs_Flux1Dev
 from .CohereForAI_C4AI_Command       import CohereForAI_C4AI_Command
 from .DeepseekAI_JanusPro7b          import DeepseekAI_JanusPro7b
 from .Microsoft_Phi_4_Multimodal     import Microsoft_Phi_4_Multimodal
-from .Qwen_QVQ_72B                   import Qwen_QVQ_72B
 from .Qwen_Qwen_2_5                  import Qwen_Qwen_2_5
 from .Qwen_Qwen_2_5M                 import Qwen_Qwen_2_5M
 from .Qwen_Qwen_2_5_Max              import Qwen_Qwen_2_5_Max
 from .Qwen_Qwen_2_72B                import Qwen_Qwen_2_72B
 from .Qwen_Qwen_3                    import Qwen_Qwen_3
 from .StabilityAI_SD35Large          import StabilityAI_SD35Large
-from .Voodoohop_Flux1Schnell         import Voodoohop_Flux1Schnell
 
 class HuggingSpace(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://huggingface.co/spaces"
@@ -26,20 +24,18 @@ class HuggingSpace(AsyncGeneratorProvider, ProviderModelMixin):
 
     default_model = Qwen_Qwen_2_72B.default_model
     default_image_model = BlackForestLabs_Flux1Dev.default_model
-    default_vision_model = Qwen_QVQ_72B.default_model
+    default_vision_model = Microsoft_Phi_4_Multimodal.default_model
     providers = [
         BlackForestLabs_Flux1Dev,
         CohereForAI_C4AI_Command,
         DeepseekAI_JanusPro7b,
         Microsoft_Phi_4_Multimodal,
-        Qwen_QVQ_72B,
         Qwen_Qwen_2_5,
         Qwen_Qwen_2_5M,
         Qwen_Qwen_2_5_Max,
         Qwen_Qwen_2_72B,
         Qwen_Qwen_3,
         StabilityAI_SD35Large,
-        Voodoohop_Flux1Schnell,
     ]
 
     @classmethod

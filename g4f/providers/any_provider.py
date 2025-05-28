@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+from typing import Dict, List, Set, Optional, Tuple, Any
 from ..typing import AsyncResult, Messages, MediaListType
 from ..errors import ModelNotFoundError
 from ..image import is_data_an_audio
@@ -7,7 +9,7 @@ from ..providers.retry_provider import IterListProvider
 from ..providers.types import ProviderType
 from ..Provider.needs_auth import OpenaiChat, CopilotAccount
 from ..Provider.hf_space import HuggingSpace
-from ..Provider import Cloudflare, Gemini, Grok, DeepSeekAPI, PerplexityLabs, LambdaChat, PollinationsAI, FreeRouter
+from ..Provider import Cloudflare, Gemini, Grok, DeepSeekAPI, PerplexityLabs, LambdaChat, PollinationsAI
 from ..Provider import Microsoft_Phi_4_Multimodal, DeepInfraChat, Blackbox, EdgeTTS, gTTS, MarkItDown
 from ..Provider import HarProvider, DDG, HuggingFace, HuggingFaceMedia
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
@@ -108,6 +110,8 @@ class AnyProvider(AsyncGeneratorProvider, ProviderModelMixin):
             cls.image_models = []
             cls.vision_models = []
             cls.video_models = []
+            
+            # Get models from the models registry
             model_with_providers = { 
                 model: [
                     provider for provider in providers
@@ -122,6 +126,8 @@ class AnyProvider(AsyncGeneratorProvider, ProviderModelMixin):
                 model: len(providers) for model, providers in model_with_providers.items() if len(providers) > 1
             }
             all_models = [cls.default_model] + list(model_with_providers.keys())
+            
+            # Process special providers
             for provider in [OpenaiChat, CopilotAccount, PollinationsAI, HuggingSpace, Cloudflare, PerplexityLabs, Gemini, Grok, DDG]:
                 provider: ProviderType = provider
                 if not provider.working or provider.get_parent() in ignored:
@@ -139,41 +145,26 @@ class AnyProvider(AsyncGeneratorProvider, ProviderModelMixin):
                 cls.image_models.extend(provider.image_models)
                 cls.vision_models.extend(provider.vision_models)
                 cls.video_models.extend(provider.video_models)
+            
+            # Clean model names function
             def clean_name(name: str) -> str:
-                return name.split("/")[-1].split(":")[0].lower(
-                    ).replace("-instruct", ""
-                    ).replace("-chat", ""
-                    ).replace("-08-2024", ""
-                    ).replace("-03-2025", ""
-                    ).replace("-20241022", ""
-                    ).replace("-20240904", ""
-                    ).replace("-2025-04-16", ""
-                    ).replace("-2025-04-14", ""
-                    ).replace("-0125", ""
-                    ).replace("-2407", ""
-                    ).replace("-2501", ""
-                    ).replace("-0324", ""
-                    ).replace("-2409", ""
-                    ).replace("-2410", ""
-                    ).replace("-2411", ""
-                    ).replace("-1119", ""
-                    ).replace("-0919", ""
-                    ).replace("-02-24", ""
-                    ).replace("-03-25", ""
-                    ).replace("-03-26", ""
-                    ).replace("-01-21", ""
-                    ).replace("-002", ""
-                    ).replace("_", "."
-                    ).replace("c4ai-", ""
-                    ).replace("-preview", ""
-                    ).replace("-experimental", ""
-                    ).replace("-v1", ""
-                    ).replace("-fp8", ""
-                    ).replace("-bf16", ""
-                    ).replace("-hf", ""
-                    ).replace("flux.1-", "flux-"
-                    ).replace("llama3", "llama-3"
-                    ).replace("meta-llama-", "llama-")
+                name = name.split("/")[-1].split(":")[0].lower()
+                # Date patterns
+                name = re.sub(r'-\d{4}-\d{2}-\d{2}', '', name)
+                name = re.sub(r'-\d{8}', '', name)
+                name = re.sub(r'-\d{4}', '', name)
+                name = re.sub(r'-\d{2}-\d{2}', '', name)
+                # Version patterns
+                name = re.sub(r'-(instruct|chat|preview|experimental|v\d+|fp8|bf16|hf)$', '', name)
+                # Other replacements
+                name = name.replace("_", ".")
+                name = name.replace("c4ai-", "")
+                name = name.replace("meta-llama-", "llama-")
+                name = name.replace("llama3", "llama-3")
+                name = name.replace("flux.1-", "flux-")
+                return name
+            
+            # Process HAR providers
             for provider in [HarProvider, LambdaChat, DeepInfraChat, HuggingFace, HuggingFaceMedia]:
                 if not provider.working or provider.get_parent() in ignored:
                     continue
@@ -188,11 +179,18 @@ class AnyProvider(AsyncGeneratorProvider, ProviderModelMixin):
                 cls.image_models.extend([clean_name(model) for model in provider.image_models])
                 cls.vision_models.extend([clean_name(model) for model in provider.vision_models])
                 cls.video_models.extend([clean_name(model) for model in provider.video_models])
+            
+            # Process audio providers
             for provider in [Microsoft_Phi_4_Multimodal, PollinationsAI]:
                 if provider.working and provider.get_parent() not in ignored:
                     cls.audio_models.update(provider.audio_models)
+            
+            # Update model counts
             cls.models_count.update({model: all_models.count(model) for model in all_models if all_models.count(model) > cls.models_count.get(model, 0)})
+            
+            # Deduplicate and store
             cls.models_storage[ignored_key] = list(dict.fromkeys([model if model else cls.default_model for model in all_models]))
+        
         return cls.models_storage[ignored_key]
 
     @classmethod
@@ -207,6 +205,7 @@ class AnyProvider(AsyncGeneratorProvider, ProviderModelMixin):
     ) -> AsyncResult:
         cls.get_models(ignored=ignored)
         providers = []
+        
         if model and ":" in model:
             providers = model.split(":")
             model = providers.pop()
@@ -238,7 +237,7 @@ class AnyProvider(AsyncGeneratorProvider, ProviderModelMixin):
                 providers.append(provider)
         else:
             for provider in [
-                OpenaiChat, Cloudflare, HarProvider, PerplexityLabs, Gemini, Grok, DeepSeekAPI, FreeRouter, Blackbox,
+                OpenaiChat, Cloudflare, HarProvider, PerplexityLabs, Gemini, Grok, DeepSeekAPI, Blackbox,
                 HuggingSpace, LambdaChat, CopilotAccount, PollinationsAI, DeepInfraChat, DDG, HuggingFace, HuggingFaceMedia,
             ]:
                 if provider.working:
@@ -247,10 +246,13 @@ class AnyProvider(AsyncGeneratorProvider, ProviderModelMixin):
             if model in models.__models__:
                 for provider in models.__models__[model][1]:
                     providers.append(provider)
+        
         providers = [provider for provider in providers if provider.working and provider.get_parent() not in ignored]
         providers = list({provider.__name__: provider for provider in providers}.values())
+        
         if len(providers) == 0:
             raise ModelNotFoundError(f"Model {model} not found in any provider.")
+        
         async for chunk in IterListProvider(providers).create_async_generator(
             model,
             messages,
