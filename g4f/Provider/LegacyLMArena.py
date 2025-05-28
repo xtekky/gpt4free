@@ -14,9 +14,9 @@ from .helper import get_last_user_message
 from ..errors import ModelNotFoundError
 from .. import debug
 
-class LMArena(AsyncGeneratorProvider, ProviderModelMixin):
-    label = "LM Arena"
-    url = "https://lmarena.ai"
+class LegacyLMArena(AsyncGeneratorProvider, ProviderModelMixin):
+    label = "Legacy LM Arena"
+    url = "https://legacy.lmarena.ai"
     api_endpoint = "/queue/join?"
     
     working = True

@@ -52,7 +52,7 @@ from .FreeGpt              import FreeGpt
 from .GizAI                import GizAI
 from .ImageLabs            import ImageLabs
 from .LambdaChat           import LambdaChat
-from .LMArena              import LMArena
+from .LegacyLMArena        import LegacyLMArena
 from .OIVSCodeSer2         import OIVSCodeSer2
 from .OIVSCodeSer5         import OIVSCodeSer5
 from .OIVSCodeSer0501      import OIVSCodeSer0501
