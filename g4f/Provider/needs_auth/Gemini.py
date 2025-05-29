@@ -235,7 +235,7 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
                     image_prompt = response_part = None
                     last_content = ""
                     youtube_ids = []
-                    async for line in response.content:
+                    for line in (await response.text()).split("\n"):
                         try:
                             try:
                                 line = json.loads(line)

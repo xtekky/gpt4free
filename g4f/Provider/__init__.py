@@ -10,7 +10,7 @@ try:
 except ImportError as e:
     debug.error("Deprecated providers not loaded:", e)
 from .needs_auth       import *
-from .template         import OpenaiTemplate, BackendApi, Puter
+from .template         import OpenaiTemplate, BackendApi
 from .hf               import HuggingFace, HuggingChat, HuggingFaceAPI, HuggingFaceInference, HuggingFaceMedia
 from .har              import HarProvider
 try:
@@ -53,6 +53,7 @@ from .GizAI                import GizAI
 from .ImageLabs            import ImageLabs
 from .LambdaChat           import LambdaChat
 from .LegacyLMArena        import LegacyLMArena
+from .LMArenaBeta          import LMArenaBeta
 from .OIVSCodeSer2         import OIVSCodeSer2
 from .OIVSCodeSer5         import OIVSCodeSer5
 from .OIVSCodeSer0501      import OIVSCodeSer0501
@@ -61,6 +62,7 @@ from .Pi                   import Pi
 from .Pizzagpt             import Pizzagpt
 from .PollinationsAI       import PollinationsAI
 from .PollinationsImage    import PollinationsImage
+from .PuterJS              import PuterJS
 from .TeachAnything        import TeachAnything
 from .You                  import You
 from .Websim               import Websim

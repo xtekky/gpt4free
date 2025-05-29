@@ -458,7 +458,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                             yield FinishReason(finish_reason)
                     if reasoning:
                         yield Reasoning(status="Done")
-                    if "action" in kwargs and "tools" not in data and "response_format" not in data:
+                    if kwargs.get("action") == "next":
                         data = {
                             "model": model,
                             "messages": messages + FOLLOWUPS_DEVELOPER_MESSAGE,

@@ -46,10 +46,10 @@ class Api:
                 "label": model.split(":")[-1] if provider.__name__ == "AnyProvider" else model,
                 "default": model == provider.default_model,
                 "vision": model in provider.vision_models,
-                "audio": model in provider.audio_models,
+                "audio": False if provider.audio_models is None else model in provider.audio_models,
                 "video": model in provider.video_models,
                 "image": model in provider.image_models,
-                "count": provider.models_count.get(model),
+                "count": False if provider.models_count is None else provider.models_count.get(model),
             }
         if provider in Provider.__map__:
             provider = Provider.__map__[provider]

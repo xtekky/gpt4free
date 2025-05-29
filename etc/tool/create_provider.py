@@ -12,6 +12,7 @@ g4f.debug.logging = True
 def read_code(text):
     if match := re.search(r"```(python|py|)\n(?P<code>[\S\s]+?)\n```", text):
         return match.group("code")
+    return text
 
 def input_command():
     print("Enter/Paste the cURL command. Ctrl-D or Ctrl-Z ( windows ) to save it.")
@@ -119,7 +120,8 @@ And replace "gpt-3.5-turbo" with `model`.
         stream=True,
     ):
         print(chunk, end="", flush=True)
-        response.append(chunk)
+        if not isinstance(chunk, Exception):
+            response.append(str(chunk))
     print()
     response = "".join(response)
 

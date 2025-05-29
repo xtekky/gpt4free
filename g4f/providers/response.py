@@ -163,7 +163,19 @@ class ToolCalls(HiddenResponse):
         return self.list
 
 class Usage(JsonMixin, HiddenResponse):
-    pass
+    def __init__(
+        self,
+        promptTokens: int = None,
+        completionTokens: int = None,
+        **kwargs
+    ):
+        if promptTokens is not None:
+            kwargs["prompt_tokens"] = promptTokens
+        if completionTokens is not None:
+            kwargs["completion_tokens"] = completionTokens
+        if "total_tokens" not in kwargs and "prompt_tokens" in kwargs and "completion_tokens" in kwargs:
+            kwargs["total_tokens"] = kwargs["prompt_tokens"] + kwargs["completion_tokens"]
+        return super().__init__(**kwargs)
 
 class AuthResult(JsonMixin, HiddenResponse):
     pass
