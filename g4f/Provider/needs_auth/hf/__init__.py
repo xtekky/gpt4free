@@ -2,16 +2,16 @@ from __future__ import annotations
 
 import random
 
-from ...typing import AsyncResult, Messages
-from ...providers.response import ImageResponse
-from ...errors import ModelNotSupportedError, MissingAuthError
-from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from ....typing import AsyncResult, Messages
+from ....providers.response import ImageResponse
+from ....errors import ModelNotSupportedError, MissingAuthError
+from ...base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from .HuggingChat import HuggingChat
 from .HuggingFaceAPI import HuggingFaceAPI
 from .HuggingFaceInference import HuggingFaceInference
 from .HuggingFaceMedia import HuggingFaceMedia
 from .models import model_aliases, vision_models, default_vision_model
-from ... import debug
+from .... import debug
 
 class HuggingFace(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://huggingface.co"

@@ -5,13 +5,15 @@ from ..providers.retry_provider import RetryProvider, IterListProvider
 from ..providers.base_provider  import AsyncProvider, AsyncGeneratorProvider
 from ..providers.create_images  import CreateImagesProvider
 from .. import debug
-try:
-    from .deprecated import *
-except ImportError as e:
-    debug.error("Deprecated providers not loaded:", e)
+
 from .needs_auth       import *
+from .needs_auth.hf    import HuggingFace, HuggingChat, HuggingFaceAPI, HuggingFaceInference, HuggingFaceMedia
+try:
+    from .needs_auth.mini_max import HailuoAI, MiniMax
+except ImportError as e:
+    debug.error("MiniMax providers not loaded:", e)
+
 from .template         import OpenaiTemplate, BackendApi, Puter
-from .hf               import HuggingFace, HuggingChat, HuggingFaceAPI, HuggingFaceInference, HuggingFaceMedia
 from .har              import HarProvider
 try:
     from .not_working import *
@@ -26,10 +28,6 @@ try:
 except ImportError as e:
     debug.error("HuggingFace Space providers not loaded:", e)
 try:
-    from .mini_max import HailuoAI, MiniMax
-except ImportError as e:
-    debug.error("MiniMax providers not loaded:", e)
-try:
     from .audio import *
 except ImportError as e:
     debug.error("Audio providers not loaded:", e)
@@ -42,11 +40,9 @@ from .ChatGLM              import ChatGLM
 from .ChatGpt              import ChatGpt
 from .Cloudflare           import Cloudflare
 from .Copilot              import Copilot
-from .DDG                  import DDG
 from .DeepInfraChat        import DeepInfraChat
 from .DocsBot              import DocsBot
 from .DuckDuckGo           import DuckDuckGo
-from .Dynaspark            import Dynaspark
 from .Free2GPT             import Free2GPT
 from .FreeGpt              import FreeGpt
 from .GizAI                import GizAI

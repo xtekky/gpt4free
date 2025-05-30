@@ -8,11 +8,11 @@ import hashlib
 import asyncio
 from aiohttp import ClientSession
 
-from ..typing import AsyncResult, Messages
-from ..errors import ResponseError
-from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from .helper import format_prompt, get_last_user_message
-from ..providers.response import FinishReason, JsonConversation
+from ...typing import AsyncResult, Messages
+from ...errors import ResponseError
+from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from ..helper import format_prompt, get_last_user_message
+from ...providers.response import FinishReason, JsonConversation
 
 class Conversation(JsonConversation):
     message_history: Messages = []

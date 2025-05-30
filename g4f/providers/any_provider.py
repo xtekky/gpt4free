@@ -11,7 +11,7 @@ from ..Provider.needs_auth import OpenaiChat, CopilotAccount
 from ..Provider.hf_space import HuggingSpace
 from ..Provider import Cloudflare, Gemini, Grok, DeepSeekAPI, PerplexityLabs, LambdaChat, PollinationsAI
 from ..Provider import Microsoft_Phi_4_Multimodal, DeepInfraChat, Blackbox, EdgeTTS, gTTS, MarkItDown
-from ..Provider import HarProvider, DDG, HuggingFace, HuggingFaceMedia
+from ..Provider import HarProvider, HuggingFace, HuggingFaceMedia
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from .. import Provider
 from .. import models
@@ -128,7 +128,7 @@ class AnyProvider(AsyncGeneratorProvider, ProviderModelMixin):
             all_models = [cls.default_model] + list(model_with_providers.keys())
             
             # Process special providers
-            for provider in [OpenaiChat, CopilotAccount, PollinationsAI, HuggingSpace, Cloudflare, PerplexityLabs, Gemini, Grok, DDG]:
+            for provider in [OpenaiChat, CopilotAccount, PollinationsAI, HuggingSpace, Cloudflare, PerplexityLabs, Gemini, Grok]:
                 provider: ProviderType = provider
                 if not provider.working or provider.get_parent() in ignored:
                     continue
@@ -238,7 +238,7 @@ class AnyProvider(AsyncGeneratorProvider, ProviderModelMixin):
         else:
             for provider in [
                 OpenaiChat, Cloudflare, HarProvider, PerplexityLabs, Gemini, Grok, DeepSeekAPI, Blackbox,
-                HuggingSpace, LambdaChat, CopilotAccount, PollinationsAI, DeepInfraChat, DDG, HuggingFace, HuggingFaceMedia,
+                HuggingSpace, LambdaChat, CopilotAccount, PollinationsAI, DeepInfraChat, HuggingFace, HuggingFaceMedia,
             ]:
                 if provider.working:
                     if not model or model in provider.get_models() or model in provider.model_aliases:

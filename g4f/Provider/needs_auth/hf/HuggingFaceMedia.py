@@ -5,15 +5,15 @@ import asyncio
 import random
 import requests
 
-from ...providers.types import Messages
-from ...requests import StreamSession, raise_for_status
-from ...errors import ModelNotSupportedError
-from ...providers.helper import format_image_prompt
-from ...providers.base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from ...providers.response import ProviderInfo, ImageResponse, VideoResponse, Reasoning
-from ...image.copy_images import save_response_media
-from ...image import use_aspect_ratio
-from ... import debug
+from ....providers.types import Messages
+from ....requests import StreamSession, raise_for_status
+from ....errors import ModelNotSupportedError
+from ....providers.helper import format_image_prompt
+from ....providers.base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from ....providers.response import ProviderInfo, ImageResponse, VideoResponse, Reasoning
+from ....image.copy_images import save_response_media
+from ....image import use_aspect_ratio
+from .... import debug
 
 class HuggingFaceMedia(AsyncGeneratorProvider, ProviderModelMixin):
     label = "HuggingFace"

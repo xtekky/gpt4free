@@ -12,6 +12,7 @@ from .Chatgpt4Online    import Chatgpt4Online
 from .ChatGptEs         import ChatGptEs
 from .ChatgptFree       import ChatgptFree
 from .ChatGptt          import ChatGptt
+from .DDG               import DDG
 from .Equing            import Equing
 from .FlowGpt           import FlowGpt
 from .FreeNetfly        import FreeNetfly
