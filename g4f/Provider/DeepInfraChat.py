@@ -11,6 +11,7 @@ class DeepInfraChat(OpenaiTemplate):
     default_vision_model = 'microsoft/Phi-4-multimodal-instruct'
     vision_models = [default_vision_model, 'meta-llama/Llama-3.2-90B-Vision-Instruct']
     models = [
+        'deepseek-ai/DeepSeek-R1-0528',
         'deepseek-ai/DeepSeek-Prover-V2-671B',
         'Qwen/Qwen3-235B-A22B',
         'Qwen/Qwen3-30B-A3B',
@@ -44,6 +45,7 @@ class DeepInfraChat(OpenaiTemplate):
         'mistralai/Mixtral-8x22B-Instruct-v0.1',
     ] + vision_models
     model_aliases = {
+        "deepseek-r1-0528": "deepseek-ai/DeepSeek-R1-0528",
         "deepseek-prover-v2-671b": "deepseek-ai/DeepSeek-Prover-V2-671B",
         "deepseek-prover-v2": "deepseek-ai/DeepSeek-Prover-V2-671B",
         "qwen-3-235b": "Qwen/Qwen3-235B-A22B",

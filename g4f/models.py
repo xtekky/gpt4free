@@ -1055,6 +1055,13 @@ deepseek_v3_0324 = Model(
     best_provider = IterListProvider([DeepInfraChat, PollinationsAI, LegacyLMArena])
 )
 
+# deepseek-r1-0528
+deepseek_r1_0528 = Model(
+    name = 'deepseek-r1-0528',
+    base_provider = 'DeepSeek',
+    best_provider = DeepInfraChat
+)
+
 # janus
 janus_pro_7b = VisionModel(
     name = DeepseekAI_JanusPro7b.default_model,

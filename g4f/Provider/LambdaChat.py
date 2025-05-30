@@ -14,6 +14,7 @@ from ..providers.response import TitleGeneration, Reasoning, FinishReason
 from ..errors import ModelNotFoundError
 from .. import debug
 
+
 class LambdaChat(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Lambda Chat"
     url = "https://lambda.chat"
@@ -26,6 +27,7 @@ class LambdaChat(AsyncGeneratorProvider, ProviderModelMixin):
     models = [
         default_model,
         reasoning_model,
+        "apriel-5b-instruct",
         "hermes-3-llama-3.1-405b-fp8",
         "hermes3-405b-fp8-128k",
         "llama3.1-nemotron-70b-instruct",
