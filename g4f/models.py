@@ -1314,11 +1314,12 @@ class ModelUtils:
     Now uses automatic discovery instead of manual mapping.
     """
     
+    convert: Dict[str, Model] = {}
+    
     @classmethod
-    @property
-    def convert(cls) -> Dict[str, Model]:
-        """Backward compatible access to models"""
-        return ModelRegistry.all_models()
+    def refresh(cls):
+        """Refresh the model registry and update convert"""
+        cls.convert = ModelRegistry.all_models()
     
     @classmethod
     def get_model(cls, name: str) -> Optional[Model]:
@@ -1332,6 +1333,9 @@ class ModelUtils:
 
 # Register special aliases after all models are created
 ModelRegistry._aliases["gemini"] = "gemini-2.0"
+
+# Fill the convert dictionary
+ModelUtils.convert = ModelRegistry.all_models()
 
 # Demo models configuration
 demo_models = {
