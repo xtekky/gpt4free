@@ -511,12 +511,6 @@ command_r = Model(
     best_provider = HuggingSpace
 )
 
-command_r_plus_08_2024 = Model(
-    name = 'command-r-plus-08-2024',
-    base_provider = 'CohereForAI',
-    best_provider = IterListProvider([PollinationsAI, HuggingSpace])
-)
-
 command_r_08_2024 = Model(
     name = 'command-r-08-2024',
     base_provider = 'CohereForAI',
@@ -598,7 +592,7 @@ qwen_2_5_1m = Model(
 )
 
 qwen_2_5_max = Model(
-    name = 'qwen-2-5-max',
+    name = 'qwen-2.5-max',
     base_provider = 'Qwen',
     best_provider = HuggingSpace
 )
@@ -629,43 +623,43 @@ qwen_2_5_vl_72b = Model(
 
 # qwen3
 qwen_3_235b = Model(
-    name = 'qwen3-235b',
+    name = 'qwen-3-235b',
     base_provider = 'Qwen',
     best_provider = IterListProvider([DeepInfraChat, HuggingSpace])
 )
 
 qwen_3_32b = Model(
-    name = 'qwen3-32b',
+    name = 'qwen-3-32b',
     base_provider = 'Qwen',
     best_provider = IterListProvider([DeepInfraChat, HuggingSpace])
 )
 
 qwen_3_30b = Model(
-    name = 'qwen3-30b',
+    name = 'qwen-3-30b',
     base_provider = 'Qwen',
     best_provider = IterListProvider([DeepInfraChat, HuggingSpace])
 )
 
 qwen_3_14b = Model(
-    name = 'qwen3-14b',
+    name = 'qwen-3-14b',
     base_provider = 'Qwen',
     best_provider = IterListProvider([DeepInfraChat, HuggingSpace])
 )
 
 qwen_3_4b = Model(
-    name = 'qwen3-4b',
+    name = 'qwen-3-4b',
     base_provider = 'Qwen',
     best_provider = HuggingSpace
 )
 
 qwen_3_1_7b = Model(
-    name = 'qwen3-1.7b',
+    name = 'qwen-3-1.7b',
     base_provider = 'Qwen',
     best_provider = HuggingSpace
 )
 
 qwen_3_0_6b = Model(
-    name = 'qwen3-0.6b',
+    name = 'qwen-3-0.6b',
     base_provider = 'Qwen',
     best_provider = HuggingSpace
 )
@@ -687,12 +681,6 @@ qwq_32b_arliai = Model(
     name = 'qwq-32b-arliai',
     base_provider = 'Qwen',
     best_provider = Blackbox
-)
-
-qvq_72b = VisionModel(
-    name = 'qvq-72b',
-    base_provider = 'Qwen',
-    best_provider = HuggingSpace
 )
 
 ### Inflection ###
@@ -840,7 +828,7 @@ glm_4 = Model(
 
 ### MiniMax ###
 mini_max = Model(
-    name = "MiniMax",
+    name = "minimax",
     base_provider = "MiniMax",
     best_provider = HailuoAI
 )
@@ -972,7 +960,7 @@ flux_dev = ImageModel(
 flux_schnell = ImageModel(
     name = 'flux-schnell',
     base_provider = 'Black Forest Labs',
-    best_provider = IterListProvider([PollinationsImage, HuggingSpace, HuggingChat, HuggingFace])
+    best_provider = IterListProvider([PollinationsImage, HuggingChat, HuggingFace])
 )
 
 
@@ -1124,7 +1112,6 @@ class ModelUtils:
 
         ### CohereForAI ###
         command_r.name: command_r,
-        command_r_plus_08_2024.name: command_r_plus_08_2024,
         command_r_08_2024.name: command_r_08_2024,
         command_r_plus.name: command_r_plus,
         command_r7b_12_2024.name: command_r7b_12_2024,
@@ -1164,7 +1151,6 @@ class ModelUtils:
         qwq_32b.name: qwq_32b,
         qwq_32b_preview.name: qwq_32b_preview,
         qwq_32b_arliai.name: qwq_32b_arliai,
-        qvq_72b.name: qvq_72b,
 
         ### Inflection ###
         pi.name: pi,

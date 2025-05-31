@@ -35,6 +35,7 @@ class LambdaChat(AsyncGeneratorProvider, ProviderModelMixin):
     ]
     model_aliases = {
         "deepseek-v3": default_model,
+        "hermes-3": "hermes3-405b-fp8-128k",
         "hermes-3-405b": ["hermes3-405b-fp8-128k", "hermes-3-llama-3.1-405b-fp8"],
         "nemotron-70b": "llama3.1-nemotron-70b-instruct",
         "llama-3.3-70b": "llama3.3-70b-instruct-fp8",
