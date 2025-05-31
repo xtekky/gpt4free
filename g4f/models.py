@@ -1,9 +1,7 @@
 from __future__ import annotations
 
-import sys
-import inspect
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Set, Type
+from dataclasses import dataclass
+from typing import Dict, List, Optional
 
 from .Provider import IterListProvider, ProviderType
 from .Provider import (
@@ -56,10 +54,9 @@ from .Provider import (
 )
 
 class ModelRegistry:
-    """Central registry for all models with automatic discovery"""
+    """Simplified registry for automatic model discovery"""
     _models: Dict[str, 'Model'] = {}
     _aliases: Dict[str, str] = {}
-    _discovered: bool = False
     
     @classmethod
     def register(cls, model: 'Model', aliases: List[str] = None):
@@ -73,7 +70,6 @@ class ModelRegistry:
     @classmethod
     def get(cls, name: str) -> Optional['Model']:
         """Get model by name or alias"""
-        cls._ensure_discovered()
         if name in cls._models:
             return cls._models[name]
         if name in cls._aliases:
@@ -83,46 +79,35 @@ class ModelRegistry:
     @classmethod
     def all_models(cls) -> Dict[str, 'Model']:
         """Get all registered models"""
-        cls._ensure_discovered()
         return cls._models.copy()
     
     @classmethod
-    def _ensure_discovered(cls):
-        """Ensure models have been discovered"""
-        if not cls._discovered:
-            cls._discover_models()
-    
-    @classmethod
-    def _discover_models(cls):
-        """Automatically discover all Model instances in current module"""
-        if cls._discovered:
-            return
-            
-        current_module = sys.modules[__name__]
-        
-        # Find all Model instances (not classes)
-        for name in dir(current_module):
-            if name.startswith('_'):
-                continue
-                
-            obj = getattr(current_module, name)
-            
-            # Check if it's a Model instance (not a class)
-            if isinstance(obj, Model) and not inspect.isclass(obj):
-                cls.register(obj)
-        
-        # Register special aliases
-        cls._aliases["gemini"] = "gemini-2.0"  # Special case for gemini
-        
-        cls._discovered = True
-    
-    @classmethod
-    def refresh(cls):
-        """Force refresh of model registry"""
+    def clear(cls):
+        """Clear registry (for testing)"""
         cls._models.clear()
         cls._aliases.clear()
-        cls._discovered = False
-        cls._discover_models()
+    
+    @classmethod
+    def list_models_by_provider(cls, provider_name: str) -> List[str]:
+        """List all models that use specific provider"""
+        return [name for name, model in cls._models.items() 
+                if provider_name in str(model.best_provider)]
+    
+    @classmethod
+    def validate_all_models(cls) -> Dict[str, List[str]]:
+        """Validate all models and return issues"""
+        issues = {}
+        for name, model in cls._models.items():
+            model_issues = []
+            if not model.name:
+                model_issues.append("Empty name")
+            if not model.base_provider:
+                model_issues.append("Empty base_provider")
+            if model.best_provider is None:
+                model_issues.append("No best_provider")
+            if model_issues:
+                issues[name] = model_issues
+        return issues
 
 @dataclass(unsafe_hash=True)
 class Model:
@@ -137,13 +122,11 @@ class Model:
     name: str
     base_provider: str
     best_provider: ProviderType = None
-    _registered: bool = field(default=False, init=False, repr=False)
 
     def __post_init__(self):
         """Auto-register model after initialization"""
-        if not self._registered and self.name:
+        if self.name:
             ModelRegistry.register(self)
-            self._registered = True
 
     @staticmethod
     def __all__() -> list[str]:
@@ -692,7 +675,7 @@ gemma_3_4b = Model(
 )
 
 gemma_3_12b = Model(
-    name          = '',
+    name          = 'gemma-3-12b',
     base_provider = 'Google',
     best_provider = IterListProvider([DeepInfraChat, LegacyLMArena])
 )
@@ -1264,6 +1247,10 @@ evil = Model(
     best_provider = PollinationsAI
 )
 
+#############
+### Image ###
+#############
+
 ### Stability AI ###
 sdxl_1_0 = ImageModel(
     name = 'sdxl-1.0',
@@ -1326,13 +1313,12 @@ class ModelUtils:
     Utility class for mapping string identifiers to Model instances.
     Now uses automatic discovery instead of manual mapping.
     """
-    convert: Dict[str, Model] = {}  # Will be populated after model discovery
     
     @classmethod
-    def refresh(cls):
-        """Refresh the model registry and update convert"""
-        ModelRegistry.refresh()
-        cls.convert = ModelRegistry.all_models()
+    @property
+    def convert(cls) -> Dict[str, Model]:
+        """Backward compatible access to models"""
+        return ModelRegistry.all_models()
     
     @classmethod
     def get_model(cls, name: str) -> Optional[Model]:
@@ -1344,11 +1330,8 @@ class ModelUtils:
         """Register an alias for a model"""
         ModelRegistry._aliases[alias] = model_name
 
-# Ensure models are discovered when module is imported
-ModelRegistry._discover_models()
-
-# Update ModelUtils.convert with discovered models
-ModelUtils.convert = ModelRegistry.all_models()
+# Register special aliases after all models are created
+ModelRegistry._aliases["gemini"] = "gemini-2.0"
 
 # Demo models configuration
 demo_models = {
