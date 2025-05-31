@@ -375,7 +375,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
             headers["Authorization"] = f"Bearer {api_key}"
         async with ClientSession(headers=DEFAULT_HEADERS, connector=get_connector(proxy=proxy)) as session:
             responses = set()
-            responses.add(Reasoning(status=f"Generating {n} {'image' if n == 1 else 'images'}"))
+            responses.add(Reasoning(status=f"Generating {n} {'image' if n == 1 else 'images'}..."))
             finished = 0
             start = time.time()
             async def get_image(responses: set, i: int, seed: Optional[int] = None):
@@ -479,12 +479,12 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                         yield Reasoning(status="Done")
                     if kwargs.get("action") == "next":
                         data = {
-                            "model": model,
+                            "model": "openai",
                             "messages": messages + FOLLOWUPS_DEVELOPER_MESSAGE,
                             "tool_choice": "required",
                             "tools": FOLLOWUPS_TOOLS
                         }
-                        async with session.post(url, json=data, headers={"referer": referrer}) as response:
+                        async with session.post(url, json=data, headers=headers) as response:
                             try:
                                 await raise_for_status(response)
                                 tool_calls = (await response.json()).get("choices", [{}])[0].get("message", {}).get("tool_calls", [])

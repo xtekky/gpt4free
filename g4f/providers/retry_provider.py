@@ -11,7 +11,7 @@ from ..errors import RetryProviderError, RetryNoProviderError, MissingAuthError,
 class IterListProvider(BaseRetryProvider):
     def __init__(
         self,
-        providers: List[Type[BaseProvider]],
+        providers: List[Type[BaseProvider]] = [],
         shuffle: bool = True
     ) -> None:
         """

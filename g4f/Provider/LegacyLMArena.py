@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import random
 import json
 import uuid
 import sys
@@ -473,31 +474,30 @@ class LegacyLMArena(AsyncGeneratorProvider, ProviderModelMixin):
                 media_objects = []
                 
                 # Process media if present
+                media = list(merge_media(media, messages))
                 if media:
-                    media = list(merge_media(media, messages))
-                    if media:
-                        data = FormData()
-                        for i in range(len(media)):
-                            media[i] = (to_bytes(media[i][0]), media[i][1])
-                        for image, image_name in media:
-                            data.add_field(f"files", image, filename=image_name)
-                        
-                        # Upload media files
-                        async with session.post(f"{cls.url}/upload", params={"upload_id": conversation.session_hash}, data=data) as response:
-                            await raise_for_status(response)
-                            image_files = await response.json()
-                        
-                        # Format media objects for API request
-                        media_objects = [{
-                            "path": image_file,
-                            "url": f"{cls.url}/file={image_file}",
-                            "orig_name": media[i][1],
-                            "size": len(media[i][0]),
-                            "mime_type": is_accepted_format(media[i][0]),
-                            "meta": {
-                                "_type": "gradio.FileData"
-                            }
-                        } for i, image_file in enumerate(image_files)]
+                    data = FormData()
+                    for i in range(len(media)):
+                        media[i] = (to_bytes(media[i][0]), media[i][1])
+                    for image, image_name in media:
+                        data.add_field(f"files", image, filename=image_name)
+                    
+                    # Upload media files
+                    async with session.post(f"{cls.url}/upload", params={"upload_id": conversation.session_hash}, data=data) as response:
+                        await raise_for_status(response)
+                        image_files = await response.json()
+                    
+                    # Format media objects for API request
+                    media_objects = [{
+                        "path": image_file,
+                        "url": f"{cls.url}/file={image_file}",
+                        "orig_name": media[i][1],
+                        "size": len(media[i][0]),
+                        "mime_type": is_accepted_format(media[i][0]),
+                        "meta": {
+                            "_type": "gradio.FileData"
+                        }
+                    } for i, image_file in enumerate(image_files)]
                 
                 # Build payloads for new conversation
                 first_payload, second_payload, third_payload = cls._build_payloads(
