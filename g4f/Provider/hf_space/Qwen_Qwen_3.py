@@ -126,7 +126,7 @@ class Qwen_Qwen_3(AsyncGeneratorProvider, ProviderModelMixin):
                                                                 status=update[2].get('options', {}).get('title'))
                                                 is_thinking = True
                                             elif update[2].get('type') == 'text':
-                                                yield Reasoning(update[2].get('content'))
+                                                yield update[2].get('content')
                                                 is_thinking = False
                                         elif isinstance(update, list) and isinstance(update[1], list) and len(
                                                 update[1]) > 4:

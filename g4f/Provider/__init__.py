@@ -13,7 +13,7 @@ try:
 except ImportError as e:
     debug.error("MiniMax providers not loaded:", e)
 
-from .template         import OpenaiTemplate, BackendApi, Puter
+from .template         import OpenaiTemplate, BackendApi
 from .har              import HarProvider
 try:
     from .not_working import *
@@ -57,6 +57,7 @@ from .Pi                   import Pi
 from .Pizzagpt             import Pizzagpt
 from .PollinationsAI       import PollinationsAI
 from .PollinationsImage    import PollinationsImage
+from .PuterJS              import PuterJS
 from .TeachAnything        import TeachAnything
 from .You                  import You
 from .Websim               import Websim

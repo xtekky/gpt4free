@@ -408,7 +408,6 @@ class Backend_Api(Api):
                             mime_type = secure_filename(mime_type)
                             if safe_search[0] in mime_type:
                                 self.match_files[search][file] = self.match_files[search].get(file, 0) + 1
-                                break
                         for tag in safe_search:
                             if tag in file.lower():
                                 self.match_files[search][file] = self.match_files[search].get(file, 0) + 1

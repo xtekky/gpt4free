@@ -26,7 +26,6 @@ from .MagickPen         import MagickPen
 from .Phind             import Phind
 from .Poe               import Poe
 from .Prodia            import Prodia
-from .PuterJS           import PuterJS
 from .Raycast           import Raycast
 from .RubiksAI          import RubiksAI
 from .Theb              import Theb
