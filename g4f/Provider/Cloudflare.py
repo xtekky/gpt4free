@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 
-from ..typing import AsyncResult, Messages, Cookies
+from ..typing import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin, get_running_loop
 from ..requests import Session, StreamSession, get_args_from_nodriver, raise_for_status, merge_cookies
 from ..requests import DEFAULT_HEADERS, has_nodriver, has_curl_cffi

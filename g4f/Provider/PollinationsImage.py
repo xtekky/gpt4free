@@ -39,6 +39,7 @@ class PollinationsImage(PollinationsAI):
         messages: Messages,
         proxy: str = None,
         referrer: str = STATIC_URL,
+        api_key: str = None,
         prompt: str = None,
         aspect_ratio: str = "1:1",
         width: int = None,
@@ -68,6 +69,7 @@ class PollinationsImage(PollinationsAI):
             enhance=enhance,
             safe=safe,
             n=n,
-            referrer=referrer
+            referrer=referrer,
+            api_key=api_key
         ):
             yield chunk

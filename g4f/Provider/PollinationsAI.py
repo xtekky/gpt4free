@@ -65,6 +65,7 @@ FOLLOWUPS_DEVELOPER_MESSAGE = [{
 class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Pollinations AI"
     url = "https://pollinations.ai"
+    login_url = "https://auth.pollinations.ai"
 
     working = True
     supports_system_message = True
@@ -94,6 +95,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         "gpt-4": "openai-large",
         "gpt-4o": "openai-large",
         "gpt-4.1": "openai-large",
+        "gpt-4o-audio": "openai-audio",
         "o4-mini": "openai-reasoning",
         "gpt-4.1-mini": "openai",
         "command-r-plus": "command-r",
@@ -102,6 +104,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         "qwen-2.5-coder-32b": "qwen-coder",
         "llama-3.3-70b": "llama",
         "llama-4-scout": "llamascout",
+        "llama-4-scout-17b": "llamascout",
         "mistral-small-3.1-24b": "mistral",
         "deepseek-r1": "deepseek-reasoning-large",
         "deepseek-r1-distill-llama-70b": "deepseek-reasoning-large",
@@ -180,8 +183,6 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                     for model in models
                     if "output_modalities" in model and "audio" in model["output_modalities"] and model.get("name") != "gemini"
                 }
-                if cls.default_audio_model in cls.audio_models:
-                    cls.audio_models = {**cls.audio_models, **{voice: {} for voice in cls.audio_models[cls.default_audio_model]}}
 
                 cls.vision_models.extend([
                     model.get("name")
@@ -204,9 +205,6 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                     if model_name and "input_modalities" in model and "text" in model["input_modalities"]:
                         unique_text_models.append(model_name)
 
-                if cls.default_audio_model in cls.audio_models:
-                    unique_text_models.extend([voice for voice in cls.audio_models[cls.default_audio_model]])
-
                 # Convert to list and update text_models
                 cls.text_models = list(dict.fromkeys(unique_text_models))
 
@@ -224,7 +222,19 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         all_models = cls.text_models.copy()
         all_models.extend(cls.image_models)
         all_models.extend(cls.audio_models.keys())
+        if cls.default_audio_model in cls.audio_models:
+            all_models.extend(cls.audio_models[cls.default_audio_model])
         return list(dict.fromkeys(all_models))
+
+    @classmethod
+    def get_grouped_models(cls) -> dict[str, list[str]]:
+        cls.get_models()
+        return [
+            {"group": "Text Generation", "models": cls.text_models},
+            {"group": "Image Generation", "models": cls.image_models},
+            {"group": "Audio Generation", "models": list(cls.audio_models.keys())},
+            {"group": "Audio Voices", "models": cls.audio_models[cls.default_audio_model]}
+        ]
 
     @classmethod
     async def create_async_generator(
@@ -235,6 +245,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         proxy: str = None,
         cache: bool = False,
         referrer: str = STATIC_URL,
+        api_key: str = None,
         extra_body: dict = {},
         # Image generation parameters
         prompt: str = None,
@@ -287,7 +298,8 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                 enhance=enhance,
                 safe=safe,
                 n=n,
-                referrer=referrer
+                referrer=referrer,
+                api_key=api_key
             ):
                 yield chunk
         else:
@@ -316,6 +328,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                 stream=stream,
                 extra_parameters=extra_parameters,
                 referrer=referrer,
+                api_key=api_key,
                 extra_body=extra_body,
                 **kwargs
             ):
@@ -337,7 +350,8 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         enhance: bool,
         safe: bool,
         n: int,
-        referrer: str
+        referrer: str,
+        api_key: str
     ) -> AsyncResult:
         params = use_aspect_ratio({
             "width": width,
@@ -358,14 +372,17 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
             else:
                 seed = random.randint(0, 2**32)
             return f"{url}&seed={seed}" if seed else url
+        headers = {"referer": referrer}
+        if api_key:
+            headers["Authorization"] = f"Bearer {api_key}"
         async with ClientSession(headers=DEFAULT_HEADERS, connector=get_connector(proxy=proxy)) as session:
             responses = set()
-            responses.add(Reasoning(status=f"Generating {n} {'image' if n == 1 else 'images'}"))
+            responses.add(Reasoning(status=f"Generating {n} {'image' if n == 1 else 'images'}..."))
             finished = 0
             start = time.time()
             async def get_image(responses: set, i: int, seed: Optional[int] = None):
                 nonlocal finished
-                async with session.get(get_image_url(i, seed), allow_redirects=False, headers={"referer": referrer}) as response:
+                async with session.get(get_image_url(i, seed), allow_redirects=False, headers=headers) as response:
                     try:
                         await raise_for_status(response)
                     except Exception as e:
@@ -399,6 +416,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         stream: bool,
         extra_parameters: list[str],
         referrer: str,
+        api_key: str,
         extra_body: dict,
         **kwargs
     ) -> AsyncResult:
@@ -427,7 +445,10 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                 cache=cache,
                 **extra_body
             )
-            async with session.post(url, json=data, headers={"referer": referrer}) as response:
+            headers = {"referer": referrer}
+            if api_key:
+                headers["Authorization"] = f"Bearer {api_key}"
+            async with session.post(url, json=data, headers=headers) as response:
                 if response.status == 400:
                     debug.error(f"Error: 400 - Bad Request: {data}")
                 await raise_for_status(response)
@@ -458,14 +479,14 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                             yield FinishReason(finish_reason)
                     if reasoning:
                         yield Reasoning(status="Done")
-                    if "action" in kwargs and "tools" not in data and "response_format" not in data:
+                    if kwargs.get("action") == "next":
                         data = {
-                            "model": model,
+                            "model": "openai",
                             "messages": messages + FOLLOWUPS_DEVELOPER_MESSAGE,
                             "tool_choice": "required",
                             "tools": FOLLOWUPS_TOOLS
                         }
-                        async with session.post(url, json=data, headers={"referer": referrer}) as response:
+                        async with session.post(url, json=data, headers=headers) as response:
                             try:
                                 await raise_for_status(response)
                                 tool_calls = (await response.json()).get("choices", [{}])[0].get("message", {}).get("tool_calls", [])

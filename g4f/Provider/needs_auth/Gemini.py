@@ -20,7 +20,7 @@ except ImportError:
 
 from ... import debug
 from ...typing import Messages, Cookies, MediaListType, AsyncResult, AsyncIterator
-from ...providers.response import JsonConversation, Reasoning, RequestLogin, ImageResponse, YouTube, AudioResponse
+from ...providers.response import JsonConversation, Reasoning, RequestLogin, ImageResponse, YouTube, AudioResponse, TitleGeneration
 from ...requests.raise_for_status import raise_for_status
 from ...requests.aiohttp import get_connector
 from ...requests import get_nodriver
@@ -235,7 +235,7 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
                     image_prompt = response_part = None
                     last_content = ""
                     youtube_ids = []
-                    async for line in response.content:
+                    for line in (await response.text()).split("\n"):
                         try:
                             try:
                                 line = json.loads(line)
@@ -246,6 +246,8 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
                             if len(line[0]) < 3 or not line[0][2]:
                                 continue
                             response_part = json.loads(line[0][2])
+                            if response_part[10]:
+                                yield TitleGeneration(response_part[10][0].strip())
                             if not response_part[4]:
                                 continue
                             if return_conversation:
