@@ -50,7 +50,6 @@ from .Provider import (
     MicrosoftDesigner,
     OpenaiAccount,
     OpenaiChat,
-    Reka,
 )
 
 class ModelRegistry:
@@ -736,7 +735,7 @@ claude_3_7_sonnet_thinking = Model(
 reka_core = Model(
     name = 'reka-core',
     base_provider = 'Reka AI',
-    best_provider = IterListProvider([LegacyLMArena, Reka])
+    best_provider = LegacyLMArena
 )
 
 reka_flash = Model(

@@ -7,6 +7,7 @@ from .AIUncensored      import AIUncensored
 from .AllenAI           import AllenAI
 from .AmigoChat         import AmigoChat
 from .Aura              import Aura
+from .ChatGpt           import ChatGpt
 from .Chatgpt4o         import Chatgpt4o
 from .Chatgpt4Online    import Chatgpt4Online
 from .ChatGptEs         import ChatGptEs
@@ -24,6 +25,7 @@ from .Liaobots          import Liaobots
 from .Lockchat          import Lockchat
 from .MagickPen         import MagickPen
 from .Phind             import Phind
+from .Pizzagpt          import Pizzagpt
 from .Poe               import Poe
 from .Prodia            import Prodia
 from .Raycast           import Raycast
