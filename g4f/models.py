@@ -33,6 +33,7 @@ from .Provider import (
     PollinationsAI,
     PollinationsImage,
     TeachAnything,
+    Together,
     Websim,
     WeWordle,
     Yqcloud,
@@ -158,6 +159,7 @@ default = Model(
         DeepInfraChat,
         LambdaChat,
         PollinationsAI,
+        Together,
         Free2GPT,
         FreeGpt,
         Chatai,
@@ -179,6 +181,7 @@ default_vision = VisionModel(
         OIVSCodeSer5,
         OIVSCodeSer0501,
         PollinationsAI,
+        Together,
         DocsBot,
         HuggingSpace,
         GeminiPro,
@@ -359,39 +362,39 @@ llama_2_13b = Model(
 llama_2_70b = Model(
     name          = "llama-2-70b",
     base_provider = "Meta Llama",
-    best_provider = LegacyLMArena
+    best_provider = IterListProvider([LegacyLMArena, Together])
 )
 
 # llama-3
 llama_3_8b = Model(
     name          = "llama-3-8b",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider([LegacyLMArena, Cloudflare])
+    best_provider = IterListProvider([LegacyLMArena, Together, Cloudflare])
 )
 
 llama_3_70b = Model(
     name          = "llama-3-70b",
     base_provider = "Meta Llama",
-    best_provider = LegacyLMArena
+    best_provider = IterListProvider([LegacyLMArena, Together])
 )
 
 # llama-3.1
 llama_3_1_8b = Model(
     name          = "llama-3.1-8b",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider([DeepInfraChat, LegacyLMArena, Cloudflare])
+    best_provider = IterListProvider([DeepInfraChat, LegacyLMArena, Together, Cloudflare])
 )
 
 llama_3_1_70b = Model(
     name          = "llama-3.1-70b",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider([Blackboxapi, LegacyLMArena])
+    best_provider = IterListProvider([Blackboxapi, LegacyLMArena, Together])
 )
 
 llama_3_1_405b = Model(
     name          = "llama-3.1-405b",
     base_provider = "Meta Llama",
-    best_provider = LegacyLMArena
+    best_provider = IterListProvider([LegacyLMArena, Together])
 )
 
 # llama-3.2
@@ -404,52 +407,52 @@ llama_3_2_1b = Model(
 llama_3_2_3b = Model(
     name          = "llama-3.2-3b",
     base_provider = "Meta Llama",
-    best_provider = LegacyLMArena
+    best_provider = IterListProvider([LegacyLMArena, Together])
 )
 
 llama_3_2_11b = VisionModel(
     name          = "llama-3.2-11b",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider([HuggingChat, HuggingFace])
+    best_provider = IterListProvider([Together, HuggingChat, HuggingFace])
 )
 
 llama_3_2_90b = Model(
     name          = "llama-3.2-90b",
     base_provider = "Meta Llama",
-    best_provider = DeepInfraChat
+    best_provider = IterListProvider([DeepInfraChat, Together])
 )
 
 # llama-3.3
 llama_3_3_70b = Model(
     name          = "llama-3.3-70b",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider([DeepInfraChat, LambdaChat, PollinationsAI, LegacyLMArena, HuggingChat, HuggingFace])
+    best_provider = IterListProvider([DeepInfraChat, LambdaChat, PollinationsAI, LegacyLMArena, Together, HuggingChat, HuggingFace])
 )
 
 # llama-4
 llama_4_scout = Model(
     name          = "llama-4-scout",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider([PollinationsAI, LegacyLMArena, Cloudflare])
+    best_provider = IterListProvider([PollinationsAI, LegacyLMArena, Together, Cloudflare])
 )
 
 llama_4_maverick = Model(
     name          = "llama-4-maverick",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider([DeepInfraChat, LegacyLMArena])
+    best_provider = IterListProvider([DeepInfraChat, LegacyLMArena, Together])
 )
 
 ### MistralAI ###
 mistral_7b = Model(
     name          = "mistral-7b",
     base_provider = "Mistral AI",
-    best_provider = LegacyLMArena
+    best_provider = IterListProvider([LegacyLMArena, Together])
 )
 
 mixtral_8x7b = Model(
     name          = "mixtral-8x7b",
     base_provider = "Mistral AI",
-    best_provider = LegacyLMArena
+    best_provider = IterListProvider([LegacyLMArena, Together])
 )
 
 mixtral_8x22b = Model(
@@ -464,16 +467,10 @@ mistral_nemo = Model(
     best_provider = IterListProvider([HuggingChat, HuggingFace])
 )
 
-mistral_small = Model(
-    name          = "mistral-small",
-    base_provider = "Mistral AI",
-    best_provider = DeepInfraChat
-)
-
 mistral_small_24b = Model(
     name          = "mistral-small-24b",
     base_provider = "Mistral AI",
-    best_provider = IterListProvider([DeepInfraChat, LegacyLMArena])
+    best_provider = IterListProvider([DeepInfraChat, LegacyLMArena, Together])
 )
 
 mistral_small_3_1_24b = Model(
@@ -519,7 +516,7 @@ codestral = Model(
 hermes_2_dpo = Model(
     name          = "hermes-2-dpo",
     base_provider = "NousResearch",
-    best_provider = LegacyLMArena
+    best_provider = IterListProvider([LegacyLMArena, Together])
 )
 
 # hermes-3
@@ -663,7 +660,7 @@ gemma_2_9b = Model(
 gemma_2_27b = Model(
     name          = 'gemma-2-27b',
     base_provider = 'Google',
-    best_provider = LegacyLMArena
+    best_provider = IterListProvider([LegacyLMArena, Together])
 )
 
 # gemma-3
@@ -843,13 +840,19 @@ qwen_1_5_110b = Model(
 qwen_2_72b = Model(
     name = 'qwen-2-72b',
     base_provider = 'Qwen',
-    best_provider = IterListProvider([DeepInfraChat, HuggingSpace, LegacyLMArena])
+    best_provider = IterListProvider([DeepInfraChat, HuggingSpace, LegacyLMArena, Together])
 )
 
 qwen_2_vl_7b = VisionModel(
     name = "qwen-2-vl-7b",
     base_provider = 'Qwen',
     best_provider = HuggingFaceAPI
+)
+
+qwen_2_vl_72b = VisionModel(
+    name = "qwen-2-vl-72b",
+    base_provider = 'Qwen',
+    best_provider = Together
 )
 
 # qwen-2.5
@@ -859,16 +862,22 @@ qwen_2_5 = Model(
     best_provider = HuggingSpace
 )
 
+qwen_2_5_7b = Model(
+    name = 'qwen-2.5-7b',
+    base_provider = 'Qwen',
+    best_provider = Together
+)
+
 qwen_2_5_72b = Model(
     name = 'qwen-2.5-72b',
     base_provider = 'Qwen',
-    best_provider = LegacyLMArena
+    best_provider = IterListProvider([LegacyLMArena, Together])
 )
 
 qwen_2_5_coder_32b = Model(
     name = 'qwen-2.5-coder-32b',
     base_provider = 'Qwen',
-    best_provider = IterListProvider([PollinationsAI, LambdaChat, LegacyLMArena, HuggingChat])
+    best_provider = IterListProvider([PollinationsAI, LambdaChat, LegacyLMArena, Together, HuggingChat])
 )
 
 qwen_2_5_1m = Model(
@@ -892,7 +901,7 @@ qwen_2_5_vl_32b = Model(
 qwen_2_5_vl_72b = Model(
     name = 'qwen-2.5-vl-72b',
     base_provider = 'Qwen',
-    best_provider = LegacyLMArena
+    best_provider = IterListProvider([LegacyLMArena, Together])
 )
 
 qwen_2_5_plus = Model(
@@ -905,7 +914,7 @@ qwen_2_5_plus = Model(
 qwen_3_235b = Model(
     name = 'qwen-3-235b',
     base_provider = 'Qwen',
-    best_provider = IterListProvider([DeepInfraChat, LegacyLMArena, HuggingSpace])
+    best_provider = IterListProvider([DeepInfraChat, LegacyLMArena, Together, HuggingSpace])
 )
 
 qwen_3_32b = Model(
@@ -948,14 +957,7 @@ qwen_3_0_6b = Model(
 qwq_32b = Model(
     name = 'qwq-32b',
     base_provider = 'Qwen',
-    best_provider = IterListProvider([DeepInfraChat, PollinationsAI, LegacyLMArena, HuggingChat])
-)
-
-### Inflection ###
-pi = Model(
-    name = 'pi',
-    base_provider = 'Inflection',
-    best_provider = Pi
+    best_provider = IterListProvider([DeepInfraChat, PollinationsAI, LegacyLMArena, Together, HuggingChat])
 )
 
 ### DeepSeek ###
@@ -970,14 +972,14 @@ deepseek_67b = Model(
 deepseek_v3 = Model(
     name = 'deepseek-v3',
     base_provider = 'DeepSeek',
-    best_provider = IterListProvider([DeepInfraChat, PollinationsAI, LegacyLMArena])
+    best_provider = IterListProvider([DeepInfraChat, PollinationsAI, LegacyLMArena, Together])
 )
 
 # deepseek-r1
 deepseek_r1 = Model(
     name = 'deepseek-r1',
     base_provider = 'DeepSeek',
-    best_provider = IterListProvider([DeepInfraChat, LambdaChat, PollinationsAI, LegacyLMArena, HuggingChat, HuggingFace])
+    best_provider = IterListProvider([DeepInfraChat, LambdaChat, PollinationsAI, LegacyLMArena, Together, HuggingChat, HuggingFace])
 )
 
 deepseek_r1_turbo = Model(
@@ -989,7 +991,19 @@ deepseek_r1_turbo = Model(
 deepseek_r1_distill_llama_70b = Model(
     name = 'deepseek-r1-distill-llama-70b',
     base_provider = 'DeepSeek',
-    best_provider = IterListProvider([DeepInfraChat, PollinationsAI])
+    best_provider = IterListProvider([DeepInfraChat, Together, PollinationsAI])
+)
+
+deepseek_r1_distill_qwen_1_5b = Model(
+    name = 'deepseek-r1-distill-qwen-1.5b',
+    base_provider = 'DeepSeek',
+    best_provider = Together
+)
+
+deepseek_r1_distill_qwen_14b = Model(
+    name = 'deepseek-r1-distill-qwen-14b',
+    base_provider = 'DeepSeek',
+    best_provider = Together
 )
 
 deepseek_r1_distill_qwen_32b = Model(
@@ -1034,14 +1048,14 @@ deepseek_v2_5 = Model(
 deepseek_v3_0324 = Model(
     name = 'deepseek-v3-0324',
     base_provider = 'DeepSeek',
-    best_provider = IterListProvider([DeepInfraChat, PollinationsAI, LegacyLMArena])
+    best_provider = IterListProvider([DeepInfraChat, Together, PollinationsAI, LegacyLMArena])
 )
 
 # deepseek-r1-0528
 deepseek_r1_0528 = Model(
     name = 'deepseek-r1-0528',
     base_provider = 'DeepSeek',
-    best_provider = DeepInfraChat
+    best_provider = IterListProvider([DeepInfraChat, Together])
 )
 
 # janus
@@ -1110,7 +1124,7 @@ sonar_reasoning_pro = Model(
 r1_1776 = Model(
     name = 'r1-1776',
     base_provider = 'Perplexity AI',
-    best_provider = PerplexityLabs
+    best_provider = IterListProvider([Together, PerplexityLabs])
 )
 
 pplx_7b_online = Model(
@@ -1141,7 +1155,7 @@ nemotron_51b = Model(
 nemotron_70b = Model(
     name = 'nemotron-70b',
     base_provider = 'Nvidia',
-    best_provider = IterListProvider([LambdaChat, LegacyLMArena, HuggingChat, HuggingFace])
+    best_provider = IterListProvider([LambdaChat, LegacyLMArena, Together, HuggingChat, HuggingFace])
 )
 
 nemotron_253b = Model(
@@ -1279,32 +1293,61 @@ sd_3_5_large = ImageModel(
 flux = ImageModel(
     name = 'flux',
     base_provider = 'Black Forest Labs',
-    best_provider = IterListProvider([PollinationsImage, Websim, HuggingSpace, ARTA])
+    best_provider = IterListProvider([PollinationsImage, Websim, Together, HuggingSpace, ARTA])
 )
 
 flux_pro = ImageModel(
     name = 'flux-pro',
     base_provider = 'Black Forest Labs',
-    best_provider = IterListProvider([PollinationsImage, ARTA])
+    best_provider = IterListProvider([PollinationsImage, Together, ARTA])
 )
 
 flux_dev = ImageModel(
     name = 'flux-dev',
     base_provider = 'Black Forest Labs',
-    best_provider = IterListProvider([PollinationsImage, HuggingSpace, ARTA, HuggingChat, HuggingFace])
+    best_provider = IterListProvider([PollinationsImage, HuggingSpace, Together, ARTA, HuggingChat, HuggingFace])
 )
 
 flux_schnell = ImageModel(
     name = 'flux-schnell',
     base_provider = 'Black Forest Labs',
-    best_provider = IterListProvider([PollinationsImage, HuggingChat, HuggingFace])
+    best_provider = IterListProvider([PollinationsImage, Together, HuggingChat, HuggingFace])
 )
 
-### Midjourney ###
-midjourney = ImageModel(
-    name = 'midjourney',
-    base_provider = 'Midjourney',
-    best_provider = PollinationsImage
+flux_redux = ImageModel(
+    name = 'flux-redux',
+    base_provider = 'Black Forest Labs',
+    best_provider = Together
+)
+
+flux_depth = ImageModel(
+    name = 'flux-depth',
+    base_provider = 'Black Forest Labs',
+    best_provider = Together
+)
+
+flux_canny = ImageModel(
+    name = 'flux-canny',
+    base_provider = 'Black Forest Labs',
+    best_provider = Together
+)
+
+flux_kontext_max = ImageModel(
+    name = 'flux-kontext-max',
+    base_provider = 'Black Forest Labs',
+    best_provider = Together
+)
+
+flux_dev_lora = ImageModel(
+    name = 'flux-dev-lora',
+    base_provider = 'Black Forest Labs',
+    best_provider = Together
+)
+
+flux_kontext_pro = ImageModel(
+    name = 'flux-kontext-pro',
+    base_provider = 'Black Forest Labs',
+    best_provider = Together
 )
 
 class ModelUtils:

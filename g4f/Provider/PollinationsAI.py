@@ -84,7 +84,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
     text_models = [default_model, "evil"]
     image_models = [default_image_model]
     audio_models = {default_audio_model: []}
-    extra_image_models = ["flux-pro", "flux-dev", "flux-schnell", "midjourney", "dall-e-3", "turbo"]
+    extra_image_models = ["flux-pro", "flux-dev", "flux-schnell", "dall-e-3", "turbo"]
     vision_models = [default_vision_model, "gpt-4o-mini", "openai", "openai-large", "openai-reasoning", "searchgpt"]
     _models_loaded = False
     # https://github.com/pollinations/pollinations/blob/master/text.pollinations.ai/generateTextPortkey.js#L15

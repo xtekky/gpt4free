@@ -55,6 +55,7 @@ from .PerplexityLabs       import PerplexityLabs
 from .PollinationsAI       import PollinationsAI
 from .PollinationsImage    import PollinationsImage
 from .TeachAnything        import TeachAnything
+from .Together             import Together
 from .Websim               import Websim
 from .WeWordle             import WeWordle
 from .Yqcloud              import Yqcloud

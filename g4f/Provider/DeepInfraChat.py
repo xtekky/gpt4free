@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from .template import OpenaiTemplate
+from ..errors import ModelNotFoundError
+from .. import debug
 
 class DeepInfraChat(OpenaiTemplate):
     url = "https://deepinfra.com/chat"
@@ -59,7 +61,7 @@ class DeepInfraChat(OpenaiTemplate):
         "phi-4-reasoning-plus": "microsoft/phi-4-reasoning-plus",
         #"": "meta-llama/Llama-Guard-4-12B",
         "qwq-32b": "Qwen/QwQ-32B",
-        "deepseek-v3": "deepseek-ai/DeepSeek-V3-0324",
+        "deepseek-v3": ["deepseek-ai/DeepSeek-V3", "deepseek-ai/DeepSeek-V3-0324"],
         "deepseek-v3-0324": "deepseek-ai/DeepSeek-V3-0324",
         "gemma-3-27b": "google/gemma-3-27b-it",
         "gemma-3-12b": "google/gemma-3-12b-it",
@@ -67,11 +69,9 @@ class DeepInfraChat(OpenaiTemplate):
         "llama-3.1-8b": "meta-llama/Meta-Llama-3.1-8B-Instruct",
         "llama-3.2-90b": "meta-llama/Llama-3.2-90B-Vision-Instruct",
         "llama-3.3-70b": "meta-llama/Llama-3.3-70B-Instruct",
-        "deepseek-v3": default_model,
-        "mistral-small": "mistralai/Mistral-Small-24B-Instruct-2501",
         "mixtral-small-24b": "mistralai/Mistral-Small-24B-Instruct-2501",
         "deepseek-r1-turbo": "deepseek-ai/DeepSeek-R1-Turbo",
-        "deepseek-r1": "deepseek-ai/DeepSeek-R1",
+        "deepseek-r1": ["deepseek-ai/DeepSeek-R1", "deepseek-ai/DeepSeek-R1-0528"],
         "deepseek-r1-distill-llama-70b": "deepseek-ai/DeepSeek-R1-Distill-Llama-70B",
         "deepseek-r1-distill-qwen-32b": "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B",
         "phi-4": "microsoft/phi-4",
@@ -84,3 +84,26 @@ class DeepInfraChat(OpenaiTemplate):
         "wizardlm-2-7b": "microsoft/WizardLM-2-7B",
         "mixtral-8x22b": "mistralai/Mixtral-8x22B-Instruct-v0.1"
     }
+
+    @classmethod
+    def get_model(cls, model: str) -> str:
+        """Get the internal model name from the user-provided model name."""
+        if not model:
+            return cls.default_model
+        
+        # Check if the model exists directly in our models list
+        if model in cls.models:
+            return model
+        
+        # Check if there's an alias for this model
+        if model in cls.model_aliases:
+            alias = cls.model_aliases[model]
+            # If the alias is a list, randomly select one of the options
+            if isinstance(alias, list):
+                selected_model = random.choice(alias)
+                debug.log(f"DeepInfraChat: Selected model '{selected_model}' from alias '{model}'")
+                return selected_model
+            debug.log(f"DeepInfraChat: Using model '{alias}' for alias '{model}'")
+            return alias
+        
+        raise ModelNotFoundError(f"Model {model} not found")
