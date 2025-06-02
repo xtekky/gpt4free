@@ -19,8 +19,6 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
-            import * as core from '@actions/core';
-
             let allArtifacts = await github.rest.actions.listWorkflowRunArtifacts({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -41,7 +39,7 @@ jobs:
               fs.writeFileSync(`${process.env.GITHUB_WORKSPACE}/pr_number.zip`, Buffer.from(download.data));
             }
       - name: 'Unzip artifact'
-        if: ${{ review.outputs.hasArtifact == 'true' }}
+        if: ${{ hashFiles('pr_number.zip') != '' }}
         run: unzip pr_number.zip
       - name: Setup Python
         uses: actions/setup-python@v4
