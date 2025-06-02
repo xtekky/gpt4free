@@ -16,9 +16,12 @@ jobs:
       - name: Checkout Repo
         uses: actions/checkout@v3
       - name: 'Download artifact'
+        id: "download"
         uses: actions/github-script@v6
         with:
           script: |
+            import * as core from '@actions/core';
+
             let allArtifacts = await github.rest.actions.listWorkflowRunArtifacts({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -28,6 +31,7 @@ jobs:
               return artifact.name == "pr_number"
             })[0];
             if (matchArtifact) {
+              core.setOutput("hasArtifact", "true");
               let download = await github.rest.actions.downloadArtifact({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
@@ -36,10 +40,9 @@ jobs:
               });
               let fs = require('fs');
               fs.writeFileSync(`${process.env.GITHUB_WORKSPACE}/pr_number.zip`, Buffer.from(download.data));
-            } else {
-              throw new Error('No artifact found with name "pr_number"');
             }
       - name: 'Unzip artifact'
+        if: ${{ download.outputs.hasArtifact == 'true' }}
         run: unzip pr_number.zip
       - name: Setup Python
         uses: actions/setup-python@v4
