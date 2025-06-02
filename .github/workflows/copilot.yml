@@ -16,7 +16,6 @@ jobs:
       - name: Checkout Repo
         uses: actions/checkout@v3
       - name: 'Download artifact'
-        id: "download"
         uses: actions/github-script@v6
         with:
           script: |
@@ -42,7 +41,7 @@ jobs:
               fs.writeFileSync(`${process.env.GITHUB_WORKSPACE}/pr_number.zip`, Buffer.from(download.data));
             }
       - name: 'Unzip artifact'
-        if: ${{ download.outputs.hasArtifact == 'true' }}
+        if: ${{ review.outputs.hasArtifact == 'true' }}
         run: unzip pr_number.zip
       - name: Setup Python
         uses: actions/setup-python@v4
