@@ -68,7 +68,7 @@ def read_json(text: str) -> dict:
     if match:
         text = match.group("code")
     else:
-        text = text.split("\n\n---\n\n")[0]
+        text = text.split("\n---\n")[0]
     try:
         return json.loads(text.strip())
     except json.JSONDecodeError:
