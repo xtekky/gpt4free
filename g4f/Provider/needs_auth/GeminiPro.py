@@ -3,6 +3,7 @@ from __future__ import annotations
 import base64
 import json
 import requests
+import random
 from typing import Optional
 from aiohttp import ClientSession, BaseConnector
 
@@ -57,8 +58,9 @@ class GeminiPro(AsyncGeneratorProvider, ProviderModelMixin):
         return cls.models
 
     @classmethod
-    def get_model(cls, model: str) -> str:
+    def get_model(cls, model: str, **kwargs) -> str:
         """Get the internal model name from the user-provided model name."""
+        # kwargs can contain api_key, api_base, etc. but we don't need them for model selection
         if not model:
             return cls.default_model
         
@@ -71,10 +73,11 @@ class GeminiPro(AsyncGeneratorProvider, ProviderModelMixin):
             alias = cls.model_aliases[model]
             # If the alias is a list, randomly select one of the options
             if isinstance(alias, list):
+                import random
                 selected_model = random.choice(alias)
-                debug.log(f"Blackbox: Selected model '{selected_model}' from alias '{model}'")
+                debug.log(f"GeminiPro: Selected model '{selected_model}' from alias '{model}'")
                 return selected_model
-            debug.log(f"Blackbox: Using model '{alias}' for alias '{model}'")
+            debug.log(f"GeminiPro: Using model '{alias}' for alias '{model}'")
             return alias
         
         raise ModelNotFoundError(f"Model {model} not found")

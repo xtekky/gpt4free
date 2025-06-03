@@ -259,7 +259,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
                 "visitFromDelta": False,
                 "isMemoryEnabled": False,
                 "mobileClient": False,
-                "userSelectedModel": model if model in cls.userSelectedModel else None,
+                "userSelectedModel": None,
                 "validated": conversation.validated_value,
                 "imageGenerationMode": False,
                 "webSearchModePrompt": False,

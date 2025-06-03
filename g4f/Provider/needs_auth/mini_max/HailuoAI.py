@@ -24,6 +24,7 @@ class HailuoAI(AsyncAuthedProvider, ProviderModelMixin):
     url = "https://www.hailuo.ai"
     working = True
     use_nodriver = True
+    needs_auth = True
     supports_stream = True
     default_model = "minimax"
 

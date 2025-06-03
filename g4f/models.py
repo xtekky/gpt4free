@@ -9,11 +9,9 @@ from .Provider import (
     ARTA,
     Blackbox,
     Chatai,
-    ChatGLM,
     Cloudflare,
     Copilot,
     DeepInfraChat,
-    DocsBot,
     Free2GPT,
     FreeGpt,
     HuggingSpace,
@@ -23,7 +21,6 @@ from .Provider import (
     ImageLabs,
     LambdaChat,
     OIVSCodeSer2,
-    OIVSCodeSer5,
     OIVSCodeSer0501,
     OpenAIFM,
     PerplexityLabs,
@@ -148,7 +145,6 @@ default = Model(
     name = "",
     base_provider = "",
     best_provider = IterListProvider([
-        OIVSCodeSer5,
         OIVSCodeSer0501,
         OIVSCodeSer2,
         Blackbox,
@@ -161,7 +157,6 @@ default = Model(
         FreeGpt,
         Chatai,
         WeWordle,
-        DocsBot,
         OpenaiChat,
         Cloudflare,
     ])
@@ -174,11 +169,9 @@ default_vision = VisionModel(
         Blackbox,
         DeepInfraChat,
         OIVSCodeSer2,
-        OIVSCodeSer5,
         OIVSCodeSer0501,
         PollinationsAI,
         Together,
-        DocsBot,
         HuggingSpace,
         GeminiPro,
         HuggingFaceAPI,
@@ -188,9 +181,6 @@ default_vision = VisionModel(
     ], shuffle=False)
 )
 
-##########################
-### Text//Audio/Vision ###
-##########################
 # gpt-4
 gpt_4 = Model(
     name          = 'gpt-4',
@@ -202,7 +192,7 @@ gpt_4 = Model(
 gpt_4o = VisionModel(
     name          = 'gpt-4o',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([Blackbox, PollinationsAI, DocsBot, OpenaiChat])
+    best_provider = IterListProvider([Blackbox, PollinationsAI, OpenaiChat])
 )
 
 gpt_4o_mini = Model(
@@ -272,7 +262,7 @@ gpt_4_1 = Model(
 gpt_4_1_mini = Model(
     name          = 'gpt-4.1-mini',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([Blackbox, OIVSCodeSer5, OIVSCodeSer0501, PollinationsAI])
+    best_provider = IterListProvider([Blackbox, OIVSCodeSer0501, PollinationsAI])
 )
 
 gpt_4_1_nano = Model(
@@ -388,13 +378,13 @@ llama_3_3_70b = Model(
 llama_4_scout = Model(
     name          = "llama-4-scout",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider([PollinationsAI, Together, Cloudflare])
+    best_provider = IterListProvider([DeepInfraChat, LambdaChat, PollinationsAI, Together, Cloudflare])
 )
 
 llama_4_maverick = Model(
     name          = "llama-4-maverick",
     base_provider = "Meta Llama",
-    best_provider = IterListProvider([DeepInfraChat, Together])
+    best_provider = IterListProvider([DeepInfraChat, LambdaChat, Together])
 )
 
 ### MistralAI ###
@@ -666,7 +656,7 @@ qwen_3_235b = Model(
 qwen_3_32b = Model(
     name = 'qwen-3-32b',
     base_provider = 'Qwen',
-    best_provider = IterListProvider([DeepInfraChat, HuggingSpace])
+    best_provider = IterListProvider([DeepInfraChat, LambdaChat, HuggingSpace])
 )
 
 qwen_3_30b = Model(
@@ -768,14 +758,14 @@ deepseek_prover_v2_671b = Model(
 deepseek_v3_0324 = Model(
     name = 'deepseek-v3-0324',
     base_provider = 'DeepSeek',
-    best_provider = IterListProvider([DeepInfraChat, Together, PollinationsAI])
+    best_provider = IterListProvider([DeepInfraChat, Together, LambdaChat, PollinationsAI])
 )
 
 # deepseek-r1-0528
 deepseek_r1_0528 = Model(
     name = 'deepseek-r1-0528',
     base_provider = 'DeepSeek',
-    best_provider = IterListProvider([DeepInfraChat, Together])
+    best_provider = IterListProvider([DeepInfraChat, LambdaChat, Together])
 )
 
 # janus
@@ -848,13 +838,6 @@ nemotron_70b = Model(
     best_provider = IterListProvider([LambdaChat, Together, HuggingChat, HuggingFace])
 )
 
-### THUDM ### 
-glm_4 = Model(
-    name = 'glm-4',
-    base_provider = 'THUDM',
-    best_provider = ChatGLM
-)
-
 ### Cognitive Computations ###
 # dolphin-2
 dolphin_2_6 = Model(
@@ -896,10 +879,6 @@ evil = Model(
     base_provider = 'Evil Mode - Experimental',
     best_provider = PollinationsAI
 )
-
-#############
-### Image ###
-#############
 
 ### Stability AI ###
 sdxl_1_0 = ImageModel(

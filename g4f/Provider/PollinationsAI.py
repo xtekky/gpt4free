@@ -150,7 +150,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
             return cls.model_aliases[model]
         
         # If no match is found, raise an error
-        raise ModelNotFoundError(f"Model {model} not found")
+        raise ModelNotFoundError(f"PollinationsAI: Model {model} not found")
 
     @classmethod
     def get_models(cls, **kwargs):

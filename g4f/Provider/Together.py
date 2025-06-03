@@ -283,7 +283,7 @@ class Together(OpenaiTemplate):
             debug.log(f"Together: Using model '{alias}' for alias '{model}'")
             return alias
         
-        raise ModelNotFoundError(f"Model {model} not found")
+        raise ModelNotFoundError(f"Together: Model {model} not found")
 
     @classmethod
     async def create_async_generator(

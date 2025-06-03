@@ -18,6 +18,7 @@ class You(AsyncGeneratorProvider, ProviderModelMixin):
     label = "You.com"
     url = "https://you.com"
     working = True
+    needs_auth = True
     default_model = "gpt-4o-mini"
     default_vision_model = "agent"
     image_models = ["dall-e"]
