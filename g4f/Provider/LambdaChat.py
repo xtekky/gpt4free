@@ -14,6 +14,7 @@ from ..providers.response import TitleGeneration, Reasoning, FinishReason
 from ..errors import ModelNotFoundError
 from .. import debug
 
+
 class LambdaChat(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Lambda Chat"
     url = "https://lambda.chat"
@@ -21,25 +22,36 @@ class LambdaChat(AsyncGeneratorProvider, ProviderModelMixin):
 
     working = True
 
-    default_model = "deepseek-llama3.3-70b"
-    reasoning_model = "deepseek-r1"
+    default_model = "deepseek-v3-0324"
     models = [
-        default_model,
-        reasoning_model,
+        "deepseek-llama3.3-70b",
+        "deepseek-r1",
+        "deepseek-r1-0528",
+        "apriel-5b-instruct",
         "hermes-3-llama-3.1-405b-fp8",
         "hermes3-405b-fp8-128k",
         "llama3.1-nemotron-70b-instruct",
         "lfm-40b",
         "llama3.3-70b-instruct-fp8",
-        "qwen25-coder-32b-instruct"
+        "qwen25-coder-32b-instruct",
+        "deepseek-v3",
+        default_model,
+        "llama-4-maverick-17b-128e-instruct-fp8",
+        "llama-4-scout-17b-16e-instruct",
+        "llama3.3-70b-instruct-fp8",
+        "qwen3-32b-fp8",
     ]
     model_aliases = {
-        "deepseek-v3": default_model,
+        "deepseek-r1": ["deepseek-r1", "deepseek-r1-0528"],
+        "deepseek-v3": ["deepseek-v3", "deepseek-v3-0324"],
         "hermes-3": "hermes3-405b-fp8-128k",
         "hermes-3-405b": ["hermes3-405b-fp8-128k", "hermes-3-llama-3.1-405b-fp8"],
         "nemotron-70b": "llama3.1-nemotron-70b-instruct",
         "llama-3.3-70b": "llama3.3-70b-instruct-fp8",
-        "qwen-2.5-coder-32b": "qwen25-coder-32b-instruct"
+        "qwen-2.5-coder-32b": "qwen25-coder-32b-instruct",
+        "llama-4-maverick": "llama-4-maverick-17b-128e-instruct-fp8",
+        "llama-4-scout": "llama-4-scout-17b-16e-instruct",
+        "qwen-3-32b": "qwen3-32b-fp8"
     }
 
     @classmethod
@@ -59,12 +71,12 @@ class LambdaChat(AsyncGeneratorProvider, ProviderModelMixin):
             # If the alias is a list, randomly select one of the options
             if isinstance(alias, list):
                 selected_model = random.choice(alias)
-                debug.log(f"{cls.__name__}: Selected model '{selected_model}' from alias '{model}'")
+                debug.log(f"LambdaChat: Selected model '{selected_model}' from alias '{model}'")
                 return selected_model
-            debug.log(f"{cls.__name__}: Using model '{alias}' for alias '{model}'")
+            debug.log(f"LambdaChat: Using model '{alias}' for alias '{model}'")
             return alias
         
-        raise ModelNotFoundError(f"Model {model} not found")
+        raise ModelNotFoundError(f"LambdaChat: Model {model} not found")
 
     @classmethod
     async def create_async_generator(

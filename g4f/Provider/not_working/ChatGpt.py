@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from ..typing import Messages, CreateResult
-from ..providers.base_provider import AbstractProvider, ProviderModelMixin
+from ...typing import Messages, CreateResult
+from ...providers.base_provider import AbstractProvider, ProviderModelMixin
 
 import time
 import uuid
@@ -9,7 +9,7 @@ import random
 import json
 from requests import Session
 
-from .openai.new import (
+from ..openai.new import (
     get_config,
     get_answer_token,
     process_turnstile,

@@ -25,7 +25,7 @@ from ...requests.raise_for_status import raise_for_status
 from ...requests.aiohttp import get_connector
 from ...requests import get_nodriver
 from ...image.copy_images import get_filename, get_media_dir, ensure_media_dir
-from ...errors import MissingAuthError
+from ...errors import MissingAuthError, ModelNotFoundError
 from ...image import to_bytes
 from ...cookies import get_cookies_dir
 from ...tools.media import merge_media
@@ -90,7 +90,8 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
     ]
     model_aliases = {
         "gemini-2.0": "",
-        "gemini-2.5-pro": "gemini-2.5-pro-exp"
+        "gemini-2.0-flash": ["gemini-2.0-flash", "gemini-2.0-flash", "gemini-2.0-flash-exp"],
+        "gemini-2.5-pro": "gemini-2.5-pro-exp",
     }
 
     synthesize_content_type = "audio/vnd.wav"
@@ -102,6 +103,29 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
     auto_refresh = True
     refresh_interval = 540
     rotate_tasks = {}
+
+    @classmethod
+    def get_model(cls, model: str) -> str:
+        """Get the internal model name from the user-provided model name."""
+        if not model:
+            return cls.default_model
+        
+        # Check if the model exists directly in our models list
+        if model in cls.models:
+            return model
+        
+        # Check if there's an alias for this model
+        if model in cls.model_aliases:
+            alias = cls.model_aliases[model]
+            # If the alias is a list, randomly select one of the options
+            if isinstance(alias, list):
+                selected_model = random.choice(alias)
+                debug.log(f"Gemini: Selected model '{selected_model}' from alias '{model}'")
+                return selected_model
+            debug.log(f"Gemini: Using model '{alias}' for alias '{model}'")
+            return alias
+        
+        raise ModelNotFoundError(f"Model {model} not found")
 
     @classmethod
     async def nodriver_login(cls, proxy: str = None) -> AsyncIterator[str]:

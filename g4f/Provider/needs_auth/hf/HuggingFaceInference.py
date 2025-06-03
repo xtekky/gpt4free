@@ -5,16 +5,16 @@ import base64
 import random
 import requests
 
-from ...typing import AsyncResult, Messages
-from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin, format_prompt
-from ...errors import ModelNotSupportedError, ResponseError
-from ...requests import StreamSession, raise_for_status
-from ...providers.response import FinishReason, ImageResponse
-from ...image.copy_images import save_response_media
-from ...image import use_aspect_ratio
-from ..helper import format_image_prompt, get_last_user_message
+from ....typing import AsyncResult, Messages
+from ...base_provider import AsyncGeneratorProvider, ProviderModelMixin, format_prompt
+from ....errors import ModelNotSupportedError, ResponseError
+from ....requests import StreamSession, raise_for_status
+from ....providers.response import FinishReason, ImageResponse
+from ....image.copy_images import save_response_media
+from ....image import use_aspect_ratio
+from ...helper import format_image_prompt, get_last_user_message
 from .models import default_model, default_image_model, model_aliases, text_models, image_models, vision_models
-from ... import debug
+from .... import debug
 
 provider_together_urls = {
     "black-forest-labs/FLUX.1-dev": "https://router.huggingface.co/together/v1/images/generations",

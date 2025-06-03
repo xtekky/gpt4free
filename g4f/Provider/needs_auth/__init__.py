@@ -16,6 +16,7 @@ from .GithubCopilot     import GithubCopilot
 from .GlhfChat          import GlhfChat
 from .Grok              import Grok
 from .Groq              import Groq
+from .LMArenaBeta       import LMArenaBeta
 from .MetaAI            import MetaAI
 from .MetaAIAccount     import MetaAIAccount
 from .MicrosoftDesigner import MicrosoftDesigner
@@ -24,8 +25,11 @@ from .OpenaiAPI         import OpenaiAPI
 from .OpenaiChat        import OpenaiChat
 from .OpenRouter        import OpenRouter
 from .PerplexityApi     import PerplexityApi
+from .Pi                import Pi
+from .PuterJS           import PuterJS
 from .Reka              import Reka
 from .Replicate         import Replicate
 from .ThebApi           import ThebApi
 from .WhiteRabbitNeo    import WhiteRabbitNeo
 from .xAI               import xAI
+from .You               import You

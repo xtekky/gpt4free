@@ -3,12 +3,13 @@ from __future__ import annotations
 import base64
 import json
 import requests
+import random
 from typing import Optional
 from aiohttp import ClientSession, BaseConnector
 
 from ...typing import AsyncResult, Messages, MediaListType
 from ...image import to_bytes, is_data_an_media
-from ...errors import MissingAuthError
+from ...errors import MissingAuthError, ModelNotFoundError
 from ...requests.raise_for_status import raise_for_status
 from ...providers.response import Usage, FinishReason
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
@@ -30,9 +31,8 @@ class GeminiPro(AsyncGeneratorProvider, ProviderModelMixin):
     default_vision_model = default_model
     fallback_models = [default_model, "gemini-2.0-flash-exp", "gemini-pro", "gemini-1.5-flash", "gemini-1.5-flash-8b"]
     model_aliases = {
-        "gemini-1.5-flash": "gemini-1.5-flash",
-        "gemini-1.5-flash": "gemini-1.5-flash-8b",
-        "gemini-1.5-pro": "gemini-pro",
+        "gemini-1.5-pro": [default_model, "gemini-pro"],
+        "gemini-1.5-flash": ["gemini-1.5-flash", "gemini-1.5-flash-8b"],
         "gemini-2.0-flash": "gemini-2.0-flash-exp",
     }
 
@@ -56,6 +56,31 @@ class GeminiPro(AsyncGeneratorProvider, ProviderModelMixin):
                     raise MissingAuthError("Invalid API key")
                 return cls.fallback_models
         return cls.models
+
+    @classmethod
+    def get_model(cls, model: str, **kwargs) -> str:
+        """Get the internal model name from the user-provided model name."""
+        # kwargs can contain api_key, api_base, etc. but we don't need them for model selection
+        if not model:
+            return cls.default_model
+        
+        # Check if the model exists directly in our models list
+        if model in cls.models:
+            return model
+        
+        # Check if there's an alias for this model
+        if model in cls.model_aliases:
+            alias = cls.model_aliases[model]
+            # If the alias is a list, randomly select one of the options
+            if isinstance(alias, list):
+                import random
+                selected_model = random.choice(alias)
+                debug.log(f"GeminiPro: Selected model '{selected_model}' from alias '{model}'")
+                return selected_model
+            debug.log(f"GeminiPro: Using model '{alias}' for alias '{model}'")
+            return alias
+        
+        raise ModelNotFoundError(f"Model {model} not found")
 
     @classmethod
     async def create_async_generator(

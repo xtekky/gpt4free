@@ -15,18 +15,18 @@ try:
 except ImportError:
     has_curl_cffi = False
 
-from ..base_provider import ProviderModelMixin, AsyncAuthedProvider, AuthResult
-from ..helper import format_prompt, format_image_prompt, get_last_user_message
-from ...typing import AsyncResult, Messages, Cookies, MediaListType
-from ...errors import MissingRequirementsError, MissingAuthError, ResponseError
-from ...image import to_bytes
-from ...requests import get_args_from_nodriver, DEFAULT_HEADERS
-from ...requests.raise_for_status import raise_for_status
-from ...providers.response import JsonConversation, ImageResponse, Sources, TitleGeneration, Reasoning, RequestLogin, FinishReason
-from ...cookies import get_cookies
-from ...tools.media import merge_media
+from ...base_provider import ProviderModelMixin, AsyncAuthedProvider, AuthResult
+from ...helper import format_prompt, format_image_prompt, get_last_user_message
+from ....typing import AsyncResult, Messages, Cookies, MediaListType
+from ....errors import MissingRequirementsError, MissingAuthError, ResponseError
+from ....image import to_bytes
+from ....requests import get_args_from_nodriver, DEFAULT_HEADERS
+from ....requests.raise_for_status import raise_for_status
+from ....providers.response import JsonConversation, ImageResponse, Sources, TitleGeneration, Reasoning, RequestLogin, FinishReason
+from ....cookies import get_cookies
+from ....tools.media import merge_media
 from .models import default_model, default_vision_model, fallback_models, image_models, model_aliases
-from ... import debug
+from .... import debug
 
 class Conversation(JsonConversation):
     def __init__(self, models: dict):

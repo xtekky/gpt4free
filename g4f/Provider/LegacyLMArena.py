@@ -4,6 +4,8 @@ import random
 import json
 import uuid
 import sys
+import asyncio
+
 
 from ..typing import AsyncResult, Messages, MediaListType
 from ..requests import StreamSession, StreamResponse, FormData, raise_for_status
@@ -248,12 +250,17 @@ class LegacyLMArena(AsyncGeneratorProvider, ProviderModelMixin):
     @classmethod
     def get_models(cls):
         """Get models with improved fallback sources"""
+        if cls.models:  # Return cached models if already loaded
+            return cls.models
+            
         try:
             # Try to fetch models from Google Storage first
             url = "https://storage.googleapis.com/public-arena-no-cors/p2l-explorer/data/overall/arena.json"
             import requests
-            data = requests.get(url, timeout=5).json()
-            leaderboard_models = [model[0] for model in data["leaderboard"]]
+            response = requests.get(url, timeout=5)
+            response.raise_for_status()
+            data = response.json()
+            leaderboard_models = [model[0] for model in data.get("leaderboard", [])]
             
             # Combine models from all sources and remove duplicates
             all_models = list(set(leaderboard_models + cls.har_models + cls.js_models))
@@ -267,9 +274,9 @@ class LegacyLMArena(AsyncGeneratorProvider, ProviderModelMixin):
                 return cls.models
         except Exception as e:
             # Log the error and fall back to alternative sources
-            print(f"Failed to fetch models from Google Storage: {str(e)}", file=sys.stderr)
-            
-        # First fallback: Use combined har_models and js_models
+            debug.log(f"Failed to fetch models from Google Storage: {str(e)}")
+        
+        # Fallback: Use combined har_models and js_models
         combined_models = list(set(cls.har_models + cls.js_models))
         if combined_models:
             if cls.default_model in combined_models:
@@ -277,14 +284,13 @@ class LegacyLMArena(AsyncGeneratorProvider, ProviderModelMixin):
             combined_models.insert(0, cls.default_model)
             cls.models = combined_models
             return cls.models
-            
-        # Second fallback: Use vision_models
-        if not cls.models:
-            models = cls.vision_models.copy()
-            if cls.default_model not in models:
-                models.insert(0, cls.default_model)
-            cls.models = models
-                
+        
+        # Final fallback: Use vision_models
+        models = cls.vision_models.copy()
+        if cls.default_model not in models:
+            models.insert(0, cls.default_model)
+        cls.models = models
+        
         return cls.models
 
     @classmethod
@@ -292,6 +298,10 @@ class LegacyLMArena(AsyncGeneratorProvider, ProviderModelMixin):
         """Get the internal model name from the user-provided model name."""
         if not model:
             return cls.default_model
+        
+        # Ensure models are loaded
+        if not cls.models:
+            cls.get_models()
         
         # Check if the model exists directly in our models list
         if model in cls.models:
@@ -303,12 +313,17 @@ class LegacyLMArena(AsyncGeneratorProvider, ProviderModelMixin):
             # If the alias is a list, randomly select one of the options
             if isinstance(alias, list):
                 selected_model = random.choice(alias)
-                debug.log(f"LMArena: Selected model '{selected_model}' from alias '{model}'")
+                debug.log(f"LegacyLMArena: Selected model '{selected_model}' from alias '{model}'")
                 return selected_model
-            debug.log(f"LMArena: Using model '{alias}' for alias '{model}'")
+            debug.log(f"LegacyLMArena: Using model '{alias}' for alias '{model}'")
             return alias
         
-        raise ModelNotFoundError(f"Model {model} not found")
+        # If model still not found, check in all available model sources directly
+        all_available_models = list(set(cls.har_models + cls.js_models + cls.vision_models))
+        if model in all_available_models:
+            return model
+        
+        raise ModelNotFoundError(f"LegacyLMArena: Model {model} not found")
 
     @classmethod
     def _build_payloads(cls, model_id: str, session_hash: str, text: str, files: list, max_tokens: int, temperature: float, top_p: float):
@@ -402,7 +417,7 @@ class LegacyLMArena(AsyncGeneratorProvider, ProviderModelMixin):
         messages: Messages,
         proxy: str = None,
         media: MediaListType = None,
-        max_tokens: int = 2048,
+        max_tokens: int = 4096,
         temperature: float = 0.7,
         top_p: float = 1,
         conversation: JsonConversation = None,
@@ -412,10 +427,20 @@ class LegacyLMArena(AsyncGeneratorProvider, ProviderModelMixin):
         async def read_response(response: StreamResponse):
             returned_data = ""
             async for line in response.iter_lines():
-                if not line.startswith(b"data: "):
+                if not line:
                     continue
+                    
+                # Handle both "data: " prefix and raw JSON
+                if line.startswith(b"data: "):
+                    line = line[6:]
+                
+                # Skip empty lines or non-JSON data
+                line = line.strip()
+                if not line or line == b"[DONE]":
+                    continue
+                    
                 try:
-                    json_data = json.loads(line[6:])
+                    json_data = json.loads(line)
                     
                     # Process data based on message type
                     if json_data.get("msg") == "process_generating":
@@ -430,150 +455,239 @@ class LegacyLMArena(AsyncGeneratorProvider, ProviderModelMixin):
                                     content = data[2]
                                 elif data and isinstance(data[0], list) and len(data[0]) > 2:
                                     content = data[0][2]
+                            elif isinstance(data, str):
+                                # Handle direct string responses
+                                content = data
                             
                             if content:
                                 # Clean up content
-                                if content.endswith("▌"):
-                                    content = content[:-2]
-                                if content == '<span class="cursor"></span> ' or content == 'update':
-                                    continue
-                                if content.startswith(returned_data):
-                                    content = content[len(returned_data):]
-                                if content:
-                                    returned_data += content
-                                    yield content
+                                if isinstance(content, str):
+                                    if content.endswith("▌"):
+                                        content = content[:-1]
+                                    if content in ['<span class="cursor"></span> ', 'update', '']:
+                                        continue
+                                    if content.startswith(returned_data):
+                                        content = content[len(returned_data):]
+                                    if content:
+                                        returned_data += content
+                                        yield content
                     
-                    # Process completed messages may also contain content
+                    # Process completed messages
                     elif json_data.get("msg") == "process_completed":
                         output_data = json_data.get("output", {}).get("data", [])
-                        if len(output_data) > 1 and isinstance(output_data[1], list):
-                            for item in output_data[1]:
-                                if isinstance(item, list) and len(item) > 1:
-                                    content = item[1]
+                        if len(output_data) > 1:
+                            # Handle both list and direct content
+                            if isinstance(output_data[1], list):
+                                for item in output_data[1]:
+                                    if isinstance(item, list) and len(item) > 1:
+                                        content = item[1]
+                                    elif isinstance(item, str):
+                                        content = item
+                                    else:
+                                        continue
+                                        
                                     if content and content != returned_data and content != '<span class="cursor"></span> ':
                                         if content.endswith("▌"):
-                                            content = content[:-2]
+                                            content = content[:-1]
                                         new_content = content
                                         if content.startswith(returned_data):
                                             new_content = content[len(returned_data):]
                                         if new_content:
                                             returned_data = content
                                             yield new_content
+                            elif isinstance(output_data[1], str) and output_data[1]:
+                                # Direct string content
+                                content = output_data[1]
+                                if content != returned_data:
+                                    if content.endswith("▌"):
+                                        content = content[:-1]
+                                    new_content = content
+                                    if content.startswith(returned_data):
+                                        new_content = content[len(returned_data):]
+                                    if new_content:
+                                        returned_data = content
+                                        yield new_content
+                                        
+                    # Also check for other message types that might contain content
+                    elif json_data.get("msg") in ["process_starts", "heartbeat"]:
+                        # These are status messages, skip them but don't error
+                        continue
+                        
+                except json.JSONDecodeError:
+                    # Skip non-JSON lines
+                    continue
                 except Exception as e:
-                    print(f"Error parsing response: {str(e)}", file=sys.stderr)
+                    debug.log(f"Error parsing response: {str(e)}")
                     continue
         
-        if model in cls.model_aliases:
-            model = cls.model_aliases[model]
+        # Get the actual model name
+        model = cls.get_model(model)
         prompt = get_last_user_message(messages)
         
         async with StreamSession(impersonate="chrome") as session:
-            # Handle new conversation
-            if conversation is None:
-                conversation = JsonConversation(session_hash=str(uuid.uuid4()).replace("-", ""))
-                media_objects = []
-                
-                # Process media if present
-                media = list(merge_media(media, messages))
-                if media:
-                    data = FormData()
-                    for i in range(len(media)):
-                        media[i] = (to_bytes(media[i][0]), media[i][1])
-                    for image, image_name in media:
-                        data.add_field(f"files", image, filename=image_name)
-                    
-                    # Upload media files
-                    async with session.post(f"{cls.url}/upload", params={"upload_id": conversation.session_hash}, data=data) as response:
-                        await raise_for_status(response)
-                        image_files = await response.json()
-                    
-                    # Format media objects for API request
-                    media_objects = [{
-                        "path": image_file,
-                        "url": f"{cls.url}/file={image_file}",
-                        "orig_name": media[i][1],
-                        "size": len(media[i][0]),
-                        "mime_type": is_accepted_format(media[i][0]),
-                        "meta": {
-                            "_type": "gradio.FileData"
-                        }
-                    } for i, image_file in enumerate(image_files)]
-                
-                # Build payloads for new conversation
-                first_payload, second_payload, third_payload = cls._build_payloads(
-                    model, conversation.session_hash, prompt, media_objects, 
-                    max_tokens, temperature, top_p
-                )
-                
-                headers = {
-                    "Content-Type": "application/json",
-                    "Accept": "application/json",
-                }
-                
-                # Send the three required requests
-                async with session.post(f"{cls.url}{cls.api_endpoint}", json=first_payload, proxy=proxy, headers=headers) as response:
-                    await raise_for_status(response)
-                
-                async with session.post(f"{cls.url}{cls.api_endpoint}", json=second_payload, proxy=proxy, headers=headers) as response:
-                    await raise_for_status(response)
-                
-                async with session.post(f"{cls.url}{cls.api_endpoint}", json=third_payload, proxy=proxy, headers=headers) as response:
-                    await raise_for_status(response)
-                
-                # Stream the response
-                stream_url = f"{cls.url}/queue/data?session_hash={conversation.session_hash}"
-                async with session.get(stream_url, headers={"Accept": "text/event-stream"}, proxy=proxy) as response:
-                    await raise_for_status(response)
-                    count = 0
-                    async for chunk in read_response(response):
-                        count += 1
-                        yield chunk
-                
-                if count == 0:
-                    raise RuntimeError("No response from server.")
-                
-                # Return conversation object for future interactions
-                if return_conversation:
-                    yield conversation
-                
-                # Yield finish reason if we hit token limit
-                if count >= max_tokens:
-                    yield FinishReason("length")
+            # Add retry logic for better reliability
+            max_retries = 3
+            retry_count = 0
             
-            # Handle continuation of existing conversation
-            else:
-                # Build payloads for conversation continuation
-                first_payload, second_payload, third_payload = cls._build_continuation_payloads(
-                    model, conversation.session_hash, prompt, max_tokens, temperature, top_p
-                )
-                
-                headers = {
-                    "Content-Type": "application/json",
-                    "Accept": "application/json",
-                }
-                
-                # Send the three required requests
-                async with session.post(f"{cls.url}{cls.api_endpoint}", json=first_payload, proxy=proxy, headers=headers) as response:
-                    await raise_for_status(response)
-                
-                async with session.post(f"{cls.url}{cls.api_endpoint}", json=second_payload, proxy=proxy, headers=headers) as response:
-                    await raise_for_status(response)
-                
-                async with session.post(f"{cls.url}{cls.api_endpoint}", json=third_payload, proxy=proxy, headers=headers) as response:
-                    await raise_for_status(response)
-                
-                # Stream the response
-                stream_url = f"{cls.url}/queue/data?session_hash={conversation.session_hash}"
-                async with session.get(stream_url, headers={"Accept": "text/event-stream"}, proxy=proxy) as response:
-                    await raise_for_status(response)
-                    count = 0
-                    async for chunk in read_response(response):
-                        count += 1
-                        yield chunk
-                
-                if count == 0:
-                    raise RuntimeError("No response from server.")
-                
-                # Yield finish reason if we hit token limit
-                if count >= max_tokens:
-                    yield FinishReason("length")
+            while retry_count < max_retries:
+                try:
+                    # Handle new conversation
+                    if conversation is None:
+                        conversation = JsonConversation(session_hash=str(uuid.uuid4()).replace("-", ""))
+                        media_objects = []
+                        
+                        # Process media if present
+                        media = list(merge_media(media, messages))
+                        if media:
+                            data = FormData()
+                            for i in range(len(media)):
+                                media[i] = (to_bytes(media[i][0]), media[i][1])
+                            for image, image_name in media:
+                                data.add_field(f"files", image, filename=image_name)
+                            
+                            # Upload media files
+                            async with session.post(f"{cls.url}/upload", params={"upload_id": conversation.session_hash}, data=data) as response:
+                                await raise_for_status(response)
+                                image_files = await response.json()
+                            
+                            # Format media objects for API request
+                            media_objects = [{
+                                "path": image_file,
+                                "url": f"{cls.url}/file={image_file}",
+                                "orig_name": media[i][1],
+                                "size": len(media[i][0]),
+                                "mime_type": is_accepted_format(media[i][0]),
+                                "meta": {
+                                    "_type": "gradio.FileData"
+                                }
+                            } for i, image_file in enumerate(image_files)]
+                        
+                        # Build payloads for new conversation
+                        first_payload, second_payload, third_payload = cls._build_payloads(
+                            model, conversation.session_hash, prompt, media_objects, 
+                            max_tokens, temperature, top_p
+                        )
+                        
+                        headers = {
+                            "Content-Type": "application/json",
+                            "Accept": "application/json",
+                        }
+                        
+                        # Send the three required requests with small delays
+                        async with session.post(f"{cls.url}{cls.api_endpoint}", json=first_payload, proxy=proxy, headers=headers) as response:
+                            await raise_for_status(response)
+                        
+                        # Small delay between requests
+                        await asyncio.sleep(0.1)
+                        
+                        async with session.post(f"{cls.url}{cls.api_endpoint}", json=second_payload, proxy=proxy, headers=headers) as response:
+                            await raise_for_status(response)
+                        
+                        await asyncio.sleep(0.1)
+                        
+                        async with session.post(f"{cls.url}{cls.api_endpoint}", json=third_payload, proxy=proxy, headers=headers) as response:
+                            await raise_for_status(response)
+                        
+                        # Small delay before streaming
+                        await asyncio.sleep(0.2)
+                        
+                        # Stream the response
+                        stream_url = f"{cls.url}/queue/data?session_hash={conversation.session_hash}"
+                        async with session.get(stream_url, headers={"Accept": "text/event-stream"}, proxy=proxy) as response:
+                            await raise_for_status(response)
+                            count = 0
+                            has_content = False
+                            
+                            # Add timeout for response
+                            try:
+                                async with asyncio.timeout(30):  # 30 second timeout
+                                    async for chunk in read_response(response):
+                                        count += 1
+                                        has_content = True
+                                        yield chunk
+                            except asyncio.TimeoutError:
+                                if not has_content:
+                                    raise RuntimeError("Response timeout - no data received from server")
+                        
+                        # Only raise error if we truly got no content
+                        if count == 0 and not has_content:
+                            retry_count += 1
+                            if retry_count < max_retries:
+                                debug.log(f"No response received, retrying... (attempt {retry_count + 1}/{max_retries})")
+                                await asyncio.sleep(1)  # Wait before retry
+                                conversation = None  # Reset conversation for retry
+                                continue
+                            else:
+                                raise RuntimeError("No response from server after multiple attempts")
+                        
+                        # Success - break retry loop
+                        break
+                        
+                    # Handle continuation of existing conversation
+                    else:
+                        # Build payloads for conversation continuation
+                        first_payload, second_payload, third_payload = cls._build_continuation_payloads(
+                            model, conversation.session_hash, prompt, max_tokens, temperature, top_p
+                        )
+                        
+                        headers = {
+                            "Content-Type": "application/json",
+                            "Accept": "application/json",
+                        }
+                        
+                        # Send the three required requests with delays
+                        async with session.post(f"{cls.url}{cls.api_endpoint}", json=first_payload, proxy=proxy, headers=headers) as response:
+                            await raise_for_status(response)
+                        
+                        await asyncio.sleep(0.1)
+                        
+                        async with session.post(f"{cls.url}{cls.api_endpoint}", json=second_payload, proxy=proxy, headers=headers) as response:
+                            await raise_for_status(response)
+                        
+                        await asyncio.sleep(0.1)
+                        
+                        async with session.post(f"{cls.url}{cls.api_endpoint}", json=third_payload, proxy=proxy, headers=headers) as response:
+                            await raise_for_status(response)
+                        
+                        await asyncio.sleep(0.2)
+                        
+                        # Stream the response
+                        stream_url = f"{cls.url}/queue/data?session_hash={conversation.session_hash}"
+                        async with session.get(stream_url, headers={"Accept": "text/event-stream"}, proxy=proxy) as response:
+                            await raise_for_status(response)
+                            count = 0
+                            has_content = False
+                            
+                            try:
+                                async with asyncio.timeout(30):
+                                    async for chunk in read_response(response):
+                                        count += 1
+                                        has_content = True
+                                        yield chunk
+                            except asyncio.TimeoutError:
+                                if not has_content:
+                                    raise RuntimeError("Response timeout - no data received from server")
+                        
+                        if count == 0 and not has_content:
+                            raise RuntimeError("No response from server in conversation continuation")
+                        
+                        # Success - break retry loop
+                        break
+                        
+                except Exception as e:
+                    if retry_count < max_retries - 1:
+                        retry_count += 1
+                        debug.log(f"Error occurred: {str(e)}, retrying... (attempt {retry_count + 1}/{max_retries})")
+                        await asyncio.sleep(1)
+                        conversation = None  # Reset for retry
+                        continue
+                    else:
+                        raise
+            
+            # Return conversation object for future interactions
+            if return_conversation and conversation:
+                yield conversation
+            
+            # Yield finish reason if we hit token limit
+            if count >= max_tokens:
+                yield FinishReason("length")

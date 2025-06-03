@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import requests
 
-from ...providers.types import Messages
-from ...typing import MediaListType
-from ...requests import StreamSession, raise_for_status
-from ...errors import ModelNotSupportedError, PaymentRequiredError
-from ...providers.response import ProviderInfo
-from ..template.OpenaiTemplate import OpenaiTemplate
+from ....providers.types import Messages
+from ....typing import MediaListType
+from ....requests import StreamSession, raise_for_status
+from ....errors import ModelNotSupportedError, PaymentRequiredError
+from ....providers.response import ProviderInfo
+from ...template.OpenaiTemplate import OpenaiTemplate
 from .models import model_aliases, vision_models, default_llama_model, default_vision_model, text_models
 
 class HuggingFaceAPI(OpenaiTemplate):
