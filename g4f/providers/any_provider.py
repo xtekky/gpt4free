@@ -10,7 +10,7 @@ from ..providers.types import ProviderType
 from ..Provider.needs_auth import OpenaiChat, CopilotAccount
 from ..Provider.hf_space import HuggingSpace
 from ..Provider import Cloudflare, Gemini, Grok, DeepSeekAPI, PerplexityLabs, LambdaChat, PollinationsAI
-from ..Provider import Microsoft_Phi_4_Multimodal, DeepInfraChat, Blackbox, Blackboxapi, OIVSCodeSer2, OIVSCodeSer5, OIVSCodeSer0501, TeachAnything, Together, WeWordle, Yqcloud, ChatGLM, ARTA
+from ..Provider import Microsoft_Phi_4_Multimodal, DeepInfraChat, Blackbox, OIVSCodeSer2, OIVSCodeSer5, OIVSCodeSer0501, TeachAnything, Together, WeWordle, Yqcloud, ChatGLM, ARTA
 from ..Provider import EdgeTTS, gTTS, MarkItDown
 from ..Provider import HarProvider, HuggingFace, HuggingFaceMedia
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
@@ -239,7 +239,7 @@ class AnyProvider(AsyncGeneratorProvider, ProviderModelMixin):
         else:
             for provider in [
                 OpenaiChat, Cloudflare, HarProvider, PerplexityLabs, Gemini, Grok, DeepSeekAPI, Blackbox, 
-                Blackboxapi, OIVSCodeSer2, OIVSCodeSer5, OIVSCodeSer0501, TeachAnything, Together, WeWordle, Yqcloud, ChatGLM, ARTA,
+                OIVSCodeSer2, OIVSCodeSer5, OIVSCodeSer0501, TeachAnything, Together, WeWordle, Yqcloud, ChatGLM, ARTA,
                 HuggingSpace, LambdaChat, CopilotAccount, PollinationsAI, DeepInfraChat, HuggingFace, HuggingFaceMedia,
             ]:
                 if provider.working:

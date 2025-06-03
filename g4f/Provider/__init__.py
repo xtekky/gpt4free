@@ -34,7 +34,6 @@ except ImportError as e:
 
 from .ARTA                 import ARTA
 from .Blackbox             import Blackbox
-from .Blackboxapi          import Blackboxapi
 from .Chatai               import Chatai
 from .ChatGLM              import ChatGLM
 from .Cloudflare           import Cloudflare
