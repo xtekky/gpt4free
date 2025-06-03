@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import requests
+import random
 from typing import Union
 
 from ..typing import AsyncResult, Messages, MediaListType
@@ -261,7 +262,7 @@ class Together(OpenaiTemplate):
         return cls.model_configs.get(model, {})
 
     @classmethod
-    def get_model(cls, model: str) -> str:
+    def get_model(cls, model: str, api_key: str = None, api_base: str = None) -> str:
         """Get the internal model name from the user-provided model name."""
         if not model:
             return cls.default_model
@@ -275,6 +276,7 @@ class Together(OpenaiTemplate):
             alias = cls.model_aliases[model]
             # If the alias is a list, randomly select one of the options
             if isinstance(alias, list):
+                import random  # Add this import at the top of the file
                 selected_model = random.choice(alias)
                 debug.log(f"Together: Selected model '{selected_model}' from alias '{model}'")
                 return selected_model
