@@ -424,14 +424,16 @@ class PuterJS(AsyncGeneratorProvider, ProviderModelMixin):
                     result = await response.json()
                     if "choices" in result:
                         choice = result["choices"][0]
-                        message = choice.get("message", {})
-                        content = message.get("content", "")
-                        if content:
-                            yield content
-                        if "tool_calls" in message:
-                            yield ToolCalls(message["tool_calls"])
+                    elif "result" in result:
+                        choice = result
                     else:
                         raise ResponseError(result)
+                    message = choice.get("message", {})
+                    content = message.get("content", "")
+                    if content:
+                        yield content
+                    if "tool_calls" in message:
+                        yield ToolCalls(message["tool_calls"])
                     if result.get("usage") is not None:
                         yield Usage(**result["usage"])
                     finish_reason = choice.get("finish_reason")
