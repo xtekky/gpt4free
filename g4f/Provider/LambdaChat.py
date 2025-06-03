@@ -26,7 +26,7 @@ class LambdaChat(AsyncGeneratorProvider, ProviderModelMixin):
     models = [
         "deepseek-llama3.3-70b",
         "deepseek-r1",
-        "deepseek-r1-0528"
+        "deepseek-r1-0528",
         "apriel-5b-instruct",
         "hermes-3-llama-3.1-405b-fp8",
         "hermes3-405b-fp8-128k",
