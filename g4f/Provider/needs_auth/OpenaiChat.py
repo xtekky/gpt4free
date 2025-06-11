@@ -541,7 +541,9 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
         if "v" in line:
             v = line.get("v")
             if isinstance(v, str) and fields.recipient == "all":
-                if "p" not in line or line.get("p") == "/message/content/parts/0":
+                if fields.p == "/message/metadata/refresh_key_info":
+                    yield ""
+                elif "p" not in line or line.get("p") == "/message/content/parts/0":
                     yield Reasoning(token=v) if fields.is_thinking else v
             elif isinstance(v, list):
                 for m in v:
