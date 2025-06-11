@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import json
 
-from ..typing import AsyncResult, Messages, Cookies
-from .base_provider import AsyncGeneratorProvider, format_prompt
-from ..requests import StreamSession, get_args_from_nodriver, raise_for_status, merge_cookies
+from ...typing import AsyncResult, Messages, Cookies
+from ..base_provider import AsyncGeneratorProvider, format_prompt
+from ...requests import StreamSession, get_args_from_nodriver, raise_for_status, merge_cookies
 
 class Pi(AsyncGeneratorProvider):
     url = "https://pi.ai/talk"

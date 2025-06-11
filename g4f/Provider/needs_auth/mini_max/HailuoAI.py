@@ -5,13 +5,13 @@ import json
 from typing import AsyncIterator
 from aiohttp import ClientSession, FormData
 
-from ...typing import AsyncResult, Messages
-from ..base_provider import AsyncAuthedProvider, ProviderModelMixin, format_prompt
+from ....typing import AsyncResult, Messages
+from ...base_provider import AsyncAuthedProvider, ProviderModelMixin, format_prompt
 from ..mini_max.crypt import CallbackResults, get_browser_callback, generate_yy_header, get_body_to_yy
-from ...requests import get_args_from_nodriver, raise_for_status
-from ...providers.response import AuthResult, JsonConversation, RequestLogin, TitleGeneration
-from ..helper import get_last_user_message
-from ... import debug
+from ....requests import get_args_from_nodriver, raise_for_status
+from ....providers.response import AuthResult, JsonConversation, RequestLogin, TitleGeneration
+from ...helper import get_last_user_message
+from .... import debug
 
 class Conversation(JsonConversation):
     def __init__(self, token: str, chatID: str, characterID: str = 1):
@@ -24,6 +24,7 @@ class HailuoAI(AsyncAuthedProvider, ProviderModelMixin):
     url = "https://www.hailuo.ai"
     working = True
     use_nodriver = True
+    needs_auth = True
     supports_stream = True
     default_model = "minimax"
 

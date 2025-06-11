@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from aiohttp import ClientSession
 
-from ..typing import AsyncResult, Messages
-from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from .helper import format_prompt
-from ..providers.response import FinishReason
+from ...typing import AsyncResult, Messages
+from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from ..helper import format_prompt
+from ...providers.response import FinishReason
 
 class Pizzagpt(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://www.pizzagpt.it"

@@ -4,17 +4,90 @@ AI Commit Message Generator using gpt4free (g4f)
 
 This tool uses AI to generate meaningful git commit messages based on 
 staged changes. It analyzes the git diff and suggests appropriate commit 
-messages following conventional commit format.
+messages following conventional commit format. The tool can work with
+any git repository and supports multiple AI models for message generation.
+
+Created for use with gpt4free (g4f) development workflow.
 
 Usage:
   python -m etc.tool.commit [options]
 
+Examples:
+  # Generate commit for current repository
+  python -m etc.tool.commit
+  
+  # Generate commit for specific repository
+  python -m etc.tool.commit --repo /path/to/repo
+  python -m etc.tool.commit --repo ../my-project
+  python -m etc.tool.commit --repo ~/projects/website
+  
+  # Generate and edit commit message before committing
+  python -m etc.tool.commit --repo ./docs --edit
+  
+  # Generate message only without committing
+  python -m etc.tool.commit --repo ~/projects/app --no-commit
+  
+  # Use specific AI model
+  python -m etc.tool.commit --model gpt-4 --repo ./backend
+  
+  # List available models
+  python -m etc.tool.commit --list-models
+  
+  # Complex workflow example
+  python -m etc.tool.commit --repo ../frontend --model claude-3-sonnet --edit
+
+Features:
+  - AI-powered commit message generation using gpt4free
+  - Support for multiple AI models (GPT-4, Claude, Gemini, etc.)
+  - Conventional commit format compliance
+  - Multi-repository support with automatic validation
+  - Interactive editing with system default editor
+  - Sensitive data filtering and protection
+  - Automatic retry logic with fallback models
+  - Git repository information display
+  - Staged changes analysis and diff processing
+  - Comprehensive error handling and validation
+
 Options:
-  --model MODEL    Specify the AI model to use
-  --edit           Edit the generated commit message before committing
-  --no-commit      Generate message only without committing
-  --list-models    List available AI models and exit
-  --help           Show this help message
+  --model MODEL      Specify the AI model to use (default: gpt-4o)
+  --edit             Edit the generated commit message before committing
+  --no-commit        Generate message only without committing
+  --list-models      List available AI models and exit
+  --repo PATH        Specify git repository path (default: current directory)
+  --help             Show this help message and exit
+
+Requirements:
+  - gpt4free (g4f) library
+  - Git installed and accessible via command line
+  - Active git repository with staged changes
+  - Internet connection for AI model access
+
+Workflow:
+  1. Validates specified git repository
+  2. Fetches staged changes using git diff
+  3. Filters sensitive data from diff
+  4. Generates commit message using AI
+  5. Optionally allows editing the message
+  6. Creates git commit with generated message
+
+Security Features:
+  - Automatic filtering of sensitive patterns (passwords, tokens, etc.)
+  - Local processing of git data
+  - No permanent storage of repository content
+  - Safe handling of authentication credentials
+
+Supported Commit Types:
+  - feat: New features
+  - fix: Bug fixes
+  - docs: Documentation changes
+  - refactor: Code refactoring
+  - test: Test additions/modifications
+  - style: Code style changes
+  - perf: Performance improvements
+  - chore: Maintenance tasks
+
+Author: Created for gpt4free (g4f) project
+License: MIT
 """
 import subprocess
 import sys
@@ -22,6 +95,7 @@ import os
 import argparse
 import tempfile
 import time
+from pathlib import Path
 from typing import Optional, Any, List
 
 from g4f.client import Client
@@ -40,7 +114,7 @@ RETRY_DELAY = 2  # Seconds
 def parse_arguments():
     """Parse command line arguments"""
     parser = argparse.ArgumentParser(
-        description="AI Commit Message Generator",
+        description="AI Commit Message Generator using gpt4free (g4f)",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=__doc__
     )
@@ -52,25 +126,95 @@ def parse_arguments():
                         help="Generate message only without committing")
     parser.add_argument("--list-models", action="store_true",
                         help="List available AI models and exit")
+    parser.add_argument("--repo", type=str, default=".",
+                        help="Git repository path (default: current directory)")
     
     return parser.parse_args()
 
-def get_git_diff() -> Optional[str]:
-    """Get the current git diff for staged changes"""
+def validate_git_repository(repo_path: str) -> Path:
+    """Validate that the specified path is a git repository"""
+    repo_path = Path(repo_path).resolve()
+    
+    if not repo_path.exists():
+        print(f"Error: Repository path does not exist: {repo_path}")
+        sys.exit(1)
+    
+    if not repo_path.is_dir():
+        print(f"Error: Repository path is not a directory: {repo_path}")
+        sys.exit(1)
+    
+    # Check if it's a git repository
+    git_dir = repo_path / ".git"
+    if not git_dir.exists():
+        # Check if we're in a subdirectory of a git repo
+        current = repo_path
+        while current != current.parent:
+            if (current / ".git").exists():
+                repo_path = current
+                break
+            current = current.parent
+        else:
+            print(f"Error: Not a git repository: {repo_path}")
+            print("Initialize a git repository with: git init")
+            sys.exit(1)
+    
+    return repo_path
+
+def get_git_diff(repo_path: Path) -> Optional[str]:
+    """Get the current git diff for staged changes in specified repository"""
     try:
         diff_process = subprocess.run(
             ["git", "diff", "--staged"], 
             capture_output=True, 
-            text=True
+            text=True,
+            cwd=repo_path
         )
         if diff_process.returncode != 0:
             print(f"Error: git diff command failed with code {diff_process.returncode}")
+            print(f"Error output: {diff_process.stderr}")
             return None
         
         return diff_process.stdout
     except Exception as e:
-        print(f"Error running git diff: {e}")
+        print(f"Error running git diff in {repo_path}: {e}")
         return None
+
+def get_repository_info(repo_path: Path) -> dict:
+    """Get information about the git repository"""
+    info = {
+        "path": repo_path,
+        "name": repo_path.name,
+        "branch": "unknown",
+        "remote": "unknown"
+    }
+    
+    try:
+        # Get current branch
+        branch_process = subprocess.run(
+            ["git", "branch", "--show-current"],
+            capture_output=True,
+            text=True,
+            cwd=repo_path
+        )
+        if branch_process.returncode == 0:
+            info["branch"] = branch_process.stdout.strip()
+    except:
+        pass
+    
+    try:
+        # Get remote origin URL
+        remote_process = subprocess.run(
+            ["git", "remote", "get-url", "origin"],
+            capture_output=True,
+            text=True,
+            cwd=repo_path
+        )
+        if remote_process.returncode == 0:
+            info["remote"] = remote_process.stdout.strip()
+    except:
+        pass
+    
+    return info
 
 def truncate_diff(diff_text: str, max_size: int = MAX_DIFF_SIZE) -> str:
     """Truncate diff if it's too large, preserving the most important parts"""
@@ -272,12 +416,13 @@ def list_available_models() -> List[str]:
     
     return sorted(relevant_models)
 
-def make_commit(message: str) -> bool:
-    """Make a git commit with the provided message"""
+def make_commit(message: str, repo_path: Path) -> bool:
+    """Make a git commit with the provided message in specified repository"""
     try:
         subprocess.run(
             ["git", "commit", "-m", message], 
-            check=True
+            check=True,
+            cwd=repo_path
         )
         return True
     except subprocess.CalledProcessError as e:
@@ -296,15 +441,26 @@ def main():
                 print(f"  - {model}")
             sys.exit(0)
         
+        # Validate and get repository path
+        repo_path = validate_git_repository(args.repo)
+        repo_info = get_repository_info(repo_path)
+        
+        print(f"Repository: {repo_info['name']} ({repo_path})")
+        print(f"Branch: {repo_info['branch']}")
+        if repo_info['remote'] != "unknown":
+            print(f"Remote: {repo_info['remote']}")
+        print()
+        
         print("Fetching git diff...")
-        diff = get_git_diff()
+        diff = get_git_diff(repo_path)
         
         if diff is None:
-            print("Failed to get git diff. Are you in a git repository?")
+            print("Failed to get git diff.")
             sys.exit(1)
         
         if diff.strip() == "":
             print("No changes staged for commit. Stage changes with 'git add' first.")
+            print(f"Run this in the repository: cd {repo_path} && git add <files>")
             sys.exit(0)
         
         print(f"Using model: {args.model}")
@@ -326,9 +482,9 @@ def main():
             print("\nCommit message generated but not committed (--no-commit flag used).")
             sys.exit(0)
         
-        user_input = input("\nDo you want to use this commit message? (y/n): ")
+        user_input = input(f"\nDo you want to commit to {repo_info['name']} ({repo_info['branch']})? (y/n): ")
         if user_input.lower() == 'y':
-            if make_commit(commit_message):
+            if make_commit(commit_message, repo_path):
                 print("Commit successful!")
             else:
                 print("Commit failed.")

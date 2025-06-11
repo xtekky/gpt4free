@@ -10,10 +10,11 @@ import asyncio
 
 from ..typing import AsyncResult, Messages
 from ..providers.response import ImageResponse, Reasoning
-from ..errors import ResponseError
+from ..errors import ResponseError, ModelNotFoundError
 from ..cookies import get_cookies_dir
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from .helper import format_image_prompt
+from .. import debug
 
 class ARTA(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://ai-arta.com"
@@ -24,60 +25,93 @@ class ARTA(AsyncGeneratorProvider, ProviderModelMixin):
 
     working = True
 
-    default_model = "Flux"
+    default_model = "flux"
     default_image_model = default_model
     model_aliases = {
-        default_image_model: default_image_model,
-        "flux": default_image_model,
-        "medieval": "Medieval",
-        "vincent_van_gogh": "Vincent Van Gogh",
-        "f_dev": "F Dev",
-        "low_poly": "Low Poly",
-        "dreamshaper_xl": "Dreamshaper-xl",
-        "anima_pencil_xl": "Anima-pencil-xl",
-        "biomech": "Biomech",
-        "trash_polka": "Trash Polka",
-        "no_style": "No Style",
-        "cheyenne_xl": "Cheyenne-xl",
-        "chicano": "Chicano",
-        "embroidery_tattoo": "Embroidery tattoo",
-        "red_and_black": "Red and Black",
-        "fantasy_art": "Fantasy Art",
-        "watercolor": "Watercolor",
-        "dotwork": "Dotwork",
-        "old_school_colored": "Old school colored",
-        "realistic_tattoo": "Realistic tattoo",
-        "japanese_2": "Japanese_2",
-        "realistic_stock_xl": "Realistic-stock-xl",
-        "f_pro": "F Pro",
-        "revanimated": "RevAnimated",
-        "katayama_mix_xl": "Katayama-mix-xl",
-        "sdxl_l": "SDXL L",
-        "cor_epica_xl": "Cor-epica-xl",
-        "anime_tattoo": "Anime tattoo",
-        "new_school": "New School",
-        "death_metal": "Death metal",
-        "old_school": "Old School",
-        "juggernaut_xl": "Juggernaut-xl",
-        "photographic": "Photographic",
-        "sdxl_1_0": "SDXL 1.0",
-        "graffiti": "Graffiti",
-        "mini_tattoo": "Mini tattoo",
-        "surrealism": "Surrealism",
-        "neo_traditional": "Neo-traditional",
-        "on_limbs_black": "On limbs black",
-        "yamers_realistic_xl": "Yamers-realistic-xl",
-        "pony_xl": "Pony-xl",
-        "playground_xl": "Playground-xl",
-        "anything_xl": "Anything-xl",
-        "flame_design": "Flame design",
-        "kawaii": "Kawaii",
-        "cinematic_art": "Cinematic Art",
+        "anything-xl": "Anything-xl",
+        "high-gpt4o": "High GPT4o",
+        "on-limbs-black": "On limbs black",
+        "f-dev": "F Dev",
+        "flux-dev": "F Dev", # Added
+        "sdxl-1.0": "SDXL 1.0", # Added
+        "old-school": "Old School",
+        "vincent-van-gogh": "Vincent Van Gogh",
+        "cor-epica-xl": "Cor-epica-xl",
         "professional": "Professional",
-        "black_ink": "Black Ink"
+        "cheyenne-xl": "Cheyenne-xl",
+        "chicano": "Chicano",
+        "sdxl-l": "SDXL L", # Added
+        "black-ink": "Black Ink",
+        "juggernaut-xl": "Juggernaut-xl",
+        "cinematic-art": "Cinematic Art",
+        "dreamshaper-xl": "Dreamshaper-xl",
+        "fantasy-art": "Fantasy Art",
+        "neo-traditional": "Neo-traditional",
+        "realistic-stock-xl": "Realistic-stock-xl",
+        "flame-design": "Flame design",
+        "japanese-2": "Japanese_2",
+        "medieval": "Medieval",
+        "surrealism": "Surrealism",
+        "dotwork": "Dotwork",
+        "graffiti": "Graffiti",
+        "revanimated": "RevAnimated",
+        "on-limbs-color": "On limbs color",
+        "old-school-colored": "Old school colored",
+        "gpt4o-ghibli": "GPT4o Ghibli",
+        "low-poly": "Low Poly",
+        "gpt4o": "GPT4o",
+        "gpt-image": ["GPT4o", "High GPT4o", "GPT4o Ghibli"],
+        "no-style": "No Style",
+        "anime": "Anime",
+        "tattoo": "tattoo",
+        "embroidery-tattoo": "Embroidery tattoo",
+        "mini-tattoo": "Mini tattoo",
+        "realistic-tattoo": "Realistic tattoo",
+        "playground-xl": "Playground-xl",
+        "Watercolor": "Watercolor",
+        "f-pro": "F Pro",
+        "flux-pro": "F Pro", # Added
+        "kawaii": "Kawaii",
+        "photographic": "Photographic",
+        "katayama-mix-xl": "Katayama-mix-xl",
+        "death-metal": "Death metal",
+        "new-school": "New School",
+        "pony-xl": "Pony-xl",
+        "anima-pencil-xl": "Anima-pencil-xl",
+        default_image_model: "Flux", # Added
+        "biomech": "Biomech",
+        "yamers-realistic-xl": "Yamers-realistic-xl",
+        "trash-polka": "Trash Polka",
+        "red-and-black": "Red and Black",
     }
     image_models = list(model_aliases.keys())
     models = image_models
+
+    @classmethod
+    def get_model(cls, model: str) -> str:
+        """Get the internal model name from the user-provided model name."""
+        if not model:
+            return cls.model_aliases[cls.default_model]
+        
+        # Always check aliases first to get the proper API name
+        if model in cls.model_aliases:
+            alias = cls.model_aliases[model]
+            # If the alias is a list, randomly select one of the options
+            if isinstance(alias, list):
+                selected_model = random.choice(alias)
+                debug.log(f"ARTA: Selected model '{selected_model}' from alias '{model}'")
+                return selected_model
+            debug.log(f"ARTA: Using model '{alias}' for alias '{model}'")
+            return alias
+        
+        # If not in aliases, check if it's a direct API model name
+        api_model_names = [v for v in cls.model_aliases.values() if isinstance(v, str)]
+        if model in api_model_names:
+            return model
+        
+        raise ModelNotFoundError(f"Model {model} not found")
+
+
 
     @classmethod
     def get_auth_file(cls):
