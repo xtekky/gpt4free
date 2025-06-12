@@ -98,11 +98,11 @@ def secure_filename(filename: str) -> str:
         unquote(filename).strip(),
         flags=re.UNICODE
     )
+    encoding = 'utf-8'
     max_length = 100
-    if len(filename.encode()) > len(filename):
-        max_length = 50
-    filename = filename[:max_length].strip(".,_+-")
-    return filename
+    encoded = filename.encode(encoding)[:max_length]
+    decoded = encoded.decode(encoding, 'ignore')
+    return decoded.strip(".,_+-")
 
 def supports_filename(filename: str):
     if filename.endswith(".pdf"):

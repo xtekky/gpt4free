@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+from urllib.parse import quote
 from aiohttp import ClientSession
 
 from ...typing import AsyncResult, Messages
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..helper import format_media_prompt, get_system_prompt
 from ...image.copy_images import save_response_media
+from ...providers.response import AudioResponse
 from ...requests.raise_for_status import raise_for_status
 from ...requests.aiohttp import get_connector
 from ...requests import DEFAULT_HEADERS
@@ -17,10 +19,18 @@ class OpenAIFM(AsyncGeneratorProvider, ProviderModelMixin):
     working = True
 
     default_model = 'coral'
-    voices = ['alloy', 'ash', 'ballad', default_model, 'echo', 'fable', 'onyx', 'nova', 'sage', 'shimmer', 'verse']
+    voices = ['alloy', 'ash', 'ballad', 'coral', 'echo', 'fable', 'onyx', 'nova', 'sage', 'shimmer', 'verse']
+    styles = ['friendly', 'patient_teacher', 'noir_detective', 'cowboy', 'calm', 'scientific_style']
     audio_models = {"gpt-4o-mini-tts": voices}
     model_aliases = {"gpt-4o-mini-tts": default_model}
-    models = voices
+    models = styles + voices
+
+    @classmethod
+    def get_grouped_models(cls):
+        return [
+            {"group":"Styles", "models": cls.styles},
+            {"group":"Voices", "models": cls.voices},
+        ]
 
     friendly = """Affect/personality: A cheerful guide 
 
@@ -96,11 +106,15 @@ Emotion: Restrained enthusiasm for discoveries and findings, conveying intellect
         proxy: str = None,
         prompt: str = None,
         audio: dict = {},
+        download_media: bool = True,
         **kwargs
     ) -> AsyncResult:
+        default_instructions = get_system_prompt(messages)
+        if model and hasattr(cls, model):
+            default_instructions = getattr(cls, model)
+            model = ""
         model = cls.get_model(model)
         voice = audio.get("voice", kwargs.get("voice", model))
-        default_instructions = get_system_prompt(messages) or cls.friendly
         instructions = audio.get("instructions", kwargs.get("instructions", default_instructions))
         headers = {
             **DEFAULT_HEADERS,
@@ -112,6 +126,10 @@ Emotion: Restrained enthusiasm for discoveries and findings, conveying intellect
             "prompt": instructions,
             "voice": voice
         }
+        if not download_media:
+            query = "&".join(f"{k}={quote(str(v))}" for k, v in params.items() if v is not None)
+            yield AudioResponse(f"{cls.api_endpoint}?{query}")
+            return
         async with ClientSession(headers=headers, connector=get_connector(proxy=proxy)) as session:            
             async with session.get(
                 cls.api_endpoint,

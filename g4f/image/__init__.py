@@ -19,9 +19,9 @@ from ..errors import MissingRequirementsError
 
 EXTENSIONS_MAP: dict[str, str] = {
     # Image
-    "png": "image/png",
-    "jpg": "image/jpeg",
     "jpeg": "image/jpeg",
+    "jpg": "image/jpeg",
+    "png": "image/png",
     "gif": "image/gif",
     "webp": "image/webp",
     # Audio
@@ -329,18 +329,6 @@ def use_aspect_ratio(extra_body: dict, aspect_ratio: str) -> Image:
                 **extra_body
             }
     return extra_body
-
-class ImageDataResponse():
-    def __init__(
-        self,
-        images: Union[str, list],
-        alt: str,
-    ):
-        self.images = images
-        self.alt = alt
-
-    def get_list(self) -> list[str]:
-        return [self.images] if isinstance(self.images, str) else self.images
 
 class ImageRequest:
     def __init__(

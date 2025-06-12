@@ -33,6 +33,7 @@ EXTRA_REQUIRE = {
         "uvicorn",                 # api
         "nodriver",
         "python-multipart",
+        "a2wsgi",
         "pywebview",
         "plyer",
         "setuptools",
@@ -50,6 +51,7 @@ EXTRA_REQUIRE = {
         "fastapi",                 # api
         "uvicorn",                 # api
         "python-multipart",
+        "a2wsgi",
         "markitdown[all]"
     ],
     "image": [

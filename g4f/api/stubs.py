@@ -36,6 +36,7 @@ class RequestConfig(BaseModel):
     modalities: Optional[list[str]] = None
     audio: Optional[dict] = None
     response_format: Optional[dict] = None
+    download_media: bool = True
     extra_body: Optional[dict] = None
 
 class ChatCompletionsConfig(RequestConfig):

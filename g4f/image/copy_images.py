@@ -11,7 +11,7 @@ from aiohttp import ClientSession, ClientError
 from urllib.parse import urlparse
 
 from ..typing import Optional, Cookies
-from ..requests.aiohttp import get_connector, StreamResponse
+from ..requests.aiohttp import get_connector
 from ..image import MEDIA_TYPE_MAP, EXTENSIONS_MAP
 from ..tools.files import secure_filename
 from ..providers.response import ImageResponse, AudioResponse, VideoResponse
@@ -19,7 +19,7 @@ from ..Provider.template import BackendApi
 from . import is_accepted_format, extract_data_uri
 from .. import debug
 
-# Directory for storing generated images
+# Directory for storing generated media files
 images_dir = "./generated_images"
 media_dir = "./generated_media"
 
@@ -33,7 +33,7 @@ def get_media_extension(media: str) -> str:
     """Extract media file extension from URL or filename"""
     path = urlparse(media).path
     extension = os.path.splitext(path)[1]
-    if not extension:
+    if not extension and media:
         extension = os.path.splitext(media)[1]
     if not extension or len(extension) > 4:
         return ""
@@ -79,7 +79,7 @@ async def save_response_media(response, prompt: str, tags: list[str]) -> AsyncIt
     
     # Base URL without request parameters
     media_url = f"/media/{filename}"
-    
+
     # Save the original URL in the metadata, but not in the file path itself
     source_url = None
     if hasattr(response, "url") and response.method == "GET":
@@ -93,10 +93,10 @@ async def save_response_media(response, prompt: str, tags: list[str]) -> AsyncIt
         yield ImageResponse(media_url, prompt, source_url=source_url)
 
 def get_filename(tags: list[str], alt: str, extension: str, image: str) -> str:
+    tags = f"{'+'.join([str(tag) for tag in tags if tag])}+" if tags else ""
     return "".join((
         f"{int(time.time())}_",
-        f"{secure_filename('+'.join([str(tag) for tag in tags if tag]))}+" if tags else "",
-        f"{secure_filename(alt)}_",
+        f"{secure_filename(tags + alt)}_",
         hashlib.sha256(image.encode()).hexdigest()[:16],
         extension
     ))
@@ -131,9 +131,11 @@ async def copy_media(
             if image.startswith("/"):
                 return image
             target_path = target
+            media_extension = ""
             if target_path is None:
                 # Build safe filename with full Unicode support
-                filename = get_filename(tags, alt, get_media_extension(image), image)
+                media_extension = get_media_extension(image)
+                filename = get_filename(tags, alt, media_extension, image)
                 target_path = os.path.join(get_media_dir(), filename)
             try:
                 # Handle different image types
@@ -148,30 +150,32 @@ async def copy_media(
                     else:
                         request_headers = headers
                         request_ssl = ssl
-
+                    # Use aiohttp to fetch the image
                     async with session.get(image, ssl=request_ssl, headers=request_headers) as response:
                         response.raise_for_status()
                         media_type = response.headers.get("content-type", "application/octet-stream")
                         if media_type not in ("application/octet-stream", "binary/octet-stream"):
                             if media_type not in MEDIA_TYPE_MAP:
                                 raise ValueError(f"Unsupported media type: {media_type}")
+                            if not media_extension:
+                                media_extension = f".{MEDIA_TYPE_MAP[media_type]}"
+                                target_path = f"{target_path}{media_extension}"
                         with open(target_path, "wb") as f:
                             async for chunk in response.content.iter_any():
                                 f.write(chunk)
-
                 # Verify file format
-                if target is None and not os.path.splitext(target_path)[1]:
+                if target is None and not media_extension:
                     with open(target_path, "rb") as f:
                         file_header = f.read(12)
                     try:
                         detected_type = is_accepted_format(file_header)
                         if detected_type:
-                            new_ext = f".{detected_type.split('/')[-1]}"
-                            os.rename(target_path, f"{target_path}{new_ext}")
-                            target_path = f"{target_path}{new_ext}"
+                            media_extension = f".{detected_type.split('/')[-1]}"
+                            media_extension = media_extension.replace("jpeg", "jpg")
+                            os.rename(target_path, f"{target_path}{media_extension}")
+                            target_path = f"{target_path}{media_extension}"
                     except ValueError:
                         pass
-
                 # Build URL with safe encoding
                 url_filename = quote(os.path.basename(target_path))
                 return f"/media/{url_filename}" + (('?url=' + quote(image)) if add_url and not image.startswith('data:') else '')
