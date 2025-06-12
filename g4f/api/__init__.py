@@ -12,7 +12,6 @@ import hashlib
 import asyncio
 from urllib.parse import quote_plus
 from fastapi import FastAPI, Response, Request, UploadFile, Form, Depends
-from fastapi.middleware.wsgi import WSGIMiddleware
 from fastapi.responses import StreamingResponse, RedirectResponse, HTMLResponse, JSONResponse, FileResponse
 from fastapi.exceptions import RequestValidationError
 from fastapi.security import APIKeyHeader
@@ -31,6 +30,11 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials, HTTPBasic
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.responses import FileResponse
 from starlette.background import BackgroundTask
+try:
+    from a2wsgi import WSGIMiddleware
+    has_a2wsgi = True
+except ImportError:
+    has_a2wsgi = False
 from types import SimpleNamespace
 from typing import Union, Optional, List
 
@@ -42,24 +46,23 @@ except ImportError:
 
 import g4f
 import g4f.debug
-from g4f.client import AsyncClient, ChatCompletion, ImagesResponse, ClientResponse, convert_to_provider
+from g4f.client import AsyncClient, ChatCompletion, ImagesResponse, ClientResponse
 from g4f.providers.response import BaseConversation, JsonConversation
 from g4f.client.helper import filter_none
 from g4f.image import is_data_an_media, EXTENSIONS_MAP
 from g4f.image.copy_images import get_media_dir, copy_media, get_source_url
-from g4f.errors import ProviderNotFoundError, ModelNotFoundError, MissingAuthError, NoValidHarFileError
+from g4f.errors import ProviderNotFoundError, ModelNotFoundError, MissingAuthError, NoValidHarFileError, MissingRequirementsError
 from g4f.cookies import read_cookie_files, get_cookies_dir
 from g4f.providers.types import ProviderType
 from g4f.providers.response import AudioResponse
 from g4f.providers.any_provider import AnyProvider
 from g4f import Provider
 from g4f.gui import get_gui_app
-from g4f.tools.files import supports_filename, get_async_streaming
 from .stubs import (
     ChatCompletionsConfig, ImageGenerationConfig,
     ProviderResponseModel, ModelResponseModel,
     ErrorResponseModel, ProviderResponseDetailModel,
-    FileResponseModel, UploadResponseModel,
+    FileResponseModel,
     TranscriptionResponseModel, AudioSpeechConfig,
     ResponsesConfig
 )
@@ -88,6 +91,8 @@ def create_app():
     api.register_validation_exception_handler()
 
     if AppConfig.gui:
+        if not has_a2wsgi:
+            raise MissingRequirementsError("a2wsgi is required for GUI. Install it with: pip install a2wsgi")
         gui_app = WSGIMiddleware(get_gui_app(AppConfig.demo))
         app.mount("/", gui_app)
 
@@ -420,7 +425,7 @@ class Api:
             try:
                 if config.provider is None:
                     config.provider = AppConfig.provider if provider is None else provider
-                if credentials is not None and credentials.credentials != "secret":
+                if config.api_key is None and credentials is not None and credentials.credentials != "secret":
                     config.api_key = credentials.credentials
 
                 conversation = None
@@ -485,7 +490,7 @@ class Api:
                 config.provider = provider
             if config.provider is None:
                 config.provider = AppConfig.media_provider
-            if credentials is not None and credentials.credentials != "secret":
+            if config.api_key is None and credentials is not None and credentials.credentials != "secret":
                 config.api_key = credentials.credentials
             try:
                 response = await self.client.images.generate(
@@ -613,9 +618,7 @@ class Api:
                     provider=config.provider if provider is None else provider,
                     prompt=config.input,
                     audio=filter_none(voice=config.voice, format=config.response_format, language=config.language),
-                    **filter_none(
-                        api_key=api_key,
-                    )
+                    api_key=api_key,
                 )
                 if isinstance(response.choices[0].message.content, AudioResponse):
                     response = response.choices[0].message.content.data
@@ -653,59 +656,6 @@ class Api:
                         file.file.close()
                 read_cookie_files()
             return response_data
-
-        @self.app.get("/v1/files/{bucket_id}", responses={
-            HTTP_200_OK: {"content": {
-                "text/event-stream": {"schema": {"type": "string"}},
-                "text/plain": {"schema": {"type": "string"}},
-            }},
-            HTTP_404_NOT_FOUND: {"model": ErrorResponseModel},
-        })
-        def read_files(request: Request, bucket_id: str, delete_files: bool = True, refine_chunks_with_spacy: bool = False):
-            bucket_dir = os.path.join(get_cookies_dir(), "buckets", bucket_id)
-            event_stream = "text/event-stream" in request.headers.get("accept", "")
-            if not os.path.isdir(bucket_dir):
-                return ErrorResponse.from_message("Bucket dir not found", 404)
-            return StreamingResponse(get_async_streaming(bucket_dir, delete_files, refine_chunks_with_spacy, event_stream),
-                                     media_type="text/event-stream" if event_stream else "text/plain")
-
-        @self.app.post("/v1/files/{bucket_id}", responses={
-            HTTP_200_OK: {"model": UploadResponseModel}
-        })
-        def upload_files(bucket_id: str, files: List[UploadFile]):
-            bucket_dir = os.path.join(get_cookies_dir(), "buckets", bucket_id)
-            os.makedirs(bucket_dir, exist_ok=True)
-            filenames = []
-            for file in files:
-                try:
-                    filename = os.path.basename(file.filename)
-                    if file and supports_filename(filename):
-                        with open(os.path.join(bucket_dir, filename), 'wb') as f:
-                            shutil.copyfileobj(file.file, f)
-                        filenames.append(filename)
-                finally:
-                    file.file.close()
-            with open(os.path.join(bucket_dir, "files.txt"), 'w') as f:
-                [f.write(f"{filename}\n") for filename in filenames]
-            return {"bucket_id": bucket_id, "url": f"/v1/files/{bucket_id}", "files": filenames}
-
-        @self.app.get("/v1/synthesize/{provider}", responses={
-            HTTP_200_OK: {"content": {"audio/*": {}}},
-            HTTP_404_NOT_FOUND: {"model": ErrorResponseModel},
-            HTTP_422_UNPROCESSABLE_ENTITY: {"model": ErrorResponseModel},
-        })
-        async def synthesize(request: Request, provider: str):
-            try:
-                provider_handler = convert_to_provider(provider)
-            except ProviderNotFoundError as e:
-                return ErrorResponse.from_exception(e, status_code=HTTP_404_NOT_FOUND)
-            if not hasattr(provider_handler, "synthesize"):
-                return ErrorResponse.from_message("Provider doesn't support synthesize", HTTP_404_NOT_FOUND)
-            if len(request.query_params) == 0:
-                return ErrorResponse.from_message("Missing query params", HTTP_422_UNPROCESSABLE_ENTITY)
-            response_data = provider_handler.synthesize({**request.query_params})
-            content_type = getattr(provider_handler, "synthesize_content_type", "application/octet-stream")
-            return StreamingResponse(response_data, media_type=content_type)
 
         @self.app.post("/json/{filename}")
         async def get_json(filename, request: Request):
@@ -771,7 +721,8 @@ class Api:
                             target=target, ssl=ssl)
                         debug.log(f"File copied from {source_url}")
                     except Exception as e:
-                        debug.error(f"Download failed:  {source_url}\n{type(e).__name__}: {e}")
+                        debug.error(f"Download failed:  {source_url}")
+                        debug.error(e)
                         return RedirectResponse(url=source_url)
             if not os.path.isfile(target):
                 return ErrorResponse.from_message("File not found", HTTP_404_NOT_FOUND)

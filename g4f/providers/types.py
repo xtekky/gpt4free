@@ -25,26 +25,8 @@ class BaseProvider(ABC):
     supports_message_history: bool = False
     supports_system_message: bool = False
     params: str
-
-    @abstractmethod
-    def get_create_function() -> callable:
-        """
-        Get the create function for the provider.
-
-        Returns:
-            callable: The create function.
-        """
-        raise NotImplementedError()
-
-    @abstractmethod
-    def get_async_create_function() -> callable:
-        """
-        Get the async create function for the provider.
-
-        Returns:
-            callable: The create function.
-        """
-        raise NotImplementedError()
+    create_function: callable
+    async_create_function: callable
 
     @classmethod
     def get_dict(cls) -> Dict[str, str]:
@@ -59,6 +41,42 @@ class BaseProvider(ABC):
     @classmethod
     def get_parent(cls) -> str:
         return getattr(cls, "parent", cls.__name__)
+
+    @abstractmethod
+    def create_function(
+        *args,
+        **kwargs
+    ) -> CreateResult:
+        """
+        Create a function to generate a response based on the model and messages.
+
+        Args:
+            model (str): The model to use.
+            messages (Messages): The messages to process.
+            stream (bool): Whether to stream the response.
+
+        Returns:
+            CreateResult: The result of the creation.
+        """
+        raise NotImplementedError()
+
+    @staticmethod
+    def async_create_function(
+        *args,
+        **kwargs
+    ) -> CreateResult:
+        """
+        Asynchronously create a function to generate a response based on the model and messages.
+
+        Args:
+            model (str): The model to use.
+            messages (Messages): The messages to process.
+            stream (bool): Whether to stream the response.
+
+        Returns:
+            CreateResult: The result of the creation.
+        """
+        raise NotImplementedError()
 
 class BaseRetryProvider(BaseProvider):
     """

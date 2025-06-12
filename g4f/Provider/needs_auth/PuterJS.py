@@ -15,6 +15,7 @@ from .. import debug
 
 class PuterJS(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Puter.js"
+    parent = "Puter"
     url = "https://docs.puter.com/playground"
     login_url = "https://github.com/HeyPuter/puter-cli"
     api_endpoint = "https://api.puter.com/drivers/call"

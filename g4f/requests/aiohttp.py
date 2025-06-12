@@ -62,10 +62,10 @@ class StreamSession():
             headers=headers
         )
 
-    async def __aenter__(self) -> "ClientSession":
+    async def __aenter__(self) -> ClientSession:
         return self.inner
 
-    async def __aexit__(self, **kwargs) -> None:
+    async def __aexit__(self, *args, **kwargs) -> None:
         await self.inner.close()
 
 def get_connector(connector: BaseConnector = None, proxy: str = None, rdns: bool = False) -> Optional[BaseConnector]:

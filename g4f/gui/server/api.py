@@ -147,10 +147,10 @@ class Api:
         }
 
     def _create_response_stream(self, kwargs: dict, provider: str, download_media: bool = True, tempfiles: list[str] = []) -> Iterator:
-        def decorated_log(text: str, file = None):
-            debug.logs.append(text)
+        def decorated_log(*values: str, file = None):
+            debug.logs.append(" ".join([str(value) for value in values]))
             if debug.logging:
-                debug.log_handler(text, file=file)
+                debug.log_handler(*values, file=file)
         debug.log = decorated_log
         proxy = os.environ.get("G4F_PROXY")
         provider = kwargs.get("provider")

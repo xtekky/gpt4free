@@ -126,12 +126,30 @@ class AbstractProvider(BaseProvider):
         )
 
     @classmethod
-    def get_create_function(cls) -> callable:
-        return cls.create_completion
+    def create_function(cls, *args, **kwargs) -> CreateResult:
+        """
+        Creates a completion using the synchronous method.
+
+        Args:
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            CreateResult: The result of the completion creation.
+        """
+        return cls.create_completion(*args, **kwargs)
 
     @classmethod
-    def get_async_create_function(cls) -> callable:
-        return cls.create_async
+    def async_create_function(cls, *args, **kwargs) -> AsyncResult:
+        """
+        Creates a completion using the synchronous method.
+
+        Args:
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            CreateResult: The result of the completion creation.
+        """
+        return cls.create_async(*args, **kwargs)
 
     @classmethod
     def get_parameters(cls, as_json: bool = False) -> dict[str, Parameter]:
@@ -264,14 +282,6 @@ class AsyncProvider(AbstractProvider):
         """
         raise NotImplementedError()
 
-    @classmethod
-    def get_create_function(cls) -> callable:
-        return cls.create_completion
-
-    @classmethod
-    def get_async_create_function(cls) -> callable:
-        return cls.create_async
-
 class AsyncGeneratorProvider(AbstractProvider):
     """
     Provides asynchronous generator functionality for streaming results.
@@ -331,12 +341,17 @@ class AsyncGeneratorProvider(AbstractProvider):
         raise NotImplementedError()
 
     @classmethod
-    def get_create_function(cls) -> callable:
-        return cls.create_completion
+    def async_create_function(cls, *args, **kwargs) -> AsyncResult:
+        """
+        Creates a completion using the synchronous method.
 
-    @classmethod
-    def get_async_create_function(cls) -> callable:
-        return cls.create_async_generator
+        Args:
+            **kwargs: Additional keyword arguments.
+
+        Returns:
+            CreateResult: The result of the completion creation.
+        """
+        return cls.create_async_generator(*args, **kwargs)
 
 class ProviderModelMixin:
     default_model: str = None
@@ -416,14 +431,6 @@ class AsyncAuthedProvider(AsyncGeneratorProvider, AuthFileMixin):
         if hasattr(auth_result, "__aiter__"):
             return to_sync_generator(auth_result)
         return asyncio.run(auth_result)
-
-    @classmethod
-    def get_create_function(cls) -> callable:
-        return cls.create_completion
-
-    @classmethod
-    def get_async_create_function(cls) -> callable:
-        return cls.create_async_generator
 
     @classmethod
     def write_cache_file(cls, cache_file: Path, auth_result: AuthResult = None):
