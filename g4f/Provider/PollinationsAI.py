@@ -252,7 +252,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         extra_body: dict = None,
         # Image generation parameters
         prompt: str = None,
-        aspect_ratio: str = "1:1",
+        aspect_ratio: str = None,
         width: int = None,
         height: int = None,
         seed: Optional[int] = None,
@@ -294,6 +294,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
             async for chunk in cls._generate_image(
                 model=model,
                 prompt=format_media_prompt(messages, prompt),
+                media=media,
                 proxy=proxy,
                 aspect_ratio=aspect_ratio,
                 width=width,
@@ -347,6 +348,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         cls,
         model: str,
         prompt: str,
+        media: MediaListType,
         proxy: str,
         aspect_ratio: str,
         width: int,
@@ -362,20 +364,30 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         api_key: str,
         timeout: int = 120
     ) -> AsyncResult:
-        if model == "gptimage":
-            n = 1
-        params = use_aspect_ratio({
-            "width": width,
-            "height": height,
+        params = {
             "model": model,
             "nologo": str(nologo).lower(),
             "private": str(private).lower(),
             "enhance": str(enhance).lower(),
             "safe": str(safe).lower(),
-        }, aspect_ratio)
+        }
+        if model == "gptimage":
+            n = 1
+            # Only remote images are supported
+            image = [item[0] for item in media if isinstance(item[0], str) and item[0].startswith("http")]
+            params = {
+                **params,
+                "image": ",".join(image) if image else "",
+            }
+        else:
+            params = use_aspect_ratio({
+                "width": width,
+                "height": height,
+                **params
+            }, "1:1" if aspect_ratio is None else aspect_ratio)
         query = "&".join(f"{k}={quote_plus(str(v))}" for k, v in params.items() if v is not None)
         encoded_prompt = prompt
-        if model == "gptimage" and aspect_ratio != "1:1":
+        if model == "gptimage" and aspect_ratio is not None:
             encoded_prompt = f"{encoded_prompt} aspect-ratio: {aspect_ratio}"
         encoded_prompt = quote_plus(encoded_prompt)[:2048-len(cls.image_api_endpoint)-len(query)-8]
         url = f"{cls.image_api_endpoint}prompt/{encoded_prompt}?{query}"

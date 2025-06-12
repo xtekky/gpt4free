@@ -479,6 +479,7 @@ class Images:
             response,
             model,
             provider_name,
+            kwargs.get("download_media", True),
             response_format,
             proxy
         )
@@ -531,7 +532,7 @@ class Images:
                 urls.extend(item.urls)
         if not urls:
             return None
-        alt = getattr(items[0], "alt", items[0].options.get("text"))
+        alt = getattr(items[0], "alt", "")
         return MediaResponse(urls, alt, items[0].options)
 
     def create_variation(
@@ -580,13 +581,21 @@ class Images:
             if error is not None:
                 raise error
             raise NoMediaResponseError(f"No media response from {provider_name}")
-        return await self._process_image_response(response, model, provider_name, response_format, proxy)
+        return await self._process_image_response(
+            response,
+            model,
+            provider_name,
+            kwargs.get("download_media", True),
+            response_format,
+            proxy
+        )
 
     async def _process_image_response(
         self,
         response: MediaResponse,
         model: str,
         provider: str,
+        download_media: bool,
         response_format: Optional[str] = None,
         proxy: str = None
     ) -> ImagesResponse:
@@ -609,9 +618,10 @@ class Images:
             images = await asyncio.gather(*[get_b64_from_url(image) for image in response.get_list()])
         else:
             # Save locally for None (default) case
-            images = await copy_media(response.get_list(), response.get("cookies"), response.get("headers"), proxy, response.alt)
+            if download_media or response.get("cookies"):
+                images = await copy_media(response.get_list(), response.get("cookies"), response.get("headers"), proxy, response.alt)
             images = [Image.model_construct(url=image, revised_prompt=response.alt) for image in images]
-        
+
         return ImagesResponse.model_construct(
             created=int(time.time()),
             data=images,

@@ -319,8 +319,9 @@ class AnyProvider(AsyncGeneratorProvider, ProviderModelMixin):
             extra_providers = []
             if isinstance(api_key, dict):
                 for provider in api_key:
-                    if provider in __map__ and __map__[provider] not in MAIN_PROVIERS:
-                        extra_providers.append(__map__[provider])
+                    if api_key.get(provider):
+                        if provider in __map__ and __map__[provider] not in MAIN_PROVIERS:
+                            extra_providers.append(__map__[provider])
             for provider in MAIN_PROVIERS + extra_providers:
                 if provider.working:
                     if not model or model in provider.get_models() or model in provider.model_aliases:

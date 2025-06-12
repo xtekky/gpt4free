@@ -53,11 +53,16 @@ class IterListProvider(BaseRetryProvider):
 
         for provider in self.get_providers(stream and not ignore_stream, ignored):
             self.last_provider = provider
-            debug.log(f"Using {provider.__name__} provider")
-            yield ProviderInfo(**provider.get_dict(), model=model if model else getattr(provider, "default_model"))
+            if not model:
+                model = getattr(provider, "default_model", None)
+            model = provider.model_aliases.get(model, model) if hasattr(provider, "model_aliases") else model
+            debug.log(f"Using {provider.__name__} provider with model {model}")
+            yield ProviderInfo(**provider.get_dict(), model=model)
             extra_body = kwargs.copy()
             if isinstance(api_key, dict):
-                extra_body["api_key"] = api_key.get(provider.get_parent())
+                api_key = api_key.get(provider.get_parent())
+            if api_key:
+                extra_body["api_key"] = api_key
             try:
                 response = provider.create_function(model, messages, stream=stream, **extra_body)
                 for chunk in response:
@@ -92,11 +97,16 @@ class IterListProvider(BaseRetryProvider):
 
         for provider in self.get_providers(stream and not ignore_stream, ignored):
             self.last_provider = provider
-            debug.log(f"Using {provider.__name__} provider" + (f" and {model} model" if model else ""))
-            yield ProviderInfo(**provider.get_dict(), model=model if model else getattr(provider, "default_model"))
+            if not model:
+                model = getattr(provider, "default_model", None)
+            model = provider.model_aliases.get(model, model) if hasattr(provider, "model_aliases") else model
+            debug.log(f"Using {provider.__name__} provider with model {model}")
+            yield ProviderInfo(**provider.get_dict(), model=model)
             extra_body = kwargs.copy()
             if isinstance(api_key, dict):
-                extra_body["api_key"] = api_key.get(provider.get_parent())
+                api_key = api_key.get(provider.get_parent())
+            if api_key:
+                extra_body["api_key"] = api_key
             if conversation is not None and hasattr(conversation, provider.__name__):
                 extra_body["conversation"] = JsonConversation(**getattr(conversation, provider.__name__))
             try:

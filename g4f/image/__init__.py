@@ -14,7 +14,7 @@ try:
 except ImportError:
     has_requirements = False
 
-from ..typing import ImageType, Union, Image
+from ..typing import ImageType, Image
 from ..errors import MissingRequirementsError
 
 EXTENSIONS_MAP: dict[str, str] = {
@@ -107,7 +107,7 @@ def is_data_an_media(data, filename: str = None) -> str:
         return is_accepted_format(data)
     return is_data_uri_an_image(data)
 
-def is_valid_media(data, filename: str = None) -> str:
+def is_valid_media(data: ImageType = None, filename: str = None) -> str:
     if is_valid_audio(data, filename):
         return True
     if filename:

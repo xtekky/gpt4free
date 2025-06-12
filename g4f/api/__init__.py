@@ -425,7 +425,7 @@ class Api:
             try:
                 if config.provider is None:
                     config.provider = AppConfig.provider if provider is None else provider
-                if credentials is not None and credentials.credentials != "secret":
+                if config.api_key is None and credentials is not None and credentials.credentials != "secret":
                     config.api_key = credentials.credentials
 
                 conversation = None
@@ -618,9 +618,7 @@ class Api:
                     provider=config.provider if provider is None else provider,
                     prompt=config.input,
                     audio=filter_none(voice=config.voice, format=config.response_format, language=config.language),
-                    **filter_none(
-                        api_key=api_key,
-                    )
+                    api_key=api_key,
                 )
                 if isinstance(response.choices[0].message.content, AudioResponse):
                     response = response.choices[0].message.content.data
