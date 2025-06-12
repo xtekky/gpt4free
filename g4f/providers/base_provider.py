@@ -20,7 +20,7 @@ from .asyncio import get_running_loop, to_sync_generator, to_async_iterator
 from .response import BaseConversation, AuthResult
 from .helper import concat_chunks
 from ..cookies import get_cookies_dir
-from ..errors import ModelNotSupportedError, ResponseError, MissingAuthError, NoValidHarFileError, PaymentRequiredError
+from ..errors import ModelNotFoundError, ResponseError, MissingAuthError, NoValidHarFileError, PaymentRequiredError
 from .. import debug
 
 SAFE_PARAMETERS = [
@@ -363,7 +363,7 @@ class ProviderModelMixin:
             model = cls.model_aliases[model]
         else:
             if model not in cls.get_models(**kwargs) and cls.models:
-                raise ModelNotSupportedError(f"Model is not supported: {model} in: {cls.__name__} Valid models: {cls.models}")
+                raise ModelNotFoundError(f"Model is not supported: {model} in: {cls.__name__} Valid models: {cls.models}")
         cls.last_model = model
         debug.last_model = model
         return model

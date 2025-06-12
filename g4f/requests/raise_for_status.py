@@ -28,9 +28,12 @@ async def raise_for_status_async(response: Union[StreamResponse, ClientResponse]
         content_type = response.headers.get("content-type", "")
         if content_type.startswith("application/json"):
             message = await response.json()
-            message = message.get("error", message)
-            if isinstance(message, dict):
-                message = message.get("message", message)
+            error = message.get("error")
+            if isinstance(error, dict):
+                message = error.get("message")
+            message = message.get("message", message)
+            if isinstance(error, str):
+                message = f"{error}: {message}"
         else:
             message = (await response.text()).strip()
             is_html = content_type.startswith("text/html") or message.startswith("<!DOCTYPE")

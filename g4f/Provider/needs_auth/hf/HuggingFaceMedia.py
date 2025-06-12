@@ -7,7 +7,7 @@ import requests
 
 from ....providers.types import Messages
 from ....requests import StreamSession, raise_for_status
-from ....errors import ModelNotSupportedError
+from ....errors import ModelNotFoundError
 from ....providers.helper import format_image_prompt
 from ....providers.base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ....providers.response import ProviderInfo, ImageResponse, VideoResponse, Reasoning
@@ -98,7 +98,7 @@ class HuggingFaceMedia(AsyncGeneratorProvider, ProviderModelMixin):
         model: str,
         messages: Messages,
         api_key: str = None,
-        extra_body: dict = {},
+        extra_body: dict = None,
         prompt: str = None,
         proxy: str = None,
         timeout: int = 0,
@@ -112,6 +112,8 @@ class HuggingFaceMedia(AsyncGeneratorProvider, ProviderModelMixin):
         resolution: str = "480p",
         **kwargs
     ):
+        if extra_body is None:
+            extra_body = {}
         selected_provider = None
         if model and ":" in model:
             model, selected_provider = model.split(":", 1)
@@ -130,7 +132,7 @@ class HuggingFaceMedia(AsyncGeneratorProvider, ProviderModelMixin):
         }
         provider_mapping = {**new_mapping, **provider_mapping}
         if not provider_mapping:
-            raise ModelNotSupportedError(f"Model is not supported: {model} in: {cls.__name__}")
+            raise ModelNotFoundError(f"Model is not supported: {model} in: {cls.__name__}")
         async def generate(extra_body: dict, aspect_ratio: str = None):
             last_response = None
             for provider_key, provider in provider_mapping.items():
@@ -142,7 +144,7 @@ class HuggingFaceMedia(AsyncGeneratorProvider, ProviderModelMixin):
                 task = provider["task"]
                 provider_id = provider["providerId"]
                 if task not in cls.tasks:
-                    raise ModelNotSupportedError(f"Model is not supported: {model} in: {cls.__name__} task: {task}")
+                    raise ModelNotFoundError(f"Model is not supported: {model} in: {cls.__name__} task: {task}")
 
                 if aspect_ratio is None:
                     aspect_ratio = "1:1" if task == "text-to-image" else "16:9"
@@ -209,7 +211,7 @@ class HuggingFaceMedia(AsyncGeneratorProvider, ProviderModelMixin):
                             debug.error(f"{cls.__name__}: Error {response.status} with {provider_key} and {provider_id}")
                             continue
                         if response.status == 404:
-                            raise ModelNotSupportedError(f"Model is not supported: {model}")
+                            raise ModelNotFoundError(f"Model not found: {model}")
                         await raise_for_status(response)
                         if response.headers.get("Content-Type", "").startswith("application/json"):
                             result = await response.json()

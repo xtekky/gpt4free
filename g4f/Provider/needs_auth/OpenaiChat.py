@@ -23,7 +23,7 @@ from ...requests.raise_for_status import raise_for_status
 from ...requests import StreamSession
 from ...requests import get_nodriver
 from ...image import ImageRequest, to_image, to_bytes, is_accepted_format
-from ...errors import MissingAuthError, NoValidHarFileError, ModelNotSupportedError
+from ...errors import MissingAuthError, NoValidHarFileError, ModelNotFoundError
 from ...providers.response import JsonConversation, FinishReason, SynthesizeData, AuthResult, ImageResponse, ImagePreview
 from ...providers.response import Sources, TitleGeneration, RequestLogin, Reasoning
 from ...tools.media import merge_media
@@ -358,7 +358,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                     debug.error(e)
             try:
                 model = cls.get_model(model)
-            except ModelNotSupportedError:
+            except ModelNotFoundError:
                 pass
             if conversation is None:
                 conversation = Conversation(None, str(uuid.uuid4()), getattr(auth_result, "cookies", {}).get("oai-did"))

@@ -1,34 +1,27 @@
 from __future__ import annotations
 
-try:
-    has_openaifm = True
-except ImportError:
-    has_openaifm = False
-
 from aiohttp import ClientSession
-from urllib.parse import urlencode
-import json
 
 from ...typing import AsyncResult, Messages
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from ..helper import get_last_message
+from ..helper import get_last_user_message, get_system_prompt
 from ...image.copy_images import save_response_media
-
+from ...requests.raise_for_status import raise_for_status
+from ...requests.aiohttp import get_connector
+from ...requests import DEFAULT_HEADERS
 
 class OpenAIFM(AsyncGeneratorProvider, ProviderModelMixin):
     label = "OpenAI.fm"
     url = "https://www.openai.fm"
     api_endpoint = "https://www.openai.fm/api/generate"
-    
-    working = has_openaifm
+    working = True
     
     default_model = 'gpt-4o-mini-tts'
     default_audio_model = default_model
     default_voice = 'coral'
     voices = ['alloy', 'ash', 'ballad', default_voice, 'echo', 'fable', 'onyx', 'nova', 'sage', 'shimmer', 'verse']
     audio_models = {default_audio_model: voices}
-    models = [default_audio_model]
-
+    models = voices
     
     friendly = """Affect/personality: A cheerful guide 
 
@@ -106,44 +99,24 @@ Emotion: Restrained enthusiasm for discoveries and findings, conveying intellect
         audio: dict = {},
         **kwargs
     ) -> AsyncResult:
-        
         # Retrieve parameters from the audio dictionary
         voice = audio.get("voice", kwargs.get("voice", cls.default_voice))
-        instructions = audio.get("instructions", kwargs.get("instructions", cls.friendly))
-        
+        instructions = audio.get("instructions", kwargs.get("instructions", get_system_prompt(messages) or cls.friendly))
         headers = {
-            "accept": "*/*",
-            "accept-language": "en-US,en;q=0.9",
-            "cache-control": "no-cache",
-            "pragma": "no-cache",
-            "sec-fetch-dest": "audio",
-            "sec-fetch-mode": "no-cors", 
-            "sec-fetch-site": "same-origin",
-            "user-agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36",
-            "referer": cls.url
+            **DEFAULT_HEADERS,
+            "referer": f"{cls.url}/"
         }
-
-        # Using prompts or formatting messages
-        text = get_last_message(messages, prompt)
-        
+        text = get_last_user_message(messages, prompt)
         params = {
             "input": text,
             "prompt": instructions,
             "voice": voice
         }
-        
-        async with ClientSession(headers=headers) as session:
-            
-            # Print the full URL with parameters
-            full_url = f"{cls.api_endpoint}?{urlencode(params)}"
-            
+        async with ClientSession(headers=headers, connector=get_connector(proxy=proxy)) as session:            
             async with session.get(
                 cls.api_endpoint,
-                params=params,
-                proxy=proxy
+                params=params
             ) as response:
-                
-                response.raise_for_status()
-                
+                await raise_for_status(response)                
                 async for chunk in save_response_media(response, text, [model, voice]):
                     yield chunk

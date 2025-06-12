@@ -4,7 +4,7 @@ import os
 import time
 import asyncio
 import hashlib
-import re
+import base64
 from typing import AsyncIterator
 from urllib.parse import quote, unquote
 from aiohttp import ClientSession, ClientError
@@ -54,25 +54,37 @@ def get_source_url(image: str, default: str = None) -> str:
             return decoded_url
     return default
 
-async def save_response_media(response: StreamResponse, prompt: str, tags: list[str]) -> AsyncIterator:
+async def save_response_media(response, prompt: str, tags: list[str]) -> AsyncIterator:
     """Save media from response to local file and return URL"""
-    content_type = response.headers["content-type"]
+    if isinstance(response, str):
+        response = base64.b64decode(response)
+    content_type = response.headers["content-type"] if hasattr(response, "headers") else "audio/mpeg"
     extension = MEDIA_TYPE_MAP.get(content_type)
     if extension is None:
         raise ValueError(f"Unsupported media type: {content_type}")
+
     filename = get_filename(tags, prompt, f".{extension}", prompt)
     target_path = os.path.join(get_media_dir(), filename)
     ensure_media_dir()
     with open(target_path, 'wb') as f:
-        async for chunk in response.iter_content() if hasattr(response, "iter_content") else response.content.iter_any():
-            f.write(chunk)
+        if isinstance(response, bytes):
+            f.write(response)
+        else:
+            if hasattr(response, "iter_content"):
+                iter_response = response.iter_content()
+            else:
+                iter_response = response.content.iter_any()
+            async for chunk in iter_response:
+                f.write(chunk)
     
     # Base URL without request parameters
     media_url = f"/media/{filename}"
     
     # Save the original URL in the metadata, but not in the file path itself
-    source_url = str(response.url) if response.method == "GET" else None
-    
+    source_url = None
+    if hasattr(response, "url") and response.method == "GET":
+        source_url = str(response.url)
+
     if content_type.startswith("audio/"):
         yield AudioResponse(media_url, text=prompt, source_url=source_url)
     elif content_type.startswith("video/"):

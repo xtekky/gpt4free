@@ -36,9 +36,11 @@ class ImageLabs(AsyncGeneratorProvider, ProviderModelMixin):
         aspect_ratio: str = "1:1",
         width: int = None,
         height: int = None,
-        extra_body: dict = {},
+        extra_body: dict = None,
         **kwargs
     ) -> AsyncResult:
+        if extra_body is None:
+            extra_body = {}
         extra_body = use_aspect_ratio({
             "width": width,
             "height": height,

@@ -7,7 +7,7 @@ import uuid
 from ...typing import AsyncResult, Messages
 from ...providers.response import Reasoning, JsonConversation
 from ...requests.raise_for_status import raise_for_status
-from ...errors import ModelNotSupportedError
+from ...errors import ModelNotFoundError
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..helper import get_last_user_message
 from ... import debug
@@ -55,7 +55,7 @@ class Qwen_Qwen_3(AsyncGeneratorProvider, ProviderModelMixin):
     ) -> AsyncResult:
         try:
             model = cls.get_model(model)
-        except ModelNotSupportedError:
+        except ModelNotFoundError:
             pass
         if conversation is None:
             conversation = JsonConversation(session_hash=str(uuid.uuid4()).replace('-', ''))

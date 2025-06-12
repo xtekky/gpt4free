@@ -257,7 +257,7 @@ class Api:
         }
 
     def handle_provider(self, provider_handler, model):
-        if model:
+        if not getattr(provider_handler, "model", False):
             return self._format_json("provider", {**provider_handler.get_dict(), "model": model})
         return self._format_json("provider", provider_handler.get_dict())
 

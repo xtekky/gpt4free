@@ -22,9 +22,6 @@ class RetryNoProviderError(Exception):
 class VersionNotFoundError(Exception):
     ...
 
-class ModelNotSupportedError(Exception):
-    ...
-
 class MissingRequirementsError(Exception):
     ...
 
