@@ -62,14 +62,14 @@ class DeepSeekAPI(AsyncAuthedProvider, ProviderModelMixin):
         if conversation is None:
             chat_id = api.create_chat_session()
             conversation = JsonConversation(chat_id=chat_id)
-        yield conversation
 
         is_thinking = 0
         for chunk in api.chat_completion(
             conversation.chat_id,
             get_last_user_message(messages),
             thinking_enabled=bool(model) and "deepseek-r1" in model,
-            search_enabled=web_search
+            search_enabled=web_search,
+            parent_message_id=getattr(conversation, "parent_id", None)
         ):
             if chunk['type'] == 'thinking':
                 if not is_thinking:
@@ -82,5 +82,8 @@ class DeepSeekAPI(AsyncAuthedProvider, ProviderModelMixin):
                     is_thinking = 0
                 if chunk['content']:
                     yield chunk['content']
+            elif 'message_id' in chunk:
+                conversation.parent_id = chunk['message_id']
             if chunk['finish_reason']:
                 yield FinishReason(chunk['finish_reason'])
+        yield conversation

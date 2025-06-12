@@ -490,7 +490,6 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                 response_format=response_format,
                 stream=stream,
                 seed=seed,
-                cache=cache,
                 **extra_body
             )
             headers = {"referer": referrer}
