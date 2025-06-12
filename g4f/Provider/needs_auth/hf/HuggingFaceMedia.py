@@ -8,7 +8,7 @@ import requests
 from ....providers.types import Messages
 from ....requests import StreamSession, raise_for_status
 from ....errors import ModelNotFoundError
-from ....providers.helper import format_image_prompt
+from ....providers.helper import format_media_prompt
 from ....providers.base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ....providers.response import ProviderInfo, ImageResponse, VideoResponse, Reasoning
 from ....image.copy_images import save_response_media
@@ -119,7 +119,7 @@ class HuggingFaceMedia(AsyncGeneratorProvider, ProviderModelMixin):
             model, selected_provider = model.split(":", 1)
         elif not model:
             model = cls.get_models()[0]
-        prompt = format_image_prompt(messages, prompt)
+        prompt = format_media_prompt(messages, prompt)
         provider_mapping = await cls.get_mapping(model, api_key)
         headers = {
             'Accept-Encoding': 'gzip, deflate',

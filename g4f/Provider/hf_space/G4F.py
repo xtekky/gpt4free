@@ -7,7 +7,7 @@ import asyncio
 
 from ...typing import AsyncResult, Messages
 from ...providers.response import ImageResponse, Reasoning, JsonConversation
-from ..helper import format_image_prompt, get_random_string
+from ..helper import format_media_prompt, get_random_string
 from .DeepseekAI_JanusPro7b import DeepseekAI_JanusPro7b, get_zerogpu_token
 from .BlackForestLabs_Flux1Dev import BlackForestLabs_Flux1Dev
 from .raise_for_status import raise_for_status
@@ -80,7 +80,7 @@ class G4F(DeepseekAI_JanusPro7b):
         width = max(32, width - (width % 8))
         height = max(32, height - (height % 8))
         if prompt is None:
-            prompt = format_image_prompt(messages)
+            prompt = format_media_prompt(messages)
         if seed is None:
             seed = random.randint(9999, 2**32 - 1)
 

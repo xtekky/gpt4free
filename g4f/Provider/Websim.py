@@ -11,7 +11,7 @@ from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..requests.raise_for_status import raise_for_status
 from ..errors import ResponseStatusError
 from ..providers.response import ImageResponse
-from .helper import format_prompt, format_image_prompt
+from .helper import format_prompt, format_media_prompt
 
 
 class Websim(AsyncGeneratorProvider, ProviderModelMixin):
@@ -110,7 +110,7 @@ class Websim(AsyncGeneratorProvider, ProviderModelMixin):
         proxy: str = None,
         **kwargs
     ) -> AsyncResult:
-        used_prompt = format_image_prompt(messages, prompt)
+        used_prompt = format_media_prompt(messages, prompt)
         
         async with ClientSession(headers=headers) as session:
             data = {

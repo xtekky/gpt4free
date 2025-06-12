@@ -13,7 +13,7 @@ from ..providers.response import ImageResponse, Reasoning
 from ..errors import ResponseError, ModelNotFoundError
 from ..cookies import get_cookies_dir
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from .helper import format_image_prompt
+from .helper import format_media_prompt
 from .. import debug
 
 class ARTA(AsyncGeneratorProvider, ProviderModelMixin):
@@ -177,7 +177,7 @@ class ARTA(AsyncGeneratorProvider, ProviderModelMixin):
         **kwargs
     ) -> AsyncResult:
         model = cls.get_model(model)
-        prompt = format_image_prompt(messages, prompt)
+        prompt = format_media_prompt(messages, prompt)
 
         # Generate a random seed if not provided
         if seed is None:

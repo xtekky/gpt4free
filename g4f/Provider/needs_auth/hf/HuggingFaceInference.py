@@ -12,7 +12,7 @@ from ....requests import StreamSession, raise_for_status
 from ....providers.response import FinishReason, ImageResponse
 from ....image.copy_images import save_response_media
 from ....image import use_aspect_ratio
-from ...helper import format_image_prompt, get_last_user_message
+from ...helper import format_media_prompt, get_last_user_message
 from .models import default_model, default_image_model, model_aliases, text_models, image_models, vision_models
 from .... import debug
 
@@ -110,7 +110,7 @@ class HuggingFaceInference(AsyncGeneratorProvider, ProviderModelMixin):
                 if model in provider_together_urls:
                     data = {
                         "response_format": "url",
-                        "prompt": format_image_prompt(messages, prompt),
+                        "prompt": format_media_prompt(messages, prompt),
                         "model": model,
                         **image_extra_body
                     }
@@ -136,7 +136,7 @@ class HuggingFaceInference(AsyncGeneratorProvider, ProviderModelMixin):
                 pipeline_tag = model_data.get("pipeline_tag")
                 if pipeline_tag == "text-to-image":
                     stream = False
-                    inputs = format_image_prompt(messages, prompt)
+                    inputs = format_media_prompt(messages, prompt)
                     payload = {"inputs": inputs, "parameters": {"seed": random.randint(0, 2**32) if seed is None else seed, **image_extra_body}}
                 elif pipeline_tag in ("text-generation", "image-text-to-text"):
                     model_type = None

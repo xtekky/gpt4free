@@ -14,7 +14,7 @@ from ...requests.aiohttp import get_connector
 from ...requests import get_nodriver
 from ..Copilot import get_headers, get_har_files
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from ..helper import get_random_hex, format_image_prompt
+from ..helper import get_random_hex, format_media_prompt
 from ... import debug
 
 class MicrosoftDesigner(AsyncGeneratorProvider, ProviderModelMixin):
@@ -39,7 +39,7 @@ class MicrosoftDesigner(AsyncGeneratorProvider, ProviderModelMixin):
         image_size = "1024x1024"
         if model != cls.default_image_model and model in cls.image_models:
             image_size = model
-        yield await cls.generate(format_image_prompt(messages, prompt), image_size, proxy)
+        yield await cls.generate(format_media_prompt(messages, prompt), image_size, proxy)
 
     @classmethod
     async def generate(cls, prompt: str, image_size: str, proxy: str = None) -> ImageResponse:

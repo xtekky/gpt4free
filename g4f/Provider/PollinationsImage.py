@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from .helper import format_image_prompt
+from .helper import format_media_prompt
 from ..typing import AsyncResult, Messages
 from ..constants import STATIC_URL
 from .PollinationsAI import PollinationsAI
@@ -54,7 +54,7 @@ class PollinationsImage(PollinationsAI):
         cls.get_models()
         async for chunk in cls._generate_image(
             model=model,
-            prompt=format_image_prompt(messages, prompt),
+            prompt=format_media_prompt(messages, prompt),
             proxy=proxy,
             aspect_ratio=aspect_ratio,
             width=width,

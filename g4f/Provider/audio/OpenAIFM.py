@@ -4,7 +4,7 @@ from aiohttp import ClientSession
 
 from ...typing import AsyncResult, Messages
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from ..helper import get_last_user_message, get_system_prompt
+from ..helper import format_media_prompt, get_system_prompt
 from ...image.copy_images import save_response_media
 from ...requests.raise_for_status import raise_for_status
 from ...requests.aiohttp import get_connector
@@ -15,14 +15,13 @@ class OpenAIFM(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://www.openai.fm"
     api_endpoint = "https://www.openai.fm/api/generate"
     working = True
-    
-    default_model = 'gpt-4o-mini-tts'
-    default_audio_model = default_model
-    default_voice = 'coral'
-    voices = ['alloy', 'ash', 'ballad', default_voice, 'echo', 'fable', 'onyx', 'nova', 'sage', 'shimmer', 'verse']
-    audio_models = {default_audio_model: voices}
+
+    default_model = 'coral'
+    voices = ['alloy', 'ash', 'ballad', default_model, 'echo', 'fable', 'onyx', 'nova', 'sage', 'shimmer', 'verse']
+    audio_models = {"gpt-4o-mini-tts": voices}
+    model_aliases = {"gpt-4o-mini-tts": default_model}
     models = voices
-    
+
     friendly = """Affect/personality: A cheerful guide 
 
 Tone: Friendly, clear, and reassuring, creating a calm atmosphere and making the listener feel confident and comfortable.
@@ -99,16 +98,17 @@ Emotion: Restrained enthusiasm for discoveries and findings, conveying intellect
         audio: dict = {},
         **kwargs
     ) -> AsyncResult:
-        # Retrieve parameters from the audio dictionary
-        voice = audio.get("voice", kwargs.get("voice", cls.default_voice))
-        instructions = audio.get("instructions", kwargs.get("instructions", get_system_prompt(messages) or cls.friendly))
+        model = cls.get_model(model)
+        voice = audio.get("voice", kwargs.get("voice", model))
+        default_instructions = get_system_prompt(messages) or cls.friendly
+        instructions = audio.get("instructions", kwargs.get("instructions", default_instructions))
         headers = {
             **DEFAULT_HEADERS,
             "referer": f"{cls.url}/"
         }
-        text = get_last_user_message(messages, prompt)
+        prompt = format_media_prompt(messages, prompt)
         params = {
-            "input": text,
+            "input": prompt,
             "prompt": instructions,
             "voice": voice
         }
@@ -118,5 +118,5 @@ Emotion: Restrained enthusiasm for discoveries and findings, conveying intellect
                 params=params
             ) as response:
                 await raise_for_status(response)                
-                async for chunk in save_response_media(response, text, [model, voice]):
+                async for chunk in save_response_media(response, prompt, [model, voice]):
                     yield chunk

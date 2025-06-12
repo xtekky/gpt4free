@@ -31,7 +31,7 @@ class StreamResponse(ClientResponse):
                 except json.JSONDecodeError:
                     continue
 
-class StreamSession(ClientSession):
+class StreamSession():
     def __init__(
         self,
         headers: dict = {},
@@ -54,13 +54,19 @@ class StreamSession(ClientSession):
             timeout = ClientTimeout(timeout, connect)
         if proxy is None:
             proxy = proxies.get("all", proxies.get("https"))
-        super().__init__(
+        self.inner = ClientSession(
             **kwargs,
             timeout=timeout,
             response_class=StreamResponse,
             connector=get_connector(connector, proxy),
             headers=headers
         )
+
+    async def __aenter__(self) -> "ClientSession":
+        return self.inner
+
+    async def __aexit__(self, **kwargs) -> None:
+        await self.inner.close()
 
 def get_connector(connector: BaseConnector = None, proxy: str = None, rdns: bool = False) -> Optional[BaseConnector]:
     if proxy and not connector:

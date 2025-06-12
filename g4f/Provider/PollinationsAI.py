@@ -9,7 +9,7 @@ from urllib.parse import quote_plus
 from typing import Optional
 from aiohttp import ClientSession
 
-from .helper import filter_none, format_image_prompt
+from .helper import filter_none, format_media_prompt
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..typing import AsyncResult, Messages, MediaListType
 from ..image import is_data_an_audio
@@ -132,6 +132,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         ### Image Models ###
         "sdxl-turbo": "turbo",
         "gpt-image": "gptimage",
+        "dall-e-3": "gptimage",
         "flux-pro": "flux",
         "flux-dev": "flux",
         "flux-schnell": "flux"
@@ -292,7 +293,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         if model in cls.image_models:
             async for chunk in cls._generate_image(
                 model=model,
-                prompt=format_image_prompt(messages, prompt),
+                prompt=format_media_prompt(messages, prompt),
                 proxy=proxy,
                 aspect_ratio=aspect_ratio,
                 width=width,
@@ -524,7 +525,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                                 debug.error("Error generating title and followups")
                                 debug.error(e)
                 elif response.headers["content-type"].startswith("application/json"):
-                    prompt = format_image_prompt(messages)
+                    prompt = format_media_prompt(messages)
                     result = await response.json()
                     if result.get("model"):
                         yield ProviderInfo(**cls.get_dict(), model=result.get("model"))

@@ -8,7 +8,7 @@ from ...providers.response import ImageResponse, ImagePreview
 from ...image import use_aspect_ratio
 from ...errors import ResponseError
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from ..helper import format_image_prompt
+from ..helper import format_media_prompt
 
 class StabilityAI_SD35Large(AsyncGeneratorProvider, ProviderModelMixin):
     label = "StabilityAI SD-3.5-Large"
@@ -46,7 +46,7 @@ class StabilityAI_SD35Large(AsyncGeneratorProvider, ProviderModelMixin):
         if api_key is not None:
             headers["Authorization"] = f"Bearer {api_key}"
         async with ClientSession(headers=headers) as session:
-            prompt = format_image_prompt(messages, prompt)
+            prompt = format_media_prompt(messages, prompt)
             data = use_aspect_ratio({"width": width, "height": height}, aspect_ratio)
             data = {
                 "data": [prompt, negative_prompt, seed, randomize_seed, data.get("width"), data.get("height"), guidance_scale, num_inference_steps]

@@ -5,7 +5,7 @@ import uuid
 
 from ...typing import AsyncResult, Messages, Cookies, MediaListType
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from ..helper import format_prompt, format_image_prompt
+from ..helper import format_prompt, format_media_prompt
 from ...providers.response import JsonConversation
 from ...requests.aiohttp import StreamSession, StreamResponse, FormData
 from ...requests.raise_for_status import raise_for_status
@@ -104,7 +104,7 @@ class Microsoft_Phi_4_Multimodal(AsyncGeneratorProvider, ProviderModelMixin):
         **kwargs
     ) -> AsyncResult:
         prompt = format_prompt(messages) if prompt is None and conversation is None else prompt
-        prompt = format_image_prompt(messages, prompt)
+        prompt = format_media_prompt(messages, prompt)
 
         session_hash = uuid.uuid4().hex if conversation is None else getattr(conversation, "session_hash", uuid.uuid4().hex)
         async with StreamSession(proxy=proxy, impersonate="chrome") as session:

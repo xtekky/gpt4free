@@ -16,7 +16,7 @@ except ImportError:
     has_curl_cffi = False
 
 from ...base_provider import ProviderModelMixin, AsyncAuthedProvider, AuthResult
-from ...helper import format_prompt, format_image_prompt, get_last_user_message
+from ...helper import format_prompt, format_media_prompt, get_last_user_message
 from ....typing import AsyncResult, Messages, Cookies, MediaListType
 from ....errors import MissingRequirementsError, MissingAuthError, ResponseError
 from ....image import to_bytes
@@ -184,7 +184,7 @@ class HuggingChat(AsyncAuthedProvider, ProviderModelMixin):
                 break
             elif line["type"] == "file":
                 url = f"{cls.url}/conversation/{conversationId}/output/{line['sha']}"
-                yield ImageResponse(url, format_image_prompt(messages, prompt), options={"cookies": auth_result.cookies})
+                yield ImageResponse(url, format_media_prompt(messages, prompt), options={"cookies": auth_result.cookies})
             elif line["type"] == "webSearch" and "sources" in line:
                 sources = Sources(line["sources"])
             elif line["type"] == "title":

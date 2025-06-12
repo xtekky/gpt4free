@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import requests
 
-from ..helper import filter_none, format_image_prompt
+from ..helper import filter_none, format_media_prompt
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
 from ...typing import Union, AsyncResult, Messages, MediaListType
 from ...requests import StreamSession, raise_for_status
@@ -85,7 +85,7 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
 
             # Proxy for image generation feature
             if model and model in cls.image_models:
-                prompt = format_image_prompt(messages, prompt)
+                prompt = format_media_prompt(messages, prompt)
                 data = {
                     "prompt": prompt,
                     "model": model,
