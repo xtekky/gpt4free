@@ -9,7 +9,7 @@ import urllib.parse
 
 from ...typing import AsyncResult, Messages, Cookies, MediaListType
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from ..helper import format_prompt, format_image_prompt
+from ..helper import format_prompt, format_media_prompt
 from ...providers.response import JsonConversation, ImageResponse, Reasoning
 from ...requests.aiohttp import StreamSession, StreamResponse, FormData
 from ...requests.raise_for_status import raise_for_status
@@ -85,7 +85,7 @@ class DeepseekAI_JanusPro7b(AsyncGeneratorProvider, ProviderModelMixin):
         if model == cls.default_image_model or prompt is not None:
             method = "image"
         prompt = format_prompt(messages) if prompt is None and conversation is None else prompt
-        prompt = format_image_prompt(messages, prompt)
+        prompt = format_media_prompt(messages, prompt)
         if seed is None:
             seed = random.randint(1000, 999999)
 

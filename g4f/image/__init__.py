@@ -25,7 +25,7 @@ EXTENSIONS_MAP: dict[str, str] = {
     "gif": "image/gif",
     "webp": "image/webp",
     # Audio
-    "wav": "audio/x-wav",
+    "wav": "audio/wav",
     "mp3": "audio/mpeg",
     "flac": "audio/flac",
     "opus": "audio/opus",

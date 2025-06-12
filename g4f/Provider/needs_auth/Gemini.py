@@ -30,7 +30,7 @@ from ...image import to_bytes
 from ...cookies import get_cookies_dir
 from ...tools.media import merge_media
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from ..helper import format_prompt, get_cookies, get_last_user_message, format_image_prompt
+from ..helper import format_prompt, get_cookies, get_last_user_message, format_media_prompt
 from ... import debug
 
 REQUEST_HEADERS = {
@@ -187,7 +187,7 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
         if model in cls.model_aliases:
             model = cls.model_aliases[model]
         if audio is not None or model == "gemini-audio":
-            prompt = format_image_prompt(messages, prompt)
+            prompt = format_media_prompt(messages, prompt)
             filename = get_filename(["gemini"], prompt, ".ogx", prompt)
             ensure_media_dir()
             path = os.path.join(get_media_dir(), filename)

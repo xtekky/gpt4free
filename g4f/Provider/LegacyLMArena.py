@@ -3,7 +3,6 @@ from __future__ import annotations
 import random
 import json
 import uuid
-import sys
 import asyncio
 
 
@@ -14,7 +13,7 @@ from ..tools.media import merge_media
 from ..image import to_bytes, is_accepted_format
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from .helper import get_last_user_message
-from ..errors import ModelNotFoundError
+from ..errors import ModelNotFoundError, ResponseError
 from .. import debug
 
 class LegacyLMArena(AsyncGeneratorProvider, ProviderModelMixin):
@@ -460,6 +459,8 @@ class LegacyLMArena(AsyncGeneratorProvider, ProviderModelMixin):
                                 content = data
                             
                             if content:
+                                if "**NETWORK ERROR DUE TO HIGH TRAFFIC." in content:
+                                    raise ResponseError(data)
                                 # Clean up content
                                 if isinstance(content, str):
                                     if content.endswith("▌"):

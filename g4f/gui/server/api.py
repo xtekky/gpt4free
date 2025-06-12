@@ -13,7 +13,7 @@ from ...tools.run_tools import iter_run_tools
 from ... import Provider
 from ...providers.base_provider import ProviderModelMixin
 from ...providers.retry_provider import BaseRetryProvider
-from ...providers.helper import format_image_prompt
+from ...providers.helper import format_media_prompt
 from ...providers.response import *
 from ... import version, models
 from ... import ChatCompletion, get_model_and_provider
@@ -194,7 +194,7 @@ class Api:
                 elif isinstance(chunk, MediaResponse):
                     media = chunk
                     if download_media or chunk.get("cookies"):
-                        chunk.alt = format_image_prompt(kwargs.get("messages"), chunk.alt)
+                        chunk.alt = format_media_prompt(kwargs.get("messages"), chunk.alt)
                         tags = [model, kwargs.get("aspect_ratio"), kwargs.get("resolution"), kwargs.get("width"), kwargs.get("height")]
                         media = asyncio.run(copy_media(chunk.get_list(), chunk.get("cookies"), chunk.get("headers"), proxy=proxy, alt=chunk.alt, tags=tags))
                         media = ImageResponse(media, chunk.alt) if isinstance(chunk, ImageResponse) else VideoResponse(media, chunk.alt)
@@ -257,7 +257,7 @@ class Api:
         }
 
     def handle_provider(self, provider_handler, model):
-        if model:
+        if not getattr(provider_handler, "model", False):
             return self._format_json("provider", {**provider_handler.get_dict(), "model": model})
         return self._format_json("provider", provider_handler.get_dict())
 

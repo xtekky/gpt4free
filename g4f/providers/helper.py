@@ -88,7 +88,7 @@ def get_last_message(messages: Messages, prompt: str = None) -> str:
                 prompt = content
     return prompt
 
-def format_image_prompt(messages, prompt: str = None) -> str:
+def format_media_prompt(messages, prompt: str = None) -> str:
     if prompt is None:
         return get_last_user_message(messages)
     return prompt

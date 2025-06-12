@@ -7,12 +7,12 @@ import requests
 
 from ....typing import AsyncResult, Messages
 from ...base_provider import AsyncGeneratorProvider, ProviderModelMixin, format_prompt
-from ....errors import ModelNotSupportedError, ResponseError
+from ....errors import ModelNotFoundError, ResponseError
 from ....requests import StreamSession, raise_for_status
 from ....providers.response import FinishReason, ImageResponse
 from ....image.copy_images import save_response_media
 from ....image import use_aspect_ratio
-from ...helper import format_image_prompt, get_last_user_message
+from ...helper import format_media_prompt, get_last_user_message
 from .models import default_model, default_image_model, model_aliases, text_models, image_models, vision_models
 from .... import debug
 
@@ -58,7 +58,7 @@ class HuggingFaceInference(AsyncGeneratorProvider, ProviderModelMixin):
             return cls.model_data[model]
         async with session.get(f"https://huggingface.co/api/models/{model}") as response:
             if response.status == 404:
-                raise ModelNotSupportedError(f"Model is not supported: {model} in: {cls.__name__}")
+                raise ModelNotFoundError(f"Model not found: {model} in: {cls.__name__}")
             await raise_for_status(response)
             cls.model_data[model] = await response.json()
         return cls.model_data[model]
@@ -77,7 +77,7 @@ class HuggingFaceInference(AsyncGeneratorProvider, ProviderModelMixin):
         temperature: float = None,
         prompt: str = None,
         action: str = None,
-        extra_body: dict = {},
+        extra_body: dict = None,
         seed: int = None,
         aspect_ratio: str = None,
         width: int = None,
@@ -86,7 +86,7 @@ class HuggingFaceInference(AsyncGeneratorProvider, ProviderModelMixin):
     ) -> AsyncResult:
         try:
             model = cls.get_model(model)
-        except ModelNotSupportedError:
+        except ModelNotFoundError:
             pass
         headers = {
             'Accept-Encoding': 'gzip, deflate',
@@ -94,6 +94,8 @@ class HuggingFaceInference(AsyncGeneratorProvider, ProviderModelMixin):
         }
         if api_key is not None:
             headers["Authorization"] = f"Bearer {api_key}"
+        if extra_body is None:
+            extra_body = {}
         image_extra_body = use_aspect_ratio({
             "width": width,
             "height": height,
@@ -108,18 +110,18 @@ class HuggingFaceInference(AsyncGeneratorProvider, ProviderModelMixin):
                 if model in provider_together_urls:
                     data = {
                         "response_format": "url",
-                        "prompt": format_image_prompt(messages, prompt),
+                        "prompt": format_media_prompt(messages, prompt),
                         "model": model,
                         **image_extra_body
                     }
                     async with session.post(provider_together_urls[model], json=data) as response:
                         if response.status == 404:
-                            raise ModelNotSupportedError(f"Model is not supported: {model}")
+                            raise ModelNotFoundError(f"Model not found: {model}")
                         await raise_for_status(response)
                         result = await response.json()
                         yield ImageResponse([item["url"] for item in result["data"]], data["prompt"])
                     return
-            except ModelNotSupportedError:
+            except ModelNotFoundError:
                 pass
             payload = None
             params = {
@@ -134,7 +136,7 @@ class HuggingFaceInference(AsyncGeneratorProvider, ProviderModelMixin):
                 pipeline_tag = model_data.get("pipeline_tag")
                 if pipeline_tag == "text-to-image":
                     stream = False
-                    inputs = format_image_prompt(messages, prompt)
+                    inputs = format_media_prompt(messages, prompt)
                     payload = {"inputs": inputs, "parameters": {"seed": random.randint(0, 2**32) if seed is None else seed, **image_extra_body}}
                 elif pipeline_tag in ("text-generation", "image-text-to-text"):
                     model_type = None
@@ -156,11 +158,11 @@ class HuggingFaceInference(AsyncGeneratorProvider, ProviderModelMixin):
                         params["seed"] = seed
                     payload = {"inputs": inputs, "parameters": params, "stream": stream}
                 else:
-                    raise ModelNotSupportedError(f"Model is not supported: {model} in: {cls.__name__} pipeline_tag: {pipeline_tag}")
+                    raise ModelNotFoundError(f"Model is not supported: {model} in: {cls.__name__} pipeline_tag: {pipeline_tag}")
 
             async with session.post(f"{api_base.rstrip('/')}/models/{model}", json=payload) as response:
                 if response.status == 404:
-                    raise ModelNotSupportedError(f"Model is not supported: {model}")
+                    raise ModelNotFoundError(f"Model not found: {model}")
                 await raise_for_status(response)
                 if stream:
                     first = True

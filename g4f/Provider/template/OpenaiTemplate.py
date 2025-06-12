@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import requests
 
-from ..helper import filter_none, format_image_prompt
+from ..helper import filter_none, format_media_prompt
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
 from ...typing import Union, AsyncResult, Messages, MediaListType
 from ...requests import StreamSession, raise_for_status
@@ -66,7 +66,7 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
         headers: dict = None,
         impersonate: str = None,
         extra_parameters: list[str] = ["tools", "parallel_tool_calls", "tool_choice", "reasoning_effort", "logit_bias", "modalities", "audio"],
-        extra_body: dict = {},
+        extra_body: dict = None,
         **kwargs
     ) -> AsyncResult:
         if api_key is None and cls.api_key is not None:
@@ -85,7 +85,7 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
 
             # Proxy for image generation feature
             if model and model in cls.image_models:
-                prompt = format_image_prompt(messages, prompt)
+                prompt = format_media_prompt(messages, prompt)
                 data = {
                     "prompt": prompt,
                     "model": model,
@@ -98,6 +98,8 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
                 return
 
             extra_parameters = {key: kwargs[key] for key in extra_parameters if key in kwargs}
+            if extra_body is None:
+                extra_body = {}
             data = filter_none(
                 messages=list(render_messages(messages, media)),
                 model=model,

@@ -5,7 +5,7 @@ import requests
 from ....providers.types import Messages
 from ....typing import MediaListType
 from ....requests import StreamSession, raise_for_status
-from ....errors import ModelNotSupportedError, PaymentRequiredError
+from ....errors import ModelNotFoundError, PaymentRequiredError
 from ....providers.response import ProviderInfo
 from ...template.OpenaiTemplate import OpenaiTemplate
 from .models import model_aliases, vision_models, default_llama_model, default_vision_model, text_models
@@ -34,7 +34,7 @@ class HuggingFaceAPI(OpenaiTemplate):
     def get_model(cls, model: str, **kwargs) -> str:
         try:
             return super().get_model(model, **kwargs)
-        except ModelNotSupportedError:
+        except ModelNotFoundError:
             return model
 
     @classmethod
@@ -87,14 +87,14 @@ class HuggingFaceAPI(OpenaiTemplate):
         model = cls.get_model(model)
         provider_mapping = await cls.get_mapping(model, api_key)
         if not provider_mapping:
-            raise ModelNotSupportedError(f"Model is not supported: {model} in: {cls.__name__}")
+            raise ModelNotFoundError(f"Model is not supported: {model} in: {cls.__name__}")
         error = None
         for provider_key in provider_mapping:
             api_path = provider_key if provider_key == "novita" else f"{provider_key}/v1"
             api_base = f"https://router.huggingface.co/{api_path}"
             task = provider_mapping[provider_key]["task"]
             if task != "conversational":
-                raise ModelNotSupportedError(f"Model is not supported: {model} in: {cls.__name__} task: {task}")
+                raise ModelNotFoundError(f"Model is not supported: {model} in: {cls.__name__} task: {task}")
             model = provider_mapping[provider_key]["providerId"]
             yield ProviderInfo(**{**cls.get_dict(), "label": f"HuggingFace ({provider_key})"})
         # start = calculate_lenght(messages)

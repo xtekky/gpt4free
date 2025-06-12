@@ -16,7 +16,7 @@ from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..openai.har_file import get_har_files
 from ...image import to_data_uri
 from ...cookies import get_cookies_dir
-from ..helper import format_image_prompt, render_messages
+from ..helper import format_media_prompt, render_messages
 from ...providers.response import JsonConversation, ImageResponse
 from ...tools.media import merge_media
 from ...errors import RateLimitError, NoValidHarFileError
@@ -1343,7 +1343,7 @@ class BlackboxPro(AsyncGeneratorProvider, ProviderModelMixin):
                     image_url_match = re.search(r'!\[.*?\]\((.*?)\)', full_response_text)
                     if image_url_match:
                         image_url = image_url_match.group(1)
-                        yield ImageResponse(urls=[image_url], alt=format_image_prompt(messages, prompt))
+                        yield ImageResponse(urls=[image_url], alt=format_media_prompt(messages, prompt))
                         return
                 
                 # Handle conversation history once, in one place

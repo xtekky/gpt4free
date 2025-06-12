@@ -4,7 +4,7 @@ import random
 
 from ....typing import AsyncResult, Messages
 from ....providers.response import ImageResponse
-from ....errors import ModelNotSupportedError, MissingAuthError
+from ....errors import ModelNotFoundError, MissingAuthError
 from ...base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from .HuggingChat import HuggingChat
 from .HuggingFaceAPI import HuggingFaceAPI
@@ -58,7 +58,7 @@ class HuggingFace(AsyncGeneratorProvider, ProviderModelMixin):
             async for chunk in HuggingFaceMedia.create_async_generator(model, messages, **kwargs):
                 yield chunk
             return
-        except ModelNotSupportedError:
+        except ModelNotFoundError:
             pass
         if model in cls.image_models:
             if "api_key" not in kwargs:
@@ -71,6 +71,6 @@ class HuggingFace(AsyncGeneratorProvider, ProviderModelMixin):
         try:
             async for chunk in HuggingFaceAPI.create_async_generator(model, messages, **kwargs):
                 yield chunk
-        except (ModelNotSupportedError, MissingAuthError):
+        except (ModelNotFoundError, MissingAuthError):
             async for chunk in HuggingFaceInference.create_async_generator(model, messages, **kwargs):
                 yield chunk

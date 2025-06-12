@@ -7,7 +7,7 @@ from ...image import to_bytes, is_accepted_format, to_data_uri
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ...requests.raise_for_status import raise_for_status
 from ...providers.response import FinishReason, JsonConversation
-from ..helper import format_prompt, get_last_user_message, format_image_prompt
+from ..helper import format_prompt, get_last_user_message, format_media_prompt
 from ...tools.media import merge_media
 
 

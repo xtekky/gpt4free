@@ -23,11 +23,11 @@ from ...requests.raise_for_status import raise_for_status
 from ...requests import StreamSession
 from ...requests import get_nodriver
 from ...image import ImageRequest, to_image, to_bytes, is_accepted_format
-from ...errors import MissingAuthError, NoValidHarFileError, ModelNotSupportedError
+from ...errors import MissingAuthError, NoValidHarFileError, ModelNotFoundError
 from ...providers.response import JsonConversation, FinishReason, SynthesizeData, AuthResult, ImageResponse, ImagePreview
 from ...providers.response import Sources, TitleGeneration, RequestLogin, Reasoning
 from ...tools.media import merge_media
-from ..helper import format_cookies, format_image_prompt, to_string
+from ..helper import format_cookies, format_media_prompt, to_string
 from ..openai.models import default_model, default_image_model, models, image_models, text_models
 from ..openai.har_file import get_request_config
 from ..openai.har_file import RequestConfig, arkReq, arkose_url, start_url, conversation_url, backend_url, backend_anon_url
@@ -358,7 +358,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                     debug.error(e)
             try:
                 model = cls.get_model(model)
-            except ModelNotSupportedError:
+            except ModelNotFoundError:
                 pass
             if conversation is None:
                 conversation = Conversation(None, str(uuid.uuid4()), getattr(auth_result, "cookies", {}).get("oai-did"))
@@ -426,7 +426,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                 if conversation.conversation_id is not None:
                     data["conversation_id"] = conversation.conversation_id
                     debug.log(f"OpenaiChat: Use conversation: {conversation.conversation_id}")
-                prompt = conversation.prompt = format_image_prompt(messages, prompt)
+                prompt = conversation.prompt = format_media_prompt(messages, prompt)
                 if action != "continue":
                     data["parent_message_id"] = getattr(conversation, "parent_message_id", conversation.message_id)
                     conversation.parent_message_id = None

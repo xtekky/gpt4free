@@ -5,7 +5,7 @@ from ...typing import AsyncResult, Messages
 from ...requests import StreamSession, raise_for_status
 from ...providers.response import ImageResponse
 from ..template import OpenaiTemplate
-from ..helper import format_image_prompt
+from ..helper import format_media_prompt
 
 class DeepInfra(OpenaiTemplate):
     url = "https://deepinfra.com"
@@ -56,7 +56,7 @@ class DeepInfra(OpenaiTemplate):
     ) -> AsyncResult:
         if model in cls.get_image_models():
             yield cls.create_async_image(
-                format_image_prompt(messages, prompt),
+                format_media_prompt(messages, prompt),
                 model,
                 **kwargs
             )

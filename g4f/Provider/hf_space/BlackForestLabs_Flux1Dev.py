@@ -9,7 +9,7 @@ from ...requests import StreamSession
 from ...image import use_aspect_ratio
 from ...errors import ResponseError
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from ..helper import format_image_prompt
+from ..helper import format_media_prompt
 from .DeepseekAI_JanusPro7b import get_zerogpu_token
 from .raise_for_status import raise_for_status
 
@@ -70,7 +70,7 @@ class BlackForestLabs_Flux1Dev(AsyncGeneratorProvider, ProviderModelMixin):
         **kwargs
     ) -> AsyncResult:
         async with StreamSession(impersonate="chrome", proxy=proxy) as session:
-            prompt = format_image_prompt(messages, prompt)
+            prompt = format_media_prompt(messages, prompt)
             data = use_aspect_ratio({"width": width, "height": height}, aspect_ratio)
             data = [prompt, seed, randomize_seed, data.get("width"), data.get("height"), guidance_scale, num_inference_steps]
             conversation = JsonConversation(zerogpu_token=api_key, zerogpu_uuid=zerogpu_uuid, session_hash=uuid.uuid4().hex)
