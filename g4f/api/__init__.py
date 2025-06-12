@@ -490,7 +490,7 @@ class Api:
                 config.provider = provider
             if config.provider is None:
                 config.provider = AppConfig.media_provider
-            if credentials is not None and credentials.credentials != "secret":
+            if config.api_key is None and credentials is not None and credentials.credentials != "secret":
                 config.api_key = credentials.credentials
             try:
                 response = await self.client.images.generate(

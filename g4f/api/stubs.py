@@ -16,7 +16,7 @@ class RequestConfig(BaseModel):
     top_p: Optional[float] = None
     max_tokens: Optional[int] = None
     stop: Union[list[str], str, None] = None
-    api_key: Optional[str] = None
+    api_key: Optional[Union[str, dict[str, str]]] = None
     api_base: str = None
     web_search: Optional[bool] = None
     proxy: Optional[str] = None
@@ -70,6 +70,8 @@ class ImageGenerationConfig(BaseModel):
     negative_prompt: Optional[str] = None
     resolution: Optional[str] = None
     audio: Optional[dict] = None
+    download_media: bool = True
+
 
     @model_validator(mode='before')
     def parse_size(cls, values):

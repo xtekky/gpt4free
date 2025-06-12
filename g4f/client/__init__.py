@@ -375,7 +375,7 @@ class Completions:
             kwargs["ignore_stream"] = True
 
         response = iter_run_tools(
-            provider.get_create_function(),
+            provider.create_function,
             model=model,
             messages=messages,
             stream=stream,
@@ -462,7 +462,7 @@ class Images:
         if isinstance(provider_handler, IterListProvider):
             for provider in provider_handler.providers:
                 try:
-                    response = await self._generate_image_response(provider, provider.__name__, model, prompt, proxy=proxy, **kwargs)
+                    response = await self._generate_image_response(provider, provider.__name__, model, prompt, proxy=proxy, api_key=api_key, **kwargs)
                     if response is not None:
                         provider_name = provider.__name__
                         break
@@ -485,21 +485,25 @@ class Images:
 
     async def _generate_image_response(
         self,
-        provider_handler,
-        provider_name,
+        provider_handler: ProviderType,
+        provider_name: str,
         model: str,
         prompt: str,
         prompt_prefix: str = "Generate a image: ",
+        api_key: str = None,
         **kwargs
     ) -> MediaResponse:
         messages = [{"role": "user", "content": f"{prompt_prefix}{prompt}"}]
         items: list[MediaResponse] = []
+        if isinstance(api_key, dict):
+            api_key = api_key.get(provider_handler.get_parent())
         if hasattr(provider_handler, "create_async_generator"):
             async for item in provider_handler.create_async_generator(
                 model,
                 messages,
                 stream=True,
                 prompt=prompt,
+                api_key=api_key,
                 **kwargs
             ):
                 if isinstance(item, (MediaResponse, AudioResponse)):
@@ -510,6 +514,7 @@ class Images:
                 messages,
                 True,
                 prompt=prompt,
+                api_key=api_key,
                 **kwargs
             ):
                 if isinstance(item, (MediaResponse, AudioResponse)):

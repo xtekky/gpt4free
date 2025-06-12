@@ -25,26 +25,8 @@ class BaseProvider(ABC):
     supports_message_history: bool = False
     supports_system_message: bool = False
     params: str
-
-    @abstractmethod
-    def get_create_function() -> callable:
-        """
-        Get the create function for the provider.
-
-        Returns:
-            callable: The create function.
-        """
-        raise NotImplementedError()
-
-    @abstractmethod
-    def get_async_create_function() -> callable:
-        """
-        Get the async create function for the provider.
-
-        Returns:
-            callable: The create function.
-        """
-        raise NotImplementedError()
+    create_function: callable
+    async_create_function: callable
 
     @classmethod
     def get_dict(cls) -> Dict[str, str]:

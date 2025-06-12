@@ -6,7 +6,7 @@ from ..helper import filter_none, format_media_prompt
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
 from ...typing import Union, AsyncResult, Messages, MediaListType
 from ...requests import StreamSession, raise_for_status
-from ...providers.response import FinishReason, ToolCalls, Usage, ImageResponse
+from ...providers.response import FinishReason, ToolCalls, Usage, ImageResponse, ProviderInfo
 from ...tools.media import render_messages
 from ...errors import MissingAuthError, ResponseError
 from ... import debug
@@ -93,6 +93,9 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
                 async with session.post(f"{api_base.rstrip('/')}/images/generations", json=data, ssl=cls.ssl) as response:
                     data = await response.json()
                     cls.raise_error(data, response.status)
+                    model = data.get("model")
+                    if model:
+                        yield ProviderInfo(**cls.get_dict(), model=model)
                     await raise_for_status(response)
                     yield ImageResponse([image["url"] for image in data["data"]], prompt)
                 return
@@ -121,6 +124,9 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
                     data = await response.json()
                     cls.raise_error(data, response.status)
                     await raise_for_status(response)
+                    model = data.get("model")
+                    if model:
+                        yield ProviderInfo(**cls.get_dict(), model=model)
                     choice = data["choices"][0]
                     if "content" in choice["message"] and choice["message"]["content"]:
                         yield choice["message"]["content"].strip()
@@ -134,8 +140,13 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
                 elif content_type.startswith("text/event-stream"):
                     await raise_for_status(response)
                     first = True
+                    model_returned = False
                     async for data in response.sse():
                         cls.raise_error(data)
+                        model = data.get("model")
+                        if not model_returned and model:
+                            yield ProviderInfo(**cls.get_dict(), model=model)
+                            model_returned = True
                         choice = data["choices"][0]
                         if "content" in choice["delta"] and choice["delta"]["content"]:
                             delta = choice["delta"]["content"]

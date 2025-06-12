@@ -157,7 +157,7 @@ async def copy_media(
                         if media_type not in ("application/octet-stream", "binary/octet-stream"):
                             if media_type not in MEDIA_TYPE_MAP:
                                 raise ValueError(f"Unsupported media type: {media_type}")
-                            if not media_extension:
+                            if target is None and not media_extension:
                                 media_extension = f".{MEDIA_TYPE_MAP[media_type]}"
                                 target_path = f"{target_path}{media_extension}"
                         with open(target_path, "wb") as f:

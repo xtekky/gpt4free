@@ -50,7 +50,7 @@ class ChatCompletion:
         if ignore_stream:
             kwargs["ignore_stream"] = True
 
-        result = provider.get_create_function()(model, messages, stream=stream, **kwargs)
+        result = provider.create_function(model, messages, stream=stream, **kwargs)
 
         return result if stream or ignore_stream else concat_chunks(result)
 
@@ -76,7 +76,7 @@ class ChatCompletion:
         if ignore_stream:
             kwargs["ignore_stream"] = True
 
-        result = provider.get_async_create_function()(model, messages, stream=stream, **kwargs)
+        result = provider.async_create_function(model, messages, stream=stream, **kwargs)
 
         if not stream and not ignore_stream:
             if hasattr(result, "__aiter__"):

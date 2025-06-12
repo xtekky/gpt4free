@@ -10,20 +10,20 @@ from ..requests import StreamSession, raise_for_status
 from ..errors import ModelNotFoundError
 from .. import debug
 
-
 class Together(OpenaiTemplate):
     label = "Together"
     url = "https://together.xyz"
+    login_url = "https://api.together.ai/"
     api_base = "https://api.together.xyz/v1"
     activation_endpoint = "https://www.codegeneration.ai/activate-v2"
     models_endpoint = "https://api.together.xyz/v1/models"
-    
+
     working = True
     needs_auth = False
     supports_stream = True
     supports_system_message = True
     supports_message_history = True
-    
+
     default_model = 'meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8'
     default_vision_model = default_model
     default_image_model = 'black-forest-labs/FLUX.1.1-pro'
@@ -43,7 +43,7 @@ class Together(OpenaiTemplate):
     model_configs = {}  # Store model configurations including stop tokens
     _models_cached = False
     _api_key_cache = None
-    
+
     model_aliases = {
         ### Models Chat/Language ###
         # meta-llama

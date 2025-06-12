@@ -246,8 +246,7 @@ async def async_iter_run_tools(
         kwargs.update(extra_kwargs)
     
     # Generate response
-    create_function = provider.get_async_create_function()
-    response = to_async_iterator(create_function(model=model, messages=messages, **kwargs))
+    response = to_async_iterator(provider.async_create_function(model=model, messages=messages, **kwargs))
     
     async for chunk in response:
         yield chunk

@@ -45,7 +45,7 @@ class ToolSupportProvider(AsyncGeneratorProvider):
         finish = None
         chunks = []
         has_usage = False
-        async for chunk in provider.get_async_create_function()(
+        async for chunk in provider.async_create_function(
             model,
             messages,
             stream=stream,
