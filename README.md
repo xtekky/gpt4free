@@ -30,8 +30,6 @@ docker pull hlohaus789/g4f
 
 ## 🆕 What's New
 
-![1000032415](https://github.com/user-attachments/assets/4caab977-eb05-48ed-b750-3ad082bcfcae)
-
 - **Explore the latest features and updates**  
   Find comprehensive details on our [Releases Page](https://github.com/xtekky/gpt4free/releases).  
 
@@ -51,9 +49,11 @@ docker pull hlohaus789/g4f
 
 Is your site on this repository and you want to take it down? Send an email to takedown@g4f.ai with proof it is yours and it will be removed as fast as possible. To prevent reproduction please secure your API. 😉
 
-## 🚀 G4F on GitHub Pages [![HuggingSpace](https://github.com/user-attachments/assets/1d859e8a-d6fa-416f-a213-ccc26aa11e90)](https://g4f.dev/)
+## 🚀 Live G4F
 
-> Explore the [G4F on GitHub Pages](https://g4f.dev/).
+[Live G4F](https://github.com/user-attachments/assets/83519200-2f27-48c6-9fc3-bff0fcd96f41)
+
+> Explore the [here](https://g4f.dev/).
 
 ---
 
