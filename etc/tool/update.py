@@ -8,7 +8,7 @@ if __name__ == "__main__":
         exit(0)
     command = ["git", "fetch"]
     call(command, stderr=STDOUT)
-    command = ["git", "reset", "--hard", "master"]
+    command = ["git", "reset", "--hard"]
     call(command, stderr=STDOUT)
     command = ["git" ,"pull", "origin", "main"]
     call(command, stderr=STDOUT)

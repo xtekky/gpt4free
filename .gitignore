@@ -29,7 +29,6 @@ __pycache__/
 build
 
 test.py
-update.py
 cookie.json
 notes.txt
 close_issues.py
