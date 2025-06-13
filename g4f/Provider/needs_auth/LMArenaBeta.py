@@ -78,7 +78,7 @@ class LMArenaBeta(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
     label = "LMArena Beta"
     url = "https://beta.lmarena.ai"
     api_endpoint = "https://beta.lmarena.ai/api/stream/create-evaluation"
-    working = True
+    working = has_nodriver
 
     default_model = list(text_models.keys())[0]
     models = list(text_models) + list(image_models)
@@ -102,7 +102,8 @@ class LMArenaBeta(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                 async def callback(page):
                     while not await page.evaluate('document.cookie.indexOf("arena-auth-prod-v1") >= 0'):
                         await asyncio.sleep(1)
-                    await asyncio.sleep(5)
+                    while await page.evaluate('document.querySelector(\'[name="cf-turnstile-response"]\').length > 0') :
+                        await asyncio.sleep(1)
                 args = await get_args_from_nodriver(cls.url, proxy=proxy, callback=callback)
             except (RuntimeError, FileNotFoundError) as e:
                 debug.log(f"Nodriver is not available: {type(e).__name__}: {e}")

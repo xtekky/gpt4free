@@ -10,6 +10,7 @@ from ...requests import DEFAULT_HEADERS, StreamSession, StreamResponse, FormData
 from ...providers.response import JsonConversation
 from ...tools.media import merge_media
 from ...image import to_bytes, is_accepted_format
+from ...errors import ResponseError
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..helper import get_last_user_message
 from ..openai.har_file import get_headers
@@ -139,6 +140,8 @@ class HarProvider(AsyncGeneratorProvider, ProviderModelMixin):
                 if not line.startswith(b"data: "):
                     continue
                 for content in find_str(json.loads(line[6:]), 3):
+                    if "**NETWORK ERROR DUE TO HIGH TRAFFIC." in content:
+                        raise ResponseError(content)
                     if content == '<span class="cursor"></span> ' or content == 'update':
                         continue
                     if content.endswith("▌"):

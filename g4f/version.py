@@ -48,6 +48,14 @@ def get_github_version(repo: str) -> str:
     except requests.RequestException as e:
         raise VersionNotFoundError(f"Failed to get GitHub release version: {e}")
 
+def get_git_version() -> str:
+    # Read from git repository
+    try:
+        command = ["git", "describe", "--tags", "--abbrev=0"]
+        return check_output(command, text=True, stderr=PIPE).strip()
+    except CalledProcessError:
+        return None
+
 class VersionUtils:
     """
     Utility class for managing and comparing package versions of 'g4f'.
@@ -78,14 +86,7 @@ class VersionUtils:
         if version:
             return version
 
-        # Read from git repository
-        try:
-            command = ["git", "describe", "--tags", "--abbrev=0"]
-            return check_output(command, text=True, stderr=PIPE).strip()
-        except CalledProcessError:
-            pass
-
-        return None
+        return get_git_version()
 
     @property
     def latest_version(self) -> str:

@@ -55,16 +55,16 @@ class IterListProvider(BaseRetryProvider):
             self.last_provider = provider
             if not model:
                 model = getattr(provider, "default_model", None)
-            model = provider.model_aliases.get(model, model) if hasattr(provider, "model_aliases") else model
-            debug.log(f"Using {provider.__name__} provider with model {model}")
-            yield ProviderInfo(**provider.get_dict(), model=model)
+            alias = provider.model_aliases.get(model, model) if hasattr(provider, "model_aliases") else model
+            debug.log(f"Using {provider.__name__} provider with model {alias}")
+            yield ProviderInfo(**provider.get_dict(), model=alias)
             extra_body = kwargs.copy()
             if isinstance(api_key, dict):
                 api_key = api_key.get(provider.get_parent())
             if api_key:
                 extra_body["api_key"] = api_key
             try:
-                response = provider.create_function(model, messages, stream=stream, **extra_body)
+                response = provider.create_function(alias, messages, stream=stream, **extra_body)
                 for chunk in response:
                     if chunk:
                         yield chunk

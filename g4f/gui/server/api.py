@@ -43,7 +43,7 @@ class Api:
         def get_model_data(provider: ProviderModelMixin, model: str):
             return {
                 "model": model,
-                "label": model.split(":")[-1] if provider.__name__ == "AnyProvider" else model,
+                "label": model.split(":")[-1] if provider.__name__ == "AnyProvider" and not model.startswith("openrouter:") else model,
                 "default": model == provider.default_model,
                 "vision": model in provider.vision_models,
                 "audio": False if provider.audio_models is None else model in provider.audio_models,
