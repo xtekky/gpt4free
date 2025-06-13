@@ -20,7 +20,6 @@ except ImportError:
 class DeepSeekAPI(AsyncAuthedProvider, ProviderModelMixin):
     url = "https://chat.deepseek.com"
     working = has_dsk
-    needs_auth = True
     use_nodriver = True
     _access_token = None
 
