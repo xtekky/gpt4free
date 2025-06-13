@@ -21,18 +21,17 @@ RUN apt-get update && apt-get upgrade -y \
   && apt-get clean \
   && rm --recursive --force /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
+RUN mkdir -p $G4F_DIR
+RUN chown "${G4F_USER_ID}:${G4F_USER_ID}" $G4F_DIR
+
 USER $G4F_USER_ID
 WORKDIR $G4F_DIR
 
 ENV HOME /home/$G4F_USER
 ENV PATH "${HOME}/.local/bin:${PATH}"
 
+RUN git clone https://github.com/xtekky/gpt4free.git $G4F_DIR
 RUN crontab docker/update-cron
-
-# Create app dir and copy the project's requirements file into it
-RUN git clone git@github.com:xtekky/gpt4free.git $G4F_DIR 
-
-# Upgrade pip for the latest features and install the project's Python dependencies.
 RUN pip install --no-cache-dir -r requirements-slim.txt
 
 CMD python -m g4f --debug --reload
