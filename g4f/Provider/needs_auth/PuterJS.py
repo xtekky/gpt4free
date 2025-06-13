@@ -427,7 +427,7 @@ class PuterJS(AsyncGeneratorProvider, ProviderModelMixin):
                     if "choices" in result:
                         choice = result["choices"][0]
                     elif "result" in result:
-                        choice = result
+                        choice = result.get("result", {})
                     else:
                         raise ResponseError(result)
                     message = choice.get("message", {})
