@@ -112,11 +112,10 @@ docker run -p 8080:8080 -p 7900:7900 \
 mkdir -p ${PWD}/har_and_cookies ${PWD}/generated_media
 chown -R 1000:1000 ${PWD}/har_and_cookies ${PWD}/generated_media
 docker run \
-  -p 1337:1337 \
+  -p 1337:1337 -p 8080:1337 \
   -v ${PWD}/har_and_cookies:/app/har_and_cookies \
   -v ${PWD}/generated_media:/app/generated_media \
-  hlohaus789/g4f:latest-slim \
-  /bin/sh -c 'rm -rf /app/g4f && pip install -U g4f[slim] && python -m g4f --debug'
+  hlohaus789/g4f:latest-slim
 ```
  
 5. **Access the Client Interface:**
