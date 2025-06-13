@@ -280,12 +280,14 @@ class AnyProvider(AsyncGeneratorProvider, ProviderModelMixin):
     ) -> AsyncResult:
         cls.get_models(ignored=ignored)
         providers = []
-        
         if model and ":" in model:
-            providers = model.split(":")
-            model = providers.pop()
-            providers = [getattr(Provider, provider) for provider in providers]
-        elif not model or model == cls.default_model:
+            provider, submodel = model.split(":", maxsplit=1)
+            if hasattr(Provider, provider):
+                provider = getattr(Provider, provider)
+                if provider.working and provider.get_parent() not in ignored:
+                    providers.append(provider)
+                    model = submodel
+        if not model or model == cls.default_model:
             model = ""
             has_image = False
             has_audio = False

@@ -53,10 +53,12 @@ class IterListProvider(BaseRetryProvider):
 
         for provider in self.get_providers(stream and not ignore_stream, ignored):
             self.last_provider = provider
+            alias = model
             if not model:
-                model = getattr(provider, "default_model", None)
-            alias = provider.model_aliases.get(model, model) if hasattr(provider, "model_aliases") else model
-            debug.log(f"Using {provider.__name__} provider with model {alias}")
+                alias = getattr(provider, "default_model", None)
+            if hasattr(provider, "model_aliases"):
+                alias = provider.model_aliases.get(model, model)
+            debug.log(f"Using provider: {provider.__name__} with model: {alias}")
             yield ProviderInfo(**provider.get_dict(), model=alias)
             extra_body = kwargs.copy()
             if isinstance(api_key, dict):
@@ -97,11 +99,13 @@ class IterListProvider(BaseRetryProvider):
 
         for provider in self.get_providers(stream and not ignore_stream, ignored):
             self.last_provider = provider
+            alias = model
             if not model:
-                model = getattr(provider, "default_model", None)
-            model = provider.model_aliases.get(model, model) if hasattr(provider, "model_aliases") else model
-            debug.log(f"Using {provider.__name__} provider with model {model}")
-            yield ProviderInfo(**provider.get_dict(), model=model)
+                alias = getattr(provider, "default_model", None)
+            if hasattr(provider, "model_aliases"):
+                alias = provider.model_aliases.get(model, model)
+            debug.log(f"Using {provider.__name__} provider with model {alias}")
+            yield ProviderInfo(**provider.get_dict(), model=alias)
             extra_body = kwargs.copy()
             if isinstance(api_key, dict):
                 api_key = api_key.get(provider.get_parent())
