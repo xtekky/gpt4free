@@ -1,2 +1,2 @@
-0 * * * * cd /app && python -m etc.update
-
+0 * * * * g4f python -m etc.update
+#
