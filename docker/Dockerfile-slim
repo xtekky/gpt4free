@@ -21,9 +21,8 @@ RUN apt-get update && apt-get upgrade -y \
   && apt-get clean \
   && rm --recursive --force /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-RUN mkdir -p $G4F_DIR && touch /var/log/cron.log
-RUN chown "${G4F_USER_ID}:${G4F_USER_ID}" $G4F_DIR /var/log/cron.log \
- && chmod gu+rw /var/run && chmod gu+s /usr/sbin/cron
+RUN mkdir -p $G4F_DIR
+RUN chown "${G4F_USER_ID}:${G4F_USER_ID}" $G4F_DIR
 
 USER $G4F_USER_ID
 WORKDIR $G4F_DIR
@@ -32,10 +31,12 @@ ENV HOME /home/$G4F_USER
 ENV PATH "${HOME}/.local/bin:${PATH}"
 
 RUN git clone https://github.com/xtekky/gpt4free.git $G4F_DIR \
- && printf "*/15 * * * * python -m etc.tool.update\n" > cronfile && crontab cronfile \
- && pip install --no-cache-dir -r requirements-slim.txt
+ && printf "*/15 * * * * ./docker/start.sh\n" > cronfile \
+ && printf "*/15 * * * * python -m etc.tool.update\n" >> cronfile && crontab cronfile \
+ && pip install --no-cache-dir -r requirements-min.txt
 RUN git clone https://github.com/hlohaus/deepseek4free.git \
  && cd deepseek4free && git checkout 21Feb \
  && pip install --no-cache-dir . && cd .. && rm -rf deepseek4free
 
-CMD cron && tail -f /var/log/cron.log & python -m g4f --port 8080 --debug --reload
+USER root
+CMD cron && su -c docker/start.sh $G4F_USER

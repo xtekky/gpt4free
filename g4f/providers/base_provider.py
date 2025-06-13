@@ -376,7 +376,7 @@ class ProviderModelMixin:
             model = cls.default_model
         if model in cls.model_aliases:
             model = cls.model_aliases[model]
-        else:
+        if model not in cls.model_aliases.values():
             if model not in cls.get_models(**kwargs) and cls.models:
                 raise ModelNotFoundError(f"Model not found: {model} in: {cls.__name__} Valid models: {cls.models}")
         cls.last_model = model
