@@ -7,7 +7,7 @@ from flask import send_from_directory, redirect
 from ...image.copy_images import secure_filename
 from ...cookies import get_cookies_dir
 from ...errors import VersionNotFoundError
-from ...constants import STATIC_URL, DIST_DIR
+from ...constants import STATIC_URL, DOWNLOAD_URL, DIST_DIR
 from ... import version
 
 def redirect_home():
@@ -23,10 +23,17 @@ def render(filename = "chat"):
         latest_version = version.utils.current_version
     today = datetime.today().strftime('%Y-%m-%d')
     cache_dir = os.path.join(get_cookies_dir(), ".gui_cache")
-    cache_file = os.path.join(cache_dir, f"{today}.{secure_filename(f'{filename}.{version.utils.current_version}-{latest_version}')}.html")
+    cache_file = os.path.join(cache_dir, f"{filename}.{today}.{secure_filename(f'{version.utils.current_version}-{latest_version}')}.html")
     if not os.path.exists(cache_file):
         os.makedirs(cache_dir, exist_ok=True)
-        html = requests.get(f"{STATIC_URL}{filename}.html").text
+        response = requests.get(f"{DOWNLOAD_URL}{filename}.html")
+        if not response.ok:
+            for root, _, files in os.walk(cache_dir):
+                for file in files:
+                    if file.startswith(filename):
+                        return send_from_directory(os.path.abspath(root), file)
+                break
+        html = response.text
         html = html.replace("../dist/", f"dist/")
         html = html.replace("\"dist/", f"\"{STATIC_URL}dist/")
         with open(cache_file, 'w', encoding='utf-8') as f:
