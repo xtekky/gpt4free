@@ -31,8 +31,8 @@ ENV HOME /home/$G4F_USER
 ENV PATH "${HOME}/.local/bin:${PATH}"
 
 RUN git clone https://github.com/xtekky/gpt4free.git $G4F_DIR
-RUN printf "0 * * * * python -m etc.update\n" > cronfile
+RUN printf "0 * * * * python -m etc.tool.update\n" > cronfile
 RUN crontab cronfile
 RUN pip install --no-cache-dir -r requirements-slim.txt
 
-CMD python -m g4f --debug --reload
+CMD python -m g4f --port 8080 --debug --reload
