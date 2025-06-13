@@ -21,7 +21,6 @@ from .response import BaseConversation, AuthResult
 from .helper import concat_chunks
 from ..cookies import get_cookies_dir
 from ..errors import ModelNotFoundError, ResponseError, MissingAuthError, NoValidHarFileError, PaymentRequiredError
-from .. import debug
 
 SAFE_PARAMETERS = [
     "model", "messages", "stream", "timeout",
