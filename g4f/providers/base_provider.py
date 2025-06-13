@@ -367,20 +367,19 @@ class ProviderModelMixin:
     @classmethod
     def get_models(cls, **kwargs) -> list[str]:
         if not cls.models and cls.default_model is not None:
-            return [cls.default_model]
+            cls.models = [cls.default_model]
         return cls.models
 
     @classmethod
     def get_model(cls, model: str, **kwargs) -> str:
         if not model and cls.default_model is not None:
             model = cls.default_model
-        elif model in cls.model_aliases:
+        if model in cls.model_aliases:
             model = cls.model_aliases[model]
         else:
             if model not in cls.get_models(**kwargs) and cls.models:
-                raise ModelNotFoundError(f"Model is not supported: {model} in: {cls.__name__} Valid models: {cls.models}")
+                raise ModelNotFoundError(f"Model not found: {model} in: {cls.__name__} Valid models: {cls.models}")
         cls.last_model = model
-        debug.last_model = model
         return model
 
 class RaiseErrorMixin():

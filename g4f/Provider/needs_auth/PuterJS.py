@@ -257,14 +257,15 @@ class PuterJS(AsyncGeneratorProvider, ProviderModelMixin):
         "lfm-7b": "openrouter:liquid/lfm-7b",
         "lfm-3b": "openrouter:liquid/lfm-3b",
         "lfm-40b": "openrouter:liquid/lfm-40b",
+    }
 
-}
     @classmethod
-    def get_models(cls) -> list[str]:
+    def get_models(cls, api_key: str = None) -> list[str]:
         if not cls.models:
             try:
                 url = "https://api.puter.com/puterai/chat/models/"
                 cls.models = requests.get(url).json().get("models", [])
+                cls.models = [model for model in cls.models if model not in ["abuse", "costly", "fake"]]
             except Exception as e:
                 debug.log(f"PuterJS: Failed to fetch models from API: {e}")
                 cls.models = list(cls.model_aliases.keys())

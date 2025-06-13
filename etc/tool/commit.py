@@ -128,6 +128,8 @@ def parse_arguments():
                         help="List available AI models and exit")
     parser.add_argument("--repo", type=str, default=".",
                         help="Git repository path (default: current directory)")
+    parser.add_argument("--max-retries", type=int, default=MAX_RETRIES,
+                        help="Maximum number of retries for AI generation (default: 3)")
     
     return parser.parse_args()
 
@@ -288,7 +290,7 @@ def show_spinner(duration: int = None):
         stop_spinner.set()
         raise
 
-def generate_commit_message(diff_text: str, model: str = DEFAULT_MODEL) -> Optional[str]:
+def generate_commit_message(diff_text: str, model: str = DEFAULT_MODEL, max_retries: int = MAX_RETRIES) -> Optional[str]:
     """Generate a commit message based on the git diff"""
     if not diff_text or diff_text.strip() == "":
         return "No changes staged for commit"
@@ -324,7 +326,7 @@ def generate_commit_message(diff_text: str, model: str = DEFAULT_MODEL) -> Optio
     IMPORTANT: Be 100% factual. Only mention code that was actually changed. Never invent or assume changes not shown in the diff. If unsure about a change's purpose, describe what changed rather than why. Output nothing except for the commit message, and don't surround it in quotes.
     """
     
-    for attempt in range(MAX_RETRIES):
+    for attempt in range(max_retries):
         try:
             # Start spinner
             spinner = show_spinner()
@@ -352,7 +354,8 @@ def generate_commit_message(diff_text: str, model: str = DEFAULT_MODEL) -> Optio
                 spinner.set()
                 sys.stdout.write("\r" + " " * 50 + "\r")
                 sys.stdout.flush()
-                
+            if max_retries == 1:
+                raise e  # If no retries, raise immediately
             print(f"Error generating commit message (attempt {attempt+1}/{MAX_RETRIES}): {e}")
             if attempt < MAX_RETRIES - 1:
                 print(f"Retrying in {RETRY_DELAY} seconds...")
@@ -464,7 +467,7 @@ def main():
             sys.exit(0)
         
         print(f"Using model: {args.model}")
-        commit_message = generate_commit_message(diff, args.model)
+        commit_message = generate_commit_message(diff, args.model, args.max_retries)
         
         if not commit_message:
             print("Failed to generate commit message after multiple attempts.")

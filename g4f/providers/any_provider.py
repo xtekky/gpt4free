@@ -10,22 +10,29 @@ from ..Provider.needs_auth import OpenaiChat, CopilotAccount
 from ..Provider.hf_space import HuggingSpace
 from ..Provider import __map__
 from ..Provider import Cloudflare, Gemini, Grok, DeepSeekAPI, PerplexityLabs, LambdaChat, PollinationsAI, PuterJS
-from ..Provider import Microsoft_Phi_4_Multimodal, DeepInfraChat, Blackbox, OIVSCodeSer2, OIVSCodeSer0501, TeachAnything, Together, WeWordle, Yqcloud, Chatai, Free2GPT, ARTA, ImageLabs, LegacyLMArena
+from ..Provider import Microsoft_Phi_4_Multimodal, DeepInfraChat, Blackbox, OIVSCodeSer2, OIVSCodeSer0501, TeachAnything
+from ..Provider import Together, WeWordle, Yqcloud, Chatai, Free2GPT, ARTA, ImageLabs, LegacyLMArena, LMArenaBeta
 from ..Provider import EdgeTTS, gTTS, MarkItDown, OpenAIFM
 from ..Provider import HarProvider, HuggingFace, HuggingFaceMedia
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from .. import Provider
 from .. import models
 
-MAIN_PROVIERS = [
-    OpenaiChat, Cloudflare, HarProvider, PerplexityLabs, Gemini, Grok, DeepSeekAPI, Blackbox, 
-    OIVSCodeSer2, OIVSCodeSer0501, TeachAnything, Together, WeWordle, Yqcloud, Chatai, Free2GPT, ARTA, ImageLabs, LegacyLMArena,
-    HuggingSpace, LambdaChat, CopilotAccount, PollinationsAI, DeepInfraChat, HuggingFace, HuggingFaceMedia
+PROVIERS_LIST_1 = [
+    OpenaiChat, PollinationsAI, Cloudflare, PerplexityLabs, Gemini, Grok, DeepSeekAPI, Blackbox, OpenAIFM,
+    OIVSCodeSer2, OIVSCodeSer0501, TeachAnything, Together, WeWordle, Yqcloud, Chatai, Free2GPT, ARTA, ImageLabs,
+    HarProvider, LegacyLMArena, LMArenaBeta, LambdaChat, CopilotAccount, DeepInfraChat,
+    HuggingSpace, HuggingFace, HuggingFaceMedia, PuterJS, Together
 ]
 
-SPECIAL_PROVIDERS = [OpenaiChat, CopilotAccount, PollinationsAI, HuggingSpace, Cloudflare, PerplexityLabs, Gemini, Grok, LegacyLMArena, ARTA]
+PROVIERS_LIST_2 = [
+    OpenaiChat, CopilotAccount, PollinationsAI, PerplexityLabs, Gemini, Grok, ARTA
+]
 
-SPECIAL_PROVIDERS2 = [HarProvider, LambdaChat, DeepInfraChat, HuggingFace, HuggingFaceMedia, PuterJS]
+PROVIERS_LIST_3 = [
+    HarProvider, LambdaChat, DeepInfraChat, HuggingFace, HuggingFaceMedia, LegacyLMArena, LMArenaBeta,
+    PuterJS, Together, Cloudflare, HuggingSpace
+]
 
 LABELS = {
     "default": "Default",
@@ -33,15 +40,21 @@ LABELS = {
     "llama": "Meta: LLaMA",
     "deepseek": "DeepSeek",
     "qwen": "Alibaba: Qwen",
-    "google": "Google: Gemini / Gemma / Bard",
+    "google": "Google: Gemini / Gemma",
     "grok": "xAI: Grok",
     "claude": "Anthropic: Claude",
     "command": "Cohere: Command",
     "phi": "Microsoft: Phi / WizardLM",
     "mistral": "Mistral",
     "PollinationsAI": "Pollinations AI",
+    "ARTA": "ARTA",
+    "voices": "Voices",
     "perplexity": "Perplexity Labs",
     "openrouter": "OpenRouter",
+    "glm": "GLM",
+    "tulu": "Tulu",
+    "reka": "Reka",
+    "hermes": "Hermes",
     "video": "Video Generation",
     "image": "Image Generation",
     "other": "Other Models",
@@ -65,31 +78,35 @@ class AnyProvider(AsyncGeneratorProvider, ProviderModelMixin):
                 continue  # Already added
 
             added = False
-
-            # Check for PollinationsAI models (with prefix)
-            if model.startswith("PollinationsAI:"):
-                groups["PollinationsAI"].append(model)
+            # Check for models with prefix
+            start = model.split(":")[0]
+            if start in ("PollinationsAI", "ARTA", "openrouter"):
+                submodel = model.split(":", maxsplit=1)[1]
+                if submodel in OpenAIFM.voices or submodel in PollinationsAI.audio_models[PollinationsAI.default_audio_model]:
+                    groups["voices"].append(submodel)
+                else:
+                    groups[start].append(model)
                 added = True
             # Check for Mistral company models specifically
             elif model.startswith("mistral") and not any(x in model for x in ["dolphin", "nous", "openhermes"]):
                 groups["mistral"].append(model)
                 added = True
-            elif model.startswith(("mistralai/", "mixtral-", "pixtral-", "ministral-", "codestral-")):
+            elif model.startswith(("pixtral-", "ministral-", "codestral")) or "mistral" in model or "mixtral" in model:
                 groups["mistral"].append(model)
                 added = True
             # Check for Qwen models
-            elif model.startswith(("qwen", "Qwen/", "qwq", "qvq")):
+            elif model.startswith(("qwen", "Qwen", "qwq", "qvq")):
                 groups["qwen"].append(model)
                 added = True
             # Check for Microsoft Phi models
-            elif model.startswith(("phi-", "microsoft/")):
+            elif model.startswith(("phi-", "microsoft/")) or "wizardlm" in model.lower():
                 groups["phi"].append(model)
                 added = True
             # Check for Meta LLaMA models
             elif model.startswith(("llama-", "meta-llama/", "llama2-", "llama3")):
                 groups["llama"].append(model)
                 added = True
-            elif model == "meta-ai":
+            elif model == "meta-ai" or model.startswith("codellama-"):
                 groups["llama"].append(model)
                 added = True
             # Check for Google models
@@ -100,14 +117,6 @@ class AnyProvider(AsyncGeneratorProvider, ProviderModelMixin):
             elif model.startswith(("command-", "CohereForAI/", "c4ai-command")):
                 groups["command"].append(model)
                 added = True
-            # Check for Claude models
-            elif model.startswith("claude-"):
-                groups["claude"].append(model)
-                added = True
-            # Check for Grok models
-            elif model.startswith("grok-"):
-                groups["grok"].append(model)
-                added = True
             # Check for DeepSeek models
             elif model.startswith(("deepseek-", "janus-")):
                 groups["deepseek"].append(model)
@@ -116,34 +125,27 @@ class AnyProvider(AsyncGeneratorProvider, ProviderModelMixin):
             elif model.startswith(("sonar", "sonar-", "pplx-")) or model == "r1-1776":
                 groups["perplexity"].append(model)
                 added = True
-            # Check for OpenAI models
-            elif model.startswith(("gpt-", "chatgpt-", "o1", "o1-", "o3-", "o4-")) or model in ("auto", "dall-e-3", "searchgpt"):
-                groups["openai"].append(model)
+            # Check for image models - UPDATED to include flux check
+            elif model in cls.image_models:
+                groups["image"].append(model)
                 added = True
-            # Check for openrouter models
-            elif model.startswith(("openrouter:")):
-                groups["openrouter"].append(model)
+            # Check for OpenAI models
+            elif model.startswith(("gpt-", "chatgpt-", "o1", "o1-", "o3-", "o4-")) or model in ("auto", "searchgpt"):
+                groups["openai"].append(model)
                 added = True
             # Check for video models
             elif model in cls.video_models:
                 groups["video"].append(model)
                 added = True
-            # Check for image models - UPDATED to include flux check
-            elif model in cls.image_models or "flux" in model.lower() or "stable-diffusion" in model.lower() or "sdxl" in model.lower() or "gpt-image" in model.lower():
-                groups["image"].append(model)
-                added = True
-
+            if not added:
+                for group in LABELS.keys():
+                    if model == group or group in model:
+                        groups[group].append(model)
+                        added = True
+                        break
             # If not categorized, check for special cases then put in other
             if not added:
-                # CodeLlama is Meta's model
-                if model.startswith("codellama-"):
-                    groups["llama"].append(model)
-                # WizardLM is Microsoft's
-                elif "wizardlm" in model.lower():
-                    groups["phi"].append(model)
-                else:
-                    groups["other"].append(model)
-
+                groups["other"].append(model)
         return [
             {"group": LABELS[group], "models": names} for group, names in groups.items()
         ]
@@ -174,31 +176,19 @@ class AnyProvider(AsyncGeneratorProvider, ProviderModelMixin):
             all_models = [cls.default_model] + list(model_with_providers.keys())
 
             # Process special providers
-            for provider in SPECIAL_PROVIDERS:
+            for provider in PROVIERS_LIST_2:
                 provider: ProviderType = provider
                 if not provider.working or provider.get_parent() in ignored:
                     continue
                 if provider == CopilotAccount:
                     all_models.extend(list(provider.model_aliases.keys()))
-                elif provider == PollinationsAI:
+                elif provider in [PollinationsAI, ARTA]:
                     all_models.extend([f"{provider.__name__}:{model}" for model in provider.get_models() if model not in all_models])
                     cls.audio_models.update({f"{provider.__name__}:{model}": [] for model in provider.get_models() if model in provider.audio_models})
                     cls.image_models.extend([f"{provider.__name__}:{model}" for model in provider.get_models() if model in provider.image_models])
                     cls.vision_models.extend([f"{provider.__name__}:{model}" for model in provider.get_models() if model in provider.vision_models])
-                    all_models.extend(list(provider.model_aliases.keys()))
-                elif provider == LegacyLMArena:
-                    # Add models from LegacyLMArena
-                    provider_models = provider.get_models()
-                    all_models.extend(provider_models)
-                    # Also add model aliases
-                    all_models.extend(list(provider.model_aliases.keys()))
-                    # Add vision models
-                    cls.vision_models.extend(provider.vision_models)
-                elif provider == ARTA:
-                    # Add all ARTA models as image models
-                    arta_models = provider.get_models()
-                    all_models.extend(arta_models)
-                    cls.image_models.extend(arta_models)
+                    if provider == PollinationsAI:
+                        all_models.extend(list(provider.model_aliases.keys()))
                 else:
                     all_models.extend(provider.get_models())
 
@@ -215,9 +205,9 @@ class AnyProvider(AsyncGeneratorProvider, ProviderModelMixin):
                 name = name.split("/")[-1].split(":")[0].lower()
                 # Date patterns
                 name = re.sub(r'-\d{4}-\d{2}-\d{2}', '', name)
-                name = re.sub(r'-\d{8}', '', name)
-                name = re.sub(r'-\d{4}', '', name)
+                name = re.sub(r'-\d{3,8}', '', name)
                 name = re.sub(r'-\d{2}-\d{2}', '', name)
+                name = re.sub(r'-[0-9a-f]{8}$', '', name)
                 # Version patterns
                 name = re.sub(r'-(instruct|chat|preview|experimental|v\d+|fp8|bf16|hf)$', '', name)
                 # Other replacements
@@ -226,23 +216,28 @@ class AnyProvider(AsyncGeneratorProvider, ProviderModelMixin):
                 name = name.replace("meta-llama-", "llama-")
                 name = name.replace("llama3", "llama-3")
                 name = name.replace("flux.1-", "flux-")
+                name = name.replace("-free", "")
+                name = name.replace("qwen1-", "qwen-1")
+                name = name.replace("qwen2-", "qwen-2")
+                name = name.replace("qwen3-", "qwen-3")
+                name = name.replace("stable-diffusion-3.5-large", "sd-3.5-large")
                 return name
 
             # Process HAR providers
-            for provider in SPECIAL_PROVIDERS2:
+            for provider in PROVIERS_LIST_3:
                 if not provider.working or provider.get_parent() in ignored:
                     continue
                 new_models = provider.get_models()
                 if provider == HuggingFaceMedia:
                     new_models = provider.video_models
-
-                # Add original models too, not just cleaned names
-                all_models.extend(new_models)
-
-                model_map = {model if model.startswith("openrouter:") else clean_name(model): model for model in new_models}
-                if not provider.model_aliases:
-                    provider.model_aliases = {}
-                provider.model_aliases.update(model_map)
+                model_map = {}
+                for model in new_models:
+                    clean_value = model if model.startswith("openrouter:") else clean_name(model)
+                    if clean_value not in model_map:
+                        model_map[clean_value] = model
+                if provider.model_aliases:
+                    model_map.update(provider.model_aliases)
+                provider.model_aliases = model_map
                 all_models.extend(list(model_map.keys()))
 
                 # Update special model lists with both original and cleaned names
@@ -262,7 +257,10 @@ class AnyProvider(AsyncGeneratorProvider, ProviderModelMixin):
                     cls.audio_models.update(provider.audio_models)
 
             # Update model counts
-            cls.models_count.update({model: all_models.count(model) for model in all_models if all_models.count(model) > cls.models_count.get(model, 0)})
+            for model in all_models:
+                count = all_models.count(model)
+                if count > cls.models_count.get(model, 0):
+                    cls.models_count.update({model: count})
 
             # Deduplicate and store
             cls.models_storage[ignored_key] = list(dict.fromkeys([model if model else cls.default_model for model in all_models]))
@@ -320,11 +318,15 @@ class AnyProvider(AsyncGeneratorProvider, ProviderModelMixin):
             if isinstance(api_key, dict):
                 for provider in api_key:
                     if api_key.get(provider):
-                        if provider in __map__ and __map__[provider] not in MAIN_PROVIERS:
+                        if provider in __map__ and __map__[provider] not in PROVIERS_LIST_1:
                             extra_providers.append(__map__[provider])
-            for provider in MAIN_PROVIERS + extra_providers:
+            for provider in PROVIERS_LIST_1 + extra_providers:
                 if provider.working:
-                    if not model or model in provider.get_models() or model in provider.model_aliases:
+                    provider_api_key = api_key
+                    if isinstance(api_key, dict):
+                        provider_api_key = api_key.get(provider.get_parent())
+                    provider_models = provider.get_models(api_key=provider_api_key) if provider_api_key else provider.get_models()
+                    if not model or model in provider_models or provider.model_aliases and model in provider.model_aliases:
                        providers.append(provider)
             if model in models.__models__:
                 for provider in models.__models__[model][1]:
@@ -334,7 +336,7 @@ class AnyProvider(AsyncGeneratorProvider, ProviderModelMixin):
 
         if len(providers) == 0:
             raise ModelNotFoundError(f"AnyProvider: Model {model} not found in any provider.")
-
+    
         async for chunk in IterListProvider(providers).create_async_generator(
             model,
             messages,

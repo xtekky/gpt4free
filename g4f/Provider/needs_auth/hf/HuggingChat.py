@@ -51,14 +51,7 @@ class HuggingChat(AsyncAuthedProvider, ProviderModelMixin):
     def get_models(cls):
         if not cls.models:
             try:
-                text = requests.get(cls.url).text
-                text = re.search(r'models:(\[.+?\]),oldModels:', text).group(1)
-                text = re.sub(r',parameters:{[^}]+?}', '', text)
-                text = text.replace('void 0', 'null')
-                def add_quotation_mark(match):
-                    return f'{match.group(1)}"{match.group(2)}":'
-                text = re.sub(r'([{,])([A-Za-z0-9_]+?):', add_quotation_mark, text)
-                models = json.loads(text)
+                models = requests.get(f"{cls.url}/api/v2/models").json().get("json")
                 cls.text_models = [model["id"] for model in models] 
                 cls.models = cls.text_models + cls.image_models
                 cls.vision_models = [model["id"] for model in models if model["multimodal"]]
