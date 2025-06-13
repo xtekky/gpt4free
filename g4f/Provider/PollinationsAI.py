@@ -374,7 +374,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         if model == "gptimage":
             n = 1
             # Only remote images are supported
-            image = [item[0] for item in media if isinstance(item[0], str) and item[0].startswith("http")]
+            image = [item[0] for item in media if isinstance(item[0], str) and item[0].startswith("http")] if media else []
             params = {
                 **params,
                 "image": ",".join(image) if image else "",
