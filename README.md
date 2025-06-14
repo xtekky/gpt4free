@@ -49,11 +49,13 @@ docker pull hlohaus789/g4f
 
 Is your site on this repository and you want to take it down? Send an email to takedown@g4f.ai with proof it is yours and it will be removed as fast as possible. To prevent reproduction please secure your API. 😉
 
-## 🚀 Live G4F
+## 🚀 **Experience Live G4F**
 
-[Live G4F](https://github.com/user-attachments/assets/83519200-2f27-48c6-9fc3-bff0fcd96f41)
+Want to see G4F in action? Explore a live demo now!
 
-> Explore the [here](https://g4f.dev/).
+[**Click here to explore the live G4F demo!**](https://github.com/user-attachments/assets/83519200-2f27-48c6-9fc3-bff0fcd96f41)
+
+Curious to see what G4F can do? Dive into a live demonstration and visit the [official g4f.dev homepage](https://g4f.dev/) for more.
 
 ---
 
