@@ -107,7 +107,7 @@ class LMArenaBeta(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                         await asyncio.sleep(1)
                 args = await get_args_from_nodriver(cls.url, proxy=proxy, callback=callback)
             except (RuntimeError, FileNotFoundError) as e:
-                debug.log(f"Nodriver is not available: {type(e).__name__}: {e}")
+                debug.log(f"Nodriver is not available:", e)
                 args = {"headers": DEFAULT_HEADERS, "cookies": {}, "impersonate": "chrome"}
         else:
             args = {"headers": DEFAULT_HEADERS, "cookies": {}, "impersonate": "chrome"}

@@ -4,11 +4,10 @@ control_c() {
     exit
 }
 
-trap control_c SIGINT
-
-while true ; do 
-   python -m etc.tool.update
-   sleep 600 | while read line ; do
+while :
+do
+    python -m etc.tool.update
+    sleep 600 | while read line ; do
    PID=$!
    echo $line 
 done
