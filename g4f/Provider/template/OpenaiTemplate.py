@@ -6,6 +6,7 @@ from ..helper import filter_none, format_media_prompt
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
 from ...typing import Union, AsyncResult, Messages, MediaListType
 from ...requests import StreamSession, raise_for_status
+from ...image import use_aspect_ratio
 from ...providers.response import FinishReason, ToolCalls, Usage, ImageResponse, ProviderInfo
 from ...tools.media import render_messages
 from ...errors import MissingAuthError, ResponseError
@@ -89,6 +90,7 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
                 data = {
                     "prompt": prompt,
                     "model": model,
+                    **use_aspect_ratio({"width": kwargs.get("width"), "height": kwargs.get("height")}, kwargs.get("aspect_ratio", None))
                 }
                 async with session.post(f"{api_base.rstrip('/')}/images/generations", json=data, ssl=cls.ssl) as response:
                     data = await response.json()

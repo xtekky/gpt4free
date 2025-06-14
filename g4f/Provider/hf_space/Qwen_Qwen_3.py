@@ -12,7 +12,6 @@ from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..helper import get_last_user_message, get_system_prompt
 from ... import debug
 
-
 class Qwen_Qwen_3(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Qwen Qwen-3"
     url = "https://qwen-qwen3-demo.hf.space"
@@ -57,7 +56,7 @@ class Qwen_Qwen_3(AsyncGeneratorProvider, ProviderModelMixin):
             model = cls.get_model(model)
         except ModelNotFoundError:
             pass
-        if conversation is None:
+        if conversation is None or not hasattr(conversation, 'session_hash'):
             conversation = JsonConversation(session_hash=str(uuid.uuid4()).replace('-', ''))
 
         headers_join = {
