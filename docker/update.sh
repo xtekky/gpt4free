@@ -1,13 +1,11 @@
-#!/usr/bin/env bash
-control_c() {
-    kill $PID
-    exit
-}
-
-while :
-do
-    python -m etc.tool.update
-    sleep 600 | while read line ; do
-    PID=$!
-    echo $line 
+#!/bin/bash
+trap break INT
+for (( c=0; c<=1000000; c++ ))
+do  
+python -m etc.tool.update
+sleep 600
 done
+echo "I have broken out of the interminably long for loop"
+trap - INT
+sleep 1
+echo "END."
