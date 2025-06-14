@@ -27,9 +27,19 @@ class GeminiPro(AsyncGeneratorProvider, ProviderModelMixin):
     supports_system_message = True
     needs_auth = True
 
-    default_model = "gemini-1.5-pro"
+    default_model = "gemini-2.0-flash "
     default_vision_model = default_model
-    fallback_models = [default_model, "gemini-2.0-flash-exp", "gemini-pro", "gemini-1.5-flash", "gemini-1.5-flash-8b"]
+    fallback_models = [
+        default_model,
+        "gemini-2.0-flash-lite",
+        "gemini-2.0-flash-thinking-exp",
+        "gemini-2.5-flash-preview-04-17",
+        "gemma-3-1b-it",
+        "gemma-3-12b-it",
+        "gemma-3-27b-it",
+        "gemma-3-4b-it",
+        "gemma-3n-e4b-it"
+    ]
     model_aliases = {
         "gemini-1.5-pro": [default_model, "gemini-pro"],
         "gemini-1.5-flash": ["gemini-1.5-flash", "gemini-1.5-flash-8b"],
@@ -150,7 +160,9 @@ class GeminiPro(AsyncGeneratorProvider, ProviderModelMixin):
                             try:
                                 data = b"".join(lines)
                                 data = json.loads(data)
-                                yield data["candidates"][0]["content"]["parts"][0]["text"]
+                                content = data["candidates"][0]["content"]
+                                if "parts" in content:
+                                    yield content["parts"][0]["text"]
                                 if "finishReason" in data["candidates"][0]:
                                     yield FinishReason(data["candidates"][0]["finishReason"].lower())
                                 usage = data.get("usageMetadata")
@@ -160,9 +172,9 @@ class GeminiPro(AsyncGeneratorProvider, ProviderModelMixin):
                                         completion_tokens=usage.get("candidatesTokenCount"),
                                         total_tokens=usage.get("totalTokenCount")
                                     )
-                            except:
+                            except Exception as e:
                                 data = data.decode(errors="ignore") if isinstance(data, bytes) else data
-                                raise RuntimeError(f"Read chunk failed: {data}")
+                                raise RuntimeError(f"Read chunk failed: {data}") from e
                             lines = []
                         else:
                             lines.append(chunk)
