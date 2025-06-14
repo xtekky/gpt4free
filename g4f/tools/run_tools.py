@@ -124,9 +124,9 @@ class AuthManager:
     """Handles API key management"""
     
     @staticmethod
-    def get_api_key_file(cls) -> Path:
+    def get_api_key_file(provider) -> Path:
         """Get the path to the API key file for a provider"""
-        return Path(get_cookies_dir()) / f"auth_{cls.get_parent()}.json"
+        return Path(get_cookies_dir()) / f"auth_{provider if isinstance(provider, str) else provider.get_parent()}.json"
 
     @staticmethod
     def load_api_key(provider: Any) -> Optional[str]:
@@ -253,7 +253,6 @@ async def async_iter_run_tools(
     # Yield sources if available
     if sources:
         yield sources
-
 
 def iter_run_tools(
     iter_callback: Callable,
