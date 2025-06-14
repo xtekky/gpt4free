@@ -202,35 +202,16 @@ class HuggingChat(AsyncAuthedProvider, ProviderModelMixin):
 
     @classmethod
     def fetch_message_id(cls, session: Session, conversation_id: str):
-        # Get the data response and parse it properly
-        response = session.get(f'{cls.url}/conversation/{conversation_id}/__data.json?x-sveltekit-invalidated=11')
+        response = session.get(
+            f"{cls.url}/api/v2/conversations/{conversation_id}"
+        )
         raise_for_status(response)
 
-        # Split the response content by newlines and parse each line as JSON
         try:
-            json_data = None
-            for line in response.text.split('\n'):
-                if line.strip():
-                    try:
-                        parsed = json.loads(line)
-                        if isinstance(parsed, dict) and "nodes" in parsed:
-                            json_data = parsed
-                            break
-                    except json.JSONDecodeError:
-                        continue
+            data = response.json()['json']
+        except json.JSONDecodeError as e:
+            debug.error(f"Failed to decode JSON: {e}")
+            return None
 
-            if not json_data:
-                raise RuntimeError("Failed to parse response data")
-
-            if json_data["nodes"][-1]["type"] == "error":
-                if json_data["nodes"][-1]["status"] == 403:
-                    raise MissingAuthError(json_data["nodes"][-1]["error"]["message"])
-                raise ResponseError(json.dumps(json_data["nodes"][-1]))
-
-            data = json_data["nodes"][1]["data"]
-            keys = data[data[0]["messages"]]
-            message_keys = data[keys[-1]]
-            return data[message_keys["id"]]
-
-        except (KeyError, IndexError, TypeError) as e:
-            raise RuntimeError(f"Failed to extract message ID: {str(e)}")
+        messages_data_list = data.get("messages", [])
+        return messages_data_list[-1]['id'] if messages_data_list else None
