@@ -107,13 +107,17 @@ class Backend_Api(Api):
             else:
                 json_data = request.json
             tempfiles = []
+            media = []
             if "files" in request.files:
-                media = []
                 for file in request.files.getlist('files'):
                     if file.filename != '' and is_allowed_extension(file.filename):
                         newfile = get_tempfile(file)
                         tempfiles.append(newfile)
                         media.append((Path(newfile), file.filename))
+            if "media_url" in request.form:
+                for url in request.form.getlist("media_url"):
+                    media.append((url, None))
+            if media:
                 json_data['media'] = media
 
             if app.demo and not json_data.get("provider"):
