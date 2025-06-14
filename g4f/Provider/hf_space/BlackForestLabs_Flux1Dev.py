@@ -110,7 +110,7 @@ class BlackForestLabs_Flux1Dev(AsyncGeneratorProvider, ProviderModelMixin):
                                         json_data['output']['error'] = json_data['output']['error'].split(" <a ")[0]
                                         raise ResponseError(json_data['output']['error'])
                                     if 'output' in json_data and 'data' in json_data['output']:
-                                        yield Reasoning(status="Finished")
+                                        yield Reasoning(status="")
                                         if len(json_data['output']['data']) > 0:
                                             yield ImageResponse(json_data['output']['data'][0]["url"], prompt)
                                     break

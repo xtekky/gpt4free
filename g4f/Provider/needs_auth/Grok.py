@@ -142,7 +142,7 @@ class Grok(AsyncAuthedProvider, ProviderModelMixin):
                                 else:
                                     if thinking_duration is not None:
                                         thinking_duration = time.time() - thinking_duration
-                                        status = f"Thought for {thinking_duration:.2f}s" if thinking_duration > 1 else "Finished"
+                                        status = f"Thought for {thinking_duration:.2f}s" if thinking_duration > 1 else ""
                                         thinking_duration = None
                                         yield Reasoning(status=status)
                                     yield token

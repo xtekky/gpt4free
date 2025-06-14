@@ -103,7 +103,7 @@ class LMArenaBeta(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                 async def callback(page):
                     while not await page.evaluate('document.cookie.indexOf("arena-auth-prod-v1") >= 0'):
                         await asyncio.sleep(1)
-                    while await page.evaluate('document.querySelector(\'[href*="challenge"]\').length > 0') :
+                    while not await page.evaluate('document.querySelector(\'textarea[name="text"]\')'):
                         await asyncio.sleep(1)
                 args = await get_args_from_nodriver(cls.url, proxy=proxy, callback=callback)
             except (RuntimeError, FileNotFoundError) as e:
@@ -174,6 +174,7 @@ class LMArenaBeta(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                         chunk = json.loads(line[3:])
                         if chunk == "hasArenaError":
                             raise ModelNotFoundError("LMArena Beta encountered an error: hasArenaError")
+                        yield chunk
                     elif line.startswith("a2:"):
                         yield ImageResponse([image.get("image") for image in json.loads(line[3:])], prompt)
                     elif line.startswith("ad:"):
