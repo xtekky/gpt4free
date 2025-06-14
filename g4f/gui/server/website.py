@@ -29,7 +29,7 @@ def render(filename = "chat"):
     is_tempfile = False
     if not os.path.exists(cache_file):
         if os.access(cache_file, os.W_OK):
-            cache_file = tempfile.NamedTemporaryFile(suffix=".html", delete=False)
+            cache_file = tempfile.NamedTemporaryFile(suffix=".html", delete=False).name
             is_tempfile = True
         else:
             os.makedirs(cache_dir, exist_ok=True)
