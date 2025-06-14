@@ -5,7 +5,7 @@ do
 python -m etc.tool.update
 sleep 600
 done
-echo "I have broken out of the interminably long for loop"
+echo "STOPPED."
 trap - INT
 sleep 1
 echo "END."

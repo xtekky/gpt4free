@@ -11,6 +11,7 @@ from ...providers.response import FinishReason, Usage, Reasoning, ToolCalls
 from ...tools.media import render_messages
 from ...requests import see_stream, raise_for_status
 from ...errors import ResponseError, ModelNotFoundError, MissingAuthError
+from ..helper import format_media_prompt
 from .. import debug
 
 class PuterJS(AsyncGeneratorProvider, ProviderModelMixin):
@@ -263,11 +264,13 @@ class PuterJS(AsyncGeneratorProvider, ProviderModelMixin):
             try:
                 url = "https://api.puter.com/puterai/chat/models/"
                 cls.models = requests.get(url).json().get("models", [])
-                cls.models = [model for model in cls.models if model not in ["abuse", "costly", "fake"]]
+                cls.models = [model for model in cls.models if "/" not in model and model not in ["abuse", "costly", "fake", "model-fallback-test-1"]]
             except Exception as e:
                 debug.log(f"PuterJS: Failed to fetch models from API: {e}")
                 cls.models = []
             cls.models += [model for model in cls.model_aliases.keys() if model not in cls.models]
+            openrouter_models = [model for model in cls.models if "openrouter:" in model]
+            cls.models = [model for model in cls.models if model not in openrouter_models] + openrouter_models
             cls.vision_models = []
             for model in cls.models:
                 for tag in ["vision", "multimodal", "gpt", "o1", "o3", "o4"]:
@@ -325,6 +328,7 @@ class PuterJS(AsyncGeneratorProvider, ProviderModelMixin):
         cls,
         model: str,
         messages: Messages,
+        prompt: str = None,
         proxy: str = None,
         stream: bool = True,
         api_key: str = None,
@@ -333,6 +337,9 @@ class PuterJS(AsyncGeneratorProvider, ProviderModelMixin):
     ) -> AsyncResult:
         if not api_key:
             raise MissingAuthError("API key is required for Puter.js API")
+
+        if not cls.models:
+            cls.get_models()
 
         # Check if we need to use a vision model
         if not model and media is not None and len(media) > 0:
@@ -375,11 +382,11 @@ class PuterJS(AsyncGeneratorProvider, ProviderModelMixin):
             driver = cls.get_driver_for_model(model)
 
             json_data = {
-                "interface": "puter-chat-completion",
+                "interface": "puter-image-generation" if model in cls.image_models else "puter-chat-completion",
                 "driver": driver,
-                "test_mode": False,
-                "method": "complete",
-                "args": {
+                "test_mode": messages[0]["content"] == "test",
+                "method": "generate" if model in cls.image_models else "complete",
+                "args": {"prompt": format_media_prompt(messages, prompt)} if model in cls.image_models else {
                     "messages": list(render_messages(messages, media)),
                     "model": model,
                     "stream": stream,
@@ -402,25 +409,26 @@ class PuterJS(AsyncGeneratorProvider, ProviderModelMixin):
                     async for result in see_stream(response.content):
                         if "error" in result:
                             raise ResponseError(result["error"].get("message", result["error"]))
-                        if result.get("usage") is not None:
-                            yield Usage(**result["usage"])
                         choices = result.get("choices", [{}])
                         choice = choices.pop() if choices else {}
                         content = choice.get("delta", {}).get("content")
-                        if content:
-                            yield content
-                        tool_calls = choice.get("delta", {}).get("tool_calls")
-                        if tool_calls:
-                            yield ToolCalls(choice["delta"]["tool_calls"])
                         reasoning_content = choice.get("delta", {}).get("reasoning_content")
                         if reasoning_content:
                             reasoning = True
                             yield Reasoning(reasoning_content)
+                        elif content:
+                            if reasoning:
+                                yield Reasoning(status="")
+                                reasoning = False
+                            yield content
+                        if result.get("usage") is not None:
+                            yield Usage(**result["usage"])
+                        tool_calls = choice.get("delta", {}).get("tool_calls")
+                        if tool_calls:
+                            yield ToolCalls(choice["delta"]["tool_calls"])
                         finish_reason = choice.get("finish_reason")
                         if finish_reason:
                             yield FinishReason(finish_reason)
-                    if reasoning:
-                        yield Reasoning(status="Done")
                 elif mime_type.startswith("application/json"):
                     result = await response.json()
                     if "choices" in result:
@@ -430,6 +438,9 @@ class PuterJS(AsyncGeneratorProvider, ProviderModelMixin):
                     else:
                         raise ResponseError(result)
                     message = choice.get("message", {})
+                    reasoning_content = message.get("reasoning_content")
+                    if reasoning_content:
+                        yield Reasoning(reasoning_content)
                     content = message.get("content", "")
                     if isinstance(content, list):
                         for item in content:
