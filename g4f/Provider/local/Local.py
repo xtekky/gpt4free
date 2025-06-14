@@ -13,7 +13,8 @@ from ...errors import MissingRequirementsError
 
 class Local(AbstractProvider, ProviderModelMixin):
     label = "GPT4All"
-    working = True
+    working = has_requirements
+    active_by_default = False
     supports_message_history = True
     supports_system_message = True
     supports_stream = True

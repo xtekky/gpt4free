@@ -20,6 +20,8 @@ except ImportError:
 class DeepSeekAPI(AsyncAuthedProvider, ProviderModelMixin):
     url = "https://chat.deepseek.com"
     working = has_dsk
+    active_by_default = has_dsk
+    needs_auth = True
     use_nodriver = True
     _access_token = None
 
@@ -81,8 +83,10 @@ class DeepSeekAPI(AsyncAuthedProvider, ProviderModelMixin):
                     is_thinking = 0
                 if chunk['content']:
                     yield chunk['content']
-            elif 'message_id' in chunk:
+            if 'message_id' in chunk:
                 conversation.parent_id = chunk['message_id']
             if chunk['finish_reason']:
+                if 'message_id' in chunk:
+                    conversation.parent_id = chunk['message_id']
+                    yield conversation
                 yield FinishReason(chunk['finish_reason'])
-        yield conversation

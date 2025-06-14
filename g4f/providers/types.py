@@ -20,6 +20,7 @@ class BaseProvider(ABC):
 
     url: str = None
     working: bool = False
+    active_by_default: bool = None
     needs_auth: bool = False
     supports_stream: bool = False
     supports_message_history: bool = False

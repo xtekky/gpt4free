@@ -322,6 +322,9 @@ async def do_search(
     Returns:
         tuple[str, Optional[Sources]]: A tuple containing the new prompt with search results and the sources.
     """
+    if not isinstance(prompt, str):
+        return prompt, None
+
     # If the prompt already includes the instructions, do not perform a search.
     if instructions and instructions in prompt:
         return prompt, None

@@ -12,6 +12,7 @@ class Ollama(OpenaiAPI):
     login_url = None
     needs_auth = False
     working = True
+    active_by_default = False
 
     @classmethod
     def get_models(cls, api_base: str = None, **kwargs):

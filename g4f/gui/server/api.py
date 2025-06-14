@@ -93,6 +93,7 @@ class Api:
             "vision": getattr(provider, "default_vision_model", None) is not None,
             "nodriver": getattr(provider, "use_nodriver", False),
             "hf_space": getattr(provider, "hf_space", False),
+            "active_by_default": not provider.needs_auth if provider.active_by_default is None else provider.active_by_default,
             "auth": provider.needs_auth,
             "login_url": getattr(provider, "login_url", None),
         } for provider in Provider.__providers__ if provider.working and safe_get_models(provider)]
