@@ -403,8 +403,16 @@ class Backend_Api(Api):
                     f.write(f"{filename}\n")
             return {"bucket_id": bucket_id, "files": filenames, "media": media}
 
-        @app.route('/files/<bucket_id>/media/<filename>', methods=['GET'])
-        def get_media(bucket_id, filename, dirname: str = None):
+        @app.route('/files/<bucket_id>/<file_type>/<filename>', methods=['GET'])
+        def get_media(bucket_id, file_type: str, filename, dirname: str = None):
+            if file_type not in ["media", "thumbnail"]:
+                return jsonify({"error": {"message": "Invalid file type"}}), 400
+            if file_type == "thumbnail":
+                media_dir = get_bucket_dir(dirname, bucket_id, "thumbnail")
+                try:
+                    return send_from_directory(os.path.abspath(media_dir), filename)
+                except NotFound:
+                    pass
             media_dir = get_bucket_dir(dirname, bucket_id, "media")
             try:
                 return send_from_directory(os.path.abspath(media_dir), filename)
@@ -413,17 +421,6 @@ class Backend_Api(Api):
                 if source_url is not None:
                     return redirect(source_url)
                 raise
-
-        @app.route('/files/<bucket_id>/thumbnail/<filename>', methods=['GET'])
-        def get_media(bucket_id, filename, dirname: str = None):
-            media_dir = get_bucket_dir(dirname, bucket_id, "thumbnail")
-            try:
-                return send_from_directory(os.path.abspath(media_dir), filename)
-            except NotFound:
-                original = f'/files/{quote_plus(bucket_id)}/media/{quote_plus(filename)}'
-                if request.query_string:
-                    original += f"?{request.query_string.decode()}"
-                return redirect(original)
 
         self.match_files = {}
 
