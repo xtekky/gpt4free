@@ -8,6 +8,7 @@ import asyncio
 import shutil
 import random
 import datetime
+from urllib.parse import quote_plus
 from flask import Flask, Response, redirect, request, jsonify, send_from_directory
 from werkzeug.exceptions import NotFound
 from typing import Generator
@@ -15,6 +16,11 @@ from pathlib import Path
 from urllib.parse import quote_plus
 from hashlib import sha256
 
+try:
+    from PIL import Image 
+    has_pillow = True
+except ImportError:
+    has_pillow = False
 try:
     from ...integration.markitdown import MarkItDown, StreamInfo
     has_markitdown = True
@@ -28,7 +34,7 @@ from ...client.helper import filter_markdown
 from ...tools.files import supports_filename, get_streaming, get_bucket_dir, get_tempfile
 from ...tools.run_tools import iter_run_tools
 from ...errors import ProviderNotFoundError
-from ...image import is_allowed_extension, MEDIA_TYPE_MAP
+from ...image import is_allowed_extension, process_image, MEDIA_TYPE_MAP
 from ...cookies import get_cookies_dir
 from ...image.copy_images import secure_filename, get_source_url, get_media_dir, copy_media
 from ... import ChatCompletion
@@ -208,6 +214,10 @@ class Backend_Api(Api):
             '/media/<path:name>': {
                 'function': self.serve_images,
                 'methods': ['GET']
+            },
+            '/thumbnail/<path:name>': {
+                'function': self.serve_images,
+                'methods': ['GET']
             }
         }
 
@@ -368,6 +378,15 @@ class Backend_Api(Api):
                         media.append({"name": filename, "text": result})
                     else:
                         media.append({"name": filename})
+                    if has_pillow:
+                        try:
+                            image = Image.open(copyfile)
+                            thumbnail_dir = os.path.join(bucket_dir, "thumbnail")
+                            os.makedirs(thumbnail_dir, exist_ok=True)
+                            image = process_image(image)
+                            image.save(os.path.join(thumbnail_dir, filename))
+                        except Exception as e:
+                            logger.exception(e)
                 elif is_supported:
                     newfile = os.path.join(bucket_dir, filename)
                     filenames.append(filename)
@@ -394,6 +413,17 @@ class Backend_Api(Api):
                 if source_url is not None:
                     return redirect(source_url)
                 raise
+
+        @app.route('/files/<bucket_id>/thumbnail/<filename>', methods=['GET'])
+        def get_media(bucket_id, filename, dirname: str = None):
+            media_dir = get_bucket_dir(dirname, bucket_id, "thumbnail")
+            try:
+                return send_from_directory(os.path.abspath(media_dir), filename)
+            except NotFound:
+                original = f'/files/{quote_plus(bucket_id)}/media/{quote_plus(filename)}'
+                if request.query_string:
+                    original += f"?{request.query_string.decode()}"
+                return redirect(original)
 
         self.match_files = {}
 

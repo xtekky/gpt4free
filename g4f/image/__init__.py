@@ -214,7 +214,7 @@ def get_orientation(image: Image) -> int:
         if orientation is not None:
             return orientation
 
-def process_image(image: Image, new_width: int, new_height: int) -> Image:
+def process_image(image: Image, new_width: int = 1000, new_height: int = 1000) -> Image:
     """
     Processes the given image by adjusting its orientation and resizing it.
 
