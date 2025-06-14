@@ -442,14 +442,14 @@ class Backend_Api(Api):
         @self.app.route('/backend-api/v2/chat/<share_id>', methods=['GET'])
         def get_chat(share_id: str) -> str:
             share_id = secure_filename(share_id)
-            if self.chat_cache.get(share_id, 0) == int(request.headers.get("if-none-match", 0)):
+            if self.chat_cache.get(share_id, 0) == int(request.headers.get("if-none-match", -1)):
                 return jsonify({"error": {"message": "Not modified"}}), 304
             file = get_bucket_dir(share_id, "chat.json")
             if not os.path.isfile(file):
                 return jsonify({"error": {"message": "Not found"}}), 404
             with open(file, 'r') as f:
                 chat_data = json.load(f)
-                if chat_data.get("updated", 0) == int(request.headers.get("if-none-match", 0)):
+                if chat_data.get("updated", 0) == int(request.headers.get("if-none-match", -1)):
                     return jsonify({"error": {"message": "Not modified"}}), 304
                 self.chat_cache[share_id] = chat_data.get("updated", 0)
                 return jsonify(chat_data), 200

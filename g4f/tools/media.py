@@ -70,7 +70,15 @@ def merge_media(media: list, messages: list) -> Iterator:
         yield from media
 
 def render_messages(messages: Messages, media: list = None) -> Iterator:
+    last_is_assistant = False
     for idx, message in enumerate(messages):
+        # Remove duplicate assistant messages
+        if message.get("role") == "assistant":
+            if last_is_assistant:
+                continue
+            last_is_assistant = True
+        else:
+            last_is_assistant = False
         if isinstance(message["content"], list):
             parts = [render_part(part) for part in message["content"] if part]
             yield {

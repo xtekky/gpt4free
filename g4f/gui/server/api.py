@@ -9,6 +9,7 @@ from inspect import signature
 
 from ...errors import VersionNotFoundError, MissingAuthError
 from ...image.copy_images import copy_media, ensure_media_dir, get_media_dir
+from ...image import get_width_height
 from ...tools.run_tools import iter_run_tools
 from ... import Provider
 from ...providers.base_provider import ProviderModelMixin
@@ -196,8 +197,9 @@ class Api:
                     media = chunk
                     if download_media or chunk.get("cookies"):
                         chunk.alt = format_media_prompt(kwargs.get("messages"), chunk.alt)
-                        tags = [model, kwargs.get("aspect_ratio"), kwargs.get("resolution"), kwargs.get("width"), kwargs.get("height")]
-                        media = asyncio.run(copy_media(chunk.get_list(), chunk.get("cookies"), chunk.get("headers"), proxy=proxy, alt=chunk.alt, tags=tags))
+                        width, height = get_width_height(chunk.get("width"), chunk.get("height"))
+                        tags = [model, kwargs.get("aspect_ratio"), kwargs.get("resolution")]
+                        media = asyncio.run(copy_media(chunk.get_list(), chunk.get("cookies"), chunk.get("headers"), proxy=proxy, alt=chunk.alt, tags=tags, add_url=f"width={width}&height={height}&"))
                         media = ImageResponse(media, chunk.alt) if isinstance(chunk, ImageResponse) else VideoResponse(media, chunk.alt)
                     yield self._format_json("content", str(media), urls=media.urls, alt=media.alt)
                 elif isinstance(chunk, SynthesizeData):

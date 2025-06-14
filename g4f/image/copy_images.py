@@ -10,7 +10,7 @@ from urllib.parse import quote, unquote
 from aiohttp import ClientSession, ClientError
 from urllib.parse import urlparse
 
-from ..typing import Optional, Cookies
+from ..typing import Optional, Cookies, Union
 from ..requests.aiohttp import get_connector
 from ..image import MEDIA_TYPE_MAP, EXTENSIONS_MAP
 from ..tools.files import secure_filename
@@ -108,7 +108,7 @@ async def copy_media(
     proxy: Optional[str] = None,
     alt: str = None,
     tags: list[str] = None,
-    add_url: bool = True,
+    add_url: Union[bool, str] = True,
     target: str = None,
     ssl: bool = None
 ) -> list[str]:
@@ -178,7 +178,7 @@ async def copy_media(
                         pass
                 # Build URL with safe encoding
                 url_filename = quote(os.path.basename(target_path))
-                return f"/media/{url_filename}" + (('?url=' + quote(image)) if add_url and not image.startswith('data:') else '')
+                return f"/media/{url_filename}" + (('?' + add_url if isinstance(add_url, str) else '' + 'url=' + quote(image)) if add_url and not image.startswith('data:') else '')
 
             except (ClientError, IOError, OSError, ValueError) as e:
                 debug.error(f"Image copying failed: {type(e).__name__}: {e}")
