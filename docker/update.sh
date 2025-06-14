@@ -11,5 +11,4 @@ while true ; do
    sleep 600 | while read line ; do
    PID=$!
    echo $line 
-   ...
 done
