@@ -74,27 +74,13 @@ class HuggingSpace(AsyncGeneratorProvider, ProviderModelMixin):
         is_started = False
         random.shuffle(cls.providers)
         for provider in cls.providers:
-            if model in provider.model_aliases:
-                async for chunk in provider.create_async_generator(provider.model_aliases[model], messages, media=media, **kwargs):
+            if model in provider.model_aliases or model in provider.get_models():
+                alias = provider.model_aliases[model] if model in provider.model_aliases else model
+                async for chunk in provider.create_async_generator(alias, messages, media=media, **kwargs):
                     is_started = True
                     yield chunk
             if is_started:
                 return
-        error = None
-        for provider in cls.providers:
-            if model in provider.get_models():
-                try:
-                    async for chunk in provider.create_async_generator(model, messages, media=media, **kwargs):
-                        is_started = True
-                        yield chunk
-                    if is_started:
-                        break
-                except ResponseError as e:
-                    if is_started:
-                        raise e
-                    error = e
-        if not is_started and error is not None:
-            raise error
 
 for provider in HuggingSpace.providers:
     provider.parent = HuggingSpace.__name__
