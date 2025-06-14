@@ -17,6 +17,7 @@ from ..Provider import HarProvider, HuggingFace, HuggingFaceMedia
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from .. import Provider
 from .. import models
+from .. import debug
 
 PROVIERS_LIST_1 = [
     OpenaiChat, PollinationsAI, Cloudflare, PerplexityLabs, Gemini, Grok, DeepSeekAPI, Blackbox, OpenAIFM,
@@ -180,17 +181,21 @@ class AnyProvider(AsyncGeneratorProvider, ProviderModelMixin):
                 provider: ProviderType = provider
                 if not provider.working or provider.get_parent() in ignored:
                     continue
-                if provider == CopilotAccount:
-                    all_models.extend(list(provider.model_aliases.keys()))
-                elif provider in [PollinationsAI, ARTA]:
-                    all_models.extend([f"{provider.__name__}:{model}" for model in provider.get_models() if model not in all_models])
-                    cls.audio_models.update({f"{provider.__name__}:{model}": [] for model in provider.get_models() if model in provider.audio_models})
-                    cls.image_models.extend([f"{provider.__name__}:{model}" for model in provider.get_models() if model in provider.image_models])
-                    cls.vision_models.extend([f"{provider.__name__}:{model}" for model in provider.get_models() if model in provider.vision_models])
-                    if provider == PollinationsAI:
+                try:
+                    if provider == CopilotAccount:
                         all_models.extend(list(provider.model_aliases.keys()))
-                else:
-                    all_models.extend(provider.get_models())
+                    elif provider in [PollinationsAI, ARTA]:
+                        all_models.extend([f"{provider.__name__}:{model}" for model in provider.get_models() if model not in all_models])
+                        cls.audio_models.update({f"{provider.__name__}:{model}": [] for model in provider.get_models() if model in provider.audio_models})
+                        cls.image_models.extend([f"{provider.__name__}:{model}" for model in provider.get_models() if model in provider.image_models])
+                        cls.vision_models.extend([f"{provider.__name__}:{model}" for model in provider.get_models() if model in provider.vision_models])
+                        if provider == PollinationsAI:
+                            all_models.extend(list(provider.model_aliases.keys()))
+                    else:
+                        all_models.extend(provider.get_models())
+                except Exception as e:
+                    debug.error(f"Error getting models for provider {provider.__name__}:", e)
+                    continue
 
                 # Update special model lists
                 if hasattr(provider, 'image_models'):
@@ -227,7 +232,11 @@ class AnyProvider(AsyncGeneratorProvider, ProviderModelMixin):
             for provider in PROVIERS_LIST_3:
                 if not provider.working or provider.get_parent() in ignored:
                     continue
-                new_models = provider.get_models()
+                try:
+                    new_models = provider.get_models()
+                except Exception as e:
+                    debug.error(f"Error getting models for provider {provider.__name__}:", e)
+                    continue
                 if provider == HuggingFaceMedia:
                     new_models = provider.video_models
                 model_map = {}
@@ -327,7 +336,11 @@ class AnyProvider(AsyncGeneratorProvider, ProviderModelMixin):
                     provider_api_key = api_key
                     if isinstance(api_key, dict):
                         provider_api_key = api_key.get(provider.get_parent())
-                    provider_models = provider.get_models(api_key=provider_api_key) if provider_api_key else provider.get_models()
+                    try:
+                        provider_models = provider.get_models(api_key=provider_api_key) if provider_api_key else provider.get_models()
+                    except Exception as e:
+                        debug.error(f"Error getting models for provider {provider.__name__}:", e)
+                        continue
                     if not model or model in provider_models or provider.model_aliases and model in provider.model_aliases:
                        providers.append(provider)
             if model in models.__models__:
