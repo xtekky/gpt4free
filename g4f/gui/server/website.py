@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import os
 import requests
+import tempfile
 from datetime import datetime
 from flask import send_from_directory, redirect
+
 from ...image.copy_images import secure_filename
 from ...cookies import get_cookies_dir
 from ...errors import VersionNotFoundError
@@ -11,7 +13,7 @@ from ...constants import STATIC_URL, DOWNLOAD_URL, DIST_DIR
 from ... import version
 
 def redirect_home():
-    return redirect('/chat')
+    return redirect('/chat/')
 
 def render(filename = "chat"):
     if os.path.exists(DIST_DIR):
@@ -24,21 +26,35 @@ def render(filename = "chat"):
     today = datetime.today().strftime('%Y-%m-%d')
     cache_dir = os.path.join(get_cookies_dir(), ".gui_cache")
     cache_file = os.path.join(cache_dir, f"{filename}.{today}.{secure_filename(f'{version.utils.current_version}-{latest_version}')}.html")
+    is_tempfile = False
     if not os.path.exists(cache_file):
-        os.makedirs(cache_dir, exist_ok=True)
+        if os.access(cache_file, os.W_OK):
+            cache_file = tempfile.NamedTemporaryFile(suffix=".html", delete=False)
+            is_tempfile = True
+        else:
+            os.makedirs(cache_dir, exist_ok=True)
         response = requests.get(f"{DOWNLOAD_URL}{filename}.html")
         if not response.ok:
+            found = None
             for root, _, files in os.walk(cache_dir):
                 for file in files:
                     if file.startswith(filename):
-                        return send_from_directory(os.path.abspath(root), file)
+                        found = os.path.abspath(root), file
                 break
+            if found:
+                return send_from_directory(found[0], found[1])
+            else:
+                response.raise_for_status()
         html = response.text
         html = html.replace("../dist/", f"dist/")
         html = html.replace("\"dist/", f"\"{STATIC_URL}dist/")
         with open(cache_file, 'w', encoding='utf-8') as f:
             f.write(html)
-    return send_from_directory(os.path.abspath(cache_dir), os.path.basename(cache_file))
+    try:
+        return send_from_directory(os.path.abspath(cache_dir), os.path.basename(cache_file))
+    finally:
+        if is_tempfile:
+            os.unlink(cache_file)
 
 class Website:
     def __init__(self, app) -> None:
