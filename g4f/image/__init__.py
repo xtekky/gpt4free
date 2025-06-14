@@ -116,6 +116,8 @@ def is_valid_media(data: ImageType = None, filename: str = None) -> str:
             media_type = EXTENSIONS_MAP[extension]
             if media_type.startswith("image/"):
                 return media_type
+    if not data:
+        return False
     if isinstance(data, bytes):
         return is_accepted_format(data)
     return is_data_uri_an_image(data)
