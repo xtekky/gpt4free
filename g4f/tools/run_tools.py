@@ -130,10 +130,7 @@ class AuthManager:
 
     @staticmethod
     def load_api_key(provider: Any) -> Optional[str]:
-        """Load API key from config file if needed"""
-        if not getattr(provider, "needs_auth", False):
-            return None
-
+        """Load API key from config file"""
         auth_file = AuthManager.get_api_key_file(provider)
         try:
             if auth_file.exists():

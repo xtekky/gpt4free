@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import os
 import requests
-import tempfile
 from datetime import datetime
 from flask import send_from_directory, redirect
 
@@ -26,11 +25,10 @@ def render(filename = "chat"):
     today = datetime.today().strftime('%Y-%m-%d')
     cache_dir = os.path.join(get_cookies_dir(), ".gui_cache")
     cache_file = os.path.join(cache_dir, f"{filename}.{today}.{secure_filename(f'{version.utils.current_version}-{latest_version}')}.html")
-    is_tempfile = False
+    is_temp = False
     if not os.path.exists(cache_file):
         if os.access(cache_file, os.W_OK):
-            cache_file = tempfile.NamedTemporaryFile(suffix=".html", delete=False).name
-            is_tempfile = True
+            is_temp = True
         else:
             os.makedirs(cache_dir, exist_ok=True)
         response = requests.get(f"{DOWNLOAD_URL}{filename}.html")
@@ -48,13 +46,11 @@ def render(filename = "chat"):
         html = response.text
         html = html.replace("../dist/", f"dist/")
         html = html.replace("\"dist/", f"\"{STATIC_URL}dist/")
+        if is_temp:
+            return html
         with open(cache_file, 'w', encoding='utf-8') as f:
             f.write(html)
-    try:
-        return send_from_directory(os.path.abspath(cache_dir), os.path.basename(cache_file))
-    finally:
-        if is_tempfile:
-            os.unlink(cache_file)
+    return send_from_directory(os.path.abspath(cache_dir), os.path.basename(cache_file))
 
 class Website:
     def __init__(self, app) -> None:
