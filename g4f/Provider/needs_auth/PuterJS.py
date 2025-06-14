@@ -28,8 +28,6 @@ class PuterJS(AsyncGeneratorProvider, ProviderModelMixin):
     claude_models = ["claude-3-7-sonnet-20250219", "claude-3-7-sonnet-latest", "claude-3-5-sonnet-20241022", "claude-3-5-sonnet-latest", "claude-3-5-sonnet-20240620", "claude-3-haiku-20240307"]
     mistral_models = ["ministral-3b-2410","ministral-3b-latest","ministral-8b-2410","ministral-8b-latest","open-mistral-7b","mistral-tiny","mistral-tiny-2312","open-mixtral-8x7b","mistral-small","mistral-small-2312","open-mixtral-8x22b","open-mixtral-8x22b-2404","mistral-large-2411","mistral-large-latest","pixtral-large-2411","pixtral-large-latest","mistral-large-pixtral-2411","codestral-2501","codestral-latest","codestral-2412","codestral-2411-rc5","pixtral-12b-2409","pixtral-12b","pixtral-12b-latest","mistral-small-2503","mistral-small-latest"]
     xai_models = ["grok-beta", "grok-vision-beta"]
-    deepseek_models = ["deepseek-chat","deepseek-reasoner"]
-    gemini_models = ["gemini-1.5-flash","gemini-2.0-flash"]    
     model_aliases = {              
         ### mistral_models ###
         "mixtral-8x22b": ["open-mixtral-8x22b", "open-mixtral-8x22b-2404"],
@@ -260,7 +258,7 @@ class PuterJS(AsyncGeneratorProvider, ProviderModelMixin):
     }
 
     @classmethod
-    def get_models(cls, api_key: str = None) -> list[str]:
+    def get_models(cls, **kwargs) -> list[str]:
         if not cls.models:
             try:
                 url = "https://api.puter.com/puterai/chat/models/"
@@ -268,7 +266,8 @@ class PuterJS(AsyncGeneratorProvider, ProviderModelMixin):
                 cls.models = [model for model in cls.models if model not in ["abuse", "costly", "fake"]]
             except Exception as e:
                 debug.log(f"PuterJS: Failed to fetch models from API: {e}")
-                cls.models = list(cls.model_aliases.keys())
+                cls.models = []
+            cls.models += [model for model in cls.model_aliases.keys() if model not in cls.models]
             cls.vision_models = []
             for model in cls.models:
                 for tag in ["vision", "multimodal", "gpt", "o1", "o3", "o4"]:
@@ -287,12 +286,12 @@ class PuterJS(AsyncGeneratorProvider, ProviderModelMixin):
             return "mistral"
         elif model in PuterJS.xai_models:
             return "xai"
-        elif model in PuterJS.deepseek_models:
-            return "deepseek"
-        elif model in PuterJS.gemini_models:
-            return "gemini"
         elif "openrouter:" in model:
             return "openrouter"
+        elif "deepseek" in model:
+            return "deepseek"
+        elif "gemini" in model:
+            return "gemini"
         else:
             # Default to OpenAI for unknown models
             return "openai-completion"
@@ -303,10 +302,6 @@ class PuterJS(AsyncGeneratorProvider, ProviderModelMixin):
 
         if not model:
             return cls.default_model
-
-        # Check if the model exists directly in our models list
-        if model in cls.models:
-            return model
         
         # Check if there's an alias for this model
         if model in cls.model_aliases:
@@ -318,6 +313,10 @@ class PuterJS(AsyncGeneratorProvider, ProviderModelMixin):
                 return selected_model
             debug.log(f"PuterJS: Using model '{alias}' for alias '{model}'")
             return alias
+
+        # Check if the model exists directly in our models list
+        if model in cls.models:
+            return model
 
         raise ModelNotFoundError(f"Model {model} not found")
 
@@ -432,7 +431,11 @@ class PuterJS(AsyncGeneratorProvider, ProviderModelMixin):
                         raise ResponseError(result)
                     message = choice.get("message", {})
                     content = message.get("content", "")
-                    if content:
+                    if isinstance(content, list):
+                        for item in content:
+                            if item.get("type") == "text":
+                                yield item.get("text", "")
+                    elif content:
                         yield content
                     if "tool_calls" in message:
                         yield ToolCalls(message["tool_calls"])
