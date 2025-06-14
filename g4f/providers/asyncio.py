@@ -34,13 +34,13 @@ def get_running_loop(check_nested: bool) -> Optional[AbstractEventLoop]:
         pass
 
 # Fix for RuntimeError: async generator ignored GeneratorExit
-async def await_callback(callback: Callable):
-    return await callback()
+async def await_callback(callback: Callable, timeout: Optional[int] = None) -> any:
+    return await asyncio.wait_for(callback(), timeout) if timeout is not None else await callback()
 
 async def async_generator_to_list(generator: AsyncIterator) -> list:
     return [item async for item in generator]
 
-def to_sync_generator(generator: AsyncIterator, stream: bool = True) -> Iterator:
+def to_sync_generator(generator: AsyncIterator, stream: bool = True, timeout: int = None) -> Iterator:
     loop = get_running_loop(check_nested=False)
     if not stream:
         yield from asyncio.run(async_generator_to_list(generator))
@@ -53,7 +53,7 @@ def to_sync_generator(generator: AsyncIterator, stream: bool = True) -> Iterator
     gen = generator.__aiter__()
     try:
         while True:
-            yield loop.run_until_complete(await_callback(gen.__anext__))
+            yield loop.run_until_complete(await_callback(gen.__anext__, timeout))
     except StopAsyncIteration:
         pass
     finally:

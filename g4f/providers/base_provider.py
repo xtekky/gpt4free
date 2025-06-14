@@ -22,6 +22,8 @@ from .helper import concat_chunks
 from ..cookies import get_cookies_dir
 from ..errors import ModelNotFoundError, ResponseError, MissingAuthError, NoValidHarFileError, PaymentRequiredError
 
+DEFAULT_TIMEOUT = 180
+
 SAFE_PARAMETERS = [
     "model", "messages", "stream", "timeout",
     "proxy", "media", "response_format",
@@ -95,7 +97,7 @@ class AbstractProvider(BaseProvider):
         model: str,
         messages: Messages,
         *,
-        timeout: int = None,
+        timeout: int = DEFAULT_TIMEOUT,
         loop: AbstractEventLoop = None,
         executor: ThreadPoolExecutor = None,
         **kwargs
@@ -293,6 +295,7 @@ class AsyncGeneratorProvider(AbstractProvider):
         model: str,
         messages: Messages,
         stream: bool = True,
+        timeout: int = DEFAULT_TIMEOUT,
         **kwargs
     ) -> CreateResult:
         """
@@ -311,7 +314,8 @@ class AsyncGeneratorProvider(AbstractProvider):
         """
         return to_sync_generator(
             cls.create_async_generator(model, messages, stream=stream, **kwargs),
-            stream=stream
+            stream=stream,
+            timeout=timeout
         )
 
     @staticmethod

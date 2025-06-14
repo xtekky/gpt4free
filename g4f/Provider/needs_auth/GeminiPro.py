@@ -58,31 +58,6 @@ class GeminiPro(AsyncGeneratorProvider, ProviderModelMixin):
         return cls.models
 
     @classmethod
-    def get_model(cls, model: str, **kwargs) -> str:
-        """Get the internal model name from the user-provided model name."""
-        # kwargs can contain api_key, api_base, etc. but we don't need them for model selection
-        if not model:
-            return cls.default_model
-        
-        # Check if the model exists directly in our models list
-        if model in cls.models:
-            return model
-        
-        # Check if there's an alias for this model
-        if model in cls.model_aliases:
-            alias = cls.model_aliases[model]
-            # If the alias is a list, randomly select one of the options
-            if isinstance(alias, list):
-                import random
-                selected_model = random.choice(alias)
-                debug.log(f"GeminiPro: Selected model '{selected_model}' from alias '{model}'")
-                return selected_model
-            debug.log(f"GeminiPro: Using model '{alias}' for alias '{model}'")
-            return alias
-        
-        raise ModelNotFoundError(f"Model {model} not found")
-
-    @classmethod
     async def create_async_generator(
         cls,
         model: str,
@@ -100,7 +75,10 @@ class GeminiPro(AsyncGeneratorProvider, ProviderModelMixin):
         if not api_key:
             raise MissingAuthError('Add a "api_key"')
 
-        model = cls.get_model(model, api_key=api_key, api_base=api_base)
+        try:
+            model = cls.get_model(model, api_key=api_key, api_base=api_base)
+        except ModelNotFoundError:
+            pass
 
         headers = params = None
         if use_auth_header:
