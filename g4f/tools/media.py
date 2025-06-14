@@ -11,7 +11,9 @@ from .files import get_bucket_dir, read_bucket
 
 def render_media(bucket_id: str, name: str, url: str, as_path: bool = False, as_base64: bool = False) -> Union[str, Path]:
     if (as_base64 or as_path or url.startswith("/")):
-        file = Path(get_bucket_dir(bucket_id, "media", name))
+        file = Path(get_bucket_dir(bucket_id, "thumbnail", name))
+        if not file.exists():
+            file = Path(get_bucket_dir(bucket_id, "media", name))
         if as_path:
             return file
         data = file.read_bytes()
