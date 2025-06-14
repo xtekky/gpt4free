@@ -126,7 +126,7 @@ class AuthManager:
     @staticmethod
     def get_api_key_file(cls) -> Path:
         """Get the path to the API key file for a provider"""
-        return Path(get_cookies_dir()) / f"api_key_{cls.parent if hasattr(cls, 'parent') else cls.__name__}.json"
+        return Path(get_cookies_dir()) / f"auth_{cls.get_parent()}.json"
 
     @staticmethod
     def load_api_key(provider: Any) -> Optional[str]:
@@ -134,6 +134,7 @@ class AuthManager:
         auth_file = AuthManager.get_api_key_file(provider)
         try:
             if auth_file.exists():
+                debug.log(f"Loading API key from {auth_file}")
                 with auth_file.open("r") as f:
                     auth_result = json.load(f)
                 return auth_result.get("api_key")
@@ -231,11 +232,12 @@ async def async_iter_run_tools(
     web_search = kwargs.get('web_search')
     if web_search:
         messages, sources = await perform_web_search(messages, web_search)
-    
-    # Get API key if needed
-    api_key = AuthManager.load_api_key(provider)
-    if api_key and "api_key" not in kwargs:
-        kwargs["api_key"] = api_key
+
+    # Get API key
+    if not kwargs.get("api_key"):
+        api_key = AuthManager.load_api_key(provider)
+        if api_key:
+            kwargs["api_key"] = api_key
     
     # Process tool calls
     if tool_calls:
@@ -276,11 +278,11 @@ def iter_run_tools(
             debug.error(f"Couldn't do web search: {e.__class__.__name__}: {e}")
     
     # Get API key if needed
-    if provider is not None and getattr(provider, "needs_auth", False) and "api_key" not in kwargs:
+    if provider is not None and not kwargs.get("api_key"):
         api_key = AuthManager.load_api_key(provider)
         if api_key:
             kwargs["api_key"] = api_key
-    
+
     # Process tool calls
     if tool_calls:
         for tool in tool_calls:

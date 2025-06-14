@@ -489,7 +489,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                 frequency_penalty=frequency_penalty,
                 response_format=response_format,
                 stream=stream,
-                seed=seed,
+                seed=None if model =="grok" else seed,
                 **extra_body
             )
             headers = {"referer": referrer}
