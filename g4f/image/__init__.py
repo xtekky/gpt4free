@@ -161,9 +161,11 @@ def is_data_uri_an_image(data_uri: str) -> bool:
     Raises:
         ValueError: If the data URI is invalid or the image format is not allowed.
     """
+    if data_uri.startswith("https:") or data_uri.startswith("http:"):
+        return True
     # Check if the data URI starts with 'data:image' and contains an image format (e.g., jpeg, png, gif)
     if not re.match(r'data:image/(\w+);base64,', data_uri):
-        raise ValueError("Invalid data URI image.")
+        raise ValueError(f"Invalid data URI image. {data_uri[:10]}...")
     # Extract the image format from the data URI
     image_format = re.match(r'data:image/(\w+);base64,', data_uri).group(1).lower()
     # Check if the image format is one of the allowed formats (jpg, jpeg, png, gif)
