@@ -216,7 +216,7 @@ def process_image(image: Image, new_width: int = 800, new_height: int = 400, sav
         Image: The processed image.
     """
     image = ImageOps.exif_transpose(image)
-    image.thumbnail((new_width, new_height), Image.ANTIALIAS)
+    image.thumbnail((new_width, new_height))
     # Remove transparency
     if image.mode == "RGBA":
         image.load()
