@@ -82,7 +82,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
     default_vision_model = default_model
     default_audio_model = "openai-audio"
     text_models = [default_model, "evil"]
-    image_models = [default_image_model, "turbo", "gptimage"]
+    image_models = [default_image_model, "flux-dev", "turbo", "gptimage"]
     audio_models = {default_audio_model: []}
     vision_models = [default_vision_model, "gpt-4o-mini", "openai", "openai-large", "openai-reasoning", "searchgpt"]
     _models_loaded = False
@@ -135,7 +135,6 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         "gpt-image": "gptimage",
         "dall-e-3": "gptimage",
         "flux-pro": "flux",
-        "flux-dev": "flux",
         "flux-schnell": "flux"
     }
 
@@ -259,7 +258,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         seed: Optional[int] = None,
         nologo: bool = True,
         private: bool = False,
-        enhance: bool = False,
+        enhance: bool = None,
         safe: bool = False,
         n: int = 1,
         # Text generation parameters
@@ -365,6 +364,8 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         api_key: str,
         timeout: int = 120
     ) -> AsyncResult:
+        if enhance is None:
+            enhance = True if model == "flux" else False
         params = {
             "model": model,
             "nologo": str(nologo).lower(),
