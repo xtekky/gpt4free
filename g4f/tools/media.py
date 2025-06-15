@@ -88,6 +88,9 @@ def render_messages(messages: Messages, media: list = None) -> Iterator:
                 "content": [part for part in parts if part]
             }
         else:
+            print(f"Rendering message: {media}")
+            for media_data, filename in media:
+               print(is_valid_media(media_data, filename))
             if media is not None and idx == len(messages) - 1:
                 yield {
                     **message,
