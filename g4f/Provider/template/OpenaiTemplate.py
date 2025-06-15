@@ -129,16 +129,17 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
                     model = data.get("model")
                     if model:
                         yield ProviderInfo(**cls.get_dict(), model=model)
-                    choice = data["choices"][0]
-                    if "content" in choice["message"] and choice["message"]["content"]:
-                        yield choice["message"]["content"].strip()
-                    if "tool_calls" in choice["message"]:
-                        yield ToolCalls(choice["message"]["tool_calls"])
                     if "usage" in data:
                         yield Usage(**data["usage"])
-                    if "finish_reason" in choice and choice["finish_reason"] is not None:
-                        yield FinishReason(choice["finish_reason"])
-                        return
+                    if "choices" in choice:
+                        choice = data["choices"][0]
+                        if "content" in choice["message"] and choice["message"]["content"]:
+                            yield choice["message"]["content"].strip()
+                        if "tool_calls" in choice["message"]:
+                            yield ToolCalls(choice["message"]["tool_calls"])
+                        if "finish_reason" in choice and choice["finish_reason"] is not None:
+                            yield FinishReason(choice["finish_reason"])
+                            return
                 elif content_type.startswith("text/event-stream"):
                     await raise_for_status(response)
                     first = True

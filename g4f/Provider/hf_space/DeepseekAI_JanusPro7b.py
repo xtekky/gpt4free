@@ -16,7 +16,7 @@ from ...requests.raise_for_status import raise_for_status
 from ...tools.media import merge_media
 from ...image import to_bytes, is_accepted_format
 from ...cookies import get_cookies
-from ...errors import ResponseError
+from ...errors import ResponseError, ModelNotFoundError
 from ... import debug
 from .raise_for_status import raise_for_status
 
@@ -38,7 +38,6 @@ class DeepseekAI_JanusPro7b(AsyncGeneratorProvider, ProviderModelMixin):
     image_models = [default_image_model]
     vision_models = [default_vision_model]
     models = vision_models + image_models
-    model_aliases = {}
 
     @classmethod
     def run(cls, method: str, session: StreamSession, prompt: str, conversation: JsonConversation, image: dict = None, seed: int = 0):
@@ -82,6 +81,8 @@ class DeepseekAI_JanusPro7b(AsyncGeneratorProvider, ProviderModelMixin):
         seed: int = None,
         **kwargs
     ) -> AsyncResult:
+        if model and "janus" not in model:
+            raise ModelNotFoundError(f"Model '{model}' not found. Available models: {', '.join(cls.models)}")
         method = "post"
         if model == cls.default_image_model or prompt is not None:
             method = "image"
