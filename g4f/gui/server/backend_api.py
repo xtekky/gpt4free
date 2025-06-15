@@ -383,8 +383,7 @@ class Backend_Api(Api):
                             image = Image.open(copyfile)
                             thumbnail_dir = os.path.join(bucket_dir, "thumbnail")
                             os.makedirs(thumbnail_dir, exist_ok=True)
-                            image = process_image(image)
-                            image.save(os.path.join(thumbnail_dir, filename))
+                            process_image(image, save=os.path.join(thumbnail_dir, filename))
                         except Exception as e:
                             logger.exception(e)
                 elif is_supported:

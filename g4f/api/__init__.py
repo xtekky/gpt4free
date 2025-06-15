@@ -681,25 +681,13 @@ class Api:
                 other_name = os.path.join(get_media_dir(), os.path.basename(quote_plus(filename)))
                 if os.path.isfile(other_name):
                     target = other_name
-            if thumbnail and has_pillow:
-                thumbnail_dir = os.path.join(get_media_dir(), "thumbnails")
-                thumbnail = os.path.join(thumbnail_dir, filename)
-                try:
-                    if not os.path.isfile(thumbnail):
-                        image = Image.open(target)
-                        os.makedirs(thumbnail_dir, exist_ok=True)
-                        image = process_image(image)
-                        image.save(os.path.join(thumbnail_dir, filename))
-                except Exception as e:
-                    logger.exception(e)
-                if os.path.isfile(thumbnail):
-                    target = thumbnail
+            result = target
             ext = os.path.splitext(filename)[1][1:]
             mime_type = EXTENSIONS_MAP.get(ext)
             stat_result = SimpleNamespace()
             stat_result.st_size = 0
-            if os.path.isfile(target):
-                stat_result.st_size = os.stat(target).st_size
+            if os.path.isfile(result):
+                stat_result.st_size = os.stat(result).st_size
             stat_result.st_mtime = int(f"{filename.split('_')[0]}") if filename.startswith("1") else 0
             headers = {
                 "cache-control": "public, max-age=31536000",
@@ -742,10 +730,22 @@ class Api:
                         debug.error(f"Download failed:  {source_url}")
                         debug.error(e)
                         return RedirectResponse(url=source_url)
-            if not os.path.isfile(target):
+            if thumbnail and has_pillow:
+                thumbnail_dir = os.path.join(get_media_dir(), "thumbnails")
+                thumbnail = os.path.join(thumbnail_dir, filename)
+                try:
+                    if not os.path.isfile(thumbnail):
+                        image = Image.open(target)
+                        os.makedirs(thumbnail_dir, exist_ok=True)
+                        process_image(image, save=os.path.join(thumbnail_dir, filename))
+                except Exception as e:
+                    logger.exception(e)
+                if os.path.isfile(thumbnail):
+                    result = thumbnail
+            if not os.path.isfile(result):
                 return ErrorResponse.from_message("File not found", HTTP_404_NOT_FOUND)
             async def stream():
-                with open(target, "rb") as file:
+                with open(result, "rb") as file:
                     while True:
                         chunk = file.read(65536)
                         if not chunk:

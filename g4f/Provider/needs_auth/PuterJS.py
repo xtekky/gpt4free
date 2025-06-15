@@ -20,6 +20,7 @@ class PuterJS(AsyncGeneratorProvider, ProviderModelMixin):
     login_url = "https://github.com/HeyPuter/puter-cli"
     api_endpoint = "https://api.puter.com/drivers/call"
     working = True
+    active_by_default = True
     needs_auth = True
 
     default_model = 'gpt-4o'

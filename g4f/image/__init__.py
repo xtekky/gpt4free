@@ -7,6 +7,8 @@ import base64
 from io import BytesIO
 from pathlib import Path
 from typing import Optional
+from collections import defaultdict
+
 try:
     from PIL.Image import open as open_image, new as new_image
     from PIL.Image import FLIP_LEFT_RIGHT, ROTATE_180, ROTATE_270, ROTATE_90
@@ -14,9 +16,15 @@ try:
     has_requirements = True
 except ImportError:
     has_requirements = False
+try:
+    import piexif
+    has_piexif = True
+except ImportError:
+    has_piexif = False
 
 from ..typing import ImageType, Image
 from ..errors import MissingRequirementsError
+from .. import debug
 
 EXTENSIONS_MAP: dict[str, str] = {
     # Image
@@ -201,6 +209,11 @@ def extract_data_uri(data_uri: str) -> bytes:
     data = base64.b64decode(data)
     return data
 
+def get_orientation_key() -> int:
+    for tag, value in ExifTags.TAGS.items():
+        if value == 'Orientation':
+            return tag
+
 def get_orientation(image: Image) -> int:
     """
     Gets the orientation of the given image.
@@ -212,12 +225,9 @@ def get_orientation(image: Image) -> int:
         int: The orientation value.
     """
     exif_data = image.getexif() if hasattr(image, 'getexif') else image._getexif()
-    if exif_data:
-        for tag, value in ExifTags.TAGS.items():
-            if value == 'Orientation':
-                return exif_data.get(tag)
+    return exif_data.get(get_orientation_key()) if exif_data else None
 
-def process_image(image: Image, new_width: int = 800, new_height: int = 800) -> Image:
+def process_image(image: Image, new_width: int = 800, new_height: int = 800, save: str = None) -> Image:
     """
     Processes the given image by adjusting its orientation and resizing it.
 
@@ -232,6 +242,7 @@ def process_image(image: Image, new_width: int = 800, new_height: int = 800) -> 
     # Fix orientation
     orientation = get_orientation(image)
     if orientation:
+        debug.log(f"Image orientation: {orientation}")
         if orientation > 4:
             image = image.transpose(FLIP_LEFT_RIGHT)
         if orientation in [3, 4]:
@@ -251,6 +262,16 @@ def process_image(image: Image, new_width: int = 800, new_height: int = 800) -> 
     # Convert to RGB for jpg format
     elif image.mode != "RGB":
         image = image.convert("RGB")
+    # Remove EXIF data
+    if has_piexif and save is not None:
+        try:
+            exif_dict = piexif.load(image.info["exif"])
+        except KeyError:
+            exif_dict = defaultdict(dict)
+        if exif_dict['Exif']:
+            exif_dict['Exif'] = {}
+    elif save is not None:
+        image.save(save)
     return image
 
 def to_bytes(image: ImageType) -> bytes:
