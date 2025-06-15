@@ -519,6 +519,8 @@ class LegacyLMArena(AsyncGeneratorProvider, ProviderModelMixin):
                     # Skip non-JSON lines
                     continue
                 except Exception as e:
+                    if max_retries == 1:
+                        raise e
                     debug.log(f"Error parsing response: {str(e)}")
                     continue
         

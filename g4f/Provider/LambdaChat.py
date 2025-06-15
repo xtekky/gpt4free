@@ -192,6 +192,8 @@ class LambdaChat(AsyncGeneratorProvider, ProviderModelMixin):
                 data=form_data,
                 proxy=proxy
             ) as response:
+                if not response.ok:
+                    debug.log(f"LambdaChat: Request Body: {form_data}")
                 await raise_for_status(response)
                 
                 async for chunk in response.content:

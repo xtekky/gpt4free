@@ -23,7 +23,7 @@ PROVIERS_LIST_1 = [
     OpenaiChat, PollinationsAI, Cloudflare, PerplexityLabs, Gemini, Grok, DeepSeekAPI, Blackbox, OpenAIFM,
     OIVSCodeSer2, OIVSCodeSer0501, TeachAnything, Together, WeWordle, Yqcloud, Chatai, Free2GPT, ARTA, ImageLabs,
     HarProvider, LegacyLMArena, LMArenaBeta, LambdaChat, CopilotAccount, DeepInfraChat,
-    HuggingSpace, HuggingFace, HuggingFaceMedia, PuterJS, Together
+    HuggingSpace, HuggingFace, HuggingFaceMedia, Together
 ]
 
 PROVIERS_LIST_2 = [
@@ -31,7 +31,7 @@ PROVIERS_LIST_2 = [
 ]
 
 PROVIERS_LIST_3 = [
-    HarProvider, LambdaChat, DeepInfraChat, HuggingFace, HuggingFaceMedia, LegacyLMArena, LMArenaBeta,
+    HarProvider, LambdaChat, DeepInfraChat, HuggingFace, HuggingFaceMedia, HarProvider, LegacyLMArena, LMArenaBeta,
     PuterJS, Together, Cloudflare, HuggingSpace
 ]
 
@@ -331,6 +331,7 @@ class AnyProvider(AsyncGeneratorProvider, ProviderModelMixin):
                     if api_key.get(provider):
                         if provider in __map__ and __map__[provider] not in PROVIERS_LIST_1:
                             extra_providers.append(__map__[provider])
+            print(f"Using extra providers: {[p.__name__ for p in extra_providers]}")
             for provider in PROVIERS_LIST_1 + extra_providers:
                 if provider.working:
                     provider_api_key = api_key
@@ -341,8 +342,15 @@ class AnyProvider(AsyncGeneratorProvider, ProviderModelMixin):
                     except Exception as e:
                         debug.error(f"Error getting models for provider {provider.__name__}:", e)
                         continue
-                    if not model or model in provider_models or provider.model_aliases and model in provider.model_aliases:
+                    if model and provider == PuterJS:
                        providers.append(provider)
+                    elif not model or model in provider_models or provider.model_aliases and model in provider.model_aliases or model in provider.model_aliases.values():
+                       providers.append(provider)
+                    elif provider.__name__ == "GeminiPro":
+                        if model and "gemini" in model or "gemma" in model:
+                            providers.append(provider)
+                    elif len(provider_models) > 3:
+                        debug.error(f"Model '{model}' not found in provider {provider.__name__}")
             if model in models.__models__:
                 for provider in models.__models__[model][1]:
                     providers.append(provider)
@@ -351,7 +359,9 @@ class AnyProvider(AsyncGeneratorProvider, ProviderModelMixin):
 
         if len(providers) == 0:
             raise ModelNotFoundError(f"AnyProvider: Model {model} not found in any provider.")
-    
+
+        debug.log(f"AnyProvider: Using providers: {[provider.__name__ for provider in providers]} for model '{model}'")
+
         async for chunk in IterListProvider(providers).create_async_generator(
             model,
             messages,

@@ -16,7 +16,6 @@ from .. import debug
 
 class PuterJS(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Puter.js"
-    parent = "Puter"
     url = "https://docs.puter.com/playground"
     login_url = "https://github.com/HeyPuter/puter-cli"
     api_endpoint = "https://api.puter.com/drivers/call"
@@ -28,7 +27,6 @@ class PuterJS(AsyncGeneratorProvider, ProviderModelMixin):
     openai_models = [default_vision_model,"gpt-4o-mini", "o1", "o1-mini", "o1-pro", "o3", "o3-mini", "o4-mini", "gpt-4.1", "gpt-4.1-mini", "gpt-4.1-nano", "gpt-4.5-preview"]
     claude_models = ["claude-3-7-sonnet-20250219", "claude-3-7-sonnet-latest", "claude-3-5-sonnet-20241022", "claude-3-5-sonnet-latest", "claude-3-5-sonnet-20240620", "claude-3-haiku-20240307"]
     mistral_models = ["ministral-3b-2410","ministral-3b-latest","ministral-8b-2410","ministral-8b-latest","open-mistral-7b","mistral-tiny","mistral-tiny-2312","open-mixtral-8x7b","mistral-small","mistral-small-2312","open-mixtral-8x22b","open-mixtral-8x22b-2404","mistral-large-2411","mistral-large-latest","pixtral-large-2411","pixtral-large-latest","mistral-large-pixtral-2411","codestral-2501","codestral-latest","codestral-2412","codestral-2411-rc5","pixtral-12b-2409","pixtral-12b","pixtral-12b-latest","mistral-small-2503","mistral-small-latest"]
-    xai_models = ["grok-beta", "grok-vision-beta"]
     model_aliases = {              
         ### mistral_models ###
         "mixtral-8x22b": ["open-mixtral-8x22b", "open-mixtral-8x22b-2404"],
@@ -281,14 +279,14 @@ class PuterJS(AsyncGeneratorProvider, ProviderModelMixin):
     @staticmethod
     def get_driver_for_model(model: str) -> str:
         """Determine the appropriate driver based on the model name."""
-        if model in PuterJS.openai_models:
+        if "openrouter:" in model:
+            return "openrouter"
+        elif model in PuterJS.openai_models or model.startswith("gpt-"):
             return "openai-completion"
         elif model in PuterJS.mistral_models:
             return "mistral"
-        elif model in PuterJS.xai_models:
+        elif "grok" in model:
             return "xai"
-        elif "openrouter:" in model:
-            return "openrouter"
         elif "claude" in model:
             return "claude"
         elif "deepseek" in model:
@@ -296,8 +294,7 @@ class PuterJS(AsyncGeneratorProvider, ProviderModelMixin):
         elif "gemini" in model:
             return "gemini"
         else:
-            # Default to OpenAI for unknown models
-            return "openai-completion"
+            raise ModelNotFoundError(f"Model {model} not found in known drivers")
 
     @classmethod
     def get_model(cls, model: str) -> str:
