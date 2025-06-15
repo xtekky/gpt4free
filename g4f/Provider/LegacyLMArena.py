@@ -421,6 +421,7 @@ class LegacyLMArena(AsyncGeneratorProvider, ProviderModelMixin):
         top_p: float = 1,
         conversation: JsonConversation = None,
         return_conversation: bool = True,
+        max_retries: int = 1,
         **kwargs
     ) -> AsyncResult:
         async def read_response(response: StreamResponse):
@@ -487,7 +488,7 @@ class LegacyLMArena(AsyncGeneratorProvider, ProviderModelMixin):
                                         
                                     if content and content != returned_data and content != '<span class="cursor"></span> ':
                                         if "**NETWORK ERROR DUE TO HIGH TRAFFIC." in content:
-                                            raise ResponseError(data)
+                                            raise ResponseError(content)
                                         if content.endswith("▌"):
                                             content = content[:-1]
                                         new_content = content
@@ -499,8 +500,6 @@ class LegacyLMArena(AsyncGeneratorProvider, ProviderModelMixin):
                             elif isinstance(output_data[1], str) and output_data[1]:
                                 # Direct string content
                                 content = output_data[1]
-                                if "**NETWORK ERROR DUE TO HIGH TRAFFIC." in content:
-                                    raise ResponseError(data + " #2")
                                 if content != returned_data:
                                     if content.endswith("▌"):
                                         content = content[:-1]
@@ -529,7 +528,6 @@ class LegacyLMArena(AsyncGeneratorProvider, ProviderModelMixin):
         
         async with StreamSession(impersonate="chrome") as session:
             # Add retry logic for better reliability
-            max_retries = 3
             retry_count = 0
             
             while retry_count < max_retries:

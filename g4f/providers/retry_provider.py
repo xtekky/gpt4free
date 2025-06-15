@@ -58,6 +58,8 @@ class IterListProvider(BaseRetryProvider):
                 alias = getattr(provider, "default_model", None)
             if hasattr(provider, "model_aliases"):
                 alias = provider.model_aliases.get(model, model)
+            if isinstance(alias, list):
+                alias = random.choice(alias)
             debug.log(f"Using provider: {provider.__name__} with model: {alias}")
             yield ProviderInfo(**provider.get_dict(), model=alias)
             extra_body = kwargs.copy()
@@ -104,6 +106,8 @@ class IterListProvider(BaseRetryProvider):
                 alias = getattr(provider, "default_model", None)
             if hasattr(provider, "model_aliases"):
                 alias = provider.model_aliases.get(model, model)
+            if isinstance(alias, list):
+                alias = random.choice(alias)
             debug.log(f"Using {provider.__name__} provider with model {alias}")
             yield ProviderInfo(**provider.get_dict(), model=alias)
             extra_body = kwargs.copy()
