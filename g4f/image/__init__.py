@@ -10,6 +10,7 @@ from typing import Optional
 try:
     from PIL.Image import open as open_image, new as new_image
     from PIL.Image import FLIP_LEFT_RIGHT, ROTATE_180, ROTATE_270, ROTATE_90
+    from PIL import Image, ExifTags
     has_requirements = True
 except ImportError:
     has_requirements = False
@@ -211,10 +212,10 @@ def get_orientation(image: Image) -> int:
         int: The orientation value.
     """
     exif_data = image.getexif() if hasattr(image, 'getexif') else image._getexif()
-    if exif_data is not None:
-        orientation = exif_data.get(274) # 274 corresponds to the orientation tag in EXIF
-        if orientation is not None:
-            return orientation
+    if exif_data:
+        for tag, value in ExifTags.TAGS.items():
+            if value == 'Orientation':
+                return exif_data.get(tag)
 
 def process_image(image: Image, new_width: int = 800, new_height: int = 800) -> Image:
     """
@@ -229,16 +230,16 @@ def process_image(image: Image, new_width: int = 800, new_height: int = 800) -> 
         Image: The processed image.
     """
     # Fix orientation
-    # orientation = get_orientation(image)
-    # if orientation:
-    #     if orientation > 4:
-    #         image = image.transpose(FLIP_LEFT_RIGHT)
-    #     if orientation in [3, 4]:
-    #         image = image.transpose(ROTATE_180)
-    #     if orientation in [5, 6]:
-    #         image = image.transpose(ROTATE_270)
-    #     if orientation in [7, 8]:
-    #         image = image.transpose(ROTATE_90)
+    orientation = get_orientation(image)
+    if orientation:
+        if orientation > 4:
+            image = image.transpose(FLIP_LEFT_RIGHT)
+        if orientation in [3, 4]:
+            image = image.transpose(ROTATE_180)
+        if orientation in [5, 6]:
+            image = image.transpose(ROTATE_270)
+        if orientation in [7, 8]:
+            image = image.transpose(ROTATE_90)
     # Resize image
     image.thumbnail((new_width, new_height))
     # Remove transparency
