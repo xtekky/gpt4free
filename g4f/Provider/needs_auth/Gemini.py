@@ -59,7 +59,7 @@ UPLOAD_IMAGE_HEADERS = {
 }
 GOOGLE_COOKIE_DOMAIN = ".google.com"
 ROTATE_COOKIES_URL = "https://accounts.google.com/RotateCookies"
-GGOGLE_SID_COOKIE = "__Secure-1PSID"
+GGOGLE_SID_COOKIE = os.os.environ['GEMIMI_COOKIE'] ||"__Secure-1PSID"
 
 models = {
     "gemini-2.5-pro-exp": {"x-goog-ext-525001261-jspb": '[1,null,null,null,"2525e3954d185b3c"]'},
