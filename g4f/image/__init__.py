@@ -11,16 +11,11 @@ from collections import defaultdict
 
 try:
     from PIL.Image import open as open_image, new as new_image
-    from PIL.Image import FLIP_LEFT_RIGHT, ROTATE_180, ROTATE_270, ROTATE_90
+    from PIL.Image import ROTATE_180, ROTATE_90
     from PIL import Image, ExifTags
     has_requirements = True
 except ImportError:
     has_requirements = False
-try:
-    import piexif
-    has_piexif = True
-except ImportError:
-    has_piexif = False
 
 from ..typing import ImageType, Image
 from ..errors import MissingRequirementsError
@@ -246,7 +241,7 @@ def process_image(image: Image, new_width: int = 800, new_height: int = 800, sav
     if orientation:
         debug.log(f"Image orientation: {orientation}")
         if orientation == 6:
-            image = image.transpose(ROTATE_270)
+            image = image.transpose(ROTATE_90)
         elif orientation == 3:
             image = image.transpose(ROTATE_180)
     image.thumbnail((new_width, new_height))
@@ -259,16 +254,8 @@ def process_image(image: Image, new_width: int = 800, new_height: int = 800, sav
     # Convert to RGB for jpg format
     elif image.mode != "RGB":
         image = image.convert("RGB")
-    # Remove EXIF data
-    if has_piexif and save is not None:
-        try:
-            exif_dict = piexif.load(image.info["exif"])
-        except KeyError:
-            exif_dict = defaultdict(dict)
-        if exif_dict['Exif']:
-            exif_dict['Exif'] = {}
     elif save is not None:
-        image.save(save)
+        image.save(save, quality=75, exif=None)
     return image
 
 def to_bytes(image: ImageType) -> bytes:
