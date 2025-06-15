@@ -459,8 +459,6 @@ class LegacyLMArena(AsyncGeneratorProvider, ProviderModelMixin):
                                 content = data
                             
                             if content:
-                                if "**NETWORK ERROR DUE TO HIGH TRAFFIC." in content:
-                                    raise ResponseError(data)
                                 # Clean up content
                                 if isinstance(content, str):
                                     if content.endswith("▌"):
@@ -488,6 +486,8 @@ class LegacyLMArena(AsyncGeneratorProvider, ProviderModelMixin):
                                         continue
                                         
                                     if content and content != returned_data and content != '<span class="cursor"></span> ':
+                                        if "**NETWORK ERROR DUE TO HIGH TRAFFIC." in content:
+                                            raise ResponseError(data)
                                         if content.endswith("▌"):
                                             content = content[:-1]
                                         new_content = content
@@ -499,6 +499,8 @@ class LegacyLMArena(AsyncGeneratorProvider, ProviderModelMixin):
                             elif isinstance(output_data[1], str) and output_data[1]:
                                 # Direct string content
                                 content = output_data[1]
+                                if "**NETWORK ERROR DUE TO HIGH TRAFFIC." in content:
+                                    raise ResponseError(data + " #2")
                                 if content != returned_data:
                                     if content.endswith("▌"):
                                         content = content[:-1]
