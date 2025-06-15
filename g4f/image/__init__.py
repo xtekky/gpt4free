@@ -229,16 +229,16 @@ def process_image(image: Image, new_width: int = 1000, new_height: int = 1000) -
         Image: The processed image.
     """
     # Fix orientation
-    orientation = get_orientation(image)
-    if orientation:
-        if orientation > 4:
-            image = image.transpose(FLIP_LEFT_RIGHT)
-        if orientation in [3, 4]:
-            image = image.transpose(ROTATE_180)
-        if orientation in [5, 6]:
-            image = image.transpose(ROTATE_270)
-        if orientation in [7, 8]:
-            image = image.transpose(ROTATE_90)
+    # orientation = get_orientation(image)
+    # if orientation:
+    #     if orientation > 4:
+    #         image = image.transpose(FLIP_LEFT_RIGHT)
+    #     if orientation in [3, 4]:
+    #         image = image.transpose(ROTATE_180)
+    #     if orientation in [5, 6]:
+    #         image = image.transpose(ROTATE_270)
+    #     if orientation in [7, 8]:
+    #         image = image.transpose(ROTATE_90)
     # Resize image
     image.thumbnail((new_width, new_height))
     # Remove transparency
