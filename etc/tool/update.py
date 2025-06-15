@@ -15,5 +15,5 @@ if __name__ == "__main__":
     current_version = version.get_git_version()
     with open("g4f/debug.py", "a") as f:
         f.write(f"\nversion: str = '{current_version}'\n")
-    command = ["pip", "install", "-U", "-r" , "requirements-slim.txt"]
-    call(command, stderr=STDOUT)
+    #command = ["pip", "install", "-U", "-r" , "requirements-slim.txt"]
+    #call(command, stderr=STDOUT)
