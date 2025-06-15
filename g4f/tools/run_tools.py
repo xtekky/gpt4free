@@ -136,8 +136,12 @@ class AuthManager:
             if auth_file.exists():
                 debug.log(f"Loading API key from {auth_file}")
                 with auth_file.open("r") as f:
-                    auth_result = json.load(f)
-                return auth_result.get("api_key")
+                    try:
+                        auth_result = json.load(f)
+                    except json.JSONDecodeError as e:
+                        return auth_file.read_text()
+                if isinstance(auth_result, dict):
+                    return auth_result.get("api_key")
         except (json.JSONDecodeError, PermissionError, FileNotFoundError) as e:
             debug.error(f"Failed to load API key: {e.__class__.__name__}: {e}")
         return None
@@ -168,7 +172,7 @@ class ThinkingProcessor:
                 if "</think>" in after[0]:
                     after, *after_end = after[0].split("</think>", 1)
                     results.append(Reasoning(after))
-                    results.append(Reasoning(status="Finished", is_thinking="</think>"))
+                    results.append(Reasoning(status="", is_thinking="</think>"))
                     if after_end:
                         results.append(after_end[0])
                     return 0, results
@@ -185,10 +189,10 @@ class ThinkingProcessor:
                 results.append(Reasoning(before_end))
                 
             thinking_duration = time.time() - start_time if start_time > 0 else 0
-            
-            status = f"Thought for {thinking_duration:.2f}s" if thinking_duration > 1 else "Finished"
+
+            status = f"Thought for {thinking_duration:.2f}s" if thinking_duration > 1 else ""
             results.append(Reasoning(status=status, is_thinking="</think>"))
-            
+
             # Make sure to handle text after the closing tag
             if after and after[0].strip():
                 results.append(after[0])
