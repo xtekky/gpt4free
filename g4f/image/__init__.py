@@ -224,7 +224,7 @@ def get_orientation(image: Image) -> int:
     exif_data = image.getexif() if hasattr(image, 'getexif') else image._getexif()
     return exif_data.get(get_orientation_key()) if exif_data else None
 
-def process_image(image: Image, new_width: int = 800, new_height: int = 800, save: str = None) -> Image:
+def process_image(image: Image, new_width: int = 800, new_height: int = 400, save: str = None) -> Image:
     """
     Processes the given image by adjusting its orientation and resizing it.
 
@@ -255,7 +255,7 @@ def process_image(image: Image, new_width: int = 800, new_height: int = 800, sav
     elif image.mode != "RGB":
         image = image.convert("RGB")
     elif save is not None:
-        image.save(save, quality=75, exif=None)
+        image.save(save, exif=b"")
     return image
 
 def to_bytes(image: ImageType) -> bytes:

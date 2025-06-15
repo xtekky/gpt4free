@@ -677,6 +677,9 @@ class Api:
         })
         async def get_media(filename, request: Request, thumbnail: bool = False):
             target = os.path.join(get_media_dir(), os.path.basename(filename))
+            if thumbnail and has_pillow:
+                thumbnail_dir = os.path.join(get_media_dir(), "thumbnails")
+                thumbnail = os.path.join(thumbnail_dir, filename)
             if not os.path.isfile(target):
                 other_name = os.path.join(get_media_dir(), os.path.basename(quote_plus(filename)))
                 if os.path.isfile(other_name):
@@ -684,11 +687,14 @@ class Api:
             result = target
             ext = os.path.splitext(filename)[1][1:]
             mime_type = EXTENSIONS_MAP.get(ext)
-            stat_result = SimpleNamespace()
-            stat_result.st_size = 0
-            if os.path.isfile(result):
-                stat_result.st_size = os.stat(result).st_size
-            stat_result.st_mtime = int(f"{filename.split('_')[0]}") if filename.startswith("1") else 0
+            if thumbnail and has_pillow and os.path.isfile(thumbnail):
+                stat_result = os.stat(thumbnail)
+            elif os.path.isfile(target):
+                stat_result = os.stat(target)
+            else:
+                stat_result = SimpleNamespace()
+                stat_result.st_size = 0
+                stat_result.st_mtime = 0
             headers = {
                 "cache-control": "public, max-age=31536000",
                 "last-modified": formatdate(stat_result.st_mtime, usegmt=True),
@@ -731,13 +737,12 @@ class Api:
                         debug.error(e)
                         return RedirectResponse(url=source_url)
             if thumbnail and has_pillow:
-                thumbnail_dir = os.path.join(get_media_dir(), "thumbnails")
-                thumbnail = os.path.join(thumbnail_dir, filename)
                 try:
                     if not os.path.isfile(thumbnail):
                         image = Image.open(target)
                         os.makedirs(thumbnail_dir, exist_ok=True)
-                        process_image(image, save=os.path.join(thumbnail_dir, filename))
+                        process_image(image, save=thumbnail)
+                        debug.log(f"Thumbnail created: {thumbnail}")
                 except Exception as e:
                     logger.exception(e)
                 if os.path.isfile(thumbnail):
