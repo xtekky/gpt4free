@@ -13,7 +13,7 @@ from ...errors import MissingAuthError, ModelNotFoundError
 from ...requests.raise_for_status import raise_for_status
 from ...providers.response import Usage, FinishReason
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from ..helper import get_connector
+from ..helper import get_connector, to_string
 from ... import debug
 
 class GeminiPro(AsyncGeneratorProvider, ProviderModelMixin):
@@ -102,7 +102,7 @@ class GeminiPro(AsyncGeneratorProvider, ProviderModelMixin):
             contents = [
                 {
                     "role": "model" if message["role"] == "assistant" else "user",
-                    "parts": [{"text": message["content"]}]
+                    "parts": [{"text": to_string(message["content"])}]
                 }
                 for message in messages
                 if message["role"] != "system"

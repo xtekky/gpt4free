@@ -7,19 +7,16 @@ import base64
 from io import BytesIO
 from pathlib import Path
 from typing import Optional
-from collections import defaultdict
 
 try:
-    from PIL.Image import open as open_image, new as new_image
-    from PIL.Image import ROTATE_180, ROTATE_90
-    from PIL import Image, ExifTags
+    from PIL import Image, ImageOps
+    from PIL import open as open_image
     has_requirements = True
 except ImportError:
     has_requirements = False
 
 from ..typing import ImageType, Image
 from ..errors import MissingRequirementsError
-from .. import debug
 
 EXTENSIONS_MAP: dict[str, str] = {
     # Image
@@ -218,24 +215,12 @@ def process_image(image: Image, new_width: int = 800, new_height: int = 400, sav
     Returns:
         Image: The processed image.
     """
-    for orientation in ExifTags.TAGS.keys(): 
-        if ExifTags.TAGS[orientation] == 'Orientation': break
-    if hasattr(image, 'getexif'):
-        exif_data = image.getexif()
-    else:
-        exif_data = image._getexif()
-    exif = dict(exif_data.items())
-    if exif[orientation] == 3 : 
-        image = image.rotate(180, expand=True)
-    elif exif[orientation] == 6 : 
-        image = image.rotate(270, expand=True)
-    elif exif[orientation] == 8 : 
-        image = image.rotate(90, expand=True)
+    image = ImageOps.exif_transpose(image)
     image.thumbnail((new_width, new_height), Image.ANTIALIAS)
     # Remove transparency
     if image.mode == "RGBA":
         image.load()
-        white = new_image('RGB', image.size, (255, 255, 255))
+        white = open_image('RGB', image.size, (255, 255, 255))
         white.paste(image, mask=image.split()[-1])
         return white
     # Convert to RGB for jpg format
