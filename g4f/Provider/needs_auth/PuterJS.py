@@ -283,14 +283,14 @@ class PuterJS(AsyncGeneratorProvider, ProviderModelMixin):
         """Determine the appropriate driver based on the model name."""
         if model in PuterJS.openai_models:
             return "openai-completion"
-        elif model in PuterJS.claude_models:
-            return "claude"
         elif model in PuterJS.mistral_models:
             return "mistral"
         elif model in PuterJS.xai_models:
             return "xai"
         elif "openrouter:" in model:
             return "openrouter"
+        elif "claude" in model:
+            return "claude"
         elif "deepseek" in model:
             return "deepseek"
         elif "gemini" in model:
