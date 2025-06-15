@@ -101,7 +101,7 @@ def render_messages(messages: Messages, media: list = None) -> Iterator:
                             "image_url": {"url": to_data_uri(media_data)}
                         }
                         for media_data, filename in media
-                        if is_valid_media(media_data, filename)
+                        if media_data and is_valid_media(media_data, filename)
                     ] + ([{"type": "text", "text": message["content"]}] if isinstance(message["content"], str) else message["content"])
                 }
             else:
