@@ -206,24 +206,6 @@ def extract_data_uri(data_uri: str) -> bytes:
     data = base64.b64decode(data)
     return data
 
-def get_orientation_key() -> int:
-    for tag, value in ExifTags.TAGS.items():
-        if value == 'Orientation':
-            return tag
-
-def get_orientation(image: Image) -> int:
-    """
-    Gets the orientation of the given image.
-
-    Args:
-        image (Image): The image.
-
-    Returns:
-        int: The orientation value.
-    """
-    exif_data = image.getexif() if hasattr(image, 'getexif') else image._getexif()
-    return exif_data.get(get_orientation_key()) if exif_data else None
-
 def process_image(image: Image, new_width: int = 800, new_height: int = 400, save: str = None) -> Image:
     """
     Processes the given image by adjusting its orientation and resizing it.
@@ -236,15 +218,20 @@ def process_image(image: Image, new_width: int = 800, new_height: int = 400, sav
     Returns:
         Image: The processed image.
     """
-    # Fix orientation
-    orientation = get_orientation(image)
-    if orientation:
-        debug.log(f"Image orientation: {orientation}")
-        if orientation == 6:
-            image = image.transpose(ROTATE_90)
-        elif orientation == 3:
-            image = image.transpose(ROTATE_180)
-    image.thumbnail((new_width, new_height))
+    for orientation in ExifTags.TAGS.keys(): 
+        if ExifTags.TAGS[orientation] == 'Orientation': break
+    if hasattr(image, 'getexif'):
+        exif_data = image.getexif()
+    else:
+        exif_data = image._getexif()
+    exif = dict(exif_data.items())
+    if exif[orientation] == 3 : 
+        image = image.rotate(180, expand=True)
+    elif exif[orientation] == 6 : 
+        image = image.rotate(270, expand=True)
+    elif exif[orientation] == 8 : 
+        image = image.rotate(90, expand=True)
+    image.thumbnail((new_width, new_height), Image.ANTIALIAS)
     # Remove transparency
     if image.mode == "RGBA":
         image.load()
