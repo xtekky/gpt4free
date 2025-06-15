@@ -244,7 +244,7 @@ def process_image(image: Image, new_width: int = 800, new_height: int = 800, sav
     if orientation:
         debug.log(f"Image orientation: {orientation}")
         if orientation == 6:
-            image = image.transpose(ROTATE_180)
+            image = image.transpose(ROTATE_90)
     # Resize image
     image.thumbnail((new_width, new_height))
     # Remove transparency
