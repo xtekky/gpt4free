@@ -84,6 +84,8 @@ def format_image(image: str, alt: str, preview: Optional[str] = None) -> str:
         str: The formatted markdown string.
     """
     preview_url = preview.replace('{image}', image) if preview else image
+    if preview_url.startswith("/media/"):
+        preview_url = "/thumbnail" + preview_url[6:]
     return f"[![{quote_title(alt)}]({quote_url(preview_url)})]({quote_url(image)})"
 
 def format_images_markdown(images: Union[str, List[str]], alt: str, 

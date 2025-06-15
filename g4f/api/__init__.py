@@ -35,6 +35,11 @@ try:
     has_a2wsgi = True
 except ImportError:
     has_a2wsgi = False
+try:
+    from PIL import Image 
+    has_pillow = True
+except ImportError:
+    has_pillow = False
 from types import SimpleNamespace
 from typing import Union, Optional, List
 
@@ -49,7 +54,7 @@ import g4f.debug
 from g4f.client import AsyncClient, ChatCompletion, ImagesResponse, ClientResponse
 from g4f.providers.response import BaseConversation, JsonConversation
 from g4f.client.helper import filter_none
-from g4f.image import is_data_an_media, EXTENSIONS_MAP
+from g4f.image import is_data_an_media, process_image, EXTENSIONS_MAP
 from g4f.image.copy_images import get_media_dir, copy_media, get_source_url
 from g4f.errors import ProviderNotFoundError, ModelNotFoundError, MissingAuthError, NoValidHarFileError, MissingRequirementsError
 from g4f.cookies import read_cookie_files, get_cookies_dir
@@ -670,12 +675,25 @@ class Api:
             HTTP_200_OK: {"content": {"image/*": {}, "audio/*": {}}, "video/*": {}},
             HTTP_404_NOT_FOUND: {}
         })
-        async def get_media(filename, request: Request):
+        async def get_media(filename, request: Request, thumbnail: bool = False):
             target = os.path.join(get_media_dir(), os.path.basename(filename))
             if not os.path.isfile(target):
                 other_name = os.path.join(get_media_dir(), os.path.basename(quote_plus(filename)))
                 if os.path.isfile(other_name):
                     target = other_name
+            if thumbnail and has_pillow:
+                thumbnail_dir = os.path.join(get_media_dir(), "thumbnails")
+                thumbnail = os.path.join(thumbnail_dir, filename)
+                try:
+                    if not os.path.isfile(thumbnail):
+                        image = Image.open(target)
+                        os.makedirs(thumbnail_dir, exist_ok=True)
+                        image = process_image(image)
+                        image.save(os.path.join(thumbnail_dir, filename))
+                except Exception as e:
+                    logger.exception(e)
+                if os.path.isfile(thumbnail):
+                    target = thumbnail
             ext = os.path.splitext(filename)[1][1:]
             mime_type = EXTENSIONS_MAP.get(ext)
             stat_result = SimpleNamespace()
@@ -734,6 +752,13 @@ class Api:
                             break
                         yield chunk
             return StreamingResponse(stream(), headers=headers)
+
+        @self.app.get("/thumbnail/{filename}", responses={
+            HTTP_200_OK: {"content": {"image/*": {}, "audio/*": {}}, "video/*": {}},
+            HTTP_404_NOT_FOUND: {}
+        })
+        async def get_media_thumbnail(filename: str, request: Request):
+            return await get_media(filename, request, True)
 
 def format_exception(e: Union[Exception, str], config: Union[ChatCompletionsConfig, ImageGenerationConfig] = None, image: bool = False) -> str:
     last_provider = {} if not image else g4f.get_last_provider(True)
