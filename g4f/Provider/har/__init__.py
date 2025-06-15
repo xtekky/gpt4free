@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import json
 import uuid
+import random
 from urllib.parse import urlparse
 
 from ...typing import AsyncResult, Messages, MediaListType
@@ -14,6 +15,7 @@ from ...errors import ResponseError
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..helper import get_last_user_message
 from ..openai.har_file import get_headers
+from ..LegacyLMArena import LegacyLMArena
 
 class HarProvider(AsyncGeneratorProvider, ProviderModelMixin):
     label = "LMArena (Har)"
@@ -21,9 +23,7 @@ class HarProvider(AsyncGeneratorProvider, ProviderModelMixin):
     api_endpoint = "/queue/join?"
     working = True
     default_model = "chatgpt-4o-latest-20250326"
-    model_aliases = {
-        "claude-3.7-sonnet": "claude-3-7-sonnet-20250219",
-    }
+    model_aliases = LegacyLMArena.model_aliases
     vision_models = [
 		"o3-2025-04-16",
 		"o4-mini-2025-04-16",
@@ -155,6 +155,8 @@ class HarProvider(AsyncGeneratorProvider, ProviderModelMixin):
                     yield new_content
         if model in cls.model_aliases:
             model = cls.model_aliases[model]
+        if isinstance(model, list):
+            model = random.choice(model)
         prompt = get_last_user_message(messages)
         async with StreamSession(impersonate="chrome") as session:
             if conversation is None:

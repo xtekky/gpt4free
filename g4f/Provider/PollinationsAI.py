@@ -127,6 +127,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         "grok-3-mini": "grok",
 
         ### Audio Models ###
+        "gpt-4o-audio": "openai-audio",
         "gpt-4o-mini-audio": "openai-audio",
 
         ### Image Models ###
