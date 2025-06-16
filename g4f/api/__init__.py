@@ -684,12 +684,11 @@ class Api:
                 other_name = os.path.join(get_media_dir(), os.path.basename(quote_plus(filename)))
                 if os.path.isfile(other_name):
                     target = other_name
-            result = target
             ext = os.path.splitext(filename)[1][1:]
             mime_type = EXTENSIONS_MAP.get(ext)
             if thumbnail and has_pillow and os.path.isfile(thumbnail):
                 stat_result = os.stat(thumbnail)
-            elif os.path.isfile(target):
+            elif not thumbnail and os.path.isfile(target):
                 stat_result = os.stat(target)
             else:
                 stat_result = SimpleNamespace()
@@ -745,8 +744,10 @@ class Api:
                         debug.log(f"Thumbnail created: {thumbnail}")
                 except Exception as e:
                     logger.exception(e)
-                if os.path.isfile(thumbnail):
-                    result = thumbnail
+            if thumbnail and os.path.isfile(thumbnail):
+                result = thumbnail
+            else:
+                result = target
             if not os.path.isfile(result):
                 return ErrorResponse.from_message("File not found", HTTP_404_NOT_FOUND)
             async def stream():
