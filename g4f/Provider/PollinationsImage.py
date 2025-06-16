@@ -48,6 +48,7 @@ class PollinationsImage(PollinationsAI):
         private: bool = False,
         enhance: bool = False,
         safe: bool = False,
+        transparent: bool = False,
         n: int = 1,
         **kwargs
     ) -> AsyncResult:
@@ -67,6 +68,7 @@ class PollinationsImage(PollinationsAI):
             private=private,
             enhance=enhance,
             safe=safe,
+            transparent=transparent,
             n=n,
             referrer=referrer,
             api_key=api_key

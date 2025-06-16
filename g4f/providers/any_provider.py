@@ -331,7 +331,7 @@ class AnyProvider(AsyncGeneratorProvider, ProviderModelMixin):
                     if api_key.get(provider):
                         if provider in __map__ and __map__[provider] not in PROVIERS_LIST_1:
                             extra_providers.append(__map__[provider])
-            print(f"Using extra providers: {[p.__name__ for p in extra_providers]}")
+            debug.log(f"Using extra providers: {[p.__name__ for p in extra_providers]}")
             for provider in PROVIERS_LIST_1 + extra_providers:
                 if provider.working:
                     provider_api_key = api_key

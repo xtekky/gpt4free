@@ -701,7 +701,7 @@ class Api:
                 **({
                     "content-length": str(stat_result.st_size),
                 } if stat_result.st_size else {}),
-                **({} if mime_type is None else {
+                **({} if thumbnail or mime_type is None else {
                     "content-type": mime_type,
                 })
             }

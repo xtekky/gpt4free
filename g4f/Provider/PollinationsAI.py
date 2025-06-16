@@ -260,6 +260,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         private: bool = False,
         enhance: bool = None,
         safe: bool = False,
+        transparent: bool = False,
         n: int = 1,
         # Text generation parameters
         media: MediaListType = None,
@@ -305,6 +306,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                 private=private,
                 enhance=enhance,
                 safe=safe,
+                transparent=transparent,
                 n=n,
                 referrer=referrer,
                 api_key=api_key
@@ -359,6 +361,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         private: bool,
         enhance: bool,
         safe: bool,
+        transparent: bool,
         n: int,
         referrer: str,
         api_key: str,
@@ -379,6 +382,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
             image = [item[0] for item in media if isinstance(item[0], str) and item[0].startswith("http")] if media else []
             params = {
                 **params,
+                "transparent": str(transparent).lower(),
                 "image": ",".join(image) if image else "",
             }
         else:

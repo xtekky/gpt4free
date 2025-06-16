@@ -88,8 +88,8 @@ class Cloudflare(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                     try:
                         task = asyncio.create_task(nodriver_read_models())
                         asyncio.run(task)
-                    except RuntimeError:
-                        debug.log("Nodriver is not available: RuntimeError")
+                    except RuntimeError as e:
+                        debug.log("Nodriver is not available:", e)
                         cls.models = cls.fallback_models
                         task.cancel()
                 else:

@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import base64
 from typing import Iterator, Union
+from urllib.parse import urlparse
 from pathlib import Path
 
 from ..typing import Messages
@@ -64,7 +65,15 @@ def merge_media(media: list, messages: list) -> Iterator:
                         path = render_media(**part, as_path=True)
                         buffer.append((path, os.path.basename(path)))
                     elif part.get("type") == "image_url":
-                        buffer.append((part.get("image_url"), None))
+                        path: str = urlparse(part.get("image_url")).path
+                        if path.startswith("/files/"):
+                            path = get_bucket_dir(path.split(path, "/")[1:])
+                            if os.path.exists(path):
+                                buffer.append((Path(path), os.path.basename(path)))
+                            else:
+                                buffer.append((part.get("image_url"), None))
+                        else:
+                            buffer.append((part.get("image_url"), None))
         else:
             buffer = []
     yield from buffer
