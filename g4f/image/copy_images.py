@@ -96,7 +96,7 @@ def get_filename(tags: list[str], alt: str, extension: str, image: str) -> str:
     tags = f"{'+'.join([str(tag) for tag in tags if tag])}+" if tags else ""
     return "".join((
         f"{int(time.time())}_",
-        f"{secure_filename(tags + alt)}_",
+        f"{secure_filename(tags or "" + alt)}_",
         hashlib.sha256(image.encode()).hexdigest()[:16],
         extension
     ))
@@ -151,6 +151,7 @@ async def copy_media(
                         request_headers = headers
                         request_ssl = ssl
                     # Use aiohttp to fetch the image
+                    debug.log(f"Copying image: {image} to {target_path}")
                     async with session.get(image, ssl=request_ssl, headers=request_headers) as response:
                         response.raise_for_status()
                         media_type = response.headers.get("content-type", "application/octet-stream")

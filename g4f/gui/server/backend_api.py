@@ -260,6 +260,7 @@ class Backend_Api(Api):
                                 buffer.get_list(),
                                 buffer.get("cookies"),
                                 buffer.get("headers"),
+                                None,
                                 request.args.get("prompt")
                             )).pop()
                     elif isinstance(buffer, AudioResponse):
