@@ -20,9 +20,6 @@ from ..base_provider import AsyncGeneratorProvider
 from ..helper import format_media_prompt
 from ... import debug
 
-browser = None
-stop_browser = None
-
 class RequestConfig:
     urls: list[str] = []
     headers: dict = {}
@@ -55,14 +52,12 @@ class Video(AsyncGeneratorProvider):
         prompt = format_media_prompt(messages, prompt)
         if not prompt:
             raise ValueError("Prompt cannot be empty.")
-        global browser, stop_browser
         try:
-            if browser is None:
-                browser, stop_browser = await get_nodriver(proxy=proxy, user_data_dir="gemini")
+            browser, stop_browser = await get_nodriver(proxy=proxy, user_data_dir="gemini")
         except Exception as e:
             debug.error(f"Error getting nodriver:", e)
             async with ClientSession() as session:
-                async with session.get(cls.search_url + quote_plus(prompt), timeout=ClientTimeout(total=10)) as response:
+                async with session.get(cls.search_url + quote_plus(prompt) + f"&min={prompt.count(' ') + 1}", timeout=ClientTimeout(total=10)) as response:
                     if response.status == 200:
                         yield VideoResponse(str(response.url), prompt)
                         return
