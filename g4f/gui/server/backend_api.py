@@ -260,8 +260,7 @@ class Backend_Api(Api):
                             buffer.get_list(),
                             buffer.get("cookies"),
                             buffer.get("headers"),
-                            None,
-                            request.args.get("prompt")
+                            alt=buffer.alt
                         )))
                     elif isinstance(buffer, AudioResponse):
                         return buffer.data
@@ -294,7 +293,7 @@ class Backend_Api(Api):
                                 f.write(response)
                 else:
                     response = cast_str(iter_run_tools(ChatCompletion.create, **parameters))
-                if isinstance(response, str):
+                if isinstance(response, str) and "\n" not in response:
                     if response.startswith("/media/"):
                         media_dir = get_media_dir()
                         filename = os.path.basename(response.split("?")[0])
@@ -303,7 +302,7 @@ class Backend_Api(Api):
                         finally:
                             if not cache_id:
                                 os.remove(os.path.join(media_dir, filename))
-                    elif "\n" not in response and response.startswith("https://") or response.startswith("http://"):
+                    elif response.startswith("https://") or response.startswith("http://"):
                         return redirect(response)
                 if do_filter:
                     is_true_filter = do_filter.lower() in ["true", "1"]

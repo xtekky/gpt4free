@@ -27,8 +27,9 @@ class Video(AsyncGeneratorProvider):
         "https://sora.chatgpt.com/explore",
         #"https://aistudio.google.com/generate-video"
     ]
-    api_url = "http:/bore.pub:40346/backend-api/v2/create"
-    search_url = "http://bore.pub:40346/search/video+{prompt}"
+    pub_url = "http://bore.pub:40346"
+    api_url = f"{pub_url}/backend-api/v2/create"
+    search_url = f"{pub_url}/search/video+"
     drive_url = "https://www.googleapis.com/drive/v3/"
 
     needs_auth = True
@@ -47,6 +48,8 @@ class Video(AsyncGeneratorProvider):
         **kwargs
     ) -> AsyncResult:
         prompt = format_media_prompt(messages, prompt)
+        if not prompt:
+            raise ValueError("Prompt cannot be empty.")
         global browser, stop_browser
         try:
             if browser is None:
@@ -54,11 +57,11 @@ class Video(AsyncGeneratorProvider):
         except Exception as e:
             debug.error(f"Error getting nodriver:", e)
             async with ClientSession() as session:
-                async with session.get(cls.search_url.format(prompt=quote_plus(prompt)), timeout=ClientTimeout(total=10)) as response:
+                async with session.get(cls.search_url + quote_plus(prompt), timeout=ClientTimeout(total=10)) as response:
                     if response.status == 200:
                         if response.headers.get("content-type", "text/plain").startswith("text/pain"):
                             data = (await response.text()).split("\n")
-                            yield VideoResponse(data, prompt)
+                            yield VideoResponse([f"{cls.pub_url}{url}" if url.startswith("/") else url for url in data], prompt)
                             return
                         yield VideoResponse(str(response.url), prompt)
                         return
