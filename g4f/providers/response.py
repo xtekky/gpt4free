@@ -192,6 +192,11 @@ class DebugResponse(HiddenResponse):
         """Initialize with a log message."""
         self.log = log
 
+class ContinueResponse(HiddenResponse):
+    def __init__(self, log: str) -> None:
+        """Initialize with a log message."""
+        self.log = log
+
 class Reasoning(ResponseType):
     def __init__(
             self,

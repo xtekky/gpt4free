@@ -146,7 +146,7 @@ def set_browser_executable_path(browser_executable_path: str):
 async def get_nodriver(
     proxy: str = None,
     user_data_dir = "nodriver",
-    timeout: int = 120,
+    timeout: int = 300,
     browser_executable_path: str = None,
     **kwargs
 ) -> tuple[Browser, callable]:
@@ -172,6 +172,7 @@ async def get_nodriver(
         time_open = time.time() - opend_at
         if timeout * 2 > time_open:
             debug.log(f"Nodriver: Browser is already in use since {time_open} secs.")
+            debug.log("Lock file:", lock_file)
             for _ in range(timeout):
                 if lock_file.exists():
                     await asyncio.sleep(1)

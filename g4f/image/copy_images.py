@@ -5,6 +5,7 @@ import time
 import asyncio
 import hashlib
 import base64
+from datetime import datetime
 from typing import AsyncIterator
 from urllib.parse import quote, unquote
 from aiohttp import ClientSession, ClientError
@@ -135,14 +136,18 @@ async def copy_media(
             if target_path is None:
                 # Build safe filename with full Unicode support
                 media_extension = get_media_extension(image)
-                filename = get_filename(tags, alt, media_extension, image)
+                path = urlparse(image).path
+                if path.startswith("/media/"):
+                    filename = secure_filename(path[len("/media/"):])
+                else:
+                    filename = get_filename(tags, alt, media_extension, image)
                 target_path = os.path.join(get_media_dir(), filename)
             try:
                 # Handle different image types
                 if image.startswith("data:"):
                     with open(target_path, "wb") as f:
                         f.write(extract_data_uri(image))
-                else:
+                elif not os.path.exists(target_path) or os.lstat(target_path).st_size <= 0:
                     # Apply BackendApi settings if needed
                     if BackendApi.working and image.startswith(BackendApi.url):
                         request_headers = BackendApi.headers if headers is None else headers
@@ -151,9 +156,14 @@ async def copy_media(
                         request_headers = headers
                         request_ssl = ssl
                     # Use aiohttp to fetch the image
-                    debug.log(f"Copying image: {image} to {target_path}")
                     async with session.get(image, ssl=request_ssl, headers=request_headers) as response:
                         response.raise_for_status()
+                        date = response.headers.get("date")
+                        if date and target_path != target:
+                            timestamp = datetime.strptime(date, '%a, %d %b %Y %H:%M:%S %Z').timestamp()
+                            filename = str(int(timestamp)) + "_" + filename.split("_", maxsplit=1)[-1]
+                            target_path = os.path.join(get_media_dir(), filename)
+                        debug.log(f"Copying image: {image} to {target_path}")
                         media_type = response.headers.get("content-type", "application/octet-stream")
                         if media_type not in ("application/octet-stream", "binary/octet-stream"):
                             if media_type not in MEDIA_TYPE_MAP:
