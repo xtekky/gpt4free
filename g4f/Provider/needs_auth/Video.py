@@ -33,7 +33,7 @@ class Video(AsyncGeneratorProvider):
         #"https://aistudio.google.com/generate-video"
     ]
     pub_url = "https://home.g4f.dev"
-    api_url = f"{pub_url}/backend-api/v2/create"
+    api_url = f"{pub_url}/backend-api/v2/create?provider=Video&cache=true&prompt="
     search_url = f"{pub_url}/search/video+"
     drive_url = "https://www.googleapis.com/drive/v3/"
 
@@ -64,16 +64,16 @@ class Video(AsyncGeneratorProvider):
             async with ClientSession() as session:
                 async with session.get(cls.search_url + quote_plus(prompt), timeout=ClientTimeout(total=10)) as response:
                     if response.status == 200:
+                        yield VideoResponse(str(response.url), prompt)
+                        return
+                async with session.post(cls.api_url + quote(prompt)) as response:
+                    if not response.ok:
+                        debug.error(f"Failed to connect to Video API: {response.status}")
+                    else:
                         if response.headers.get("content-type", "text/plain").startswith("text/pain"):
                             data = (await response.text()).split("\n")
                             yield VideoResponse([f"{cls.pub_url}{url}" if url.startswith("/") else url for url in data], prompt)
                             return
-                        yield VideoResponse(str(response.url), prompt)
-                        return
-                async with session.post(cls.api_url.format(prompt=quote(prompt)), timeout=ClientTimeout(total=10)) as response:
-                    if response.status != 200:
-                        debug.error(f"Failed to connect to Video API: {response.status}")
-                    else:
                         yield VideoResponse(str(response.url), prompt)
                         return
             raise MissingRequirementsError("Video provider requires a browser to be installed.")
