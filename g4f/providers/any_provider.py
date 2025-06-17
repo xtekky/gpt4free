@@ -272,7 +272,7 @@ class AnyProvider(AsyncGeneratorProvider, ProviderModelMixin):
                     cls.models_count.update({model: count})
 
             cls.video_models.append("video")
-            all_models.extend("video")
+            all_models.append("video")
 
             # Deduplicate and store
             cls.models_storage[ignored_key] = list(dict.fromkeys([model if model else cls.default_model for model in all_models]))
