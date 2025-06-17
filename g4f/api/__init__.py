@@ -10,6 +10,7 @@ from email.utils import formatdate
 import os.path
 import hashlib
 import asyncio
+from contextlib import asynccontextmanager
 from urllib.parse import quote_plus
 from fastapi import FastAPI, Response, Request, UploadFile, Form, Depends
 from fastapi.responses import StreamingResponse, RedirectResponse, HTMLResponse, JSONResponse, FileResponse
@@ -48,6 +49,11 @@ try:
 except ImportError:
     class Annotated:
         pass
+try:
+    from nodriver import util
+    has_nodriver = True
+except ImportError:
+    has_nodriver = False
 
 import g4f
 import g4f.debug
@@ -77,8 +83,18 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_PORT = 1337
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Read cookie files if not ignored
+    if not AppConfig.ignore_cookie_files:
+        read_cookie_files()
+    yield
+    for browser in util.get_registered_instances():
+        if browser.connection:
+            browser.stop()
+
 def create_app():
-    app = FastAPI()
+    app = FastAPI(lifespan=lifespan)
 
     # Add CORS middleware
     app.add_middleware(

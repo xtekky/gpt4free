@@ -13,7 +13,7 @@ except:
     pass
 
 from ...typing import Messages, AsyncResult
-from ...providers.response import VideoResponse
+from ...providers.response import VideoResponse, Reasoning
 from ...requests import get_nodriver
 from ...errors import MissingRequirementsError
 from ..base_provider import AsyncGeneratorProvider
@@ -57,14 +57,18 @@ class Video(AsyncGeneratorProvider):
         except Exception as e:
             debug.error(f"Error getting nodriver:", e)
             async with ClientSession() as session:
+                yield Reasoning(label="Lookup")
                 async with session.get(cls.search_url + quote_plus(prompt) + f"&min={prompt.count(' ') + 1}", timeout=ClientTimeout(total=10)) as response:
                     if response.status == 200:
+                        yield Reasoning(label="Found", status="")
                         yield VideoResponse(str(response.url), prompt)
                         return
+                yield Reasoning(label="Generating")
                 async with session.post(cls.api_url + quote(prompt)) as response:
                     if not response.ok:
-                        debug.error(f"Failed to connect to Video API: {response.status}")
+                        debug.error(f"Failed to lookup Video: {response.status}")
                     else:
+                        yield Reasoning(label="Finished", status="")
                         if response.headers.get("content-type", "text/plain").startswith("text/plain"):
                             data = (await response.text()).split("\n")
                             yield VideoResponse([f"{cls.pub_url}{url}" if url.startswith("/") else url for url in data], prompt)
@@ -77,6 +81,13 @@ class Video(AsyncGeneratorProvider):
             cls.page = await browser.get(random.choice(cls.urls))
         except Exception as e:
             debug.error(f"Error opening page:", e)
+        if RequestConfig.urls:
+            RequestConfig.urls = list(set(RequestConfig.urls))
+            debug.log(f"Video URL: {len(RequestConfig.urls)}")
+            yield VideoResponse(RequestConfig.urls, prompt, {
+                "headers": {"authorization": RequestConfig.headers.get("authorization")} if RequestConfig.headers.get("authorization") else {}
+            })
+            return
         try:
             page = cls.page
             await asyncio.sleep(3)
@@ -128,13 +139,16 @@ class Video(AsyncGeneratorProvider):
                     await button.click()
             except Exception as e:
                 debug.error(f"Error clicking 'Activity' button:", e)
-            try:
-                await asyncio.sleep(15)
-                button = await page.find("Queued", timeout=30)
-                if button:
-                    await button.click()
-            except Exception as e:
-                debug.error(f"Error clicking 'Queued' button:", e)
+            for idx in range(60):
+                await asyncio.sleep(1)
+                try:
+                    button = await page.find("Queued")
+                    if button:
+                        await button.click()
+                        debug.log(f"Clicked 'Queued' button")
+                        break
+                except:
+                    debug.error(f"Error clicking 'Queued' button:", e)
             debug.log(f"Waiting for Video URL...")
             for idx in range(600):
                 await asyncio.sleep(1)
@@ -145,7 +159,6 @@ class Video(AsyncGeneratorProvider):
                     yield VideoResponse(RequestConfig.urls, prompt, {
                         "headers": {"authorization": RequestConfig.headers.get("authorization")} if RequestConfig.headers.get("authorization") else {}
                     })
-                    RequestConfig.urls = []
                     break
                 if idx == 599:
                     raise RuntimeError("Failed to get Video URL")
