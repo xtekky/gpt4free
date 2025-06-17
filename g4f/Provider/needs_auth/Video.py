@@ -32,7 +32,7 @@ class Video(AsyncGeneratorProvider):
         "https://sora.chatgpt.com/explore",
         #"https://aistudio.google.com/generate-video"
     ]
-    pub_url = "http://bore.pub:40346"
+    pub_url = "https://home.g4f.dev"
     api_url = f"{pub_url}/backend-api/v2/create"
     search_url = f"{pub_url}/search/video+"
     drive_url = "https://www.googleapis.com/drive/v3/"
@@ -79,7 +79,11 @@ class Video(AsyncGeneratorProvider):
             raise MissingRequirementsError("Video provider requires a browser to be installed.")
         RequestConfig.urls = []
         try:
-            page = await browser.get(random.choice(cls.urls))
+            cls.page = await browser.get(random.choice(cls.urls))
+        except Exception as e:
+            debug.error(f"Error opening page:", e)
+        try:
+            page = cls.page
             await asyncio.sleep(3)
             await page.select("textarea", 240)
             def on_request(event: nodriver.cdp.network.RequestWillBeSent, page=None):
@@ -130,7 +134,7 @@ class Video(AsyncGeneratorProvider):
             except Exception as e:
                 debug.error(f"Error clicking 'Activity' button:", e)
             try:
-                await asyncio.sleep(5)
+                await asyncio.sleep(15)
                 button = await page.find("Queued", timeout=30)
                 if button:
                     await button.click()
@@ -142,7 +146,7 @@ class Video(AsyncGeneratorProvider):
                 if RequestConfig.urls:
                     await asyncio.sleep(2)
                     RequestConfig.urls = list(set(RequestConfig.urls))
-                    debug.log(f"Video URL: {RequestConfig.urls}")
+                    debug.log(f"Video URL: {len(RequestConfig.urls)}")
                     yield VideoResponse(RequestConfig.urls, prompt, {
                         "headers": {"authorization": RequestConfig.headers.get("authorization")} if RequestConfig.headers.get("authorization") else {}
                     })
@@ -150,8 +154,5 @@ class Video(AsyncGeneratorProvider):
                     break
                 if idx == 599:
                     raise RuntimeError("Failed to get Video URL")
-        except Exception as e:
+        finally:
             stop_browser()
-            raise e
-        await page.close()
-        stop_browser()

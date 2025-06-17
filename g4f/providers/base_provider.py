@@ -22,7 +22,7 @@ from .helper import concat_chunks
 from ..cookies import get_cookies_dir
 from ..errors import ModelNotFoundError, ResponseError, MissingAuthError, NoValidHarFileError, PaymentRequiredError
 
-DEFAULT_TIMEOUT = 180
+DEFAULT_TIMEOUT = 600
 
 SAFE_PARAMETERS = [
     "model", "messages", "stream", "timeout",
