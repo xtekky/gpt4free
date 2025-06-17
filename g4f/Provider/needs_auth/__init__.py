@@ -31,5 +31,6 @@ from .Reka              import Reka
 from .Replicate         import Replicate
 from .ThebApi           import ThebApi
 from .WhiteRabbitNeo    import WhiteRabbitNeo
+from .Video             import Video
 from .xAI               import xAI
 from .You               import You

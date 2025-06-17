@@ -96,7 +96,7 @@ def get_filename(tags: list[str], alt: str, extension: str, image: str) -> str:
     tags = f"{'+'.join([str(tag) for tag in tags if tag])}+" if tags else ""
     return "".join((
         f"{int(time.time())}_",
-        f"{secure_filename(tags or "" + alt)}_",
+        f"{secure_filename(tags + alt)}_" if alt else secure_filename(tags),
         hashlib.sha256(image.encode()).hexdigest()[:16],
         extension
     ))

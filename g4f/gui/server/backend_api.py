@@ -256,13 +256,13 @@ class Backend_Api(Api):
                         if len(buffer.get_list()) == 1:
                             if not cache_id:
                                 return buffer.get_list()[0]
-                            return asyncio.run(copy_media(
-                                buffer.get_list(),
-                                buffer.get("cookies"),
-                                buffer.get("headers"),
-                                None,
-                                request.args.get("prompt")
-                            )).pop()
+                        return "\n".join(asyncio.run(copy_media(
+                            buffer.get_list(),
+                            buffer.get("cookies"),
+                            buffer.get("headers"),
+                            None,
+                            request.args.get("prompt")
+                        )))
                     elif isinstance(buffer, AudioResponse):
                         return buffer.data
                     def iter_response():
@@ -303,7 +303,7 @@ class Backend_Api(Api):
                         finally:
                             if not cache_id:
                                 os.remove(os.path.join(media_dir, filename))
-                    elif response.startswith("https://") or response.startswith("http://"):
+                    elif "\n" not in response and response.startswith("https://") or response.startswith("http://"):
                         return redirect(response)
                 if do_filter:
                     is_true_filter = do_filter.lower() in ["true", "1"]

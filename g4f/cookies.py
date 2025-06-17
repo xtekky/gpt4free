@@ -33,8 +33,8 @@ try:
         return [] if not os.path.exists(cookie_file) else chrome(cookie_file, domain_name)
 
     browsers = [
-        g4f,
-        chrome, chromium, firefox, opera, opera_gx,
+        g4f, firefox,
+        chrome, chromium, opera, opera_gx,
         brave, edge, vivaldi,
     ]
     has_browser_cookie3 = True
