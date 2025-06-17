@@ -7,9 +7,14 @@ from aiohttp import ClientSession, ClientTimeout
 from urllib.parse import quote, quote_plus
 from aiohttp import ClientSession
 
+try:
+    import nodriver
+except:
+    pass
+
 from ...typing import Messages, AsyncResult
 from ...providers.response import VideoResponse
-from ...requests import get_nodriver, nodriver
+from ...requests import get_nodriver
 from ...errors import MissingRequirementsError
 from ..base_provider import AsyncGeneratorProvider
 from ..helper import format_media_prompt
