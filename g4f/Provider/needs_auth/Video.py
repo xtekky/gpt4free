@@ -65,7 +65,7 @@ class Video(AsyncGeneratorProvider):
                     if not response.ok:
                         debug.error(f"Failed to connect to Video API: {response.status}")
                     else:
-                        if response.headers.get("content-type", "text/plain").startswith("text/pain"):
+                        if response.headers.get("content-type", "text/plain").startswith("text/plain"):
                             data = (await response.text()).split("\n")
                             yield VideoResponse([f"{cls.pub_url}{url}" if url.startswith("/") else url for url in data], prompt)
                             return
