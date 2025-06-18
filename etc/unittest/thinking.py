@@ -31,7 +31,7 @@ class TestThinkingProcessor(unittest.TestCase):
     def test_thinking_end(self):
         start_time = time.time()
         chunk = "token</think> content after"
-        expected_result = [Reasoning("token"), Reasoning(status="Finished", is_thinking="</think>"), " content after"]
+        expected_result = [Reasoning("token"), Reasoning(status="", is_thinking="</think>"), " content after"]
         actual_time, actual_result = ThinkingProcessor.process_thinking_chunk(chunk, start_time)
         self.assertEqual(actual_time, 0)
         self.assertEqualReasoning(actual_result[0], expected_result[0])
@@ -41,7 +41,7 @@ class TestThinkingProcessor(unittest.TestCase):
     def test_thinking_start_and_end(self):
         start_time = time.time()
         chunk = "<think>token</think> content after"
-        expected_result = [Reasoning(status="🤔 Is thinking...", is_thinking="<think>"), Reasoning("token"), Reasoning(status="Finished", is_thinking="</think>"), " content after"]
+        expected_result = [Reasoning(status="🤔 Is thinking...", is_thinking="<think>"), Reasoning("token"), Reasoning(status="", is_thinking="</think>"), " content after"]
         actual_time, actual_result = ThinkingProcessor.process_thinking_chunk(chunk, start_time)
         self.assertEqual(actual_time, 0)
         self.assertEqualReasoning(actual_result[0], expected_result[0])
@@ -60,7 +60,7 @@ class TestThinkingProcessor(unittest.TestCase):
     def test_chunk_with_text_after_think(self):
         chunk = "Start <think>Middle</think>End"
         expected_time = 0
-        expected_result = ["Start ", Reasoning(status="🤔 Is thinking...", is_thinking="<think>"), Reasoning("Middle"), Reasoning(status="Finished", is_thinking="</think>"), "End"]
+        expected_result = ["Start ", Reasoning(status="🤔 Is thinking...", is_thinking="<think>"), Reasoning("Middle"), Reasoning(status="", is_thinking="</think>"), "End"]
         actual_time, actual_result = ThinkingProcessor.process_thinking_chunk(chunk)
         self.assertEqual(actual_time, expected_time)
         for i in range(1, len(expected_result)):

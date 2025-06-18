@@ -29,7 +29,7 @@ def get_api_parser():
                             default=[], help="List of browsers to access or retrieve cookies from. (incompatible with --reload and --workers)")
     api_parser.add_argument("--reload", action="store_true", help="Enable reloading.")
     api_parser.add_argument("--demo", action="store_true", help="Enable demo mode.")
-	
+    api_parser.add_argument("--timeout", type=int, default=600, help="Default timeout for requests in seconds. (incompatible with --reload and --workers)")
     api_parser.add_argument("--ssl-keyfile", type=str, default=None, help="Path to SSL key file for HTTPS.")
     api_parser.add_argument("--ssl-certfile", type=str, default=None, help="Path to SSL certificate file for HTTPS.")
     api_parser.add_argument("--log-config", type=str, default=None, help="Custom log config.")
@@ -64,6 +64,7 @@ def run_api_args(args):
         model=args.model,
         gui=args.gui,
         demo=args.demo,
+        timeout=args.timeout,
     )
     if args.cookie_browsers:
         g4f.cookies.browsers = [g4f.cookies[browser] for browser in args.cookie_browsers]
