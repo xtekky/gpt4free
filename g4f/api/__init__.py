@@ -90,9 +90,10 @@ async def lifespan(app: FastAPI):
     if not AppConfig.ignore_cookie_files:
         read_cookie_files()
     yield
-    for browser in util.get_registered_instances():
-        if browser.connection:
-            browser.stop()
+    if has_nodriver:
+        for browser in util.get_registered_instances():
+            if browser.connection:
+                browser.stop()
 
 def create_app():
     app = FastAPI(lifespan=lifespan)
