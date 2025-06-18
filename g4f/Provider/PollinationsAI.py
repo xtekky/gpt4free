@@ -392,10 +392,10 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                 **params
             }, "1:1" if aspect_ratio is None else aspect_ratio)
         query = "&".join(f"{k}={quote_plus(str(v))}" for k, v in params.items() if v is not None)
-        encoded_prompt = prompt
+        encoded_prompt = prompt.strip(". \n")
         if model == "gptimage" and aspect_ratio is not None:
             encoded_prompt = f"{encoded_prompt} aspect-ratio: {aspect_ratio}"
-        encoded_prompt = quote_plus(encoded_prompt)[:4096-len(cls.image_api_endpoint)-len(query)-8]
+        encoded_prompt = quote_plus(encoded_prompt)[:4096-len(cls.image_api_endpoint)-len(query)-8].rstrip("%")
         url = f"{cls.image_api_endpoint}prompt/{encoded_prompt}?{query}"
         def get_url_with_seed(i: int, seed: Optional[int] = None):
             if model == "gptimage":
@@ -583,15 +583,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                         audio = message.get("audio", {})
                         if "data" in audio:
                             async for chunk in save_response_media(audio["data"], prompt, [model, extra_body.get("audio", {}).get("voice")]):
-                                if isinstance(chunk, AudioResponse) and not download_media and voice and len(messages) == 1:
-                                    prompt = messages[0].get("content")
-                                    if isinstance(prompt, str):
-                                        url = f"https://text.pollinations.ai/{quote(prompt)}?model={quote(model)}&voice={quote(voice)}&seed={quote(str(seed))}"
-                                        yield AudioResponse(url)
-                                    else:
-                                        yield chunk
-                                else:
-                                    yield chunk
+                                yield chunk
                         if "transcript" in audio:
                             yield "\n\n"
                             yield audio["transcript"]

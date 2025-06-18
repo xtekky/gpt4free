@@ -11,7 +11,7 @@ from ..Provider.hf_space import HuggingSpace
 from ..Provider import __map__
 from ..Provider import Cloudflare, Gemini, Grok, DeepSeekAPI, PerplexityLabs, LambdaChat, PollinationsAI, PuterJS
 from ..Provider import Microsoft_Phi_4_Multimodal, DeepInfraChat, Blackbox, OIVSCodeSer2, OIVSCodeSer0501, TeachAnything
-from ..Provider import Together, WeWordle, Yqcloud, Chatai, Free2GPT, ARTA, ImageLabs, LegacyLMArena, LMArenaBeta
+from ..Provider import Together, WeWordle, Yqcloud, Chatai, Free2GPT, ImageLabs, LegacyLMArena, LMArenaBeta
 from ..Provider import EdgeTTS, gTTS, MarkItDown, OpenAIFM, Video
 from ..Provider import HarProvider, HuggingFace, HuggingFaceMedia
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
@@ -21,13 +21,13 @@ from .. import debug
 
 PROVIERS_LIST_1 = [
     OpenaiChat, PollinationsAI, Cloudflare, PerplexityLabs, Gemini, Grok, DeepSeekAPI, Blackbox, OpenAIFM,
-    OIVSCodeSer2, OIVSCodeSer0501, TeachAnything, Together, WeWordle, Yqcloud, Chatai, Free2GPT, ARTA, ImageLabs,
+    OIVSCodeSer2, OIVSCodeSer0501, TeachAnything, Together, WeWordle, Yqcloud, Chatai, Free2GPT, ImageLabs,
     HarProvider, LegacyLMArena, LMArenaBeta, LambdaChat, CopilotAccount, DeepInfraChat,
     HuggingSpace, HuggingFace, HuggingFaceMedia, Together
 ]
 
 PROVIERS_LIST_2 = [
-    OpenaiChat, CopilotAccount, PollinationsAI, PerplexityLabs, Gemini, Grok, ARTA
+    OpenaiChat, CopilotAccount, PollinationsAI, PerplexityLabs, Gemini, Grok
 ]
 
 PROVIERS_LIST_3 = [
@@ -48,7 +48,6 @@ LABELS = {
     "phi": "Microsoft: Phi / WizardLM",
     "mistral": "Mistral",
     "PollinationsAI": "Pollinations AI",
-    "ARTA": "ARTA",
     "voices": "Voices",
     "perplexity": "Perplexity Labs",
     "openrouter": "OpenRouter",
@@ -81,7 +80,7 @@ class AnyProvider(AsyncGeneratorProvider, ProviderModelMixin):
             added = False
             # Check for models with prefix
             start = model.split(":")[0]
-            if start in ("PollinationsAI", "ARTA", "openrouter"):
+            if start in ("PollinationsAI", "openrouter"):
                 submodel = model.split(":", maxsplit=1)[1]
                 if submodel in OpenAIFM.voices or submodel in PollinationsAI.audio_models[PollinationsAI.default_audio_model]:
                     groups["voices"].append(submodel)
@@ -184,13 +183,12 @@ class AnyProvider(AsyncGeneratorProvider, ProviderModelMixin):
                 try:
                     if provider == CopilotAccount:
                         all_models.extend(list(provider.model_aliases.keys()))
-                    elif provider in [PollinationsAI, ARTA]:
+                    elif provider == PollinationsAI:
                         all_models.extend([f"{provider.__name__}:{model}" for model in provider.get_models() if model not in all_models])
                         cls.audio_models.update({f"{provider.__name__}:{model}": [] for model in provider.get_models() if model in provider.audio_models})
                         cls.image_models.extend([f"{provider.__name__}:{model}" for model in provider.get_models() if model in provider.image_models])
                         cls.vision_models.extend([f"{provider.__name__}:{model}" for model in provider.get_models() if model in provider.vision_models])
-                        if provider == PollinationsAI:
-                            all_models.extend(list(provider.model_aliases.keys()))
+                        all_models.extend(list(provider.model_aliases.keys()))
                     else:
                         all_models.extend(provider.get_models())
                 except Exception as e:

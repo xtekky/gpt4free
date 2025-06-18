@@ -8,13 +8,13 @@ from pathlib import Path
 from aiohttp import ClientSession, ClientResponse
 import asyncio
 
-from ..typing import AsyncResult, Messages
-from ..providers.response import ImageResponse, Reasoning
-from ..errors import ResponseError, ModelNotFoundError
-from ..cookies import get_cookies_dir
-from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from .helper import format_media_prompt
-from .. import debug
+from ...typing import AsyncResult, Messages
+from ...providers.response import ImageResponse, Reasoning
+from ...errors import ResponseError, ModelNotFoundError
+from ...cookies import get_cookies_dir
+from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from ..helper import format_media_prompt
+from ... import debug
 
 class ARTA(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://ai-arta.com"
@@ -23,7 +23,7 @@ class ARTA(AsyncGeneratorProvider, ProviderModelMixin):
     image_generation_url = "https://img-gen-prod.ai-arta.com/api/v1/text2image"
     status_check_url = "https://img-gen-prod.ai-arta.com/api/v1/text2image/{record_id}/status"
 
-    working = True
+    working = False # Take down request
 
     default_model = "flux"
     default_image_model = default_model

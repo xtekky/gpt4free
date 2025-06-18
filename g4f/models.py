@@ -6,7 +6,6 @@ from typing import Dict, List, Optional
 from .Provider import IterListProvider, ProviderType
 from .Provider import (
     ### No Auth Required ###
-    ARTA,
     Blackbox,
     Chatai,
     Cloudflare,
@@ -41,6 +40,7 @@ from .Provider import (
     HailuoAI,
     HuggingChat,
     HuggingFace,
+    HuggingFaceMedia,
     HuggingFaceAPI,
     MetaAI,
     MicrosoftDesigner,
@@ -287,7 +287,7 @@ dall_e_3 = ImageModel(
 gpt_image = ImageModel(
     name = 'gpt-image',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([PollinationsImage, ARTA])
+    best_provider = IterListProvider([PollinationsImage])
 )
 
 ### Meta ###
@@ -880,48 +880,35 @@ evil = Model(
     best_provider = PollinationsAI
 )
 
-### Stability AI ###
-sdxl_1_0 = ImageModel(
-    name = 'sdxl-1.0',
-    base_provider = 'Stability AI',
-    best_provider = ARTA
-)
-
-sdxl_l = ImageModel(
-    name = 'sdxl-l',
-    base_provider = 'Stability AI',
-    best_provider = ARTA
-)
-
 sdxl_turbo = ImageModel(
     name = 'sdxl-turbo',
     base_provider = 'Stability AI',
-    best_provider = IterListProvider([PollinationsImage, ImageLabs])
+    best_provider = IterListProvider([HuggingFaceMedia, PollinationsImage, ImageLabs])
 )
 
 sd_3_5_large = ImageModel(
     name = 'sd-3.5-large',
     base_provider = 'Stability AI',
-    best_provider = HuggingSpace
+    best_provider = IterListProvider([HuggingFaceMedia, HuggingSpace])
 )
 
 ### Black Forest Labs ###
 flux = ImageModel(
     name = 'flux',
     base_provider = 'Black Forest Labs',
-    best_provider = IterListProvider([PollinationsImage, Websim, Together, HuggingSpace, ARTA])
+    best_provider = IterListProvider([HuggingFaceMedia, PollinationsImage, Websim, Together, HuggingSpace])
 )
 
 flux_pro = ImageModel(
     name = 'flux-pro',
     base_provider = 'Black Forest Labs',
-    best_provider = IterListProvider([PollinationsImage, Together, ARTA])
+    best_provider = IterListProvider([PollinationsImage, Together])
 )
 
 flux_dev = ImageModel(
     name = 'flux-dev',
     base_provider = 'Black Forest Labs',
-    best_provider = IterListProvider([PollinationsImage, HuggingSpace, Together, ARTA, HuggingChat, HuggingFace])
+    best_provider = IterListProvider([PollinationsImage, HuggingSpace, Together, HuggingChat, HuggingFace])
 )
 
 flux_schnell = ImageModel(

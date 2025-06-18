@@ -34,12 +34,15 @@ model_aliases = {
     "flux": "black-forest-labs/FLUX.1-dev",
     "flux-dev": "black-forest-labs/FLUX.1-dev",
     "flux-schnell": "black-forest-labs/FLUX.1-schnell",
+    "stable-diffusion-3.5-large": "stabilityai/stable-diffusion-3.5-large",
+    "sdxl-1.0": "stabilityai/stable-diffusion-xl-base-1.0",
+    "sdxl-turbo": "stabilityai/sdxl-turbo",
+    "sd-3.5-large": "stabilityai/stable-diffusion-3.5-large",
     ### Used in other providers ###
     "qwen-2-vl-7b": "Qwen/Qwen2-VL-7B-Instruct",
     "gemma-2-27b": "google/gemma-2-27b-it",
     "qwen-2-72b": "Qwen/Qwen2-72B-Instruct",
     "qvq-72b": "Qwen/QVQ-72B-Preview",
-    "stable-diffusion-3.5-large": "stabilityai/stable-diffusion-3.5-large",
 }
 extra_models = [
     "meta-llama/Llama-3.2-11B-Vision-Instruct",

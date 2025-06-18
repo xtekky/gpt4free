@@ -386,12 +386,14 @@ class Backend_Api(Api):
                             process_image(image, save=os.path.join(thumbnail_dir, filename))
                         except Exception as e:
                             logger.exception(e)
-                elif is_supported:
+                elif is_supported and not result:
                     newfile = os.path.join(bucket_dir, filename)
                     filenames.append(filename)
                 else:
                     os.remove(copyfile)
-                    raise ValueError(f"Unsupported file type: {filename}")
+                    if not result:
+                        raise ValueError(f"Unsupported file type: {filename}")
+                    continue
                 try:
                     os.rename(copyfile, newfile)
                 except OSError:

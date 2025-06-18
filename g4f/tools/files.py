@@ -199,7 +199,7 @@ def stream_read_files(bucket_dir: Path, filenames: list[str], delete_files: bool
                                 else:
                                     os.unlink(filepath)
             continue
-        yield f"```{filename}\n"
+        yield f"<!-- File: {filename} -->\n"
         if has_pypdf2 and filename.endswith(".pdf"):
             try:
                 reader = PyPDF2.PdfReader(file_path)
@@ -237,8 +237,8 @@ def stream_read_files(bucket_dir: Path, filenames: list[str], delete_files: bool
         elif has_beautifulsoup4 and filename.endswith(".html"):
             yield from scrape_text(file_path.read_text(errors="ignore"))
         elif extension in PLAIN_FILE_EXTENSIONS:
-            yield file_path.read_text(errors="ignore")
-        yield f"\n```\n\n"
+            yield file_path.read_text(errors="ignore").strip()
+        yield f"\n<-- End -->\n\n"
 
 def cache_stream(stream: Iterator[str], bucket_dir: Path) -> Iterator[str]:
     cache_file = bucket_dir / PLAIN_CACHE
