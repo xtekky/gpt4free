@@ -422,7 +422,6 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                 nonlocal finished
                 try:
                     async with session.get(get_url_with_seed(i, seed), allow_redirects=False, headers=headers) as response:
-                        debug.log("GET", response.status, response.url)
                         await raise_for_status(response)
                 except Exception as e:
                     responses.add(e)

@@ -4,7 +4,7 @@ import re
 import base64
 from typing import Union, Dict, List, Optional
 from abc import abstractmethod
-from urllib.parse import quote_plus, unquote_plus
+from urllib.parse import quote, unquote
 
 def is_content(chunk):
     if isinstance(chunk, Reasoning):
@@ -25,12 +25,12 @@ def quote_url(url: str) -> str:
     """
     # Only unquote if needed to avoid double-unquoting
     if '%' in url:
-        url = unquote_plus(url)
+        url = unquote(url)
 
     url_parts = url.split("//", maxsplit=1)
     # If there is no "//" in the URL, then it is a relative URL
     if len(url_parts) == 1:
-        return quote_plus(url_parts[0], '/?&=#')
+        return quote(url_parts[0], '/?&=#')
 
     protocol, rest = url_parts
     domain_parts = rest.split("/", maxsplit=1)
@@ -39,7 +39,7 @@ def quote_url(url: str) -> str:
         return f"{protocol}//{domain_parts[0]}"
 
     domain, path = domain_parts
-    return f"{protocol}//{domain}/{quote_plus(path, '/?&=#')}"
+    return f"{protocol}//{domain}/{quote(path, '/?&=#')}"
 
 def quote_title(title: str) -> str:
     """
@@ -66,7 +66,7 @@ def format_link(url: str, title: Optional[str] = None) -> str:
     """
     if title is None:
         try:
-            title = unquote_plus(url.split("//", maxsplit=1)[1].split("?")[0].replace("www.", ""))
+            title = unquote(url.split("//", maxsplit=1)[1].split("?")[0].replace("www.", ""))
         except IndexError:
             title = url
     return f"[{quote_title(title)}]({quote_url(url)})"

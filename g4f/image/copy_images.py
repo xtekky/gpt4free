@@ -15,7 +15,7 @@ from ..typing import Optional, Cookies, Union
 from ..requests.aiohttp import get_connector
 from ..image import MEDIA_TYPE_MAP, EXTENSIONS_MAP
 from ..tools.files import secure_filename
-from ..providers.response import ImageResponse, AudioResponse, VideoResponse
+from ..providers.response import ImageResponse, AudioResponse, VideoResponse, quote_url
 from ..Provider.template import BackendApi
 from . import is_accepted_format, extract_data_uri
 from .. import debug
@@ -50,7 +50,7 @@ def ensure_media_dir():
 def get_source_url(image: str, default: str = None) -> str:
     """Extract original URL from image parameter if present"""
     if "url=" in image:
-        decoded_url = unquote(image.split("url=", 1)[1])
+        decoded_url = quote_url(image.split("url=", 1)[1])
         if decoded_url.startswith(("http://", "https://")):
             return decoded_url
     return default
