@@ -126,7 +126,8 @@ class Backend_Api(Api):
                     media.append((url, None))
             if media:
                 json_data['media'] = media
-
+            if app.timeout:
+                json_data['timeout'] = app.timeout
             if app.demo and not json_data.get("provider"):
                 model = json_data.get("model")
                 if model != "default" and model in models.demo_models:
@@ -138,12 +139,12 @@ class Backend_Api(Api):
             debug.log("User:", request.headers.get("x_user", f"{user}:{ip}"))
             kwargs = self._prepare_conversation_kwargs(json_data)
             return self.app.response_class(
-                self._create_response_stream(
+                safe_iter_generator(self._create_response_stream(
                     kwargs,
                     json_data.get("provider"),
                     json_data.get("download_media", True),
                     tempfiles
-                ),
+                )),
                 mimetype='text/event-stream'
             )
 

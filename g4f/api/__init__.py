@@ -122,7 +122,7 @@ def create_app():
     if AppConfig.gui:
         if not has_a2wsgi:
             raise MissingRequirementsError("a2wsgi is required for GUI. Install it with: pip install a2wsgi")
-        gui_app = WSGIMiddleware(get_gui_app(AppConfig.demo))
+        gui_app = WSGIMiddleware(get_gui_app(AppConfig.demo, AppConfig.timeout))
         app.mount("/", gui_app)
 
     if AppConfig.ignored_providers:

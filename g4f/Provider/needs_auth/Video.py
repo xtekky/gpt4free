@@ -50,6 +50,7 @@ class RequestConfig:
 
 class Video(AsyncGeneratorProvider, ProviderModelMixin):
     urls = {
+        "search": "https://sora.chatgpt.com/explore?query={0}",
         "sora": "https://sora.chatgpt.com/explore",
         #"veo": "https://aistudio.google.com/generate-video"
     }
@@ -57,7 +58,7 @@ class Video(AsyncGeneratorProvider, ProviderModelMixin):
     drive_url = "https://www.googleapis.com/drive/v3/"
 
     active_by_default = True
-    default_model = "sora"
+    default_model = "search"
     models = list(urls.keys())
     video_models = models
 
@@ -82,7 +83,7 @@ class Video(AsyncGeneratorProvider, ProviderModelMixin):
         if model not in cls.video_models:
             raise ValueError(f"Model '{model}' is not supported by {cls.__name__}. Supported models: {cls.models}")
         yield ProviderInfo(**cls.get_dict(), model="sora")
-        prompt = format_media_prompt(messages, prompt)
+        prompt = format_media_prompt(messages, prompt)[:100]
         if not prompt:
             raise ValueError("Prompt cannot be empty.")
         response = await RequestConfig.get_response(prompt)
@@ -111,9 +112,26 @@ class Video(AsyncGeneratorProvider, ProviderModelMixin):
             raise MissingRequirementsError("Video provider requires a browser to be installed.")
         try:
             yield ContinueResponse("Timeout waiting for Video URL")
-            cls.page = await browser.get(cls.urls[model])
+            cls.page = await browser.get(cls.urls[model].format(quote(prompt)))
         except Exception as e:
             debug.error(f"Error opening page:", e)
+        if prompt not in RequestConfig.urls:
+            RequestConfig.urls[prompt] = []
+        def on_request(event: nodriver.cdp.network.RequestWillBeSent, page=None):
+            if ".mp4" in event.request.url:
+                RequestConfig.headers = {}
+                for key, value in event.request.headers.items():
+                    RequestConfig.headers[key.lower()] = value
+                RequestConfig.urls[prompt].append(event.request.url)
+            elif event.request.url.startswith(cls.drive_url):
+                RequestConfig.headers = {}
+                for key, value in event.request.headers.items():
+                    RequestConfig.headers[key.lower()] = value
+                RequestConfig.urls[prompt].append(event.request.url)
+        await page.send(nodriver.cdp.network.enable())
+        page.add_handler(nodriver.cdp.network.RequestWillBeSent, on_request)
+        if model == "search":
+            asyncio.sleep(5)
         response = await RequestConfig.get_response(prompt)
         if response:
             yield Reasoning(label="Found", status="")
@@ -186,22 +204,9 @@ class Video(AsyncGeneratorProvider, ProviderModelMixin):
                         yield Reasoning(label=f"Clicked 'Queued' button")
                         break
                 except ProtocolException as e:
-                    pass
-            if prompt not in RequestConfig.urls:
-                RequestConfig.urls[prompt] = []
-            def on_request(event: nodriver.cdp.network.RequestWillBeSent, page=None):
-                if ".mp4" in event.request.url:
-                    RequestConfig.headers = {}
-                    for key, value in event.request.headers.items():
-                        RequestConfig.headers[key.lower()] = value
-                    RequestConfig.urls[prompt].append(event.request.url)
-                elif event.request.url.startswith(cls.drive_url):
-                    RequestConfig.headers = {}
-                    for key, value in event.request.headers.items():
-                        RequestConfig.headers[key.lower()] = value
-                    RequestConfig.urls[prompt].append(event.request.url)
-            await page.send(nodriver.cdp.network.enable())
-            page.add_handler(nodriver.cdp.network.RequestWillBeSent, on_request)
+                    if idx == 59:
+                        debug.error(e)
+                        raise RuntimeError("Failed to click 'Queued' button")
             for idx in range(600):
                 yield Reasoning(label="Waiting for Video...", status=f"{idx+1}/600")
                 await asyncio.sleep(1)
