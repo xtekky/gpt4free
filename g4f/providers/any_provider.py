@@ -361,6 +361,8 @@ class AnyProvider(AsyncGeneratorProvider, ProviderModelMixin):
         if len(providers) == 0:
             raise ModelNotFoundError(f"AnyProvider: Model {model} not found in any provider.")
 
+        if "user" in kwargs:
+            debug.error(e, "User:", kwargs.get("user", "Unknown"))
         debug.log(f"AnyProvider: Using providers: {[provider.__name__ for provider in providers]} for model '{model}'")
 
         async for chunk in IterListProvider(providers).create_async_generator(
