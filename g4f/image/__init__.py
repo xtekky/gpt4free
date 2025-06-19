@@ -10,12 +10,11 @@ from typing import Optional
 
 try:
     from PIL import Image, ImageOps
-    from PIL import open as open_image
     has_requirements = True
 except ImportError:
     has_requirements = False
 
-from ..typing import ImageType, Image
+from ..typing import ImageType
 from ..errors import MissingRequirementsError
 
 EXTENSIONS_MAP: dict[str, str] = {
@@ -41,7 +40,7 @@ EXTENSIONS_MAP: dict[str, str] = {
 MEDIA_TYPE_MAP: dict[str, str] = {value: key for key, value in EXTENSIONS_MAP.items()}
 MEDIA_TYPE_MAP["audio/webm"] = "webm"
 
-def to_image(image: ImageType, is_svg: bool = False) -> Image:
+def to_image(image: ImageType, is_svg: bool = False) -> Image.Image:
     """
     Converts the input image to a PIL Image object.
 
@@ -67,13 +66,13 @@ def to_image(image: ImageType, is_svg: bool = False) -> Image:
             image = image.read()
         buffer = BytesIO()
         cairosvg.svg2png(image, write_to=buffer)
-        return open_image(buffer)
+        return Image.open(buffer)
 
     if isinstance(image, bytes):
         is_accepted_format(image)
-        return open_image(BytesIO(image))
-    elif not isinstance(image, Image):
-        image = open_image(image)
+        return Image.open(BytesIO(image))
+    elif not isinstance(image, Image.Image):
+        image = Image.open(image)
         image.load()
         return image
 
@@ -203,7 +202,7 @@ def extract_data_uri(data_uri: str) -> bytes:
     data = base64.b64decode(data)
     return data
 
-def process_image(image: Image, new_width: int = 800, new_height: int = 400, save: str = None) -> Image:
+def process_image(image: Image.Image, new_width: int = 800, new_height: int = 400, save: str = None) -> Image.Image:
     """
     Processes the given image by adjusting its orientation and resizing it.
 
@@ -220,7 +219,7 @@ def process_image(image: Image, new_width: int = 800, new_height: int = 400, sav
     # Remove transparency
     if image.mode == "RGBA":
         image.load()
-        white = open_image('RGB', image.size, (255, 255, 255))
+        white = Image.open('RGB', image.size, (255, 255, 255))
         white.paste(image, mask=image.split()[-1])
         return white
     # Convert to RGB for jpg format

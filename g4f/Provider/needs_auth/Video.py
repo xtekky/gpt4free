@@ -32,7 +32,7 @@ class RequestConfig:
     @classmethod
     async def get_response(cls, prompt: str) -> VideoResponse | None:
         if prompt in cls.urls and cls.urls[prompt]:
-            unique_list = list(set(cls.urls[prompt]))
+            unique_list = list(set(cls.urls[prompt]))[:10]
             return VideoResponse(unique_list, prompt, {
                 "headers": {"authorization": cls.headers.get("authorization")} if cls.headers.get("authorization") else {},
                 "preview": [url.replace("md.mp4", "thumb.webp") for url in unique_list]
