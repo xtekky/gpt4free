@@ -134,9 +134,10 @@ class Backend_Api(Api):
                     json_data["provider"] = random.choice(models.demo_models[model][1])
                 else:
                     json_data["provider"] = models.HuggingFace
-            user = request.headers.get("Cf-Ipcountry", "")
-            ip = request.headers.get("X-Forwarded-For", "").split(":")[-1]
-            debug.log("User:", request.headers.get("x_user", f"{user}:{ip}"))
+            if app.demo:
+                user = request.headers.get("Cf-Ipcountry", "")
+                ip = request.headers.get("X-Forwarded-For", "").split(":")[-1]
+                json_data["user"] = request.headers.get("x_user", f"{user}:{ip}")
             kwargs = self._prepare_conversation_kwargs(json_data)
             return self.app.response_class(
                 safe_iter_generator(self._create_response_stream(

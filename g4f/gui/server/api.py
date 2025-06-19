@@ -153,7 +153,8 @@ class Api:
             debug.logs.append(" ".join([str(value) for value in values]))
             if debug.logging:
                 debug.log_handler(*values, file=file)
-        debug.log = decorated_log
+        if "user" not in kwargs:
+            debug.log = decorated_log
         proxy = os.environ.get("G4F_PROXY")
         provider = kwargs.get("provider")
         try:
@@ -241,7 +242,13 @@ class Api:
                     yield self._format_json("content", str(chunk))
         except MissingAuthError as e:
             yield self._format_json('auth', type(e).__name__, message=get_error_message(e))
+        except TimeoutError as e:
+            if "user" in kwargs:
+                debug.error(e, "User:", kwargs.get("user", "Unknown"))
+            yield self._format_json('error', type(e).__name__, message=get_error_message(e))
         except Exception as e:
+            if "user" in kwargs:
+                debug.error(e, "User:", kwargs.get("user", "Unknown"))
             logger.exception(e)
             yield self._format_json('error', type(e).__name__, message=get_error_message(e))
         finally:

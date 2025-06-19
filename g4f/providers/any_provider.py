@@ -352,8 +352,6 @@ class AnyProvider(AsyncGeneratorProvider, ProviderModelMixin):
                     elif provider.__name__ == "GeminiPro":
                         if model and "gemini" in model or "gemma" in model:
                             providers.append(provider)
-                    elif len(provider_models) > 3:
-                        debug.error(f"Model '{model}' not found in provider {provider.__name__}")
             if model in models.__models__:
                 for provider in models.__models__[model][1]:
                     providers.append(provider)
