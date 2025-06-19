@@ -7,8 +7,8 @@ import hashlib
 import base64
 from datetime import datetime
 from typing import AsyncIterator
-from urllib.parse import quote, unquote
-from aiohttp import ClientSession, ClientError
+from urllib.parse import quote
+from aiohttp import ClientSession, ClientError, ClientTimeout
 from urllib.parse import urlparse
 
 from ..typing import Optional, Cookies, Union
@@ -117,7 +117,8 @@ async def copy_media(
     tags: list[str] = None,
     add_url: Union[bool, str] = True,
     target: str = None,
-    ssl: bool = None
+    ssl: bool = None,
+    timeout: Optional[int] = None
 ) -> list[str]:
     """
     Download and store images locally with Unicode-safe filenames
@@ -131,6 +132,7 @@ async def copy_media(
         connector=get_connector(proxy=proxy),
         cookies=cookies,
         headers=headers,
+        timeout=ClientTimeout(total=timeout) if timeout else None,
     ) as session:
         async def copy_image(image: str, target: str = None) -> str:
             """Process individual image and return its local URL"""

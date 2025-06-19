@@ -199,7 +199,16 @@ class Api:
                         chunk.alt = format_media_prompt(kwargs.get("messages"), chunk.alt)
                         width, height = get_width_height(chunk.get("width"), chunk.get("height"))
                         tags = [model, kwargs.get("aspect_ratio"), kwargs.get("resolution")]
-                        media = asyncio.run(copy_media(chunk.get_list(), chunk.get("cookies"), chunk.get("headers"), proxy=proxy, alt=chunk.alt, tags=tags, add_url=f"width={width}&height={height}&"))
+                        media = asyncio.run(copy_media(
+                            chunk.get_list(),
+                            chunk.get("cookies"),
+                            chunk.get("headers"),
+                            proxy=proxy,
+                            alt=chunk.alt,
+                            tags=tags,
+                            add_url=f"width={width}&height={height}&",
+                            timeout=kwargs.get("timeout"),
+                        ))
                         media = ImageResponse(media, chunk.alt) if isinstance(chunk, ImageResponse) else VideoResponse(media, chunk.alt)
                     yield self._format_json("content", str(media), urls=media.urls, alt=media.alt)
                 elif isinstance(chunk, SynthesizeData):

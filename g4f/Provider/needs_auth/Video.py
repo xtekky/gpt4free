@@ -110,6 +110,7 @@ class Video(AsyncGeneratorProvider, ProviderModelMixin):
                         yield VideoResponse(str(response.url), prompt)
                         return
             raise MissingRequirementsError("Video provider requires a browser to be installed.")
+        page = None
         try:
             yield ContinueResponse("Timeout waiting for Video URL")
             page = await browser.get(cls.urls[model].format(quote(prompt)))
@@ -128,16 +129,20 @@ class Video(AsyncGeneratorProvider, ProviderModelMixin):
                 for key, value in event.request.headers.items():
                     RequestConfig.headers[key.lower()] = value
                 RequestConfig.urls[prompt].append(event.request.url)
-        await page.send(nodriver.cdp.network.enable())
-        page.add_handler(nodriver.cdp.network.RequestWillBeSent, on_request)
-        if model == "search":
-            for _ in range(5):
-                await page.scroll_down(50)
+        if page is not None:
+            await page.send(nodriver.cdp.network.enable())
+            page.add_handler(nodriver.cdp.network.RequestWillBeSent, on_request)
+            if model == "search":
+                for _ in range(5):
+                    await page.scroll_down(50)
+                    await asyncio.sleep(1)
         response = await RequestConfig.get_response(prompt)
         if response:
             yield Reasoning(label="Found", status="")
             yield response
             return
+        if page is None:
+            raise RuntimeError("Failed to open page or get response.")
         try:
             await asyncio.sleep(3)
             await page.select("textarea", 240)

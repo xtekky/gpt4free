@@ -5,6 +5,7 @@ import json
 import uvicorn
 import secrets
 import os
+import re
 import shutil
 from email.utils import formatdate
 import os.path
@@ -703,6 +704,12 @@ class Api:
             HTTP_404_NOT_FOUND: {}
         })
         async def get_media(filename, request: Request, thumbnail: bool = False):
+            def get_timestamp(str):
+                m=re.match("^[0-9]+", str)
+                if m:
+                    return int(m.group(0))
+                else:
+                    raise ValueError("No timestamp found in filename")
             target = os.path.join(get_media_dir(), os.path.basename(filename))
             if thumbnail and has_pillow:
                 thumbnail_dir = os.path.join(get_media_dir(), "thumbnails")
@@ -713,14 +720,13 @@ class Api:
                     target = other_name
             ext = os.path.splitext(filename)[1][1:]
             mime_type = EXTENSIONS_MAP.get(ext)
+            stat_result = SimpleNamespace()
+            stat_result.st_size = 0
+            stat_result.st_mtime = get_timestamp(filename)
             if thumbnail and has_pillow and os.path.isfile(thumbnail):
-                stat_result = os.stat(thumbnail)
+                stat_result.st_size = os.stat(thumbnail).st_size
             elif not thumbnail and os.path.isfile(target):
-                stat_result = os.stat(target)
-            else:
-                stat_result = SimpleNamespace()
-                stat_result.st_size = 0
-                stat_result.st_mtime = 0
+                stat_result.st_size = os.stat(target).st_size
             headers = {
                 "cache-control": "public, max-age=31536000",
                 "last-modified": formatdate(stat_result.st_mtime, usegmt=True),
