@@ -60,7 +60,7 @@ import g4f.debug
 from g4f.client import AsyncClient, ChatCompletion, ImagesResponse, ClientResponse
 from g4f.providers.response import BaseConversation, JsonConversation
 from g4f.client.helper import filter_none
-from g4f.image import is_data_an_media, process_image, EXTENSIONS_MAP
+from g4f.image import EXTENSIONS_MAP, is_data_an_media, process_image
 from g4f.image.copy_images import get_media_dir, copy_media, get_source_url
 from g4f.errors import ProviderNotFoundError, ModelNotFoundError, MissingAuthError, NoValidHarFileError, MissingRequirementsError
 from g4f.cookies import read_cookie_files, get_cookies_dir
@@ -118,10 +118,6 @@ def create_app():
             raise MissingRequirementsError("a2wsgi is required for GUI. Install it with: pip install a2wsgi")
         gui_app = WSGIMiddleware(get_gui_app(AppConfig.demo))
         app.mount("/", gui_app)
-
-    # Read cookie files if not ignored
-    if not AppConfig.ignore_cookie_files:
-        read_cookie_files()
 
     if AppConfig.ignored_providers:
         for provider in AppConfig.ignored_providers:

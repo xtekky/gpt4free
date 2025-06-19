@@ -158,7 +158,7 @@ async def copy_media(
                     # Use aiohttp to fetch the image
                     async with session.get(image, ssl=request_ssl, headers=request_headers) as response:
                         response.raise_for_status()
-                        date = response.headers.get("date")
+                        date = response.headers.get("last-modified", response.headers.get("date"))
                         if date and target_path != target:
                             timestamp = datetime.strptime(date, '%a, %d %b %Y %H:%M:%S %Z').timestamp()
                             filename = str(int(timestamp)) + "_" + filename.split("_", maxsplit=1)[-1]
