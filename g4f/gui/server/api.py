@@ -162,9 +162,12 @@ class Api:
                 kwargs.get("model"), provider,
                 stream=True,
                 ignore_stream=True,
-                logging=False,
                 has_images="media" in kwargs,
             )
+            if "user" in kwargs:
+                debug.error("User:", kwargs.get("user", "Unknown"))
+                debug.error("Referrer:", kwargs.get("referer", ""))
+                debug.error("User-Agent:", kwargs.get("user-agent", ""))
         except Exception as e:
             logger.exception(e)
             yield self._format_json('error', type(e).__name__, message=get_error_message(e))
