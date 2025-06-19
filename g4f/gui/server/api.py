@@ -242,7 +242,7 @@ class Api:
                     yield self._format_json("content", str(chunk))
         except MissingAuthError as e:
             yield self._format_json('auth', type(e).__name__, message=get_error_message(e))
-        except TimeoutError as e:
+        except (TimeoutError, asyncio.exceptions.CancelledError) as e:
             if "user" in kwargs:
                 debug.error(e, "User:", kwargs.get("user", "Unknown"))
             yield self._format_json('error', type(e).__name__, message=get_error_message(e))
