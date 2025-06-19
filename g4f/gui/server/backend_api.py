@@ -141,7 +141,7 @@ class Backend_Api(Api):
                 json_data["referer"] = request.headers.get("referer", "")
                 json_data["user-agent"] = request.headers.get("user-agent", "")
                 if not json_data.get("referer") or "python" in json_data.get("user-agent", "").lower():
-                    json_data["provider"] = random.choice(models.default.best_provider.providers)
+                    json_data["provider"] = random.choice(models.default.best_provider.providers).__name__
                     json_data["model"] = ""
             kwargs = self._prepare_conversation_kwargs(json_data)
             return self.app.response_class(
