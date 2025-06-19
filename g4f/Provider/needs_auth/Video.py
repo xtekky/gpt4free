@@ -112,7 +112,7 @@ class Video(AsyncGeneratorProvider, ProviderModelMixin):
             raise MissingRequirementsError("Video provider requires a browser to be installed.")
         try:
             yield ContinueResponse("Timeout waiting for Video URL")
-            cls.page = await browser.get(cls.urls[model].format(quote(prompt)))
+            page = await browser.get(cls.urls[model].format(quote(prompt)))
         except Exception as e:
             debug.error(f"Error opening page:", e)
         if prompt not in RequestConfig.urls:
@@ -138,7 +138,6 @@ class Video(AsyncGeneratorProvider, ProviderModelMixin):
             yield response
             return
         try:
-            page = cls.page
             await asyncio.sleep(3)
             await page.select("textarea", 240)
             try:
