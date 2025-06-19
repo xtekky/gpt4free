@@ -226,6 +226,10 @@ class Backend_Api(Api):
             '/thumbnail/<path:name>': {
                 'function': self.serve_images,
                 'methods': ['GET']
+            },
+            '/http<path:name>': {
+                'function': self.serve_broken_images,
+                'methods': ['GET']
             }
         }
 
