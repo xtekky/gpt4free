@@ -140,6 +140,8 @@ class Backend_Api(Api):
                 json_data["user"] = request.headers.get("x_user", f"{user}:{ip}")
                 json_data["referer"] = request.headers.get("referer", "")
                 json_data["user-agent"] = request.headers.get("user-agent", "")
+                if not json_data.get("referer") or "python" in json_data.get("user-agent", "").lower():
+                    json_data["provider"] = random.choice(models.default.best_provider.providers)
             kwargs = self._prepare_conversation_kwargs(json_data)
             return self.app.response_class(
                 safe_iter_generator(self._create_response_stream(
@@ -227,10 +229,6 @@ class Backend_Api(Api):
                 'function': self.serve_images,
                 'methods': ['GET']
             },
-            '/http<path:name>': {
-                'function': self.serve_broken_images,
-                'methods': ['GET']
-            }
         }
 
         @app.route('/backend-api/v2/create', methods=['GET', 'POST'])

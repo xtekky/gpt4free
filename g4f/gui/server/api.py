@@ -4,7 +4,7 @@ import logging
 import os
 import asyncio
 from typing import Iterator
-from flask import send_from_directory, request, redirect
+from flask import send_from_directory, request
 from inspect import signature
 
 from ...errors import VersionNotFoundError, MissingAuthError
@@ -122,9 +122,6 @@ class Api:
     def serve_images(self, name):
         ensure_media_dir()
         return send_from_directory(os.path.abspath(get_media_dir()), name)
-
-    def serve_broken_images(self, name):
-        return redirect("/search/image+g4f?skip=3")
 
     def _prepare_conversation_kwargs(self, json_data: dict):
         kwargs = {**json_data}
