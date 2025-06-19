@@ -22,28 +22,38 @@ from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..helper import format_media_prompt
 from ... import debug
 
+PUBLIC_URL = "https://home.g4f.dev"
+SEARCH_URL = f"{PUBLIC_URL}/search/video+"
+
 class RequestConfig:
     urls: dict[str, list[str]] = {}
     headers: dict = {}
 
     @classmethod
-    def get_response(cls, prompt: str) -> VideoResponse | None:
+    async def get_response(cls, prompt: str) -> VideoResponse | None:
         if prompt in cls.urls and cls.urls[prompt]:
             cls.urls[prompt] = list(set(cls.urls[prompt]))
-            debug.log(f"Video URL: {len(cls.urls[prompt])}")
             return VideoResponse(cls.urls[prompt], prompt, {
                 "headers": {"authorization": cls.headers.get("authorization")} if cls.headers.get("authorization") else {},
                 "preview": [url.replace("md.mp4", "thumb.webp") for url in cls.urls[prompt]]
             })
+        async with ClientSession() as session:
+            found_urls = []
+            for skip in range(0, 9):
+                async with session.get(SEARCH_URL + quote_plus(prompt) + f"?skip={skip}", timeout=ClientTimeout(total=10)) as response:
+                    if response.ok:
+                        found_urls.append(str(response.url))
+                    else:
+                        break
+            if found_urls:
+                return VideoResponse(found_urls, prompt)
 
 class Video(AsyncGeneratorProvider, ProviderModelMixin):
     urls = [
         "https://sora.chatgpt.com/explore",
         #"https://aistudio.google.com/generate-video"
     ]
-    pub_url = "https://home.g4f.dev"
-    api_url = f"{pub_url}/backend-api/v2/create?provider=Video&cache=true&prompt="
-    search_url = f"{pub_url}/search/video+"
+    api_url = f"{PUBLIC_URL}/backend-api/v2/create?provider=Video&cache=true&prompt="
     drive_url = "https://www.googleapis.com/drive/v3/"
 
     active_by_default = True
@@ -67,27 +77,12 @@ class Video(AsyncGeneratorProvider, ProviderModelMixin):
         **kwargs
     ) -> AsyncResult:
         yield ProviderInfo(**cls.get_dict(), model="sora")
-        started = time.time()
         prompt = format_media_prompt(messages, prompt)
         if not prompt:
             raise ValueError("Prompt cannot be empty.")
-        async with ClientSession() as session:
-            yield Reasoning(label="Lookup")
-            found_urls = []
-            for skip in range(0, 9):
-                async with session.get(cls.search_url + quote_plus(prompt) + f"?skip={skip}", timeout=ClientTimeout(total=10)) as response:
-                    if response.ok:
-                        yield Reasoning(label=f"Found {skip+1}", status="")
-                        found_urls.append(str(response.url))
-                    else:
-                        break
-            if found_urls:
-                yield Reasoning(label=f"Finished", status="")
-                yield VideoResponse(found_urls, prompt)
-                return
-        response = RequestConfig.get_response(prompt)
+        response = await RequestConfig.get_response(prompt)
         if response:
-            yield Reasoning(label="Found cached Video", status="")
+            yield Reasoning(label=f"Found {len(response.urls)} Video(s)", status="")
             yield response
             return
         try:
@@ -104,16 +99,17 @@ class Video(AsyncGeneratorProvider, ProviderModelMixin):
                         yield Reasoning(label="Finished", status="")
                         if response.headers.get("content-type", "text/plain").startswith("text/plain"):
                             data = (await response.text()).split("\n")
-                            yield VideoResponse([f"{cls.pub_url}{url}" if url.startswith("/") else url for url in data], prompt)
+                            yield VideoResponse([f"{PUBLIC_URL}{url}" if url.startswith("/") else url for url in data], prompt)
                             return
                         yield VideoResponse(str(response.url), prompt)
                         return
             raise MissingRequirementsError("Video provider requires a browser to be installed.")
         try:
+            yield ContinueResponse("Timeout waiting for Video URL")
             cls.page = await browser.get(random.choice(cls.urls))
         except Exception as e:
             debug.error(f"Error opening page:", e)
-        response = RequestConfig.get_response(prompt)
+        response = await RequestConfig.get_response(prompt)
         if response:
             yield Reasoning(label="Found", status="")
             yield response
@@ -138,17 +134,18 @@ class Video(AsyncGeneratorProvider, ProviderModelMixin):
                 debug.error(f"Error clicking button:", e)
             try:
                 if aspect_ratio:
-                    button = await page.find("2:3")
+                    button = await page.find(":")
                     if button:
                         await button.click()
                     else:
-                        debug.error("No '2:3' button found.")
-                        button = await page.find(aspect_ratio)
-                        if button:
-                            await button.click()
-                            yield Reasoning(label=f"Clicked '{aspect_ratio}' button")
-                        else:
-                            debug.error(f"No '{aspect_ratio}' button found.")
+                        debug.error("No 'x:x' button found.")
+                    await asyncio.sleep(1)
+                    button = await page.find(aspect_ratio)
+                    if button:
+                        await button.click()
+                        yield Reasoning(label=f"Clicked '{aspect_ratio}' button")
+                    else:
+                        debug.error(f"No '{aspect_ratio}' button found.")
             except Exception as e:
                 debug.error(f"Error clicking button:", e)
             debug.log(f"Using prompt: {prompt}")
@@ -200,13 +197,11 @@ class Video(AsyncGeneratorProvider, ProviderModelMixin):
             await page.send(nodriver.cdp.network.enable())
             page.add_handler(nodriver.cdp.network.RequestWillBeSent, on_request)
             for idx in range(600):
-                yield Reasoning(label=f"Waiting for Video... {idx+1}/600")
-                if time.time() - started > 30:
-                    yield ContinueResponse("Timeout waiting for Video URL")
+                yield Reasoning(label="Waiting for Video...", status=f"{idx+1}/600")
                 await asyncio.sleep(1)
                 if RequestConfig.urls[prompt]:
                     await asyncio.sleep(2)
-                    response = RequestConfig.get_response(prompt)
+                    response = await RequestConfig.get_response(prompt)
                     if response:
                         yield Reasoning(label="Finished", status="")
                         yield response

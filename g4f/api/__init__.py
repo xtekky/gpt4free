@@ -94,6 +94,12 @@ async def lifespan(app: FastAPI):
         for browser in util.get_registered_instances():
             if browser.connection:
                 browser.stop()
+        lock_file = os.path.join(get_cookies_dir(), ".nodriver_is_open")
+        if os.path.exists(lock_file):
+            try:
+                os.remove(lock_file)
+            except Exception as e:
+                debug.error(f"Failed to remove lock file {lock_file}:" ,e)
 
 def create_app():
     app = FastAPI(lifespan=lifespan)

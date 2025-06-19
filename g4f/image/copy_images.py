@@ -188,9 +188,8 @@ async def copy_media(
                         target_path = f"{target_path}{media_extension}"
                     except ValueError:
                         pass
-                # Build URL with safe encoding
-                url_filename = quote(os.path.basename(target_path))
-                return f"/media/{url_filename}" + ('?' + (add_url if isinstance(add_url, str) else '' + 'url=' + quote(image)) if add_url and not image.startswith('data:') else '')
+                # Build URL relative to media directory
+                return f"/media/{os.path.basename(target_path)}" + ('?' + (add_url if isinstance(add_url, str) else '' + 'url=' + quote(image)) if add_url and not image.startswith('data:') else '')
 
             except (ClientError, IOError, OSError, ValueError) as e:
                 debug.error(f"Image copying failed:", e)

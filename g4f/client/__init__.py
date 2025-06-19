@@ -549,8 +549,10 @@ class Images:
 
     async def async_create_variation(
         self,
+        *,
         image: ImageType,
         image_name: str = None,
+        prompt: str = "Create a variation of this image",
         model: Optional[str] = None,
         provider: Optional[ProviderType] = None,
         response_format: Optional[str] = None,
@@ -561,7 +563,6 @@ class Images:
         provider_name = provider_handler.__name__ if hasattr(provider_handler, "__name__") else type(provider_handler).__name__
         if proxy is None:
             proxy = self.client.proxy
-        prompt = "create a variation of this image"
         resolve_media(kwargs, image, image_name)
         error = None
         response = None
@@ -618,7 +619,7 @@ class Images:
             images = await asyncio.gather(*[get_b64_from_url(image) for image in response.get_list()])
         else:
             # Save locally for None (default) case
-            if download_media or response.get("cookies"):
+            if download_media or response.get("cookies") or response.get("headers"):
                 images = await copy_media(response.get_list(), response.get("cookies"), response.get("headers"), proxy, response.alt)
             images = [Image.model_construct(url=image, revised_prompt=response.alt) for image in images]
 
