@@ -115,6 +115,7 @@ class Video(AsyncGeneratorProvider, ProviderModelMixin):
             yield ContinueResponse("Timeout waiting for Video URL")
             page = await browser.get(cls.urls[model].format(quote(prompt)))
         except Exception as e:
+            stop_browser()
             debug.error(f"Error opening page:", e)
         if prompt not in RequestConfig.urls:
             RequestConfig.urls[prompt] = []
@@ -138,6 +139,7 @@ class Video(AsyncGeneratorProvider, ProviderModelMixin):
                     await asyncio.sleep(1)
         response = await RequestConfig.get_response(prompt)
         if response:
+            stop_browser()
             yield Reasoning(label="Found", status="")
             yield response
             return
@@ -219,6 +221,7 @@ class Video(AsyncGeneratorProvider, ProviderModelMixin):
                     await asyncio.sleep(2)
                     response = await RequestConfig.get_response(prompt)
                     if response:
+                        stop_browser()
                         yield Reasoning(label="Finished", status="")
                         yield response
                         return
