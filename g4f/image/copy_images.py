@@ -55,6 +55,12 @@ def get_source_url(image: str, default: str = None) -> str:
             return decoded_url
     return default
 
+def get_target_path(response, filename: str) -> str:
+    date = response.headers.get("last-modified", response.headers.get("date"))
+    timestamp = datetime.strptime(date, '%a, %d %b %Y %H:%M:%S %Z').timestamp()
+    filename = str(int(timestamp)) + "_" + filename.split("_", maxsplit=1)[-1]
+    return os.path.join(get_media_dir(), filename)
+
 async def save_response_media(response, prompt: str, tags: list[str]) -> AsyncIterator:
     """Save media from response to local file and return URL"""
     if isinstance(response, str):
@@ -65,7 +71,7 @@ async def save_response_media(response, prompt: str, tags: list[str]) -> AsyncIt
         raise ValueError(f"Unsupported media type: {content_type}")
 
     filename = get_filename(tags, prompt, f".{extension}", prompt)
-    target_path = os.path.join(get_media_dir(), filename)
+    target_path = get_target_path(response, filename)
     ensure_media_dir()
     with open(target_path, 'wb') as f:
         if isinstance(response, bytes):
@@ -158,12 +164,8 @@ async def copy_media(
                     # Use aiohttp to fetch the image
                     async with session.get(image, ssl=request_ssl, headers=request_headers) as response:
                         response.raise_for_status()
-                        date = response.headers.get("last-modified", response.headers.get("date"))
-                        if date and target_path != target:
-                            timestamp = datetime.strptime(date, '%a, %d %b %Y %H:%M:%S %Z').timestamp()
-                            filename = str(int(timestamp)) + "_" + filename.split("_", maxsplit=1)[-1]
-                            target_path = os.path.join(get_media_dir(), filename)
-                        debug.log(f"Copying image: {image} to {target_path}")
+                        if target is None:
+                            target_path = get_target_path(response, filename)
                         media_type = response.headers.get("content-type", "application/octet-stream")
                         if media_type not in ("application/octet-stream", "binary/octet-stream"):
                             if media_type not in MEDIA_TYPE_MAP:
@@ -180,11 +182,10 @@ async def copy_media(
                         file_header = f.read(12)
                     try:
                         detected_type = is_accepted_format(file_header)
-                        if detected_type:
-                            media_extension = f".{detected_type.split('/')[-1]}"
-                            media_extension = media_extension.replace("jpeg", "jpg")
-                            os.rename(target_path, f"{target_path}{media_extension}")
-                            target_path = f"{target_path}{media_extension}"
+                        media_extension = f".{detected_type.split('/')[-1]}"
+                        media_extension = media_extension.replace("jpeg", "jpg")
+                        os.rename(target_path, f"{target_path}{media_extension}")
+                        target_path = f"{target_path}{media_extension}"
                     except ValueError:
                         pass
                 # Build URL with safe encoding
@@ -192,9 +193,9 @@ async def copy_media(
                 return f"/media/{url_filename}" + ('?' + (add_url if isinstance(add_url, str) else '' + 'url=' + quote(image)) if add_url and not image.startswith('data:') else '')
 
             except (ClientError, IOError, OSError, ValueError) as e:
-                debug.error(f"Image copying failed: {type(e).__name__}: {e}")
+                debug.error(f"Image copying failed:", e)
                 if target_path and os.path.exists(target_path):
                     os.unlink(target_path)
                 return get_source_url(image, image)
 
-        return await asyncio.gather(*[copy_image(img, target) for img in images])
+        return await asyncio.gather(*[copy_image(image, target) for image in images])

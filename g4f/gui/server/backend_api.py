@@ -39,6 +39,7 @@ from ...cookies import get_cookies_dir
 from ...image.copy_images import secure_filename, get_source_url, get_media_dir, copy_media
 from ... import ChatCompletion
 from ... import models
+from ... import debug
 from .api import Api
 
 logger = logging.getLogger(__name__)
@@ -132,6 +133,7 @@ class Backend_Api(Api):
                     json_data["provider"] = random.choice(models.demo_models[model][1])
                 else:
                     json_data["provider"] = models.HuggingFace
+            debug.log("User:", request.headers)
             kwargs = self._prepare_conversation_kwargs(json_data)
             return self.app.response_class(
                 self._create_response_stream(
@@ -352,7 +354,7 @@ class Backend_Api(Api):
                 suffix = os.path.splitext(filename)[1].lower()
                 copyfile = get_tempfile(file, suffix)
                 result = None
-                if has_markitdown:
+                if has_markitdown and not filename.endswith((".md", ".json")):
                     try:
                         language = request.headers.get("x-recognition-language")
                         md = MarkItDown()
