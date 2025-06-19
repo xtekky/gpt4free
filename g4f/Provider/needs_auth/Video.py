@@ -32,10 +32,10 @@ class RequestConfig:
     @classmethod
     async def get_response(cls, prompt: str) -> VideoResponse | None:
         if prompt in cls.urls and cls.urls[prompt]:
-            cls.urls[prompt] = list(set(cls.urls[prompt]))
-            return VideoResponse(cls.urls[prompt], prompt, {
+            unique_list = list(set(cls.urls[prompt]))
+            return VideoResponse(unique_list, prompt, {
                 "headers": {"authorization": cls.headers.get("authorization")} if cls.headers.get("authorization") else {},
-                "preview": [url.replace("md.mp4", "thumb.webp") for url in cls.urls[prompt]]
+                "preview": [url.replace("md.mp4", "thumb.webp") for url in unique_list]
             })
         async with ClientSession() as session:
             found_urls = []
@@ -131,7 +131,8 @@ class Video(AsyncGeneratorProvider, ProviderModelMixin):
         await page.send(nodriver.cdp.network.enable())
         page.add_handler(nodriver.cdp.network.RequestWillBeSent, on_request)
         if model == "search":
-            asyncio.sleep(5)
+            for _ in range(5):
+                await page.scroll_down(50)
         response = await RequestConfig.get_response(prompt)
         if response:
             yield Reasoning(label="Found", status="")
