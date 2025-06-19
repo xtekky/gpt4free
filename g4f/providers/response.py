@@ -339,9 +339,9 @@ class MediaResponse(ResponseType):
         self.alt = alt
         self.options = options
 
-    def get(self, key: str) -> any:
+    def get(self, key: str, default: any = None) -> any:
         """Get an option value by key."""
-        return self.options.get(key)
+        return self.options.get(key, default)
 
     def get_list(self) -> List[str]:
         """Return images as a list."""
@@ -355,7 +355,15 @@ class ImageResponse(MediaResponse):
 class VideoResponse(MediaResponse):
     def __str__(self) -> str:
         """Return videos as html elements."""
-        return "\n".join([f'<video controls src="{video}"></video>' for video in self.get_list()])
+        if self.get("preview"):
+            result = []
+            for idx, video in enumerate(self.get_list()):
+                image = self.get("preview")
+                if isinstance(image, list) and len(image) > idx:
+                    image = image[idx]
+                result.append(f'<video controls src="{quote_url(video)}" poster="{quote_url(image)}"></video>')
+            return "\n".join(result)
+        return "\n".join([f'<video controls src="{quote_url(video)}"></video>' for video in self.get_list()])
 
 class ImagePreview(ImageResponse):
     def __str__(self) -> str:

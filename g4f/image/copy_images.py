@@ -39,7 +39,7 @@ def get_media_extension(media: str) -> str:
     if not extension or len(extension) > 4:
         return ""
     if extension[1:] not in EXTENSIONS_MAP:
-        raise ValueError(f"Unsupported media extension: {extension} in: {media}")
+        raise ""
     return extension
 
 def ensure_media_dir():
@@ -55,11 +55,10 @@ def get_source_url(image: str, default: str = None) -> str:
             return decoded_url
     return default
 
-def get_target_path(response, filename: str) -> str:
+def update_filename(response, filename: str) -> str:
     date = response.headers.get("last-modified", response.headers.get("date"))
     timestamp = datetime.strptime(date, '%a, %d %b %Y %H:%M:%S %Z').timestamp()
-    filename = str(int(timestamp)) + "_" + filename.split("_", maxsplit=1)[-1]
-    return os.path.join(get_media_dir(), filename)
+    return str(int(timestamp)) + "_" + filename.split("_", maxsplit=1)[-1]
 
 async def save_response_media(response, prompt: str, tags: list[str]) -> AsyncIterator:
     """Save media from response to local file and return URL"""
@@ -71,7 +70,8 @@ async def save_response_media(response, prompt: str, tags: list[str]) -> AsyncIt
         raise ValueError(f"Unsupported media type: {content_type}")
 
     filename = get_filename(tags, prompt, f".{extension}", prompt)
-    target_path = get_target_path(response, filename)
+    filename = update_filename(response, filename)
+    target_path = os.path.join(get_media_dir(), filename)
     ensure_media_dir()
     with open(target_path, 'wb') as f:
         if isinstance(response, bytes):
@@ -117,6 +117,7 @@ async def copy_media(
     tags: list[str] = None,
     add_url: Union[bool, str] = True,
     target: str = None,
+    thumbnail: bool = False,
     ssl: bool = None,
     timeout: Optional[int] = None
 ) -> list[str]:
@@ -127,6 +128,11 @@ async def copy_media(
     if add_url:
         add_url = not cookies
     ensure_media_dir()
+    media_dir = get_media_dir()
+    if thumbnail:
+        media_dir = os.path.join(media_dir, "thumbnails")
+        if not os.path.exists(media_dir):
+            os.makedirs(media_dir, exist_ok=True)
 
     async with ClientSession(
         connector=get_connector(proxy=proxy),
@@ -149,7 +155,7 @@ async def copy_media(
                     filename = secure_filename(path[len("/media/"):])
                 else:
                     filename = get_filename(tags, alt, media_extension, image)
-                target_path = os.path.join(get_media_dir(), filename)
+                target_path = os.path.join(media_dir, filename)
             try:
                 # Handle different image types
                 if image.startswith("data:"):
@@ -167,7 +173,8 @@ async def copy_media(
                     async with session.get(image, ssl=request_ssl, headers=request_headers) as response:
                         response.raise_for_status()
                         if target is None:
-                            target_path = get_target_path(response, filename)
+                            filename = update_filename(response, filename)
+                            target_path = os.path.join(media_dir, filename)
                         media_type = response.headers.get("content-type", "application/octet-stream")
                         if media_type not in ("application/octet-stream", "binary/octet-stream"):
                             if media_type not in MEDIA_TYPE_MAP:
@@ -190,6 +197,8 @@ async def copy_media(
                         target_path = f"{target_path}{media_extension}"
                     except ValueError:
                         pass
+                if thumbnail:
+                    return "/thumbnail/" + os.path.basename(target_path)
                 # Build URL relative to media directory
                 return f"/media/{os.path.basename(target_path)}" + ('?' + (add_url if isinstance(add_url, str) else '' + 'url=' + quote(image)) if add_url and not image.startswith('data:') else '')
 

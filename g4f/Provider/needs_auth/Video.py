@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-import time
 import asyncio
-import random
 from aiohttp import ClientSession, ClientTimeout
 
 from urllib.parse import quote, quote_plus
@@ -35,7 +33,6 @@ class RequestConfig:
             unique_list = list(set(cls.urls[prompt]))[:10]
             return VideoResponse(unique_list, prompt, {
                 "headers": {"authorization": cls.headers.get("authorization")} if cls.headers.get("authorization") else {},
-                "preview": [url.replace("md.mp4", "thumb.webp") for url in unique_list]
             })
         async with ClientSession() as session:
             found_urls = []
@@ -135,7 +132,7 @@ class Video(AsyncGeneratorProvider, ProviderModelMixin):
             page.add_handler(nodriver.cdp.network.RequestWillBeSent, on_request)
             if model == "search":
                 for _ in range(5):
-                    await page.scroll_down(50)
+                    await page.scroll_down(5)
                     await asyncio.sleep(1)
         response = await RequestConfig.get_response(prompt)
         if response:
