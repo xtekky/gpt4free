@@ -138,6 +138,8 @@ class Backend_Api(Api):
                 user = request.headers.get("Cf-Ipcountry", "")
                 ip = request.headers.get("X-Forwarded-For", "").split(":")[-1]
                 json_data["user"] = request.headers.get("x_user", f"{user}:{ip}")
+                json_data["referer"] = request.headers.get("referer", "")
+                json_data["user-agent"] = request.headers.get("user-agent", "")
             kwargs = self._prepare_conversation_kwargs(json_data)
             return self.app.response_class(
                 safe_iter_generator(self._create_response_stream(
