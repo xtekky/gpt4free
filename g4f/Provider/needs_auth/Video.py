@@ -49,16 +49,17 @@ class RequestConfig:
                 return VideoResponse(found_urls, prompt)
 
 class Video(AsyncGeneratorProvider, ProviderModelMixin):
-    urls = [
-        "https://sora.chatgpt.com/explore",
-        #"https://aistudio.google.com/generate-video"
-    ]
+    urls = {
+        "sora": "https://sora.chatgpt.com/explore",
+        #"veo": "https://aistudio.google.com/generate-video"
+    }
     api_url = f"{PUBLIC_URL}/backend-api/v2/create?provider=Video&cache=true&prompt="
     drive_url = "https://www.googleapis.com/drive/v3/"
 
     active_by_default = True
     default_model = "sora"
-    video_models = [default_model]
+    models = list(urls.keys())
+    video_models = models
 
     needs_auth = True
     working = True
@@ -76,6 +77,10 @@ class Video(AsyncGeneratorProvider, ProviderModelMixin):
         aspect_ratio: str = None,
         **kwargs
     ) -> AsyncResult:
+        if not model:
+            model = cls.default_model
+        if model not in cls.video_models:
+            raise ValueError(f"Model '{model}' is not supported by {cls.__name__}. Supported models: {cls.models}")
         yield ProviderInfo(**cls.get_dict(), model="sora")
         prompt = format_media_prompt(messages, prompt)
         if not prompt:
@@ -106,7 +111,7 @@ class Video(AsyncGeneratorProvider, ProviderModelMixin):
             raise MissingRequirementsError("Video provider requires a browser to be installed.")
         try:
             yield ContinueResponse("Timeout waiting for Video URL")
-            cls.page = await browser.get(random.choice(cls.urls))
+            cls.page = await browser.get(cls.urls[model])
         except Exception as e:
             debug.error(f"Error opening page:", e)
         response = await RequestConfig.get_response(prompt)
@@ -152,11 +157,12 @@ class Video(AsyncGeneratorProvider, ProviderModelMixin):
             textarea = await page.select("textarea", 180)
             await textarea.send_keys(prompt)
             yield Reasoning(label=f"Sending prompt", token=prompt)
-            # try:
-            #     button = await page.select('button[type="submit"]', 5)
-            #     if button:
-            #         await button.click()
-            # finally:
+            try:
+                button = await page.select('button[type="submit"]', 5)
+                if button:
+                    await button.click()
+            except Exception as e:
+                debug.error(f"Error clicking submit button:", e)
             try:
                 button = await page.find("Create")
                 if button:
