@@ -131,7 +131,7 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
                         yield ProviderInfo(**cls.get_dict(), model=model)
                     if "usage" in data:
                         yield Usage(**data["usage"])
-                    if "choices" in choice:
+                    if "choices" in data:
                         choice = data["choices"][0]
                         if "content" in choice["message"] and choice["message"]["content"]:
                             yield choice["message"]["content"].strip()

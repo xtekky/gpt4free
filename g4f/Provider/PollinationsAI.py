@@ -484,7 +484,6 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                 if "modalities" not in extra_body:
                     extra_body["modalities"] = ["text", "audio"]
                 stream = False
-            voice = extra_body.get("audio", {}).get("voice")
             data = filter_none(
                 messages=list(render_messages(messages, media)),
                 model=model,
