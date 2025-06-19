@@ -195,6 +195,6 @@ async def copy_media(
                 debug.error(f"Image copying failed:", e)
                 if target_path and os.path.exists(target_path):
                     os.unlink(target_path)
-                return get_source_url(image, image)
+                return image
 
         return await asyncio.gather(*[copy_image(image, target) for image in images])
