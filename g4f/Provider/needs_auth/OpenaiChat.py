@@ -28,7 +28,7 @@ from ...providers.response import JsonConversation, FinishReason, SynthesizeData
 from ...providers.response import Sources, TitleGeneration, RequestLogin, Reasoning
 from ...tools.media import merge_media
 from ..helper import format_cookies, format_media_prompt, to_string
-from ..openai.models import default_model, default_image_model, models, image_models, text_models
+from ..openai.models import default_model, default_image_model, models, image_models, text_models, model_aliases
 from ..openai.har_file import get_request_config
 from ..openai.har_file import RequestConfig, arkReq, arkose_url, start_url, conversation_url, backend_url, backend_anon_url
 from ..openai.proofofwork import generate_proof_token
@@ -102,6 +102,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
     image_models = image_models
     vision_models = text_models
     models = models
+    model_aliases = model_aliases
     synthesize_content_type = "audio/aac"
     request_config = RequestConfig()
 
