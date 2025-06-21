@@ -29,6 +29,8 @@ WORKDIR $G4F_DIR
 
 ENV HOME /home/$G4F_USER
 ENV PATH "${HOME}/.local/bin:${PATH}"
+ENV GEMIMI_COOKIE ""
+
 
 RUN git clone https://github.com/xtekky/gpt4free.git $G4F_DIR \
  && pip install --no-cache-dir -r requirements-slim.txt
