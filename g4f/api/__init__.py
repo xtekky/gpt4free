@@ -146,7 +146,6 @@ def create_app_with_demo_and_debug():
     g4f.debug.logging = True
     AppConfig.gui = True
     AppConfig.demo = True
-    AppConfig.timeout = 60
     return create_app()
 
 class ErrorResponse(Response):
