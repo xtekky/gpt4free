@@ -7,7 +7,6 @@ from pathlib import Path
 from typing import Iterator, Optional, AsyncIterator
 from aiohttp import ClientSession, ClientError, ClientResponse, ClientTimeout
 import urllib.parse
-from urllib.parse import unquote
 import time
 import zipfile
 import asyncio
@@ -76,7 +75,7 @@ except ImportError:
     has_markitdown = False
 
 from .web_search import scrape_text
-from ..cookies import get_cookies_dir
+from ..files import secure_filename, get_bucket_dir
 from ..image import is_allowed_extension
 from ..requests.aiohttp import get_connector
 from ..providers.asyncio import to_sync_generator
@@ -87,22 +86,6 @@ PLAIN_FILE_EXTENSIONS = ["txt", "xml", "json", "js", "har", "sh", "py", "php", "
 PLAIN_CACHE = "plain.cache"
 DOWNLOADS_FILE = "downloads.json"
 FILE_LIST = "files.txt"
-
-def secure_filename(filename: str) -> str:
-    if filename is None:
-        return None
-    # Keep letters, numbers, basic punctuation and all Unicode chars
-    filename = re.sub(
-        r'[^\w.,_+-]+',
-        '_',
-        unquote(filename).strip(),
-        flags=re.UNICODE
-    )
-    encoding = 'utf-8'
-    max_length = 100
-    encoded = filename.encode(encoding)[:max_length]
-    decoded = encoded.decode(encoding, 'ignore')
-    return decoded.strip(".,_+-")
 
 def supports_filename(filename: str):
     if filename.endswith(".pdf"):
@@ -138,16 +121,6 @@ def supports_filename(filename: str):
         if extension in PLAIN_FILE_EXTENSIONS:
             return True
     return False
-
-def get_bucket_dir(*parts):
-    return os.path.join(get_cookies_dir(), "buckets", *[secure_filename(part) for part in parts if part])
-
-def get_buckets():
-    buckets_dir = os.path.join(get_cookies_dir(), "buckets")
-    try:
-        return [d for d in os.listdir(buckets_dir) if os.path.isdir(os.path.join(buckets_dir, d))]
-    except OSError:
-        return None
 
 def spacy_refine_chunks(source_iterator):
     if not has_spacy:

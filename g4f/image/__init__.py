@@ -17,7 +17,7 @@ except ImportError:
 
 from ..typing import ImageType
 from ..errors import MissingRequirementsError
-from ..tools.files import get_bucket_dir
+from ..files import get_bucket_dir
 
 EXTENSIONS_MAP: dict[str, str] = {
     # Image
