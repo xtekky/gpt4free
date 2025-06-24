@@ -3,7 +3,6 @@ from __future__ import annotations
 import base64
 import json
 import requests
-import random
 from typing import Optional
 from aiohttp import ClientSession, BaseConnector
 
@@ -109,10 +108,10 @@ class GeminiPro(AsyncGeneratorProvider, ProviderModelMixin):
             ]
             if media is not None:
                 for media_data, filename in media:
-                    image = to_bytes(image)
+                    media_data = to_bytes(media_data)
                     contents[-1]["parts"].append({
                         "inline_data": {
-                            "mime_type": is_data_an_media(image, filename),
+                            "mime_type": is_data_an_media(media_data, filename),
                             "data": base64.b64encode(media_data).decode()
                         }
                     })

@@ -135,9 +135,14 @@ class Backend_Api(Api):
                 else:
                     json_data["provider"] = models.HuggingFace
             if app.demo:
+                ip = request.headers.get("X-Forwarded-For", "")
+                ip_bans = Path(get_cookies_dir()) / ".ip_bans"
+                if ip_bans.exists():
+                    ip_bans = ip_bans.read_text().splitlines()
+                    if (ip and ip in ip_bans):
+                        return "You are banned from using this service.", 403
                 user = request.headers.get("Cf-Ipcountry", "")
-                ip = request.headers.get("X-Forwarded-For", "").split(":")[-1]
-                json_data["user"] = request.headers.get("x_user", f"{user}:{ip}")
+                json_data["user"] = request.headers.get("x_user", f"{user}:{ip.split(':')[-1]}")
                 json_data["referer"] = request.headers.get("referer", "")
                 json_data["user-agent"] = request.headers.get("user-agent", "")
                 if not json_data.get("referer") or "python" in json_data.get("user-agent", "").lower():

@@ -70,7 +70,8 @@ async def save_response_media(response, prompt: str, tags: list[str]) -> AsyncIt
         raise ValueError(f"Unsupported media type: {content_type}")
 
     filename = get_filename(tags, prompt, f".{extension}", prompt)
-    filename = update_filename(response, filename)
+    if hasattr(response, "headers"):
+        filename = update_filename(response, filename)
     target_path = os.path.join(get_media_dir(), filename)
     ensure_media_dir()
     with open(target_path, 'wb') as f:
