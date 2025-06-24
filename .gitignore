@@ -13,10 +13,6 @@ venv/
 # Ignore streamlit_chat_app.py conversations pickle
 conversations.pkl
 *.pkl
-
-# Ignore accounts created by api's
-accounts.txt
-
 .idea/
 **/__pycache__/
 __pycache__/
@@ -26,43 +22,14 @@ __pycache__/
 *.egg-info/
 *.egg
 *.egg-info
-build
-
-test.py
-cookie.json
-notes.txt
-close_issues.py
-xxx.py
-lab.py
-lab.js
-bing.py
-bing2.py
 .DS_Store
-lab/*
-lab
-tstt.py
-providerstest.py
-prv.py
-# Emacs crap
 *~
-x.js
-x.py
-info.txt
-local.py
 *.gguf
-image.py
 .buildozer
-hardir
 har_and_cookies
 node_modules
 models
 projects/windows/g4f
-doc.txt
-dist.py
-x.txt
-bench.py
-to-reverse.txt
-g4f/Provider/OpenaiChat2.py
 generated_images/
 generated_media/
 projects/windows/
