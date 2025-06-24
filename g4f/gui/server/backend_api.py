@@ -378,7 +378,7 @@ class Backend_Api(Api):
                     except Exception as e:
                         logger.exception(e)
                 is_media = is_allowed_extension(filename)
-                is_supported = supports_filename(filename)
+                is_supported = result or supports_filename(filename)
                 if not is_media and not is_supported:
                     os.remove(copyfile)
                     continue
