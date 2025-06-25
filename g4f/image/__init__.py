@@ -257,7 +257,7 @@ def to_bytes(image: ImageType) -> bytes:
                     raise FileNotFoundError(f"File not found: {path}")
         else:
             raise ValueError("Invalid image format. Expected bytes, str, or PIL Image.")
-    elif isinstance(image, Image):
+    elif isinstance(image, Image.Image):
         bytes_io = BytesIO()
         image.save(bytes_io, image.format)
         image.seek(0)

@@ -60,11 +60,18 @@ def update_filename(response, filename: str) -> str:
     timestamp = datetime.strptime(date, '%a, %d %b %Y %H:%M:%S %Z').timestamp()
     return str(int(timestamp)) + "_" + filename.split("_", maxsplit=1)[-1]
 
-async def save_response_media(response, prompt: str, tags: list[str]) -> AsyncIterator:
+async def save_response_media(response, prompt: str, tags: list[str] = []) -> AsyncIterator:
     """Save media from response to local file and return URL"""
+    if isinstance(response, dict):
+        content_type = response.get("mimeType")
+        response = response.get("data")
+    elif hasattr(response, "headers"):
+        content_type = response.headers["content-type"]
+    else:
+        content_type = "audio/mpeg"
+
     if isinstance(response, str):
         response = base64.b64decode(response)
-    content_type = response.headers["content-type"] if hasattr(response, "headers") else "audio/mpeg"
     extension = MEDIA_TYPE_MAP.get(content_type)
     if extension is None:
         raise ValueError(f"Unsupported media type: {content_type}")

@@ -339,7 +339,6 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                 extra_parameters=extra_parameters,
                 referrer=referrer,
                 api_key=api_key,
-                download_media=download_media,
                 extra_body=extra_body,
                 **kwargs
             ):
@@ -465,7 +464,6 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         extra_parameters: list[str],
         referrer: str,
         api_key: str,
-        download_media: bool,
         extra_body: dict,
         **kwargs
     ) -> AsyncResult:
