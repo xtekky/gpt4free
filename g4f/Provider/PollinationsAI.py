@@ -59,7 +59,7 @@ FOLLOWUPS_TOOLS = [{
 
 FOLLOWUPS_DEVELOPER_MESSAGE = [{
     "role": "developer",
-    "content": "Prefix conversation title with one or more emojies. Suggested 4 Followups"
+    "content": "Prefix conversation title with one or more emojies. Suggested 4 Followups (User messages only).",
 }]
 
 class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
@@ -509,6 +509,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                 elif response.headers["content-type"].startswith("text/event-stream"):
                     reasoning = False
                     model_returned = False
+                    full_content = ""
                     async for result in see_stream(response.content):
                         if "error" in result:
                             raise ResponseError(result["error"].get("message", result["error"]))
@@ -522,6 +523,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                         content = choice.get("delta", {}).get("content")
                         if content:
                             yield content
+                            full_content += content
                         tool_calls = choice.get("delta", {}).get("tool_calls")
                         if tool_calls:
                             yield ToolCalls(choice["delta"]["tool_calls"])
@@ -535,20 +537,21 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                     if reasoning:
                         yield Reasoning(status="")
                     if kwargs.get("action") == "next":
-                        safe_messages = []
+                        tool_messages = []
                         for message in messages:
                             if message.get("role") == "user":
                                 if isinstance(message.get("content"), str):
-                                    safe_messages.append({"role": "user", "content": message.get("content")})
+                                    tool_messages.append({"role": "user", "content": message.get("content")})
                                 elif isinstance(message.get("content"), list):
                                     next_value = message.get("content").pop()
                                     if isinstance(next_value, dict):
                                         next_value = next_value.get("text")
                                         if next_value:
-                                            safe_messages.append({"role": "user", "content": next_value})
+                                            tool_messages.append({"role": "user", "content": next_value})
+                        tool_messages.append({"role": "assistant", "content": full_content})
                         data = {
                             "model": "openai",
-                            "messages": safe_messages + FOLLOWUPS_DEVELOPER_MESSAGE,
+                            "messages": tool_messages + FOLLOWUPS_DEVELOPER_MESSAGE,
                             "tool_choice": "required",
                             "tools": FOLLOWUPS_TOOLS
                         }
@@ -563,8 +566,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                                     if arguments.get("followups"):
                                         yield SuggestedFollowups(arguments.get("followups"))
                             except Exception as e:
-                                debug.error("Error generating title and followups")
-                                debug.error(e)
+                                debug.error("Error generating title and followups:", e)
                 elif response.headers["content-type"].startswith("application/json"):
                     prompt = format_media_prompt(messages)
                     result = await response.json()
