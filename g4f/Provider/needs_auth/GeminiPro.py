@@ -116,6 +116,7 @@ class GeminiPro(AsyncGeneratorProvider, ProviderModelMixin):
                             "data": base64.b64encode(media_data).decode()
                         }
                     })
+            responseModalities = {"responseModalities": ["AUDIO"]} if "tts" in model else {}
             data = {
                 "contents": contents,
                 "generationConfig": {
@@ -124,7 +125,7 @@ class GeminiPro(AsyncGeneratorProvider, ProviderModelMixin):
                     "maxOutputTokens": kwargs.get("max_tokens"),
                     "topP": kwargs.get("top_p"),
                     "topK": kwargs.get("top_k"),
-                    **{"responseModalities": ["AUDIO"]} if "tts" in model else {},
+                    **responseModalities,
                 },
                  "tools": [{
                     "function_declarations": [{

@@ -90,13 +90,12 @@ class HuggingFaceAPI(OpenaiTemplate):
             raise ModelNotFoundError(f"Model is not supported: {model} in: {cls.__name__}")
         error = None
         for provider_key in provider_mapping:
-            api_path = provider_key if provider_key == "novita" else f"{provider_key}/v1"
+            api_path = "novita/v3/openai" if provider_key == "novita" else f"{provider_key}/v1"
             api_base = f"https://router.huggingface.co/{api_path}"
             task = provider_mapping[provider_key]["task"]
             if task != "conversational":
                 raise ModelNotFoundError(f"Model is not supported: {model} in: {cls.__name__} task: {task}")
             model = provider_mapping[provider_key]["providerId"]
-            yield ProviderInfo(**{**cls.get_dict(), "label": f"HuggingFace ({provider_key})"})
         # start = calculate_lenght(messages)
         # if start > max_inputs_lenght:
         #     if len(messages) > 6:
@@ -110,7 +109,10 @@ class HuggingFaceAPI(OpenaiTemplate):
         #     debug.log(f"Messages trimmed from: {start} to: {calculate_lenght(messages)}")
             try:
                 async for chunk in super().create_async_generator(model, messages, api_base=api_base, api_key=api_key, max_tokens=max_tokens, media=media, **kwargs):
-                    yield chunk
+                    if isinstance(chunk, ProviderInfo):
+                        yield ProviderInfo(**{**chunk.get_dict(), "label": f"HuggingFace ({provider_key})"})
+                    else:
+                        yield chunk
                 return
             except PaymentRequiredError as e:
                 error = e
