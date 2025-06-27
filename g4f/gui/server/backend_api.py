@@ -87,12 +87,12 @@ class Backend_Api(Api):
                 format=serialization.PublicFormat.SubjectPublicKeyInfo
             )
 
-            def decrypt_data(encrypted_data: str):
+            def decrypt_data(encrypted_data: str) -> str:
                 decrypted = private_key_obj.decrypt(
                     base64.b64decode(encrypted_data),
                     padding.PKCS1v15()
                 )
-                return decrypted.decode('utf-8')
+                return decrypted.decode()
 
             def validate_secret(secret: str) -> bool:
                 """
@@ -105,7 +105,7 @@ class Backend_Api(Api):
                     bool: True if the secret is valid, False otherwise.
                 """
                 try:
-                    decrypted_secret = decrypt_data(secret)
+                    decrypted_secret = base64.b64decode(decrypt_data(secret).encode()).decode()
                     return int(decrypted_secret) >= time.time() - 2
                 except Exception as e:
                     logger.error(f"Secret validation failed: {e}")
@@ -114,7 +114,10 @@ class Backend_Api(Api):
             @app.route('/backend-api/v2/public-key', methods=['GET'])
             def get_public_key():
                 # Send the public key to the client for encryption
-                return jsonify({"public_key": public_key_pem.decode('utf-8'), "data": str(int(time.time()))})
+                return jsonify({
+                    "public_key": public_key_pem.decode(),
+                    "data": base64.b64encode(str(int(time.time())).encode()).decode()
+                })
 
         @app.route('/backend-api/v2/models', methods=['GET'])
         def jsonify_models(**kwargs):
@@ -282,7 +285,7 @@ class Backend_Api(Api):
             },
         }
 
-        @app.route('/backend-api/v2/create', methods=['GET', 'POST'])
+        @app.route('/backend-api/v2/create', methods=['GET'])
         def create():
             try:
                 tool_calls = []
@@ -335,7 +338,7 @@ class Backend_Api(Api):
                                 if chunk:
                                     yield chunk
                     return iter_response()
-                
+
                 if cache_id:
                     cache_id = sha256(cache_id.encode() + json.dumps(parameters, sort_keys=True).encode()).hexdigest()
                     cache_dir = Path(get_cookies_dir()) / ".scrape_cache" / "create"
@@ -394,7 +397,7 @@ class Backend_Api(Api):
             delete_files = request.args.get('delete_files', True)
             refine_chunks_with_spacy = request.args.get('refine_chunks_with_spacy', False)
             event_stream = 'text/event-stream' in request.headers.get('Accept', '')
-            mimetype = "text/event-stream" if event_stream else "text/plain";
+            mimetype = "text/event-stream" if event_stream else "text/plain"
             return Response(get_streaming(bucket_dir, delete_files, refine_chunks_with_spacy, event_stream), mimetype=mimetype)
 
         @self.app.route('/backend-api/v2/files/<bucket_id>', methods=['POST'])
@@ -413,14 +416,14 @@ class Backend_Api(Api):
                 suffix = os.path.splitext(filename)[1].lower()
                 copyfile = get_tempfile(file, suffix)
                 result = None
-                if has_markitdown and not filename.endswith((".md", ".json")):
+                if has_markitdown and not filename.endswith((".md", ".json", ".zip")):
                     try:
                         language = request.headers.get("x-recognition-language")
                         md = MarkItDown()
                         result = md.convert(copyfile, stream_info=StreamInfo(
                             extension=suffix,
                             mimetype=file.mimetype,
-                        ),recognition_language=language).text_content
+                        ), recognition_language=language).text_content
                     except Exception as e:
                         logger.exception(e)
                 is_media = is_allowed_extension(filename)

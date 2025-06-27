@@ -45,7 +45,9 @@ from ..typing import Cookies
 from ..cookies import get_cookies_dir
 from .defaults import DEFAULT_HEADERS, WEBVIEW_HAEDERS
 
-BROWSER_EXECUTABLE_PATH = None
+class BrowserConfig:
+    stop_browser = lambda: None
+    browser_executable_path: str = None
 
 if not has_curl_cffi:
     class Session:
@@ -141,7 +143,7 @@ def merge_cookies(cookies: Iterator[Morsel], response: Response) -> Cookies:
     return cookies
 
 def set_browser_executable_path(browser_executable_path: str):
-    BROWSER_EXECUTABLE_PATH = browser_executable_path
+    BrowserConfig.browser_executable_path = browser_executable_path
 
 async def get_nodriver(
     proxy: str = None,
@@ -154,7 +156,7 @@ async def get_nodriver(
         raise MissingRequirementsError('Install "nodriver" and "platformdirs" package | pip install -U nodriver platformdirs')
     user_data_dir = user_config_dir(f"g4f-{user_data_dir}") if has_platformdirs else None
     if browser_executable_path is None:
-        browser_executable_path = BROWSER_EXECUTABLE_PATH
+        browser_executable_path = BrowserConfig.browser_executable_path
     if browser_executable_path is None:
         try:
             browser_executable_path = find_chrome_executable()
@@ -173,11 +175,18 @@ async def get_nodriver(
         if timeout * 2 > time_open:
             debug.log(f"Nodriver: Browser is already in use since {time_open} secs.")
             debug.log("Lock file:", lock_file)
-            for _ in range(timeout):
+            for idx in range(timeout):
                 if lock_file.exists():
                     await asyncio.sleep(1)
                 else:
                     break
+                if idx == timeout - 1:
+                    debug.log("Timeout reached, nodriver is still in use.")
+                    raise TimeoutError("Nodriver is already in use, please try again later.")
+        else:
+            debug.log(f"Nodriver: Browser was opened {time_open} secs ago, closing it.")
+            BrowserConfig.stop_browser()
+            lock_file.unlink(missing_ok=True)
     lock_file.write_text(str(time.time()))
     debug.log(f"Open nodriver with user_dir: {user_data_dir}")
     try:
@@ -200,6 +209,7 @@ async def get_nodriver(
                 browser.stop()
         finally:
             lock_file.unlink(missing_ok=True)
+    BrowserConfig.stop_browser = on_stop
     return browser, on_stop
 
 async def see_stream(iter_lines: Iterator[bytes]) -> AsyncIterator[dict]:
