@@ -164,6 +164,7 @@ def is_data_uri_an_image(data_uri: str) -> bool:
     # Check if the image format is one of the allowed formats (jpg, jpeg, png, gif)
     if image_format not in EXTENSIONS_MAP and image_format != "svg+xml":
         raise ValueError("Invalid image format (from mime file type).")
+    return True
 
 def is_accepted_format(binary_data: bytes) -> str:
     """

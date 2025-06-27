@@ -34,7 +34,6 @@ class LambdaChat(AsyncGeneratorProvider, ProviderModelMixin):
         "lfm-40b",
         "llama3.3-70b-instruct-fp8",
         "qwen25-coder-32b-instruct",
-        "deepseek-v3",
         default_model,
         "llama-4-maverick-17b-128e-instruct-fp8",
         "llama-4-scout-17b-16e-instruct",
@@ -42,8 +41,7 @@ class LambdaChat(AsyncGeneratorProvider, ProviderModelMixin):
         "qwen3-32b-fp8",
     ]
     model_aliases = {
-        "deepseek-r1": ["deepseek-r1", "deepseek-r1-0528"],
-        "deepseek-v3": ["deepseek-v3", "deepseek-v3-0324"],
+        "deepseek-v3-0324": "deepseek-v3",
         "hermes-3": "hermes3-405b-fp8-128k",
         "hermes-3-405b": ["hermes3-405b-fp8-128k", "hermes-3-llama-3.1-405b-fp8"],
         "nemotron-70b": "llama3.1-nemotron-70b-instruct",
