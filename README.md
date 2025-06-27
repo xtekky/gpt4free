@@ -72,7 +72,7 @@ Curious to see what G4F can do? Dive into a live demonstration and visit the [of
      - [🎨 Image Generation](#-image-generation)
      - [🌐 Web Interface](#-web-interface)
      - [🖥️ Local Inference](https://github.com/gpt4free/g4f.dev/blob/main/docs/local.md)
-     - [🤖 Interference API](#-interference-api)
+     - [🤖 Inference API](#-inference-api)
      - [🛠️ Configuration](https://github.com/gpt4free/g4f.dev/blob/main/docs/configuration.md)
      - [📱 Run on Smartphone](#-run-on-smartphone)
      - [📘 Full Documentation for Python API](#-full-documentation-for-python-api)
@@ -219,11 +219,11 @@ python -m g4f --port 8080 --debug
 
 ---
 
-### 🤖 Interference API
+### 🤖 Inference API
 
-The **Interference API** enables seamless integration with OpenAI's services through G4F, allowing you to deploy efficient AI solutions.
+The **Inference API** enables seamless integration with OpenAI's services through G4F, allowing you to deploy efficient AI solutions.
 
-- **Documentation**: [Interference API Docs](https://github.com/gpt4free/g4f.dev/blob/main/docs/interference-api.md)
+- **Documentation**: [Inference API Docs](https://github.com/gpt4free/g4f.dev/blob/main/docs/inference-api.md)
 - **Endpoint**: `http://localhost:1337/v1`
 - **Swagger UI**: Explore the OpenAPI documentation via Swagger UI at `http://localhost:1337/docs`
 - **Provider Selection**: [How to Specify a Provider?](https://github.com/gpt4free/g4f.dev/blob/main/docs/selecting_a_provider.md)
