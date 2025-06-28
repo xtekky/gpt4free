@@ -313,7 +313,7 @@ def use_aspect_ratio(extra_body: dict, aspect_ratio: str) -> Image:
             "height": height,
             **extra_body
         }
-    return extra_body
+    return {key: value for key, value in extra_body.items() if value is not None}
 
 def get_width_height(
     aspect_ratio: str,

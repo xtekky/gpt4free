@@ -72,9 +72,7 @@ class Together(OpenaiTemplate):
         
         # deepseek-ai
         "deepseek-r1": "deepseek-ai/DeepSeek-R1",
-        "deepseek-r1-0528": "deepseek-ai/DeepSeek-R1",
         "deepseek-v3": ["deepseek-ai/DeepSeek-V3", "deepseek-ai/DeepSeek-V3-p-dp"],
-        "deepseek-v3-0324": "deepseek-ai/DeepSeek-V3",
         "deepseek-r1-distill-llama-70b": ["deepseek-ai/DeepSeek-R1-Distill-Llama-70B", "deepseek-ai/DeepSeek-R1-Distill-Llama-70B-free"],
         "deepseek-r1-distill-qwen-1.5b": "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B",
         "deepseek-r1-distill-qwen-14b": "deepseek-ai/DeepSeek-R1-Distill-Qwen-14B",
@@ -130,7 +128,7 @@ class Together(OpenaiTemplate):
 
         ### Models Image ###
         # black-forest-labs
-        "flux": ["black-forest-labs/FLUX.1-schnell-Free", "black-forest-labs/FLUX.1-schnell", "black-forest-labs/FLUX.1.1-pro", "black-forest-labs/FLUX.1-pro", "black-forest-labs/FLUX.1-redux", "black-forest-labs/FLUX.1-depth", "black-forest-labs/FLUX.1-canny", "black-forest-labs/FLUX.1-kontext-max", "black-forest-labs/FLUX.1-dev-lora", "black-forest-labs/FLUX.1-dev", "black-forest-labs/FLUX.1-dev-lora", "black-forest-labs/FLUX.1-kontext-pro"],
+        "flux": ["black-forest-labs/FLUX.1-schnell-Free", "black-forest-labs/FLUX.1-schnell", "black-forest-labs/FLUX.1.1-pro", "black-forest-labs/FLUX.1-pro", "black-forest-labs/FLUX.1-dev"],
         "flux-schnell": ["black-forest-labs/FLUX.1-schnell-Free", "black-forest-labs/FLUX.1-schnell"],
         "flux-pro": ["black-forest-labs/FLUX.1.1-pro", "black-forest-labs/FLUX.1-pro"],
         "flux-redux": "black-forest-labs/FLUX.1-redux",

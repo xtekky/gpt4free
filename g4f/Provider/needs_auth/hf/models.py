@@ -23,14 +23,20 @@ model_aliases = {
     "llama-3": "meta-llama/Llama-3.3-70B-Instruct",
     "llama-3.3-70b": "meta-llama/Llama-3.3-70B-Instruct",
     "command-r-plus": "CohereForAI/c4ai-command-r-plus-08-2024",
-    "deepseek-r1": "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B",
+    "deepseek-r1": "deepseek-ai/DeepSeek-R1",
     "qwq-32b": "Qwen/QwQ-32B",
     "nemotron-70b": "nvidia/Llama-3.1-Nemotron-70B-Instruct-HF",
     "qwen-2.5-coder-32b": "Qwen/Qwen2.5-Coder-32B-Instruct",
     "llama-3.2-11b": "meta-llama/Llama-3.2-11B-Vision-Instruct",
     "mistral-nemo": "mistralai/Mistral-Nemo-Instruct-2407",
     "phi-3.5-mini": "microsoft/Phi-3.5-mini-instruct",
-    ### Image ###
+    ### Used in other providers ###
+    "qwen-2-vl-7b": "Qwen/Qwen2-VL-7B-Instruct",
+    "gemma-2-27b": "google/gemma-2-27b-it",
+    "qwen-2-72b": "Qwen/Qwen2-72B-Instruct",
+    "qvq-72b": "Qwen/QVQ-72B-Preview",
+}
+image_model_aliases = {
     "flux": "black-forest-labs/FLUX.1-dev",
     "flux-dev": "black-forest-labs/FLUX.1-dev",
     "flux-schnell": "black-forest-labs/FLUX.1-schnell",
@@ -38,11 +44,6 @@ model_aliases = {
     "sdxl-1.0": "stabilityai/stable-diffusion-xl-base-1.0",
     "sdxl-turbo": "stabilityai/sdxl-turbo",
     "sd-3.5-large": "stabilityai/stable-diffusion-3.5-large",
-    ### Used in other providers ###
-    "qwen-2-vl-7b": "Qwen/Qwen2-VL-7B-Instruct",
-    "gemma-2-27b": "google/gemma-2-27b-it",
-    "qwen-2-72b": "Qwen/Qwen2-72B-Instruct",
-    "qvq-72b": "Qwen/QVQ-72B-Preview",
 }
 extra_models = [
     "meta-llama/Llama-3.2-11B-Vision-Instruct",

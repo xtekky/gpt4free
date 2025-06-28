@@ -10,7 +10,7 @@ from .HuggingChat import HuggingChat
 from .HuggingFaceAPI import HuggingFaceAPI
 from .HuggingFaceInference import HuggingFaceInference
 from .HuggingFaceMedia import HuggingFaceMedia
-from .models import model_aliases, vision_models, default_vision_model
+from .models import model_aliases, image_model_aliases, vision_models, default_vision_model
 from .... import debug
 
 class HuggingFace(AsyncGeneratorProvider, ProviderModelMixin):
@@ -26,7 +26,7 @@ class HuggingFace(AsyncGeneratorProvider, ProviderModelMixin):
             cls.image_models = HuggingFaceInference.image_models
         return cls.models
 
-    model_aliases = model_aliases
+    model_aliases = {**model_aliases, **image_model_aliases}
     vision_models = vision_models
     default_vision_model = default_vision_model
 

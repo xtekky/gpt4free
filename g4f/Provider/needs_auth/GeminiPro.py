@@ -13,7 +13,7 @@ from ...requests import raise_for_status, iter_lines
 from ...providers.response import Usage, FinishReason
 from ...image.copy_images import save_response_media
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from ..helper import get_connector, to_string, format_media_prompt
+from ..helper import get_connector, to_string, format_media_prompt, get_system_prompt
 from ... import debug
 
 class GeminiPro(AsyncGeneratorProvider, ProviderModelMixin):
@@ -27,10 +27,10 @@ class GeminiPro(AsyncGeneratorProvider, ProviderModelMixin):
     supports_system_message = True
     needs_auth = True
 
-    default_model = "gemini-2.0-flash "
+    default_model = "gemini-2.5-flash-preview-04-17"
     default_vision_model = default_model
     fallback_models = [
-        default_model,
+        "gemini-2.0-flash",
         "gemini-2.0-flash-lite",
         "gemini-2.0-flash-thinking-exp",
         "gemini-2.5-flash-preview-04-17",
@@ -40,11 +40,6 @@ class GeminiPro(AsyncGeneratorProvider, ProviderModelMixin):
         "gemma-3-4b-it",
         "gemma-3n-e4b-it"
     ]
-    model_aliases = {
-        "gemini-1.5-pro": [default_model, "gemini-pro"],
-        "gemini-1.5-flash": ["gemini-1.5-flash", "gemini-1.5-flash-8b"],
-        "gemini-2.0-flash": "gemini-2.0-flash-exp",
-    }
 
     @classmethod
     def get_models(cls, api_key: str = None, api_base: str = api_base) -> list[str]:
@@ -105,9 +100,11 @@ class GeminiPro(AsyncGeneratorProvider, ProviderModelMixin):
                     "parts": [{"text": to_string(message["content"])}]
                 }
                 for message in messages
-                if message["role"] != "system"
+                if message["role"] not in ["system", "developer"]
             ]
             if media is not None:
+                if not contents:
+                    contents.append({"role": "user", "parts": []})
                 for media_data, filename in media:
                     media_data = to_bytes(media_data)
                     contents[-1]["parts"].append({
@@ -141,11 +138,7 @@ class GeminiPro(AsyncGeneratorProvider, ProviderModelMixin):
                     } for tool in tools]
                 }] if tools else None
             }
-            system_prompt = "\n".join(
-                message["content"]
-                for message in messages
-                if message["role"] == "system"
-            )
+            system_prompt = get_system_prompt(messages)
             if system_prompt:
                 data["system_instruction"] = {"parts": {"text": system_prompt}}
             async with session.post(url, params=params, json=data) as response:
@@ -162,8 +155,7 @@ class GeminiPro(AsyncGeneratorProvider, ProviderModelMixin):
                             lines = [b"{"]
                         elif chunk == b"," or chunk == b"]":
                             try:
-                                data = b"".join(lines)
-                                data = json.loads(data)
+                                data = json.loads(b"".join(lines))
                                 content = data["candidates"][0]["content"]
                                 if "parts" in content and content["parts"]:
                                     if "text" in content["parts"][0]:
@@ -183,7 +175,6 @@ class GeminiPro(AsyncGeneratorProvider, ProviderModelMixin):
                                         total_tokens=usage.get("totalTokenCount")
                                     )
                             except Exception as e:
-                                data = data.decode(errors="ignore") if isinstance(data, bytes) else data
                                 raise RuntimeError(f"Read chunk failed") from e
                             lines = []
                         else:
@@ -191,7 +182,16 @@ class GeminiPro(AsyncGeneratorProvider, ProviderModelMixin):
                 else:
                     data = await response.json()
                     candidate = data["candidates"][0]
-                    if candidate["finishReason"] == "STOP":
-                        yield candidate["content"]["parts"][0]["text"]
-                    else:
-                        yield candidate["finishReason"] + ' ' + candidate["safetyRatings"]
+                    if "content" in candidate:
+                        content = candidate["content"]
+                        if "parts" in content and content["parts"]:
+                            for part in content["parts"]:
+                                if "text" in part:
+                                    yield part["text"]
+                                elif "inlineData" in part:
+                                    async for media in save_response_media(
+                                        part["inlineData"], format_media_prompt(messages)
+                                    ):
+                                        yield media
+                    if "finishReason" in candidate:
+                        yield FinishReason(candidate["finishReason"].lower())

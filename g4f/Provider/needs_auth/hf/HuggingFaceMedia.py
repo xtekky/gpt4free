@@ -14,7 +14,7 @@ from ....providers.response import ProviderInfo, ImageResponse, VideoResponse, R
 from ....image.copy_images import save_response_media
 from ....image import use_aspect_ratio
 from .... import debug
-from .models import model_aliases
+from .models import image_model_aliases
 
 class HuggingFaceMedia(AsyncGeneratorProvider, ProviderModelMixin):
     label = "HuggingFace"
@@ -23,7 +23,7 @@ class HuggingFaceMedia(AsyncGeneratorProvider, ProviderModelMixin):
     working = True
     needs_auth = True
 
-    model_aliases = model_aliases
+    model_aliases = image_model_aliases
 
     tasks = ["text-to-image", "text-to-video"]
     provider_mapping: dict[str, dict] = {}

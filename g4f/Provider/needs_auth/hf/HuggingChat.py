@@ -25,7 +25,7 @@ from ....requests.raise_for_status import raise_for_status
 from ....providers.response import JsonConversation, ImageResponse, Sources, TitleGeneration, Reasoning, RequestLogin, FinishReason
 from ....cookies import get_cookies
 from ....tools.media import merge_media
-from .models import default_model, default_vision_model, fallback_models, image_models, model_aliases
+from .models import default_model, default_vision_model, fallback_models, image_models, model_aliases, image_model_aliases
 from .... import debug
 
 class Conversation(JsonConversation):
@@ -43,7 +43,7 @@ class HuggingChat(AsyncAuthedProvider, ProviderModelMixin):
     needs_auth = True
     default_model = default_model
     default_vision_model = default_vision_model
-    model_aliases = model_aliases
+    model_aliases = {**model_aliases, **image_model_aliases}
     image_models = image_models
     text_models = fallback_models
 

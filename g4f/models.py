@@ -281,7 +281,7 @@ gpt_4_5 = Model(
 dall_e_3 = ImageModel(
     name = 'dall-e-3',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([PollinationsImage, CopilotAccount, OpenaiAccount, MicrosoftDesigner, BingCreateImages])
+    best_provider = IterListProvider([CopilotAccount, OpenaiAccount, MicrosoftDesigner, BingCreateImages])
 )
 
 gpt_image = ImageModel(
@@ -483,13 +483,13 @@ gemini = Model(
 gemini_1_5_flash = Model(
     name          = 'gemini-1.5-flash',
     base_provider = 'Google',
-    best_provider = IterListProvider([Free2GPT, FreeGpt, TeachAnything, Websim, GeminiPro])
+    best_provider = IterListProvider([Free2GPT, FreeGpt, TeachAnything, Websim])
 )
 
 gemini_1_5_pro = Model(
     name          = 'gemini-1.5-pro',
     base_provider = 'Google',
-    best_provider = IterListProvider([Free2GPT, FreeGpt, TeachAnything, Websim, GeminiPro])
+    best_provider = IterListProvider([Free2GPT, FreeGpt, TeachAnything, Websim])
 )
 
 # gemini-2.0
@@ -758,14 +758,14 @@ deepseek_prover_v2_671b = Model(
 deepseek_v3_0324 = Model(
     name = 'deepseek-v3-0324',
     base_provider = 'DeepSeek',
-    best_provider = IterListProvider([DeepInfraChat, Together, LambdaChat, PollinationsAI])
+    best_provider = IterListProvider([DeepInfraChat, LambdaChat, PollinationsAI])
 )
 
 # deepseek-r1-0528
 deepseek_r1_0528 = Model(
     name = 'deepseek-r1-0528',
     base_provider = 'DeepSeek',
-    best_provider = IterListProvider([DeepInfraChat, LambdaChat, Together])
+    best_provider = IterListProvider([DeepInfraChat, LambdaChat])
 )
 
 # janus
