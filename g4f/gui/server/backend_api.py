@@ -106,7 +106,7 @@ class Backend_Api(Api):
                 """
                 try:
                     decrypted_secret = base64.b64decode(decrypt_data(secret).encode()).decode()
-                    return int(decrypted_secret) >= time.time() - 2
+                    return int(decrypted_secret) >= time.time() - 3
                 except Exception as e:
                     logger.error(f"Secret validation failed: {e}")
                     return False
