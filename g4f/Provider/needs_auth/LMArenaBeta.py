@@ -92,6 +92,7 @@ class LMArenaBeta(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
         messages: Messages,
         conversation: JsonConversation = None,
         proxy: str = None,
+        timeout: int = None,
         **kwargs
     ) -> AsyncResult:
         cache_file = cls.get_cache_file()
@@ -114,6 +115,8 @@ class LMArenaBeta(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
 
         # Build the JSON payload
         is_image_model = model in image_models
+        if not model:
+            model = cls.default_model
         if model in image_models:
             model = image_models[model]
         elif model in text_models:
@@ -158,7 +161,7 @@ class LMArenaBeta(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
             ],
             "modality": "image" if is_image_model else "chat"
         }
-        async with StreamSession(**args) as session:
+        async with StreamSession(**args, timeout=timeout) as session:
             async with session.post(
                 cls.api_endpoint,
                 json=data,

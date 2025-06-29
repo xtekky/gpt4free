@@ -431,8 +431,14 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                 if action != "continue":
                     data["parent_message_id"] = getattr(conversation, "parent_message_id", conversation.message_id)
                     conversation.parent_message_id = None
-                    messages = messages if conversation.conversation_id is None else [{"role": "user", "content": prompt}]
-                    data["messages"] = cls.create_messages(messages, image_requests, ["search"] if web_search else None)
+                    new_messages = messages
+                    if conversation.conversation_id is not None:
+                        for message in messages:
+                            if message.get("role") == "assistant":
+                                new_messages = []
+                            else:
+                                new_messages.append(message)
+                    data["messages"] = cls.create_messages(new_messages, image_requests, ["search"] if web_search else None)
                 headers = {
                     **cls._headers,
                     "accept": "text/event-stream",
@@ -655,7 +661,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
     async def nodriver_auth(cls, proxy: str = None):
         browser, stop_browser = await get_nodriver(proxy=proxy)
         try:
-            page = browser.main_tab
+            page = await browser.get(cls.url)
             def on_request(event: nodriver.cdp.network.RequestWillBeSent, page=None):
                 if event.request.url == start_url or event.request.url.startswith(conversation_url):
                     if cls.request_config.headers is None:
@@ -681,7 +687,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                     )
             await page.send(nodriver.cdp.network.enable())
             page.add_handler(nodriver.cdp.network.RequestWillBeSent, on_request)
-            page = await browser.get(cls.url)
+            await page.reload()
             user_agent = await page.evaluate("window.navigator.userAgent", return_by_value=True)
             textarea = None
             while not textarea:

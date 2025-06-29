@@ -100,8 +100,7 @@ async def get_args_from_nodriver(
         def stop_browser():
             ...
     try:
-        if debug.logging:
-            print(f"Open nodriver with url: {url}")
+        debug.log(f"Open nodriver with url: {url}")
         domain = urlparse(url).netloc
         if cookies is None:
             cookies = {}

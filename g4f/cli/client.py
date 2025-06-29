@@ -102,7 +102,6 @@ async def stream_response(
     image = None
     if isinstance(input_text, tuple):
         image, input_text = input_text
-    input_text = input_text.strip()
     
     if instructions:
         # Add system instructions to conversation if provided
@@ -143,7 +142,7 @@ async def stream_response(
     if output_file:
         if save_content(response_content, output_file):
             print(f"\nResponse saved to {output_file}")
-    
+
     if response_content:
         # Add assistant message to conversation
         conversation.add_message("assistant", str(response_content))
@@ -152,9 +151,12 @@ async def stream_response(
 
 def save_content(content, filepath: str, allowed_types = None):
     if hasattr(content, "urls"):
-        content = content.urls[0] if isinstance(content.urls, list) else content.urls
+        content = next(iter(content.urls), None) if isinstance(content.urls, list) else content.urls
     elif hasattr(content, "data"):
         content = content.data
+    if not content:
+        print("\nNo content to save.", file=sys.stderr)
+        return False
     if content.startswith("/media/"):
         os.rename(content.replace("/media", get_media_dir()).split("?")[0], filepath)
         return True
@@ -169,11 +171,14 @@ def save_content(content, filepath: str, allowed_types = None):
             with open(filepath, "wb") as f:
                 f.write(response.content)
             return True
-    content = filter_markdown(content, allowed_types, content)
+    content = filter_markdown(content, allowed_types)
     if content:
         with open(filepath, "w") as f:
             f.write(content)
             return True
+    else:
+        print("\nNo valid content to save.", file=sys.stderr)
+        return False
 
 def get_parser():
     """Parse command line arguments."""
@@ -278,7 +283,7 @@ def run_client_args(args):
                     input_text = " ".join(args.input[1:]) + "\n"
                 input_text += f"```{os.path.basename(args.input[0])}\n" + file_content + "\n```"
     elif args.input:
-        input_text = " ".join(args.input)
+        input_text = (" ".join(args.input)).strip()
     if not input_text:
         input_text = sys.stdin.read().strip()
     if not input_text:
