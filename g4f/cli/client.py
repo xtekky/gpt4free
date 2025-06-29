@@ -5,12 +5,16 @@ import sys
 import asyncio
 import json
 import argparse
+import traceback
 from pathlib import Path
 from typing import Optional, List, Dict
 from g4f.client import AsyncClient
-from g4f.providers.response import JsonConversation
+from g4f.providers.response import JsonConversation, is_content
 from g4f.cookies import set_cookies_dir, read_cookie_files
 from g4f.Provider import ProviderUtils
+from g4f.image import extract_data_uri
+from g4f.image.copy_images import get_media_dir
+from g4f.client.helper import filter_markdown
 from g4f import debug
 
 # Platform-appropriate directories
@@ -46,8 +50,10 @@ class ConversationManager:
         try:
             with open(self.file_path, 'r', encoding='utf-8') as f:
                 data = json.load(f)
-                self.model = data.get("model")
+                self.model = data.get("model") if self.model is None else self.model
                 self.provider = data.get("provider") if self.provider is None else self.provider
+                if not self.provider:
+                    self.provider = None
                 self.data = data.get("data", {})
                 if self.provider and data.get(self.provider):
                     self.conversation = JsonConversation(**data.get(self.provider))
@@ -85,7 +91,8 @@ class ConversationManager:
 async def stream_response(
     client: AsyncClient,
     input_text: str,
-    conversation: ConversationManager
+    conversation: ConversationManager,
+    output_file: Optional[Path] = None
 ) -> None:
     """Stream the response from the API and update conversation."""
     input_text = input_text.strip()
@@ -110,10 +117,10 @@ async def stream_response(
         token = chunk.choices[0].delta.content
         if not token:
             continue
-        token = str(token)
-        response_content.append(token)
+        if is_content(token):
+            response_content.append(token)
         try:
-            for byte in token.encode('utf-8'):
+            for byte in str(token).encode('utf-8'):
                 sys.stdout.buffer.write(bytes([byte]))
                 sys.stdout.buffer.flush()
         except (IOError, BrokenPipeError) as e:
@@ -121,13 +128,41 @@ async def stream_response(
             break
 
     conversation.conversation = getattr(last_chunk, 'conversation', None)
+    response_content = response_content[0] if len(response_content) == 1 else "".join([str(chunk) for chunk in response_content])
+    if output_file:
+        if save_content(response_content, output_file):
+            print(f"\nResponse saved to {output_file}")
     
     if response_content:
         # Add assistant message to conversation
-        full_response = "".join(response_content).strip()
-        conversation.add_message("assistant", full_response)
+        conversation.add_message("assistant", str(response_content))
     else:
         raise RuntimeError("No response received from the API")
+
+def save_content(content, filepath: str, allowed_types = None):
+    if hasattr(content, "urls"):
+        content = content.urls[0] if isinstance(content.urls, list) else content.urls
+    elif hasattr(content, "data"):
+        content = content.data
+    if content.startswith("/media/"):
+        os.rename(content.replace("/media", get_media_dir()), filepath)
+        return True
+    elif content.startswith("data:"):
+        with open(filepath, "wb") as f:
+            f.write(extract_data_uri(content))
+        return True
+    elif content.startswith("http://") or content.startswith("https://"):
+        import requests
+        response = requests.get(content)
+        if response.status_code == 200:
+            with open(filepath, "wb") as f:
+                f.write(response.content)
+            return True
+    content = filter_markdown(content, allowed_types)
+    if content:
+        with open(filepath, "w") as f:
+            f.write(content)
+            return True
 
 def get_parser():
     """Parse command line arguments."""
@@ -144,6 +179,14 @@ def get_parser():
     parser.add_argument(
         '-m', '--model',
         help="Model to use (provider-specific)"
+    )
+    parser.add_argument(
+        '-O', '--output',
+        default=None,
+        type=Path,
+        metavar='FILE',
+        nargs='?',
+        help="Output file to save the response file."
     )
     parser.add_argument(
         '-c', '--cookies-dir',
@@ -164,7 +207,7 @@ def get_parser():
     )
     parser.add_argument(
         'input',
-        nargs='?',
+        nargs='*',
         help="Input text (or read from stdin)"
     )
     
@@ -173,8 +216,9 @@ def get_parser():
 async def run_args(input_text: str, args):
     try:
         # Ensure directories exist
-        CONFIG_DIR.mkdir(parents=True, exist_ok=True)
-        COOKIES_DIR.mkdir(parents=True, exist_ok=True)
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.conversation_file.parent.mkdir(parents=True, exist_ok=True)
+        args.cookies_dir.mkdir(parents=True, exist_ok=True)
 
         if args.debug:
             debug.logging = True
@@ -193,7 +237,7 @@ async def run_args(input_text: str, args):
         client = AsyncClient(provider=conversation.provider)
         
         # Stream response and update conversation
-        await stream_response(client, input_text, conversation)
+        await stream_response(client, input_text, conversation, args.output)
         
         # Save conversation state
         conversation.save()
@@ -201,19 +245,19 @@ async def run_args(input_text: str, args):
         print()  # Ensure final newline
         
     except Exception as e:
-        print(f"\nError: {e}", file=sys.stderr)
+        print(traceback.format_exc(), file=sys.stderr)
         sys.exit(1)
 
 def run_client_args(args):
-    input_text = args.input
+    input_text = " ".join(args.input)
+    if os.path.isfile(input_text):
+        with open(input_text, 'r', encoding='utf-8') as f:
+            input_text = f.read().strip()
     if not input_text:
         input_text = sys.stdin.read().strip()
     if not input_text:
         print("No input provided. Use -h for help.", file=sys.stderr)
         sys.exit(1)
-    if os.path.isfile(input_text):
-        with open(input_text, 'r', encoding='utf-8') as f:
-            input_text = f.read().strip()
     # Run the client with provided arguments
     asyncio.run(run_args(input_text, args))
 

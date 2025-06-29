@@ -7,7 +7,7 @@ import requests
 
 from ....providers.types import Messages
 from ....requests import StreamSession, raise_for_status
-from ....errors import ModelNotFoundError
+from ....errors import ModelNotFoundError, MissingAuthError
 from ....providers.helper import format_media_prompt
 from ....providers.base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ....providers.response import ProviderInfo, ImageResponse, VideoResponse, Reasoning
@@ -115,6 +115,8 @@ class HuggingFaceMedia(AsyncGeneratorProvider, ProviderModelMixin):
         resolution: str = "480p",
         **kwargs
     ):
+        if not api_key:
+            raise MissingAuthError('Add a "api_key"')
         if extra_body is None:
             extra_body = {}
         selected_provider = None
