@@ -136,6 +136,7 @@ async def stream_response(
         except (IOError, BrokenPipeError) as e:
             print(f"\nError writing to stdout: {e}", file=sys.stderr)
             break
+    print("\n", end="")
 
     conversation.conversation = getattr(last_chunk, 'conversation', None)
     response_content = response_content[0] if len(response_content) == 1 else "".join([str(chunk) for chunk in response_content])
@@ -168,7 +169,7 @@ def save_content(content, filepath: str, allowed_types = None):
             with open(filepath, "wb") as f:
                 f.write(response.content)
             return True
-    content = filter_markdown(content, allowed_types)
+    content = filter_markdown(content, allowed_types, content)
     if content:
         with open(filepath, "w") as f:
             f.write(content)
@@ -216,7 +217,7 @@ def get_parser():
         help="File to store/load conversation state"
     )
     parser.add_argument(
-        '--clear-history',
+        '-C', '--clear-history',
         action='store_true',
         help="Clear conversation history before starting"
     )
@@ -257,9 +258,7 @@ async def run_args(input_text: str, args):
         
         # Save conversation state
         conversation.save()
-        
-        print()  # Ensure final newline
-        
+                
     except Exception as e:
         print(traceback.format_exc(), file=sys.stderr)
         sys.exit(1)
@@ -268,14 +267,16 @@ def run_client_args(args):
     input_text = ""
     if args.input and os.path.isfile(args.input[0]):
         with open(args.input[0], 'rb') as f:
-            if is_accepted_format(f.read(12)):
-                input_text = (Path(args.input[0]), " ".join(args.input[1:]))
-            else:
-                with open(input_text, 'r', encoding='utf-8') as f:
+            try:
+                if is_accepted_format(f.read(12)):
+                    input_text = (Path(args.input[0]), " ".join(args.input[1:]))
+            except ValueError:
+                # If not a valid image, read as text
+                with open(args.input[0], 'r', encoding='utf-8') as f:
                     file_content = f.read().strip()
-                if len(input_text) > 1:
-                    input_text = " ".join(input_text[1:])
-                input_text = f"```{os.path.basename(input_text)}\n" + file_content + "\n```" + input_text
+                if len(args.input) > 1:
+                    input_text = " ".join(args.input[1:]) + "\n"
+                input_text += f"```{os.path.basename(args.input[0])}\n" + file_content + "\n```"
     elif args.input:
         input_text = " ".join(args.input)
     if not input_text:
