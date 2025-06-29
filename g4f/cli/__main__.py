@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 from argparse import ArgumentParser
+from .client import get_parser, run_client_args
 
 from g4f import Provider
 from g4f.gui.run import gui_parser, run_gui_args
@@ -41,12 +42,15 @@ def main():
     subparsers = parser.add_subparsers(dest="mode", help="Mode to run the g4f in.")
     subparsers.add_parser("api", parents=[get_api_parser()], add_help=False)
     subparsers.add_parser("gui", parents=[gui_parser()], add_help=False)
+    subparsers.add_parser("client", parents=[get_parser()], add_help=False)
 
     args = parser.parse_args()
     if args.mode == "api":
         run_api_args(args)
     elif args.mode == "gui":
         run_gui_args(args)
+    elif args.mode == "client":
+        run_client_args(args)
     else:
         parser.print_help()
         exit(1)
