@@ -92,12 +92,17 @@ async def stream_response(
     client: AsyncClient,
     input_text: str,
     conversation: ConversationManager,
-    output_file: Optional[Path] = None
+    output_file: Optional[Path] = None,
+    instructions: Optional[str] = None
 ) -> None:
     """Stream the response from the API and update conversation."""
     input_text = input_text.strip()
     if not input_text:
         raise ValueError("Input text cannot be empty")
+    
+    if instructions:
+        # Add system instructions to conversation if provided
+        conversation.add_message("system", instructions)
 
     # Add user message to conversation
     conversation.add_message("user", input_text)
@@ -189,6 +194,11 @@ def get_parser():
         help="Output file to save the response file."
     )
     parser.add_argument(
+        '-i', '--instructions',
+        default=None,
+        help="Add custom system instructions."
+    )
+    parser.add_argument(
         '-c', '--cookies-dir',
         type=Path,
         default=COOKIES_DIR,
@@ -237,7 +247,7 @@ async def run_args(input_text: str, args):
         client = AsyncClient(provider=conversation.provider)
         
         # Stream response and update conversation
-        await stream_response(client, input_text, conversation, args.output)
+        await stream_response(client, input_text, conversation, args.output, args.instructions)
         
         # Save conversation state
         conversation.save()
