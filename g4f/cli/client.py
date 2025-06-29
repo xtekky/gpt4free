@@ -12,7 +12,7 @@ from g4f.client import AsyncClient
 from g4f.providers.response import JsonConversation, is_content
 from g4f.cookies import set_cookies_dir, read_cookie_files
 from g4f.Provider import ProviderUtils
-from g4f.image import extract_data_uri
+from g4f.image import extract_data_uri, is_accepted_format
 from g4f.image.copy_images import get_media_dir
 from g4f.client.helper import filter_markdown
 from g4f import debug
@@ -65,6 +65,9 @@ class ConversationManager:
 
     def save(self) -> None:
         """Save conversation to file."""
+        if not self.file_path:
+            return
+
         try:
             with open(self.file_path, 'w', encoding='utf-8') as f:
                 if self.conversation and self.provider:
@@ -96,9 +99,10 @@ async def stream_response(
     instructions: Optional[str] = None
 ) -> None:
     """Stream the response from the API and update conversation."""
+    image = None
+    if isinstance(input_text, tuple):
+        image, input_text = input_text
     input_text = input_text.strip()
-    if not input_text:
-        raise ValueError("Input text cannot be empty")
     
     if instructions:
         # Add system instructions to conversation if provided
@@ -109,7 +113,8 @@ async def stream_response(
 
     create_args = {
         "messages": conversation.get_messages(),
-        "stream": True
+        "stream": True,
+        "image": image
     }
     
     if conversation.model:
@@ -150,7 +155,7 @@ def save_content(content, filepath: str, allowed_types = None):
     elif hasattr(content, "data"):
         content = content.data
     if content.startswith("/media/"):
-        os.rename(content.replace("/media", get_media_dir()), filepath)
+        os.rename(content.replace("/media", get_media_dir()).split("?")[0], filepath)
         return True
     elif content.startswith("data:"):
         with open(filepath, "wb") as f:
@@ -226,7 +231,8 @@ def get_parser():
 async def run_args(input_text: str, args):
     try:
         # Ensure directories exist
-        args.output.parent.mkdir(parents=True, exist_ok=True)
+        if args.output:
+            args.output.parent.mkdir(parents=True, exist_ok=True)
         args.conversation_file.parent.mkdir(parents=True, exist_ok=True)
         args.cookies_dir.mkdir(parents=True, exist_ok=True)
 
@@ -259,10 +265,19 @@ async def run_args(input_text: str, args):
         sys.exit(1)
 
 def run_client_args(args):
-    input_text = " ".join(args.input)
-    if os.path.isfile(input_text):
-        with open(input_text, 'r', encoding='utf-8') as f:
-            input_text = f.read().strip()
+    input_text = ""
+    if args.input and os.path.isfile(args.input[0]):
+        with open(args.input[0], 'rb') as f:
+            if is_accepted_format(f.read(12)):
+                input_text = (Path(args.input[0]), " ".join(args.input[1:]))
+            else:
+                with open(input_text, 'r', encoding='utf-8') as f:
+                    file_content = f.read().strip()
+                if len(input_text) > 1:
+                    input_text = " ".join(input_text[1:])
+                input_text = f"```{os.path.basename(input_text)}\n" + file_content + "\n```" + input_text
+    elif args.input:
+        input_text = " ".join(args.input)
     if not input_text:
         input_text = sys.stdin.read().strip()
     if not input_text:

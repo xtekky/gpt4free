@@ -47,7 +47,7 @@ def add_chunk(content, chunk):
 
 def resolve_media(kwargs: dict, image = None, image_name: str = None) -> None:
     if image is not None:
-        kwargs["media"] = [(image, image_name)]
+        kwargs["media"] = [(image, getattr(image, "name", image_name))]
     elif "images" in kwargs:
         kwargs["media"] = kwargs.pop("images")
     if "media" in kwargs and not isinstance(kwargs["media"], list):
