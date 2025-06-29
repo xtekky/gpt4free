@@ -44,7 +44,7 @@ class ConversationManager:
 
     def _load(self) -> None:
         """Load conversation from file."""
-        if not self.file_path.exists():
+        if not self.file_path.is_file():
             return
 
         try:
@@ -67,7 +67,7 @@ class ConversationManager:
 
     def save(self) -> None:
         """Save conversation to file."""
-        if not self.file_path:
+        if self.file_path.exists() and not self.file_path.is_file():
             return
 
         try:
@@ -285,7 +285,7 @@ def run_client_args(args):
                 print(f"Error reading file {args.input[0]} as text. Ensure it is a valid text file.", file=sys.stderr)
                 sys.exit(1)
             if len(args.input) > 1:
-                input_text = f"{' '.join(args.input[1:])}\n```{os.path.basename(args.input[0])}\n" + file_content + "\n```"
+                input_text = f"{' '.join(args.input[1:])}\n```{os.path.basename(args.input[0])}\n{file_content}\n```"
             else:
                 input_text = file_content
     elif args.input:
