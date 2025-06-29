@@ -55,8 +55,10 @@ class ConversationManager:
                 if not self.provider:
                     self.provider = None
                 self.data = data.get("data", {})
-                if self.provider and data.get(self.provider):
-                    self.conversation = JsonConversation(**data.get(self.provider))
+                if self.provider and self.data.get(self.provider):
+                    self.conversation = JsonConversation(**self.data.get(self.provider))
+                elif not self.provider and self.data:
+                    self.conversation = JsonConversation(**self.data)
                 self.history = data.get("history", [])
         except (json.JSONDecodeError, KeyError) as e:
             print(f"Error loading conversation: {e}", file=sys.stderr)
@@ -183,7 +185,7 @@ def save_content(content, filepath: str, allowed_types = None):
 def get_parser():
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(
-        description="GPT CLI client with conversation history",
+        description="G4F CLI client with conversation history",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
     parser.add_argument("--debug", "-d", action="store_true", help="Enable verbose logging.")
@@ -263,25 +265,29 @@ async def run_args(input_text: str, args):
         
         # Save conversation state
         conversation.save()
-                
-    except Exception as e:
+    except:
         print(traceback.format_exc(), file=sys.stderr)
         sys.exit(1)
 
 def run_client_args(args):
     input_text = ""
     if args.input and os.path.isfile(args.input[0]):
-        with open(args.input[0], 'rb') as f:
-            try:
+        try:
+            with open(args.input[0], 'rb') as f:
                 if is_accepted_format(f.read(12)):
                     input_text = (Path(args.input[0]), " ".join(args.input[1:]))
-            except ValueError:
-                # If not a valid image, read as text
+        except ValueError:
+            # If not a valid image, read as text
+            try:
                 with open(args.input[0], 'r', encoding='utf-8') as f:
                     file_content = f.read().strip()
-                if len(args.input) > 1:
-                    input_text = " ".join(args.input[1:]) + "\n"
-                input_text += f"```{os.path.basename(args.input[0])}\n" + file_content + "\n```"
+            except UnicodeDecodeError:
+                print(f"Error reading file {args.input[0]} as text. Ensure it is a valid text file.", file=sys.stderr)
+                sys.exit(1)
+            if len(args.input) > 1:
+                input_text = f"{' '.join(args.input[1:])}\n```{os.path.basename(args.input[0])}\n" + file_content + "\n```"
+            else:
+                input_text = file_content
     elif args.input:
         input_text = (" ".join(args.input)).strip()
     if not input_text:
