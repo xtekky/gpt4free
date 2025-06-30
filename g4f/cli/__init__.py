@@ -65,3 +65,21 @@ def run_api_args(args):
         ssl_certfile=args.ssl_certfile,
         log_config=args.log_config,
     )
+
+def main():
+    parser = argparse.ArgumentParser(description="Run gpt4free")
+    subparsers = parser.add_subparsers(dest="mode", help="Mode to run the g4f in.")
+    subparsers.add_parser("api", parents=[get_api_parser()], add_help=False)
+    subparsers.add_parser("gui", parents=[gui_parser()], add_help=False)
+    subparsers.add_parser("client", parents=[get_parser()], add_help=False)
+
+    args = parser.parse_args()
+    if args.mode == "api":
+        run_api_args(args)
+    elif args.mode == "gui":
+        run_gui_args(args)
+    elif args.mode == "client":
+        run_client_args(args)
+    else:
+        parser.print_help()
+        exit(1)
