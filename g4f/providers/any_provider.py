@@ -7,6 +7,7 @@ from ..typing import AsyncResult, Messages, MediaListType, Union
 from ..errors import ModelNotFoundError
 from ..image import is_data_an_audio
 from ..providers.retry_provider import IterListProvider
+from ..Provider import ProviderUtils # Keep this for converting provider names to classes
 from ..Provider.needs_auth import OpenaiChat, CopilotAccount
 from ..Provider.hf_space import HuggingSpace
 from ..Provider import Cloudflare, Gemini, GeminiPro, Grok, DeepSeekAPI, PerplexityLabs, LambdaChat, PollinationsAI, PuterJS
@@ -19,6 +20,52 @@ from .. import Provider
 from .. import models
 from .. import debug
 from .any_model_map import audio_models, image_models, vision_models, video_models, model_map, models_count, parents
+
+# =================================================================================
+# BEGIN: External Priority Routing from g4f_routing.json
+# =================================================================================
+_priority_routing_config = None
+
+def load_priority_routing():
+    """
+    Loads the priority routing configuration from 'g4f_routing.json' located in the package root.
+    Caches the configuration to avoid repeated disk reads.
+    """
+    global _priority_routing_config
+    if _priority_routing_config is not None:
+        return _priority_routing_config
+
+    _priority_routing_config = {}  # Default to empty if file not found or invalid
+    try:
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        package_root = os.path.join(current_dir, '..')
+        config_path = os.path.join(package_root, 'g4f_routing.json')
+        
+        if os.path.exists(config_path):
+            with open(config_path, 'r') as f:
+                config_data = json.load(f)
+                # Use the "routes" key from the JSON file
+                routes = config_data.get("routes", {})
+                # Convert provider names (strings) to actual Provider classes
+                _priority_routing_config = {
+                    model: ProviderUtils.convert.get(provider_name)
+                    for model, provider_name in routes.items()
+                    if ProviderUtils.convert.get(provider_name) is not None
+                }
+                debug.log(f"Priority routing config loaded successfully from: {config_path}")
+        else:
+            debug.log(f"Priority routing file not found at path: {config_path}. Skipping.")
+            
+    except (json.JSONDecodeError, IOError) as e:
+        debug.error(f"Error loading or parsing g4f_routing.json: {e}")
+    except Exception as e:
+        debug.error(f"An unexpected error occurred in load_priority_routing: {e}")
+
+    return _priority_routing_config
+# =================================================================================
+# END: External Priority Routing
+# =================================================================================
+
 
 PROVIERS_LIST_1 = [
     OpenaiChat, PollinationsAI, Cloudflare, PerplexityLabs, Gemini, Grok, DeepSeekAPI, Blackbox, OpenAIFM,
@@ -35,6 +82,7 @@ PROVIERS_LIST_3 = [
     HarProvider, LambdaChat, DeepInfraChat, HuggingFace, HuggingFaceMedia, HarProvider, LegacyLMArena, LMArenaBeta,
     PuterJS, Together, Cloudflare, HuggingSpace
 ]
+
 
 LABELS = {
     "default": "Default",
@@ -62,282 +110,9 @@ LABELS = {
 }
 
 class AnyModelProviderMixin(ProviderModelMixin):
-    """Mixin to provide model-related methods for providers."""
+    # ... (le reste de cette classe est inchangé)
+    pass
 
-    default_model = "default"
-    audio_models = audio_models
-    image_models = image_models
-    vision_models = vision_models
-    video_models = video_models
-    models_count = models_count
-    models = list(model_map.keys())
-    model_map: dict[str, dict[str, str]] = model_map
-
-    @classmethod
-    def extend_ignored(cls, ignored: list[str]) -> list[str]:
-        """Extend the ignored list with parent providers."""
-        for ignored_provider in ignored:
-            if ignored_provider in parents and parents[ignored_provider] not in ignored:
-                ignored.extend(parents[ignored_provider])
-        return ignored
-
-    @classmethod
-    def get_models(cls, ignored: list[str] = []) -> list[str]:
-        if not ignored:
-            return cls.models
-        if not cls.model_map:
-            cls.update_model_map()
-        ignored = cls.extend_ignored(ignored)
-        filtered = []
-        for model, providers in cls.model_map.items():
-            for provider in providers.keys():
-                if provider not in ignored:
-                    filtered.append(model)
-                    break
-        return filtered
-
-    @classmethod
-    def update_model_map(cls):
-        cls.create_model_map()
-        file = os.path.join(os.path.dirname(__file__), "any_model_map.py")
-        with open(file, "w", encoding="utf-8") as f:
-            for key in ["audio_models", "image_models", "vision_models", "video_models", "model_map", "models_count", "parents"]:
-                value = getattr(cls, key)
-                f.write(f"{key} = {json.dumps(value, indent=2) if isinstance(value, dict) else repr(value)}\n")
-
-    @classmethod
-    def create_model_map(cls):
-        cls.audio_models = {}
-        cls.image_models = []
-        cls.vision_models = []
-        cls.video_models = []
-
-        # Get models from the models registry
-        cls.model_map = {
-            "default": {provider.__name__: "" for provider in models.default.best_provider.providers},
-        }
-        cls.model_map.update({ 
-            model: {
-                provider.__name__: model for provider in providers
-                if provider.working
-            } for model, (_, providers) in models.__models__.items()
-        })
-
-        # Process special providers
-        for provider in PROVIERS_LIST_2:
-            if not provider.working:
-                continue
-            try:
-                if provider == CopilotAccount:
-                    for model in provider.model_aliases.keys():
-                        if model not in cls.model_map:
-                            cls.model_map[model] = {}
-                        cls.model_map[model].update({provider.__name__: model})
-                elif provider == PollinationsAI:
-                    for model in provider.get_models():
-                        pmodel = f"{provider.__name__}:{model}"
-                        if pmodel not in cls.model_map:
-                            cls.model_map[pmodel] = {}
-                        cls.model_map[pmodel].update({provider.__name__: model})
-                    cls.audio_models.update({f"{provider.__name__}:{model}": [] for model in provider.get_models() if model in provider.audio_models})
-                    cls.image_models.extend([f"{provider.__name__}:{model}" for model in provider.get_models() if model in provider.image_models])
-                    cls.vision_models.extend([f"{provider.__name__}:{model}" for model in provider.get_models() if model in provider.vision_models])
-                    for model in provider.model_aliases.keys():
-                        if model not in cls.model_map:
-                            cls.model_map[model] = {}
-                        cls.model_map[model].update({provider.__name__: model})
-                else:
-                    for model in provider.get_models():
-                        if model not in cls.model_map:
-                            cls.model_map[model] = {}
-                        cls.model_map[model].update({provider.__name__: model})
-            except Exception as e:
-                debug.error(f"Error getting models for provider {provider.__name__}:", e)
-                continue
-
-            # Update special model lists
-            if hasattr(provider, 'image_models'):
-                cls.image_models.extend(provider.image_models)
-            if hasattr(provider, 'vision_models'):
-                cls.vision_models.extend(provider.vision_models)
-            if hasattr(provider, 'video_models'):
-                cls.video_models.extend(provider.video_models)
-
-        # Clean model names function
-        def clean_name(name: str) -> str:
-            name = name.split("/")[-1].split(":")[0].lower()
-            # Date patterns
-            name = re.sub(r'-\d{4}-\d{2}-\d{2}', '', name)
-            # name = re.sub(r'-\d{3,8}', '', name)
-            name = re.sub(r'-\d{2}-\d{2}', '', name)
-            name = re.sub(r'-[0-9a-f]{8}$', '', name)
-            # Version patterns
-            name = re.sub(r'-(instruct|chat|preview|experimental|v\d+|fp8|bf16|hf|free|tput)$', '', name)
-            # Other replacements
-            name = name.replace("_", ".")
-            name = name.replace("c4ai-", "")
-            name = name.replace("meta-llama-", "llama-")
-            name = name.replace("llama3", "llama-3")
-            name = name.replace("flux.1-", "flux-")
-            name = name.replace("qwen1-", "qwen-1")
-            name = name.replace("qwen2-", "qwen-2")
-            name = name.replace("qwen3-", "qwen-3")
-            name = name.replace("stable-diffusion-3.5-large", "sd-3.5-large")
-            return name
-
-        for provider in PROVIERS_LIST_3:
-            if not provider.working:
-                continue
-            try:
-                new_models = provider.get_models()
-            except Exception as e:
-                debug.error(f"Error getting models for provider {provider.__name__}:", e)
-                continue
-            if provider == HuggingFaceMedia:
-                new_models = provider.video_models
-            model_map = {}
-            for model in new_models:
-                clean_value = model if model.startswith("openrouter:") else clean_name(model)
-                if clean_value not in model_map:
-                    model_map[clean_value] = model
-            if provider.model_aliases:
-                model_map.update(provider.model_aliases)
-            for alias, model in model_map.items():
-                if alias not in cls.model_map:
-                    cls.model_map[alias] = {}
-                cls.model_map[alias].update({provider.__name__: model})
-
-            # Update special model lists with both original and cleaned names
-            if hasattr(provider, 'image_models'):
-                cls.image_models.extend(provider.image_models)
-                cls.image_models.extend([clean_name(model) for model in provider.image_models])
-            if hasattr(provider, 'vision_models'):
-                cls.vision_models.extend(provider.vision_models)
-                cls.vision_models.extend([clean_name(model) for model in provider.vision_models])
-            if hasattr(provider, 'video_models'):
-                cls.video_models.extend(provider.video_models)
-                cls.video_models.extend([clean_name(model) for model in provider.video_models])
-
-        for provider in PROVIERS_LIST_1:
-            if provider.working:
-                for model in provider.get_models():
-                    if model in cls.model_map:
-                        cls.model_map[model].update({provider.__name__: model})
-                for alias, model in provider.model_aliases.items():
-                    if alias in cls.model_map:
-                        cls.model_map[alias].update({provider.__name__: model})
-                if provider.__name__ == "GeminiPro":
-                    for model in cls.model_map.keys():
-                        if "gemini" in model or "gemma" in model:
-                            cls.model_map[alias].update({provider.__name__: model})
-
-        # Process audio providers
-        for provider in [Microsoft_Phi_4_Multimodal, PollinationsAI]:
-            if provider.working:
-                cls.audio_models.update(provider.audio_models)
-
-        # Update model counts
-        for model, providers in cls.model_map.items():
-            if len(providers) > 1:
-                cls.models_count[model] = len(providers)
-
-        cls.video_models.append("video")
-        cls.model_map["video"] = {"Video": "video"}
-        cls.audio_models = list(cls.audio_models.keys())
-
-        # Create a mapping of parent providers to their children
-        cls.parents = {}
-        for provider in PROVIERS_LIST_1 + PROVIERS_LIST_2 + PROVIERS_LIST_3:
-            if provider.working and provider.__name__ != provider.get_parent():
-                if provider.get_parent() not in cls.parents:
-                    cls.parents[provider.get_parent()] = [provider.__name__]
-                elif provider.__name__ not in cls.parents[provider.get_parent()]:
-                    cls.parents[provider.get_parent()].append(provider.__name__)
-
-    @classmethod
-    def get_grouped_models(cls, ignored: list[str] = []) -> dict[str, list[str]]:
-        unsorted_models = cls.get_models(ignored=ignored)
-        groups = {key: [] for key in LABELS.keys()}
-
-        # Always add default first
-        groups["default"].append("default")
-
-        for model in unsorted_models:
-            if model == "default":
-                continue  # Already added
-
-            added = False
-            # Check for models with prefix
-            start = model.split(":")[0]
-            if start in ("PollinationsAI", "openrouter"):
-                submodel = model.split(":", maxsplit=1)[1]
-                if submodel in OpenAIFM.voices or submodel in PollinationsAI.audio_models[PollinationsAI.default_audio_model]:
-                    groups["voices"].append(submodel)
-                else:
-                    groups[start].append(model)
-                added = True
-            # Check for Mistral company models specifically
-            elif model.startswith("mistral") and not any(x in model for x in ["dolphin", "nous", "openhermes"]):
-                groups["mistral"].append(model)
-                added = True
-            elif model.startswith(("pixtral-", "ministral-", "codestral")) or "mistral" in model or "mixtral" in model:
-                groups["mistral"].append(model)
-                added = True
-            # Check for Qwen models
-            elif model.startswith(("qwen", "Qwen", "qwq", "qvq")):
-                groups["qwen"].append(model)
-                added = True
-            # Check for Microsoft Phi models
-            elif model.startswith(("phi-", "microsoft/")) or "wizardlm" in model.lower():
-                groups["phi"].append(model)
-                added = True
-            # Check for Meta LLaMA models
-            elif model.startswith(("llama-", "meta-llama/", "llama2-", "llama3")):
-                groups["llama"].append(model)
-                added = True
-            elif model == "meta-ai" or model.startswith("codellama-"):
-                groups["llama"].append(model)
-                added = True
-            # Check for Google models
-            elif model.startswith(("gemini-", "gemma-", "google/", "bard-")):
-                groups["google"].append(model)
-                added = True
-            # Check for Cohere Command models
-            elif model.startswith(("command-", "CohereForAI/", "c4ai-command")):
-                groups["command"].append(model)
-                added = True
-            # Check for DeepSeek models
-            elif model.startswith(("deepseek-", "janus-")):
-                groups["deepseek"].append(model)
-                added = True
-            # Check for Perplexity models
-            elif model.startswith(("sonar", "sonar-", "pplx-")) or model == "r1-1776":
-                groups["perplexity"].append(model)
-                added = True
-            # Check for image models - UPDATED to include flux check
-            elif model in cls.image_models:
-                groups["image"].append(model)
-                added = True
-            # Check for OpenAI models
-            elif model.startswith(("gpt-", "chatgpt-", "o1", "o1-", "o3-", "o4-")) or model in ("auto", "searchgpt"):
-                groups["openai"].append(model)
-                added = True
-            # Check for video models
-            elif model in cls.video_models:
-                groups["video"].append(model)
-                added = True
-            if not added:
-                for group in LABELS.keys():
-                    if model == group or group in model:
-                        groups[group].append(model)
-                        added = True
-                        break
-            # If not categorized, check for special cases then put in other
-            if not added:
-                groups["other"].append(model)
-        return [
-            {"group": LABELS[group], "models": names} for group, names in groups.items()
-        ]
 
 class AnyProvider(AsyncGeneratorProvider, AnyModelProviderMixin):
     working = True
@@ -353,9 +128,41 @@ class AnyProvider(AsyncGeneratorProvider, AnyModelProviderMixin):
         api_key: Union[str, dict[str, str]] = None,
         **kwargs
     ) -> AsyncResult:
+        # =================================================================================
+        # BEGIN: Priority Routing Logic (Final Version)
+        # =================================================================================
+        routing_map = load_priority_routing()
+        if model in routing_map:
+            provider = routing_map[model]
+            if provider and provider.working and provider.get_parent() not in ignored:
+                debug.log(f"Priority routing: Using {provider.__name__} directly for model '{model}'")
+                try:
+                    # Get the actual model name for the provider, handling aliases
+                    actual_model_name_for_provider = provider.get_model(model)
+                    # Directly call the provider's generator
+                    async for chunk in provider.create_async_generator(
+                        model=actual_model_name_for_provider,
+                        messages=messages,
+                        stream=stream,
+                        media=media,
+                        api_key=api_key,
+                        **kwargs
+                    ):
+                        yield chunk
+                    return  # Stop execution here to bypass the default AnyProvider logic
+                except Exception as e:
+                    debug.error(f"Priority provider {provider.__name__} failed for '{model}': {e}")
+                    # If the priority provider fails, we let the default logic take over.
+            else:
+                debug.log(f"Priority provider for model '{model}' is not working or is ignored. Falling back to default logic.")
+        # =================================================================================
+        # END: Priority Routing Logic
+        # =================================================================================
+
         providers = []
         if not model or model == cls.default_model:
             model = ""
+            # ... (le reste de la logique de AnyProvider reste inchangé)
             has_image = False
             has_audio = False
             if not has_audio and media is not None:

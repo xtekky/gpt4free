@@ -1,0 +1,6 @@
+{
+  "comment": "Map model names or aliases to a specific provider class name for priority routing.",
+  "routes": {
+    "meta-llama/Llama-4-Scout-17B-16E-Instruct": "DeepInfraChat"
+  }
+}
