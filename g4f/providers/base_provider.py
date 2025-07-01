@@ -449,6 +449,22 @@ class AsyncAuthedProvider(AsyncGeneratorProvider, AuthFileMixin):
             cache_file.unlink()
 
     @classmethod
+    def get_auth_result(cls) -> AuthResult:
+        """
+        Retrieves the authentication result from cache.
+        """
+        cache_file = cls.get_cache_file()
+        if cache_file.exists():
+            try:
+                with cache_file.open("r") as f:
+                    return AuthResult(**json.load(f))
+            except json.JSONDecodeError:
+                cache_file.unlink()
+                raise MissingAuthError(f"Invalid auth file: {cache_file}")
+        else:
+            raise MissingAuthError
+
+    @classmethod
     def create_completion(
         cls,
         model: str,
@@ -458,15 +474,7 @@ class AsyncAuthedProvider(AsyncGeneratorProvider, AuthFileMixin):
         auth_result: AuthResult = None
         cache_file = cls.get_cache_file()
         try:
-            if cache_file.exists():
-                try:
-                    with cache_file.open("r") as f:
-                        auth_result = AuthResult(**json.load(f))
-                except json.JSONDecodeError:
-                    cache_file.unlink()
-                    raise MissingAuthError(f"Invalid auth file: {cache_file}")
-            else:
-                raise MissingAuthError
+            auth_result = cls.get_auth_result()
             yield from to_sync_generator(cls.create_authed(model, messages, auth_result, **kwargs))
         except (MissingAuthError, NoValidHarFileError):
             response = cls.on_auth(**kwargs)
@@ -491,15 +499,7 @@ class AsyncAuthedProvider(AsyncGeneratorProvider, AuthFileMixin):
         auth_result: AuthResult = None
         cache_file = cls.get_cache_file()
         try:
-            if cache_file.exists():
-                try:
-                    with cache_file.open("r") as f:
-                        auth_result = AuthResult(**json.load(f))
-                except json.JSONDecodeError:
-                    cache_file.unlink()
-                    raise MissingAuthError(f"Invalid auth file: {cache_file}")
-            else:
-                raise MissingAuthError
+            auth_result = cls.get_auth_result()
             response = to_async_iterator(cls.create_authed(model, messages, **kwargs, auth_result=auth_result))
             async for chunk in response:
                 yield chunk

@@ -78,6 +78,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
 
     # Models configuration
     default_model = "openai"
+    fallback_model = "deepseek"
     default_image_model = "flux"
     default_vision_model = default_model
     default_audio_model = "openai-audio"
@@ -288,7 +289,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                         break
             model = cls.default_audio_model if has_audio else model
         try:
-            model = cls.get_model(model)
+            model = cls.get_model(model) if model else None
         except ModelNotFoundError:
             pass
         if model in cls.image_models:

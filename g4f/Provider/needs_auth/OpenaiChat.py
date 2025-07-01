@@ -603,8 +603,6 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
 
     @classmethod
     async def synthesize(cls, params: dict) -> AsyncIterator[bytes]:
-        async for _ in cls.login():
-            pass
         async with StreamSession(
             impersonate="chrome",
             timeout=0
