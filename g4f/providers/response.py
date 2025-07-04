@@ -64,7 +64,7 @@ def format_link(url: str, title: Optional[str] = None) -> str:
     Returns:
         str: The formatted markdown link
     """
-    if title is None:
+    if title is None or not title.strip():
         try:
             title = unquote(url.split("//", maxsplit=1)[1].split("?")[0].replace("www.", ""))
         except IndexError:
