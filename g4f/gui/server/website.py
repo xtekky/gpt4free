@@ -8,15 +8,16 @@ from flask import send_from_directory, redirect, request
 from ...image.copy_images import secure_filename
 from ...cookies import get_cookies_dir
 from ...errors import VersionNotFoundError
-from ...constants import STATIC_URL, DOWNLOAD_URL, DIST_DIR
+from ...config import STATIC_URL, DOWNLOAD_URL, DIST_DIR
 from ... import version
 
 def redirect_home():
     return redirect('/chat/')
 
-def render(filename = "chat"):
+def render(filename = "home"):
+    filename += ("" if "." in filename else ".html")
     if os.path.exists(DIST_DIR) and not request.args.get("debug"):
-        path = os.path.abspath(os.path.join(os.path.dirname(DIST_DIR), (filename + ("" if "." in filename else ".html"))))
+        path = os.path.abspath(os.path.join(os.path.dirname(DIST_DIR), filename))
         return send_from_directory(os.path.dirname(path), os.path.basename(path))
     try:
         latest_version = version.utils.latest_version
@@ -31,7 +32,7 @@ def render(filename = "chat"):
             is_temp = True
         else:
             os.makedirs(cache_dir, exist_ok=True)
-        response = requests.get(f"{DOWNLOAD_URL}{filename}.html")
+        response = requests.get(f"{DOWNLOAD_URL}{filename}")
         if not response.ok:
             found = None
             for root, _, files in os.walk(cache_dir):
@@ -72,7 +73,7 @@ class Website:
                 'function': self._background,
                 'methods': ['GET', 'POST']
             },
-            '/chat/<conversation_id>': {
+            '/chat/<filename>': {
                 'function': self._chat,
                 'methods': ['GET', 'POST']
             },
@@ -95,8 +96,8 @@ class Website:
     def _background(self, filename = "background"):
         return render(filename)
 
-    def _chat(self, filename = "chat"):
-        filename = "chat/index" if filename == 'chat' else secure_filename(filename)
+    def _chat(self, filename = ""):
+        filename = f"chat/{filename}" if filename else "chat/index"
         return render(filename)
 
     def _dist(self, name: str):

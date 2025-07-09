@@ -347,7 +347,7 @@ def generate_commit_message(diff_text: str, model: str = DEFAULT_MODEL, max_retr
                         spinner = None
                     content.append(chunk.choices[0].delta.content)
                     print(chunk.choices[0].delta.content, end="", flush=True)
-            return "".join(content).strip("`").strip()
+            return "".join(content).strip("`").split("\n---\n")[0].strip()
         except Exception as e:
             # Stop spinner if it's running
             if 'spinner' in locals() and spinner:

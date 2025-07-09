@@ -44,11 +44,12 @@ except ImportError:
 
 from .typing import Dict, Cookies
 from .errors import MissingRequirementsError
+from .config import COOKIES_DIR, CUSTOM_COOKIES_DIR
 from . import debug
 
 class CookiesConfig():
     cookies: Dict[str, Cookies] = {}
-    cookies_dir: str = "./har_and_cookies"
+    cookies_dir: str = CUSTOM_COOKIES_DIR if os.path.exists(CUSTOM_COOKIES_DIR) else COOKIES_DIR
 
 DOMAINS = [
     ".bing.com",

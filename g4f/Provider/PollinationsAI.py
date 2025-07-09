@@ -21,7 +21,7 @@ from ..image.copy_images import save_response_media
 from ..image import use_aspect_ratio
 from ..providers.response import FinishReason, Usage, ToolCalls, ImageResponse, Reasoning, TitleGeneration, SuggestedFollowups, ProviderInfo, AudioResponse
 from ..tools.media import render_messages
-from ..constants import STATIC_URL
+from ..config import STATIC_URL
 from .. import debug
 
 DEFAULT_HEADERS = {
@@ -40,14 +40,14 @@ FOLLOWUPS_TOOLS = [{
         "parameters": {
             "properties": {
                 "title": {
-                    "title": "Conversation Title",
+                    "title": "Conversation title. Prefixed with one or more emojies",
                     "type": "string"
                 },
                 "followups": {
                     "items": {
                         "type": "string"
                     },
-                    "title": "Suggested Followups",
+                    "title": "Suggested 4 Followups (only user messages)",
                     "type": "array"
                 }
             },
@@ -59,7 +59,7 @@ FOLLOWUPS_TOOLS = [{
 
 FOLLOWUPS_DEVELOPER_MESSAGE = [{
     "role": "developer",
-    "content": "Prefix conversation title with one or more emojies. Suggested 4 Followups (User messages only).",
+    "content": "Provide conversation options.",
 }]
 
 class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
@@ -83,61 +83,38 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
     default_vision_model = default_model
     default_audio_model = "openai-audio"
     text_models = [default_model, "evil"]
-    image_models = [default_image_model, "flux-dev", "turbo", "gptimage"]
+    image_models = [default_image_model, "kontext", "gptimage"]
     audio_models = {default_audio_model: []}
-    vision_models = [default_vision_model, "gpt-4o-mini", "openai", "openai-large", "openai-reasoning", "searchgpt"]
+    vision_models = [default_vision_model]
     _models_loaded = False
-    # https://github.com/pollinations/pollinations/blob/master/text.pollinations.ai/generateTextPortkey.js#L15
     model_aliases = {
-        ### Text Models ###
+        "gpt-4": "openai",
+        "gpt-4o": "openai",
+        "gpt-4.1-mini": "openai",
         "gpt-4o-mini": "openai",
         "gpt-4.1-nano": "openai-fast",
-        "gpt-4": "openai-large",
-        "gpt-4o": "openai-large",
         "gpt-4.1": "openai-large",
-        "gpt-4o-audio": "openai-audio",
         "o4-mini": "openai-reasoning",
-        "gpt-4.1-mini": "openai",
-        "command-r-plus": "command-r",
-        "gemini-2.5-flash": "gemini",
-        "gemini-2.0-flash-thinking": "gemini-thinking",
         "qwen-2.5-coder-32b": "qwen-coder",
         "llama-3.3-70b": "llama",
         "llama-4-scout": "llamascout",
-        "llama-4-scout-17b": "llamascout",
         "mistral-small-3.1-24b": "mistral",
-        "deepseek-r1": "deepseek-reasoning-large",
-        "deepseek-r1-distill-llama-70b": "deepseek-reasoning-large",
-        #"deepseek-r1-distill-llama-70b": "deepseek-r1-llama",
-        #"mistral-small-3.1-24b": "unity", # Personas
-        #"mirexa": "mirexa", # Personas
-        #"midijourney": "midijourney", # Personas
-        #"rtist": "rtist", # Personas
-        #"searchgpt": "searchgpt",
-        #"evil": "evil", # Personas
-        "deepseek-r1-distill-qwen-32b": "deepseek-reasoning",
         "phi-4": "phi",
-        #"pixtral-12b": "pixtral",
-        #"hormoz-8b": "hormoz",
-        "qwq-32b": "qwen-qwq",
-        #"hypnosis-tracy-7b": "hypnosis-tracy", # Personas
-        #"mistral-?": "sur", # Personas
-        "deepseek-v3": "deepseek",
+        "deepseek-r1": "deepseek-reasoning",
         "deepseek-v3-0324": "deepseek",
-        #"bidara": "bidara", # Personas
+        "deepseek-v3": "deepseek",
         "grok-3-mini": "grok",
-
-        ### Audio Models ###
-        "gpt-4o-audio": "openai-audio",
+        "grok-3-mini-high": "grok",
         "gpt-4o-mini-audio": "openai-audio",
-
-        ### Image Models ###
+        "gpt-4o-audio": "openai-audio",
         "sdxl-turbo": "turbo",
         "gpt-image": "gptimage",
-        "dall-e-3": "gptimage",
+        "flux-dev": "flux",
+        "flux-schnell": "flux",
         "flux-pro": "flux",
-        "flux-schnell": "flux"
+        "flux": "flux",
     }
+    swap_models = {value: key for key, value in model_aliases.items()}
 
     @classmethod
     def get_model(cls, model: str) -> str:
@@ -185,11 +162,14 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                 cls.audio_models = {
                     model.get("name"): model.get("voices")
                     for model in models
-                    if "output_modalities" in model and "audio" in model["output_modalities"] and model.get("name") != "gemini"
+                    if "output_modalities" in model and "audio" in model["output_modalities"]
                 }
+                for alias, model in cls.model_aliases.items():
+                    if model in cls.audio_models and alias not in cls.audio_models:
+                        cls.audio_models.update({alias: {}})
 
                 cls.vision_models.extend([
-                    model.get("name")
+                    cls.swap_models.get(model.get("name"), model.get("name"))
                     for model in models
                     if model.get("vision") and model not in cls.vision_models
                 ])
@@ -200,14 +180,11 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                 # Create a set of unique text models starting with default model
                 text_models = cls.text_models.copy()
 
-                # Add models from vision_models
-                text_models.extend(cls.vision_models)
-
                 # Add models from the API response
                 for model in models:
                     model_name = model.get("name")
                     if model_name and "input_modalities" in model and "text" in model["input_modalities"]:
-                        text_models.append(model_name)
+                        text_models.append(cls.swap_models.get(model_name, model_name))
 
                 # Convert to list and update text_models
                 cls.text_models = list(dict.fromkeys(text_models))
@@ -237,7 +214,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
             {"group": "Text Generation", "models": cls.text_models},
             {"group": "Image Generation", "models": cls.image_models},
             {"group": "Audio Generation", "models": list(cls.audio_models.keys())},
-            {"group": "Audio Voices", "models": cls.audio_models[cls.default_audio_model]}
+            {"group": "Audio Voices", "models": cls.audio_models.get(cls.default_audio_model, [])},
         ]
 
     @classmethod
@@ -270,7 +247,6 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         top_p: float = None,
         frequency_penalty: float = None,
         response_format: Optional[dict] = None,
-        download_media: bool = True,
         extra_parameters: list[str] = ["tools", "parallel_tool_calls", "tool_choice", "reasoning_effort", "logit_bias", "voice", "modalities", "audio"],
         **kwargs
     ) -> AsyncResult:
@@ -376,22 +352,18 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
             "enhance": str(enhance).lower(),
             "safe": str(safe).lower(),
         }
-        if model == "gptimage":
-            n = 1
-            # Only remote images are supported
-            image = [item[0] for item in media if isinstance(item[0], str) and item[0].startswith("http")] if media else []
-            params = {
-                **params,
-                "transparent": str(transparent).lower(),
-                "image": ",".join(image) if image else "",
-            }
-        else:
+        if transparent:
+            params["transparent"] = "true"
+        image = [data for data, _ in media if isinstance(data, str) and data.startswith("http")] if media else []
+        if image:
+            params["image"] = ",".join(image)
+        if model != "gptimage":
             params = use_aspect_ratio({
                 "width": width,
                 "height": height,
                 **params
             }, "1:1" if aspect_ratio is None else aspect_ratio)
-        query = "&".join(f"{k}={quote_plus(str(v))}" for k, v in params.items() if v is not None)
+        query = "&".join(f"{k}={quote(str(v))}" for k, v in params.items() if v is not None)
         encoded_prompt = prompt.strip(". \n")
         if model == "gptimage" and aspect_ratio is not None:
             encoded_prompt = f"{encoded_prompt} aspect-ratio: {aspect_ratio}"

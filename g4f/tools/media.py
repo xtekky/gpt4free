@@ -56,6 +56,7 @@ def render_part(part: dict) -> dict:
 
 def merge_media(media: list, messages: list) -> Iterator:
     buffer = []
+    # Read media from the last user message
     for message in messages:
         if message.get("role") == "user":
             content = message.get("content")
@@ -90,13 +91,15 @@ def render_messages(messages: Messages, media: list = None) -> Iterator:
             last_is_assistant = True
         else:
             last_is_assistant = False
-        if isinstance(message["content"], list):
+        # Render content parts
+        if isinstance(message.get("content"), list):
             parts = [render_part(part) for part in message["content"] if part]
             yield {
                 **message,
                 "content": [part for part in parts if part]
             }
         else:
+            # Append media to the last message
             if media is not None and idx == len(messages) - 1:
                 yield {
                     **message,

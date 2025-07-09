@@ -438,6 +438,7 @@ async def download_urls(
                     if text_content:
                         filename = get_filename_from_url(url)
                         target = bucket_dir / filename
+                        text_content = f"{text_content.strip()}\n\nSource: {url}\n"
                         target.write_text(text_content, errors="replace")
                         return filename
                 except Exception as e:

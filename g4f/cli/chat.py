@@ -6,29 +6,20 @@ import asyncio
 import json
 import argparse
 import traceback
+import requests
 from pathlib import Path
 from typing import Optional, List, Dict
 from g4f.client import AsyncClient
-from g4f.providers.response import JsonConversation, is_content
+from g4f.providers.response import JsonConversation, MediaResponse, is_content
 from g4f.cookies import set_cookies_dir, read_cookie_files
 from g4f.Provider import ProviderUtils
 from g4f.image import extract_data_uri, is_accepted_format
 from g4f.image.copy_images import get_media_dir
 from g4f.client.helper import filter_markdown
+from g4f.integration.markitdown import MarkItDown
+from g4f.config import CONFIG_DIR, COOKIES_DIR
 from g4f import debug
 
-# Platform-appropriate directories
-def get_config_dir() -> Path:
-    """Get platform-appropriate config directory."""
-    if sys.platform == "win32":
-        return Path(os.environ.get("APPDATA", Path.home() / "AppData" / "Roaming"))
-    elif sys.platform == "darwin":
-        return Path.home() / "Library" / "Application Support"
-    else:  # Linux and other UNIX-like
-        return Path.home() / ".config"
-
-CONFIG_DIR = get_config_dir() / "g4f-cli"
-COOKIES_DIR = CONFIG_DIR / "cookies"
 CONVERSATION_FILE = CONFIG_DIR / "conversation.json"
 
 class ConversationManager:
@@ -59,7 +50,7 @@ class ConversationManager:
                     self.conversation = JsonConversation(**self.data.get(self.provider))
                 elif not self.provider and self.data:
                     self.conversation = JsonConversation(**self.data)
-                self.history = data.get("history", [])
+                self.history = data.get("items", [])
         except (json.JSONDecodeError, KeyError) as e:
             print(f"Error loading conversation: {e}", file=sys.stderr)
         except Exception as e:
@@ -80,7 +71,7 @@ class ConversationManager:
                     "model": self.model,
                     "provider": self.provider,
                     "data": self.data,
-                    "history": self.history
+                    "items": self.history
                 }, f, indent=2, ensure_ascii=False)
         except Exception as e:
             print(f"Error saving conversation: {e}", file=sys.stderr)
@@ -101,9 +92,9 @@ async def stream_response(
     instructions: Optional[str] = None
 ) -> None:
     """Stream the response from the API and update conversation."""
-    image = None
+    media = None
     if isinstance(input_text, tuple):
-        image, input_text = input_text
+        media, input_text = input_text
     
     if instructions:
         conversation.add_message("system", instructions)
@@ -113,7 +104,7 @@ async def stream_response(
     create_args = {
         "messages": conversation.get_messages(),
         "stream": True,
-        "image": image
+        "media": media
     }
     
     if conversation.model:
@@ -132,15 +123,17 @@ async def stream_response(
             for byte in str(token).encode('utf-8'):
                 sys.stdout.buffer.write(bytes([byte]))
                 sys.stdout.buffer.flush()
+                await asyncio.sleep(0.01)
         except (IOError, BrokenPipeError) as e:
             print(f"\nError writing to stdout: {e}", file=sys.stderr)
             break
     print("\n", end="")
 
     conversation.conversation = getattr(last_chunk, 'conversation', None)
+    media_content = next(iter([chunk for chunk in response_content if isinstance(chunk, MediaResponse)]), None)
     response_content = response_content[0] if len(response_content) == 1 else "".join([str(chunk) for chunk in response_content])
     if output_file:
-        if save_content(response_content, output_file):
+        if save_content(response_content, media_content, output_file):
             print(f"\nResponse saved to {output_file}")
 
     if response_content:
@@ -148,9 +141,22 @@ async def stream_response(
     else:
         raise RuntimeError("No response received from the API")
 
-def save_content(content, filepath: str, allowed_types = None):
-    if hasattr(content, "urls"):
-        content = next(iter(content.urls), None) if isinstance(content.urls, list) else content.urls
+def save_content(content, media_content: Optional[MediaResponse], filepath: str, allowed_types = None):
+    if media_content is not None:
+        for url in media_content.urls:
+            if url.startswith("http://") or url.startswith("https://"):
+                try:
+                    response = requests.get(url, cookies=media_content.get("cookies"), headers=media_content.get("headers"))
+                    if response.status_code == 200:
+                        with open(filepath, "wb") as f:
+                            f.write(response.content)
+                        return True
+                except requests.RequestException as e:
+                    print(f"Error downloading {url}: {e}", file=sys.stderr)
+                return False
+            else:
+                content = url
+                break
     elif hasattr(content, "data"):
         content = content.data
     if not content:
@@ -163,13 +169,6 @@ def save_content(content, filepath: str, allowed_types = None):
         with open(filepath, "wb") as f:
             f.write(extract_data_uri(content))
         return True
-    elif content.startswith("http://") or content.startswith("https://"):
-        import requests
-        response = requests.get(content)
-        if response.status_code == 200:
-            with open(filepath, "wb") as f:
-                f.write(response.content)
-            return True
     content = filter_markdown(content, allowed_types)
     if content:
         with open(filepath, "w") as f:
@@ -262,24 +261,44 @@ async def run_chat_args_async(input_text: str, args):
 
 def run_chat_args(args):
     input_text = ""
-    if args.input and os.path.isfile(args.input[0]):
-        try:
-            with open(args.input[0], 'rb') as f:
-                if is_accepted_format(f.read(12)):
-                    input_text = (Path(args.input[0]), " ".join(args.input[1:]))
-        except ValueError:
-            try:
-                with open(args.input[0], 'r', encoding='utf-8') as f:
-                    file_content = f.read().strip()
-            except UnicodeDecodeError:
-                print(f"Error reading file {args.input[0]} as text. Ensure it is a valid text file.", file=sys.stderr)
-                sys.exit(1)
-            if len(args.input) > 1:
-                input_text = f"{' '.join(args.input[1:])}\n```{os.path.basename(args.input)}\n{file_content}\n```"
+    media = []
+    rest = 0
+    for idx, input_value in enumerate(args.input):
+        if input_value.startswith("http://") or input_value.startswith("https://"):
+            response = requests.head(input_value)
+            if not response.ok:
+                print(f"Error accessing URL {input_value}: {response.status_code}", file=sys.stderr)
+                break
+            if response.headers.get('Content-Type', '').startswith('image/'):
+                media.append(input_value)
             else:
-                input_text = file_content
-    elif args.input:
-        input_text = (" ".join(args.input)).strip()
+                try:
+                    md = MarkItDown()
+                    text_content = md.convert_url(input_value).text_content
+                    input_text += f"\n```\n{text_content}\n\nSource: {input_value}\n```\n"
+                except Exception as e:
+                    print(f"Error processing URL {input_value}: {type(e).__name__}: {e}", file=sys.stderr)
+                    break
+        elif os.path.isfile(input_value):
+            try:
+                with open(input_value, 'rb') as f:
+                    if is_accepted_format(f.read(12)):
+                        media.append(Path(input_value))
+            except ValueError:
+                # If not a valid image, read as text
+                try:
+                    with open(input_value, 'r', encoding='utf-8') as f:
+                        file_content = f.read().strip()
+                except UnicodeDecodeError:
+                    print(f"Error reading file {input_value} as text. Ensure it is a valid text file.", file=sys.stderr)
+                    break
+                input_text += f"\n```{input_value}\n{file_content}\n```\n"
+        else:
+            break
+        rest = idx + 1
+    input_text = (" ".join(args.input[rest:])).strip() + input_text
+    if media:
+        input_text = (media, input_text)
     if not input_text:
         input_text = sys.stdin.read().strip()
     if not input_text:

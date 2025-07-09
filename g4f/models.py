@@ -24,7 +24,6 @@ from .Provider import (
     Startnest,
     OpenAIFM,
     PerplexityLabs,
-    Pi,
     PollinationsAI,
     PollinationsImage,
     TeachAnything,
@@ -37,7 +36,6 @@ from .Provider import (
     CopilotAccount,
     Gemini,
     GeminiPro,
-    HailuoAI,
     HuggingChat,
     HuggingFace,
     HuggingFaceMedia,
@@ -499,7 +497,7 @@ gemini_2_0_flash = Model(
 gemini_2_0_flash_thinking = Model(
     name          = 'gemini-2.0-flash-thinking',
     base_provider = 'Google',
-    best_provider = IterListProvider([PollinationsAI, Gemini])
+    best_provider = IterListProvider([Gemini, GeminiPro])
 )
 
 gemini_2_0_flash_thinking_with_apps = Model(
@@ -512,7 +510,7 @@ gemini_2_0_flash_thinking_with_apps = Model(
 gemini_2_5_flash = Model(
     name          = 'gemini-2.5-flash',
     base_provider = 'Google',
-    best_provider = IterListProvider([PollinationsAI, Gemini])
+    best_provider = IterListProvider([Gemini, GeminiPro])
 )
 
 gemini_2_5_pro = Model(
@@ -597,7 +595,7 @@ command_r = Model(
 command_r_plus = Model(
     name = 'command-r-plus',
     base_provider = 'CohereForAI',
-    best_provider = IterListProvider([PollinationsAI, HuggingSpace, HuggingChat])
+    best_provider = IterListProvider([HuggingSpace, HuggingChat])
 )
 
 command_r7b = Model(
@@ -729,7 +727,7 @@ qwen_3_0_6b = Model(
 qwq_32b = Model(
     name = 'qwq-32b',
     base_provider = 'Qwen',
-    best_provider = IterListProvider([DeepInfraChat, PollinationsAI, Together, HuggingChat])
+    best_provider = IterListProvider([DeepInfraChat, Together, HuggingChat])
 )
 
 ### DeepSeek ###
@@ -756,7 +754,7 @@ deepseek_r1_turbo = Model(
 deepseek_r1_distill_llama_70b = Model(
     name = 'deepseek-r1-distill-llama-70b',
     base_provider = 'DeepSeek',
-    best_provider = IterListProvider([DeepInfraChat, Together, PollinationsAI])
+    best_provider = IterListProvider([DeepInfraChat, Together])
 )
 
 deepseek_r1_distill_qwen_1_5b = Model(
@@ -774,7 +772,7 @@ deepseek_r1_distill_qwen_14b = Model(
 deepseek_r1_distill_qwen_32b = Model(
     name = 'deepseek-r1-distill-qwen-32b',
     base_provider = 'DeepSeek',
-    best_provider = IterListProvider([DeepInfraChat, PollinationsAI])
+    best_provider = IterListProvider([DeepInfraChat])
 )
 
 # deepseek-v2
