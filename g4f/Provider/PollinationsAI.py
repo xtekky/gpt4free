@@ -5,7 +5,7 @@ import json
 import random
 import requests
 import asyncio
-from urllib.parse import quote_plus
+from urllib.parse import quote, quote_plus
 from typing import Optional
 from aiohttp import ClientSession, ClientTimeout
 
@@ -180,9 +180,6 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                 # Create a set of unique text models starting with default model
                 text_models = cls.text_models.copy()
 
-                # Add models from vision_models
-                text_models.extend(cls.vision_models)
-
                 # Add models from the API response
                 for model in models:
                     model_name = model.get("name")
@@ -355,22 +352,18 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
             "enhance": str(enhance).lower(),
             "safe": str(safe).lower(),
         }
-        if model == "gptimage":
-            n = 1
-            # Only remote images are supported
-            image = [item[0] for item in media if isinstance(item[0], str) and item[0].startswith("http")] if media else []
-            params = {
-                **params,
-                "transparent": str(transparent).lower(),
-                "image": ",".join(image) if image else "",
-            }
-        else:
+        if transparent:
+            params["transparent"] = "true"
+        image = [data for data, _ in media if isinstance(data, str) and data.startswith("http")] if media else []
+        if image:
+            params["image"] = ",".join(image)
+        if model != "gptimage":
             params = use_aspect_ratio({
                 "width": width,
                 "height": height,
                 **params
             }, "1:1" if aspect_ratio is None else aspect_ratio)
-        query = "&".join(f"{k}={quote_plus(str(v))}" for k, v in params.items() if v is not None)
+        query = "&".join(f"{k}={quote(str(v))}" for k, v in params.items() if v is not None)
         encoded_prompt = prompt.strip(". \n")
         if model == "gptimage" and aspect_ratio is not None:
             encoded_prompt = f"{encoded_prompt} aspect-ratio: {aspect_ratio}"
