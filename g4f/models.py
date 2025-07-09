@@ -18,6 +18,7 @@ from .Provider import (
     DeepSeekAPI,
     ImageLabs,
     LambdaChat,
+    OIVSCodeSer2,
     OIVSCodeSer0501,
     OperaAria,
     Startnest,
@@ -145,6 +146,7 @@ default = Model(
     base_provider = "",
     best_provider = IterListProvider([
         OIVSCodeSer0501,
+        OIVSCodeSer2,
         Blackbox,
         Copilot,
         DeepInfraChat,
@@ -168,6 +170,7 @@ default_vision = VisionModel(
         Blackbox,
         DeepInfraChat,
         OIVSCodeSer0501,
+        OIVSCodeSer2,
         PollinationsAI,
         OperaAria,
         Startnest,
@@ -198,7 +201,7 @@ gpt_4o = VisionModel(
 gpt_4o_mini = Model(
     name          = 'gpt-4o-mini',
     base_provider = 'OpenAI',
-    best_provider = IterListProvider([Blackbox, PollinationsAI, Chatai, Startnest, OpenaiChat])
+    best_provider = IterListProvider([Blackbox, PollinationsAI, Chatai, OIVSCodeSer2, Startnest, OpenaiChat])
 )
 
 gpt_4o_mini_audio = AudioModel(
