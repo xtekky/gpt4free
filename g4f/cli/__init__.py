@@ -2,7 +2,10 @@ from __future__ import annotations
 
 import argparse
 from argparse import ArgumentParser
-from .client import get_parser, run_client_args
+
+# Updated imports to use 'chat' instead of 'client'
+from .chat import get_chat_parser, run_chat_args
+from .agent import cli as agent_cli
 
 from g4f import Provider
 from g4f.gui.run import gui_parser, run_gui_args
@@ -68,18 +71,26 @@ def run_api_args(args):
 
 def main():
     parser = argparse.ArgumentParser(description="Run gpt4free")
-    subparsers = parser.add_subparsers(dest="mode", help="Mode to run the g4f in.")
+    # Add a shared --debug argument to the main parser
+    parser.add_argument("--debug", "-d", action="store_true", help="Enable verbose logging for any mode.")
+    
+    subparsers = parser.add_subparsers(dest="mode", help="Mode to run the g4f in.", required=True)
+    
+    # Add subparsers
     subparsers.add_parser("api", parents=[get_api_parser()], add_help=False)
     subparsers.add_parser("gui", parents=[gui_parser()], add_help=False)
-    subparsers.add_parser("client", parents=[get_parser()], add_help=False)
+    subparsers.add_parser("chat", parents=[get_chat_parser()], add_help=False)
+    subparsers.add_parser("agent", parents=[agent_cli.get_agent_parser()], add_help=False)
 
     args = parser.parse_args()
     if args.mode == "api":
         run_api_args(args)
     elif args.mode == "gui":
         run_gui_args(args)
-    elif args.mode == "client":
-        run_client_args(args)
+    elif args.mode == "chat":
+        run_chat_args(args)
+    elif args.mode == "agent":
+        agent_cli.run_agent_args(args)
     else:
         parser.print_help()
         exit(1)

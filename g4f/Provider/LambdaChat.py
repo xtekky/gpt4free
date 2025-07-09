@@ -22,7 +22,7 @@ class LambdaChat(AsyncGeneratorProvider, ProviderModelMixin):
 
     working = True
 
-    default_model = "deepseek-r1"
+    default_model = "deepseek-v3-0324"
     models = [
         "deepseek-llama3.3-70b",
         "deepseek-r1",
@@ -35,6 +35,7 @@ class LambdaChat(AsyncGeneratorProvider, ProviderModelMixin):
         "llama3.3-70b-instruct-fp8",
         "qwen25-coder-32b-instruct",
         "deepseek-v3",
+        default_model,
         "llama-4-maverick-17b-128e-instruct-fp8",
         "llama-4-scout-17b-16e-instruct",
         "llama3.3-70b-instruct-fp8",

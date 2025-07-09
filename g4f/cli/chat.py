@@ -106,10 +106,8 @@ async def stream_response(
         image, input_text = input_text
     
     if instructions:
-        # Add system instructions to conversation if provided
         conversation.add_message("system", instructions)
 
-    # Add user message to conversation
     conversation.add_message("user", input_text)
 
     create_args = {
@@ -146,7 +144,6 @@ async def stream_response(
             print(f"\nResponse saved to {output_file}")
 
     if response_content:
-        # Add assistant message to conversation
         conversation.add_message("assistant", str(response_content))
     else:
         raise RuntimeError("No response received from the API")
@@ -182,13 +179,13 @@ def save_content(content, filepath: str, allowed_types = None):
         print("\nNo valid content to save.", file=sys.stderr)
         return False
 
-def get_parser():
-    """Parse command line arguments."""
+def get_chat_parser():
+    """Parse command line arguments for the chat mode."""
     parser = argparse.ArgumentParser(
-        description="G4F CLI client with conversation history",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+        description="G4F chat mode with conversation history",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        add_help=False
     )
-    parser.add_argument("--debug", "-d", action="store_true", help="Enable verbose logging.")
     parser.add_argument(
         '-p', '--provider',
         default=None,
@@ -236,40 +233,34 @@ def get_parser():
     
     return parser
 
-async def run_args(input_text: str, args):
+async def run_chat_args_async(input_text: str, args):
     try:
-        # Ensure directories exist
         if args.output:
             args.output.parent.mkdir(parents=True, exist_ok=True)
         args.conversation_file.parent.mkdir(parents=True, exist_ok=True)
         args.cookies_dir.mkdir(parents=True, exist_ok=True)
 
-        if args.debug:
+        if hasattr(args, 'debug') and args.debug:
             debug.logging = True
         
-        # Initialize conversation manager
         conversation = ConversationManager(args.conversation_file, args.model, args.provider)
         if args.clear_history:
             conversation.history = []
             conversation.conversation = None
         
-        # Set cookies directory if specified
         set_cookies_dir(str(args.cookies_dir))
         read_cookie_files()
         
-        # Initialize client with selected provider
         client = AsyncClient(provider=conversation.provider)
         
-        # Stream response and update conversation
         await stream_response(client, input_text, conversation, args.output, args.instructions)
         
-        # Save conversation state
         conversation.save()
     except:
         print(traceback.format_exc(), file=sys.stderr)
         sys.exit(1)
 
-def run_client_args(args):
+def run_chat_args(args):
     input_text = ""
     if args.input and os.path.isfile(args.input[0]):
         try:
@@ -277,7 +268,6 @@ def run_client_args(args):
                 if is_accepted_format(f.read(12)):
                     input_text = (Path(args.input[0]), " ".join(args.input[1:]))
         except ValueError:
-            # If not a valid image, read as text
             try:
                 with open(args.input[0], 'r', encoding='utf-8') as f:
                     file_content = f.read().strip()
@@ -285,7 +275,7 @@ def run_client_args(args):
                 print(f"Error reading file {args.input[0]} as text. Ensure it is a valid text file.", file=sys.stderr)
                 sys.exit(1)
             if len(args.input) > 1:
-                input_text = f"{' '.join(args.input[1:])}\n```{os.path.basename(args.input[0])}\n{file_content}\n```"
+                input_text = f"{' '.join(args.input[1:])}\n```{os.path.basename(args.input)}\n{file_content}\n```"
             else:
                 input_text = file_content
     elif args.input:
@@ -293,11 +283,6 @@ def run_client_args(args):
     if not input_text:
         input_text = sys.stdin.read().strip()
     if not input_text:
-        print("No input provided. Use -h for help.", file=sys.stderr)
+        print("No input provided. Use 'g4f chat --help' for usage.", file=sys.stderr)
         sys.exit(1)
-    # Run the client with provided arguments
-    asyncio.run(run_args(input_text, args))
-
-if __name__ == "__main__":
-    # Run the client with command line arguments
-    run_client_args(get_parser().parse_args())
+    asyncio.run(run_chat_args_async(input_text, args))
