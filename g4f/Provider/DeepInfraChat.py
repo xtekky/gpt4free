@@ -107,6 +107,7 @@ class DeepInfraChat(OpenaiTemplate):
         "gemma-1.1-7b": "google/gemma-1.1-7b-it",
         "gemma-2-27b": "google/gemma-2-27b-it",
         "gemma-2-9b": "google/gemma-2-9b-it",
+        "gemma-3-4b": "google/gemma-3-4b-it",
         "gemma-3-12b": "google/gemma-3-12b-it",
         "gemma-3-27b": "google/gemma-3-27b-it",
 
