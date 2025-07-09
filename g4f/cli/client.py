@@ -134,6 +134,7 @@ async def stream_response(
             for byte in str(token).encode('utf-8'):
                 sys.stdout.buffer.write(bytes([byte]))
                 sys.stdout.buffer.flush()
+                await asyncio.sleep(0.01)
         except (IOError, BrokenPipeError) as e:
             print(f"\nError writing to stdout: {e}", file=sys.stderr)
             break
@@ -153,7 +154,21 @@ async def stream_response(
 
 def save_content(content, filepath: str, allowed_types = None):
     if hasattr(content, "urls"):
-        content = next(iter(content.urls), None) if isinstance(content.urls, list) else content.urls
+        import requests
+        for url in content.urls:
+            if url.startswith("http://") or url.startswith("https://"):
+                try:
+                    response = requests.get(url, cookies=content.get("cookies"), headers=content.get("headers"))
+                    if response.status_code == 200:
+                        with open(filepath, "wb") as f:
+                            f.write(response.content)
+                        return True
+                except requests.RequestException as e:
+                    print(f"Error downloading {url}: {e}", file=sys.stderr)
+                return False
+            else:
+                content = url
+                break
     elif hasattr(content, "data"):
         content = content.data
     if not content:
@@ -166,13 +181,6 @@ def save_content(content, filepath: str, allowed_types = None):
         with open(filepath, "wb") as f:
             f.write(extract_data_uri(content))
         return True
-    elif content.startswith("http://") or content.startswith("https://"):
-        import requests
-        response = requests.get(content)
-        if response.status_code == 200:
-            with open(filepath, "wb") as f:
-                f.write(response.content)
-            return True
     content = filter_markdown(content, allowed_types)
     if content:
         with open(filepath, "w") as f:

@@ -13,6 +13,7 @@ from .Gemini            import Gemini
 from .GeminiPro         import GeminiPro
 from .GigaChat          import GigaChat
 from .GithubCopilot     import GithubCopilot
+from .GithubCopilotAPI  import GithubCopilotAPI
 from .GlhfChat          import GlhfChat
 from .Grok              import Grok
 from .Groq              import Groq

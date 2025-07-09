@@ -59,7 +59,7 @@ UPLOAD_IMAGE_HEADERS = {
 }
 GOOGLE_COOKIE_DOMAIN = ".google.com"
 ROTATE_COOKIES_URL = "https://accounts.google.com/RotateCookies"
-GGOGLE_SID_COOKIE = "__Secure-1PSID"
+GOOGLE_SID_COOKIE = "__Secure-1PSID"
 
 models = {
     "gemini-2.5-pro-exp": {"x-goog-ext-525001261-jspb": '[1,null,null,null,"2525e3954d185b3c"]'},
@@ -152,11 +152,12 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
         """
 
         while True:
+            new_1psidts = None
             try:
                 new_1psidts = await rotate_1psidts(cls.url, cls._cookies, proxy)
             except Exception as e:
                 debug.error(f"Failed to refresh cookies: {e}")
-                task = cls.rotate_tasks.get(cls._cookies[GGOGLE_SID_COOKIE])
+                task = cls.rotate_tasks.get(cls._cookies[GOOGLE_SID_COOKIE])
                 if task:
                     task.cancel()
                 debug.error(
@@ -220,10 +221,10 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
                 await cls.fetch_snlm0e(session, cls._cookies)
             if not cls._snlm0e:
                 raise RuntimeError("Invalid cookies. SNlM0e not found")
-            if GGOGLE_SID_COOKIE in cls._cookies:
-                task = cls.rotate_tasks.get(cls._cookies[GGOGLE_SID_COOKIE])
+            if GOOGLE_SID_COOKIE in cls._cookies:
+                task = cls.rotate_tasks.get(cls._cookies[GOOGLE_SID_COOKIE])
                 if not task:
-                    cls.rotate_tasks[cls._cookies[GGOGLE_SID_COOKIE]] = asyncio.create_task(
+                    cls.rotate_tasks[cls._cookies[GOOGLE_SID_COOKIE]] = asyncio.create_task(
                         cls.start_auto_refresh()
                     )
 

@@ -14,7 +14,7 @@ from ... import version
 def redirect_home():
     return redirect('/chat/')
 
-def render(filename = "chat"):
+def render(filename = "home"):
     if os.path.exists(DIST_DIR) and not request.args.get("debug"):
         path = os.path.abspath(os.path.join(os.path.dirname(DIST_DIR), (filename + ("" if "." in filename else ".html"))))
         return send_from_directory(os.path.dirname(path), os.path.basename(path))
@@ -72,7 +72,7 @@ class Website:
                 'function': self._background,
                 'methods': ['GET', 'POST']
             },
-            '/chat/<conversation_id>': {
+            '/chat/<filename>': {
                 'function': self._chat,
                 'methods': ['GET', 'POST']
             },
@@ -95,8 +95,8 @@ class Website:
     def _background(self, filename = "background"):
         return render(filename)
 
-    def _chat(self, filename = "chat"):
-        filename = "chat/index" if filename == 'chat' else secure_filename(filename)
+    def _chat(self, filename = ""):
+        filename = f"chat/{filename}" if filename else "chat/index"
         return render(filename)
 
     def _dist(self, name: str):
