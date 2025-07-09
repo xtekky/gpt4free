@@ -71,6 +71,7 @@ model_map = {
     "PollinationsAI": "openai",
     "Chatai": "gpt-4o-mini-2024-07-18",
     "Startnest": "gpt-4o-mini",
+    "OIVSCodeSer2": "gpt-4o-mini",
     "OpenaiChat": "gpt-4o-mini",
     "HarProvider": "gpt-4o-mini-2024-07-18",
     "LegacyLMArena": "gpt-4o-mini-2024-07-18",

@@ -43,6 +43,7 @@ from .Free2GPT             import Free2GPT
 from .ImageLabs            import ImageLabs
 from .LambdaChat           import LambdaChat
 from .LegacyLMArena        import LegacyLMArena
+from .OIVSCodeSer2         import OIVSCodeSer2
 from .OIVSCodeSer0501      import OIVSCodeSer0501
 from .OperaAria            import OperaAria
 from .PerplexityLabs       import PerplexityLabs

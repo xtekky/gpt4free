@@ -10,7 +10,7 @@ from ..providers.retry_provider import IterListProvider
 from ..Provider.needs_auth import OpenaiChat, CopilotAccount
 from ..Provider.hf_space import HuggingSpace
 from ..Provider import Cloudflare, Gemini, GeminiPro, Grok, DeepSeekAPI, PerplexityLabs, LambdaChat, PollinationsAI, PuterJS
-from ..Provider import Microsoft_Phi_4_Multimodal, DeepInfraChat, Blackbox, OIVSCodeSer0501, TeachAnything, OperaAria, Startnest
+from ..Provider import Microsoft_Phi_4_Multimodal, DeepInfraChat, Blackbox, OIVSCodeSer0501, OIVSCodeSer2, TeachAnything, OperaAria, Startnest
 from ..Provider import Together, WeWordle, Yqcloud, Chatai, ImageLabs, LegacyLMArena, LMArenaBeta
 from ..Provider import EdgeTTS, gTTS, MarkItDown, OpenAIFM, Video
 from ..Provider import HarProvider, HuggingFace, HuggingFaceMedia
@@ -22,7 +22,7 @@ from .any_model_map import audio_models, image_models, vision_models, video_mode
 
 PROVIERS_LIST_1 = [
     OpenaiChat, PollinationsAI, Cloudflare, PerplexityLabs, Gemini, Grok, DeepSeekAPI, Blackbox, OpenAIFM,
-    OIVSCodeSer0501, TeachAnything, Together, WeWordle, Yqcloud, Chatai, ImageLabs,
+    OIVSCodeSer0501, OIVSCodeSer2, TeachAnything, Together, WeWordle, Yqcloud, Chatai, ImageLabs,
     HarProvider, LegacyLMArena, LMArenaBeta, LambdaChat, CopilotAccount, DeepInfraChat,
     HuggingSpace, HuggingFace, HuggingFaceMedia, Together, GeminiPro, OperaAria, Startnest
 ]
