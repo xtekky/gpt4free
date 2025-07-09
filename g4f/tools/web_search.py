@@ -211,7 +211,6 @@ async def search(
         raise MissingRequirementsError('Install "ddgs" and "beautifulsoup4" | pip install -U g4f[search]')
 
     results: List[SearchResultEntry] = []
-    # --- MODIFICATION START ---
     # Use the new DDGS() context manager style
     async with DDGS() as ddgs:
         async for result in ddgs.text(
@@ -229,7 +228,6 @@ async def search(
                 url=result["href"],
                 snippet=result["body"]
             ))
-    # --- MODIFICATION END ---
 
     if add_text:
         tasks = []

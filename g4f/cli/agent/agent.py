@@ -362,12 +362,10 @@ class EnhancedAgent:
         query = action.query or action.content
         self.console.print(f"[cyan]🌐 Performing web search for:[/cyan] '{query}'")
         try:
-            # --- MODIFICATION START ---
             # Use the new 'ddgs' library
             from ddgs import DDGS
             with DDGS() as ddgs:
                 results = [r for r in ddgs.text(query, max_results=3)]
-            # --- MODIFICATION END ---
                 if results:
                     search_summary = ""
                     for i, res in enumerate(results, 1):
