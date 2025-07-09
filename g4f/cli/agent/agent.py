@@ -186,14 +186,10 @@ class EnhancedAgent:
 
         system_prompt = self._get_system_prompt()
         
-        # --- MODIFICATION START: Construct the final message list here ---
-        # This ensures the correct, detailed system prompt is always used.
         messages = [{"role": "system", "content": system_prompt}] + self.memory.conversation_history
-        # --- MODIFICATION END ---
         
         self.debug_print("\n".join([f"{m['role']}: {m['content'][:300]}" for m in messages]), "API_MESSAGES")
 
-        # The cache key should be based on the full context sent to the model
         cache_context = "".join([m['content'] for m in messages])
         cached_response = self.response_cache.get(prompt, cache_context)
         
@@ -366,9 +362,12 @@ class EnhancedAgent:
         query = action.query or action.content
         self.console.print(f"[cyan]🌐 Performing web search for:[/cyan] '{query}'")
         try:
-            from duckduckgo_search import DDGS
+            # --- MODIFICATION START ---
+            # Use the new 'ddgs' library
+            from ddgs import DDGS
             with DDGS() as ddgs:
                 results = [r for r in ddgs.text(query, max_results=3)]
+            # --- MODIFICATION END ---
                 if results:
                     search_summary = ""
                     for i, res in enumerate(results, 1):
@@ -379,7 +378,7 @@ class EnhancedAgent:
                     self.console.print("[yellow]No web search results found.[/yellow]")
                     return "No web search results found."
         except ImportError:
-            self.console.print("[red]Web search requires 'duckduckgo-search'. Please run: `pip install duckduckgo-search`[/red]")
+            self.console.print("[red]Web search requires 'ddgs'. Please run: `pip install ddgs`[/red]")
         except Exception as e:
             self.console.print(f"[red]An error occurred during web search: {e}[/red]")
         return None

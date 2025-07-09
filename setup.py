@@ -37,7 +37,11 @@ EXTRA_REQUIRE = {
         "pywebview",
         "plyer",
         "setuptools",
-        "markitdown[all]"
+        "markitdown[all]",
+        # agent
+        "rich",
+        "PyYAML",
+        "Pygments"
     ],
     'slim': [
         "curl_cffi>=0.6.2",

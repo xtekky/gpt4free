@@ -21,3 +21,5 @@ python-multipart
 markitdown[all]
 a2wsgi
 rich
+PyYAML
+Pygments
