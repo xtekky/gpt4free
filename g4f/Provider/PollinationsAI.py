@@ -21,7 +21,7 @@ from ..image.copy_images import save_response_media
 from ..image import use_aspect_ratio
 from ..providers.response import FinishReason, Usage, ToolCalls, ImageResponse, Reasoning, TitleGeneration, SuggestedFollowups, ProviderInfo, AudioResponse
 from ..tools.media import render_messages
-from ..constants import STATIC_URL
+from ..config import STATIC_URL
 from .. import debug
 
 DEFAULT_HEADERS = {

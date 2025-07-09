@@ -251,7 +251,7 @@ def to_bytes(image: ImageType) -> bytes:
         elif image.startswith("http://") or image.startswith("https://"):
             path: str = urlparse(image).path
             if path.startswith("/files/"):
-                path = get_bucket_dir(path.split(path, "/")[1:])
+                path = get_bucket_dir(*path.split("/")[2:])
                 if os.path.exists(path):
                     return Path(path).read_bytes()
                 else:

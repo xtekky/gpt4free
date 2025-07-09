@@ -1,7 +1,0 @@
-PACKAGE_NAME = "g4f"
-ORGANIZATION = "gpt4free"
-GITHUB_REPOSITORY = f"xtekky/{ORGANIZATION}"
-STATIC_DOMAIN = f"g4f.dev"
-STATIC_URL = f"https://{STATIC_DOMAIN}/"
-DIST_DIR = f"./{STATIC_DOMAIN}/dist"
-DOWNLOAD_URL = f"https://raw.githubusercontent.com/{ORGANIZATION}/{STATIC_DOMAIN}/refs/heads/main/"

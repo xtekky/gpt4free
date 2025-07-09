@@ -50,11 +50,13 @@ def resolve_media(kwargs: dict, image = None, image_name: str = None) -> None:
         kwargs["media"] = [(image, getattr(image, "name", image_name))]
     elif "images" in kwargs:
         kwargs["media"] = kwargs.pop("images")
-    if "media" in kwargs and not isinstance(kwargs["media"], list):
+    if kwargs.get("media") is None:
+        kwargs.pop("media", None)
+    elif not isinstance(kwargs["media"], list):
         kwargs["media"] = [kwargs["media"]]
     for idx, media in enumerate(kwargs.get("media", [])):
         if not isinstance(media, (list, tuple)):
-            kwargs["media"][idx] = (media, os.path.basename(getattr(media, "name", "")))
+            kwargs["media"][idx] = (media, getattr(media, "name", None))
 
 # Synchronous iter_response function
 def iter_response(
@@ -433,12 +435,10 @@ class Images:
             provider_handler = self.provider
             if provider_handler is None:
                 provider_handler = self.client.models.get(model, default)
-        elif isinstance(provider, str):
-            provider_handler = convert_to_provider(provider)
         else:
             provider_handler = provider
-        if provider_handler is None:
-            return default
+        if isinstance(provider_handler, str):
+            provider_handler = convert_to_provider(provider_handler)
         return provider_handler
 
     async def async_generate(
@@ -538,13 +538,21 @@ class Images:
     def create_variation(
         self,
         image: ImageType,
+        image_name: str = None,
+        prompt: str = "Create a variation of this image",
         model: str = None,
         provider: Optional[ProviderType] = None,
         response_format: Optional[str] = None,
         **kwargs
     ) -> ImagesResponse:
         return asyncio.run(self.async_create_variation(
-           image, model, provider, response_format, **kwargs
+           image=image,
+           image_name=image_name,
+           prompt=prompt,
+           model=model,
+           provider=provider,
+           response_format=response_format,
+           **kwargs
         ))
 
     async def async_create_variation(
@@ -619,6 +627,7 @@ class Images:
             images = await asyncio.gather(*[get_b64_from_url(image) for image in response.get_list()])
         else:
             # Save locally for None (default) case
+            images = response.get_list()
             if download_media or response.get("cookies") or response.get("headers"):
                 images = await copy_media(response.get_list(), response.get("cookies"), response.get("headers"), proxy, response.alt)
             images = [Image.model_construct(url=image, revised_prompt=response.alt) for image in images]

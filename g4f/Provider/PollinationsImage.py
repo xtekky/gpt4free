@@ -4,7 +4,7 @@ from typing import Optional
 
 from .helper import format_media_prompt
 from ..typing import AsyncResult, Messages, MediaListType
-from ..constants import STATIC_URL
+from ..config import STATIC_URL
 from .PollinationsAI import PollinationsAI
 
 class PollinationsImage(PollinationsAI):
