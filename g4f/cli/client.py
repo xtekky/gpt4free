@@ -41,7 +41,7 @@ class ConversationManager:
         try:
             with open(self.file_path, 'r', encoding='utf-8') as f:
                 data = json.load(f)
-                self.model = data.get("model") if self.model is None else self.model
+                self.model = data.get("model") if self.model is None and self.provider is None else self.model
                 self.provider = data.get("provider") if self.provider is None else self.provider
                 if not self.provider:
                     self.provider = None
@@ -66,7 +66,7 @@ class ConversationManager:
                 if self.conversation and self.provider:
                     self.data[self.provider] = self.conversation.get_dict()
                 else:
-                    self.data = self.conversation.get_dict() if self.conversation else {}
+                    self.data =  {**self.data, **(self.conversation.get_dict() if self.conversation else {})}
                 json.dump({
                     "model": self.model,
                     "provider": self.provider,

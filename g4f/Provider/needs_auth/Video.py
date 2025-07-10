@@ -80,7 +80,7 @@ class Video(AsyncGeneratorProvider, ProviderModelMixin):
         if model not in cls.video_models:
             raise ValueError(f"Model '{model}' is not supported by {cls.__name__}. Supported models: {cls.models}")
         yield ProviderInfo(**cls.get_dict(), model="sora")
-        prompt = format_media_prompt(messages, prompt)[:100]
+        prompt = format_media_prompt(messages, prompt).encode()[:100].decode("utf-8", "ignore").strip()
         if not prompt:
             raise ValueError("Prompt cannot be empty.")
         response = await RequestConfig.get_response(prompt)
@@ -185,13 +185,19 @@ class Video(AsyncGeneratorProvider, ProviderModelMixin):
                     await button.click()
             except Exception as e:
                 debug.error(f"Error clicking submit button:", e)
-            try:
-                button = await page.find("Create")
-                if button:
-                    await button.click()
-                    yield Reasoning(label=f"Clicked 'Create' button")
-            except Exception as e:
-                debug.error(f"Error clicking 'Create' button:", e)
+            for idx in range(60):
+                try:
+                    button = await page.find("Create")
+                    if button:
+                        await button.click()
+                        yield Reasoning(label=f"Clicked 'Create' button")
+                        break
+                except Exception as e:
+                    if idx == 59:
+                        stop_browser()
+                        raise e
+                    debug.error(f"Error clicking 'Create' button:", e)
+                await asyncio.sleep(1)
             try:
                 button = await page.find("Activity")
                 if button:

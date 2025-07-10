@@ -47,7 +47,7 @@ class Grok(AsyncAuthedProvider, ProviderModelMixin):
         browser, stop_browser = await get_nodriver(proxy=proxy)
         yield RequestLogin(cls.__name__, os.environ.get("G4F_LOGIN_URL") or "")
         try:
-            page = browser.main_tab
+            page = await browser.get(cls.url)
             has_headers = False
             def on_request(event: nodriver.cdp.network.RequestWillBeSent, page=None):
                 nonlocal has_headers
@@ -57,7 +57,7 @@ class Grok(AsyncAuthedProvider, ProviderModelMixin):
                     has_headers = True
             await page.send(nodriver.cdp.network.enable())
             page.add_handler(nodriver.cdp.network.RequestWillBeSent, on_request)
-            page = await browser.get(cls.url)
+            await page.reload()
             auth_result.headers["user-agent"] = await page.evaluate("window.navigator.userAgent", return_by_value=True)
             while True:
                 if has_headers:
