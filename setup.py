@@ -38,10 +38,7 @@ EXTRA_REQUIRE = {
         "plyer",
         "setuptools",
         "markitdown[all]",
-        "python-dotenv",
-        "rich", # agent (g4f/cli/agent)
-        "PyYAML", # agent (g4f/cli/agent)
-        "Pygments" # agent (g4f/cli/agent)
+        "python-dotenv"
     ],
     'slim': [
         "curl_cffi>=0.6.2",
