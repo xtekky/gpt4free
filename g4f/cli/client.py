@@ -104,13 +104,12 @@ async def stream_response(
     conversation.add_message("user", input_text)
 
     create_args = {
+        "model": conversation.model,
         "messages": conversation.get_messages(),
         "stream": True,
-        "media": media
+        "media": media,
+        "conversation": conversation.conversation,
     }
-    
-    if conversation.model:
-        create_args["model"] = conversation.model
 
     response_content = []
     last_chunk = None
@@ -131,7 +130,7 @@ async def stream_response(
             break
     print("\n", end="")
 
-    conversation.conversation = getattr(last_chunk, 'conversation', None)
+    conversation.conversation = None if last_chunk is None else last_chunk.conversation
     media_content = next(iter([chunk for chunk in response_content if isinstance(chunk, MediaResponse)]), None)
     response_content = response_content[0] if len(response_content) == 1 else "".join([str(chunk) for chunk in response_content])
     if output_file:
