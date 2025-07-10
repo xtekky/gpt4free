@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 import base64
+import html
 from typing import Union, Dict, List, Optional
 from abc import abstractmethod
 from urllib.parse import quote, unquote
@@ -349,7 +350,15 @@ class MediaResponse(ResponseType):
 
 class ImageResponse(MediaResponse):
     def __str__(self) -> str:
+        return self.to_string()
+
+    def to_string(self) -> str:
         """Return images as markdown."""
+        if self.get("width") and self.get("height"):
+            return "\n".join([
+                f'<a href="{html.escape(url)}" data-width="{self.get("width")}" data-height="{self.get("height")}"><img src="{url.replace("/media/", "/thumbnail/")}" alt="{html.escape(self.alt)}"></a>'
+                for url in self.get_list()
+            ])
         return format_images_markdown(self.urls, self.alt, self.get("preview"))
 
 class VideoResponse(MediaResponse):
@@ -365,14 +374,8 @@ class VideoResponse(MediaResponse):
             return "\n".join(result)
         return "\n".join([f'<video src="{quote_url(video)}"></video>' for video in self.get_list()])
 
-class ImagePreview(ImageResponse):
-    def __str__(self) -> str:
-        """Return an empty string for preview."""
-        return ""
-
-    def to_string(self) -> str:
-        """Return images as markdown."""
-        return super().__str__()
+class ImagePreview(ImageResponse, HiddenResponse):
+    pass
 
 class PreviewResponse(HiddenResponse):
     def __init__(self, data: str) -> None:

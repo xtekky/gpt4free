@@ -127,7 +127,8 @@ async def copy_media(
     target: str = None,
     thumbnail: bool = False,
     ssl: bool = None,
-    timeout: Optional[int] = None
+    timeout: Optional[int] = None,
+    return_target: bool = False
 ) -> list[str]:
     """
     Download and store images locally with Unicode-safe filenames
@@ -141,7 +142,8 @@ async def copy_media(
         media_dir = os.path.join(media_dir, "thumbnails")
         if not os.path.exists(media_dir):
             os.makedirs(media_dir, exist_ok=True)
-
+    if headers is not None or cookies is not None:
+        add_url = False  # Do not add URL if headers or cookies are provided
     async with ClientSession(
         connector=get_connector(proxy=proxy),
         cookies=cookies,
@@ -206,9 +208,12 @@ async def copy_media(
                     except ValueError:
                         pass
                 if thumbnail:
-                    return "/thumbnail/" + os.path.basename(target_path)
-                # Build URL relative to media directory
-                return f"/media/{os.path.basename(target_path)}" + ('?' + (add_url if isinstance(add_url, str) else '' + 'url=' + quote(image)) if add_url and not image.startswith('data:') else '')
+                    uri = "/thumbnail/" + os.path.basename(target_path)
+                else:
+                    uri = f"/media/{os.path.basename(target_path)}" + ('?' + (add_url if isinstance(add_url, str) else '' + 'url=' + quote(image)) if add_url and not image.startswith('data:') else '')
+                if return_target:
+                    return uri, target_path
+                return uri
 
             except (ClientError, IOError, OSError, ValueError) as e:
                 debug.error(f"Image copying failed:", e)

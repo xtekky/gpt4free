@@ -507,7 +507,7 @@ class Images:
                 api_key=api_key,
                 **kwargs
             ):
-                if isinstance(item, (MediaResponse, AudioResponse)):
+                if isinstance(item, (MediaResponse, AudioResponse)) and not isinstance(item, HiddenResponse):
                     items.append(item)
         elif hasattr(provider_handler, "create_completion"):
             for item in provider_handler.create_completion(
@@ -518,7 +518,7 @@ class Images:
                 api_key=api_key,
                 **kwargs
             ):
-                if isinstance(item, (MediaResponse, AudioResponse)):
+                if isinstance(item, (MediaResponse, AudioResponse)) and not isinstance(item, HiddenResponse):
                     items.append(item)
         else:
             raise ValueError(f"Provider {provider_name} does not support image generation")
@@ -751,7 +751,7 @@ class AsyncImages(Images):
         **kwargs
     ) -> ImagesResponse:
         return await self.async_create_variation(
-           image, model, provider, response_format, **kwargs
+           image=image, model=model, provider=provider, response_format=response_format, **kwargs
         )
 
 class AsyncResponses():

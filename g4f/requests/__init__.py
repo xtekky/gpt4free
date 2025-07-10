@@ -98,13 +98,13 @@ async def get_args_from_nodriver(
         browser, stop_browser = await get_nodriver(proxy=proxy, timeout=timeout)
     else:
         def stop_browser():
-            ...
+            pass
     try:
         debug.log(f"Open nodriver with url: {url}")
-        domain = urlparse(url).netloc
         if cookies is None:
             cookies = {}
         else:
+            domain = urlparse(url).netloc
             await browser.cookies.set_all(get_cookie_params_from_dict(cookies, url=url, domain=domain))
         page = await browser.get(url)
         user_agent = await page.evaluate("window.navigator.userAgent", return_by_value=True)
@@ -117,18 +117,20 @@ async def get_args_from_nodriver(
         for c in await page.send(nodriver.cdp.network.get_cookies([url])):
             cookies[c.name] = c.value
         await page.close()
+        stop_browser()
         return {
             "impersonate": "chrome",
             "cookies": cookies,
             "headers": {
                 **DEFAULT_HEADERS,
                 "user-agent": user_agent,
-                "referer": url,
+                "referer": f"{url.rstip('/')}/",
             },
             "proxy": proxy,
         }
-    finally:
+    except:
         stop_browser()
+        raise
 
 def merge_cookies(cookies: Iterator[Morsel], response: Response) -> Cookies:
     if cookies is None:

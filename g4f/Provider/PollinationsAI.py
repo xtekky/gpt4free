@@ -82,7 +82,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
     default_vision_model = default_model
     default_audio_model = "openai-audio"
     text_models = [default_model, "evil"]
-    image_models = [default_image_model, "kontext", "gptimage"]
+    image_models = [default_image_model, "turbo", "kontext", "gptimage", "transparent"]
     audio_models = {default_audio_model: []}
     vision_models = [default_vision_model]
     _models_loaded = False
@@ -253,8 +253,6 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
             cache = kwargs.get("action") == "next"
         if extra_body is None:
             extra_body = {}
-        # Load model list
-        cls.get_models()
         if not model:
             has_audio = "audio" in kwargs or "audio" in kwargs.get("modalities", [])
             if not has_audio and media is not None:
@@ -269,7 +267,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
             pass
         if model in cls.image_models:
             async for chunk in cls._generate_image(
-                model=model,
+                model="gptimage" if model == "transparent" else model,
                 prompt=format_media_prompt(messages, prompt),
                 media=media,
                 proxy=proxy,
@@ -282,7 +280,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                 private=private,
                 enhance=enhance,
                 safe=safe,
-                transparent=transparent,
+                transparent=transparent or model == "transparent",
                 n=n,
                 referrer=referrer,
                 api_key=api_key

@@ -3,6 +3,8 @@ from __future__ import annotations
 import os
 import json
 import asyncio
+import base64
+from typing import AsyncIterator
 from urllib.parse import quote
 
 try:
@@ -17,12 +19,12 @@ try:
 except ImportError:
     has_nodriver = False
 
-from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from .base_provider import AsyncAuthedProvider, ProviderModelMixin
 from .helper import format_prompt_max_length
 from .openai.har_file import get_headers, get_har_files
 from ..typing import AsyncResult, Messages, MediaListType
 from ..errors import MissingRequirementsError, NoValidHarFileError, MissingAuthError
-from ..providers.response import BaseConversation, JsonConversation, RequestLogin, ImageResponse, FinishReason, SuggestedFollowups, TitleGeneration, Sources, SourceLink
+from ..providers.response import *
 from ..tools.media import merge_media
 from ..requests import get_nodriver
 from ..image import to_bytes, is_accepted_format
@@ -35,7 +37,7 @@ class Conversation(JsonConversation):
     def __init__(self, conversation_id: str):
         self.conversation_id = conversation_id
 
-class Copilot(AsyncGeneratorProvider, ProviderModelMixin):
+class Copilot(AsyncAuthedProvider, ProviderModelMixin):
     label = "Microsoft Copilot"
     url = "https://copilot.microsoft.com"
     
@@ -58,11 +60,35 @@ class Copilot(AsyncGeneratorProvider, ProviderModelMixin):
     _cookies: dict = None
 
     @classmethod
-    async def create_async_generator(
+    async def on_auth_async(cls, **kwargs) -> AsyncIterator:
+        yield AuthResult(
+            api_key=cls._access_token,
+            cookies=cls.cookies_to_dict()
+        )
+
+    @classmethod
+    async def create_authed(
         cls,
         model: str,
         messages: Messages,
-        stream: bool = False,
+        auth_result: AuthResult,
+        **kwargs
+    ) -> AsyncResult:
+        cls._access_token = getattr(auth_result, "api_key")
+        cls._cookies = getattr(auth_result, "cookies")
+        async for chunk in cls.create(model, messages, **kwargs):
+            yield chunk
+        auth_result.cookies = cls.cookies_to_dict()
+
+    @classmethod
+    def cookies_to_dict(cls):
+        return cls._cookies if isinstance(cls._cookies, dict) else {c.name: c.value for c in cls._cookies}
+
+    @classmethod
+    async def create(
+        cls,
+        model: str,
+        messages: Messages,
         proxy: str = None,
         timeout: int = 30,
         prompt: str = None,
@@ -108,8 +134,11 @@ class Copilot(AsyncGeneratorProvider, ProviderModelMixin):
             response.raise_for_status()
             user = response.json().get('firstName')
             if user is None:
+                if cls.needs_auth:
+                    raise MissingAuthError("No user found, please login first")
                 cls._access_token = None
-            debug.log(f"Copilot: User: {user or 'null'}")
+            else:
+                debug.log(f"Copilot: User: {user}")
             if conversation is None:
                 response = await session.post(cls.conversation_url)
                 response.raise_for_status()
@@ -160,8 +189,8 @@ class Copilot(AsyncGeneratorProvider, ProviderModelMixin):
             sources = {}
             while not wss.closed:
                 try:
-                    msg = await asyncio.wait_for(wss.recv(), 3 if done else timeout)
-                    msg = json.loads(msg[0])
+                    msg_txt, _ = await asyncio.wait_for(wss.recv(), 3 if done else timeout)
+                    msg = json.loads(msg_txt)
                 except:
                     break
                 last_msg = msg
@@ -184,10 +213,13 @@ class Copilot(AsyncGeneratorProvider, ProviderModelMixin):
                 elif msg.get("event") == "citation":
                     sources[msg.get("url")] = msg
                     yield SourceLink(list(sources.keys()).index(msg.get("url")), msg.get("url"))
+                elif msg.get("event") == "partialImageGenerated":
+                    mime_type = is_accepted_format(base64.b64decode(msg.get("content")[:12]))
+                    yield ImagePreview(f"data:{mime_type};base64,{msg.get('content')}", image_prompt)
                 elif msg.get("event") == "error":
                     raise RuntimeError(f"Error: {msg}")
-                elif msg.get("event") not in ["received", "startMessage", "partCompleted"]:
-                    debug.log(f"Copilot Message: {msg}")
+                elif msg.get("event") not in ["received", "startMessage", "partCompleted", "connected"]:
+                    debug.log(f"Copilot Message: {msg_txt[:100]}...")
             if not done:
                 raise RuntimeError(f"Invalid response: {last_msg}")
             if sources:

@@ -46,7 +46,6 @@ from ...image import is_allowed_extension, process_image, MEDIA_TYPE_MAP
 from ...cookies import get_cookies_dir
 from ...image.copy_images import secure_filename, get_source_url, get_media_dir, copy_media
 from ...client.service import get_model_and_provider
-from ... import ChatCompletion
 from ... import models
 from .api import Api
 
@@ -442,18 +441,21 @@ class Backend_Api(Api):
                 if is_media:
                     os.makedirs(media_dir, exist_ok=True)
                     newfile = os.path.join(media_dir, filename)
-                    if result:
-                        media.append({"name": filename, "text": result})
-                    else:
-                        media.append({"name": filename})
+                    image_size = {}
                     if has_pillow:
                         try:
                             image = Image.open(copyfile)
+                            width, height = image.size
+                            image_size = {"width": width, "height": height}
                             thumbnail_dir = os.path.join(bucket_dir, "thumbnail")
                             os.makedirs(thumbnail_dir, exist_ok=True)
                             process_image(image, save=os.path.join(thumbnail_dir, filename))
                         except Exception as e:
                             logger.exception(e)
+                    if result:
+                        media.append({"name": filename, "text": result, **image_size})
+                    else:
+                        media.append({"name": filename, **image_size})
                 elif is_supported and not result:
                     newfile = os.path.join(bucket_dir, filename)
                     filenames.append(filename)

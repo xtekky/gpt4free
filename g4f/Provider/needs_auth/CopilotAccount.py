@@ -10,7 +10,7 @@ from ...typing import AsyncResult, Messages
 from ...errors import NoValidHarFileError
 from ... import debug
 
-class CopilotAccount(Copilot, AsyncAuthedProvider):
+class CopilotAccount(Copilot):
     needs_auth = True
     use_nodriver = True
     parent = "Copilot"
@@ -32,21 +32,3 @@ class CopilotAccount(Copilot, AsyncAuthedProvider):
             api_key=cls._access_token,
             cookies=cls.cookies_to_dict()
         )
-
-    @classmethod
-    async def create_authed(
-        cls,
-        model: str,
-        messages: Messages,
-        auth_result: AuthResult,
-        **kwargs
-    ) -> AsyncResult:
-        cls._access_token = getattr(auth_result, "api_key")
-        cls._cookies = getattr(auth_result, "cookies")
-        async for chunk in cls.create_async_generator(model, messages, **kwargs):
-            yield chunk
-        auth_result.cookies = cls.cookies_to_dict()
-
-    @classmethod
-    def cookies_to_dict(cls):
-        return cls._cookies if isinstance(cls._cookies, dict) else {c.name: c.value for c in cls._cookies}

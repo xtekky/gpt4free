@@ -130,7 +130,7 @@ async def stream_response(
             break
     print("\n", end="")
 
-    conversation.conversation = None if last_chunk is None else last_chunk.conversation
+    conversation.conversation = getattr(last_chunk, "conversation", conversation.conversation)
     media_content = next(iter([chunk for chunk in response_content if isinstance(chunk, MediaResponse)]), None)
     response_content = response_content[0] if len(response_content) == 1 else "".join([str(chunk) for chunk in response_content])
     if output_file:
@@ -201,7 +201,6 @@ def get_parser():
         default=None,
         type=Path,
         metavar='FILE',
-        nargs='?',
         help="Output file to save the response file."
     )
     parser.add_argument(
@@ -218,6 +217,7 @@ def get_parser():
     parser.add_argument(
         '--conversation-file',
         type=Path,
+        metavar='FILE',
         default=CONVERSATION_FILE,
         help="File to store/load conversation state"
     )
@@ -234,7 +234,7 @@ def get_parser():
     parser.add_argument(
         'input',
         nargs='*',
-        help="Input text (or read from stdin)"
+        help="Input urls, files and text (or read from stdin)"
     )
     
     return parser

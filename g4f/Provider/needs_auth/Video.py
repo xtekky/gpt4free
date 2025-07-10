@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from typing import Optional
 from aiohttp import ClientSession, ClientTimeout
 
 from urllib.parse import quote, quote_plus
@@ -28,22 +29,23 @@ class RequestConfig:
     headers: dict = {}
 
     @classmethod
-    async def get_response(cls, prompt: str) -> VideoResponse | None:
+    async def get_response(cls, prompt: str, search: bool = False) -> Optional[VideoResponse]:
         if prompt in cls.urls and cls.urls[prompt]:
             unique_list = list(set(cls.urls[prompt]))[:10]
             return VideoResponse(unique_list, prompt, {
                 "headers": {"authorization": cls.headers.get("authorization")} if cls.headers.get("authorization") else {},
             })
-        async with ClientSession() as session:
-            found_urls = []
-            for skip in range(0, 9):
-                async with session.get(SEARCH_URL + quote_plus(prompt) + f"?skip={skip}", timeout=ClientTimeout(total=10)) as response:
-                    if response.ok:
-                        found_urls.append(str(response.url))
-                    else:
-                        break
-            if found_urls:
-                return VideoResponse(found_urls, prompt)
+        if search:
+            async with ClientSession() as session:
+                found_urls = []
+                for skip in range(0, 9):
+                    async with session.get(SEARCH_URL + quote_plus(prompt) + f"?skip={skip}", timeout=ClientTimeout(total=10)) as response:
+                        if response.ok:
+                            found_urls.append(str(response.url))
+                        else:
+                            break
+                if found_urls:
+                    return VideoResponse(found_urls, prompt)
 
 class Video(AsyncGeneratorProvider, ProviderModelMixin):
     urls = {
@@ -83,14 +85,14 @@ class Video(AsyncGeneratorProvider, ProviderModelMixin):
         prompt = format_media_prompt(messages, prompt).encode()[:100].decode("utf-8", "ignore").strip()
         if not prompt:
             raise ValueError("Prompt cannot be empty.")
-        response = await RequestConfig.get_response(prompt)
+        response = await RequestConfig.get_response(prompt, model=="search")
         if response:
             yield Reasoning(label=f"Found {len(response.urls)} Video(s)", status="")
             yield response
             return
         try:
             yield Reasoning(label="Open browser")
-            browser, stop_browser = await get_nodriver(proxy=proxy, user_data_dir="gemini")
+            browser, stop_browser = await get_nodriver(proxy=proxy)
         except Exception as e:
             debug.error(f"Error getting nodriver:", e)
             async with ClientSession() as session:
@@ -126,15 +128,17 @@ class Video(AsyncGeneratorProvider, ProviderModelMixin):
                 RequestConfig.headers = {}
                 for key, value in event.request.headers.items():
                     RequestConfig.headers[key.lower()] = value
+                for _, urls in RequestConfig.urls.items():
+                    if event.request.url in urls:
+                        return
                 RequestConfig.urls[prompt].append(event.request.url)
-        if page is not None:
+        if model == "search" and page is not None:
             await page.send(nodriver.cdp.network.enable())
             page.add_handler(nodriver.cdp.network.RequestWillBeSent, on_request)
-            if model == "search":
-                for _ in range(5):
-                    await page.scroll_down(5)
-                    await asyncio.sleep(1)
-        response = await RequestConfig.get_response(prompt)
+            for _ in range(5):
+                await page.scroll_down(5)
+                await asyncio.sleep(1)
+        response = await RequestConfig.get_response(prompt, True)
         if response:
             stop_browser()
             yield Reasoning(label="Found", status="")
@@ -151,12 +155,12 @@ class Video(AsyncGeneratorProvider, ProviderModelMixin):
                     await button.click()
                 else:
                     debug.error("No 'Image' button found.")
-                    button = await page.find("Video")
-                    if button:
-                        await button.click()
-                        yield Reasoning(label=f"Clicked 'Video' button")
-                    else:
-                        debug.error("No 'Video' button found.")
+                button = await page.find("Video")
+                if button:
+                    await button.click()
+                    yield Reasoning(label=f"Clicked 'Video' button")
+                else:
+                    debug.error("No 'Video' button found.")
             except Exception as e:
                 debug.error(f"Error clicking button:", e)
             try:
@@ -177,6 +181,8 @@ class Video(AsyncGeneratorProvider, ProviderModelMixin):
                 debug.error(f"Error clicking button:", e)
             debug.log(f"Using prompt: {prompt}")
             textarea = await page.select("textarea", 180)
+            await textarea.click()
+            await textarea.clear_input()
             await textarea.send_keys(prompt)
             yield Reasoning(label=f"Sending prompt", token=prompt)
             try:
@@ -185,19 +191,13 @@ class Video(AsyncGeneratorProvider, ProviderModelMixin):
                     await button.click()
             except Exception as e:
                 debug.error(f"Error clicking submit button:", e)
-            for idx in range(60):
-                try:
-                    button = await page.find("Create")
-                    if button:
-                        await button.click()
-                        yield Reasoning(label=f"Clicked 'Create' button")
-                        break
-                except Exception as e:
-                    if idx == 59:
-                        stop_browser()
-                        raise e
-                    debug.error(f"Error clicking 'Create' button:", e)
-                await asyncio.sleep(1)
+            try:
+                button = await page.find("Create video")
+                if button:
+                    await button.click()
+                    yield Reasoning(label=f"Clicked 'Create video' button")
+            except Exception as e:
+                debug.error(f"Error clicking 'Create video' button:", e)
             try:
                 button = await page.find("Activity")
                 if button:
@@ -217,18 +217,23 @@ class Video(AsyncGeneratorProvider, ProviderModelMixin):
                     if idx == 59:
                         debug.error(e)
                         raise RuntimeError("Failed to click 'Queued' button")
-            for idx in range(600):
-                yield Reasoning(label="Waiting for Video...", status=f"{idx+1}/600")
+            await asyncio.sleep(3)
+            if model != "search" and page is not None:
+                await page.send(nodriver.cdp.network.enable())
+                page.add_handler(nodriver.cdp.network.RequestWillBeSent, on_request)
+            for idx in range(300):
+                yield Reasoning(label="Waiting for Video...", status=f"{idx+1}/300")
                 await asyncio.sleep(1)
                 if RequestConfig.urls[prompt]:
                     await asyncio.sleep(2)
-                    response = await RequestConfig.get_response(prompt)
+                    response = await RequestConfig.get_response(prompt, model=="search")
                     if response:
                         stop_browser()
                         yield Reasoning(label="Finished", status="")
                         yield response
                         return
-                if idx == 599:
+                if idx == 299:
+                    stop_browser()
                     raise RuntimeError("Failed to get Video URL")
         finally:
             stop_browser()

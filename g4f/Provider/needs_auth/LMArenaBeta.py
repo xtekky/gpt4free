@@ -121,6 +121,9 @@ class LMArenaBeta(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
             model = image_models[model]
         elif model in text_models:
             model = text_models[model]
+        elif model in cls.model_aliases:
+            model = cls.model_aliases[model]
+            debug.log(f"Using model alias: {model}")
         else:
             raise ModelNotFoundError(f"Model '{model}' is not supported by LMArena Beta.")
         userMessageId = str(uuid.uuid4())

@@ -7,6 +7,12 @@ from typing import Iterator
 from flask import send_from_directory, request
 from inspect import signature
 
+try:
+    from PIL import Image 
+    has_pillow = True
+except ImportError:
+    has_pillow = False
+
 from ...errors import VersionNotFoundError, MissingAuthError
 from ...image.copy_images import copy_media, ensure_media_dir, get_media_dir
 from ...image import get_width_height
@@ -210,10 +216,22 @@ class Api:
                             proxy=proxy,
                             alt=chunk.alt,
                             tags=tags,
-                            add_url=f"width={width}&height={height}&",
+                            add_url=True,
                             timeout=kwargs.get("timeout"),
+                            return_target=True if isinstance(chunk, ImageResponse) else False,
                         ))
-                        media = ImageResponse(media, chunk.alt) if isinstance(chunk, ImageResponse) else VideoResponse(media, chunk.alt)
+                        options = {}
+                        target_paths, urls = get_target_paths_and_urls(media)
+                        if target_paths:
+                            if has_pillow:
+                                try:
+                                    with Image.open(target_paths[0]) as img:
+                                        width, height = img.size
+                                        options = {"width": width, "height": height}
+                                except Exception as e:
+                                    logger.exception(e)
+                            options["target_paths"] = target_paths
+                        media = ImageResponse(urls, chunk.alt, options) if isinstance(chunk, ImageResponse) else VideoResponse(media, chunk.alt)
                     yield self._format_json("content", str(media), urls=media.urls, alt=media.alt)
                 elif isinstance(chunk, SynthesizeData):
                     yield self._format_json("synthesize", chunk.get_dict())
@@ -287,3 +305,13 @@ class Api:
 
 def get_error_message(exception: Exception) -> str:
     return f"{type(exception).__name__}: {exception}"
+
+def get_target_paths_and_urls(media: list[Union[str, tuple[str, str]]]) -> tuple[list[str], list[str]]:
+    target_paths = []
+    urls = []
+    for item in media:
+        if isinstance(item, tuple):
+            item, target_path = item
+            target_paths.append(target_path)
+        urls.append(item)
+    return target_paths, urls
