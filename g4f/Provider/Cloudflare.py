@@ -23,7 +23,10 @@ def clean_name(name: str) -> str:
         "-awq", "").replace(
         "-qvq", "").replace(
         "-r1", "").replace(
-        "meta-llama-", "llama-")
+        "meta-llama-", "llama-").replace(
+        "-it", "").replace(
+        "qwen-", "qwen").replace(
+        "qwen", "qwen-")
 
 # models = []
 # model_aliases = {clean_name(m.get("name")): m.get("name") for m in models}
@@ -49,8 +52,8 @@ class Cloudflare(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
         'deepseek-distill-qwen-32b': '@cf/deepseek-ai/deepseek-r1-distill-qwen-32b',
         'discolm-german-7b-v1': '@cf/thebloke/discolm-german-7b-v1-awq',
         'falcon-7b': '@cf/tiiuae/falcon-7b-instruct',
-        'gemma-3-12b-it': '@cf/google/gemma-3-12b-it',
-        'gemma-7b-it': '@hf/google/gemma-7b-it',
+        'gemma-3-12b': '@cf/google/gemma-3-12b-it',
+        'gemma-7b': '@hf/google/gemma-7b-it',
         'hermes-2-pro-mistral-7b': '@hf/nousresearch/hermes-2-pro-mistral-7b',
         'llama-2-13b': '@hf/thebloke/llama-2-13b-chat-awq',
         'llama-2-7b-fp16': '@cf/meta/llama-2-7b-chat-fp16',
@@ -72,10 +75,10 @@ class Cloudflare(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
         'openhermes-2.5-mistral-7b': '@hf/thebloke/openhermes-2.5-mistral-7b-awq',
         'phi-2': '@cf/microsoft/phi-2',
         'qwen1.5-0.5b': '@cf/qwen/qwen1.5-0.5b-chat',
-        'qwen1.5-1.8b': '@cf/qwen/qwen1.5-1.8b-chat',
-        'qwen1.5-14b': '@cf/qwen/qwen1.5-14b-chat-awq',
-        'qwen1.5-7b': '@cf/qwen/qwen1.5-7b-chat-awq',
-        'qwen2.5-coder-32b': '@cf/qwen/qwen2.5-coder-32b-instruct',
+        'qwen-1.5-1.8b': '@cf/qwen/qwen1.5-1.8b-chat',
+        'qwen-1.5-14b': '@cf/qwen/qwen1.5-14b-chat-awq',
+        'qwen-1.5-7b': '@cf/qwen/qwen1.5-7b-chat-awq',
+        'qwen-2.5-coder-32b': '@cf/qwen/qwen2.5-coder-32b-instruct',
         'qwq-32b': '@cf/qwen/qwq-32b',
         'sqlcoder-7b-2': '@cf/defog/sqlcoder-7b-2',
         'starling-lm-7b-beta': '@hf/nexusflow/starling-lm-7b-beta',
@@ -86,58 +89,6 @@ class Cloudflare(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
     models = list(model_aliases.keys())
     _args: dict = None
 
-    @classmethod
-    def get_models(cls) -> str:
-        def read_models():
-            with Session(**cls._args) as session:
-                response = session.get(cls.models_url)
-                cls._args["cookies"] = merge_cookies(cls._args["cookies"], response)
-                raise_for_status(response)
-                json_data = response.json()
-                def clean_name(name: str) -> str:
-                    return name.split("/")[-1].replace(
-                        "-instruct", "").replace(
-                        "-17b-16e", "").replace(
-                        "-chat", "").replace(
-                        "-fp8", "").replace(
-                        "-fast", "").replace(
-                        "-int8", "").replace(
-                        "-awq", "").replace(
-                        "-qvq", "").replace(
-                        "-r1", "").replace(
-                        "meta-llama-", "llama-")
-                model_map = {clean_name(model.get("name")): model.get("name") for model in json_data.get("models")}
-                cls.models = list(model_map.keys())
-                cls.model_aliases = {**cls.model_aliases, **model_map}
-        if not cls.models:
-            try:
-                cache_file = cls.get_cache_file()
-                if cls._args is None:
-                    if cache_file.exists():
-                        with cache_file.open("r") as f:
-                            cls._args = json.load(f)
-                if cls._args is None:
-                    cls._args = {"headers": DEFAULT_HEADERS, "cookies": {}}
-                read_models()
-            except ResponseStatusError as f:
-                if has_nodriver:
-                    async def nodriver_read_models():
-                        try:
-                            cls._args = await get_args_from_nodriver(cls.url)
-                            read_models()
-                        except Exception as e:
-                            debug.error(f"Nodriver is not available:", e)
-                            cls.models = cls.fallback_models
-                    get_running_loop(check_nested=True)
-                    try:
-                        asyncio.run(nodriver_read_models())
-                    except RuntimeError as e:
-                        debug.error("Nodriver is not available:", e)
-                        cls.models = cls.fallback_models
-                else:
-                    cls.models = cls.fallback_models
-                    debug.log(f"Nodriver is not installed: {type(f).__name__}: {f}")
-        return cls.models
 
     @classmethod
     async def create_async_generator(
