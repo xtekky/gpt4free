@@ -49,7 +49,7 @@ from . import debug
 
 class CookiesConfig():
     cookies: Dict[str, Cookies] = {}
-    cookies_dir: str = CUSTOM_COOKIES_DIR if os.path.exists(CUSTOM_COOKIES_DIR) else COOKIES_DIR
+    cookies_dir: str = CUSTOM_COOKIES_DIR if os.path.exists(CUSTOM_COOKIES_DIR) else str(COOKIES_DIR)
 
 DOMAINS = [
     ".bing.com",
@@ -134,6 +134,13 @@ def read_cookie_files(dirPath: str = None):
     if not os.access(dirPath, os.R_OK):
         debug.log(f"Read cookies: {dirPath} dir is not readable")
         return
+
+    try:
+        from dotenv import load_dotenv
+        load_dotenv(os.path.join(dirPath, ".env"), override=True)
+        debug.log(f"Read cookies: Loaded environment variables from {dirPath}/.env")
+    except ImportError:
+        debug.error("Warning: 'python-dotenv' is not installed. Environment variables will not be loaded.")
 
     def get_domain(v: dict) -> str:
         host = [h["value"] for h in v['request']['headers'] if h["name"].lower() in ("host", ":authority")]

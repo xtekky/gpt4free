@@ -61,7 +61,6 @@ FOLLOWUPS_DEVELOPER_MESSAGE = [{
     "role": "developer",
     "content": "Provide conversation options.",
 }]
-
 class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Pollinations AI"
     url = "https://pollinations.ai"
@@ -121,15 +120,15 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         """Get the internal model name from the user-provided model name."""
         if not model:
             return cls.default_model
-        
-        # Check if the model exists directly in our model lists
-        if model in cls.text_models or model in cls.image_models or model in cls.audio_models:
-            return model
-        
+
         # Check if there's an alias for this model
         if model in cls.model_aliases:
             return cls.model_aliases[model]
-        
+
+        # Check if the model exists directly in our model lists
+        if model in cls.text_models or model in cls.image_models or model in cls.audio_models:
+            return model
+
         # If no match is found, raise an error
         raise ModelNotFoundError(f"PollinationsAI: Model {model} not found")
 

@@ -377,7 +377,7 @@ class Completions:
             kwargs["ignore_stream"] = True
 
         response = iter_run_tools(
-            provider.create_function,
+            provider,
             model=model,
             messages=messages,
             stream=stream,

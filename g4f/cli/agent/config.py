@@ -7,7 +7,6 @@ from pathlib import Path
 from dataclasses import dataclass
 from enum import Enum
 
-# --- FIX START ---
 # To break a circular import cycle, we duplicate the path logic from the client.
 # This ensures the agent uses the same base directory without causing an import error.
 def get_base_config_dir() -> Path:
@@ -21,7 +20,6 @@ def get_base_config_dir() -> Path:
 
 # Define the main config directory, consistent with the client
 G4F_CLI_CONFIG_DIR = get_base_config_dir() / "g4f-cli"
-# --- FIX END ---
 
 
 class ApprovalMode(Enum):
@@ -31,7 +29,7 @@ class ApprovalMode(Enum):
 
 @dataclass
 class Config:
-    model: str = "gpt-4o-mini"
+    model: str = "gpt-4.1-mini"
     temperature: float = 0.0
     approval_mode: ApprovalMode = ApprovalMode.SUGGEST
     sandbox_enabled: bool = True

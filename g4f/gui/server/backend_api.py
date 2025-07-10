@@ -45,6 +45,7 @@ from ...errors import ProviderNotFoundError
 from ...image import is_allowed_extension, process_image, MEDIA_TYPE_MAP
 from ...cookies import get_cookies_dir
 from ...image.copy_images import secure_filename, get_source_url, get_media_dir, copy_media
+from ...client.service import get_model_and_provider
 from ... import ChatCompletion
 from ... import models
 from .api import Api
@@ -302,12 +303,15 @@ class Backend_Api(Api):
                     })
                 do_filter = request.args.get("filter_markdown", request.args.get("json"))
                 cache_id = request.args.get('cache')
+                model, provider_handler = get_model_and_provider(
+                    request.args.get("model"), request.args.get("provider", request.args.get("audio_provider")),
+                    stream=request.args.get("stream") and not do_filter and not cache_id,
+                    ignore_stream=not request.args.get("stream"),
+                )
                 parameters = {
-                    "model": request.args.get("model"),
+                    "model": model,
                     "messages": [{"role": "user", "content": request.args.get("prompt")}],
-                    "provider": request.args.get("provider", request.args.get("audio_provider", "AnyProvider")),
                     "stream": not do_filter and not cache_id,
-                    "ignore_stream": not request.args.get("stream"),
                     "tool_calls": tool_calls,
                 }
                 if request.args.get("audio_provider") or request.args.get("audio"):
@@ -348,7 +352,7 @@ class Backend_Api(Api):
                         with cache_file.open("r") as f:
                             response = f.read()
                     if not response:
-                        response = iter_run_tools(ChatCompletion.create, **parameters)
+                        response = iter_run_tools(provider_handler, **parameters)
                         cache_dir.mkdir(parents=True, exist_ok=True)
                         response = cast_str(response)
                         response = response if isinstance(response, str) else "".join(response)
@@ -356,7 +360,7 @@ class Backend_Api(Api):
                             with cache_file.open("w") as f:
                                 f.write(response)
                 else:
-                    response = cast_str(iter_run_tools(ChatCompletion.create, **parameters))
+                    response = cast_str(iter_run_tools(provider_handler, **parameters))
                 if isinstance(response, str) and "\n" not in response:
                     if response.startswith("/media/"):
                         media_dir = get_media_dir()

@@ -22,65 +22,14 @@ class HarProvider(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://legacy.lmarena.ai"
     api_endpoint = "/queue/join?"
     working = True
-    default_model = "chatgpt-4o-latest-20250326"
-    model_aliases = LegacyLMArena.model_aliases
-    vision_models = [
-		"o3-2025-04-16",
-		"o4-mini-2025-04-16",
-		"gpt-4.1-2025-04-14",
-		"gemini-2.5-pro-exp-03-25",
-		"claude-3-7-sonnet-20250219",
-		"claude-3-7-sonnet-20250219-thinking-32k",
-		"llama-4-maverick-17b-128e-instruct",
-		"gpt-4.1-mini-2025-04-14",
-		"gpt-4.1-nano-2025-04-14",
-		"gemini-2.0-flash-thinking-exp-01-21",
-		"gemini-2.0-flash-001",
-		"gemini-2.0-flash-lite-preview-02-05",
-		"claude-3-5-sonnet-20241022",
-		"gpt-4o-mini-2024-07-18",
-		"gpt-4o-2024-11-20",
-		"gpt-4o-2024-08-06",
-		"gpt-4o-2024-05-13",
-		"claude-3-5-sonnet-20240620",
-		"doubao-1.5-vision-pro-32k-250115",
-		"amazon-nova-pro-v1.0",
-		"amazon-nova-lite-v1.0",
-		"qwen2.5-vl-32b-instruct",
-		"qwen2.5-vl-72b-instruct",
-		"gemini-1.5-pro-002",
-		"gemini-1.5-flash-002",
-		"gemini-1.5-flash-8b-001",
-		"gemini-1.5-pro-001",
-		"gemini-1.5-flash-001",
-		"hunyuan-standard-vision-2024-12-31",
-		"pixtral-large-2411",
-		"step-1o-vision-32k-highres",
-		"claude-3-haiku-20240307",
-		"claude-3-sonnet-20240229",
-		"claude-3-opus-20240229",
-		"qwen-vl-max-1119",
-		"qwen-vl-max-0809",
-		"reka-core-20240904",
-		"reka-flash-20240904",
-		"c4ai-aya-vision-32b",
-		"pixtral-12b-2409"
-	]
+    default_model = LegacyLMArena.default_model
 
     @classmethod
-    def get_models(cls):
-        for domain, harFile in read_har_files():
-            for v in harFile['log']['entries']:
-                request_url = v['request']['url']
-                if domain not in request_url or "." in urlparse(request_url).path or "heartbeat" in request_url:
-                    continue
-                if "\n\ndata: " not in v['response']['content']['text']:
-                    continue
-                chunk = v['response']['content']['text'].split("\n\ndata: ")[2]
-                cls.models = list(dict.fromkeys(get_str_list(find_list(json.loads(chunk), 'choices'))).keys())
-                cls.models[0] = cls.default_model
-                if cls.models:
-                    break
+    def get_models(cls) -> list[str]:
+        LegacyLMArena.get_models()
+        cls.models = LegacyLMArena.models
+        cls.model_aliases = LegacyLMArena.model_aliases
+        cls.vision_models = LegacyLMArena.vision_models
         return cls.models
 
     @classmethod

@@ -6,6 +6,7 @@ from ..typing import Type, List, CreateResult, Messages, AsyncResult
 from .types import BaseProvider, BaseRetryProvider, ProviderType
 from .response import ProviderInfo, JsonConversation, is_content
 from .. import debug
+from ..tools.run_tools import AuthManager
 from ..errors import RetryProviderError, RetryNoProviderError, MissingAuthError, NoValidHarFileError
 
 class IterListProvider(BaseRetryProvider):
@@ -64,6 +65,8 @@ class IterListProvider(BaseRetryProvider):
             extra_body = kwargs.copy()
             if isinstance(api_key, dict):
                 api_key = api_key.get(provider.get_parent())
+            if not api_key:
+                api_key = AuthManager.load_api_key(provider)
             if api_key:
                 extra_body["api_key"] = api_key
                 debug.log(f"Using API key for provider: {provider.__name__}")
@@ -113,6 +116,8 @@ class IterListProvider(BaseRetryProvider):
             extra_body = kwargs.copy()
             if isinstance(api_key, dict):
                 api_key = api_key.get(provider.get_parent())
+            if not api_key:
+                api_key = AuthManager.load_api_key(provider)
             if api_key:
                 debug.log(f"Using API key for provider: {provider.__name__}")
                 extra_body["api_key"] = api_key

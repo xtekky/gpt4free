@@ -38,10 +38,10 @@ EXTRA_REQUIRE = {
         "plyer",
         "setuptools",
         "markitdown[all]",
-        # agent
-        "rich",
-        "PyYAML",
-        "Pygments"
+        "python-dotenv",
+        "rich", # agent (g4f/cli/agent)
+        "PyYAML", # agent (g4f/cli/agent)
+        "Pygments" # agent (g4f/cli/agent)
     ],
     'slim': [
         "curl_cffi>=0.6.2",
@@ -56,7 +56,8 @@ EXTRA_REQUIRE = {
         "uvicorn",                 # api
         "python-multipart",
         "a2wsgi",
-        "markitdown[all]"
+        "markitdown[all]",
+        "python-dotenv"
     ],
     "image": [
         "pillow",

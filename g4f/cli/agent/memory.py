@@ -88,27 +88,44 @@ class AgentMemory:
 
     def add_conversation(self, role: str, content: str):
         """Adds a message to the short-term conversation history."""
-        # Prune history to prevent it from growing too large
-        if len(self.conversation_history) > 10:
-            # Keep the first user prompt and the most recent messages
-            self.conversation_history = [self.conversation_history[0]] + self.conversation_history[-9:]
         self.conversation_history.append({"role": role, "content": content})
+        
+        # Keep the conversation history from growing too large, but ALWAYS keep the first user prompt.
+        if len(self.conversation_history) > 10:
+            # Find the first message from the user, which is the original goal.
+            first_user_prompt = next((msg for msg in self.conversation_history if msg["role"] == "user"), None)
+            
+            # Get the most recent messages.
+            recent_messages = self.conversation_history[-9:]
+            
+            # Reconstruct the history, ensuring the original prompt is always first.
+            new_history = []
+            if first_user_prompt:
+                new_history.append(first_user_prompt)
+                # Add recent messages, avoiding duplication of the first prompt if it's also recent.
+                for msg in recent_messages:
+                    if msg != first_user_prompt:
+                        new_history.append(msg)
+            else:
+                # Fallback if no user prompt is found for some reason.
+                new_history = self.conversation_history[-10:]
+            
+            self.conversation_history = new_history
+
 
     def get_conversation_context(self) -> str:
         """Returns a string representation of the recent conversation history for the LLM."""
         if not self.conversation_history:
             return "No conversation history yet."
         
-        contextual_history = self.conversation_history[-10:]
-        
         output = []
-        for msg in contextual_history:
+        for msg in self.conversation_history:
             role = msg['role'].capitalize()
             content = msg['content']
             if role.lower() == 'observation':
                 output.append(f"**System Observation:**\n{content}")
             else:
-                output.append(f"**{role}:** {content[:1000]}")
+                output.append(f"**{role}:** {content[:1500]}") # Increase context length
         return "\n".join(output)
     
     def clear_memory(self, confirm: bool = False):
@@ -116,6 +133,7 @@ class AgentMemory:
         if not confirm:
             print("Confirmation not provided. Memory not cleared.")
             return
+        self.conversation_history = []
         self.project_memory = self._get_new_memory_structure()
         self.save_project_memory()
         print("Project memory has been cleared.")

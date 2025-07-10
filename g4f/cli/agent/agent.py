@@ -33,7 +33,6 @@ from .memory import AgentMemory
 from .security import SecuritySandbox
 from .git import GitIntegration
 from .dependencies import DependencyManager
-from .testing import TestRunner
 
 # Initialize Rich Console
 console = Console()
@@ -120,15 +119,9 @@ class EnhancedAgent:
         self.security = SecuritySandbox()
         self.git = GitIntegration()
         self.deps = DependencyManager()
-        self.test_runner = TestRunner()
         self.response_cache = ResponseCache(CONFIG_DIR)
         self.action_history = ActionHistory(CONFIG_DIR)
         self.debug_mode = getattr(config, 'debug_mode', False)
-
-        if self.config.git_integration and self.git.is_git_repo():
-            self.backup_branch = self.git.create_backup_branch()
-            if self.backup_branch:
-                self.console.print(f"[green]✓[/green] Created backup branch: {self.backup_branch}")
 
     def debug_print(self, message: str, title: str = "DEBUG"):
         if self.debug_mode:
@@ -144,15 +137,16 @@ class EnhancedAgent:
 **CORE DIRECTIVES:**
 1.  **BIAS FOR ACTION:** Your primary goal is to complete the user's task. Do not engage in conversation. Do not ask for clarification unless a request is impossible to interpret. Directly generate the actions needed to fulfill the request.
 2.  **JSON ONLY:** You MUST respond with a valid JSON array of action objects. No other text or explanation is allowed outside the JSON structure.
-3.  **OBSERVE AND ADAPT:** After you perform an action like `read` or `list`, the system will provide the result back to you in an `observation` block. You MUST use the information from the observation to plan your next action (e.g., use the content from a `read` observation to generate an `edit` action).
+3.  **OBSERVE AND ADAPT:** After you perform an action like `read` or `list`, the system will provide the result back to you in an `observation` block. You MUST use the information from the observation to plan your next action.
 4.  **COMPLETE THE GOAL:** Continue generating actions until the user's request is fully completed. If you read a file to gather information, your next step must be to USE that information.
-5.  **SELF-CONTAINED ACTIONS:** For tasks like translation, code generation, or modification, perform the task yourself within the `content` field of an `edit` or `create` action. DO NOT use `web_search` for tasks you are capable of doing yourself.
+5.  **SELF-CONTAINED ACTIONS:** For tasks like translation or code generation, perform the task yourself within the `content` field of an `edit` or `create` action.
+6.  **REPORT AND CONCLUDE:** Once you have fully completed all parts of the user's request (e.g., after listing files as asked, or after successfully editing a file), your final action should be to inform the user. Use the `clarify` action to summarize what you did and ask for the next command. Example: `{{"type": "clarify", "question": "I have listed the files. What should I do next?"}}`
 
 **EXAMPLE WORKFLOW:**
--   **User:** "translate the print statement in the hello function to Ukrainian"
--   **Your 1st Response:** `[{{"type": "read", "target": "app.py", "reason": "Need to read the file to find the hello function."}}]`
--   **System Observation:** `Content of app.py:\n```\ndef hello():\n    print("Hello, World!")\n```
--   **Your 2nd Response:** `[{{"type": "edit", "target": "app.py", "line_start": 2, "line_end": 2, "content": "    print(\\"Привіт, Світ!\\")", "reason": "Translating the print statement as requested based on the file content."}}]`
+-   **User:** "list the files in this directory"
+-   **Your 1st Response:** `[{{"type": "list", "target": ".", "reason": "User asked to list files."}}]`
+-   **System Observation:** `Contents of .:\n- d har_and_cookies\n- f calculator.py`
+-   **Your 2nd Response:** `[{{"type": "clarify", "question": "I see the following files: har_and_cookies (directory) and calculator.py. What would you like to do next?"}}]`
 
 **AVAILABLE ACTIONS (JSON format):**
 - `list`: List files in a directory. `{{"type": "list", "target": "./src"}}`
@@ -161,7 +155,7 @@ class EnhancedAgent:
 - `edit`: Edit an existing file. `{{"type": "edit", "target": "main.py", "line_start": 10, "line_end": 12, "content": "new_function_code..."}}`
 - `delete`: Delete a file or directory. `{{"type": "delete", "target": "old_file.txt"}}`
 - `execute`: Execute a shell command. `{{"type": "execute", "method": "python", "content": "print('hello')"`
-- `clarify`: Ask the user a question (USE SPARINGLY). `{{"type": "clarify", "question": "The request is ambiguous. Do you mean X or Y?"}}`
+- `clarify`: Ask the user a question or report completion. `{{"type": "clarify", "question": "I have finished the task. What is next?"}}`
 
 **PROVIDED CONTEXT:**
 <project_context>
@@ -232,11 +226,16 @@ class EnhancedAgent:
         """Asks the user the agent's question and re-runs the agent with the answer."""
         question = action.question or "How should I proceed?"
         self.console.print(f"\n[bold yellow]🤔 Assistant:[/bold yellow] {question}")
-        answer = Prompt.ask("[bold green]Your reply[/bold green]")
+        
+        # If this is a concluding question, we don't need a user reply to loop.
+        # We just wait for the next prompt.
+        concluding_phrases = ["what should i do next", "what is next", "what would you like to do next"]
+        if any(phrase in question.lower() for phrase in concluding_phrases):
+            return
 
+        answer = Prompt.ask("[bold green]Your reply[/bold green]")
         self.memory.add_conversation("assistant", action.question)
         self.memory.add_conversation("user", answer)
-        
         self.run(original_prompt, is_follow_up=True)
 
     def _execute_actions(self, actions: List[Action], dry_run: bool = False) -> bool:

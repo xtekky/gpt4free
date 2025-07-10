@@ -25,8 +25,8 @@ CONVERSATION_FILE = CONFIG_DIR / "conversation.json"
 class ConversationManager:
     """Manages conversation history and state."""
     
-    def __init__(self, file_path: Path, model: Optional[str] = None, provider: Optional[str] = None) -> None:
-        self.file_path = file_path
+    def __init__(self, file_path: Optional[Path] = None, model: Optional[str] = None, provider: Optional[str] = None) -> None:
+        self.file_path: Optional[Path] = file_path
         self.model: Optional[str] = model
         self.provider: Optional[str] = provider
         self.conversation = None
@@ -35,13 +35,13 @@ class ConversationManager:
 
     def _load(self) -> None:
         """Load conversation from file."""
-        if not self.file_path.is_file():
+        if self.file_path is None or not self.file_path.is_file():
             return
 
         try:
             with open(self.file_path, 'r', encoding='utf-8') as f:
                 data = json.load(f)
-                self.model = data.get("model") if self.model is None else self.model
+                self.model = data.get("model") if self.model is None and self.provider is None else self.model
                 self.provider = data.get("provider") if self.provider is None else self.provider
                 if not self.provider:
                     self.provider = None
@@ -58,7 +58,7 @@ class ConversationManager:
 
     def save(self) -> None:
         """Save conversation to file."""
-        if self.file_path.exists() and not self.file_path.is_file():
+        if self.file_path is None:
             return
 
         try:
@@ -66,7 +66,7 @@ class ConversationManager:
                 if self.conversation and self.provider:
                     self.data[self.provider] = self.conversation.get_dict()
                 else:
-                    self.data = self.conversation.get_dict() if self.conversation else {}
+                    self.data =  {**self.data, **(self.conversation.get_dict() if self.conversation else {})}
                 json.dump({
                     "model": self.model,
                     "provider": self.provider,
@@ -102,13 +102,12 @@ async def stream_response(
     conversation.add_message("user", input_text)
 
     create_args = {
+        "model": conversation.model,
         "messages": conversation.get_messages(),
         "stream": True,
-        "media": media
+        "media": media,
+        "conversation": conversation.conversation,
     }
-    
-    if conversation.model:
-        create_args["model"] = conversation.model
 
     response_content = []
     last_chunk = None
@@ -129,7 +128,7 @@ async def stream_response(
             break
     print("\n", end="")
 
-    conversation.conversation = getattr(last_chunk, 'conversation', None)
+    conversation.conversation = None if last_chunk is None else last_chunk.conversation
     media_content = next(iter([chunk for chunk in response_content if isinstance(chunk, MediaResponse)]), None)
     response_content = response_content[0] if len(response_content) == 1 else "".join([str(chunk) for chunk in response_content])
     if output_file:
@@ -225,6 +224,11 @@ def get_chat_parser():
         help="Clear conversation history before starting"
     )
     parser.add_argument(
+        '--no-config',
+        action='store_true',
+        help="Do not load configuration from conversation file"
+    )
+    parser.add_argument(
         'input',
         nargs='*',
         help="Input text (or read from stdin)"
@@ -242,11 +246,13 @@ async def run_chat_args_async(input_text: str, args):
         if hasattr(args, 'debug') and args.debug:
             debug.logging = True
         
-        conversation = ConversationManager(args.conversation_file, args.model, args.provider)
+        # Initialize conversation manager
+        conversation = ConversationManager(None if args.no_config else args.conversation_file, args.model, args.provider)
         if args.clear_history:
             conversation.history = []
             conversation.conversation = None
-        
+
+        # Set cookies directory if specified
         set_cookies_dir(str(args.cookies_dir))
         read_cookie_files()
         

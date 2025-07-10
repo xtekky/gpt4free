@@ -434,6 +434,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                     conversation.parent_message_id = None
                     new_messages = messages
                     if conversation.conversation_id is not None:
+                        new_messages = []
                         for message in messages:
                             if message.get("role") == "assistant":
                                 new_messages = []
