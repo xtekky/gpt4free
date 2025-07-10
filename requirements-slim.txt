@@ -17,3 +17,4 @@ cryptography
 python-multipart
 markitdown[all]
 a2wsgi
+python-dotenv

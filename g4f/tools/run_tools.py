@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import re
 import json
 import asyncio
@@ -122,30 +123,27 @@ class ToolHandler:
 
 class AuthManager:
     """Handles API key management"""
-    
-    @staticmethod
-    def get_api_key_file(provider) -> Path:
-        """Get the path to the API key file for a provider"""
-        return Path(get_cookies_dir()) / f"auth_{provider if isinstance(provider, str) else provider.get_parent()}.json"
+    aliases = {
+        "GeminiPro": "Gemini",
+        "PollinationsAI": "Pollinations",
+        "OpenaiAPI": "Openai",
+    }
 
-    @staticmethod
-    def load_api_key(provider: Any) -> Optional[str]:
+    @classmethod
+    def load_api_key(cls, provider: ProviderType) -> Optional[str]:
         """Load API key from config file"""
-        auth_file = AuthManager.get_api_key_file(provider)
-        try:
-            if auth_file.exists():
-                debug.log(f"Loading API key from {auth_file}")
-                with auth_file.open("r") as f:
-                    try:
-                        auth_result = json.load(f)
-                    except json.JSONDecodeError as e:
-                        return auth_file.read_text()
-                if isinstance(auth_result, dict):
-                    return auth_result.get("api_key")
-        except (json.JSONDecodeError, PermissionError, FileNotFoundError) as e:
-            debug.error(f"Failed to load API key: {e.__class__.__name__}: {e}")
+        if not provider.needs_auth and not hasattr(provider, "login_url"):
+            return None
+        provider_name = provider.get_parent()
+        env_var = f"{provider_name.upper()}_API_KEY"
+        api_key = os.environ.get(env_var)
+        if not api_key and provider_name in cls.aliases:
+            env_var = f"{cls.aliases[provider_name].upper()}_API_KEY"
+            api_key = os.environ.get(env_var)
+        if api_key:
+            debug.log(f"Loading API key from environment variable {env_var}")
+            return api_key
         return None
-
 
 class ThinkingProcessor:
     """Processes thinking chunks"""
@@ -259,10 +257,9 @@ async def async_iter_run_tools(
         yield sources
 
 def iter_run_tools(
-    iter_callback: Callable,
+    provider: ProviderType,
     model: str,
     messages: Messages,
-    provider: Optional[str] = None,
     tool_calls: Optional[List[dict]] = None,
     **kwargs
 ) -> Iterator:
@@ -300,7 +297,7 @@ def iter_run_tools(
                         **tool["function"]["arguments"]
                     )
                 elif function_name == TOOL_NAMES["CONTINUE"]:
-                    if provider not in ("OpenaiAccount", "HuggingFace"):
+                    if provider.__name__ not in ("OpenaiAccount", "HuggingFace"):
                         last_line = messages[-1]["content"].strip().splitlines()[-1]
                         content = f"Carry on from this point:\n{last_line}"
                         messages.append({"role": "user", "content": content})
@@ -326,7 +323,7 @@ def iter_run_tools(
     thinking_start_time = 0
     processor = ThinkingProcessor()
     
-    for chunk in iter_callback(model=model, messages=messages, provider=provider, **kwargs):
+    for chunk in provider.create_function(model=model, messages=messages, provider=provider, **kwargs):
         if isinstance(chunk, FinishReason):
             if sources is not None:
                 yield sources

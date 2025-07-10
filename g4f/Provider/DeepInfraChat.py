@@ -7,7 +7,9 @@ from .. import debug
 
 
 class DeepInfraChat(OpenaiTemplate):
+    parent = "DeepInfra"
     url = "https://deepinfra.com/chat"
+    login_url = "https://deepinfra.com/dash/api_keys"
     api_base = "https://api.deepinfra.com/v1/openai"
     working = True
 

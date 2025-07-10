@@ -43,6 +43,8 @@ class GeminiPro(AsyncGeneratorProvider, ProviderModelMixin):
 
     @classmethod
     def get_models(cls, api_key: str = None, api_base: str = api_base) -> list[str]:
+        if not api_key:
+            return cls.fallback_models
         if not cls.models:
             try:
                 url = f"{cls.api_base if not api_base else api_base}/models"

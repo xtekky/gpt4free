@@ -21,10 +21,11 @@ from .. import debug
 from .any_model_map import audio_models, image_models, vision_models, video_models, model_map, models_count, parents
 
 PROVIERS_LIST_1 = [
-    OpenaiChat, PollinationsAI, Cloudflare, PerplexityLabs, Gemini, Grok, DeepSeekAPI, Blackbox, OpenAIFM,
-    OIVSCodeSer2, OIVSCodeSer0501, TeachAnything, Together, WeWordle, Yqcloud, Chatai, Free2GPT, ImageLabs,
-    HarProvider, LegacyLMArena, LMArenaBeta, LambdaChat, CopilotAccount, DeepInfraChat,
-    HuggingSpace, HuggingFace, HuggingFaceMedia, Together, GeminiPro
+    CopilotAccount, OpenaiChat, Cloudflare, PerplexityLabs, Gemini, Grok, DeepSeekAPI, Blackbox, OpenAIFM,
+    OIVSCodeSer2, OIVSCodeSer0501, TeachAnything, WeWordle, Yqcloud, Chatai, Free2GPT, ImageLabs,
+    # Has lazy loading model lists
+    PollinationsAI, HarProvider, LegacyLMArena, LMArenaBeta, LambdaChat, DeepInfraChat,
+    HuggingSpace, HuggingFace, HuggingFaceMedia, GeminiPro, Together, PuterJS
 ]
 
 PROVIERS_LIST_2 = [
@@ -32,7 +33,7 @@ PROVIERS_LIST_2 = [
 ]
 
 PROVIERS_LIST_3 = [
-    HarProvider, LambdaChat, DeepInfraChat, HuggingFace, HuggingFaceMedia, HarProvider, LegacyLMArena, LMArenaBeta,
+    HarProvider, LambdaChat, DeepInfraChat, HuggingFace, HuggingFaceMedia, LegacyLMArena, LMArenaBeta,
     PuterJS, Together, Cloudflare, HuggingSpace
 ]
 
@@ -83,10 +84,10 @@ class AnyModelProviderMixin(ProviderModelMixin):
 
     @classmethod
     def get_models(cls, ignored: list[str] = []) -> list[str]:
+        if not cls.models:
+            cls.update_model_map()
         if not ignored:
             return cls.models
-        if not cls.model_map:
-            cls.update_model_map()
         ignored = cls.extend_ignored(ignored)
         filtered = []
         for model, providers in cls.model_map.items():
@@ -247,7 +248,7 @@ class AnyModelProviderMixin(ProviderModelMixin):
 
         # Create a mapping of parent providers to their children
         cls.parents = {}
-        for provider in PROVIERS_LIST_1 + PROVIERS_LIST_2 + PROVIERS_LIST_3:
+        for provider in PROVIERS_LIST_1:
             if provider.working and provider.__name__ != provider.get_parent():
                 if provider.get_parent() not in cls.parents:
                     cls.parents[provider.get_parent()] = [provider.__name__]
@@ -271,7 +272,7 @@ class AnyModelProviderMixin(ProviderModelMixin):
             start = model.split(":")[0]
             if start in ("PollinationsAI", "openrouter"):
                 submodel = model.split(":", maxsplit=1)[1]
-                if submodel in OpenAIFM.voices or submodel in PollinationsAI.audio_models[PollinationsAI.default_audio_model]:
+                if submodel in PollinationsAI.audio_models[PollinationsAI.default_audio_model]:
                     groups["voices"].append(submodel)
                 else:
                     groups[start].append(model)
@@ -394,6 +395,12 @@ class AnyProvider(AsyncGeneratorProvider, AnyModelProviderMixin):
                 for provider, alias in cls.model_map[model].items():
                     provider = Provider.__map__[provider]
                     provider.model_aliases[model] = alias
+                    providers.append(provider)
+        if not providers:
+            for provider in PROVIERS_LIST_1:
+                if model in provider.get_models():
+                    providers.append(provider)
+                elif model in provider.model_aliases:
                     providers.append(provider)
         providers = [provider for provider in providers if provider.working and provider.get_parent() not in ignored]
         providers = list({provider.__name__: provider for provider in providers}.values())

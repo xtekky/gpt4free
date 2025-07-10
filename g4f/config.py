@@ -12,13 +12,13 @@ def get_config_dir() -> Path:
     else:  # Linux and other UNIX-like
         return Path.home() / ".config"
 
-CONFIG_DIR = get_config_dir() / "g4f"
+PACKAGE_NAME = "g4f"
+CONFIG_DIR = get_config_dir() / PACKAGE_NAME
 COOKIES_DIR = CONFIG_DIR / "cookies"
 CUSTOM_COOKIES_DIR = "./har_and_cookies"
-PACKAGE_NAME = "g4f"
 ORGANIZATION = "gpt4free"
 GITHUB_REPOSITORY = f"xtekky/{ORGANIZATION}"
-STATIC_DOMAIN = f"g4f.dev"
+STATIC_DOMAIN = f"{PACKAGE_NAME}.dev"
 STATIC_URL = f"https://{STATIC_DOMAIN}/"
 DIST_DIR = f"./{STATIC_DOMAIN}/dist"
 DOWNLOAD_URL = f"https://raw.githubusercontent.com/{ORGANIZATION}/{STATIC_DOMAIN}/refs/heads/main/"

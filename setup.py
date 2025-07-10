@@ -37,7 +37,8 @@ EXTRA_REQUIRE = {
         "pywebview",
         "plyer",
         "setuptools",
-        "markitdown[all]"
+        "markitdown[all]",
+        "python-dotenv"
     ],
     'slim': [
         "curl_cffi>=0.6.2",
@@ -52,7 +53,8 @@ EXTRA_REQUIRE = {
         "uvicorn",                 # api
         "python-multipart",
         "a2wsgi",
-        "markitdown[all]"
+        "markitdown[all]",
+        "python-dotenv"
     ],
     "image": [
         "pillow",

@@ -25,8 +25,8 @@ CONVERSATION_FILE = CONFIG_DIR / "conversation.json"
 class ConversationManager:
     """Manages conversation history and state."""
     
-    def __init__(self, file_path: Path, model: Optional[str] = None, provider: Optional[str] = None) -> None:
-        self.file_path = file_path
+    def __init__(self, file_path: Optional[Path] = None, model: Optional[str] = None, provider: Optional[str] = None) -> None:
+        self.file_path: Optional[Path] = file_path
         self.model: Optional[str] = model
         self.provider: Optional[str] = provider
         self.conversation = None
@@ -35,7 +35,7 @@ class ConversationManager:
 
     def _load(self) -> None:
         """Load conversation from file."""
-        if not self.file_path.is_file():
+        if self.file_path is None or not self.file_path.is_file():
             return
 
         try:
@@ -58,7 +58,7 @@ class ConversationManager:
 
     def save(self) -> None:
         """Save conversation to file."""
-        if self.file_path.exists() and not self.file_path.is_file():
+        if self.file_path is None:
             return
 
         try:
@@ -228,6 +228,11 @@ def get_parser():
         help="Clear conversation history before starting"
     )
     parser.add_argument(
+        '--no-config',
+        action='store_true',
+        help="Do not load configuration from conversation file"
+    )
+    parser.add_argument(
         'input',
         nargs='*',
         help="Input text (or read from stdin)"
@@ -247,11 +252,11 @@ async def run_args(input_text: str, args):
             debug.logging = True
         
         # Initialize conversation manager
-        conversation = ConversationManager(args.conversation_file, args.model, args.provider)
+        conversation = ConversationManager(None if args.no_config else args.conversation_file, args.model, args.provider)
         if args.clear_history:
             conversation.history = []
             conversation.conversation = None
-        
+
         # Set cookies directory if specified
         set_cookies_dir(str(args.cookies_dir))
         read_cookie_files()

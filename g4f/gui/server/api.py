@@ -156,7 +156,7 @@ class Api:
         if "user" not in kwargs:
             debug.log = decorated_log
         proxy = os.environ.get("G4F_PROXY")
-        provider = kwargs.get("provider")
+        provider = kwargs.pop("provider", None)
         try:
             model, provider_handler = get_model_and_provider(
                 kwargs.get("model"), provider,
@@ -179,7 +179,7 @@ class Api:
             if hasattr(provider_handler, "get_parameters"):
                 yield self._format_json("parameters", provider_handler.get_parameters(as_json=True))
         try:
-            result = iter_run_tools(ChatCompletion.create, **{**kwargs, "model": model, "provider": provider_handler, "download_media": download_media})
+            result = iter_run_tools(provider_handler, **{**kwargs, "model": model, "download_media": download_media})
             for chunk in result:
                 if isinstance(chunk, ProviderInfo):
                     yield self.handle_provider(chunk, model)
