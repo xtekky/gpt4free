@@ -361,9 +361,9 @@ class VideoResponse(MediaResponse):
                 image = self.get("preview")
                 if isinstance(image, list) and len(image) > idx:
                     image = image[idx]
-                result.append(f'<video controls src="{quote_url(video)}" poster="{quote_url(image)}"></video>')
+                result.append(f'<video src="{quote_url(video)}" poster="{quote_url(image)}"></video>')
             return "\n".join(result)
-        return "\n".join([f'<video controls src="{quote_url(video)}"></video>' for video in self.get_list()])
+        return "\n".join([f'<video src="{quote_url(video)}"></video>' for video in self.get_list()])
 
 class ImagePreview(ImageResponse):
     def __str__(self) -> str:
