@@ -350,6 +350,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
             "private": str(private).lower(),
             "enhance": str(enhance).lower(),
             "safe": str(safe).lower(),
+            "referrer": referrer
         }
         if transparent:
             params["transparent"] = "true"
@@ -464,6 +465,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                 response_format=response_format,
                 stream=stream,
                 seed=None if model =="grok" else seed,
+                referrer=referrer,
                 **extra_body
             )
             headers = {"referer": referrer}
