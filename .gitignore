@@ -36,3 +36,4 @@ projects/windows/
 
 *.bak
 *.backup
+.env
