@@ -137,7 +137,7 @@ class BlackForestLabs_Flux1KontextDev(AsyncGeneratorProvider, ProviderModelMixin
                     elif chunk.get("msg") == "progress":
                         progress_data = chunk.get("progress_data", [])
                         progress_data = progress_data[0] if progress_data else {}
-                        yield Reasoning(label="Processing image", status=f"{progress_data.get("index", 0)}/{progress_data.get("length", 0)}")
+                        yield Reasoning(label="Processing image", status=f"{progress_data.get('index', 0)}/{progress_data.get('length', 0)}")
                     elif chunk.get("msg") == "process_completed":
                         url = chunk.get("output", {}).get("data", [{}])[0].get("url")
                         yield ImageResponse(url, prompt)
