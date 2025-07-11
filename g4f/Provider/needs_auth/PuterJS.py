@@ -331,6 +331,7 @@ class PuterJS(AsyncGeneratorProvider, ProviderModelMixin):
         stream: bool = True,
         api_key: str = None,
         media: MediaListType = None,
+        extra_parameters: list[str] = ["temperature", "presence_penalty", "top_p", "frequency_penalty", "response_format", "tools", "parallel_tool_calls", "tool_choice", "reasoning_effort", "logit_bias", "voice", "modalities", "audio"],
         **kwargs
     ) -> AsyncResult:
         if not api_key:
@@ -388,7 +389,7 @@ class PuterJS(AsyncGeneratorProvider, ProviderModelMixin):
                     "messages": list(render_messages(messages, media)),
                     "model": model,
                     "stream": stream,
-                    **kwargs
+                    **{param: kwargs.get(param) for param in extra_parameters if param in kwargs}
                 }
             }
             async with session.post(
