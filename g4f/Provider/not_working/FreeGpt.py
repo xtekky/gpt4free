@@ -4,10 +4,10 @@ import time
 import hashlib
 import random
 from typing import AsyncGenerator, Optional, Dict, Any
-from ..typing import Messages
-from ..requests import StreamSession, raise_for_status
-from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from ..errors import RateLimitError
+from ...typing import Messages
+from ...requests import StreamSession, raise_for_status
+from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from ...errors import RateLimitError
 
 # Constants
 DOMAINS = [
@@ -22,7 +22,7 @@ RATE_LIMIT_ERROR_MESSAGE = "当前地区当日额度已消耗完"
 class FreeGpt(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://freegptsnav.aifree.site"
     
-    working = True
+    working = False
     supports_message_history = True
     supports_system_message = True
     

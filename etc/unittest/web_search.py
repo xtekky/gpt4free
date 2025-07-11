@@ -4,14 +4,14 @@ import json
 import unittest
 
 try:
-    from duckduckgo_search import DDGS
-    from duckduckgo_search.exceptions import DuckDuckGoSearchException
+    from ddgs import DDGS, DDGSError
     from bs4 import BeautifulSoup
     has_requirements = True
 except ImportError:
     has_requirements = False
 
 from g4f.client import AsyncClient
+from g4f.errors import MissingRequirementsError
 from .mocks import YieldProviderMock
 
 DEFAULT_MESSAGES = [{'role': 'user', 'content': 'Hello'}]
@@ -45,8 +45,8 @@ class TestIterListProvider(unittest.IsolatedAsyncioTestCase):
         try:
             response = await client.chat.completions.create([{"content": "", "role": "user"}], "", tool_calls=tool_calls)
             self.assertIn("Using the provided web search results", response.choices[0].message.content)
-        except DuckDuckGoSearchException as e:
-            self.skipTest(f'DuckDuckGoSearchException: {e}')
+        except (DDGSError, MissingRequirementsError) as e:
+            self.skipTest(f'Search error: {e}')
 
     async def test_search2(self):
         client = AsyncClient(provider=YieldProviderMock)
@@ -64,8 +64,8 @@ class TestIterListProvider(unittest.IsolatedAsyncioTestCase):
         try:
             response = await client.chat.completions.create([{"content": "", "role": "user"}], "", tool_calls=tool_calls)
             self.assertIn("Using the provided web search results", response.choices[0].message.content)
-        except DuckDuckGoSearchException as e:
-            self.skipTest(f'DuckDuckGoSearchException: {e}')
+        except (DDGSError, MissingRequirementsError) as e:
+            self.skipTest(f'Search error: {e}')
 
     async def test_search3(self):
         client = AsyncClient(provider=YieldProviderMock)
@@ -85,5 +85,5 @@ class TestIterListProvider(unittest.IsolatedAsyncioTestCase):
         try:
             response = await client.chat.completions.create([{"content": "", "role": "user"}], "", tool_calls=tool_calls)
             self.assertIn("Using the provided web search results", response.choices[0].message.content)
-        except DuckDuckGoSearchException as e:
-            self.skipTest(f'DuckDuckGoSearchException: {e}')
+        except (DDGSError, MissingRequirementsError) as e:
+            self.skipTest(f'Search error: {e}')

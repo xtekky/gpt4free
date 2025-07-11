@@ -6,12 +6,12 @@ import string
 import asyncio
 from aiohttp import ClientSession
 
-from ..typing import AsyncResult, Messages
-from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from ..requests.raise_for_status import raise_for_status
-from ..errors import ResponseStatusError
-from ..providers.response import ImageResponse
-from .helper import format_prompt, format_media_prompt
+from ...typing import AsyncResult, Messages
+from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
+from ...requests.raise_for_status import raise_for_status
+from ...errors import ResponseStatusError
+from ...providers.response import ImageResponse
+from ..helper import format_prompt, format_media_prompt
 
 
 class Websim(AsyncGeneratorProvider, ProviderModelMixin):
@@ -20,17 +20,17 @@ class Websim(AsyncGeneratorProvider, ProviderModelMixin):
     chat_api_endpoint = "https://websim.ai/api/v1/inference/run_chat_completion"
     image_api_endpoint = "https://websim.ai/api/v1/inference/run_image_generation"
     
-    working = True
+    working = False
     needs_auth = False
     use_nodriver = False
     supports_stream = False
     supports_system_message = True
     supports_message_history = True
 
-    default_model = 'gemini-1.5-pro'
+    default_model = 'gemini-2.5-pro'
     default_image_model = 'flux'
     image_models = [default_image_model]
-    models = [default_model, 'gemini-1.5-flash'] + image_models
+    models = [default_model, 'gemini-2.5-flash'] + image_models
 
     @staticmethod
     def generate_project_id(for_image=False):

@@ -40,18 +40,18 @@ from .Copilot              import Copilot
 from .DeepInfraChat        import DeepInfraChat
 from .DuckDuckGo           import DuckDuckGo
 from .Free2GPT             import Free2GPT
-from .FreeGpt              import FreeGpt
 from .ImageLabs            import ImageLabs
 from .LambdaChat           import LambdaChat
 from .LegacyLMArena        import LegacyLMArena
 from .OIVSCodeSer2         import OIVSCodeSer2
 from .OIVSCodeSer0501      import OIVSCodeSer0501
+from .OperaAria            import OperaAria
 from .PerplexityLabs       import PerplexityLabs
 from .PollinationsAI       import PollinationsAI
 from .PollinationsImage    import PollinationsImage
+from .Startnest            import Startnest
 from .TeachAnything        import TeachAnything
 from .Together             import Together
-from .Websim               import Websim
 from .WeWordle             import WeWordle
 from .Yqcloud              import Yqcloud
 

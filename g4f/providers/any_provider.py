@@ -10,8 +10,8 @@ from ..providers.retry_provider import IterListProvider
 from ..Provider.needs_auth import OpenaiChat, CopilotAccount
 from ..Provider.hf_space import HuggingSpace
 from ..Provider import Cloudflare, Gemini, GeminiPro, Grok, DeepSeekAPI, PerplexityLabs, LambdaChat, PollinationsAI, PuterJS
-from ..Provider import Microsoft_Phi_4_Multimodal, DeepInfraChat, Blackbox, OIVSCodeSer2, OIVSCodeSer0501, TeachAnything
-from ..Provider import Together, WeWordle, Yqcloud, Chatai, Free2GPT, ImageLabs, LegacyLMArena, LMArenaBeta
+from ..Provider import Microsoft_Phi_4_Multimodal, DeepInfraChat, Blackbox, OIVSCodeSer0501, OIVSCodeSer2, TeachAnything, OperaAria, Startnest
+from ..Provider import Together, WeWordle, Yqcloud, Chatai, ImageLabs, LegacyLMArena, LMArenaBeta, Free2GPT
 from ..Provider import EdgeTTS, gTTS, MarkItDown, OpenAIFM, Video
 from ..Provider import HarProvider, HuggingFace, HuggingFaceMedia
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
@@ -25,7 +25,7 @@ PROVIERS_LIST_1 = [
     OIVSCodeSer2, OIVSCodeSer0501, TeachAnything, WeWordle, Yqcloud, Chatai, Free2GPT, ImageLabs,
     # Has lazy loading model lists
     PollinationsAI, HarProvider, LegacyLMArena, LMArenaBeta, LambdaChat, DeepInfraChat,
-    HuggingSpace, HuggingFace, HuggingFaceMedia, GeminiPro, Together, PuterJS
+    HuggingSpace, HuggingFace, HuggingFaceMedia, GeminiPro, Together, PuterJS, OperaAria, Startnest
 ]
 
 PROVIERS_LIST_2 = [
