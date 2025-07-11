@@ -7,6 +7,7 @@ from ...errors import ResponseError
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
 
 from .BlackForestLabs_Flux1Dev       import BlackForestLabs_Flux1Dev
+from .BlackForestLabs_Flux1KontextDev import BlackForestLabs_Flux1KontextDev
 from .CohereForAI_C4AI_Command       import CohereForAI_C4AI_Command
 from .DeepseekAI_JanusPro7b          import DeepseekAI_JanusPro7b
 from .Microsoft_Phi_4_Multimodal     import Microsoft_Phi_4_Multimodal
@@ -27,6 +28,7 @@ class HuggingSpace(AsyncGeneratorProvider, ProviderModelMixin):
     default_vision_model = Microsoft_Phi_4_Multimodal.default_model
     providers = [
         BlackForestLabs_Flux1Dev,
+        BlackForestLabs_Flux1KontextDev,
         CohereForAI_C4AI_Command,
         DeepseekAI_JanusPro7b,
         Microsoft_Phi_4_Multimodal,

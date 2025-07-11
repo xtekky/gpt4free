@@ -8,6 +8,12 @@ from ..template import OpenaiTemplate
 class Azure(OpenaiTemplate):
     working = True
     needs_auth = True
+    login_url = "https://ai.azure.com"
+
+    @classmethod
+    def get_models(cls, **kwargs) -> list[str]:
+        cls.default_model = os.environ.get("AZURE_DEFAULT_MODEL", cls.default_model)
+        return [cls.default_model]
 
     @classmethod
     async def create_async_generator(
