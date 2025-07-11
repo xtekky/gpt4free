@@ -135,12 +135,12 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
                     if "usage" in data:
                         yield Usage(**data["usage"])
                     if "choices" in data:
-                        choice = data["choices"][0]
-                        if "content" in choice["message"] and choice["message"]["content"]:
+                        choice = next(iter(data["choices"]), None)
+                        if choice and "content" in choice["message"] and choice["message"]["content"]:
                             yield choice["message"]["content"].strip()
                         if "tool_calls" in choice["message"]:
                             yield ToolCalls(choice["message"]["tool_calls"])
-                        if "finish_reason" in choice and choice["finish_reason"] is not None:
+                        if choice and "finish_reason" in choice and choice["finish_reason"] is not None:
                             yield FinishReason(choice["finish_reason"])
                             return
                 elif content_type.startswith("text/event-stream"):
@@ -153,8 +153,8 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
                         if not model_returned and model:
                             yield ProviderInfo(**cls.get_dict(), model=model)
                             model_returned = True
-                        choice = data["choices"][0]
-                        if "content" in choice["delta"] and choice["delta"]["content"]:
+                        choice = next(iter(data["choices"]), None)
+                        if choice and "content" in choice["delta"] and choice["delta"]["content"]:
                             delta = choice["delta"]["content"]
                             if first:
                                 delta = delta.lstrip()
@@ -163,7 +163,7 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
                                 yield delta
                         if "usage" in data and data["usage"]:
                             yield Usage(**data["usage"])
-                        if "finish_reason" in choice and choice["finish_reason"] is not None:
+                        if choice and "finish_reason" in choice and choice["finish_reason"] is not None:
                             yield FinishReason(choice["finish_reason"])
                             break
                 else:

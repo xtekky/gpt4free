@@ -408,8 +408,8 @@ class RaiseErrorMixin():
                 raise ResponseError(data["error"]["message"])
             else:
                 raise ResponseError(data["error"])
-        elif ("choices" not in data or not data["choices"]) and "data" not in data:
-            raise ResponseError(f"Invalid response: {json.dumps(data)}")
+        #elif ("choices" not in data or not data["choices"]) and "data" not in data:
+        #    raise ResponseError(f"Invalid response: {json.dumps(data)}")
 
 class AuthFileMixin():
 

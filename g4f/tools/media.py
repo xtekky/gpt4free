@@ -10,7 +10,7 @@ from ..typing import Messages
 from ..image import is_data_an_media, to_input_audio, is_valid_media, is_valid_audio, to_data_uri
 from .files import get_bucket_dir, read_bucket
 
-def render_media(bucket_id: str, name: str, url: str, as_path: bool = False, as_base64: bool = False) -> Union[str, Path]:
+def render_media(bucket_id: str, name: str, url: str, as_path: bool = False, as_base64: bool = False, **kwargs) -> Union[str, Path]:
     if (as_base64 or as_path or url.startswith("/")):
         file = Path(get_bucket_dir(bucket_id, "thumbnail", name))
         if not file.exists():

@@ -1,4 +1,5 @@
 from .Anthropic         import Anthropic
+from .Azure             import Azure
 from .BingCreateImages  import BingCreateImages
 from .BlackboxPro       import BlackboxPro
 from .CablyAI           import CablyAI
