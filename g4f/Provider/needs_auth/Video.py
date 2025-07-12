@@ -97,7 +97,7 @@ class Video(AsyncGeneratorProvider, ProviderModelMixin):
             debug.error(f"Error getting nodriver:", e)
             async with ClientSession() as session:
                 yield Reasoning(label="Generating")
-                async with session.post(cls.api_url + quote(prompt)) as response:
+                async with session.get(cls.api_url + quote(prompt)) as response:
                     if not response.ok:
                         debug.error(f"Failed to generate Video: {response.status}")
                     else:
