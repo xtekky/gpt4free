@@ -112,7 +112,7 @@ def get_filename(tags: list[str], alt: str, extension: str, image: str) -> str:
     return "".join((
         f"{int(time.time())}_",
         f"{secure_filename(tags + alt)}_" if alt else secure_filename(tags),
-        hashlib.sha256(image.encode()).hexdigest()[:16],
+        hashlib.sha256(str(time.time()).encode() if image is None else image.encode()).hexdigest()[:16],
         extension
     ))
 

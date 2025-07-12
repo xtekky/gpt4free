@@ -292,7 +292,7 @@ class AsyncGeneratorProvider(AbstractProvider):
         cls,
         model: str,
         messages: Messages,
-        stream: bool = True,
+        stream: bool = None,
         timeout: int = None,
         **kwargs
     ) -> CreateResult:
@@ -312,7 +312,7 @@ class AsyncGeneratorProvider(AbstractProvider):
         """
         return to_sync_generator(
             cls.create_async_generator(model, messages, stream=stream, **kwargs),
-            stream=stream,
+            stream=stream is not False,
             timeout=timeout
         )
 
@@ -321,7 +321,6 @@ class AsyncGeneratorProvider(AbstractProvider):
     async def create_async_generator(
         model: str,
         messages: Messages,
-        stream: bool = True,
         **kwargs
     ) -> AsyncResult:
         """

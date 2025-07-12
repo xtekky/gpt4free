@@ -23,7 +23,7 @@ def convert_to_provider(provider: str) -> ProviderType:
 
 def get_model_and_provider(model    : Union[Model, str], 
                            provider : Union[ProviderType, str, None], 
-                           stream   : bool,
+                           stream   : bool = False,
                            ignore_working: bool = False,
                            ignore_stream: bool = False,
                            logging: bool = True,

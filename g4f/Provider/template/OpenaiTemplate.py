@@ -7,6 +7,7 @@ from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin, RaiseErr
 from ...typing import Union, AsyncResult, Messages, MediaListType
 from ...requests import StreamSession, raise_for_status
 from ...image import use_aspect_ratio
+from ...image.copy_images import save_response_media
 from ...providers.response import FinishReason, ToolCalls, Usage, ImageResponse, ProviderInfo
 from ...tools.media import render_messages
 from ...errors import MissingAuthError, ResponseError
@@ -62,7 +63,7 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
         max_tokens: int = None,
         top_p: float = None,
         stop: Union[str, list[str]] = None,
-        stream: bool = False,
+        stream: bool = None,
         prompt: str = None,
         headers: dict = None,
         impersonate: str = None,
@@ -115,7 +116,7 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
                 max_tokens=max_tokens,
                 top_p=top_p,
                 stop=stop,
-                stream=stream,
+                stream="audio" not in extra_parameters if stream is None else stream,
                 **extra_parameters,
                 **extra_body
             )
@@ -136,10 +137,18 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
                         yield Usage(**data["usage"])
                     if "choices" in data:
                         choice = next(iter(data["choices"]), None)
-                        if choice and "content" in choice["message"] and choice["message"]["content"]:
-                            yield choice["message"]["content"].strip()
-                        if "tool_calls" in choice["message"]:
-                            yield ToolCalls(choice["message"]["tool_calls"])
+                        message = choice.get("message", {})
+                        if choice and "content" in message and message["content"]:
+                            yield message["content"].strip()
+                        if "tool_calls" in message:
+                            yield ToolCalls(message["tool_calls"])
+                        audio = message.get("audio", {})
+                        if "data" in audio:
+                            async for chunk in save_response_media(audio["data"], prompt, [model, extra_body.get("audio", {}).get("voice")]):
+                                yield chunk
+                        if "transcript" in audio:
+                            yield "\n\n"
+                            yield audio["transcript"]
                         if choice and "finish_reason" in choice and choice["finish_reason"] is not None:
                             yield FinishReason(choice["finish_reason"])
                             return

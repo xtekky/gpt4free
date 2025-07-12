@@ -149,7 +149,6 @@ class Api:
             "model": model,
             "provider": provider,
             "messages": messages,
-            "stream": True,
             "ignore_stream": True,
             **kwargs
         }
@@ -166,8 +165,6 @@ class Api:
         try:
             model, provider_handler = get_model_and_provider(
                 kwargs.get("model"), provider,
-                stream=True,
-                ignore_stream=True,
                 has_images="media" in kwargs,
             )
             if "user" in kwargs:

@@ -17,3 +17,4 @@ services:
     restart: on-failure
     volumes:
       - /var/win:/storage
+      - ./:/data
