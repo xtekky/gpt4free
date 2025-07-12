@@ -156,7 +156,7 @@ class ChatCompletionMessage(BaseModel):
             with open(filepath, "wb") as f:
                 f.write(extract_data_uri(self.content))
             return
-        content = filter_markdown(self.content, allowed_types)
+        content = filter_markdown(self.content, allowed_types, self.content if not allowed_types else None)
         if content is not None:
             with open(filepath, "w") as f:
                 f.write(content)

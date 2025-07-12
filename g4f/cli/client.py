@@ -121,10 +121,7 @@ async def stream_response(
         if is_content(token):
             response_content.append(token)
         try:
-            for byte in str(token).encode('utf-8'):
-                sys.stdout.buffer.write(bytes([byte]))
-                sys.stdout.buffer.flush()
-                await asyncio.sleep(0.01)
+            print(token, end="", flush=True)
         except (IOError, BrokenPipeError) as e:
             print(f"\nError writing to stdout: {e}", file=sys.stderr)
             break
@@ -227,7 +224,7 @@ def get_parser():
         help="Clear conversation history before starting"
     )
     parser.add_argument(
-        '--no-config',
+        '-N', '--no-config',
         action='store_true',
         help="Do not load configuration from conversation file"
     )

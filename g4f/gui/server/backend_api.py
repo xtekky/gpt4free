@@ -9,7 +9,7 @@ import asyncio
 import shutil
 import random
 import datetime
-import base64
+from hashlib import sha256
 from urllib.parse import quote_plus
 from flask import Flask, Response, redirect, request, jsonify, send_from_directory
 from werkzeug.exceptions import NotFound
@@ -29,8 +29,7 @@ try:
 except ImportError as e:
     has_markitdown = False
 try:
-    from cryptography.hazmat.primitives import serialization
-    from cryptography.hazmat.primitives.asymmetric import padding, rsa
+    from .crypto import rsa, serialization, create_or_read_keys, decrypt_data, encrypt_data
     has_crypto = True
 except ImportError:
     has_crypto = False
@@ -80,19 +79,13 @@ class Backend_Api(Api):
         self.chat_cache = {}
 
         if has_crypto:
-            private_key_obj = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+            private_key_obj = rsa.generate_private_key(public_exponent=65537, key_size=4096)
             public_key_obj = private_key_obj.public_key()
             public_key_pem = public_key_obj.public_bytes(
                 encoding=serialization.Encoding.PEM,
                 format=serialization.PublicFormat.SubjectPublicKeyInfo
             )
-
-            def decrypt_data(encrypted_data: str) -> str:
-                decrypted = private_key_obj.decrypt(
-                    base64.b64decode(encrypted_data),
-                    padding.PKCS1v15()
-                )
-                return decrypted.decode()
+            sub_private_key, sub_public_key = create_or_read_keys()
 
             def validate_secret(secret: str) -> bool:
                 """
@@ -105,8 +98,9 @@ class Backend_Api(Api):
                     bool: True if the secret is valid, False otherwise.
                 """
                 try:
-                    decrypted_secret = base64.b64decode(decrypt_data(secret).encode()).decode()
-                    return int(decrypted_secret) >= time.time() - 3
+                    decrypted_secret = decrypt_data(sub_private_key, decrypt_data(private_key_obj, secret))
+                    timediff = time.time() - int(decrypted_secret)
+                    return timediff <= 3 and timediff >= 0
                 except Exception as e:
                     logger.error(f"Secret validation failed: {e}")
                     return False
@@ -116,7 +110,7 @@ class Backend_Api(Api):
                 # Send the public key to the client for encryption
                 return jsonify({
                     "public_key": public_key_pem.decode(),
-                    "data": base64.b64encode(str(int(time.time())).encode()).decode()
+                    "data": encrypt_data(sub_public_key, str(int(time.time())))
                 })
 
         @app.route('/backend-api/v2/models', methods=['GET'])
@@ -192,6 +186,7 @@ class Backend_Api(Api):
                     json_data["provider"] = models.HuggingFace
             if app.demo:
                 ip = request.headers.get("X-Forwarded-For", "")
+                ip = sha256(ip.encode()).hexdigest()[:4] if ip else ""
                 user = request.headers.get("Cf-Ipcountry", "")
                 json_data["user"] = request.headers.get("x_user", f"{user}:{ip}")
                 json_data["referer"] = request.headers.get("referer", "")

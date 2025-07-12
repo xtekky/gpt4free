@@ -7,6 +7,7 @@ import secrets
 import os
 import re
 import shutil
+import time
 from email.utils import formatdate
 import os.path
 import hashlib
@@ -79,6 +80,12 @@ from .stubs import (
     ResponsesConfig
 )
 from g4f import debug
+
+try:
+    from g4f.gui.server.crypto import create_or_read_keys, decrypt_data
+    has_crypto = True
+except ImportError:
+    has_crypto = False
 
 logger = logging.getLogger(__name__)
 
@@ -208,6 +215,8 @@ class Api:
     def register_authorization(self):
         if AppConfig.g4f_api_key:
             print(f"Register authentication key: {''.join(['*' for _ in range(len(AppConfig.g4f_api_key))])}")
+        if has_crypto:
+            private_key, _ = create_or_read_keys()
         @self.app.middleware("http")
         async def authorization(request: Request, call_next):
             if AppConfig.g4f_api_key is not None or AppConfig.demo:
@@ -217,23 +226,36 @@ class Api:
                     user_g4f_api_key = await self.security(request)
                     if hasattr(user_g4f_api_key, "credentials"):
                         user_g4f_api_key = user_g4f_api_key.credentials
+                user = None
+                if AppConfig.g4f_api_key is None or not secrets.compare_digest(AppConfig.g4f_api_key, user_g4f_api_key):
+                    if has_crypto and user_g4f_api_key:
+                        try:
+                            expires, user = decrypt_data(private_key, user_g4f_api_key).split(":", 1)
+                            expires = int(expires) - int(time.time())
+                            debug.log(f"User: '{user}' G4F API key expires in {expires} seconds")
+                        except Exception as e:
+                            return ErrorResponse.from_message(f"Invalid G4F API key: {e}", HTTP_401_UNAUTHORIZED)
+                        if expires < 0:
+                            return ErrorResponse.from_message("G4F API key expired", HTTP_401_UNAUTHORIZED)
+                else:
+                    user = "admin"
                 path = request.url.path
                 if path.startswith("/v1") or path.startswith("/api/") or (AppConfig.demo and path == '/backend-api/v2/upload_cookies'):
                     if user_g4f_api_key is None:
                         return ErrorResponse.from_message("G4F API key required", HTTP_401_UNAUTHORIZED)
-                    if AppConfig.g4f_api_key is None or not secrets.compare_digest(AppConfig.g4f_api_key, user_g4f_api_key):
+                    if AppConfig.g4f_api_key is None and user is None:
                         return ErrorResponse.from_message("Invalid G4F API key", HTTP_403_FORBIDDEN)
                 elif not AppConfig.demo and not path.startswith("/images/") and not path.startswith("/media/"):
                     if user_g4f_api_key is not None:
-                        if not secrets.compare_digest(AppConfig.g4f_api_key, user_g4f_api_key):
+                        if user is None:
                             return ErrorResponse.from_message("Invalid G4F API key", HTTP_403_FORBIDDEN)
                     elif path.startswith("/backend-api/") or path.startswith("/chat/") and path != "/chat/":
                         try:
-                            username = await self.get_username(request)
+                            user = await self.get_username(request)
                         except HTTPException as e:
                             return ErrorResponse.from_message(e.detail, e.status_code, e.headers)
                         response = await call_next(request)
-                        response.headers["x-user"] = username
+                        response.headers["x-user"] = user
                         return response
             return await call_next(request)
 
