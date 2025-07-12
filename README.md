@@ -72,7 +72,7 @@ Curious to see what G4F can do? Dive into a live demonstration and visit the [of
      - [🎨 Image Generation](#-image-generation)
      - [🌐 Web Interface](#-web-interface)
      - [🖥️ Local Inference](https://github.com/gpt4free/g4f.dev/blob/main/docs/local.md)
-     - [🤖 Inference API](#-inference-api)
+     - [🤖 Interference API](#-interference-api)
      - [🛠️ Configuration](https://github.com/gpt4free/g4f.dev/blob/main/docs/configuration.md)
      - [📱 Run on Smartphone](#-run-on-smartphone)
      - [📘 Full Documentation for Python API](#-full-documentation-for-python-api)
