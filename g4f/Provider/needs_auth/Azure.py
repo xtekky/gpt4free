@@ -4,13 +4,16 @@ import os
 import json
 
 from ...typing import Messages, AsyncResult
+from ...errors import MissingAuthError
 from ..template import OpenaiTemplate
 
 class Azure(OpenaiTemplate):
+    url = "https://ai.azure.com"
     api_base = "https://host.g4f.dev/api/Azure"
     working = True
     needs_auth = True
-    login_url = "https://ai.azure.com"
+    active_by_default = True
+    login_url = "https://discord.gg/qXA4Wf4Fsm"
     routes: dict[str, str] = {}
 
     @classmethod
@@ -40,18 +43,21 @@ class Azure(OpenaiTemplate):
         if not api_key:
             raise ValueError("API key is required for Azure provider")
         if not api_endpoint:
-            api_endpoint = os.environ.get("AZURE_API_ENDPOINT")
-        if not api_endpoint:
             if not cls.routes:
                 cls.get_models()
             api_endpoint = cls.routes.get(model)
             if cls.routes and not api_endpoint:
                 raise ValueError(f"No API endpoint found for model: {model}")
-        async for chunk in super().create_async_generator(
-            model=model,
-            messages=messages,
-            api_key=api_key,
-            api_endpoint=api_endpoint,
-            **kwargs
-        ):
-            yield chunk
+        if not api_endpoint:
+            api_endpoint = os.environ.get("AZURE_API_ENDPOINT")
+        try:
+            async for chunk in super().create_async_generator(
+                model=model,
+                messages=messages,
+                api_key=api_key,
+                api_endpoint=api_endpoint,
+                **kwargs
+            ):
+                yield chunk
+        except MissingAuthError as e:
+            raise MissingAuthError(f"{e}. Ask for help in the {cls.login_url} Discord server.") from e
