@@ -69,7 +69,6 @@ class IterListProvider(BaseRetryProvider):
                 api_key = AuthManager.load_api_key(provider)
             if api_key:
                 extra_body["api_key"] = api_key
-                debug.log(f"Using API key for provider: {provider.__name__}")
             try:
                 response = provider.create_function(alias, messages, stream=stream, **extra_body)
                 for chunk in response:
@@ -119,7 +118,6 @@ class IterListProvider(BaseRetryProvider):
             if not api_key:
                 api_key = AuthManager.load_api_key(provider)
             if api_key:
-                debug.log(f"Using API key for provider: {provider.__name__}")
                 extra_body["api_key"] = api_key
             if conversation is not None and hasattr(conversation, provider.__name__):
                 extra_body["conversation"] = JsonConversation(**getattr(conversation, provider.__name__))

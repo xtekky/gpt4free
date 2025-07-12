@@ -57,7 +57,7 @@ class Copilot(AsyncAuthedProvider, ProviderModelMixin):
     conversation_url = f"{url}/c/api/conversations"
 
     _access_token: str = None
-    _cookies: dict = None
+    _cookies: dict = {}
 
     @classmethod
     async def on_auth_async(cls, **kwargs) -> AsyncIterator:
