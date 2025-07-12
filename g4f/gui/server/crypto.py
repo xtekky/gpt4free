@@ -12,7 +12,6 @@ from ...cookies import get_cookies_dir
 def create_or_read_keys() -> tuple[RSAPrivateKey, RSAPublicKey]:
     private_key_file = os.path.join(get_cookies_dir(), "private_key.pem")
     public_key_file = os.path.join(get_cookies_dir(), "public_key.pem")
-    os.makedirs(os.path.dirname(private_key_file), exist_ok=True)
 
     if os.path.isfile(private_key_file) and os.path.isfile(public_key_file):
         # Read private key
@@ -46,6 +45,8 @@ def create_or_read_keys() -> tuple[RSAPrivateKey, RSAPublicKey]:
         encoding=serialization.Encoding.PEM,
         format=serialization.PublicFormat.SubjectPublicKeyInfo
     )
+
+    os.makedirs(os.path.dirname(private_key_file), exist_ok=True)
 
     # Write the private key PEM to a file
     with open(private_key_file, 'wb') as f:
