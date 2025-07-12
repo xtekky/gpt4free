@@ -236,10 +236,9 @@ async def async_iter_run_tools(
         messages, sources = await perform_web_search(messages, web_search)
 
     # Get API key
-    if not kwargs.get("api_key"):
-        api_key = AuthManager.load_api_key(provider)
-        if api_key:
-            kwargs["api_key"] = api_key
+    api_key = AuthManager.load_api_key(provider)
+    if api_key:
+        kwargs["api_key"] = api_key
     
     # Process tool calls
     if tool_calls:
@@ -278,7 +277,7 @@ def iter_run_tools(
             debug.error(f"Couldn't do web search: {e.__class__.__name__}: {e}")
     
     # Get API key if needed
-    if provider is not None and not kwargs.get("api_key"):
+    if provider is not None:
         api_key = AuthManager.load_api_key(provider)
         if api_key:
             kwargs["api_key"] = api_key
