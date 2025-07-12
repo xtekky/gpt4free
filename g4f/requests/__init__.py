@@ -124,7 +124,7 @@ async def get_args_from_nodriver(
             "headers": {
                 **DEFAULT_HEADERS,
                 "user-agent": user_agent,
-                "referer": f"{url.rstip('/')}/",
+                "referer": f"{url.rstrip('/')}/",
             },
             "proxy": proxy,
         }

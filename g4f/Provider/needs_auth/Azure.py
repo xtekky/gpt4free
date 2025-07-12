@@ -41,7 +41,7 @@ class Azure(OpenaiTemplate):
         if not model:
             model = os.environ.get("AZURE_DEFAULT_MODEL", cls.default_model)
         if not api_key:
-            raise ValueError("API key is required for Azure provider")
+            raise ValueError(f"API key is required for Azure provider. Ask for API key in the {cls.login_url} Discord server.")
         if not api_endpoint:
             if not cls.routes:
                 cls.get_models()
