@@ -245,7 +245,7 @@ class Api:
                             try:
                                 data = json.loads(decrypt_data(session_key, user_g4f_api_key))
                                 expires = int(decrypt_data(private_key, data["data"])) + 86400
-                                user = data.get("user", None)
+                                user = data.get("user", user)
                             except:
                                 return ErrorResponse.from_message(f"Invalid G4F API key", HTTP_401_UNAUTHORIZED)
                         expires = int(expires) - int(time.time())
@@ -269,6 +269,10 @@ class Api:
                             user = await self.get_username(request)
                         except HTTPException as e:
                             return ErrorResponse.from_message(e.detail, e.status_code, e.headers)
+                if user is None:
+                    ip = request.headers.get("X-Forwarded-For", "")[:4].strip(":.")
+                    user = request.headers.get("Cf-Ipcountry", "")
+                    user = f"{user}:{ip}" if user else ip
                 request = update_headers(request, user)
             return await call_next(request)
 
