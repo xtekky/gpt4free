@@ -188,7 +188,7 @@ class Backend_Api(Api):
                 ip = request.headers.get("X-Forwarded-For", "")
                 ip = sha256(ip.encode()).hexdigest()[:4] if ip else ""
                 user = request.headers.get("Cf-Ipcountry", "")
-                json_data["user"] = request.headers.get("x_user", f"{user}:{ip}")
+                json_data["user"] = request.headers.get("x-user", f"{user}:{ip}")
                 json_data["referer"] = request.headers.get("referer", "")
                 json_data["user-agent"] = request.headers.get("user-agent", "")
             kwargs = self._prepare_conversation_kwargs(json_data)
