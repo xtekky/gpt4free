@@ -214,7 +214,7 @@ async def search(
     results: List[SearchResultEntry] = []
     # Use the new DDGS() context manager style
     with DDGS() as ddgs:
-        async for result in ddgs.text(
+        for result in ddgs.text(
             query,
             region=region,
             safesearch="moderate",
