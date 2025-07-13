@@ -10,9 +10,9 @@ try:
 except:
     has_requirements = False
 try:
-    from duckduckgo_search.exceptions import DuckDuckGoSearchException
+    from ddgs.exceptions import DDGSException
 except ImportError:
-    class DuckDuckGoSearchException:
+    class DDGSException(Exception):
         pass
 
 class TestBackendApi(unittest.TestCase):
@@ -42,7 +42,7 @@ class TestBackendApi(unittest.TestCase):
         from g4f.gui.server.internet import search
         try:
             result = asyncio.run(search("Hello"))
-        except DuckDuckGoSearchException as e:
+        except DDGSException as e:
             self.skipTest(e)
         except MissingRequirementsError:
             self.skipTest("search is not installed")
