@@ -82,7 +82,7 @@ from .stubs import (
 from g4f import debug
 
 try:
-    from g4f.gui.server.crypto import create_or_read_keys, decrypt_data
+    from g4f.gui.server.crypto import create_or_read_keys, decrypt_data, get_session_key
     has_crypto = True
 except ImportError:
     has_crypto = False
@@ -217,6 +217,7 @@ class Api:
             print(f"Register authentication key: {''.join(['*' for _ in range(len(AppConfig.g4f_api_key))])}")
         if has_crypto:
             private_key, _ = create_or_read_keys()
+            session_key = get_session_key()
         @self.app.middleware("http")
         async def authorization(request: Request, call_next):
             if AppConfig.g4f_api_key is not None or AppConfig.demo:
@@ -231,10 +232,15 @@ class Api:
                     if has_crypto and user_g4f_api_key:
                         try:
                             expires, user = decrypt_data(private_key, user_g4f_api_key).split(":", 1)
-                            expires = int(expires) - int(time.time())
-                            debug.log(f"User: '{user}' G4F API key expires in {expires} seconds")
-                        except Exception as e:
-                            return ErrorResponse.from_message(f"Invalid G4F API key: {e}", HTTP_401_UNAUTHORIZED)
+                        except:
+                            try:
+                                data = json.loads(decrypt_data(session_key, user_g4f_api_key))
+                                expires = int(decrypt_data(private_key, data["data"])) + 86400
+                                user = data.get("user", None)
+                            except:
+                                return ErrorResponse.from_message(f"Invalid G4F API key", HTTP_401_UNAUTHORIZED)
+                        expires = int(expires) - int(time.time())
+                        debug.log(f"User: '{user}' G4F API key expires in {expires} seconds")
                         if expires < 0:
                             return ErrorResponse.from_message("G4F API key expired", HTTP_401_UNAUTHORIZED)
                 else:

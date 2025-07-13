@@ -9,6 +9,15 @@ from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey, RSAPriva
 
 from ...cookies import get_cookies_dir
 
+SESSION_KEY: RSAPrivateKey = None
+
+def get_session_key() -> RSAPrivateKey:
+    global SESSION_KEY
+    if SESSION_KEY is not None:
+        return SESSION_KEY
+    SESSION_KEY = rsa.generate_private_key(public_exponent=65537, key_size=4096)
+    return SESSION_KEY
+
 def create_or_read_keys() -> tuple[RSAPrivateKey, RSAPublicKey]:
     private_key_file = os.path.join(get_cookies_dir(), "private_key.pem")
     public_key_file = os.path.join(get_cookies_dir(), "public_key.pem")

@@ -29,7 +29,7 @@ try:
 except ImportError as e:
     has_markitdown = False
 try:
-    from .crypto import rsa, serialization, create_or_read_keys, decrypt_data, encrypt_data
+    from .crypto import rsa, serialization, create_or_read_keys, decrypt_data, encrypt_data, get_session_key
     has_crypto = True
 except ImportError:
     has_crypto = False
@@ -79,7 +79,7 @@ class Backend_Api(Api):
         self.chat_cache = {}
 
         if has_crypto:
-            private_key_obj = rsa.generate_private_key(public_exponent=65537, key_size=4096)
+            private_key_obj = get_session_key()
             public_key_obj = private_key_obj.public_key()
             public_key_pem = public_key_obj.public_bytes(
                 encoding=serialization.Encoding.PEM,
