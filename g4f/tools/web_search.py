@@ -213,7 +213,7 @@ async def search(
 
     results: List[SearchResultEntry] = []
     # Use the new DDGS() context manager style
-    async with DDGS() as ddgs:
+    with DDGS() as ddgs:
         async for result in ddgs.text(
             query,
             region=region,
