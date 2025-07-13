@@ -142,7 +142,7 @@ class AuthManager:
             env_var = f"{cls.aliases[provider_name].upper()}_API_KEY"
             api_key = os.environ.get(env_var)
         if api_key:
-            print(f"Loading API key for {provider_name} from environment variable {env_var}")
+            debug.log(f"Loading API key for {provider_name} from environment variable {env_var}")
             return api_key
         return None
 
