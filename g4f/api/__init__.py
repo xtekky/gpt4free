@@ -188,6 +188,13 @@ class AppConfig:
         for key, value in data.items():
             setattr(cls, key, value)
 
+def remove_authorization(request: Request) -> Request:
+    new_header = request.headers.mutablecopy()
+    del new_header["authorization"]
+    request.scope["headers"] = new_header.raw
+    delattr(request, "_headers")
+    return request
+
 class Api:
     def __init__(self, app: FastAPI) -> None:
         self.app = app
@@ -220,14 +227,16 @@ class Api:
             session_key = get_session_key()
         @self.app.middleware("http")
         async def authorization(request: Request, call_next):
+            user = None
             if AppConfig.g4f_api_key is not None or AppConfig.demo:
+                is_authorization_header = False
                 try:
                     user_g4f_api_key = await self.get_g4f_api_key(request)
                 except HTTPException:
                     user_g4f_api_key = await self.security(request)
                     if hasattr(user_g4f_api_key, "credentials"):
                         user_g4f_api_key = user_g4f_api_key.credentials
-                user = None
+                        is_authorization_header = True
                 if AppConfig.g4f_api_key is None or not secrets.compare_digest(AppConfig.g4f_api_key, user_g4f_api_key):
                     if has_crypto and user_g4f_api_key:
                         try:
@@ -260,10 +269,12 @@ class Api:
                             user = await self.get_username(request)
                         except HTTPException as e:
                             return ErrorResponse.from_message(e.detail, e.status_code, e.headers)
-                        response = await call_next(request)
-                        response.headers["x-user"] = user
-                        return response
-            return await call_next(request)
+                if is_authorization_header:
+                    request = remove_authorization(request)
+            response = await call_next(request)
+            if user is not None:
+                response.headers["x_user"] = user
+            return response
 
     def register_validation_exception_handler(self):
         @self.app.exception_handler(RequestValidationError)

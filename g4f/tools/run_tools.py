@@ -5,13 +5,14 @@ import re
 import json
 import asyncio
 import time
+import datetime
 from pathlib import Path
-from typing import Optional, Callable, AsyncIterator, Iterator, Dict, Any, Tuple, List, Union
+from typing import Optional, AsyncIterator, Iterator, Dict, Any, Tuple, List, Union
 
 from ..typing import Messages
 from ..providers.helper import filter_none
 from ..providers.asyncio import to_async_iterator
-from ..providers.response import Reasoning, FinishReason, Sources
+from ..providers.response import Reasoning, FinishReason, Sources, Usage, ProviderInfo
 from ..providers.types import ProviderType
 from ..cookies import get_cookies_dir
 from .web_search import do_search, get_search_message
@@ -141,7 +142,7 @@ class AuthManager:
             env_var = f"{cls.aliases[provider_name].upper()}_API_KEY"
             api_key = os.environ.get(env_var)
         if api_key:
-            debug.log(f"Loading API key from environment variable {env_var}")
+            print(f"Loading API key for {provider_name} from environment variable {env_var}")
             return api_key
         return None
 
@@ -236,9 +237,10 @@ async def async_iter_run_tools(
         messages, sources = await perform_web_search(messages, web_search)
 
     # Get API key
-    api_key = AuthManager.load_api_key(provider)
-    if api_key:
-        kwargs["api_key"] = api_key
+    if not kwargs.get("api_key"):
+        api_key = AuthManager.load_api_key(provider)
+        if api_key:
+            kwargs["api_key"] = api_key
     
     # Process tool calls
     if tool_calls:
@@ -248,9 +250,19 @@ async def async_iter_run_tools(
     # Generate response
     response = to_async_iterator(provider.async_create_function(model=model, messages=messages, **kwargs))
     
+    model_info = model
     async for chunk in response:
+        if isinstance(chunk, ProviderInfo):
+            model_info = getattr(chunk, 'model', model_info)
+        elif isinstance(chunk, Usage):
+            usage = {"user": kwargs.get("user"), "model": model_info, "provider": provider.get_parent(), **chunk.get_dict()}
+            usage_dir = Path(get_cookies_dir()) / ".usage"
+            usage_file = usage_dir / f"{datetime.date.today()}.jsonl"
+            usage_dir.mkdir(parents=True, exist_ok=True)
+            with usage_file.open("a" if usage_file.exists() else "w") as f:
+                f.write(f"{json.dumps(usage)}\n")
         yield chunk
-        
+
     # Yield sources if available
     if sources:
         yield sources
@@ -277,7 +289,7 @@ def iter_run_tools(
             debug.error(f"Couldn't do web search:", e)
     
     # Get API key if needed
-    if provider is not None:
+    if not kwargs.get("api_key"):
         api_key = AuthManager.load_api_key(provider)
         if api_key:
             kwargs["api_key"] = api_key
@@ -321,7 +333,7 @@ def iter_run_tools(
     # Process response chunks
     thinking_start_time = 0
     processor = ThinkingProcessor()
-    
+    model_info = model
     for chunk in provider.create_function(model=model, messages=messages, provider=provider, **kwargs):
         if isinstance(chunk, FinishReason):
             if sources is not None:
@@ -331,6 +343,16 @@ def iter_run_tools(
             continue
         elif isinstance(chunk, Sources):
             sources = None
+        elif isinstance(chunk, ProviderInfo):
+            model_info = getattr(chunk, 'model', model_info)
+        elif isinstance(chunk, Usage):
+            usage = {"user": kwargs.get("user"), "model": model_info, "provider": provider.get_parent(), **chunk.get_dict()}
+            usage_dir = Path(get_cookies_dir()) / ".usage"
+            usage_file = usage_dir / f"{datetime.date.today()}.jsonl"
+            usage_dir.mkdir(parents=True, exist_ok=True)
+            with usage_file.open("a" if usage_file.exists() else "w") as f:
+                f.write(f"{json.dumps(usage)}\n")
+
         if not isinstance(chunk, str):
             yield chunk
             continue

@@ -15,7 +15,7 @@ echo "UPDATE: d$c"
 git pull origin main
 sleep 120
 echo "UPDATE: #$c"
-python -m etc.tool.update
+git pull origin main
 sleep 120
 done
 echo "STOPPED."

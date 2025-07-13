@@ -36,4 +36,4 @@ RUN git clone https://github.com/hlohaus/deepseek4free.git \
  && cd deepseek4free && git checkout 21Feb \
  && pip install --no-cache-dir . && cd .. && rm -rf deepseek4free
 
-CMD git pull origin main && docker/update.sh & docker/start.sh
+CMD python -m etc.tool.update && docker/update.sh & docker/start.sh
