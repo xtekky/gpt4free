@@ -216,8 +216,8 @@ async def perform_web_search(messages: Messages, web_search_param: Any) -> Tuple
         search_query = web_search_param if isinstance(web_search_param, str) and web_search_param != "true" else None
         messages[-1]["content"], sources = await do_search(messages[-1]["content"], search_query)
     except Exception as e:
-        debug.error(f"Couldn't do web search: {e.__class__.__name__}: {e}")
-        
+        debug.error(f"Couldn't do web search:", e)
+
     return messages, sources
 
 
@@ -274,7 +274,7 @@ def iter_run_tools(
             # Note: Using asyncio.run inside sync function is not ideal, but maintaining original pattern
             messages[-1]["content"], sources = asyncio.run(do_search(messages[-1]["content"], search_query))
         except Exception as e:
-            debug.error(f"Couldn't do web search: {e.__class__.__name__}: {e}")
+            debug.error(f"Couldn't do web search:", e)
     
     # Get API key if needed
     if provider is not None:
