@@ -10,14 +10,16 @@ except ImportError:
 
 from ..typing import AsyncResult, Messages
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
-from ..providers.response import AudioResponse, VideoResponse
+from ..providers.response import AudioResponse, VideoResponse, YouTube as YouTubeResponse
 from ..image.copy_images import get_media_dir
 from .helper import format_media_prompt
 
 class YouTube(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://youtube.com"
     working = has_yt_dlp
-    use_nodriver = True
+
+    default_model = "search"
+    models = ["mp3", "1080p", "720p", "480p", "search"]
 
     @classmethod
     async def create_async_generator(
@@ -29,14 +31,17 @@ class YouTube(AsyncGeneratorProvider, ProviderModelMixin):
     ) -> AsyncResult:
         prompt = format_media_prompt(messages, prompt)
         provider = YouTubeProvider()
-        results = await provider.search(prompt, max_results=1)
+        results = await provider.search(prompt, max_results=5 if model == "search" else 1)
         if results:
-            video_url = results[0]['url']
-            path = await provider.download(video_url, model="mp3", output_dir=get_media_dir())
-            if path.endswith('.mp3'):
-                yield AudioResponse(f"/media/{os.path.basename(path)}")
+            if model == "search":
+                yield YouTubeResponse([result["id"] for result in results])
             else:
-                yield VideoResponse(f"/media/{os.path.basename(path)}", prompt)
+                video_url = results[0]['url']
+                path = await provider.download(video_url, model=model, output_dir=get_media_dir())
+                if path.endswith('.mp3'):
+                    yield AudioResponse(f"/media/{os.path.basename(path)}")
+                else:
+                    yield VideoResponse(f"/media/{os.path.basename(path)}", prompt)
 
 class YouTubeProvider:
     """
@@ -72,7 +77,7 @@ class YouTubeProvider:
             })
         return results
 
-    async def download(self, video_url: str, model: str = "high-definition", output_dir: str = ".") -> str:
+    async def download(self, video_url: str, model: str = "720p", output_dir: str = ".") -> str:
         """
         Download a YouTube video.
 
@@ -95,10 +100,19 @@ class YouTubeProvider:
                     'preferredquality': '192'
                 }]
             })
-        elif model == "high-definition":
-            # Best video+audio
+        elif model == "1080p":
             ydl_opts.update({
-                'format': 'bestvideo+bestaudio/best',
+                'format': 'bestvideo[height<=1080]+bestaudio/best[height<=1080]',
+                'merge_output_format': 'mp4',
+            })
+        elif model == "720p":
+                    ydl_opts.update({
+                'format': 'bestvideo[height=720]+bestaudio/best[height=720]',
+                'merge_output_format': 'mp4',
+            })
+        elif model == "480p":
+            ydl_opts.update({
+                'format': 'bestvideo[height<=480]+bestaudio/best[height<=480]',
                 'merge_output_format': 'mp4',
             })
         else:

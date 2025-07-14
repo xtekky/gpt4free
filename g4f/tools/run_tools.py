@@ -110,6 +110,7 @@ class ToolHandler:
 
             function_name = tool.get("function", {}).get("name")
 
+            debug.log(f"Processing tool call: {function_name}")
             if function_name == TOOL_NAMES["SEARCH"]:
                 messages, sources = await ToolHandler.process_search_tool(messages, tool)
 
@@ -234,6 +235,7 @@ async def async_iter_run_tools(
     sources = None
     web_search = kwargs.get('web_search')
     if web_search:
+        debug.log(f"Performing web search with value: {web_search}")
         messages, sources = await perform_web_search(messages, web_search)
 
     # Get API key
@@ -280,6 +282,7 @@ def iter_run_tools(
     sources = None
     
     if web_search:
+        debug.log(f"Performing web search with value: {web_search}")
         try:
             messages = messages.copy()
             search_query = web_search if isinstance(web_search, str) and web_search != "true" else None
@@ -299,7 +302,7 @@ def iter_run_tools(
         for tool in tool_calls:
             if tool.get("type") == "function":
                 function_name = tool.get("function", {}).get("name")
-                
+                debug.log(f"Processing tool call: {function_name}")
                 if function_name == TOOL_NAMES["SEARCH"]:
                     tool["function"]["arguments"] = ToolHandler.validate_arguments(tool["function"])
                     messages[-1]["content"] = get_search_message(
