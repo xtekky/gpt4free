@@ -276,7 +276,7 @@ class Api:
                     user = f"{user}:{ip}" if user else ip
                 request = update_headers(request, user)
             response = await call_next(request)
-            if STATIC_DOMAIN in request.headers.get("Origin"):
+            if request.headers.get("Origin", "").endswith(STATIC_DOMAIN):
                 response.headers["Access-Control-Allow-Origin"] = request.headers.get("Origin")
             return response
 
