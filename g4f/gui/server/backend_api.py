@@ -216,7 +216,6 @@ class Backend_Api(Api):
         def get_usage(date: str):
             cache_dir = Path(get_cookies_dir()) / ".usage"
             cache_file = cache_dir / f"{date}.jsonl"
-            print(f"Loading usage data from {cache_file}")
             return cache_file.read_text() if cache_file.exists() else (jsonify({"error": {"message": "No usage data found for this date"}}), 404)
 
         @app.route('/backend-api/v2/log', methods=['POST'])

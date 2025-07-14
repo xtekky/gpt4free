@@ -69,7 +69,6 @@ from g4f.cookies import read_cookie_files, get_cookies_dir
 from g4f.providers.types import ProviderType
 from g4f.providers.response import AudioResponse
 from g4f.providers.any_provider import AnyProvider
-from g4f.config import STATIC_URL
 from g4f import Provider
 from g4f.gui import get_gui_app
 from .stubs import (
@@ -276,8 +275,6 @@ class Api:
                     user = f"{user}:{ip}" if user else ip
                 request = update_headers(request, user)
             response = await call_next(request)
-            if "Access-Control-Allow-Origin" not in response.headers:
-                response.headers["Access-Control-Allow-Origin"] = STATIC_URL
             return response
 
     def register_validation_exception_handler(self):
@@ -365,6 +362,10 @@ class Api:
             }
 
         @self.app.get("/v1/models/{model_name}", responses={
+            HTTP_200_OK: {"model": ModelResponseModel},
+            HTTP_404_NOT_FOUND: {"model": ErrorResponseModel},
+        })
+        @self.app.post("/v1/models/{model_name}", responses={
             HTTP_200_OK: {"model": ModelResponseModel},
             HTTP_404_NOT_FOUND: {"model": ErrorResponseModel},
         })
