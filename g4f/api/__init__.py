@@ -231,7 +231,7 @@ class Api:
         @self.app.middleware("http")
         async def authorization(request: Request, call_next):
             user = None
-            if AppConfig.g4f_api_key is not None or AppConfig.demo:
+            if request.method != "OPTIONS" and AppConfig.g4f_api_key is not None or AppConfig.demo:
                 try:
                     user_g4f_api_key = await self.get_g4f_api_key(request)
                 except HTTPException:
