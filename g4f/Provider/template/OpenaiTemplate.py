@@ -40,6 +40,8 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
                 data = response.json()
                 data = data.get("data") if isinstance(data, dict) else data
                 cls.image_models = [model.get("id") for model in data if model.get("image")]
+                cls.vision_models = cls.vision_models.copy()
+                cls.vision_models += [model.get("id") for model in data if model.get("vision")]
                 cls.models = [model.get("id") for model in data]
                 if cls.sort_models:
                     cls.models.sort()

@@ -323,17 +323,19 @@ class Api:
                     "created": 0,
                     "owned_by": "",
                     "image": isinstance(model, g4f.models.ImageModel),
+                    "vision": isinstance(model, g4f.models.VisionModel),
                     "provider": False,
                 } for model in AnyProvider.get_models()] +
                 [{
                     "id": provider_name,
                     "object": "model",
                     "created": 0,
-                    "owned_by": getattr(provider, "label", None),
+                    "owned_by": getattr(provider, "label", ""),
                     "image": bool(getattr(provider, "image_models", False)),
+                    "vision": bool(getattr(provider, "vision_models", False)),
                     "provider": True,
                 } for provider_name, provider in Provider.ProviderUtils.convert.items()
-                    if provider.working and provider_name not in ("Custom", "Puter")
+                    if provider.working and provider_name not in ("Custom")
                 ]
             }
 
