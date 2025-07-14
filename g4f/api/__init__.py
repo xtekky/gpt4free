@@ -257,10 +257,11 @@ class Api:
                     user = "admin"
                 path = request.url.path
                 if path.startswith("/v1") or path.startswith("/api/") or (AppConfig.demo and path == '/backend-api/v2/upload_cookies'):
-                    if user_g4f_api_key is None:
-                        return ErrorResponse.from_message("G4F API key required", HTTP_401_UNAUTHORIZED)
-                    if AppConfig.g4f_api_key is None and user is None:
-                        return ErrorResponse.from_message("Invalid G4F API key", HTTP_403_FORBIDDEN)
+                    if request.method != "OPTIONS":
+                        if user_g4f_api_key is None:
+                            return ErrorResponse.from_message("G4F API key required", HTTP_401_UNAUTHORIZED)
+                        if AppConfig.g4f_api_key is None and user is None:
+                            return ErrorResponse.from_message("Invalid G4F API key", HTTP_403_FORBIDDEN)
                 elif not AppConfig.demo and not path.startswith("/images/") and not path.startswith("/media/"):
                     if user_g4f_api_key is not None:
                         if user is None:
