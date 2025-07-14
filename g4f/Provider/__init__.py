@@ -53,6 +53,7 @@ from .Startnest            import Startnest
 from .TeachAnything        import TeachAnything
 from .Together             import Together
 from .WeWordle             import WeWordle
+from .YouTube              import YouTube
 from .Yqcloud              import Yqcloud
 
 import sys

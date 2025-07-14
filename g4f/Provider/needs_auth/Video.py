@@ -131,7 +131,15 @@ class Video(AsyncGeneratorProvider, ProviderModelMixin):
                 for _, urls in RequestConfig.urls.items():
                     if event.request.url in urls:
                         return
+                debug.log(f"Adding URL: {event.request.url}")
                 RequestConfig.urls[prompt].append(event.request.url)
+        for idx in range(300):
+            button = await page.find("User menu")
+            if button:
+                break
+            if idx == 299:
+                stop_browser()
+                raise RuntimeError("Failed to wait for user menu.")
         if model == "search" and page is not None:
             await page.send(nodriver.cdp.network.enable())
             page.add_handler(nodriver.cdp.network.RequestWillBeSent, on_request)

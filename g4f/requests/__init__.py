@@ -208,6 +208,8 @@ async def get_nodriver(
         try:
             if browser.connection:
                 browser.stop()
+        except:
+            pass
         finally:
             lock_file.unlink(missing_ok=True)
     BrowserConfig.stop_browser = on_stop

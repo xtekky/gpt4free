@@ -758,7 +758,7 @@ class Api:
                 if m:
                     return int(m.group(0))
                 else:
-                    raise ValueError("No timestamp found in filename")
+                    return 0
             target = os.path.join(get_media_dir(), os.path.basename(filename))
             if thumbnail and has_pillow:
                 thumbnail_dir = os.path.join(get_media_dir(), "thumbnails")
