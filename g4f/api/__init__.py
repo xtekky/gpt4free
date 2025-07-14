@@ -69,7 +69,7 @@ from g4f.cookies import read_cookie_files, get_cookies_dir
 from g4f.providers.types import ProviderType
 from g4f.providers.response import AudioResponse
 from g4f.providers.any_provider import AnyProvider
-from g4f.config import STATIC_DOMAIN
+from g4f.config import STATIC_URL
 from g4f import Provider
 from g4f.gui import get_gui_app
 from .stubs import (
@@ -276,8 +276,8 @@ class Api:
                     user = f"{user}:{ip}" if user else ip
                 request = update_headers(request, user)
             response = await call_next(request)
-            if request.headers.get("Origin", "").endswith(STATIC_DOMAIN):
-                response.headers["Access-Control-Allow-Origin"] = request.headers.get("Origin")
+            if "Access-Control-Allow-Origin" not in response.headers:
+                response.headers["Access-Control-Allow-Origin"] = STATIC_URL
             return response
 
     def register_validation_exception_handler(self):
