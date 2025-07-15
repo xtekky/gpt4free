@@ -3,7 +3,7 @@ from __future__ import annotations
 from .OpenaiAPI import OpenaiAPI
 
 class DeepSeek(OpenaiAPI):
-    label = "DeepSeek"
+    label = "DeepSeek API"
     url = "https://platform.deepseek.com"
     login_url = "https://platform.deepseek.com/api_keys"
     working = True

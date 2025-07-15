@@ -13,7 +13,7 @@ class DeepInfra(OpenaiTemplate):
     api_base = "https://api.deepinfra.com/v1/openai"
     working = True
     needs_auth = True
-
+    active_by_default = True
     default_model = "meta-llama/Meta-Llama-3.1-70B-Instruct"
     default_image_model = "stabilityai/sd3.5"
 

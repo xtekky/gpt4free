@@ -22,7 +22,6 @@ class HuggingFaceMedia(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://huggingface.co"
     working = True
     needs_auth = True
-
     model_aliases = image_model_aliases
 
     tasks = ["text-to-image", "text-to-video"]

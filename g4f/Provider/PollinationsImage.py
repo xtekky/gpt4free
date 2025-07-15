@@ -10,6 +10,7 @@ from .PollinationsAI import PollinationsAI
 class PollinationsImage(PollinationsAI):
     label = "PollinationsImage"
     parent = PollinationsAI.__name__
+    active_by_default = False
     default_model = "flux"
     default_vision_model = None
     default_image_model = default_model

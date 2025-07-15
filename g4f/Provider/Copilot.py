@@ -43,6 +43,7 @@ class Copilot(AsyncAuthedProvider, ProviderModelMixin):
     
     working = True
     supports_stream = True
+    active_by_default = True
     
     default_model = "Copilot"
     models = [default_model, "Think Deeper"]

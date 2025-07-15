@@ -21,6 +21,7 @@ class GeminiPro(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://ai.google.dev"
     login_url = "https://aistudio.google.com/u/0/apikey"
     api_base = "https://generativelanguage.googleapis.com/v1beta"
+    active_by_default = True
 
     working = True
     supports_message_history = True

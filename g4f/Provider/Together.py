@@ -18,6 +18,7 @@ class Together(OpenaiTemplate):
     activation_endpoint = "https://www.codegeneration.ai/activate-v2"
     models_endpoint = "https://api.together.xyz/v1/models"
 
+    active_by_default = True
     working = True
     needs_auth = False
     supports_stream = True

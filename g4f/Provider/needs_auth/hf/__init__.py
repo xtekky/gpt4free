@@ -17,7 +17,7 @@ class HuggingFace(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://huggingface.co"
     login_url = "https://huggingface.co/settings/tokens"
     working = True
-    supports_message_history = True
+    active_by_default = True
 
     @classmethod
     def get_models(cls, **kwargs) -> list[str]:

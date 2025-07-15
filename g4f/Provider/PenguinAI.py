@@ -10,6 +10,7 @@ class PenguinAI(OpenaiTemplate):
     url = "https://penguinai.tech"
     api_base = "https://api.penguinai.tech/v1"
     working = True
+    active_by_default = True
 
     default_model = "gpt-3.5-turbo"
     default_vision_model = "gpt-4o"

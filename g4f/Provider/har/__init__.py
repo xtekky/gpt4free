@@ -24,6 +24,7 @@ class HarProvider(AsyncAuthedProvider, ProviderModelMixin):
     url = "https://legacy.lmarena.ai"
     api_endpoint = "/queue/join?"
     working = True
+    active_by_default = True
     default_model = LegacyLMArena.default_model
 
     @classmethod

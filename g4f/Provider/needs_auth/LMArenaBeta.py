@@ -79,7 +79,6 @@ class LMArenaBeta(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
     url = "https://beta.lmarena.ai"
     api_endpoint = "https://beta.lmarena.ai/api/stream/create-evaluation"
     working = True
-    active_by_default = has_nodriver
 
     default_model = list(text_models.keys())[0]
     models = list(text_models) + list(image_models)

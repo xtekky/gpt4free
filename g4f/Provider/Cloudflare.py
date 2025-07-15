@@ -39,6 +39,7 @@ class Cloudflare(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
     url = "https://playground.ai.cloudflare.com"
     working = has_curl_cffi
     use_nodriver = True
+    active_by_default = True
     api_endpoint = "https://playground.ai.cloudflare.com/api/inference"
     models_url = "https://playground.ai.cloudflare.com/api/models"
     supports_stream = True

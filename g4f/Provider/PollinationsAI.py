@@ -64,6 +64,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Pollinations AI"
     url = "https://pollinations.ai"
     login_url = "https://auth.pollinations.ai"
+    active_by_default = True
 
     working = True
     supports_system_message = True
