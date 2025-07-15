@@ -10,7 +10,8 @@
 
 <div id="top"></div>
 
-> [!IMPORTANT] **GPT4Free Manifesto**
+> [!IMPORTANT]
+> **GPT4Free Manifesto**
 
 We live in a time where access to information and technology is increasingly restricted. Large corporations seek to monopolize control over their models, subjecting essential resources to strict terms of service and opaque practices. But we are here to stand against this tide.
 
