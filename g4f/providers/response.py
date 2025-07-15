@@ -363,7 +363,7 @@ class ImageResponse(MediaResponse):
         """Return images as markdown."""
         if self.get("width") and self.get("height"):
             return "\n".join([
-                f'<a href="{html.escape(url)}" data-width="{self.get('width')}" data-height="{self.get('height')}" data-source="{html.escape(self.get('source_url', ''))}">'
+                f'<a href="{html.escape(url)}" data-width="{self.get("width")}" data-height="{self.get("height")}" data-source="{html.escape(self.get("source_url", ""))}">'
                 + f'<img src="{url.replace("/media/", "/thumbnail/")}" alt="{html.escape(self.alt)}"></a>'
                 for url in self.get_list()
             ])
