@@ -7,7 +7,7 @@ from time import time
 from ..image import extract_data_uri
 from ..image.copy_images import get_media_dir
 from ..client.helper import filter_markdown
-from ..providers.response import Reasoning, ToolCalls
+from ..providers.response import Reasoning, ToolCalls, AudioResponse
 from .helper import filter_none
 
 try:
@@ -113,9 +113,15 @@ class ResponseMessage(BaseModel):
     type: str = "message"
     role: str
     content: list[ResponseMessageContent]
+    audio: dict = None
 
     @classmethod
     def model_construct(cls, content: str):
+        if isinstance(content, AudioResponse):
+            return super().model_construct(
+                role="assistant",
+                audio={"data": content.data, "transcript": content.transcript}
+            )
         return super().model_construct(role="assistant", content=[ResponseMessageContent.model_construct(content)])
 
 class ResponseMessageContent(BaseModel):

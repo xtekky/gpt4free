@@ -247,7 +247,7 @@ class Api:
                 elif isinstance(chunk, YouTube):
                     yield self._format_json("content", chunk.to_string())
                 elif isinstance(chunk, AudioResponse):
-                    yield self._format_json("content", str(chunk))
+                    yield self._format_json("content", str(chunk), data=chunk.data)
                 elif isinstance(chunk, SuggestedFollowups):
                     yield self._format_json("suggestions", chunk.suggestions)
                 elif isinstance(chunk, DebugResponse):

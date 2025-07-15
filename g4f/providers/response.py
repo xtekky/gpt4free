@@ -269,23 +269,28 @@ class SourceLink(ResponseType):
         return f" {format_link(self.url, title)}"
 
 class YouTube(HiddenResponse):
-    def __init__(self, ids: List[str]) -> None:
+    def __init__(self, ids: List[str], add_links: bool = False) -> None:
         """Initialize with a list of YouTube IDs."""
         self.ids = ids
+        self.add_links = add_links
 
     def to_string(self) -> str:
         """Return YouTube embeds as a string."""
         if not self.ids:
             return ""
+        template = '<iframe type="text/html" src="https://www.youtube.com/embed/{id}"></iframe>'
+        if self.add_links:
+            template += '\n\n<a href="https://www.youtube.com/watch?v={id}">Watch on YouTube</a>'
         return "\n\n" + ("\n".join([
-            f'<iframe type="text/html" src="https://www.youtube.com/embed/{id}"></iframe>'
+            template.format(id=id)
             for id in self.ids
         ]))
 
 class AudioResponse(ResponseType):
-    def __init__(self, data: Union[bytes, str], **kwargs) -> None:
+    def __init__(self, data: Union[bytes, str], transcript: str = None, **kwargs) -> None:
         """Initialize with audio data bytes."""
         self.data = data
+        self.transcript = transcript
         self.options = kwargs
 
     def to_uri(self) -> str:
@@ -297,7 +302,9 @@ class AudioResponse(ResponseType):
 
     def __str__(self) -> str:
         """Return audio as html element."""
-        return f'<audio controls src="{self.to_uri()}"></audio>'
+        if isinstance(self.data, str) and self.data.startswith("data:"):
+            return f'<audio controls></audio>' + (f"\n\n{self.transcript}" if self.transcript else "")
+        return f'<audio controls src="{self.to_uri()}"></audio>' + (f"\n\n{self.transcript}" if self.transcript else "")
 
 class BaseConversation(ResponseType):
     def __str__(self) -> str:

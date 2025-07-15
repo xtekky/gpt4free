@@ -13,15 +13,14 @@ from .helper import filter_none, format_media_prompt
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ..typing import AsyncResult, Messages, MediaListType
 from ..image import is_data_an_audio
-from ..errors import ModelNotFoundError, ResponseError, MissingAuthError
-from ..requests import see_stream
+from ..errors import ModelNotFoundError, MissingAuthError
 from ..requests.raise_for_status import raise_for_status
 from ..requests.aiohttp import get_connector
-from ..image.copy_images import save_response_media
 from ..image import use_aspect_ratio
-from ..providers.response import FinishReason, Usage, ToolCalls, ImageResponse, Reasoning, TitleGeneration, SuggestedFollowups, ProviderInfo, AudioResponse
+from ..providers.response import ImageResponse, Reasoning, TitleGeneration, SuggestedFollowups
 from ..tools.media import render_messages
 from ..config import STATIC_URL
+from .template.OpenaiTemplate import read_response
 from .. import debug
 
 DEFAULT_HEADERS = {
@@ -81,6 +80,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
     default_image_model = "flux"
     default_vision_model = default_model
     default_audio_model = "openai-audio"
+    default_voice = "alloy"
     text_models = [default_model, "evil"]
     image_models = [default_image_model, "turbo", "kontext", "gptimage", "transparent"]
     audio_models = {default_audio_model: []}
@@ -445,9 +445,9 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
             extra_body.update({param: kwargs[param] for param in extra_parameters if param in kwargs})
             if model in cls.audio_models:
                 if "audio" in extra_body and extra_body.get("audio", {}).get("voice") is None:
-                    extra_body["audio"]["voice"] = cls.audio_models[model][0]
+                    extra_body["audio"]["voice"] = cls.default_voice
                 elif "audio" not in extra_body:
-                    extra_body["audio"] = {"voice": cls.audio_models[model][0]}
+                    extra_body["audio"] = {"voice": cls.default_voice}
                 if extra_body.get("audio", {}).get("format") is None:
                     extra_body["audio"]["format"] = "mp3"
                 if "modalities" not in extra_body:
@@ -472,40 +472,13 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
             async with session.post(cls.openai_endpoint, json=data, headers=headers) as response:
                 if response.status in (400, 500):
                     debug.error(f"Error: {response.status} - Bad Request: {data}")
-                await raise_for_status(response)
-                if response.headers["content-type"].startswith("text/plain"):
-                    yield await response.text()
-                    return
-                elif response.headers["content-type"].startswith("text/event-stream"):
-                    reasoning = False
-                    model_returned = False
-                    full_content = ""
-                    async for result in see_stream(response.content):
-                        if "error" in result:
-                            raise ResponseError(result["error"].get("message", result["error"]))
-                        if not model_returned and result.get("model"):
-                            yield ProviderInfo(**cls.get_dict(), model=result.get("model"))
-                            model_returned = True
-                        if result.get("usage") is not None:
-                            yield Usage(**result["usage"])
-                        choices = result.get("choices", [{}])
-                        choice = choices.pop() if choices else {}
-                        content = choice.get("delta", {}).get("content")
-                        if content:
-                            yield content
-                            full_content += content
-                        tool_calls = choice.get("delta", {}).get("tool_calls")
-                        if tool_calls:
-                            yield ToolCalls(choice["delta"]["tool_calls"])
-                        reasoning_content = choice.get("delta", {}).get("reasoning_content")
-                        if reasoning_content:
-                            reasoning = True
-                            yield Reasoning(reasoning_content)
-                        finish_reason = choice.get("finish_reason")
-                        if finish_reason:
-                            yield FinishReason(finish_reason)
-                    if reasoning:
-                        yield Reasoning(status="")
+                full_resposne = []
+                async for chunk in read_response(response, stream, format_media_prompt(messages), cls.get_dict(), kwargs.get("download_media", True)):
+                    if isinstance(chunk, str):
+                        full_resposne.append(chunk)
+                    yield chunk
+                if full_resposne:
+                    full_content = "".join(full_resposne)
                     if kwargs.get("action") == "next":
                         tool_messages = []
                         for message in messages:
@@ -537,33 +510,3 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                                         yield SuggestedFollowups(arguments.get("followups"))
                             except Exception as e:
                                 debug.error("Error generating title and followups:", e)
-                elif response.headers["content-type"].startswith("application/json"):
-                    prompt = format_media_prompt(messages)
-                    result = await response.json()
-                    if result.get("model"):
-                        yield ProviderInfo(**cls.get_dict(), model=result.get("model"))
-                    if "choices" in result:
-                        choice = result["choices"][0]
-                        message = choice.get("message", {})
-                        content = message.get("content", "")
-                        if content:
-                            yield content
-                        if "tool_calls" in message:
-                            yield ToolCalls(message["tool_calls"])
-                        audio = message.get("audio", {})
-                        if "data" in audio:
-                            async for chunk in save_response_media(audio["data"], prompt, [model, extra_body.get("audio", {}).get("voice")]):
-                                yield chunk
-                        if "transcript" in audio:
-                            yield "\n\n"
-                            yield audio["transcript"]
-                    else:
-                        raise ResponseError(result)
-                    if result.get("usage") is not None:
-                        yield Usage(**result["usage"])
-                    finish_reason = choice.get("finish_reason")
-                    if finish_reason:
-                        yield FinishReason(finish_reason)
-                else:
-                    async for chunk in save_response_media(response, prompt, [model, extra_body.get("audio", {}).get("voice")]):
-                        yield chunk
