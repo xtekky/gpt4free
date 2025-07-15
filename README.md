@@ -35,9 +35,9 @@ We declare:
 
 In this spirit, we proclaim: The future of AI does not belong to a few giant corporations; it belongs to each and every one of us. Let’s work together to create a space where innovation can flourish, and where everyone has access to the tools they need to express themselves and grow.
 
+> [!NOTE]
 > Together, we will shape an open, inclusive, and more just digital world. 🤗
 
-> [!NOTE]
 > <sup><strong>Latest version:</strong></sup><br> [![PyPI version](https://img.shields.io/pypi/v/g4f?color=blue)](https://pypi.org/project/g4f) [![Docker version](https://img.shields.io/docker/v/hlohaus789/g4f?label=docker&color=blue)](https://hub.docker.com/r/hlohaus789/g4f)  
 > <sup><strong>Stats:</strong></sup><br> [![Downloads](https://static.pepy.tech/badge/g4f)](https://pepy.tech/project/g4f) [![Downloads](https://static.pepy.tech/badge/g4f/month)](https://pepy.tech/project/g4f)
 
