@@ -31,7 +31,7 @@ SAFE_PARAMETERS = [
     "frequency_penalty", "presence_penalty",
     "max_tokens", "stop",
     "api_key", "api_base", "seed", "width", "height",
-    "max_retries", "web_search",
+    "max_retries", "web_search", "cache",
     "guidance_scale", "num_inference_steps", "randomize_seed",
     "safe", "enhance", "private", "aspect_ratio", "n", "transparent"
 ]
@@ -72,7 +72,6 @@ class AbstractProvider(BaseProvider):
         cls,
         model: str,
         messages: Messages,
-        stream: bool,
         **kwargs
     ) -> CreateResult:
         """
@@ -238,7 +237,6 @@ class AsyncProvider(AbstractProvider):
         cls,
         model: str,
         messages: Messages,
-        stream: bool = False,
         **kwargs
     ) -> CreateResult:
         """
@@ -248,7 +246,6 @@ class AsyncProvider(AbstractProvider):
             cls (type): The class on which this method is called.
             model (str): The model to use for creation.
             messages (Messages): The messages to process.
-            stream (bool): Indicates whether to stream the results. Defaults to False.
             loop (AbstractEventLoop, optional): The event loop to use. Defaults to None.
             **kwargs: Additional keyword arguments.
 
@@ -292,7 +289,6 @@ class AsyncGeneratorProvider(AbstractProvider):
         cls,
         model: str,
         messages: Messages,
-        stream: bool = None,
         timeout: int = None,
         **kwargs
     ) -> CreateResult:
@@ -303,7 +299,6 @@ class AsyncGeneratorProvider(AbstractProvider):
             cls (type): The class on which this method is called.
             model (str): The model to use for creation.
             messages (Messages): The messages to process.
-            stream (bool): Indicates whether to stream the results. Defaults to True.
             loop (AbstractEventLoop, optional): The event loop to use. Defaults to None.
             **kwargs: Additional keyword arguments.
 
@@ -311,8 +306,7 @@ class AsyncGeneratorProvider(AbstractProvider):
             CreateResult: The result of the streaming completion creation.
         """
         return to_sync_generator(
-            cls.create_async_generator(model, messages, stream=stream, **kwargs),
-            stream=stream is not False,
+            cls.create_async_generator(model, messages, **kwargs),
             timeout=timeout
         )
 
@@ -329,7 +323,6 @@ class AsyncGeneratorProvider(AbstractProvider):
         Args:
             model (str): The model to use for creation.
             messages (Messages): The messages to process.
-            stream (bool): Indicates whether to stream the results. Defaults to True.
             **kwargs: Additional keyword arguments.
 
         Raises:

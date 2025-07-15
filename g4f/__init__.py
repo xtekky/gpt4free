@@ -8,7 +8,6 @@ from . import debug, version
 from .models import Model
 from .client import Client, AsyncClient
 from .typing import Messages, CreateResult, AsyncResult, ImageType
-from .errors import StreamNotSupportedError
 from .cookies import get_cookies, set_cookies
 from .providers.types import ProviderType
 from .providers.helper import concat_chunks, async_concat_chunks

@@ -5,7 +5,7 @@ import requests
 from ..helper import filter_none, format_media_prompt
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
 from ...typing import Union, AsyncResult, Messages, MediaListType
-from ...requests import StreamSession, StreamResponse, raise_for_status
+from ...requests import StreamSession, StreamResponse, raise_for_status, see_stream
 from ...image import use_aspect_ratio
 from ...image.copy_images import save_response_media
 from ...providers.response import FinishReason, ToolCalls, Usage, ImageResponse, ProviderInfo, AudioResponse, Reasoning
@@ -181,7 +181,7 @@ async def read_response(response: StreamResponse, stream: bool, prompt: str, pro
         reasoning = False
         first = True
         model_returned = False
-        async for data in response.sse():
+        async for data in see_stream(response):
             OpenaiTemplate.raise_error(data)
             model = data.get("model")
             if not model_returned and model:

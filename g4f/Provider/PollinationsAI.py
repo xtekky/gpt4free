@@ -65,7 +65,6 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://pollinations.ai"
     login_url = "https://auth.pollinations.ai"
     active_by_default = True
-
     working = True
     supports_system_message = True
     supports_message_history = True
@@ -451,9 +450,9 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                     extra_body["audio"] = {"voice": cls.default_voice}
                 if extra_body.get("audio", {}).get("format") is None:
                     extra_body["audio"]["format"] = "mp3"
+                    stream = False
                 if "modalities" not in extra_body:
                     extra_body["modalities"] = ["text", "audio"]
-                stream = False
             data = filter_none(
                 messages=list(render_messages(messages, media)),
                 model=model,

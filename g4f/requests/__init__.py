@@ -216,6 +216,10 @@ async def get_nodriver(
     return browser, on_stop
 
 async def see_stream(iter_lines: Iterator[bytes]) -> AsyncIterator[dict]:
+    if hasattr(iter_lines, "content"):
+        iter_lines = iter_lines.content
+    elif hasattr(iter_lines, "iter_lines"):
+        iter_lines = iter_lines.iter_lines()
     async for line in iter_lines:
         if line.startswith(b"data: "):
             if line[6:].startswith(b"[DONE]"):
