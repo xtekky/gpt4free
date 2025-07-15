@@ -7,7 +7,13 @@
     <strong>Written by <a href="https://github.com/xtekky">@xtekky</a>, <a href="https://github.com/hlohaus">@hlohaus</a></strong>
   </span>
 </p>
-
+<p align="center">
+<span>Support the project on</span>
+      <a href="https://github.com/sponsors/hlohaus" target="_blank" rel="noopener noreferrer">
+        GitHub Sponsors
+      </a>
+      ❤️
+</p>
 <div id="top"></div>
 
 > [!IMPORTANT]
