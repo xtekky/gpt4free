@@ -70,6 +70,9 @@ models = {
     "gemini-2.0-flash-exp": {"x-goog-ext-525001261-jspb": '[null,null,null,null,"f299729663a2343f"]'},
     "gemini-2.0-flash-thinking": {"x-goog-ext-525001261-jspb": '[null,null,null,null,"9c17b1863f581b8a"]'},
     "gemini-2.0-flash-thinking-with-apps": {"x-goog-ext-525001261-jspb": '[null,null,null,null,"f8f8f5ea629f5d37"]'},
+    # Currently used models
+    "gemini-2.5-pro": {"x-goog-ext-525001261-jspb", '[1,null,null,null,"61530e79959ab139",null,null,null,[4]]'},
+    "gemini-2.5-flash": {"x-goog-ext-525001261-jspb", '[1,null,null,null,"9ec249fc9ad08861",null,null,null,[4]]'},
     "gemini-audio": {}
 }
 
@@ -86,12 +89,11 @@ class Gemini(AsyncGeneratorProvider, ProviderModelMixin):
     default_vision_model = default_model
     image_models = [default_image_model]
     models = [
-        default_model, *models.keys()
+        default_model, "gemini-2.5-flash", "gemini-2.5-pro"
     ]
     model_aliases = {
         "gemini-2.0": "",
         "gemini-2.0-flash": ["gemini-2.0-flash", "gemini-2.0-flash", "gemini-2.0-flash-exp"],
-        "gemini-2.5-pro": "gemini-2.5-pro-exp",
     }
 
     synthesize_content_type = "audio/vnd.wav"
