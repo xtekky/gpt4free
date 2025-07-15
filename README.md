@@ -4,7 +4,7 @@
 
 <p align="center">
   <span style="background: linear-gradient(45deg, #12c2e9, #c471ed, #f64f59); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
-    <strong>Written by <a href="https://github.com/xtekky">@xtekky</a></strong>
+    <strong>Written by <a href="https://github.com/xtekky">@xtekky</a>, <a href="https://github.com/hlohaus">@hlohaus</a></strong>
   </span>
 </p>
 
