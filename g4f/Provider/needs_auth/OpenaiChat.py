@@ -30,7 +30,7 @@ from ...tools.media import merge_media
 from ..helper import format_cookies, format_media_prompt, to_string
 from ..openai.models import default_model, default_image_model, models, image_models, text_models, model_aliases
 from ..openai.har_file import get_request_config
-from ..openai.har_file import RequestConfig, arkReq, arkose_url, start_url, conversation_url, backend_url, backend_anon_url
+from ..openai.har_file import RequestConfig, arkReq, arkose_url, start_url, conversation_url, backend_url, prepare_url, backend_anon_url
 from ..openai.proofofwork import generate_proof_token
 from ..openai.new import get_requirements_token, get_config
 from ... import debug
@@ -373,6 +373,27 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
             sources = OpenAISources([])
             references = ContentReferences()
             while conversation.finish_reason is None:
+                conduit_token = None
+                if cls._api_key is not None:
+                    data = {
+                        "action": "next",
+                        "fork_from_shared_post":False,
+                        "parent_message_id": conversation.message_id,
+                        "model": model,
+                        "timezone_offset_min":-120,
+                        "timezone":"Europe/Berlin",
+                        "conversation_mode":{"kind":"primary_assistant"},
+                        "system_hints":[],
+                        "supports_buffering":True,
+                        "supported_encodings":["v1"]
+                    }
+                    async with session.post(
+                        prepare_url,
+                        json=data,
+                        headers=cls._headers
+                    ) as response:
+                        await raise_for_status(response)
+                        conduit_token = (await response.json())["conduit_token"]
                 async with session.post(
                     f"{cls.url}/backend-anon/sentinel/chat-requirements"
                     if cls._api_key is None else
@@ -415,7 +436,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                     "action": "next",
                     "parent_message_id": conversation.message_id,
                     "model": model,
-                    "timezone_offset_min":-60,
+                    "timezone_offset_min":-120,
                     "timezone":"Europe/Berlin",
                     "conversation_mode":{"kind":"primary_assistant"},
                     "enable_message_followups":True,
@@ -446,6 +467,7 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                     "accept": "text/event-stream",
                     "content-type": "application/json",
                     "openai-sentinel-chat-requirements-token": chat_token,
+                    **({} if conduit_token is None else {"x-conduit-token": conduit_token})
                 }
                 #if cls.request_config.arkose_token:
                 #    headers["openai-sentinel-arkose-token"] = cls.request_config.arkose_token
@@ -454,9 +476,9 @@ class OpenaiChat(AsyncAuthedProvider, ProviderModelMixin):
                 if need_turnstile and getattr(auth_result, "turnstile_token", None) is not None:
                     headers['openai-sentinel-turnstile-token'] = auth_result.turnstile_token
                 async with session.post(
-                    f"{cls.url}/backend-anon/conversation"
+                    backend_anon_url
                     if cls._api_key is None else
-                    f"{cls.url}/backend-api/conversation",
+                    backend_url,
                     json=data,
                     headers=headers
                 ) as response:

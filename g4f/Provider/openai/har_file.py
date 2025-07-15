@@ -17,7 +17,8 @@ from ...errors import NoValidHarFileError
 from ... import debug
 
 arkose_url = "https://tcr9i.chat.openai.com/fc/gt2/public_key/35536E1E-65B4-4D96-9D97-6ADB7EFF8147"
-backend_url = "https://chatgpt.com/backend-api/conversation"
+backend_url = "https://chatgpt.com/backend-api/f/conversation"
+prepare_url = "https://chatgpt.com/backend-api/f/conversation/prepare"
 backend_anon_url = "https://chatgpt.com/backend-anon/conversation"
 start_url = "https://chatgpt.com/"
 conversation_url = "https://chatgpt.com/c/"
