@@ -10,11 +10,25 @@
 
 <div id="top"></div>
 
-> [!IMPORTANT]
-> By using this repository or any code related to it, you agree to the [legal notice](LEGAL_NOTICE.md). The author is **not responsible for the usage of this repository nor endorses it**, nor is the author responsible for any copies, forks, re-uploads made by other users, or anything else related to GPT4Free. This is the author's only account and repository. To prevent impersonation or irresponsible actions, please comply with the GNU GPL license this Repository uses.
+> [!IMPORTANT] **GPT4Free Manifesto**
 
-> [!WARNING]
-> _"gpt4free"_ serves as a **PoC** (proof of concept), demonstrating the development of an API package with multi-provider requests, with features like timeouts, load balance and flow control.
+We live in a time where access to information and technology is increasingly restricted. Large corporations seek to monopolize control over their models, subjecting essential resources to strict terms of service and opaque practices. But we are here to stand against this tide.
+
+We declare:
+
+1. **Open Access:** Developing software and utilizing AI models is not illegal. It is a basic right that belongs to everyone. The notion that developing or using AI for purposes outside of what large companies dictate constitutes a legal violation is not only incorrect, but it is also an attack on creativity and innovation.
+
+2. **Collaboration Over Isolation:** Instead of monopolizing a platform through enclosure, we should connect various models together. Only through collaboration can we make the benefits of AI accessible to all and foster diversity and progress.
+
+3. **Against Privatization:** The privatization and isolation of models by large companies is not only dishonest but also unethical. It hinders progress and innovation while restricting developers' and users' opportunities. We rise against this form of market dominance.
+
+4. **For the Community:** Let’s build a community that promotes the free exchange of ideas and technologies. An effective and just system must reflect the diversity of voices and perspectives.
+
+5. **Unleashing Creativity:** We firmly believe that the true value of AI lies in its ability to solve problems, support, and inspire. Let us not be held back by restrictive practices. 
+
+In this spirit, we proclaim: The future of AI does not belong to a few giant corporations; it belongs to each and every one of us. Let’s work together to create a space where innovation can flourish, and where everyone has access to the tools they need to express themselves and grow.
+
+> Together, we will shape an open, inclusive, and more just digital world. 🤗
 
 > [!NOTE]
 > <sup><strong>Latest version:</strong></sup><br> [![PyPI version](https://img.shields.io/pypi/v/g4f?color=blue)](https://pypi.org/project/g4f) [![Docker version](https://img.shields.io/docker/v/hlohaus789/g4f?label=docker&color=blue)](https://hub.docker.com/r/hlohaus789/g4f)  
