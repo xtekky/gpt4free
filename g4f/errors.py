@@ -43,6 +43,9 @@ class ResponseError(Exception):
 class ResponseStatusError(Exception):
     ...
 
+class CloudflareError(ResponseStatusError):
+    ...
+
 class RateLimitError(ResponseStatusError):
     ...
 

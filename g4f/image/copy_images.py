@@ -134,8 +134,6 @@ async def copy_media(
     Download and store images locally with Unicode-safe filenames
     Returns list of relative image URLs
     """
-    if add_url:
-        add_url = not cookies
     ensure_media_dir()
     media_dir = get_media_dir()
     if thumbnail:

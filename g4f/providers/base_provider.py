@@ -20,7 +20,7 @@ from .asyncio import get_running_loop, to_sync_generator, to_async_iterator
 from .response import BaseConversation, AuthResult
 from .helper import concat_chunks
 from ..cookies import get_cookies_dir
-from ..errors import ModelNotFoundError, ResponseError, MissingAuthError, NoValidHarFileError, PaymentRequiredError
+from ..errors import ModelNotFoundError, ResponseError, MissingAuthError, NoValidHarFileError, PaymentRequiredError, CloudflareError
 
 SAFE_PARAMETERS = [
     "model", "messages", "stream", "timeout",
@@ -468,7 +468,7 @@ class AsyncAuthedProvider(AsyncGeneratorProvider, AuthFileMixin):
         try:
             auth_result = cls.get_auth_result()
             yield from to_sync_generator(cls.create_authed(model, messages, auth_result, **kwargs))
-        except (MissingAuthError, NoValidHarFileError):
+        except (MissingAuthError, NoValidHarFileError, CloudflareError):
             response = cls.on_auth(**kwargs)
             for chunk in response:
                 if isinstance(chunk, AuthResult):
@@ -495,7 +495,7 @@ class AsyncAuthedProvider(AsyncGeneratorProvider, AuthFileMixin):
             response = to_async_iterator(cls.create_authed(model, messages, **kwargs, auth_result=auth_result))
             async for chunk in response:
                 yield chunk
-        except (MissingAuthError, NoValidHarFileError):
+        except (MissingAuthError, NoValidHarFileError, CloudflareError):
             if cache_file.exists():
                 cache_file.unlink()
             response = cls.on_auth_async(**kwargs)

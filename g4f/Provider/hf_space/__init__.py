@@ -20,8 +20,8 @@ from .StabilityAI_SD35Large          import StabilityAI_SD35Large
 
 class HuggingSpace(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://huggingface.co/spaces"
-
     working = True
+    active_by_default = True
 
     default_model = Qwen_Qwen_2_72B.default_model
     default_image_model = BlackForestLabs_Flux1Dev.default_model

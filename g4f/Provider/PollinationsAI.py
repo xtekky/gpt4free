@@ -396,7 +396,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                 except Exception as e:
                     responses.add(e)
                     debug.error(f"Error fetching image: {e}")
-                responses.add(ImageResponse(str(response.url), prompt, {"headers": headers}))
+                responses.add(ImageResponse(str(response.url), prompt, {"headers": headers, "source_url": str(response.url)}))
                 finished += 1
                 responses.add(Reasoning(label=f"Image {finished}/{n} generated in {time.time() - start:.2f}s"))
             tasks: list[asyncio.Task] = []

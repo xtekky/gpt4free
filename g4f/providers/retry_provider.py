@@ -32,18 +32,15 @@ class IterListProvider(BaseRetryProvider):
         self,
         model: str,
         messages: Messages,
-        stream: bool = False,
-        ignore_stream: bool = False,
         ignored: list[str] = [],
         api_key: str = None,
         **kwargs,
     ) -> CreateResult:
         """
-        Create a completion using available providers, with an option to stream the response.
+        Create a completion using available providers.
         Args:
             model (str): The model to be used for completion.
             messages (Messages): The messages to be used for generating completion.
-            stream (bool, optional): Flag to indicate if the response should be streamed. Defaults to False.
         Yields:
             CreateResult: Tokens or results from the completion.
         Raises:
@@ -51,7 +48,7 @@ class IterListProvider(BaseRetryProvider):
         """
         exceptions = {}
         started: bool = False
-        for provider in self.get_providers(stream and not ignore_stream, ignored):
+        for provider in self.get_providers(ignored):
             self.last_provider = provider
             alias = model
             if not model:
@@ -70,7 +67,7 @@ class IterListProvider(BaseRetryProvider):
             if api_key:
                 extra_body["api_key"] = api_key
             try:
-                response = provider.create_function(alias, messages, stream=stream, **extra_body)
+                response = provider.create_function(alias, messages, **extra_body)
                 for chunk in response:
                     if chunk:
                         yield chunk
@@ -91,8 +88,6 @@ class IterListProvider(BaseRetryProvider):
         self,
         model: str,
         messages: Messages,
-        stream: bool = True,
-        ignore_stream: bool = False,
         ignored: list[str] = [],
         api_key: str = None,
         conversation: JsonConversation = None,
@@ -101,7 +96,7 @@ class IterListProvider(BaseRetryProvider):
         exceptions = {}
         started: bool = False
 
-        for provider in self.get_providers(stream and not ignore_stream, ignored):
+        for provider in self.get_providers(ignored):
             self.last_provider = provider
             alias = model
             if not model:
@@ -122,7 +117,7 @@ class IterListProvider(BaseRetryProvider):
             if conversation is not None and hasattr(conversation, provider.__name__):
                 extra_body["conversation"] = JsonConversation(**getattr(conversation, provider.__name__))
             try:
-                response = provider.async_create_function(model, messages, stream=stream, **extra_body)
+                response = provider.async_create_function(model, messages, **extra_body)
                 if hasattr(response, "__aiter__"):
                     async for chunk in response:
                         if isinstance(chunk, JsonConversation):
@@ -153,8 +148,8 @@ class IterListProvider(BaseRetryProvider):
     create_function = create_completion
     async_create_function = create_async_generator
 
-    def get_providers(self, stream: bool, ignored: list[str]) -> list[ProviderType]:
-        providers = [p for p in self.providers if (p.supports_stream or not stream) and p.__name__ not in ignored]
+    def get_providers(self, ignored: list[str]) -> list[ProviderType]:
+        providers = [p for p in self.providers if p.__name__ not in ignored]
         if self.shuffle:
             random.shuffle(providers)
         return providers
@@ -183,15 +178,13 @@ class RetryProvider(IterListProvider):
         self,
         model: str,
         messages: Messages,
-        stream: bool = False,
         **kwargs,
     ) -> CreateResult:
         """
-        Create a completion using available providers, with an option to stream the response.
+        Create a completion using available providers.
         Args:
             model (str): The model to be used for completion.
             messages (Messages): The messages to be used for generating completion.
-            stream (bool, optional): Flag to indicate if the response should be streamed. Defaults to False.
         Yields:
             CreateResult: Tokens or results from the completion.
         Raises:
@@ -206,7 +199,7 @@ class RetryProvider(IterListProvider):
                 try:
                     if debug.logging:
                         print(f"Using {provider.__name__} provider (attempt {attempt + 1})")
-                    response = provider.create_function(model, messages, stream=stream, **kwargs)
+                    response = provider.create_function(model, messages, **kwargs)
                     for chunk in response:
                         yield chunk
                         if is_content(chunk):
@@ -221,13 +214,12 @@ class RetryProvider(IterListProvider):
                         raise e
             raise_exceptions(exceptions)
         else:
-            yield from super().create_completion(model, messages, stream, **kwargs)
+            yield from super().create_completion(model, messages, **kwargs)
 
     async def create_async_generator(
         self,
         model: str,
         messages: Messages,
-        stream: bool = True,
         **kwargs
     ) -> AsyncResult:
         exceptions = {}
@@ -239,7 +231,7 @@ class RetryProvider(IterListProvider):
             for attempt in range(self.max_retries):
                 try:
                     debug.log(f"Using {provider.__name__} provider (attempt {attempt + 1})")
-                    response = provider.async_create_function(model, messages, stream=stream, **kwargs)
+                    response = provider.async_create_function(model, messages, **kwargs)
                     if hasattr(response, "__aiter__"):
                         async for chunk in response:
                             yield chunk
@@ -258,7 +250,7 @@ class RetryProvider(IterListProvider):
                         print(f"{provider.__name__}: {e.__class__.__name__}: {e}")
             raise_exceptions(exceptions)
         else:
-            async for chunk in super().create_async_generator(model, messages, stream, **kwargs):
+            async for chunk in super().create_async_generator(model, messages, **kwargs):
                 yield chunk
                 
 def raise_exceptions(exceptions: dict) -> None:
@@ -279,4 +271,4 @@ def raise_exceptions(exceptions: dict) -> None:
             f"{p}: {type(exception).__name__}: {exception}" for p, exception in exceptions.items()
         ])) from list(exceptions.values())[0]
 
-    raise RetryNoProviderError("No provider found")
+    raise RetryNoProviderError("No content response from any provider. ")
