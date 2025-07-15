@@ -287,7 +287,7 @@ class YouTube(HiddenResponse):
         ]))
 
 class AudioResponse(ResponseType):
-    def __init__(self, data: Union[bytes, str], transcript: str = None, **kwargs) -> None:
+    def __init__(self, data: str, transcript: str = None, **kwargs) -> None:
         """Initialize with audio data bytes."""
         self.data = data
         self.transcript = transcript

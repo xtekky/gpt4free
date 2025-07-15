@@ -120,7 +120,8 @@ class ResponseMessage(BaseModel):
         if isinstance(content, AudioResponse):
             return super().model_construct(
                 role="assistant",
-                audio={"data": content.data, "transcript": content.transcript}
+                audio={"data": content.data.split(",")[-1], "transcript": content.transcript},
+                content=[ResponseMessageContent.model_construct(content)]
             )
         return super().model_construct(role="assistant", content=[ResponseMessageContent.model_construct(content)])
 
