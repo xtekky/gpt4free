@@ -479,7 +479,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
                     yield chunk
                 if full_resposne:
                     full_content = "".join(full_resposne)
-                    if kwargs.get("action") == "next":
+                    if kwargs.get("action") == "next" and model != "evil":
                         tool_messages = []
                         for message in messages:
                             if message.get("role") == "user":
