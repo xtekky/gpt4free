@@ -690,6 +690,7 @@ class Api:
             if credentials is not None and credentials.credentials != "secret":
                 api_key = credentials.credentials
             try:
+                audio = filter_none(voice=config.voice, format=config.response_format, language=config.language)
                 response = await self.client.chat.completions.create(
                     messages=[
                         {"role": "user", "content": f"{config.instrcutions} Text: {config.input}"}
@@ -697,9 +698,11 @@ class Api:
                     model=config.model,
                     provider=config.provider if provider is None else provider,
                     prompt=config.input,
-                    audio=filter_none(voice=config.voice, format=config.response_format, language=config.language),
                     api_key=api_key,
                     download_media=config.download_media,
+                    **filter_none(
+                        audio=audio if audio else None,
+                    )
                 )
                 if response.choices[0].message.audio is not None:
                     response = base64.b64decode(response.choices[0].message.audio.data)
