@@ -166,11 +166,8 @@ async def read_response(response: StreamResponse, stream: bool, prompt: str, pro
             audio = message.get("audio", {})
             if "data" in audio:
                 if download_media:
-                    async for chunk in save_response_media(audio["data"], prompt, [model]):
+                    async for chunk in save_response_media(audio, prompt, [model]):
                         yield chunk
-                    if "transcript" in audio:
-                        yield "\n\n"
-                        yield audio["transcript"]
                 else:
                     yield AudioResponse(f"data:audio/mpeg;base64,{audio['data']}", transcript=audio.get("transcript"))
             if choice and "finish_reason" in choice and choice["finish_reason"] is not None:

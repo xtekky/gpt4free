@@ -134,3 +134,4 @@ class AudioSpeechConfig(BaseModel):
     instrcutions: str = "Speech this text in a natural way."
     response_format: Optional[str] = None
     language: Optional[str] = None
+    download_media: bool = True

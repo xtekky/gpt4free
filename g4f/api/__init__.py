@@ -12,6 +12,7 @@ from email.utils import formatdate
 import os.path
 import hashlib
 import asyncio
+import base64
 from contextlib import asynccontextmanager
 from urllib.parse import quote_plus
 from fastapi import FastAPI, Response, Request, UploadFile, Form, Depends, Header
@@ -679,7 +680,7 @@ class Api:
             HTTP_500_INTERNAL_SERVER_ERROR: {"model": ErrorResponseModel},
         }
         @self.app.post("/v1/audio/speech", responses=responses)
-        @self.app.post("/api/{path_provider}/audio/speech", responses=responses)
+        @self.app.post("/api/{provider}/audio/speech", responses=responses)
         async def generate_speech(
             config: AudioSpeechConfig,
             provider: str = AppConfig.media_provider,
@@ -698,8 +699,12 @@ class Api:
                     prompt=config.input,
                     audio=filter_none(voice=config.voice, format=config.response_format, language=config.language),
                     api_key=api_key,
+                    download_media=config.download_media,
                 )
-                if isinstance(response.choices[0].message.content, AudioResponse):
+                if response.choices[0].message.audio is not None:
+                    response = base64.b64decode(response.choices[0].message.audio.data)
+                    return Response(response, media_type=f"audio/{config.response_format.replace("mp3", "mpeg")}")
+                elif isinstance(response.choices[0].message.content, AudioResponse):
                     response = response.choices[0].message.content.data
                     response = response.replace("/media", get_media_dir())
                     def delete_file():

@@ -113,16 +113,9 @@ class ResponseMessage(BaseModel):
     type: str = "message"
     role: str
     content: list[ResponseMessageContent]
-    audio: dict = None
 
     @classmethod
     def model_construct(cls, content: str):
-        if isinstance(content, AudioResponse):
-            return super().model_construct(
-                role="assistant",
-                audio={"data": content.data.split(",")[-1], "transcript": content.transcript},
-                content=[ResponseMessageContent.model_construct(content)]
-            )
         return super().model_construct(role="assistant", content=[ResponseMessageContent.model_construct(content)])
 
 class ResponseMessageContent(BaseModel):
@@ -137,14 +130,36 @@ class ResponseMessageContent(BaseModel):
     def serialize_text(self, text: str):
         return str(text)
 
+class AudioResponseModel(BaseModel):
+    data: str
+    transcript: Optional[str] = None
+
+    @classmethod
+    def model_construct(cls, data: str, transcript: Optional[str] = None):
+        return super().model_construct(data=data, transcript=transcript)
+
 class ChatCompletionMessage(BaseModel):
     role: str
     content: str
     reasoning_content: Optional[str] = None
     tool_calls: list[ToolCallModel] = None
-    
+    audio: AudioResponseModel = None
+
+    @classmethod
+    def model_construct(cls, content: str):
+        return super().model_construct(role="assistant", content=[ResponseMessageContent.model_construct(content)])
+
     @classmethod
     def model_construct(cls, content: str, reasoning_content: list[Reasoning] = None, tool_calls: list = None):
+        if isinstance(content, AudioResponse) and content.data.startswith("data:"):
+            return super().model_construct(
+                role="assistant",
+                audio=AudioResponseModel.model_construct(
+                    data=content.data.split(",")[-1],
+                    transcript=content.transcript
+                ),
+                content=content
+            )
         return super().model_construct(role="assistant", content=content, **filter_none(tool_calls=tool_calls, reasoning_content=reasoning_content))
 
     @field_serializer('content')
