@@ -108,12 +108,13 @@ class IterListProvider(BaseRetryProvider):
             debug.log(f"Using {provider.__name__} provider with model {alias}")
             yield ProviderInfo(**provider.get_dict(), model=alias)
             extra_body = kwargs.copy()
+            current_provider_api_key = None
             if isinstance(api_key, dict):
-                api_key = api_key.get(provider.get_parent())
+                current_provider_api_key = api_key.get(provider.get_parent())
             if not api_key:
-                api_key = AuthManager.load_api_key(provider)
-            if api_key:
-                extra_body["api_key"] = api_key
+                current_provider_api_key = AuthManager.load_api_key(provider)
+            if current_provider_api_key:
+                extra_body["api_key"] = current_provider_api_key
             if conversation is not None and hasattr(conversation, provider.__name__):
                 extra_body["conversation"] = JsonConversation(**getattr(conversation, provider.__name__))
             try:
