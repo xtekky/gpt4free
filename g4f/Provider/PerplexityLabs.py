@@ -16,6 +16,7 @@ class PerplexityLabs(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Perplexity Labs"
     url = "https://labs.perplexity.ai"
     working = True
+    active_by_default = True
 
     default_model = "r1-1776"
     models = [

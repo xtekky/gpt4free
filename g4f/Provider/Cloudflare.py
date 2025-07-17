@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-import asyncio
 import json
 
 from ..typing import AsyncResult, Messages
-from .base_provider import AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin, get_running_loop
-from ..requests import Session, StreamSession, get_args_from_nodriver, raise_for_status, merge_cookies
+from .base_provider import AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin
+from ..requests import StreamSession, get_args_from_nodriver, raise_for_status, merge_cookies
 from ..requests import DEFAULT_HEADERS, has_nodriver, has_curl_cffi
 from ..providers.response import FinishReason, Usage
 from ..errors import ResponseStatusError, ModelNotFoundError
@@ -45,7 +44,7 @@ class Cloudflare(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
     supports_stream = True
     supports_system_message = True
     supports_message_history = True
-    default_model = "@cf/meta/llama-3.3-70b-instruct-fp8-fast"
+    default_model = 'llama-3.3-70b'
     model_aliases = {
         'deepseek-coder-6.7b-base': '@hf/thebloke/deepseek-coder-6.7b-base-awq',
         'deepseek-coder-6.7b': '@hf/thebloke/deepseek-coder-6.7b-instruct-awq',
@@ -89,7 +88,6 @@ class Cloudflare(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
     }
     models = list(model_aliases.keys())
     _args: dict = None
-
 
     @classmethod
     async def create_async_generator(
@@ -151,6 +149,5 @@ class Cloudflare(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                         finish = json.loads(line[2:])
                         yield Usage(**finish.get("usage"))
                         yield FinishReason(finish.get("finishReason"))
-
         with cache_file.open("w") as f:
             json.dump(cls._args, f)
