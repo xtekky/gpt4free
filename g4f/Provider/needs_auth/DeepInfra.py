@@ -48,7 +48,7 @@ class DeepInfra(OpenaiTemplate):
         cls,
         model: str,
         messages: Messages,
-        stream: bool,
+        stream: bool = True,
         prompt: str = None,
         temperature: float = 0.7,
         max_tokens: int = 1028,
