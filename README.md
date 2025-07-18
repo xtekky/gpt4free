@@ -93,6 +93,7 @@ Curious to see what G4F can do? Dive into a live demonstration and visit the [of
   - [💡 Usage](#-usage)
      - [📝 Text Generation](#-text-generation)
      - [🎨 Image Generation](#-image-generation)
+     - [🎬 Video Generation](#-video-generation)
      - [🌐 Web Interface](#-web-interface)
      - [🖥️ Local Inference](https://github.com/gpt4free/g4f.dev/blob/main/docs/local.md)
      - [🤖 Interference API](#-interference-api)
@@ -221,6 +222,30 @@ response = client.images.generate(
 print(f"Generated image URL: {response.data[0].url}")
 ```
 [![Image with cat](https://g4f.dev/docs/images/cat.jpeg)](https://github.com/gpt4free/g4f.dev/blob/main/docs/client.md)
+
+### 🎬 Video Generation
+You can generate videos from text prompts using the `Video` provider without an API key (requires a local browser and the `nodriver` Python package):
+
+```python
+from g4f.client import Client
+import g4f.Provider
+
+client = Client(
+    provider=g4f.Provider.Video,  # No API key required for this provider
+    api_key="hf_***" # Your API key here if need
+)
+
+video_models = client.models.get_video()
+print(video_models)  # e.g., ['search', 'sora']
+
+result = client.media.generate(
+    model=video_models[0],  # 'search' or 'sora'
+    prompt="A futuristic city with flying cars.",
+    response_format="url"
+)
+
+print(result.data[0].url)
+```
 
 ### 🌐 Web Interface
 **Run the GUI using Python:**
