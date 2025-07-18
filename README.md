@@ -1,15 +1,13 @@
+<img width="2048" height="512" alt="image" src="https://github.com/user-attachments/assets/5cb3fa91-0997-4671-8f7c-c5675d0467f2" />
+
 <a href="https://trendshift.io/repositories/1692" target="_blank"><img src="https://trendshift.io/api/badge/repositories/1692" alt="xtekky%2Fgpt4free | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
 
 ---
 
 <p align="center">
   <span style="background: linear-gradient(45deg, #12c2e9, #c471ed, #f64f59); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
-    <strong>Written by <a href="https://github.com/xtekky">@xtekky</a>, <a href="https://github.com/hlohaus">@hlohaus</a></strong>
+    <strong>Created by <a href="https://github.com/xtekky">@xtekky</a>, maintained by <a href="https://github.com/hlohaus">@hlohaus</a></strong>
   </span>
-</p>
-<p align="center">
-🇷🇺 🇩🇪 🇫🇷 🇮🇹 🇬🇧 🇳🇬 🇪🇬 🇩🇿 🇿🇦 
-🇨🇳 🇮🇳 🇮🇩 🇰🇪 🇺🇸 🇧🇷 🇨🇦 🇲🇽 🇦🇺
 </p>
 <p align="center">
 <span>Support the project on</span>
