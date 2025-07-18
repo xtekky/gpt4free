@@ -8,6 +8,9 @@
   </span>
 </p>
 <p align="center">
+🇷🇺 🇩🇪 🇫🇷 🇮🇹 🇬🇧 🇳🇬 🇪🇬 🇩🇿 🇿🇦 🇰🇪 🇺🇸 🇧🇷 🇨🇦 🇲🇽 🇦🇺
+</p>
+<p align="center">
 <span>Support the project on</span>
       <a href="https://github.com/sponsors/hlohaus" target="_blank" rel="noopener noreferrer">
         GitHub Sponsors

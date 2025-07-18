@@ -268,7 +268,7 @@ class SourceLink(ResponseType):
         title = f"[{self.title}]"
         return f" {format_link(self.url, title)}"
 
-class YouTube(HiddenResponse):
+class YouTubeResponse(HiddenResponse):
     def __init__(self, ids: List[str], add_links: bool = False) -> None:
         """Initialize with a list of YouTube IDs."""
         self.ids = ids
@@ -295,6 +295,8 @@ class AudioResponse(ResponseType):
 
     def to_uri(self) -> str:
         if isinstance(self.data, str):
+            if self.data.startswith("/media/"):
+                return quote(self.data, '/?&=')
             return self.data
         """Return audio data as a base64-encoded data URI."""
         data_base64 = base64.b64encode(self.data).decode()
