@@ -8,7 +8,8 @@
   </span>
 </p>
 <p align="center">
-🇷🇺 🇩🇪 🇫🇷 🇮🇹 🇬🇧 🇳🇬 🇪🇬 🇩🇿 🇿🇦 🇰🇪 🇺🇸 🇧🇷 🇨🇦 🇲🇽 🇦🇺
+🇷🇺 🇩🇪 🇫🇷 🇮🇹 🇬🇧 🇳🇬 🇪🇬 🇩🇿 🇿🇦 
+🇨🇳 🇮🇳 🇮🇩 🇰🇪 🇺🇸 🇧🇷 🇨🇦 🇲🇽 🇦🇺
 </p>
 <p align="center">
 <span>Support the project on</span>
