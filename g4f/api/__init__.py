@@ -706,7 +706,7 @@ class Api:
                 )
                 if response.choices[0].message.audio is not None:
                     response = base64.b64decode(response.choices[0].message.audio.data)
-                    return Response(response, media_type=f"audio/{config.response_format.replace("mp3", "mpeg")}")
+                    return Response(response, media_type=f"audio/{config.response_format.replace('mp3', 'mpeg')}")
                 elif isinstance(response.choices[0].message.content, AudioResponse):
                     response = response.choices[0].message.content.data
                     response = response.replace("/media", get_media_dir())
