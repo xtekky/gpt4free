@@ -31,6 +31,7 @@ class ConversationManager:
         self.provider: Optional[str] = provider
         self.conversation = None
         self.history: List[Dict[str, str]] = []
+        self.data: Dict = {}
         self._load()
 
     def _load(self) -> None:
