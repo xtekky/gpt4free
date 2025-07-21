@@ -1,26 +1,24 @@
 from __future__ import annotations
 
 import requests
-import random
 from typing import Union
 
-from ..typing import AsyncResult, Messages, MediaListType
-from .template import OpenaiTemplate
-from ..requests import StreamSession, raise_for_status
-from ..errors import ModelNotFoundError
-from .. import debug
+from ...typing import AsyncResult, Messages, MediaListType
+from ..template import OpenaiTemplate
+from ...requests import StreamSession, raise_for_status
+from ...errors import ModelNotFoundError
+from ... import debug
 
 class Together(OpenaiTemplate):
     label = "Together"
     url = "https://together.xyz"
     login_url = "https://api.together.ai/"
     api_base = "https://api.together.xyz/v1"
-    activation_endpoint = "https://www.codegeneration.ai/activate-v2"
     models_endpoint = "https://api.together.xyz/v1/models"
 
-    active_by_default = True
+    active_by_default = False
     working = True
-    needs_auth = False
+    needs_auth = True
     supports_stream = True
     supports_system_message = True
     supports_message_history = True
@@ -148,125 +146,6 @@ class Together(OpenaiTemplate):
     }
 
     @classmethod
-    async def get_activation_key(cls, proxy: str = None) -> str:
-        """Get API key from activation endpoint"""
-        if cls._api_key_cache:
-            return cls._api_key_cache
-            
-        headers = {
-            "Accept": "application/json",
-        }
-        
-        async with StreamSession(proxy=proxy, headers=headers) as session:
-            async with session.get(cls.activation_endpoint) as response:
-                await raise_for_status(response)
-                activation_data = await response.json()
-                cls._api_key_cache = activation_data["openAIParams"]["apiKey"]
-                return cls._api_key_cache
-
-    @classmethod
-    def get_models(cls, api_key: str = None, api_base: str = None) -> list[str]:
-        """Override to load models from Together API with proper categorization"""
-        if cls._models_cached and cls.models:
-            return cls.models
-            
-        try:
-            # Get API key synchronously for model loading
-            if api_key is None and cls._api_key_cache is None:
-                # Make synchronous request to activation endpoint
-                headers = {"Accept": "application/json"}
-                response = requests.get(cls.activation_endpoint, headers=headers)
-                raise_for_status(response)
-                activation_data = response.json()
-                cls._api_key_cache = activation_data["openAIParams"]["apiKey"]
-                api_key = cls._api_key_cache
-            elif api_key is None:
-                api_key = cls._api_key_cache
-            
-            # Get models from Together API
-            headers = {
-                "Authorization": f"Bearer {api_key}",
-            }
-            
-            response = requests.get(cls.models_endpoint, headers=headers)
-            raise_for_status(response)
-            models_data = response.json()
-            
-            # Clear existing model lists and configs
-            cls.models = []
-            cls.image_models = []
-            cls.model_configs = {}
-            
-            # Categorize models by type
-            for model in models_data:
-                if isinstance(model, dict):
-                    model_id = model.get("id")
-                    model_type = model.get("type", "").lower()
-                    
-                    if not model_id:
-                        continue
-                    
-                    # Extract model configuration
-                    config = model.get("config", {})
-                    if config:
-                        cls.model_configs[model_id] = {
-                            "stop": config.get("stop", []),
-                            "chat_template": config.get("chat_template"),
-                            "bos_token": config.get("bos_token"),
-                            "eos_token": config.get("eos_token"),
-                            "context_length": model.get("context_length")
-                        }
-                    
-                    # Check if it's a vision model
-                    if model_id in cls.vision_models:
-                        cls.models.append(model_id)
-                        continue
-                    
-                    # Categorize by type
-                    if model_type == "chat":
-                        cls.models.append(model_id)
-                    elif model_type == "language":
-                        # Filter language models - add to models if they support chat/completion
-                        cls.models.append(model_id)
-                    elif model_type == "image":
-                        cls.image_models.append(model_id)
-                        cls.models.append(model_id)  # Also add to main models list
-                    # Skip embedding, moderation, and audio models
-                    elif model_type in ["embedding", "moderation", "audio"]:
-                        continue
-                    # If no type specified, assume it's a chat model
-                    elif model_type == "":
-                        cls.models.append(model_id)
-            
-            # Ensure default model is in the list
-            if cls.default_model not in cls.models:
-                cls.models.insert(0, cls.default_model)
-            
-            # Ensure vision models are in the list
-            for vision_model in cls.vision_models:
-                if vision_model not in cls.models:
-                    cls.models.append(vision_model)
-            
-            # Sort all model lists
-            cls.models.sort()
-            cls.image_models.sort()
-            
-            cls._models_cached = True
-            return cls.models
-            
-        except Exception as e:
-            debug.error(e)
-            # Return default model on error
-            cls.models = [cls.default_model]
-            return cls.models
-
-    @classmethod
-    def get_model_config(cls, model: str) -> dict:
-        """Get configuration for a specific model"""
-        model = cls.get_model(model)
-        return cls.model_configs.get(model, {})
-
-    @classmethod
     def get_model(cls, model: str, api_key: str = None, api_base: str = None) -> str:
         """Get the internal model name from the user-provided model name."""
         if not model:
@@ -289,41 +168,3 @@ class Together(OpenaiTemplate):
             return alias
         
         raise ModelNotFoundError(f"Together: Model {model} not found")
-
-    @classmethod
-    async def create_async_generator(
-        cls,
-        model: str,
-        messages: Messages,
-        proxy: str = None,
-        api_key: str = None,
-        media: MediaListType = None,
-        stop: Union[str, list[str]] = None,
-        **kwargs
-    ) -> AsyncResult:
-        # Get API key from activation endpoint if not provided
-        if api_key is None:
-            api_key = await cls.get_activation_key(proxy)
-        
-        # Load models if not cached
-        if not cls._models_cached:
-            cls.get_models(api_key)
-        
-        # Get model configuration
-        model_config = cls.get_model_config(model)
-        
-        # Use model's default stop tokens if not provided
-        if stop is None and model_config.get("stop"):
-            stop = model_config["stop"]
-        
-        # Use parent implementation with the obtained API key
-        async for chunk in super().create_async_generator(
-            model=model,
-            messages=messages,
-            proxy=proxy,
-            api_key=api_key,
-            media=media,
-            stop=stop,
-            **kwargs
-        ):
-            yield chunk

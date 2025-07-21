@@ -1,16 +1,16 @@
 from __future__ import annotations
 import requests
 
-from .template import OpenaiTemplate
-from ..requests import raise_for_status
-from .. import debug
+from ..template import OpenaiTemplate
+from ...requests import raise_for_status
+from ... import debug
 
 class PenguinAI(OpenaiTemplate):
     label = "PenguinAI"
     url = "https://penguinai.tech"
     api_base = "https://api.penguinai.tech/v1"
-    working = True
-    active_by_default = True
+    working = False
+    active_by_default = False
 
     default_model = "gpt-3.5-turbo"
     default_vision_model = "gpt-4o"
