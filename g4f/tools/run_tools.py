@@ -38,9 +38,13 @@ class ToolHandler:
         """Validate and parse tool arguments"""
         if "arguments" in data:
             if isinstance(data["arguments"], str):
-                data["arguments"] = json.loads(data["arguments"])
+                try:
+                    data["arguments"] = json.loads(data["arguments"])
+                except json.JSONDecodeError as e:
+                    debug.error(f"Failed to parse tool arguments JSON: {e}")
+                    raise ValueError(f"Invalid JSON in tool function arguments: {e}")
             if not isinstance(data["arguments"], dict):
-                raise ValueError("Tool function arguments must be a dictionary or a json string")
+                raise ValueError("Tool function arguments must be a dictionary or a valid json string")
             else:
                 return filter_none(**data["arguments"])
         else:

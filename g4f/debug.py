@@ -14,5 +14,13 @@ def log(*text: Any, file: Optional[Any] = None) -> None:
 
 def error(*error: Any, name: Optional[str] = None) -> None:
     """Log an error message to stderr."""
-    error = [e if isinstance(e, str) else f"{type(e).__name__ if name is None else name}: {e}" for e in error]
-    log(*error, file=sys.stderr)
+    error_messages = []
+    for e in error:
+        if isinstance(e, str):
+            error_messages.append(e)
+        elif isinstance(e, Exception):
+            error_class = type(e).__name__ if name is None else name
+            error_messages.append(f"{error_class}: {e}")
+        else:
+            error_messages.append(str(e))
+    log(*error_messages, file=sys.stderr)

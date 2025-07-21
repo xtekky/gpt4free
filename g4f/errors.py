@@ -54,6 +54,12 @@ class NoValidHarFileError(Exception):
 
 class TimeoutError(Exception):
     """Raised for timeout errors during API requests."""
+    
+    def __init__(self, message: str, timeout: int = None, provider: str = None):
+        super().__init__(message)
+        self.timeout = timeout
+        self.provider = provider
+        self.message = message
 
 class ConversationLimitError(Exception):
     """Raised for conversation limit during API requests to AI endpoint."""

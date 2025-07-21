@@ -9,6 +9,7 @@ from typing import Iterator, AsyncIterator
 from http.cookies import Morsel
 from pathlib import Path
 import asyncio
+from contextlib import asynccontextmanager
 try:
     from curl_cffi.requests import Session, Response
     from .curl_cffi import StreamResponse, StreamSession, FormData
@@ -40,7 +41,7 @@ except ImportError:
 
 from .. import debug
 from .raise_for_status import raise_for_status
-from ..errors import MissingRequirementsError
+from ..errors import MissingRequirementsError, TimeoutError as G4FTimeoutError
 from ..typing import Cookies
 from ..cookies import get_cookies_dir
 from .defaults import DEFAULT_HEADERS, WEBVIEW_HAEDERS
@@ -183,7 +184,11 @@ async def get_nodriver(
                     break
                 if idx == timeout - 1:
                     debug.log("Timeout reached, nodriver is still in use.")
-                    raise TimeoutError("Nodriver is already in use, please try again later.")
+                    raise G4FTimeoutError(
+                        "Nodriver is already in use, please try again later.",
+                        timeout=timeout,
+                        provider="nodriver"
+                    )
         else:
             debug.log(f"Nodriver: Browser was opened {time_open} secs ago, closing it.")
             BrowserConfig.stop_browser()
@@ -205,15 +210,40 @@ async def get_nodriver(
         else:
             raise
     def on_stop():
+        """Safely stop the browser and clean up resources"""
         try:
-            if browser.connection:
+            if browser and hasattr(browser, 'connection') and browser.connection:
                 browser.stop()
-        except:
-            pass
+        except Exception as e:
+            debug.log(f"Warning: Error during browser cleanup: {e}")
         finally:
-            lock_file.unlink(missing_ok=True)
+            try:
+                lock_file.unlink(missing_ok=True)
+            except Exception as e:
+                debug.log(f"Warning: Could not remove lock file: {e}")
     BrowserConfig.stop_browser = on_stop
     return browser, on_stop
+
+@asynccontextmanager
+async def get_nodriver_session(
+    proxy: str = None,
+    user_data_dir: str = "nodriver",
+    timeout: int = 300,
+    browser_executable_path: str = None,
+    **kwargs
+):
+    """Context manager for nodriver browser sessions with automatic cleanup"""
+    browser, stop_browser = await get_nodriver(
+        proxy=proxy,
+        user_data_dir=user_data_dir,
+        timeout=timeout,
+        browser_executable_path=browser_executable_path,
+        **kwargs
+    )
+    try:
+        yield browser
+    finally:
+        stop_browser()
 
 async def see_stream(iter_lines: Iterator[bytes]) -> AsyncIterator[dict]:
     if hasattr(iter_lines, "content"):
