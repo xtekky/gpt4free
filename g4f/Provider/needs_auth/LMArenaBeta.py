@@ -4,12 +4,14 @@ import time
 import uuid
 import json
 import asyncio
+import os
 
-from ...typing import AsyncResult, Messages
+from ...typing import AsyncResult, Messages, MediaListType
 from ...requests import StreamSession, get_args_from_nodriver, raise_for_status, merge_cookies
 from ...requests import DEFAULT_HEADERS, has_nodriver
 from ...errors import ModelNotFoundError
 from ...providers.response import FinishReason, Usage, JsonConversation, ImageResponse
+from ...tools.media import merge_media
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin,AuthFileMixin
 from ..helper import get_last_user_message
 from ... import debug
@@ -114,6 +116,7 @@ models = [
 ]
 text_models = {model["publicName"]: model["id"] for model in models if "text" in model["capabilities"]["outputCapabilities"]}
 image_models = {model["publicName"]: model["id"] for model in models if "image" in model["capabilities"]["outputCapabilities"]}
+vision_models = [model["publicName"] for model in models if "image" in model["capabilities"]["inputCapabilities"]]
 
 class LMArenaBeta(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
     label = "LMArena (New)"
@@ -124,6 +127,7 @@ class LMArenaBeta(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
     default_model = list(text_models.keys())[0]
     models = list(text_models) + list(image_models)
     image_models = list(image_models)
+    vision_models = vision_models
 
     @classmethod
     async def create_async_generator(
@@ -131,6 +135,7 @@ class LMArenaBeta(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
         model: str,
         messages: Messages,
         conversation: JsonConversation = None,
+        media: MediaListType = None,
         proxy: str = None,
         timeout: int = None,
         **kwargs
@@ -181,7 +186,15 @@ class LMArenaBeta(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
                     "id": userMessageId,
                     "role": "user",
                     "content": prompt,
-                    "experimental_attachments": [],
+                    "experimental_attachments": [
+                        {
+                            "name": name or os.path.basename(url),
+                            "contentType": get_content_type(url),
+                            "url": url
+                        }
+                        for url, name in list(merge_media(media, messages))
+                        if url.startswith("https://")
+                    ],
                     "parentMessageIds": [] if conversation is None else conversation.message_ids,
                     "participantPosition": "a",
                     "modelId": None,
@@ -233,3 +246,13 @@ class LMArenaBeta(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
         # Save the args to cache file
         with cache_file.open("w") as f:
             json.dump(args, f)
+
+def get_content_type(url: str) -> str:
+    if url.endswith(".webp"):
+        return "image/webp"
+    elif url.endswith(".png"):
+        return "image/png"
+    elif url.endswith(".jpg") or url.endswith(".jpeg"):
+        return "image/jpeg"
+    else:
+        return "application/octet-stream"

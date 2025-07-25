@@ -41,6 +41,7 @@ from .DeepInfraChat        import DeepInfraChat
 from .DuckDuckGo           import DuckDuckGo
 from .Free2GPT             import Free2GPT
 from .ImageLabs            import ImageLabs
+from .Kimi                 import Kimi
 from .LambdaChat           import LambdaChat
 from .LegacyLMArena        import LegacyLMArena
 from .OIVSCodeSer2         import OIVSCodeSer2

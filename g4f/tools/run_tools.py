@@ -129,6 +129,7 @@ class AuthManager:
         "GeminiPro": "Gemini",
         "PollinationsAI": "Pollinations",
         "OpenaiAPI": "Openai",
+        "PuterJS": "Puter",
     }
 
     @classmethod
