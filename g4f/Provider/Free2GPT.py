@@ -15,7 +15,7 @@ from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 class Free2GPT(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://chat10.free2gpt.xyz"
     
-    working = True
+    working = False
     supports_message_history = True
     
     default_model = 'gemini-1.5-pro'

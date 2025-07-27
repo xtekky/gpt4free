@@ -40,7 +40,7 @@ from ...providers.response import FinishReason, AudioResponse, MediaResponse, Re
 from ...client.helper import filter_markdown
 from ...tools.files import supports_filename, get_streaming, get_bucket_dir, get_tempfile
 from ...tools.run_tools import iter_run_tools
-from ...errors import ProviderNotFoundError
+from ...errors import ProviderNotFoundError, MissingAuthError
 from ...image import is_allowed_extension, process_image, MEDIA_TYPE_MAP
 from ...cookies import get_cookies_dir
 from ...image.copy_images import secure_filename, get_source_url, get_media_dir, copy_media
@@ -120,7 +120,10 @@ class Backend_Api(Api):
 
         @app.route('/backend-api/v2/models/<provider>', methods=['GET'])
         def jsonify_provider_models(**kwargs):
-            response = self.get_provider_models(**kwargs)
+            try:
+                response = self.get_provider_models(**kwargs)
+            except MissingAuthError as e:
+                return jsonify({"error": {"message": str(e)}}), 401
             return jsonify(response)
 
         @app.route('/backend-api/v2/providers', methods=['GET'])

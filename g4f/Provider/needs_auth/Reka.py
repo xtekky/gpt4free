@@ -9,7 +9,7 @@ from ...image        import to_bytes
 class Reka(AbstractProvider):
     domain          = "space.reka.ai"
     url             = f"https://{domain}"
-    working         = True
+    working         = False
     needs_auth      = True
     supports_stream = True
     default_vision_model = "reka"
@@ -20,7 +20,7 @@ class Reka(AbstractProvider):
         cls,
         model: str,
         messages: Messages,
-        stream: bool,
+        stream: bool = True,
         proxy: str = None,
         api_key: str = None,
         image: ImageType = None,
@@ -29,7 +29,7 @@ class Reka(AbstractProvider):
         cls.proxy = proxy
 
         if not api_key:
-            cls.cookies = get_cookies(cls.domain)
+            cls.cookies = get_cookies(cls.domain,cache_result=False)
             if not cls.cookies:
                 raise ValueError(f"No cookies found for {cls.domain}")
             elif "appSession" not in cls.cookies:

@@ -5,7 +5,7 @@ from typing import AsyncIterator
 
 from .base_provider import AsyncAuthedProvider, ProviderModelMixin
 from ..providers.helper import get_last_user_message
-from ..requests import StreamSession, see_stream
+from ..requests import StreamSession, see_stream, raise_for_status
 from ..providers.response import AuthResult, TitleGeneration, JsonConversation, FinishReason
 from ..typing import AsyncResult, Messages
 
@@ -29,8 +29,7 @@ class Kimi(AsyncAuthedProvider, ProviderModelMixin):
                     "x-traffic-id": device_id
                 }
             ) as response:
-                if response.status != 200:
-                    raise Exception("Failed to register device")
+                await raise_for_status(response)
             data = await response.json()
             if not data.get("access_token"):
                 raise Exception("No access token received")
@@ -50,7 +49,6 @@ class Kimi(AsyncAuthedProvider, ProviderModelMixin):
         web_search: bool = False,
         **kwargs
     ) -> AsyncResult:
-        pass
         async with StreamSession(
             proxy=proxy,
             impersonate="chrome",
@@ -67,14 +65,13 @@ class Kimi(AsyncAuthedProvider, ProviderModelMixin):
                     "source":"web",
                     "tags":[]
                 }) as response:
-                    if response.status != 200:
-                        raise Exception("Failed to create chat")
+                    await raise_for_status(response)
                     chat_data = await response.json()
                 conversation = JsonConversation(chat_id=chat_data.get("id"))
             data = {
                 "kimiplus_id": "kimi",
                 "extend": {"sidebar": True},
-                "model": model,
+                "model": "k2",
                 "use_search": web_search,
                 "messages": [
                     {
@@ -92,8 +89,7 @@ class Kimi(AsyncAuthedProvider, ProviderModelMixin):
                 f"https://www.kimi.com/api/chat/{conversation.chat_id}/completion/stream",
                 json=data
             ) as response:
-                if response.status != 200:
-                    raise Exception("Failed to start chat completion")
+                await raise_for_status(response)
                 async for line in see_stream(response):
                     if line.get("event") == "cmpl":
                         yield line.get("text")

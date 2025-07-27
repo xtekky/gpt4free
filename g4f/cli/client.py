@@ -16,7 +16,12 @@ from g4f.Provider import ProviderUtils
 from g4f.image import extract_data_uri, is_accepted_format
 from g4f.image.copy_images import get_media_dir
 from g4f.client.helper import filter_markdown
-from g4f.integration.markitdown import MarkItDown
+from g4f.errors import MissingRequirementsError
+try:
+    from g4f.integration.markitdown import MarkItDown
+    has_markitdown = True
+except ImportError:
+    has_markitdown = False
 from g4f.config import CONFIG_DIR, COOKIES_DIR
 from g4f import debug
 
@@ -284,6 +289,8 @@ def run_client_args(args):
                 media.append(input_value)
             else:
                 try:
+                    if not has_markitdown:
+                        raise MissingRequirementsError("MarkItDown is not installed. Install it with `pip install -U markitdown`.")
                     md = MarkItDown()
                     text_content = md.convert_url(input_value).text_content
                     input_text += f"\n```\n{text_content}\n\nSource: {input_value}\n```\n"

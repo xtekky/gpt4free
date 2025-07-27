@@ -92,12 +92,11 @@ class WeWordle(AsyncGeneratorProvider, ProviderModelMixin):
         }
         
         if isinstance(messages, list) and all(isinstance(m, dict) and "role" in m and "content" in m for m in messages):
-            data_payload = {"messages": messages, "model": model, **kwargs}
+            data_payload = {"messages": messages, "model": model}
         else:
             data_payload = {
                 "messages": messages,
-                "model": model,
-                **kwargs
+                "model": model
             }
 
         retries = 0

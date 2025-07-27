@@ -18,7 +18,7 @@ class Startnest(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://play.google.com/store/apps/details?id=starnest.aitype.aikeyboard.chatbot.chatgpt"
     api_endpoint = "https://api.startnest.uk/api/completions/stream"
     
-    working = True
+    working = False
     needs_auth = False
     supports_stream = True
     supports_system_message = True
