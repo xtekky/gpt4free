@@ -5,7 +5,7 @@ from typing import AsyncIterator
 
 from .base_provider import AsyncAuthedProvider, ProviderModelMixin
 from ..providers.helper import get_last_user_message
-from ..requests import StreamSession, see_stream, raise_for_status
+from ..requests import StreamSession, sse_stream, raise_for_status
 from ..providers.response import AuthResult, TitleGeneration, JsonConversation, FinishReason
 from ..typing import AsyncResult, Messages
 
@@ -90,7 +90,7 @@ class Kimi(AsyncAuthedProvider, ProviderModelMixin):
                 json=data
             ) as response:
                 await raise_for_status(response)
-                async for line in see_stream(response):
+                async for line in sse_stream(response):
                     if line.get("event") == "cmpl":
                         yield line.get("text")
                     elif line.get("event") == "rename":

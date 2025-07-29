@@ -28,14 +28,13 @@ class GeminiPro(AsyncGeneratorProvider, ProviderModelMixin):
     supports_system_message = True
     needs_auth = True
 
-    default_model = "gemini-2.5-flash-preview-04-17"
+    default_model = "gemini-2.5-flash"
     default_vision_model = default_model
     fallback_models = [
         "gemini-2.0-flash",
         "gemini-2.0-flash-lite",
         "gemini-2.0-flash-thinking-exp",
         "gemini-2.5-flash",
-        "gemini-2.5-flash-preview-04-17",
         "gemma-3-1b-it",
         "gemma-3-12b-it",
         "gemma-3-27b-it",

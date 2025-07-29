@@ -215,7 +215,7 @@ async def get_nodriver(
     BrowserConfig.stop_browser = on_stop
     return browser, on_stop
 
-async def see_stream(iter_lines: Iterator[bytes]) -> AsyncIterator[dict]:
+async def sse_stream(iter_lines: Iterator[bytes]) -> AsyncIterator[dict]:
     if hasattr(iter_lines, "content"):
         iter_lines = iter_lines.content
     elif hasattr(iter_lines, "iter_lines"):

@@ -44,6 +44,7 @@ License: MIT
 """
 
 import os
+import re
 import sys
 import requests
 import time
@@ -411,14 +412,19 @@ def process_single_file_with_output(file_path: Path, template: str, output_path:
         
         # Create output directory if needed
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        
-        # Generate final HTML
-        final_html = template.replace("{{ article }}", html).replace("{{ title }}", title)
-        
+
+        # If output file exists, read and replace title and content
+        if output_path.is_file():
+            output = output_path.read_text()
+            output = re.sub(r"<title>([\S\s]+?)</title>", f"<title>{title}</title>", output)
+            output = re.sub(r'itemprop="text">[\S\s]+?</article>', f'itemprop="text">{html}</article>', output)
+        else:
+            # If output file does not exist, create it with template
+            output = template.replace("{{ article }}", html).replace("{{ title }}", title)
         # Write output file
         with open(output_path, 'w', encoding='utf-8') as f:
-            f.write(final_html)
-        
+            f.write(output)
+
         print(f"✓ Created: {output_path}")
         return True
         

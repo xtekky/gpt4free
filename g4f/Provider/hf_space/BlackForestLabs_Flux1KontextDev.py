@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-import json
 import uuid
 
 from ...typing import AsyncResult, Messages, MediaListType
-from ...providers.response import ImageResponse, ImagePreview, JsonConversation, Reasoning
-from ...requests import StreamSession, FormData, see_stream
+from ...providers.response import ImageResponse, JsonConversation, Reasoning
+from ...requests import StreamSession, FormData, sse_stream
 from ...tools.media import merge_media
 from ...image import to_bytes, is_accepted_format
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
@@ -131,7 +130,7 @@ class BlackForestLabs_Flux1KontextDev(AsyncGeneratorProvider, ProviderModelMixin
             # GET the event stream to receive updates and results asynchronously
             async with cls.run("get", session, conversation) as event_response:
                 await raise_for_status(event_response)
-                async for chunk in see_stream(event_response.iter_lines()):
+                async for chunk in sse_stream(event_response):
                     if chunk.get("msg") == "process_starts":
                         yield Reasoning(label="Processing started")
                     elif chunk.get("msg") == "progress":

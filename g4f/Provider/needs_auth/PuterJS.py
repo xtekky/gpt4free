@@ -9,7 +9,7 @@ from ...typing import AsyncResult, Messages, MediaListType
 from ..base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from ...providers.response import FinishReason, Usage, Reasoning, ToolCalls
 from ...tools.media import render_messages
-from ...requests import see_stream, raise_for_status
+from ...requests import sse_stream, raise_for_status
 from ...errors import ResponseError, ModelNotFoundError, MissingAuthError
 from ..helper import format_media_prompt
 from .. import debug
@@ -405,7 +405,7 @@ class PuterJS(AsyncGeneratorProvider, ProviderModelMixin):
                     return
                 elif mime_type.startswith("text/event-stream"):
                     reasoning = False
-                    async for result in see_stream(response.content):
+                    async for result in sse_stream(response.content):
                         if "error" in result:
                             raise ResponseError(result["error"].get("message", result["error"]))
                         choices = result.get("choices", [{}])
