@@ -123,7 +123,9 @@ class Backend_Api(Api):
             try:
                 response = self.get_provider_models(**kwargs)
             except MissingAuthError as e:
-                return jsonify({"error": {"message": str(e)}}), 401
+                return jsonify({"error": {"message": f"{type(e).__name__}: {e}"}}), 401
+            except Exception as e:
+                return jsonify({"error": {"message": f"{type(e).__name__}: {e}"}}), 500
             return jsonify(response)
 
         @app.route('/backend-api/v2/providers', methods=['GET'])
