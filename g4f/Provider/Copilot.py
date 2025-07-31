@@ -50,8 +50,6 @@ class Copilot(AsyncAuthedProvider, ProviderModelMixin):
     model_aliases = {
         "gpt-4": default_model,
         "gpt-4o": default_model,
-        "o1": "Think Deeper",
-        "dall-e-3": default_model
     }
 
     websocket_url = "wss://copilot.microsoft.com/c/api/chat?api-version=2"

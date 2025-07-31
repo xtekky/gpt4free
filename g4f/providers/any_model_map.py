@@ -27,7 +27,7 @@ model_map = {
     "Yqcloud": "gpt-4",
     "WeWordle": "gpt-4",
     "OpenaiChat": "gpt-4",
-    "CopilotAccount": "Copilot",
+    "Copilot": "Copilot",
     "HarProvider": [
       "gpt-4-1106-preview",
       "gpt-4-0125-preview",
@@ -52,7 +52,7 @@ model_map = {
     "Blackbox": "gpt-4o",
     "PollinationsAI": "openai",
     "OpenaiChat": "gpt-4o",
-    "CopilotAccount": "Copilot",
+    "Copilot": "Copilot",
     "HarProvider": [
       "chatgpt-4o-latest-20250326",
       "chatgpt-4o-latest-20250129",

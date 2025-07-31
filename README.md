@@ -242,11 +242,11 @@ python -m g4f --port 8080 --debug
 
 ---
 
-### 🤖 Inference API
+### 🤖 Interference API
 
-The **Inference API** enables seamless integration with OpenAI's services through G4F, allowing you to deploy efficient AI solutions.
+The **Interference API** enables seamless integration with OpenAI's services through G4F, allowing you to deploy efficient AI solutions.
 
-- **Documentation**: [Inference API Docs](https://github.com/gpt4free/g4f.dev/blob/main/docs/inference-api.md)
+- **Documentation**: [Interference API Docs](https://github.com/gpt4free/g4f.dev/blob/main/docs/interference-api.md)
 - **Endpoint**: `http://localhost:1337/v1`
 - **Swagger UI**: Explore the OpenAPI documentation via Swagger UI at `http://localhost:1337/docs`
 - **Provider Selection**: [How to Specify a Provider?](https://github.com/gpt4free/g4f.dev/blob/main/docs/selecting_a_provider.md)

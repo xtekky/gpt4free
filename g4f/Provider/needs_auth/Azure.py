@@ -46,15 +46,14 @@ class Azure(OpenaiTemplate):
         cls,
         model: str,
         messages: Messages,
+        stream: bool = True,
+        extra_body: dict = None,
         api_key: str = None,
         api_endpoint: str = None,
         **kwargs
     ) -> AsyncResult:
         if not model:
             model = os.environ.get("AZURE_DEFAULT_MODEL", cls.default_model)
-        if model in cls.model_extra_body:
-            for key, value in cls.model_extra_body[model].items():
-                kwargs.setdefault(key, value)
         if not api_key:
             raise ValueError(f"API key is required for Azure provider. Ask for API key in the {cls.login_url} Discord server.")
         if not api_endpoint:
@@ -65,12 +64,21 @@ class Azure(OpenaiTemplate):
                 raise ModelNotFoundError(f"No API endpoint found for model: {model}")
         if not api_endpoint:
             api_endpoint = os.environ.get("AZURE_API_ENDPOINT")
+        if extra_body is None:
+            if model in cls.model_extra_body:
+                extra_body = cls.model_extra_body[model]
+            else:
+                extra_body = {}
+        if stream:
+            extra_body.setdefault("stream_options", {"include_usage": True})
         try:
             async for chunk in super().create_async_generator(
                 model=model,
                 messages=messages,
+                stream=stream,
                 api_key=api_key,
                 api_endpoint=api_endpoint,
+                extra_body=extra_body,
                 **kwargs
             ):
                 yield chunk

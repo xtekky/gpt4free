@@ -175,7 +175,7 @@ class ErrorResponse(Response):
 
 class AppConfig:
     ignored_providers: Optional[list[str]] = None
-    g4f_api_key: Optional[str] = None
+    g4f_api_key: Optional[str] = os.environ.get("G4F_API_KEY", None)
     ignore_cookie_files: bool = False
     model: str = None
     provider: str = None
@@ -188,7 +188,8 @@ class AppConfig:
     @classmethod
     def set_config(cls, **data):
         for key, value in data.items():
-            setattr(cls, key, value)
+            if value is not None:
+                setattr(cls, key, value)
 
 def update_headers(request: Request, user: str) -> Request:
     new_headers = request.headers.mutablecopy()

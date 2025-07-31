@@ -9,7 +9,7 @@ from ..image import is_data_an_audio
 from ..providers.retry_provider import IterListProvider
 from ..Provider.needs_auth import OpenaiChat, CopilotAccount
 from ..Provider.hf_space import HuggingSpace
-from ..Provider import Cloudflare, Gemini, GeminiPro, Grok, DeepSeekAPI, PerplexityLabs, LambdaChat, PollinationsAI, PuterJS
+from ..Provider import Copilot, Cloudflare, Gemini, GeminiPro, Grok, DeepSeekAPI, PerplexityLabs, LambdaChat, PollinationsAI, PuterJS
 from ..Provider import Microsoft_Phi_4_Multimodal, DeepInfraChat, Blackbox, OIVSCodeSer0501, OIVSCodeSer2, TeachAnything, OperaAria, Startnest
 from ..Provider import WeWordle, Yqcloud, Chatai, ImageLabs, LegacyLMArena, LMArenaBeta, Free2GPT
 from ..Provider import EdgeTTS, gTTS, MarkItDown, OpenAIFM
@@ -29,7 +29,7 @@ PROVIERS_LIST_1 = [
 ]
 
 PROVIERS_LIST_2 = [
-    OpenaiChat, CopilotAccount, PollinationsAI, PerplexityLabs, Gemini, Grok
+    OpenaiChat, Copilot, CopilotAccount, PollinationsAI, PerplexityLabs, Gemini, Grok
 ]
 
 PROVIERS_LIST_3 = [
@@ -129,7 +129,7 @@ class AnyModelProviderMixin(ProviderModelMixin):
             if not provider.working:
                 continue
             try:
-                if provider == CopilotAccount:
+                if provider in [Copilot, CopilotAccount]:
                     for model in provider.model_aliases.keys():
                         if model not in cls.model_map:
                             cls.model_map[model] = {}
