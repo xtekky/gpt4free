@@ -33,6 +33,7 @@ class Blackbox(AsyncGeneratorProvider, ProviderModelMixin):
     api_endpoint = "https://www.blackbox.ai/api/chat"
     
     working = True
+    active_by_default = True
     supports_stream = True
     supports_system_message = True
     supports_message_history = True

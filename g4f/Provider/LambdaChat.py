@@ -21,6 +21,7 @@ class LambdaChat(AsyncGeneratorProvider, ProviderModelMixin):
     conversation_url = f"{url}/conversation"
 
     working = True
+    active_by_default = True
 
     default_model = "deepseek-r1"
     models = [
