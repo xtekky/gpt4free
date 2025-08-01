@@ -8,6 +8,7 @@ from ..providers.helper import get_last_user_message
 from ..requests import StreamSession, sse_stream, raise_for_status
 from ..providers.response import AuthResult, TitleGeneration, JsonConversation, FinishReason
 from ..typing import AsyncResult, Messages
+from ..errors import MissingAuthError
 
 class Kimi(AsyncAuthedProvider, ProviderModelMixin):
     url = "https://www.kimi.com"
@@ -65,9 +66,15 @@ class Kimi(AsyncAuthedProvider, ProviderModelMixin):
                     "source":"web",
                     "tags":[]
                 }) as response:
-                    await raise_for_status(response)
+                    try:
+                        await raise_for_status(response)
+                    except Exception as e:
+                        if "匿名聊天使用次数超过" in str(e):
+                            raise MissingAuthError("Anonymous chat usage limit exceeded")
+                        raise e
                     chat_data = await response.json()
                 conversation = JsonConversation(chat_id=chat_data.get("id"))
+                yield conversation
             data = {
                 "kimiplus_id": "kimi",
                 "extend": {"sidebar": True},

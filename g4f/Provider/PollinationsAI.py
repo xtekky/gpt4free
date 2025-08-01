@@ -60,6 +60,7 @@ FOLLOWUPS_DEVELOPER_MESSAGE = [{
     "role": "developer",
     "content": "Provide conversation options.",
 }]
+
 class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
     label = "Pollinations AI"
     url = "https://pollinations.ai"
@@ -82,7 +83,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
     default_audio_model = "openai-audio"
     default_voice = "alloy"
     text_models = [default_model, "evil"]
-    image_models = [default_image_model, "turbo", "kontext", "gptimage", "transparent"]
+    image_models = [default_image_model, "turbo", "kontext"]
     audio_models = {default_audio_model: []}
     vision_models = [default_vision_model]
     _models_loaded = False
@@ -385,34 +386,35 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
             timeout=ClientTimeout(timeout)
         ) as session:
             responses = set()
-            responses.add(Reasoning(label=f"Generating {n} {'image' if n == 1 else 'images'}"))
+            yield Reasoning(label=f"Generating {n} {'image' if n == 1 else 'images'}")
             finished = 0
             start = time.time()
             async def get_image(responses: set, i: int, seed: Optional[int] = None):
-                nonlocal finished
                 try:
                     async with session.get(get_url_with_seed(i, seed), allow_redirects=False, headers=headers) as response:
                         await raise_for_status(response)
                 except Exception as e:
                     responses.add(e)
                     debug.error(f"Error fetching image: {e}")
-                responses.add(ImageResponse(str(response.url), prompt, {"headers": headers, "source_url": str(response.url)}))
-                finished += 1
-                responses.add(Reasoning(label=f"Image {finished}/{n} generated in {time.time() - start:.2f}s"))
+                responses.add(ImageResponse(str(response.url), prompt, {"headers": headers}))
             tasks: list[asyncio.Task] = []
             for i in range(int(n)):
                 tasks.append(asyncio.create_task(get_image(responses, i, seed)))
             while finished < n or len(responses) > 0:
                 while len(responses) > 0:
                     item = responses.pop()
-                    if isinstance(item, Exception) and finished < 2:
-                        yield Reasoning(status="")
-                        for task in tasks:
-                            task.cancel()
-                        if cls.login_url in str(item):
-                            raise MissingAuthError(item)
-                        raise item
-                    yield item
+                    if isinstance(item, Exception):
+                        if finished < 2:
+                            yield Reasoning(status="")
+                            for task in tasks:
+                                task.cancel()
+                            if cls.login_url in str(item):
+                                raise MissingAuthError(item)
+                            raise item
+                    else: 
+                        finished += 1
+                        yield Reasoning(label=f"Image {finished}/{n} generated in {time.time() - start:.2f}s")
+                        yield item
                 await asyncio.sleep(1)
             yield Reasoning(status="")
             await asyncio.gather(*tasks)
