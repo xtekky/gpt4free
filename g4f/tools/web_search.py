@@ -177,7 +177,7 @@ async def search(
     backend: str = "auto",
     add_text: bool = True,
     timeout: int = 5,
-    region: str = "wt-wt",
+    region: str = "us-en",
     provider: str = "DDG"
 ) -> SearchResults:
     """
