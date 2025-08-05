@@ -165,6 +165,10 @@ async def read_response(response: StreamResponse, stream: bool, prompt: str, pro
                 yield message["content"].strip()
             if "tool_calls" in message:
                 yield ToolCalls(message["tool_calls"])
+            if choice:
+                reasoning_content = choice.get("delta", {}).get("reasoning_content", choice.get("delta", {}).get("reasoning"))
+                if reasoning_content:
+                    yield Reasoning(reasoning_content, status="")
             audio = message.get("audio", {})
             if "data" in audio:
                 if download_media:
@@ -201,7 +205,7 @@ async def read_response(response: StreamResponse, stream: bool, prompt: str, pro
                 tool_calls = choice.get("delta", {}).get("tool_calls")
                 if tool_calls:
                     yield ToolCalls(choice["delta"]["tool_calls"])
-                reasoning_content = choice.get("delta", {}).get("reasoning_content")
+                reasoning_content = choice.get("delta", {}).get("reasoning_content", choice.get("delta", {}).get("reasoning"))
                 if reasoning_content:
                     reasoning = True
                     yield Reasoning(reasoning_content)
