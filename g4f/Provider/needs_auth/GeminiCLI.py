@@ -36,7 +36,7 @@ class AuthManager(AuthFileMixin):
     parent = "GeminiCLI"
 
     OAUTH_REFRESH_URL = "https://oauth2.googleapis.com/token"
-    OAUTH_CLIENT_ID = "681255809395" + "-oo8ft2oprdrnp9e3aqf6av3hmdib135j" + " .apps.googleusercontent.com"
+    OAUTH_CLIENT_ID = "681255809395" + "-oo8ft2oprdrnp9e3aqf6av3hmdib135j" + ".apps.googleusercontent.com"
     OAUTH_CLIENT_SECRET = "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"
     TOKEN_BUFFER_TIME = 5 * 60  # seconds, 5 minutes
     KV_TOKEN_KEY = "oauth_token_cache"
