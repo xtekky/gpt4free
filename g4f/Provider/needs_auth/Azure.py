@@ -24,7 +24,6 @@ class Azure(OpenaiTemplate):
                 "format": "mp3"
             },
             "modalities": ["text", "audio"],
-            "stream": False
         }
     }
 
@@ -67,6 +66,7 @@ class Azure(OpenaiTemplate):
         if extra_body is None:
             if model in cls.model_extra_body:
                 extra_body = cls.model_extra_body[model]
+                stream = False
             else:
                 extra_body = {}
         if stream:

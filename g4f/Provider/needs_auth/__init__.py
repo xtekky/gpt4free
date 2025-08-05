@@ -12,6 +12,7 @@ from .DeepSeek          import DeepSeek
 from .DeepSeekAPI       import DeepSeekAPI
 from .Gemini            import Gemini
 from .GeminiPro         import GeminiPro
+from .GeminiCLI         import GeminiCLI
 from .GigaChat          import GigaChat
 from .GithubCopilot     import GithubCopilot
 from .GithubCopilotAPI  import GithubCopilotAPI
