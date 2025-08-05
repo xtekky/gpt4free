@@ -44,6 +44,7 @@ from .ImageLabs            import ImageLabs
 from .Kimi                 import Kimi
 from .LambdaChat           import LambdaChat
 from .LegacyLMArena        import LegacyLMArena
+from .NVIDIA               import NVIDIA
 from .OIVSCodeSer2         import OIVSCodeSer2
 from .OIVSCodeSer0501      import OIVSCodeSer0501
 from .OperaAria            import OperaAria
