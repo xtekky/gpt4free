@@ -160,15 +160,13 @@ class ChatCompletionMessage(BaseModel):
                 ),
                 content=content
             )
+        if reasoning_content is not None and isinstance(reasoning_content, list):
+            reasoning_content = "".join([str(content) for content in reasoning_content])
         return super().model_construct(role="assistant", content=content, **filter_none(tool_calls=tool_calls, reasoning_content=reasoning_content))
 
     @field_serializer('content')
     def serialize_content(self, content: str):
         return str(content)
-
-    @field_serializer('reasoning_content')
-    def serialize_reasoning_content(self, reasoning_content: list):
-        return "".join([str(content) for content in reasoning_content]) if reasoning_content else None
 
     def save(self, filepath: str, allowed_types = None):
         if hasattr(self.content, "data"):

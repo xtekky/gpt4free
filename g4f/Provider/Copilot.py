@@ -48,6 +48,7 @@ class Copilot(AsyncAuthedProvider, ProviderModelMixin):
     default_model = "Copilot"
     models = [default_model, "Think Deeper"]
     model_aliases = {
+        "o1": "Think Deeper",
         "gpt-4": default_model,
         "gpt-4o": default_model,
     }
