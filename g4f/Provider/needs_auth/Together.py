@@ -3,8 +3,6 @@ from __future__ import annotations
 
 from ..template import OpenaiTemplate
 from ...config import DEFAULT_MODEL
-from ...errors import ModelNotFoundError
-from ... import debug
 
 class Together(OpenaiTemplate):
     label = "Together"
@@ -142,27 +140,3 @@ class Together(OpenaiTemplate):
         "flux-kontext-pro": "black-forest-labs/FLUX.1-kontext-pro",
         "flux-kontext-dev": "black-forest-labs/FLUX.1-kontext-dev",
     }
-
-    @classmethod
-    def get_model(cls, model: str, api_key: str = None, api_base: str = None) -> str:
-        """Get the internal model name from the user-provided model name."""
-        if not model:
-            return cls.default_model
-        
-        # Check if the model exists directly in our models list
-        if model in cls.models:
-            return model
-        
-        # Check if there's an alias for this model
-        if model in cls.model_aliases:
-            alias = cls.model_aliases[model]
-            # If the alias is a list, randomly select one of the options
-            if isinstance(alias, list):
-                import random  # Add this import at the top of the file
-                selected_model = random.choice(alias)
-                debug.log(f"Together: Selected model '{selected_model}' from alias '{model}'")
-                return selected_model
-            debug.log(f"Together: Using model '{alias}' for alias '{model}'")
-            return alias
-        
-        raise ModelNotFoundError(f"Together: Model {model} not found")

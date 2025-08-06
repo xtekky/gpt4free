@@ -79,7 +79,7 @@ class Azure(OpenaiTemplate):
                 raise ModelNotFoundError(f"No API endpoint found for model: {model}")
         if not api_endpoint:
             api_endpoint = os.environ.get("AZURE_API_ENDPOINT")
-        if not api_key:
+        if cls.api_keys:
             api_key = cls.api_keys.get(model, cls.api_keys.get("default"))
             if not api_key:
                 raise ValueError(f"API key is required for Azure provider. Ask for API key in the {cls.login_url} Discord server.")

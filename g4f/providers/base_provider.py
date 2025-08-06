@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-
+import random
 from asyncio import AbstractEventLoop
 from concurrent.futures import ThreadPoolExecutor
 from abc import abstractmethod
@@ -21,6 +21,7 @@ from .response import BaseConversation, AuthResult
 from .helper import concat_chunks
 from ..cookies import get_cookies_dir
 from ..errors import ModelNotFoundError, ResponseError, MissingAuthError, NoValidHarFileError, PaymentRequiredError, CloudflareError
+from .. import debug
 
 SAFE_PARAMETERS = [
     "model", "messages", "stream", "timeout",
@@ -368,7 +369,13 @@ class ProviderModelMixin:
         if not model and cls.default_model is not None:
             model = cls.default_model
         if model in cls.model_aliases:
-            model = cls.model_aliases[model]
+            alias = cls.model_aliases[model]
+            if isinstance(alias, list):
+                selected_model = random.choice(alias)
+                debug.log(f"{cls.__name__}: Selected model '{selected_model}' from alias '{model}'")
+                return selected_model
+            debug.log(f"{cls.__name__}: Using model '{alias}' for alias '{model}'")
+            return alias
         if model not in cls.model_aliases.values():
             if model not in cls.get_models(**kwargs) and cls.models:
                 raise ModelNotFoundError(f"Model not found: {model} in: {cls.__name__} Valid models: {cls.models}")
