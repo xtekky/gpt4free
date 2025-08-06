@@ -24,7 +24,7 @@ provider_together_urls = {
 class HuggingFaceInference(AsyncGeneratorProvider, ProviderModelMixin):
     url = "https://huggingface.co"
     parent = "HuggingFace"
-    working = True
+    working = False
 
     default_model = default_model
     default_image_model = default_image_model

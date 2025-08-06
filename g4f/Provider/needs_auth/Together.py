@@ -16,7 +16,7 @@ class Together(OpenaiTemplate):
     api_base = "https://api.together.xyz/v1"
     models_endpoint = "https://api.together.xyz/v1/models"
 
-    active_by_default = False
+    active_by_default = True
     working = True
     needs_auth = True
     supports_stream = True

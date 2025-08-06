@@ -1,4 +1,4 @@
-default_model = "Qwen/Qwen2.5-72B-Instruct"
+default_model = "openai/gpt-oss-120b"
 default_image_model = "black-forest-labs/FLUX.1-dev"
 image_models = [    
     default_image_model,

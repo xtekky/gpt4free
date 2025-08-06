@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import uuid
 
 from ...typing import AsyncResult, Messages, MediaListType
@@ -83,6 +84,8 @@ class BlackForestLabs_Flux1KontextDev(AsyncGeneratorProvider, ProviderModelMixin
             if media:
                 data = FormData()
                 for i in range(len(media)):
+                    if media[i][1] is None and isinstance(media[i][0], str):
+                        media[i] = media[i][0], os.path.basename(media[i][0])
                     media[i] = (to_bytes(media[i][0]), media[i][1])
                 for image, image_name in media:
                     data.add_field(f"files", image, filename=image_name)

@@ -9,3 +9,4 @@ class OpenRouter(OpenaiTemplate):
     api_base = "https://openrouter.ai/api/v1"
     working = True
     needs_auth = True
+    active_by_default = True

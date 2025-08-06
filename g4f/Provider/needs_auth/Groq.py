@@ -8,6 +8,7 @@ class Groq(OpenaiTemplate):
     api_base = "https://api.groq.com/openai/v1"
     working = True
     needs_auth = True
+    active_by_default = True
     default_model = "mixtral-8x7b-32768"
     fallback_models = [
         "distil-whisper-large-v3-en",
