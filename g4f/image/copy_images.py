@@ -60,15 +60,15 @@ def update_filename(response, filename: str) -> str:
     timestamp = datetime.strptime(date, '%a, %d %b %Y %H:%M:%S %Z').timestamp()
     return str(int(timestamp)) + "_" + filename.split("_", maxsplit=1)[-1]
 
-async def save_response_media(response, prompt: str, tags: list[str] = [], transcript: str = None) -> AsyncIterator:
+async def save_response_media(response, prompt: str, tags: list[str] = [], transcript: str = None, content_type: str = None) -> AsyncIterator:
     """Save media from response to local file and return URL"""
     if isinstance(response, dict):
-        content_type = response.get("mimeType", "audio/mpeg")
+        content_type = response.get("mimeType", content_type or "audio/mpeg")
         transcript = response.get("transcript")
         response = response.get("data")
     elif hasattr(response, "headers"):
-        content_type = response.headers["content-type"]
-    else:
+        content_type = response.headers.get("content-type", content_type)
+    elif not content_type:
         raise ValueError("Response must be a dict or have headers")
 
     if isinstance(response, str):

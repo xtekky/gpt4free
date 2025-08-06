@@ -107,14 +107,14 @@ class StreamSession(AsyncSession):
     delete = partialmethod(request, "DELETE")
     options = partialmethod(request, "OPTIONS")
 
-if has_curl_mime:
-    class FormData(CurlMime):
-        def add_field(self, name, data=None, content_type: str = None, filename: str = None) -> None:
-            self.addpart(name, content_type=content_type, filename=filename, data=data)
-else:
+if not has_curl_mime:
     class FormData():
         def __init__(self) -> None:
             raise RuntimeError("CurlMimi in curl_cffi is missing | pip install -U curl_cffi")
+else:
+    class FormData(CurlMime):
+        def add_field(self, name, data=None, content_type: str = None, filename: str = None) -> None:
+            self.addpart(name, content_type=content_type, filename=filename, data=data)
 
 class WebSocket():
     def __init__(self, session, url, **kwargs) -> None:
