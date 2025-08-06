@@ -87,7 +87,8 @@ class Azure(OpenaiTemplate):
             if media:
                 form = FormData()
                 form.add_field("prompt", prompt)
-                form.add_field("size", f"{width}x{height}")
+                form.add_field("width", width)
+                form.add_field("height", height)
                 output_format = "png"
                 for i in range(len(media)):
                     if media[i][1] is None and isinstance(media[i][0], str):
@@ -96,10 +97,12 @@ class Azure(OpenaiTemplate):
                 for image, image_name in media:
                     form.add_field(f"image", image, filename=image_name)
             else:
+                api_endpoint = api_endpoint.replace("/edits", "/generations")
                 data = {
                     "prompt": prompt,
                     "n": 1,
-                    "size": f"{width}x{height}",
+                    "width": width,
+                    "height": height,
                     "output_format": output_format,
                 }
             async with StreamSession(proxy=kwargs.get("proxy"), headers={
@@ -108,7 +111,6 @@ class Azure(OpenaiTemplate):
             }) as session:
                 async with session.post(api_endpoint, data=form, json=data) as response:
                     data = await response.json()
-                    cls.raise_error(data, response.status)
                     await raise_for_status(response, data)
                     async for chunk in save_response_media(data["data"][0]["b64_json"], prompt, content_type=f"image/{output_format}"):
                         yield chunk
