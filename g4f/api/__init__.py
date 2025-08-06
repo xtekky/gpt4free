@@ -275,8 +275,9 @@ class Api:
                             return ErrorResponse.from_message(e.detail, e.status_code, e.headers)
                 if user is None:
                     ip = request.headers.get("X-Forwarded-For", "")[:4].strip(":.")
-                    user = request.headers.get("Cf-Ipcountry", "")
-                    user = f"{user}:{ip}" if user else ip
+                    country = request.headers.get("Cf-Ipcountry", "")
+                    user = request.headers.get("x-user", ip)
+                    user = f"{country}:{user}" if country else user
                 request = update_headers(request, user)
             response = await call_next(request)
             return response

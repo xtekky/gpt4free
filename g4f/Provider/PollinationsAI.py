@@ -113,6 +113,7 @@ class PollinationsAI(AsyncGeneratorProvider, ProviderModelMixin):
         "flux-schnell": "flux",
         "flux-pro": "flux",
         "flux": "flux",
+        "flux-kontext": "kontext",
     }
     swap_models = {value: key for key, value in model_aliases.items()}
 

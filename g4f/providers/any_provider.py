@@ -118,10 +118,10 @@ class AnyModelProviderMixin(ProviderModelMixin):
             "default": {provider.__name__: "" for provider in models.default.best_provider.providers},
         }
         cls.model_map.update({ 
-            model: {
-                provider.__name__: model for provider in providers
+            model.name: {
+                provider.__name__: model.get_long_name() for provider in providers
                 if provider.working
-            } for model, (_, providers) in models.__models__.items()
+            } for _, (model, providers) in models.__models__.items()
         })
 
         # Process special providers
@@ -149,9 +149,10 @@ class AnyModelProviderMixin(ProviderModelMixin):
                         cls.model_map[model].update({provider.__name__: model})
                 else:
                     for model in provider.get_models():
-                        if model not in cls.model_map:
-                            cls.model_map[model] = {}
-                        cls.model_map[model].update({provider.__name__: model})
+                        cleaned = clean_name(model)
+                        if cleaned not in cls.model_map:
+                            cls.model_map[cleaned] = {}
+                        cls.model_map[cleaned].update({provider.__name__: model})
             except Exception as e:
                 debug.error(f"Error getting models for provider {provider.__name__}:", e)
                 continue
@@ -163,28 +164,6 @@ class AnyModelProviderMixin(ProviderModelMixin):
                 cls.vision_models.extend(provider.vision_models)
             if hasattr(provider, 'video_models'):
                 cls.video_models.extend(provider.video_models)
-
-        # Clean model names function
-        def clean_name(name: str) -> str:
-            name = name.split("/")[-1].split(":")[0].lower()
-            # Date patterns
-            name = re.sub(r'-\d{4}-\d{2}-\d{2}', '', name)
-            # name = re.sub(r'-\d{3,8}', '', name)
-            name = re.sub(r'-\d{2}-\d{2}', '', name)
-            name = re.sub(r'-[0-9a-f]{8}$', '', name)
-            # Version patterns
-            name = re.sub(r'-(instruct|chat|preview|experimental|v\d+|fp8|bf16|hf|free|tput)$', '', name)
-            # Other replacements
-            name = name.replace("_", ".")
-            name = name.replace("c4ai-", "")
-            name = name.replace("meta-llama-", "llama-")
-            name = name.replace("llama3", "llama-3")
-            name = name.replace("flux.1-", "flux-")
-            name = name.replace("qwen1-", "qwen-1")
-            name = name.replace("qwen2-", "qwen-2")
-            name = name.replace("qwen3-", "qwen-3")
-            name = name.replace("stable-diffusion-3.5-large", "sd-3.5-large")
-            return name
 
         for provider in PROVIERS_LIST_3:
             if not provider.working:
@@ -420,6 +399,28 @@ class AnyProvider(AsyncGeneratorProvider, AnyModelProviderMixin):
             **kwargs
         ):
             yield chunk
+
+# Clean model names function
+def clean_name(name: str) -> str:
+    name = name.split("/")[-1].split(":")[0].lower()
+    # Date patterns
+    name = re.sub(r'-\d{4}-\d{2}-\d{2}', '', name)
+    # name = re.sub(r'-\d{3,8}', '', name)
+    name = re.sub(r'-\d{2}-\d{2}', '', name)
+    name = re.sub(r'-[0-9a-f]{8}$', '', name)
+    # Version patterns
+    name = re.sub(r'-(instruct|chat|preview|experimental|v\d+|fp8|bf16|hf|free|tput)$', '', name)
+    # Other replacements
+    name = name.replace("_", ".")
+    name = name.replace("c4ai-", "")
+    name = name.replace("meta-llama-", "llama-")
+    name = name.replace("llama3", "llama-3")
+    name = name.replace("flux.1-", "flux-")
+    name = name.replace("qwen1-", "qwen-1")
+    name = name.replace("qwen2-", "qwen-2")
+    name = name.replace("qwen3-", "qwen-3")
+    name = name.replace("stable-diffusion-3.5-large", "sd-3.5-large")
+    return name
 
 setattr(Provider, "AnyProvider", AnyProvider)
 Provider.__map__["AnyProvider"] = AnyProvider

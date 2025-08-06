@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-import requests
 from ...typing import AsyncResult, Messages
 from ...requests import StreamSession, raise_for_status
 from ...providers.response import ImageResponse
+from ...config import DEFAULT_MODEL
 from ..template import OpenaiTemplate
 from ..DeepInfraChat import DeepInfraChat
 from ..helper import format_media_prompt
@@ -14,28 +14,15 @@ class DeepInfra(OpenaiTemplate):
     api_base = "https://api.deepinfra.com/v1/openai"
     working = True
     active_by_default = True
-    default_model = "meta-llama/Meta-Llama-3.1-70B-Instruct"
-    default_image_model = "stabilityai/sd3.5"
+    default_model = DEFAULT_MODEL
+    vision_models = DeepInfraChat.vision_models
     model_aliases = DeepInfraChat.model_aliases
 
     @classmethod
     def get_models(cls, **kwargs):
         if not cls.models:
-            url = 'https://api.deepinfra.com/models/featured'
-            response = requests.get(url)
-            models = response.json()
-            
-            cls.models = []
-            cls.image_models = []
-            
-            for model in models:
-                if model["type"] == "text-generation":
-                    cls.models.append(model['model_name'])
-                elif model["reported_type"] == "text-to-image":
-                    cls.image_models.append(model['model_name'])
-            
-            cls.models.extend(cls.image_models)
-
+            cls.models = DeepInfraChat.get_models()
+            cls.image_models = DeepInfraChat.image_models
         return cls.models
 
     @classmethod

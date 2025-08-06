@@ -22,6 +22,9 @@ class Azure(OpenaiTemplate):
     audio_models = ["gpt-4o-mini-audio-preview"]
     vision_models = ["gpt-4.1", "o4-mini", "model-router", "flux.1-kontext-pro"]
     image_models = ["flux-1.1-pro", "flux.1-kontext-pro"]
+    model_aliases = {
+        "flux-kontext": "flux-1-kontext-pro"
+    }
     model_extra_body = {
         "gpt-4o-mini-audio-preview": {
             "audio": {
@@ -66,6 +69,8 @@ class Azure(OpenaiTemplate):
     ) -> AsyncResult:
         if not model:
             model = os.environ.get("AZURE_DEFAULT_MODEL", cls.default_model)
+        if model in cls.model_aliases:
+            model = cls.model_aliases[model]
         if not api_endpoint:
             if not cls.routes:
                 cls.get_models()

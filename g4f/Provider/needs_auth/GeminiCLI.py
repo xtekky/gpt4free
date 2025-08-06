@@ -497,7 +497,7 @@ class GeminiCLI(AsyncGeneratorProvider, ProviderModelMixin):
     login_url = "https://github.com/GewoonJaap/gemini-cli-openai"
 
     default_model = "gemini-2.5-pro"
-    fallback_models = [
+    models = [
         "gemini-2.5-pro",
         "gemini-2.5-flash",
     ]

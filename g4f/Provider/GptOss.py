@@ -4,6 +4,7 @@ from __future__ import annotations
 from ..typing import AsyncResult, Messages
 from ..providers.response import JsonConversation, Reasoning, TitleGeneration
 from ..requests import StreamSession, raise_for_status
+from ..config import DEFAULT_MODEL
 from .base_provider import AsyncGeneratorProvider, ProviderModelMixin
 from .helper import get_last_user_message
 
@@ -16,6 +17,9 @@ class GptOss(AsyncGeneratorProvider, ProviderModelMixin):
     
     default_model = "gpt-oss-120b"
     models = [default_model, "gpt-oss-20b"]
+    model_aliases = {
+        DEFAULT_MODEL: default_model,
+    }
 
     @classmethod
     async def create_async_generator(
@@ -27,8 +31,7 @@ class GptOss(AsyncGeneratorProvider, ProviderModelMixin):
         proxy: str = None,
         **kwargs
     ) -> AsyncResult:
-        if not model:
-            model = cls.default_model
+        model = cls.get_model(model)
         user_message = get_last_user_message(messages)
         cookies = {}
         if conversation is None:

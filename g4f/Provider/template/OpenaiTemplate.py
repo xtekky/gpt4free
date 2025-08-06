@@ -10,6 +10,7 @@ from ...image import use_aspect_ratio
 from ...image.copy_images import save_response_media
 from ...providers.response import FinishReason, ToolCalls, Usage, ImageResponse, ProviderInfo, AudioResponse, Reasoning
 from ...tools.media import render_messages
+from ...tools.run_tools import AuthManager
 from ...errors import MissingAuthError
 from ... import debug
 
@@ -33,16 +34,18 @@ class OpenaiTemplate(AsyncGeneratorProvider, ProviderModelMixin, RaiseErrorMixin
                     api_base = cls.api_base
                 if api_key is None and cls.api_key is not None:
                     api_key = cls.api_key
+                if not api_key:
+                    api_key = AuthManager.load_api_key(cls)
                 if api_key is not None:
                     headers["authorization"] = f"Bearer {api_key}"
                 response = requests.get(f"{api_base}/models", headers=headers, verify=cls.ssl)
                 raise_for_status(response)
                 data = response.json()
                 data = data.get("data") if isinstance(data, dict) else data
-                cls.image_models = [model.get("id") for model in data if model.get("image")]
+                cls.image_models = [model.get("id", model.get("name")) for model in data if model.get("image")]
                 cls.vision_models = cls.vision_models.copy()
-                cls.vision_models += [model.get("id") for model in data if model.get("vision")]
-                cls.models = [model.get("id") for model in data]
+                cls.vision_models += [model.get("id", model.get("name")) for model in data if model.get("vision")]
+                cls.models = [model.get("id", model.get("name")) for model in data]
                 if cls.sort_models:
                     cls.models.sort()
             except Exception as e:
