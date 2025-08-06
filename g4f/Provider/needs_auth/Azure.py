@@ -20,7 +20,8 @@ class Azure(OpenaiTemplate):
     login_url = "https://discord.gg/qXA4Wf4Fsm"
     routes: dict[str, str] = {}
     audio_models = ["gpt-4o-mini-audio-preview"]
-    vision_models = ["gpt-4.1", "o4-mini", "model-router"]
+    vision_models = ["gpt-4.1", "o4-mini", "model-router", "flux.1-kontext-pro"]
+    image_models = ["flux-1.1-pro", "flux.1-kontext-pro"]
     model_extra_body = {
         "gpt-4o-mini-audio-preview": {
             "audio": {
@@ -77,7 +78,7 @@ class Azure(OpenaiTemplate):
             api_key = cls.api_keys.get(model, cls.api_keys.get("default"))
             if not api_key:
                 raise ValueError(f"API key is required for Azure provider. Ask for API key in the {cls.login_url} Discord server.")
-        if "/images/" in api_endpoint:
+        if api_endpoint and "/images/" in api_endpoint:
             prompt = format_media_prompt(messages, kwargs.get("prompt"))
             width, height = get_width_height(kwargs.get("aspect_ratio", "1:1"), kwargs.get("width"), kwargs.get("height"))
             output_format = kwargs.get("output_format", "webp")
