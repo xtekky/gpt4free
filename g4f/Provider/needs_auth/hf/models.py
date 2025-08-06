@@ -1,4 +1,6 @@
-default_model = "Qwen/Qwen2.5-72B-Instruct"
+from ....config import DEFAULT_MODEL
+
+default_model = DEFAULT_MODEL
 default_image_model = "black-forest-labs/FLUX.1-dev"
 image_models = [    
     default_image_model,

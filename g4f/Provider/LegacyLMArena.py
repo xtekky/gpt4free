@@ -17,7 +17,7 @@ from ..errors import ModelNotFoundError, ResponseError
 from .. import debug
 
 class LegacyLMArena(AsyncGeneratorProvider, ProviderModelMixin):
-    label = "Legacy LM Arena"
+    label = "LMArena (Legacy)"
     url = "https://legacy.lmarena.ai"
     api_endpoint = "/queue/join?"
     

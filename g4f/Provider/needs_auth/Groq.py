@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from ..template import OpenaiTemplate
+from ...config import DEFAULT_MODEL
 
 class Groq(OpenaiTemplate):
     url = "https://console.groq.com/playground"
@@ -8,7 +9,8 @@ class Groq(OpenaiTemplate):
     api_base = "https://api.groq.com/openai/v1"
     working = True
     needs_auth = True
-    default_model = "mixtral-8x7b-32768"
+    active_by_default = True
+    default_model = DEFAULT_MODEL
     fallback_models = [
         "distil-whisper-large-v3-en",
         "gemma2-9b-it",
@@ -29,4 +31,8 @@ class Groq(OpenaiTemplate):
         "whisper-large-v3",
         "whisper-large-v3-turbo",
     ]
-    model_aliases = {"mixtral-8x7b": "mixtral-8x7b-32768", "llama2-70b": "llama2-70b-4096"}
+    model_aliases = {
+        "mixtral-8x7b": "mixtral-8x7b-32768",
+        "llama2-70b": "llama2-70b-4096",
+        "moonshotai/Kimi-K2-Instruct": "moonshotai/kimi-k2-Instruct"
+    }   

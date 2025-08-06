@@ -126,6 +126,9 @@ class LMArenaBeta(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
 
     default_model = list(text_models.keys())[0]
     models = list(text_models) + list(image_models)
+    model_aliases = {
+        "flux-kontext": "flux-1-kontext-pro",
+    }
     image_models = list(image_models)
     vision_models = vision_models
 
@@ -162,6 +165,8 @@ class LMArenaBeta(AsyncGeneratorProvider, ProviderModelMixin, AuthFileMixin):
         is_image_model = model in image_models
         if not model:
             model = cls.default_model
+        if model in cls.model_aliases:
+            model = cls.model_aliases[model]
         if model in image_models:
             model = image_models[model]
         elif model in text_models:

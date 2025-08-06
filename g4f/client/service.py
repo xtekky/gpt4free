@@ -83,7 +83,7 @@ def get_model_and_provider(model    : Union[Model, str],
     provider_name = provider.__name__ if hasattr(provider, "__name__") else type(provider).__name__
 
     if isinstance(model, Model):
-        model = model.name
+        model = model.get_long_name()
 
     if not ignore_working and not provider.working:
         raise ProviderNotWorkingError(f"{provider_name} is not working")

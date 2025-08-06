@@ -1,11 +1,8 @@
 from __future__ import annotations
 
-import requests
-from typing import Union
 
-from ...typing import AsyncResult, Messages, MediaListType
 from ..template import OpenaiTemplate
-from ...requests import StreamSession, raise_for_status
+from ...config import DEFAULT_MODEL
 from ...errors import ModelNotFoundError
 from ... import debug
 
@@ -16,24 +13,25 @@ class Together(OpenaiTemplate):
     api_base = "https://api.together.xyz/v1"
     models_endpoint = "https://api.together.xyz/v1/models"
 
-    active_by_default = False
+    active_by_default = True
     working = True
     needs_auth = True
     supports_stream = True
     supports_system_message = True
     supports_message_history = True
 
-    default_model = 'meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8'
+    default_model = DEFAULT_MODEL
     default_vision_model = default_model
     default_image_model = 'black-forest-labs/FLUX.1.1-pro'
     vision_models = [
+        default_vision_model,
         'Qwen/Qwen2-VL-72B-Instruct',
         'Qwen/Qwen2.5-VL-72B-Instruct',
         'arcee-ai/virtuoso-medium-v2',
         'arcee_ai/arcee-spotlight',
         'meta-llama/Llama-3.2-11B-Vision-Instruct-Turbo',
         'meta-llama/Llama-3.2-90B-Vision-Instruct-Turbo',
-        default_vision_model,
+        'meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8',
         'meta-llama/Llama-4-Scout-17B-16E-Instruct',
         'meta-llama/Llama-Vision-Free',
     ]

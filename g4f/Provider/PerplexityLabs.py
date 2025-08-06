@@ -66,11 +66,25 @@ class PerplexityLabs(AsyncGeneratorProvider, ProviderModelMixin):
                 assert(await ws.receive_str() == "3probe")
                 await ws.send_str("5")
                 assert(await ws.receive_str() == "6")
+                format_messages = []
+                last_is_assistant = False
+                for message in messages:
+                    if message["role"] == "assistant":
+                        if last_is_assistant:
+                            continue
+                        last_is_assistant = True
+                    else:
+                        last_is_assistant = False
+                    if isinstance(message["content"], str):
+                        format_messages.append({
+                            "role": message["role"],
+                            "content": message["content"]
+                        })
                 message_data = {
                     "version": "2.18",
                     "source": "default",
                     "model": model,
-                    "messages": [message for message in messages if isinstance(message["content"], str)],
+                    "messages": format_messages
                 }
                 await ws.send_str("42" + json.dumps(["perplexity_labs", message_data]))
                 last_message = 0
@@ -92,7 +106,7 @@ class PerplexityLabs(AsyncGeneratorProvider, ProviderModelMixin):
                         # Handle error responses
                         if message_type.endswith("_query_progress") and data.get("status") == "failed":
                             error_message = data.get("text", "Unknown API error")
-                            raise ResponseError(f"API Error: {error_message}")
+                            raise ResponseError(f"API Error: {error_message}\n")
                         
                         # Handle normal responses
                         if "output" in data:

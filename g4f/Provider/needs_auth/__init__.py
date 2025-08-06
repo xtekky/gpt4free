@@ -10,8 +10,10 @@ from .Custom            import Feature
 from .DeepInfra         import DeepInfra
 from .DeepSeek          import DeepSeek
 from .DeepSeekAPI       import DeepSeekAPI
+from .FenayAI           import FenayAI
 from .Gemini            import Gemini
 from .GeminiPro         import GeminiPro
+from .GeminiCLI         import GeminiCLI
 from .GigaChat          import GigaChat
 from .GithubCopilot     import GithubCopilot
 from .GithubCopilotAPI  import GithubCopilotAPI

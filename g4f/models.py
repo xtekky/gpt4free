@@ -12,11 +12,12 @@ from .Provider import (
     Copilot,
     DeepInfraChat,
     Free2GPT,
+    GptOss,
     HuggingSpace,
     Grok,
     DeepseekAI_JanusPro7b,
-    DeepSeekAPI,
     ImageLabs,
+    Kimi,
     LambdaChat,
     OIVSCodeSer2,
     OIVSCodeSer0501,
@@ -32,18 +33,23 @@ from .Provider import (
     Yqcloud,
     
     ### Needs Auth ###
+    Azure,
     BingCreateImages,
     CopilotAccount,
     Gemini,
+    GeminiCLI,
     GeminiPro,
     HuggingChat,
     HuggingFace,
     HuggingFaceMedia,
     HuggingFaceAPI,
+    LMArenaBeta,
+    Groq,
     MetaAI,
     MicrosoftDesigner,
     OpenaiAccount,
     OpenaiChat,
+    OpenRouter,
 )
 
 class ModelRegistry:
@@ -115,6 +121,11 @@ class Model:
     name: str
     base_provider: str
     best_provider: ProviderType = None
+    long_name: Optional[str] = None
+
+    def get_long_name(self) -> str:
+        """Get the long name of the model, if available."""
+        return self.long_name if self.long_name else self.name
 
     def __post_init__(self):
         """Auto-register model after initialization"""
@@ -276,6 +287,13 @@ gpt_4_5 = Model(
     name          = 'gpt-4.5',
     base_provider = 'OpenAI',
     best_provider = OpenaiChat
+)
+
+gpt_oss_120b = Model(
+    name          = 'gpt-oss-120b',
+    long_name     = 'openai/gpt-oss-120b',
+    base_provider = 'OpenAI',
+    best_provider = IterListProvider([GptOss, Together, DeepInfraChat, HuggingFace, OpenRouter, Groq])
 )
 
 # dall-e
@@ -510,13 +528,13 @@ gemini_2_0_flash_thinking_with_apps = Model(
 gemini_2_5_flash = Model(
     name          = 'gemini-2.5-flash',
     base_provider = 'Google',
-    best_provider = IterListProvider([Gemini, GeminiPro])
+    best_provider = IterListProvider([Gemini, GeminiPro, GeminiCLI])
 )
 
 gemini_2_5_pro = Model(
     name          = 'gemini-2.5-pro',
     base_provider = 'Google',
-    best_provider = IterListProvider([Gemini])
+    best_provider = IterListProvider([Gemini, GeminiPro, GeminiCLI])
 )
 
 # codegemma
@@ -846,6 +864,13 @@ grok_3_r1 = Model(
     best_provider = Grok
 )
 
+kimi = Model(
+    name = 'kimi-k2',
+    base_provider = 'kimi.com',
+    best_provider = IterListProvider([Kimi, HuggingFace, DeepInfraChat, Groq]),
+    long_name = "moonshotai/Kimi-K2-Instruct"
+)
+
 ### Perplexity AI ### 
 sonar = Model(
     name = 'sonar',
@@ -990,25 +1015,13 @@ flux_canny = ImageModel(
 )
 
 flux_kontext_max = ImageModel(
-    name = 'flux-kontext-max',
+    name = 'flux-kontext',
     base_provider = 'Black Forest Labs',
-    best_provider = Together
+    best_provider = IterListProvider([PollinationsAI, Azure, LMArenaBeta, Together])
 )
 
 flux_dev_lora = ImageModel(
     name = 'flux-dev-lora',
-    base_provider = 'Black Forest Labs',
-    best_provider = Together
-)
-
-flux_kontext_pro = ImageModel(
-    name = 'flux-kontext-pro',
-    base_provider = 'Black Forest Labs',
-    best_provider = Together
-)
-
-flux_kontext_dev = ImageModel(
-    name = 'flux-kontext-dev',
     base_provider = 'Black Forest Labs',
     best_provider = Together
 )

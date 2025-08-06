@@ -40,6 +40,7 @@ from .Copilot              import Copilot
 from .DeepInfraChat        import DeepInfraChat
 from .DuckDuckGo           import DuckDuckGo
 from .Free2GPT             import Free2GPT
+from .GptOss               import GptOss
 from .ImageLabs            import ImageLabs
 from .Kimi                 import Kimi
 from .LambdaChat           import LambdaChat

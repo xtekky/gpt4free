@@ -366,7 +366,7 @@ class ImageResponse(MediaResponse):
         if self.get("width") and self.get("height"):
             return "\n".join([
                 f'<a href="{html.escape(url)}" data-width="{self.get("width")}" data-height="{self.get("height")}" data-source="{html.escape(self.get("source_url", ""))}">'
-                + f'<img src="{url.replace("/media/", "/thumbnail/")}" alt="{html.escape(self.alt)}"></a>'
+                + f'<img src="{url.replace("/media/", "/thumbnail/")}" alt="{html.escape(" ".join(self.alt.split()))}"></a>'
                 for url in self.get_list()
             ])
         return format_images_markdown(self.urls, self.alt, self.get("preview"))

@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-import random
+import requests
 from .template import OpenaiTemplate
 from ..errors import ModelNotFoundError
+from ..config import DEFAULT_MODEL
 from .. import debug
 
 
@@ -14,74 +15,34 @@ class DeepInfraChat(OpenaiTemplate):
     api_endpoint = "https://api.deepinfra.com/v1/openai/chat/completions"
     working = True
 
-    default_model = 'deepseek-ai/DeepSeek-V3-0324'
-    default_vision_model = 'microsoft/Phi-4-multimodal-instruct'
+    default_model = DEFAULT_MODEL
+    default_vision_model = DEFAULT_MODEL
     vision_models = [
         default_vision_model,
-        'meta-llama/Llama-3.2-90B-Vision-Instruct'
+        'meta-llama/Llama-3.2-90B-Vision-Instruct',
+        'openai/gpt-oss-120b',
+        'openai/gpt-oss-20b',
     ]
-    models = [
-        # cognitivecomputations
-        'cognitivecomputations/dolphin-2.6-mixtral-8x7b',
-        'cognitivecomputations/dolphin-2.9.1-llama-3-70b',
 
-        # deepinfra
-        'deepinfra/airoboros-70b',
+    @classmethod
+    def get_models(cls, **kwargs):
+        if not cls.models:
+            url = 'https://api.deepinfra.com/models/featured'
+            response = requests.get(url)
+            models = response.json()
+            
+            cls.models = []
+            cls.image_models = []
+            
+            for model in models:
+                if model["type"] == "text-generation":
+                    cls.models.append(model['model_name'])
+                elif model["reported_type"] == "text-to-image":
+                    cls.image_models.append(model['model_name'])
+            
+            cls.models.extend(cls.image_models)
 
-        # deepseek-ai
-        default_model,
-        'deepseek-ai/DeepSeek-V3-0324-Turbo',
-
-        'deepseek-ai/DeepSeek-R1-0528-Turbo',
-        'deepseek-ai/DeepSeek-R1-0528',
-        
-        'deepseek-ai/DeepSeek-Prover-V2-671B',
-        
-        'deepseek-ai/DeepSeek-V3',
-        
-        'deepseek-ai/DeepSeek-R1',
-        'deepseek-ai/DeepSeek-R1-Turbo',
-        'deepseek-ai/DeepSeek-R1-Distill-Llama-70B',
-        'deepseek-ai/DeepSeek-R1-Distill-Qwen-32B',
-
-        # google (gemma)
-        'google/gemma-1.1-7b-it',
-        'google/gemma-2-9b-it',
-        'google/gemma-2-27b-it',
-        'google/gemma-3-4b-it',
-        'google/gemma-3-12b-it',
-        'google/gemma-3-27b-it',
-        
-        # google (codegemma)
-        'google/codegemma-7b-it',
-
-        # lizpreciatior
-        'lizpreciatior/lzlv_70b_fp16_hf',
-
-        # meta-llama
-        'meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8',
-        'meta-llama/Llama-4-Scout-17B-16E-Instruct',
-        'meta-llama/Meta-Llama-3.1-8B-Instruct',
-        'meta-llama/Llama-3.3-70B-Instruct-Turbo',
-        'meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo',
-
-        # microsoft 
-        'microsoft/phi-4-reasoning-plus',
-        'microsoft/phi-4',  
-              
-        'microsoft/WizardLM-2-8x22B',
-        'microsoft/WizardLM-2-7B',
-
-        # mistralai
-        'mistralai/Mistral-Small-3.1-24B-Instruct-2503',
-
-        # Qwen
-        'Qwen/Qwen3-235B-A22B',
-        'Qwen/Qwen3-30B-A3B',
-        'Qwen/Qwen3-32B',
-        'Qwen/Qwen3-14B',
-        'Qwen/QwQ-32B',
-    ] + vision_models
+        return cls.models
 
     model_aliases = {
         # cognitivecomputations

@@ -122,6 +122,8 @@ class Backend_Api(Api):
         def jsonify_provider_models(**kwargs):
             try:
                 response = self.get_provider_models(**kwargs)
+                if response is None:
+                    return jsonify({"error": {"message": "Provider not found"}}), 404
             except MissingAuthError as e:
                 return jsonify({"error": {"message": f"{type(e).__name__}: {e}"}}), 401
             except Exception as e:
@@ -596,10 +598,7 @@ class Backend_Api(Api):
         api_key = request.headers.get("x_api_key")
         api_base = request.headers.get("x_api_base")
         ignored = request.headers.get("x_ignored", "").split()
-        models = super().get_provider_models(provider, api_key, api_base, ignored)
-        if models is None:
-            return "Provider not found", 404
-        return models
+        return super().get_provider_models(provider, api_key, api_base, ignored)
 
     def _format_json(self, response_type: str, content = None, **kwargs) -> str:
         """
