@@ -78,7 +78,7 @@ class PerplexityLabs(AsyncGeneratorProvider, ProviderModelMixin):
                     if isinstance(message["content"], str):
                         format_messages.append({
                             "role": message["role"],
-                            "text": message["content"]
+                            "content": message["content"]
                         })
                 message_data = {
                     "version": "2.18",
