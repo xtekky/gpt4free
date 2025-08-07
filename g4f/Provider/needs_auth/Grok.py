@@ -62,6 +62,12 @@ class Grok(AsyncAuthedProvider, ProviderModelMixin):
             while True:
                 if has_headers:
                     break
+                textarea = await page.select("textarea", 180)
+                await textarea.send_keys("Hello")
+                await asyncio.sleep(1)
+                button = await page.select("button[type='submit']")
+                if button:
+                    await button.click()
                 await asyncio.sleep(1)
             auth_result.cookies = {}
             for c in await page.send(nodriver.cdp.network.get_cookies([cls.url])):

@@ -65,6 +65,7 @@ class EasyChat(OpenaiTemplate, AuthFileMixin):
                     if not modal:
                         break
                     debug.log("EasyChaat: Waiting for captcha verification...")
+                    await asyncio.sleep(1)
                 if cls.captchaToken:
                     debug.log("EasyChat: Captcha token found, proceeding.")
                     break
