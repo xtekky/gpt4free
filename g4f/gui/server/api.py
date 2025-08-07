@@ -61,15 +61,6 @@ class Api:
         if provider in Provider.__map__:
             provider = Provider.__map__[provider]
             if issubclass(provider, ProviderModelMixin):
-                # Special handling for NVIDIA provider
-                if provider.__name__ == "NVIDIA":
-                    # Check if provider has get_provider_models_async method
-                    if hasattr(provider, "get_provider_models_async"):
-                        # For now, fall back to sync method since this is a sync context
-                        # In a real implementation, this would be handled differently
-                        if hasattr(provider, "get_provider_models"):
-                            return provider.get_provider_models(api_key=api_key)
-                
                 has_grouped_models = hasattr(provider, "get_grouped_models")
                 method = provider.get_grouped_models if has_grouped_models else provider.get_models
                 if "api_key" in signature(provider.get_models).parameters:
