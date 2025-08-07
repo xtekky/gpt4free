@@ -45,13 +45,13 @@ class EasyChat(OpenaiTemplate, AuthFileMixin):
             cls.captchaToken = args.pop("captchaToken")
             if cls.captchaToken:
                 debug.log("EasyChat: Using cached captchaToken.")
-        def on_request(event: nodriver.cdp.network.RequestWillBeSent, page=None):
-            if event.request.url != cls.api_endpoint:
-                return
-            if not event.request.post_data:
-                return
-            cls.captchaToken = json.loads(event.request.post_data).get("captchaToken")
         async def callback(page):
+            def on_request(event: nodriver.cdp.network.RequestWillBeSent, page=None):
+                if event.request.url != cls.api_endpoint:
+                    return
+                if not event.request.post_data:
+                    return
+                cls.captchaToken = json.loads(event.request.post_data).get("captchaToken")
             await page.send(nodriver.cdp.network.enable())
             page.add_handler(nodriver.cdp.network.RequestWillBeSent, on_request)
             button = await page.find("我已知晓")
