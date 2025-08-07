@@ -9,4 +9,4 @@ class GithubCopilotAPI(OpenaiAPI):
     working = True
     api_base = "https://api.githubcopilot.com"
     needs_auth = True
-
+    models_needs_auth = True

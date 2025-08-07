@@ -8,3 +8,4 @@ class xAI(OpenaiTemplate):
     api_base = "https://api.x.ai/v1"
     working = True
     needs_auth = True
+    models_needs_auth = True

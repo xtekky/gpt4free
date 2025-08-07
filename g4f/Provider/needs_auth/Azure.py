@@ -23,7 +23,7 @@ class Azure(OpenaiTemplate):
     vision_models = ["gpt-4.1", "o4-mini", "model-router", "flux.1-kontext-pro"]
     image_models = ["flux-1.1-pro", "flux.1-kontext-pro"]
     model_aliases = {
-        "flux-kontext": "flux-1-kontext-pro"
+        "flux-kontext": "flux.1-kontext-pro"
     }
     model_extra_body = {
         "gpt-4o-mini-audio-preview": {
@@ -92,8 +92,8 @@ class Azure(OpenaiTemplate):
             if media:
                 form = FormData()
                 form.add_field("prompt", prompt)
-                form.add_field("width", width)
-                form.add_field("height", height)
+                form.add_field("width", str(width))
+                form.add_field("height", str(height))
                 output_format = "png"
                 for i in range(len(media)):
                     if media[i][1] is None and isinstance(media[i][0], str):

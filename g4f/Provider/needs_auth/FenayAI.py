@@ -9,6 +9,7 @@ class FenayAI(OpenaiTemplate):
     api_base = "https://fenayai.com/v1"
     working = True
     needs_auth = True
+    models_needs_auth = True
     default_model = DEFAULT_MODEL.split("/")[-1]
 
     @classmethod

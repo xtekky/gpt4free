@@ -26,6 +26,7 @@ class ThebApi(OpenaiTemplate):
     api_base = "https://api.theb.ai/v1"
     working = True
     needs_auth = True
+    models_needs_auth = True
 
     default_model = "theb-ai"
     fallback_models = list(models)

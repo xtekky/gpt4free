@@ -8,7 +8,7 @@ class CablyAI(OpenaiTemplate):
     login_url = "https://cablyai.com"
     api_base = "https://cablyai.com/v1"
 
-    working = True
+    working = False
     needs_auth = True
     supports_stream = True
     supports_system_message = True

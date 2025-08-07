@@ -13,3 +13,4 @@ class DeepSeek(OpenaiAPI):
     supports_message_history = True
     default_model = "deepseek-chat"
     fallback_models = [default_model]
+    models_needs_auth = True
